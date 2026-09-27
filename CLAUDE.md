@@ -43,7 +43,19 @@ One package at the repository root, published from the root with the `files` whi
 - `bun run build`: `dist`.
 - `bun run format`: oxfmt.
 
-All three of check, test and build pass before a commit, and so does `bun run --cwd docs build` when the docs changed. CI (`.github/workflows/ci.yml`) runs them on every push to main and every PR. Publishing a GitHub release runs `release.yml`, which sets the version from the tag and publishes with npm Trusted Publishing; `package.json` stays at `0.0.0`.
+All three of check, test and build pass before a commit, and so does `bun run --cwd docs build` when the docs changed. CI (`.github/workflows/ci.yml`) runs them on every push to main and every PR. Never start a dev or preview server; Bas runs the docs site himself when a change needs a look.
+
+## Working here
+
+- Work happens on `main`. AfterMotion reads this checkout live, so every commit on `main` must pass check, test and build: a broken `main` breaks AfterMotion at once.
+- An issue closes through its commit: `Closes #<n>` in the message body, with a line on why this API and not the one proposed. Commit freely; push and release only when Bas asks.
+- Never `git stash`, `git reset`, `git restore` or `git clean`, and never rewrite a commit: other agents may work in this checkout at the same time.
+
+## Releases
+
+- Publishing a GitHub release (`gh release create v<version>`, or Bas's `/release` skill) runs `release.yml`: it sets the version from the tag, checks, tests, builds, publishes with npm Trusted Publishing and deploys the docs. `package.json` stays at `0.0.0`. A version already on npm is skipped, so a failed run can run again.
+- While the version is `0.x`, a breaking change bumps the minor and everything else the patch.
+- Ruimte takes a release only when its own repository bumps `@basmilius/react-ui`; AfterMotion moves the commit its CI pins. Neither happens from here: after a release, name the version on the issues it closed so the apps know what to take.
 
 ## Design rules
 
