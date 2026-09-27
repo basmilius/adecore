@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import i18next from 'i18next';
-import { X } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { ButtonGroup } from './ButtonGroup.tsx';
 import { ColorSwatch } from './ColorSwatch.tsx';
 import { Field, FormError } from './Field.tsx';
@@ -123,6 +123,19 @@ describe('a field', () => {
     test('draws a text area at the size of an input, without a handle unless it asks for one', () => {
         expect(render(<TextArea aria-label="Note" />)).toContain('class="field h-auto min-h-16 py-1.5 resize-none"');
         expect(render(<TextArea aria-label="Draft" size="sm" resize="vertical" />)).toContain('class="field h-auto min-h-16 py-1.5 field-sm resize-y"');
+    });
+
+    test('draws an icon in front of the text inside the box of the field, and keeps the field on the input', () => {
+        const markup = render(
+            <Field label="Search">
+                <Input icon={Search} size="sm" className="grow" />
+            </Field>
+        );
+        expect(markup).toContain('<span class="field relative flex p-0 field-sm grow"><svg');
+        expect(markup).toContain('width="12"');
+        const control = /<input id="([^"]+)"/.exec(markup)?.[1];
+        expect(markup).toContain(`<label for="${control}"`);
+        expect(render(<Input icon={Search} aria-label="Search" />)).toContain('width="14"');
     });
 
     test('says what went wrong as an alert', () => {

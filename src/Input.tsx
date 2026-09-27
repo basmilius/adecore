@@ -1,25 +1,50 @@
 import type { ComponentProps } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import clsx from 'clsx';
 import { useFieldControl } from './field-context.ts';
+import { Icon } from './Icon.tsx';
 
 export interface InputProps extends Omit<ComponentProps<'input'>, 'size'> {
     /* `sm` is the height of a small button: a row of tools, or a name typed in place of the label it renames. */
     size?: 'md' | 'sm';
     /* A branch, a path or anything else read back letter by letter. */
     mono?: boolean;
+    /* Drawn in front of the text, such as a magnifier on a search field. `className` then goes to the box around the icon and the input; `ref` stays on the input. */
+    icon?: LucideIcon;
 }
 
 /* The one text input: one border and one focus ring at the one height or the compact one. */
-export function Input({ size = 'md', mono = false, className, id, ...props }: InputProps) {
+export function Input({ size = 'md', mono = false, icon, className, id, ...props }: InputProps) {
     const field = useFieldControl();
+    const small = size === 'sm';
+    const control = {
+        id: id ?? field?.id,
+        'aria-describedby': field?.describedBy,
+        'aria-invalid': field?.invalid || undefined,
+        ...props
+    };
+
+    if (icon === undefined) {
+        return <input {...control} className={clsx('field', small && 'field-sm', mono && 'font-mono text-code', className)} />;
+    }
+
+    // The input fills the whole box and the icon lets clicks through, so a click on the icon still lands in the input.
     return (
-        <input
-            id={id ?? field?.id}
-            aria-describedby={field?.describedBy}
-            aria-invalid={field?.invalid || undefined}
-            {...props}
-            className={clsx('field', size === 'sm' && 'field-sm', mono && 'font-mono text-code', className)}
-        />
+        <span className={clsx('field relative flex p-0', small && 'field-sm', className)}>
+            <Icon
+                icon={icon}
+                size={small ? 12 : 14}
+                className={clsx('pointer-events-none absolute top-1/2 -translate-y-1/2 text-text-faint', small ? 'left-2' : 'left-2.5')}
+            />
+            <input
+                {...control}
+                className={clsx(
+                    'min-w-0 flex-1 bg-transparent outline-none placeholder:text-text-faint',
+                    small ? 'pr-2 pl-7' : 'pr-2.5 pl-8',
+                    mono && 'font-mono text-code'
+                )}
+            />
+        </span>
     );
 }
 

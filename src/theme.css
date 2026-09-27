@@ -292,6 +292,10 @@
     }
     .field::placeholder { color: var(--text-faint); }
     .field:focus-visible { outline: 2px solid var(--accent); outline-offset: -1px; }
+    /* A field with an icon is a box around a bare input: the box wears the outline the input would. */
+    .field:has(> input:focus-visible) { outline: 2px solid var(--accent); outline-offset: -1px; }
+    /* A value shown in a field but not typed into, such as a chosen folder beside the button that picks it. */
+    input.field[readonly], .field > input[readonly] { color: var(--text-muted); text-overflow: ellipsis; }
     /* At the height of a small button: a row of tools, and a name typed in place of the label it renames. */
     .field-sm {
         height: 28px;
