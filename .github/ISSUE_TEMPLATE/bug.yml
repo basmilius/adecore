@@ -1,6 +1,5 @@
 name: Bug
 description: A component that does not do what its docs or its types say.
-title: "[Bug] "
 labels: ["Bug"]
 body:
   - type: dropdown
@@ -26,6 +25,13 @@ body:
       label: Reproduction
       description: The smallest piece of code that shows it, or the file and line in the app.
       render: tsx
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact on the other app
+      description: Whether the other app draws the same component in the same way, with its call sites, or that it does not.
     validations:
       required: true
   - type: input

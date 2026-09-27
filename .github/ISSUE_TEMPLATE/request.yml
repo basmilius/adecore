@@ -1,6 +1,5 @@
 name: Request
 description: Something an app needs from the library, a new component, prop or variant.
-title: "[Request] "
 labels: ["Enhancement"]
 body:
   - type: markdown
@@ -18,25 +17,26 @@ body:
     validations:
       required: true
   - type: textarea
-    id: need
+    id: problem
     attributes:
-      label: What the app needs
-      description: What a person does or sees, and why the library's current parts do not cover it.
+      label: Problem
+      description: What is missing or wrong, the call sites in the app as `path:line`, and how the app works around it today.
     validations:
       required: true
   - type: textarea
-    id: where
+    id: wish
     attributes:
-      label: Where in the app
-      description: The surface and the files, such as `apps/client/src/shell/Sidebar.tsx`, and how it is solved there today.
+      label: Wish
+      description: The need as what a person does or sees, not a fix. A proposed API is optional; put it in a `tsx` block.
     validations:
       required: true
   - type: textarea
-    id: proposal
+    id: impact
     attributes:
-      label: Proposed API
-      description: Optional. A component, a prop or a variant, with a short example.
-      render: tsx
+      label: Impact on the other app
+      description: The other app's call sites of the same component or pattern that a change would touch, and whether it would change what they draw or break them. Say so when there are none.
+    validations:
+      required: true
   - type: checkboxes
     id: breaking
     attributes:

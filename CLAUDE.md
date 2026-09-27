@@ -9,7 +9,9 @@ Two apps, and later more:
 - Ruimte, `../ruimte` (`/Users/bas/Development/Projects/ruimte`, public). The UI is in `apps/client/src` and `packages/agents-react/src`. Its root `CLAUDE.md` holds its design rules.
 - AfterMotion, `../aftermotion` (`/Users/bas/Development/Projects/aftermotion`, private). The UI is in `apps/client/src`.
 
-Both use a local checkout of this repository and read `src` through the `source` export condition, so neither needs a build of it. Ruimte links it with `bun link`, which makes a change live at once; AfterMotion depends on `file:../react-ui`, which Bun copies, so a change reaches it on its next `bun install`.
+Ruimte depends on the release on npm and swaps in this checkout with `bun link` while a change is in progress; AfterMotion links this checkout (`link:`) and CI checks it out at a pinned commit. Both read `src` through the `source` export condition, so neither needs a build of it.
+
+An issue from either app has three sections: `## Problem` (what is missing or wrong, with the app's call sites and its workaround), `## Wish` (the need, not a fix) and `## Impact on <the other app>` (the other app's call sites a change would touch). Take the impact section as a starting point, not as the answer: read the call sites in both apps yourself before you choose an API. An issue that lacks a section gets a comment asking for it before any work starts.
 
 ## Changing the public API
 
