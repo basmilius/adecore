@@ -2,6 +2,8 @@
 
 React components for desktop-grade apps: menus, dialogs, popovers, tooltips, buttons, fields, toasts, a settings dialog, keyboard shortcuts, formatters for numbers and dates, and a theme to draw them with. Built on React 19, [Base UI](https://base-ui.com), [Lucide](https://lucide.dev) and Tailwind 4.
 
+The documentation, with a live demo of every component, is at [react-ui.bas.dev](https://react-ui.bas.dev).
+
 ## Install
 
 ```sh

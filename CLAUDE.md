@@ -22,7 +22,7 @@ Both use a local checkout of this repository and read `src` through the `source`
 
 ## Layout
 
-One package at the repository root, published from the root with the `files` whitelist in `package.json`. The docs site will be a workspace in `docs` once it exists (then `"workspaces": ["docs"]` goes into the root `package.json`).
+One package at the repository root, published from the root with the `files` whitelist in `package.json`. The docs site is the one workspace, `docs`.
 
 - `src/index.ts`: the barrel, `@basmilius/react-ui`. Explicit named exports only, no `export *` except the `export * as` of a compound component.
 - `src/settings/index.ts`, `src/format/index.ts`, `src/testing/index.ts`: the other entry points.
@@ -31,6 +31,8 @@ One package at the repository root, published from the root with the `files` whi
 - `src/locales/en.json`, `nl.json`: the `ui` namespace. English is the source; Dutch has every key English has (`locales.test.ts`).
 - Internal modules (not exported): `dialog-layer.ts`, `error-boundary.ts`, `file-icon.ts` except `FILE_TREE_ICONS`, `shortcut-hints.ts`, `wipe-split.ts`, `class-name.ts`, `merge-refs.ts`, `field-context.ts`, `icon-button-size.ts`, `zoom.ts` except `ZOOM_PRESETS`.
 - `scripts/build.ts`: `tsc` into `dist`, one `.js` and one `.d.ts` per source file, then the theme copied.
+- `docs`: the VitePress site at `https://react-ui.bas.dev`, deployed as a Cloudflare Worker with static assets (`wrangler.toml`) by `release.yml`, or from main by `docs.yml`. It resolves `@basmilius/react-ui` to `src` through the `source` condition of every entry point (`.vitepress/library-source.ts`), since Bun cannot link the root package into a workspace. A page shows a demo with `<Demo src="group/name" />`, which mounts `docs/demos/group/name.tsx` as a React island and prints the file under it; `docs/demos/shared` holds what demos import and is no demo. The theme page reads its tokens from `src/theme.css` at build time.
+- `docs/docs.test.ts` fails when a name in the export snapshot or a part of a compound component is mentioned on no page; `docs/demos.test.tsx` renders every demo. Both run in `bun run test`, so a new export needs a line in the docs in the same change.
 
 ## Scripts
 
@@ -39,7 +41,7 @@ One package at the repository root, published from the root with the `files` whi
 - `bun run build`: `dist`.
 - `bun run format`: oxfmt.
 
-All three of check, test and build pass before a commit. CI (`.github/workflows/ci.yml`) runs them on every push to main and every PR. Publishing a GitHub release runs `release.yml`, which sets the version from the tag and publishes with npm Trusted Publishing; `package.json` stays at `0.0.0`.
+All three of check, test and build pass before a commit, and so does `bun run --cwd docs build` when the docs changed. CI (`.github/workflows/ci.yml`) runs them on every push to main and every PR. Publishing a GitHub release runs `release.yml`, which sets the version from the tag and publishes with npm Trusted Publishing; `package.json` stays at `0.0.0`.
 
 ## Design rules
 
