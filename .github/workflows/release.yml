@@ -1,0 +1,88 @@
+name: 🚀 Release
+
+on:
+  release:
+    types: [prereleased, released]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g. 1.2.0 or 1.2.0-beta.1)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Publish under the "next" dist-tag'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  RELEASE_VERSION: ${{ github.event.release.tag_name || inputs.version }}
+  IS_PRERELEASE: ${{ github.event.release.prerelease || inputs.prerelease }}
+
+permissions:
+  contents: read
+  # npm Trusted Publishing: npm trades this token for a short-lived publish credential, so no npm token is stored.
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    name: 🚀 Publish to npm
+    steps:
+      - name: 🔒 Validate release version
+        run: |
+          # A tag may carry a leading `v`; the version in package.json never does.
+          version="${RELEASE_VERSION#v}"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+              echo "::error::Invalid release version '$RELEASE_VERSION'; expected a semver like 1.2.3 or 1.2.3-beta.1."
+              exit 1
+          fi
+          echo "RELEASE_VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: 👀 Checkout
+        uses: actions/checkout@v6
+
+      - name: 🍞 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - name: ✨ Setup node 25.x
+        uses: actions/setup-node@v6
+        with:
+          node-version: '25.x'
+          registry-url: https://registry.npmjs.org
+
+      - name: ✏️ Version ${{ env.RELEASE_VERSION }}
+        run: bun pm version "$RELEASE_VERSION" --no-git-tag-version
+
+      - name: 📦️ Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: 🔍 Check and test
+        run: |
+          bun run check
+          bun run test
+
+      - name: 🔨 Build
+        run: bun run build
+
+      - name: 🚀 Publish ${{ env.RELEASE_VERSION }}
+        run: |
+          tag_args=()
+          if [[ "$IS_PRERELEASE" == "true" ]]; then
+              tag_args=(--tag next)
+          fi
+
+          name=$(node -p "require('./package.json').name")
+          version=$(node -p "require('./package.json').version")
+
+          if npm view "$name@$version" version >/dev/null 2>&1; then
+              echo "::notice::$name@$version is already published, skipping."
+              exit 0
+          fi
+
+          npm publish --provenance --access public "${tag_args[@]}"
+
+      # The docs site deploys here once it exists (the docs task): build `docs` and publish it,
+      # as a prerelease preview when IS_PRERELEASE is true and as the live site otherwise.

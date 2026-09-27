@@ -1,0 +1,29 @@
+name: 🏷️ Label the consumer
+
+# An issue form cannot pick a label from a dropdown answer, so this reads the answer and adds it.
+on:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  issues: write
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    name: 🏷️ Label
+    steps:
+      - name: 🏷️ Add the label of the app that asks
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.issue.number }}
+          BODY: ${{ github.event.issue.body }}
+        run: |
+          # The answer is the first line with text after the form's "### Which app is this for?" heading.
+          consumer=$(printf '%s\n' "$BODY" | awk '/^### Which app is this for\?/ { found = 1; next } found && NF { print; exit }')
+          case "$consumer" in
+              Ruimte) gh issue edit "$NUMBER" --add-label consumer:ruimte ;;
+              AfterMotion) gh issue edit "$NUMBER" --add-label consumer:aftermotion ;;
+              *) echo "No consumer label for '$consumer'." ;;
+          esac

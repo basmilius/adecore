@@ -9,7 +9,7 @@ Two apps, and later more:
 - Ruimte, `../ruimte` (`/Users/bas/Development/Projects/ruimte`, public). The UI is in `apps/client/src` and `packages/agents-react/src`. Its root `CLAUDE.md` holds its design rules.
 - AfterMotion, `../aftermotion` (`/Users/bas/Development/Projects/aftermotion`, private). The UI is in `apps/client/src`.
 
-Both link a local checkout of this repository (Ruimte with `bun link`, AfterMotion with `file:../react-ui`) and read `src` through the `source` export condition, so a change here is live in both without a build.
+Both use a local checkout of this repository and read `src` through the `source` export condition, so neither needs a build of it. Ruimte links it with `bun link`, which makes a change live at once; AfterMotion depends on `file:../react-ui`, which Bun copies, so a change reaches it on its next `bun install`.
 
 ## Changing the public API
 

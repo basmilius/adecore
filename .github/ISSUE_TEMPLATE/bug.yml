@@ -1,0 +1,42 @@
+name: Bug
+description: A component that does not do what its docs or its types say.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: consumer
+    attributes:
+      label: Which app is this for?
+      options:
+        - Ruimte
+        - AfterMotion
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happens
+      description: What you did, what you expected and what you saw instead. A screenshot helps.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: The smallest piece of code that shows it, or the file and line in the app.
+      render: tsx
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The version from npm, or the commit of a linked checkout.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Browser or shell
+      description: Such as Chrome 142 on macOS, or an Electron shell and its version.

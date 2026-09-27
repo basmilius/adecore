@@ -134,7 +134,7 @@ bun link
 bun link @basmilius/react-ui
 ```
 
-Or in the app's `package.json`: `"@basmilius/react-ui": "file:../react-ui"`.
+A `file:../react-ui` dependency works too, but Bun copies the checkout when it installs, so a change shows up after the next `bun install` in the app rather than at once. Nothing needs a build either way.
 
 Then turn the condition on in Vite, keep one copy of the shared dependencies, and let Vite compile the source like the app's own:
 

@@ -1,0 +1,45 @@
+name: Request
+description: Something an app needs from the library, a new component, prop or variant.
+title: "[Request] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the need in the words of the app. The library answers with a shape that fits any app, which may be a different API than the one proposed, or a no when the need belongs in the app.
+  - type: dropdown
+    id: consumer
+    attributes:
+      label: Which app is this for?
+      options:
+        - Ruimte
+        - AfterMotion
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: need
+    attributes:
+      label: What the app needs
+      description: What a person does or sees, and why the library's current parts do not cover it.
+    validations:
+      required: true
+  - type: textarea
+    id: where
+    attributes:
+      label: Where in the app
+      description: The surface and the files, such as `apps/client/src/shell/Sidebar.tsx`, and how it is solved there today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed API
+      description: Optional. A component, a prop or a variant, with a short example.
+      render: tsx
+  - type: checkboxes
+    id: breaking
+    attributes:
+      label: Breaking
+      options:
+        - label: This would change an API another app already uses. A maintainer adds the `breaking` label and lists the call sites.
