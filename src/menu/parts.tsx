@@ -1,4 +1,4 @@
-import { createContext, useContext, type ComponentProps, type ReactNode } from 'react';
+import { createContext, useContext, type ComponentProps, type ReactNode, type Ref } from 'react';
 import clsx from 'clsx';
 import { Check, ChevronRight } from 'lucide-react';
 import { ContextMenu as BaseContextMenu } from '@base-ui-components/react/context-menu';
@@ -122,6 +122,7 @@ export interface MenuCheckProps {
     /* Only for a row that is not a radio or checkbox item, and so has no indicator of its own. */
     checked?: boolean;
     className?: string;
+    ref?: Ref<HTMLSpanElement>;
 }
 
 /*
@@ -129,7 +130,7 @@ export interface MenuCheckProps {
  * is one line of the row tall, so a row with a second line keeps the tick beside its first. Radio and
  * checkbox items draw it themselves; a plain row that shows a state hands it `checked`.
  */
-export function MenuCheck({ kind, checked, className }: MenuCheckProps) {
+export function MenuCheck({ kind, checked, className, ref }: MenuCheckProps) {
     const tick = <Icon icon={Check} size={kind === 'radio' ? 14 : 12} />;
     const indicator =
         checked !== undefined ? (
@@ -140,7 +141,7 @@ export function MenuCheck({ kind, checked, className }: MenuCheckProps) {
             <BaseMenu.CheckboxItemIndicator className="flex">{tick}</BaseMenu.CheckboxItemIndicator>
         );
     return (
-        <span className={clsx('grid h-lh w-4 shrink-0 place-items-center', className)}>
+        <span ref={ref} className={clsx('grid h-lh w-4 shrink-0 place-items-center', className)}>
             {kind === 'checkbox' ? <span className="grid h-4 w-4 place-items-center rounded border border-border-strong">{indicator}</span> : indicator}
         </span>
     );

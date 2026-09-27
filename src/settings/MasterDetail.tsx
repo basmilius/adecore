@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, Ref } from 'react';
 import clsx from 'clsx';
 
 const LIST_WIDTHS = { 280: 'w-70', 320: 'w-80', 340: 'w-85' } as const;
@@ -10,17 +10,19 @@ export interface MasterDetailProps {
     /* Names the list for a screen reader. */
     listLabel: string;
     detail: ReactNode;
+    className?: string;
+    ref?: Ref<HTMLDivElement>;
 }
 
 /*
- * A list beside the detail of what is picked in it, for a pane of many things of one kind (providers,
- * machines, shortcut categories). Each side scrolls on its own, and the detail takes the rest of the
+ * A list beside the detail of what is picked in it, for a pane of many things of one kind (accounts,
+ * devices, shortcut categories). Each side scrolls on its own, and the detail takes the rest of the
  * width, like a single-column pane. Its section must be `split`, so the dialog hands the pane its whole height
  * instead of a padded scrolling column.
  */
-export function MasterDetail({ list, listWidth, listLabel, detail }: MasterDetailProps) {
+export function MasterDetail({ list, listWidth, listLabel, detail, className, ref }: MasterDetailProps) {
     return (
-        <div className="flex min-h-0 min-w-0 grow border-t border-border max-[640px]:flex-col">
+        <div ref={ref} className={clsx('flex min-h-0 min-w-0 grow border-t border-border max-[640px]:flex-col', className)}>
             <nav
                 aria-label={listLabel}
                 className={clsx(
@@ -42,12 +44,14 @@ export interface MasterItemProps {
     onSelect(): void;
     children: ReactNode;
     className?: string;
+    ref?: Ref<HTMLButtonElement>;
 }
 
 /* One row of the list. The picked one is lifted a shade. */
-export function MasterItem({ selected, onSelect, children, className }: MasterItemProps) {
+export function MasterItem({ selected, onSelect, children, className, ref }: MasterItemProps) {
     return (
         <button
+            ref={ref}
             type="button"
             aria-current={selected ? 'true' : undefined}
             className={clsx(

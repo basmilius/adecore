@@ -4,12 +4,13 @@ import { useTranslation } from 'react-i18next';
 import { copyText } from './clipboard.ts';
 import { Icon } from './Icon.tsx';
 import { Kbd } from './Kbd.tsx';
+import { mergeRefs } from './merge-refs.ts';
 import { ContextMenuRoot, ContextMenuTrigger, MenuItem, MenuPopup, MenuSeparator } from './menu/parts.tsx';
 import { isApplePlatform } from './platform.ts';
 import { selectAllWithin, selectionWithin } from './selection.ts';
 import { EDIT_SHORTCUTS, matchesShortcut } from './shortcut.ts';
 
-export type TextMenuProps = Omit<ComponentProps<'div'>, 'ref'> & {
+export type TextMenuProps = ComponentProps<'div'> & {
     /* What the surface itself can be asked, under a line of their own: `ContextMenu.Item`s. */
     items?: ReactNode;
 };
@@ -19,7 +20,7 @@ export type TextMenuProps = Omit<ComponentProps<'div'>, 'ref'> & {
  * for the whole of it, on Cmd+A as well. Anywhere text can be selected a right-click has to offer
  * to copy it, and an app that draws every menu itself offers nothing at all without one of these.
  */
-export function TextMenu({ children, items, ...rest }: TextMenuProps) {
+export function TextMenu({ children, items, ref, ...rest }: TextMenuProps) {
     const { t } = useTranslation('ui');
     const host = useRef<HTMLDivElement>(null);
     // Read when the menu opens: a selection made after that is not the one the click was about.
@@ -35,7 +36,7 @@ export function TextMenu({ children, items, ...rest }: TextMenuProps) {
 
     return (
         <ContextMenuRoot onOpenChange={(open) => setSelection(open ? selectionWithin(host.current) : '')}>
-            <ContextMenuTrigger {...rest} ref={host} onKeyDown={onKeyDown}>
+            <ContextMenuTrigger {...rest} ref={mergeRefs(host, ref)} onKeyDown={onKeyDown}>
                 {children}
             </ContextMenuTrigger>
             <MenuPopup>

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState, type ReactNode, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { LucideIcon } from 'lucide-react';
 import { Button } from './Button.tsx';
@@ -50,6 +50,9 @@ export interface PromptDialogProps {
     fallbackMessage?: string;
     /* Only ever told `false`: Cancel, Escape or a click outside. The dialog never closes itself. */
     onOpenChange(open: boolean): void;
+    /* Extra on the popup. */
+    className?: string;
+    ref?: Ref<HTMLDivElement>;
 }
 
 /*
@@ -77,7 +80,9 @@ export function PromptDialog({
     children,
     onConfirm,
     fallbackMessage,
-    onOpenChange
+    onOpenChange,
+    className,
+    ref
 }: PromptDialogProps) {
     const { t } = useTranslation('ui');
     /* The dialog stays mounted between questions, so every opening starts from what it was handed.
@@ -106,7 +111,7 @@ export function PromptDialog({
 
     return (
         <DialogRoot open={open} onOpenChange={(next) => !next && close()}>
-            <DialogPopup size="sm" nested={nested}>
+            <DialogPopup ref={ref} size="sm" nested={nested} className={className}>
                 <DialogTitle className="flex items-center gap-2 break-words">
                     {titleIcon && <Icon icon={titleIcon} size={16} />}
                     {title}

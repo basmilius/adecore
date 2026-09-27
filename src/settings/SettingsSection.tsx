@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, Ref } from 'react';
+import clsx from 'clsx';
 import type { LucideIcon } from 'lucide-react';
 import { Icon } from '../Icon.tsx';
 
@@ -14,13 +15,15 @@ export interface SettingsSectionProps {
     /* A note under the card, in the faint color. */
     footer?: ReactNode;
     children: ReactNode;
+    className?: string;
+    ref?: Ref<HTMLElement>;
 }
 
 /* A titled group of rows in one card; rows divide themselves with a hairline. Without a title it is the card alone. */
-export function SettingsSection({ title, description, icon, tag, action, footer, children }: SettingsSectionProps) {
+export function SettingsSection({ title, description, icon, tag, action, footer, children, className, ref }: SettingsSectionProps) {
     const hasHeader = title !== undefined || description !== undefined || tag !== undefined || action !== undefined;
     return (
-        <section className="flex min-w-0 flex-col gap-2.5" aria-label={title}>
+        <section ref={ref} className={clsx('flex min-w-0 flex-col gap-2.5', className)} aria-label={title}>
             {hasHeader && (
                 <div className="flex min-w-0 flex-wrap items-end gap-x-3 gap-y-2">
                     <div className="min-w-0 grow basis-48">

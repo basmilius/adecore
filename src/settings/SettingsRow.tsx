@@ -1,7 +1,8 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode, type Ref } from 'react';
 import clsx from 'clsx';
 import type { LucideIcon } from 'lucide-react';
 import { Icon } from '../Icon.tsx';
+import { mergeRefs } from '../merge-refs.ts';
 import { useSettingsTarget } from './target.ts';
 
 /* How long a row a search result jumped to stays lit. */
@@ -22,18 +23,21 @@ export interface SettingsRowProps {
     indent?: boolean;
     /* The id a search result names to lead here. */
     searchId?: string;
+    className?: string;
+    ref?: Ref<HTMLDivElement>;
 }
 
 export interface TopIconProps {
     icon: LucideIcon;
     size?: number;
     className?: string;
+    ref?: Ref<HTMLSpanElement>;
 }
 
 /* An icon beside text that may wrap: the box is one line of `text-sm` high, so the icon sits on the first line. */
-export function TopIcon({ icon, size = 16, className }: TopIconProps) {
+export function TopIcon({ icon, size = 16, className, ref }: TopIconProps) {
     return (
-        <span className="flex h-5.5 shrink-0 items-center">
+        <span ref={ref} className="flex h-5.5 shrink-0 items-center">
             <Icon icon={icon} size={size} className={className} />
         </span>
     );
@@ -43,8 +47,8 @@ export function TopIcon({ icon, size = 16, className }: TopIconProps) {
  * One setting: what it is on the left, the control on the right. Where the two do not fit side by
  * side (a tablet, a narrow window) the control wraps under the label instead of widening the dialog.
  */
-export function SettingsRow({ label, description, control, children, muted = false, leading, indent = false, searchId }: SettingsRowProps) {
-    const ref = useRef<HTMLDivElement>(null);
+export function SettingsRow({ label, description, control, children, muted = false, leading, indent = false, searchId, className, ref }: SettingsRowProps) {
+    const row = useRef<HTMLDivElement>(null);
     const { target, shown } = useSettingsTarget();
     const targeted = searchId !== undefined && target === searchId;
 
@@ -52,20 +56,21 @@ export function SettingsRow({ label, description, control, children, muted = fal
         if (!targeted) {
             return;
         }
-        ref.current?.scrollIntoView({ block: 'center' });
+        row.current?.scrollIntoView({ block: 'center' });
         const timer = window.setTimeout(shown, TARGET_MS);
         return () => window.clearTimeout(timer);
     }, [targeted, shown]);
 
     return (
         <div
-            ref={ref}
+            ref={mergeRefs(row, ref)}
             data-settings-row={searchId}
             className={clsx(
                 'flex min-w-0 flex-col gap-3 pr-4.5 transition-colors duration-500 first:rounded-t-xl last:rounded-b-xl',
                 indent ? 'pl-14.5' : 'pl-4.5',
                 description || children || leading ? 'py-3.5' : 'py-3',
-                targeted && 'bg-accent-soft duration-0'
+                targeted && 'bg-accent-soft duration-0',
+                className
             )}
         >
             <div className="flex min-w-0 flex-wrap items-center gap-x-5 gap-y-2">

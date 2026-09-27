@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode, type Ref } from 'react';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { Tabs } from '@base-ui-components/react/tabs';
@@ -61,6 +61,9 @@ export interface SettingsDialogProps {
     /* The row a search result jumped to, lit until `onTargetShown`. */
     target?: string | null;
     onTargetShown?(): void;
+    /* Extra on the popup. */
+    className?: string;
+    ref?: Ref<HTMLDivElement>;
 }
 
 const NAV_ITEM =
@@ -212,7 +215,9 @@ export function SettingsDialog({
     account,
     search,
     target = null,
-    onTargetShown
+    onTargetShown,
+    className,
+    ref
 }: SettingsDialogProps) {
     const { t } = useTranslation('ui');
     const [query, setQuery] = useState('');
@@ -242,7 +247,7 @@ export function SettingsDialog({
         >
             {/* The width steps down with the viewport: a narrower navigation on a tablet, and a menu of
                 sections instead of the column where even that leaves the panes too little room. */}
-            <DialogPopup className="flex h-[760px] w-[1200px]">
+            <DialogPopup ref={ref} className={clsx('flex h-[760px] w-[1200px]', className)}>
                 <Tabs.Root
                     value={meta.id}
                     onValueChange={(value) => onNavigate({ section: value as string })}

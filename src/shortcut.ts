@@ -150,20 +150,20 @@ export const formatShortcut = (target: Shortcut, apple: boolean): string => shor
 
 /* The browser's own editing shortcuts, which the app only ever prints in a menu. */
 export const EDIT_SHORTCUTS = {
-    copy: shortcut('Mod+C'),
-    cut: shortcut('Mod+X'),
-    paste: shortcut('Mod+V'),
-    selectAll: shortcut('Mod+A')
+    copy: /* @__PURE__ */ shortcut('Mod+C'),
+    cut: /* @__PURE__ */ shortcut('Mod+X'),
+    paste: /* @__PURE__ */ shortcut('Mod+V'),
+    selectAll: /* @__PURE__ */ shortcut('Mod+A')
 } as const;
 
 /* Keys that are not a shortcut of their own but are printed as one in a hint. */
 export const KEY_SHORTCUTS = {
-    enter: shortcut('Enter'),
-    modEnter: shortcut('Mod+Enter'),
-    backspace: shortcut('Backspace'),
-    escape: shortcut('Escape'),
-    shift: shortcut('Shift'),
-    rename: shortcut('F2')
+    enter: /* @__PURE__ */ shortcut('Enter'),
+    modEnter: /* @__PURE__ */ shortcut('Mod+Enter'),
+    backspace: /* @__PURE__ */ shortcut('Backspace'),
+    escape: /* @__PURE__ */ shortcut('Escape'),
+    shift: /* @__PURE__ */ shortcut('Shift'),
+    rename: /* @__PURE__ */ shortcut('F2')
 } as const;
 
 /* Whether the platform's own modifier is down during a pointer gesture: Cmd on macOS, Ctrl elsewhere. */
