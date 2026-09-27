@@ -11,7 +11,7 @@
   "bugs": {
     "url": "https://github.com/basmilius/react-ui/issues"
   },
-  "homepage": "https://github.com/basmilius/react-ui#readme",
+  "homepage": "https://react-ui.bas.dev",
   "type": "module",
   "packageManager": "bun@1.4.0",
   "sideEffects": [

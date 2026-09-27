@@ -107,7 +107,7 @@ Compound components follow Base UI's namespaces and props (`open` and `onOpenCha
 - `SectionLabel`, `Surface`, `ListRow`, `PanelHeader`, `Separator`, `Skeleton`, `Icon`, `FileIcon`.
 - `EmptyState`, `PanelEmpty`, `ErrorBoundary`, `Banner`, `Toasts`, `PromptDialog`, `TextMenu`.
 - `SlidingColumn`, `DockShell`, `ZoomControls`, `Wipe`, `ColumnResizeHandle`.
-- Hooks and helpers: `useAsyncAction`, `useColumnResize`, `useContentSize`, `useMeasuredWidth`, `useNow`, `useTickingText`, `lazyNamed`, `lazyDialog`, `prefetcher`, `createToastStore`, `shortcut`, `matchesShortcut`, `copyText`, `messageOf`.
+- Hooks and helpers: `useAsyncAction`, `useColumnResize`, `useContentSize`, `useMeasuredWidth`, `useNow`, `useTickingText`, `lazyNamed`, `lazyDialog`, `prefetcher`, `createToastStore`, `shortcut`, `matchesShortcut`, `copyText`, `messageOf`, `isInFloatingLayer`, `cameThroughPortal`, `selectionWithin`, `selectAllWithin`.
 
 Every component takes `className` and a `ref`. The parts that are a single element also take Base UI's `render` prop, which swaps the element for another one and merges the props of both: `<SectionLabel render={<h3 />}>`, `<ListRow variant="inset" render={<button type="button" />}>`.
 

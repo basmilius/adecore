@@ -59,11 +59,13 @@ export { copyText, readClipboardText } from './clipboard.ts';
 export { messageOf } from './error-message.ts';
 export type { ResetKeys } from './error-boundary.ts';
 export { FILE_TREE_ICONS } from './file-icon.ts';
+export { cameThroughPortal, isInFloatingLayer } from './floating.ts';
 export { LoadedComponent, lazyDialog, lazyNamed } from './lazy.tsx';
 export { UI_NAMESPACE, UI_RESOURCES, addUiResources } from './locales.ts';
 export { startInputModality } from './modality.ts';
 export { isApplePlatform } from './platform.ts';
 export { Prefetcher, prefetcher, type Loader, type WhenIdle } from './prefetch.ts';
+export { selectAllWithin, selectionWithin } from './selection.ts';
 export { EDIT_SHORTCUTS, KEY_SHORTCUTS, formatShortcut, isModHeld, matchesShortcut, shortcut, shortcutParts, type KeyLike, type Shortcut } from './shortcut.ts';
 export {
     SUCCESS_MS,

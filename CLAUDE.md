@@ -29,7 +29,7 @@ One package at the repository root, published from the root with the `files` whi
 - `src/theme.css`: the tokens, the type scale and the rules utilities cannot write (`.icon-btn`, `.field`, `.menu-popup`, `.menu-item`, `.dialog-popup`, `.tooltip-popup`, ...). Exported as `./theme.css`.
 - `src/menu`, `src/context-menu`, `src/dialog`, `src/popover`, `src/preview-card`: the compound components. `parts.tsx` holds the parts under their full names (`MenuItem`), `index.parts.ts` maps them onto the namespace (`Menu.Item`). A context menu reuses every part of a menu except its root and trigger.
 - `src/locales/en.json`, `nl.json`: the `ui` namespace. English is the source; Dutch has every key English has (`locales.test.ts`).
-- Internal modules (not exported): `dialog-layer.ts`, `error-boundary.ts`, `file-icon.ts` except `FILE_TREE_ICONS`, `shortcut-hints.ts`, `selection.ts`, `wipe-split.ts`, `class-name.ts`, `merge-refs.ts`, `field-context.ts`, `icon-button-size.ts`, `zoom.ts` except `ZOOM_PRESETS`.
+- Internal modules (not exported): `dialog-layer.ts`, `error-boundary.ts`, `file-icon.ts` except `FILE_TREE_ICONS`, `shortcut-hints.ts`, `wipe-split.ts`, `class-name.ts`, `merge-refs.ts`, `field-context.ts`, `icon-button-size.ts`, `zoom.ts` except `ZOOM_PRESETS`.
 - `scripts/build.ts`: `tsc` into `dist`, one `.js` and one `.d.ts` per source file, then the theme copied.
 
 ## Scripts

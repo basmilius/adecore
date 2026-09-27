@@ -90,7 +90,7 @@ Every old subpath import becomes a named import from one of four entry points. A
 | `@ruimte/ui/error-message`: `messageOf` | `@basmilius/react-ui`: `messageOf` |
 | `@ruimte/ui/file-icon`: `FILE_TREE_ICONS` | `@basmilius/react-ui`: `FILE_TREE_ICONS` |
 | `@ruimte/ui/file-icon`: `fileIconFor`, `mountFileIconSprite`, `FileIcon`, `FileIconHue` | internal; draw `<FileIcon path>` |
-| `@ruimte/ui/floating`: `isInFloatingLayer`, `cameThroughPortal` | internal; copy into the app (below) |
+| `@ruimte/ui/floating`: `isInFloatingLayer`, `cameThroughPortal` | `@basmilius/react-ui`: same names |
 | `@ruimte/ui/format/datetime`: every name | `@basmilius/react-ui/format`: same names |
 | `@ruimte/ui/format/duration`: every name | `@basmilius/react-ui/format`: same names |
 | `@ruimte/ui/format/number`: every name | `@basmilius/react-ui/format`: same names |
@@ -105,7 +105,7 @@ Every old subpath import becomes a named import from one of four entry points. A
 | `@ruimte/ui/modality`: `startInputModality` | `@basmilius/react-ui`: `startInputModality` (inside `UIProvider`) |
 | `@ruimte/ui/platform`: `isApplePlatform` | `@basmilius/react-ui`: `isApplePlatform` |
 | `@ruimte/ui/platform`: `applePlatformFrom` | internal |
-| `@ruimte/ui/selection`: `selectionWithin`, `selectAllWithin` | internal; copy into the app (below) |
+| `@ruimte/ui/selection`: `selectionWithin`, `selectAllWithin` | `@basmilius/react-ui`: same names |
 | `@ruimte/ui/settings/ConfirmDialog`: `ConfirmDialog` | `@basmilius/react-ui/settings`: `ConfirmDialog` |
 | `@ruimte/ui/settings/DetailHeader`: `DetailHeader` | `@basmilius/react-ui/settings`: `DetailHeader` |
 | `@ruimte/ui/settings/DetailHeader`: `REMOVE_BUTTON` | `<Button variant="danger-outline">` |
@@ -132,12 +132,7 @@ Every old subpath import becomes a named import from one of four entry points. A
 
 `Tabs`, `Radio`, `Switch` and the other Base UI parts an app uses directly stay imports from `@base-ui-components/react`.
 
-### What an app copies
-
-Two helpers were only ever about the app's own surfaces, and the library no longer exports them. Copy them into the app as they were:
-
-- `floating.ts` (`isInFloatingLayer`, `cameThroughPortal`). The selector `[data-base-ui-portal]` already covers every popup, menu, tooltip and dialog of the library; the class names in it are the theme's and stay as they are.
-- `selection.ts` (`selectionWithin`, `selectAllWithin`).
+`isInFloatingLayer` no longer matches `.popup-layer`, a class nothing drew any more; it matches the library's portals, tooltips and dialogs.
 
 ## 3. Renamed props
 
@@ -488,6 +483,5 @@ Left in the app, because they read its own state: `shell/Panel.tsx` (the panel r
 - `.icon-btn` buttons whose tooltip text differs from their accessible name, that have no tooltip, or whose icon is computed (`size={compact ? 12 : 14}`) need a look for `tooltip`, `tooltip={false}` and `size`.
 - A caller's utility that set the same property as a component default (`Dialog.Title` with `text-lg`, a `Dialog.Popup` padding other than `p-5` with `size="sm"`) is a prop now or loses to nothing reliably; use the prop or drop `size`.
 - `useDialogLayer` in a dialog of the app's own goes away with the move to `Dialog.Popup`; a dialog that also used it for something other than the backdrop and the popup classes needs a look.
-- `floating.ts` and `selection.ts` are copied into the app.
 - `PromptDialog`'s `onClose` handlers that take an argument.
 - `IconPicker` values of the app's own shape (`{ kind: 'lucide', value }`) map to and from the icon's name at the call site.
