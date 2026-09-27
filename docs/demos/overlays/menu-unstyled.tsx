@@ -21,7 +21,12 @@ export default function MenuUnstyledDemo() {
                 <Menu.Separator />
                 <div className="flex items-center gap-2.5 px-2.5 py-1.5 text-sm text-text-muted">
                     <span className="grow">Density</span>
-                    <Menu.RadioGroup value={density} onValueChange={setDensity} aria-label="Density" className="flex gap-0.5 rounded-md bg-surface-sunken p-0.5">
+                    <Menu.RadioGroup
+                        value={density}
+                        onValueChange={setDensity}
+                        aria-label="Density"
+                        className="flex gap-0.5 rounded-md bg-surface-sunken p-0.5"
+                    >
                         {DENSITIES.map((entry) => (
                             <Menu.RadioItem
                                 key={entry}

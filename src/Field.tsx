@@ -63,7 +63,12 @@ export function Field({ label, hint, error, group = false, className, ref, child
             aria-describedby={group ? describedBy : undefined}
             className={clsx('flex flex-col gap-1.5', className)}
         >
-            {hasLabel && (group ? <SectionLabel id={`${id}-label`}>{label}</SectionLabel> : <SectionLabel render={<label htmlFor={`${id}-control`} />}>{label}</SectionLabel>)}
+            {hasLabel &&
+                (group ? (
+                    <SectionLabel id={`${id}-label`}>{label}</SectionLabel>
+                ) : (
+                    <SectionLabel render={<label htmlFor={`${id}-control`} />}>{label}</SectionLabel>
+                ))}
             {/* A group describes itself, so an input inside it stays unconnected rather than taking an id nothing points at. */}
             <FieldContext value={group ? null : { id: `${id}-control`, describedBy, invalid: hasError }}>{children}</FieldContext>
             {/* The stack already puts 6px above each line, so neither takes the margin a standalone hint has. */}
