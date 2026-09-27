@@ -322,14 +322,14 @@ A header that places the name itself (a slot before it, a title with classes of 
 - <ContextMenu.Item aria-label={name} className={clsx(ACCENT_SWATCH, picked && ACCENT_SWATCH_PICKED)} style={{ background: color }} onClick={pick}>
 -     {picked && <Icon icon={Check} size={12} />}
 - </ContextMenu.Item>
-+ <ColorSwatch render={<ContextMenu.Item />} aria-label={name} color={color} picked={picked} on="popup" onClick={pick} />
++ <ColorSwatch render={<ContextMenu.Item unstyled />} aria-label={name} color={color} picked={picked} on="popup" onClick={pick} />
 - <ContextMenu.Item aria-label={none} className={clsx(ACCENT_SWATCH, 'border border-border-strong text-text-muted')} onClick={clear}>
 -     {!accent && <Icon icon={Check} size={12} />}
 - </ContextMenu.Item>
-+ <ColorSwatch render={<ContextMenu.Item />} aria-label={none} picked={!accent} onClick={clear} />
++ <ColorSwatch render={<ContextMenu.Item unstyled />} aria-label={none} picked={!accent} onClick={clear} />
 ```
 
-A swatch without a `color` is the outlined circle; it draws the tick while picked and whatever children it is handed instead.
+A swatch without a `color` is the outlined circle; it draws the tick while picked and whatever children it is handed instead. `unstyled` keeps the row's padding and highlight off the swatch, so a `className="p-0"` that did that goes.
 
 ### `REMOVE_BUTTON` → `Button variant="danger-outline"`
 

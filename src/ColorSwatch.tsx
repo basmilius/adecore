@@ -4,7 +4,8 @@ import { Check } from 'lucide-react';
 import { useRender } from '@base-ui-components/react/use-render';
 import { Icon } from './Icon.tsx';
 
-const SWATCH = 'grid h-6 w-6 place-items-center rounded-full text-accent-text';
+/* `focus-ring` for the swatch that is a menu item rather than a button, which the keyboard reaches all the same. */
+const SWATCH = 'focus-ring grid h-6 w-6 place-items-center rounded-full text-accent-text';
 
 /* The ring of the picked color is offset against whatever the swatch stands on. */
 const PICKED_RING = {
@@ -18,7 +19,7 @@ export interface ColorSwatchProps extends ComponentProps<'button'> {
     picked?: boolean;
     /* On the surface behind a popup, or inside the popup itself. */
     on?: keyof typeof PICKED_RING;
-    /* Another element to be the swatch, such as a menu trigger or a menu item. */
+    /* Another element to be the swatch, such as a menu trigger, or `<Menu.Item unstyled />` so the row's padding and highlight stay off it. */
     render?: useRender.RenderProp;
 }
 

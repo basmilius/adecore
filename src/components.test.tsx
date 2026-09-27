@@ -55,6 +55,17 @@ describe('a color swatch', () => {
         expect(markup).toContain('<svg');
     });
 
+    test('keeps its own padding and highlight as a menu item that is no row', () => {
+        const markup = render(
+            <Menu.Root>
+                <ColorSwatch render={<Menu.Item unstyled />} aria-label="None" picked />
+            </Menu.Root>
+        );
+        expect(markup).toContain('role="menuitem"');
+        expect(markup).toContain('focus-ring');
+        expect(markup).not.toContain('menu-item');
+    });
+
     test('is an outlined circle without a color, and draws what it is handed instead of the tick', () => {
         const markup = render(<ColorSwatch>…</ColorSwatch>);
         expect(markup).toContain('border-border-strong');

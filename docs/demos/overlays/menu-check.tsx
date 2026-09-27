@@ -23,7 +23,15 @@ export default function MenuCheckDemo() {
                 <Menu.Label>Color</Menu.Label>
                 <div className="flex gap-2 px-2.5 py-1.5">
                     {COLORS.map((swatch) => (
-                        <ColorSwatch key={swatch} aria-label={swatch} color={swatch} picked={color === swatch} on="popup" onClick={() => setColor(swatch)} />
+                        <ColorSwatch
+                            key={swatch}
+                            render={<Menu.Item unstyled closeOnClick={false} />}
+                            aria-label={swatch}
+                            color={swatch}
+                            picked={color === swatch}
+                            on="popup"
+                            onClick={() => setColor(swatch)}
+                        />
                     ))}
                 </div>
             </Menu.Popup>
