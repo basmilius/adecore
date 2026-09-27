@@ -36,22 +36,36 @@ export interface FieldProps {
     hint?: ReactNode;
     /* Shown under the control and marks it invalid; null or empty shows nothing. */
     error?: ReactNode;
+    /*
+     * For what a `<label>` cannot point at: a `Segmented`, a `Select`, cards to choose from, a path
+     * in a box with a button beside it. The label then names a group around it, which the hint and
+     * the error describe.
+     */
+    group?: boolean;
     className?: string;
     ref?: Ref<HTMLDivElement>;
-    /* The control. An `Input` or a `TextArea` connects to the label and the lines under it by itself. */
+    /* The control. An `Input` or a `TextArea` connects to the label and the lines under it by itself, unless the field is a `group`. */
     children: ReactNode;
 }
 
-/* A labelled control with an optional hint and error under it, stacked 6px apart. */
-export function Field({ label, hint, error, className, ref, children }: FieldProps) {
+/* A labelled control, or a labelled group, with an optional hint and error under it, stacked 6px apart. */
+export function Field({ label, hint, error, group = false, className, ref, children }: FieldProps) {
     const id = useId();
+    const hasLabel = label !== undefined;
     const hasHint = hint !== undefined && hint !== null && hint !== '';
     const hasError = error !== undefined && error !== null && error !== '';
     const describedBy = [hasHint ? `${id}-hint` : null, hasError ? `${id}-error` : null].filter((part) => part !== null).join(' ') || undefined;
     return (
-        <div ref={ref} className={clsx('flex flex-col gap-1.5', className)}>
-            {label !== undefined && <SectionLabel render={<label htmlFor={`${id}-control`} />}>{label}</SectionLabel>}
-            <FieldContext value={{ id: `${id}-control`, describedBy, invalid: hasError }}>{children}</FieldContext>
+        <div
+            ref={ref}
+            role={group ? 'group' : undefined}
+            aria-labelledby={group && hasLabel ? `${id}-label` : undefined}
+            aria-describedby={group ? describedBy : undefined}
+            className={clsx('flex flex-col gap-1.5', className)}
+        >
+            {hasLabel && (group ? <SectionLabel id={`${id}-label`}>{label}</SectionLabel> : <SectionLabel render={<label htmlFor={`${id}-control`} />}>{label}</SectionLabel>)}
+            {/* A group describes itself, so an input inside it stays unconnected rather than taking an id nothing points at. */}
+            <FieldContext value={group ? null : { id: `${id}-control`, describedBy, invalid: hasError }}>{children}</FieldContext>
             {/* The stack already puts 6px above each line, so neither takes the margin a standalone hint has. */}
             {hasHint && (
                 <p id={`${id}-hint`} className={HINT}>

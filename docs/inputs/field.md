@@ -10,6 +10,19 @@ import { Field, FieldHint, FormError } from '@basmilius/react-ui';
 
 Type `main` into the branch name to see the error. An [`Input`](/inputs/input) or a `TextArea` inside a `Field` connects itself. The label points at it with `htmlFor`, `aria-describedby` names the hint and the error, and an error sets `aria-invalid`. Another control needs its own accessible name, since the `Field` cannot reach inside it.
 
+## A group
+
+A `<label>` can point at an input, not at a [`Segmented`](/inputs/segmented), a [`Select`](/inputs/select), [`ChoiceCards`](/inputs/choice-cards) or a path in a box with a button beside it. `group` draws the same label, hint and error with the same spacing, and makes the `Field` a `role="group"` its label names and its hint and error describe. The control inside still takes its own accessible name, and an `Input` inside a group is left unconnected, for an input that is one part of what the group holds.
+
+```tsx
+<Field group label="Folder" hint="The project is made in a new folder here.">
+    <div className="flex items-center gap-2">
+        <div className="field flex min-w-0 flex-1 items-center text-text-muted">{path}</div>
+        <Button variant="secondary" onClick={choose}>Choose…</Button>
+    </div>
+</Field>
+```
+
 ## Field props
 
 | Prop | Type | |
@@ -18,6 +31,7 @@ Type `main` into the branch name to see the error. An [`Input`](/inputs/input) o
 | `label` | `ReactNode` | Drawn as a [`SectionLabel`](/display/section-label) above the control. |
 | `hint` | `ReactNode` | The line under the control that says what goes in it. |
 | `error` | `ReactNode` | Shown under the control and marks it invalid. `null` or `''` shows nothing. |
+| `group` | `boolean` | Labels a group rather than one control. Default `false`. |
 | `className` | `string` | |
 | `ref` | `Ref<HTMLDivElement>` | |
 

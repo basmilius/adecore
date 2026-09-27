@@ -100,6 +100,20 @@ describe('a field', () => {
         expect(markup).toContain('role="alert"');
     });
 
+    test('names a group with its label when the control is no input, and leaves an input inside it unconnected', () => {
+        const markup = render(
+            <Field group label="Ground" hint="Behind every frame">
+                <Input aria-label="Other" />
+            </Field>
+        );
+        expect(markup).not.toContain('<label');
+        const labelledBy = /role="group" aria-labelledby="([^"]+)" aria-describedby="([^"]+)"/.exec(markup);
+        expect(labelledBy).not.toBeNull();
+        expect(markup).toContain(`<span id="${labelledBy?.[1]}"`);
+        expect(markup).toContain(`<p id="${labelledBy?.[2]}"`);
+        expect(markup).toContain('<input aria-label="Other" class="field"');
+    });
+
     test('leaves a control outside a field as it is', () => {
         const markup = render(<TextArea rows={3} />);
         expect(markup).not.toContain('aria-describedby');

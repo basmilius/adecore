@@ -192,7 +192,7 @@ Parts that are one element take Base UI's `render` prop, which swaps the element
 + <SectionLabel render={<button type="button" onClick={toggle} />} className="focus-ring flex h-8">…</SectionLabel>
 ```
 
-A label with a field under it becomes `Field` (below).
+A label with a field under it becomes `Field` (below). A label and a hint around a control a `<label>` cannot point at (a `Segmented`, a `Select`, `ChoiceCards`, a read-only path with a button) become `<Field group label=… hint=…>`, which keeps the spacing of a field and names a `role="group"` instead.
 
 ### `MENU_LABEL` → `Menu.Label` or `Menu.GroupLabel`
 
