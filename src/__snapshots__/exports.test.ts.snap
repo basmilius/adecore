@@ -255,6 +255,8 @@ exports[`the public API ./testing exports these names 1`] = `
 ]
 `;
 
+exports[`the public API ./testing/dedupe exports these names 1`] = `[]`;
+
 exports[`the public API the compound components have these parts 1`] = `
 {
   "ContextMenu": [

@@ -25,7 +25,7 @@ Both use a local checkout of this repository and read `src` through the `source`
 One package at the repository root, published from the root with the `files` whitelist in `package.json`. The docs site is the one workspace, `docs`.
 
 - `src/index.ts`: the barrel, `@basmilius/react-ui`. Explicit named exports only, no `export *` except the `export * as` of a compound component.
-- `src/settings/index.ts`, `src/format/index.ts`, `src/testing/index.ts`: the other entry points.
+- `src/settings/index.ts`, `src/format/index.ts`, `src/testing/index.ts`: the other entry points. `src/testing/dedupe.ts` is one too, a `bun test` preload that exports nothing.
 - `src/theme.css`: the tokens, the type scale and the rules utilities cannot write (`.icon-btn`, `.field`, `.menu-popup`, `.menu-item`, `.dialog-popup`, `.tooltip-popup`, ...). Exported as `./theme.css`.
 - `src/menu`, `src/context-menu`, `src/dialog`, `src/popover`, `src/preview-card`: the compound components. `parts.tsx` holds the parts under their full names (`MenuItem`), `index.parts.ts` maps them onto the namespace (`Menu.Item`). A context menu reuses every part of a menu except its root and trigger.
 - `src/locales/en.json`, `nl.json`: the `ui` namespace. English is the source; Dutch has every key English has (`locales.test.ts`).
@@ -64,7 +64,7 @@ And these, which the tests do not catch:
 - Every component takes `className` and `ref` (React 19, no `forwardRef`). A part that is one element takes Base UI's `render` prop through `useRender`.
 - Props follow Base UI: `value`/`onValueChange`, `checked`/`onCheckedChange`, `open`/`onOpenChange`. Variants and sizes are props, never class strings the caller passes. Nothing exports a class string.
 - A component's own utilities and a caller's must not set the same property: Tailwind does not decide between two utilities by their order in `class`. Where a caller needs another value, that is a prop.
-- No module does work at import time (`sideEffects` lists only the CSS). A DOM write goes in an effect; a costly value is built on first use.
+- No module does work at import time (`sideEffects` lists only the CSS and the test preload). A DOM write goes in an effect; a costly value is built on first use.
 - Words live in the `ui` namespace, in English and Dutch. A component reads them through `useTranslation('ui')`, never through the global `i18next`.
 - Every number, date and duration a person reads comes from `src/format`.
 

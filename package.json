@@ -18,7 +18,9 @@
   ],
   "packageManager": "bun@1.4.0",
   "sideEffects": [
-    "*.css"
+    "*.css",
+    "./src/testing/dedupe.ts",
+    "./dist/testing/dedupe.js"
   ],
   "files": [
     "dist",
@@ -47,6 +49,11 @@
       "source": "./src/testing/index.ts",
       "types": "./dist/testing/index.d.ts",
       "default": "./dist/testing/index.js"
+    },
+    "./testing/dedupe": {
+      "source": "./src/testing/dedupe.ts",
+      "types": "./dist/testing/dedupe.d.ts",
+      "default": "./dist/testing/dedupe.js"
     },
     "./theme.css": {
       "source": "./src/theme.css",

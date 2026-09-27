@@ -67,6 +67,7 @@ Mount `<ShortcutHints />` once if holding Cmd (Ctrl elsewhere) should print ever
 | `@basmilius/react-ui/settings` | `SettingsDialog` and the parts of a pane: `SettingsSection`, `SettingsRow`, `MasterDetail`, `DetailHeader`, `ConfirmDialog` |
 | `@basmilius/react-ui/format` | Numbers, dates, durations and regions, and `setFormatSource` |
 | `@basmilius/react-ui/testing` | Fakes for an app's tests, such as `fakeFormatSource()` |
+| `@basmilius/react-ui/testing/dedupe` | A `bun test` preload for an app that links a checkout |
 | `@basmilius/react-ui/theme.css` | The theme |
 
 Nothing else is public. Every module has no side effects on import, so a bundler keeps only what an app uses.
@@ -175,6 +176,15 @@ Tailwind scans `src` of the checkout instead of `dist`, again relative to the CS
 ```
 
 The theme resolves through the `style` condition, which points at `src/theme.css` in the checkout and in the published package alike. If Vite refuses to serve files from the checkout, add its folder to `server.fs.allow`.
+
+`bun test` needs the condition as well (`bun test --conditions=source`) and has no `dedupe`. The library ships a preload that keeps one copy of React, i18next and Base UI for a test run; list it first in `bunfig.toml`:
+
+```toml
+[test]
+preload = ["@basmilius/react-ui/testing/dedupe"]
+```
+
+In a monorepo whose root cannot resolve the package, point at the file through the workspace that depends on it (`./apps/web/node_modules/@basmilius/react-ui/src/testing/dedupe.ts`).
 
 ## Development
 

@@ -149,4 +149,6 @@ Point Tailwind at the checkout's `src` instead of `dist`, again relative to the 
 
 The theme import stays the same. It resolves through the `style` condition, which points at `src/theme.css` in a checkout and in the published package. If Vite refuses to serve files from the checkout, add its folder to `server.fs.allow`.
 
+`bun test` takes the condition as a flag (`bun test --conditions=source`) and has no `dedupe`; the library ships a preload for that, see [Testing](/utilities/testing#a-linked-checkout-under-bun-test).
+
 These docs use the same condition. Every demo on this site imports `@basmilius/react-ui` and draws the source in the repository, not a published build.

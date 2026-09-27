@@ -50,6 +50,16 @@ One `UIProvider` replaces four things an app wired by hand. Mount it around the 
 
 See "Working on a local checkout" in the README: `resolve.conditions: ['source', ...defaultClientConditions]`, `resolve.dedupe` for React, i18next and Base UI, `optimizeDeps.exclude: ['@basmilius/react-ui']`, and `customConditions: ["source"]` in `tsconfig.json`.
 
+An app's own dedupe preload for `bun test` (a `test-dedupe.ts` with a Bun plugin that loads the checkout's React and i18next as stand-ins for the app's) is replaced by the library's, which covers Base UI too:
+
+```diff
+  [test]
+- preload = ["./apps/client/test-dedupe.ts", "./apps/client/test-preload.ts"]
++ preload = ["./apps/client/node_modules/@basmilius/react-ui/src/testing/dedupe.ts", "./apps/client/test-preload.ts"]
+```
+
+A bunfig in a folder that resolves the package names it as `@basmilius/react-ui/testing/dedupe`.
+
 ## 2. Imports
 
 Every old subpath import becomes a named import from one of four entry points. A name stays the same unless the table says otherwise.
