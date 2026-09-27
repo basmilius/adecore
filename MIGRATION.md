@@ -258,12 +258,16 @@ A label with a field under it becomes `Field` (below).
 - <span className={FORM_ERROR}>…</span>
 + <FormError render={<span />}>…</FormError>
 - <textarea className={MULTILINE_FIELD} … />
-+ <TextArea … />
++ <TextArea size="sm" … />
+- <textarea className="field h-auto min-h-24 resize-none py-1.5" … />
++ <TextArea rows={4} … />
 - <input className="field field-sm" … />
 + <Input size="sm" … />
 - <input className="field font-mono text-code" … />
 + <Input mono … />
 ```
+
+`TextArea` takes `size` like `Input`, and its default is the body text of an input; `MULTILINE_FIELD` was the smaller type, which is `size="sm"`. A caller's `min-h-*` would fight its own `min-h-16`, so a taller one takes `rows`, and `resize="vertical"` replaces a `resize-y` of the caller's.
 
 `FormError` carries `role="alert"`. Inside a `Field`, an `Input` or `TextArea` gets the label's `id`, is described by the hint and the error, and is marked invalid while there is an error. The `.field` rule stays in the theme for an element that only looks like a field (a read-only path in a box).
 

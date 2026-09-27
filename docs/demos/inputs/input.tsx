@@ -13,6 +13,7 @@ export default function InputDemo() {
             <Field label="Description">
                 <TextArea rows={4} placeholder="What does this change?" />
             </Field>
+            <TextArea size="sm" resize="vertical" aria-label="Commit message" placeholder="Commit message" />
         </div>
     );
 }

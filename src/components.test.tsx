@@ -87,6 +87,11 @@ describe('a field', () => {
         expect(markup).toContain('class="field');
     });
 
+    test('draws a text area at the size of an input, without a handle unless it asks for one', () => {
+        expect(render(<TextArea aria-label="Note" />)).toContain('class="field h-auto min-h-16 py-1.5 resize-none"');
+        expect(render(<TextArea aria-label="Draft" size="sm" resize="vertical" />)).toContain('class="field h-auto min-h-16 py-1.5 field-sm resize-y"');
+    });
+
     test('says what went wrong as an alert', () => {
         expect(render(<FormError>Nope</FormError>)).toBe('<p role="alert" class="text-xs text-status-error">Nope</p>');
     });

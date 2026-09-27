@@ -23,10 +23,15 @@ export function Input({ size = 'md', mono = false, className, id, ...props }: In
     );
 }
 
-export type TextAreaProps = ComponentProps<'textarea'>;
+export interface TextAreaProps extends ComponentProps<'textarea'> {
+    /* `sm` is the type and the padding of a small input: a commit message or a note in a narrow panel. */
+    size?: 'md' | 'sm';
+    /* `vertical` gives it a handle to drag it taller, for a draft of a few sentences. */
+    resize?: 'none' | 'vertical';
+}
 
-/* A field of a few lines: a commit message, the body of a pull request, a note. It grows from 64px and never resizes by hand. */
-export function TextArea({ className, id, ...props }: TextAreaProps) {
+/* A field of a few lines: a commit message, the body of a pull request, a note. At least 64px tall; `rows` makes it taller. */
+export function TextArea({ size = 'md', resize = 'none', className, id, ...props }: TextAreaProps) {
     const field = useFieldControl();
     return (
         <textarea
@@ -34,7 +39,7 @@ export function TextArea({ className, id, ...props }: TextAreaProps) {
             aria-describedby={field?.describedBy}
             aria-invalid={field?.invalid || undefined}
             {...props}
-            className={clsx('field h-auto min-h-16 resize-none px-2 py-1.5 text-xs', className)}
+            className={clsx('field h-auto min-h-16 py-1.5', size === 'sm' && 'field-sm', resize === 'vertical' ? 'resize-y' : 'resize-none', className)}
         />
     );
 }
