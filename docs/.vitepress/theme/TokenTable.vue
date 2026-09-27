@@ -139,6 +139,11 @@
         font-size: 12px;
     }
 
+    /* The three utilities may wrap, so the token column leaves the value columns room for a hex on one line. */
+    .token-utility code {
+        white-space: normal;
+    }
+
     .token-sample {
         display: flex;
         align-items: center;
@@ -161,10 +166,10 @@
         background: var(--surface-raised);
     }
 
+    /* Breaks only between the words of an expression, never inside a hex or a token name. */
     .token-value {
         font-size: 12px;
         white-space: normal !important;
-        word-break: break-word;
     }
 
     .token-radius {
