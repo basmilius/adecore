@@ -24,6 +24,8 @@ export interface IconButtonProps extends Omit<ComponentProps<'button'>, 'childre
     active?: boolean;
     /* The icon turns, for a step that is running. */
     spin?: boolean;
+    /* Classes for the icon rather than the button: a tone of its own, a turn, a fill. The size stays the button's. */
+    iconClassName?: string;
     /* Drawn after the icon: a count, or a word beside it together with `w-auto`. */
     children?: ReactNode;
     /* Another element to be the button, such as a menu trigger: `render={<Menu.Trigger />}`. */
@@ -40,6 +42,7 @@ export function IconButton({
     size = 'md',
     active = false,
     spin = false,
+    iconClassName,
     render,
     className,
     ref,
@@ -56,7 +59,7 @@ export function IconButton({
             className: clsx('icon-btn', ICON_BUTTON_CLASS[size], className),
             children: (
                 <>
-                    {icon !== undefined && <Icon icon={icon} size={ICON_BUTTON_ICON_SIZE[size]} className={spin ? 'animate-spin' : undefined} />}
+                    {icon !== undefined && <Icon icon={icon} size={ICON_BUTTON_ICON_SIZE[size]} className={clsx(spin && 'animate-spin', iconClassName)} />}
                     {children}
                 </>
             )

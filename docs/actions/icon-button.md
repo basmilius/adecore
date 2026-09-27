@@ -18,6 +18,8 @@ The size decides the square, the radius and the icon inside: 16 in the default 3
 
 `active` draws the button as a pressed key, for a toggle that is on. Where the button is a real toggle, use `aria-pressed` instead, as the bold and italic buttons above do. The theme draws both the same. `spin` turns the icon for a step that is running.
 
+`iconClassName` goes to the icon rather than the button, for a chevron that turns when its section opens, a status icon in its own tone or a filled glyph (`fill-current`). The icon keeps the size of the button; one that needs another size is handed in as `children` without `icon`.
+
 A disabled icon button with `disabled` loses its tooltip, because a disabled button takes no pointer events. With `aria-disabled` it keeps its focus and its tooltip, which can say why nothing happens.
 
 ## As another element
@@ -45,6 +47,7 @@ A disabled icon button with `disabled` loses its tooltip, because a disabled but
 | `size` | `IconButtonSize` | `'md'` | `'md' \| 'sm' \| 'xs' \| '2xs'` |
 | `active` | `boolean` | `false` | Draws a pressed key. |
 | `spin` | `boolean` | `false` | Turns the icon. |
+| `iconClassName` | `string` | | Classes for the icon: a tone, a turn, a fill. |
 | `children` | `ReactNode` | | Drawn after the icon: a count, or a word with `w-auto`. |
 | `render` | `RenderProp` | `<button type="button" />` | Another element to be the button. |
 

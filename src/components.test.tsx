@@ -40,6 +40,13 @@ describe('an icon button', () => {
         expect(markup).toContain('width="16"');
     });
 
+    test('hands its icon the classes meant for the icon, at the size of the button', () => {
+        const markup = render(<IconButton icon={X} size="xs" label="Play" spin iconClassName="fill-current" />);
+        expect(markup).toContain('class="lucide lucide-x align-middle animate-spin fill-current"');
+        expect(markup).toContain('width="12"');
+        expect(markup).toContain('class="icon-btn icon-btn-xs"');
+    });
+
     test('says it is pressed as a key, and is a plain button without a tooltip', () => {
         const markup = render(<IconButton icon={X} label="Mute" active tooltip={false} />);
         expect(markup).toContain('data-active="true"');
