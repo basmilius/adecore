@@ -112,8 +112,19 @@ export function MenuPopup({
     );
 }
 
-export function MenuItem({ className, ...props }: ComponentProps<typeof BaseMenu.Item>) {
-    return <BaseMenu.Item className={withClass('menu-item', className)} {...props} />;
+type ItemLook = {
+    /*
+     * Leaves the row out: no padding, highlight or indicator, only what makes it an item (the arrow
+     * keys, typeahead, closing the menu). For an icon button, a swatch, a link or a segment inside a
+     * menu, which draws itself and its own highlight.
+     */
+    unstyled?: boolean;
+};
+
+type MenuItemProps = ComponentProps<typeof BaseMenu.Item> & ItemLook;
+
+export function MenuItem({ unstyled = false, className, ...props }: MenuItemProps) {
+    return <BaseMenu.Item className={unstyled ? className : withClass('menu-item', className)} {...props} />;
 }
 
 export interface MenuCheckProps {
@@ -147,10 +158,17 @@ export function MenuCheck({ kind, checked, className, ref }: MenuCheckProps) {
     );
 }
 
-type CheckboxItemProps = ComponentProps<typeof BaseMenu.CheckboxItem> & { children?: ReactNode };
+type MenuCheckboxItemProps = ComponentProps<typeof BaseMenu.CheckboxItem> & ItemLook & { children?: ReactNode };
 
 /* A row that is on or off. The box before its label is part of it. */
-export function MenuCheckboxItem({ className, children, ...props }: CheckboxItemProps) {
+export function MenuCheckboxItem({ unstyled = false, className, children, ...props }: MenuCheckboxItemProps) {
+    if (unstyled) {
+        return (
+            <BaseMenu.CheckboxItem className={className} {...props}>
+                {children}
+            </BaseMenu.CheckboxItem>
+        );
+    }
     return (
         <BaseMenu.CheckboxItem className={withClass('menu-item', className)} {...props}>
             <MenuCheck kind="checkbox" />
@@ -161,10 +179,17 @@ export function MenuCheckboxItem({ className, children, ...props }: CheckboxItem
 
 export const MenuRadioGroup = BaseMenu.RadioGroup;
 
-type RadioItemProps = ComponentProps<typeof BaseMenu.RadioItem> & { children?: ReactNode };
+type MenuRadioItemProps = ComponentProps<typeof BaseMenu.RadioItem> & ItemLook & { children?: ReactNode };
 
 /* One of several. The tick before its label is part of it. */
-export function MenuRadioItem({ className, children, ...props }: RadioItemProps) {
+export function MenuRadioItem({ unstyled = false, className, children, ...props }: MenuRadioItemProps) {
+    if (unstyled) {
+        return (
+            <BaseMenu.RadioItem className={className} {...props}>
+                {children}
+            </BaseMenu.RadioItem>
+        );
+    }
     return (
         <BaseMenu.RadioItem className={withClass('menu-item', className)} {...props}>
             <MenuCheck kind="radio" />
@@ -195,8 +220,13 @@ export function MenuSeparator({ className, ...props }: ComponentProps<typeof Bas
 
 export const MenuGroup = BaseMenu.Group;
 
-export function MenuGroupLabel({ className, ...props }: ComponentProps<typeof BaseMenu.GroupLabel>) {
-    return <BaseMenu.GroupLabel className={withClass(MENU_LABEL, className)} {...props} />;
+type MenuGroupLabelProps = ComponentProps<typeof BaseMenu.GroupLabel> & {
+    /* Leaves the label's type and padding out, for a group that lays out its own heading. */
+    unstyled?: boolean;
+};
+
+export function MenuGroupLabel({ unstyled = false, className, ...props }: MenuGroupLabelProps) {
+    return <BaseMenu.GroupLabel className={unstyled ? className : withClass(MENU_LABEL, className)} {...props} />;
 }
 
 export type MenuLabelProps = useRender.ComponentProps<'div'>;

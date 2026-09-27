@@ -15,7 +15,7 @@ import { Menu } from '@basmilius/react-ui';
 | `Menu.Root` | Holds the open state. Takes `open`, `onOpenChange` and `defaultOpen`, or keeps the state itself. |
 | `Menu.Trigger` | The button that opens the menu. Usually handed to an [`IconButton`](/actions/icon-button) or a [`Button`](/actions/button) through `render`. |
 | `Menu.Popup` | The portal, the positioner and the popup in one part. |
-| `Menu.Item` | A row that acts. `onClick` runs it, `disabled` greys it out, and `closeOnClick={false}` keeps the menu open. |
+| `Menu.Item` | A row that acts. `onClick` runs it, `disabled` grays it out, and `closeOnClick={false}` keeps the menu open. `unstyled` makes it an item that is no row (below). |
 | `Menu.CheckboxItem` | A row that is on or off, with the box before its label drawn for you. `checked` and `onCheckedChange`. |
 | `Menu.RadioGroup`, `Menu.RadioItem` | One of several. The group takes `value` and `onValueChange`, each item a `value`. |
 | `Menu.Group`, `Menu.GroupLabel` | A group of rows under a label a screen reader reads as the group's name. |
@@ -36,6 +36,14 @@ Separators take care of themselves. Two in a row, or one at the top or the botto
 `Menu.Check` puts a tick in a plain row, for a list that reads as a choice but acts on click, or a row with a second line. `kind="radio"` is a bare tick, `kind="checkbox"` a tick in an outlined box, which says the row can be off.
 
 <Demo src="overlays/menu-check" />
+
+## Parts that are not rows
+
+`unstyled` on `Menu.Item`, `Menu.CheckboxItem` and `Menu.RadioItem` leaves the row out: no padding, no highlight and no indicator, only what makes the part an item. The arrow keys still reach it, typing finds it, and picking it closes the menu unless `closeOnClick={false}` says otherwise. It draws its own look and its own highlight, which Base UI marks with `data-highlighted` and a checked item with `data-checked`. Use it for an icon button in a heading row, a link at the foot of a menu, a row of segments, or a [`ColorSwatch`](/inputs/color-swatch) in a grid of colors. `Menu.GroupLabel` takes `unstyled` too, for a group that lays out its own heading.
+
+<Demo src="overlays/menu-unstyled" />
+
+Hand the part to another component through `render`, as the icon button does, or give it the classes itself. A part that is no row still takes the accent outline under the keyboard from what it renders, such as `IconButton`, or from `.focus-ring`; under the pointer the theme hides that outline, as it does for a row.
 
 ## Shortcuts in a row
 

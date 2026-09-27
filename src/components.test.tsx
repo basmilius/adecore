@@ -11,6 +11,7 @@ import { IconButton } from './IconButton.tsx';
 import { Input, TextArea } from './Input.tsx';
 import { Kbd } from './Kbd.tsx';
 import { ListRow } from './ListRow.tsx';
+import * as Menu from './menu/index.parts.ts';
 import { MenuCheck } from './menu/parts.tsx';
 import { PanelHeader } from './PanelHeader.tsx';
 import { SectionLabel } from './SectionLabel.tsx';
@@ -94,6 +95,38 @@ describe('a field', () => {
 
     test('says what went wrong as an alert', () => {
         expect(render(<FormError>Nope</FormError>)).toBe('<p role="alert" class="text-xs text-status-error">Nope</p>');
+    });
+});
+
+describe('a menu item', () => {
+    const inMenu = (node: ReactNode): string => render(<Menu.Root>{node}</Menu.Root>);
+
+    test('is a row with its indicator unless it asks to be left unstyled', () => {
+        expect(inMenu(<Menu.Item>Rename</Menu.Item>)).toContain('class="menu-item"');
+        const bare = inMenu(
+            <>
+                <Menu.Item unstyled className="icon-btn">
+                    +
+                </Menu.Item>
+                <Menu.CheckboxItem unstyled checked className="segment">
+                    Wrap
+                </Menu.CheckboxItem>
+            </>
+        );
+        expect(bare).not.toContain('menu-item');
+        expect(bare).not.toContain('<svg');
+        expect(bare).toContain('role="menuitem" tabindex="-1"');
+    });
+
+    test('leaves the look of a group label to the group when it is unstyled', () => {
+        const markup = inMenu(
+            <Menu.Group>
+                <Menu.GroupLabel unstyled className="font-medium">
+                    Context
+                </Menu.GroupLabel>
+            </Menu.Group>
+        );
+        expect(markup).toContain('class="font-medium"');
     });
 });
 

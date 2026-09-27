@@ -308,8 +308,9 @@
     /* Base UI moves DOM focus to the item the pointer hovers, and a browser keeps `:focus-visible`
        on for scripted focus as long as its own keyboard flag is up, so after any keystroke the ring
        would follow the mouse through every menu. The last real input event decides instead
-       (`startInputModality`); hover keeps the background it already has. */
-    :root[data-modality='pointer'] .menu-item:focus-visible { outline: none; }
+       (`startInputModality`); hover keeps the background it already has. The role reaches an item
+       that is no row, such as an icon button or a swatch inside a menu. */
+    :root[data-modality='pointer'] :is(.menu-item, [role^='menuitem']):focus-visible { outline: none; }
     /* Base UI's open and close transitions are `data-` states on the popup itself, and every menu,
        picker, dialog and tooltip in the app shares them, along with the surface they float on. */
     .menu-popup, .picker-popup, .dialog-popup, .tooltip-popup {
