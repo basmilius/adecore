@@ -1,7 +1,7 @@
 name: Request
 description: Something an app needs from the library, a new component, prop or variant.
 title: "[Request] "
-labels: ["enhancement"]
+labels: ["Enhancement"]
 body:
   - type: markdown
     attributes:
@@ -42,4 +42,4 @@ body:
     attributes:
       label: Breaking
       options:
-        - label: This would change an API another app already uses. A maintainer adds the `breaking` label and lists the call sites.
+        - label: This would change an API another app already uses. A maintainer adds the `Breaking` label and lists the call sites.

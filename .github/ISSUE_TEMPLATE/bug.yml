@@ -1,7 +1,7 @@
 name: Bug
 description: A component that does not do what its docs or its types say.
 title: "[Bug] "
-labels: ["bug"]
+labels: ["Bug"]
 body:
   - type: dropdown
     id: consumer

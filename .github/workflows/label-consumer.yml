@@ -23,7 +23,7 @@ jobs:
           # The answer is the first line with text after the form's "### Which app is this for?" heading.
           consumer=$(printf '%s\n' "$BODY" | awk '/^### Which app is this for\?/ { found = 1; next } found && NF { print; exit }')
           case "$consumer" in
-              Ruimte) gh issue edit "$NUMBER" --add-label consumer:ruimte ;;
-              AfterMotion) gh issue edit "$NUMBER" --add-label consumer:aftermotion ;;
+              Ruimte) gh issue edit "$NUMBER" --add-label Ruimte ;;
+              AfterMotion) gh issue edit "$NUMBER" --add-label AfterMotion ;;
               *) echo "No consumer label for '$consumer'." ;;
           esac

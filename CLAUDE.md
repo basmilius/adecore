@@ -16,7 +16,7 @@ Both use a local checkout of this repository and read `src` through the `source`
 - Before you change anything an entry point exports (a name, a prop, a default, a class a component puts on its element), read its call sites in both apps: `grep -rn "<Name\b" ../ruimte/apps/client/src ../ruimte/packages/agents-react/src ../aftermotion/apps/client/src`.
 - A request from one app gets a shape that describes the need, not the app. The answer may be a different API than the one asked for, or a no: something only one app needs stays in that app.
 - No option exists for one app only unless its shape is generic enough that a third app could want it.
-- A breaking change lists the call sites in both apps, carries a migration note (in the PR and, while it lasts, in `MIGRATION.md`), and gets the `breaking` label.
+- A breaking change lists the call sites in both apps, carries a migration note (in the PR and, while it lasts, in `MIGRATION.md`), and gets the `Breaking` label.
 - Library code, `README.md` and any docs never name the apps. Describe the need ("a panel along the right edge", "a dialog opened over another"). Only this file, the issue templates and `MIGRATION.md` may name them.
 - `src/__snapshots__/exports.test.ts.snap` lists every exported name, types included, and the parts of every compound component. A change there is an API change: accept it with `bun test --update-snapshots` only when you meant it.
 
