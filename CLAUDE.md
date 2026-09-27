@@ -1,0 +1,76 @@
+# @basmilius/react-ui
+
+A React UI library: components, a theme, formatters and a settings dialog, on React 19, Base UI, Lucide and Tailwind 4. `README.md` is for people who use it; this file is for agents who work on it. `MIGRATION.md` maps the package it replaced (`@ruimte/ui`) onto this one.
+
+## Who uses it
+
+Two apps, and later more:
+
+- Ruimte, `../ruimte` (`/Users/bas/Development/Projects/ruimte`, public). The UI is in `apps/client/src` and `packages/agents-react/src`. Its root `CLAUDE.md` holds its design rules.
+- AfterMotion, `../aftermotion` (`/Users/bas/Development/Projects/aftermotion`, private). The UI is in `apps/client/src`.
+
+Both link a local checkout of this repository (Ruimte with `bun link`, AfterMotion with `file:../react-ui`) and read `src` through the `source` export condition, so a change here is live in both without a build.
+
+## Changing the public API
+
+- Before you change anything an entry point exports (a name, a prop, a default, a class a component puts on its element), read its call sites in both apps: `grep -rn "<Name\b" ../ruimte/apps/client/src ../ruimte/packages/agents-react/src ../aftermotion/apps/client/src`.
+- A request from one app gets a shape that describes the need, not the app. The answer may be a different API than the one asked for, or a no: something only one app needs stays in that app.
+- No option exists for one app only unless its shape is generic enough that a third app could want it.
+- A breaking change lists the call sites in both apps, carries a migration note (in the PR and, while it lasts, in `MIGRATION.md`), and gets the `breaking` label.
+- Library code, `README.md` and any docs never name the apps. Describe the need ("a panel along the right edge", "a dialog opened over another"). Only this file, the issue templates and `MIGRATION.md` may name them.
+- `src/__snapshots__/exports.test.ts.snap` lists every exported name, types included, and the parts of every compound component. A change there is an API change: accept it with `bun test --update-snapshots` only when you meant it.
+
+## Layout
+
+One package at the repository root, published from the root with the `files` whitelist in `package.json`. The docs site will be a workspace in `docs` once it exists (then `"workspaces": ["docs"]` goes into the root `package.json`).
+
+- `src/index.ts`: the barrel, `@basmilius/react-ui`. Explicit named exports only, no `export *` except the `export * as` of a compound component.
+- `src/settings/index.ts`, `src/format/index.ts`, `src/testing/index.ts`: the other entry points.
+- `src/theme.css`: the tokens, the type scale and the rules utilities cannot write (`.icon-btn`, `.field`, `.menu-popup`, `.menu-item`, `.dialog-popup`, `.tooltip-popup`, ...). Exported as `./theme.css`.
+- `src/menu`, `src/context-menu`, `src/dialog`, `src/popover`, `src/preview-card`: the compound components. `parts.tsx` holds the parts under their full names (`MenuItem`), `index.parts.ts` maps them onto the namespace (`Menu.Item`). A context menu reuses every part of a menu except its root and trigger.
+- `src/locales/en.json`, `nl.json`: the `ui` namespace. English is the source; Dutch has every key English has (`locales.test.ts`).
+- Internal modules (not exported): `dialog-layer.ts`, `error-boundary.ts`, `file-icon.ts` except `FILE_TREE_ICONS`, `shortcut-hints.ts`, `selection.ts`, `wipe-split.ts`, `class-name.ts`, `merge-refs.ts`, `field-context.ts`, `icon-button-size.ts`, `zoom.ts` except `ZOOM_PRESETS`.
+- `scripts/build.ts`: `tsc` into `dist`, one `.js` and one `.d.ts` per source file, then the theme copied.
+
+## Scripts
+
+- `bun run check`: typecheck and oxlint; a warning fails.
+- `bun run test`: `bun test`, tests next to the code.
+- `bun run build`: `dist`.
+- `bun run format`: oxfmt.
+
+All three of check, test and build pass before a commit. CI (`.github/workflows/ci.yml`) runs them on every push to main and every PR. Publishing a GitHub release runs `release.yml`, which sets the version from the tag and publishes with npm Trusted Publishing; `package.json` stays at `0.0.0`.
+
+## Design rules
+
+`src/conventions.test.ts` holds every file to these:
+
+- Type in the sizes of the theme's scale, never a size in brackets, nothing below 12px.
+- A hint is a `Tooltip`, never a `title`.
+- Icons are 12, 14, 16 or 20px. An icon button draws the icon of its size (`icon-button-size.ts`) and never sets its own height, width or radius.
+- A button with a word in it is a `Button`.
+- Only `src/format` builds an `Intl` formatter.
+- Colors are tokens of the theme: no hex, `rgb()` or `hsl()` in a component, and none in `theme.css` outside the two token blocks.
+- Whole pixels: no fractional `px`, and every `rem` or `em` in the theme inside `round(…, 1px)`.
+- Keyboard focus is the accent outline, never a ring. Labels are sentence case, never `uppercase`.
+- A key listener on the window only where the list in the test says why.
+
+And these, which the tests do not catch:
+
+- The theme stays neutral. The app sets its own accent; nothing here assumes one.
+- A border is an alpha over what is behind it. Every surface clips its background to the padding box (the base layer does that for all).
+- Every component takes `className` and `ref` (React 19, no `forwardRef`). A part that is one element takes Base UI's `render` prop through `useRender`.
+- Props follow Base UI: `value`/`onValueChange`, `checked`/`onCheckedChange`, `open`/`onOpenChange`. Variants and sizes are props, never class strings the caller passes. Nothing exports a class string.
+- A component's own utilities and a caller's must not set the same property: Tailwind does not decide between two utilities by their order in `class`. Where a caller needs another value, that is a prop.
+- No module does work at import time (`sideEffects` lists only the CSS). A DOM write goes in an effect; a costly value is built on first use.
+- Words live in the `ui` namespace, in English and Dutch. A component reads them through `useTranslation('ui')`, never through the global `i18next`.
+- Every number, date and duration a person reads comes from `src/format`.
+
+## Conventions
+
+- TypeScript, React 19, Bun. 4 spaces, LF; `.editorconfig` is the rule.
+- American English in code, comments, docs and UI text. Never an em dash or an en dash anywhere.
+- Always curly braces, also for a one-line early return. No one-letter names except `i`, `e`, `x`, `y`.
+- Arrow functions inside functions; a class method is never an arrow property. Named components are `function` declarations.
+- Comments say why, never what the code already says. Keep the comment density of the file you are in.
+- Conventional commits in English (`feat:`, `fix:`, `build:`, `ci:`, `docs:`, `test:`, `refactor:`). No attribution lines.
