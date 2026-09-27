@@ -1,0 +1,96 @@
+/*
+ * Tailwind without its preflight: VitePress brings a reset of its own, and the prose around the demos
+ * keeps its styles. The order names VitePress's layer first, whichever file the bundle puts first, so
+ * its reset never outranks a utility.
+ */
+@layer __vitepress_base, theme, base, docs, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities) source(none);
+@import "@basmilius/react-ui/theme.css";
+
+@source "../../../src";
+@source "../../demos";
+
+/*
+ * The library's base layer is written for an app that owns the page. Here the page is VitePress's,
+ * so its body and the clip of every background go back, and only the demos and what they portal out
+ * to `<body>` get the library's ground.
+ */
+@layer docs {
+    body {
+        font-family: var(--vp-font-family-base);
+        font-size: 16px;
+        color: var(--vp-c-text-1);
+        background: var(--vp-c-bg);
+        user-select: auto;
+    }
+
+    *, ::before, ::after {
+        background-clip: border-box;
+    }
+
+    .demo-stage, [data-base-ui-portal] {
+        font-family: var(--font-sans);
+        font-size: var(--text-sm);
+        line-height: 1.5;
+        color: var(--text);
+    }
+
+    .demo-stage *, .demo-stage ::before, .demo-stage ::after,
+    [data-base-ui-portal] *, [data-base-ui-portal] ::before, [data-base-ui-portal] ::after {
+        background-clip: padding-box;
+    }
+}
+
+:root {
+    --vp-c-brand-1: var(--accent);
+    --vp-c-brand-2: color-mix(in srgb, var(--accent) 85%, var(--vp-c-bg));
+    --vp-c-brand-3: var(--accent);
+    --vp-c-brand-soft: rgb(var(--accent-rgb) / 0.14);
+}
+
+.dark {
+    --vp-c-brand-1: color-mix(in srgb, var(--accent) 70%, white);
+}
+
+.demo {
+    margin: 16px 0 24px;
+    border: 1px solid var(--vp-c-divider);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.demo-stage {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 140px;
+    padding: 40px 24px;
+    background: var(--bg);
+}
+
+.demo-host {
+    display: contents;
+}
+
+.demo-stage-fill {
+    display: block;
+    padding: 0;
+}
+
+.demo-stage-fill > .demo-host {
+    display: block;
+}
+
+.vp-doc .demo-code > div[class*='language-'] {
+    margin: 0;
+    border-top: 1px solid var(--vp-c-divider);
+    border-radius: 0;
+}
+
+.vp-doc .demo-code > div[class*='language-'] pre {
+    max-height: 480px;
+}

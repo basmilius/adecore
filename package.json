@@ -13,6 +13,9 @@
   },
   "homepage": "https://react-ui.bas.dev",
   "type": "module",
+  "workspaces": [
+    "docs"
+  ],
   "packageManager": "bun@1.4.0",
   "sideEffects": [
     "*.css"
@@ -57,8 +60,8 @@
     "lint": "oxlint --deny-warnings",
     "check": "bun run typecheck && bun run lint",
     "test": "bun test",
-    "format": "oxfmt --write \"src/**/*.{ts,tsx}\" \"scripts/**/*.ts\"",
-    "format:check": "oxfmt --check \"src/**/*.{ts,tsx}\" \"scripts/**/*.ts\""
+    "format": "oxfmt --write \"src/**/*.{ts,tsx}\" \"scripts/**/*.ts\" \"docs/**/*.{ts,tsx}\"",
+    "format:check": "oxfmt --check \"src/**/*.{ts,tsx}\" \"scripts/**/*.ts\" \"docs/**/*.{ts,tsx}\""
   },
   "dependencies": {
     "@base-ui-components/react": "^1.0.0-rc.0",
