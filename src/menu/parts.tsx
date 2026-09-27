@@ -158,10 +158,15 @@ export function MenuCheck({ kind, checked, className, ref }: MenuCheckProps) {
     );
 }
 
-type MenuCheckboxItemProps = ComponentProps<typeof BaseMenu.CheckboxItem> & ItemLook & { children?: ReactNode };
+type Indicator = {
+    /* Where the tick or the box sits: before the label, or at the end of the row, for an option that reads as a label with its control after it. */
+    indicator?: 'start' | 'end';
+};
+
+type MenuCheckboxItemProps = ComponentProps<typeof BaseMenu.CheckboxItem> & ItemLook & Indicator & { children?: ReactNode };
 
 /* A row that is on or off. The box before its label is part of it. */
-export function MenuCheckboxItem({ unstyled = false, className, children, ...props }: MenuCheckboxItemProps) {
+export function MenuCheckboxItem({ unstyled = false, indicator = 'start', className, children, ...props }: MenuCheckboxItemProps) {
     if (unstyled) {
         return (
             <BaseMenu.CheckboxItem className={className} {...props}>
@@ -171,18 +176,19 @@ export function MenuCheckboxItem({ unstyled = false, className, children, ...pro
     }
     return (
         <BaseMenu.CheckboxItem className={withClass('menu-item', className)} {...props}>
-            <MenuCheck kind="checkbox" />
+            {indicator === 'start' && <MenuCheck kind="checkbox" />}
             {children}
+            {indicator === 'end' && <MenuCheck kind="checkbox" className="ml-auto" />}
         </BaseMenu.CheckboxItem>
     );
 }
 
 export const MenuRadioGroup = BaseMenu.RadioGroup;
 
-type MenuRadioItemProps = ComponentProps<typeof BaseMenu.RadioItem> & ItemLook & { children?: ReactNode };
+type MenuRadioItemProps = ComponentProps<typeof BaseMenu.RadioItem> & ItemLook & Indicator & { children?: ReactNode };
 
 /* One of several. The tick before its label is part of it. */
-export function MenuRadioItem({ unstyled = false, className, children, ...props }: MenuRadioItemProps) {
+export function MenuRadioItem({ unstyled = false, indicator = 'start', className, children, ...props }: MenuRadioItemProps) {
     if (unstyled) {
         return (
             <BaseMenu.RadioItem className={className} {...props}>
@@ -192,8 +198,9 @@ export function MenuRadioItem({ unstyled = false, className, children, ...props 
     }
     return (
         <BaseMenu.RadioItem className={withClass('menu-item', className)} {...props}>
-            <MenuCheck kind="radio" />
+            {indicator === 'start' && <MenuCheck kind="radio" />}
             {children}
+            {indicator === 'end' && <MenuCheck kind="radio" className="ml-auto" />}
         </BaseMenu.RadioItem>
     );
 }

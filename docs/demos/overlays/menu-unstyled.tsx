@@ -6,6 +6,7 @@ const DENSITIES = ['Compact', 'Normal', 'Roomy'];
 
 export default function MenuUnstyledDemo() {
     const [density, setDensity] = useState('Normal');
+    const [previews, setPreviews] = useState(true);
 
     return (
         <Menu.Root>
@@ -34,6 +35,9 @@ export default function MenuUnstyledDemo() {
                         ))}
                     </Menu.RadioGroup>
                 </div>
+                <Menu.CheckboxItem checked={previews} onCheckedChange={setPreviews} closeOnClick={false} indicator="end" className="text-text-muted">
+                    <span className="grow">Previews</span>
+                </Menu.CheckboxItem>
                 <div className="flex justify-end px-2.5 py-1.5 text-xs">
                     <Menu.Item unstyled className="focus-ring flex items-center gap-0.5 rounded font-medium text-accent data-highlighted:underline">
                         All settings <Icon icon={ChevronRight} size={12} />

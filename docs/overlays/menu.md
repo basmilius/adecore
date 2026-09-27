@@ -16,8 +16,8 @@ import { Menu } from '@basmilius/react-ui';
 | `Menu.Trigger` | The button that opens the menu. Usually handed to an [`IconButton`](/actions/icon-button) or a [`Button`](/actions/button) through `render`. |
 | `Menu.Popup` | The portal, the positioner and the popup in one part. |
 | `Menu.Item` | A row that acts. `onClick` runs it, `disabled` grays it out, and `closeOnClick={false}` keeps the menu open. `unstyled` makes it an item that is no row (below). |
-| `Menu.CheckboxItem` | A row that is on or off, with the box before its label drawn for you. `checked` and `onCheckedChange`. |
-| `Menu.RadioGroup`, `Menu.RadioItem` | One of several. The group takes `value` and `onValueChange`, each item a `value`. |
+| `Menu.CheckboxItem` | A row that is on or off, with the box before its label drawn for you. `checked` and `onCheckedChange`. `indicator="end"` puts the box at the end of the row. |
+| `Menu.RadioGroup`, `Menu.RadioItem` | One of several. The group takes `value` and `onValueChange`, each item a `value`. `indicator="end"` puts the tick at the end of the row. |
 | `Menu.Group`, `Menu.GroupLabel` | A group of rows under a label a screen reader reads as the group's name. |
 | `Menu.Label` | A label above rows that are not a group of their own, such as a row of swatches. |
 | `Menu.Separator` | The hairline between groups. |
@@ -36,6 +36,8 @@ Separators take care of themselves. Two in a row, or one at the top or the botto
 `Menu.Check` puts a tick in a plain row, for a list that reads as a choice but acts on click, or a row with a second line. `kind="radio"` is a bare tick, `kind="checkbox"` a tick in an outlined box, which says the row can be off.
 
 <Demo src="overlays/menu-check" />
+
+A checkbox or radio item draws its indicator before the label. `indicator="end"` moves it to the end of the row, for an option that reads as a label with its control after it, such as a setting among others that keep their control at the end. The Previews row in the [next demo](#parts-that-are-not-rows) is one.
 
 ## Parts that are not rows
 

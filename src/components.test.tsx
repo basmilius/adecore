@@ -136,6 +136,16 @@ describe('a menu item', () => {
         expect(bare).toContain('role="menuitem" tabindex="-1"');
     });
 
+    test('puts its indicator at the end of the row when it asks for it there', () => {
+        const markup = inMenu(
+            <Menu.CheckboxItem checked indicator="end">
+                Fast mode
+            </Menu.CheckboxItem>
+        );
+        expect(markup.indexOf('Fast mode')).toBeLessThan(markup.indexOf('border-border-strong'));
+        expect(markup).toContain('ml-auto');
+    });
+
     test('leaves the look of a group label to the group when it is unstyled', () => {
         const markup = inMenu(
             <Menu.Group>
