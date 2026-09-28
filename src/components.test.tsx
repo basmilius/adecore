@@ -16,12 +16,14 @@ import * as Menu from './menu/index.parts.ts';
 import { MenuCheck } from './menu/parts.tsx';
 import { PanelHeader } from './PanelHeader.tsx';
 import { SectionLabel } from './SectionLabel.tsx';
+import { SegmentBar } from './SegmentBar.tsx';
 import { SlidingColumn } from './SlidingColumn.tsx';
 import { Spinner } from './Spinner.tsx';
 import { Stepper } from './Stepper.tsx';
 import { Surface } from './Surface.tsx';
 import { fakeFormatSource } from './testing/fake-source.ts';
 import { UIProvider } from './UIProvider.tsx';
+import { Waveform } from './Waveform.tsx';
 
 const i18n = i18next.createInstance();
 await i18n.init({ lng: 'en', fallbackLng: 'en', resources: {}, interpolation: { escapeValue: false } });
@@ -75,6 +77,90 @@ describe('a spinner', () => {
         expect(markup).toContain('role="img" aria-label="Running"');
         expect(markup).not.toContain('aria-hidden');
         expect(markup).toContain('--spinner-size:12px');
+    });
+});
+
+describe('a waveform', () => {
+    test('is an image with a name when it cannot seek', () => {
+        const markup = render(<Waveform levels={[0.2, 1]} duration={10} label="Score" />);
+        expect(markup).toContain('role="img"');
+        expect(markup).not.toContain('tabindex');
+        expect(markup).not.toContain('bg-accent');
+    });
+
+    test('is a slider that says where it is when it can seek', () => {
+        const markup = render(<Waveform levels={[0.2, 0.4, 0.6, 1]} duration={225} value={83} onValueChange={() => {}} label="Record" />);
+        expect(markup).toContain('role="slider"');
+        expect(markup).toContain('tabindex="0"');
+        expect(markup).toContain('aria-valuemax="225"');
+        expect(markup).toContain('aria-valuetext="01:23 of 03:45"');
+    });
+
+    test('draws the playhead and the marks inside its range only', () => {
+        const markup = render(<Waveform levels={[0.5]} duration={100} range={[20, 60]} value={30} marks={[10, 40]} label="Score" />);
+        expect(markup).toContain('left:25%');
+        expect(markup.match(/<line/g)).toHaveLength(1);
+        expect(render(<Waveform levels={[0.5]} duration={100} range={[20, 60]} value={80} label="Score" />)).not.toContain('bg-accent');
+    });
+});
+
+describe('a segment bar', () => {
+    test('places each part exactly at its share of the range', () => {
+        const markup = render(
+            <SegmentBar
+                parts={[
+                    { value: 1, label: 'Intro' },
+                    { value: 3, label: 'Verse', current: true }
+                ]}
+                range={[0, 8]}
+                label="Sections"
+            />
+        );
+        expect(markup).toContain('<ol aria-label="Sections"');
+        expect(markup).toContain('left:0%;width:12.5%');
+        expect(markup).toContain('left:12.5%;width:37.5%');
+        expect(markup).toContain('aria-current="true"');
+    });
+
+    test('shows only the parts inside its range, cut to it', () => {
+        const markup = render(
+            <SegmentBar
+                parts={[
+                    { value: 10, label: 'A' },
+                    { value: 10, label: 'B' },
+                    { value: 10, label: 'C' }
+                ]}
+                range={[5, 15]}
+            />
+        );
+        expect(markup).toContain('left:0%;width:50%');
+        expect(markup).toContain('left:50%;width:50%');
+        expect(markup).not.toContain('>C<');
+    });
+
+    test('makes every part a button when it can select', () => {
+        const markup = render(
+            <SegmentBar
+                parts={[
+                    { value: 1, label: 'A' },
+                    { value: 1, label: 'B' }
+                ]}
+                onSelect={() => {}}
+            />
+        );
+        expect(markup.match(/<button type="button"/g)).toHaveLength(2);
+    });
+
+    test('stays reachable when a person can press its parts, labels or not', () => {
+        const markup = render(<SegmentBar parts={[{ value: 1 }, { value: 1 }]} onSelect={() => {}} />);
+        expect(markup).not.toContain('aria-hidden');
+    });
+
+    test('is hidden from a screen reader when no part has a label', () => {
+        const markup = render(<SegmentBar parts={[{ value: 1, color: 'var(--positive)' }, { value: 1 }]} size="sm" />);
+        expect(markup).toContain('aria-hidden="true"');
+        expect(markup).toContain('background-color:var(--positive)');
+        expect(markup).toContain('left:50%;width:50%');
     });
 });
 

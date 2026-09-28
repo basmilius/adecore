@@ -38,6 +38,7 @@ export { PanelHeader, type PanelHeaderProps } from './PanelHeader.tsx';
 export { Pill, type PillProps } from './Pill.tsx';
 export { PromptDialog, type PromptDialogProps } from './PromptDialog.tsx';
 export { SectionLabel, type SectionLabelProps } from './SectionLabel.tsx';
+export { SegmentBar, type SegmentBarPart, type SegmentBarProps } from './SegmentBar.tsx';
 export { Segmented, type SegmentedOption, type SegmentedProps } from './Segmented.tsx';
 export { Select, type SelectGroup, type SelectItem, type SelectProps } from './Select.tsx';
 export { Separator, type SeparatorProps } from './Separator.tsx';
@@ -53,6 +54,7 @@ export { Tile, type TileProps } from './Tile.tsx';
 export { Toasts, type ToastsProps } from './Toasts.tsx';
 export { Tooltip, TooltipProvider, type TooltipProps, type TooltipSide } from './Tooltip.tsx';
 export { UIProvider, type UIProviderProps } from './UIProvider.tsx';
+export { Waveform, type WaveformProps } from './Waveform.tsx';
 export { Wipe, type WipeProps } from './Wipe.tsx';
 export { ZoomControls, type ZoomControlsProps, type ZoomLabels, type ZoomSelection } from './ZoomControls.tsx';
 

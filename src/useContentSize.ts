@@ -6,11 +6,11 @@ export interface ContentSize {
 }
 
 /* Whole pixels, so a frame fitted into the space lands on them too. */
-export function useContentSize(): [(node: HTMLDivElement | null) => void, ContentSize] {
+export function useContentSize(): [(node: HTMLElement | null) => void, ContentSize] {
     const [size, setSize] = useState<ContentSize>({ width: 0, height: 0 });
     const observer = useRef<ResizeObserver | null>(null);
     useEffect(() => () => observer.current?.disconnect(), []);
-    const measure = useCallback((node: HTMLDivElement | null): void => {
+    const measure = useCallback((node: HTMLElement | null): void => {
         observer.current?.disconnect();
         if (node === null) {
             return;

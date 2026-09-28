@@ -44,5 +44,8 @@
     "presets": "Zoomstanden",
     "fit": "Zoomen tot alles past",
     "fitEverything": "Alles laten passen"
+  },
+  "waveform": {
+    "position": "{{time}} van {{duration}}"
   }
 }

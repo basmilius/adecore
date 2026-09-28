@@ -44,5 +44,8 @@
     "presets": "Zoom presets",
     "fit": "Zoom to fit",
     "fitEverything": "Fit everything"
+  },
+  "waveform": {
+    "position": "{{time}} of {{duration}}"
   }
 }

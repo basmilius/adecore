@@ -56,6 +56,8 @@ export const navigation: DefaultTheme.SidebarItem[] = [
         ['Separator', '/display/separator'],
         ['Skeleton', '/display/skeleton'],
         ['Spinner', '/display/spinner'],
+        ['SegmentBar', '/display/segment-bar'],
+        ['Waveform', '/display/waveform'],
         ['EmptyState', '/display/empty-state'],
         ['PanelEmpty', '/display/panel-empty'],
         ['Banner', '/display/banner'],

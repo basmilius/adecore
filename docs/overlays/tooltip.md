@@ -32,5 +32,6 @@ The tooltip slides to the next button instead of blinking out and in, and scales
 | `side` | `TooltipSide` | `'top'` | `'top' \| 'bottom' \| 'left' \| 'right'` |
 | `sideOffset` | `number` | `6` | |
 | `name` | `boolean` | `false` | Makes a string label the trigger's `aria-label`. |
+| `disabled` | `boolean` | `false` | Keeps the hint closed, for a trigger that only needs one some of the time. |
 
 `TooltipProps` and `TooltipSide` are exported types.
