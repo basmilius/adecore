@@ -422,7 +422,10 @@
     /* Tooltips. The positioner animates its position, so a tooltip slides to the next button
        instead of blinking; the popup fades and scales from its anchor side. Both drop the motion
        while Base UI says the tooltip is instant. */
+    /* As wide as its label up to the viewport's max width, so a short label near the edge of the
+       window does not wrap to the room left of it before the positioner moves it back in. */
     .tooltip-positioner {
+        width: max-content;
         z-index: var(--z-tooltip);
         pointer-events: none;
         transition: top 150ms ease, left 150ms ease, right 150ms ease, bottom 150ms ease;

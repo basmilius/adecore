@@ -1,4 +1,4 @@
-import { Info, Search } from 'lucide-react';
+import { History, Info, Search } from 'lucide-react';
 import { Button, Icon, Tooltip, shortcut } from '@basmilius/react-ui';
 
 const SEARCH = shortcut('Mod+K');
@@ -19,6 +19,12 @@ export default function TooltipDemo() {
                 <button type="button" className="focus-ring grid size-6 place-items-center rounded-md text-text-muted">
                     <Icon icon={Info} size={14} />
                 </button>
+            </Tooltip>
+            <Tooltip label="Tightened the intro to four seconds, moved the title card after the first cut and brought the music down under the voice-over.">
+                <Button variant="secondary">
+                    <Icon icon={History} size={14} />
+                    Version 3
+                </Button>
             </Tooltip>
         </div>
     );
