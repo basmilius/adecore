@@ -8,7 +8,7 @@ import { EmptyState } from '@basmilius/react-ui';
 
 <Demo src="display/empty-state" />
 
-The sentence says what is missing and what puts something there. A `title` above it is for a state that is an outcome, such as a search with no results, rather than a list with nothing in it yet. The icon is always 20 pixels. It can be a Lucide icon, or another mark that takes a `size`, such as a logo.
+The sentence says what is missing and what puts something there. A `title` above it is for a state that is an outcome, such as a search with no results, rather than a list with nothing in it yet. The icon is always 20 pixels. It can be a Lucide icon, or another mark that takes a `size`, such as a logo. While something loads, `busy` draws a [`Spinner`](/display/spinner) in its place.
 
 ## Props
 
@@ -16,7 +16,8 @@ The sentence says what is missing and what puts something there. A `title` above
 | --- | --- | --- | --- |
 | `children` | `ReactNode` | | Required. One sentence. |
 | `icon` | `LucideIcon \| ReactElement<{ size?: number }>` | | |
-| `spin` | `boolean` | `false` | Turns a Lucide icon, for a state that is still loading. |
+| `busy` | `boolean` | `false` | A `Spinner` in place of the icon, for a state that is still loading. |
+| `spin` | `boolean` | `false` | Deprecated: turns a Lucide icon. Use `busy`. |
 | `title` | `ReactNode` | | |
 | `action` | `ReactNode` | | One button. |
 | `className` | `string` | | |

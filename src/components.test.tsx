@@ -5,6 +5,7 @@ import i18next from 'i18next';
 import { Search, X } from 'lucide-react';
 import { ButtonGroup } from './ButtonGroup.tsx';
 import { ColorSwatch } from './ColorSwatch.tsx';
+import { EmptyState } from './EmptyState.tsx';
 import { Field, FormError } from './Field.tsx';
 import { formatLocale } from './format/locale.ts';
 import { IconButton } from './IconButton.tsx';
@@ -16,6 +17,7 @@ import { MenuCheck } from './menu/parts.tsx';
 import { PanelHeader } from './PanelHeader.tsx';
 import { SectionLabel } from './SectionLabel.tsx';
 import { SlidingColumn } from './SlidingColumn.tsx';
+import { Spinner } from './Spinner.tsx';
 import { Stepper } from './Stepper.tsx';
 import { Surface } from './Surface.tsx';
 import { fakeFormatSource } from './testing/fake-source.ts';
@@ -47,10 +49,39 @@ describe('an icon button', () => {
         expect(markup).toContain('class="icon-btn icon-btn-xs"');
     });
 
+    test('draws a spinner of its size in place of the icon while it is busy', () => {
+        const markup = render(<IconButton icon={X} size="sm" label="Refresh" busy iconClassName="text-accent" />);
+        expect(markup).not.toContain('lucide-x');
+        expect(markup).toContain('class="spinner text-accent" style="--spinner-size:14px"');
+    });
+
     test('says it is pressed as a key, and is a plain button without a tooltip', () => {
         const markup = render(<IconButton icon={X} label="Mute" active tooltip={false} />);
         expect(markup).toContain('data-active="true"');
         expect(markup).toContain('type="button"');
+    });
+});
+
+describe('a spinner', () => {
+    test('is hidden from a screen reader without a label, like an icon', () => {
+        const markup = render(<Spinner />);
+        expect(markup).toContain('aria-hidden="true"');
+        expect(markup).toContain('--spinner-size:16px');
+        expect(markup).not.toContain('role=');
+    });
+
+    test('is an image with a name when it has a label', () => {
+        const markup = render(<Spinner size={12} label="Running" />);
+        expect(markup).toContain('role="img" aria-label="Running"');
+        expect(markup).not.toContain('aria-hidden');
+        expect(markup).toContain('--spinner-size:12px');
+    });
+});
+
+describe('an empty state', () => {
+    test('draws a spinner at the size of its icon while it is busy', () => {
+        const markup = render(<EmptyState busy>Loading the files.</EmptyState>);
+        expect(markup).toContain('--spinner-size:20px');
     });
 });
 

@@ -22,7 +22,7 @@ export default function IconButtonDemo() {
                 <IconButton icon={Italic} label="Italic" aria-pressed={italic} onClick={() => setItalic(!italic)} />
             </ButtonGroup>
             <Separator />
-            <IconButton icon={RefreshCw} label="Refresh" kbd={REFRESH} spin={refreshing} onClick={refresh} />
+            <IconButton icon={RefreshCw} label="Refresh" kbd={REFRESH} busy={refreshing} onClick={refresh} />
             <IconButton
                 icon={ChevronRight}
                 label={open ? 'Collapse' : 'Expand'}

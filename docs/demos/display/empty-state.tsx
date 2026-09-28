@@ -1,4 +1,4 @@
-import { Inbox, LoaderCircle } from 'lucide-react';
+import { Inbox } from 'lucide-react';
 import { Button, EmptyState } from '@basmilius/react-ui';
 
 export default function EmptyStateDemo() {
@@ -15,7 +15,7 @@ export default function EmptyStateDemo() {
             >
                 No tasks yet. A task you create shows up here.
             </EmptyState>
-            <EmptyState icon={LoaderCircle} spin title="Indexing" className="rounded-lg border border-border bg-surface">
+            <EmptyState busy title="Indexing" className="rounded-lg border border-border bg-surface">
                 Reading 1,204 files. Search works once this is done.
             </EmptyState>
         </div>

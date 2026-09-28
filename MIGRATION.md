@@ -366,7 +366,8 @@ A disabled one now dims to 50% like every other button, where it was 40%.
 | `className="icon-btn"` | no `size` (32, icon 16) |
 | `icon-btn-sm`, `icon-btn-xs`, `icon-btn-2xs` | `size="sm"` (icon 14), `size="xs"` (12), `size="2xs"` (12); drop the `<Icon size>`, the button sizes it |
 | `<Icon icon={X} />` as the only child | `icon={X}` |
-| `<Icon icon={X} className="animate-spin" />` | `icon={X} spin` |
+| `<Icon icon={LoaderCircle} className="animate-spin" />` | `busy`, which draws a `Spinner` in place of the icon |
+| `<Icon icon={X} className="animate-spin" />`, any other icon | `busy` as well; `spin` still turns the icon, but is deprecated |
 | `<Icon icon={X} className={c} />` with any other class (`rotate-90`, a tone, `fill-current`) | `icon={X} iconClassName={c}` |
 | `<Icon icon={X} size={16} />` in a smaller button on purpose | stays `children`, without `icon` |
 | `<Tooltip label={a} name>` around it | `label={a}` |

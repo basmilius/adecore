@@ -107,7 +107,7 @@ Compound components follow Base UI's namespaces and props (`open` and `onOpenCha
 - `Button`, `IconButton`, `ButtonGroup`, `CloseButton`, `Pill`, `Tile`, `ColorSwatch`, `AccentSwatches`.
 - `Field`, `FieldHint`, `FormError`, `Input`, `TextArea`, `Select`, `Switch`, `Segmented`, `Stepper`, `ChoiceCards`, `IconPicker`.
 - `Tooltip`, `DisabledReason`, `Kbd`, `Keys`, `KeyCap`, `ShortcutHints`.
-- `SectionLabel`, `Surface`, `ListRow`, `PanelHeader`, `Separator`, `Skeleton`, `Icon`, `FileIcon`.
+- `SectionLabel`, `Surface`, `ListRow`, `PanelHeader`, `Separator`, `Skeleton`, `Spinner`, `Icon`, `FileIcon`.
 - `EmptyState`, `PanelEmpty`, `ErrorBoundary`, `Banner`, `Toasts`, `PromptDialog`, `TextMenu`.
 - `SlidingColumn`, `DockShell`, `ZoomControls`, `Wipe`, `ColumnResizeHandle`.
 - Hooks and helpers: `useAsyncAction`, `useColumnResize`, `useContentSize`, `useMeasuredWidth`, `useNow`, `useTickingText`, `lazyNamed`, `lazyDialog`, `prefetcher`, `createToastStore`, `shortcut`, `matchesShortcut`, `copyText`, `messageOf`, `isInFloatingLayer`, `cameThroughPortal`, `selectionWithin`, `selectAllWithin`.

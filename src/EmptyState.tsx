@@ -2,6 +2,7 @@ import { cloneElement, isValidElement, type ReactElement, type ReactNode, type R
 import type { LucideIcon } from 'lucide-react';
 import clsx from 'clsx';
 import { Icon } from './Icon.tsx';
+import { Spinner } from './Spinner.tsx';
 
 // One size in a panel, a card and a dialog alike, so no caller picks its own.
 const ICON_SIZE = 20;
@@ -9,6 +10,9 @@ const ICON_SIZE = 20;
 export interface EmptyStateProps {
     /* A Lucide icon, or a mark of another kind (a provider's logo) that takes a `size`. */
     icon?: LucideIcon | ReactElement<{ size?: number }>;
+    /* A `Spinner` in place of the icon, for a state that is still loading. */
+    busy?: boolean;
+    /** @deprecated Turns a Lucide icon; use `busy`, which draws a `Spinner` in its place. */
     spin?: boolean;
     /* A heading above the sentence, for a state that is an outcome rather than a list with nothing in it. */
     title?: ReactNode;
@@ -21,15 +25,17 @@ export interface EmptyStateProps {
 }
 
 /* What a list, a canvas or a thread shows before it holds anything. */
-export function EmptyState({ icon, spin = false, title, children, action, className, ref }: EmptyStateProps) {
+export function EmptyState({ icon, busy = false, spin = false, title, children, action, className, ref }: EmptyStateProps) {
     return (
         <div ref={ref} className={clsx('flex flex-col items-center justify-center gap-2 px-6 py-8 text-center', className)}>
-            {icon && (
+            {(busy || icon) && (
                 <span className="text-text-faint">
-                    {isValidElement(icon) ? (
+                    {busy ? (
+                        <Spinner size={ICON_SIZE} />
+                    ) : isValidElement(icon) ? (
                         cloneElement(icon, { size: ICON_SIZE })
                     ) : (
-                        <Icon icon={icon} size={ICON_SIZE} className={spin ? 'animate-spin' : undefined} />
+                        icon && <Icon icon={icon} size={ICON_SIZE} className={spin ? 'animate-spin' : undefined} />
                     )}
                 </span>
             )}

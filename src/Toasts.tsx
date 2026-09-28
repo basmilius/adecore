@@ -1,15 +1,15 @@
 import { useState, type ReactNode, type Ref } from 'react';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
-import { CircleAlert, CircleCheck, LoaderCircle, Trash, X } from 'lucide-react';
+import { CircleAlert, CircleCheck, Trash, X } from 'lucide-react';
 import { Icon } from './Icon.tsx';
 import { IconButton } from './IconButton.tsx';
 import { Kbd } from './Kbd.tsx';
+import { Spinner } from './Spinner.tsx';
 import { Surface } from './Surface.tsx';
 import { elapsedOf, type Toast, type ToastDeadline, type ToastStoreHook } from './toast-store.ts';
 
 const ICON = {
-    progress: LoaderCircle,
     success: CircleCheck,
     error: CircleAlert,
     deleted: Trash
@@ -63,7 +63,11 @@ function ToastCard<T extends Toast>({ toast, footer, onDismiss }: { toast: T; fo
     return (
         <Surface className="group flex items-start gap-3 rounded-[10px] py-2.5 pr-2 pl-3">
             <span className={clsx(TITLE_LINE, 'w-4 justify-center')}>
-                <Icon icon={ICON[toast.kind]} size={16} className={clsx(TONE[toast.kind], toast.kind === 'progress' && 'animate-spin')} />
+                {toast.kind === 'progress' ? (
+                    <Spinner size={16} className={TONE.progress} />
+                ) : (
+                    <Icon icon={ICON[toast.kind]} size={16} className={TONE[toast.kind]} />
+                )}
             </span>
             <div className="flex min-w-0 grow flex-col gap-1">
                 <span className="text-sm text-text">{toast.title}</span>

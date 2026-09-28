@@ -483,6 +483,49 @@
         .toast-timer-arc { animation: none; }
     }
 
+    /* A `Spinner`: Leap from loading-dev (https://github.com/jakubkrehel/loading), MIT, Copyright (c) 2026 Jakub Krehel.
+       Each dot turns half a circle over the other two, then slides back one gap at a time; the three
+       are a third of a turn apart, so at every moment one dot is in the air. */
+    .spinner {
+        --spinner-duration: 1800ms;
+        --spinner-dot: round(calc(var(--spinner-size) * 0.22), 1px);
+        --spinner-gap: round(down, calc((var(--spinner-size) - var(--spinner-dot)) / 2), 1px);
+        position: relative;
+        display: inline-block;
+        flex-shrink: 0;
+        width: var(--spinner-size);
+        height: var(--spinner-size);
+        vertical-align: middle;
+    }
+    .spinner-hop {
+        position: absolute;
+        top: round(calc((var(--spinner-size) - var(--spinner-dot)) / 2), 1px);
+        left: calc(var(--spinner-size) - var(--spinner-dot) - var(--spinner-gap) * 2);
+        width: calc(var(--spinner-gap) * 2 + var(--spinner-dot));
+        height: var(--spinner-dot);
+        animation: spinner-hop var(--spinner-duration) ease-in-out infinite;
+        animation-delay: calc(var(--spinner-duration) * (var(--spinner-step) - 3) / 3);
+    }
+    .spinner-dot {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: var(--spinner-dot);
+        border-radius: 50%;
+        background: currentColor;
+    }
+    @keyframes spinner-hop {
+        0% { transform: translateX(0) rotate(0); }
+        33.33% { transform: translateX(0) rotate(180deg); }
+        66.66% { transform: translateX(calc(var(--spinner-gap) * -1)) rotate(180deg); }
+        100% { transform: translateX(calc(var(--spinner-gap) * -2)) rotate(180deg); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .spinner-hop {
+            transform: translateX(calc(var(--spinner-step) * var(--spinner-gap)));
+            animation: none;
+        }
+    }
+
     /* A `SlidingColumn` opening and closing. A drag or a width restored on load lands at once. */
     .sliding-column { transition: width 200ms cubic-bezier(0, 0, 0.2, 1); }
     .sliding-column[data-resizing],
