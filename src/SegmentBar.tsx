@@ -5,8 +5,11 @@ import { Tooltip } from './Tooltip.tsx';
 import { useMeasuredWidth } from './useMeasuredWidth.ts';
 
 export interface SegmentBarPart {
-    /* Its length, in the unit of the bar's `range`. Parts follow each other from 0. */
+    /* Its length, in the unit of the bar's `range`. */
     value: number;
+    /* Where it starts, in the unit of the bar's `range`. Defaults to the end of the part before, or 0 for the first;
+       a later start leaves the stretch in between empty. Parts stay in order. */
+    start?: number;
     /* Drawn in the part where there is room for it, and always read by a screen reader. */
     label?: string;
     /* Any CSS color, such as `var(--positive)`, in place of the theme's. It wins over the accent of `current`. */
@@ -31,20 +34,20 @@ export interface SegmentBarProps {
 }
 
 /* A whole split into parts, each as wide as it lasts, so they compare at a glance. A part starts exactly at its
-   place; the gap between two parts comes out of the one before. */
+   place; the gap between two parts that touch comes out of the one before. */
 export function SegmentBar({ parts, range, size = 'md', onSelect, label, className, ref }: SegmentBarProps) {
     const [measure, width] = useMeasuredWidth();
     const rootRef = useMemo(() => mergeRefs(ref, measure), [ref, measure]);
     const labels = useRef<(HTMLSpanElement | null)[]>([]);
     const [cut, setCut] = useState<readonly boolean[]>([]);
 
-    let start = 0;
+    let end = 0;
     const placed = parts.map((part, index) => {
-        const from = start;
-        start += Math.max(0, part.value);
-        return { part, index, from, to: start };
+        const from = part.start ?? end;
+        end = from + Math.max(0, part.value);
+        return { part, index, from, to: end };
     });
-    const [from, to] = range ?? [0, start];
+    const [from, to] = range ?? [0, end];
     const span = to - from;
     const visible = span > 0 ? placed.filter((placement) => placement.to > from && placement.from < to) : [];
     // Parts without a name say nothing a screen reader could use; the element around the bar names it, as a meter does.
@@ -67,6 +70,9 @@ export function SegmentBar({ parts, range, size = 'md', onSelect, label, classNa
             {visible.map(({ part, index, from: partFrom, to: partTo }, i) => {
                 const left = (Math.max(partFrom, from) - from) / span;
                 const right = (Math.min(partTo, to) - from) / span;
+                const next = visible[i + 1];
+                // Less than a pixel apart they touch, whatever rounding the caller's starts carry.
+                const touches = next !== undefined && ((next.from - partTo) / span) * width < 1;
                 const fill = clsx(
                     'flex size-full min-w-0 items-center',
                     size === 'sm' ? 'rounded-full' : 'rounded-sm px-1.5 text-left text-xs',
@@ -104,7 +110,7 @@ export function SegmentBar({ parts, range, size = 'md', onSelect, label, classNa
                 return (
                     <li
                         key={index}
-                        className={clsx('absolute inset-y-0 focus-within:z-10', i < visible.length - 1 && 'pr-0.5')}
+                        className={clsx('absolute inset-y-0 focus-within:z-10', touches && 'pr-0.5')}
                         style={{ left: `${left * 100}%`, width: `${(right - left) * 100}%` }}
                     >
                         {part.label === undefined ? (

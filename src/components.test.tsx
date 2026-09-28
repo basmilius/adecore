@@ -138,6 +138,22 @@ describe('a segment bar', () => {
         expect(markup).not.toContain('>C<');
     });
 
+    test('leaves the stretch before a part with a start of its own empty', () => {
+        const markup = render(
+            <SegmentBar
+                parts={[
+                    { value: 2, start: 2, label: 'Verse' },
+                    { value: 2, start: 6, label: 'Chorus' }
+                ]}
+                onSelect={() => {}}
+            />
+        );
+        expect(markup).toContain('left:25%;width:25%');
+        expect(markup).toContain('left:75%;width:25%');
+        expect(markup.match(/<li/g)).toHaveLength(2);
+        expect(markup.match(/<button type="button"/g)).toHaveLength(2);
+    });
+
     test('makes every part a button when it can select', () => {
         const markup = render(
             <SegmentBar

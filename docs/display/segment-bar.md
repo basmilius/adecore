@@ -8,12 +8,15 @@ import { SegmentBar } from '@basmilius/react-ui';
 
 <Demo src="display/segment-bar" />
 
-The parts follow each other from 0, each as long as its `value`. Every part starts exactly at its place, so the bounds line up with anything else drawn over the same stretch, such as the marks of a [`Waveform`](/display/waveform). The gap between two parts comes out of the one before, and a part far too narrow for anything may not show at all.
+The parts follow each other from 0, each as long as its `value`. Every part starts exactly at its place, so the bounds line up with anything else drawn over the same stretch, such as the marks of a [`Waveform`](/display/waveform). The gap between two parts that touch comes out of the one before, and a part far too narrow for anything may not show at all.
+
+A part with a `start` of its own begins there instead of where the part before it ends, and the stretch in between stays empty: no fill, no button and nothing a screen reader hears. That places the sections of a timeline where they fall, with room before, between or after them. The parts still go in order.
 
 `range` sets the stretch the bar shows. Without it the bar runs from 0 to the end of the last part. A longer range leaves the rest of the bar empty, so bars side by side compare by eye; a shorter one shows the visible part of a timeline that zooms and scrolls, with the parts at its edges cut off.
 
 ```tsx
 <SegmentBar label="Sections" parts={[{ value: 12, label: 'Intro' }, { value: 36, label: 'Verse', current: true }]} range={[0, 110]} />
+<SegmentBar label="Scenes" parts={[{ start: 8, value: 30, label: 'Interview' }, { start: 46, value: 22, label: 'B-roll' }]} range={[0, 110]} />
 ```
 
 The default size draws each label in its part and cuts a label short where it does not fit; a [`Tooltip`](/overlays/tooltip) then shows it whole. `size="sm"` is a thin bar for a progress row or a meter, which shows its labels only as a tooltip.
@@ -41,6 +44,7 @@ A `SegmentBarPart` has these fields:
 | Field | Type | |
 | --- | --- | --- |
 | `value` | `number` | Required. Its length, in the unit of `range`. |
+| `start` | `number` | Where it starts, in the unit of `range`. Defaults to the end of the part before, or 0. |
 | `label` | `string` | Drawn where there is room, and always read by a screen reader. |
 | `color` | `string` | Any CSS color in place of the theme's. |
 | `current` | `boolean` | The part a person is at. |

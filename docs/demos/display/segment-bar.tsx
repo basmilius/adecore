@@ -9,6 +9,12 @@ const SECTIONS = [
     { value: 30, label: 'Outro' }
 ];
 
+const SCENES = [
+    { start: 8, value: 30, label: 'Interview' },
+    { start: 46, value: 22, label: 'B-roll' },
+    { start: 80, value: 24, label: 'Credits' }
+];
+
 const BEATS = [
     ...Array.from({ length: 5 }, () => ({ value: 1, color: 'var(--positive)' })),
     { value: 1, current: true },
@@ -28,6 +34,7 @@ export default function SegmentBarDemo() {
         <div className="flex w-full max-w-xl flex-col gap-6">
             <SegmentBar label="Sections" parts={SECTIONS.map((part, i) => ({ ...part, current: i === picked }))} onSelect={setPicked} />
             <SegmentBar label="Sections" parts={SECTIONS.slice(0, 3)} range={[0, 110]} />
+            <SegmentBar label="Scenes" parts={SCENES} range={[0, 110]} />
             <SegmentBar label="Beats" parts={BEATS} size="sm" />
             <SegmentBar label="Context" parts={CONTEXT} range={[0, 128]} size="sm" />
         </div>
