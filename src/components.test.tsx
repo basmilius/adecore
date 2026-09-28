@@ -14,6 +14,7 @@ import { Kbd } from './Kbd.tsx';
 import { ListRow } from './ListRow.tsx';
 import * as Menu from './menu/index.parts.ts';
 import { MenuCheck } from './menu/parts.tsx';
+import { Meter } from './Meter.tsx';
 import { PanelHeader } from './PanelHeader.tsx';
 import { SectionLabel } from './SectionLabel.tsx';
 import { SegmentBar } from './SegmentBar.tsx';
@@ -101,6 +102,29 @@ describe('a waveform', () => {
         expect(markup).toContain('left:25%');
         expect(markup.match(/<line/g)).toHaveLength(1);
         expect(render(<Waveform levels={[0.5]} duration={100} range={[20, 60]} value={80} label="Score" />)).not.toContain('bg-accent');
+    });
+});
+
+describe('a meter', () => {
+    test('fills to its level on its scale and marks the target', () => {
+        const markup = render(<Meter value={-22} min={-40} max={-4} marks={[-13]} label="Momentary" valueText="-22 LUFS" />);
+        expect(markup).toContain('role="meter"');
+        expect(markup).toContain('aria-valuenow="-22"');
+        expect(markup).toContain('aria-valuetext="-22 LUFS"');
+        expect(markup).toContain('width:50%');
+        expect(markup).toContain('left:75%');
+    });
+
+    test('holds a level past its scale to the ends', () => {
+        const markup = render(<Meter value={140} label="Used" />);
+        expect(markup).toContain('aria-valuenow="100"');
+        expect(markup).toContain('width:100%');
+    });
+
+    test('draws an empty track without a level', () => {
+        const markup = render(<Meter value={null} min={-40} max={-4} label="Momentary" />);
+        expect(markup).toContain('aria-valuenow="-40"');
+        expect(markup).not.toContain('bg-accent');
     });
 });
 
