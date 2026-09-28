@@ -52,6 +52,9 @@ export interface WaveformProps {
     onValueCommitted?(value: number): void;
     /* How far an arrow key moves the playhead, in seconds. */
     step?: number;
+    /* Hears a key before the waveform does. A key it calls `preventDefault` on, the waveform leaves alone and lets
+       bubble, for a player around it that binds the key to something else. */
+    onKeyDown?(e: KeyboardEvent<HTMLDivElement>): void;
     /* Times in seconds drawn as lines through the waveform, such as cuts. */
     marks?: readonly number[];
     label: string;
@@ -61,7 +64,20 @@ export interface WaveformProps {
 }
 
 /* The loudness of a piece of audio over time, played up to the playhead, where a press or a drag seeks. */
-export function Waveform({ levels, duration, range, value, onValueChange, onValueCommitted, step = 1, marks = [], label, className, ref }: WaveformProps) {
+export function Waveform({
+    levels,
+    duration,
+    range,
+    value,
+    onValueChange,
+    onValueCommitted,
+    step = 1,
+    onKeyDown,
+    marks = [],
+    label,
+    className,
+    ref
+}: WaveformProps) {
     const { t } = useTranslation('ui');
     const [measure, width] = useMeasuredWidth();
     const rootRef = useMemo(() => mergeRefs(ref, measure), [ref, measure]);
@@ -90,7 +106,11 @@ export function Waveform({ levels, duration, range, value, onValueChange, onValu
         }
     };
 
-    const onKeyDown = (e: KeyboardEvent<HTMLDivElement>): void => {
+    const moveByKey = (e: KeyboardEvent<HTMLDivElement>): void => {
+        onKeyDown?.(e);
+        if (e.defaultPrevented) {
+            return;
+        }
         const at = value ?? 0;
         const moves: Record<string, number> = {
             ArrowLeft: at - step,
@@ -137,7 +157,7 @@ export function Waveform({ levels, duration, range, value, onValueChange, onValu
                   },
                   onPointerUp: letGo,
                   onPointerCancel: letGo,
-                  onKeyDown
+                  onKeyDown: moveByKey
               };
 
     return (

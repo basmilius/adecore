@@ -30,6 +30,23 @@ With `onValueChange` the waveform is a slider: it takes focus, and a press or a 
 
 The arrow keys move the playhead by `step` seconds, Page Up and Page Down ten steps, and Home and End to either end; each key commits at once. The waveform keeps those keys to itself, so a transport listening for them higher up does not move the playhead a second time. A screen reader hears the position as "01:23 of 03:45".
 
+Inside a player that binds some of those keys to something else, such as Up and Down to jump between sections, `onKeyDown` hears every key first. A key it calls `preventDefault` on, the waveform leaves alone and lets bubble up to the player, so the player's keys work while the waveform has the focus.
+
+```tsx
+<Waveform
+    label="Record"
+    levels={levels}
+    duration={225}
+    value={time}
+    onValueChange={seek}
+    onKeyDown={(e) => {
+        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+            e.preventDefault();
+        }
+    }}
+/>
+```
+
 Without `onValueChange` it only shows, as an image named by its `label`. Leave out `value` as well and it draws no playhead, for a row that already has one of its own.
 
 `marks` draws a line through the waveform at each time, such as a cut.
@@ -46,6 +63,7 @@ Without `onValueChange` it only shows, as an image named by its `label`. Leave o
 | `onValueChange` | `(value: number) => void` | | Seeks to a time in seconds. Left out, the waveform only shows. |
 | `onValueCommitted` | `(value: number) => void` | | The time a drag lets go at, or a key moved to. |
 | `step` | `number` | `1` | How far an arrow key moves the playhead, in seconds. |
+| `onKeyDown` | `(e: KeyboardEvent<HTMLDivElement>) => void` | | Hears a key first; after `preventDefault` the waveform lets it bubble. |
 | `marks` | `readonly number[]` | `[]` | Times in seconds drawn as lines. |
 | `className` | `string` | | Its height, which it fills. |
 | `ref` | `Ref<HTMLDivElement>` | | |
