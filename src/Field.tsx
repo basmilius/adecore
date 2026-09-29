@@ -6,6 +6,8 @@ import { SectionLabel } from './SectionLabel.tsx';
 
 const HINT = 'text-xs text-text-muted';
 const ERROR = 'text-xs text-status-error';
+// Beside the control the label reads at the size of what is typed, on the middle of the control's first line however tall it grows.
+const LABEL_BESIDE = 'flex h-8 items-center self-start text-sm text-text-muted';
 
 export type FieldHintProps = useRender.ComponentProps<'p'>;
 
@@ -31,6 +33,26 @@ export function FormError({ render, className, ref, ...props }: FormErrorProps) 
     });
 }
 
+/* A group's label names it through `aria-labelledby`; a control's points at the control. */
+function FieldLabel({ id, group, horizontal, children }: { id: string; group: boolean; horizontal: boolean; children: ReactNode }) {
+    if (horizontal) {
+        return group ? (
+            <span id={`${id}-label`} className={LABEL_BESIDE}>
+                {children}
+            </span>
+        ) : (
+            <label htmlFor={`${id}-control`} className={LABEL_BESIDE}>
+                {children}
+            </label>
+        );
+    }
+    return group ? (
+        <SectionLabel id={`${id}-label`}>{children}</SectionLabel>
+    ) : (
+        <SectionLabel render={<label htmlFor={`${id}-control`} />}>{children}</SectionLabel>
+    );
+}
+
 export interface FieldProps {
     label?: ReactNode;
     hint?: ReactNode;
@@ -42,14 +64,20 @@ export interface FieldProps {
      * the error describe.
      */
     group?: boolean;
+    /* `horizontal` puts the label in a column of its own beside the control, for a form in a dialog where a stack of fields would scroll. */
+    orientation?: 'vertical' | 'horizontal';
     className?: string;
     ref?: Ref<HTMLDivElement>;
     /* The control. An `Input` or a `TextArea` connects to the label and the lines under it by itself, unless the field is a `group`. */
     children: ReactNode;
 }
 
-/* A labelled control, or a labelled group, with an optional hint and error under it, stacked 6px apart. */
-export function Field({ label, hint, error, group = false, className, ref, children }: FieldProps) {
+/*
+ * A labelled control, or a labelled group, with an optional hint and error under it, stacked 6px apart.
+ * Beside each other the label column is 112px, so the controls of every field in a form line up.
+ */
+export function Field({ label, hint, error, group = false, orientation = 'vertical', className, ref, children }: FieldProps) {
+    const horizontal = orientation === 'horizontal';
     const id = useId();
     const hasLabel = label !== undefined;
     const hasHint = hint !== undefined && hint !== null && hint !== '';
@@ -61,24 +89,25 @@ export function Field({ label, hint, error, group = false, className, ref, child
             role={group ? 'group' : undefined}
             aria-labelledby={group && hasLabel ? `${id}-label` : undefined}
             aria-describedby={group ? describedBy : undefined}
-            className={clsx('flex flex-col gap-1.5', className)}
+            className={clsx(horizontal ? 'grid grid-cols-[112px_minmax(0,1fr)] gap-x-3 gap-y-1.5' : 'flex flex-col gap-1.5', className)}
         >
-            {hasLabel &&
-                (group ? (
-                    <SectionLabel id={`${id}-label`}>{label}</SectionLabel>
-                ) : (
-                    <SectionLabel render={<label htmlFor={`${id}-control`} />}>{label}</SectionLabel>
-                ))}
+            {hasLabel && (
+                <FieldLabel id={id} group={group} horizontal={horizontal}>
+                    {label}
+                </FieldLabel>
+            )}
             {/* A group describes itself, so an input inside it stays unconnected rather than taking an id nothing points at. */}
-            <FieldContext value={group ? null : { id: `${id}-control`, describedBy, invalid: hasError }}>{children}</FieldContext>
+            <FieldContext value={group ? null : { id: `${id}-control`, describedBy, invalid: hasError }}>
+                {horizontal ? <div className="col-start-2 min-w-0">{children}</div> : children}
+            </FieldContext>
             {/* The stack already puts 6px above each line, so neither takes the margin a standalone hint has. */}
             {hasHint && (
-                <p id={`${id}-hint`} className={HINT}>
+                <p id={`${id}-hint`} className={clsx(HINT, horizontal && 'col-start-2')}>
                     {hint}
                 </p>
             )}
             {hasError && (
-                <p id={`${id}-error`} role="alert" className={clsx(ERROR, 'break-words')}>
+                <p id={`${id}-error`} role="alert" className={clsx(ERROR, 'break-words', horizontal && 'col-start-2')}>
                     {error}
                 </p>
             )}
