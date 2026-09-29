@@ -1,6 +1,6 @@
 # Switch
 
-On or off, as a switch rather than a checkbox, for a setting that takes effect the moment it flips. A change that waits for a Save button is a checkbox's job.
+On or off, as a switch rather than a checkbox, for a setting that takes effect the moment it flips. A change that waits for a Save button is a [`Checkbox`](/inputs/checkbox)'s job.
 
 ```tsx
 import { Switch } from '@basmilius/react-ui';

@@ -25,6 +25,7 @@ export const navigation: DefaultTheme.SidebarItem[] = [
         ['Input and TextArea', '/inputs/input'],
         ['Select', '/inputs/select'],
         ['Switch', '/inputs/switch'],
+        ['Checkbox', '/inputs/checkbox'],
         ['Segmented', '/inputs/segmented'],
         ['Stepper', '/inputs/stepper'],
         ['ChoiceCards', '/inputs/choice-cards'],

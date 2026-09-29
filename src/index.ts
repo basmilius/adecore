@@ -17,6 +17,7 @@ export { AccentSwatches, type AccentSwatchesProps } from './AccentSwatches.tsx';
 export { Banner, type BannerProps, type BannerTone } from './Banner.tsx';
 export { Button, type ButtonProps, type ButtonSize, type ButtonVariant } from './Button.tsx';
 export { ButtonGroup, type ButtonGroupProps } from './ButtonGroup.tsx';
+export { Checkbox, type CheckboxProps } from './Checkbox.tsx';
 export { ChoiceCards, type Choice, type ChoiceCardsProps } from './ChoiceCards.tsx';
 export { CloseButton, type CloseButtonProps } from './CloseButton.tsx';
 export { ColorSwatch, type ColorSwatchProps } from './ColorSwatch.tsx';
