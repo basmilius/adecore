@@ -23,6 +23,12 @@ A `<label>` can point at an input, not at a [`Segmented`](/inputs/segmented), a 
 </Field>
 ```
 
+## Beside the control
+
+In a dialog with a form of several fields, a stack of labels and controls soon scrolls. `orientation="horizontal"` puts the label in a column of 112 pixels beside the control, at the size of what is typed, so the controls of every field line up. The hint and the error stay under the control. The label sits on the middle of the control's first line, however tall a `TextArea` grows.
+
+<Demo src="inputs/field-horizontal" />
+
 ## Field props
 
 | Prop | Type | |
@@ -32,6 +38,7 @@ A `<label>` can point at an input, not at a [`Segmented`](/inputs/segmented), a 
 | `hint` | `ReactNode` | The line under the control that says what goes in it. |
 | `error` | `ReactNode` | Shown under the control and marks it invalid. `null` or `''` shows nothing. |
 | `group` | `boolean` | Labels a group rather than one control. Default `false`. |
+| `orientation` | `'vertical' \| 'horizontal'` | `horizontal` puts the label beside the control. Default `vertical`. |
 | `className` | `string` | |
 | `ref` | `Ref<HTMLDivElement>` | |
 

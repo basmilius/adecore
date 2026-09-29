@@ -36,5 +36,6 @@ Inside a [`Field`](/inputs/field) both take their `id`, `aria-describedby` and `
 | --- | --- | --- | --- |
 | `size` | `'md' \| 'sm'` | `'md'` | |
 | `resize` | `'none' \| 'vertical'` | `'none'` | `'vertical'` adds a handle to drag it taller. |
+| `mono` | `boolean` | `false` | The code face, as on an `Input`. |
 
 `InputProps` and `TextAreaProps` are exported types.

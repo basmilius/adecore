@@ -34,6 +34,8 @@ export interface Toast {
     description?: string;
     kind: ToastKind;
     action?: ToastAction;
+    /* More than one thing to do about it, such as looking at what went wrong or trying again; drawn after `action`, in order. */
+    actions?: ToastAction[];
     /* A success that waits to be dismissed, for news that lands while nobody is looking yet. */
     persist?: boolean;
     /* Runs once the toast is gone, whether it ran out or was dismissed. */

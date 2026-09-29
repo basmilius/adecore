@@ -7,7 +7,7 @@ import { IconButton } from './IconButton.tsx';
 import { Kbd } from './Kbd.tsx';
 import { Spinner } from './Spinner.tsx';
 import { Surface } from './Surface.tsx';
-import { elapsedOf, type Toast, type ToastDeadline, type ToastStoreHook } from './toast-store.ts';
+import { elapsedOf, type Toast, type ToastAction, type ToastDeadline, type ToastStoreHook } from './toast-store.ts';
 
 const ICON = {
     success: CircleCheck,
@@ -54,12 +54,24 @@ function TimerRing({ deadline, onDismiss }: { deadline: ToastDeadline; onDismiss
     );
 }
 
+function ActionButton({ action }: { action: ToastAction }) {
+    return (
+        <span className="flex items-center gap-2">
+            <button className="rounded-sm text-sm font-semibold text-text hover:text-text-muted" onClick={action.run}>
+                {action.label}
+            </button>
+            {action.shortcut && <Kbd shortcut={action.shortcut} className="font-sans text-xs text-text-faint" />}
+        </span>
+    );
+}
+
 function ToastCard<T extends Toast>({ toast, footer, onDismiss }: { toast: T; footer?: (toast: T) => ReactNode; onDismiss(): void }) {
     const { t } = useTranslation('ui');
     // A toast that goes by itself keeps its close button out of sight until the pointer or the keyboard is on it.
     const leaves = toast.kind === 'deleted' || (toast.kind === 'success' && toast.persist !== true);
+    const actions = [...(toast.action === undefined ? [] : [toast.action]), ...(toast.actions ?? [])];
     // An offer that runs out shows how long it has left instead.
-    const countdown = toast.action !== undefined ? toast.deadline : undefined;
+    const countdown = actions.length > 0 ? toast.deadline : undefined;
     return (
         <Surface className="group flex items-start gap-3 rounded-[10px] py-2.5 pr-2 pl-3">
             <span className={clsx(TITLE_LINE, 'w-4 justify-center')}>
@@ -76,14 +88,19 @@ function ToastCard<T extends Toast>({ toast, footer, onDismiss }: { toast: T; fo
                 {toast.description !== undefined && toast.description !== '' && (
                     <span className="text-xs break-words text-pretty text-text-muted">{toast.description}</span>
                 )}
+                {/* Two or more would squeeze the title beside them, so they get a line of their own. */}
+                {actions.length > 1 && (
+                    <span className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
+                        {actions.map((action) => (
+                            <ActionButton key={action.label} action={action} />
+                        ))}
+                    </span>
+                )}
                 {footer?.(toast)}
             </div>
-            {toast.action && (
-                <span className={clsx(TITLE_LINE, 'gap-2')}>
-                    <button className="rounded-sm text-sm font-semibold text-text hover:text-text-muted" onClick={toast.action.run}>
-                        {toast.action.label}
-                    </button>
-                    {toast.action.shortcut && <Kbd shortcut={toast.action.shortcut} className="font-sans text-xs text-text-faint" />}
+            {actions.length === 1 && (
+                <span className={TITLE_LINE}>
+                    <ActionButton action={actions[0]} />
                 </span>
             )}
             {countdown !== undefined ? (

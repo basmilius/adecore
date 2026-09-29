@@ -11,7 +11,15 @@ async function push(): Promise<void> {
 }
 
 function fail(): void {
-    toasts.getState().show({ kind: 'error', title: 'Could not fetch', description: 'The remote did not answer within 30 seconds.' });
+    const id = toasts.getState().show({
+        kind: 'error',
+        title: 'Could not fetch',
+        description: 'The remote did not answer within 30 seconds.',
+        actions: [
+            { label: 'Show log', run: () => toasts.getState().dismiss(id) },
+            { label: 'Try again', run: () => toasts.getState().dismiss(id) }
+        ]
+    });
 }
 
 function remove(): void {

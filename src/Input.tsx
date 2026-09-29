@@ -53,10 +53,12 @@ export interface TextAreaProps extends ComponentProps<'textarea'> {
     size?: 'md' | 'sm';
     /* `vertical` gives it a handle to drag it taller, for a draft of a few sentences. */
     resize?: 'none' | 'vertical';
+    /* A command or anything else read back letter by letter. */
+    mono?: boolean;
 }
 
 /* A field of a few lines: a commit message, the body of a pull request, a note. At least 64px tall; `rows` makes it taller. */
-export function TextArea({ size = 'md', resize = 'none', className, id, ...props }: TextAreaProps) {
+export function TextArea({ size = 'md', resize = 'none', mono = false, className, id, ...props }: TextAreaProps) {
     const field = useFieldControl();
     return (
         <textarea
@@ -64,7 +66,13 @@ export function TextArea({ size = 'md', resize = 'none', className, id, ...props
             aria-describedby={field?.describedBy}
             aria-invalid={field?.invalid || undefined}
             {...props}
-            className={clsx('field h-auto min-h-16 py-1.5', size === 'sm' && 'field-sm', resize === 'vertical' ? 'resize-y' : 'resize-none', className)}
+            className={clsx(
+                'field h-auto min-h-16 py-1.5',
+                size === 'sm' && 'field-sm',
+                resize === 'vertical' ? 'resize-y' : 'resize-none',
+                mono && 'font-mono text-code',
+                className
+            )}
         />
     );
 }
