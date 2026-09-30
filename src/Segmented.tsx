@@ -25,7 +25,7 @@ export function Segmented<T extends string>({ value, onValueChange, options, lab
     return (
         <div
             ref={ref}
-            className={clsx('flex h-8 items-center rounded-lg bg-surface-sunken p-0.5 text-xs font-medium', className)}
+            className={clsx('flex h-8 w-fit items-center rounded-lg bg-surface-sunken p-0.5 text-xs font-medium', className)}
             role="radiogroup"
             aria-label={label}
         >

@@ -8,6 +8,8 @@ import { Segmented } from '@basmilius/react-ui';
 
 <Demo src="inputs/segmented" />
 
+The track is as wide as its options, also in a `Field` or a column that stretches what it holds.
+
 The track is a `radiogroup` and every option a `radio`, with `aria-checked` on the picked one. Each option is its own button in the tab order.
 
 ## Props
