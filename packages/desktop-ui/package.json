@@ -12,7 +12,7 @@
   "bugs": {
     "url": "https://github.com/basmilius/desktop/issues"
   },
-  "homepage": "https://react-ui.bas.dev",
+  "homepage": "https://desktop.bas.dev/desktop-ui/",
   "type": "module",
   "sideEffects": [
     "*.css",

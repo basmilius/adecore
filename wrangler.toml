@@ -1,6 +1,6 @@
-name = "react-ui-docs"
+name = "desktop-docs"
 compatibility_date = "2026-09-01"
-routes = [{ pattern = "react-ui.bas.dev", custom_domain = true }]
+routes = [{ pattern = "desktop.bas.dev", custom_domain = true }]
 
 [assets]
 directory = "./docs/.vitepress/dist"

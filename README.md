@@ -4,7 +4,7 @@ Packages for desktop apps built on Electron, React 19 and Tailwind 4. They are r
 
 | Package | What it holds |
 |---|---|
-| [`@basmilius/desktop-ui`](packages/desktop-ui) | React components, a theme, formatters and a settings dialog. Documentation at [react-ui.bas.dev](https://react-ui.bas.dev). |
+| [`@basmilius/desktop-ui`](packages/desktop-ui) | React components, a theme, formatters and a settings dialog. Documentation at [desktop.bas.dev/desktop-ui](https://desktop.bas.dev/desktop-ui/). |
 
 `@basmilius/desktop-ui` was published as `@basmilius/react-ui` up to `0.4.x`; [MIGRATION.md](packages/desktop-ui/MIGRATION.md) covers the switch.
 

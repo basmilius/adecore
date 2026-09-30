@@ -2,31 +2,23 @@
 layout: home
 
 hero:
-    name: Desktop UI
-    text: Components for desktop-grade React apps
-    tagline: Menus, dialogs, tooltips, fields, toasts, a settings dialog, keyboard shortcuts and formatters, drawn from one theme. Built on React 19, Base UI, Lucide and Tailwind 4.
+    name: Desktop
+    text: Packages for desktop apps
+    tagline: The building blocks of desktop apps on Electron, React 19 and Tailwind 4, released together under one version.
     actions:
         -   theme: brand
             text: Get started
-            link: /guide/getting-started
+            link: /guide/
         -   theme: alt
-            text: Components
-            link: /actions/button
+            text: Desktop UI
+            link: /desktop-ui/
         -   theme: alt
             text: GitHub
             link: https://github.com/basmilius/desktop
 
 features:
-    -   title: Base UI underneath
-        details: Menus, dialogs, popovers, selects and tooltips are Base UI parts with the library's look on them, so focus, arrow keys, typeahead and Escape already work.
-    -   title: One theme of tokens
-        details: Every color is a semantic token with a light and a dark value. Tailwind's palette is gone, so a component can only reach the theme. Your app sets its own accent.
-    -   title: Shortcuts written once
-        details: One value decides whether a key event is the shortcut and how it prints, as ⌘K on a Mac and Ctrl+K elsewhere. Hold the modifier and every visible button shows its key.
-    -   title: Formatters that respect the region
-        details: Numbers, dates and durations follow the language a person reads and the region they picked, separately. English words in a Dutch notation is a pair people set.
-    -   title: A settings dialog
-        details: Sections on the left, a pane on the right, search that jumps to a row, and parts for rows, cards and master-detail panes.
-    -   title: English and Dutch
-        details: The library's own words live in a ui namespace you add to your i18next. English is the source, Dutch has every key.
+    -   title: Desktop UI
+        details: Menus, dialogs, tooltips, fields, toasts, a settings dialog, keyboard shortcuts and formatters, drawn from one theme on Base UI.
+        link: /desktop-ui/
+        linkText: View package
 ---
