@@ -134,12 +134,47 @@ describe('createUpdater', () => {
     });
 
     test('checks, downloads and installs through the updater', async () => {
-        const { updater, calls } = setup();
+        const { updater, calls, emit } = setup();
         updater.start();
         await updater.check();
         await updater.download();
-        updater.install();
+        emit('update-downloaded', { version: '1.1.0' });
+        expect(updater.install()).toBe(true);
         expect(calls).toEqual(['check', 'download', 'install']);
+    });
+
+    test('installs only a build that is ready', () => {
+        const { updater, calls } = setup();
+        updater.start();
+        expect(updater.install()).toBe(false);
+        expect(calls).toEqual([]);
+    });
+
+    test('says the app is about to quit, and that it stays when the install fails', () => {
+        const quits: boolean[] = [];
+        const fake = fakeUpdater();
+        const updater = createUpdater({
+            currentVersion: '1.0.0',
+            packaged: true,
+            load: () => fake.updater,
+            publish: () => {},
+            log: () => {},
+            onQuit: (quitting) => void quits.push(quitting)
+        });
+        updater.start();
+        fake.emit('update-downloaded', { version: '1.1.0' });
+        updater.install();
+        expect(quits).toEqual([true]);
+        fake.emit('error', new Error('signature mismatch'));
+        expect(quits).toEqual([true, false]);
+        fake.emit('error', new Error('later'));
+        expect(quits).toEqual([true, false]);
+        fake.emit('update-downloaded', { version: '1.1.0' });
+        fake.fake.quitAndInstall = () => {
+            throw new Error('busy');
+        };
+        expect(updater.install()).toBe(false);
+        expect(quits).toEqual([true, false, true, false]);
     });
 
     test('before it started, checking, downloading and installing do nothing', async () => {
@@ -147,7 +182,7 @@ describe('createUpdater', () => {
         updater.configure(true);
         await updater.check();
         await updater.download();
-        updater.install();
+        expect(updater.install()).toBe(false);
         expect(calls).toEqual([]);
         expect(intervals).toEqual([]);
     });

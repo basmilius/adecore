@@ -40,6 +40,17 @@ The page owns the preference. Nothing downloads and no timer runs until the page
 
 `beforeCheck` runs right before a check asks the feed, such as to refresh release notes along with it.
 
+## Installing
+
+`install()` quits into the downloaded build and answers whether it did: without a build that is `ready` it does nothing. electron-updater closes the windows before the app's own `before-quit` runs, so `onQuit(true)` comes right before the install, and `onQuit(false)` when the install fails and the app stays. With a [set of windows](/desktop-shell/windows) that is where the session learns about the quit:
+
+```ts
+const updater = createUpdater({
+    // ...
+    onQuit: (quitting) => (quitting ? windows.quit() : windows.resume())
+});
+```
+
 ## Errors
 
 electron-updater puts the whole HTTP exchange in the message of a failed check, cookies included. `describeUpdateError` keeps the first line only, and turns a 404 on the feed into a sentence that says there is no published release, or that the repository is private.

@@ -26,7 +26,9 @@ const windows = createWindows({
 app.whenReady().then(() => windows.restore());
 ```
 
-`create` builds and loads the window; the package passes the bounds to construct it with and follows the window from then on. A new window whose key has no bounds of its own sits a little beside the one in front (`CASCADE`).
+`create` builds and loads the window; the package passes the bounds to construct it with and follows the window from then on, so `create` never calls `windowState.track` itself. A new window whose key has no bounds of its own sits a little beside the one in front (`CASCADE`).
+
+An app that kept its one window under a key of its own before it had several passes that key as `formerKey`: the first window after the change opens where that window stood.
 
 `origin` says why the window opens: `session` for one that was open at the last quit, `first` for the one window of a start without a session, `opened` for one something asked for. A page can then tell a cold start, which may open what a person had last, from a new window, which starts empty. `onFront` runs once a window came to the front, when `focused()` already answers it.
 
@@ -59,4 +61,4 @@ A window that closes leaves the session, so closing one of three windows opens t
 app.on('before-quit', () => windows.quit());
 ```
 
-An app that asks before quitting calls it only on the path where the quit proceeds. When a quit still does not happen, such as an update that fails to install, `resume()` lets closing windows leave the session again.
+An app that asks before quitting calls it only on the path where the quit proceeds. When a quit still does not happen, `resume()` lets closing windows leave the session again. An update install closes the windows before `before-quit`; the [updater](/desktop-shell/updater#installing)'s `onQuit` covers that.

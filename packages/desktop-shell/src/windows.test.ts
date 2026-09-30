@@ -157,6 +157,31 @@ describe('createWindows', () => {
         expect(created[1]!.bounds).toEqual({ x: (front.x ?? 100) + CASCADE, y: (front.y ?? 100) + CASCADE, width: 1440, height: 900 });
     });
 
+    test('a first window without bounds of its own opens where the one window of before stood', () => {
+        const saved = JSON.stringify({ version: 1, windows: { main: { x: 300, y: 200, width: 1000, height: 700, maximized: false, fullScreen: false } } });
+        const stateStorage = memory(saved);
+        const state = createWindowState({
+            storage: stateStorage.storage,
+            displays: () => [DISPLAY],
+            defaults: { width: 1440, height: 900 },
+            setTimeout: () => null
+        });
+        const bounds: Partial<Rectangle>[] = [];
+        const windows = createWindows({
+            state,
+            session: memory().storage,
+            formerKey: 'main',
+            create: (_key, given) => {
+                bounds.push(given);
+                return fakeWindow({ x: given.x ?? 100, y: given.y ?? 100, width: given.width, height: given.height }).window;
+            }
+        });
+        windows.restore();
+        windows.open('b');
+        expect(bounds[0]).toEqual({ x: 300, y: 200, width: 1000, height: 700 });
+        expect(bounds[1]).toEqual({ x: 300 + CASCADE, y: 200 + CASCADE, width: 1000, height: 700 });
+    });
+
     test('a key with bounds of its own opens there', () => {
         const saved = JSON.stringify({ version: 1, windows: { b: { x: 300, y: 200, width: 1000, height: 700, maximized: false, fullScreen: false } } });
         const { windows, created } = setup(null, saved);

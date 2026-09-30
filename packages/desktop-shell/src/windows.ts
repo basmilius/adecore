@@ -18,6 +18,8 @@ export interface WindowsOptions {
     create: (key: string | null, bounds: Partial<Rectangle> & WindowSize, origin: WindowOrigin) => BrowserWindow;
     /* A window came to the front, after `focused()` already answers it, such as to draw its own menu. */
     onFront?: (window: BrowserWindow) => void;
+    /* The key an app kept its one window under before it had several, where a first window without bounds of its own opens. */
+    formerKey?: string;
 }
 
 interface Entry {
@@ -94,8 +96,11 @@ export const createWindows = (options: WindowsOptions) => {
     const boundsFor = (key: string | null): Partial<Rectangle> & WindowSize => {
         const stateKey = key ?? UNKEYED_STATE;
         const front = focused();
-        if (options.state.has(stateKey) || !front) {
+        if (options.state.has(stateKey)) {
             return options.state.bounds(stateKey);
+        }
+        if (!front) {
+            return options.state.bounds(options.formerKey !== undefined && options.state.has(options.formerKey) ? options.formerKey : stateKey);
         }
         const beside = front.getNormalBounds();
         return options.state.bounds(stateKey, { ...beside, x: beside.x + CASCADE, y: beside.y + CASCADE });

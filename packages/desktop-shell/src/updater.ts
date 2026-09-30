@@ -30,6 +30,12 @@ export interface UpdaterOptions {
     publish: (state: UpdateState) => void;
     /* Right before a check asks the feed, such as to refresh release notes along with it. */
     beforeCheck?: () => void;
+    /*
+     * True right before installing quits the app, false when that install failed and the app stays.
+     * electron-updater closes the windows before the app's own `before-quit`, so this is where a set of
+     * windows learns the quit is coming (`windows.quit()` and `windows.resume()`).
+     */
+    onQuit?: (quitting: boolean) => void;
     log?: (message: string, error: unknown) => void;
     setInterval?: (run: () => void, ms: number) => unknown;
 }
@@ -44,10 +50,18 @@ export const createUpdater = (options: UpdaterOptions) => {
     let state: UpdateState = { status: 'unsupported', currentVersion: options.currentVersion };
     let updater: AppUpdater | null = null;
     let timer: unknown = null;
+    let installing = false;
 
     const setState = (patch: Partial<UpdateState>): void => {
         state = { ...state, ...patch };
         options.publish(state);
+    };
+
+    const installFailed = (): void => {
+        if (installing) {
+            installing = false;
+            options.onQuit?.(false);
+        }
     };
 
     const check = async (): Promise<void> => {
@@ -82,7 +96,10 @@ export const createUpdater = (options: UpdaterOptions) => {
                 loaded.on('update-not-available', () => setState({ status: 'current', version: undefined, error: null }));
                 loaded.on('download-progress', (progress) => setState({ status: 'downloading', percent: progress.percent }));
                 loaded.on('update-downloaded', (info) => setState({ status: 'ready', version: info.version, percent: 100 }));
-                loaded.on('error', (e) => setState({ status: 'error', error: describeUpdateError(e.message) }));
+                loaded.on('error', (e) => {
+                    installFailed();
+                    setState({ status: 'error', error: describeUpdateError(e.message) });
+                });
                 updater = loaded;
                 setState({ status: 'idle' });
             } catch (e) {
@@ -113,8 +130,21 @@ export const createUpdater = (options: UpdaterOptions) => {
             }
         },
 
-        install: (): void => {
-            updater?.quitAndInstall();
+        /* Quits into the downloaded build. False when there is none, or the install failed at once. */
+        install: (): boolean => {
+            if (!updater || state.status !== 'ready') {
+                return false;
+            }
+            installing = true;
+            options.onQuit?.(true);
+            try {
+                updater.quitAndInstall();
+                return true;
+            } catch (e) {
+                log('Update install failed', e);
+                installFailed();
+                return false;
+            }
         }
     };
 };
