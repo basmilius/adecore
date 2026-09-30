@@ -6,8 +6,8 @@ The packages two desktop apps share, released together under one version. Today 
 
 Two apps, and later more:
 
-- Ruimte, `../ruimte` (`/Users/bas/Development/Projects/ruimte`, public). The UI is in `apps/client/src` and `packages/agents-react/src`. Its root `CLAUDE.md` holds its design rules.
-- AfterMotion, `../aftermotion` (`/Users/bas/Development/Projects/aftermotion`, private). The UI is in `apps/client/src`.
+- Ruimte, `../../ruimte` (`/Users/bas/Development/Projects/ruimte`, public). The UI is in `apps/client/src` and `packages/agents-react/src`. Its root `CLAUDE.md` holds its design rules.
+- AfterMotion, `../../aftermotion` (`/Users/bas/Development/Projects/aftermotion`, private). The UI is in `apps/client/src`.
 
 Both depend on the release on npm and swap in this checkout with `bun link` (run in the package's folder) while a change is in progress. They read `src` through the `source` export condition, so neither needs a build of it.
 
@@ -15,7 +15,7 @@ An issue from either app has three sections: `## Problem` (what is missing or wr
 
 ## Changing the public API
 
-- Before you change anything an entry point exports (a name, a prop, a default, a class a component puts on its element), read its call sites in both apps: `grep -rn "<Name\b" ../ruimte/apps/client/src ../ruimte/packages/agents-react/src ../aftermotion/apps/client/src`.
+- Before you change anything an entry point exports (a name, a prop, a default, a class a component puts on its element), read its call sites in both apps: `grep -rn "<Name\b" ../../ruimte/apps/client/src ../../ruimte/packages/agents-react/src ../../aftermotion/apps/client/src`.
 - A request from one app gets a shape that describes the need, not the app. The answer may be a different API than the one asked for, or a no: something only one app needs stays in that app.
 - No option exists for one app only unless its shape is generic enough that a third app could want it.
 - A breaking change lists the call sites in both apps, carries a migration note (in the PR and, while it lasts, in `MIGRATION.md`), and gets the `Breaking` label.
