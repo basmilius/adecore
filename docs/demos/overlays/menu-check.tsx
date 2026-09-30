@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, ColorSwatch, Menu } from '@basmilius/react-ui';
+import { Button, ColorSwatch, Menu } from '@basmilius/desktop-ui';
 
 const LAYOUTS = ['Columns', 'Rows', 'Grid'];
 

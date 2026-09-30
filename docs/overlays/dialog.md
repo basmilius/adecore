@@ -3,7 +3,7 @@
 A modal dialog, as a compound component on Base UI's dialog. It is for a question or a form of a few fields. For a single question with an answer typed in, use [`PromptDialog`](/overlays/prompt-dialog), which already has the layout.
 
 ```tsx
-import { Dialog } from '@basmilius/react-ui';
+import { Dialog } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="overlays/dialog" />

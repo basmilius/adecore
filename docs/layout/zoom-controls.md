@@ -3,7 +3,7 @@
 The zoom group of a dock: zoom out, the percentage with a menu of presets, zoom in, and fit everything.
 
 ```tsx
-import { ZOOM_PRESETS, ZoomControls } from '@basmilius/react-ui';
+import { ZOOM_PRESETS, ZoomControls } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="layout/zoom-controls" />

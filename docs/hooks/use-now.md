@@ -3,7 +3,7 @@
 A clock for a surface that says how long something has been running.
 
 ```tsx
-import { useNow, useTickingText } from '@basmilius/react-ui';
+import { useNow, useTickingText } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="hooks/use-now" />

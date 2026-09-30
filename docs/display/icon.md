@@ -3,7 +3,7 @@
 One Lucide icon, sized in pixels, at the library's stroke width of 1.75. Icons come in 12, 14, 16 and 20 pixels.
 
 ```tsx
-import { Icon } from '@basmilius/react-ui';
+import { Icon } from '@basmilius/desktop-ui';
 import { Folder } from 'lucide-react';
 
 <Icon icon={Folder} size={14} />;

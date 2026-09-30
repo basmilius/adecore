@@ -3,7 +3,7 @@
 Counts, decimals, percentages, money, sizes and token counts, each in the notation of the region.
 
 ```ts
-import { formatBytes, formatDecimal, formatMoney, formatNumber, formatPercent, formatTokens, formatUsdSignificant } from '@basmilius/react-ui/format';
+import { formatBytes, formatDecimal, formatMoney, formatNumber, formatPercent, formatTokens, formatUsdSignificant } from '@basmilius/desktop-ui/format';
 ```
 
 <Demo src="formatting/numbers" />

@@ -3,7 +3,7 @@
 `messageOf(error, fallback?)` answers the sentence of an error, for a person to read.
 
 ```ts
-import { messageOf } from '@basmilius/react-ui';
+import { messageOf } from '@basmilius/desktop-ui';
 
 try {
     await push();

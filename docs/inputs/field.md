@@ -3,7 +3,7 @@
 A labeled control with an optional hint and error under it, stacked 6 pixels apart. `FieldHint` and `FormError` are the same two lines on their own, for a control that is not inside a `Field`.
 
 ```tsx
-import { Field, FieldHint, FormError } from '@basmilius/react-ui';
+import { Field, FieldHint, FormError } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="inputs/field" />

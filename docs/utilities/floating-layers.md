@@ -3,7 +3,7 @@
 Every popup, menu, tooltip and dialog of the library is portaled out to `<body>`. Its DOM is elsewhere, but its React events still bubble through the tree it was declared in. A canvas that treats a pointer event as its own needs to tell the two apart.
 
 ```tsx
-import { cameThroughPortal, isInFloatingLayer } from '@basmilius/react-ui';
+import { cameThroughPortal, isInFloatingLayer } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="utilities/floating-layers" />

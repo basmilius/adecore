@@ -1,4 +1,4 @@
-import { Kbd, KeyCap, Keys, shortcut } from '@basmilius/react-ui';
+import { Kbd, KeyCap, Keys, shortcut } from '@basmilius/desktop-ui';
 
 const PALETTE = shortcut('Mod+Shift+P');
 const PAN = shortcut('Mod');

@@ -6,6 +6,6 @@ declare const data: ThemeTokens;
 export { data };
 
 export default defineLoader({
-    watch: ['../../../src/theme.css'],
+    watch: ['../../../packages/desktop-ui/src/theme.css'],
     load: ([theme]): ThemeTokens => readThemeTokens(readFileSync(theme!, 'utf8'))
 });

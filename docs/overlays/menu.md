@@ -3,7 +3,7 @@
 A dropdown menu of actions, as a compound component on Base UI's menu. Every part takes Base UI's own props; the library adds the look, the portal and the placement.
 
 ```tsx
-import { Menu } from '@basmilius/react-ui';
+import { Menu } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="overlays/menu" />

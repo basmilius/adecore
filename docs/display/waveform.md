@@ -3,7 +3,7 @@
 The loudness of a piece of audio over time. It colors what has played up to the playhead, and a press or a drag anywhere on it seeks there.
 
 ```tsx
-import { Waveform } from '@basmilius/react-ui';
+import { Waveform } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="display/waveform" />

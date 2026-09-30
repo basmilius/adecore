@@ -3,7 +3,7 @@
 Work in progress: three dots that leap over each other. It takes the color of the text around it, and with reduced motion the dots stand still in a row.
 
 ```tsx
-import { Spinner } from '@basmilius/react-ui';
+import { Spinner } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="display/spinner" />

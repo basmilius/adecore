@@ -3,7 +3,7 @@
 A Base UI select in the style of a menu, so a settings field and a picker in a toolbar read the same. It brings the keyboard with it: arrows, Home and End, typeahead, Enter and Escape.
 
 ```tsx
-import { Select } from '@basmilius/react-ui';
+import { Select } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="inputs/select" />

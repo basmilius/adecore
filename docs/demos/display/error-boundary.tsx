@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, ErrorBoundary } from '@basmilius/react-ui';
+import { Button, ErrorBoundary } from '@basmilius/desktop-ui';
 
 function Chart({ broken }: { broken: boolean }) {
     if (broken) {

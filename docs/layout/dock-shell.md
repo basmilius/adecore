@@ -3,7 +3,7 @@
 The floating bar at the bottom of a canvas-like view, and the one place that knows how to get out of the way.
 
 ```tsx
-import { DockShell } from '@basmilius/react-ui';
+import { DockShell } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="layout/dock-shell" fill />

@@ -20,8 +20,8 @@ const followAppearance = `(() => {
 const isolateDemos = postcssIsolateStyles({ includeFiles: [/vp-doc\.css/] });
 
 export default defineConfig({
-    title: 'React UI',
-    titleTemplate: ':title | React UI',
+    title: 'Desktop UI',
+    titleTemplate: ':title | Desktop UI',
     description: 'React components, a theme, formatters and a settings dialog for desktop-grade apps on React 19, Base UI and Tailwind 4.',
     cleanUrls: true,
     head: [['script', {}, followAppearance]],
@@ -68,15 +68,15 @@ export default defineConfig({
             { text: 'Hooks', link: '/hooks/use-async-action', activeMatch: '^/(hooks|utilities)/' }
         ],
         sidebar: navigation,
-        socialLinks: [{ icon: 'github', link: 'https://github.com/basmilius/react-ui' }],
+        socialLinks: [{ icon: 'github', link: 'https://github.com/basmilius/desktop' }],
         editLink: {
-            pattern: 'https://github.com/basmilius/react-ui/edit/main/docs/:path'
+            pattern: 'https://github.com/basmilius/desktop/edit/main/docs/:path'
         },
         outline: {
             level: [2, 3]
         },
         footer: {
-            message: 'Released under the <a href="https://github.com/basmilius/react-ui/blob/main/LICENSE">MIT License</a>.',
+            message: 'Released under the <a href="https://github.com/basmilius/desktop/blob/main/LICENSE">MIT License</a>.',
             copyright: 'Copyright 2026 <a href="https://github.com/basmilius">Bas Milius</a>'
         }
     }

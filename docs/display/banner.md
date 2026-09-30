@@ -3,7 +3,7 @@
 The strip over a view: one line and the buttons that answer it. Anything that waits for a person goes here, such as a conflict, a failure or a request. A toast in the corner is read after the fact, and a decision has to be where the eyes already are.
 
 ```tsx
-import { Banner } from '@basmilius/react-ui';
+import { Banner } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="display/banner" />

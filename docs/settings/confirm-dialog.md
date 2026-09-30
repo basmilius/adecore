@@ -3,7 +3,7 @@
 One destructive step, asked before it happens, over whichever dialog it was opened from. It is a [`PromptDialog`](/overlays/prompt-dialog) with the danger button, stacked as a nested dialog, that closes itself once the step succeeds.
 
 ```tsx
-import { ConfirmDialog } from '@basmilius/react-ui/settings';
+import { ConfirmDialog } from '@basmilius/desktop-ui/settings';
 ```
 
 <Demo src="settings/confirm-dialog" />

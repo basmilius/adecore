@@ -1,4 +1,4 @@
-import { Button } from '@basmilius/react-ui';
+import { Button } from '@basmilius/desktop-ui';
 
 export default function ButtonVariants() {
     return (

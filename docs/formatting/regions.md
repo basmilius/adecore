@@ -3,7 +3,7 @@
 The regions a person can pick for the notation, beside the one their language comes with and the one the operating system was set to. The list is short on purpose: it is for a computer whose region reads nothing like the person in front of it, not a country picker.
 
 ```ts
-import { FORMAT_LANGUAGE, FORMAT_REGION_CHOICES, FORMAT_REGIONS, FORMAT_SYSTEM, formatRegionFrom, regionName } from '@basmilius/react-ui/format';
+import { FORMAT_LANGUAGE, FORMAT_REGION_CHOICES, FORMAT_REGIONS, FORMAT_SYSTEM, formatRegionFrom, regionName } from '@basmilius/desktop-ui/format';
 ```
 
 <Demo src="formatting/regions" />

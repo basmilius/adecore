@@ -1,4 +1,4 @@
-/* The tokens, type scale and shared rules of @basmilius/react-ui. An app imports this right after Tailwind and adds its own tokens after it. */
+/* The tokens, type scale and shared rules of @basmilius/desktop-ui. An app imports this right after Tailwind and adds its own tokens after it. */
 
 /* dark: follows the app theme, not the OS. */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));

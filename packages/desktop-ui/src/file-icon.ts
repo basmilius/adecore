@@ -6,7 +6,7 @@ import { createFileTreeIconResolver, getBuiltInSpriteSheet, type FileTreeBuiltIn
    picker row and a tree row never disagree about what a file is. */
 const ICON_SET: FileTreeBuiltInIconSet = 'complete';
 
-const SPRITE_ELEMENT_ID = 'react-ui-file-icon-sprite';
+const SPRITE_ELEMENT_ID = 'desktop-ui-file-icon-sprite';
 
 /* A `@pierre/trees` tree resolves and colors its own icons inside its shadow root, so it takes the
    set as configuration where everything drawn beside it calls `fileIconFor`. Hand this to the tree. */

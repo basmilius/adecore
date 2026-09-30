@@ -3,7 +3,7 @@
 Picked or not: one item out of a list, or an option that waits for a Save button. A setting that takes effect the moment it flips is a [`Switch`](/inputs/switch).
 
 ```tsx
-import { Checkbox } from '@basmilius/react-ui';
+import { Checkbox } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="inputs/checkbox" />

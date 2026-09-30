@@ -6,9 +6,9 @@
 @layer __vitepress_base, theme, base, docs, components, utilities;
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities) source(none);
-@import "@basmilius/react-ui/theme.css";
+@import "@basmilius/desktop-ui/theme.css";
 
-@source "../../../src";
+@source "../../../packages/desktop-ui/src";
 @source "../../demos";
 
 /*

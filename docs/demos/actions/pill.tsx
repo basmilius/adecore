@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { CircleAlert, GitBranch } from 'lucide-react';
-import { Icon, Pill } from '@basmilius/react-ui';
+import { Icon, Pill } from '@basmilius/desktop-ui';
 
 export default function PillDemo() {
     const [staged, setStaged] = useState(false);

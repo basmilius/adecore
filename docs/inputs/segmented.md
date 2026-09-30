@@ -3,7 +3,7 @@
 One of a few options side by side in one sunken track, the picked one lifted out of it. It suits two to four short options that change what a view shows.
 
 ```tsx
-import { Segmented } from '@basmilius/react-ui';
+import { Segmented } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="inputs/segmented" />

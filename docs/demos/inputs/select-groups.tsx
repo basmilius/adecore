@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Select } from '@basmilius/react-ui';
+import { Select } from '@basmilius/desktop-ui';
 
 export default function SelectGroups() {
     const [font, setFont] = useState<string | null>('jetbrains');

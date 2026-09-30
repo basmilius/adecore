@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Hand, MousePointer2, Square, Type } from 'lucide-react';
-import { ButtonGroup, DockShell, IconButton, Separator, Switch } from '@basmilius/react-ui';
+import { ButtonGroup, DockShell, IconButton, Separator, Switch } from '@basmilius/desktop-ui';
 
 const TOOLS = [
     { id: 'select', label: 'Select', icon: MousePointer2 },

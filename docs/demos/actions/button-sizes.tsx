@@ -1,5 +1,5 @@
 import { Download } from 'lucide-react';
-import { Button, Icon } from '@basmilius/react-ui';
+import { Button, Icon } from '@basmilius/desktop-ui';
 
 export default function ButtonSizes() {
     return (
@@ -18,7 +18,7 @@ export default function ButtonSizes() {
             <Button variant="secondary" disabled>
                 Disabled
             </Button>
-            <Button variant="secondary" href="https://github.com/basmilius/react-ui">
+            <Button variant="secondary" href="https://github.com/basmilius/desktop">
                 A link
             </Button>
         </div>

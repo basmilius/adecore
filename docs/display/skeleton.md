@@ -3,7 +3,7 @@
 A bar where a value will be, while the answer is still on its way. It is one line of 16 pixels and pulses.
 
 ```tsx
-import { Skeleton } from '@basmilius/react-ui';
+import { Skeleton } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="display/skeleton" />

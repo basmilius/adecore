@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { CircleAlert, GitMerge } from 'lucide-react';
-import { Banner, Button } from '@basmilius/react-ui';
+import { Banner, Button } from '@basmilius/desktop-ui';
 
 export default function BannerDemo() {
     const [resolved, setResolved] = useState(false);

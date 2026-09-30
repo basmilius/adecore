@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { SegmentBar } from '@basmilius/react-ui';
+import { SegmentBar } from '@basmilius/desktop-ui';
 
 const SECTIONS = [
     { value: 12, label: 'Intro' },

@@ -3,7 +3,7 @@
 A level against a scale, read at a glance: how full it is, and where a target or a limit sits on the same scale. Loudness against a target, storage against a quota, a budget against its limit.
 
 ```tsx
-import { Meter } from '@basmilius/react-ui';
+import { Meter } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="display/meter" />

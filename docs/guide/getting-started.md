@@ -1,23 +1,23 @@
 # Getting started
 
-`@basmilius/react-ui` is a set of React components for apps that behave like desktop software: dense toolbars, menus with shortcuts, dialogs over dialogs, a settings window. It sits on [Base UI](https://base-ui.com) for behavior, [Lucide](https://lucide.dev) for icons and Tailwind 4 for styling, and it ships its own theme.
+`@basmilius/desktop-ui` is a set of React components for apps that behave like desktop software: dense toolbars, menus with shortcuts, dialogs over dialogs, a settings window. It sits on [Base UI](https://base-ui.com) for behavior, [Lucide](https://lucide.dev) for icons and Tailwind 4 for styling, and it ships its own theme.
 
-Coming from an earlier package? [MIGRATION.md](https://github.com/basmilius/react-ui/blob/main/MIGRATION.md) maps every old name onto this one.
+Coming from an earlier package? [MIGRATION.md](https://github.com/basmilius/desktop/blob/main/MIGRATION.md) maps every old name onto this one.
 
 ## Install
 
 ::: code-group
 
 ```sh [bun]
-bun add @basmilius/react-ui
+bun add @basmilius/desktop-ui
 ```
 
 ```sh [npm]
-npm install @basmilius/react-ui
+npm install @basmilius/desktop-ui
 ```
 
 ```sh [pnpm]
-pnpm add @basmilius/react-ui
+pnpm add @basmilius/desktop-ui
 ```
 
 :::
@@ -30,9 +30,9 @@ Import the theme right after Tailwind, then tell Tailwind to scan the library fo
 
 ```css
 @import "tailwindcss";
-@import "@basmilius/react-ui/theme.css";
+@import "@basmilius/desktop-ui/theme.css";
 
-@source "../node_modules/@basmilius/react-ui/dist";
+@source "../node_modules/@basmilius/desktop-ui/dist";
 ```
 
 The `@source` path is relative to the CSS file it sits in. Without it Tailwind never sees the classes inside the library, and the components render unstyled.
@@ -46,7 +46,7 @@ Mount `UIProvider` once, above the first component of the library:
 ```tsx
 import i18next from 'i18next';
 import { createRoot } from 'react-dom/client';
-import { UIProvider } from '@basmilius/react-ui';
+import { UIProvider } from '@basmilius/desktop-ui';
 
 createRoot(document.getElementById('root')!).render(
     <UIProvider i18n={i18next} formatSource={formatSource}>
@@ -72,12 +72,12 @@ A language you filled yourself keeps its words, since `addUiResources` skips a l
 
 ## The format source
 
-The formatters in `@basmilius/react-ui/format` write every number, date and duration a person reads. They need two settings: the language, which writes the words (`Sep` or `sep`), and the region, which writes the order, the separators and the clock (`9/19/2026, 8:05 AM` or `19-9-2026 08:05`). The two are separate on purpose. English with a Dutch notation is a common pair on a Dutch computer.
+The formatters in `@basmilius/desktop-ui/format` write every number, date and duration a person reads. They need two settings: the language, which writes the words (`Sep` or `sep`), and the region, which writes the order, the separators and the clock (`9/19/2026, 8:05 AM` or `19-9-2026 08:05`). The two are separate on purpose. English with a Dutch notation is a common pair on a Dutch computer.
 
 A `FormatSource` hands both over:
 
 ```ts
-import { FORMAT_LANGUAGE, type FormatSource } from '@basmilius/react-ui/format';
+import { FORMAT_LANGUAGE, type FormatSource } from '@basmilius/desktop-ui/format';
 
 const formatSource: FormatSource = {
     language: () => settings.language,
@@ -102,14 +102,14 @@ The package has a `source` export condition that points into `src`. An app can u
 Link the checkout:
 
 ```sh
-# in the react-ui checkout
+# in packages/desktop-ui of the desktop checkout
 bun link
 
 # in your app
-bun link @basmilius/react-ui
+bun link @basmilius/desktop-ui
 ```
 
-A `file:../react-ui` dependency works too, but Bun copies the checkout on install, so a change reaches the app only after the next `bun install`.
+A `file:../desktop/packages/desktop-ui` dependency works too, but Bun copies the checkout on install, so a change reaches the app only after the next `bun install`.
 
 Turn the condition on in Vite, keep one copy of each shared dependency, and let Vite compile the library's source like your own:
 
@@ -123,7 +123,7 @@ export default defineConfig({
         dedupe: ['react', 'react-dom', 'i18next', 'react-i18next', '@base-ui-components/react']
     },
     optimizeDeps: {
-        exclude: ['@basmilius/react-ui'],
+        exclude: ['@basmilius/desktop-ui'],
         include: ['@base-ui-components/react/menu', '@base-ui-components/react/dialog', 'lucide-react', 'clsx']
     }
 });
@@ -144,11 +144,11 @@ Your app then type-checks the library's source with its own settings, so it need
 Point Tailwind at the checkout's `src` instead of `dist`, again relative to the CSS file:
 
 ```css
-@source "../../react-ui/src";
+@source "../../desktop/packages/desktop-ui/src";
 ```
 
 The theme import stays the same. It resolves through the `style` condition, which points at `src/theme.css` in a checkout and in the published package. If Vite refuses to serve files from the checkout, add its folder to `server.fs.allow`.
 
 `bun test` takes the condition as a flag (`bun test --conditions=source`) and has no `dedupe`; the library ships a preload for that, see [Testing](/utilities/testing#a-linked-checkout-under-bun-test).
 
-These docs use the same condition. Every demo on this site imports `@basmilius/react-ui` and draws the source in the repository, not a published build.
+These docs use the same condition. Every demo on this site imports `@basmilius/desktop-ui` and draws the source in the repository, not a published build.

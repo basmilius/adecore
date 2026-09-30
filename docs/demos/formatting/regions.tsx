@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { FORMAT_REGIONS, formatRegionFrom, localTimeZone, regionName, systemLocale, useFormatLocale } from '@basmilius/react-ui/format';
+import { FORMAT_REGIONS, formatRegionFrom, localTimeZone, regionName, systemLocale, useFormatLocale } from '@basmilius/desktop-ui/format';
 import { PreferencesBar } from '../shared/preferences-bar.tsx';
 import { preferences } from '../shared/preferences.ts';
 import { Values } from '../shared/values.tsx';

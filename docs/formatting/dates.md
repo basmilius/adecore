@@ -3,7 +3,7 @@
 Clocks, days and moments, each in the region's order and clock with the words of the language.
 
 ```ts
-import { formatClock, formatDay, formatDayClock, formatMoment } from '@basmilius/react-ui/format';
+import { formatClock, formatDay, formatDayClock, formatMoment } from '@basmilius/desktop-ui/format';
 ```
 
 <Demo src="formatting/dates" />

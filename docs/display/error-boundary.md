@@ -3,7 +3,7 @@
 Keeps a render failure to the subtree it happened in. Without one, React unmounts the whole tree on an error, and whatever lives in it (an embedded page, a running terminal, a half-written form) goes down with it.
 
 ```tsx
-import { ErrorBoundary } from '@basmilius/react-ui';
+import { ErrorBoundary } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="display/error-boundary" />

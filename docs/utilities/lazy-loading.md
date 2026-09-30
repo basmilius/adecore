@@ -3,7 +3,7 @@
 Components loaded on first use, and a prefetcher that loads them ahead of that once the app is idle.
 
 ```tsx
-import { lazyDialog, lazyNamed, prefetcher } from '@basmilius/react-ui';
+import { lazyDialog, lazyNamed, prefetcher } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="utilities/lazy-loading" />

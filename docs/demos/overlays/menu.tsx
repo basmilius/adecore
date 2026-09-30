@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Copy, Ellipsis, FolderInput, Pencil, Trash } from 'lucide-react';
-import { EDIT_SHORTCUTS, Icon, IconButton, KEY_SHORTCUTS, Kbd, Menu } from '@basmilius/react-ui';
+import { EDIT_SHORTCUTS, Icon, IconButton, KEY_SHORTCUTS, Kbd, Menu } from '@basmilius/desktop-ui';
 
 export default function MenuDemo() {
     const [wrap, setWrap] = useState(true);

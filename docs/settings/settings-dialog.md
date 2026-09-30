@@ -3,7 +3,7 @@
 A settings window: sections on the left, one pane on the right, and an optional search that jumps to the row it found. It lives in its own entry point with the parts a pane is built from.
 
 ```tsx
-import { SettingsDialog } from '@basmilius/react-ui/settings';
+import { SettingsDialog } from '@basmilius/desktop-ui/settings';
 ```
 
 <Demo src="settings/settings-dialog" />

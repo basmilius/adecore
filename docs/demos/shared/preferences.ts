@@ -1,4 +1,4 @@
-import type { FormatSource } from '@basmilius/react-ui/format';
+import type { FormatSource } from '@basmilius/desktop-ui/format';
 import { i18n } from './i18n.ts';
 
 interface Preferences {

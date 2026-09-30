@@ -24,7 +24,7 @@ const run = (bunfig: string | null): { passed: boolean; output: string } => {
 };
 
 beforeAll(() => {
-    app = mkdtempSync(join(tmpdir(), 'react-ui-dedupe-'));
+    app = mkdtempSync(join(tmpdir(), 'desktop-ui-dedupe-'));
     const modules = join(app, 'node_modules');
     const reactDom = copyOf('react-dom');
     const copies: [string, string][] = [
@@ -36,10 +36,10 @@ beforeAll(() => {
         cpSync(path, join(modules, name), { recursive: true, dereference: true });
     }
     mkdirSync(join(modules, '@basmilius'), { recursive: true });
-    symlinkSync(ROOT, join(modules, '@basmilius', 'react-ui'));
+    symlinkSync(ROOT, join(modules, '@basmilius', 'desktop-ui'));
     writeFileSync(
         join(app, 'package.json'),
-        JSON.stringify({ name: 'app', private: true, dependencies: { '@basmilius/react-ui': 'link:@basmilius/react-ui' } })
+        JSON.stringify({ name: 'app', private: true, dependencies: { '@basmilius/desktop-ui': 'link:@basmilius/desktop-ui' } })
     );
     writeFileSync(join(app, 'tsconfig.json'), JSON.stringify({ compilerOptions: { jsx: 'react-jsx' } }));
     writeFileSync(
@@ -47,7 +47,7 @@ beforeAll(() => {
         [
             "import { expect, test } from 'bun:test';",
             "import { renderToStaticMarkup } from 'react-dom/server';",
-            "import { Field } from '@basmilius/react-ui';",
+            "import { Field } from '@basmilius/desktop-ui';",
             "test('the library renders with the app React', () => {",
             '    expect(renderToStaticMarkup(<Field label="Name"><span /></Field>)).toContain(\'<label\');',
             '});'
@@ -67,7 +67,7 @@ describe('the dedupe preload', () => {
     });
 
     test('the library renders with the app React once the preload stands in for the checkout copy', () => {
-        const { passed, output } = run('[test]\npreload = ["@basmilius/react-ui/testing/dedupe"]\n');
+        const { passed, output } = run('[test]\npreload = ["@basmilius/desktop-ui/testing/dedupe"]\n');
         expect(output).toContain('1 pass');
         expect(passed).toBe(true);
     });

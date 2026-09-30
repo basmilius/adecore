@@ -1,4 +1,4 @@
-import { Skeleton } from '@basmilius/react-ui';
+import { Skeleton } from '@basmilius/desktop-ui';
 
 export default function SkeletonDemo() {
     return (

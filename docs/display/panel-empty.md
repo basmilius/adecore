@@ -3,7 +3,7 @@
 An [`EmptyState`](/display/empty-state) that fills a panel or a card, centered in the room left under the panel's header.
 
 ```tsx
-import { PanelEmpty } from '@basmilius/react-ui';
+import { PanelEmpty } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="display/panel-empty" />

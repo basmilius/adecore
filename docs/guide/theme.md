@@ -1,6 +1,6 @@
 # Theme
 
-`@basmilius/react-ui/theme.css` holds the tokens every component draws with. Each color token has a light and a dark value, switched by `data-theme="light"` or `data-theme="dark"` on `<html>`. The tables on this page are read from that file when the site builds, so they list exactly what it holds. Each swatch is drawn inside its own theme, which is why a token such as `--accent-soft`, mixed from other tokens, shows its real value in both columns.
+`@basmilius/desktop-ui/theme.css` holds the tokens every component draws with. Each color token has a light and a dark value, switched by `data-theme="light"` or `data-theme="dark"` on `<html>`. The tables on this page are read from that file when the site builds, so they list exactly what it holds. Each swatch is drawn inside its own theme, which is why a token such as `--accent-soft`, mixed from other tokens, shows its real value in both columns.
 
 The theme maps the tokens onto Tailwind utilities (`bg-surface`, `text-text-muted`, `border-border`, `shadow-float`) and clears Tailwind's default palette with `--color-*: initial`. A component can reach only these colors, and so can your app, until you add your own.
 
@@ -84,7 +84,7 @@ Set the accent in a rule after the theme import, in both forms. The second is th
 
 ```css
 @import "tailwindcss";
-@import "@basmilius/react-ui/theme.css";
+@import "@basmilius/desktop-ui/theme.css";
 
 :root {
     --accent: #7c3aed;

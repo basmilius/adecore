@@ -3,7 +3,7 @@
 The height and the shape of one row of a list. What the row does (a button, a link, a menu trigger) comes from `render`.
 
 ```tsx
-import { ListRow } from '@basmilius/react-ui';
+import { ListRow } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="display/list-row" />

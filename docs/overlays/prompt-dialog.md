@@ -3,7 +3,7 @@
 The one dialog a question is asked in: a name to type, or a warning to agree with. Every confirm and every rename can share it, so none of them grows a layout of its own.
 
 ```tsx
-import { PromptDialog } from '@basmilius/react-ui';
+import { PromptDialog } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="overlays/prompt-dialog" />

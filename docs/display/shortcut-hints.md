@@ -3,7 +3,7 @@
 Hold Cmd (Ctrl on Windows and Linux) on its own for half a second, and every visible button with a shortcut prints it underneath. Let go and the hints disappear.
 
 ```tsx
-import { ShortcutHints } from '@basmilius/react-ui';
+import { ShortcutHints } from '@basmilius/desktop-ui';
 
 // once, anywhere in the app
 <ShortcutHints />;

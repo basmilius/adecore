@@ -3,7 +3,7 @@
 A popup of content anchored to a trigger, as a compound component on Base UI's popover. Use it for something a person reads or fills in; a list of actions is a [`Menu`](/overlays/menu).
 
 ```tsx
-import { Popover } from '@basmilius/react-ui';
+import { Popover } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="overlays/popover" />

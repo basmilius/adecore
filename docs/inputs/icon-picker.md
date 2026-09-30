@@ -3,7 +3,7 @@
 The mark a thing wears, picked from a set of Lucide icons, as a grid under a label. Every icon's name is its tooltip and its accessible name. The grid is one tab stop: the arrow keys move the focus, across groups by what is drawn above and below, Home and End go to the first and the last icon, and only Enter, Space or a click chooses, so a surface that saves every choice at once never saves one the arrows passed.
 
 ```tsx
-import { IconPicker } from '@basmilius/react-ui';
+import { IconPicker } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="inputs/icon-picker" />

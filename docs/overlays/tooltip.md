@@ -3,7 +3,7 @@
 A hint on hover and on keyboard focus. Every hint in an app is one of these, never a `title` attribute.
 
 ```tsx
-import { Tooltip, TooltipProvider } from '@basmilius/react-ui';
+import { Tooltip, TooltipProvider } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="overlays/tooltip" />

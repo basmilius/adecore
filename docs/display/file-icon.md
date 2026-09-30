@@ -3,7 +3,7 @@
 The icon a file gets in a file tree, drawn anywhere else the same file's name shows up: a tab, a picker row, a search result. It is the one place the library steps outside Lucide.
 
 ```tsx
-import { FILE_TREE_ICONS, FileIcon } from '@basmilius/react-ui';
+import { FILE_TREE_ICONS, FileIcon } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="display/file-icon" />

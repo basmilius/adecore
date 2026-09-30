@@ -4,7 +4,7 @@ import { Glob } from 'bun';
 import { describe, expect, test } from 'bun:test';
 
 const HERE = new URL('.', import.meta.url).pathname;
-const SNAPSHOT = readFileSync(join(HERE, '../src/__snapshots__/exports.test.ts.snap'), 'utf8');
+const SNAPSHOT = readFileSync(join(HERE, '../packages/desktop-ui/src/__snapshots__/exports.test.ts.snap'), 'utf8');
 
 const filesIn = (pattern: string): { path: string; text: string }[] =>
     [...new Glob(pattern).scanSync({ cwd: HERE, dot: true })]

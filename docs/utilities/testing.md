@@ -1,9 +1,9 @@
 # Testing
 
-`@basmilius/react-ui/testing` holds fakes for your app's own tests, and `@basmilius/react-ui/testing/dedupe` a preload for `bun test` with a linked checkout. Nothing in either belongs in a bundle that ships.
+`@basmilius/desktop-ui/testing` holds fakes for your app's own tests, and `@basmilius/desktop-ui/testing/dedupe` a preload for `bun test` with a linked checkout. Nothing in either belongs in a bundle that ships.
 
 ```ts
-import { fakeFormatSource } from '@basmilius/react-ui/testing';
+import { fakeFormatSource } from '@basmilius/desktop-ui/testing';
 ```
 
 ## fakeFormatSource
@@ -12,8 +12,8 @@ A [format source](/formatting/) you set by hand: English, the region of the lang
 
 ```ts
 import { afterAll, afterEach, expect, test } from 'bun:test';
-import { formatNumber, setFormatSource } from '@basmilius/react-ui/format';
-import { fakeFormatSource } from '@basmilius/react-ui/testing';
+import { formatNumber, setFormatSource } from '@basmilius/desktop-ui/format';
+import { fakeFormatSource } from '@basmilius/desktop-ui/testing';
 
 const source = fakeFormatSource();
 const previous = setFormatSource(source);
@@ -42,7 +42,7 @@ An app that links a checkout of the library (see [Getting started](/guide/gettin
 
 ```toml
 [test]
-preload = ["@basmilius/react-ui/testing/dedupe", "./test-preload.ts"]
+preload = ["@basmilius/desktop-ui/testing/dedupe", "./test-preload.ts"]
 ```
 
 It loads every file of `react`, `react-dom`, `i18next`, `react-i18next` and `@base-ui-components/react` inside the checkout as a stand-in for the same file in the app's copy. The app's copy is the one the folder `bun test` runs in resolves to, or else the one of the first workspace that depends on the library. A package the checkout has no copy of is left alone, so the preload does nothing once the library comes from the registry.
@@ -51,7 +51,7 @@ A bunfig at the root of a monorepo with an isolated install may not resolve the 
 
 ```toml
 [test]
-preload = ["./apps/web/node_modules/@basmilius/react-ui/src/testing/dedupe.ts"]
+preload = ["./apps/web/node_modules/@basmilius/desktop-ui/src/testing/dedupe.ts"]
 ```
 
 ## Rendering in a test

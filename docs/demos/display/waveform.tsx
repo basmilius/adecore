@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { SegmentBar, Waveform } from '@basmilius/react-ui';
+import { SegmentBar, Waveform } from '@basmilius/desktop-ui';
 
 const DURATION = 225;
 

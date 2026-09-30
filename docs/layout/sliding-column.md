@@ -3,7 +3,7 @@
 A panel that slides in and out along the right edge of a view, with a left edge a person drags to resize it.
 
 ```tsx
-import { SlidingColumn } from '@basmilius/react-ui';
+import { SlidingColumn } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="layout/sliding-column" fill />

@@ -3,32 +3,12 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "@basmilius/react-ui",
-      "dependencies": {
-        "@base-ui-components/react": "^1.0.0-rc.0",
-        "@pierre/trees": "1.0.0-beta.6",
-        "clsx": "^2.1.1",
-        "lucide-react": "^1.47.0",
-        "zustand": "^5.0.15",
-      },
+      "name": "basmilius-desktop",
       "devDependencies": {
         "@types/bun": "^1.4.2",
-        "@types/react": "^19.3.0",
-        "@types/react-dom": "^19.3.0",
-        "i18next": "^26.4.2",
-        "oxc-parser": "^0.151.0",
         "oxfmt": "^0.70.0",
         "oxlint": "^1.85.0",
-        "react": "^19.3.0",
-        "react-dom": "^19.3.0",
-        "react-i18next": "^17.0.15",
         "typescript": "^7.0.2",
-      },
-      "peerDependencies": {
-        "i18next": "^26.4.2",
-        "react": "^19.3.0",
-        "react-dom": "^19.3.0",
-        "react-i18next": "^17.0.15",
       },
     },
     "docs": {
@@ -52,6 +32,34 @@
         "typescript": "^7.0.2",
       },
     },
+    "packages/desktop-ui": {
+      "name": "@basmilius/desktop-ui",
+      "version": "0.0.0",
+      "dependencies": {
+        "@base-ui-components/react": "^1.0.0-rc.0",
+        "@pierre/trees": "1.0.0-beta.6",
+        "clsx": "^2.1.1",
+        "lucide-react": "^1.47.0",
+        "zustand": "^5.0.15",
+      },
+      "devDependencies": {
+        "@types/bun": "^1.4.2",
+        "@types/react": "^19.3.0",
+        "@types/react-dom": "^19.3.0",
+        "i18next": "^26.4.2",
+        "oxc-parser": "^0.151.0",
+        "react": "^19.3.0",
+        "react-dom": "^19.3.0",
+        "react-i18next": "^17.0.15",
+        "typescript": "^7.0.2",
+      },
+      "peerDependencies": {
+        "i18next": "^26.4.2",
+        "react": "^19.3.0",
+        "react-dom": "^19.3.0",
+        "react-i18next": "^17.0.15",
+      },
+    },
   },
   "packages": {
     "@11ty/gray-matter": ["@11ty/gray-matter@2.1.0", "", { "dependencies": { "js-yaml": "^4.2.0", "section-matter": "^1.0.0" } }, "sha512-fNdBOb3MgDz/1UCIoeY4wDuGbp+/3s5y6UrsyfMabECbh/CVycj7Er33JXqSxRwxrRKXcGE1Jipuq/1mODInsQ=="],
@@ -69,6 +77,8 @@
     "@base-ui-components/react": ["@base-ui-components/react@1.0.0-rc.0", "", { "dependencies": { "@babel/runtime": "^7.28.4", "@base-ui-components/utils": "0.2.2", "@floating-ui/react-dom": "^2.1.6", "@floating-ui/utils": "^0.2.10", "reselect": "^5.1.1", "tabbable": "^6.3.0", "use-sync-external-store": "^1.6.0" }, "peerDependencies": { "@types/react": "^17 || ^18 || ^19", "react": "^17 || ^18 || ^19", "react-dom": "^17 || ^18 || ^19" }, "optionalPeers": ["@types/react"] }, "sha512-9lhUFbJcbXvc9KulLev1WTFxS/alJRBWDH/ibKSQaNvmDwMFS2gKp1sTeeldYSfKuS/KC1w2MZutc0wHu2hRHQ=="],
 
     "@base-ui-components/utils": ["@base-ui-components/utils@0.2.2", "", { "dependencies": { "@babel/runtime": "^7.28.4", "@floating-ui/utils": "^0.2.10", "reselect": "^5.1.1", "use-sync-external-store": "^1.6.0" }, "peerDependencies": { "@types/react": "^17 || ^18 || ^19", "react": "^17 || ^18 || ^19", "react-dom": "^17 || ^18 || ^19" }, "optionalPeers": ["@types/react"] }, "sha512-rNJCD6TFy3OSRDKVHJDzLpxO3esTV1/drRtWNUpe7rCpPN9HZVHUCuP+6rdDYDGWfXnQHbqi05xOyRP2iZAlkw=="],
+
+    "@basmilius/desktop-ui": ["@basmilius/desktop-ui@workspace:packages/desktop-ui"],
 
     "@docsearch/css": ["@docsearch/css@4.7.0", "", {}, "sha512-Sk5xkdRFeE7PeWjG9l4AfTwdvMfr9wHiwNNCpHXT4v4SNyNMKdHGvEILc31BgaVFGDDNbv5u/a73tofRiwbEZw=="],
 

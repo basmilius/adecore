@@ -1,9 +1,9 @@
 # Format source
 
-`@basmilius/react-ui/format` writes every number, date, time and duration a person reads. It is the only place in the library that builds an `Intl` formatter, and your app can use it the same way.
+`@basmilius/desktop-ui/format` writes every number, date, time and duration a person reads. It is the only place in the library that builds an `Intl` formatter, and your app can use it the same way.
 
 ```ts
-import { formatNumber, formatDayClock, setFormatSource } from '@basmilius/react-ui/format';
+import { formatNumber, formatDayClock, setFormatSource } from '@basmilius/desktop-ui/format';
 ```
 
 <Demo src="formatting/source" />

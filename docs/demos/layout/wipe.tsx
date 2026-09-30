@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Wipe } from '@basmilius/react-ui';
+import { Wipe } from '@basmilius/desktop-ui';
 
 function Frame({ label, className }: { label: string; className: string }) {
     return (

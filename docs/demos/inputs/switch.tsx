@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Switch } from '@basmilius/react-ui';
+import { Switch } from '@basmilius/desktop-ui';
 
 export default function SwitchDemo() {
     const [sounds, setSounds] = useState(true);

@@ -3,7 +3,7 @@
 Icon buttons that belong together, 1 pixel apart. Separate groups keep the wider gap of the row they stand in, so a toolbar reads as clusters rather than a fence of equal buttons.
 
 ```tsx
-import { ButtonGroup } from '@basmilius/react-ui';
+import { ButtonGroup } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="actions/button-group" />

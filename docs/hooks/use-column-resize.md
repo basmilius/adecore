@@ -3,7 +3,7 @@
 A resizable column or row: a handle that drags the size its owner keeps. [`SlidingColumn`](/layout/sliding-column) is built on it, and [`ColumnResizeHandle`](/layout/column-resize-handle) is the handle.
 
 ```tsx
-import { clampColumnSize, useColumnResize } from '@basmilius/react-ui';
+import { clampColumnSize, useColumnResize } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="layout/column-resize-handle" fill />

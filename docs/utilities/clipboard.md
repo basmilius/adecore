@@ -3,7 +3,7 @@
 The clipboard and the text selection, as an app with its own context menus uses them.
 
 ```tsx
-import { copyText, readClipboardText, selectAllWithin, selectionWithin } from '@basmilius/react-ui';
+import { copyText, readClipboardText, selectAllWithin, selectionWithin } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="utilities/clipboard" />

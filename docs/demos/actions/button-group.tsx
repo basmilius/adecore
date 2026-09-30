@@ -1,5 +1,5 @@
 import { AlignCenter, AlignLeft, AlignRight, Redo, Undo } from 'lucide-react';
-import { ButtonGroup, IconButton } from '@basmilius/react-ui';
+import { ButtonGroup, IconButton } from '@basmilius/desktop-ui';
 
 export default function ButtonGroupDemo() {
     return (

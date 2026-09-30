@@ -3,7 +3,7 @@
 Everything the library needs from an app, once, around the whole tree: its words in your i18next, the source of the formatters, the shared tooltip delay and the note of which input device is in use. Mount it above the first component of the library.
 
 ```tsx
-import { UIProvider } from '@basmilius/react-ui';
+import { UIProvider } from '@basmilius/desktop-ui';
 
 <UIProvider i18n={i18next} formatSource={formatSource}>
     <App />
@@ -26,7 +26,7 @@ An app that wires things up itself can call each piece directly.
 
 `addUiResources(i18n)` adds the `ui` namespace in every language the library ships to an i18next instance. A language that already has a `ui` bundle keeps it. `UI_NAMESPACE` is the name of the namespace, `'ui'`, and `UI_RESOURCES` holds the words by language code (`en` and `nl`), which is the source to translate from for a third language.
 
-`setFormatSource(source)` from `@basmilius/react-ui/format` hands the formatters their source. See [Format source](/formatting/).
+`setFormatSource(source)` from `@basmilius/desktop-ui/format` hands the formatters their source. See [Format source](/formatting/).
 
 `TooltipProvider` holds the shared tooltip delay. See [Tooltip](/overlays/tooltip#tooltipprovider).
 

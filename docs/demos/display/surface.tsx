@@ -1,4 +1,4 @@
-import { Surface } from '@basmilius/react-ui';
+import { Surface } from '@basmilius/desktop-ui';
 
 export default function SurfaceDemo() {
     return (

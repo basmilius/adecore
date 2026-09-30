@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Button, useNow, useTickingText } from '@basmilius/react-ui';
-import { formatClockDuration, formatElapsedShort } from '@basmilius/react-ui/format';
+import { Button, useNow, useTickingText } from '@basmilius/desktop-ui';
+import { formatClockDuration, formatElapsedShort } from '@basmilius/desktop-ui/format';
 
 export default function UseNowDemo() {
     const [startedAt, setStartedAt] = useState<number | null>(null);

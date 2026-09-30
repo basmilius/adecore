@@ -7,7 +7,7 @@ import {
     formatTokens,
     formatUsdSignificant,
     useFormatLocale
-} from '@basmilius/react-ui/format';
+} from '@basmilius/desktop-ui/format';
 import { PreferencesBar } from '../shared/preferences-bar.tsx';
 import { Values } from '../shared/values.tsx';
 

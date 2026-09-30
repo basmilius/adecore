@@ -3,7 +3,7 @@
 A number between minus and plus, in one sunken group so the three read as a single control. It suits a value a person nudges, such as a font size, more than one they type.
 
 ```tsx
-import { Stepper } from '@basmilius/react-ui';
+import { Stepper } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="inputs/stepper" />

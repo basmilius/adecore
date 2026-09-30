@@ -3,7 +3,7 @@
 The one text input: one border and one focus outline, at the normal height of 32 pixels or the compact 28. `TextArea` is a field of a few lines, such as a commit message or a note.
 
 ```tsx
-import { Input, TextArea } from '@basmilius/react-ui';
+import { Input, TextArea } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="inputs/input" />

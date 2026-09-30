@@ -3,7 +3,7 @@
 One color, drawn as the color itself. Its name belongs in a tooltip, so a picked swatch carries only a tick.
 
 ```tsx
-import { ColorSwatch } from '@basmilius/react-ui';
+import { ColorSwatch } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="inputs/color-swatch" />

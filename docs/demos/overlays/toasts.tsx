@@ -1,4 +1,4 @@
-import { Button, Toasts, createToastStore } from '@basmilius/react-ui';
+import { Button, Toasts, createToastStore } from '@basmilius/desktop-ui';
 
 const toasts = createToastStore();
 

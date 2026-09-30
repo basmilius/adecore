@@ -3,7 +3,7 @@
 Every button with a word in it. A button that is only an icon is an [`IconButton`](/actions/icon-button), which is a square rather than a label.
 
 ```tsx
-import { Button } from '@basmilius/react-ui';
+import { Button } from '@basmilius/desktop-ui';
 ```
 
 ## Variants

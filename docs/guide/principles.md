@@ -55,7 +55,7 @@ The library decides by the last real input instead. `startInputModality` (which 
 
 ## Numbers and dates
 
-Only `@basmilius/react-ui/format` builds an `Intl` formatter. Every number, date and duration a person reads goes through it, so it follows the language and the region they set, and a list of a thousand rows builds no formatter at all. See [Formatting](/formatting/).
+Only `@basmilius/desktop-ui/format` builds an `Intl` formatter. Every number, date and duration a person reads goes through it, so it follows the language and the region they set, and a list of a thousand rows builds no formatter at all. See [Formatting](/formatting/).
 
 ## Props follow Base UI
 

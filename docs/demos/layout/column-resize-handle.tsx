@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { ColumnResizeHandle, useColumnResize } from '@basmilius/react-ui';
+import { ColumnResizeHandle, useColumnResize } from '@basmilius/desktop-ui';
 
 export default function ColumnResizeHandleDemo() {
     const column = useRef<HTMLElement>(null);

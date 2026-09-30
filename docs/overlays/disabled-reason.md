@@ -3,7 +3,7 @@
 Why a row cannot be picked, in a tooltip beside it rather than in the row itself. A reason is a sentence, and a sentence in a menu row would set the width of the whole menu.
 
 ```tsx
-import { DisabledReason } from '@basmilius/react-ui';
+import { DisabledReason } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="overlays/disabled-reason" />

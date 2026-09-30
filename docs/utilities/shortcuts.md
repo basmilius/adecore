@@ -3,7 +3,7 @@
 One shortcut, written once. The same value decides whether a key event is the shortcut and how the shortcut is printed.
 
 ```tsx
-import { formatShortcut, isApplePlatform, matchesShortcut, shortcut } from '@basmilius/react-ui';
+import { formatShortcut, isApplePlatform, matchesShortcut, shortcut } from '@basmilius/desktop-ui';
 
 const SAVE = shortcut('Mod+S');
 ```

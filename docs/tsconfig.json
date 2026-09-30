@@ -1,10 +1,10 @@
 {
-  "extends": "../tsconfig.json",
+  "extends": "../tsconfig.base.json",
   "compilerOptions": {
     "types": ["vitepress/client", "bun"],
     "paths": {
-      "@basmilius/react-ui": ["../src/index.ts"],
-      "@basmilius/react-ui/*": ["../src/*/index.ts"]
+      "@basmilius/desktop-ui": ["../packages/desktop-ui/src/index.ts"],
+      "@basmilius/desktop-ui/*": ["../packages/desktop-ui/src/*/index.ts"]
     }
   },
   "include": ["demos", "*.ts", "*.tsx", ".vitepress/**/*.ts", ".vitepress/**/*.tsx"],

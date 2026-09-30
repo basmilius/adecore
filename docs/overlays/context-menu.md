@@ -3,7 +3,7 @@
 A menu that opens at the pointer on a right-click. Every part inside it is the [menu's](/overlays/menu) own; only the root and the trigger differ.
 
 ```tsx
-import { ContextMenu } from '@basmilius/react-ui';
+import { ContextMenu } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="overlays/context-menu" />

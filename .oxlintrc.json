@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["react", "typescript", "oxc"],
-  "ignorePatterns": ["dist/**", "docs/.vitepress/cache/**", "docs/.vitepress/dist/**"],
+  "ignorePatterns": ["packages/*/dist/**", "docs/.vitepress/cache/**", "docs/.vitepress/dist/**"],
   "rules": {
     "curly": "error",
     "react/rules-of-hooks": "error",

@@ -1,5 +1,5 @@
-import { Meter, useNow } from '@basmilius/react-ui';
-import { formatDecimal, formatPercent } from '@basmilius/react-ui/format';
+import { Meter, useNow } from '@basmilius/desktop-ui';
+import { formatDecimal, formatPercent } from '@basmilius/desktop-ui/format';
 
 const FLOOR = -40;
 const TOP = -4;

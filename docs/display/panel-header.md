@@ -3,7 +3,7 @@
 The bar across the top of a side panel, 48 pixels tall to line up with a toolbar beside it: the panel's name, its own controls, and a close button last.
 
 ```tsx
-import { PanelHeader } from '@basmilius/react-ui';
+import { PanelHeader } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="display/panel-header" />

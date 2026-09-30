@@ -3,7 +3,7 @@
 Two versions of one picture in one frame: `before` left of the split and `after` right of it, with a handle between them to drag or move with the arrow keys.
 
 ```tsx
-import { Wipe } from '@basmilius/react-ui';
+import { Wipe } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="layout/wipe" />

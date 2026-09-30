@@ -1,5 +1,5 @@
 import { GitPullRequest } from 'lucide-react';
-import { Button, PanelEmpty, PanelHeader } from '@basmilius/react-ui';
+import { Button, PanelEmpty, PanelHeader } from '@basmilius/desktop-ui';
 
 export default function PanelEmptyDemo() {
     return (

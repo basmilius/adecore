@@ -1,4 +1,4 @@
-import { Button, FormError, useAsyncAction } from '@basmilius/react-ui';
+import { Button, FormError, useAsyncAction } from '@basmilius/desktop-ui';
 
 const wait = (ms: number): Promise<void> => new Promise((resolve) => window.setTimeout(resolve, ms));
 

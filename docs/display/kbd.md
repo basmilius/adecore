@@ -3,7 +3,7 @@
 A shortcut as the platform prints it: `⌘K` on macOS, `Ctrl+K` elsewhere. `Kbd` prints it as one chip, `Keys` as one cap per key, and `KeyCap` is a single cap.
 
 ```tsx
-import { Kbd, KeyCap, Keys } from '@basmilius/react-ui';
+import { Kbd, KeyCap, Keys } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="display/kbd" />

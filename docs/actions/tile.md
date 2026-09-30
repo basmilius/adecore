@@ -3,7 +3,7 @@
 One thing to start with, drawn as a card that is a button. A start screen and the empty places of an app use it, so a place to begin looks the same wherever it is offered.
 
 ```tsx
-import { Tile } from '@basmilius/react-ui';
+import { Tile } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="actions/tile" />

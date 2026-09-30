@@ -3,7 +3,7 @@
 The close button in the header of a panel or a dialog, an [`IconButton`](/actions/icon-button) with an X. It closes in one of two ways, and you pick one.
 
 ```tsx
-import { CloseButton } from '@basmilius/react-ui';
+import { CloseButton } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="actions/close-button" />

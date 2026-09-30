@@ -17,8 +17,6 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true,
-    "types": ["bun"]
-  },
-  "include": ["src", "scripts"]
+    "noFallthroughCasesInSwitch": true
+  }
 }

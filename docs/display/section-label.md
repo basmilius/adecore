@@ -3,7 +3,7 @@
 The small label above a group of rows outside a popup: a sidebar's groups, a palette's sections, the name of a field. Inside a menu the same job is `Menu.GroupLabel` or `Menu.Label`.
 
 ```tsx
-import { SectionLabel } from '@basmilius/react-ui';
+import { SectionLabel } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="display/section-label" />

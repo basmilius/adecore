@@ -3,7 +3,7 @@
 A list beside the detail of what is picked in it, for a settings pane of many things of one kind: accounts, devices, shortcut groups. Each side scrolls on its own, and the detail takes the rest of the width.
 
 ```tsx
-import { DetailHeader, MasterDetail, MasterItem } from '@basmilius/react-ui/settings';
+import { DetailHeader, MasterDetail, MasterItem } from '@basmilius/desktop-ui/settings';
 ```
 
 <Demo src="settings/master-detail" fill />

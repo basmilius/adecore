@@ -3,7 +3,7 @@
 One step a surface waits on. The button goes quiet while it runs, and the reason stays on screen when it fails.
 
 ```tsx
-import { useAsyncAction } from '@basmilius/react-ui';
+import { useAsyncAction } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="hooks/use-async-action" />

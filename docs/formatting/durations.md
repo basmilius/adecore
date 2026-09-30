@@ -3,7 +3,7 @@
 How long something took, how long it has been running, how long is left, and how long ago it was.
 
 ```ts
-import { formatAgo, formatClockDuration, formatCountdown, formatDuration, formatElapsedShort } from '@basmilius/react-ui/format';
+import { formatAgo, formatClockDuration, formatCountdown, formatDuration, formatElapsedShort } from '@basmilius/desktop-ui/format';
 ```
 
 <Demo src="formatting/durations" />

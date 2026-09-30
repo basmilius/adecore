@@ -3,7 +3,7 @@
 A hairline between two groups of controls in a toolbar-like row. It carries no margin; the row's gap puts space on either side of it, which is what makes the line read as a divider and not as a group of its own.
 
 ```tsx
-import { Separator } from '@basmilius/react-ui';
+import { Separator } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="display/separator" />

@@ -1,30 +1,40 @@
-# Migrating from @ruimte/ui
+# Migrating to @basmilius/desktop-ui
 
-`@basmilius/react-ui` replaces `@ruimte/ui`. This file maps every import, prop and class string of the old package to the new one, precise enough to drive a codemod. Where a change needs a person, it says so under [What does not switch mechanically](#what-does-not-switch-mechanically).
+## From @basmilius/react-ui
 
-## 1. Setup
+`@basmilius/desktop-ui` is `@basmilius/react-ui` under a new name, from `0.5.0` on. Nothing else changed: swap the name in `package.json`, in every import, in the theme import and in the `@source` line. A local checkout moved into `packages/desktop-ui` of the `desktop` repository.
 
-### Dependency
+```sh
+grep -rl '@basmilius/react-ui' src package.json | xargs sed -i '' 's#@basmilius/react-ui#@basmilius/desktop-ui#g'
+```
+
+## From @ruimte/ui
+
+`@basmilius/desktop-ui` replaces `@ruimte/ui`. This file maps every import, prop and class string of the old package to the new one, precise enough to drive a codemod. Where a change needs a person, it says so under [What does not switch mechanically](#what-does-not-switch-mechanically).
+
+### 1. Setup
+
+#### Dependency
 
 ```diff
 - "@ruimte/ui": "workspace:*"            // or "file:../ruimte/packages/ui"
-+ "@basmilius/react-ui": "^<version>"    // or "file:../react-ui" for a local checkout
++ "@basmilius/desktop-ui": "^<version>"    // or "file:../desktop/packages/desktop-ui" for a local checkout
 ```
 
-### CSS
+#### CSS
 
 ```diff
   @import "tailwindcss";
 - @import "@ruimte/ui/theme.css";
-+ @import "@basmilius/react-ui/theme.css";
++ @import "@basmilius/desktop-ui/theme.css";
 - @source "<path>/packages/ui/src";
-+ @source "../node_modules/@basmilius/react-ui/dist";   /* from npm */
-+ @source "../../react-ui/src";                          /* a linked checkout, relative to the CSS file */
++ @source "../node_modules/@basmilius/desktop-ui/dist"; /* from npm */
++ @source "../../desktop/packages/desktop-ui/src";        /* a linked checkout, relative to the CSS file */
 ```
 
 The theme gained `--raised-shadow` (`shadow-raised`), used by `Switch` and `Segmented` for what the app's own `shadow-node` used to give them, and `.sliding-column` for `SlidingColumn`. An app that defines `--accent` keeps doing so after the import.
 
-### The provider
+#### The provider
 
 One `UIProvider` replaces four things an app wired by hand. Mount it around the tree, above the first component of the library.
 
@@ -33,7 +43,7 @@ One `UIProvider` replaces four things an app wired by hand. Mount it around the 
 - import { startInputModality } from '@ruimte/ui/modality';
 - import { setFormatSource } from '@ruimte/ui/format/locale';
 - import { UI_LOCALES, UI_NAMESPACE } from '@ruimte/ui/locales';
-+ import { UIProvider } from '@basmilius/react-ui';
++ import { UIProvider } from '@basmilius/desktop-ui';
 
 - startInputModality();
 - setFormatSource(source);
@@ -43,108 +53,108 @@ One `UIProvider` replaces four things an app wired by hand. Mount it around the 
 ```
 
 - `UIProvider` adds the `ui` namespace in every language the library ships, synchronously, before the first child renders. `UI_LOCALES` (one async loader per language) is gone; the words are small enough to ship whole. Keep `UI_NAMESPACE` in i18next's `ns` list.
-- An app that sets the format source before the first render (so code outside React formats in the right region) keeps calling `setFormatSource` from `@basmilius/react-ui/format` and may leave `formatSource` off the provider, or hand the same object to both.
-- A test preload that read `@ruimte/ui/locales/en.json` reads `UI_RESOURCES.en` from `@basmilius/react-ui`, or calls `addUiResources(i18next)` after `init`.
+- An app that sets the format source before the first render (so code outside React formats in the right region) keeps calling `setFormatSource` from `@basmilius/desktop-ui/format` and may leave `formatSource` off the provider, or hand the same object to both.
+- A test preload that read `@ruimte/ui/locales/en.json` reads `UI_RESOURCES.en` from `@basmilius/desktop-ui`, or calls `addUiResources(i18next)` after `init`.
 
-### Vite and TypeScript for a linked checkout
+#### Vite and TypeScript for a linked checkout
 
-See "Working on a local checkout" in the README: `resolve.conditions: ['source', ...defaultClientConditions]`, `resolve.dedupe` for React, i18next and Base UI, `optimizeDeps.exclude: ['@basmilius/react-ui']`, and `customConditions: ["source"]` in `tsconfig.json`.
+See "Working on a local checkout" in the README: `resolve.conditions: ['source', ...defaultClientConditions]`, `resolve.dedupe` for React, i18next and Base UI, `optimizeDeps.exclude: ['@basmilius/desktop-ui']`, and `customConditions: ["source"]` in `tsconfig.json`.
 
 An app's own dedupe preload for `bun test` (a `test-dedupe.ts` with a Bun plugin that loads the checkout's React and i18next as stand-ins for the app's) is replaced by the library's, which covers Base UI too:
 
 ```diff
   [test]
 - preload = ["./apps/client/test-dedupe.ts", "./apps/client/test-preload.ts"]
-+ preload = ["./apps/client/node_modules/@basmilius/react-ui/src/testing/dedupe.ts", "./apps/client/test-preload.ts"]
++ preload = ["./apps/client/node_modules/@basmilius/desktop-ui/src/testing/dedupe.ts", "./apps/client/test-preload.ts"]
 ```
 
-A bunfig in a folder that resolves the package names it as `@basmilius/react-ui/testing/dedupe`.
+A bunfig in a folder that resolves the package names it as `@basmilius/desktop-ui/testing/dedupe`.
 
-## 2. Imports
+### 2. Imports
 
 Every old subpath import becomes a named import from one of four entry points. A name stays the same unless the table says otherwise.
 
 | Old import | New import |
 | --- | --- |
-| `@ruimte/ui/AccentSwatches`: `AccentSwatches`, `AccentSwatchesProps` | `@basmilius/react-ui`: same names |
-| `@ruimte/ui/Button`: `Button` | `@basmilius/react-ui`: `Button` |
-| `@ruimte/ui/ChoiceCards`: `ChoiceCards`, `Choice`, `ChoiceCardsProps` | `@basmilius/react-ui`: same names |
-| `@ruimte/ui/CloseButton`: `CloseButton` | `@basmilius/react-ui`: `CloseButton` |
-| `@ruimte/ui/ColumnResizeHandle`: `ColumnResizeHandle` | `@basmilius/react-ui`: `ColumnResizeHandle` |
-| `@ruimte/ui/DisabledReason`: `DisabledReason` | `@basmilius/react-ui`: `DisabledReason` |
-| `@ruimte/ui/EmptyState`: `EmptyState` | `@basmilius/react-ui`: `EmptyState` |
-| `@ruimte/ui/ErrorBoundary`: `ErrorBoundary` | `@basmilius/react-ui`: `ErrorBoundary` |
-| `@ruimte/ui/FileIcon`: `FileIcon` | `@basmilius/react-ui`: `FileIcon` |
-| `@ruimte/ui/Icon`: `Icon` | `@basmilius/react-ui`: `Icon` |
-| `@ruimte/ui/Kbd`: `Kbd`, `KeyCap`, `Keys` | `@basmilius/react-ui`: same names |
-| `@ruimte/ui/MenuCheck`: `MenuCheck` | `@basmilius/react-ui`: `Menu.Check` (see [menus](#menus)) |
-| `@ruimte/ui/MenuPopup`: `MenuPopup` | `@basmilius/react-ui`: `Menu.Popup` |
-| `@ruimte/ui/PanelEmpty`: `PanelEmpty` | `@basmilius/react-ui`: `PanelEmpty` |
-| `@ruimte/ui/Pill`: `Pill` | `@basmilius/react-ui`: `Pill` |
-| `@ruimte/ui/PromptDialog`: `PromptDialog` | `@basmilius/react-ui`: `PromptDialog` (prop change below) |
-| `@ruimte/ui/Select`: `Select`, `SelectItem`, `SelectGroup` | `@basmilius/react-ui`: same names |
-| `@ruimte/ui/Separator`: `Separator` | `@basmilius/react-ui`: `Separator` |
-| `@ruimte/ui/ShortcutHints`: `ShortcutHints` | `@basmilius/react-ui`: `ShortcutHints` |
-| `@ruimte/ui/TextMenu`: `TextMenu` | `@basmilius/react-ui`: `TextMenu` |
-| `@ruimte/ui/Tile`: `Tile` | `@basmilius/react-ui`: `Tile` |
-| `@ruimte/ui/Toasts`: `Toasts`, `ToastsProps` | `@basmilius/react-ui`: same names |
-| `@ruimte/ui/Tooltip`: `Tooltip`, `TooltipProvider` | `@basmilius/react-ui`: same names (`TooltipProvider` is inside `UIProvider`) |
-| `@ruimte/ui/Wipe`: `Wipe` | `@basmilius/react-ui`: `Wipe` (prop change below) |
+| `@ruimte/ui/AccentSwatches`: `AccentSwatches`, `AccentSwatchesProps` | `@basmilius/desktop-ui`: same names |
+| `@ruimte/ui/Button`: `Button` | `@basmilius/desktop-ui`: `Button` |
+| `@ruimte/ui/ChoiceCards`: `ChoiceCards`, `Choice`, `ChoiceCardsProps` | `@basmilius/desktop-ui`: same names |
+| `@ruimte/ui/CloseButton`: `CloseButton` | `@basmilius/desktop-ui`: `CloseButton` |
+| `@ruimte/ui/ColumnResizeHandle`: `ColumnResizeHandle` | `@basmilius/desktop-ui`: `ColumnResizeHandle` |
+| `@ruimte/ui/DisabledReason`: `DisabledReason` | `@basmilius/desktop-ui`: `DisabledReason` |
+| `@ruimte/ui/EmptyState`: `EmptyState` | `@basmilius/desktop-ui`: `EmptyState` |
+| `@ruimte/ui/ErrorBoundary`: `ErrorBoundary` | `@basmilius/desktop-ui`: `ErrorBoundary` |
+| `@ruimte/ui/FileIcon`: `FileIcon` | `@basmilius/desktop-ui`: `FileIcon` |
+| `@ruimte/ui/Icon`: `Icon` | `@basmilius/desktop-ui`: `Icon` |
+| `@ruimte/ui/Kbd`: `Kbd`, `KeyCap`, `Keys` | `@basmilius/desktop-ui`: same names |
+| `@ruimte/ui/MenuCheck`: `MenuCheck` | `@basmilius/desktop-ui`: `Menu.Check` (see [menus](#menus)) |
+| `@ruimte/ui/MenuPopup`: `MenuPopup` | `@basmilius/desktop-ui`: `Menu.Popup` |
+| `@ruimte/ui/PanelEmpty`: `PanelEmpty` | `@basmilius/desktop-ui`: `PanelEmpty` |
+| `@ruimte/ui/Pill`: `Pill` | `@basmilius/desktop-ui`: `Pill` |
+| `@ruimte/ui/PromptDialog`: `PromptDialog` | `@basmilius/desktop-ui`: `PromptDialog` (prop change below) |
+| `@ruimte/ui/Select`: `Select`, `SelectItem`, `SelectGroup` | `@basmilius/desktop-ui`: same names |
+| `@ruimte/ui/Separator`: `Separator` | `@basmilius/desktop-ui`: `Separator` |
+| `@ruimte/ui/ShortcutHints`: `ShortcutHints` | `@basmilius/desktop-ui`: `ShortcutHints` |
+| `@ruimte/ui/TextMenu`: `TextMenu` | `@basmilius/desktop-ui`: `TextMenu` |
+| `@ruimte/ui/Tile`: `Tile` | `@basmilius/desktop-ui`: `Tile` |
+| `@ruimte/ui/Toasts`: `Toasts`, `ToastsProps` | `@basmilius/desktop-ui`: same names |
+| `@ruimte/ui/Tooltip`: `Tooltip`, `TooltipProvider` | `@basmilius/desktop-ui`: same names (`TooltipProvider` is inside `UIProvider`) |
+| `@ruimte/ui/Wipe`: `Wipe` | `@basmilius/desktop-ui`: `Wipe` (prop change below) |
 | `@ruimte/ui/classes`: every constant | a component, see [section 4](#4-class-strings) |
-| `@ruimte/ui/clipboard`: `copyText`, `readClipboardText` | `@basmilius/react-ui`: same names |
-| `@ruimte/ui/controls`: `Toggle` | `@basmilius/react-ui`: `Switch` (prop change below) |
-| `@ruimte/ui/controls`: `Segmented`, `Stepper`, `Skeleton` | `@basmilius/react-ui`: same names (prop changes below) |
+| `@ruimte/ui/clipboard`: `copyText`, `readClipboardText` | `@basmilius/desktop-ui`: same names |
+| `@ruimte/ui/controls`: `Toggle` | `@basmilius/desktop-ui`: `Switch` (prop change below) |
+| `@ruimte/ui/controls`: `Segmented`, `Stepper`, `Skeleton` | `@basmilius/desktop-ui`: same names (prop changes below) |
 | `@ruimte/ui/dialog-layer`: `useDialogLayer` | gone: `Dialog.Popup` stacks by itself |
-| `@ruimte/ui/error-boundary`: `ResetKeys` | `@basmilius/react-ui`: `type ResetKeys` |
+| `@ruimte/ui/error-boundary`: `ResetKeys` | `@basmilius/desktop-ui`: `type ResetKeys` |
 | `@ruimte/ui/error-boundary`: `shouldReset`, `errorMessageOf`, `errorReport` | internal |
-| `@ruimte/ui/error-message`: `messageOf` | `@basmilius/react-ui`: `messageOf` |
-| `@ruimte/ui/file-icon`: `FILE_TREE_ICONS` | `@basmilius/react-ui`: `FILE_TREE_ICONS` |
+| `@ruimte/ui/error-message`: `messageOf` | `@basmilius/desktop-ui`: `messageOf` |
+| `@ruimte/ui/file-icon`: `FILE_TREE_ICONS` | `@basmilius/desktop-ui`: `FILE_TREE_ICONS` |
 | `@ruimte/ui/file-icon`: `fileIconFor`, `mountFileIconSprite`, `FileIcon`, `FileIconHue` | internal; draw `<FileIcon path>` |
-| `@ruimte/ui/floating`: `isInFloatingLayer`, `cameThroughPortal` | `@basmilius/react-ui`: same names |
-| `@ruimte/ui/format/datetime`: every name | `@basmilius/react-ui/format`: same names |
-| `@ruimte/ui/format/duration`: every name | `@basmilius/react-ui/format`: same names |
-| `@ruimte/ui/format/number`: every name | `@basmilius/react-ui/format`: same names |
-| `@ruimte/ui/format/regions`: every name | `@basmilius/react-ui/format`: same names |
-| `@ruimte/ui/format/time-zone`: `localTimeZone` | `@basmilius/react-ui/format`: `localTimeZone` |
-| `@ruimte/ui/format/locale`: `setFormatSource`, `useFormatLocale`, `formatLocale`, `labelCollator`, `systemLocale`, `FALLBACK_LOCALE`, `FormatSource` | `@basmilius/react-ui/format`: same names |
+| `@ruimte/ui/floating`: `isInFloatingLayer`, `cameThroughPortal` | `@basmilius/desktop-ui`: same names |
+| `@ruimte/ui/format/datetime`: every name | `@basmilius/desktop-ui/format`: same names |
+| `@ruimte/ui/format/duration`: every name | `@basmilius/desktop-ui/format`: same names |
+| `@ruimte/ui/format/number`: every name | `@basmilius/desktop-ui/format`: same names |
+| `@ruimte/ui/format/regions`: every name | `@basmilius/desktop-ui/format`: same names |
+| `@ruimte/ui/format/time-zone`: `localTimeZone` | `@basmilius/desktop-ui/format`: `localTimeZone` |
+| `@ruimte/ui/format/locale`: `setFormatSource`, `useFormatLocale`, `formatLocale`, `labelCollator`, `systemLocale`, `FALLBACK_LOCALE`, `FormatSource` | `@basmilius/desktop-ui/format`: same names |
 | `@ruimte/ui/format/locale`: `wordLocale`, `numberFormatter`, `dateFormatter`, `wordFormatter`, `relativeFormatter` | internal; use a `format*` function or `formatDateTime(at, options)` |
-| `@ruimte/ui/format/fake-source`: `fakeFormatSource`, `FakeFormatSource` | `@basmilius/react-ui/testing`: same names |
-| `@ruimte/ui/locales`: `UI_NAMESPACE` | `@basmilius/react-ui`: `UI_NAMESPACE` |
-| `@ruimte/ui/locales`: `UI_LOCALES` | `@basmilius/react-ui`: `UI_RESOURCES` (words, not loaders) or `addUiResources(i18n)` |
+| `@ruimte/ui/format/fake-source`: `fakeFormatSource`, `FakeFormatSource` | `@basmilius/desktop-ui/testing`: same names |
+| `@ruimte/ui/locales`: `UI_NAMESPACE` | `@basmilius/desktop-ui`: `UI_NAMESPACE` |
+| `@ruimte/ui/locales`: `UI_LOCALES` | `@basmilius/desktop-ui`: `UI_RESOURCES` (words, not loaders) or `addUiResources(i18n)` |
 | `@ruimte/ui/locales/en.json`, `@ruimte/ui/locales/nl.json` | `UI_RESOURCES.en`, `UI_RESOURCES.nl` |
-| `@ruimte/ui/modality`: `startInputModality` | `@basmilius/react-ui`: `startInputModality` (inside `UIProvider`) |
-| `@ruimte/ui/platform`: `isApplePlatform` | `@basmilius/react-ui`: `isApplePlatform` |
+| `@ruimte/ui/modality`: `startInputModality` | `@basmilius/desktop-ui`: `startInputModality` (inside `UIProvider`) |
+| `@ruimte/ui/platform`: `isApplePlatform` | `@basmilius/desktop-ui`: `isApplePlatform` |
 | `@ruimte/ui/platform`: `applePlatformFrom` | internal |
-| `@ruimte/ui/selection`: `selectionWithin`, `selectAllWithin` | `@basmilius/react-ui`: same names |
-| `@ruimte/ui/settings/ConfirmDialog`: `ConfirmDialog` | `@basmilius/react-ui/settings`: `ConfirmDialog` |
-| `@ruimte/ui/settings/DetailHeader`: `DetailHeader` | `@basmilius/react-ui/settings`: `DetailHeader` |
+| `@ruimte/ui/selection`: `selectionWithin`, `selectAllWithin` | `@basmilius/desktop-ui`: same names |
+| `@ruimte/ui/settings/ConfirmDialog`: `ConfirmDialog` | `@basmilius/desktop-ui/settings`: `ConfirmDialog` |
+| `@ruimte/ui/settings/DetailHeader`: `DetailHeader` | `@basmilius/desktop-ui/settings`: `DetailHeader` |
 | `@ruimte/ui/settings/DetailHeader`: `REMOVE_BUTTON` | `<Button variant="danger-outline">` |
-| `@ruimte/ui/settings/MasterDetail`: `MasterDetail`, `MasterItem` | `@basmilius/react-ui/settings`: same names |
-| `@ruimte/ui/settings/SettingsDialog`: `SettingsDialog`, `SettingsSectionEntry`, `SettingsGroupEntry`, `SettingsSearch`, `SettingsSearchResult` | `@basmilius/react-ui/settings`: same names |
-| `@ruimte/ui/settings/SettingsRow`: `SettingsRow`, `TopIcon` | `@basmilius/react-ui/settings`: same names |
-| `@ruimte/ui/settings/SettingsSection`: `SettingsSection`, `SettingsSectionProps` | `@basmilius/react-ui/settings`: same names |
-| `@ruimte/ui/settings/target`: `useSettingsTarget` | `@basmilius/react-ui/settings`: `useSettingsTarget` |
+| `@ruimte/ui/settings/MasterDetail`: `MasterDetail`, `MasterItem` | `@basmilius/desktop-ui/settings`: same names |
+| `@ruimte/ui/settings/SettingsDialog`: `SettingsDialog`, `SettingsSectionEntry`, `SettingsGroupEntry`, `SettingsSearch`, `SettingsSearchResult` | `@basmilius/desktop-ui/settings`: same names |
+| `@ruimte/ui/settings/SettingsRow`: `SettingsRow`, `TopIcon` | `@basmilius/desktop-ui/settings`: same names |
+| `@ruimte/ui/settings/SettingsSection`: `SettingsSection`, `SettingsSectionProps` | `@basmilius/desktop-ui/settings`: same names |
+| `@ruimte/ui/settings/target`: `useSettingsTarget` | `@basmilius/desktop-ui/settings`: `useSettingsTarget` |
 | `@ruimte/ui/settings/target`: `SettingsTargetContext` | internal |
-| `@ruimte/ui/shortcut`: every name | `@basmilius/react-ui`: same names |
+| `@ruimte/ui/shortcut`: every name | `@basmilius/desktop-ui`: same names |
 | `@ruimte/ui/shortcut-hints`: every name | internal; mount `<ShortcutHints />` |
-| `@ruimte/ui/toast-store`: every name | `@basmilius/react-ui`: same names |
-| `@ruimte/ui/useAsyncAction`: `useAsyncAction` | `@basmilius/react-ui`: `useAsyncAction` |
-| `@ruimte/ui/useColumnResize`: `useColumnResize`, `clampColumnSize`, `ColumnEdge` | `@basmilius/react-ui`: same names |
-| `@ruimte/ui/useContentSize`: `useContentSize`, `ContentSize` | `@basmilius/react-ui`: same names |
-| `@ruimte/ui/useMeasuredWidth`: `useMeasuredWidth` | `@basmilius/react-ui`: `useMeasuredWidth` |
-| `@ruimte/ui/useNow`: `useNow`, `useTickingText` | `@basmilius/react-ui`: same names |
+| `@ruimte/ui/toast-store`: every name | `@basmilius/desktop-ui`: same names |
+| `@ruimte/ui/useAsyncAction`: `useAsyncAction` | `@basmilius/desktop-ui`: `useAsyncAction` |
+| `@ruimte/ui/useColumnResize`: `useColumnResize`, `clampColumnSize`, `ColumnEdge` | `@basmilius/desktop-ui`: same names |
+| `@ruimte/ui/useContentSize`: `useContentSize`, `ContentSize` | `@basmilius/desktop-ui`: same names |
+| `@ruimte/ui/useMeasuredWidth`: `useMeasuredWidth` | `@basmilius/desktop-ui`: `useMeasuredWidth` |
+| `@ruimte/ui/useNow`: `useNow`, `useTickingText` | `@basmilius/desktop-ui`: same names |
 | `@ruimte/ui/wipe`: `WIPE_KEY_STEP`, `clampSplit`, `splitAt`, `splitForKey` | internal |
-| `@base-ui-components/react/menu`: `Menu` | `@basmilius/react-ui`: `Menu` |
-| `@base-ui-components/react/context-menu`: `ContextMenu` | `@basmilius/react-ui`: `ContextMenu` |
-| `@base-ui-components/react/dialog`: `Dialog` | `@basmilius/react-ui`: `Dialog` |
-| `@base-ui-components/react/popover`: `Popover` | `@basmilius/react-ui`: `Popover` |
-| `@base-ui-components/react/preview-card`: `PreviewCard` | `@basmilius/react-ui`: `PreviewCard` |
+| `@base-ui-components/react/menu`: `Menu` | `@basmilius/desktop-ui`: `Menu` |
+| `@base-ui-components/react/context-menu`: `ContextMenu` | `@basmilius/desktop-ui`: `ContextMenu` |
+| `@base-ui-components/react/dialog`: `Dialog` | `@basmilius/desktop-ui`: `Dialog` |
+| `@base-ui-components/react/popover`: `Popover` | `@basmilius/desktop-ui`: `Popover` |
+| `@base-ui-components/react/preview-card`: `PreviewCard` | `@basmilius/desktop-ui`: `PreviewCard` |
 
 `Tabs`, `Radio`, `Switch` and the other Base UI parts an app uses directly stay imports from `@base-ui-components/react`.
 
 `isInFloatingLayer` no longer matches `.popup-layer`, a class nothing drew any more; it matches the library's portals, tooltips and dialogs.
 
-## 3. Renamed props
+### 3. Renamed props
 
 | Component | Old | New |
 | --- | --- | --- |
@@ -161,13 +171,13 @@ Every old subpath import becomes a named import from one of four entry points. A
 
 `Button` gained `variant="danger-outline"` and takes a `ref`. `Separator` gained `className`.
 
-## 4. Class strings
+### 4. Class strings
 
 `@ruimte/ui/classes` is gone. Every constant is a component or a prop now; none is exported as a string. The component carries the classes, so a call site keeps only its own extra classes. A caller's utility never has to fight the component's: where a component sets a size or a color, that is a prop.
 
 Parts that are one element take Base UI's `render` prop, which swaps the element and merges the props and classes of both. That is how a class string on an arbitrary element becomes a component.
 
-### `MENU_SEPARATOR` → `Menu.Separator`
+#### `MENU_SEPARATOR` → `Menu.Separator`
 
 ```diff
 - <Menu.Separator className={MENU_SEPARATOR} />
@@ -178,7 +188,7 @@ Parts that are one element take Base UI's `render` prop, which swaps the element
 + <Menu.Separator />
 ```
 
-### `BTN_GROUP` → `ButtonGroup`
+#### `BTN_GROUP` → `ButtonGroup`
 
 ```diff
 - <div className={BTN_GROUP}>…</div>
@@ -189,7 +199,7 @@ Parts that are one element take Base UI's `render` prop, which swaps the element
 + <ButtonGroup render={<span />}>…</ButtonGroup>
 ```
 
-### `SECTION_LABEL` → `SectionLabel`
+#### `SECTION_LABEL` → `SectionLabel`
 
 ```diff
 - <span className={SECTION_LABEL}>Recent</span>
@@ -204,7 +214,7 @@ Parts that are one element take Base UI's `render` prop, which swaps the element
 
 A label with a field under it becomes `Field` (below). A label and a hint around a control a `<label>` cannot point at (a `Segmented`, a `Select`, `ChoiceCards`, a read-only path with a button) become `<Field group label=… hint=…>`, which keeps the spacing of a field and names a `role="group"` instead.
 
-### `MENU_LABEL` → `Menu.Label` or `Menu.GroupLabel`
+#### `MENU_LABEL` → `Menu.Label` or `Menu.GroupLabel`
 
 ```diff
 - <div className={MENU_LABEL}>Stroke</div>
@@ -213,14 +223,14 @@ A label with a field under it becomes `Field` (below). A label and a hint around
 + <Menu.GroupLabel className="flex items-center gap-1.5">…</Menu.GroupLabel>
 ```
 
-### `MENU_HINT` → `Menu.Hint`
+#### `MENU_HINT` → `Menu.Hint`
 
 ```diff
 - <span className={MENU_HINT}>{formatClock(until)}</span>
 + <Menu.Hint>{formatClock(until)}</Menu.Hint>
 ```
 
-### `SMALL_DIALOG`, `DIALOG_DESCRIPTION`, `DIALOG_FOOTER` → `Dialog` parts
+#### `SMALL_DIALOG`, `DIALOG_DESCRIPTION`, `DIALOG_FOOTER` → `Dialog` parts
 
 ```diff
 - <Dialog.Root open={open} onOpenChange={setOpen}>
@@ -250,7 +260,7 @@ A label with a field under it becomes `Field` (below). A label and a hint around
 - A `<p className={DIALOG_DESCRIPTION}>` that is not the dialog's description becomes `Dialog.Text` (same sizes).
 - `Dialog.Footer` is `DIALOG_FOOTER`, `mt-4` included.
 
-### `FIELD_HINT`, `FORM_ERROR`, `MULTILINE_FIELD` and `.field` → `Field`, `FieldHint`, `FormError`, `Input`, `TextArea`
+#### `FIELD_HINT`, `FORM_ERROR`, `MULTILINE_FIELD` and `.field` → `Field`, `FieldHint`, `FormError`, `Input`, `TextArea`
 
 ```diff
 - <label className="flex flex-col gap-1.5">
@@ -281,7 +291,7 @@ A label with a field under it becomes `Field` (below). A label and a hint around
 
 `FormError` carries `role="alert"`. Inside a `Field`, an `Input` or `TextArea` gets the label's `id`, is described by the hint and the error, and is marked invalid while there is an error. The `.field` rule stays in the theme for an element that only looks like a field (a read-only path in a box).
 
-### `FLOAT` → `Surface`
+#### `FLOAT` → `Surface`
 
 ```diff
 - <div className={`${FLOAT} flex items-center gap-3 rounded-lg px-3 py-2`}>…</div>
@@ -292,7 +302,7 @@ A label with a field under it becomes `Field` (below). A label and a hint around
 + <Surface render={<Popover.Trigger />} className="…">…</Surface>
 ```
 
-### `PANEL_HEADER` → `PanelHeader`
+#### `PANEL_HEADER` → `PanelHeader`
 
 ```diff
 - <header className={clsx(PANEL_HEADER, 'app-drag')}>
@@ -308,7 +318,7 @@ A label with a field under it becomes `Field` (below). A label and a hint around
 
 A header that places the name itself (a slot before it, a title with classes of its own) leaves `title` out and draws its own `SectionLabel`.
 
-### `FLAT_ROW`, `INSET_ROW` → `ListRow`
+#### `FLAT_ROW`, `INSET_ROW` → `ListRow`
 
 ```diff
 - <div className={`${FLAT_ROW} gap-1.5 pr-3 pl-1 hover:bg-surface-hover`}>…</div>
@@ -317,7 +327,7 @@ A header that places the name itself (a slot before it, a title with classes of 
 + <ListRow variant="inset" render={<button type="button" onClick={open} />} className="w-full gap-2 text-left">…</ListRow>
 ```
 
-### `TOOLTIP_KBD` → `Kbd variant="inline"`
+#### `TOOLTIP_KBD` → `Kbd variant="inline"`
 
 ```diff
 - <kbd className={TOOLTIP_KBD}>↑</kbd>
@@ -326,7 +336,7 @@ A header that places the name itself (a slot before it, a title with classes of 
 + <Kbd shortcut={APP_SHORTCUTS.palette} variant="inline" />
 ```
 
-### `ACCENT_SWATCH`, `ACCENT_SWATCH_PICKED` → `ColorSwatch`
+#### `ACCENT_SWATCH`, `ACCENT_SWATCH_PICKED` → `ColorSwatch`
 
 ```diff
 - <ContextMenu.Item aria-label={name} className={clsx(ACCENT_SWATCH, picked && ACCENT_SWATCH_PICKED)} style={{ background: color }} onClick={pick}>
@@ -341,7 +351,7 @@ A header that places the name itself (a slot before it, a title with classes of 
 
 A swatch without a `color` is the outlined circle; it draws the tick while picked and whatever children it is handed instead. `unstyled` keeps the row's padding and highlight off the swatch, so a `className="p-0"` that did that goes.
 
-### `REMOVE_BUTTON` → `Button variant="danger-outline"`
+#### `REMOVE_BUTTON` → `Button variant="danger-outline"`
 
 ```diff
 - <button type="button" className={REMOVE_BUTTON} onClick={forget}>Forget</button>
@@ -350,7 +360,7 @@ A swatch without a `color` is the outlined circle; it draws the tick while picke
 
 A disabled one now dims to 50% like every other button, where it was 40%.
 
-## 5. `.icon-btn` → `IconButton`
+### 5. `.icon-btn` → `IconButton`
 
 ```diff
 - <Tooltip label="Close" kbd={SHORTCUTS.close} name>
@@ -385,9 +395,9 @@ A disabled one now dims to 50% like every other button, where it was 40%.
 
 A `Tooltip` around a `Menu.Trigger` with the icon button inside becomes one `IconButton` with `render={<Menu.Trigger />}`: the tooltip and the trigger merge onto the same button, as before. The `.icon-btn` rules stay in the theme and `IconButton` is built on them.
 
-## 6. Base UI patterns
+### 6. Base UI patterns
 
-### Menus
+#### Menus
 
 ```diff
 - <Menu.Root>
@@ -444,7 +454,7 @@ The rules, one by one:
 6. `Menu.SubmenuTrigger` draws the trailing chevron; delete an `<Icon icon={ChevronRight} … className="ml-auto text-text-faint" />` in it. A submenu trigger that had no chevron gets `chevron={false}`.
 7. `Menu.Group`, `Menu.RadioGroup`, `Menu.Trigger` are Base UI's own.
 
-### Context menus
+#### Context menus
 
 The same rules. `ContextMenu.Root` and `ContextMenu.Trigger` are the context menu's; every other part (`ContextMenu.Popup`, `ContextMenu.Item`, `ContextMenu.Separator`, `ContextMenu.SubmenuRoot`, …) is the menu's own under a second name, so rows can be shared between a menu and a context menu.
 
@@ -457,7 +467,7 @@ The same rules. `ContextMenu.Root` and `ContextMenu.Trigger` are the context men
 + <ContextMenu.Popup>…</ContextMenu.Popup>
 ```
 
-### Dialogs
+#### Dialogs
 
 1. `Dialog.Portal > Dialog.Backdrop + Dialog.Popup` becomes one `Dialog.Popup`. Popup props (`initialFocus`, `finalFocus`, handlers) stay on it; `keepMounted` of the portal moves onto it.
 2. `className="dialog-popup …"` drops `dialog-popup`; `className={SMALL_DIALOG}` becomes `size="sm"`.
@@ -465,7 +475,7 @@ The same rules. `ContextMenu.Root` and `ContextMenu.Trigger` are the context men
 4. A backdrop with a class of its own (`dialog-backdrop lightbox-backdrop`) becomes `backdropClassName="lightbox-backdrop"`. A dialog without a backdrop gets `backdrop={false}`.
 5. `Dialog.Root` keeps every prop. `Dialog.Title` and `Dialog.Description` change as in section 4, under the `Dialog` parts.
 
-### Popovers and preview cards
+#### Popovers and preview cards
 
 ```diff
 - <Popover.Portal>
@@ -480,7 +490,7 @@ The same rules. `ContextMenu.Root` and `ContextMenu.Trigger` are the context men
 - `menu-popup` is `variant="menu"` (the default), `picker-popup` is `variant="picker"`, and a popup that draws its own surface (`rounded-xl border bg-surface shadow-float`) is `variant="plain"` with its classes.
 - `PreviewCard.Portal > Positioner > Popup` becomes `PreviewCard.Popup` the same way.
 
-## 7. Pieces that moved into the library
+### 7. Pieces that moved into the library
 
 | Was in the app | Now | Changes |
 | --- | --- | --- |
@@ -494,7 +504,7 @@ The same rules. `ContextMenu.Root` and `ContextMenu.Trigger` are the context men
 
 Left in the app, because they read its own state: `shell/Panel.tsx` (the panel registry and its store; its header becomes `PanelHeader`), `shell/useInstantWidth.ts` (becomes the `instant` prop), `shell/Snooze.tsx` (the snooze store; its menus use `Menu.Popup` and `Menu.Hint`), `CommandPalette` and `SplitGrid`.
 
-## What does not switch mechanically
+### What does not switch mechanically
 
 - Class strings composed into the app's own constants (`const ROW = \`${INSET_ROW} w-full gap-2\``, `const CHIP = \`${FLOAT} …\``, `const LOG_ROW = \`${FLAT_ROW} …\``) become a component at every place the constant is used, usually with `render`, since the element differs per use.
 - `.icon-btn` buttons whose tooltip text differs from their accessible name, that have no tooltip, or whose icon is computed (`size={compact ? 12 : 14}`) need a look for `tooltip`, `tooltip={false}` and `size`.

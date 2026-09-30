@@ -3,7 +3,7 @@
 A button that is an icon and no word. It is a square, and the one place the icon inside it gets its size. Its `label` is the accessible name and the tooltip at once, so the two never drift apart.
 
 ```tsx
-import { IconButton } from '@basmilius/react-ui';
+import { IconButton } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="actions/icon-button" />

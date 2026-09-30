@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, CloseButton, Dialog, PanelHeader, shortcut } from '@basmilius/react-ui';
+import { Button, CloseButton, Dialog, PanelHeader, shortcut } from '@basmilius/desktop-ui';
 
 const CLOSE = shortcut('Escape');
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ColorSwatch, Tooltip } from '@basmilius/react-ui';
+import { ColorSwatch, Tooltip } from '@basmilius/desktop-ui';
 
 const COLORS = [
     { name: 'Blue', color: '#2563eb' },

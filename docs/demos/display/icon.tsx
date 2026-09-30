@@ -1,5 +1,5 @@
 import { Folder } from 'lucide-react';
-import { Icon } from '@basmilius/react-ui';
+import { Icon } from '@basmilius/desktop-ui';
 
 export default function IconDemo() {
     return (

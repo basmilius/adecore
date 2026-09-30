@@ -1,5 +1,5 @@
 import { Filter, RefreshCw } from 'lucide-react';
-import { ButtonGroup, CloseButton, IconButton, PanelHeader, Separator } from '@basmilius/react-ui';
+import { ButtonGroup, CloseButton, IconButton, PanelHeader, Separator } from '@basmilius/desktop-ui';
 
 export default function PanelHeaderDemo() {
     return (

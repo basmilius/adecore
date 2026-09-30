@@ -3,7 +3,7 @@
 What a list, a canvas or a thread shows before it holds anything: one icon, one sentence, and at most one button.
 
 ```tsx
-import { EmptyState } from '@basmilius/react-ui';
+import { EmptyState } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="display/empty-state" />

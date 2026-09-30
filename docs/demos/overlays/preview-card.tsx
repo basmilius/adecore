@@ -1,11 +1,11 @@
-import { PreviewCard } from '@basmilius/react-ui';
+import { PreviewCard } from '@basmilius/desktop-ui';
 
 export default function PreviewCardDemo() {
     return (
         <p className="max-w-md text-sm text-text-muted">
             The fix landed in{' '}
             <PreviewCard.Root>
-                <PreviewCard.Trigger href="https://github.com/basmilius/react-ui" className="font-medium text-accent underline">
+                <PreviewCard.Trigger href="https://github.com/basmilius/desktop" className="font-medium text-accent underline">
                     #128
                 </PreviewCard.Trigger>
                 <PreviewCard.Popup className="w-72 p-3">

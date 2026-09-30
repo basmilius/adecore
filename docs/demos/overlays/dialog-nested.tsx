@@ -1,4 +1,4 @@
-import { Button, Dialog } from '@basmilius/react-ui';
+import { Button, Dialog } from '@basmilius/desktop-ui';
 
 export default function DialogNested() {
     return (

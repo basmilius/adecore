@@ -2,7 +2,7 @@
 layout: home
 
 hero:
-    name: React UI
+    name: Desktop UI
     text: Components for desktop-grade React apps
     tagline: Menus, dialogs, tooltips, fields, toasts, a settings dialog, keyboard shortcuts and formatters, drawn from one theme. Built on React 19, Base UI, Lucide and Tailwind 4.
     actions:
@@ -14,7 +14,7 @@ hero:
             link: /actions/button
         -   theme: alt
             text: GitHub
-            link: https://github.com/basmilius/react-ui
+            link: https://github.com/basmilius/desktop
 
 features:
     -   title: Base UI underneath

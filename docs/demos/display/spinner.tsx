@@ -1,4 +1,4 @@
-import { Spinner, Tooltip } from '@basmilius/react-ui';
+import { Spinner, Tooltip } from '@basmilius/desktop-ui';
 
 export default function SpinnerDemo() {
     return (

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { PanelRight } from 'lucide-react';
-import { CloseButton, IconButton, PanelHeader, SlidingColumn } from '@basmilius/react-ui';
+import { CloseButton, IconButton, PanelHeader, SlidingColumn } from '@basmilius/desktop-ui';
 
 const BOUNDS = { min: 200, max: () => 360 };
 

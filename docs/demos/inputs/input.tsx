@@ -1,4 +1,4 @@
-import { Field, Input, TextArea } from '@basmilius/react-ui';
+import { Field, Input, TextArea } from '@basmilius/desktop-ui';
 
 export default function InputDemo() {
     return (

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Kbd, formatShortcut, isApplePlatform, matchesShortcut, shortcut, shortcutParts } from '@basmilius/react-ui';
+import { Kbd, formatShortcut, isApplePlatform, matchesShortcut, shortcut, shortcutParts } from '@basmilius/desktop-ui';
 
 const SAVE = shortcut('Mod+S');
 

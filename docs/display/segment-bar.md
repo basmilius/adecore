@@ -3,7 +3,7 @@
 A whole split into parts, each as wide as it lasts, so a person compares them at a glance: the sections of a song, the steps of a job, what fills a budget.
 
 ```tsx
-import { SegmentBar } from '@basmilius/react-ui';
+import { SegmentBar } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="display/segment-bar" />

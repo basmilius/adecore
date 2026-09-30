@@ -12,7 +12,7 @@ import { Glob, plugin } from 'bun';
  */
 const SHARED = ['react', 'react-dom', 'i18next', 'react-i18next', '@base-ui-components/react'];
 
-const NAME = '@basmilius/react-ui';
+const NAME = '@basmilius/desktop-ui';
 
 /* The package root, from `src/testing` or `dist/testing` alike. */
 const library = realpathSync(join(import.meta.dir, '..', '..'));
@@ -82,7 +82,7 @@ const standIn = (path: string): string => {
 
 if (copies.length > 0) {
     plugin({
-        name: 'react-ui-dedupe',
+        name: 'desktop-ui-dedupe',
         setup(build) {
             build.onLoad({ filter: new RegExp(`^(${copies.map((copy) => escape(copy.theirs)).join('|')})`) }, (args) => {
                 const copy = copies.find((candidate) => args.path.startsWith(candidate.theirs))!;

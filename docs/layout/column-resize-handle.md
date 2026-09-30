@@ -3,7 +3,7 @@
 An invisible strip over the free edge of a column or a row, which starts a drag from [`useColumnResize`](/hooks/use-column-resize). The column needs `position: relative` and draws its own border.
 
 ```tsx
-import { ColumnResizeHandle, useColumnResize } from '@basmilius/react-ui';
+import { ColumnResizeHandle, useColumnResize } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="layout/column-resize-handle" fill />

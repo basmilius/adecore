@@ -3,7 +3,7 @@
 The parts a settings pane is built from. A `SettingsSection` is a titled card of rows, and a `SettingsRow` is one setting: what it is on the left, the control on the right.
 
 ```tsx
-import { SettingsRow, SettingsSection, TopIcon } from '@basmilius/react-ui/settings';
+import { SettingsRow, SettingsSection, TopIcon } from '@basmilius/desktop-ui/settings';
 ```
 
 <Demo src="settings/settings-section" />

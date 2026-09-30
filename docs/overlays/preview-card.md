@@ -3,7 +3,7 @@
 A card that opens while the pointer rests on its trigger, usually a link, drawn like a [popover](/overlays/popover). It previews what the link leads to without leaving the page.
 
 ```tsx
-import { PreviewCard } from '@basmilius/react-ui';
+import { PreviewCard } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="overlays/preview-card" />

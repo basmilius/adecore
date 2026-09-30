@@ -3,7 +3,7 @@
 The small rounded label in a header, a sidebar row or a settings line: a count, a branch, a status. With an `onClick` it is a button, and with `pressed` a toggle.
 
 ```tsx
-import { Pill } from '@basmilius/react-ui';
+import { Pill } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="actions/pill" />

@@ -1,4 +1,4 @@
-import { FileIcon } from '@basmilius/react-ui';
+import { FileIcon } from '@basmilius/desktop-ui';
 
 const FILES = ['src/index.ts', 'App.vue', 'package.json', 'README.md', 'styles.css', 'Dockerfile', 'main.go', 'logo.svg', '.gitignore', 'notes.txt'];
 

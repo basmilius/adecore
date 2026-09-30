@@ -3,7 +3,7 @@
 The size of an element's content box, in whole pixels, kept current with a `ResizeObserver`. `useMeasuredWidth` is the same for the width alone.
 
 ```tsx
-import { useContentSize, useMeasuredWidth } from '@basmilius/react-ui';
+import { useContentSize, useMeasuredWidth } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="hooks/use-content-size" />

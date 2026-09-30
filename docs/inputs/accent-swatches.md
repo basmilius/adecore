@@ -3,7 +3,7 @@
 An accent picker, a few colors at a time. A full palette is more than a settings row can carry, so a handful stand in the open and a menu behind them holds every color, the featured ones included.
 
 ```tsx
-import { AccentSwatches } from '@basmilius/react-ui';
+import { AccentSwatches } from '@basmilius/desktop-ui';
 ```
 
 <Demo src="inputs/accent-swatches" />

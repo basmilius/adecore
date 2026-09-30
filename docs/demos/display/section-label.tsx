@@ -1,4 +1,4 @@
-import { ListRow, SectionLabel } from '@basmilius/react-ui';
+import { ListRow, SectionLabel } from '@basmilius/desktop-ui';
 
 export default function SectionLabelDemo() {
     return (

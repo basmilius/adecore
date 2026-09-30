@@ -3,7 +3,7 @@
 A stack of toasts in the bottom right corner, over everything: what an action is doing while it runs, how it went when it is over, and a deletion that can still be taken back. The toasts live in a store you create once and call from anywhere.
 
 ```tsx
-import { Toasts, createToastStore } from '@basmilius/react-ui';
+import { Toasts, createToastStore } from '@basmilius/desktop-ui';
 
 export const toasts = createToastStore();
 
