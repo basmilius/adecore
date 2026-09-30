@@ -38,6 +38,7 @@ const desktopUi: DefaultTheme.SidebarItem[] = [
     ]),
     group('Overlays', [
         ['Menu', '/desktop-ui/overlays/menu'],
+        ['ProjectSwitcher', '/desktop-ui/overlays/project-switcher'],
         ['ContextMenu', '/desktop-ui/overlays/context-menu'],
         ['Dialog', '/desktop-ui/overlays/dialog'],
         ['PromptDialog', '/desktop-ui/overlays/prompt-dialog'],

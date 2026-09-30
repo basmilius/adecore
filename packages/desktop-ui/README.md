@@ -104,6 +104,7 @@ Compound components follow Base UI's namespaces and props (`open` and `onOpenCha
 ```
 
 - `Menu`, `ContextMenu`, `Dialog`, `Popover` and `PreviewCard`. A popup part brings its portal, its positioner and its layer. A dialog that opens while another is up stacks over it by itself.
+- `ProjectSwitcher` draws the current project, open and recent projects, and optional per-project actions. The app supplies `ProjectSwitcherItem` rows and handles selection through `ProjectSwitcherProps`.
 - `Button`, `IconButton`, `ButtonGroup`, `CloseButton`, `Pill`, `Tile`, `ColorSwatch`, `AccentSwatches`.
 - `Field`, `FieldHint`, `FormError`, `Input`, `TextArea`, `Select`, `Switch`, `Segmented`, `Stepper`, `ChoiceCards`, `IconPicker`.
 - `Tooltip`, `DisabledReason`, `Kbd`, `Keys`, `KeyCap`, `ShortcutHints`.

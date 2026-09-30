@@ -50,5 +50,10 @@
   },
   "waveform": {
     "position": "{{time}} van {{duration}}"
+  },
+  "projectSwitcher": {
+    "label": "Projecten",
+    "recent": "Recente projecten",
+    "actionsFor": "Acties voor {{name}}"
   }
 }

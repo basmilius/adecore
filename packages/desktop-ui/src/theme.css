@@ -368,6 +368,37 @@
     .cursor-row[data-active='true'] { background: var(--surface-active); color: var(--text); }
     :root[data-modality='pointer'] .cursor-row[data-active='true'] { background: var(--surface-hover); }
     .menu-item[data-popup-open] { background: var(--surface-active); }
+    .project-switcher-trigger {
+        display: flex;
+        height: 32px;
+        min-width: 0;
+        align-items: center;
+        gap: 8px;
+        border-radius: 6px;
+        padding: 0 8px;
+        text-align: left;
+    }
+    .project-switcher-trigger:hover { background: var(--surface-hover); }
+    .project-switcher-trigger[data-popup-open] { background: var(--surface-active); }
+    .project-switcher-trigger:disabled { opacity: .5; pointer-events: none; }
+    .project-switcher-row { gap: 1px; }
+    .project-switcher-row > .menu-item:first-child { border-radius: 6px 0 0 6px; }
+    .project-switcher-actions {
+        width: calc(var(--text-sm--line-height) + 12px);
+        padding: 0;
+        border-radius: 0 6px 6px 0;
+        justify-content: center;
+        gap: 0;
+    }
+    :root[data-modality='pointer'] .project-switcher-row:hover > .menu-item {
+        background: color-mix(in srgb, var(--surface-hover) 55%, transparent);
+    }
+    :root[data-modality='pointer'] .project-switcher-row > .menu-item[data-highlighted] {
+        background: var(--surface-hover);
+    }
+    .project-switcher-row:has(.project-switcher-actions[data-popup-open]) > .menu-item {
+        background: var(--surface-hover);
+    }
     /* A shortcut in a row: pushed to the right, in the interface font, wherever a row carries one. */
     .menu-item kbd { margin-left: auto; font-family: var(--font-sans); font-size: var(--text-xs); color: var(--text-faint); }
     /* A menu with a search field on top: the field sits flush against the edge, so the padding is the list's. */

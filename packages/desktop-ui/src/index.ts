@@ -39,6 +39,7 @@ export { PanelEmpty, type PanelEmptyProps } from './PanelEmpty.tsx';
 export { PanelHeader, type PanelHeaderProps } from './PanelHeader.tsx';
 export { Pill, type PillProps } from './Pill.tsx';
 export { PromptDialog, type PromptDialogProps } from './PromptDialog.tsx';
+export { ProjectSwitcher, type ProjectSwitcherItem, type ProjectSwitcherProps } from './ProjectSwitcher.tsx';
 export { SectionLabel, type SectionLabelProps } from './SectionLabel.tsx';
 export { SegmentBar, type SegmentBarPart, type SegmentBarProps } from './SegmentBar.tsx';
 export { Segmented, type SegmentedOption, type SegmentedProps } from './Segmented.tsx';
