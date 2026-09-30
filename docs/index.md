@@ -22,4 +22,8 @@ features:
         details: Menus, dialogs, tooltips, fields, toasts, a settings dialog, keyboard shortcuts and formatters, drawn from one theme on Base UI.
         link: /desktop-ui/
         linkText: View package
+    -   title: Desktop Shell
+        details: The main process of an Electron app whose page draws its own interface. The menu the page builds, an updater it watches and the guards around its bridge.
+        link: /desktop-shell/
+        linkText: View package
 ---

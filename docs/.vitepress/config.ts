@@ -22,7 +22,8 @@ const isolateDemos = postcssIsolateStyles({ includeFiles: [/vp-doc\.css/] });
 export default defineConfig({
     title: 'Desktop',
     titleTemplate: ':title | Desktop',
-    description: 'Packages for desktop apps on Electron, React 19 and Tailwind 4: components, a theme, formatters and a settings dialog.',
+    description:
+        'Packages for desktop apps on Electron, React 19 and Tailwind 4: components and a theme for the page, and the menu, updater and guards of the main process.',
     cleanUrls: true,
     sitemap: {
         hostname: 'https://desktop.bas.dev'
@@ -67,8 +68,11 @@ export default defineConfig({
             { text: 'Guide', link: '/guide/', activeMatch: '^/guide/' },
             {
                 text: 'Packages',
-                activeMatch: '^/desktop-ui/',
-                items: [{ text: 'Desktop UI', link: '/desktop-ui/' }]
+                activeMatch: '^/desktop-(ui|shell)/',
+                items: [
+                    { text: 'Desktop UI', link: '/desktop-ui/' },
+                    { text: 'Desktop Shell', link: '/desktop-shell/' }
+                ]
             },
             {
                 text: 'Links',

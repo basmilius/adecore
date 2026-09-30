@@ -5,6 +5,7 @@ This repository holds the packages two or more desktop apps share, so the parts 
 | Package | What it holds |
 |---|---|
 | [`@basmilius/desktop-ui`](/desktop-ui/) | React components, a theme, formatters and a settings dialog |
+| [`@basmilius/desktop-shell`](/desktop-shell/) | The main process of an Electron app: its menu, its updater and the guards around its page |
 
 ## One version
 

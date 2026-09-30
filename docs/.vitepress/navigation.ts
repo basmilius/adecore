@@ -105,7 +105,18 @@ const desktopUi: DefaultTheme.SidebarItem[] = [
     ])
 ];
 
+const desktopShell: DefaultTheme.SidebarItem[] = [
+    group('Desktop Shell', [
+        ['Overview', '/desktop-shell/'],
+        ['Application menu', '/desktop-shell/menu'],
+        ['Updater', '/desktop-shell/updater'],
+        ['Web guards', '/desktop-shell/web-guards'],
+        ['Bridge', '/desktop-shell/bridge']
+    ])
+];
+
 export const sidebar: DefaultTheme.SidebarMulti = {
     '/guide/': guide,
-    '/desktop-ui/': desktopUi
+    '/desktop-ui/': desktopUi,
+    '/desktop-shell/': desktopShell
 };
