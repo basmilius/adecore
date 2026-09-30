@@ -1,11 +1,11 @@
 name: Request
-description: Something an app needs from the library, a new component, prop or variant.
+description: Something an app needs from a package, such as a new component, prop, variant or shell API.
 labels: ["Enhancement"]
 body:
   - type: markdown
     attributes:
       value: |
-        Describe the need in the words of the app. The library answers with a shape that fits any app, which may be a different API than the one proposed, or a no when the need belongs in the app.
+        Describe the need in the words of the app. The package answers with a shape that fits any app, which may be a different API than the one proposed, or a no when the need belongs in the app.
   - type: dropdown
     id: consumer
     attributes:
@@ -14,6 +14,15 @@ body:
         - Ruimte
         - AfterMotion
         - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: package
+    attributes:
+      label: Which package?
+      options:
+        - desktop-ui
+        - desktop-shell
     validations:
       required: true
   - type: textarea
@@ -27,14 +36,14 @@ body:
     id: wish
     attributes:
       label: Wish
-      description: The need as what a person does or sees, not a fix. A proposed API is optional; put it in a `tsx` block.
+      description: The need as what a person does or sees, not a fix. A proposed API is optional; put it in a code block.
     validations:
       required: true
   - type: textarea
     id: impact
     attributes:
       label: Impact on the other app
-      description: The other app's call sites of the same component or pattern that a change would touch, and whether it would change what they draw or break them. Say so when there are none.
+      description: The other app's call sites of the same component, shell part or pattern that a change would touch, and whether it would change what they draw or break them. Say so when there are none.
     validations:
       required: true
   - type: checkboxes

@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     name: 🏷️ Label
     steps:
-      - name: 🏷️ Add the label of the app that asks
+      - name: 🏷️ Add the labels of the app that asks and the package
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
@@ -26,4 +26,9 @@ jobs:
               Ruimte) gh issue edit "$NUMBER" --add-label Ruimte ;;
               AfterMotion) gh issue edit "$NUMBER" --add-label AfterMotion ;;
               *) echo "No consumer label for '$consumer'." ;;
+          esac
+          package=$(printf '%s\n' "$BODY" | awk '/^### Which package\?/ { found = 1; next } found && NF { print; exit }')
+          case "$package" in
+              desktop-ui|desktop-shell) gh issue edit "$NUMBER" --add-label "$package" ;;
+              *) echo "No package label for '$package'." ;;
           esac

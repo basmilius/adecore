@@ -1,5 +1,5 @@
 name: Bug
-description: A component that does not do what its docs or its types say.
+description: A component or a part of the shell that does not do what its docs or its types say.
 labels: ["Bug"]
 body:
   - type: dropdown
@@ -10,6 +10,15 @@ body:
         - Ruimte
         - AfterMotion
         - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: package
+    attributes:
+      label: Which package?
+      options:
+        - desktop-ui
+        - desktop-shell
     validations:
       required: true
   - type: textarea
@@ -24,14 +33,14 @@ body:
     attributes:
       label: Reproduction
       description: The smallest piece of code that shows it, or the file and line in the app.
-      render: tsx
+      render: ts
     validations:
       required: true
   - type: textarea
     id: impact
     attributes:
       label: Impact on the other app
-      description: Whether the other app draws the same component in the same way, with its call sites, or that it does not.
+      description: Whether the other app uses the same component or shell part in the same way, with its call sites, or that it does not.
     validations:
       required: true
   - type: input
