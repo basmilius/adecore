@@ -7,12 +7,17 @@ export const UNKEYED_STATE = 'start';
 /* How far a new window sits from the one in front, when its key has no bounds of its own. */
 export const CASCADE = 24;
 
+/* Why a window opens: it was open at the last quit, it is the one window of a start without a session, or something asked for it. */
+export type WindowOrigin = 'session' | 'first' | 'opened';
+
 export interface WindowsOptions {
     state: WindowState;
     /* Which windows were open when the app last quit, so a cold start opens them again. */
     session: WindowStateStorage;
     /* Builds the app's window for a key and loads it. The bounds go into the constructor. */
-    create: (key: string | null, bounds: Partial<Rectangle> & WindowSize) => BrowserWindow;
+    create: (key: string | null, bounds: Partial<Rectangle> & WindowSize, origin: WindowOrigin) => BrowserWindow;
+    /* A window came to the front, after `focused()` already answers it, such as to draw its own menu. */
+    onFront?: (window: BrowserWindow) => void;
 }
 
 interface Entry {
@@ -96,16 +101,17 @@ export const createWindows = (options: WindowsOptions) => {
         return options.state.bounds(stateKey, { ...beside, x: beside.x + CASCADE, y: beside.y + CASCADE });
     };
 
-    const create = (key: string | null): BrowserWindow => {
-        const window = options.create(key, boundsFor(key));
+    const create = (key: string | null, origin: WindowOrigin): BrowserWindow => {
+        const window = options.create(key, boundsFor(key), origin);
         const entry: Entry = { window, key };
         const id = window.id;
         entries.set(id, entry);
         toFront(id);
         options.state.track(() => entry.key ?? UNKEYED_STATE, window);
+        // The order only decides which window comes back in front, so it is written with the next change rather than at every focus.
         window.on('focus', () => {
             toFront(id);
-            writeSession();
+            options.onFront?.(window);
         });
         window.on('closed', () => {
             entries.delete(id);
@@ -133,14 +139,18 @@ export const createWindows = (options: WindowsOptions) => {
                 raise(holder.window);
                 return holder.window;
             }
-            return create(key);
+            return create(key, 'opened');
         },
 
         /* Opens the windows that were open when the app last quit, or one without a key. */
         restore: (): void => {
             const keys = parseSession(options.session.read());
-            for (const key of keys.length > 0 ? keys : [null]) {
-                create(key);
+            if (keys.length === 0) {
+                create(null, 'first');
+                return;
+            }
+            for (const key of keys) {
+                create(key, 'session');
             }
         },
 
@@ -163,7 +173,27 @@ export const createWindows = (options: WindowsOptions) => {
             return true;
         },
 
-        /* The window a page or a `<webview>` inside it belongs to: who sent an IPC message, or whose menu a guest opens. */
+        /*
+         * The window whose own page this is, and null for anything else, a `<webview>` inside it included.
+         * This is the check for an IPC message that may speak for the app.
+         */
+        fromPage: (contents: WebContents): BrowserWindow | null => alive().find((entry) => entry.window.webContents === contents)?.window ?? null,
+
+        /*
+         * Moves what a window shows into a new window, which comes to the front, and leaves the old one
+         * without a key. The key is never without a window in between. Null for a window that shows nothing.
+         */
+        move: (window: BrowserWindow): BrowserWindow | null => {
+            const entry = entries.get(window.id);
+            if (!entry || entry.key === null) {
+                return null;
+            }
+            const key = entry.key;
+            entry.key = null;
+            return create(key, 'opened');
+        },
+
+        /* The window a page or a `<webview>` inside it belongs to, such as whose menu a guest opens. Not a check of who may speak for the app: that is `fromPage`. */
         fromContents: (contents: WebContents): BrowserWindow | null => {
             const guestOwner = guestOwners.get(contents.id);
             if (guestOwner !== undefined) {
@@ -192,6 +222,12 @@ export const createWindows = (options: WindowsOptions) => {
         quit: (): void => {
             writeSession();
             quitting = true;
+        },
+
+        /* The quit did not go ahead after all, such as an update that failed to install: a window that closes leaves the session again. */
+        resume: (): void => {
+            quitting = false;
+            writeSession();
         }
     };
 };

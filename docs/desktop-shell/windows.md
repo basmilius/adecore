@@ -14,12 +14,13 @@ const windowState = createWindowState({
 const windows = createWindows({
     state: windowState,
     session: fileStorage(join(app.getPath('userData'), 'window-session.json')),
-    create: (key, bounds) => {
+    create: (key, bounds, origin) => {
         const window = new BrowserWindow({ ...bounds, minWidth: 800, minHeight: 500, show: false });
         window.once('ready-to-show', () => window.show());
-        void window.loadURL(urlFor(key));
+        void window.loadURL(urlFor(key, origin));
         return window;
-    }
+    },
+    onFront: (window) => drawMenuOf(window)
 });
 
 app.whenReady().then(() => windows.restore());
@@ -27,13 +28,15 @@ app.whenReady().then(() => windows.restore());
 
 `create` builds and loads the window; the package passes the bounds to construct it with and follows the window from then on. A new window whose key has no bounds of its own sits a little beside the one in front (`CASCADE`).
 
+`origin` says why the window opens: `session` for one that was open at the last quit, `first` for the one window of a start without a session, `opened` for one something asked for. A page can then tell a cold start, which may open what a person had last, from a new window, which starts empty. `onFront` runs once a window came to the front, when `focused()` already answers it.
+
 ## What a window shows
 
 A window can come to show something else, as when its page opens a project from a start screen. The page says so, and the shell answers whether it may:
 
 ```ts
 handleFromApp('window:claim', (event, key: unknown) => {
-    const window = windows.fromContents(event.sender);
+    const window = windows.fromPage(event.sender);
     return window !== null && (key === null || typeof key === 'string') && windows.claim(window, key);
 });
 ```
@@ -42,9 +45,11 @@ handleFromApp('window:claim', (event, key: unknown) => {
 
 `open(key)` is for the shell's own reasons to open a window, such as a menu item or a page asking for a project in a new window. `open(null)` always opens a new one.
 
+`move(window)` puts what a window shows into a new window and leaves the old one without a key, with no moment in between where nobody has it. The old page then shows its empty state.
+
 ## Who asked
 
-Every IPC handler resolves its window from the sender instead of assuming one: `fromContents(event.sender)`. It also knows the window of a `<webview>` inside a page, which Electron gives no window of its own, so a guest's context menu opens over the right window. What has no sender, such as a second instance, a notification or a menu command, goes to `focused()`, the window last in front. `send(channel, ...args)` reaches every window, for what the whole app shares.
+Every IPC handler resolves its window from the sender instead of assuming one: `fromPage(event.sender)` answers only for the page of an app window, so it is also the check of who may speak for the app. `fromContents` also knows the window of a `<webview>` inside a page, which Electron gives no window of its own, so a guest's context menu opens over the right window; it never decides who may call a handler. What has no sender, such as a second instance, a notification or a menu command, goes to `focused()`, the window last in front. `send(channel, ...args)` reaches every window, for what the whole app shares.
 
 ## Quitting
 
@@ -54,4 +59,4 @@ A window that closes leaves the session, so closing one of three windows opens t
 app.on('before-quit', () => windows.quit());
 ```
 
-An app that asks before quitting calls it only on the path where the quit proceeds.
+An app that asks before quitting calls it only on the path where the quit proceeds. When a quit still does not happen, such as an update that fails to install, `resume()` lets closing windows leave the session again.

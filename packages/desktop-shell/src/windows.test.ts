@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import type { BrowserWindow, Rectangle, WebContents } from 'electron';
 import { createWindowState, type WindowStateStorage } from './window-state.ts';
-import { CASCADE, createWindows } from './windows.ts';
+import { CASCADE, createWindows, type WindowOrigin } from './windows.ts';
 
 const DISPLAY = { workArea: { x: 0, y: 25, width: 2560, height: 1415 } };
 
@@ -82,17 +82,22 @@ const setup = (sessionText: string | null = null, stateText: string | null = nul
         defaults: { width: 1440, height: 900 },
         setTimeout: () => null
     });
-    const created: { key: string | null; bounds: Partial<Rectangle>; fake: Fake }[] = [];
+    const created: { key: string | null; bounds: Partial<Rectangle>; origin: WindowOrigin; fake: Fake }[] = [];
+    const fronts: BrowserWindow[] = [];
     const windows = createWindows({
         state,
         session: session.storage,
-        create: (key, bounds) => {
+        create: (key, bounds, origin) => {
             const fake = fakeWindow({ x: bounds.x ?? 100, y: bounds.y ?? 100, width: bounds.width, height: bounds.height });
-            created.push({ key, bounds, fake });
+            created.push({ key, bounds, origin, fake });
             return fake.window;
+        },
+        onFront: (window) => {
+            expect(windows.focused()).toBe(window);
+            fronts.push(window);
         }
     });
-    return { windows, created, session };
+    return { windows, created, session, fronts };
 };
 
 const sessionOf = (keys: (string | null)[]): string => JSON.stringify({ version: 1, windows: keys });
@@ -101,7 +106,7 @@ describe('createWindows', () => {
     test('a first start opens one window without a key', () => {
         const { windows, created, session } = setup();
         windows.restore();
-        expect(created.map(({ key }) => key)).toEqual([null]);
+        expect(created.map(({ key, origin }) => [key, origin])).toEqual([[null, 'first']]);
         expect(session.keys()).toEqual([null]);
     });
 
@@ -109,7 +114,10 @@ describe('createWindows', () => {
         const { windows, created } = setup(sessionOf(['a', null, 'b']));
         windows.restore();
         expect(created.map(({ key }) => key)).toEqual(['a', null, 'b']);
+        expect(created.every(({ origin }) => origin === 'session')).toBe(true);
         expect(windows.focused()).toBe(created[2]!.fake.window);
+        windows.open(null);
+        expect(created[3]!.origin).toBe('opened');
     });
 
     test('a session that does not parse, of another version or with a key twice is read as far as it holds', () => {
@@ -172,13 +180,38 @@ describe('createWindows', () => {
         expect(session.keys()).toEqual([null, 'b']);
     });
 
-    test('focus moves a window to the front and into the session order', () => {
-        const { windows, created, session } = setup();
+    test('focus moves a window to the front, tells the app, and reaches the session with the next write', () => {
+        const { windows, created, session, fronts } = setup();
         windows.open('a');
         windows.open('b');
         created[0]!.fake.events.emit('focus');
         expect(windows.focused()).toBe(created[0]!.fake.window);
+        expect(fronts).toEqual([created[0]!.fake.window]);
+        expect(session.keys()).toEqual(['a', 'b']);
+        windows.quit();
         expect(session.keys()).toEqual(['b', 'a']);
+    });
+
+    test('move hands the key to a new window without a moment nobody has it', () => {
+        const { windows, created, session } = setup();
+        const old = windows.open('a');
+        const moved = windows.move(old);
+        expect(moved).toBe(created[1]!.fake.window);
+        expect(created[1]!.key).toBe('a');
+        expect(windows.keyOf(old)).toBeNull();
+        expect(windows.open('a')).toBe(moved!);
+        expect(session.keys()).toEqual([null, 'a']);
+        expect(windows.move(old)).toBeNull();
+    });
+
+    test('a quit that did not go ahead lets closing windows leave the session again', () => {
+        const { windows, created, session } = setup();
+        windows.open('a');
+        windows.open('b');
+        windows.quit();
+        windows.resume();
+        created[0]!.fake.close();
+        expect(session.keys()).toEqual(['b']);
     });
 
     test('a window that closes leaves the session, until the app quits', () => {
@@ -206,6 +239,8 @@ describe('createWindows', () => {
         b.contentsEvents.emit('did-attach-webview', {}, guest);
         expect(windows.fromContents(a.contents)).toBe(a.window);
         expect(windows.fromContents(guest)).toBe(b.window);
+        expect(windows.fromPage(a.contents)).toBe(a.window);
+        expect(windows.fromPage(guest)).toBeNull();
         guestDestroyed();
         expect(windows.fromContents(guest)).toBeNull();
         expect(windows.fromContents({ id: 12345 } as unknown as WebContents)).toBeNull();
