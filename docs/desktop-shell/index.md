@@ -21,5 +21,6 @@ The package registers no IPC handler and listens to no app-wide Electron event; 
 
 - [Application menu](/desktop-shell/menu): the menu the page builds, the one that stands until it does, and how a command gets back to the page.
 - [Updater](/desktop-shell/updater): electron-updater as a state the page watches.
+- [Windows](/desktop-shell/windows): a set of windows, one per key, restored at the next start.
 - [Window state](/desktop-shell/window-state): each window opens where it was left.
 - [Web guards](/desktop-shell/web-guards): where the app's page may go, and who may speak for it.

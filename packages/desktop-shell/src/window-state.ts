@@ -155,15 +155,18 @@ export const createWindowState = (options: WindowStateOptions) => {
     };
 
     return {
-        /* The bounds to construct the window with. */
-        bounds: (key: string): Partial<Rectangle> & WindowSize => fitBounds(windows.get(key) ?? null, options.displays(), options.defaults),
+        /* The bounds to construct the window with. `fallback` stands in for a key that has none saved, such as a spot beside another window. */
+        bounds: (key: string, fallback: Rectangle | null = null): Partial<Rectangle> & WindowSize =>
+            fitBounds(windows.get(key) ?? fallback, options.displays(), options.defaults),
 
         /*
          * Follows a window from now on and, once it is ready to show, maximizes it or puts it in full
-         * screen as it was left. Call it right after constructing the window, before it is shown.
+         * screen as it was left. Call it right after constructing the window, before it is shown. A key
+         * given as a function is asked at every change, for a window that comes to show something else.
          */
-        track: (key: string, window: StateWindow): void => {
-            const last = windows.get(key);
+        track: (key: string | (() => string), window: StateWindow): void => {
+            const keyNow = typeof key === 'function' ? key : () => key;
+            const last = windows.get(keyNow());
             window.once('ready-to-show', () => {
                 if (last?.fullScreen) {
                     window.setFullScreen(true);
@@ -176,7 +179,7 @@ export const createWindowState = (options: WindowStateOptions) => {
                     return false;
                 }
                 const bounds = window.getNormalBounds();
-                windows.set(key, { ...bounds, maximized: window.isMaximized(), fullScreen: window.isFullScreen() });
+                windows.set(keyNow(), { ...bounds, maximized: window.isMaximized(), fullScreen: window.isFullScreen() });
                 return true;
             };
             const changed = (): void => {
@@ -195,6 +198,9 @@ export const createWindowState = (options: WindowStateOptions) => {
                 flush();
             });
         },
+
+        /* Whether a key has bounds saved. */
+        has: (key: string): boolean => windows.has(key),
 
         /* Writes what is pending at once, for the moment the app quits. */
         flush: (): void => {

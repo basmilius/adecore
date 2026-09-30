@@ -8,3 +8,5 @@ export { appWindowNavigation, isAppSender, isAppUrl, isExternalLink, isWebLink, 
 export type { NavigationVerdict, SenderFrame } from './web-guards.ts';
 export { createWindowState, fileStorage, fitBounds, VISIBLE_EDGE } from './window-state.ts';
 export type { SavedWindow, StateWindow, WindowDisplay, WindowSize, WindowState, WindowStateOptions, WindowStateStorage } from './window-state.ts';
+export { CASCADE, createWindows, UNKEYED_STATE } from './windows.ts';
+export type { Windows, WindowsOptions } from './windows.ts';
