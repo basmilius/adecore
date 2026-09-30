@@ -29,7 +29,7 @@ export { Field, FieldHint, FormError, type FieldHintProps, type FieldProps, type
 export { FileIcon, type FileIconProps } from './FileIcon.tsx';
 export { Icon, type IconProps } from './Icon.tsx';
 export { IconButton, type IconButtonProps, type IconButtonSize } from './IconButton.tsx';
-export { IconPicker, type IconPickerProps } from './IconPicker.tsx';
+export { IconPicker, type IconPickerGroup, type IconPickerProps } from './IconPicker.tsx';
 export { Input, TextArea, type InputProps, type TextAreaProps } from './Input.tsx';
 export { Kbd, KeyCap, Keys, type KbdProps, type KeyCapProps, type KeysProps } from './Kbd.tsx';
 export { ListRow, type ListRowProps } from './ListRow.tsx';

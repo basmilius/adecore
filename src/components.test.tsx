@@ -2,13 +2,14 @@ import { describe, expect, test } from 'bun:test';
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import i18next from 'i18next';
-import { Search, X } from 'lucide-react';
+import { Bug, Cloud, GitBranch, Rocket, Search, Server, X } from 'lucide-react';
 import { ButtonGroup } from './ButtonGroup.tsx';
 import { ColorSwatch } from './ColorSwatch.tsx';
 import { EmptyState } from './EmptyState.tsx';
 import { Field, FormError } from './Field.tsx';
 import { formatLocale } from './format/locale.ts';
 import { IconButton } from './IconButton.tsx';
+import { IconPicker, type IconPickerGroup } from './IconPicker.tsx';
 import { Input, TextArea } from './Input.tsx';
 import { Kbd } from './Kbd.tsx';
 import { ListRow } from './ListRow.tsx';
@@ -361,6 +362,53 @@ describe('the element a part renders', () => {
         );
         expect(markup.indexOf('Files')).toBeLessThan(markup.indexOf('<button'));
         expect(markup.startsWith('<header')).toBe(true);
+    });
+});
+
+describe('an icon picker', () => {
+    const GROUPS: IconPickerGroup[] = [
+        { id: 'code', label: 'Code', icons: { 'git-branch': GitBranch, bug: Bug } },
+        { id: 'infra', label: 'Infrastructure', icons: { server: Server, cloud: Cloud, rocket: Rocket } }
+    ];
+
+    test('draws a flat set as the plain grid under its label, without a frame or a search', () => {
+        const markup = render(<IconPicker icons={{ rocket: Rocket, bug: Bug }} value="bug" onValueChange={() => {}} />);
+        expect(markup).toContain('role="radiogroup" aria-label="Icon"');
+        expect(markup).toContain('class="grid grid-cols-[repeat(auto-fill,minmax(28px,1fr))] gap-1"');
+        expect(markup).not.toContain('field');
+        expect(markup).not.toContain('<input');
+        expect(markup).not.toContain('role="group"');
+        expect(markup).not.toContain('style=');
+    });
+
+    test('makes the grid one tab stop, on the chosen icon or else the first', () => {
+        const tabStops = (value: string | null): string[] =>
+            [
+                ...render(<IconPicker icons={{ rocket: Rocket, bug: Bug }} value={value} onValueChange={() => {}} />).matchAll(
+                    /aria-label="(\w+)"[^>]*tabindex="0"|tabindex="0"[^>]*aria-label="(\w+)"/g
+                )
+            ].map((match) => match[1] ?? match[2] ?? '');
+        expect(tabStops('bug')).toEqual(['bug']);
+        expect(tabStops(null)).toEqual(['rocket']);
+    });
+
+    test('draws groups under a heading each, with the number of icons, and a search in one frame with them', () => {
+        const markup = render(<IconPicker icons={GROUPS} value="cloud" onValueChange={() => {}} />);
+        expect(markup.match(/role="group"/g)).toHaveLength(2);
+        expect(markup).toMatch(/role="group" aria-labelledby="([^"]+)"[\s\S]*?<span id="\1"[^>]*>Code<\/span><span[^>]*>2<\/span>/);
+        expect(markup).toMatch(/<span id="[^"]+"[^>]*>Infrastructure<\/span><span[^>]*>3<\/span>/);
+        expect(markup).toContain('placeholder="Find an icon"');
+        expect(markup).toContain('sticky top-0');
+        expect(markup.indexOf('<input')).toBeLessThan(markup.indexOf('role="radiogroup"'));
+    });
+
+    test('leaves the search out of groups when asked', () => {
+        expect(render(<IconPicker icons={GROUPS} searchable={false} value={null} onValueChange={() => {}} />)).not.toContain('<input');
+    });
+
+    test('holds the grid at a height of rows, with room for one heading', () => {
+        expect(render(<IconPicker icons={GROUPS} rows={7} value={null} onValueChange={() => {}} />)).toContain('style="height:256px"');
+        expect(render(<IconPicker icons={{ rocket: Rocket }} rows={2} value={null} onValueChange={() => {}} />)).toContain('style="height:74px"');
     });
 });
 

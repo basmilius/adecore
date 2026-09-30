@@ -36,7 +36,10 @@
   },
   "iconPicker": {
     "label": "Icon",
-    "none": "No icon"
+    "none": "No icon",
+    "search": "Find an icon",
+    "clear": "Clear search",
+    "noMatch": "No icon matches “{{query}}”"
   },
   "zoom": {
     "out": "Zoom out",

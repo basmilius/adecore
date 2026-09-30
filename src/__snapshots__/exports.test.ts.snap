@@ -121,6 +121,7 @@ exports[`the public API . exports these names 1`] = `
   "type FormErrorProps",
   "type IconButtonProps",
   "type IconButtonSize",
+  "type IconPickerGroup",
   "type IconPickerProps",
   "type IconProps",
   "type InputProps",

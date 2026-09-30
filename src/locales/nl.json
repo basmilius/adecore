@@ -36,7 +36,10 @@
   },
   "iconPicker": {
     "label": "Icoon",
-    "none": "Geen icoon"
+    "none": "Geen icoon",
+    "search": "Zoek een icoon",
+    "clear": "Zoekopdracht wissen",
+    "noMatch": "Geen icoon past bij “{{query}}”"
   },
   "zoom": {
     "out": "Uitzoomen",
