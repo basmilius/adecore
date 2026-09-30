@@ -6,4 +6,5 @@
 |---|---|
 | `MenuSpec`, `MenuNode`, `MENU_ROLES`, `MenuRole` | The [application menu](/desktop-shell/menu) the page builds. |
 | `UpdateState` | Where [updating](/desktop-shell/updater) stands. |
+| `ThemeState` | The [theme](/desktop-shell/theme) a page reports. |
 | `compareVersions`, `isVersion` | One ordering of versions for the shell and the page, so release notes land under the right heading. A version that is not a plain `1.2.3` sorts below every one that is. |

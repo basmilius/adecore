@@ -23,8 +23,11 @@ const windows = createWindows({
     onFront: (window) => drawMenuOf(window)
 });
 
+windows.attach(app);
 app.whenReady().then(() => windows.restore());
 ```
+
+`attach` answers what every app with a set of windows does with its app's events: a second instance raises the window in front, a click on the dock icon with no window open opens the last session again, pending bounds are written at quit, and off macOS the app quits with its last window while that window stays in the session.
 
 `create` builds and loads the window; the package passes the bounds to construct it with and follows the window from then on, so `create` never calls `windowState.track` itself. A new window whose key has no bounds of its own sits a little beside the one in front (`CASCADE`).
 
@@ -60,5 +63,7 @@ A window that closes leaves the session, so closing one of three windows opens t
 ```ts
 app.on('before-quit', () => windows.quit());
 ```
+
+Off macOS, where the app quits with its last window, `attach` marks the quit as that window closes, so it stays in the session.
 
 An app that asks before quitting calls it only on the path where the quit proceeds. When a quit still does not happen, `resume()` lets closing windows leave the session again. An update install closes the windows before `before-quit`; the [updater](/desktop-shell/updater#installing)'s `onQuit` covers that.

@@ -112,6 +112,7 @@ const desktopShell: DefaultTheme.SidebarItem[] = [
         ['Updater', '/desktop-shell/updater'],
         ['Windows', '/desktop-shell/windows'],
         ['Window state', '/desktop-shell/window-state'],
+        ['Theme', '/desktop-shell/theme'],
         ['Web guards', '/desktop-shell/web-guards'],
         ['Bridge', '/desktop-shell/bridge']
     ])

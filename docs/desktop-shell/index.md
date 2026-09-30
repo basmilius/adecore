@@ -23,4 +23,5 @@ The package registers no IPC handler and listens to no app-wide Electron event; 
 - [Updater](/desktop-shell/updater): electron-updater as a state the page watches.
 - [Windows](/desktop-shell/windows): a set of windows, one per key, restored at the next start.
 - [Window state](/desktop-shell/window-state): each window opens where it was left.
+- [Theme](/desktop-shell/theme): the page's theme on the window, its controls and Chromium.
 - [Web guards](/desktop-shell/web-guards): where the app's page may go, and who may speak for it.

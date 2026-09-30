@@ -14,8 +14,8 @@ Electron and electron-updater are peer dependencies; the app brings its own.
 
 | Import | What it holds |
 |---|---|
-| `@basmilius/desktop-shell` | For the main process: `menuTemplateOf`, `staticMenuTemplate`, `createMenuCommands`, `createPageKeys`, `createUpdater`, `createWindows`, `createWindowState` and the web guards |
-| `@basmilius/desktop-shell/bridge` | The shapes that cross IPC, for the main process, a preload and the page alike: `MenuNode`, `MenuSpec`, `MENU_ROLES`, `UpdateState`, `compareVersions` |
+| `@basmilius/desktop-shell` | For the main process: `menuTemplateOf`, `staticMenuTemplate`, `createMenuCommands`, `createPageKeys`, `createUpdater`, `createWindows`, `createWindowState`, `createTheme` and the web guards |
+| `@basmilius/desktop-shell/bridge` | The shapes that cross IPC, for the main process, a preload and the page alike: `MenuNode`, `MenuSpec`, `MENU_ROLES`, `UpdateState`, `ThemeState`, `compareVersions` |
 
 Nothing here registers an IPC handler. The app wires each channel itself, behind its own check of the sender, and calls into the package.
 

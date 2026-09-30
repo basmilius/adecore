@@ -74,7 +74,7 @@ const fakeWindow = (bounds: Rectangle) => {
 
 type Fake = ReturnType<typeof fakeWindow>;
 
-const setup = (sessionText: string | null = null, stateText: string | null = null) => {
+const setup = (sessionText: string | null = null, stateText: string | null = null, platform: NodeJS.Platform = 'darwin') => {
     const session = memory(sessionText);
     const state = createWindowState({
         storage: memory(stateText).storage,
@@ -87,6 +87,7 @@ const setup = (sessionText: string | null = null, stateText: string | null = nul
     const windows = createWindows({
         state,
         session: session.storage,
+        platform,
         create: (key, bounds, origin) => {
             const fake = fakeWindow({ x: bounds.x ?? 100, y: bounds.y ?? 100, width: bounds.width, height: bounds.height });
             created.push({ key, bounds, origin, fake });
@@ -302,5 +303,64 @@ describe('createWindows', () => {
         windows.claim(window, 'a');
         fake!.close();
         expect(Object.keys((JSON.parse(stateStorage.storage.read()!) as { windows: object }).windows)).toEqual(['a']);
+    });
+
+    test('attach answers a second instance, the dock icon, the quit and the last window', () => {
+        const listeners = new Map<string, () => void>();
+        let quits = 0;
+        const app = {
+            on: (event: string, listener: () => void) => void listeners.set(event, listener),
+            quit: () => void quits++
+        } as unknown as Parameters<ReturnType<typeof createWindows>['attach']>[0];
+        const session = memory();
+        const state = createWindowState({
+            storage: memory().storage,
+            displays: () => [DISPLAY],
+            defaults: { width: 1440, height: 900 },
+            setTimeout: () => null
+        });
+        const fakes: Fake[] = [];
+        const windows = createWindows({
+            state,
+            session: session.storage,
+            platform: 'linux',
+            create: (_key, bounds) => {
+                const fake = fakeWindow({ x: 10, y: 40, width: bounds.width, height: bounds.height });
+                fakes.push(fake);
+                return fake.window;
+            }
+        });
+        windows.attach(app);
+        listeners.get('activate')!();
+        listeners.get('second-instance')!();
+        expect(fakes).toHaveLength(0);
+        windows.restore();
+        windows.open('a');
+        fakes[1]!.state.minimized = true;
+        listeners.get('second-instance')!();
+        expect(fakes[1]!.calls).toEqual(['restore', 'show', 'focus']);
+        fakes[0]!.close();
+        expect(session.keys()).toEqual(['a']);
+        fakes[1]!.close();
+        expect(session.keys()).toEqual(['a']);
+        listeners.get('window-all-closed')!();
+        expect(quits).toBe(1);
+        listeners.get('activate')!();
+        expect(fakes).toHaveLength(3);
+    });
+
+    test('on macOS the app stays when its last window closes, and that window leaves the session', () => {
+        const listeners = new Map<string, () => void>();
+        let quits = 0;
+        const app = { on: (event: string, listener: () => void) => void listeners.set(event, listener), quit: () => void quits++ } as unknown as Parameters<
+            ReturnType<typeof createWindows>['attach']
+        >[0];
+        const { windows, created, session } = setup();
+        windows.attach(app);
+        windows.open('a');
+        created[0]!.fake.close();
+        listeners.get('window-all-closed')!();
+        expect(quits).toBe(0);
+        expect(session.keys()).toEqual([]);
     });
 });

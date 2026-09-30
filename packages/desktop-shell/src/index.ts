@@ -8,5 +8,7 @@ export { appWindowNavigation, isAppSender, isAppUrl, isExternalLink, isWebLink, 
 export type { NavigationVerdict, SenderFrame } from './web-guards.ts';
 export { createWindowState, fileStorage, fitBounds, VISIBLE_EDGE } from './window-state.ts';
 export type { SavedWindow, StateWindow, WindowDisplay, WindowSize, WindowState, WindowStateOptions, WindowStateStorage } from './window-state.ts';
+export { createTheme } from './theme.ts';
+export type { Theme, ThemeOptions, TitleBarOverlay } from './theme.ts';
 export { CASCADE, createWindows, UNKEYED_STATE } from './windows.ts';
 export type { WindowOrigin, Windows, WindowsOptions } from './windows.ts';

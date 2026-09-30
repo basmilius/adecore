@@ -39,7 +39,7 @@ Bun workspaces: every package in `packages/`, published from its own folder with
 ## desktop-shell
 
 - `src/index.ts` is the main process (`@basmilius/desktop-shell`), `src/bridge/index.ts` the shapes that cross IPC (`/bridge`). The bridge never imports Electron, so a preload and a page read it too (`boundary.test.ts`).
-- Nothing in the package registers an IPC handler or listens to an app-wide Electron event; it only follows the windows the app hands it (`window-state.ts`, `windows.ts`). An app wires each channel behind its own check of the sender and calls in; a package that listened by itself would bypass that check.
+- Nothing in the package registers an IPC handler or listens to an app-wide Electron event; it only follows the windows and the app the app hands it (`window-state.ts`, `windows.ts` with its `attach(app)`). An app wires each channel behind its own check of the sender and calls in; a package that listened by itself would bypass that check.
 - Electron and electron-updater are optional peers and imported as types only, so every decision is a pure function or a factory with its clock, timer and updater injected, and the tests run in Bun without Electron.
 - The IPC channel names the package sends on (`menu:run`) are part of its API, as the preloads of both apps listen on them.
 

@@ -1,4 +1,4 @@
-import type { BrowserWindow, Rectangle, WebContents } from 'electron';
+import type { App, BrowserWindow, Rectangle, WebContents } from 'electron';
 import type { WindowSize, WindowState, WindowStateStorage } from './window-state.ts';
 
 /* The key a window that shows no project keeps its bounds under, such as a start screen. */
@@ -20,6 +20,7 @@ export interface WindowsOptions {
     onFront?: (window: BrowserWindow) => void;
     /* The key an app kept its one window under before it had several, where a first window without bounds of its own opens. */
     formerKey?: string;
+    platform?: NodeJS.Platform;
 }
 
 interface Entry {
@@ -58,6 +59,10 @@ export const createWindows = (options: WindowsOptions) => {
     // A `<webview>` has no window of its own in Electron, so the page that attaches one names it.
     const guestOwners = new Map<number, number>();
     let quitting = false;
+    // Set once the first windows opened, so an app that is still starting does not open them twice.
+    let started = false;
+    // Off macOS the app quits with its last window, after that window already left the session.
+    let quitsWithLastWindow = false;
 
     const alive = (): Entry[] => [...entries.values()].filter((entry) => !entry.window.isDestroyed());
 
@@ -118,6 +123,11 @@ export const createWindows = (options: WindowsOptions) => {
             toFront(id);
             options.onFront?.(window);
         });
+        window.on('close', () => {
+            if (quitsWithLastWindow && alive().length === 1) {
+                markQuit();
+            }
+        });
         window.on('closed', () => {
             entries.delete(id);
             order = order.filter((other) => other !== id);
@@ -136,6 +146,23 @@ export const createWindows = (options: WindowsOptions) => {
         return window;
     };
 
+    const markQuit = (): void => {
+        writeSession();
+        quitting = true;
+    };
+
+    const restore = (): void => {
+        const keys = parseSession(options.session.read());
+        started = true;
+        if (keys.length === 0) {
+            create(null, 'first');
+            return;
+        }
+        for (const key of keys) {
+            create(key, 'session');
+        }
+    };
+
     return {
         /* Raises the window that has the key, or opens one for it. Null always opens a new window. */
         open: (key: string | null): BrowserWindow => {
@@ -148,16 +175,7 @@ export const createWindows = (options: WindowsOptions) => {
         },
 
         /* Opens the windows that were open when the app last quit, or one without a key. */
-        restore: (): void => {
-            const keys = parseSession(options.session.read());
-            if (keys.length === 0) {
-                create(null, 'first');
-                return;
-            }
-            for (const key of keys) {
-                create(key, 'session');
-            }
-        },
+        restore,
 
         /*
          * Makes a window the one that shows a key, as when its page opens a project. False when another
@@ -224,9 +242,36 @@ export const createWindows = (options: WindowsOptions) => {
         },
 
         /* From the moment the app quits, windows that close stay in the session, so the next start opens them again. */
-        quit: (): void => {
-            writeSession();
-            quitting = true;
+        quit: markQuit,
+
+        /*
+         * What every app with this set of windows does with its app's events: a second instance raises
+         * the window in front, a click on the dock icon with no window open opens the last session's
+         * again, pending bounds are written at quit, and off macOS the app quits with its last window
+         * while that window stays in the session. Call it before `app.whenReady()`, and `restore()` once ready.
+         */
+        attach: (app: Pick<App, 'on' | 'quit'>): void => {
+            const platform = options.platform ?? process.platform;
+            quitsWithLastWindow = platform !== 'darwin';
+            app.on('second-instance', () => {
+                const window = focused();
+                if (window) {
+                    raise(window);
+                } else if (started) {
+                    restore();
+                }
+            });
+            app.on('activate', () => {
+                if (started && alive().length === 0) {
+                    restore();
+                }
+            });
+            app.on('will-quit', () => options.state.flush());
+            app.on('window-all-closed', () => {
+                if (quitsWithLastWindow) {
+                    app.quit();
+                }
+            });
         },
 
         /* The quit did not go ahead after all, such as an update that failed to install: a window that closes leaves the session again. */
