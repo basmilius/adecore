@@ -22,9 +22,11 @@ export interface ChoiceCardsProps<Value extends string | number> {
     label: string;
     /* Side by side at the same width, or one under the other for choices whose descriptions run long. */
     orientation?: 'horizontal' | 'vertical';
+    /* A set number of columns, filled row by row, for more choices than one row has room for; takes the place of `orientation`. */
+    columns?: number;
     /* Where the radio stands in a card: after the text, or before the icon and the title. */
     radio?: 'start' | 'end';
-    /* What the checked choice still asks for, such as a folder or an address, right under its card; only a vertical group has room for it. */
+    /* What the checked choice still asks for, such as a folder or an address, right under its card; only a vertical group without columns has room for it. */
     detail?: ReactNode;
     disabled?: boolean;
     className?: string;
@@ -68,8 +70,8 @@ function ChoiceCard<Value extends string | number>({ choice, radio }: { choice: 
 
 /*
  * One of a few options, each a card that says what it means, for a choice that deserves more than a
- * select: the cards stand side by side at the same width or one under the other, and the arrow keys
- * move between them.
+ * select: the cards stand side by side at the same width, one under the other or in a set number of
+ * columns, and the arrow keys move between them.
  */
 export function ChoiceCards<Value extends string | number>({
     value,
@@ -77,12 +79,14 @@ export function ChoiceCards<Value extends string | number>({
     choices,
     label,
     orientation = 'horizontal',
+    columns,
     radio = 'end',
     detail,
     disabled,
     className,
     ref
 }: ChoiceCardsProps<Value>) {
+    const vertical = columns === undefined && orientation === 'vertical';
     return (
         <RadioGroup
             ref={ref}
@@ -90,12 +94,13 @@ export function ChoiceCards<Value extends string | number>({
             onValueChange={(next) => onValueChange(next as Value)}
             disabled={disabled}
             aria-label={label}
-            className={clsx('grid gap-2', orientation === 'horizontal' ? 'auto-cols-fr grid-flow-col' : 'grid-flow-row', className)}
+            className={clsx('grid gap-2', columns !== undefined || vertical ? 'grid-flow-row' : 'auto-cols-fr grid-flow-col', className)}
+            style={columns !== undefined ? { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` } : undefined}
         >
             {choices.map((choice) => (
                 <Fragment key={choice.value}>
                     <ChoiceCard choice={choice} radio={radio} />
-                    {orientation === 'vertical' && choice.value === value && detail}
+                    {vertical && choice.value === value && detail}
                 </Fragment>
             ))}
         </RadioGroup>

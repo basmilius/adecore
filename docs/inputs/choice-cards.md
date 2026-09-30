@@ -14,6 +14,12 @@ Choices with long descriptions stand one under the other with `orientation="vert
 
 <Demo src="inputs/choice-cards-vertical" />
 
+## Columns
+
+More choices than one row has room for fill a set number of columns with `columns`, row by row. It takes the place of `orientation`, so a group with columns shows no `detail`.
+
+<Demo src="inputs/choice-cards-columns" />
+
 ## Keyboard
 
 The cards are a Base UI radio group. Tab moves into the group and onto the checked card, and the arrow keys move between cards and check them.
@@ -29,8 +35,9 @@ The cards are a Base UI radio group. Tab moves into the group and onto the check
 | `choices` | `readonly Choice<Value>[]` | | Required. |
 | `label` | `string` | | Required. The group has no visible heading of its own. |
 | `orientation` | `'horizontal' \| 'vertical'` | `'horizontal'` | |
+| `columns` | `number` | | Replaces `orientation`. |
 | `radio` | `'start' \| 'end'` | `'end'` | |
-| `detail` | `ReactNode` | | Vertical groups only. |
+| `detail` | `ReactNode` | | Vertical groups without `columns` only. |
 | `disabled` | `boolean` | | |
 | `className` | `string` | | |
 | `ref` | `Ref<HTMLDivElement>` | | |
