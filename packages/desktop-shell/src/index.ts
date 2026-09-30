@@ -6,3 +6,5 @@ export { createUpdater, describeUpdateError, UPDATE_INTERVAL_MS } from './update
 export type { Updater, UpdaterOptions } from './updater.ts';
 export { appWindowNavigation, isAppSender, isAppUrl, isExternalLink, isWebLink, originOf } from './web-guards.ts';
 export type { NavigationVerdict, SenderFrame } from './web-guards.ts';
+export { createWindowState, fileStorage, fitBounds, VISIBLE_EDGE } from './window-state.ts';
+export type { SavedWindow, StateWindow, WindowDisplay, WindowSize, WindowState, WindowStateOptions, WindowStateStorage } from './window-state.ts';

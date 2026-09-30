@@ -23,7 +23,7 @@ features:
         link: /desktop-ui/
         linkText: View package
     -   title: Desktop Shell
-        details: The main process of an Electron app whose page draws its own interface. The menu the page builds, an updater it watches and the guards around its bridge.
+        details: The main process of an Electron app whose page draws its own interface. The menu the page builds, an updater it watches, windows that open where they were left and the guards around its bridge.
         link: /desktop-shell/
         linkText: View package
 ---

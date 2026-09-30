@@ -110,6 +110,7 @@ const desktopShell: DefaultTheme.SidebarItem[] = [
         ['Overview', '/desktop-shell/'],
         ['Application menu', '/desktop-shell/menu'],
         ['Updater', '/desktop-shell/updater'],
+        ['Window state', '/desktop-shell/window-state'],
         ['Web guards', '/desktop-shell/web-guards'],
         ['Bridge', '/desktop-shell/bridge']
     ])
