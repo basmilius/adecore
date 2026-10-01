@@ -28,7 +28,9 @@ export interface ProjectSwitcherProps<Item extends ProjectSwitcherItem = Project
     onSelect(project: Item, event: MouseEvent<HTMLElement>): void;
     /* Before the current project's icon, such as the machine it runs on. */
     leading?: ReactNode;
-    /* Menu items after the projects, such as opening a folder or creating a project. */
+    /* Menu items in a group of their own between the open projects and Recent projects. */
+    before?: ReactNode;
+    /* Menu items in one group with Recent projects, such as opening a folder or creating a project. */
     children?: ReactNode;
     label?: string;
     disabled?: boolean;
@@ -42,9 +44,10 @@ export interface ProjectSwitcherProps<Item extends ProjectSwitcherItem = Project
 export function ProjectSwitcher<Item extends ProjectSwitcherItem>({
     current,
     projects,
-    recentProjects = [],
+    recentProjects,
     onSelect,
     leading,
+    before,
     children,
     label,
     disabled,
@@ -70,12 +73,41 @@ export function ProjectSwitcher<Item extends ProjectSwitcherItem>({
                 <Icon icon={ChevronDown} size={14} className="shrink-0 text-text-muted" />
             </Menu.Trigger>
             <Menu.Popup className="min-w-60">
-                {projects.map((project) => (
-                    <ProjectSwitcherRow key={project.id} project={project} onSelect={onSelect} />
-                ))}
-                {recentProjects.length > 0 && (
-                    <>
-                        {projects.length > 0 && <Menu.Separator />}
+                <ProjectSwitcherGroups projects={projects} recentProjects={recentProjects} before={before} onSelect={onSelect}>
+                    {children}
+                </ProjectSwitcherGroups>
+            </Menu.Popup>
+        </Menu.Root>
+    );
+}
+
+/* The rows of the popup, apart from it so they render without an open menu. */
+export function ProjectSwitcherGroups<Item extends ProjectSwitcherItem>({
+    projects,
+    recentProjects = [],
+    before,
+    children,
+    onSelect
+}: Pick<ProjectSwitcherProps<Item>, 'projects' | 'recentProjects' | 'before' | 'children' | 'onSelect'>) {
+    const { t } = useTranslation('ui');
+
+    // The theme hides a separator at the top of a menu or against another, so a group that draws
+    // nothing leaves no line behind.
+    return (
+        <>
+            {projects.map((project) => (
+                <ProjectSwitcherRow key={project.id} project={project} onSelect={onSelect} />
+            ))}
+            {before && (
+                <>
+                    <Menu.Separator />
+                    {before}
+                </>
+            )}
+            {(recentProjects.length > 0 || children) && (
+                <>
+                    <Menu.Separator />
+                    {recentProjects.length > 0 && (
                         <Menu.SubmenuRoot>
                             <Menu.SubmenuTrigger>
                                 <Icon icon={History} size={14} /> {t('projectSwitcher.recent')}
@@ -86,15 +118,10 @@ export function ProjectSwitcher<Item extends ProjectSwitcherItem>({
                                 ))}
                             </Menu.Popup>
                         </Menu.SubmenuRoot>
-                    </>
-                )}
-                {children && (
-                    <>
-                        {(projects.length > 0 || recentProjects.length > 0) && <Menu.Separator />}
-                        {children}
-                    </>
-                )}
-            </Menu.Popup>
-        </Menu.Root>
+                    )}
+                    {children}
+                </>
+            )}
+        </>
     );
 }

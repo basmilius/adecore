@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import i18next from 'i18next';
 import * as Menu from './menu/index.parts.ts';
 import { ProjectSwitcherRow } from './project-switcher-row.tsx';
-import { ProjectSwitcher, type ProjectSwitcherItem, type ProjectSwitcherProps } from './ProjectSwitcher.tsx';
+import { ProjectSwitcher, ProjectSwitcherGroups, type ProjectSwitcherItem, type ProjectSwitcherProps } from './ProjectSwitcher.tsx';
 import { UIProvider } from './UIProvider.tsx';
 
 const i18n = i18next.createInstance();
@@ -44,6 +44,38 @@ describe('a project switcher', () => {
         const markup = render(<ProjectSwitcher {...props} />);
         expect(markup).toContain('Studio');
         expect(markup).not.toContain(item.folder);
+    });
+});
+
+describe("the project switcher's groups", () => {
+    const separators = (markup: string): number => markup.split('role="separator"').length - 1;
+    const groups = (props: Omit<ProjectSwitcherProps, 'current'>): string =>
+        render(
+            <Menu.Root>
+                <ProjectSwitcherGroups {...props} />
+            </Menu.Root>
+        );
+
+    // A submenu renders only in an open popup, which needs a DOM, so these leave Recent out.
+    test("draws the app's own group between the open projects and its other items", () => {
+        const markup = groups({
+            projects: [project],
+            before: <Menu.Item>Scratchpad</Menu.Item>,
+            children: <Menu.Item>Open folder</Menu.Item>,
+            onSelect: () => {}
+        });
+        const studio = markup.indexOf('>Studio</span>');
+        const scratchpad = markup.indexOf('Scratchpad');
+        const openFolder = markup.indexOf('Open folder');
+        expect(studio).toBeLessThan(scratchpad);
+        expect(scratchpad).toBeLessThan(openFolder);
+        expect(separators(markup.slice(studio, scratchpad))).toBe(1);
+        expect(separators(markup.slice(scratchpad, openFolder))).toBe(1);
+    });
+
+    test('draws no separator for a group it has nothing for', () => {
+        expect(separators(groups({ projects: [project], onSelect: () => {} }))).toBe(0);
+        expect(separators(groups({ projects: [project], children: <Menu.Item>Open folder</Menu.Item>, onSelect: () => {} }))).toBe(1);
     });
 });
 

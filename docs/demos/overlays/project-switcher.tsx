@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Folder, FolderOpen, Settings2, X } from 'lucide-react';
+import { Folder, FolderOpen, NotebookPen, Settings2, X } from 'lucide-react';
 import { Icon, Menu, ProjectSwitcher, type ProjectSwitcherItem } from '@basmilius/desktop-ui';
 
 const PROJECTS: ProjectSwitcherItem[] = [
@@ -41,6 +41,11 @@ export default function ProjectSwitcherDemo() {
                     )
                 }))}
                 recentProjects={recent}
+                before={
+                    <Menu.Item onClick={() => setMessage('Open the scratchpad')}>
+                        <Icon icon={NotebookPen} size={14} /> Scratchpad
+                    </Menu.Item>
+                }
                 onSelect={(project, event) => {
                     if (event.metaKey || event.ctrlKey) {
                         setMessage(`Open ${project.name} in another window`);

@@ -31,7 +31,7 @@ Each `ProjectSwitcherItem` has a stable `id` and a `name`. IDs must distinguish 
 
 ## Actions and state
 
-Put menu items in `children` for actions after the project lists, such as opening a folder or creating a project. The component adds the separator only when there are project rows above them.
+The menu draws three groups. First come the open projects, then the menu items in `before`, then Recent projects together with the menu items in `children`. Put the ways to open a project in `children`, such as opening a folder or creating a project, so they share a group with Recent. Put what is neither a project nor a way to open one in `before`, such as a place or an action outside any project. A group with nothing in it draws no separator.
 
 The menu keeps its open state by default. `defaultOpen` sets its initial state; `open` and `onOpenChange` control it. `disabled` disables the trigger. `label` overrides its accessible name, which defaults to the current project name, or Projects without a current project. `className` and `ref` reach the trigger button.
 
