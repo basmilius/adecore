@@ -10,7 +10,15 @@ export * as Popover from './popover/index.parts.ts';
 export * as PreviewCard from './preview-card/index.parts.ts';
 
 export type { DialogDescriptionProps, DialogFooterProps, DialogPopupProps, DialogTextProps, DialogTitleProps } from './dialog/parts.tsx';
-export type { MenuCheckProps, MenuHintProps, MenuLabelProps, MenuPopupProps } from './menu/parts.tsx';
+export type {
+    MenuCheckProps,
+    MenuHintProps,
+    MenuLabelProps,
+    MenuPopupProps,
+    MenuRowActionProps,
+    MenuRowProps,
+    MenuRowSubmenuTriggerProps
+} from './menu/parts.tsx';
 export type { PopoverPopupProps, PopupVariant, PreviewCardPopupProps } from './popover/parts.tsx';
 
 export { AccentSwatches, type AccentSwatchesProps } from './AccentSwatches.tsx';

@@ -1,12 +1,13 @@
 import { createContext, useContext, type ComponentProps, type ReactNode, type Ref } from 'react';
 import clsx from 'clsx';
-import { Check, ChevronRight } from 'lucide-react';
+import { Check, ChevronRight, type LucideIcon } from 'lucide-react';
 import { ContextMenu as BaseContextMenu } from '@base-ui-components/react/context-menu';
 import { Menu as BaseMenu } from '@base-ui-components/react/menu';
 import { Separator as BaseSeparator } from '@base-ui-components/react/separator';
 import { useRender } from '@base-ui-components/react/use-render';
 import { withClass } from '../class-name.ts';
 import { Icon } from '../Icon.tsx';
+import { Tooltip } from '../Tooltip.tsx';
 
 /* Where a popup opens from decides where it goes when a call site says nothing. */
 type MenuKind = 'menu' | 'context' | 'submenu';
@@ -216,6 +217,51 @@ export function MenuSubmenuTrigger({ className, children, chevron = true, ...pro
         <BaseMenu.SubmenuTrigger className={withClass('menu-item', className)} {...props}>
             {children}
             {chevron && <Icon icon={ChevronRight} size={14} className="ml-auto text-text-faint" />}
+        </BaseMenu.SubmenuTrigger>
+    );
+}
+
+export type MenuRowProps = useRender.ComponentProps<'div'>;
+
+/*
+ * A row with buttons at its end that reads as one row. Its first item is the row, every `RowAction`
+ * and `RowSubmenuTrigger` after it an item of its own, so the arrow keys reach each.
+ */
+export function MenuRow({ render, className, ref, ...props }: MenuRowProps) {
+    return useRender({ render, ref, defaultTagName: 'div', props: { role: 'group', ...props, className: clsx('menu-row', className) } });
+}
+
+type RowButton = {
+    icon: LucideIcon;
+    /* The button's accessible name. Unlike the `label` of an item, typing never lands on the button. */
+    label: string;
+    /* Classes for the icon rather than the button, such as a fill. The size stays the row's. */
+    iconClassName?: string;
+};
+
+export type MenuRowActionProps = Omit<ComponentProps<typeof BaseMenu.Item>, 'children' | 'label'> & RowButton;
+
+/* A button in a `Menu.Row` that acts at once, named by its tooltip. `closeOnClick={false}` keeps the menu open. */
+export function MenuRowAction({ icon, label, iconClassName, className, ...props }: MenuRowActionProps) {
+    return (
+        <Tooltip label={label} name>
+            <BaseMenu.Item className={withClass('menu-item menu-row-action', className)} {...props}>
+                <Icon icon={icon} size={14} className={iconClassName} />
+            </BaseMenu.Item>
+        </Tooltip>
+    );
+}
+
+export type MenuRowSubmenuTriggerProps = Omit<ComponentProps<typeof BaseMenu.SubmenuTrigger>, 'children' | 'label'> & RowButton;
+
+/*
+ * A button in a `Menu.Row` that opens a submenu, inside a `Menu.SubmenuRoot`. It has no tooltip: the
+ * submenu opens on the same hover and says what the button holds.
+ */
+export function MenuRowSubmenuTrigger({ icon, label, iconClassName, className, ...props }: MenuRowSubmenuTriggerProps) {
+    return (
+        <BaseMenu.SubmenuTrigger className={withClass('menu-item menu-row-action', className)} aria-label={label} {...props}>
+            <Icon icon={icon} size={14} className={iconClassName} />
         </BaseMenu.SubmenuTrigger>
     );
 }

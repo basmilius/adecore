@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import i18next from 'i18next';
-import { Bug, Cloud, GitBranch, Rocket, Search, Server, X } from 'lucide-react';
+import { Bug, Cloud, GitBranch, Play, Rocket, Search, Server, X } from 'lucide-react';
 import { ButtonGroup } from './ButtonGroup.tsx';
 import { ColorSwatch } from './ColorSwatch.tsx';
 import { EmptyState } from './EmptyState.tsx';
@@ -236,6 +236,27 @@ describe('a color swatch', () => {
         expect(markup).toContain('border-border-strong');
         expect(markup).not.toContain('<svg');
         expect(markup).toContain('…');
+    });
+});
+
+describe('a menu row', () => {
+    test('is a named group of the row and its buttons, each an item of the menu', () => {
+        const markup = render(
+            <Menu.Root>
+                <Menu.Row aria-label="Dev server">
+                    <Menu.Item>Dev server</Menu.Item>
+                    <Menu.RowAction icon={Play} label="Start Dev server" iconClassName="fill-current" closeOnClick={false} />
+                </Menu.Row>
+            </Menu.Root>
+        );
+        expect(markup).toContain('role="group"');
+        expect(markup).toContain('aria-label="Dev server"');
+        expect(markup).toContain('class="menu-row"');
+        expect(markup.split('role="menuitem"').length - 1).toBe(2);
+        expect(markup).toContain('class="menu-item menu-row-action"');
+        expect(markup).toContain('aria-label="Start Dev server"');
+        expect(markup).toContain('fill-current');
+        expect(markup.indexOf('>Dev server<')).toBeLessThan(markup.indexOf('menu-row-action'));
     });
 });
 

@@ -10,7 +10,7 @@ import { ContextMenu } from '@basmilius/desktop-ui';
 
 ## Parts
 
-`ContextMenu.Root` holds the open state and `ContextMenu.Trigger` is the area a right-click opens the menu over. Every other part is the menu's own under another name: `ContextMenu.Popup`, `ContextMenu.Item`, `ContextMenu.CheckboxItem`, `ContextMenu.RadioGroup`, `ContextMenu.RadioItem`, `ContextMenu.Group`, `ContextMenu.GroupLabel`, `ContextMenu.Label`, `ContextMenu.Separator`, `ContextMenu.Hint`, `ContextMenu.Check`, `ContextMenu.SubmenuRoot` and `ContextMenu.SubmenuTrigger`. See [Menu](/desktop-ui/overlays/menu#parts) for what each does.
+`ContextMenu.Root` holds the open state and `ContextMenu.Trigger` is the area a right-click opens the menu over. Every other part is the menu's own under another name: `ContextMenu.Popup`, `ContextMenu.Item`, `ContextMenu.CheckboxItem`, `ContextMenu.RadioGroup`, `ContextMenu.RadioItem`, `ContextMenu.Group`, `ContextMenu.GroupLabel`, `ContextMenu.Label`, `ContextMenu.Separator`, `ContextMenu.Hint`, `ContextMenu.Check`, `ContextMenu.SubmenuRoot`, `ContextMenu.SubmenuTrigger`, `ContextMenu.Row`, `ContextMenu.RowAction` and `ContextMenu.RowSubmenuTrigger`. See [Menu](/desktop-ui/overlays/menu#parts) for what each does.
 
 `ContextMenu.Popup` opens at the pointer, which its positioner already knows, so it needs no placement. A submenu inside it sits beside its row like any other.
 

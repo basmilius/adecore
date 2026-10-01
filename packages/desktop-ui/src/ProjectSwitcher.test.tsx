@@ -93,7 +93,7 @@ describe('a project row', () => {
         expect(markup).toContain('>Laptop</span>');
         expect(markup).toContain('role="menuitem"');
         expect(markup).not.toContain('data-disabled');
-        expect(markup).not.toContain('project-switcher-actions');
+        expect(markup).not.toContain('menu-row-action');
     });
 
     test('disables selection of an unavailable project', () => {

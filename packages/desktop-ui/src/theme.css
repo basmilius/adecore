@@ -381,22 +381,26 @@
     .project-switcher-trigger:hover { background: var(--surface-hover); }
     .project-switcher-trigger[data-popup-open] { background: var(--surface-active); }
     .project-switcher-trigger:disabled { opacity: .5; pointer-events: none; }
-    .project-switcher-row { gap: 1px; }
-    .project-switcher-row > .menu-item:first-child { border-radius: 6px 0 0 6px; }
-    .project-switcher-actions {
+    /* A row with buttons at its end: the items touch, 1px apart, so only the outer corners stay round,
+       and the whole row lights up under the pointer while the item beneath it lights up more. */
+    .menu-row { display: flex; min-width: 0; align-items: stretch; gap: 1px; }
+    .menu-row > .menu-item:first-child { flex: 1 1 0%; min-width: 0; }
+    .menu-row > .menu-item:not(:last-child) { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+    .menu-row > .menu-item:not(:first-child) { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+    .menu-row-action {
+        flex-shrink: 0;
         width: calc(var(--text-sm--line-height) + 12px);
         padding: 0;
-        border-radius: 0 6px 6px 0;
         justify-content: center;
         gap: 0;
     }
-    :root[data-modality='pointer'] .project-switcher-row:hover > .menu-item {
+    :root[data-modality='pointer'] .menu-row:hover > .menu-item {
         background: color-mix(in srgb, var(--surface-hover) 55%, transparent);
     }
-    :root[data-modality='pointer'] .project-switcher-row > .menu-item[data-highlighted] {
+    :root[data-modality='pointer'] .menu-row > .menu-item[data-highlighted] {
         background: var(--surface-hover);
     }
-    .project-switcher-row:has(.project-switcher-actions[data-popup-open]) > .menu-item {
+    .menu-row:has(.menu-row-action[data-popup-open]) > .menu-item {
         background: var(--surface-hover);
     }
     /* A shortcut in a row: pushed to the right, in the interface font, wherever a row carries one. */

@@ -24,6 +24,7 @@ import { Menu } from '@basmilius/desktop-ui';
 | `Menu.Hint` | A quiet trailing note in a row about what the item does. A shortcut is a [`Kbd`](/desktop-ui/display/kbd) instead. |
 | `Menu.Check` | The tick slot of a row that shows a state but is not a checkbox or radio item. |
 | `Menu.SubmenuRoot`, `Menu.SubmenuTrigger` | A row that opens another menu beside it, with a chevron at its end. Put a `Menu.Popup` inside the `SubmenuRoot`. |
+| `Menu.Row`, `Menu.RowAction`, `Menu.RowSubmenuTrigger` | A row with buttons at its end (below). |
 
 ## Placement
 
@@ -47,6 +48,16 @@ A checkbox or radio item draws its indicator before the label. `indicator="end"`
 
 Hand the part to another component through `render`, as the icon button does, or give it the classes itself. A part that is no row still takes the accent outline under the keyboard from what it renders, such as `IconButton`, or from `.focus-ring`; under the pointer the theme hides that outline, as it does for a row.
 
+## A row with buttons
+
+`Menu.Row` puts buttons at the end of a row, and the row and its buttons read as one. The whole row lights up under the pointer, and its outer corners stay round while the buttons sit against the row. Its first child is the row itself, a `Menu.Item` or a `Menu.SubmenuTrigger`. Give the group a name with `aria-label`, usually the row's.
+
+`Menu.RowAction` is a button that acts at once. It takes an `icon` and a `label`, which is its accessible name and its tooltip, and `onClick`. `closeOnClick={false}` keeps the menu open, for a step whose result the row shows, such as starting a task. `iconClassName` reaches the icon, for a fill. `Menu.RowSubmenuTrigger` looks the same and opens a submenu. Put it in a `Menu.SubmenuRoot` with a `Menu.Popup`. It has no tooltip, as the submenu opens on the same hover.
+
+<Demo src="overlays/menu-row" />
+
+Every button is an item of the menu, so the arrow keys reach it after its row. Typing never lands on a button, as typeahead reads only the row's label.
+
 ## Shortcuts in a row
 
 A [`Kbd`](/desktop-ui/display/kbd) inside a row is pushed to the row's end in the interface font and a faint color. The shortcut is only printed there. Bind the key itself on the window, once, and let the menu row and the key call the same function.
@@ -59,4 +70,4 @@ Under the keyboard the highlighted row carries the stronger pressed background; 
 
 ## Types
 
-`MenuPopupProps`, `MenuCheckProps`, `MenuLabelProps` and `MenuHintProps` are exported types.
+`MenuPopupProps`, `MenuCheckProps`, `MenuLabelProps`, `MenuHintProps`, `MenuRowProps`, `MenuRowActionProps` and `MenuRowSubmenuTriggerProps` are exported types.
