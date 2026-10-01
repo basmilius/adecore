@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Bell, Info, Keyboard, Palette, Settings } from 'lucide-react';
+import { Bell, Info, Keyboard, Palette, Settings, Sparkles } from 'lucide-react';
 import { Button, Icon, Select, Switch } from '@basmilius/desktop-ui';
 import { MasterDetail, MasterItem, SettingsDialog, SettingsRow, SettingsSection, type SettingsSearchResult } from '@basmilius/desktop-ui/settings';
 
@@ -64,8 +64,56 @@ function ShortcutsPane() {
     );
 }
 
+function AboutHero() {
+    return (
+        <div className="flex flex-col items-center gap-1.5 bg-surface-sunken px-8 pt-28 pb-12 text-center">
+            <Icon icon={Sparkles} size={20} className="mb-2 text-accent" />
+            <h3 className="text-lg font-semibold text-text">Example</h3>
+            <p className="text-xs text-text-muted">Version 1.0.0</p>
+        </div>
+    );
+}
+
+const DETAILS = [
+    { label: 'Electron', value: '38.2.0' },
+    { label: 'Chromium', value: '140.0.7339' },
+    { label: 'Node', value: '22.19.0' },
+    { label: 'Platform', value: 'macOS' }
+];
+
+const LINKS = ['Website', 'Source code', 'Report a problem'];
+
 function AboutPane() {
-    return <p className="text-sm text-text-muted">Version 1.0.0</p>;
+    const [automatic, setAutomatic] = useState(true);
+
+    return (
+        <>
+            <SettingsSection title="Updates">
+                <SettingsRow
+                    label="Download updates by themselves"
+                    control={<Switch label="Download updates by themselves" checked={automatic} onCheckedChange={setAutomatic} />}
+                />
+            </SettingsSection>
+            <SettingsSection title="Details">
+                {DETAILS.map((row) => (
+                    <SettingsRow key={row.label} label={row.label} control={<span className="text-xs text-text-muted">{row.value}</span>} />
+                ))}
+            </SettingsSection>
+            <SettingsSection title="Links">
+                {LINKS.map((link) => (
+                    <SettingsRow
+                        key={link}
+                        label={link}
+                        control={
+                            <Button variant="secondary" size="sm">
+                                Open
+                            </Button>
+                        }
+                    />
+                ))}
+            </SettingsSection>
+        </>
+    );
 }
 
 const GROUPS = [
@@ -82,7 +130,7 @@ const GROUPS = [
     }
 ];
 
-const FOOTER = [{ id: 'about', icon: Info, label: 'About', description: 'The version you run.', pane: AboutPane }];
+const FOOTER = [{ id: 'about', icon: Info, label: 'About', description: 'The version you run.', pane: AboutPane, hero: AboutHero }];
 
 const SEARCHABLE: SettingsSearchResult[] = [
     { section: 'appearance', id: null, label: 'Appearance' },

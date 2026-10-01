@@ -22,6 +22,9 @@ export interface SettingsSectionEntry {
     pane: ComponentType;
     /* A list beside a detail that scrolls on its own (`MasterDetail`), instead of one padded column. */
     split?: boolean;
+    /* A block above the pane that runs to its edges, with the title bar floating over its top. Loads with
+       the pane; a `split` section draws none. */
+    hero?: ComponentType;
 }
 
 export interface SettingsGroupEntry {
@@ -65,6 +68,9 @@ export interface SettingsDialogProps {
     className?: string;
     ref?: Ref<HTMLDivElement>;
 }
+
+/* How far a pane with a hero scrolls before the title bar over it is filled in. */
+const BAR_FILL_DISTANCE = 70;
 
 const NAV_ITEM =
     'flex h-8 min-w-0 shrink-0 items-center gap-2.5 rounded-md px-2.5 text-sm focus-visible:-outline-offset-2 text-text-muted hover:bg-surface-hover hover:text-text data-active:bg-surface-active data-active:text-text';
@@ -225,6 +231,8 @@ export function SettingsDialog({
     const meta = sections.find((entry) => entry.id === section) ?? sections[0]!;
     const items = sections.map((entry) => ({ value: entry.id, label: entry.label }));
     const searching = search !== undefined && query.trim() !== '';
+    const floating = meta.hero !== undefined && !meta.split;
+    const barFill = useRef<HTMLDivElement>(null);
     // The latest callback behind a stable one, so a lit row's timer does not start over on every render.
     const latestShown = useRef(onTargetShown);
     useEffect(() => {
@@ -270,8 +278,19 @@ export function SettingsDialog({
                     </div>
                     {/* The header sits outside the panels: inside one it remounts on every section
                             change, which throws the keyboard's focus away mid-arrow-key. */}
-                    <div className="flex min-h-0 min-w-0 grow flex-col">
-                        <div className="flex min-w-0 items-start gap-4 px-8 pt-5.5 pb-4.5 max-[960px]:px-4">
+                    <div className="relative flex min-h-0 min-w-0 grow flex-col">
+                        <div
+                            className={clsx('flex min-w-0 items-start gap-4 px-8 pt-5.5 pb-4.5 max-[960px]:px-4', floating && 'absolute inset-x-0 top-0 z-10')}
+                        >
+                            {floating && (
+                                // Keyed by section, so the next pane opens under a clear bar again.
+                                <div
+                                    key={meta.id}
+                                    ref={barFill}
+                                    className="absolute inset-0 -z-10 border-b border-border bg-surface-raised opacity-0"
+                                    aria-hidden
+                                />
+                            )}
                             <div className="min-w-0 grow">
                                 <h2 className="text-lg font-semibold text-text">{meta.label}</h2>
                                 <p className="mt-0.5 text-xs break-words text-text-muted">{meta.description}</p>
@@ -281,6 +300,7 @@ export function SettingsDialog({
                         <SettingsTargetContext value={targetValue}>
                             {sections.map((entry) => {
                                 const Pane = entry.pane;
+                                const Hero = entry.split ? undefined : entry.hero;
                                 return (
                                     <Tabs.Panel
                                         key={entry.id}
@@ -289,12 +309,23 @@ export function SettingsDialog({
                                         className={clsx(
                                             'flex min-h-0 min-w-0 grow flex-col outline-none',
                                             // A split pane scrolls each of its sides itself.
-                                            !entry.split && 'scroll-fade-top gap-7 overflow-y-auto px-8 pt-1 pb-10 max-[960px]:px-4'
+                                            !entry.split && 'gap-7 overflow-y-auto px-8 pb-10 max-[960px]:px-4',
+                                            // Under a hero the bar's fill marks the edge; a fade would wipe the hero out behind the clear bar.
+                                            !entry.split && !Hero && 'scroll-fade-top pt-1'
                                         )}
-                                        onScroll={(event) => event.currentTarget.toggleAttribute('data-fade-start', event.currentTarget.scrollTop > 0)}
+                                        onScroll={(event) => {
+                                            const top = event.currentTarget.scrollTop;
+                                            event.currentTarget.toggleAttribute('data-fade-start', top > 0);
+                                            barFill.current?.style.setProperty('opacity', String(Math.min(top / BAR_FILL_DISTANCE, 1)));
+                                        }}
                                     >
                                         <ErrorBoundary label={t('settings.failed')} className="min-h-0 grow">
                                             <Suspense fallback={null}>
+                                                {Hero && (
+                                                    <div className="-mx-8 shrink-0 max-[960px]:-mx-4">
+                                                        <Hero />
+                                                    </div>
+                                                )}
                                                 <Pane />
                                             </Suspense>
                                         </ErrorBoundary>

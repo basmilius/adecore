@@ -14,6 +14,8 @@ You describe the sections, the dialog draws them. `groups` is the navigation, in
 
 A pane is a padded column that scrolls, with a fade at its top once something scrolled under the header. A `split` section gets the whole height instead, for a [`MasterDetail`](/desktop-ui/settings/master-detail) whose two sides scroll on their own.
 
+A section with a `hero` opens on that block instead, run to the edges of the pane, with the title bar floating over its top. The bar is clear at first and fills in with the dialog's surface and a hairline over the first 70 pixels of scroll. The bar covers the top 86 pixels of the hero, more when its description wraps. The pane follows under the hero, one gap below it, in the same padded column as any other pane.
+
 You keep which section is open. `onNavigate` tells you when a person picks another, with the arrow keys in the navigation or a click.
 
 ## Search
@@ -47,6 +49,6 @@ The dialog is 1200 by 760 pixels and steps down with the viewport. Under 960 pix
 | `className` | `string` | On the popup. |
 | `ref` | `Ref<HTMLDivElement>` | |
 
-A `SettingsSectionEntry` is `{ id, icon, label, description, pane, split? }`, where the description is the line under the pane's title. A `SettingsSearchResult` is `{ section, id, label }`, with `id: null` for a result that is the pane itself.
+A `SettingsSectionEntry` is `{ id, icon, label, description, pane, split?, hero? }`, where the description is the line under the pane's title. A `SettingsSearchResult` is `{ section, id, label }`, with `id: null` for a result that is the pane itself.
 
 `SettingsDialogProps`, `SettingsGroupEntry`, `SettingsSectionEntry`, `SettingsSearch` and `SettingsSearchResult` are exported types.
