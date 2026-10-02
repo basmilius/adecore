@@ -74,7 +74,7 @@ export { messageOf } from './error-message.ts';
 export type { ResetKeys } from './error-boundary.ts';
 export { FILE_TREE_ICONS } from './file-icon.ts';
 export { cameThroughPortal, isInFloatingLayer } from './floating.ts';
-export { LoadedComponent, lazyDialog, lazyNamed } from './lazy.tsx';
+export { LoadedComponent, lazyDialog, lazyNamed, onLazyOpenError } from './lazy.tsx';
 export { UI_NAMESPACE, UI_RESOURCES, addUiResources } from './locales.ts';
 export { startInputModality } from './modality.ts';
 export { isApplePlatform } from './platform.ts';

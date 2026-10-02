@@ -1,5 +1,8 @@
-import { describe, expect, test } from 'bun:test';
-import { LoadedComponent } from './lazy.tsx';
+import { describe, expect, spyOn, test } from 'bun:test';
+import { Suspense, createElement, type ComponentType } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { LoadedComponent, lazyNamed, onLazyOpenError } from './lazy.tsx';
+import { prefetcher, type Loader } from './prefetch.ts';
 
 describe('LoadedComponent', () => {
     test('keeps what the first load gave and tells its listeners once', async () => {
@@ -36,5 +39,34 @@ describe('LoadedComponent', () => {
         expect(loaded.current).toBeNull();
         await loaded.load();
         expect(loaded.current).toBe(component);
+    });
+});
+
+describe('a failed open', () => {
+    test('reaches the app, also while a prefetch of the same module fails beside it, and that prefetch does not', async () => {
+        const gone = new TypeError('Failed to fetch dynamically imported module');
+        const register = spyOn(prefetcher, 'register');
+        const Surface = lazyNamed(async (): Promise<{ Surface: ComponentType }> => {
+            throw gone;
+        }, 'Surface');
+        const prefetch: Loader = register.mock.calls[0]![0];
+        register.mockRestore();
+        const reported: unknown[] = [];
+        let told!: () => void;
+        const firstReport = new Promise<void>((resolve) => {
+            told = resolve;
+        });
+        const stop = onLazyOpenError((error) => {
+            reported.push(error);
+            told();
+        });
+
+        const prefetched = prefetch().catch((error: unknown) => error);
+        renderToStaticMarkup(createElement(Suspense, { fallback: null }, createElement(Surface)));
+
+        expect(await prefetched).toBe(gone);
+        await firstReport;
+        expect(reported).toEqual([gone]);
+        stop();
     });
 });

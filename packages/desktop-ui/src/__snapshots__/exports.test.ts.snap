@@ -84,6 +84,7 @@ exports[`the public API . exports these names 1`] = `
   "lazyNamed",
   "matchesShortcut",
   "messageOf",
+  "onLazyOpenError",
   "prefetcher",
   "readClipboardText",
   "selectAllWithin",

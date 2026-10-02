@@ -34,6 +34,32 @@ export class LoadedComponent<Component> {
     }
 }
 
+const openErrorListeners = new Set<(error: unknown) => void>();
+
+/*
+ * Tells `listener` when a module that `lazyNamed` or `lazyDialog` loads for a render fails to load,
+ * which is a load a person waits on. A failed prefetch never reaches it, not even one of the same
+ * module at the same moment, so an app can answer the one without being woken by the other.
+ */
+export function onLazyOpenError(listener: (error: unknown) => void): () => void {
+    openErrorListeners.add(listener);
+    return () => {
+        openErrorListeners.delete(listener);
+    };
+}
+
+/* Only a render loads through here; the prefetcher calls `loaded.load()` itself, so its failures report nothing. */
+async function open<Component>(loaded: LoadedComponent<Component>): Promise<{ default: Component }> {
+    try {
+        return { default: await loaded.load() };
+    } catch (error) {
+        for (const listener of openErrorListeners) {
+            listener(error);
+        }
+        throw error;
+    }
+}
+
 /*
  * `React.lazy` for a module that exports its component by name, `default` included. Every module
  * loaded through here, or through `lazyDialog`, registers with `prefetcher`, which loads it ahead of
@@ -45,7 +71,7 @@ export function lazyNamed<Module extends Record<Name, ComponentType<any>>, Name 
 ): ComponentType<ComponentProps<Module[Name]>> {
     const loaded = new LoadedComponent(async () => (await load())[name]);
     prefetcher.register(() => loaded.load());
-    const Lazy = lazy(async () => ({ default: await loaded.load() }));
+    const Lazy = lazy(() => open(loaded));
     // Once `loaded` has it, `Lazy` never committed anything, so switching over remounts nothing.
     const LazyNamed = (props: ComponentProps<Module[Name]>) => {
         const Component: ComponentType<any> = loaded.current ?? Lazy;
@@ -75,7 +101,7 @@ export function lazyDialog<Module extends Record<Name, ComponentType>, Name exte
 ): ComponentType {
     const loaded = new LoadedComponent(async (): Promise<ComponentType> => (await load())[name]);
     prefetcher.register(() => loaded.load());
-    const Dialog = lazy(async (): Promise<{ default: ComponentType }> => ({ default: await loaded.load() }));
+    const Dialog = lazy(() => open(loaded));
     const subscribe = (listener: () => void) => loaded.subscribe(listener);
     const isLoaded = () => loaded.current !== null;
     const LazyDialog = () => {
