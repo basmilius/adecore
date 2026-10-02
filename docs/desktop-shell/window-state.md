@@ -23,6 +23,8 @@ app.on('before-quit', () => windowState.flush());
 
 `bounds` goes into the constructor. `track` follows the window from then on; call it right after constructing the window, before it is shown, since it maximizes the window or puts it in full screen again once the window is ready to show.
 
+`bounds` takes a fallback as its second argument, such as a spot beside another window, for a key with nothing saved yet. `has` says whether a key has bounds saved. A window that comes to show something else passes `track` a function for its key, which `track` asks at every change. [`createWindows`](/desktop-shell/windows) does all of this for an app with a set of windows.
+
 ## When it writes
 
 Half a second after a window stops moving or resizing, at once when it closes, and on `flush`, for the moment the app quits. The bounds are always the window's normal ones, so a window that was maximized comes back maximized, and at its own size once a person unmaximizes it.
