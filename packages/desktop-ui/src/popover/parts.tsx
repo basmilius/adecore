@@ -54,7 +54,7 @@ export function PopoverPopup({
     return (
         <BasePopover.Portal>
             <BasePopover.Positioner
-                className="z-(--z-popup)"
+                className="popup-positioner"
                 side={side}
                 align={align}
                 sideOffset={sideOffset}

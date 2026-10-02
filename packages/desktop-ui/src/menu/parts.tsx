@@ -95,7 +95,7 @@ export function MenuPopup({
     return (
         <BaseMenu.Portal>
             <BaseMenu.Positioner
-                className="z-(--z-popup)"
+                className="popup-positioner"
                 side={side ?? defaults.side}
                 align={align ?? defaults.align}
                 sideOffset={sideOffset ?? defaults.sideOffset}

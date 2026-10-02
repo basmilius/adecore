@@ -416,6 +416,11 @@
     /* One stack for everything that floats: a dialog, then the menus and selects a dialog can host,
        then the tooltips over those. A popup under its own dialog is the bug this ordering prevents;
        a component reaches the middle step with `z-(--z-popup)`. */
+    .popup-positioner { z-index: var(--z-popup); }
+    /* A press on a window's drag region goes to the system and never reaches the page, so a popup
+       that closes on a press outside it would stay open over a custom title bar. While one is open
+       nothing drags, the way a native title bar takes that first press to close a menu. */
+    :root:has(.popup-positioner[data-open]) * { -webkit-app-region: no-drag; }
     .dialog-backdrop { position: fixed; inset: 0; z-index: var(--z-dialog-backdrop); background: color-mix(in srgb, var(--bg) 55%, transparent); }
     .dialog-backdrop[data-starting-style], .dialog-backdrop[data-ending-style] { opacity: 0; }
     .dialog-popup {
