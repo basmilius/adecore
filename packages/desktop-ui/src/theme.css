@@ -62,11 +62,10 @@
     --media-handle-text: #18181b;
     --media-handle-edge: 0 0 0 1px rgb(0 0 0 / 0.3);
     --media-handle-shadow: 0 2px 12px rgb(0 0 0 / 0.35);
-    /* The file type palette of the `@pierre/trees` icon set, its own values. A file icon is the one
-       thing in the interface that is not tinted by the theme: TypeScript is blue and Vue is green
-       wherever the file shows up, which is what makes a row readable before the name is. The tree
-       gets these from the library inside its shadow root; everything drawn next to it reads them
-       here, so both stay the same color. */
+    /* The file type palette. A file icon is the one thing in the interface that is not tinted by the
+       theme: TypeScript is blue and Vue is green wherever the file shows up, which is what makes a
+       row readable before the name is. The sprite of the file icons reads these, inside a tree's
+       shadow root as well as beside it, so both stay the same color. */
     --file-icon-gray: #84848a;
     --file-icon-red: #d52c36;
     --file-icon-vermilion: #ff8c5b;
@@ -477,23 +476,9 @@
     .tooltip-popup[data-starting-style], .tooltip-popup[data-ending-style] { opacity: 0; scale: 0.98; }
     .tooltip-popup[data-instant] { transition: none; }
 
-    /* A file icon outside the tree. The glyph fills with `currentColor`, so the hue the set gives
-       the file type is the element's own color; a type the set leaves uncolored keeps the muted
-       text it would have in the tree. The hue is an attribute the resolver puts on the element. */
+    /* A file icon outside the tree. Its glyph takes the hue the sprite gives the file type, and a
+       type without one keeps the muted text it would have in the tree. */
     .file-icon { flex-shrink: 0; vertical-align: middle; fill: currentColor; color: var(--text-muted); }
-    .file-icon[data-hue="gray"] { color: var(--file-icon-gray); }
-    .file-icon[data-hue="red"] { color: var(--file-icon-red); }
-    .file-icon[data-hue="vermilion"] { color: var(--file-icon-vermilion); }
-    .file-icon[data-hue="orange"] { color: var(--file-icon-orange); }
-    .file-icon[data-hue="yellow"] { color: var(--file-icon-yellow); }
-    .file-icon[data-hue="green"] { color: var(--file-icon-green); }
-    .file-icon[data-hue="teal"] { color: var(--file-icon-teal); }
-    .file-icon[data-hue="cyan"] { color: var(--file-icon-cyan); }
-    .file-icon[data-hue="blue"] { color: var(--file-icon-blue); }
-    .file-icon[data-hue="indigo"] { color: var(--file-icon-indigo); }
-    .file-icon[data-hue="purple"] { color: var(--file-icon-purple); }
-    .file-icon[data-hue="pink"] { color: var(--file-icon-pink); }
-    .file-icon[data-hue="mauve"] { color: var(--file-icon-mauve); }
 
     /* A strip that scrolls sideways fades out at the edge that still hides something, and only there,
        so a strip that fits keeps its first and last item sharp. The edges are set by whoever scrolls. */

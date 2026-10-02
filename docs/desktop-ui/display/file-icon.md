@@ -8,11 +8,11 @@ import { FILE_TREE_ICONS, FileIcon } from '@basmilius/desktop-ui';
 
 <Demo src="display/file-icon" />
 
-The glyphs are the complete set of [`@pierre/trees`](https://www.npmjs.com/package/@pierre/trees), and their colors are the set's own, through the `--file-icon-*` tokens of the [theme](/desktop-ui/guide/theme#file-icons). A TypeScript blue or a Vue green is the mark of the file type, not a theme choice. Only the last segment of the path decides which icon it is. The sprite with every glyph goes into the document once, before the first icon paints.
+The glyphs are those of [Seti UI](https://github.com/jesseweed/seti-ui), which knows some 150 file types, and their colors are Seti's own, through the `--file-icon-*` tokens of the [theme](/desktop-ui/guide/theme#file-icons). A TypeScript blue or a Vue green is the mark of the file type, not a theme choice. Only the last segment of the path decides which icon it is: its whole name first, then a part of it, then its longest extension. The sprite with every glyph goes into the document once, before the first icon paints.
 
 ## With a file tree
 
-A `@pierre/trees` tree resolves and colors its own icons inside its shadow root. Hand it `FILE_TREE_ICONS` as its icon configuration, so the tree and every `FileIcon` beside it use the same set and never disagree about a file.
+A `@pierre/trees` tree resolves its own icons inside its shadow root. Hand it `FILE_TREE_ICONS` as its icon configuration: the sprite goes into the tree with the rules that color it, so the tree and every `FileIcon` beside it use the same set and never disagree about a file.
 
 ## Props
 

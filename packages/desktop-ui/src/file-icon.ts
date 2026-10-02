@@ -1,102 +1,39 @@
-import { createFileTreeIconResolver, getBuiltInSpriteSheet, type FileTreeBuiltInIconSet, type FileTreeIconConfig } from '@pierre/trees';
-
-/* The set a file tree draws with, and the only one the library colors: `minimal` has no file
-   types at all and `standard` drops the brand marks (TypeScript, Vue, Bun, Docker) that make a row
-   readable at a glance. Everything outside the tree resolves against the same set, so a tab, a
-   picker row and a tree row never disagree about what a file is. */
-const ICON_SET: FileTreeBuiltInIconSet = 'complete';
+import { createFileTreeIconResolver, type FileTreeIconConfig } from '@pierre/trees';
+import { SETI_BY_FILE_EXTENSION, SETI_BY_FILE_NAME, SETI_BY_FILE_NAME_CONTAINS, SETI_DEFAULT_SYMBOL, SETI_SPRITE_SHEET } from './seti-icons.ts';
 
 const SPRITE_ELEMENT_ID = 'desktop-ui-file-icon-sprite';
 
-/* A `@pierre/trees` tree resolves and colors its own icons inside its shadow root, so it takes the
-   set as configuration where everything drawn beside it calls `fileIconFor`. Hand this to the tree. */
-export const FILE_TREE_ICONS: FileTreeIconConfig = { set: ICON_SET, colored: true };
-
-/* The set gives every file type a hue. The library keeps that mapping in the CSS of the tree's
-   shadow root, which nothing outside the tree can read, so it is repeated here against the
-   `--file-icon-*` tokens in `theme.css`, which carry the library's own values. A token missing
-   here is one the library leaves uncolored; it inherits the muted text color the tree gives it. */
-export type FileIconHue = 'blue' | 'cyan' | 'gray' | 'green' | 'indigo' | 'mauve' | 'orange' | 'pink' | 'purple' | 'red' | 'teal' | 'vermilion' | 'yellow';
-
-const HUE_BY_TOKEN: Record<string, FileIconHue> = {
-    astro: 'purple',
-    babel: 'yellow',
-    bash: 'green',
-    biome: 'blue',
-    bootstrap: 'indigo',
-    browserslist: 'yellow',
-    bun: 'mauve',
-    c: 'blue',
-    claude: 'orange',
-    cpp: 'blue',
-    css: 'indigo',
-    database: 'purple',
-    default: 'gray',
-    docker: 'blue',
-    eslint: 'indigo',
-    git: 'vermilion',
-    go: 'cyan',
-    graphql: 'pink',
-    html: 'orange',
-    image: 'pink',
-    javascript: 'yellow',
-    json: 'orange',
-    markdown: 'green',
-    mcp: 'teal',
-    npm: 'red',
-    oxc: 'cyan',
-    postcss: 'red',
-    prettier: 'teal',
-    python: 'blue',
-    react: 'cyan',
-    ruby: 'red',
-    rust: 'orange',
-    sass: 'pink',
-    svelte: 'red',
-    svg: 'orange',
-    svgo: 'green',
-    swift: 'orange',
-    table: 'teal',
-    tailwind: 'cyan',
-    terraform: 'indigo',
-    text: 'gray',
-    typescript: 'blue',
-    vite: 'purple',
-    vscode: 'blue',
-    vue: 'green',
-    wasm: 'indigo',
-    webpack: 'blue',
-    yml: 'red',
-    zig: 'orange',
-    zip: 'orange'
+/* The glyphs are Seti's (`seti-icons.ts`), which knows far more file types than the sets the tree
+   ships with. The tree only colors its own sets, so every symbol carries its hue in its id and the
+   sprite brings the rules that color it. A tree takes all of it as configuration where everything
+   drawn beside it calls `fileIconFor`, so a tab, a picker row and a tree row never disagree about
+   what a file is. Hand this to the tree. */
+export const FILE_TREE_ICONS: FileTreeIconConfig = {
+    set: 'none',
+    spriteSheet: SETI_SPRITE_SHEET,
+    remap: { 'file-tree-icon-file': SETI_DEFAULT_SYMBOL },
+    byFileName: SETI_BY_FILE_NAME,
+    byFileExtension: SETI_BY_FILE_EXTENSION,
+    byFileNameContains: SETI_BY_FILE_NAME_CONTAINS
 };
 
 let resolver: ReturnType<typeof createFileTreeIconResolver> | null = null;
 
 /* Built on the first icon rather than on import, so a bundle that never draws one never builds it. */
 const resolveIcon: ReturnType<typeof createFileTreeIconResolver>['resolveIcon'] = (...args) => {
-    resolver ??= createFileTreeIconResolver(ICON_SET);
+    resolver ??= createFileTreeIconResolver(FILE_TREE_ICONS);
     return resolver.resolveIcon(...args);
 };
 
-export interface FileIcon {
-    /* The id of a `<symbol>` in the sprite `mountFileIconSprite` puts in the document. */
-    symbol: string;
-    /* Undefined for a type the set leaves uncolored, which then reads as plain muted text. */
-    hue: FileIconHue | undefined;
-}
-
 /*
- * The icon the set gives a file. The path may be absolute or relative. Only the last segment
- * decides, first by exact name (`package.json`, `.gitignore`), then by the longest extension that
- * matches (`spec.ts` before `ts`). Anything the set does not know falls back to its generic file
- * icon, and so does a directory, because the set ships none. The tree marks a folder with the
- * chevron that turns as it opens, not with a glyph of its own.
+ * The id of the `<symbol>` the set gives a file, in the sprite `mountFileIconSprite` puts in the
+ * document. The path may be absolute or relative. Only the last segment decides, first by exact
+ * name (`package.json`, `.gitignore`), then by a part of the name (`Dockerfile.dev`), then by the
+ * longest extension that matches (`spec.ts` before `ts`). Anything the set does not know falls back
+ * to its generic file icon, and so does a directory. The tree marks a folder with the chevron that
+ * turns as it opens, not with a glyph of its own.
  */
-export const fileIconFor = (path: string): FileIcon => {
-    const icon = resolveIcon('file-tree-icon-file', path);
-    return { symbol: icon.name, hue: icon.token === undefined ? undefined : HUE_BY_TOKEN[icon.token] };
-};
+export const fileIconFor = (path: string): string => resolveIcon('file-tree-icon-file', path).name;
 
 /* The tree carries the sprite into its own shadow root, out of reach of anything that draws an
    icon next to it, so the document gets a copy of the same sheet to point `<use>` at. */
@@ -105,7 +42,7 @@ export const mountFileIconSprite = (): void => {
         return;
     }
     const holder = document.createElement('div');
-    holder.innerHTML = getBuiltInSpriteSheet(ICON_SET);
+    holder.innerHTML = SETI_SPRITE_SHEET;
     const sprite = holder.firstElementChild;
     if (sprite === null) {
         return;

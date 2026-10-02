@@ -46,7 +46,7 @@ A control drawn over a picture rather than over the interface, such as the handl
 
 ## File icons
 
-The palette of the `@pierre/trees` icon set, which [`FileIcon`](/desktop-ui/display/file-icon) colors a file type with. A file icon is the one thing the theme does not tint: TypeScript stays blue wherever the file shows up.
+The file type palette, which [`FileIcon`](/desktop-ui/display/file-icon) colors a file type with. A file icon is the one thing the theme does not tint: TypeScript stays blue wherever the file shows up.
 
 <TokenTable group="file-icon" />
 
