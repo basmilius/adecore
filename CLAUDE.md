@@ -1,6 +1,6 @@
 # basmilius/desktop
 
-The packages two desktop apps share, released together under one version. `@basmilius/desktop-ui` (`packages/desktop-ui`) is the page's: components, a theme, formatters and a settings dialog, on React 19, Base UI, Lucide and Tailwind 4. `@basmilius/desktop-shell` (`packages/desktop-shell`) is the main process's: the application menu, the updater, the set of windows with their state and the web guards. `desktop-ui` was `@basmilius/react-ui` up to `0.4.x`, in a repository of that name. Each package's `README.md` is for people who use it; this file is for agents who work on it. `packages/desktop-ui/MIGRATION.md` maps the names it replaced onto the current ones.
+The packages two desktop apps share, released together under one version. `@basmilius/desktop-ui` (`packages/desktop-ui`) is the page's: components, a theme, formatters and a settings dialog, on React 19, Base UI, Lucide and Tailwind 4. `@basmilius/desktop-shell` (`packages/desktop-shell`) is the main process's: the application menu, the updater, the set of windows with their state and the web guards. `desktop-ui` was `@basmilius/react-ui` up to `0.4.x`, in a repository of that name. Each package's `README.md` is for people who use it; this file is for agents who work on it.
 
 ## Who uses it
 
@@ -18,8 +18,8 @@ An issue from either app has three sections: `## Problem` (what is missing or wr
 - Before you change anything an entry point exports (a name, a prop, a default, a class a component puts on its element), read its call sites in both apps: `grep -rn "<Name\b" ../../ruimte/apps/client/src ../../ruimte/packages/agents-react/src ../../aftermotion/apps/client/src` for `desktop-ui`, and `grep -rn "\bname\b" ../../ruimte/apps/desktop/src ../../ruimte/packages/desktop-bridge/src ../../aftermotion/apps/desktop/src ../../aftermotion/packages/desktop-bridge/src` for `desktop-shell`.
 - A request from one app gets a shape that describes the need, not the app. The answer may be a different API than the one asked for, or a no: something only one app needs stays in that app.
 - No option exists for one app only unless its shape is generic enough that a third app could want it.
-- A breaking change lists the call sites in both apps, carries a migration note (in the PR and, while it lasts, in `MIGRATION.md`), and gets the `Breaking` label.
-- Library code, `README.md` and any docs never name the apps. Describe the need ("a panel along the right edge", "a dialog opened over another"). Only this file, the issue templates and `MIGRATION.md` may name them.
+- A breaking change lists the call sites in both apps, carries a migration note in the PR, and gets the `Breaking` label.
+- Library code, `README.md` and any docs never name the apps. Describe the need ("a panel along the right edge", "a dialog opened over another"). Only this file and the issue templates may name them.
 - `packages/desktop-ui/src/__snapshots__/exports.test.ts.snap` lists every exported name, types included, and the parts of every compound component. A change there is an API change: accept it with `bun test --update-snapshots` only when you meant it.
 
 ## Layout

@@ -29,8 +29,6 @@ bun add @basmilius/desktop-shell
 
 Take both at the same version, since each version is tested against the same version of the other. While the version is `0.x`, a breaking change bumps the minor and anything else the patch. The [release notes](https://github.com/basmilius/desktop/releases) name every breaking change with what to do about it.
 
-`@basmilius/desktop-ui` was published as `@basmilius/react-ui` up to `0.4.x`. [MIGRATION.md](packages/desktop-ui/MIGRATION.md) maps the old names onto the new ones.
-
 ## For coding agents
 
 The docs site serves [`llms.txt`](https://desktop.bas.dev/llms.txt) as an index of every page and [`llms-full.txt`](https://desktop.bas.dev/llms-full.txt) with every page in one file. Each page is also plain Markdown at its own URL plus `.md`, such as [`/desktop-ui/actions/button.md`](https://desktop.bas.dev/desktop-ui/actions/button.md).

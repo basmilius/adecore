@@ -2,8 +2,6 @@
 
 `@basmilius/desktop-ui` is a set of React components for apps that behave like desktop software: dense toolbars, menus with shortcuts, dialogs over dialogs, a settings window. It sits on [Base UI](https://base-ui.com) for behavior, [Lucide](https://lucide.dev) for icons and Tailwind 4 for styling, and it ships its own theme.
 
-Coming from an earlier package? [MIGRATION.md](https://github.com/basmilius/desktop/blob/main/packages/desktop-ui/MIGRATION.md) maps every old name onto this one.
-
 ## Install
 
 ::: code-group

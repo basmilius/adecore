@@ -12,7 +12,7 @@ const sources = (): { path: string; text: string }[] =>
 /* What an app has and a library never reaches: an app's alias, a path out of `src`, or a package of an app. */
 const REACHES_OUT = /from ['"](?:@\/|~\/|(?:\.\.\/)+(?:\.\.\/|apps\/|packages\/)|@ruimte\/|@aftermotion\/)/;
 
-/* The documents a person reads to use the library; the notes for agents and the migration guide may name the apps. */
+/* The documents a person reads to use the library; the notes for agents may name the apps. */
 const PUBLIC_DOCS = ['README.md'];
 
 describe('the boundary of the library', () => {

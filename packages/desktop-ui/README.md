@@ -78,8 +78,6 @@ Nothing else is public. No module does work on import, so a bundler keeps only w
 | [Formatting](https://desktop.bas.dev/desktop-ui/formatting/) | Numbers, dates, durations and regions |
 | [Testing](https://desktop.bas.dev/desktop-ui/utilities/testing) | Fakes for an app's tests and the preload for a linked checkout |
 
-Coming from `@basmilius/react-ui`? [MIGRATION.md](https://github.com/basmilius/desktop/blob/main/packages/desktop-ui/MIGRATION.md) maps every old name onto the new one.
-
 ## License
 
 MIT
