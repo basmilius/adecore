@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "name": "Desktop",
+  "color": "#7c74ff",
+  "icon": {"kind":"lucide","value":"star"},
+  "views": []
+}
