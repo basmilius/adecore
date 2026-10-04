@@ -50,7 +50,7 @@ export function Tooltip({ label, kbd, side = 'top', sideOffset = 6, name = false
                 <BaseTooltip.Positioner side={side} sideOffset={sideOffset} className="tooltip-positioner">
                     <BaseTooltip.Popup className="tooltip-popup">
                         <BaseTooltip.Viewport className="max-w-72 px-[9px] py-[5px] text-pretty">
-                            <span>{label}</span>
+                            <span className="wrap-anywhere">{label}</span>
                             {/* The viewport wraps its children in a div of its own, so the 8px
                                 between the label and the shortcut has to sit on the shortcut itself. */}
                             {kbd !== undefined &&

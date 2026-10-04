@@ -14,7 +14,7 @@ The child is the trigger. It keeps its own props and handlers, and Base UI merge
 
 `name` makes the label the trigger's accessible name as well. That is what an icon-only button needs, and it keeps the name and the tooltip from ever saying two different things. [`IconButton`](/desktop-ui/actions/icon-button) already does this with its `label`.
 
-A label stays on one line up to 288 pixels and wraps past that, where the browser can without leaving one word alone on the last line. A sentence about a row then reads as a few lines instead of one across the window.
+A label stays on one line up to 288 pixels and wraps past that, where the browser can without leaving one word alone on the last line. Long paths and other unbroken labels wrap within that width. A sentence about a row then reads as a few lines instead of one across the window.
 
 ## TooltipProvider
 
