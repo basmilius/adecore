@@ -384,8 +384,9 @@
        and the whole row lights up under the pointer while the item beneath it lights up more. */
     .menu-row { display: flex; min-width: 0; align-items: stretch; gap: 1px; }
     .menu-row > .menu-item:first-child { flex: 1 1 0%; min-width: 0; }
-    .menu-row > .menu-item:not(:last-child) { border-top-right-radius: 0; border-bottom-right-radius: 0; }
-    .menu-row > .menu-item:not(:first-child) { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+    /* By the items around it, not by :last-child: an open submenu puts its focus guards in the row. */
+    .menu-row > .menu-item:has(~ .menu-item) { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+    .menu-row > .menu-item ~ .menu-item { border-top-left-radius: 0; border-bottom-left-radius: 0; }
     .menu-row-action {
         flex-shrink: 0;
         width: calc(var(--text-sm--line-height) + 12px);
