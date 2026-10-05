@@ -52,3 +52,8 @@ export interface GridMenuContext {
     /* The cell under the pointer; `null` when the menu opened on a row number. */
     readonly cell: FocusedCell | null;
 }
+
+/* A column to pick and bring into view, named by its index in the columns the grid was given. */
+export interface ColumnRequest {
+    readonly column: number;
+}

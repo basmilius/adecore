@@ -6,8 +6,9 @@ import { UIProvider } from '@adecore/ui';
 import { DatabaseProvider } from '../DatabaseProvider.tsx';
 import type { DatabaseClient } from '../client/types.ts';
 import type { Aggregates } from '../grid/aggregates.ts';
+import type { Chip, CommandColumn } from './command-field.ts';
 import { pageBounds } from './paging.ts';
-import { TableFooter } from './TableFooter.tsx';
+import { TableStatusBar, type SelectionFigures } from './TableStatusBar.tsx';
 import { TableToolbar, type TableToolbarProps } from './TableToolbar.tsx';
 
 const i18n = i18next.createInstance();
@@ -22,21 +23,23 @@ const render = (node: ReactNode): string =>
 
 const noop = () => {};
 
-const footer = (offset: number, rows: number, hasMore: boolean, counted: number | null, aggregates?: Aggregates | null) => (
-    <TableFooter
+const statusBar = (offset: number, rows: number, hasMore: boolean, counted: number | null, selection?: SelectionFigures | null) => (
+    <TableStatusBar
         elapsedMs={12.34}
         bounds={pageBounds(offset, rows, hasMore, counted)}
-        pageSize={500}
         counting={false}
-        aggregates={aggregates}
+        selection={selection}
         onCount={noop}
-        onFirst={noop}
         onPrevious={noop}
         onNext={noop}
-        onLast={noop}
-        onPageSizeChange={noop}
     />
 );
+
+const columns: CommandColumn[] = [
+    { name: 'id', type: 'INTEGER' },
+    { name: 'quantity', type: 'INTEGER' },
+    { name: 'created_at', type: 'TEXT' }
+];
 
 const toolbarProps: TableToolbarProps = {
     refreshing: false,
@@ -46,148 +49,154 @@ const toolbarProps: TableToolbarProps = {
     valuePanelOpen: false,
     pendingCount: 0,
     submitting: false,
-    where: '',
-    orderBy: '',
-    onFilterChange: noop,
-    onApplyFilters: noop,
-    onClearFilter: noop,
+    engine: 'sqlite',
+    chips: [],
+    columns,
+    pageSize: 500,
+    bounds: pageBounds(0, 500, true, null),
+    onChipsChange: noop,
+    onJumpToColumn: noop,
     onRefresh: noop,
     onAddRow: noop,
     onDeleteRows: noop,
     onCloneRows: noop,
     onRevertRows: noop,
     onToggleValuePanel: noop,
+    onPageSizeChange: noop,
+    onFirstPage: noop,
+    onLastPage: noop,
     onSubmit: noop,
     onRevert: noop
 };
 
-describe('TableFooter', () => {
-    test('shows the time, the range and an open ended total with a way to count', () => {
-        const markup = render(footer(0, 500, true, null));
-        expect(markup).toContain('Query time');
-        expect(markup).toContain('12.3 ms');
+describe('TableStatusBar', () => {
+    test('shows the range and an open ended total as a button that counts', () => {
+        const markup = render(statusBar(0, 500, true, null));
         expect(markup).toContain('Rows 1 to 500');
-        expect(markup).toContain('of 501+');
-        expect(markup).toContain('Count rows');
+        expect(markup).toContain('>of<');
+        expect(markup).toMatch(/<button[^>]*aria-label="Count rows"[^>]*>501\+<\/button>/);
+        expect(markup).toContain('12.3 ms');
     });
 
     test('shows the exact total once it is counted, without the count button', () => {
-        const markup = render(footer(0, 500, true, 1234));
+        const markup = render(statusBar(0, 500, true, 1234));
         expect(markup).toContain('of 1,234');
         expect(markup).not.toContain('Count rows');
     });
 
     test('knows the total on the last page', () => {
-        const markup = render(footer(500, 120, false, null));
+        const markup = render(statusBar(500, 120, false, null));
         expect(markup).toContain('Rows 501 to 620');
         expect(markup).toContain('of 620');
         expect(markup).not.toContain('Count rows');
     });
 
+    test('says there are no rows', () => {
+        const markup = render(statusBar(0, 0, false, null));
+        expect(markup).toContain('No rows');
+        expect(markup).not.toContain('Count rows');
+    });
+
     test('has no previous page on the first page and no next page on the last', () => {
-        expect(render(footer(0, 500, true, null))).toMatch(/aria-label="Previous page"[^>]* disabled=""/);
-        expect(render(footer(500, 120, false, null))).toMatch(/aria-label="Next page"[^>]* disabled=""/);
+        expect(render(statusBar(0, 500, true, null))).toMatch(/aria-label="Previous page"[^>]* disabled=""/);
+        expect(render(statusBar(500, 120, false, null))).toMatch(/aria-label="Next page"[^>]* disabled=""/);
+        expect(render(statusBar(500, 500, true, 1234))).not.toMatch(/aria-label="Previous page"[^>]* disabled=""/);
     });
 
-    test('has no way to the first page on the first page and none to the last on the last', () => {
-        expect(render(footer(0, 500, true, null))).toMatch(/aria-label="First page"[^>]* disabled=""/);
-        expect(render(footer(500, 120, false, null))).toMatch(/aria-label="Last page"[^>]* disabled=""/);
-    });
-
-    test('leaves the last page open while more rows exist, counted or not', () => {
-        expect(render(footer(0, 500, true, null))).not.toMatch(/aria-label="Last page"[^>]* disabled=""/);
-        expect(render(footer(0, 500, true, 1234))).not.toMatch(/aria-label="Last page"[^>]* disabled=""/);
-        expect(render(footer(500, 500, true, 1234))).not.toMatch(/aria-label="First page"[^>]* disabled=""/);
+    test('keeps the page size and the first and last page out of the bar', () => {
+        const markup = render(statusBar(500, 500, true, null));
+        expect(markup).not.toContain('Rows per page');
+        expect(markup).not.toContain('First page');
+        expect(markup).not.toContain('Last page');
     });
 });
 
-describe('TableToolbar', () => {
-    test('offers Submit with the count and Revert while changes are pending', () => {
-        const markup = render(<TableToolbar {...toolbarProps} pendingCount={3} />);
-        expect(markup).toContain('Submit (3)');
-        expect(markup).toContain('>Revert<');
-    });
-
-    test('disables the row actions when a reason says the table is read only', () => {
-        const markup = render(<TableToolbar {...toolbarProps} readOnlyReason="A view cannot be edited." />);
-        expect(markup).toMatch(/aria-label="Add row" aria-disabled="true"/);
-        expect(markup).toMatch(/aria-label="Delete selected rows" aria-disabled="true"/);
-        expect(markup).not.toMatch(/aria-label="Refresh" aria-disabled/);
-    });
-
-    test('offers cloning and reverting the selected rows, and closes them for a read only table', () => {
-        const open = render(<TableToolbar {...toolbarProps} />);
-        expect(open).not.toMatch(/aria-label="Clone selected rows" aria-disabled/);
-        expect(open).not.toMatch(/aria-label="Revert selected rows" aria-disabled/);
-        const closed = render(<TableToolbar {...toolbarProps} readOnlyReason="A view cannot be edited." canRevertSelection={false} />);
-        expect(closed).toMatch(/aria-label="Clone selected rows" aria-disabled="true"/);
-        expect(closed).toMatch(/aria-label="Revert selected rows" aria-disabled="true"/);
-    });
-
-    test('has a value panel toggle that says whether the panel is open', () => {
-        expect(render(<TableToolbar {...toolbarProps} />)).toMatch(
-            /aria-label="Value panel"[^>]* aria-pressed="false"|aria-pressed="false"[^>]*aria-label="Value panel"/
-        );
-        expect(render(<TableToolbar {...toolbarProps} valuePanelOpen />)).toMatch(
-            /aria-label="Value panel"[^>]* aria-pressed="true"|aria-pressed="true"[^>]*aria-label="Value panel"/
-        );
-    });
-
-    test('keeps deleting closed until a row is selected', () => {
-        expect(render(<TableToolbar {...toolbarProps} hasSelection={false} />)).toMatch(/aria-label="Delete selected rows" aria-disabled="true"/);
-        expect(render(<TableToolbar {...toolbarProps} />)).not.toMatch(/aria-label="Delete selected rows" aria-disabled/);
-    });
-});
-
-describe('TableFooter aggregates', () => {
+describe('TableStatusBar selection', () => {
     const numeric: Aggregates = {
-        count: 6,
-        numeric: { count: 4, sum: 1234.5, average: 308.6, minimum: 5, maximum: 900, minimumText: '5', maximumText: '900' }
+        count: 20,
+        numeric: { count: 20, sum: 39, average: 1.95, minimum: 1, maximum: 3, minimumText: '1', maximumText: '3' }
     };
 
     test('shows nothing about a selection while there is none', () => {
-        expect(render(footer(0, 10, false, null))).not.toContain('Count</span>');
-        expect(render(footer(0, 10, false, null, null))).not.toContain('Sum');
+        expect(render(statusBar(0, 10, false, null))).not.toContain('data-selection');
+        expect(render(statusBar(0, 10, false, null, null))).not.toContain('Sum');
     });
 
-    test('shows the count of the selected cells, and the figures of the numbers in them', () => {
-        const markup = render(footer(0, 10, false, null, numeric));
-        expect(markup).toContain('Count <span class="text-text">6</span>');
-        expect(markup).toContain('Sum <span class="text-text">1,234.5</span>');
-        expect(markup).toContain('Average <span class="text-text">308.6</span>');
-        expect(markup).toContain('Min <span class="text-text">5</span>');
-        expect(markup).toContain('Max <span class="text-text">900</span>');
+    test('shows the column, the cell count and the figures of the numbers, labels faint and values plain', () => {
+        const markup = render(statusBar(0, 20, false, null, { columns: ['quantity'], aggregates: numeric }));
+        expect(markup).toContain('>quantity<');
+        expect(markup).toContain('20 cells');
+        expect(markup).toContain('<span class="text-text-faint">Sum</span> <span class="text-text">39</span>');
+        expect(markup).toContain('<span class="text-text-faint">Avg</span> <span class="text-text">1.95</span>');
+        expect(markup).toContain('<span class="text-text-faint">Min</span> <span class="text-text">1</span>');
+        expect(markup).toContain('<span class="text-text-faint">Max</span> <span class="text-text">3</span>');
+    });
+
+    test('names several columns by their number', () => {
+        expect(render(statusBar(0, 20, false, null, { columns: ['a', 'b', 'c'], aggregates: numeric }))).toContain('3 columns');
     });
 
     test('shows only the count when the selection holds no numbers', () => {
-        const markup = render(footer(0, 10, false, null, { count: 4, numeric: null }));
-        expect(markup).toContain('Count <span class="text-text">4</span>');
+        const markup = render(statusBar(0, 4, false, null, { columns: ['name'], aggregates: { count: 4, numeric: null } }));
+        expect(markup).toContain('4 cells');
         expect(markup).not.toContain('Sum');
     });
 });
 
-describe('TableToolbar export, import and record view', () => {
-    test('has no export menu without file dialogs', () => {
-        expect(render(<TableToolbar {...toolbarProps} />)).not.toContain('aria-label="Export"');
+describe('TableToolbar', () => {
+    test('is the command field with refresh, add row and a menu for the rest', () => {
+        const markup = render(<TableToolbar {...toolbarProps} />);
+        expect(markup).toContain('role="combobox"');
+        expect(markup).toContain('placeholder="Filter, sort or jump to a column"');
+        expect(markup).toContain('aria-label="Refresh"');
+        expect(markup).toContain('aria-label="Add row"');
+        expect(markup).toContain('aria-label="More actions"');
+        expect(markup).not.toContain('WHERE');
+        expect(markup).not.toContain('ORDER BY');
     });
 
-    test('offers Export when the app has file dialogs, and busy disables it', () => {
-        const open = render(<TableToolbar {...toolbarProps} transfer={{ busy: false, onExport: noop }} />);
-        expect(open).toContain('aria-label="Export"');
-        expect(open).not.toMatch(/disabled=""[^>]*aria-label="Export"/);
-        expect(render(<TableToolbar {...toolbarProps} transfer={{ busy: true, onExport: noop }} />)).toMatch(/disabled=""[^>]*aria-label="Export"/);
+    test('shows the key cap that focuses the command field', () => {
+        expect(render(<TableToolbar {...toolbarProps} />)).toMatch(/<kbd[^>]*>(?:⌘F|Ctrl\+F)<\/kbd>/);
     });
 
-    test('names the menu for the import as well when the table takes rows', () => {
-        const markup = render(<TableToolbar {...toolbarProps} transfer={{ busy: false, onExport: noop, onImport: noop }} />);
-        expect(markup).toContain('aria-label="Export and import"');
+    test('draws a filter as a chip with its condition and a sort as an arrow and its column', () => {
+        const chips: Chip[] = [
+            { kind: 'filter', text: 'quantity > 1', sql: '"quantity" > 1' },
+            { kind: 'sort', column: 'created_at', direction: 'desc' }
+        ];
+        const markup = render(<TableToolbar {...toolbarProps} chips={chips} />);
+        expect(markup).toContain('>quantity &gt; 1</button>');
+        expect(markup).toContain('lucide-arrow-down');
+        expect(markup).toContain('>created_at</span>');
+        expect(markup).toContain('aria-label="Remove filter"');
+        expect(markup).toContain('aria-label="Remove sort"');
+        expect(markup).not.toContain('placeholder=');
     });
 
-    test('has a record view toggle that says whether the view is open', () => {
-        expect(render(<TableToolbar {...toolbarProps} onToggleRecordView={noop} />)).toMatch(/aria-label="Record view"[^>]* aria-pressed="false"/);
-        expect(render(<TableToolbar {...toolbarProps} onToggleRecordView={noop} recordViewOpen />)).toMatch(
-            /aria-label="Record view"[^>]* aria-pressed="true"/
-        );
-        expect(render(<TableToolbar {...toolbarProps} />)).not.toContain('Record view');
+    test('shows a raw ORDER BY as text without a button to edit it', () => {
+        const markup = render(<TableToolbar {...toolbarProps} chips={[{ kind: 'order', text: 'name NULLS LAST' }]} />);
+        expect(markup).toContain('name NULLS LAST');
+        expect(markup).not.toContain('aria-label="Edit filter');
+    });
+
+    test('offers Submit with the count and Revert while changes are pending', () => {
+        const markup = render(<TableToolbar {...toolbarProps} pendingCount={3} />);
+        expect(markup).toContain('Submit (3)');
+        expect(markup).toContain('>Revert<');
+        expect(render(<TableToolbar {...toolbarProps} />)).not.toContain('Submit');
+    });
+
+    test('disables adding a row when a reason says the table is read only', () => {
+        const markup = render(<TableToolbar {...toolbarProps} readOnlyReason="A view cannot be edited." />);
+        expect(markup).toMatch(/aria-label="Add row" aria-disabled="true"/);
+        expect(markup).not.toMatch(/aria-label="Refresh" aria-disabled/);
+        expect(render(<TableToolbar {...toolbarProps} />)).not.toMatch(/aria-label="Add row" aria-disabled/);
+    });
+
+    test('keeps the removed controls out of the row', () => {
+        const markup = render(<TableToolbar {...toolbarProps} onToggleRecordView={noop} transfer={{ busy: false, onExport: noop }} />);
+        for (const label of ['Delete selected rows', 'Clone selected rows', 'Revert selected rows', 'Value editor', 'Record view', 'Export']) {
+            expect(markup).not.toContain(`aria-label="${label}"`);
+        }
     });
 });

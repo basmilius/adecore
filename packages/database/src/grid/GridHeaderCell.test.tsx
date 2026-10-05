@@ -1,0 +1,93 @@
+import { describe, expect, test } from 'bun:test';
+import type { ReactNode } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import i18next from 'i18next';
+import { UIProvider } from '@adecore/ui';
+import { DatabaseProvider } from '../DatabaseProvider.tsx';
+import type { DatabaseClient } from '../client/types.ts';
+import { GridHeaderCell, type GridHeaderCellProps } from './GridHeaderCell.tsx';
+
+const i18n = i18next.createInstance();
+await i18n.init({ lng: 'en', fallbackLng: 'en', resources: {}, interpolation: { escapeValue: false } });
+
+const render = (node: ReactNode): string =>
+    renderToStaticMarkup(
+        <UIProvider i18n={i18n}>
+            <DatabaseProvider client={{} as DatabaseClient}>{node}</DatabaseProvider>
+        </UIProvider>
+    );
+
+const noop = () => {};
+
+const props: GridHeaderCellProps = {
+    column: { name: 'quantity', type: 'INTEGER', kind: 'integer' },
+    index: 1,
+    position: 1,
+    width: 120,
+    sortable: true,
+    selected: false,
+    id: 'grid-h-1',
+    sort: null,
+    multipleSorts: false,
+    hasSorts: false,
+    pinned: false,
+    stickyLeft: 0,
+    lastPinned: false,
+    last: false,
+    hasHidden: false,
+    canHide: true,
+    actions: {
+        onSelect: noop,
+        onSortDirection: noop,
+        onClearSort: noop,
+        onResize: noop,
+        onFit: noop,
+        onHide: noop,
+        onShowAll: noop,
+        onTogglePin: noop
+    }
+};
+
+describe('GridHeaderCell', () => {
+    test('is plain until its column is picked', () => {
+        const markup = render(<GridHeaderCell {...props} />);
+        expect(markup).toContain('aria-selected="false"');
+        expect(markup).not.toContain('bg-accent');
+        expect(markup).not.toContain('data-selected');
+        expect(markup).toContain('text-text-muted');
+    });
+
+    test('wears the accent when its column is picked, with the menu button in view', () => {
+        const markup = render(<GridHeaderCell {...props} selected />);
+        expect(markup).toContain('aria-selected="true"');
+        expect(markup).toContain('data-selected=""');
+        expect(markup).toContain('bg-accent text-accent-text');
+        expect(markup).toContain('aria-label="Column menu"');
+        expect(markup).not.toMatch(/aria-label="Column menu"[^>]*opacity-0/);
+    });
+
+    test('keeps the sort arrow of a sorted column, picked or not', () => {
+        const sort = { direction: 'desc' as const, position: 1 };
+        expect(render(<GridHeaderCell {...props} sort={sort} />)).toContain('lucide-arrow-down');
+        const picked = render(<GridHeaderCell {...props} sort={sort} selected />);
+        expect(picked).toContain('lucide-arrow-down');
+        expect(picked).toContain('aria-sort="descending"');
+    });
+
+    test('draws a gold key before the name of a key column', () => {
+        const markup = render(<GridHeaderCell {...props} column={{ ...props.column, primaryKey: true }} />);
+        expect(markup).toMatch(/lucide-key [^"]*text-file-icon-yellow/);
+        expect(render(<GridHeaderCell {...props} />)).not.toContain('lucide-key');
+    });
+
+    test('sets a number against the end and text at the start', () => {
+        expect(render(<GridHeaderCell {...props} />)).toContain('justify-end');
+        expect(render(<GridHeaderCell {...props} column={{ name: 'name', type: 'TEXT', kind: 'text' }} />)).not.toContain('justify-end');
+    });
+
+    test('has a soft line on its edge, a stronger one on the last pinned column and none on the last column', () => {
+        expect(render(<GridHeaderCell {...props} />)).toContain('border-r border-border-soft');
+        expect(render(<GridHeaderCell {...props} pinned lastPinned />)).toContain('border-border-strong');
+        expect(render(<GridHeaderCell {...props} last />)).toContain('border-r-0');
+    });
+});

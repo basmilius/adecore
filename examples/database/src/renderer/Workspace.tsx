@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Cable, PencilRuler, SquareTerminal, Table, type LucideIcon } from 'lucide-react';
+import { Cable, PencilRuler, SquareTerminal, Table, TableProperties, type LucideIcon } from 'lucide-react';
 import { ConnectionManager, QueryConsole, TableDesigner, type Connection } from '@adecore/database';
-import { Button, EmptyState, Icon, IconButton, Tabs } from '@adecore/ui';
+import { Button, EmptyState, Icon, IconButton, PromptDialog, Segmented, Tabs } from '@adecore/ui';
 import { TableTab } from './TableTab.tsx';
 import { connectionIdOf, type TableViewMode, type WorkTab } from './useTabs.ts';
 
@@ -48,6 +49,33 @@ export function Workspace({
     onOpenConnections
 }: WorkspaceProps) {
     const { t } = useTranslation();
+    /* Ids of the table tabs with changes nobody submitted, and the tab a person asked to close while it has them. */
+    const [dirty, setDirty] = useState<ReadonlySet<string>>(() => new Set());
+    const [closing, setClosing] = useState<string | null>(null);
+    const active = tabs.find((tab) => tab.id === activeId);
+
+    const requestClose = (id: string): void => {
+        if (dirty.has(id)) {
+            setClosing(id);
+            return;
+        }
+        onClose(id);
+    };
+
+    const markDirty = (id: string, isDirty: boolean): void => {
+        setDirty((current) => {
+            if (current.has(id) === isDirty) {
+                return current;
+            }
+            const next = new Set(current);
+            if (isDirty) {
+                next.add(id);
+            } else {
+                next.delete(id);
+            }
+            return next;
+        });
+    };
 
     const titleOf = (tab: WorkTab): string => {
         switch (tab.kind) {
@@ -75,7 +103,7 @@ export function Workspace({
                             tableRef={tab.ref}
                             view={tab.view}
                             where={tab.where}
-                            onViewChange={(view) => onViewChange(tab.id, view)}
+                            onDirtyChange={(isDirty) => markDirty(tab.id, isDirty)}
                         />
                     )
                 );
@@ -95,13 +123,24 @@ export function Workspace({
                 className="px-3"
                 end={
                     <>
+                        {active?.kind === 'table' && (
+                            <Segmented
+                                label={t('tabs.views')}
+                                value={active.view}
+                                onValueChange={(view) => onViewChange(active.id, view)}
+                                options={[
+                                    { id: 'data', label: t('views.data'), icon: Table },
+                                    { id: 'structure', label: t('views.structure'), icon: TableProperties }
+                                ]}
+                            />
+                        )}
                         <IconButton icon={Cable} size="sm" label={t('connections.title')} onClick={onOpenConnections} />
                         <IconButton icon={SquareTerminal} size="sm" label={t('tabs.newConsole')} disabled={!canOpenConsole} onClick={onNewConsole} />
                     </>
                 }
             >
                 {tabs.map((tab) => (
-                    <Tabs.Tab key={tab.id} value={tab.id} onClose={() => onClose(tab.id)}>
+                    <Tabs.Tab key={tab.id} value={tab.id} onClose={() => requestClose(tab.id)}>
                         <Icon icon={iconOf(tab)} size={14} />
                         {titleOf(tab)}
                     </Tabs.Tab>
@@ -127,6 +166,25 @@ export function Workspace({
                     </Tabs.Panel>
                 ))
             )}
+            <PromptDialog
+                open={closing !== null}
+                danger
+                title={t('tabs.discard.title')}
+                description={t('tabs.discard.description')}
+                confirmLabel={t('tabs.discard.confirm')}
+                onConfirm={() => {
+                    if (closing !== null) {
+                        setDirty((current) => new Set([...current].filter((id) => id !== closing)));
+                        onClose(closing);
+                    }
+                    setClosing(null);
+                }}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setClosing(null);
+                    }
+                }}
+            />
         </Tabs.Root>
     );
 }

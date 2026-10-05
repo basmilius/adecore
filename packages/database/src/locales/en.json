@@ -205,7 +205,7 @@
     }
   },
   "grid": {
-    "copyValue": "Copy value",
+    "copyValue": "Copy",
     "setNull": "Set NULL",
     "setDefault": "Set DEFAULT",
     "loadingValue": "Loading the whole value",
@@ -258,7 +258,6 @@
     "elapsed": "{{value}} ms",
     "range": "Rows {{from}} to {{to}}",
     "total": "of {{total}}",
-    "totalAtLeast": "of {{total}}+",
     "count": "Count rows",
     "pageSize": "Rows per page",
     "perPage": "{{size}} rows",
@@ -269,20 +268,22 @@
       "description": "The changes you have not submitted are lost when the page changes.",
       "confirm": "Discard changes"
     },
-    "filterByValue": "Filter by this value",
     "cloneRows": "Clone selected rows",
     "revertRows": "Revert selected rows",
-    "valuePanel": "Value panel",
+    "valuePanel": "Value editor",
     "firstPage": "First page",
     "lastPage": "Last page",
-    "lastPageCounts": "Last page (counts the rows first)",
+    "lastPageCounts": "Counts the rows first",
     "menu": {
-      "cloneRows_one": "Clone row",
-      "cloneRows_other": "Clone {{count}} rows",
       "revertRows_one": "Revert row",
       "revertRows_other": "Revert {{count}} rows",
       "deleteRows_one": "Delete row",
-      "deleteRows_other": "Delete {{count}} rows"
+      "deleteRows_other": "Delete {{count}} rows",
+      "filterOn": "Filter on",
+      "exclude": "Exclude",
+      "sortBy": "Sort by",
+      "duplicateRows_one": "Duplicate row",
+      "duplicateRows_other": "Duplicate {{count}} rows"
     },
     "goToReferenced": "Go to referenced row",
     "recordView": "Record view",
@@ -295,21 +296,17 @@
       "position": "{{index}} of {{count}} on this page"
     },
     "aggregates": {
-      "count": "Count",
       "sum": "Sum",
-      "average": "Average",
+      "average": "Avg",
       "minimum": "Min",
       "maximum": "Max",
       "cells": "{{count}} cells selected",
-      "numbers": "{{count}} numbers",
-      "sumFull": "Sum: {{value}}",
-      "averageFull": "Average: {{value}}",
-      "minimumFull": "Minimum: {{value}}",
-      "maximumFull": "Maximum: {{value}}"
+      "columns": "{{count}} columns",
+      "cells_one": "{{cells}} cell",
+      "cells_other": "{{cells}} cells"
     },
     "export": {
       "label": "Export",
-      "labelWithImport": "Export and import",
       "as": "Export as {{format}}",
       "running": "Exporting as {{format}}",
       "cancel": "Cancel",
@@ -331,6 +328,23 @@
       "preview": "First {{count}} rows of the file",
       "cancel": "Cancel",
       "confirm": "Import"
+    },
+    "more": "More actions",
+    "of": "of",
+    "atLeast": "{{total}}+",
+    "command": {
+      "label": "Filter, sort or jump to a column",
+      "placeholder": "Filter, sort or jump to a column",
+      "suggestions": "Suggestions",
+      "addFilter": "Add filter",
+      "filterOn": "Filter on",
+      "sortBy": "Sort by",
+      "jumpTo": "Jump to column",
+      "asSql": "Type as SQL",
+      "editFilter": "Edit filter {{filter}}",
+      "flipSort": "Flip the sort on {{column}}",
+      "removeFilter": "Remove filter",
+      "removeSort": "Remove sort"
     }
   },
   "console": {
@@ -549,6 +563,11 @@
     "empty": {
       "title": "Nothing open",
       "body": "Open a table from the explorer or start a console."
+    },
+    "discard": {
+      "title": "Close {{table}}?",
+      "description": "The changes you have not submitted are lost when the tab closes.",
+      "confirm": "Close tab"
     }
   }
 }

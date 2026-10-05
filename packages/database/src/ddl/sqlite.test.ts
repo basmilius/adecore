@@ -96,6 +96,12 @@ describe('createTableSql for SQLite', () => {
         ]);
     });
 
+    test('leaves AUTOINCREMENT off a WITHOUT ROWID table, which has no rowid to count', () => {
+        const [table] = createTableSql(sqlite, 'main', { ...base, options: { ...base.options, withoutRowid: true } });
+        expect(table).not.toContain('AUTOINCREMENT');
+        expect(table).toContain('PRIMARY KEY ("id")');
+    });
+
     test('leaves out the type of a column that has none', () => {
         const draft = { ...emptyDraft(), name: 't', columns: [added('a', '')] };
         expect(createTableSql(sqlite, 'main', draft)[0]).toContain('"a"\n');

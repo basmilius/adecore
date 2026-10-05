@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type Ref } from 'react';
 import clsx from 'clsx';
-import { PencilRuler, Settings2, SquareTerminal, Table } from 'lucide-react';
+import { PencilRuler, Settings2, SquareTerminal, Table, TableProperties } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
     Button,
@@ -9,6 +9,8 @@ import {
     EmptyState,
     Icon,
     IconButton,
+    PromptDialog,
+    Segmented,
     Tabs,
     isApplePlatform,
     matchesShortcut,
@@ -70,6 +72,9 @@ export function DatabaseWorkbench({ connections, onConnectionsChange, className,
     const [width, setWidth] = useState(DEFAULT_WIDTH);
     const [managing, setManaging] = useState(false);
     const [managed, setManaged] = useState<string | null>(null);
+    /* Ids of the table tabs that hold changes nobody submitted, and the tab a person asked to close while it does. */
+    const [dirty, setDirty] = useState<ReadonlySet<string>>(() => new Set());
+    const [closing, setClosing] = useState<string | null>(null);
     const { startResize } = useColumnResize(column, { size: width, min: MIN_WIDTH, from: 'left', max: () => window.innerWidth / 2, onSize: setWidth });
 
     const known = useMemo(() => new Set(connections.map((connection) => connection.id)), [connections]);
@@ -77,6 +82,9 @@ export function DatabaseWorkbench({ connections, onConnectionsChange, className,
     const pruned = known.size > 0 ? pruneTabs(state, known) : state;
     if (pruned !== state) {
         setState(pruned);
+    }
+    if ([...dirty].some((id) => !state.tabs.some((tab) => tab.id === id))) {
+        setDirty(new Set([...dirty].filter((id) => state.tabs.some((tab) => tab.id === id))));
     }
     const tabs = state.tabs.filter((tab) => known.has(connectionIdOf(tab)));
     const active = tabs.find((tab) => tab.id === state.activeId) ?? tabs.at(-1) ?? null;
@@ -141,12 +149,36 @@ export function DatabaseWorkbench({ connections, onConnectionsChange, className,
             matchesShortcut(shortcut('Mod+W'), e.nativeEvent, isApplePlatform())
         ) {
             e.preventDefault();
-            closeById(active.id);
+            requestClose(active.id);
         }
     }
 
     function closeById(id: string): void {
         setState((current) => closeTab(current, id));
+    }
+
+    /* A table tab with changes that are not submitted asks first. */
+    function requestClose(id: string): void {
+        if (dirty.has(id)) {
+            setClosing(id);
+        } else {
+            closeById(id);
+        }
+    }
+
+    function markDirty(id: string, isDirty: boolean): void {
+        setDirty((current) => {
+            if (current.has(id) === isDirty) {
+                return current;
+            }
+            const next = new Set(current);
+            if (isDirty) {
+                next.add(id);
+            } else {
+                next.delete(id);
+            }
+            return next;
+        });
     }
 
     const titleOf = (tab: WorkbenchTab): string => {
@@ -167,7 +199,7 @@ export function DatabaseWorkbench({ connections, onConnectionsChange, className,
         }
         switch (tab.kind) {
             case 'table':
-                return <TableTab connection={connection} tab={tab} onViewChange={(view) => setState((current) => setTableView(current, tab.id, view))} />;
+                return <TableTab connection={connection} tab={tab} onDirtyChange={(isDirty) => markDirty(tab.id, isDirty)} />;
             case 'console':
                 return (
                     <QueryConsole
@@ -186,6 +218,8 @@ export function DatabaseWorkbench({ connections, onConnectionsChange, className,
     };
 
     const canOpenConsole = consoleContext() !== null;
+    const closingTab = state.tabs.find((tab) => tab.id === closing);
+    const closingTable = closingTab?.kind === 'table' ? closingTab.ref.table : '';
 
     return (
         <DatabaseProvider client={client} onAction={onAction} storage={storage} files={files}>
@@ -217,18 +251,31 @@ export function DatabaseWorkbench({ connections, onConnectionsChange, className,
                         aria-label={t('workbench.tabs')}
                         className="px-2"
                         end={
-                            <IconButton
-                                icon={SquareTerminal}
-                                size="sm"
-                                label={t('workbench.newConsole')}
-                                tooltip={canOpenConsole ? undefined : t('workbench.noConnection')}
-                                disabled={!canOpenConsole}
-                                onClick={newConsole}
-                            />
+                            <>
+                                {active?.kind === 'table' && (
+                                    <Segmented
+                                        label={t('workbench.views')}
+                                        value={active.view}
+                                        onValueChange={(view) => setState((current) => setTableView(current, active.id, view))}
+                                        options={[
+                                            { id: 'data', label: t('workbench.data'), icon: Table },
+                                            { id: 'structure', label: t('workbench.structure'), icon: TableProperties }
+                                        ]}
+                                    />
+                                )}
+                                <IconButton
+                                    icon={SquareTerminal}
+                                    size="sm"
+                                    label={t('workbench.newConsole')}
+                                    tooltip={canOpenConsole ? undefined : t('workbench.noConnection')}
+                                    disabled={!canOpenConsole}
+                                    onClick={newConsole}
+                                />
+                            </>
                         }
                     >
                         {tabs.map((tab) => (
-                            <Tabs.Tab key={tab.id} value={tab.id} onClose={() => closeById(tab.id)}>
+                            <Tabs.Tab key={tab.id} value={tab.id} onClose={() => requestClose(tab.id)}>
                                 <Icon icon={tab.kind === 'table' ? Table : tab.kind === 'console' ? SquareTerminal : PencilRuler} size={14} />
                                 {titleOf(tab)}
                             </Tabs.Tab>
@@ -255,6 +302,24 @@ export function DatabaseWorkbench({ connections, onConnectionsChange, className,
                         ))
                     )}
                 </Tabs.Root>
+                <PromptDialog
+                    open={closing !== null}
+                    danger
+                    title={t('workbench.discard.title', { table: closingTable })}
+                    description={t('workbench.discard.description')}
+                    confirmLabel={t('workbench.discard.confirm')}
+                    onConfirm={() => {
+                        if (closing !== null) {
+                            closeById(closing);
+                        }
+                        setClosing(null);
+                    }}
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            setClosing(null);
+                        }
+                    }}
+                />
                 {onConnectionsChange !== undefined && (
                     <Dialog.Root open={managing} onOpenChange={setManaging}>
                         <Dialog.Popup className="flex h-[560px] w-[900px] flex-col overflow-hidden">

@@ -30,7 +30,9 @@ export const foreignKeySql = (dialect: Dialect, schema: string, foreignKey: Fore
 
 /* `ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ...`: the options that say something, and with `against` only those that differ from it. */
 export const mysqlOptionsSql = (options: TableOptions, against?: TableOptions): string[] => {
-    const changed = (field: 'engine' | 'charset' | 'collation' | 'comment'): boolean => options[field] !== '' && options[field] !== against?.[field];
+    // Only a comment can be emptied; an engine, a character set or a collation has no empty value to ask for.
+    const changed = (field: 'engine' | 'charset' | 'collation' | 'comment'): boolean =>
+        options[field] !== against?.[field] && (options[field] !== '' || (field === 'comment' && against !== undefined));
     return [
         ...(changed('engine') ? [`ENGINE=${options.engine}`] : []),
         ...(changed('charset') ? [`DEFAULT CHARSET=${options.charset}`] : []),
@@ -57,9 +59,11 @@ export interface CreateParts {
 /* The `CREATE TABLE` of a draft under a name of the caller's choosing, which a rebuild uses for the table it fills before the swap. */
 export const createTableParts = (dialect: Dialect, schema: string, draft: TableDraft, name: string): CreateParts => {
     const sqlite = dialect.engine === 'sqlite';
-    // SQLite declares AUTOINCREMENT on the column itself, which then is the whole primary key.
+    // SQLite declares AUTOINCREMENT on the column itself, which then is the whole primary key; a WITHOUT ROWID table has no rowid to count.
     const autoColumn =
-        sqlite && draft.primaryKey.length === 1 ? draft.columns.find((column) => column.name === draft.primaryKey[0] && column.autoIncrement)?.name : undefined;
+        sqlite && draft.primaryKey.length === 1 && !draft.options.withoutRowid
+            ? draft.columns.find((column) => column.name === draft.primaryKey[0] && column.autoIncrement)?.name
+            : undefined;
     const lines = draft.columns.map((column) => columnSql(dialect, column, { inlinePrimaryKey: column.name === autoColumn }));
     if (draft.primaryKey.length > 0 && autoColumn === undefined) {
         lines.push(`PRIMARY KEY (${columnList(dialect, draft.primaryKey)})`);

@@ -1,8 +1,22 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode, type Ref } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode, type Ref } from 'react';
 import clsx from 'clsx';
-import { ArrowUpRight, Check, CircleAlert, CopyPlus, Download, Filter, Trash2, Undo2 } from 'lucide-react';
+import { ArrowDownWideNarrow, ArrowUpRight, Check, CircleAlert, CopyPlus, Download, Filter, FilterX, Trash2, Undo2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Banner, Button, ContextMenu, Icon, messageOf, PanelEmpty, PromptDialog, Spinner } from '@adecore/ui';
+import {
+    Banner,
+    Button,
+    ContextMenu,
+    Icon,
+    isApplePlatform,
+    Kbd,
+    KEY_SHORTCUTS,
+    matchesShortcut,
+    messageOf,
+    PanelEmpty,
+    PromptDialog,
+    shortcut,
+    Spinner
+} from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
 import { DatabaseRequestError, type Connection } from '../client/types.ts';
 import { useDatabaseAction, useDatabaseClient, useDatabaseFiles, useDatabaseStorage } from '../client-context.ts';
@@ -10,12 +24,26 @@ import { aggregateBlock, blockSize, type RangeBlock } from '../grid/aggregates.t
 import { DataGrid } from '../grid/DataGrid.tsx';
 import { wholeValueOf } from '../grid/focused-value.ts';
 import type { GridSort } from '../grid/sort.ts';
-import type { FocusedCell, GridMenuContext } from '../grid/types.ts';
+import type { ColumnRequest, FocusedCell, GridMenuContext } from '../grid/types.ts';
 import { RecordView } from '../grid/RecordView.tsx';
 import { ValueDock } from '../grid/ValueDock.tsx';
 import { valueOfCell, type EditValue, type RowChange, type Value } from '../protocol/index.ts';
-import { andWhere, equalsCondition, orderByClause, parseOrderBy, type SqlTarget } from '../sql.ts';
+import type { SqlTarget } from '../sql.ts';
 import { ValuePanel } from '../value/ValuePanel.tsx';
+import {
+    addChip,
+    cellChip,
+    chipsFromQuery,
+    chipsToOrderBy,
+    chipsToWhere,
+    shorten,
+    sortsOf,
+    toggleSort,
+    withSorts,
+    type Chip,
+    type CommandColumn,
+    type FilterChip
+} from './command-field.ts';
 import { buildGridColumns, buildGridRows, cloneValues, parseRowKey } from './grid-rows.ts';
 import { importableColumns } from './import-mapping.ts';
 import { ImportDialog } from './ImportDialog.tsx';
@@ -39,8 +67,8 @@ import {
     type RowSelectionRefs
 } from './pending.ts';
 import { foreignKeyOf, referenceOf, type Reference } from './references.ts';
-import { TableFooter } from './TableFooter.tsx';
-import { TableToolbar, type FilterField } from './TableToolbar.tsx';
+import { TableStatusBar } from './TableStatusBar.tsx';
+import { TableToolbar } from './TableToolbar.tsx';
 import { useLoaded } from './useLoaded.ts';
 import { useStoredLayout } from './useStoredLayout.ts';
 import { useTableTransfer } from './useTableTransfer.ts';
@@ -64,6 +92,12 @@ interface Filters {
 }
 
 const NO_KEYS: ReadonlySet<string> = new Set();
+
+/* How much of a value a menu item spells out before it cuts it. */
+const MENU_VALUE_LENGTH = 40;
+
+const FOCUS_COMMAND = shortcut('Mod+F');
+const DUPLICATE_ROWS = shortcut('Mod+D');
 
 /*
  * The rows of one table: read a page at a time, filtered and sorted with SQL a person types, and
@@ -94,12 +128,18 @@ function TableBody({ connection, schema, table, defaultWhere, defaultOrderBy, on
     const { stored, remember } = useStoredLayout(useDatabaseStorage(), layoutStorageKey(connection.id, schema, table));
     const session = useMemo(() => client.session(connection), [client, connection]);
     const grid = useRef<HTMLDivElement>(null);
+    const command = useRef<HTMLInputElement>(null);
     const lifetime = useRef<AbortController | null>(null);
     const counter = useRef<AbortController | null>(null);
     const insertedBefore = useRef(0);
-    const [starting] = useState<Filters>(() => ({ where: defaultWhere ?? stored?.where ?? '', orderBy: defaultOrderBy ?? stored?.orderBy ?? '' }));
-    const [draft, setDraft] = useState<Filters>(starting);
-    const [applied, setApplied] = useState<Filters>(starting);
+    const engine = connection.config.engine;
+    const [chips, setChips] = useState<Chip[]>(() =>
+        chipsFromQuery(engine, {
+            where: defaultWhere ?? stored?.where ?? '',
+            orderBy: defaultOrderBy ?? stored?.orderBy ?? '',
+            remembered: defaultWhere === undefined ? stored?.filters : undefined
+        })
+    );
     const [offset, setOffset] = useState(0);
     const [pageSize, setPageSize] = useState(stored?.pageSize ?? DEFAULT_PAGE_SIZE);
     const [pending, setPending] = useState<PendingChanges>(emptyPending);
@@ -114,9 +154,11 @@ function TableBody({ connection, schema, table, defaultWhere, defaultOrderBy, on
     const [recordOpen, setRecordOpen] = useState(false);
     const [recordKey, setRecordKey] = useState<string | null>(null);
     const [focusRequest, setFocusRequest] = useState<FocusedCell | null>(null);
+    const [columnRequest, setColumnRequest] = useState<ColumnRequest | null>(null);
     const [range, setRange] = useState<RangeBlock | null>(null);
     const [fetched, setFetched] = useState<{ id: string; rows: unknown; value: Value | undefined } | null>(null);
 
+    const applied = useMemo((): Filters => ({ where: chipsToWhere(chips), orderBy: chipsToOrderBy(engine, chips) }), [chips, engine]);
     const target = `${connection.id}|${schema}|${table}`;
     const structureLoad = useLoaded((signal) => session.structure(schema, table, { signal }), target);
     // The offset travels with the page it belongs to, since the page on screen lags behind the one asked for.
@@ -135,7 +177,6 @@ function TableBody({ connection, schema, table, defaultWhere, defaultOrderBy, on
     const structure = structureLoad.value;
     const loaded = rowsLoad.value?.result ?? null;
     const loadedOffset = rowsLoad.value?.offset ?? 0;
-    const engine = connection.config.engine;
 
     const readOnlyReason =
         connection.config.readOnly === true
@@ -172,31 +213,25 @@ function TableBody({ connection, schema, table, defaultWhere, defaultOrderBy, on
     const dirty = changeCount > 0;
     const reportDirty = useRef(onDirtyChange);
     const reportedDirty = useRef(false);
-    const sorts = useMemo(
-        () =>
-            loaded === null
-                ? []
-                : (parseOrderBy(
-                      engine,
-                      applied.orderBy,
-                      loaded.columns.map((column) => column.name)
-                  ) ?? []),
-        [engine, applied.orderBy, loaded]
-    );
+    const sorts = useMemo(() => sortsOf(chips), [chips]);
+    const commandColumns = useMemo((): CommandColumn[] => columns.map((column) => ({ name: column.name, type: column.type })), [columns]);
     const rowByKey = useMemo(() => new Map(rows.map((row) => [row.key, row])), [rows]);
     const recordIndex = Math.max(
         0,
         rows.findIndex((row) => row.key === recordKey)
     );
-    const aggregates = useMemo(
+    const selectionFigures = useMemo(
         () =>
             recordOpen || range === null || blockSize(range) < 2
                 ? null
-                : aggregateBlock(
-                      rows.map((row) => row.cells),
-                      columns.map((column) => column.kind),
-                      range
-                  ),
+                : {
+                      columns: range.columns.map((index) => columns[index]?.name ?? ''),
+                      aggregates: aggregateBlock(
+                          rows.map((row) => row.cells),
+                          columns.map((column) => column.kind),
+                          range
+                      )
+                  },
         [recordOpen, range, rows, columns]
     );
     const sqlTarget = useMemo((): SqlTarget => ({ engine, schema, table }), [engine, schema, table]);
@@ -284,42 +319,51 @@ function TableBody({ connection, schema, table, defaultWhere, defaultOrderBy, on
         }
     };
 
-    const applyFilters = (next: Filters): void => {
+    /* Every change of the chips applies at once; one that changes the page asks first when it would throw pending changes away. */
+    const applyChips = (next: readonly Chip[]): void => {
+        const where = chipsToWhere(next);
+        const orderBy = chipsToOrderBy(engine, next);
+        const filters = next.filter((chip): chip is FilterChip => chip.kind === 'filter').map(({ text, sql }) => ({ text, sql }));
+        if (where === applied.where && orderBy === applied.orderBy) {
+            remember({ filters });
+            setChips([...next]);
+            return;
+        }
         guard(() => {
-            remember({ where: next.where, orderBy: next.orderBy });
-            setDraft(next);
+            remember({ where, orderBy, filters });
             counter.current?.abort();
             setCounting(false);
             setCounted(null);
             setOffset(0);
             setSelected(NO_KEYS);
             setFailure(null);
-            if (next.where === applied.where && next.orderBy === applied.orderBy) {
-                rowsLoad.reload();
-            } else {
-                setApplied(next);
-            }
+            setChips([...next]);
         });
     };
 
     const changeSorts = (next: readonly GridSort[]): void => {
-        applyFilters({ ...draft, orderBy: orderByClause(engine, next) });
+        applyChips(withSorts(chips, next));
     };
 
-    const filterByValue = (cell: FocusedCell): void => {
+    const cellChipAt = (cell: FocusedCell, exclude: boolean): FilterChip | null => {
         const row = parseRowKey(cell.rowKey);
         const column = loaded?.columns[cell.column];
         const value = loaded === null || row.kind !== 'loaded' ? undefined : valueOfCell(loaded.rows[row.index]?.[cell.column] ?? null);
-        if (column !== undefined && value !== undefined) {
-            applyFilters({ ...draft, where: andWhere(draft.where, equalsCondition(engine, column.name, value, column.kind)) });
+        return column === undefined || value === undefined ? null : cellChip(engine, column.name, value, column.kind, exclude);
+    };
+
+    const sortByColumn = (cell: FocusedCell): void => {
+        const name = columns[cell.column]?.name;
+        if (name !== undefined) {
+            applyChips(toggleSort(chips, name));
         }
     };
 
-    const clearFilter = (field: FilterField): void => {
-        const next = { ...draft, [field]: '' };
-        setDraft(next);
-        if (applied[field] !== '') {
-            applyFilters({ ...applied, [field]: '' });
+    const jumpToColumn = (name: string): void => {
+        const index = columns.findIndex((column) => column.name === name);
+        if (index >= 0) {
+            setRecordOpen(false);
+            setColumnRequest({ column: index });
         }
     };
 
@@ -445,11 +489,6 @@ function TableBody({ connection, schema, table, defaultWhere, defaultOrderBy, on
 
     const canRevert = (keys: Iterable<string>): boolean => hasRowChanges(pending, refsOf(keys));
 
-    const canFilterBy = (cell: FocusedCell): boolean => {
-        const row = parseRowKey(cell.rowKey);
-        return loaded !== null && row.kind === 'loaded' && valueOfCell(loaded.rows[row.index]?.[cell.column] ?? null) !== undefined;
-    };
-
     const referenceAt = (cell: FocusedCell): Reference | null => {
         const column = columns[cell.column];
         const key = column === undefined || structure === null ? undefined : foreignKeyOf(structure.foreignKeys, column.name);
@@ -496,33 +535,57 @@ function TableBody({ connection, schema, table, defaultWhere, defaultOrderBy, on
         }
     };
 
-    const gridMenu = (context: GridMenuContext): ReactNode => {
-        const count = context.rowKeys.length;
+    const queryMenu = (context: GridMenuContext): ReactNode => {
+        const cell = context.cell;
+        const name = cell === null ? undefined : columns[cell.column]?.name;
+        if (cell === null || name === undefined) {
+            return null;
+        }
+        const include = cellChipAt(cell, false);
+        const exclude = cellChipAt(cell, true);
         return (
             <>
-                {context.cell !== null && (
-                    <ContextMenu.Item disabled={!canFilterBy(context.cell)} onClick={() => filterByValue(context.cell!)}>
-                        <Icon icon={Filter} size={14} />
-                        {t('table.filterByValue')}
-                    </ContextMenu.Item>
-                )}
-                {onAction !== undefined && context.cell !== null && isReferenceColumn(context.cell.column) && (
-                    <ContextMenu.Item disabled={referenceAt(context.cell) === null} onClick={() => follow(context.cell!)}>
+                <ContextMenu.Item disabled={include === null} onClick={() => include !== null && applyChips(addChip(chips, include))}>
+                    <Icon icon={Filter} size={14} />
+                    {t('table.menu.filterOn')} <span className="font-mono">{shorten(include?.text ?? name, MENU_VALUE_LENGTH)}</span>
+                </ContextMenu.Item>
+                <ContextMenu.Item disabled={exclude === null} onClick={() => exclude !== null && applyChips(addChip(chips, exclude))}>
+                    <Icon icon={FilterX} size={14} />
+                    {t('table.menu.exclude')} <span className="font-mono">{shorten(exclude?.text ?? name, MENU_VALUE_LENGTH)}</span>
+                </ContextMenu.Item>
+                <ContextMenu.Item onClick={() => sortByColumn(cell)}>
+                    <Icon icon={ArrowDownWideNarrow} size={14} />
+                    {t('table.menu.sortBy')} <span className="font-mono">{name}</span>
+                </ContextMenu.Item>
+                {onAction !== undefined && isReferenceColumn(cell.column) && (
+                    <ContextMenu.Item disabled={referenceAt(cell) === null} onClick={() => follow(cell)}>
                         <Icon icon={ArrowUpRight} size={14} />
                         {t('table.goToReferenced')}
                     </ContextMenu.Item>
                 )}
+            </>
+        );
+    };
+
+    const gridMenu = (context: GridMenuContext): ReactNode => {
+        const count = context.rowKeys.length;
+        return (
+            <>
                 <ContextMenu.Item disabled={!editable} onClick={() => cloneRows(context.rowKeys)}>
                     <Icon icon={CopyPlus} size={14} />
-                    {t('table.menu.cloneRows', { count })}
+                    {t('table.menu.duplicateRows', { count })}
+                    <Kbd shortcut={DUPLICATE_ROWS} />
                 </ContextMenu.Item>
-                <ContextMenu.Item disabled={!canRevert(context.rowKeys)} onClick={() => revertRowKeys(context.rowKeys)}>
-                    <Icon icon={Undo2} size={14} />
-                    {t('table.menu.revertRows', { count })}
-                </ContextMenu.Item>
-                <ContextMenu.Item disabled={!editable} onClick={() => deleteRows(context.rowKeys)}>
+                {canRevert(context.rowKeys) && (
+                    <ContextMenu.Item onClick={() => revertRowKeys(context.rowKeys)}>
+                        <Icon icon={Undo2} size={14} />
+                        {t('table.menu.revertRows', { count })}
+                    </ContextMenu.Item>
+                )}
+                <ContextMenu.Item className="text-status-error" disabled={!editable} onClick={() => deleteRows(context.rowKeys)}>
                     <Icon icon={Trash2} size={14} />
                     {t('table.menu.deleteRows', { count })}
+                    <Kbd shortcut={KEY_SHORTCUTS.backspace} />
                 </ContextMenu.Item>
             </>
         );
@@ -552,6 +615,19 @@ function TableBody({ connection, schema, table, defaultWhere, defaultOrderBy, on
             setFailure(error instanceof DatabaseRequestError && error.code === 'conflict' ? conflictMessage(error, changes) : messageOf(error));
         } finally {
             setSubmitting(false);
+        }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
+        // A dialog opened from here is a portal: its events reach this handler through React, not through the DOM.
+        if (
+            !event.nativeEvent.isComposing &&
+            event.currentTarget.contains(event.target as Node) &&
+            matchesShortcut(FOCUS_COMMAND, event.nativeEvent, isApplePlatform())
+        ) {
+            event.preventDefault();
+            command.current?.focus();
+            command.current?.select();
         }
     };
 
@@ -590,7 +666,7 @@ function TableBody({ connection, schema, table, defaultWhere, defaultOrderBy, on
     };
 
     return (
-        <div ref={ref} className={clsx('flex min-h-0 flex-col bg-surface text-text', className)}>
+        <div ref={ref} className={clsx('flex min-h-0 flex-col bg-surface text-text', className)} onKeyDown={handleKeyDown}>
             <TableToolbar
                 refreshing={rowsLoad.loading}
                 readOnlyReason={readOnlyReason}
@@ -609,11 +685,14 @@ function TableBody({ connection, schema, table, defaultWhere, defaultOrderBy, on
                 }
                 pendingCount={changeCount}
                 submitting={submitting}
-                where={draft.where}
-                orderBy={draft.orderBy}
-                onFilterChange={(field, value) => setDraft((now) => ({ ...now, [field]: value }))}
-                onApplyFilters={() => applyFilters(draft)}
-                onClearFilter={clearFilter}
+                engine={engine}
+                chips={chips}
+                columns={commandColumns}
+                pageSize={pageSize}
+                bounds={bounds}
+                commandRef={command}
+                onChipsChange={applyChips}
+                onJumpToColumn={jumpToColumn}
                 onRefresh={refresh}
                 onAddRow={() => setPending((now) => addInsertWith(now, {}))}
                 onDeleteRows={deleteSelected}
@@ -621,6 +700,9 @@ function TableBody({ connection, schema, table, defaultWhere, defaultOrderBy, on
                 onRevertRows={() => revertRowKeys(selected)}
                 onToggleValuePanel={() => setPanelOpen((now) => !now)}
                 onToggleRecordView={toggleRecordView}
+                onPageSizeChange={changePageSize}
+                onFirstPage={() => goToPage(0)}
+                onLastPage={() => void goToLast()}
                 onSubmit={() => void submit()}
                 onRevert={discardPending}
             />
@@ -700,13 +782,16 @@ function TableBody({ connection, schema, table, defaultWhere, defaultOrderBy, on
                                 onFocusedCellChange={setFocus}
                                 onDeleteSelected={editable ? deleteSelected : undefined}
                                 sqlTarget={sqlTarget}
+                                queryMenu={queryMenu}
                                 menu={gridMenu}
+                                onDuplicateRows={editable ? cloneRows : undefined}
                                 onFollow={onAction === undefined ? undefined : follow}
                                 canFollow={(cell) => referenceAt(cell) !== null}
                                 onRangeChange={setRange}
                                 initialLayout={stored ?? undefined}
                                 onLayoutChange={remember}
                                 focusRequest={focusRequest}
+                                columnRequest={columnRequest}
                             />
                         </div>
                         {recordOpen && (
@@ -726,18 +811,14 @@ function TableBody({ connection, schema, table, defaultWhere, defaultOrderBy, on
                             />
                         )}
                     </ValueDock>
-                    <TableFooter
+                    <TableStatusBar
                         elapsedMs={loaded.elapsedMs}
                         bounds={bounds}
-                        pageSize={pageSize}
                         counting={counting}
-                        aggregates={aggregates}
+                        selection={selectionFigures}
                         onCount={() => void countRows()}
-                        onFirst={() => goToPage(0)}
                         onPrevious={() => goToPage(offset - pageSize)}
                         onNext={() => goToPage(offset + pageSize)}
-                        onLast={() => void goToLast()}
-                        onPageSizeChange={changePageSize}
                     />
                 </>
             )}

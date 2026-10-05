@@ -205,7 +205,7 @@
     }
   },
   "grid": {
-    "copyValue": "Waarde kopiëren",
+    "copyValue": "Kopiëren",
     "setNull": "Op NULL zetten",
     "setDefault": "Op DEFAULT zetten",
     "loadingValue": "De hele waarde wordt geladen",
@@ -258,7 +258,6 @@
     "elapsed": "{{value}} ms",
     "range": "Rijen {{from}} tot {{to}}",
     "total": "van {{total}}",
-    "totalAtLeast": "van {{total}}+",
     "count": "Rijen tellen",
     "pageSize": "Rijen per pagina",
     "perPage": "{{size}} rijen",
@@ -269,20 +268,22 @@
       "description": "De wijzigingen die je niet hebt opgeslagen gaan verloren als de pagina wisselt.",
       "confirm": "Wijzigingen negeren"
     },
-    "filterByValue": "Filteren op deze waarde",
     "cloneRows": "Geselecteerde rijen klonen",
     "revertRows": "Geselecteerde rijen terugdraaien",
-    "valuePanel": "Waardepaneel",
+    "valuePanel": "Waardeneditor",
     "firstPage": "Eerste pagina",
     "lastPage": "Laatste pagina",
-    "lastPageCounts": "Laatste pagina (telt eerst de rijen)",
+    "lastPageCounts": "Telt eerst de rijen",
     "menu": {
-      "cloneRows_one": "Rij klonen",
-      "cloneRows_other": "{{count}} rijen klonen",
       "revertRows_one": "Rij terugdraaien",
       "revertRows_other": "{{count}} rijen terugdraaien",
       "deleteRows_one": "Rij verwijderen",
-      "deleteRows_other": "{{count}} rijen verwijderen"
+      "deleteRows_other": "{{count}} rijen verwijderen",
+      "filterOn": "Filteren op",
+      "exclude": "Uitsluiten",
+      "sortBy": "Sorteren op",
+      "duplicateRows_one": "Rij dupliceren",
+      "duplicateRows_other": "{{count}} rijen dupliceren"
     },
     "goToReferenced": "Ga naar de verwezen rij",
     "recordView": "Recordweergave",
@@ -295,21 +296,17 @@
       "position": "{{index}} van {{count}} op deze pagina"
     },
     "aggregates": {
-      "count": "Aantal",
       "sum": "Som",
-      "average": "Gemiddelde",
+      "average": "Gem.",
       "minimum": "Min",
       "maximum": "Max",
       "cells": "{{count}} cellen geselecteerd",
-      "numbers": "{{count}} getallen",
-      "sumFull": "Som: {{value}}",
-      "averageFull": "Gemiddelde: {{value}}",
-      "minimumFull": "Minimum: {{value}}",
-      "maximumFull": "Maximum: {{value}}"
+      "columns": "{{count}} kolommen",
+      "cells_one": "{{cells}} cel",
+      "cells_other": "{{cells}} cellen"
     },
     "export": {
       "label": "Exporteren",
-      "labelWithImport": "Exporteren en importeren",
       "as": "Exporteren als {{format}}",
       "running": "Exporteren als {{format}}",
       "cancel": "Annuleren",
@@ -331,6 +328,23 @@
       "preview": "Eerste {{count}} rijen van het bestand",
       "cancel": "Annuleren",
       "confirm": "Importeren"
+    },
+    "more": "Meer acties",
+    "of": "van",
+    "atLeast": "{{total}}+",
+    "command": {
+      "label": "Filteren, sorteren of naar een kolom springen",
+      "placeholder": "Filteren, sorteren of naar een kolom springen",
+      "suggestions": "Suggesties",
+      "addFilter": "Filter toevoegen",
+      "filterOn": "Filteren op",
+      "sortBy": "Sorteren op",
+      "jumpTo": "Naar kolom springen",
+      "asSql": "Als SQL typen",
+      "editFilter": "Filter {{filter}} bewerken",
+      "flipSort": "Sortering op {{column}} omkeren",
+      "removeFilter": "Filter verwijderen",
+      "removeSort": "Sortering verwijderen"
     }
   },
   "console": {
@@ -549,6 +563,11 @@
     "empty": {
       "title": "Niets geopend",
       "body": "Open een tabel in de verkenner of start een console."
+    },
+    "discard": {
+      "title": "{{table}} sluiten?",
+      "description": "De wijzigingen die je niet hebt opgeslagen gaan verloren als het tabblad sluit.",
+      "confirm": "Tabblad sluiten"
     }
   }
 }

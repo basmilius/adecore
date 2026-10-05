@@ -1,11 +1,27 @@
-import type { KeyboardEvent } from 'react';
-import { CopyPlus, Download, FileInput, PanelRight, Plus, RefreshCw, TableProperties, Trash2, Undo2 } from 'lucide-react';
+import type { Ref } from 'react';
+import clsx from 'clsx';
+import {
+    ChevronsLeft,
+    ChevronsRight,
+    CopyPlus,
+    Download,
+    Ellipsis,
+    FileInput,
+    PanelRight,
+    Plus,
+    RefreshCw,
+    Rows3,
+    TableProperties,
+    Trash2,
+    Undo2
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Button, Icon, IconButton, Input, Menu, Separator } from '@adecore/ui';
+import { Button, Icon, IconButton, Menu } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
-import type { FileFormat } from '../protocol/index.ts';
-
-export type FilterField = 'where' | 'orderBy';
+import type { Engine, FileFormat } from '../protocol/index.ts';
+import { CommandField } from './CommandField.tsx';
+import type { Chip, CommandColumn } from './command-field.ts';
+import { PAGE_SIZES, type PageBounds } from './paging.ts';
 
 /* The menu of export and import; present only when the app can show file dialogs. */
 export interface TransferMenu {
@@ -31,13 +47,16 @@ export interface TableToolbarProps {
     transfer?: TransferMenu;
     pendingCount: number;
     submitting: boolean;
-    where: string;
-    orderBy: string;
-    onFilterChange(field: FilterField, value: string): void;
-    /* Enter in a filter. */
-    onApplyFilters(): void;
-    /* Escape in a filter. */
-    onClearFilter(field: FilterField): void;
+    engine: Engine;
+    chips: readonly Chip[];
+    /* The columns the command field suggests. */
+    columns: readonly CommandColumn[];
+    pageSize: number;
+    bounds: PageBounds;
+    /* The text input of the command field, for the owner to focus. */
+    commandRef?: Ref<HTMLInputElement>;
+    onChipsChange(next: Chip[]): void;
+    onJumpToColumn(name: string): void;
     onRefresh(): void;
     onAddRow(): void;
     onDeleteRows(): void;
@@ -45,11 +64,17 @@ export interface TableToolbarProps {
     onRevertRows(): void;
     onToggleValuePanel(): void;
     onToggleRecordView?(): void;
+    onPageSizeChange(size: number): void;
+    onFirstPage(): void;
+    /* Counts the rows first when they are not counted yet. */
+    onLastPage(): void;
     onSubmit(): void;
     onRevert(): void;
+    className?: string;
+    ref?: Ref<HTMLDivElement>;
 }
 
-/* Refresh, the row actions, the submit of pending changes and the two SQL filters. */
+/* The command field for filtering, sorting and jumping to a column, refresh, add row, the submit of pending changes, and a menu of the rest. */
 export function TableToolbar({
     refreshing,
     readOnlyReason,
@@ -60,11 +85,14 @@ export function TableToolbar({
     transfer,
     pendingCount,
     submitting,
-    where,
-    orderBy,
-    onFilterChange,
-    onApplyFilters,
-    onClearFilter,
+    engine,
+    chips,
+    columns,
+    pageSize,
+    bounds,
+    commandRef,
+    onChipsChange,
+    onJumpToColumn,
     onRefresh,
     onAddRow,
     onDeleteRows,
@@ -72,87 +100,23 @@ export function TableToolbar({
     onRevertRows,
     onToggleValuePanel,
     onToggleRecordView,
+    onPageSizeChange,
+    onFirstPage,
+    onLastPage,
     onSubmit,
-    onRevert
+    onRevert,
+    className,
+    ref
 }: TableToolbarProps) {
     const { t } = useTranslation('database');
-    const tooltipOf = (label: string): string => (readOnlyReason === null ? label : t('table.unavailable', { action: label, reason: readOnlyReason }));
-
-    const handleKeyDown = (field: FilterField) => (event: KeyboardEvent<HTMLInputElement>) => {
-        if (event.nativeEvent.isComposing) {
-            return;
-        }
-        if (event.key === 'Enter') {
-            onApplyFilters();
-        } else if (event.key === 'Escape') {
-            onClearFilter(field);
-        }
-    };
+    const readOnly = readOnlyReason !== null;
+    const tooltipOf = (label: string): string => (readOnly ? t('table.unavailable', { action: label, reason: readOnlyReason }) : label);
 
     return (
-        <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border px-3 py-2">
-            <IconButton icon={RefreshCw} size="sm" label={t('table.refresh')} busy={refreshing} onClick={onRefresh} />
-            <IconButton
-                icon={Plus}
-                size="sm"
-                label={t('table.addRow')}
-                tooltip={tooltipOf(t('table.addRow'))}
-                aria-disabled={readOnlyReason !== null || undefined}
-                onClick={() => readOnlyReason === null && onAddRow()}
-            />
-            <IconButton
-                icon={Trash2}
-                size="sm"
-                label={t('table.deleteRows')}
-                tooltip={tooltipOf(t('table.deleteRows'))}
-                aria-disabled={readOnlyReason !== null || !hasSelection || undefined}
-                onClick={() => readOnlyReason === null && hasSelection && onDeleteRows()}
-            />
-            <IconButton
-                icon={CopyPlus}
-                size="sm"
-                label={t('table.cloneRows')}
-                tooltip={tooltipOf(t('table.cloneRows'))}
-                aria-disabled={readOnlyReason !== null || !hasSelection || undefined}
-                onClick={() => readOnlyReason === null && hasSelection && onCloneRows()}
-            />
-            <IconButton
-                icon={Undo2}
-                size="sm"
-                label={t('table.revertRows')}
-                aria-disabled={!canRevertSelection || undefined}
-                onClick={() => canRevertSelection && onRevertRows()}
-            />
-            {transfer !== undefined && (
-                <Menu.Root>
-                    <IconButton
-                        icon={Download}
-                        size="sm"
-                        label={t(transfer.onImport === undefined ? 'table.export.label' : 'table.export.labelWithImport')}
-                        disabled={transfer.busy}
-                        render={<Menu.Trigger />}
-                    />
-                    <Menu.Popup>
-                        {EXPORT_FORMATS.map((format) => (
-                            <Menu.Item key={format} onClick={() => transfer.onExport(format)}>
-                                {t('table.export.as', { format: format.toUpperCase() })}
-                            </Menu.Item>
-                        ))}
-                        {transfer.onImport !== undefined && (
-                            <>
-                                <Menu.Separator />
-                                <Menu.Item onClick={transfer.onImport}>
-                                    <Icon icon={FileInput} size={14} />
-                                    {t('table.import.menu')}
-                                </Menu.Item>
-                            </>
-                        )}
-                    </Menu.Popup>
-                </Menu.Root>
-            )}
+        <div ref={ref} className={clsx('flex shrink-0 items-center gap-2 border-b border-border px-3 py-2', className)}>
+            <CommandField chips={chips} columns={columns} engine={engine} inputRef={commandRef} onChipsChange={onChipsChange} onJumpToColumn={onJumpToColumn} />
             {pendingCount > 0 && (
                 <>
-                    <Separator />
                     <Button variant="primary" size="sm" disabled={submitting} onClick={onSubmit}>
                         {t('table.submit', { changes: formatNumber(pendingCount) })}
                     </Button>
@@ -161,36 +125,93 @@ export function TableToolbar({
                     </Button>
                 </>
             )}
-            <div className="flex min-w-64 flex-1 items-center gap-3">
-                <label className="flex min-w-0 flex-1 items-center gap-2">
-                    <span className="shrink-0 font-mono text-xs text-text-faint">WHERE</span>
-                    <Input
-                        size="sm"
-                        mono
-                        value={where}
-                        placeholder="id = 10"
-                        spellCheck={false}
-                        onChange={(event) => onFilterChange('where', event.target.value)}
-                        onKeyDown={handleKeyDown('where')}
-                    />
-                </label>
-                <label className="flex min-w-0 flex-1 items-center gap-2">
-                    <span className="shrink-0 font-mono text-xs text-text-faint">ORDER BY</span>
-                    <Input
-                        size="sm"
-                        mono
-                        value={orderBy}
-                        placeholder="created_at DESC"
-                        spellCheck={false}
-                        onChange={(event) => onFilterChange('orderBy', event.target.value)}
-                        onKeyDown={handleKeyDown('orderBy')}
-                    />
-                </label>
-            </div>
-            {onToggleRecordView !== undefined && (
-                <IconButton icon={TableProperties} size="sm" label={t('table.recordView')} aria-pressed={recordViewOpen} onClick={onToggleRecordView} />
-            )}
-            <IconButton icon={PanelRight} size="sm" label={t('table.valuePanel')} aria-pressed={valuePanelOpen} onClick={onToggleValuePanel} />
+            <IconButton icon={RefreshCw} size="sm" label={t('table.refresh')} busy={refreshing} onClick={onRefresh} />
+            <IconButton
+                icon={Plus}
+                size="sm"
+                label={t('table.addRow')}
+                tooltip={tooltipOf(t('table.addRow'))}
+                aria-disabled={readOnly || undefined}
+                onClick={() => !readOnly && onAddRow()}
+            />
+            <Menu.Root>
+                <IconButton icon={Ellipsis} size="sm" label={t('table.more')} render={<Menu.Trigger />} />
+                <Menu.Popup align="end">
+                    <Menu.SubmenuRoot>
+                        <Menu.SubmenuTrigger>
+                            <Icon icon={Rows3} size={14} />
+                            {t('table.pageSize')}
+                        </Menu.SubmenuTrigger>
+                        <Menu.Popup>
+                            <Menu.RadioGroup value={String(pageSize)} onValueChange={(value) => onPageSizeChange(Number(value))}>
+                                {PAGE_SIZES.map((size) => (
+                                    <Menu.RadioItem key={size} value={String(size)}>
+                                        {t('table.perPage', { size: formatNumber(size) })}
+                                    </Menu.RadioItem>
+                                ))}
+                            </Menu.RadioGroup>
+                        </Menu.Popup>
+                    </Menu.SubmenuRoot>
+                    <Menu.Item disabled={!bounds.hasPrevious} onClick={onFirstPage}>
+                        <Icon icon={ChevronsLeft} size={14} />
+                        {t('table.firstPage')}
+                    </Menu.Item>
+                    <Menu.Item disabled={!bounds.hasNext} onClick={onLastPage}>
+                        <Icon icon={ChevronsRight} size={14} />
+                        {t('table.lastPage')}
+                        {!bounds.exact && <Menu.Hint>{t('table.lastPageCounts')}</Menu.Hint>}
+                    </Menu.Item>
+                    <Menu.Separator />
+                    {onToggleRecordView !== undefined && (
+                        <Menu.CheckboxItem checked={recordViewOpen} onCheckedChange={onToggleRecordView}>
+                            <Icon icon={TableProperties} size={14} />
+                            {t('table.recordView')}
+                        </Menu.CheckboxItem>
+                    )}
+                    <Menu.CheckboxItem checked={valuePanelOpen} onCheckedChange={onToggleValuePanel}>
+                        <Icon icon={PanelRight} size={14} />
+                        {t('table.valuePanel')}
+                    </Menu.CheckboxItem>
+                    <Menu.Separator />
+                    {readOnly && <Menu.Label>{readOnlyReason}</Menu.Label>}
+                    <Menu.Item disabled={readOnly || !hasSelection} onClick={onCloneRows}>
+                        <Icon icon={CopyPlus} size={14} />
+                        {t('table.cloneRows')}
+                    </Menu.Item>
+                    <Menu.Item disabled={!canRevertSelection} onClick={onRevertRows}>
+                        <Icon icon={Undo2} size={14} />
+                        {t('table.revertRows')}
+                    </Menu.Item>
+                    <Menu.Item disabled={readOnly || !hasSelection} onClick={onDeleteRows}>
+                        <Icon icon={Trash2} size={14} />
+                        {t('table.deleteRows')}
+                    </Menu.Item>
+                    {transfer !== undefined && (
+                        <>
+                            <Menu.Separator />
+                            <Menu.SubmenuRoot>
+                                <Menu.SubmenuTrigger disabled={transfer.busy}>
+                                    <Icon icon={Download} size={14} />
+                                    {t('table.export.label')}
+                                </Menu.SubmenuTrigger>
+                                <Menu.Popup>
+                                    {EXPORT_FORMATS.map((format) => (
+                                        <Menu.Item key={format} onClick={() => transfer.onExport(format)}>
+                                            {t('table.export.as', { format: format.toUpperCase() })}
+                                        </Menu.Item>
+                                    ))}
+                                </Menu.Popup>
+                            </Menu.SubmenuRoot>
+                            {transfer.onImport !== undefined && (
+                                <Menu.Item onClick={transfer.onImport}>
+                                    <Icon icon={FileInput} size={14} />
+                                    {t('table.import.menu')}
+                                </Menu.Item>
+                            )}
+                        </>
+                    )}
+                </Menu.Popup>
+            </Menu.Root>
         </div>
     );
 }

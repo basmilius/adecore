@@ -1,16 +1,19 @@
 import { useRef, type MouseEvent, type PointerEvent } from 'react';
 import clsx from 'clsx';
-import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, Copy, Eye, EyeOff, KeyRound, Pin, PinOff } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, Copy, Eye, EyeOff, Key, Pin, PinOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { ColumnResizeHandle, ContextMenu, copyText, Icon, IconButton, Menu, Tooltip, useColumnResize } from '@adecore/ui';
+import { ColumnResizeHandle, ContextMenu, copyText, Icon, IconButton, isApplePlatform, isModHeld, Menu, Tooltip, useColumnResize } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
 import type { SortDirection } from '../sql.ts';
+import type { ColumnClick } from './column-selection.ts';
+import { isNumericKind } from './display.ts';
 import { isDoubleClick, MAX_RESIZED_WIDTH, MIN_COLUMN_WIDTH } from './layout.ts';
 import type { GridColumn } from './types.ts';
 
 /* What a header can ask the grid for. Every call names the column by its index in the columns the grid was given. */
 export interface HeaderActions {
-    onSort(index: number, additive: boolean): void;
+    /* A click on the head picks its column; Shift extends the pick to a range and Mod toggles the column. */
+    onSelect(index: number, click: ColumnClick): void;
     onSortDirection(index: number, direction: SortDirection): void;
     onClearSort(): void;
     onResize(index: number, width: number): void;
@@ -27,8 +30,12 @@ export interface GridHeaderCellProps {
     /* Position among the columns drawn, counted from zero. */
     position: number;
     width: number;
-    /* Whether the grid offers sorting at all. */
+    /* Whether the grid offers sorting at all, which its menu then holds. */
     sortable: boolean;
+    /* Whether the column is one of those picked; the head then wears the accent. */
+    selected: boolean;
+    /* The DOM id the grid points `aria-activedescendant` at while columns are picked. */
+    id: string;
     sort: { direction: SortDirection; position: number } | null;
     /* Whether more than one column is sorted, which numbers the arrows. */
     multipleSorts: boolean;
@@ -108,13 +115,15 @@ function ColumnFacts({ column }: { column: GridColumn }) {
     );
 }
 
-/* One column's head: its name, the sort it carries, a key on a primary key column, a menu and the strip that resizes it. */
+/* One column's head: its name, the sort it carries, a key on a primary key column, a menu and the strip that resizes it. Numbers sit against the end, like their cells. */
 export function GridHeaderCell({
     column,
     index,
     position,
     width,
     sortable,
+    selected,
+    id,
     sort,
     multipleSorts,
     hasSorts,
@@ -129,7 +138,7 @@ export function GridHeaderCell({
     const { t } = useTranslation('database');
     const cell = useRef<HTMLDivElement>(null);
     const lastPress = useRef<number | null>(null);
-    /* Set by a press on the resize strip, since the click that ends the drag would otherwise sort the column. */
+    /* Set by a press on the resize strip, since the click that ends the drag would otherwise pick the column. */
     const resized = useRef(false);
     const { startResize } = useColumnResize(cell, {
         size: width,
@@ -160,27 +169,28 @@ export function GridHeaderCell({
             resized.current = false;
             return;
         }
-        if (sortable) {
-            actions.onSort(index, event.shiftKey);
-        }
+        actions.onSelect(index, { shiftKey: event.shiftKey, mod: isModHeld(event, isApplePlatform()) });
     };
 
     const menuProps = { column, index, sortable, hasSorts, pinned, hasHidden, canHide, actions };
+    const numeric = isNumericKind(column.kind);
 
     return (
         <ContextMenu.Root>
             <div
                 ref={cell}
+                id={id}
                 role="columnheader"
                 aria-colindex={position + 2}
+                aria-selected={selected}
                 aria-sort={sortable ? (sort === null ? 'none' : sort.direction === 'asc' ? 'ascending' : 'descending') : undefined}
+                data-selected={selected ? '' : undefined}
                 className={clsx(
-                    'group/header flex h-full shrink-0 text-xs font-medium select-none',
-                    pinned ? 'sticky z-10 bg-surface-raised' : 'relative',
+                    'group/header flex h-full shrink-0 cursor-default text-xs font-medium select-none',
+                    pinned ? 'sticky z-10' : 'relative',
+                    selected ? 'bg-accent text-accent-text' : [pinned && 'bg-surface', sort === null ? 'text-text-muted' : 'text-text'],
                     last ? 'border-r-0' : 'border-r',
-                    pinned ? (lastPinned ? 'border-border-strong' : 'border-border') : 'border-border',
-                    sort === null ? 'text-text-muted' : 'text-text',
-                    sortable && 'cursor-default'
+                    pinned && lastPinned ? 'border-border-strong' : 'border-border-soft'
                 )}
                 style={{ width, left: pinned ? stickyLeft : undefined }}
                 onPointerDownCapture={() => {
@@ -188,13 +198,18 @@ export function GridHeaderCell({
                 }}
                 onClick={handleClick}
             >
-                <ContextMenu.Trigger className="flex h-full min-w-0 flex-1 items-center gap-1.5 overflow-hidden px-3">
-                    {column.primaryKey === true && <Icon icon={KeyRound} size={12} className="shrink-0" />}
+                <ContextMenu.Trigger
+                    className={clsx(
+                        'flex h-full min-w-0 flex-1 items-center gap-1.5 overflow-hidden px-3',
+                        numeric && 'justify-end group-data-[selected]/header:pr-8'
+                    )}
+                >
+                    {column.primaryKey === true && <Icon icon={Key} size={12} className="shrink-0 text-file-icon-yellow" />}
                     <Tooltip label={<ColumnFacts column={column} />} side="bottom">
                         <span className="min-w-0 truncate">{column.name}</span>
                     </Tooltip>
                     {sort !== null && (
-                        <span className="flex shrink-0 items-center gap-0.5 text-text-muted">
+                        <span className={clsx('flex shrink-0 items-center gap-0.5', selected ? 'text-accent-text' : 'text-text-muted')}>
                             <Icon icon={sort.direction === 'asc' ? ArrowUp : ArrowDown} size={12} />
                             {multipleSorts && <span className="tabular-nums">{formatNumber(sort.position)}</span>}
                         </span>
@@ -207,7 +222,12 @@ export function GridHeaderCell({
                         size="xs"
                         label={t('grid.column.menu')}
                         tooltip={false}
-                        className="absolute top-1/2 right-2 -translate-y-1/2 bg-surface-raised opacity-0 group-hover/header:opacity-100 focus-visible:opacity-100 data-[popup-open]:opacity-100"
+                        className={clsx(
+                            'absolute top-1/2 right-2 -translate-y-1/2',
+                            selected
+                                ? 'bg-transparent text-accent-text'
+                                : 'bg-surface opacity-0 group-hover/header:opacity-100 focus-visible:opacity-100 data-[popup-open]:opacity-100'
+                        )}
                     />
                     <Menu.Popup>
                         <HeaderMenuItems {...menuProps} />

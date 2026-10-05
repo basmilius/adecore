@@ -36,7 +36,10 @@ export const columnSpecSql = (dialect: Dialect, column: ColumnDraft, { inlinePri
     if (inlinePrimaryKey) {
         parts.push(column.autoIncrement ? 'PRIMARY KEY AUTOINCREMENT' : 'PRIMARY KEY');
     }
-    if (!column.nullable) {
+    // MariaDB takes neither NULL nor NOT NULL after the expression of a computed column.
+    if (column.generated && dialect.flavor === 'mariadb') {
+        // The expression says everything.
+    } else if (!column.nullable) {
         parts.push('NOT NULL');
     } else if (mysql) {
         // MySQL gives a TIMESTAMP column NOT NULL unless it is told otherwise.

@@ -117,6 +117,13 @@ describe('createTableSql for MySQL', () => {
         );
     });
 
+    test('puts no NULL or NOT NULL after the expression of a computed column on MariaDB, which refuses both', () => {
+        const mariadb = dialectOf({ flavor: 'mariadb', version: '11.8.9-MariaDB' });
+        const [table] = createTableSql(mariadb, 'shop', base);
+        expect(table).toContain('`double` int GENERATED ALWAYS AS ((`total` * 2)) VIRTUAL,');
+        expect(table).toContain('`total` int NULL,');
+    });
+
     test('escapes a backslash in a comment the way MySQL reads it', () => {
         const draft = { ...emptyDraft(), name: 't', columns: [added('a', 'int', { comment: 'a\\b' })] };
         expect(createTableSql(mysql, 'db', draft)[0]).toContain("COMMENT 'a\\\\b'");
@@ -237,5 +244,10 @@ describe('alterTableSql for MySQL', () => {
         expect(alter({ ...base, name: 'sales', options: { ...base.options, engine: 'MyISAM', comment: "Bob's" } })).toBe(
             "ALTER TABLE `shop`.`orders`\n    ENGINE=MyISAM COMMENT='Bob''s',\n    RENAME TO `sales`"
         );
+    });
+
+    test('empties the comment of a table, which no other option can be asked to do', () => {
+        expect(alter({ ...base, options: { ...base.options, comment: '' } })).toBe("ALTER TABLE `shop`.`orders`\n    COMMENT=''");
+        expect(alter({ ...base, options: { ...base.options, engine: '' } })).toBe('');
     });
 });

@@ -71,6 +71,10 @@ export const sqlLiteral = (engine: Engine, value: LiteralValue, kind?: ValueKind
 export const equalsCondition = (engine: Engine, column: string, value: LiteralValue, kind?: ValueKind): string =>
     value === null ? `${quoteIdentifier(engine, column)} IS NULL` : `${quoteIdentifier(engine, column)} = ${sqlLiteral(engine, value, kind)}`;
 
+/* `col <> literal`, or `col IS NOT NULL` since `<> NULL` never matches. */
+export const notEqualsCondition = (engine: Engine, column: string, value: LiteralValue, kind?: ValueKind): string =>
+    value === null ? `${quoteIdentifier(engine, column)} IS NOT NULL` : `${quoteIdentifier(engine, column)} <> ${sqlLiteral(engine, value, kind)}`;
+
 export interface ColumnMatch {
     readonly column: string;
     readonly value: LiteralValue;
@@ -97,12 +101,7 @@ const unquote = (engine: Engine, word: string): string | null => {
     return word.slice(1, -1).replaceAll(mark + mark, mark);
 };
 
-/*
- * The sorts an ORDER BY text says, or `null` when it is anything but a plain list of the given
- * columns, each with an optional direction. Empty text is an empty list. A column is found without
- * regard to case, since both engines treat names that way.
- */
-export const parseOrderBy = (engine: Engine, text: string, columns: readonly string[]): ColumnSort[] | null => {
+const readOrderBy = (engine: Engine, text: string, resolve: (word: string) => string | undefined): ColumnSort[] | null => {
     const source = text.trim();
     if (source === '') {
         return [];
@@ -116,7 +115,7 @@ export const parseOrderBy = (engine: Engine, text: string, columns: readonly str
             return null;
         }
         const word = unquote(engine, match[1]!);
-        const column = word === null ? undefined : (columns.find((name) => name === word) ?? columns.find((name) => name.toLowerCase() === word.toLowerCase()));
+        const column = word === null ? undefined : resolve(word);
         if (column === undefined || sorts.some((sort) => sort.column === column)) {
             return null;
         }
@@ -132,11 +131,22 @@ export const parseOrderBy = (engine: Engine, text: string, columns: readonly str
     return sorts;
 };
 
-/* Adds a condition to what a WHERE field holds. An `OR` in it is wrapped, so the new condition narrows the whole. */
-export const andWhere = (existing: string, condition: string): string => {
-    const current = existing.trim();
-    if (current === '') {
-        return condition;
-    }
-    return `${/\bor\b/i.test(current) ? `(${current})` : current} AND ${condition}`;
+const matchColumn = (columns: readonly string[], word: string): string | undefined =>
+    columns.find((name) => name === word) ?? columns.find((name) => name.toLowerCase() === word.toLowerCase());
+
+/*
+ * The sorts an ORDER BY text says, or `null` when it is anything but a plain list of the given
+ * columns, each with an optional direction. Empty text is an empty list. A column is found without
+ * regard to case, since both engines treat names that way.
+ */
+export const parseOrderBy = (engine: Engine, text: string, columns: readonly string[]): ColumnSort[] | null =>
+    readOrderBy(engine, text, (word) => matchColumn(columns, word));
+
+/* The same for a text read before the columns are known, so a column keeps the spelling the text gave it. */
+export const parseOrderByLoose = (engine: Engine, text: string): ColumnSort[] | null => readOrderBy(engine, text, (word) => word);
+
+/* The column a word names, which may be quoted the way the engine quotes, or `undefined` when none of the columns is meant. */
+export const findColumn = (engine: Engine, word: string, columns: readonly string[]): string | undefined => {
+    const bare = unquote(engine, word);
+    return bare === null ? undefined : matchColumn(columns, bare);
 };

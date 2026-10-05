@@ -33,10 +33,23 @@ describe('TableView', () => {
         expect(markup).not.toContain('role="grid"');
     });
 
-    test('offers the two SQL filters with their examples', () => {
+    test('has one command field for filtering, sorting and jumping to a column, and no WHERE or ORDER BY input', () => {
         const markup = render(<TableView connection={writable} schema="main" table="users" />);
-        expect(markup).toContain('placeholder="id = 10"');
-        expect(markup).toContain('placeholder="created_at DESC"');
+        expect(markup.match(/role="combobox"/g)).toHaveLength(1);
+        expect(markup).toContain('placeholder="Filter, sort or jump to a column"');
+        expect(markup).not.toContain('placeholder="id = 10"');
+        expect(markup).not.toContain('ORDER BY');
+    });
+
+    test('starts the command field with the chips of a condition it was given', () => {
+        const markup = render(<TableView connection={writable} schema="main" table="users" defaultWhere="id = 3" defaultOrderBy="name DESC" />);
+        expect(markup).toContain('>id = 3</button>');
+        expect(markup).toContain('>name</span>');
+        expect(markup).toContain('lucide-arrow-down');
+    });
+
+    test('keeps an ORDER BY it cannot read as one chip', () => {
+        expect(render(<TableView connection={writable} schema="main" table="users" defaultOrderBy="lower(name)" />)).toContain('lower(name)');
     });
 
     test('has no submit or revert button while nothing is pending', () => {
@@ -50,13 +63,12 @@ describe('TableView', () => {
         expect(markup).not.toMatch(/aria-label="Add row" aria-disabled/);
     });
 
-    test('offers the value panel toggle, closed', () => {
-        expect(render(<TableView connection={writable} schema="main" table="users" />)).toMatch(/aria-label="Value panel"[^>]* aria-pressed="false"/);
+    test('puts the rest of the actions in a menu', () => {
+        expect(render(<TableView connection={writable} schema="main" table="users" />)).toContain('aria-label="More actions"');
     });
 
-    test('disables adding and deleting rows on a read only connection', () => {
+    test('disables adding rows on a read only connection', () => {
         const markup = render(<TableView connection={readOnly} schema="main" table="users" />);
         expect(markup).toMatch(/aria-label="Add row" aria-disabled="true"/);
-        expect(markup).toMatch(/aria-label="Delete selected rows" aria-disabled="true"/);
     });
 });

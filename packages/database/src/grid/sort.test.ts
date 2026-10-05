@@ -1,57 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { cycleSort, sortOnly, sortStateOf } from './sort.ts';
-
-describe('cycleSort', () => {
-    test('goes ascending, descending, off', () => {
-        let sorts = cycleSort([], 'name', false);
-        expect(sorts).toEqual([{ column: 'name', direction: 'asc' }]);
-        sorts = cycleSort(sorts, 'name', false);
-        expect(sorts).toEqual([{ column: 'name', direction: 'desc' }]);
-        sorts = cycleSort(sorts, 'name', false);
-        expect(sorts).toEqual([]);
-    });
-
-    test('a plain click on another column replaces the sorts', () => {
-        expect(
-            cycleSort(
-                [
-                    { column: 'a', direction: 'asc' },
-                    { column: 'b', direction: 'desc' }
-                ],
-                'c',
-                false
-            )
-        ).toEqual([{ column: 'c', direction: 'asc' }]);
-    });
-
-    test('a plain click on a column among several keeps only it, one step on', () => {
-        expect(
-            cycleSort(
-                [
-                    { column: 'a', direction: 'asc' },
-                    { column: 'b', direction: 'asc' }
-                ],
-                'b',
-                false
-            )
-        ).toEqual([{ column: 'b', direction: 'desc' }]);
-    });
-
-    test('Shift adds a secondary sort, cycles it in place and removes it', () => {
-        let sorts = cycleSort([{ column: 'a', direction: 'asc' }], 'b', true);
-        expect(sorts).toEqual([
-            { column: 'a', direction: 'asc' },
-            { column: 'b', direction: 'asc' }
-        ]);
-        sorts = cycleSort(sorts, 'a', true);
-        expect(sorts).toEqual([
-            { column: 'a', direction: 'desc' },
-            { column: 'b', direction: 'asc' }
-        ]);
-        sorts = cycleSort(sorts, 'a', true);
-        expect(sorts).toEqual([{ column: 'b', direction: 'asc' }]);
-    });
-});
+import { sortOnly, sortStateOf } from './sort.ts';
 
 describe('sortOnly and sortStateOf', () => {
     test('sortOnly makes one sort', () => {

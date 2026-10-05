@@ -1,7 +1,4 @@
-import { useTranslation } from 'react-i18next';
-import { Table, TableProperties } from 'lucide-react';
 import { StructureView, TableView, type Connection, type TableRef } from '@adecore/database';
-import { Segmented } from '@adecore/ui';
 import type { TableViewMode } from './useTabs.ts';
 
 export interface TableTabProps {
@@ -10,31 +7,23 @@ export interface TableTabProps {
     view: TableViewMode;
     /* The filter the table opens with. */
     where?: string;
-    onViewChange(view: TableViewMode): void;
+    /* Told whether the data holds changes that are not submitted. */
+    onDirtyChange(dirty: boolean): void;
 }
 
 /* Both views stay mounted, so pending edits in the data survive a look at the structure. */
-export function TableTab({ connection, tableRef, view, where, onViewChange }: TableTabProps) {
-    const { t } = useTranslation();
-
+export function TableTab({ connection, tableRef, view, where, onDirtyChange }: TableTabProps) {
     return (
         <div className="flex h-full flex-col">
-            <div className="flex items-center gap-3 border-b border-border px-3 py-2">
-                <Segmented
-                    label={t('tabs.views')}
-                    value={view}
-                    onValueChange={onViewChange}
-                    options={[
-                        { id: 'data', label: t('views.data'), icon: Table },
-                        { id: 'structure', label: t('views.structure'), icon: TableProperties }
-                    ]}
-                />
-                <span className="min-w-0 truncate text-xs text-text-muted">
-                    {connection.name} / {tableRef.schema}.{tableRef.table}
-                </span>
-            </div>
             <div className="min-h-0 flex-1" hidden={view !== 'data'}>
-                <TableView connection={connection} schema={tableRef.schema} table={tableRef.table} defaultWhere={where} className="h-full" />
+                <TableView
+                    connection={connection}
+                    schema={tableRef.schema}
+                    table={tableRef.table}
+                    defaultWhere={where}
+                    onDirtyChange={onDirtyChange}
+                    className="h-full"
+                />
             </div>
             <div className="min-h-0 flex-1" hidden={view !== 'structure'}>
                 <StructureView connection={connection} schema={tableRef.schema} table={tableRef.table} className="h-full" />

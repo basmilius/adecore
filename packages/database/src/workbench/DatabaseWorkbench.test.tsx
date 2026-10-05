@@ -63,6 +63,24 @@ describe('DatabaseWorkbench', () => {
         expect(markup).not.toContain('Nothing open');
     });
 
+    test('puts the switch between data and structure at the end of the tab strip, for a table tab only', () => {
+        const table = openTable(emptyState, { connectionId: 'shop', schema: 'main', table: 'orders' }, 'data');
+        const markup = render(<DatabaseWorkbench connections={connections} />, storageOf(serializeState(table)));
+        expect(markup.match(/aria-label="Table views"/g)).toHaveLength(1);
+        const strip = markup.slice(markup.indexOf('role="tablist"'), markup.indexOf('role="tabpanel"'));
+        expect(strip).toContain('aria-label="Table views"');
+        expect(strip.indexOf('aria-label="Table views"')).toBeLessThan(strip.indexOf('aria-label="New console"'));
+        expect(markup).toContain('aria-checked="true"');
+        const console = openConsole(emptyState, 'shop', 'main');
+        expect(render(<DatabaseWorkbench connections={connections} />, storageOf(serializeState(console)))).not.toContain('Table views');
+        expect(render(<DatabaseWorkbench connections={connections} />)).not.toContain('Table views');
+    });
+
+    test('shows no bar with the connection and the table under the tabs', () => {
+        const table = openTable(emptyState, { connectionId: 'shop', schema: 'main', table: 'orders' }, 'data');
+        expect(render(<DatabaseWorkbench connections={connections} />, storageOf(serializeState(table)))).not.toContain('Shop / main.orders');
+    });
+
     test('names a filtered table tab as filtered', () => {
         const state = openTable(emptyState, { connectionId: 'shop', schema: 'main', table: 'orders' }, 'data', 'id = 1');
         expect(render(<DatabaseWorkbench connections={connections} />, storageOf(serializeState(state)))).toContain('orders (filtered)');

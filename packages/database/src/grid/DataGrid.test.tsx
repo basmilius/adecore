@@ -49,8 +49,30 @@ describe('DataGrid', () => {
         expect(markup.match(/role="gridcell"/g)).toHaveLength(12);
     });
 
-    test('draws a key on a primary key column', () => {
-        expect(render(<DataGrid label="Users" columns={columns} rows={rows} />).match(/lucide-key-round/g)).toHaveLength(1);
+    test('draws a gold key on a primary key column', () => {
+        const markup = render(<DataGrid label="Users" columns={columns} rows={rows} />);
+        expect(markup.match(/lucide-key /g)).toHaveLength(1);
+        expect(markup).toMatch(/lucide-key [^"]*text-file-icon-yellow/);
+    });
+
+    test('draws the header and the gutter on the surface of the cells, with a soft line between columns', () => {
+        const markup = render(<DataGrid label="Users" columns={columns} rows={rows} />);
+        expect(markup).not.toContain('bg-surface-raised');
+        expect(markup).toMatch(/aria-rowindex="1" class="sticky top-0 z-20 flex w-full border-b border-border bg-surface"/);
+        expect(markup).toMatch(/role="columnheader"[^>]*class="[^"]*border-r border-border-soft/);
+    });
+
+    test('sets the header of a number against the end, like its cells', () => {
+        const markup = render(<DataGrid label="Users" columns={columns} rows={rows} />);
+        const triggers = [...markup.matchAll(/role="columnheader"[\s\S]*?<\/div>/g)].map((match) => match[0]);
+        expect(triggers[0]).toContain('justify-end');
+        expect(triggers[1]).not.toContain('justify-end');
+    });
+
+    test('draws no column as picked before a header is clicked', () => {
+        const markup = render(<DataGrid label="Users" columns={columns} rows={rows} />);
+        expect(markup.match(/role="columnheader"[^>]*aria-selected="false"/g)).toHaveLength(3);
+        expect(markup).not.toContain('bg-accent text-accent-text');
     });
 
     test('draws NULL faint, numbers at the end and the gutter of an inserted row as a plus', () => {

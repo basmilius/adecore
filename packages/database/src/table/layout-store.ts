@@ -1,7 +1,8 @@
 import type { GridLayout } from '../grid/column-layout.ts';
+import type { StoredFilter } from './command-field.ts';
 import { PAGE_SIZES } from './paging.ts';
 
-/* Bump when the shape changes; a stored value of another version is ignored rather than migrated. */
+/* Bump when the shape changes; a stored value of another version is ignored rather than migrated. `filters` was added alongside `where`, which still says the same thing for a value without it. */
 export const LAYOUT_VERSION = 1;
 
 /* What is remembered of one table's view between visits. */
@@ -9,13 +10,18 @@ export interface StoredLayout extends GridLayout {
     readonly pageSize: number | null;
     readonly where: string;
     readonly orderBy: string;
+    /* The filter chips as typed, which `where` alone would only give back as one raw condition. */
+    readonly filters: readonly StoredFilter[];
 }
 
-export const EMPTY_LAYOUT: StoredLayout = { widths: {}, hidden: [], pinned: [], pageSize: null, where: '', orderBy: '' };
+export const EMPTY_LAYOUT: StoredLayout = { widths: {}, hidden: [], pinned: [], pageSize: null, where: '', orderBy: '', filters: [] };
 
 export const layoutStorageKey = (connectionId: string, schema: string, table: string): string => `database:table:${connectionId}:${schema}.${table}`;
 
 const isStringList = (value: unknown): value is string[] => Array.isArray(value) && value.every((item) => typeof item === 'string');
+
+const isStoredFilter = (value: unknown): value is StoredFilter =>
+    isRecord(value) && typeof value.text === 'string' && typeof value.sql === 'string' && value.sql.trim() !== '';
 
 const isRecord = (value: unknown): value is Record<string, unknown> => value !== null && typeof value === 'object' && !Array.isArray(value);
 
@@ -50,6 +56,7 @@ export const parseStoredLayout = (text: string | null): StoredLayout | null => {
         pinned: isStringList(data.pinned) ? data.pinned : [],
         pageSize,
         where: typeof data.where === 'string' ? data.where : '',
-        orderBy: typeof data.orderBy === 'string' ? data.orderBy : ''
+        orderBy: typeof data.orderBy === 'string' ? data.orderBy : '',
+        filters: Array.isArray(data.filters) ? data.filters.filter(isStoredFilter).map((filter) => ({ text: filter.text, sql: filter.sql })) : []
     };
 };

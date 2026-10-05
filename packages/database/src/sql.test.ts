@@ -1,5 +1,16 @@
 import { describe, expect, test } from 'bun:test';
-import { andWhere, equalsCondition, matchCondition, orderByClause, parseOrderBy, qualifiedName, quoteIdentifier, sqlLiteral } from './sql.ts';
+import {
+    equalsCondition,
+    findColumn,
+    matchCondition,
+    notEqualsCondition,
+    orderByClause,
+    parseOrderBy,
+    parseOrderByLoose,
+    qualifiedName,
+    quoteIdentifier,
+    sqlLiteral
+} from './sql.ts';
 
 describe('quoteIdentifier', () => {
     test('quotes with double quotes for SQLite and backticks for MySQL', () => {
@@ -73,6 +84,17 @@ describe('equalsCondition', () => {
     });
 });
 
+describe('notEqualsCondition', () => {
+    test('compares with <> and a literal', () => {
+        expect(notEqualsCondition('sqlite', 'name', "O'Neil", 'text')).toBe(`"name" <> 'O''Neil'`);
+        expect(notEqualsCondition('mysql', 'id', '7', 'integer')).toBe('`id` <> 7');
+    });
+
+    test('uses IS NOT NULL for NULL', () => {
+        expect(notEqualsCondition('mysql', 'notes', null, 'text')).toBe('`notes` IS NOT NULL');
+    });
+});
+
 describe('orderByClause', () => {
     test('quotes every column and spells the direction', () => {
         expect(
@@ -133,22 +155,37 @@ describe('parseOrderBy', () => {
     });
 });
 
-describe('andWhere', () => {
-    test('is the condition when the field is empty', () => {
-        expect(andWhere('', 'id = 1')).toBe('id = 1');
-        expect(andWhere('   ', 'id = 1')).toBe('id = 1');
+describe('parseOrderByLoose', () => {
+    test('reads a plain list without knowing the columns, keeping the spelling', () => {
+        expect(parseOrderByLoose('sqlite', 'Created_At DESC, "name"')).toEqual([
+            { column: 'Created_At', direction: 'desc' },
+            { column: 'name', direction: 'asc' }
+        ]);
     });
 
-    test('joins with AND', () => {
-        expect(andWhere('country = "NL"', 'id = 1')).toBe('country = "NL" AND id = 1');
+    test('is null for anything that is not a plain list', () => {
+        expect(parseOrderByLoose('sqlite', 'lower(name)')).toBeNull();
+        expect(parseOrderByLoose('sqlite', 'name NULLS LAST')).toBeNull();
+        expect(parseOrderByLoose('mysql', '"name"')).toBeNull();
     });
 
-    test('wraps what holds an OR', () => {
-        expect(andWhere('a = 1 or b = 2', 'c = 3')).toBe('(a = 1 or b = 2) AND c = 3');
+    test('reads empty text as no sorts', () => {
+        expect(parseOrderByLoose('sqlite', '')).toEqual([]);
+    });
+});
+
+describe('findColumn', () => {
+    const columns = ['id', 'Created At'];
+
+    test('finds a bare or quoted word without regard to case', () => {
+        expect(findColumn('sqlite', 'ID', columns)).toBe('id');
+        expect(findColumn('sqlite', '"Created At"', columns)).toBe('Created At');
+        expect(findColumn('mysql', '`created at`', columns)).toBe('Created At');
     });
 
-    test('does not mistake a word that contains or for an OR', () => {
-        expect(andWhere('color = 1', 'c = 3')).toBe('color = 1 AND c = 3');
+    test('is undefined for an unknown word and for a double quoted word in MySQL', () => {
+        expect(findColumn('sqlite', 'nope', columns)).toBeUndefined();
+        expect(findColumn('mysql', '"id"', columns)).toBeUndefined();
     });
 });
 

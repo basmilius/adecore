@@ -16,7 +16,12 @@ const resources = {
                 views: 'Table views',
                 filtered: '{{table}} (filtered)',
                 newTable: 'New table',
-                designer: 'Design {{table}}'
+                designer: 'Design {{table}}',
+                discard: {
+                    title: 'Close this table?',
+                    description: 'The changes you have not submitted are lost when the tab closes.',
+                    confirm: 'Close tab'
+                }
             },
             views: { data: 'Data', structure: 'Structure' },
             empty: {
@@ -39,7 +44,12 @@ const resources = {
                 views: 'Tabelweergaven',
                 filtered: '{{table}} (gefilterd)',
                 newTable: 'Nieuwe tabel',
-                designer: 'Ontwerp {{table}}'
+                designer: 'Ontwerp {{table}}',
+                discard: {
+                    title: 'Deze tabel sluiten?',
+                    description: 'De wijzigingen die je niet hebt opgeslagen gaan verloren als het tabblad sluit.',
+                    confirm: 'Tabblad sluiten'
+                }
             },
             views: { data: 'Gegevens', structure: 'Structuur' },
             empty: {

@@ -21,6 +21,9 @@ export const BINARY_PREVIEW_BYTES = 8;
 
 const NUMERIC_KINDS: ReadonlySet<ValueKind> = new Set(['integer', 'decimal', 'float']);
 
+/* Whether the cells of a column of this kind sit against the end of their cell, as numbers do. */
+export const isNumericKind = (kind: ValueKind): boolean => NUMERIC_KINDS.has(kind);
+
 const ELLIPSIS = '…';
 
 const isObject = (cell: Shown): cell is Exclude<Shown, null | boolean | number | string> => cell !== null && typeof cell === 'object';
@@ -39,7 +42,7 @@ export const isPreview = (cell: Shown): boolean => {
 const cut = (text: string): string => (text.length > DISPLAY_LIMIT ? `${text.slice(0, DISPLAY_LIMIT)}${ELLIPSIS}` : text);
 
 export const cellView = (cell: Shown, kind: ValueKind): CellView => {
-    const align = NUMERIC_KINDS.has(kind) ? 'end' : 'start';
+    const align = isNumericKind(kind) ? 'end' : 'start';
     if (cell === null) {
         return { text: 'NULL', tone: 'null', align };
     }

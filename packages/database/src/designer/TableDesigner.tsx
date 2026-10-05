@@ -4,12 +4,13 @@ import { CircleAlert } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Banner, Button, Spinner, messageOf } from '@adecore/ui';
 import { useDatabaseAction, useDatabaseClient } from '../client-context.ts';
-import type { Connection, DatabaseSession, ExecuteResult } from '../client/types.ts';
+import type { Connection, ExecuteResult } from '../client/types.ts';
 import { dialectOf, draftOf, emptyDraft, type Dialect, type TableDraft } from '../ddl/index.ts';
 import type { TableStructure } from '../protocol/index.ts';
 import { useLoaded } from '../table/useLoaded.ts';
 import { DesignerView } from './DesignerView.tsx';
 import { planOf } from './plan.ts';
+import { recoverFrom } from './recover.ts';
 import { useReferenceColumns } from './useReferenceColumns.ts';
 
 export interface TableDesignerProps {
@@ -34,25 +35,6 @@ interface Editing {
     /* The draft Revert goes back to; the draft is this very object until something is edited. */
     readonly baseline: TableDraft;
     readonly draft: TableDraft;
-}
-
-const REBUILD_START = 'PRAGMA foreign_keys=OFF';
-
-/*
- * A failed rebuild leaves SQLite with a transaction it began and foreign keys it switched off.
- * Only a transaction this script began is rolled back, since one the person had open is theirs.
- */
-async function recoverFrom(session: DatabaseSession, statements: readonly string[], failedSql: string, inTransaction: boolean): Promise<void> {
-    try {
-        if (inTransaction && statements.includes('BEGIN') && failedSql.trim().toUpperCase() !== 'BEGIN') {
-            await session.transaction('rollback');
-        }
-        if (statements[0] === REBUILD_START) {
-            await session.execute('PRAGMA foreign_keys=ON');
-        }
-    } catch {
-        // The error of the statement that failed is the one worth showing.
-    }
 }
 
 /* Creates a table or modifies one: its columns, indexes, foreign keys and options, with the SQL it will run shown before it runs. */
@@ -120,7 +102,7 @@ export function TableDesigner({ connection, schema, table, className, ref }: Tab
         }
         setFailure(null);
         setConfirming(false);
-        client.notifySchemaChange({ connectionId: connection.id, schema });
+        // The client has told its listeners already: `execute` does for a statement that creates, alters or drops.
         if (wasNew || draft.name !== draft.originalName) {
             setSubject({ requested: table, current: draft.name });
             onAction?.({ kind: 'edit-table', ref: { connectionId: connection.id, schema, table: draft.name } });
