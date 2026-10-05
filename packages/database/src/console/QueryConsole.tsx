@@ -40,6 +40,7 @@ export function QueryConsole({ connection, schema, value, defaultValue = '', onV
     const [own, setOwn] = useState(defaultValue);
     const [run, setRun] = useState<Run>({ status: 'idle' });
     const [tab, setTab] = useState(0);
+    const [panelOpen, setPanelOpen] = useState(false);
     const sql = value ?? own;
     const blank = sql.trim() === '';
 
@@ -119,7 +120,15 @@ export function QueryConsole({ connection, schema, value, defaultValue = '', onV
                     </Tabs.List>
                 </Tabs.Root>
             )}
-            {shown !== undefined && <StatementResultView key={tab} result={shown} />}
+            {shown !== undefined && (
+                <StatementResultView
+                    key={tab}
+                    result={shown}
+                    engine={connection.config.engine}
+                    valuePanelOpen={panelOpen}
+                    onValuePanelOpenChange={setPanelOpen}
+                />
+            )}
         </div>
     );
 }

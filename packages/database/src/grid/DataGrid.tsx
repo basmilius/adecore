@@ -1,18 +1,24 @@
-import { useCallback, useId, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode, type Ref } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode, type Ref } from 'react';
 import clsx from 'clsx';
 import { Ban, Copy, RotateCcw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { ContextMenu, copyText, EDIT_SHORTCUTS, Icon, isApplePlatform, isModHeld, Kbd, Spinner, useContentSize } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
 import type { EditValue, Value } from '../protocol/index.ts';
+import type { SqlTarget } from '../sql.ts';
+import { fullRect, rectBetween, rectContains } from './cell-range.ts';
 import { CellEditor, type EditMove } from './CellEditor.tsx';
+import { displayOrder, hideColumn, NO_COLUMN_VIEW, pinnedCount, showAllColumns, togglePin, type ColumnView } from './column-view.ts';
+import { COPY_FORMATS, formatCopy, type CopyFormat, type CopyInput } from './copy-formats.ts';
+import { CopyAsMenu } from './CopyAsMenu.tsx';
 import { cellView, copyTextOf, isPreview, type CellView } from './display.ts';
 import { draftOf, parseDraft } from './edit-value.ts';
-import { GridHeaderCell } from './GridHeaderCell.tsx';
+import { GridHeaderCell, type HeaderActions } from './GridHeaderCell.tsx';
 import {
     clampColumnWidth,
     columnOffsets,
     estimateColumnWidth,
+    fitColumnWidth,
     FALLBACK_VIEWPORT_HEIGHT,
     gutterWidth,
     HEADER_HEIGHT,
@@ -21,9 +27,10 @@ import {
     scrollToReveal,
     visibleRange
 } from './layout.ts';
-import { moveFocus, type CellPosition } from './navigation.ts';
+import { moveFocus, type CellPosition, type NavigationKey } from './navigation.ts';
 import { selectRow } from './row-selection.ts';
-import type { GridColumn, GridRow } from './types.ts';
+import { cycleSort, sortOnly, sortStateOf, type GridSort } from './sort.ts';
+import type { FocusedCell, GridColumn, GridMenuContext, GridRow } from './types.ts';
 
 export interface DataGridProps {
     columns: readonly GridColumn[];
@@ -39,6 +46,17 @@ export interface DataGridProps {
     onCommit?(rowKey: string, column: number, value: EditValue): void;
     /* The whole value of a cell that is only a preview, which editing needs. Resolves `undefined` when it cannot be had, which cancels the edit. */
     loadValue?(rowKey: string, column: number): Promise<Value | undefined>;
+    /* The sorted columns by name, in order. Only shown unless `onSortsChange` is given, which is what makes the headers sort. */
+    sorts?: readonly GridSort[];
+    onSortsChange?(sorts: readonly GridSort[]): void;
+    /* The cell that holds the focus changed, or lost it. */
+    onFocusedCellChange?(cell: FocusedCell | null): void;
+    /* Delete or Backspace with rows selected. */
+    onDeleteSelected?(): void;
+    /* The table the rows come from, which "Copy as SQL INSERT" writes statements for. Without it that format is not offered. */
+    sqlTarget?: SqlTarget;
+    /* Items for the context menu of a cell or a row number, drawn under the grid's own. */
+    menu?(context: GridMenuContext): ReactNode;
     /* Drawn under the header while there are no rows. */
     empty?: ReactNode;
     className?: string;
@@ -51,23 +69,33 @@ interface Editing extends CellPosition {
     loading: boolean;
 }
 
-interface Sizing {
-    columns: readonly GridColumn[];
+interface MenuTarget {
+    readonly row: number;
+    /* `null` for the row number. */
+    readonly column: number | null;
+}
+
+/* What the person did to the columns, kept while the same columns come back with new rows. */
+interface Layout {
+    signature: string;
     hasRows: boolean;
     estimated: readonly number[];
     resized: Readonly<Record<number, number>>;
+    view: ColumnView;
 }
 
 const NO_KEYS: ReadonlySet<string> = new Set();
+const NO_SORTS: readonly GridSort[] = [];
+
+const signatureOf = (columns: readonly GridColumn[]): string => columns.map((column) => column.name).join('\u0000');
+
+const textOf = (view: CellView): string => (view.suffix === undefined ? view.text : `${view.text} ${view.suffix}`);
 
 const estimateWidths = (columns: readonly GridColumn[], rows: readonly GridRow[]): number[] =>
     columns.map((column, index) =>
         estimateColumnWidth(
             column.name,
-            rows.slice(0, 50).map((row) => {
-                const view = cellView(row.cells[index] ?? null, column.kind);
-                return view.suffix === undefined ? view.text : `${view.text} ${view.suffix}`;
-            }),
+            rows.slice(0, 50).map((row) => textOf(cellView(row.cells[index] ?? null, column.kind))),
             column.primaryKey === true
         )
     );
@@ -98,6 +126,12 @@ export function DataGrid({
     onSelectedKeysChange,
     onCommit,
     loadValue,
+    sorts,
+    onSortsChange,
+    onFocusedCellChange,
+    onDeleteSelected,
+    sqlTarget,
+    menu,
     empty,
     className,
     ref
@@ -108,28 +142,82 @@ export function DataGrid({
     const anchor = useRef(-1);
     /* Set once an edit commits or cancels, so the blur that follows the input's removal does not commit it again. */
     const settled = useRef(true);
+    const dragging = useRef(false);
+    const dragOrigin = useRef<CellPosition | null>(null);
+    const reportFocus = useRef(onFocusedCellChange);
     const [measure, size] = useContentSize();
     const [scrollTop, setScrollTop] = useState(0);
     const [focused, setFocused] = useState<CellPosition | null>(null);
+    const [rangeAnchor, setRangeAnchor] = useState<CellPosition | null>(null);
+    const [menuTarget, setMenuTarget] = useState<MenuTarget | null>(null);
     const [editing, setEditing] = useState<Editing | null>(null);
     const [ownSelection, setOwnSelection] = useState<ReadonlySet<string>>(NO_KEYS);
-    const [sizing, setSizing] = useState<Sizing>(() => ({ columns, hasRows: rows.length > 0, estimated: estimateWidths(columns, rows), resized: {} }));
+    const [layout, setLayout] = useState<Layout>(() => ({
+        signature: signatureOf(columns),
+        hasRows: rows.length > 0,
+        estimated: estimateWidths(columns, rows),
+        resized: {},
+        view: NO_COLUMN_VIEW
+    }));
 
-    let current = sizing;
-    if (sizing.columns !== columns || sizing.hasRows !== rows.length > 0) {
-        current = { columns, hasRows: rows.length > 0, estimated: estimateWidths(columns, rows), resized: {} };
-        setSizing(current);
+    const signature = signatureOf(columns);
+    let current = layout;
+    if (layout.signature !== signature || layout.hasRows !== rows.length > 0) {
+        const same = layout.signature === signature;
+        current = {
+            signature,
+            hasRows: rows.length > 0,
+            estimated: estimateWidths(columns, rows),
+            resized: same ? layout.resized : {},
+            view: same ? layout.view : NO_COLUMN_VIEW
+        };
+        setLayout(current);
     }
 
+    const order = displayOrder(columns.length, current.view);
+    const pinnedShown = pinnedCount(columns.length, current.view);
+    const displayOf = new Map(order.map((index, position) => [index, position]));
     const widths = columns.map((_, index) => current.resized[index] ?? current.estimated[index] ?? clampColumnWidth(0));
-    const offsets = columnOffsets(widths);
+    const shownWidths = order.map((index) => widths[index]!);
+    const offsets = columnOffsets(shownWidths);
     const gutter = gutterWidth(rows.length);
-    const totalWidth = gutter + widths.reduce((sum, width) => sum + width, 0);
+    const totalWidth = gutter + shownWidths.reduce((sum, width) => sum + width, 0);
+    const pinnedWidth = shownWidths.slice(0, pinnedShown).reduce((sum, width) => sum + width, 0);
     const viewportHeight = size.height > 0 ? size.height : FALLBACK_VIEWPORT_HEIGHT;
     const range = visibleRange(scrollTop - HEADER_HEIGHT, viewportHeight, ROW_HEIGHT, rows.length, OVERSCAN_ROWS);
     const selection = selectedKeys ?? ownSelection;
-    const focusCell = focused !== null && focused.row < rows.length && focused.column < columns.length ? focused : null;
+    const isShown = (position: CellPosition | null): position is CellPosition =>
+        position !== null && position.row < rows.length && displayOf.has(position.column);
+    const focusCell = isShown(focused) ? focused : null;
+    const anchorCell = isShown(rangeAnchor) ? rangeAnchor : null;
+    const toDisplay = (position: CellPosition): CellPosition => ({ row: position.row, column: displayOf.get(position.column)! });
+    const fromDisplay = (position: CellPosition): CellPosition => ({ row: position.row, column: order[position.column]! });
+    const rect = focusCell === null ? null : rectBetween(toDisplay(anchorCell ?? focusCell), toDisplay(focusCell));
     const page = Math.max(1, Math.floor((viewportHeight - HEADER_HEIGHT) / ROW_HEIGHT));
+    const sortable = onSortsChange !== undefined;
+    const sortList = sorts ?? NO_SORTS;
+    const focusedRowKey = focusCell === null ? null : (rows[focusCell.row]?.key ?? null);
+    const focusedColumn = focusCell?.column ?? -1;
+
+    useEffect(() => {
+        reportFocus.current = onFocusedCellChange;
+    });
+
+    useEffect(() => {
+        reportFocus.current?.(focusedRowKey === null ? null : { rowKey: focusedRowKey, column: focusedColumn });
+    }, [focusedRowKey, focusedColumn]);
+
+    useEffect(() => {
+        const stop = (): void => {
+            dragging.current = false;
+        };
+        window.addEventListener('pointerup', stop);
+        window.addEventListener('pointercancel', stop);
+        return () => {
+            window.removeEventListener('pointerup', stop);
+            window.removeEventListener('pointercancel', stop);
+        };
+    }, []);
 
     const attach = useCallback(
         (node: HTMLDivElement | null) => {
@@ -157,11 +245,15 @@ export function DataGrid({
 
     const reveal = (position: CellPosition): void => {
         const element = scroller.current;
-        if (element === null) {
+        const column = displayOf.get(position.column);
+        if (element === null || column === undefined) {
             return;
         }
         const top = scrollToReveal(HEADER_HEIGHT + position.row * ROW_HEIGHT, ROW_HEIGHT, element.scrollTop, element.clientHeight, HEADER_HEIGHT);
-        const left = scrollToReveal(gutter + (offsets[position.column] ?? 0), widths[position.column] ?? 0, element.scrollLeft, element.clientWidth, gutter);
+        const left =
+            column < pinnedShown
+                ? element.scrollLeft
+                : scrollToReveal(gutter + (offsets[column] ?? 0), shownWidths[column] ?? 0, element.scrollLeft, element.clientWidth, gutter + pinnedWidth);
         if (top !== element.scrollTop) {
             element.scrollTop = top;
         }
@@ -170,9 +262,16 @@ export function DataGrid({
         }
     };
 
-    const focusAt = (position: CellPosition): void => {
+    /* With `extend` the range grows from where it started; otherwise the cell stands alone. */
+    const focusAt = (position: CellPosition, extend = false): void => {
+        setRangeAnchor(extend && focusCell !== null ? (anchorCell ?? focusCell) : null);
         setFocused(position);
         reveal(position);
+    };
+
+    const step = (from: CellPosition | null, input: NavigationKey): CellPosition | null => {
+        const next = moveFocus(isShown(from) ? toDisplay(from) : null, input, { rows: rows.length, columns: order.length, page });
+        return next === null ? null : fromDisplay(next);
     };
 
     const setSelection = (next: ReadonlySet<string>): void => {
@@ -221,7 +320,7 @@ export function DataGrid({
         setEditing(null);
         scroller.current?.focus();
         if (move !== undefined) {
-            const next = moveFocus(editing, { key: 'Tab', shiftKey: move === 'previous', mod: false }, { rows: rows.length, columns: columns.length, page });
+            const next = step(editing, { key: 'Tab', shiftKey: move === 'previous', mod: false });
             if (next !== null) {
                 focusAt(next);
             }
@@ -229,16 +328,54 @@ export function DataGrid({
     };
 
     const commitValue = (value: EditValue): void => {
-        const row = focusCell === null ? undefined : rows[focusCell.row];
-        if (focusCell !== null && row !== undefined && canEdit(focusCell)) {
-            onCommit?.(row.key, focusCell.column, value);
+        const position = menuTarget === null || menuTarget.column === null ? null : { row: menuTarget.row, column: menuTarget.column };
+        const row = position === null ? undefined : rows[position.row];
+        if (position !== null && row !== undefined && canEdit(position)) {
+            onCommit?.(row.key, position.column, value);
         }
     };
 
-    const copyFocused = (): void => {
-        const row = focusCell === null ? undefined : rows[focusCell.row];
-        if (focusCell !== null && row !== undefined) {
-            copyText(copyTextOf(row.cells[focusCell.column] ?? null));
+    /* The cells of the range, as the columns and rows a copy writes. */
+    const blockOf = (): CopyInput | null => {
+        if (rect === null) {
+            return null;
+        }
+        const shown = order.slice(rect.left, rect.right + 1);
+        return {
+            columns: shown.map((index) => ({ name: columns[index]!.name, kind: columns[index]!.kind })),
+            rows: rows.slice(rect.top, rect.bottom + 1).map((row) => shown.map((index) => row.cells[index] ?? null)),
+            target: sqlTarget
+        };
+    };
+
+    const copyAs = (format: CopyFormat): void => {
+        const block = blockOf();
+        if (block !== null) {
+            copyText(formatCopy(format, block));
+        }
+    };
+
+    /* One cell copies as it reads; a block copies as TSV, which a spreadsheet pastes into cells. */
+    const copyRange = (): void => {
+        if (rect !== null && rect.top === rect.bottom && rect.left === rect.right) {
+            copyText(copyTextOf(rows[rect.top]?.cells[order[rect.left]!] ?? null));
+        } else {
+            copyAs('tsv');
+        }
+    };
+
+    const copyCell = (): void => {
+        const row = menuTarget === null ? undefined : rows[menuTarget.row];
+        if (row !== undefined && menuTarget?.column != null) {
+            copyText(copyTextOf(row.cells[menuTarget.column] ?? null));
+        }
+    };
+
+    const selectAll = (): void => {
+        const block = fullRect(rows.length, order.length);
+        if (block !== null) {
+            setRangeAnchor(fromDisplay({ row: block.top, column: block.left }));
+            setFocused(fromDisplay({ row: block.bottom, column: block.right }));
         }
     };
 
@@ -252,6 +389,10 @@ export function DataGrid({
         );
         anchor.current = result.anchor;
         setSelection(result.selected);
+        if (!click.mod && order.length > 0) {
+            setRangeAnchor({ row: result.anchor, column: order[order.length - 1]! });
+            setFocused({ row: index, column: order[0]! });
+        }
     };
 
     const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
@@ -265,42 +406,110 @@ export function DataGrid({
             return;
         }
         const mod = isModHeld(event, isApplePlatform());
-        if (mod && event.key.toLowerCase() === 'c') {
+        const key = event.key.toLowerCase();
+        if (mod && key === 'c') {
             event.preventDefault();
-            copyFocused();
+            copyRange();
+        } else if (mod && key === 'a') {
+            event.preventDefault();
+            selectAll();
         } else if ((event.key === 'Enter' || event.key === 'F2') && focusCell !== null) {
             event.preventDefault();
             void beginEdit(focusCell);
         } else if (event.key === ' ' && event.shiftKey && focusCell !== null) {
             event.preventDefault();
             selectRowAt(focusCell.row, { shiftKey: false, mod });
+        } else if ((event.key === 'Delete' || event.key === 'Backspace') && onDeleteSelected !== undefined && selection.size > 0) {
+            event.preventDefault();
+            onDeleteSelected();
+        } else if (event.key === 'Escape' && anchorCell !== null) {
+            setRangeAnchor(null);
         } else {
-            const next = moveFocus(focusCell, { key: event.key, shiftKey: event.shiftKey, mod }, { rows: rows.length, columns: columns.length, page });
+            const next = step(focusCell, { key: event.key, shiftKey: event.shiftKey, mod });
             if (next !== null) {
                 event.preventDefault();
-                focusAt(next);
+                focusAt(next, event.shiftKey && event.key !== 'Tab');
             }
         }
     };
 
+    const pressCell = (event: PointerEvent, position: CellPosition, isEditing: boolean): void => {
+        if (event.button !== 0 || isEditing) {
+            return;
+        }
+        const extend = event.shiftKey && focusCell !== null;
+        dragOrigin.current = extend ? (anchorCell ?? focusCell) : position;
+        dragging.current = true;
+        focusAt(position, extend);
+    };
+
+    const dragTo = (position: CellPosition): void => {
+        if (dragging.current && dragOrigin.current !== null) {
+            setRangeAnchor(dragOrigin.current);
+            setFocused(position);
+        }
+    };
+
+    const openCellMenu = (position: CellPosition): void => {
+        if (!rectContains(rect, position.row, displayOf.get(position.column)!)) {
+            focusAt(position);
+        }
+        setMenuTarget(position);
+    };
+
+    const openRowMenu = (index: number): void => {
+        const row = rows[index];
+        if (row !== undefined && !selection.has(row.key)) {
+            selectRowAt(index, { shiftKey: false, mod: false });
+        }
+        setMenuTarget({ row: index, column: null });
+    };
+
     const resizeColumn = (index: number, width: number): void => {
-        setSizing((now) => ({ ...now, resized: { ...now.resized, [index]: width } }));
+        setLayout((now) => ({ ...now, resized: { ...now.resized, [index]: width } }));
+    };
+
+    const fitColumn = (index: number): void => {
+        const column = columns[index];
+        if (column !== undefined) {
+            resizeColumn(
+                index,
+                fitColumnWidth(
+                    column.name,
+                    rows.map((row) => textOf(cellView(row.cells[index] ?? null, column.kind))),
+                    column.primaryKey === true
+                )
+            );
+        }
+    };
+
+    const changeView = (change: (view: ColumnView) => ColumnView): void => {
+        setLayout((now) => ({ ...now, view: change(now.view) }));
+    };
+
+    const headerActions: HeaderActions = {
+        onSort: (index, additive) => onSortsChange?.(cycleSort(sortList, columns[index]!.name, additive)),
+        onSortDirection: (index, direction) => onSortsChange?.(sortOnly(columns[index]!.name, direction)),
+        onClearSort: () => onSortsChange?.([]),
+        onResize: resizeColumn,
+        onFit: fitColumn,
+        onHide: (index) => changeView((view) => hideColumn(view, index)),
+        onShowAll: () => changeView(showAllColumns),
+        onTogglePin: (index) => changeView((view) => togglePin(view, index))
     };
 
     const renderRow = (index: number): ReactNode => {
         const row = rows[index]!;
         const selected = selection.has(row.key);
+        const tint = row.state === undefined ? (selected ? 'bg-accent-soft/40' : '') : ROW_STATE[row.state];
         return (
             <div
                 key={row.key}
                 role="row"
                 aria-rowindex={index + 2}
                 aria-selected={selected}
-                className={clsx(
-                    'absolute left-0 flex border-b border-border-soft',
-                    row.state === undefined ? (selected ? 'bg-accent-soft/40' : 'hover:bg-surface-hover') : ROW_STATE[row.state]
-                )}
-                style={{ top: index * ROW_HEIGHT, height: ROW_HEIGHT, width: totalWidth }}
+                className={clsx('group/row absolute inset-x-0 flex border-b border-border-soft', tint, tint === '' && 'hover:bg-surface-hover')}
+                style={{ top: index * ROW_HEIGHT, height: ROW_HEIGHT }}
             >
                 <div
                     role="rowheader"
@@ -311,32 +520,48 @@ export function DataGrid({
                     )}
                     style={{ width: gutter }}
                     onClick={(event: MouseEvent) => selectRowAt(index, { shiftKey: event.shiftKey, mod: isModHeld(event, isApplePlatform()) })}
+                    onContextMenu={() => openRowMenu(index)}
                 >
                     {row.number === null ? '+' : formatNumber(row.number)}
                 </div>
-                {columns.map((column, columnIndex) => {
+                {order.map((columnIndex, position) => {
+                    const column = columns[columnIndex]!;
                     const cell = row.cells[columnIndex] ?? null;
                     const view = cellView(cell, column.kind);
+                    const cellPosition = { row: index, column: columnIndex };
                     const isFocused = focusCell !== null && focusCell.row === index && focusCell.column === columnIndex;
+                    const ranged = rectContains(rect, index, position);
+                    const edited = row.edited?.has(columnIndex) === true;
                     const isEditing = editing !== null && editing.row === index && editing.column === columnIndex;
+                    const pinned = position < pinnedShown;
                     return (
                         <div
                             key={columnIndex}
                             id={cellId(index, columnIndex)}
                             role="gridcell"
-                            aria-colindex={columnIndex + 2}
-                            aria-selected={isFocused}
+                            aria-colindex={position + 2}
+                            aria-selected={ranged}
                             data-focused={isFocused ? '' : undefined}
+                            data-ranged={ranged ? '' : undefined}
                             className={clsx(
-                                'relative flex h-full shrink-0 items-center overflow-hidden border-r border-border-soft px-3 font-mono text-code whitespace-nowrap outline-0 data-[focused]:outline-2 data-[focused]:-outline-offset-2 data-[focused]:outline-border-strong group-focus-within/grid:data-[focused]:outline-accent',
+                                'flex h-full shrink-0 items-center overflow-hidden px-3 font-mono text-code whitespace-nowrap outline-0 select-none data-[focused]:outline-1 data-[focused]:-outline-offset-1 data-[focused]:outline-border-strong group-focus-within/grid:data-[focused]:outline-accent',
+                                position === order.length - 1 ? 'border-r-0' : 'border-r',
                                 view.align === 'end' ? 'justify-end tabular-nums' : 'justify-start',
-                                row.edited?.has(columnIndex) === true && 'bg-accent-soft'
+                                pinned
+                                    ? [
+                                          'sticky z-5',
+                                          position === pinnedShown - 1 ? 'border-border-strong' : 'border-border',
+                                          ranged ? 'bg-accent-soft' : ['bg-surface', tint === '' && 'group-hover/row:bg-surface-hover']
+                                      ]
+                                    : ['relative border-border-soft', ranged ? 'bg-accent-soft' : edited && 'bg-accent/10']
                             )}
-                            style={{ width: widths[columnIndex] }}
-                            onClick={() => focusAt({ row: index, column: columnIndex })}
-                            onDoubleClick={() => void beginEdit({ row: index, column: columnIndex })}
-                            onContextMenu={() => focusAt({ row: index, column: columnIndex })}
+                            style={{ width: shownWidths[position], left: pinned ? gutter + (offsets[position] ?? 0) : undefined }}
+                            onPointerDown={(event) => pressCell(event, cellPosition, isEditing)}
+                            onPointerEnter={() => dragTo(cellPosition)}
+                            onDoubleClick={() => void beginEdit(cellPosition)}
+                            onContextMenu={() => openCellMenu(cellPosition)}
                         >
+                            {pinned && !ranged && <span aria-hidden className={clsx('pointer-events-none absolute inset-0', tint, edited && 'bg-accent/10')} />}
                             {isEditing && editing.loading && <Spinner size={12} label={t('grid.loadingValue')} />}
                             {isEditing && !editing.loading && (
                                 <CellEditor
@@ -360,61 +585,101 @@ export function DataGrid({
         );
     };
 
-    const settable = focusCell !== null && canEdit(focusCell);
-    const nullable = focusCell !== null && columns[focusCell.column]?.nullable !== false;
+    const menuRow = menuTarget === null ? undefined : rows[menuTarget.row];
+    const menuCell: CellPosition | null = menuTarget === null || menuTarget.column === null ? null : { row: menuTarget.row, column: menuTarget.column };
+    const settable = menuCell !== null && canEdit(menuCell);
+    const nullable = menuCell !== null && columns[menuCell.column]?.nullable !== false;
+    const menuContext: GridMenuContext | null =
+        menuRow === undefined || menuTarget === null
+            ? null
+            : {
+                  rowKeys: selection.has(menuRow.key) ? rows.filter((row) => selection.has(row.key)).map((row) => row.key) : [menuRow.key],
+                  cell: menuTarget.column === null ? null : { rowKey: menuRow.key, column: menuTarget.column }
+              };
 
     return (
-        <ContextMenu.Root>
-            <ContextMenu.Trigger
-                ref={attach}
-                role="grid"
-                aria-label={label}
-                aria-rowcount={rows.length + 1}
-                aria-colcount={columns.length + 1}
-                aria-activedescendant={focusCell === null ? undefined : cellId(focusCell.row, focusCell.column)}
-                tabIndex={0}
-                className={clsx('group/grid relative min-h-0 flex-1 overflow-auto bg-surface text-text outline-none', className)}
-                onKeyDown={handleKeyDown}
-                onScroll={(event) => setScrollTop(Math.floor(event.currentTarget.scrollTop / ROW_HEIGHT) * ROW_HEIGHT)}
-            >
-                <div className="relative min-w-full" style={{ width: totalWidth }}>
-                    <div
-                        role="row"
-                        aria-rowindex={1}
-                        className="sticky top-0 z-20 flex border-b border-border bg-surface-sunken"
-                        style={{ height: HEADER_HEIGHT, width: totalWidth }}
-                    >
-                        <div className="sticky left-0 z-10 shrink-0 border-r border-border bg-surface-sunken" style={{ width: gutter }} />
-                        {columns.map((column, index) => (
-                            <GridHeaderCell key={index} column={column} index={index} width={widths[index]!} onResize={resizeColumn} />
-                        ))}
-                    </div>
-                    <div role="rowgroup" className="relative" style={{ height: rows.length * ROW_HEIGHT }}>
-                        {Array.from({ length: range.end - range.start }, (_, offset) => renderRow(range.start + offset))}
-                    </div>
-                    {rows.length === 0 && empty !== undefined && <div className="sticky left-0 w-fit px-4 py-6 text-xs text-text-muted">{empty}</div>}
+        <div
+            ref={attach}
+            role="grid"
+            aria-label={label}
+            aria-rowcount={rows.length + 1}
+            aria-colcount={order.length + 1}
+            aria-activedescendant={focusCell === null ? undefined : cellId(focusCell.row, focusCell.column)}
+            tabIndex={0}
+            className={clsx('group/grid relative min-h-0 flex-1 overflow-auto bg-surface text-text outline-none', className)}
+            onKeyDown={handleKeyDown}
+            onScroll={(event) => setScrollTop(Math.floor(event.currentTarget.scrollTop / ROW_HEIGHT) * ROW_HEIGHT)}
+        >
+            <div className="relative min-w-full" style={{ width: totalWidth }}>
+                <div
+                    role="row"
+                    aria-rowindex={1}
+                    className="sticky top-0 z-20 flex w-full border-b border-border bg-surface-sunken"
+                    style={{ height: HEADER_HEIGHT }}
+                >
+                    <div className="sticky left-0 z-10 shrink-0 border-r border-border bg-surface-sunken" style={{ width: gutter }} />
+                    {order.map((columnIndex, position) => {
+                        const column = columns[columnIndex]!;
+                        return (
+                            <GridHeaderCell
+                                key={columnIndex}
+                                column={column}
+                                index={columnIndex}
+                                position={position}
+                                width={shownWidths[position]!}
+                                sortable={sortable}
+                                sort={sortable ? sortStateOf(sortList, column.name) : null}
+                                multipleSorts={sortList.length > 1}
+                                hasSorts={sortList.length > 0}
+                                pinned={position < pinnedShown}
+                                stickyLeft={gutter + (offsets[position] ?? 0)}
+                                lastPinned={position === pinnedShown - 1}
+                                last={position === order.length - 1}
+                                hasHidden={current.view.hidden.size > 0}
+                                canHide={order.length > 1}
+                                actions={headerActions}
+                            />
+                        );
+                    })}
                 </div>
-            </ContextMenu.Trigger>
-            <ContextMenu.Popup>
-                <ContextMenu.Item disabled={focusCell === null} onClick={copyFocused}>
-                    <Icon icon={Copy} size={14} />
-                    {t('grid.copyValue')}
-                    <Kbd shortcut={EDIT_SHORTCUTS.copy} />
-                </ContextMenu.Item>
-                {editable && (
-                    <>
-                        <ContextMenu.Separator />
-                        <ContextMenu.Item disabled={!settable || !nullable} onClick={() => commitValue(null)}>
-                            <Icon icon={Ban} size={14} />
-                            {t('grid.setNull')}
+                <ContextMenu.Root>
+                    <ContextMenu.Trigger role="rowgroup" className="relative" style={{ height: rows.length * ROW_HEIGHT }}>
+                        {Array.from({ length: range.end - range.start }, (_, offset) => renderRow(range.start + offset))}
+                    </ContextMenu.Trigger>
+                    <ContextMenu.Popup>
+                        <ContextMenu.Item disabled={menuCell === null} onClick={copyCell}>
+                            <Icon icon={Copy} size={14} />
+                            {t('grid.copyValue')}
+                            <Kbd shortcut={EDIT_SHORTCUTS.copy} />
                         </ContextMenu.Item>
-                        <ContextMenu.Item disabled={!settable} onClick={() => commitValue({ kind: 'default' })}>
-                            <Icon icon={RotateCcw} size={14} />
-                            {t('grid.setDefault')}
-                        </ContextMenu.Item>
-                    </>
-                )}
-            </ContextMenu.Popup>
-        </ContextMenu.Root>
+                        <CopyAsMenu
+                            disabled={rect === null}
+                            formats={sqlTarget === undefined ? COPY_FORMATS.filter((format) => format !== 'sql') : COPY_FORMATS}
+                            onCopy={copyAs}
+                        />
+                        {editable && menuCell !== null && (
+                            <>
+                                <ContextMenu.Separator />
+                                <ContextMenu.Item disabled={!settable || !nullable} onClick={() => commitValue(null)}>
+                                    <Icon icon={Ban} size={14} />
+                                    {t('grid.setNull')}
+                                </ContextMenu.Item>
+                                <ContextMenu.Item disabled={!settable} onClick={() => commitValue({ kind: 'default' })}>
+                                    <Icon icon={RotateCcw} size={14} />
+                                    {t('grid.setDefault')}
+                                </ContextMenu.Item>
+                            </>
+                        )}
+                        {menuContext !== null && menu !== undefined && (
+                            <>
+                                <ContextMenu.Separator />
+                                {menu(menuContext)}
+                            </>
+                        )}
+                    </ContextMenu.Popup>
+                </ContextMenu.Root>
+                {rows.length === 0 && empty !== undefined && <div className="sticky left-0 w-fit px-4 py-6 text-xs text-text-muted">{empty}</div>}
+            </div>
+        </div>
     );
 }

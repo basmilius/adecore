@@ -69,7 +69,7 @@ describe('DataGrid', () => {
 
     test('tints edited cells, inserted rows and rows marked for deletion', () => {
         const markup = render(<DataGrid label="Users" columns={columns} rows={rows} />);
-        expect(markup).toContain('bg-accent-soft');
+        expect(markup).toContain('bg-accent/10');
         expect(markup).toContain('bg-positive/10');
         expect(markup).toContain('line-through');
     });
@@ -82,6 +82,52 @@ describe('DataGrid', () => {
         expect(drawn).toBeLessThan(60);
         expect(markup).toContain('aria-rowcount="10001"');
         expect(markup).toContain('height:280000px');
+    });
+
+    test('runs the header to the right edge and leaves no edge after the last column', () => {
+        const markup = render(<DataGrid label="Users" columns={columns} rows={rows} />);
+        expect(markup).toMatch(/aria-rowindex="1" class="sticky top-0 z-20 flex w-full[^"]*"/);
+        expect(markup.match(/role="columnheader"[^>]*class="[^"]*border-r-0/g)).toHaveLength(1);
+    });
+
+    test('names the sort of a header and numbers the arrows when there are several', () => {
+        const single = render(
+            <DataGrid label="Users" columns={columns} rows={rows} sorts={[{ column: 'name', direction: 'desc' }]} onSortsChange={() => {}} />
+        );
+        expect(single).toContain('aria-sort="descending"');
+        expect(single.match(/aria-sort="none"/g)).toHaveLength(2);
+        expect(single).toContain('lucide-arrow-down');
+        const several = render(
+            <DataGrid
+                label="Users"
+                columns={columns}
+                rows={rows}
+                sorts={[
+                    { column: 'name', direction: 'asc' },
+                    { column: 'id', direction: 'desc' }
+                ]}
+                onSortsChange={() => {}}
+            />
+        );
+        expect(several).toContain('aria-sort="ascending"');
+        expect(several).toContain('tabular-nums">2<');
+    });
+
+    test('offers no sorting without onSortsChange', () => {
+        const markup = render(<DataGrid label="Users" columns={columns} rows={rows} sorts={[{ column: 'name', direction: 'asc' }]} />);
+        expect(markup).not.toContain('aria-sort');
+    });
+
+    test('has a menu button on every header', () => {
+        expect(render(<DataGrid label="Users" columns={columns} rows={rows} />).match(/aria-label="Column menu"/g)).toHaveLength(3);
+    });
+
+    test('marks no cell as selected before one has the focus', () => {
+        expect(render(<DataGrid label="Users" columns={columns} rows={rows} />).match(/role="gridcell"[^>]*aria-selected="false"/g)).toHaveLength(12);
+    });
+
+    test('pins no column until a person does', () => {
+        expect(render(<DataGrid label="Users" columns={columns} rows={rows} />)).not.toContain('sticky z-5');
     });
 
     test('says why there are no rows under the header', () => {

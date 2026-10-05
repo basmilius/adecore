@@ -1,17 +1,32 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode, type Ref } from 'react';
 import clsx from 'clsx';
-import { ChevronRight, CircleAlert, Database, Eye, Search, Table } from 'lucide-react';
+import { ChevronRight, CircleAlert, Database, Eye, Folder, KeyRound, Link2, Lock, RectangleVertical, Search, Table } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button, ContextMenu, EmptyState, Icon, Input, Spinner, Tooltip, copyText } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
 import { useDatabaseClient } from '../client-context.ts';
 import type { Connection, TableRef } from '../client/types.ts';
 import { EngineIcon } from '../connections/EngineIcon.tsx';
-import { connectionKey, flattenTree, isExpandable, navigate, neededLoads, tabStop, tableKey, type ErrorRow, type TreeRow } from './tree.ts';
+import {
+    connectionKey,
+    flattenTree,
+    isExpandable,
+    isFolderKey,
+    navigate,
+    neededLoads,
+    tabStop,
+    tableKey,
+    tableOf,
+    type ErrorRow,
+    type ExpandableRow,
+    type TreeRow
+} from './tree.ts';
 import { useExplorerLoads } from './use-explorer-loads.ts';
 
 const INDENT = 16;
-const BASE_INDENT = 8;
+/* Where the chevron slot of the first level starts inside a row. */
+const BASE_INDENT = 4;
+const CHEVRON_SIZE = 16;
 
 export interface DatabaseExplorerProps {
     connections: readonly Connection[];
@@ -42,6 +57,7 @@ export function DatabaseExplorer({
     const loads = useExplorerLoads(connections);
     const [own, setOwn] = useState<TableRef | null>(defaultValue);
     const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
+    const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
     const [filter, setFilter] = useState('');
     const [activeKey, setActiveKey] = useState<string | null>(null);
     const rowElements = useRef(new Map<string, HTMLElement>());
@@ -49,7 +65,16 @@ export function DatabaseExplorer({
     const selected = value === undefined ? own : value;
     const selectedKey = selected === null ? null : tableKey(selected);
 
-    const input = { connections, expanded, showSystemSchemas, schemas: loads.schemas, tables: loads.tables };
+    const input = {
+        connections,
+        expanded,
+        collapsed,
+        showSystemSchemas,
+        schemas: loads.schemas,
+        tables: loads.tables,
+        structures: loads.structures,
+        versions: loads.versions
+    };
     const rows = flattenTree({ ...input, filter });
     const stop = tabStop(rows, activeKey, selectedKey);
 
@@ -67,15 +92,22 @@ export function DatabaseExplorer({
     }, [activeKey]);
 
     const setOpen = (key: string, open: boolean): void => {
-        setExpanded((current) => {
+        // A folder is open until the person closes it, everything else is closed until they open it.
+        const folder = isFolderKey(key);
+        const toggle = (current: ReadonlySet<string>): ReadonlySet<string> => {
             const next = new Set(current);
-            if (open) {
+            if (open !== folder) {
                 next.add(key);
             } else {
                 next.delete(key);
             }
             return next;
-        });
+        };
+        (folder ? setCollapsed : setExpanded)(toggle);
+    };
+
+    const toggle = (row: ExpandableRow): void => {
+        setOpen(row.key, !row.expanded);
     };
 
     const select = (ref: TableRef): void => {
@@ -91,9 +123,14 @@ export function DatabaseExplorer({
                 select(row.ref);
                 onOpen?.(row.ref);
                 break;
+            case 'column':
+                select(row.ref);
+                onOpen?.(row.ref);
+                break;
             case 'connection':
             case 'schema':
-                setOpen(row.key, !row.expanded);
+            case 'folder':
+                toggle(row);
                 break;
             case 'error':
                 loads.reset(row.retry);
@@ -128,7 +165,7 @@ export function DatabaseExplorer({
         if (row.kind === 'table') {
             select(row.ref);
         } else if (isExpandable(row)) {
-            setOpen(row.key, !row.expanded);
+            toggle(row);
         } else if (row.kind === 'error') {
             loads.reset(row.retry);
         }
@@ -166,25 +203,38 @@ export function DatabaseExplorer({
                         <ContextMenu.Item onClick={() => copyText(row.ref.table)}>{t('explorer.copyName')}</ContextMenu.Item>
                     </>
                 );
+            case 'column':
+                return (
+                    <>
+                        <ContextMenu.Item onClick={() => onOpen?.(row.ref)}>{t('explorer.open')}</ContextMenu.Item>
+                        <ContextMenu.Item onClick={() => copyText(row.column.name)}>{t('explorer.copyName')}</ContextMenu.Item>
+                    </>
+                );
             default:
                 return null;
         }
     };
 
-    const renderRow = (row: TreeRow): ReactNode => {
+    const isSelected = (row: TreeRow | undefined): boolean => row !== undefined && row.kind === 'table' && row.key === selectedKey;
+
+    const renderRow = (row: TreeRow, index: number): ReactNode => {
         const menu = menuOf(row);
+        const selectedRow = isSelected(row);
         const props = {
             role: 'treeitem',
             'aria-level': row.level,
             'aria-setsize': row.setSize,
             'aria-posinset': row.posInSet,
             'aria-expanded': isExpandable(row) ? row.expanded : undefined,
-            'aria-selected': row.kind === 'table' ? row.key === selectedKey : undefined,
+            'aria-selected': row.kind === 'table' ? selectedRow : undefined,
             'aria-busy': row.kind === 'loading' ? true : undefined,
             tabIndex: row.focusable ? (row.key === stop ? 0 : -1) : undefined,
             className: clsx(
-                'focus-ring flex h-7 min-w-0 items-center gap-1.5 pr-2 text-xs text-text',
-                row.kind === 'table' && row.key === selectedKey ? 'bg-surface-active' : row.focusable && 'hover:bg-surface-hover'
+                // The line box is the row's height, so the text lands on whole pixels in a row of an odd height.
+                'focus-ring relative mx-2 flex h-[25px] min-w-0 items-center gap-1.5 rounded-md pr-2 text-xs leading-[25px] text-text focus-visible:-outline-offset-2',
+                selectedRow ? 'bg-surface-active' : row.focusable && 'hover:bg-surface-hover',
+                selectedRow && isSelected(rows[index - 1]) && 'rounded-t-none',
+                selectedRow && isSelected(rows[index + 1]) && 'rounded-b-none'
             ),
             style: { paddingInlineStart: BASE_INDENT + (row.level - 1) * INDENT },
             ref: (element: HTMLElement | null) => {
@@ -195,14 +245,26 @@ export function DatabaseExplorer({
                 }
             },
             onClick: () => click(row),
-            onDoubleClick: row.kind === 'table' ? () => onOpen?.(row.ref) : undefined,
+            onDoubleClick: tableOf(row) === null ? undefined : () => activate(row),
             onFocus: () => {
                 if (row.focusable) {
                     setActiveKey(row.key);
                 }
             }
         };
-        const content = <RowContent row={row} />;
+        const content = (
+            <>
+                {Array.from({ length: row.level - 1 }, (_, i) => (
+                    <span
+                        key={i}
+                        aria-hidden
+                        className="pointer-events-none absolute inset-y-0 w-px bg-border"
+                        style={{ insetInlineStart: BASE_INDENT + i * INDENT + CHEVRON_SIZE / 2 - 1 }}
+                    />
+                ))}
+                <RowContent row={row} onToggle={isExpandable(row) ? () => toggle(row) : undefined} />
+            </>
+        );
         if (menu === null) {
             return (
                 <div key={row.key} {...props}>
@@ -242,7 +304,7 @@ export function DatabaseExplorer({
             ) : rows.length === 0 ? (
                 <EmptyState icon={Search}>{t('explorer.noMatches', { query: filter.trim() })}</EmptyState>
             ) : (
-                <div role="tree" aria-label={t('explorer.label')} className="min-h-0 grow overflow-y-auto py-1" onKeyDown={onKeyDown}>
+                <div role="tree" aria-label={t('explorer.label')} className="min-h-0 grow overflow-y-auto py-2" onKeyDown={onKeyDown}>
                     {rows.map(renderRow)}
                 </div>
             )}
@@ -250,41 +312,64 @@ export function DatabaseExplorer({
     );
 }
 
-const CHEVRON_SLOT = 'grid size-4 shrink-0 place-items-center text-text-faint';
-
-function RowContent({ row }: { row: TreeRow }) {
+function RowContent({ row, onToggle }: { row: TreeRow; onToggle?: () => void }) {
     const { t } = useTranslation('database');
     switch (row.kind) {
         case 'connection':
             return (
                 <>
-                    <Chevron open={row.expanded} />
-                    <EngineIcon engine={row.connection.config.engine} size={14} className="shrink-0 text-text-muted" />
+                    <Chevron open={row.expanded} onToggle={onToggle} />
+                    <EngineIcon engine={row.connection.config.engine} size={16} className="shrink-0 text-text-muted" />
                     <span className="min-w-0 truncate">{row.connection.name || t('connections.untitled')}</span>
+                    {row.connection.config.readOnly === true && (
+                        <Tooltip label={t('explorer.readOnly')}>
+                            <span className="inline-flex shrink-0 text-text-faint">
+                                <Icon icon={Lock} size={12} />
+                            </span>
+                        </Tooltip>
+                    )}
+                    {row.version !== null && <span className="min-w-0 shrink-[2] truncate text-text-faint">{row.version}</span>}
+                    {row.schemaCount !== null && <SchemaCount shown={row.schemaCount.shown} total={row.schemaCount.total} />}
                 </>
             );
         case 'schema':
             return (
                 <>
-                    <Chevron open={row.expanded} />
-                    <Icon icon={Database} size={14} className="shrink-0 text-text-muted" />
+                    <Chevron open={row.expanded} onToggle={onToggle} />
+                    <Icon icon={Database} size={16} className="shrink-0 text-text-muted" />
                     <span className="min-w-0 truncate">{row.schema}</span>
-                    {row.count !== null && <span className="shrink-0 text-text-faint tabular-nums">{formatNumber(row.count)}</span>}
+                </>
+            );
+        case 'folder':
+            return (
+                <>
+                    <Chevron open={row.expanded} onToggle={onToggle} />
+                    <Icon icon={Folder} size={16} className="shrink-0 text-text-muted" />
+                    <span className="min-w-0 truncate">{t(row.group === 'view' ? 'explorer.views' : 'explorer.tables')}</span>
+                    <span className="shrink-0 text-text-faint tabular-nums">{formatNumber(row.count)}</span>
                 </>
             );
         case 'table':
             return (
                 <>
-                    <span className="size-4 shrink-0" />
-                    <Icon icon={row.table.kind === 'view' ? Eye : Table} size={14} className="shrink-0 text-text-muted" />
+                    <Chevron open={row.expanded} onToggle={onToggle} />
+                    <Icon icon={row.table.kind === 'view' ? Eye : Table} size={16} className="shrink-0 text-text-muted" />
                     <span className="min-w-0 truncate">{row.table.name}</span>
-                    {row.table.kind === 'view' && <span className="shrink-0 text-2xs text-text-faint">{t('explorer.view')}</span>}
+                </>
+            );
+        case 'column':
+            return (
+                <>
+                    <ChevronSlot />
+                    <ColumnIcon primaryKey={row.primaryKey} foreignKey={row.foreignKey} />
+                    <span className="min-w-0 truncate">{row.column.name}</span>
+                    {row.column.type !== '' && <span className="min-w-0 shrink-[2] truncate text-text-faint">{row.column.type}</span>}
                 </>
             );
         case 'loading':
             return (
                 <>
-                    <span className="size-4 shrink-0" />
+                    <ChevronSlot />
                     <Spinner size={12} />
                     <span className="text-text-faint">{t('explorer.loading')}</span>
                 </>
@@ -294,18 +379,56 @@ function RowContent({ row }: { row: TreeRow }) {
         case 'empty':
             return (
                 <>
-                    <span className="size-4 shrink-0" />
-                    <span className="text-text-faint">{t(row.of === 'schemas' ? 'explorer.noSchemas' : 'explorer.noTables')}</span>
+                    <ChevronSlot />
+                    <span className="text-text-faint">{t(EMPTY_WORDS[row.of])}</span>
                 </>
             );
     }
 }
 
-function Chevron({ open }: { open: boolean }) {
+const EMPTY_WORDS = { schemas: 'explorer.noSchemas', tables: 'explorer.noTables', columns: 'explorer.noColumns' } as const;
+
+/* Where a chevron would be, so a row without one lines up with its siblings that have one. */
+function ChevronSlot() {
+    return <span className="size-4 shrink-0" />;
+}
+
+function Chevron({ open, onToggle }: { open: boolean; onToggle?: () => void }) {
     return (
-        <span className={CHEVRON_SLOT}>
+        <span
+            className="grid size-4 shrink-0 place-items-center text-text-muted"
+            onClick={(e) => {
+                e.stopPropagation();
+                onToggle?.();
+            }}
+            onDoubleClick={(e) => e.stopPropagation()}
+        >
             <Icon icon={ChevronRight} size={12} className={clsx('transition-transform', open && 'rotate-90')} />
         </span>
+    );
+}
+
+function SchemaCount({ shown, total }: { shown: number; total: number }) {
+    const { t } = useTranslation('database');
+    const counts = { shown: formatNumber(shown), total: formatNumber(total) };
+    return (
+        <Tooltip label={t('explorer.schemaCountHint', { count: total, ...counts })}>
+            <span className="shrink-0 text-text-faint tabular-nums">{t('explorer.schemaCount', counts)}</span>
+        </Tooltip>
+    );
+}
+
+function ColumnIcon({ primaryKey, foreignKey }: { primaryKey: boolean; foreignKey: boolean }) {
+    const { t } = useTranslation('database');
+    if (!primaryKey && !foreignKey) {
+        return <Icon icon={RectangleVertical} size={16} className="shrink-0 text-text-faint" />;
+    }
+    return (
+        <Tooltip label={t(primaryKey ? 'explorer.primaryKey' : 'explorer.foreignKey')}>
+            <span className="inline-flex shrink-0 text-text-muted">
+                <Icon icon={primaryKey ? KeyRound : Link2} size={16} />
+            </span>
+        </Tooltip>
     );
 }
 
@@ -313,8 +436,8 @@ function ErrorContent({ row }: { row: ErrorRow }) {
     const { t } = useTranslation('database');
     return (
         <>
-            <span className="size-4 shrink-0" />
-            <Icon icon={CircleAlert} size={14} className="shrink-0 text-status-error" />
+            <ChevronSlot />
+            <Icon icon={CircleAlert} size={16} className="shrink-0 text-status-error" />
             <Tooltip label={row.message}>
                 <span className="min-w-0 truncate text-status-error">{row.message}</span>
             </Tooltip>

@@ -8,6 +8,10 @@ export interface GridColumn extends ResultColumn {
     readonly nullable?: boolean;
     /* A column no cell of which can be edited, such as a generated one. */
     readonly readOnly?: boolean;
+    /* The default as an SQL expression, for the hint on the header. */
+    readonly defaultValue?: string | null;
+    /* A cloned row leaves this column to the server. */
+    readonly autoIncrement?: boolean;
 }
 
 export type GridRowState = 'inserted' | 'deleted';
@@ -30,5 +34,21 @@ export const gridColumnOf = (column: ResultColumn, info: ColumnInfo | undefined,
     ...column,
     primaryKey: primaryKey.includes(column.name),
     nullable: info?.nullable,
-    readOnly: info?.generated === true
+    readOnly: info?.generated === true,
+    defaultValue: info?.defaultValue,
+    autoIncrement: info?.autoIncrement
 });
+
+/* The cell that holds the focus, named by its row's key and its column's index in the columns the grid was given. */
+export interface FocusedCell {
+    readonly rowKey: string;
+    readonly column: number;
+}
+
+/* What a menu item added to the grid's context menu acts on. */
+export interface GridMenuContext {
+    /* The selected rows when the row under the pointer is one of them, else that row alone. */
+    readonly rowKeys: readonly string[];
+    /* The cell under the pointer; `null` when the menu opened on a row number. */
+    readonly cell: FocusedCell | null;
+}

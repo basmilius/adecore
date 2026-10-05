@@ -69,9 +69,17 @@
     "noMatches": "Geen geladen tabel past bij \"{{query}}\".",
     "noSchemas": "Geen schema's",
     "noTables": "Geen tabellen",
+    "noColumns": "Geen kolommen",
+    "tables": "Tabellen",
+    "views": "Views",
+    "primaryKey": "Primaire sleutel",
+    "foreignKey": "Refererende sleutel",
+    "readOnly": "Alleen lezen",
+    "schemaCount": "{{shown}} van {{total}}",
+    "schemaCountHint_one": "{{shown}} van {{total}} schema getoond, systeemschema's zijn verborgen",
+    "schemaCountHint_other": "{{shown}} van {{total}} schema's getoond, systeemschema's zijn verborgen",
     "loading": "Laden",
     "retry": "Opnieuw proberen",
-    "view": "View",
     "refresh": "Vernieuwen",
     "disconnect": "Verbinding verbreken",
     "open": "Openen",
@@ -122,7 +130,29 @@
     "copyValue": "Waarde kopiëren",
     "setNull": "Op NULL zetten",
     "setDefault": "Op DEFAULT zetten",
-    "loadingValue": "De hele waarde wordt geladen"
+    "loadingValue": "De hele waarde wordt geladen",
+    "column": {
+      "sortAscending": "Oplopend sorteren",
+      "sortDescending": "Aflopend sorteren",
+      "clearSorting": "Sortering wissen",
+      "hide": "Kolom verbergen",
+      "showAll": "Alle kolommen tonen",
+      "pin": "Kolom vastzetten",
+      "unpin": "Kolom losmaken",
+      "copyName": "Kolomnaam kopiëren",
+      "menu": "Kolommenu",
+      "nullable": "Mag NULL zijn",
+      "notNull": "Niet NULL",
+      "default": "Standaard: {{value}}",
+      "autoIncrement": "Automatisch ophogend"
+    },
+    "copyAs": {
+      "label": "Kopiëren als",
+      "tsv": "TSV",
+      "csv": "CSV",
+      "json": "JSON",
+      "sql": "SQL INSERT-statements"
+    }
   },
   "table": {
     "grid": "Rijen van {{table}}",
@@ -158,6 +188,21 @@
       "title": "De wijzigingen negeren?",
       "description": "De wijzigingen die je niet hebt opgeslagen gaan verloren als de pagina wisselt.",
       "confirm": "Wijzigingen negeren"
+    },
+    "filterByValue": "Filteren op deze waarde",
+    "cloneRows": "Geselecteerde rijen klonen",
+    "revertRows": "Geselecteerde rijen terugdraaien",
+    "valuePanel": "Waardepaneel",
+    "firstPage": "Eerste pagina",
+    "lastPage": "Laatste pagina",
+    "lastPageCounts": "Laatste pagina (telt eerst de rijen)",
+    "menu": {
+      "cloneRows_one": "Rij klonen",
+      "cloneRows_other": "{{count}} rijen klonen",
+      "revertRows_one": "Rij terugdraaien",
+      "revertRows_other": "{{count}} rijen terugdraaien",
+      "deleteRows_one": "Rij verwijderen",
+      "deleteRows_other": "{{count}} rijen verwijderen"
     }
   },
   "console": {
@@ -175,6 +220,37 @@
     "sqlState": "SQLSTATE {{state}}",
     "affected_one": "{{formatted}} rij gewijzigd",
     "affected_other": "{{formatted}} rijen gewijzigd",
-    "lastInsertId": "Laatste insert-id: {{id}}"
+    "lastInsertId": "Laatste insert-id: {{id}}",
+    "valuePanel": "Waardepaneel"
+  },
+  "value": {
+    "title": "Waarde",
+    "selectCell": "Selecteer een cel om de waarde te zien.",
+    "loading": "Waarde laden",
+    "notLoaded": "De waarde kon niet worden geladen.",
+    "close": "Sluiten",
+    "copy": "Kopiëren",
+    "wrap": "Regels afbreken",
+    "views": "Weergave",
+    "view": {
+      "text": "Tekst",
+      "formatted": "Opgemaakt",
+      "hex": "Hex",
+      "utf8": "Tekst",
+      "uuid": "UUID"
+    },
+    "editor": "Waarde van {{column}}",
+    "hexEditor": "Bytes van {{column}} in hex",
+    "apply": "Toepassen",
+    "applyHint": "Toepassen als openstaande wijziging",
+    "revert": "Terugdraaien",
+    "setNull": "NULL instellen",
+    "setDefault": "DEFAULT instellen",
+    "invalidJson": "Dit is geen geldige JSON: {{reason}}",
+    "invalidHexCharacters": "Hex bestaat uit de cijfers 0 tot en met 9 en de letters a tot en met f, met eventueel spaties of regeleinden ertussen.",
+    "invalidHexOdd": "Een byte bestaat uit twee hex-cijfers, dus het aantal cijfers moet even zijn.",
+    "dumpTruncated": "De eerste {{shown}} van {{total}} bytes worden getoond.",
+    "characters_one": "{{formatted}} teken",
+    "characters_other": "{{formatted}} tekens"
   }
 }

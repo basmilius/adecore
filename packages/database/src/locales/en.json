@@ -69,9 +69,17 @@
     "noMatches": "No loaded table matches \"{{query}}\".",
     "noSchemas": "No schemas",
     "noTables": "No tables",
+    "noColumns": "No columns",
+    "tables": "Tables",
+    "views": "Views",
+    "primaryKey": "Primary key",
+    "foreignKey": "Foreign key",
+    "readOnly": "Read only",
+    "schemaCount": "{{shown}} of {{total}}",
+    "schemaCountHint_one": "{{shown}} of {{total}} schema shown, system schemas are hidden",
+    "schemaCountHint_other": "{{shown}} of {{total}} schemas shown, system schemas are hidden",
     "loading": "Loading",
     "retry": "Try again",
-    "view": "View",
     "refresh": "Refresh",
     "disconnect": "Disconnect",
     "open": "Open",
@@ -122,7 +130,29 @@
     "copyValue": "Copy value",
     "setNull": "Set NULL",
     "setDefault": "Set DEFAULT",
-    "loadingValue": "Loading the whole value"
+    "loadingValue": "Loading the whole value",
+    "column": {
+      "sortAscending": "Sort ascending",
+      "sortDescending": "Sort descending",
+      "clearSorting": "Clear sorting",
+      "hide": "Hide column",
+      "showAll": "Show all columns",
+      "pin": "Pin column",
+      "unpin": "Unpin column",
+      "copyName": "Copy column name",
+      "menu": "Column menu",
+      "nullable": "Nullable",
+      "notNull": "Not null",
+      "default": "Default: {{value}}",
+      "autoIncrement": "Auto increment"
+    },
+    "copyAs": {
+      "label": "Copy as",
+      "tsv": "TSV",
+      "csv": "CSV",
+      "json": "JSON",
+      "sql": "SQL INSERT statements"
+    }
   },
   "table": {
     "grid": "Rows of {{table}}",
@@ -158,6 +188,21 @@
       "title": "Discard the pending changes?",
       "description": "The changes you have not submitted are lost when the page changes.",
       "confirm": "Discard changes"
+    },
+    "filterByValue": "Filter by this value",
+    "cloneRows": "Clone selected rows",
+    "revertRows": "Revert selected rows",
+    "valuePanel": "Value panel",
+    "firstPage": "First page",
+    "lastPage": "Last page",
+    "lastPageCounts": "Last page (counts the rows first)",
+    "menu": {
+      "cloneRows_one": "Clone row",
+      "cloneRows_other": "Clone {{count}} rows",
+      "revertRows_one": "Revert row",
+      "revertRows_other": "Revert {{count}} rows",
+      "deleteRows_one": "Delete row",
+      "deleteRows_other": "Delete {{count}} rows"
     }
   },
   "console": {
@@ -175,6 +220,37 @@
     "sqlState": "SQLSTATE {{state}}",
     "affected_one": "{{formatted}} row affected",
     "affected_other": "{{formatted}} rows affected",
-    "lastInsertId": "Last insert id: {{id}}"
+    "lastInsertId": "Last insert id: {{id}}",
+    "valuePanel": "Value panel"
+  },
+  "value": {
+    "title": "Value",
+    "selectCell": "Select a cell to see its value.",
+    "loading": "Loading the value",
+    "notLoaded": "The value could not be loaded.",
+    "close": "Close",
+    "copy": "Copy",
+    "wrap": "Wrap lines",
+    "views": "View",
+    "view": {
+      "text": "Text",
+      "formatted": "Formatted",
+      "hex": "Hex",
+      "utf8": "Text",
+      "uuid": "UUID"
+    },
+    "editor": "Value of {{column}}",
+    "hexEditor": "Bytes of {{column}} in hex",
+    "apply": "Apply",
+    "applyHint": "Apply as a pending edit",
+    "revert": "Revert",
+    "setNull": "Set NULL",
+    "setDefault": "Set DEFAULT",
+    "invalidJson": "This is not valid JSON: {{reason}}",
+    "invalidHexCharacters": "Hex takes the digits 0 to 9 and the letters a to f, and spaces or newlines between them.",
+    "invalidHexOdd": "A byte takes two hex digits, so the number of digits must be even.",
+    "dumpTruncated": "Showing the first {{shown}} of {{total}} bytes.",
+    "characters_one": "{{formatted}} character",
+    "characters_other": "{{formatted}} characters"
   }
 }

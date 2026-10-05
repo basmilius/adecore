@@ -5,7 +5,11 @@ export const MIN_COLUMN_WIDTH = 64;
 export const MAX_COLUMN_WIDTH = 320;
 /* How far a drag may widen a column; the estimate stops at `MAX_COLUMN_WIDTH`, a person may go further. */
 export const MAX_RESIZED_WIDTH = 1200;
+/* How wide fitting a column to its content may make it. */
+export const MAX_FIT_WIDTH = 640;
 export const OVERSCAN_ROWS = 6;
+/* Two presses on a resize handle this close are a double click. */
+export const DOUBLE_CLICK_MS = 350;
 /* What a viewport is taken to be until it is measured, so a first paint already holds rows. */
 export const FALLBACK_VIEWPORT_HEIGHT = 600;
 
@@ -15,6 +19,8 @@ const CELL_PADDING = 24;
 const KEY_ICON_ROOM = 18;
 const GUTTER_MIN_WIDTH = 40;
 const SAMPLE_ROWS = 50;
+/* The arrow and the position number a sorted header carries after its name. */
+const SORT_ROOM = 24;
 
 export interface VisibleRange {
     /* Index of the first row to draw. */
@@ -68,3 +74,12 @@ export const estimateColumnWidth = (header: string, samples: readonly string[], 
     const named = header.length + (keyed ? KEY_ICON_ROOM / CHARACTER_WIDTH : 0);
     return clampColumnWidth(Math.max(body, named) * CHARACTER_WIDTH + CELL_PADDING);
 };
+
+/* Wide enough for the header and every text of the column, up to `MAX_FIT_WIDTH`. */
+export const fitColumnWidth = (header: string, texts: readonly string[], keyed: boolean): number => {
+    const body = texts.reduce((longest, text) => Math.max(longest, text.length), 0) * CHARACTER_WIDTH;
+    const named = header.length * CHARACTER_WIDTH + (keyed ? KEY_ICON_ROOM : 0) + SORT_ROOM;
+    return Math.max(MIN_COLUMN_WIDTH, Math.min(Math.ceil(Math.max(body, named) + CELL_PADDING), MAX_FIT_WIDTH));
+};
+
+export const isDoubleClick = (previous: number | null, now: number): boolean => previous !== null && now - previous <= DOUBLE_CLICK_MS;

@@ -1,7 +1,21 @@
 import { describe, expect, test } from 'bun:test';
 import type { Connection } from '../client/types.ts';
-import type { SchemaInfo, TableInfo } from '../protocol/index.ts';
-import { IDLE, connectionKey, flattenTree, navigate, neededLoads, schemaKey, tabStop, tableKey, type Load, type TreeInput, type TreeRow } from './tree.ts';
+import type { ColumnInfo, SchemaInfo, TableInfo, TableStructure } from '../protocol/index.ts';
+import {
+    IDLE,
+    columnKey,
+    connectionKey,
+    flattenTree,
+    folderKey,
+    navigate,
+    neededLoads,
+    schemaKey,
+    tabStop,
+    tableKey,
+    type Load,
+    type TreeInput,
+    type TreeRow
+} from './tree.ts';
 
 const connection = (id: string, engine: 'sqlite' | 'mysql' = 'mysql'): Connection => ({
     id,
@@ -11,13 +25,50 @@ const connection = (id: string, engine: 'sqlite' | 'mysql' = 'mysql'): Connectio
 
 const schema = (name: string, system = false): SchemaInfo => ({ name, system });
 const table = (name: string, kind: 'table' | 'view' = 'table'): TableInfo => ({ name, kind, rowEstimate: null, comment: null });
+const column = (name: string, type = 'int'): ColumnInfo => ({
+    name,
+    type,
+    kind: 'integer',
+    nullable: false,
+    defaultValue: null,
+    autoIncrement: false,
+    generated: false,
+    comment: null
+});
+const structure = (name: string, columns: ColumnInfo[], primaryKey: string[] = [], foreignKeyColumns: string[] = []): TableStructure => ({
+    schema: 'shop',
+    name,
+    kind: 'table',
+    columns,
+    primaryKey,
+    rowKey: primaryKey.length > 0 ? primaryKey : null,
+    indexes: [],
+    foreignKeys:
+        foreignKeyColumns.length === 0
+            ? []
+            : [
+                  {
+                      name: null,
+                      columns: foreignKeyColumns,
+                      referencedSchema: 'shop',
+                      referencedTable: 'users',
+                      referencedColumns: ['id'],
+                      onUpdate: null,
+                      onDelete: null
+                  }
+              ],
+    ddl: null
+});
 const ready = <T>(value: T): Load<T> => ({ status: 'ready', value });
 
 interface World {
     connections: Connection[];
     schemas?: Record<string, Load<readonly SchemaInfo[]>>;
     tables?: Record<string, Load<readonly TableInfo[]>>;
+    structures?: Record<string, Load<TableStructure>>;
+    versions?: Record<string, string>;
     expanded?: string[];
+    collapsed?: string[];
     filter?: string;
     showSystemSchemas?: boolean;
 }
@@ -25,15 +76,35 @@ interface World {
 const inputOf = (world: World): TreeInput => ({
     connections: world.connections,
     expanded: new Set(world.expanded ?? []),
+    collapsed: new Set(world.collapsed ?? []),
     filter: world.filter ?? '',
     showSystemSchemas: world.showSystemSchemas ?? false,
     schemas: (id) => world.schemas?.[id] ?? IDLE,
-    tables: (id, name) => world.tables?.[`${id}/${name}`] ?? IDLE
+    tables: (id, name) => world.tables?.[`${id}/${name}`] ?? IDLE,
+    structures: (id, name, table) => world.structures?.[`${id}/${name}/${table}`] ?? IDLE,
+    versions: (id) => world.versions?.[id] ?? null
 });
+
+const nameOf = (row: TreeRow): string => {
+    switch (row.kind) {
+        case 'connection':
+            return row.connection.id;
+        case 'schema':
+            return row.schema;
+        case 'folder':
+            return `[${row.group}s]`;
+        case 'table':
+            return row.table.name;
+        case 'column':
+            return row.column.name;
+        default:
+            return row.kind;
+    }
+};
 
 const labels = (rows: readonly TreeRow[]): string[] =>
     rows.map((row) => {
-        const name = row.kind === 'connection' ? row.connection.id : row.kind === 'schema' ? row.schema : row.kind === 'table' ? row.table.name : row.kind;
+        const name = nameOf(row);
         return `${row.level}:${name}`;
     });
 
@@ -43,6 +114,10 @@ const world: World = {
     schemas: { app: ready([schema('shop'), schema('blog'), schema('mysql', true)]) },
     tables: { 'app/shop': ready([table('orders'), table('users'), table('active_users', 'view')]), 'app/blog': ready([table('posts')]) }
 };
+
+const shopTables = tableKey({ connectionId: 'app', schema: 'shop', table: 'orders' });
+const usersKey = tableKey({ connectionId: 'app', schema: 'shop', table: 'users' });
+const openShop = [connectionKey('app'), schemaKey('app', 'shop')];
 
 describe('flattenTree', () => {
     test('shows a closed connection as one row', () => {
@@ -66,19 +141,35 @@ describe('flattenTree', () => {
         expect(labels(flattenTree(inputOf({ ...open, showSystemSchemas: true })))).toEqual(['1:app', '2:shop', '2:blog', '2:mysql']);
     });
 
-    test('puts the tables of an open schema under it, with the count of the schema', () => {
-        const rows = flattenTree(inputOf({ ...world, expanded: [connectionKey('app'), schemaKey('app', 'shop')] }));
-        expect(labels(rows)).toEqual(['1:app', '2:shop', '3:orders', '3:users', '3:active_users', '2:blog']);
-        expect(rows[1]).toMatchObject({ kind: 'schema', count: 3, expanded: true });
-        expect(rows[5]).toMatchObject({ kind: 'schema', count: 1, expanded: false });
+    test('puts the tables and the views of an open schema in a folder each, with their count', () => {
+        const rows = flattenTree(inputOf({ ...world, expanded: openShop }));
+        expect(labels(rows)).toEqual(['1:app', '2:shop', '3:[tables]', '4:orders', '4:users', '3:[views]', '4:active_users', '2:blog']);
+        expect(rows[2]).toMatchObject({ kind: 'folder', group: 'table', count: 2, expanded: true, parent: schemaKey('app', 'shop') });
+        expect(rows[5]).toMatchObject({ kind: 'folder', group: 'view', count: 1, expanded: true });
+        expect(rows[3]).toMatchObject({ kind: 'table', parent: folderKey('app', 'shop', 'table'), expanded: false });
+    });
+
+    test('leaves out a folder without items', () => {
+        const rows = flattenTree(inputOf({ ...world, expanded: [connectionKey('app'), schemaKey('app', 'blog')] }));
+        expect(labels(rows)).toEqual(['1:app', '2:shop', '2:blog', '3:[tables]', '4:posts']);
+    });
+
+    test('hides the tables of a folder the person closed', () => {
+        const rows = flattenTree(inputOf({ ...world, expanded: openShop, collapsed: [folderKey('app', 'shop', 'table')] }));
+        expect(labels(rows)).toEqual(['1:app', '2:shop', '3:[tables]', '3:[views]', '4:active_users', '2:blog']);
+        expect(rows[2]).toMatchObject({ expanded: false, count: 2 });
     });
 
     test('numbers the siblings of a parent for a screen reader', () => {
-        const rows = flattenTree(inputOf({ ...world, expanded: [connectionKey('app'), schemaKey('app', 'shop')] }));
+        const rows = flattenTree(inputOf({ ...world, expanded: openShop }));
+        expect(rows.filter((row) => row.level === 4).map((row) => [row.posInSet, row.setSize])).toEqual([
+            [1, 2],
+            [2, 2],
+            [1, 1]
+        ]);
         expect(rows.filter((row) => row.level === 3).map((row) => [row.posInSet, row.setSize])).toEqual([
-            [1, 3],
-            [2, 3],
-            [3, 3]
+            [1, 2],
+            [2, 2]
         ]);
         expect(rows.filter((row) => row.level === 2).map((row) => [row.posInSet, row.setSize])).toEqual([
             [1, 2],
@@ -96,8 +187,9 @@ describe('flattenTree', () => {
                 tables: { 'lite/main': ready([table('notes')]) }
             })
         );
-        expect(labels(rows)).toEqual(['1:lite', '2:notes']);
-        expect(rows[1]).toMatchObject({ kind: 'table', parent: connectionKey('lite'), ref: { schema: 'main', table: 'notes' } });
+        expect(labels(rows)).toEqual(['1:lite', '2:[tables]', '3:notes']);
+        expect(rows[1]).toMatchObject({ kind: 'folder', parent: connectionKey('lite') });
+        expect(rows[2]).toMatchObject({ kind: 'table', ref: { schema: 'main', table: 'notes' } });
     });
 
     test('says so when a schema has no tables and when a connection has no schemas', () => {
@@ -106,6 +198,89 @@ describe('flattenTree', () => {
         const none = flattenTree(inputOf({ connections: [app], expanded: [connectionKey('app')], schemas: { app: ready([schema('mysql', true)]) } }));
         expect(none[1]).toMatchObject({ kind: 'empty', of: 'schemas' });
     });
+
+    test('shows the loading and the failure of the tables of a schema', () => {
+        const loading = flattenTree(inputOf({ ...world, expanded: openShop, tables: {} }));
+        expect(labels(loading)).toEqual(['1:app', '2:shop', '3:loading', '2:blog']);
+        const failed = flattenTree(inputOf({ ...world, expanded: openShop, tables: { 'app/shop': { status: 'error', message: 'denied' } } }));
+        expect(failed[2]).toMatchObject({ kind: 'error', retry: { connectionId: 'app', schema: 'shop' }, focusable: true });
+    });
+});
+
+describe('the connection row', () => {
+    test('has no version before the server reported one, and the version after', () => {
+        expect(flattenTree(inputOf(world))[0]).toMatchObject({ kind: 'connection', version: null });
+        expect(flattenTree(inputOf({ ...world, versions: { app: '11.4.2-MariaDB' } }))[0]).toMatchObject({ version: '11.4.2-MariaDB' });
+    });
+
+    test('counts the schemas shown against all of them while the system ones are hidden', () => {
+        expect(flattenTree(inputOf(world))[0]).toMatchObject({ schemaCount: { shown: 2, total: 3 } });
+        expect(flattenTree(inputOf({ ...world, showSystemSchemas: true }))[0]).toMatchObject({ schemaCount: null });
+        expect(flattenTree(inputOf({ connections: [app] }))[0]).toMatchObject({ schemaCount: null });
+    });
+
+    test('counts the schemas for a connection with one visible schema as well', () => {
+        const rows = flattenTree(inputOf({ connections: [app], schemas: { app: ready([schema('shop'), schema('sys', true)]) } }));
+        expect(rows[0]).toMatchObject({ schemaCount: { shown: 1, total: 2 } });
+    });
+});
+
+describe('the columns of a table', () => {
+    const open = { ...world, expanded: [...openShop, usersKey] };
+
+    test('show a loading row until the structure arrives, and a failed load can be retried', () => {
+        expect(labels(flattenTree(inputOf(open))).slice(3, 7)).toEqual(['4:orders', '4:users', '5:loading', '3:[views]']);
+        const failed = flattenTree(inputOf({ ...open, structures: { 'app/shop/users': { status: 'error', message: 'gone' } } }));
+        expect(failed.find((row) => row.kind === 'error')).toMatchObject({
+            retry: { connectionId: 'app', schema: 'shop', table: 'users' },
+            focusable: true,
+            level: 5
+        });
+    });
+
+    test('list the columns under their table, with their key flags', () => {
+        const rows = flattenTree(
+            inputOf({
+                ...open,
+                structures: {
+                    'app/shop/users': ready(structure('users', [column('id'), column('team_id'), column('name', 'varchar(255)')], ['id'], ['team_id']))
+                }
+            })
+        );
+        expect(labels(rows).slice(4, 9)).toEqual(['4:users', '5:id', '5:team_id', '5:name', '3:[views]']);
+        const columns = rows.filter((row) => row.kind === 'column');
+        expect(columns.map((row) => [row.primaryKey, row.foreignKey])).toEqual([
+            [true, false],
+            [false, true],
+            [false, false]
+        ]);
+        expect(columns[0]).toMatchObject({
+            key: columnKey({ connectionId: 'app', schema: 'shop', table: 'users' }, 'id'),
+            parent: usersKey,
+            ref: { table: 'users' },
+            posInSet: 1,
+            setSize: 3
+        });
+        expect(rows.find((row) => row.key === usersKey)).toMatchObject({ expanded: true });
+    });
+
+    test('say so when a table has none', () => {
+        const rows = flattenTree(inputOf({ ...open, structures: { 'app/shop/users': ready(structure('users', [])) } }));
+        expect(rows.find((row) => row.kind === 'empty')).toMatchObject({ of: 'columns', level: 5 });
+    });
+
+    test('stay in the tree whether the filter is on or not', () => {
+        const structures = { 'app/shop/users': ready(structure('users', [column('id')])) };
+        expect(labels(flattenTree(inputOf({ ...open, structures, filter: 'users' })))).toEqual([
+            '1:app',
+            '2:shop',
+            '3:[tables]',
+            '4:users',
+            '5:id',
+            '3:[views]',
+            '4:active_users'
+        ]);
+    });
 });
 
 describe('flattenTree with a filter', () => {
@@ -113,19 +288,25 @@ describe('flattenTree with a filter', () => {
 
     test('keeps the loaded tables that match, case-insensitively, under parents that are open', () => {
         const rows = flattenTree(inputOf(open));
-        expect(labels(rows)).toEqual(['1:app', '2:shop', '3:users', '3:active_users']);
+        expect(labels(rows)).toEqual(['1:app', '2:shop', '3:[tables]', '4:users', '3:[views]', '4:active_users']);
         expect(rows[0]).toMatchObject({ expanded: true });
-        expect(rows[1]).toMatchObject({ expanded: true, count: 2 });
+        expect(rows[1]).toMatchObject({ expanded: true });
+        expect(rows[2]).toMatchObject({ expanded: true, count: 1 });
     });
 
-    test('hides connections and schemas without a match, and what has not loaded', () => {
+    test('opens a folder the person closed', () => {
+        const rows = flattenTree(inputOf({ ...open, collapsed: [folderKey('app', 'shop', 'view')] }));
+        expect(rows.filter((row) => row.kind === 'table')).toHaveLength(2);
+    });
+
+    test('hides connections, schemas and folders without a match, and what has not loaded', () => {
         expect(flattenTree(inputOf({ ...world, filter: 'zzz' }))).toEqual([]);
         expect(flattenTree(inputOf({ connections: [app, connection('other')], filter: 'a' }))).toEqual([]);
-        expect(labels(flattenTree(inputOf({ ...world, filter: 'posts' })))).toEqual(['1:app', '2:blog', '3:posts']);
+        expect(labels(flattenTree(inputOf({ ...world, filter: 'posts' })))).toEqual(['1:app', '2:blog', '3:[tables]', '4:posts']);
     });
 
     test('ignores surrounding spaces in the filter', () => {
-        expect(labels(flattenTree(inputOf({ ...world, filter: '  posts ' })))).toEqual(['1:app', '2:blog', '3:posts']);
+        expect(labels(flattenTree(inputOf({ ...world, filter: '  posts ' })))).toEqual(['1:app', '2:blog', '3:[tables]', '4:posts']);
     });
 });
 
@@ -144,29 +325,44 @@ describe('neededLoads', () => {
         expect(neededLoads(input)).toEqual([{ connectionId: 'app', schema: 'main' }]);
     });
 
+    test('asks for the structure of an open table that has none yet', () => {
+        const input = inputOf({ ...world, expanded: [...openShop, usersKey, shopTables] });
+        expect(neededLoads(input)).toEqual([
+            { connectionId: 'app', schema: 'shop', table: 'orders' },
+            { connectionId: 'app', schema: 'shop', table: 'users' }
+        ]);
+    });
+
     test('asks for nothing that is loading, loaded or failed', () => {
         const input = inputOf({
             connections: [app],
-            expanded: [connectionKey('app'), schemaKey('app', 'shop'), schemaKey('app', 'blog')],
+            expanded: [connectionKey('app'), schemaKey('app', 'shop'), schemaKey('app', 'blog'), usersKey],
             schemas: world.schemas,
             tables: { 'app/shop': { status: 'loading' }, 'app/blog': { status: 'error', message: 'x' } }
         });
         expect(neededLoads(input)).toEqual([]);
+        const loaded = inputOf({ ...world, expanded: [...openShop, usersKey], structures: { 'app/shop/users': { status: 'loading' } } });
+        expect(neededLoads(loaded)).toEqual([]);
     });
 });
 
 describe('navigate', () => {
-    const rows = flattenTree(inputOf({ ...world, expanded: [connectionKey('app'), schemaKey('app', 'shop')] }));
+    const structures = { 'app/shop/users': ready(structure('users', [column('id'), column('name')])) };
+    const rows = flattenTree(inputOf({ ...world, expanded: [...openShop, usersKey], structures }));
     const app_ = connectionKey('app');
     const shop = schemaKey('app', 'shop');
-    const orders = tableKey({ connectionId: 'app', schema: 'shop', table: 'orders' });
+    const tablesFolder = folderKey('app', 'shop', 'table');
+    const orders = shopTables;
     const blog = schemaKey('app', 'blog');
-    const last = tableKey({ connectionId: 'app', schema: 'shop', table: 'active_users' });
+    const firstColumn = columnKey({ connectionId: 'app', schema: 'shop', table: 'users' }, 'id');
+    const lastColumn = columnKey({ connectionId: 'app', schema: 'shop', table: 'users' }, 'name');
+    const view = tableKey({ connectionId: 'app', schema: 'shop', table: 'active_users' });
 
     test('moves with the arrows and stops at both ends', () => {
         expect(navigate(rows, app_, 'ArrowDown')).toEqual({ type: 'focus', key: shop });
         expect(navigate(rows, app_, 'ArrowUp')).toEqual({ type: 'focus', key: app_ });
         expect(navigate(rows, blog, 'ArrowDown')).toEqual({ type: 'focus', key: blog });
+        expect(navigate(rows, usersKey, 'ArrowDown')).toEqual({ type: 'focus', key: firstColumn });
     });
 
     test('jumps to the first and the last row', () => {
@@ -176,20 +372,24 @@ describe('navigate', () => {
 
     test('opens a closed node with the right arrow and enters an open one', () => {
         expect(navigate(rows, blog, 'ArrowRight')).toEqual({ type: 'expand', key: blog });
-        expect(navigate(rows, shop, 'ArrowRight')).toEqual({ type: 'focus', key: orders });
-        expect(navigate(rows, orders, 'ArrowRight')).toBeNull();
+        expect(navigate(rows, orders, 'ArrowRight')).toEqual({ type: 'expand', key: orders });
+        expect(navigate(rows, tablesFolder, 'ArrowRight')).toEqual({ type: 'focus', key: orders });
+        expect(navigate(rows, usersKey, 'ArrowRight')).toEqual({ type: 'focus', key: firstColumn });
+        expect(navigate(rows, firstColumn, 'ArrowRight')).toBeNull();
     });
 
     test('closes an open node with the left arrow and otherwise goes to the parent', () => {
         expect(navigate(rows, shop, 'ArrowLeft')).toEqual({ type: 'collapse', key: shop });
-        expect(navigate(rows, last, 'ArrowLeft')).toEqual({ type: 'focus', key: shop });
+        expect(navigate(rows, usersKey, 'ArrowLeft')).toEqual({ type: 'collapse', key: usersKey });
+        expect(navigate(rows, lastColumn, 'ArrowLeft')).toEqual({ type: 'focus', key: usersKey });
+        expect(navigate(rows, orders, 'ArrowLeft')).toEqual({ type: 'focus', key: tablesFolder });
+        expect(navigate(rows, view, 'ArrowLeft')).toEqual({ type: 'focus', key: folderKey('app', 'shop', 'view') });
         expect(navigate(rows, blog, 'ArrowLeft')).toEqual({ type: 'focus', key: app_ });
-        expect(navigate(rows, app_, 'ArrowLeft')).toEqual({ type: 'collapse', key: app_ });
     });
 
-    test('activates the row on Enter and Space, and ignores other keys', () => {
+    test('activates the row on Enter and Space, a column included, and ignores other keys', () => {
         expect(navigate(rows, orders, 'Enter')).toEqual({ type: 'activate', key: orders });
-        expect(navigate(rows, orders, ' ')).toEqual({ type: 'activate', key: orders });
+        expect(navigate(rows, firstColumn, ' ')).toEqual({ type: 'activate', key: firstColumn });
         expect(navigate(rows, orders, 'x')).toBeNull();
         expect(navigate([], null, 'ArrowDown')).toBeNull();
     });
@@ -206,12 +406,11 @@ describe('navigate', () => {
 });
 
 describe('tabStop', () => {
-    const rows = flattenTree(inputOf({ ...world, expanded: [connectionKey('app'), schemaKey('app', 'shop')] }));
-    const orders = tableKey({ connectionId: 'app', schema: 'shop', table: 'orders' });
+    const rows = flattenTree(inputOf({ ...world, expanded: openShop }));
 
     test('prefers the row with the focus, then the selection, then the first row', () => {
-        expect(tabStop(rows, schemaKey('app', 'blog'), orders)).toBe(schemaKey('app', 'blog'));
-        expect(tabStop(rows, 'gone', orders)).toBe(orders);
+        expect(tabStop(rows, schemaKey('app', 'blog'), shopTables)).toBe(schemaKey('app', 'blog'));
+        expect(tabStop(rows, 'gone', shopTables)).toBe(shopTables);
         expect(tabStop(rows, null, null)).toBe(connectionKey('app'));
         expect(tabStop([], null, null)).toBeNull();
     });

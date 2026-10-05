@@ -1,5 +1,5 @@
 import type { KeyboardEvent } from 'react';
-import { Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { CopyPlus, PanelRight, Plus, RefreshCw, Trash2, Undo2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button, IconButton, Input, Separator } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
@@ -11,6 +11,9 @@ export interface TableToolbarProps {
     /* Why rows cannot be added, changed or deleted, or `null` when they can. */
     readOnlyReason: string | null;
     hasSelection: boolean;
+    /* Whether any selected row has a change to take back. */
+    canRevertSelection: boolean;
+    valuePanelOpen: boolean;
     pendingCount: number;
     submitting: boolean;
     where: string;
@@ -23,6 +26,9 @@ export interface TableToolbarProps {
     onRefresh(): void;
     onAddRow(): void;
     onDeleteRows(): void;
+    onCloneRows(): void;
+    onRevertRows(): void;
+    onToggleValuePanel(): void;
     onSubmit(): void;
     onRevert(): void;
 }
@@ -32,6 +38,8 @@ export function TableToolbar({
     refreshing,
     readOnlyReason,
     hasSelection,
+    canRevertSelection,
+    valuePanelOpen,
     pendingCount,
     submitting,
     where,
@@ -42,6 +50,9 @@ export function TableToolbar({
     onRefresh,
     onAddRow,
     onDeleteRows,
+    onCloneRows,
+    onRevertRows,
+    onToggleValuePanel,
     onSubmit,
     onRevert
 }: TableToolbarProps) {
@@ -77,6 +88,21 @@ export function TableToolbar({
                 tooltip={tooltipOf(t('table.deleteRows'))}
                 aria-disabled={readOnlyReason !== null || !hasSelection || undefined}
                 onClick={() => readOnlyReason === null && hasSelection && onDeleteRows()}
+            />
+            <IconButton
+                icon={CopyPlus}
+                size="sm"
+                label={t('table.cloneRows')}
+                tooltip={tooltipOf(t('table.cloneRows'))}
+                aria-disabled={readOnlyReason !== null || !hasSelection || undefined}
+                onClick={() => readOnlyReason === null && hasSelection && onCloneRows()}
+            />
+            <IconButton
+                icon={Undo2}
+                size="sm"
+                label={t('table.revertRows')}
+                aria-disabled={!canRevertSelection || undefined}
+                onClick={() => canRevertSelection && onRevertRows()}
             />
             {pendingCount > 0 && (
                 <>
@@ -115,6 +141,7 @@ export function TableToolbar({
                     />
                 </label>
             </div>
+            <IconButton icon={PanelRight} size="sm" label={t('table.valuePanel')} aria-pressed={valuePanelOpen} onClick={onToggleValuePanel} />
         </div>
     );
 }

@@ -2,52 +2,63 @@ import { useEffect, useRef, useState } from 'react';
 import { messageOf } from '@adecore/ui';
 import { useDatabaseClient } from '../client-context.ts';
 import type { Connection } from '../client/types.ts';
-import type { SchemaInfo, TableInfo } from '../protocol/index.ts';
-import { IDLE, connectionKey, loadKey, schemaKey, type Load, type LoadTarget } from './tree.ts';
+import type { SchemaInfo, TableInfo, TableStructure } from '../protocol/index.ts';
+import { IDLE, loadKey, type Load, type LoadTarget } from './tree.ts';
 
-interface Loads {
-    readonly schemas: ReadonlyMap<string, Load<readonly SchemaInfo[]>>;
-    readonly tables: ReadonlyMap<string, Load<readonly TableInfo[]>>;
+type Loaded = readonly SchemaInfo[] | readonly TableInfo[] | TableStructure;
+
+interface Entry {
+    readonly target: LoadTarget;
+    readonly load: Load<Loaded>;
 }
 
-const EMPTY: Loads = { schemas: new Map(), tables: new Map() };
+interface Loads {
+    readonly entries: ReadonlyMap<string, Entry>;
+    /* The version each server reported, by connection. */
+    readonly versions: ReadonlyMap<string, string>;
+}
+
+const EMPTY: Loads = { entries: new Map(), versions: new Map() };
 
 export interface ExplorerLoads {
     schemas(connectionId: string): Load<readonly SchemaInfo[]>;
     tables(connectionId: string, schema: string): Load<readonly TableInfo[]>;
+    structures(connectionId: string, schema: string, table: string): Load<TableStructure>;
+    /* The server version of a connection, once its schemas have loaded; `null` before. */
+    versions(connectionId: string): string | null;
     /* Starts a load nobody has started yet; a no-op for one that is running or done. */
     start(target: LoadTarget): void;
-    /* Forgets what was loaded under a connection, or only under one schema, so an open node asks again. */
+    /* Forgets what was loaded under a connection, under one schema, or for one table, so an open node asks again. */
     reset(target: LoadTarget): void;
 }
 
-/* The schemas and tables the explorer has asked a session for, by connection and schema. */
+/* Whether a load belongs to what a reset names: the same connection, and the same schema or table when the reset names one. */
+const within = (reset: LoadTarget, target: LoadTarget): boolean =>
+    reset.connectionId === target.connectionId &&
+    (reset.schema === undefined || reset.schema === target.schema) &&
+    (reset.table === undefined || reset.table === target.table);
+
+/* The schemas, tables and column lists the explorer has asked a session for, by connection, schema and table. */
 export function useExplorerLoads(connections: readonly Connection[]): ExplorerLoads {
     const client = useDatabaseClient();
     const [loads, setLoads] = useState<Loads>(EMPTY);
     // Written before the state is, so a strict-mode second effect run does not fetch twice.
-    const started = useRef(new Set<string>());
+    const started = useRef(new Map<string, LoadTarget>());
     const configs = useRef(new Map<string, Connection['config']>());
 
-    const store = (target: LoadTarget, load: Load<readonly SchemaInfo[]> | Load<readonly TableInfo[]>): void => {
-        setLoads((current) => {
-            if (target.schema === undefined) {
-                return { ...current, schemas: new Map(current.schemas).set(target.connectionId, load as Load<readonly SchemaInfo[]>) };
-            }
-            return { ...current, tables: new Map(current.tables).set(schemaKey(target.connectionId, target.schema), load as Load<readonly TableInfo[]>) };
-        });
+    const store = (target: LoadTarget, load: Load<Loaded>): void => {
+        setLoads((current) => ({ ...current, entries: new Map(current.entries).set(loadKey(target), { target, load }) }));
     };
 
     const reset = (target: LoadTarget): void => {
-        const prefix = connectionKey(target.connectionId);
-        const tablesPrefix = `s:${target.connectionId}\u0000`;
-        const owns = (key: string): boolean => (target.schema === undefined ? key === prefix || key.startsWith(tablesPrefix) : key === loadKey(target));
-        for (const key of [...started.current].filter(owns)) {
-            started.current.delete(key);
+        for (const [key, began] of [...started.current]) {
+            if (within(target, began)) {
+                started.current.delete(key);
+            }
         }
         setLoads((current) => ({
-            schemas: new Map([...current.schemas].filter(([id]) => target.schema !== undefined || id !== target.connectionId)),
-            tables: new Map([...current.tables].filter(([key]) => !owns(key)))
+            entries: new Map([...current.entries].filter(([, entry]) => !within(target, entry.target))),
+            versions: target.schema === undefined ? new Map([...current.versions].filter(([id]) => id !== target.connectionId)) : current.versions
         }));
     };
 
@@ -60,12 +71,26 @@ export function useExplorerLoads(connections: readonly Connection[]): ExplorerLo
         if (connection === undefined) {
             return;
         }
-        started.current.add(key);
+        started.current.set(key, target);
         store(target, { status: 'loading' });
         const session = client.session(connection);
-        const request: Promise<readonly SchemaInfo[] | readonly TableInfo[]> = target.schema === undefined ? session.schemas() : session.tables(target.schema);
+        const request: Promise<Loaded> =
+            target.schema === undefined
+                ? session.schemas()
+                : target.table === undefined
+                  ? session.tables(target.schema)
+                  : session.structure(target.schema, target.table);
         request.then(
-            (value) => store(target, { status: 'ready', value } as Load<readonly SchemaInfo[]> | Load<readonly TableInfo[]>),
+            (value) => {
+                store(target, { status: 'ready', value });
+                if (target.schema === undefined) {
+                    // Chained after the schemas so the version never opens a session by itself.
+                    session.server().then(
+                        (info) => setLoads((current) => ({ ...current, versions: new Map(current.versions).set(connection.id, info.version) })),
+                        () => undefined
+                    );
+                }
+            },
             (e: unknown) => store(target, { status: 'error', message: messageOf(e) })
         );
     };
@@ -85,9 +110,13 @@ export function useExplorerLoads(connections: readonly Connection[]): ExplorerLo
         }
     });
 
+    const loadOf = <T extends Loaded>(target: LoadTarget): Load<T> => (loads.entries.get(loadKey(target))?.load as Load<T> | undefined) ?? IDLE;
+
     return {
-        schemas: (connectionId) => loads.schemas.get(connectionId) ?? IDLE,
-        tables: (connectionId, schema) => loads.tables.get(schemaKey(connectionId, schema)) ?? IDLE,
+        schemas: (connectionId) => loadOf<readonly SchemaInfo[]>({ connectionId }),
+        tables: (connectionId, schema) => loadOf<readonly TableInfo[]>({ connectionId, schema }),
+        structures: (connectionId, schema, table) => loadOf<TableStructure>({ connectionId, schema, table }),
+        versions: (connectionId) => loads.versions.get(connectionId) ?? null,
         start,
         reset
     };

@@ -62,12 +62,16 @@ describe('TableView', () => {
     test('has no submit or revert button while nothing is pending', () => {
         const markup = render(<TableView connection={writable} schema="main" table="users" />);
         expect(markup).not.toContain('Submit');
-        expect(markup).not.toContain('Revert');
+        expect(markup).not.toContain('>Revert<');
     });
 
     test('leaves the row actions open on a connection that can write', () => {
         const markup = render(<TableView connection={writable} schema="main" table="users" />);
         expect(markup).not.toMatch(/aria-label="Add row" aria-disabled/);
+    });
+
+    test('offers the value panel toggle, closed', () => {
+        expect(render(<TableView connection={writable} schema="main" table="users" />)).toMatch(/aria-label="Value panel"[^>]* aria-pressed="false"/);
     });
 
     test('disables adding and deleting rows on a read only connection', () => {

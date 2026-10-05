@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { messageOf } from '@adecore/ui';
 
 export interface Loaded<T> {
-    /* The last value that arrived for this key; stays while the next one loads, so a page does not vanish under a reload. */
+    /* The last value that arrived; stays while the next one loads, so a page does not vanish under a reload. */
     value: T | null;
     loading: boolean;
     error: string | null;
@@ -19,6 +19,7 @@ interface State<T> {
 /*
  * Runs `load` when `key` changes or `reload` is called, and aborts the run that is still going.
  * `key` has to name everything `load` reads, since `load` itself is a new function on every render.
+ * A value belongs to the hook's owner, which is remounted for a different subject, so it outlives a key change.
  */
 export function useLoaded<T>(load: (signal: AbortSignal) => Promise<T>, key: string): Loaded<T> {
     const loader = useRef(load);
@@ -40,17 +41,16 @@ export function useLoaded<T>(load: (signal: AbortSignal) => Promise<T>, key: str
             },
             (error: unknown) => {
                 if (!controller.signal.aborted) {
-                    setState((now) => ({ key, version, value: now.key === key ? now.value : null, error: messageOf(error) }));
+                    setState((now) => ({ key, version, value: now.value, error: messageOf(error) }));
                 }
             }
         );
         return () => controller.abort();
     }, [key, version]);
 
-    const sameKey = state.key === key;
-    const answered = sameKey && state.version === version;
+    const answered = state.key === key && state.version === version;
     return {
-        value: sameKey ? state.value : null,
+        value: state.value,
         loading: !answered,
         error: answered ? state.error : null,
         reload: () => setVersion((now) => now + 1)

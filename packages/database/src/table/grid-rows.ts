@@ -1,6 +1,7 @@
 import { shownOfEdit, type Shown } from '../grid/display.ts';
+import { wholeValueOf } from '../grid/focused-value.ts';
 import { gridColumnOf, type GridColumn, type GridRow } from '../grid/types.ts';
-import type { RowsResult, TableStructure } from '../protocol/index.ts';
+import type { EditValue, RowsResult, TableStructure } from '../protocol/index.ts';
 import { rowKeyOf, type PendingChanges } from './pending.ts';
 
 export type RowRef = { readonly kind: 'loaded'; readonly index: number } | { readonly kind: 'inserted'; readonly id: number };
@@ -61,4 +62,19 @@ export const buildGridRows = ({ structure, loaded, pending, offset }: GridRowsIn
         state: 'inserted'
     }));
     return [...rows, ...inserted];
+};
+
+/*
+ * The values a copy of a row starts from: what the row shows, except the columns the server fills in
+ * (an auto-increment key, a generated column) and the cells that are only a preview or a DEFAULT.
+ */
+export const cloneValues = (columns: readonly GridColumn[], cells: readonly Shown[]): Record<string, EditValue> => {
+    const values: Record<string, EditValue> = {};
+    columns.forEach((column, index) => {
+        const value = column.autoIncrement === true || column.readOnly === true ? undefined : wholeValueOf(cells[index] ?? null);
+        if (value !== undefined) {
+            values[column.name] = value;
+        }
+    });
+    return values;
 };

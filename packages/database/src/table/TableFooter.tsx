@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button, IconButton, Select, Spinner } from '@adecore/ui';
 import { formatDecimal, formatNumber } from '@adecore/ui/format';
@@ -10,13 +10,16 @@ export interface TableFooterProps {
     pageSize: number;
     counting: boolean;
     onCount(): void;
+    onFirst(): void;
     onPrevious(): void;
     onNext(): void;
+    /* Counts the rows first when they are not counted yet. */
+    onLast(): void;
     onPageSizeChange(size: number): void;
 }
 
 /* How long the read took, which rows are on the page and how many there are, and the way to the other pages. */
-export function TableFooter({ elapsedMs, bounds, pageSize, counting, onCount, onPrevious, onNext, onPageSizeChange }: TableFooterProps) {
+export function TableFooter({ elapsedMs, bounds, pageSize, counting, onCount, onFirst, onPrevious, onNext, onLast, onPageSizeChange }: TableFooterProps) {
     const { t } = useTranslation('database');
 
     return (
@@ -46,8 +49,17 @@ export function TableFooter({ elapsedMs, bounds, pageSize, counting, onCount, on
                     align="end"
                     onValueChange={(value) => onPageSizeChange(Number(value))}
                 />
+                <IconButton icon={ChevronsLeft} size="sm" label={t('table.firstPage')} disabled={!bounds.hasPrevious} onClick={onFirst} />
                 <IconButton icon={ChevronLeft} size="sm" label={t('table.previousPage')} disabled={!bounds.hasPrevious} onClick={onPrevious} />
                 <IconButton icon={ChevronRight} size="sm" label={t('table.nextPage')} disabled={!bounds.hasNext} onClick={onNext} />
+                <IconButton
+                    icon={ChevronsRight}
+                    size="sm"
+                    label={t('table.lastPage')}
+                    tooltip={bounds.exact ? undefined : t('table.lastPageCounts')}
+                    disabled={!bounds.hasNext || counting}
+                    onClick={onLast}
+                />
             </div>
         </footer>
     );

@@ -2,13 +2,16 @@ import { describe, expect, test } from 'bun:test';
 import type { Cell, ResultColumn, TableStructure } from '../protocol/index.ts';
 import {
     addInsert,
+    addInsertWith,
     describeKey,
     emptyPending,
+    hasRowChanges,
     isPendingEmpty,
     markDeleted,
     pendingCount,
     removeInsert,
     revertRow,
+    revertRows,
     rowKeyOf,
     setEdit,
     setInsertValue,
@@ -157,5 +160,51 @@ describe('toRowChanges', () => {
 describe('describeKey', () => {
     test('writes a key the way a WHERE would', () => {
         expect(describeKey({ id: 5, tenant: 'a', gone: null, raw: { kind: 'binary', hex: 'ff' } })).toBe("id = 5, tenant = 'a', gone = NULL, raw = 0xff");
+    });
+});
+
+describe('addInsertWith', () => {
+    test('adds a row that starts from the given values', () => {
+        const next = addInsertWith(addInsert(emptyPending), { name: 'Ada' });
+        expect(next.inserts).toEqual([
+            { id: 1, values: {} },
+            { id: 2, values: { name: 'Ada' } }
+        ]);
+    });
+});
+
+describe('revertRows', () => {
+    const changed = markDeleted(
+        setInsertValue(addInsert(addInsert(setEdit(setEdit(emptyPending, 0, 'name', 'x', 'a'), 1, 'name', 'y', 'b'))), 1, 'name', 'z'),
+        [0, 2]
+    );
+
+    test('takes back the edits and deletion of the given loaded rows only', () => {
+        const next = revertRows(changed, { loaded: [0], inserted: [] });
+        expect(next.edits[0]).toBeUndefined();
+        expect(next.edits[1]).toEqual({ name: 'y' });
+        expect([...next.deletes]).toEqual([2]);
+        expect(next.inserts).toHaveLength(2);
+    });
+
+    test('drops the given inserted rows', () => {
+        const next = revertRows(changed, { loaded: [], inserted: [1] });
+        expect(next.inserts.map((row) => row.id)).toEqual([2]);
+        expect(next.edits[0]).toEqual({ name: 'x' });
+    });
+});
+
+describe('hasRowChanges', () => {
+    const changed = markDeleted(addInsert(setEdit(emptyPending, 0, 'name', 'x', 'a')), [3]);
+
+    test('is true for a row with an edit, a deletion mark or an insert', () => {
+        expect(hasRowChanges(changed, { loaded: [0], inserted: [] })).toBe(true);
+        expect(hasRowChanges(changed, { loaded: [3], inserted: [] })).toBe(true);
+        expect(hasRowChanges(changed, { loaded: [], inserted: [1] })).toBe(true);
+    });
+
+    test('is false for rows nobody touched', () => {
+        expect(hasRowChanges(changed, { loaded: [1, 2], inserted: [9] })).toBe(false);
+        expect(hasRowChanges(emptyPending, { loaded: [0], inserted: [1] })).toBe(false);
     });
 });

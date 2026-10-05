@@ -28,3 +28,6 @@ export const pageBounds = (offset: number, rowCount: number, hasMore: boolean, c
         hasNext: counted === null ? hasMore : offset + rowCount < counted
     };
 };
+
+/* Where the last page starts, given how many rows the table has. */
+export const lastPageOffset = (total: number, pageSize: number): number => (total <= 0 ? 0 : Math.floor((total - 1) / pageSize) * pageSize);

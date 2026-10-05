@@ -62,6 +62,22 @@ describe('StatementResultView', () => {
         expect(markup).toContain('1.3 ms');
     });
 
+    test('offers the value panel toggle only when someone listens', () => {
+        const result: StatementResult = {
+            kind: 'rows',
+            sql: 'SELECT 1',
+            columns: [{ name: 'a', type: '', kind: 'integer' }],
+            rows: [[1]],
+            hasMore: false,
+            elapsedMs: 1
+        };
+        expect(render(<StatementResultView result={result} />)).not.toContain('Value panel');
+        expect(render(<StatementResultView result={result} onValuePanelOpenChange={() => {}} />)).toMatch(/aria-label="Value panel"[^>]* aria-pressed="false"/);
+        expect(render(<StatementResultView result={result} valuePanelOpen onValuePanelOpenChange={() => {}} />)).toMatch(
+            /aria-label="Value panel"[^>]* aria-pressed="true"/
+        );
+    });
+
     test('says how many rows a statement affected, and the last insert id', () => {
         const markup = render(<StatementResultView result={{ kind: 'done', sql: 'INSERT', affected: 1, lastInsertId: 42, elapsedMs: 3 }} />);
         expect(markup).toContain('1 row affected');

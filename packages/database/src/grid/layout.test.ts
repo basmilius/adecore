@@ -3,6 +3,9 @@ import {
     clampColumnWidth,
     columnOffsets,
     estimateColumnWidth,
+    fitColumnWidth,
+    isDoubleClick,
+    MAX_FIT_WIDTH,
     gutterWidth,
     MAX_COLUMN_WIDTH,
     MIN_COLUMN_WIDTH,
@@ -79,5 +82,28 @@ describe('column widths', () => {
     test('the gutter grows with the digits of the largest row number', () => {
         expect(gutterWidth(9)).toBe(40);
         expect(gutterWidth(1_000_000)).toBeGreaterThan(gutterWidth(1000));
+    });
+});
+
+describe('fitColumnWidth', () => {
+    test('fits the longest text, past the 320 an estimate stops at', () => {
+        expect(fitColumnWidth('id', ['x'.repeat(50)], false)).toBe(50 * 8 + 24);
+    });
+
+    test('never goes past the maximum or below the minimum', () => {
+        expect(fitColumnWidth('id', ['x'.repeat(500)], false)).toBe(MAX_FIT_WIDTH);
+        expect(fitColumnWidth('i', [], false)).toBe(MIN_COLUMN_WIDTH);
+    });
+
+    test('leaves room for the key and the sort arrow beside a long name', () => {
+        expect(fitColumnWidth('created_at_long_name', ['1'], true)).toBe(20 * 8 + 18 + 24 + 24);
+    });
+});
+
+describe('isDoubleClick', () => {
+    test('is two presses close together', () => {
+        expect(isDoubleClick(1000, 1200)).toBe(true);
+        expect(isDoubleClick(1000, 1600)).toBe(false);
+        expect(isDoubleClick(null, 1000)).toBe(false);
     });
 });

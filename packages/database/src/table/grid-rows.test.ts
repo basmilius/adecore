@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import type { Cell, ResultColumn, TableStructure } from '../protocol/index.ts';
-import { buildGridColumns, buildGridRows, insertedRowKey, loadedRowKey, parseRowKey } from './grid-rows.ts';
+import { buildGridColumns, buildGridRows, cloneValues, insertedRowKey, loadedRowKey, parseRowKey } from './grid-rows.ts';
 import { addInsert, emptyPending, markDeleted, setEdit, setInsertValue } from './pending.ts';
 
 const columns: ResultColumn[] = [
@@ -78,5 +78,32 @@ describe('buildGridRows', () => {
 
     test('every row is locked without a structure', () => {
         expect(buildGridRows({ structure: null, loaded, pending: emptyPending, offset: 0 }).every((row) => row.locked)).toBe(true);
+    });
+});
+
+describe('cloneValues', () => {
+    const gridColumns = [
+        { name: 'id', type: 'INTEGER', kind: 'integer' as const, autoIncrement: true },
+        { name: 'name', type: 'TEXT', kind: 'text' as const },
+        { name: 'slug', type: 'TEXT', kind: 'text' as const, readOnly: true },
+        { name: 'bio', type: 'TEXT', kind: 'text' as const },
+        { name: 'avatar', type: 'BLOB', kind: 'binary' as const },
+        { name: 'note', type: 'TEXT', kind: 'text' as const }
+    ];
+
+    test('keeps the shown values except auto-increment, generated, preview and DEFAULT cells', () => {
+        const values = cloneValues(gridColumns, [
+            7,
+            'Ada',
+            'ada',
+            { kind: 'longText', preview: 'abc', length: 900 },
+            { kind: 'binary', hex: 'ab', length: 1 },
+            { kind: 'default' }
+        ]);
+        expect(values).toEqual({ name: 'Ada', avatar: { kind: 'binary', hex: 'ab' } });
+    });
+
+    test('keeps an explicit NULL', () => {
+        expect(cloneValues([gridColumns[1]!], [null])).toEqual({ name: null });
     });
 });
