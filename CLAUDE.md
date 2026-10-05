@@ -76,7 +76,7 @@ All three of check, test and build pass before a commit, and so does `bun run --
 
 ## Releases
 
-- Publishing a GitHub release (`gh release create v<version>`, or Bas's `/release` skill) runs `release.yml`: it sets the version from the tag in every package, checks, tests, builds, publishes every package that is not `private` with npm Trusted Publishing and deploys the docs. Every `package.json` stays at `0.0.0`. A version already on npm is skipped, so a failed run can run again.
+- Releases are immutable once published, so a release starts as a draft: `gh release create v<version> --draft [--prerelease] --notes-file <notes>`, then `gh workflow run release.yml -f version=<version>`. The workflow tags the commit it runs on, sets the version in every package, checks, tests, builds, attaches the PHP assets to the draft, publishes every package that is not `private` with npm Trusted Publishing (a prerelease under `next`), deploys the docs and publishes the release last. Every `package.json` stays at `0.0.0`. A version already on npm is skipped, so a failed run can run again while the release is still a draft.
 - A new package gets its first version on npm by hand, with a token, before its trusted publisher (`basmilius/adecore`, `release.yml`) can be set; until then it stays `private`.
 - While the version is `0.x`, a breaking change bumps the minor and everything else the patch.
 - An app takes a release only when its own repository bumps the version. Neither happens from here: after a release, name the version on the issues it closed so the apps know what to take.
