@@ -1,7 +1,6 @@
 {
   "name": "@adecore/shell",
   "version": "0.0.0",
-  "private": true,
   "description": "The main process of an Electron app: its menu, its updater and the guards around its page.",
   "license": "MIT",
   "author": "Bas Milius",

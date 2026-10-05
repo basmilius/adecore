@@ -1,7 +1,6 @@
 {
   "name": "@adecore/terminal",
   "version": "0.0.0",
-  "private": true,
   "description": "A themed terminal pane on xterm.js that fits its container and is fed by the app.",
   "license": "MIT",
   "author": "Bas Milius",
