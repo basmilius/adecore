@@ -55,5 +55,8 @@
     "label": "Projects",
     "recent": "Recent projects",
     "actionsFor": "Actions for {{name}}"
+  },
+  "tabs": {
+    "more": "More tabs"
   }
 }

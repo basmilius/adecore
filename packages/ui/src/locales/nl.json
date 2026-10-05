@@ -55,5 +55,8 @@
     "label": "Projecten",
     "recent": "Recente projecten",
     "actionsFor": "Acties voor {{name}}"
+  },
+  "tabs": {
+    "more": "Meer tabbladen"
   }
 }

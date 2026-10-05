@@ -23,7 +23,7 @@ export type {
 } from './menu/parts.tsx';
 export type { KeyValueListItemProps, KeyValueListNameProps, KeyValueListRootProps, KeyValueListValueProps } from './key-value-list/parts.tsx';
 export type { PopoverPopupProps, PopupVariant, PreviewCardPopupProps } from './popover/parts.tsx';
-export type { TabsCountProps } from './tabs/parts.tsx';
+export type { TabsCountProps, TabsListProps, TabsRootProps, TabsValue } from './tabs/parts.tsx';
 
 export { AccentSwatches, type AccentSwatchesProps } from './AccentSwatches.tsx';
 export { Banner, type BannerProps, type BannerTone } from './Banner.tsx';

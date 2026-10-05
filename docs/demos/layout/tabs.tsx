@@ -16,7 +16,7 @@ export default function TabsDemo() {
     const [view, setView] = useState('links');
 
     return (
-        <Tabs.Root value={view} onValueChange={setView} className="w-full max-w-xl rounded-lg border border-border bg-surface">
+        <Tabs.Root value={view} onValueChange={setView} className="w-full max-w-3xl rounded-lg border border-border bg-surface">
             <Tabs.List aria-label="Message views" className="px-4">
                 {VIEWS.map((entry) => (
                     <Tabs.Tab key={entry.id} value={entry.id}>
