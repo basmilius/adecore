@@ -1,6 +1,6 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
-import { defineConfig, postcssIsolateStyles } from 'vitepress';
+import { defineConfig, postcssIsolateStyles, type DefaultTheme } from 'vitepress';
 import llmstxt from 'vitepress-plugin-llms';
 import { demoPlugin } from './demo-plugin.ts';
 import { librarySourceAliases } from './library-source.ts';
@@ -18,6 +18,13 @@ const followAppearance = `(() => {
 // A demo draws the library with its own reset, so the prose styles of a page stop at `.vp-raw`.
 // The base reset stays, since a library button without it would wear the browser's own border.
 const isolateDemos = postcssIsolateStyles({ includeFiles: [/vp-doc\.css/] });
+
+/* A top-level nav item of one category, a dropdown of its packages that lights up on any page of them. */
+const category = (text: string, packages: [string, string][]): DefaultTheme.NavItemWithChildren => ({
+    text,
+    activeMatch: `^/(${packages.map(([, folder]) => folder).join('|')})/`,
+    items: packages.map(([label, folder]) => ({ text: label, link: `/${folder}/` }))
+});
 
 export default defineConfig({
     title: 'ADE CORE',
@@ -67,40 +74,39 @@ export default defineConfig({
         },
         nav: [
             { text: 'Guide', link: '/guide/', activeMatch: '^/guide/' },
-            {
-                text: 'Packages',
-                activeMatch:
-                    '^/(ui|shell|terminal|database|agent-contracts|agents|agents-react|merge|drawing|diagram|plan|service|editor-core|editor|lsp|editor-react|php-language-server)/',
-                items: [
-                    { text: 'UI', link: '/ui/' },
-                    { text: 'Shell', link: '/shell/' },
-                    { text: 'Terminal', link: '/terminal/' },
-                    { text: 'Database', link: '/database/' },
-                    { text: 'Agent contracts', link: '/agent-contracts/' },
-                    { text: 'Agents', link: '/agents/' },
-                    { text: 'Agent views', link: '/agents-react/' },
-                    { text: 'Merge', link: '/merge/' },
-                    { text: 'Drawing', link: '/drawing/' },
-                    { text: 'Diagram', link: '/diagram/' },
-                    { text: 'Plan', link: '/plan/' },
-                    { text: 'Service', link: '/service/' },
-                    { text: 'Editor core', link: '/editor-core/' },
-                    { text: 'Editor', link: '/editor/' },
-                    { text: 'LSP', link: '/lsp/' },
-                    { text: 'Editor views', link: '/editor-react/' },
-                    { text: 'PHP language server', link: '/php-language-server/' }
-                ]
-            },
-            {
-                text: 'Links',
-                items: [
-                    { text: 'GitHub', link: 'https://github.com/basmilius/adecore' },
-                    { text: 'npm', link: 'https://www.npmjs.com/org/adecore' }
-                ]
-            }
+            category('Interface', [
+                ['UI', 'ui'],
+                ['Terminal', 'terminal']
+            ]),
+            category('Desktop', [
+                ['Shell', 'shell'],
+                ['Service', 'service']
+            ]),
+            category('Agents', [
+                ['Agent contracts', 'agent-contracts'],
+                ['Agents', 'agents'],
+                ['Agent views', 'agents-react']
+            ]),
+            category('Editor', [
+                ['Editor core', 'editor-core'],
+                ['Editor', 'editor'],
+                ['Editor views', 'editor-react'],
+                ['LSP', 'lsp'],
+                ['PHP language server', 'php-language-server'],
+                ['Merge', 'merge']
+            ]),
+            category('Data', [['Database', 'database']]),
+            category('Canvas', [
+                ['Drawing', 'drawing'],
+                ['Diagram', 'diagram'],
+                ['Plan', 'plan']
+            ])
         ],
         sidebar,
-        socialLinks: [{ icon: 'github', link: 'https://github.com/basmilius/adecore' }],
+        socialLinks: [
+            { icon: 'github', link: 'https://github.com/basmilius/adecore' },
+            { icon: 'npm', link: 'https://www.npmjs.com/org/adecore' }
+        ],
         editLink: {
             pattern: 'https://github.com/basmilius/adecore/edit/main/docs/:path'
         },

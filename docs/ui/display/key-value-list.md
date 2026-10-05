@@ -26,7 +26,7 @@ import { KeyValueList } from '@adecore/ui';
 | `KeyValueList.Name` | The name, a `<dt>`, in the faint text color. |
 | `KeyValueList.Value` | The value, a `<dd>`. `mono` sets it in the monospace face. |
 
-Every part takes `className`, `ref` and a `render` prop to draw another element.
+Every part takes the props of its element, plus `render` to draw another one.
 
 ## Alignment
 
@@ -34,7 +34,7 @@ The names take the width of the widest one, so every value starts on the same li
 
 ## A long list
 
-`divided` draws a hairline between rows and gives each a little air, for a list that runs to dozens of rows. Without it the rows sit close, which suits three or four facts in a card. `mono` on a value sets it in the monospace face, for a header, an id or a path that a person reads back letter by letter.
+`divided` draws a hairline between rows and gives each a little air, for a list that runs to dozens of rows. Without it the rows sit close, which suits three or four facts in a card. `mono` on a value suits a header, an id or a path that a person reads back letter by letter.
 
 <Demo src="display/key-value-list-divided" />
 
@@ -46,6 +46,6 @@ A name and a value take any content: an [`Icon`](/ui/display/icon) before a name
 
 ## Copying
 
-The interface around it cannot be selected, but a value can: a person selects a header or a token and copies it with the platform's shortcut. The names stay out of the selection.
+The interface around it cannot be selected, but a value can, so a person can copy a header or a token. The names stay out of the selection.
 
 `KeyValueListRootProps`, `KeyValueListItemProps`, `KeyValueListNameProps` and `KeyValueListValueProps` are exported types.

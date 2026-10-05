@@ -1,22 +1,77 @@
-# Agent contracts
+# @adecore/agent-contracts
 
-`@adecore/agent-contracts` contains Zod schemas and TypeScript contracts for agent chats, providers, accounts, tasks, worktrees, and usage. A browser client and a Node or Bun host can import the same definitions. The package opens no connections, starts no processes, and makes no permission decisions.
+The Zod schemas and TypeScript types that an agent chat host and its clients share: the frames on the wire, the requests and events, a chat and its items, providers and their models, accounts, tasks, worktrees and usage. The package opens no connection, starts no process and makes no permission decision. It runs in a browser, a preload and a Node or Bun backend alike.
 
-Applications compose `AGENT_REQUEST_SCHEMAS` and `AGENT_EVENT_SCHEMAS` into their own protocol. The [agent hosts package](../agents/) implements the backend, and the [agent views package](../agents-react/) supplies the React client. The schemas also work with a transport and UI of your own.
+```ts
+import { AGENT_REQUEST_SCHEMAS, parseRequest } from '@adecore/agent-contracts';
+```
 
-## Read the guide
+[`@adecore/agents`](/agents/) is a host that answers these requests, and [`@adecore/agents-react`](/agents-react/) draws a chat from them. Either side can be your own: the schemas are the contract, not the implementations.
 
-| Chapter                                                        | What it covers                                                         |
-| -------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| [Getting started](./getting-started)                           | Imports, local development, and a first payload check                  |
-| [Frames and events](./frames-and-events)                       | Transport contracts, request groups, replies, and replay               |
-| [Conversation content](./conversation)                         | Thread items, questions, tool approvals, attachments, and limits       |
-| [Providers and accounts](./providers-and-accounts)             | Model selections, capabilities, runtime modes, and account records     |
-| [Tasks and usage](./tasks-and-usage)                           | Durable task state, worktree metadata, token totals, and plan limits   |
-| [Validation and compatibility](./validation-and-compatibility) | Schema errors, defaults, entrypoints, and persisted/wire compatibility |
+## Install
 
-## Package status
+::: code-group
 
-This workspace package is private at `0.0.0`, pending its first publication and Trusted Publishing setup. Use the local checkout for now. The `source` export condition selects TypeScript; default exports and `types` select compiled JavaScript and declarations. Build contracts before the backend and React packages.
+```sh [bun]
+bun add @adecore/agent-contracts
+```
 
-The transferred code retains FSL-1.1-MIT. Read the [package license](https://github.com/basmilius/adecore/blob/main/packages/agent-contracts/LICENSE) for its terms.
+```sh [npm]
+npm install @adecore/agent-contracts
+```
+
+```sh [pnpm]
+pnpm add @adecore/agent-contracts
+```
+
+:::
+
+Zod 4 comes along as a dependency. There is no CSS and there are no words to load.
+
+## A first check
+
+A schema parses what crosses a boundary and throws on what does not fit. A type inferred from a schema describes the parsed output.
+
+```ts
+import { AGENT_REQUEST_SCHEMAS, ChatAttachmentUploadSchema } from '@adecore/agent-contracts';
+import type { ChatSendPayload } from '@adecore/agent-contracts/chat';
+
+const message: ChatSendPayload = {
+    chatId: 'chat-1',
+    text: 'Read the attached note.',
+    attachments: [ChatAttachmentUploadSchema.parse({ name: 'note.txt', mime: 'text/plain', data: 'SGVsbG8=' })]
+};
+
+const payload = AGENT_REQUEST_SCHEMAS['chat.send'].payload.parse(message);
+const result = AGENT_REQUEST_SCHEMAS['chat.send'].result.parse({ queued: false });
+```
+
+`.parse()` throws a `ZodError`; `.safeParse()` answers `{ success, data }` or `{ success, error }`. Object schemas are `z.object`, so a parse strips keys the schema does not know. Few fields have a default: an optional field that was left out stays absent, and the reader decides what absent means. The pages say it where that matters, such as an account without `enabled`, which is on.
+
+## Entry points
+
+The root exports everything below. Each group also has a subpath of its own, which a bundler can split on.
+
+| Import                                       | What it holds                                                                                     |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `@adecore/agent-contracts/envelope`          | The frames: request, reply, event, `WireError`, `parseRequest`, `parseServerFrame`. See [Protocol](/agent-contracts/protocol). |
+| `@adecore/agent-contracts/port`              | `FramePort`, types only.                                                                          |
+| `@adecore/agent-contracts/protocol`          | `AGENT_REQUEST_SCHEMAS`, `AGENT_EVENT_SCHEMAS`, `EmptySchema` and their key types.                |
+| `@adecore/agent-contracts/chat`              | A chat, its items, events, attachments, requests, bookmarks, forks. See [Conversation](/agent-contracts/conversation). |
+| `@adecore/agent-contracts/model`             | Models, catalogs, selections, capabilities, runtime modes, `resumeCommandFor`.                    |
+| `@adecore/agent-contracts/provider-accounts` | Account ids, records, variables, statuses and the account requests.                              |
+| `@adecore/agent-contracts/agent`             | `AgentKind`, `AgentStatus`, a terminal agent's info and its approvals.                            |
+| `@adecore/agent-contracts/task`              | Tasks between chats and `TaskChangedEventSchema`.                                                 |
+| `@adecore/agent-contracts/worktree`          | Git worktree metadata and the work in one.                                                        |
+| `@adecore/agent-contracts/usage`             | Token totals, usage summaries, prices, plan limits.                                               |
+| `@adecore/agent-contracts/ids`               | `SessionIdSchema` and `SessionId`.                                                                |
+| `@adecore/agent-contracts/text`              | `clipText`.                                                                                       |
+
+The [source](https://github.com/basmilius/adecore/tree/main/packages/agent-contracts/src) has every field with a comment on what it means.
+
+## Where to go next
+
+- [Protocol](/agent-contracts/protocol): frames, the request and event tables, replay after a reconnect, and adding requests of your own.
+- [Conversation](/agent-contracts/conversation): a chat's info and items, attachments, approvals and questions, bookmarks and checkpoints.
+- [Providers and accounts](/agent-contracts/providers-and-accounts): agent kinds, model catalogs, capabilities, runtime modes and accounts.
+- [Tasks and usage](/agent-contracts/tasks-and-usage): tasks between chats, worktrees, token totals, summaries and plan limits.

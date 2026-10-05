@@ -14,6 +14,8 @@ const updater = createUpdater({
 
 app.whenReady().then(() => updater.start());
 
+// The app's own handlers, behind its check of the sender.
+
 handleFromApp('update:state', () => updater.state());
 handleFromApp('update:configure', (_event, autoDownload: unknown) => updater.configure(autoDownload));
 handleFromApp('update:check', () => updater.check());
@@ -36,7 +38,7 @@ onFromApp('update:install', () => updater.install());
 
 ## Who decides to download
 
-The page owns the preference. Nothing downloads and no timer runs until the page sends it with `configure`; from then on the updater checks once an hour. Only `true` turns downloading on. A check is skipped while one runs, while a download runs and once a build is ready.
+The page owns the preference. Nothing downloads and no timer runs until the page sends it with `configure`; from then on the updater checks once an hour (`UPDATE_INTERVAL_MS`). Pass `setInterval` to drive that timer from a test. Only `true` turns downloading on. A check is skipped while one runs, while a download runs and once a build is ready.
 
 `beforeCheck` runs right before a check asks the feed, such as to refresh release notes along with it.
 
@@ -53,4 +55,6 @@ const updater = createUpdater({
 
 ## Errors
 
-electron-updater puts the whole HTTP exchange in the message of a failed check, cookies included. `describeUpdateError` keeps the first line only, and turns a 404 on the feed into a sentence that says there is no published release, or that the repository is private.
+electron-updater puts the whole HTTP exchange in the message of a failed check, cookies included. `describeUpdateError` keeps the first line only, cut at 200 characters, and turns a 404 on the feed into a sentence that says there is no published release, or that the repository is private. A failed check, download or install also goes to `log`, which is `console.error` by default.
+
+`UpdaterOptions`, `Updater` and `UpdateState` are exported types; `UpdateState` comes from `@adecore/shell/bridge`, so the page reads it too.

@@ -8,7 +8,7 @@ import { fakeFormatSource } from '@adecore/ui/testing';
 
 ## fakeFormatSource
 
-A [format source](/ui/formatting/) you set by hand: English, the region of the language, and no system locale of a shell. Hand it to `setFormatSource`, and a test's numbers and dates no longer depend on the machine that runs it.
+A [format source](/ui/formatting/) you set by hand. It starts in English, in the region of the language, with no system locale of a shell. Hand it to `setFormatSource` and set the region a test expects, so its numbers and dates do not depend on the machine that runs it. The region of the language follows `navigator.language` where the runtime has one.
 
 ```ts
 import { afterAll, afterEach, expect, test } from 'bun:test';
@@ -32,7 +32,7 @@ test('a count is grouped the way the region groups one', () => {
 });
 ```
 
-`set({ language?, region? })` changes either setting. `setFormatSource` answers the source it replaced, which the file puts back when it is done. A component under test draws with the fake if you pass it to `UIProvider` as `formatSource`.
+`set({ language?, region? })` changes either setting. It notifies no subscriber, so a component that is already drawn keeps what it wrote until it renders again. `setFormatSource` returns the source it replaced, which the file puts back when it is done. A component under test draws with the fake if you pass it to `UIProvider` as `formatSource`.
 
 `FakeFormatSource` is an exported type, a `FormatSource` with `set`.
 

@@ -10,7 +10,7 @@ import { lazyDialog, lazyNamed, onLazyOpenError, prefetcher } from '@adecore/ui'
 
 ## lazyNamed
 
-`lazyNamed(load, name)` is `React.lazy` for a module that exports its component by name, `default` included. It answers a component with the same props, which suspends until the module is there. Once the module is loaded it draws straight away. `React.lazy` suspends for a tick even on a module the bundler already has, which flashes the fallback and would mount a dialog already open.
+`lazyNamed(load, name)` is `React.lazy` for a module that exports its component by name, `default` included. It returns a component with the same props, which suspends until the module is there and then draws straight away. Plain `React.lazy` suspends for a tick even on a module that is already loaded, which flashes the fallback and would mount a dialog already open.
 
 ```tsx
 const HistoryPanel = lazyNamed(() => import('./HistoryPanel'), 'HistoryPanel');
@@ -28,7 +28,7 @@ const SettingsWindow = lazyDialog(() => import('./SettingsWindow'), 'SettingsWin
 
 Every module loaded through `lazyNamed` or `lazyDialog` registers with `prefetcher`. Call `prefetcher.prefetchEverything()` once the app has drawn its first screen, and it loads every registered module ahead of its first use, one per idle moment and never two at once. A module registered afterwards, such as a lazy surface inside another, joins the end of the queue. `prefetcher.prefetch(load)` loads one module ahead of the rest.
 
-The prefetcher does nothing while the browser asks to save data. A failed prefetch is quiet; the first real use tries again. `prefetcher.busy` is true while a prefetch waits on its chunk, so a failure an app hears of elsewhere, such as the bundler's event for a chunk that did not load, may be the prefetch's while it is true. It may as well be a person's open at the same moment, which `onLazyOpenError` tells apart.
+The prefetcher does nothing while the browser asks to save data. A failed prefetch is quiet; the first real use tries again. `prefetcher.busy` is true while a prefetch waits on its chunk, so a failure an app hears of elsewhere, such as the bundler's event for a chunk that did not load, may be the prefetch's while it is true. It may also be a person's open at the same moment, which `onLazyOpenError` tells apart.
 
 `Prefetcher` is the class behind it, for a test or a second queue: `new Prefetcher(whenIdle, allowed?)`. `WhenIdle` is a function that calls back once the main thread is free, and `Loader` is a function that loads a module.
 

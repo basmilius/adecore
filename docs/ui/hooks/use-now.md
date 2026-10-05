@@ -10,11 +10,11 @@ import { useNow, useTickingText } from '@adecore/ui';
 
 ## useNow
 
-`useNow(intervalMs, ticking = true)` answers the time in epoch milliseconds and draws the component again every `intervalMs`. One timer serves the whole surface, and it runs only while `ticking` is true, so a list with nothing running costs nothing. It starts at the moment the component mounts, so a panel that comes back halfway through does not read zero for a second.
+`useNow(intervalMs, ticking = true)` returns the time in epoch milliseconds and draws the component again every `intervalMs`. Each call starts its own timer, so call it once for a surface and hand the time to its rows. The timer runs only while `ticking` is true, so a list with nothing running costs nothing. The first value is the time of mounting, so a panel that comes back halfway through never reads zero.
 
 ## useTickingText
 
-`useTickingText(render, intervalMs = 1000)` writes the text straight into a node and answers the ref to put on it. Nothing re-renders. Use it for a timer on one line of a long list or a thread, where re-rendering every row each second would cost more than the timer is worth.
+`useTickingText(render, intervalMs = 1000)` writes the text straight into a `<span>` and returns the ref to put on it. Nothing re-renders. Use it for a timer on one line of a long list or a thread, where re-rendering every row each second would cost more than the timer is worth.
 
 ```tsx
 const ref = useTickingText(() => formatElapsedShort(Date.now() - startedAt));

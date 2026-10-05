@@ -1,19 +1,50 @@
 # @adecore/drawing
 
-Schemas, geometry and rendering for persisted drawings. The package supplies hit testing, resizing, deterministic shape paths, SVG strings and text reading order. It works in world coordinates without a DOM, React canvas or filesystem.
+Hand-drawn shapes, arrows, freehand strokes, text and sticky notes as plain JSON, and the code to work with them: hit tests and resizing for an editor, paths for a painter, an SVG export, and a reading of the drawing as lines of text. It needs no DOM, so a backend exports a stored drawing the same way a page draws it.
 
-Use it to build a drawing host or export a stored document on a backend. The host supplies gestures, selection, persistence, revision checks, fonts and theme values. `@adecore/diagram` shares its geometry, palette names and export defaults.
+```sh
+bun add @adecore/drawing
+```
 
-The package is private at `0.0.0` pending initial publication. Its transferred code retains [FSL-1.1-MIT](https://github.com/basmilius/adecore/blob/main/packages/drawing/LICENSE). Zod, Rough.js and perfect-freehand are declared dependencies with their own licenses. Rough.js loads through its official package entry, including for compiled Node execution.
+```ts
+import { DEFAULT_PALETTE, readingOrder, toSvg } from '@adecore/drawing';
+import { duplicateElementIdIn, migrateDrawing } from '@adecore/drawing/protocol';
 
-## Read the documentation
+const drawing = migrateDrawing(JSON.parse(file));
+if (drawing === null || duplicateElementIdIn(drawing.elements) !== null) {
+    throw new Error('Not a drawing');
+}
 
-- [Getting started](./getting-started) validates a document and produces SVG and reading output.
-- [Geometry and editing](./geometry) explains coordinates, hit tests, rotation and resize behavior.
-- [Paths and SVG](./rendering) covers seeds, paint roles, freehand, themes and XML handling.
-- [Text, fonts and reading order](./text) covers wrapping, measurement and notes.
-- [API reference](./api) groups every root export.
-- [Drawing protocol](./protocol) describes persisted fields and validation.
-- [Integration, migration and testing](./migration) covers host ownership, compatibility and troubleshooting.
+const svg = toSvg(drawing.elements, { palette: DEFAULT_PALETTE });
+const lines = readingOrder(drawing.elements);
+```
 
-The [standalone export example](https://github.com/basmilius/adecore/blob/main/packages/drawing/examples/export-drawing.ts) needs no UI. The package supplies no CSS, font downloads, keyboard bindings or accessible canvas component.
+<Demo src="canvas/drawing-export" />
+
+The demo passes one drawing to `toSvg` and `readingOrder`. Switching the roughness redraws every shape, and each shape wobbles the same way on every render because it stores its own `seed`.
+
+## What is in it
+
+- [Documents](/drawing/documents): the schemas of a drawing and its seven element kinds, on `@adecore/drawing/protocol`.
+- [Geometry](/drawing/geometry): bounds, hit tests, marquee selection and resizing in world coordinates.
+- [Paths and SVG](/drawing/rendering): the paths of one element for a painter of your own, and `toSvg` for a whole drawing.
+- [Text and reading order](/drawing/text): wrapping and measuring text, and `readingOrder`, which turns a drawing into lines an agent can read.
+
+## Two entry points
+
+| Entry point                 | Holds                                        | Loads                         |
+| --------------------------- | -------------------------------------------- | ----------------------------- |
+| `@adecore/drawing/protocol` | Zod schemas, types, `migrateDrawing`         | Zod                           |
+| `@adecore/drawing`          | Geometry, paths, SVG, text and reading order | Rough.js and perfect-freehand |
+
+A store that only validates files imports the protocol and never loads the renderer.
+
+## What the app does
+
+The package keeps no state and registers no listener. The app owns:
+
+- Storage and conflicts. A document carries a `rev`; the app compares it with the stored one on save and writes `rev + 1`.
+- Input: gestures, selection, undo, and the transform from screen pixels to world units.
+- Theme and fonts. A drawing names palette colors and fonts, and the app says what they are when it paints or exports.
+
+[`@adecore/diagram`](/diagram/) builds on this package for graphs that are written rather than drawn.

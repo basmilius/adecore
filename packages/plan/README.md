@@ -1,35 +1,50 @@
 # @adecore/plan
 
-Plan schemas, strict drafts, atomic tree operations, person/agent permissions, progress and Markdown/reading output. The core depends on Zod and owns no store, transport or UI.
+[![npm](https://img.shields.io/npm/v/@adecore/plan)](https://www.npmjs.com/package/@adecore/plan)
+[![Docs](https://img.shields.io/badge/docs-adecore.dev-blue)](https://adecore.dev/plan/)
 
-The package is private at `0.0.0` pending initial publication. Use the local checkout with `source` conditions or build JavaScript/declarations in `dist` for default imports. Transferred code retains FSL-1.1-MIT in [LICENSE](./LICENSE).
+A plan that a person and an agent work through together: steps, sub-steps, sections and notes, with rules for who may check what. Every change is a batch of operations that applies as a whole or is refused with a code and a reason. Plans read and write as a Markdown task list. No storage, no clock and no UI: the app brings those.
+
+**[Documentation with live demos](https://adecore.dev/plan/)**
+
+## Install
+
+```sh
+bun add @adecore/plan
+```
+
+## Use
 
 ```ts
 import { applyPlanOps, createPlan, parsePlanMarkdown } from '@adecore/plan';
 
-const parsed = parsePlanMarkdown('# Delivery\n\n- [ ] Review the result\n');
-if (!parsed.ok) {
-    throw new Error(parsed.message);
-}
-const created = createPlan(parsed.draft, {
-    id: 'delivery',
-    now: '2026-01-01T00:00:00.000Z',
-    mintId: () => 'review'
-});
-if (!created.ok) {
-    throw new Error(created.message);
-}
-const checked = applyPlanOps(created.plan, [{ op: 'set', ids: ['review'], state: 'done' }], {
-    actor: 'person',
-    now: '2026-01-01T00:01:00.000Z'
-});
-if (!checked.ok) {
-    throw new Error(checked.message);
+const parsed = parsePlanMarkdown('# Ship the release\n\n- [ ] Run the tests\n');
+const created = parsed.ok ? createPlan(parsed.draft, { id: 'release', now: new Date().toISOString() }) : parsed;
+
+if (created.ok) {
+    const [step] = created.minted;
+    const result = applyPlanOps(created.plan, [{ op: 'set', ids: [step!], state: 'done' }], {
+        actor: 'person',
+        now: new Date().toISOString()
+    });
 }
 ```
 
-The host supplies authenticated actors and time, applies batches to the latest stored plan and persists successful results atomically. Refusals leave input unchanged. Parents derive state; unlocks and person-set state survive updates. Markdown omits ids, attribution and checks, so persist validated JSON for full fidelity.
+## Entry points
 
-Read the [overview](https://adecore.dev/plan/), [getting started](https://adecore.dev/plan/getting-started), [tree/progress concepts](https://adecore.dev/plan/concepts), [operations guide](https://adecore.dev/plan/operations), [format guide](https://adecore.dev/plan/formats), [API reference](https://adecore.dev/plan/api), [protocol](https://adecore.dev/plan/protocol) and [integration/testing guide](https://adecore.dev/plan/migration).
+| Import | What it holds |
+|---|---|
+| `@adecore/plan` | Creating, validating and changing plans, permissions, progress, Markdown and text |
+| `@adecore/plan/protocol` | The Zod schemas and types of a plan and its operations |
 
-From the repository root, run `bun run --cwd packages/plan test`, `typecheck` or `build`. The [standalone example](./examples/check-plan.ts) imports, checks and exports a task list.
+## Documentation
+
+| Page | What it covers |
+|---|---|
+| [Plans](https://adecore.dev/plan/plans) | The tree, states, progress and creating a plan |
+| [Operations](https://adecore.dev/plan/operations) | `applyPlanOps`, permissions, refusals and a store |
+| [Markdown and text](https://adecore.dev/plan/markdown) | The Markdown format and the text an agent reads |
+
+## License
+
+FSL-1.1-MIT, see [LICENSE](./LICENSE).

@@ -1,60 +1,71 @@
-# Layers, groups and layout
+# Layout
 
-## Layers and cycles
-
-`layersOf(nodes, edges)` returns a map from node id to zero-based layer. For an acyclic graph, a layer is the longest path from a source. Unconnected nodes start at layer zero.
-
-Cycles are accepted. A depth-first walk visits sources first, then unvisited nodes in file order. Edges pointing back to a node still on that walk are omitted from ranking. A topological pass computes longest paths over what remains. Self-loops do not affect layers. This is iterative, so ranking a long chain does not consume the call stack.
-
-Only ranking omits those edges. The renderer still routes cycles, loops and parallel edges. File order determines how a cycle breaks; rearranging nodes or edges can therefore change layout even if the graph's connections are otherwise equivalent.
-
-`layersOf` ignores unknown endpoints as a defensive behavior. That is not validation. Run `diagramProblemIn` before any layout so an invalid reference receives a named error instead of disappearing from output.
-
-## Direction and ordering
-
-`layoutOf` accepts `meta`, `nodes`, `groups` and `edges`; it does not need `version` or `rev`. Direction is `right` or `down`. It lays out a right-flow frame and mirrors coordinates for downward flow while keeping label text upright and node shapes at their measured size.
-
-The output `nodes`, `groups` and `edges` remain in file order, except that empty groups have no box. Visual ordering across a layer can change to reduce edge crossings. Ties keep the previous order, initially file order. Group members stay together as a block, and group blocks keep one relative order across layers.
-
-The layout uses a fixed number of ordering sweeps and median placement rounds. It is deterministic for the same content and algorithm version, and outputs integer box and route coordinates. It does not compute a globally minimal crossing count or an optimal compact layout. There is no public spacing, sweep-count or cancellation option.
-
-## Node and label sizing
-
-`sizeOfNode` estimates and wraps labels at `LABEL_SIZE` 14 with `LABEL_LINE` 18; secondary text uses `SUB_SIZE` 12 with `SUB_LINE` 16. Ordinary label space is based on `NODE_MAX_WIDTH` 280 minus padding. Diamonds use a shorter text width and enlarge their box to contain the central text rectangle. Pill and cylinder shapes reserve extra room for their rounded ends or lid.
-
-`NODE_MAX_WIDTH` is not a hard maximum for every shape's outer box. A diamond or shape padding can produce a wider box. `estimateTextWidth` uses a deterministic glyph-class estimate; it does not measure the host's font. `wrapText` collapses whitespace into words, including hard line breaks, and breaks words wider than the available width.
-
-Edge labels wrap within `EDGE_LABEL_MAX_WIDTH` 160 and use `EDGE_LABEL_PADDING` of `{ x: 4, y: 2 }`. Node boxes include the wrapped `label` and `sub` arrays. Edge-label boxes include `lines`, so custom painters can draw exactly the lines that sizing used.
-
-## Groups, routes and bounds
-
-A group contains node ids, never groups. One node belongs to at most one group. A group's box adds `GROUP_PADDING` 20 and a `GROUP_LABEL_BAND` of 24; `GROUP_LABEL_INSET` is 12. Empty groups remain valid data but have no layout box.
-
-Automatic routes use orthogonal corners. Edges that skip layers get intermediate routing units so they can pass through channels. Ports spread along node sides; endpoints account for shape outlines. Back edges reverse their route to retain source-to-target order. Parallel edges retain separate source indices even when their endpoints match.
-
-Channels reserve room for edge labels and group boundaries, and can widen when labels need more columns. Routing aims to avoid unrelated boxes and reduce crossings. Dense routing can still cross edges. Label placement uses finite searches and fallback positions; it is not a general obstacle-avoidance guarantee for all possible documents.
-
-`DiagramLayout.bounds` covers node boxes, groups, group labels, route corners and edge labels. Empty diagrams have `{ x: 0, y: 0, w: 0, h: 0 }`. Painted stroke widths and arrowhead extents are not independently expanded into these bounds; export margin supplies room around them.
-
-## Manual positions
-
-Set a node's optional `pos: [x, y]` to pin it. The layout rounds that position to integers and reports `pinned: true`. Remove `pos` to return to automatic placement.
+`layoutOf(content)` places every node, group and edge in whole world units. It reads `meta`, `nodes`, `groups` and `edges`, so a document and its content both work. The result depends on nothing but the content: the same file gives the same layout on every machine.
 
 ```ts
 import { layoutOf } from '@adecore/diagram';
-import type { DiagramContent } from '@adecore/diagram/protocol';
 
-const content: DiagramContent = {
-    meta: { title: 'Pinned review', direction: 'down' },
+const layout = layoutOf(diagram);
+// layout.nodes:  { id, x, y, w, h, layer, pinned, label: string[], sub: string[] }[]
+// layout.groups: { id, x, y, w, h, labelBox }[]
+// layout.edges:  { index, from, to, points, label: { x, y, w, h, lines } | null }[]
+// layout.bounds: { x, y, w, h }
+```
+
+`nodes` and `edges` come in file order, `groups` too, but a group that wraps no node has no box and is left out. `EdgeRoute.index` is the position of the edge in the file, and `points` run from the source to the target, with the arrow head at the last one. `bounds` covers the boxes, the group labels, the corners of the edges and the edge labels, and is all zero for an empty diagram. The types are `DiagramLayout`, `NodeBox`, `GroupBox`, `EdgeRoute` and `EdgeLabelBox`.
+
+## Layers
+
+A diagram runs in columns along its direction. `layersOf(nodes, edges)` gives the column of every node: the longest path to it from a node that nothing points at, counting from 0. A node without edges is in column 0.
+
+A cycle has no longest path, so it is broken first. A walk through the graph in file order leaves out every edge that points back at a node it is still inside of, and ranks what is left. Those edges are still drawn, against the flow. Which edge of a cycle is left out depends on the order of the file, so moving a node in the file can change the layout.
+
+## Order and placement
+
+Inside a column, nodes are sorted to cross fewer edges: twelve sweeps move each node to the average position of its neighbors, and the best order any sweep reached is kept. A tie keeps the order the nodes already had, which is file order at the start. The members of a group stay together, and groups keep the same order in every column. Then each node moves towards its neighbors as far as the nodes beside it allow, so a chain lines up straight.
+
+It is a heuristic, not an optimum. Dense graphs can still cross edges, and there are no options for spacing or the number of sweeps.
+
+A `down` diagram is laid out as a `right` one and mirrored across the diagonal. The boxes keep their size and their text stays upright.
+
+## Sizes
+
+`sizeOfNode(node)` returns a `NodeSize`, the box and the wrapped lines of a node:
+
+- The label is `LABEL_SIZE` (14) and bold, on lines `LABEL_LINE` (18) apart. `sub` is `SUB_SIZE` (12), on lines `SUB_LINE` (16) apart.
+- Text wraps to `NODE_MAX_WIDTH` (280) minus the padding. A box is at least 120 wide.
+- A `diamond` wraps narrower and is twice the size of its text, so the text fits between its corners. It can end up wider than `NODE_MAX_WIDTH`.
+- A `pill` widens its padding for its round ends, and a `cylinder` is `CYLINDER_LID` (10) taller for its lid.
+
+`sizeOfEdgeLabel(text)` does the same for an edge label: `SUB_SIZE`, wrapped to `EDGE_LABEL_MAX_WIDTH` (160), with `EDGE_LABEL_PADDING` (`{ x: 4, y: 2 }`) around it.
+
+There is no font engine in the package, so text is estimated, never measured. `estimateTextWidth(text, size, bold)` adds up a width per kind of character, measured once for common system fonts and leaning towards too wide. `wrapText(text, size, bold, maxWidth)` wraps at spaces and reads a line break as a space. A font the estimate does not fit can run past its box, because exporting in another font does not change the layout.
+
+## Groups
+
+A group is a box around its members, `GROUP_PADDING` (20) away from them, with its label in a band of `GROUP_LABEL_BAND` (24) along the top, `GROUP_LABEL_INSET` (12) in from the side. Groups do not nest. Nodes outside a group stay on the same side of it from column to column, so an edge between two of them does not have to cross it.
+
+## Edges
+
+Edges run in right angles through the space between two columns, and each gets a track of its own where it would otherwise run on top of another. An edge that skips columns passes through every column in between. Where several edges leave one side of a box, they spread along it in the order of their other ends, and they end on the outline of the shape, not on its box. A label sits in that space beside its edge, and the space grows wider when labels need the room.
+
+An edge from a node to itself is a small loop on the side of its box.
+
+## Dragged nodes
+
+A node with a `pos` stays at that position, rounded to whole units, and gets `pinned: true`. The app writes `pos` when a person drags a node, and removes it to hand the node back to the layout.
+
+```ts
+const layout = layoutOf({
+    meta: { title: '', direction: 'down' },
     nodes: [
         { id: 'draft', label: 'Draft' },
         { id: 'review', label: 'Review', pos: [300.4, 200.6] }
     ],
     groups: [],
     edges: [{ from: 'draft', to: 'review', label: 'submit' }]
-};
-const layout = layoutOf(content);
-console.log(layout.nodes.find((node) => node.id === 'review'));
+});
+// review: { x: 300, y: 201, pinned: true, layer: 1, ... }
 ```
 
-Pinned nodes give up their automatic layer slot, while their graph layer number remains available. Edges involving a pin or same-layer pair use simpler loose orthogonal routes. Pins do not push automatic nodes out of their way. A group containing distant pinned nodes expands around them and can cover unrelated items. The host must manage overlaps and clipping for manual arrangements.
+A pinned node keeps its `layer` number but takes no room in the layout, so the other nodes do not move out of its way. Its edges, and edges between two nodes in the same column, take a simpler route: out of one box, a step halfway, into the other. A group with a pinned member stretches to include it, wherever it is. Overlap is the app's to prevent.

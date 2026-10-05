@@ -1,6 +1,6 @@
 # Toasts
 
-A stack of toasts in the bottom right corner, over everything: what an action is doing while it runs, how it went when it is over, and a deletion that can still be taken back. The toasts live in a store you create once and call from anywhere.
+A stack of toasts in the bottom right corner, above dialogs: what an action is doing while it runs, how it went when it is over, and a deletion that can still be taken back. The toasts live in a store you create once and call from anywhere.
 
 ```tsx
 import { Toasts, createToastStore } from '@adecore/ui';
@@ -22,11 +22,11 @@ export const toasts = createToastStore();
 | `error` | An alert | When the person dismisses it. A failure waits to be read. |
 | `deleted` | A trash can | After 8 seconds (`UNDO_MS`). |
 
-A toast with an `action` that goes by itself, such as the undo of a deletion, shows a ring in place of its close button that counts down to the moment it goes. The ring starts as far along as the timer already is, so both end together. With reduced motion the ring stays full. A toast that goes by itself keeps its close button hidden until the pointer or the keyboard is on it.
+A toast with an action that goes by itself, such as the undo of a deletion, shows a ring in place of its close button that counts down to the moment it goes. With reduced motion the ring stays full. A toast that goes by itself without an action keeps its close button hidden until the pointer or the keyboard is on it.
 
 ## One id from start to end
 
-A long action keeps one toast from progress to outcome, so a person never watches two cards for one thing. `show` answers the toast's id; `update` moves that toast on:
+A long action keeps one toast from progress to outcome, so a person never watches two cards for one thing. `show` returns the toast's id, and `update` moves that toast on:
 
 ```ts
 const id = toasts.getState().show({ kind: 'progress', title: 'Pushing to origin' });
@@ -47,7 +47,7 @@ try {
 | Member | |
 | --- | --- |
 | `toasts` | `T[]`, the toasts that are up, oldest first. |
-| `show(toast)` | Puts one up, or replaces the one with the same `id`. Answers its id. Takes a `ToastInput<T>`. |
+| `show(toast)` | Puts one up, or replaces the one with the same `id`, and returns its id. Takes a `ToastInput<T>`. |
 | `update(id, patch)` | Changes a toast that is up and restarts its timer. Takes a `ToastPatch<T>`. |
 | `dismiss(id)` | Takes a toast down. |
 
@@ -67,11 +67,11 @@ const toasts = createToastStore<AppToast>();
 
 ## Props
 
-| Prop | Type | |
-| --- | --- | --- |
-| `store` | `ToastStoreHook<T>` | Required. |
-| `footer` | `(toast: T) => ReactNode` | Drawn under the description. |
-| `className` | `string` | |
-| `ref` | `Ref<HTMLDivElement>` | |
+| Prop | Type | Default | |
+| --- | --- | --- | --- |
+| `store` | `ToastStoreHook<T>` | | Required. |
+| `footer` | `(toast: T) => ReactNode` | | Drawn under the description. |
+| `className` | `string` | | |
+| `ref` | `Ref<HTMLDivElement>` | | |
 
-The stack is a polite live region, so a screen reader announces a new toast without interrupting. `ToastsProps`, `Toast`, `ToastAction`, `ToastDeadline`, `ToastInput`, `ToastKind`, `ToastPatch`, `ToastStore` and `ToastStoreHook` are exported types.
+The stack is a polite live region, so a screen reader announces a new toast without interrupting. With no toasts up it renders nothing. `ToastsProps`, `Toast`, `ToastAction`, `ToastDeadline`, `ToastInput`, `ToastKind`, `ToastPatch`, `ToastStore` and `ToastStoreHook` are exported types.

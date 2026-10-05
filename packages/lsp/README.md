@@ -1,33 +1,47 @@
 # @adecore/lsp
 
-Read the [LSP handbook](https://adecore.dev/lsp/handbook/) for the complete setup, concepts, host integration and testing guides.
+[![npm](https://img.shields.io/npm/v/@adecore/lsp)](https://www.npmjs.com/package/@adecore/lsp)
+[![Docs](https://img.shields.io/badge/docs-adecore.dev-blue)](https://adecore.dev/lsp/)
 
-A DOM-free LSP 3.17 client, and the `LanguageService` interface the smart editor asks its language features through. It spawns nothing and imports no Node or Bun API outside its tests, so a host can use it in a server process or browser. The document model it feeds is `@adecore/editor-core`; the view is `@adecore/editor`.
+A client for the Language Server Protocol 3.17, without a DOM and without Node or Bun APIs, so it runs in a backend, a utility process or a page. It also defines `LanguageService`, the interface [`@adecore/editor-react`](https://adecore.dev/editor-react/) asks its features through. It starts no server: the app hands it a transport.
 
-Positions are LSP positions: zero-based lines and UTF-16 characters, with a line ending at `\n`, `\r\n` or a lone `\r`. Turning them into editor offsets is the view's job.
+## Install
 
-## API
+```sh
+bun add @adecore/lsp
+```
 
-Everything comes from the package root; `@adecore/lsp/testing` holds the test doubles.
+## Use
 
-- `LspSession`: one conversation with one server over an `LspTransport`. `initialize` negotiates capabilities (UTF-16 only, snippets off unless asked), `openDocument` returns an `LspDocument`, and `supports` / `providerOptions` answer from static capabilities and dynamic registrations alike. It answers the server's configuration, folder, registration, progress and message requests, and `onDiagnostics`, `onCapabilitiesChanged` (registrations and refresh requests), `onProgress`, `onNotification` and `onError` observe it. `shutdown` closes the documents, then sends `shutdown` and `exit`.
-- `LspDocument`: one open file in one session, and the owner of its version. `applyChanges` takes `didChange` entries and sends them as they are to a server that negotiated incremental sync, or the whole text to one that negotiated full sync. `updateText` sends the one range that differs from the held text. Every call raises the version by one. A request is cancelled when the text changes or a newer one for the same feature is made (`cancelPrevious`), and an answer for an older version rejects with `StaleResultError`, so does resolving a completion item, code action, lens or hint of an older version. One method per feature: completion, hover, signature help, the four navigations, references, highlights, symbols, rename, code actions, code lenses, formatting, folding, semantic tokens (full, delta, range), inlay hints and pull diagnostics.
-- `JsonRpcConnection`: correlation, `$/cancelRequest`, a request timeout (30 seconds, `0` turns it off) and the requests a server sends. `LspError` carries a JSON-RPC code; `ErrorCodes` names the ones used here.
-- Transports: `createStreamTransport` over a `ByteStream` (a child's stdin and stdout, which the host adapts), `ContentLengthDecoder` and `encodeMessage` for the framing, `createMemoryTransportPair` and `connectWebSocket`.
-- Edits: `applyTextEdits` and `planWorkspaceEdit` (simultaneous edits and a multi-file plan, which refuses file operations), `applyContentChanges` (sequential), `minimalChange`, `offsetAt`, `positionAt` and `endPosition`.
-- File renames: `willRenameFiles` and `didRenameFiles` of `LspSession` take the files that move (`RenamedFile`, which says whether each is a folder) and pass on only those that the filters of the server take, from its capabilities and its registrations (`fileOperationFilters`, `renamesTaken`: scheme, glob on the path the file leaves, `matches`, `ignoreCase`). The session declares `resourceOperations: ['rename']`, `workspace.fileOperations` and the `refactor.move` kind in `initialize`.
-- `bridgeVueTypeScript` relays Vue's `tsserver/request` to the TypeScript server, and `vueServerOrder` says which of the two servers of a `.vue` document to ask first.
-- `pathToFileUri` and `fileUriToPath`.
-- `LanguageService`: what the editor asks of the language side (open, change and close a document, every feature above, `executeCommand`, `supports`, `providerOptions`, `onProvidersChanged` and `onDiagnostics`). Results stay in LSP shapes. A request takes `signal` and `parallel`, which lets many requests of one feature run side by side instead of each taking over from the one before. A host adapts server sessions or its own transport to this interface. Server discovery, process startup, authorization and saving remain outside the library.
-- `@adecore/lsp/testing`: `FakeLanguageServer`, a server on the far end of a transport that answers the handshake, mirrors document text and answers whatever a test registers, and `createMemoryTransportPair`.
+```ts
+import { LspSession, createStreamTransport, pathToFileUri } from '@adecore/lsp';
 
-## Known limits
+const session = new LspSession(createStreamTransport(stream), { rootUri: pathToFileUri('/work') });
+await session.initialize();
 
-- Unversioned diagnostics cannot be proven fresh and are accepted while their document is open.
-- The package applies no workspace edit and touches no file. File creates, renames and deletes in a `WorkspaceEdit` are the host's, and the host only declares renames.
-- Only UTF-16 position encoding is negotiated; a server that insists on another one fails to initialize.
-- Servers that negotiated no document changes (`change: 0`) cannot follow an edit.
+const document = session.openDocument({ uri: pathToFileUri('/work/example.ts'), languageId: 'typescript', text });
+await document.updateText(nextText);
+const hover = await document.hover({ line: 0, character: 6 });
+```
 
-## Packaging
+An answer for a text that changed in the meantime rejects with `StaleResultError`.
 
-This unpublished package is private at version `0.0.0` and retains FSL-1.1-MIT. Source consumers enable `source` in the bundler and TypeScript `customConditions`. Default consumers use compiled JavaScript and declarations. Run `bun run build`, `bun run typecheck` and `bun run test` from the package after workspace installation. Tests use memory transports and fake servers; no installed language server is required.
+## Entry points
+
+| Import | What it holds |
+|---|---|
+| `@adecore/lsp` | `LspSession`, `LspDocument`, the transports, the edit and URI helpers, the Vue bridge and the protocol types |
+| `@adecore/lsp/testing` | `FakeLanguageServer` and `createMemoryTransportPair` |
+
+## Documentation
+
+| Page | What it covers |
+|---|---|
+| [Sessions and transports](https://adecore.dev/lsp/sessions) | Stdio, WebSocket and memory transports, the handshake, capabilities and errors |
+| [Documents and edits](https://adecore.dev/lsp/documents) | Versions, requests, stale answers, edit helpers, workspace edits and renames |
+| [Language service](https://adecore.dev/lsp/language-service) | The interface for editor features, and Vue with TypeScript |
+| [Testing](https://adecore.dev/lsp/testing) | A fake server in memory |
+
+## License
+
+FSL-1.1-MIT

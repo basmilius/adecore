@@ -1,6 +1,6 @@
 # Tile
 
-One thing to start with, drawn as a card that is a button. A start screen and the empty places of an app use it, so a place to begin looks the same wherever it is offered.
+One thing to start with, drawn as a card that is a button, for a start screen or the empty places of an app.
 
 ```tsx
 import { Tile } from '@adecore/ui';
@@ -8,7 +8,7 @@ import { Tile } from '@adecore/ui';
 
 <Demo src="actions/tile" />
 
-Give one tile on a screen `primary`, and its border and its icon take the accent. `sm` is for a narrow column like a sidebar. The description is one short line, such as where the action lands or why it waits, and it truncates rather than wraps.
+Give one tile on a screen `primary`: its border and its icon take the accent. `sm` is for a narrow column like a sidebar. The description is one short line, such as where the action lands or why it waits, and it truncates rather than wraps.
 
 ## Props
 
@@ -16,7 +16,7 @@ Give one tile on a screen `primary`, and its border and its icon take the accent
 
 | Prop | Type | Default | |
 | --- | --- | --- | --- |
-| `icon` | `ReactNode` | | Required. A 16 pixel `Icon`. |
+| `icon` | `ReactNode` | | Required. A 16 pixel `Icon`, in a 32 pixel box. |
 | `title` | `string` | | Required. |
 | `description` | `ReactNode` | | One line under the title. |
 | `shortcut` | `Shortcut` | | Printed at the end of the tile. |

@@ -1,6 +1,6 @@
 # Principles
 
-The library holds itself to a handful of design rules. Most of them are checked by its own test suite, which reads every source file and fails on a violation. Code you write on top of the library reads the same when it keeps these too.
+The design rules the library holds itself to. Most of them are checked by its own test suite, which reads every source file and fails on a violation. Code you write on top of the library fits in when it keeps them too.
 
 ## Type
 
@@ -34,7 +34,7 @@ An icon button decides the icon inside it from its own size: 16 in the default 3
 
 A shortcut is Cmd or Ctrl plus a key, not a bare letter. A bare key belongs to whatever has the focus: a text field, a terminal, a canvas tool. The library writes a shortcut once with [`shortcut('Mod+K')`](/ui/utilities/shortcuts). `Mod` is Cmd on macOS and Ctrl elsewhere, and the same value both matches the key event and prints the hint.
 
-The library itself binds no shortcut on the window. The two listeners it has there only watch. [`ShortcutHints`](/ui/display/shortcut-hints) waits for the modifier held on its own, and the input modality notes which device is in use. Bind your app's shortcuts on the window once, in one place, rather than per component.
+The library binds no shortcut on the window. The listeners it puts there only watch: [`ShortcutHints`](/ui/display/shortcut-hints) waits for the modifier held on its own, the input modality notes which device is in use, and a [`DockShell`](/ui/layout/dock-shell) with `autoHide` follows the pointer. Bind your app's shortcuts on the window once, in one place, rather than per component.
 
 ## Keyboard and focus
 
@@ -55,11 +55,11 @@ The library decides by the last real input instead. `startInputModality` (which 
 
 ## Numbers and dates
 
-Only `@adecore/ui/format` builds an `Intl` formatter. Every number, date and duration a person reads goes through it, so it follows the language and the region they set, and a list of a thousand rows builds no formatter at all. See [Formatting](/ui/formatting/).
+Only `@adecore/ui/format` builds an `Intl` formatter. Every number, date and duration a person reads goes through it, so it follows the language and the region they set, and a list of a thousand rows builds no new formatter. See [Formatting](/ui/formatting/).
 
 ## Props follow Base UI
 
-A controlled value is `value` and `onValueChange`, `checked` and `onCheckedChange`, or `open` and `onOpenChange`. Variants and sizes are props, never class strings you pass in. Every component takes `className` and a `ref`. The parts that are a single element also take Base UI's `render` prop, which swaps the element for another and merges the props of both:
+A controlled value is `value` and `onValueChange`, `checked` and `onCheckedChange`, or `open` and `onOpenChange`. Variants and sizes are props, never class strings you pass in. Every component that draws an element takes `className` and a `ref`. The parts that are a single element also take Base UI's `render` prop, which swaps the element for another and merges the props of both:
 
 ```tsx
 <SectionLabel render={<h3 />}>Recent</SectionLabel>

@@ -8,15 +8,17 @@ import { ConfirmDialog } from '@adecore/ui/settings';
 
 <Demo src="settings/confirm-dialog" />
 
-`onConfirm` returns a promise. While it runs the button goes quiet; when it resolves the dialog closes; when it rejects the reason stays on screen and the dialog stays open.
+`onConfirm` returns a promise. While it runs the button is disabled. When it resolves the dialog closes; when it rejects, the reason stays on screen and the dialog stays open.
 
-| Prop | Type | |
-| --- | --- | --- |
-| `open` | `boolean` | Required. |
-| `onOpenChange` | `(open: boolean) => void` | Required. |
-| `title` | `string` | Required. |
-| `description` | `string` | Required. |
-| `confirmLabel` | `string` | Required. |
-| `onConfirm` | `() => Promise<void>` | Required. |
+## Props
+
+| Prop | Type | Default | |
+| --- | --- | --- | --- |
+| `open` | `boolean` | | Required. |
+| `onOpenChange` | `(open: boolean) => void` | | Required. |
+| `title` | `string` | | Required. |
+| `description` | `string` | | Required. |
+| `confirmLabel` | `string` | | Required. |
+| `onConfirm` | `() => Promise<void>` | | Required. |
 
 `ConfirmDialogProps` is an exported type.

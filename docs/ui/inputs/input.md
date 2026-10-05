@@ -12,11 +12,11 @@ import { Input, TextArea } from '@adecore/ui';
 
 `icon` draws a Lucide icon in front of the text, such as a magnifier on a search field. The icon is 14 pixels, or 12 with `size="sm"`. The input then sits in a box that draws the field, and `className` goes to that box so it lays out like any other field; `ref` and every other prop stay on the input.
 
-A value a person reads but does not type, such as a chosen folder beside the button that picks it, is an `Input` with `readOnly`. It shows the value in the muted text color and ends a long one with an ellipsis. It stays an input: a screen reader announces it as read-only, and the value can be selected and copied. Its `placeholder` stands in while there is no value.
+A value a person reads but does not type, such as a chosen folder beside the button that picks it, is an `Input` with `readOnly`. It shows the value in the muted text color and ends a long one with an ellipsis. It stays an input, so a screen reader announces it as read-only and the value can be copied.
 
 <Demo src="inputs/input-icon" />
 
-A `TextArea` is at least 64 pixels tall; `rows` makes it taller. It takes the same `size`: the body text of an input by default, and with `size="sm"` the smaller text and padding of a compact input, for a commit message in a narrow panel. It has no resize handle until `resize="vertical"` gives it one, for a draft of a few sentences that a person may want to see whole.
+A `TextArea` is at least 64 pixels tall; `rows` makes it taller. `size="sm"` gives it the smaller text and padding of a compact input, for a commit message in a narrow panel. It has no resize handle until `resize="vertical"` gives it one.
 
 Inside a [`Field`](/ui/inputs/field) both take their `id`, `aria-describedby` and `aria-invalid` from it. Outside one, give them an `aria-label`.
 

@@ -31,15 +31,16 @@ app.whenReady().then(() => windows.restore());
 
 `create` builds and loads the window; the package passes the bounds to construct it with and follows the window from then on, so `create` never calls `windowState.track` itself. A new window whose key has no bounds of its own sits a little beside the one in front (`CASCADE`).
 
-An app that kept its one window under a key of its own before it had several passes that key as `formerKey`: the first window after the change opens where that window stood.
+An app that kept its one window under a key of its own before it had several passes that key as `formerKey`: the first window after the change opens where that window stood. A window without a key keeps its bounds under `UNKEYED_STATE` (`'start'`).
 
-`origin` says why the window opens: `session` for one that was open at the last quit, `first` for the one window of a start without a session, `opened` for one something asked for. A page can then tell a cold start, which may open what a person had last, from a new window, which starts empty. `onFront` runs once a window came to the front, when `focused()` already answers it.
+`origin` says why the window opens: `session` for one that was open at the last quit, `first` for the one window of a start without a session, `opened` for one something asked for. These are the `WindowOrigin` type. A page can then tell a cold start, which may open what a person had last, from a new window, which starts empty. `onFront` runs once a window came to the front, when `focused()` already answers it.
 
 ## What a window shows
 
 A window can come to show something else, as when its page opens a project from a start screen. The page says so, and the shell answers whether it may:
 
 ```ts
+// The app's own handler; `fromPage` is its check of the sender.
 handleFromApp('window:claim', (event, key: unknown) => {
     const window = windows.fromPage(event.sender);
     return window !== null && (key === null || typeof key === 'string') && windows.claim(window, key);
@@ -54,7 +55,9 @@ handleFromApp('window:claim', (event, key: unknown) => {
 
 ## Who asked
 
-Every IPC handler resolves its window from the sender instead of assuming one: `fromPage(event.sender)` answers only for the page of an app window, so it is also the check of who may speak for the app. `fromContents` also knows the window of a `<webview>` inside a page, which Electron gives no window of its own, so a guest's context menu opens over the right window; it never decides who may call a handler. What has no sender, such as a second instance, a notification or a menu command, goes to `focused()`, the window last in front. `send(channel, ...args)` reaches every window, for what the whole app shares.
+Every IPC handler resolves its window from the sender instead of assuming one: `fromPage(event.sender)` answers only for the page of an app window, so it is also the check of who may speak for the app. `fromContents` also knows the window of a `<webview>` inside a page, which Electron gives no window of its own, so a guest's context menu opens over the right window; it never decides who may call a handler. What has no sender, such as a second instance, a notification or a menu command, goes to `focused()`, the window last in front. `send(channel, ...args)` reaches every window, for what the whole app shares. `keyOf(window)` is the key a window shows, and `all()` lists the open windows.
+
+`WindowsOptions` and `Windows` are exported types.
 
 ## Quitting
 

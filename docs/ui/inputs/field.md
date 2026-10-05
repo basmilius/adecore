@@ -25,22 +25,22 @@ A `<label>` can point at an input, not at a [`Segmented`](/ui/inputs/segmented),
 
 ## Beside the control
 
-In a dialog with a form of several fields, a stack of labels and controls soon scrolls. `orientation="horizontal"` puts the label in a column of 112 pixels beside the control, at the size of what is typed, so the controls of every field line up. The hint and the error stay under the control. The label sits on the middle of the control's first line, however tall a `TextArea` grows.
+In a dialog with several fields, a stack of labels and controls soon scrolls. `orientation="horizontal"` puts the label in a column of 112 pixels beside the control, at the size of what is typed, so the controls of every field line up. The hint and the error stay under the control. The label sits on the middle of the control's first line, however tall a `TextArea` grows.
 
 <Demo src="inputs/field-horizontal" />
 
-## Field props
+## Props
 
-| Prop | Type | |
-| --- | --- | --- |
-| `children` | `ReactNode` | Required. The control. |
-| `label` | `ReactNode` | Drawn as a [`SectionLabel`](/ui/display/section-label) above the control. |
-| `hint` | `ReactNode` | The line under the control that says what goes in it. |
-| `error` | `ReactNode` | Shown under the control and marks it invalid. `null` or `''` shows nothing. |
-| `group` | `boolean` | Labels a group rather than one control. Default `false`. |
-| `orientation` | `'vertical' \| 'horizontal'` | `horizontal` puts the label beside the control. Default `vertical`. |
-| `className` | `string` | |
-| `ref` | `Ref<HTMLDivElement>` | |
+| Prop | Type | Default | |
+| --- | --- | --- | --- |
+| `children` | `ReactNode` | | Required. The control. |
+| `label` | `ReactNode` | | A [`SectionLabel`](/ui/display/section-label) above the control. |
+| `hint` | `ReactNode` | | The line under the control that says what goes in it. |
+| `error` | `ReactNode` | | Shown under the control and marks it invalid. `null` or `''` shows nothing. |
+| `group` | `boolean` | `false` | Labels a group rather than one control. |
+| `orientation` | `'vertical' \| 'horizontal'` | `'vertical'` | `horizontal` puts the label beside the control. |
+| `className` | `string` | | |
+| `ref` | `Ref<HTMLDivElement>` | | |
 
 ## FieldHint and FormError
 

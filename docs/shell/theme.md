@@ -15,6 +15,7 @@ const theme = createTheme({
     }
 });
 
+// The app's own handler, behind its check of the sender.
 onFromApp('window:theme', (_event, state: ThemeState) => theme.apply(state));
 
 const window = new BrowserWindow({ ...bounds, ...theme.windowOptions(), show: false });
@@ -23,3 +24,5 @@ const window = new BrowserWindow({ ...bounds, ...theme.windowOptions(), show: fa
 `windowOptions()` is a new window's chrome and ground: the traffic lights inset on macOS (`trafficLights`, 17 by 17 by default), elsewhere a hidden title bar with the controls of `overlay` drawn over the page, or none without it. A new window opens in the theme the others are in, and dark with `background` before any page reported one.
 
 `nativeTheme.themeSource` is `system` only while the app follows the system; otherwise it is the app's own choice, since a page inside a `<webview>` asks Chromium and not the app.
+
+`current()` returns the last `ThemeState` applied, or `null` before the first. `Theme`, `ThemeOptions` and `TitleBarOverlay` are exported types.

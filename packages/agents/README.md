@@ -1,33 +1,48 @@
 # @adecore/agents
 
-Agent chat hosting for Node and Bun, including an Electron utility process. Claude Code and Codex backends share a session/thread model, streamed events, persisted chats, provider accounts, usage, and durable coordination modules. A consumer supplies permissions, transport ownership, placement, context commands, and application lifecycle policy.
+[![npm](https://img.shields.io/npm/v/@adecore/agents)](https://www.npmjs.com/package/@adecore/agents)
+[![Docs](https://img.shields.io/badge/docs-adecore.dev-blue)](https://adecore.dev/agents/)
+
+A host for agent chats in Node, Bun or an Electron utility process. It runs Claude Code and Codex as chat backends, keeps every thread on disk, streams it to its clients, and manages the CLIs' accounts and usage. It answers the requests of [`@adecore/agent-contracts`](https://adecore.dev/agent-contracts/) over a port you hand it, and registers no channel of its own.
+
+## Install
+
+```sh
+bun add @adecore/agents @adecore/agent-contracts
+```
+
+The package brings no CLI: install Claude Code or Codex and sign in with it.
+
+## Use
 
 ```ts
 import { AgentHost } from '@adecore/agents/host/agent-host';
-import { cliEnvironment } from '@adecore/agents/host/environment';
-import type { FramePort } from '@adecore/agent-contracts';
 
-export async function openHost(dataDir: string, port: FramePort) {
-    const host = await AgentHost.open({ dataDir, env: cliEnvironment(process.env, { sessionPrefixes: ['APP'] }) });
-    const disconnect = host.connect(port);
-    return {
-        host,
-        async close(): Promise<void> {
-            disconnect();
-            await host.close();
-        }
-    };
-}
+const host = await AgentHost.open({ dataDir });
+const disconnect = host.connect(port);
+
+// later
+disconnect();
+await host.close();
 ```
 
-A chat starts a CLI on its first prompt. Choose its runtime mode explicitly: the plain core defaults to `full-access`. Install/authenticate provider CLIs separately. For checks without real providers, inject `spawn` and `detect` and use the complete [fake-provider walkthrough](https://adecore.dev/agents/getting-started).
+Every module has its own subpath, `@adecore/agents/<path>`; there is no root import. A new chat runs in `full-access` unless it names a runtime mode, so name one.
 
-The [documentation](https://adecore.dev/agents/) covers [transport](https://adecore.dev/agents/transport), [host hooks](https://adecore.dev/agents/host-integration), [providers/models](https://adecore.dev/agents/providers-and-models), [turns/requests](https://adecore.dev/agents/turns-and-requests), [accounts/environment](https://adecore.dev/agents/accounts-and-environment), [outbox/tasks/messages](https://adecore.dev/agents/coordination), [context commands](https://adecore.dev/agents/context-commands), [persistence/helpers](https://adecore.dev/agents/persistence-and-helpers), [testing](https://adecore.dev/agents/testing-and-troubleshooting), [subpaths](https://adecore.dev/agents/entrypoints), and [migration](https://adecore.dev/agents/migration).
+## Documentation
 
-`wireAgents` supplies the same services and handlers for a host protocol of your own. `ChatCore` is extensible through admission, instructions, environment, prompt notes, folders, policy, persistence, and recovery hooks. A plain host refuses placement-dependent fork/continuation requests and installs no task/message context endpoint.
+| Page | What it covers |
+|---|---|
+| [Getting started](https://adecore.dev/agents/getting-started) | A whole turn against a fake CLI, in one file |
+| [Host](https://adecore.dev/agents/host) | `AgentHost`, its options, `wireAgents`, the hooks of `ChatCore` and Electron |
+| [Chats and turns](https://adecore.dev/agents/chats) | Sending, queuing, approvals, stopping and restarts |
+| [Providers](https://adecore.dev/agents/providers) | The CLIs, their model catalogs and the runtime modes |
+| [Accounts and usage](https://adecore.dev/agents/accounts) | Config folders, secrets, the environment and usage |
+| [Coordination](https://adecore.dev/agents/coordination) | The outbox, tasks between chats, lineage and messages |
+| [Context commands](https://adecore.dev/agents/context-commands) | A command line your agents call back into |
+| [Storage](https://adecore.dev/agents/storage) | What is written where, and the file helpers |
+| [Testing](https://adecore.dev/agents/testing) | The fakes and the error codes |
+| [Modules](https://adecore.dev/agents/reference) | Every subpath of the package |
 
-Import per module, `@adecore/agents/<path under src>` without an extension; there is no root export. Existing helper and coordination subpaths remain supported. [examples/agent-port](../../examples/agent-port) checks host, React transport/client, scope, and locale loading with fakes. Run its `test` script for source exports or `test:dist` after building for Node default exports.
+## License
 
-Build `@adecore/agent-contracts` first, then run this package's `typecheck`, `test`, and `build` scripts. Default exports use compiled JavaScript/declarations; `source` selects TypeScript. No production source requires a Bun API.
-
-This package is private at `0.0.0`, pending publication setup, and retains FSL-1.1-MIT. See [LICENSE](./LICENSE).
+FSL-1.1-MIT. See [LICENSE](./LICENSE).

@@ -7,10 +7,12 @@
 @import 'tailwindcss/theme.css' layer(theme);
 @import 'tailwindcss/utilities.css' layer(utilities) source(none);
 @import '@adecore/ui/theme.css';
+@import '@adecore/agents-react/theme.css';
 @import '@adecore/editor/editor.css';
 @import '@adecore/editor-react/editor-react.css';
 @import '@xterm/xterm/css/xterm.css';
 @import '@adecore/terminal/terminal.css';
+@plugin "@tailwindcss/typography";
 
 @source "../../../packages/ui/src";
 @source "../../../packages/terminal/src";

@@ -2,7 +2,11 @@
 
 Definitions and injectable managers for macOS launchd GUI jobs and Linux systemd user services. The host supplies identity, paths, environment, commands and files. It keeps installation authorization and executable policy.
 
-The package is private at `0.0.0` pending first publication. Use its local `source` exports, or run the package build for compiled JavaScript and declarations. It retains the [FSL-1.1-MIT license](LICENSE).
+```sh
+bun add @adecore/service
+```
+
+Licensed under FSL-1.1-MIT, see [LICENSE](LICENSE).
 
 ```ts
 import { systemdUnit, type ServiceSpec } from '@adecore/service/definitions';
@@ -23,4 +27,4 @@ const definition = systemdUnit(spec);
 
 `install()` returns whether an existing definition changed, so a first install returns `false`. Await `restart()` for a changed definition, otherwise call `start()`. Uninstall does not stop a running job. Managers supply no authorization, lock, cancellation or automatic lingering.
 
-The full documentation covers [getting started](https://adecore.dev/service/getting-started), [definitions and identity](https://adecore.dev/service/definitions), [lifecycle](https://adecore.dev/service/lifecycle), [API reference](https://adecore.dev/service/reference) and [testing and host migration](https://adecore.dev/service/testing-migration). The first guide uses safe fakes rather than real service commands.
+The full documentation covers the [overview](https://adecore.dev/service/), [definitions](https://adecore.dev/service/definitions) and [managers](https://adecore.dev/service/managers), with a test that uses fakes instead of real service commands.

@@ -12,11 +12,13 @@ import { UIProvider } from '@adecore/ui';
 
 It adds the words and sets the source during render, so the first child already reads both. Handing it another i18n instance or source later does the same again.
 
-| Prop | Type | |
-| --- | --- | --- |
-| `i18n` | `i18n` | Required. Your i18next instance. |
-| `formatSource` | `FormatSource` | Where the formatters read the language and the region. Without one they write English. |
-| `children` | `ReactNode` | Required. |
+## Props
+
+| Prop | Type | Default | |
+| --- | --- | --- | --- |
+| `i18n` | `i18n` | | Required. Your i18next instance. |
+| `formatSource` | `FormatSource` | | Where the formatters read the language and the region. Without one they keep the source they have, English by default. |
+| `children` | `ReactNode` | | Required. |
 
 `UIProviderProps` is an exported type.
 

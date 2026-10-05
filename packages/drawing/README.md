@@ -1,42 +1,49 @@
 # @adecore/drawing
 
-Drawing schemas, world-coordinate geometry, deterministic paths, SVG export and reading order. The core needs no DOM or React canvas. Zod, Rough.js and perfect-freehand are declared dependencies.
+[![npm](https://img.shields.io/npm/v/@adecore/drawing)](https://www.npmjs.com/package/@adecore/drawing)
+[![Docs](https://img.shields.io/badge/docs-adecore.dev-blue)](https://adecore.dev/drawing/)
 
-The package is private at `0.0.0` pending initial publication. Use this checkout with the `source` condition or build compiled JavaScript/declarations in `dist`. The transferred code retains FSL-1.1-MIT in [LICENSE](./LICENSE); dependencies retain their own terms.
+Hand-drawn shapes, arrows, freehand strokes, text and sticky notes as plain JSON, with hit tests and resizing for an editor, paths for a painter, an SVG export and a reading of a drawing as lines of text. It needs no DOM, so a backend exports a stored drawing the same way a page draws it.
+
+**[Documentation with live demos](https://adecore.dev/drawing/)**
+
+## Install
+
+```sh
+bun add @adecore/drawing
+```
+
+## Use
 
 ```ts
 import { DEFAULT_PALETTE, readingOrder, toSvg } from '@adecore/drawing';
-import { DrawingDocumentSchema, duplicateElementIdIn } from '@adecore/drawing/protocol';
+import { duplicateElementIdIn, migrateDrawing } from '@adecore/drawing/protocol';
 
-const document = DrawingDocumentSchema.parse({
-    version: 1,
-    rev: 0,
-    elements: [
-        {
-            kind: 'note',
-            id: 'note',
-            x: 0,
-            y: 0,
-            w: 180,
-            h: 100,
-            stroke: 'ink',
-            strokeWidth: 1,
-            seed: 7,
-            fillColor: 'yellow',
-            text: 'Review the result',
-            size: 20
-        }
-    ]
-});
-if (duplicateElementIdIn(document.elements) !== null) {
-    throw new Error('Element ids must be unique');
+const drawing = migrateDrawing(JSON.parse(file));
+if (drawing === null || duplicateElementIdIn(drawing.elements) !== null) {
+    throw new Error('Not a drawing');
 }
-const svg = toSvg(document.elements, { palette: DEFAULT_PALETTE });
-const lines = readingOrder(document.elements);
+
+const svg = toSvg(drawing.elements, { palette: DEFAULT_PALETTE });
+const lines = readingOrder(drawing.elements);
 ```
 
-The host owns persistence, revision checks, selection, gestures, fonts and theme resolution. Parsing does not check duplicate ids. Bounds use stored unrotated boxes; verify rotated SVG output and clipping as described in the rendering guide. Colors supplied through SVG options are trusted host values.
+## Entry points
 
-Read the [overview](https://adecore.dev/drawing/), [getting started](https://adecore.dev/drawing/getting-started), [geometry guide](https://adecore.dev/drawing/geometry), [paths/SVG guide](https://adecore.dev/drawing/rendering), [text guide](https://adecore.dev/drawing/text), [API reference](https://adecore.dev/drawing/api), [protocol](https://adecore.dev/drawing/protocol) and [integration/testing guide](https://adecore.dev/drawing/migration).
+| Import | What it holds |
+|---|---|
+| `@adecore/drawing` | Geometry, paths, SVG export, text and reading order |
+| `@adecore/drawing/protocol` | The Zod schemas and types of a drawing; loads nothing else |
 
-From the repository root, run `bun run --cwd packages/drawing test`, `typecheck` or `build`. The [standalone example](./examples/export-drawing.ts) exports one validated note. Rough.js uses its official package entry for compiled Node execution.
+## Documentation
+
+| Page | What it covers |
+|---|---|
+| [Documents](https://adecore.dev/drawing/documents) | The document, the seven element kinds and reading a file |
+| [Geometry](https://adecore.dev/drawing/geometry) | Bounds, hit tests, selection and resizing |
+| [Paths and SVG](https://adecore.dev/drawing/rendering) | `toSvg` and the paths of one element for a painter of your own |
+| [Text and reading order](https://adecore.dev/drawing/text) | Wrapping, measuring and `readingOrder` |
+
+## License
+
+FSL-1.1-MIT, see [LICENSE](./LICENSE). Rough.js and perfect-freehand keep their own licenses.

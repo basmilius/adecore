@@ -39,7 +39,7 @@ useEffect(() => session.onOutput((data) => view.current?.write(data)), [session]
 
 The grid it fits at mount is `size()`, which is what a program starts with. After that `onResize` reports every new grid, debounced while a container is being dragged, and after a font change. Rows that do not fill the height are centered, and the background runs to the edges.
 
-`reset()` clears the screen and the scrollback, in order with the output written before it, so a replay that starts over is `reset()` and a `write` of the whole text. `visibleText()` returns the rows on screen as plain text, such as for a question about what the terminal shows. `paste`, `selectAll` and `selection()` serve a context menu.
+`reset()` clears the screen and the scrollback, in order with the output written before it, so a replay that starts over is `reset()` and a `write` of the whole text. `visibleText()` returns the rows on screen as plain text, such as for a question about what the terminal shows. `paste`, `selectAll` and `selection()` serve a context menu. The scrollback keeps 5000 lines, and Option on a Mac types as Meta.
 
 For captured output rather than a pty's, `convertEol` treats a lone line feed as a line break, and `readOnly` drops the typing and stops the cursor blinking.
 

@@ -8,20 +8,20 @@ import { Checkbox } from '@adecore/ui';
 
 <Demo src="inputs/checkbox" />
 
-A checkbox has a `label` for its accessible name. Put the box and its visible text in one `<label>`, so a press on the text picks it too. Space toggles it from the keyboard.
+`label` is the accessible name. Put the box and its visible text in one `<label>`, so a press on the text picks it too. Space toggles it from the keyboard.
 
-A box that picks every row of a list is `indeterminate` while some rows are picked and some are not. It draws a dash, and a press picks every row; which rows it stands for is yours to keep.
+A box that picks every row of a list is `indeterminate` while some rows are picked and some are not, and draws a dash. A press still reports the opposite of `checked`, so with `checked={false}` it picks every row. Which rows it stands for is yours to keep.
 
 ## Props
 
-| Prop | Type | |
-| --- | --- | --- |
-| `checked` | `boolean` | Required. |
-| `onCheckedChange` | `(checked: boolean) => void` | Required. |
-| `label` | `string` | Required. |
-| `indeterminate` | `boolean` | Draws a dash. `false` by default. |
-| `disabled` | `boolean` | |
-| `className` | `string` | |
-| `ref` | `Ref<HTMLButtonElement>` | |
+| Prop | Type | Default | |
+| --- | --- | --- | --- |
+| `checked` | `boolean` | | Required. |
+| `onCheckedChange` | `(checked: boolean) => void` | | Required. |
+| `label` | `string` | | Required. |
+| `indeterminate` | `boolean` | `false` | Draws a dash. |
+| `disabled` | `boolean` | | |
+| `className` | `string` | | |
+| `ref` | `Ref<HTMLButtonElement>` | | |
 
 `CheckboxProps` is an exported type.

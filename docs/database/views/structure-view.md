@@ -1,6 +1,6 @@
 # StructureView
 
-The columns, indexes, foreign keys and DDL of one table or view, in four tabs. It is read only: it shows what the server reports, and a person copies the DDL from it.
+The columns, indexes, foreign keys and DDL of one table or view, in four tabs. It only reads: it shows what the server reports, and a person copies the DDL from it. To change a table, use [`TableDesigner`](/database/views/table-designer).
 
 ```tsx
 import { StructureView } from '@adecore/database';
@@ -12,27 +12,21 @@ import { StructureView } from '@adecore/database';
 <StructureView connection={connection} schema="main" table="orders" className="h-full" />
 ```
 
-## Tabs
-
-- Columns lists each column with its type as declared, whether it can be null, its default as an SQL expression, extras (Auto increment and Generated) and its comment.
+- Columns lists each column with its type as declared, whether it is nullable, its default as an SQL expression, Auto increment or Generated, and its comment.
 - Indexes lists the name, the columns and the kind: Primary, Unique, or nothing for a plain index.
-- Foreign keys lists the name, the columns, the table and columns they reference, and the On update and On delete actions. An action the engine decides is shown as Default.
-- DDL shows the `CREATE` statement as the server writes it, with a Copy button. A server that returns none says so.
+- Foreign keys lists the name, the columns, the table and columns they reference, and the On update and On delete actions. An action the engine decides reads Default.
+- DDL shows the `CREATE` statement as the server writes it, with a Copy button.
 
-A tab with nothing in it says that: a view has no indexes, and a table can have no foreign keys.
-
-## Loading
-
-The view asks the client for the structure when it mounts and again when the connection, the schema or the table changes. It also loads again on a [schema change](/database/api/client#schema-changes) for its connection and schema, or one that names no schema, and keeps the old structure on screen until the new one arrives. A spinner shows while it first loads. If the request fails, a banner shows the message with a Try again button. An answer to an earlier request never replaces the current one.
+A tab with nothing to show says so. The view loads again when the connection, the schema or the table changes. After a [schema change](/database/api/client#schema-changes) for its schema it loads again too, and keeps the old structure on screen until the new one arrives. A failed load shows the message with Try again.
 
 ## Props
 
-| Prop         | Type                  |                                           |
-| ------------ | --------------------- | ----------------------------------------- |
-| `connection` | `Connection`          | The connection the table is in.           |
-| `schema`     | `string`              | The schema of the table.                  |
-| `table`      | `string`              | The table or view.                        |
-| `className`  | `string`              | The view fills its parent; this sizes it. |
-| `ref`        | `Ref<HTMLDivElement>` |                                           |
+| Prop         | Type                  | Default |                                           |
+| ------------ | --------------------- | ------- | ----------------------------------------- |
+| `connection` | `Connection`          |         | Required. The connection the table is in. |
+| `schema`     | `string`              |         | Required. The schema of the table.        |
+| `table`      | `string`              |         | Required. The table or view.              |
+| `className`  | `string`              |         | Its size.                                 |
+| `ref`        | `Ref<HTMLDivElement>` |         |                                           |
 
-`connection`, `schema` and `table` are required. `StructureViewProps` is an exported type. The view needs a [`DatabaseProvider`](/database/guide/getting-started#databaseprovider) above it.
+`StructureViewProps` is an exported type. The view needs a [`DatabaseProvider`](/database/guide/getting-started#databaseprovider) above it.

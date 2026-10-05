@@ -1,54 +1,58 @@
-# Definitions and identity
+# Definitions
 
-`launchAgentPlist(spec)` and `systemdUnit(spec)` are pure functions returning UTF-8 definition text. A definition neither copies an executable nor starts it.
+A definition is the text of a launchd property list or a systemd unit, built from one `ServiceSpec`. Building one writes nothing and starts nothing.
 
-## Required spec
+```ts
+import { definitionRunsProgram, launchAgentPlist, systemdUnit, type ServiceSpec } from '@adecore/service/definitions';
+import { serviceDefinition } from '@adecore/service/platform';
+```
 
-Every `ServiceSpec` field is required, including the fields that only one platform uses.
+## ServiceSpec
 
-| Field                                 | Meaning                                                               |
-| ------------------------------------- | --------------------------------------------------------------------- |
-| `label: string`                       | LaunchAgent identity. Use the same label in `LaunchdOptions`.         |
-| `description: string`                 | systemd unit description.                                             |
-| `program: string`                     | Executable path, separate from arguments. Use a stable absolute path. |
-| `args: string[]`                      | Arguments in their original form, without shell quotes.               |
-| `environment: Record<string, string>` | Explicit environment entries. No login-shell environment is captured. |
-| `workingDirectory: string`            | Directory the process starts in.                                      |
-| `logFile: string`                     | launchd stdout and stderr destination. systemd uses the journal.      |
+Every field is required, also those only one platform reads.
 
-The systemd identity is `SystemdOptions.unitName`, not the spec's label. The generated unit does not contain the unit filename. Keep identity and paths stable across a package migration so an existing service remains the same job.
+| Field | Type | |
+| --- | --- | --- |
+| `label` | `string` | The launchd label. Pass the same one to the launchd manager. |
+| `description` | `string` | The unit's `Description`. launchd ignores it. |
+| `program` | `string` | The absolute path of the executable. |
+| `args` | `string[]` | The arguments as the program receives them, without shell quoting. |
+| `environment` | `Record<string, string>` | The whole environment. Nothing is taken from a login shell, so pass `PATH` if the program needs one. |
+| `workingDirectory` | `string` | The folder the program starts in. |
+| `logFile` | `string` | Where launchd writes stdout and stderr. systemd logs to the journal. |
 
-## Generated behavior
+The systemd unit is named by the manager's `unitName`, not by the spec.
 
-The LaunchAgent uses `ProgramArguments` with the executable first, `RunAtLoad=true`, `KeepAlive=true` and `ProcessType=Interactive`. Both output streams go to `logFile`. The manager creates that log directory during install because launchd does not create it.
+## What the definitions hold
 
-The systemd unit has `Type=simple`, `Restart=always`, `RestartSec=2` and `WantedBy=default.target`. It runs in the user's service manager. Lingering is a separate host decision, not a generated unit setting.
+| Function | Returns |
+| --- | --- |
+| `launchAgentPlist(spec)` | A property list with `ProgramArguments`, `EnvironmentVariables`, `WorkingDirectory`, `RunAtLoad` and `KeepAlive` set to true, `ProcessType` set to `Interactive` so launchd does not throttle it, and both output streams to `logFile`. |
+| `systemdUnit(spec)` | A unit with `Type=simple`, `ExecStart`, one `Environment` line per variable, `WorkingDirectory`, `Restart=always`, `RestartSec=2` and `WantedBy=default.target`. |
+| `serviceDefinition(platform, spec)` | The property list on `darwin`, the unit on `linux`. Throws on any other platform. |
 
-Neither generator validates executable existence, argument meaning, environment names or host permissions. Use trusted single-line values for unit descriptions, environment entries and paths; the implementation escapes expansion characters but does not reject embedded newlines or service identities containing path separators.
+A user unit stops when the person logs out, unless lingering is on; see [Lingering](/service/managers#lingering).
 
 ## Escaping
 
-Pass unescaped strings. launchd XML text escapes `&`, `<` and `>`. systemd command words quote spaces, escape backslashes and quotes, double `%` specifiers and double `$` in command arguments. Environment values double `%`, but keep `$` literal because systemd does not expand environment assignments as shell commands. `WorkingDirectory` consumes the rest of the line without quotes and doubles `%`.
+Pass every value unescaped. The property list escapes `&`, `<` and `>`. The unit quotes every word of `ExecStart` and every `Environment` assignment, escapes backslashes and quotes, and doubles `%` everywhere so systemd expands no specifier. `$` is doubled in `ExecStart` only, since systemd expands variables there and not in `Environment`. `WorkingDirectory` is written without quotes, because systemd reads the rest of that line as the path.
 
 ```ts
-import { systemdUnit, type ServiceSpec } from '@adecore/service/definitions';
-
-const spec: ServiceSpec = {
-    label: 'com.example.worker',
-    description: 'Example worker 100%',
-    program: '/opt/My Tools/worker',
-    args: ['--label', 'a$b'],
-    environment: { WORKER_HOME: '/home/ada/cache%/$HOME' },
-    workingDirectory: '/home/ada',
-    logFile: '/home/ada/worker.log'
-};
-const definition = systemdUnit(spec);
+systemdUnit({ ...spec, description: 'Example worker 100%', program: '/opt/My Tools/worker', args: ['--label', 'a$b'], environment: { CACHE: '/home/ada/cache%/$HOME' } });
 ```
 
-This produces a quoted executable, `"a$$b"` in `ExecStart`, and `%%` for each literal percent. Do not wrap the command in a shell to compensate for escaping.
+The unit then holds these lines:
 
-## Checking executable identity
+```ini
+Description=Example worker 100%%
+ExecStart="/opt/My Tools/worker" "--label" "a$$b"
+Environment="CACHE=/home/ada/cache%%/$HOME"
+```
 
-`definitionRunsProgram(definition, program)` recognizes the generated XML string or the quoted first word of an `ExecStart` line. It distinguishes an executable from another path with the same prefix. It is a textual compatibility check for these generated formats, not a general plist parser, unit parser or proof of file ownership. In particular, the XML check can match the same string in another field.
+Neither function checks that the program exists or rejects a newline in a value. Pass values the app trusts.
 
-Read an existing definition before replacing it. Refuse a conflicting executable, then apply the host's file ownership and installation policy. Do not silently adopt a foreign service just because its label matches. The manager itself accepts any definition string.
+## Whose service it is
+
+`definitionRunsProgram(definition, program)` tells whether a definition on disk runs `program`: as a `<string>` in the property list, or as the first word of `ExecStart` in the unit. A path that only starts the same does not match. Read the existing definition before you install over it, and refuse when it runs another program, so an app never takes over a service of the same name that is not its own.
+
+It searches text and parses neither format. In a property list it also matches the path in another field, such as an argument or the working folder.

@@ -8,10 +8,8 @@ import { ListRow } from '@adecore/ui';
 
 <Demo src="display/list-row" />
 
-There are two variants, and `variant` is required.
+`variant` is required. A `flat` row is 28 pixels tall and square, for a list that reads as a table and fills the width of its panel: commits, processes, branches. It has no padding; pad 12 pixels beside text and 4 beside a button.
 
-A `flat` row is 28 pixels tall and square, for a list that reads as a table and fills the width of its panel: commits, processes, branches. It has no padding; pad 12 pixels beside text and 4 beside a button.
+An `inset` row is 32 pixels tall, rounded and padded 8 pixels, for a list a person finds their way through: a sidebar, devices, recent files.
 
-An `inset` row is 32 pixels tall, rounded and padded, for a list a person finds their way through: a sidebar, devices, recent files. Each row reads as a place of its own.
-
-`ListRow` takes the props of a `<div>`, `className`, `ref` and `render`. `ListRowProps` is an exported type.
+`ListRow` takes the props of a `<div>`, plus `variant` and `render`. It draws no hover or selected state; the caller adds those. `ListRowProps` is an exported type.

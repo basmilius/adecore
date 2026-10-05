@@ -8,7 +8,7 @@ import { formatClock, formatDay, formatDayClock, formatMoment } from '@adecore/u
 
 <Demo src="formatting/dates" />
 
-Every function takes a `Date` or epoch milliseconds.
+Every function takes a `Date` or epoch milliseconds. The examples are English words in a Dutch region; in `en-US` the same day reads `Sep 19 at 08:05 AM`.
 
 | Function | Writes |
 | --- | --- |

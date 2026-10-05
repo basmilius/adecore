@@ -14,11 +14,11 @@ The child is the trigger. It keeps its own props and handlers, and Base UI merge
 
 `name` makes the label the trigger's accessible name as well. That is what an icon-only button needs, and it keeps the name and the tooltip from ever saying two different things. [`IconButton`](/ui/actions/icon-button) already does this with its `label`.
 
-A label stays on one line up to 288 pixels and wraps past that, where the browser can without leaving one word alone on the last line. Long paths and other unbroken labels wrap within that width. A sentence about a row then reads as a few lines instead of one across the window.
+A label stays on one line up to 288 pixels and wraps past that, avoiding one word alone on the last line. Long paths and other unbroken labels break within that width.
 
 ## TooltipProvider
 
-Tooltips share one delay, 150 milliseconds to open and none to close, so moving along a row of buttons feels instant after the first. `TooltipProvider` holds that delay. `UIProvider` mounts it, so you only need it on its own when you wire the library up without `UIProvider`.
+Tooltips share one delay, 150 milliseconds to open and none to close, so moving along a row of buttons feels instant after the first. `TooltipProvider` holds that delay. [`UIProvider`](/ui/utilities/ui-provider) mounts it, so you only need it on its own without `UIProvider`.
 
 ## Motion
 
@@ -30,7 +30,7 @@ The tooltip slides to the next button instead of blinking out and in, and scales
 | --- | --- | --- | --- |
 | `label` | `ReactNode` | | Required. |
 | `children` | `ReactElement` | | Required. The trigger. |
-| `kbd` | `Shortcut \| string` | | |
+| `kbd` | `Shortcut \| string` | | Printed after the label. |
 | `side` | `TooltipSide` | `'top'` | `'top' \| 'bottom' \| 'left' \| 'right'` |
 | `sideOffset` | `number` | `6` | |
 | `name` | `boolean` | `false` | Makes a string label the trigger's `aria-label`. |

@@ -1,38 +1,53 @@
 # ProjectSwitcher
 
-A project name in the toolbar that opens a menu of projects, recent projects and per-project actions. The app supplies the list and handles each selection; the component keeps no project state and opens no folders or windows itself.
+A project name in a toolbar that opens a menu of projects, recent projects and actions per project. The app supplies the lists and handles each pick; the component keeps no project state and opens nothing itself.
 
 ```tsx
-import { ProjectSwitcher, type ProjectSwitcherItem, type ProjectSwitcherProps } from '@adecore/ui';
+import { ProjectSwitcher } from '@adecore/ui';
 ```
 
 <Demo src="overlays/project-switcher" />
 
 ## Projects
 
-Each `ProjectSwitcherItem` has a stable `id` and a `name`. IDs must distinguish projects on different machines or in different workspaces. The component draws the arrays in the order supplied and does not filter them.
+Each `ProjectSwitcherItem` has an `id`, unique within its list, and a `name`. The lists are drawn in the order supplied, unfiltered.
 
 | Item field | What it draws |
 | --- | --- |
-| `icon` | A React node before the name, in the row and in the trigger when this is `current`. |
+| `icon` | A node before the name, in the row and in the trigger when this is `current`. |
 | `description` | A tooltip beside the row, for a folder path or connection details. |
-| `hint` | Quiet text after the name, for a machine or workspace. |
-| `disabled` | An unavailable project. Selection is disabled, but its actions stay reachable. |
-| `muted` | A dimmed row that can still be selected, for a disconnected project the app can try to reconnect to. |
-| `actions` | `Menu.Item` children in an actions submenu beside the row. Omit it to draw a single row. |
+| `hint` | Quiet text at the end of the row, for a machine or workspace. |
+| `disabled` | A project that cannot be picked. Its actions stay reachable. |
+| `muted` | A dimmed row that can still be picked, for a disconnected project the app can try to reopen. |
+| `actions` | `Menu.Item`s in a submenu beside the row. |
 
-`projects` appear in the main menu. `recentProjects` appear under Recent projects when the array is nonempty. Either list can contain rows with actions.
+`projects` fill the top of the menu. A nonempty `recentProjects` adds a Recent projects submenu.
 
-## Selecting a project
+`onSelect(project, event)` receives the original item and the click event. `ProjectSwitcherProps<Item>` keeps the type of an item with fields of your own. The event carries the modifier keys, so the app can open a project in a new window on Cmd-click or Ctrl-click.
 
-`onSelect(project, event)` receives the original item and the click event. Add app-specific fields to your items; `ProjectSwitcherProps<Item>` preserves their type in the callback. The event carries modifier keys, so the app can handle Cmd-click or Ctrl-click by opening a separate window.
+`current` gives the trigger its name and icon, and need not be in either list. With `current={null}` the trigger reads "Projects" (`projectSwitcher.label`). `leading` adds a node before the current icon, such as a machine indicator with its own tooltip.
 
-`current` supplies the trigger's name and icon. It may be absent from either list. With `current={null}`, the trigger reads Projects. `leading` adds a node before the current icon, such as a machine indicator with its own tooltip.
+## Groups
 
-## Actions and state
+The menu draws three groups: the projects, then the items in `before`, then Recent projects with the items in `children`. Put the ways to open a project in `children`, such as opening a folder or creating a project, so they share a group with Recent projects. Put what is neither in `before`. A group with nothing in it draws no separator.
 
-The menu draws three groups. First come the open projects, then the menu items in `before`, then Recent projects together with the menu items in `children`. Put the ways to open a project in `children`, such as opening a folder or creating a project, so they share a group with Recent. Put what is neither a project nor a way to open one in `before`, such as a place or an action outside any project. A group with nothing in it draws no separator.
+Keyboard, typeahead and submenus come from [Menu](/ui/overlays/menu). Typeahead matches the project name, not its hint.
 
-The menu keeps its open state by default. `defaultOpen` sets its initial state; `open` and `onOpenChange` control it. `disabled` disables the trigger. `label` overrides its accessible name, which defaults to the current project name, or Projects without a current project. `className` and `ref` reach the trigger button.
+## Props
 
-The component uses [Menu](/ui/overlays/menu) for keyboard navigation, typeahead, submenus and focus return. Typeahead matches the project name, without its hint. Labels use the library's English and Dutch `ui` namespace.
+| Prop | Type | Default | |
+| --- | --- | --- | --- |
+| `current` | `ProjectSwitcherItem \| null` | | Required. |
+| `projects` | `readonly Item[]` | | Required. |
+| `onSelect` | `(project: Item, event: MouseEvent<HTMLElement>) => void` | | Required. |
+| `recentProjects` | `readonly Item[]` | `[]` | |
+| `leading` | `ReactNode` | | |
+| `before` | `ReactNode` | | Menu items between the projects and Recent projects. |
+| `children` | `ReactNode` | | Menu items in the group of Recent projects. |
+| `label` | `string` | the current name | The trigger's accessible name. |
+| `disabled` | `boolean` | | |
+| `open`, `defaultOpen`, `onOpenChange` | | | As on `Menu.Root`. |
+| `className` | `string` | | On the trigger. |
+| `ref` | `Ref<HTMLButtonElement>` | | The trigger. |
+
+`ProjectSwitcherProps` and `ProjectSwitcherItem` are exported types.

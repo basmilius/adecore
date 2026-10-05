@@ -14,13 +14,13 @@ const SAVE = shortcut('Mod+S');
 
 `shortcut(text)` parses modifiers and one key joined by `+`. `Mod` is Cmd on macOS and Ctrl everywhere else, which is what most shortcuts want. `Ctrl` and `Meta` name the physical key, for the few shortcuts that differ per platform on purpose. `Alt` and `Shift` complete the set.
 
-The key is a letter, a digit, a punctuation mark, `+`, `-`, `=`, a named key (`Enter`, `Escape`, `Backspace`, `Delete`, `Tab`, `Space` and the four arrows) or `F1` to `F12`. `Mod++` is Mod and the plus key. A modifier alone, such as `shortcut('Mod')`, never matches a key; it is for printing a modifier held during a pointer gesture.
+The key is a letter, a digit, one of ``, . / ; ' ` \ [ ]``, `+`, `-`, `=`, a named key (`Enter`, `Escape`, `Backspace`, `Delete`, `Tab`, `Space` and the four arrows) or `F1` to `F12`. `Mod++` is Mod and the plus key. A modifier alone, such as `shortcut('Mod')`, never matches a key; it is for printing a modifier held during a pointer gesture.
 
-`shortcut` throws on a word it does not know or on two keys. Define shortcuts at module level, and a typo fails the moment the module loads, instead of leaving a shortcut that never fires.
+`shortcut` throws on a word it does not know or on two keys. Define shortcuts at module level, so a typo fails the moment the module loads instead of leaving a shortcut that never fires.
 
 ## Matching
 
-`matchesShortcut(target, event, apple)` is strict. Every modifier the shortcut does not name has to be up, so Ctrl+K on a Mac is not Cmd+K. Letters and digits match on the physical key (`event.code`), because Shift turns `1` into `!` and Option turns most keys into a dead key on macOS. `+`, `-` and `=` match on the character, because they sit on different keys per layout.
+`matchesShortcut(target, event, apple)` is strict. Every modifier the shortcut does not name has to be up, so Ctrl+K on a Mac is not Cmd+K. Letters, digits and the punctuation above match on the physical key (`event.code`), because Shift turns `1` into `!` and Option turns most keys into a dead key on macOS. `+`, `-` and `=` match on the character, because they sit on different keys per layout.
 
 `isModHeld(event, apple)` says whether the platform's modifier is down during a pointer gesture, such as a Cmd-click.
 
@@ -28,7 +28,7 @@ The key is a letter, a digit, a punctuation mark, `+`, `-`, `=`, a named key (`E
 
 ## Printing
 
-`formatShortcut(target, apple)` writes `⌥⇧⌘K` on macOS and `Ctrl+Alt+Shift+K` elsewhere, with the modifiers in the order each platform prints them. `shortcutParts(target, apple)` answers the same as separate caps, which [`Keys`](/ui/display/kbd) draws. Named keys get the platform's symbol where it has one: `↩` for Enter on a Mac, `⌫` for Backspace.
+`formatShortcut(target, apple)` writes `⌥⇧⌘K` on macOS and `Ctrl+Alt+Shift+K` elsewhere, with the modifiers in the order each platform prints them. `shortcutParts(target, apple)` returns the same as separate caps, which [`Keys`](/ui/display/kbd) draws. Named keys get the platform's symbol where it has one, such as `↩` for Enter and `⌫` for Backspace on a Mac.
 
 ## Tables
 

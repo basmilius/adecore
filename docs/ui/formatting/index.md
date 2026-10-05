@@ -27,13 +27,13 @@ interface FormatSource {
 }
 ```
 
-`language` answers the language the interface is written in, such as `en` or `nl`. `region` answers a region tag such as `nl-NL`, or `FORMAT_LANGUAGE` to use the region the language comes with, or `FORMAT_SYSTEM` to follow the operating system; see [Regions](/ui/formatting/regions). `systemLocale` is for a desktop shell that can read the operating system's own region; a browser leaves it out. `subscribe` calls back whenever either setting may have changed.
+`language` returns the language the interface is written in, such as `en` or `nl`. `region` returns a region tag such as `nl-NL`, or `FORMAT_LANGUAGE` to use the region the language comes with, or `FORMAT_SYSTEM` to follow the operating system; see [Regions](/ui/formatting/regions). `systemLocale` is for a desktop shell that can read the operating system's own region; a browser leaves it out. `subscribe` calls back whenever either setting may have changed.
 
-Without a source the formatters write English in the region of English. `setFormatSource` answers the source it replaced, so a test can put that one back.
+Without a source the formatters write English, in the system's region when that speaks English and in `en-US` otherwise. `setFormatSource` returns the source it replaced, so a test can put that one back.
 
 ## Drawing again on a change
 
-A formatter is a plain function, so a component that calls one does not know the region changed. Call `useFormatLocale()` in it. It subscribes to the source and answers the current locale, which you may use or ignore. A component that calls it draws again when a person changes the language or the region.
+A formatter is a plain function, so a component that calls one does not know the region changed. Call `useFormatLocale()` in it. It subscribes to the source and returns the current locale, which you may use or ignore. A component that calls it draws again when a person changes the language or the region.
 
 ```tsx
 function LastSaved({ at }: { at: number }) {
@@ -42,11 +42,11 @@ function LastSaved({ at }: { at: number }) {
 }
 ```
 
-`formatLocale()` answers the locale the notation is written in, resolved from the source, such as `en-US`. It is a plain function over the source, so code outside React can read it too.
+`formatLocale()` returns the locale the notation is written in, resolved from the source, such as `en-US`. It is a plain function over the source, so code outside React can read it too.
 
 ## Sorting labels
 
-`labelCollator()` answers an `Intl.Collator` for the language, which is how two labels a person reads are put in order. Labels are words, so the language sorts them. Dutch and English can put the same two words in a different order.
+`labelCollator()` returns an `Intl.Collator` for the language, to put labels a person reads in order. Labels are words, so the language sorts them, and Dutch and English can order the same two words differently.
 
 ```ts
 names.sort(labelCollator().compare);
@@ -56,10 +56,10 @@ It compares without regard to case or accents and reads numbers inside a label a
 
 ## Fallbacks
 
-`FALLBACK_LOCALE` is `en-US`, the one locale to fall back on, so a format never depends on which machine ran a test. `systemLocale()` answers the operating system's locale: the shell's when it hands one over and `Intl` accepts it, then the browser's first language, then `FALLBACK_LOCALE`.
+`systemLocale()` returns the operating system's locale: the source's `systemLocale` when it hands one over and `Intl` accepts it, then the browser's first language, then `FALLBACK_LOCALE`, which is `en-US`. A test that must not depend on the machine it runs on sets a region explicitly, as the [fake source](/ui/utilities/testing) does.
 
 ## Cost
 
-A formatter is built once per options object and locale, and kept. A list of a thousand rows builds nothing new. A region change throws the cached formatters away, since the locale is part of what was cached.
+A formatter is cached on its options object, by identity, and its locale. The library's own options are module constants, so a list of a thousand rows builds nothing new. A region change rebuilds a formatter on its next use.
 
 `FormatSource` is an exported type. [Testing](/ui/utilities/testing) has a fake source for tests.

@@ -1,6 +1,6 @@
 # Dialog
 
-A modal dialog, as a compound component on Base UI's dialog. It is for a question or a form of a few fields. For a single question with an answer typed in, use [`PromptDialog`](/ui/overlays/prompt-dialog), which already has the layout.
+A modal dialog for a question or a form of a few fields, as a compound component on Base UI's dialog. For one question with a typed answer, [`PromptDialog`](/ui/overlays/prompt-dialog) already has the layout.
 
 ```tsx
 import { Dialog } from '@adecore/ui';
@@ -43,7 +43,7 @@ A dialog that opens while another is up stacks over it by itself. Its backdrop d
 | `backdropClassName` | `string` | | Such as `lightbox-backdrop`, the heavier dim a picture needs. |
 | `keepMounted` | `boolean` | | Keeps the popup in the document while it is closed. |
 
-`Dialog.Title` and `Dialog.Description` take a `size`, and `Dialog.Text` and `Dialog.Footer` take `render`.
+`Dialog.Title` takes `size` `'base'` (the default) or `'lg'`. `Dialog.Description` and `Dialog.Text` take `size` `'sm'` (the default) or `'xs'`. `Dialog.Text` and `Dialog.Footer` take `render`.
 
 ## Keyboard and focus
 

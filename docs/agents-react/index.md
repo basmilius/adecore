@@ -1,34 +1,44 @@
-# React agent chats
+# @adecore/agents-react
 
-`@adecore/agents-react` provides virtualized chat threads, a CodeMirror prompt composer, approval and question cards, provider account settings, and usage views. It builds on React 19, `@adecore/ui`, and `@adecore/agent-contracts`. Import a component or helper by its public subpath; this package has no root entrypoint.
+React views for agent chats: the thread, the composer, approvals and questions, the agent CLIs and their accounts, and what they cost. It runs in the page and talks to a host of chats, such as [`@adecore/agents`](/agents/), over the requests and events of [`@adecore/agent-contracts`](/agent-contracts/). It starts no process and registers no channel.
 
-The host supplies the connection, file access, permissions, account login, navigation, and any extra UI. The React package does not launch provider processes or register IPC handlers. Keep backend imports in a separate process. See [agent contracts](/agent-contracts/) for the shared data and [agent hosts](/agents/) for backend execution.
+```tsx
+import { Timeline } from '@adecore/agents-react/chat/ui/Timeline';
+import { Composer } from '@adecore/agents-react/chat/ui/Composer';
+```
 
-## Start here
+<Demo src="agents/chat" />
 
-1. [Installation and setup](./getting-started) configures storage, translations, a port adapter, and a scope.
-2. [Host adapters](./host) explains the shared `ChatHost` and its optional controls.
-3. [Chat state and lifecycle](./chat-lifecycle) mounts a thread and composer, handles sends, and releases subscriptions.
+The demos on these pages run on a host in memory: two CLIs, three accounts, a chat two turns in, usage for the last months. Send a message and it answers a word at a time; mention a check or a test and it asks for permission first. Open the helper agent's row to read its own conversation. Nothing leaves the page.
 
-## Build a chat
+## What is in it
 
-- [Composer](./composer) covers keyboard behavior, model changes, drafts, queues, and slots.
-- [Attachments and mentions](./attachments) covers uploads, resource adapters, search, and drag compatibility.
-- [Messages and timeline](./timeline) covers virtualization, streamed text, tools, diffs, bookmarks, and thread cards.
-- [Approvals and tasks](./approvals-tasks) covers pending requests, question drafts, refusals, and child conversations.
-- [Accounts and models](./accounts-models) covers provider discovery, settings, login, and remembered choices.
-- [Usage](./usage) covers summaries, transcript provenance, account filters, and plan limits.
+- Chat: [`Timeline`](/agents-react/chat/timeline) draws the thread and [`Composer`](/agents-react/chat/composer) writes to it, with [prompts](/agents-react/chat/prompts) for the approvals and questions a chat waits on. [Messages and code](/agents-react/chat/messages), [diffs](/agents-react/chat/diffs), [subagents](/agents-react/chat/subagents), [limits](/agents-react/chat/limits) and [smaller parts](/agents-react/chat/parts) are there for a layout of your own.
+- Providers: [`ProvidersPane`](/agents-react/providers/providers-pane) is the settings of the CLIs and their accounts; [marks](/agents-react/providers/marks) and the [model picker](/agents-react/providers/model-picker) are its parts.
+- Usage: [`UsagePage`](/agents-react/usage/usage-page) shows what the CLIs cost over a period, with its [charts and tiles](/agents-react/usage/charts) and the [plan limits](/agents-react/usage/limits).
 
-## Integrate and verify
+## How it fits together
 
-- [Persistence](./persistence) explains setup order, record formats, raw migration, and storage failures.
-- [CSS, theme, and translations](./styling) covers linked source, compiled packages, workers, and locale loading.
-- [Testing](./testing) provides safe checks with fake providers and fresh storage processes.
-- [Migration](./migration) keeps records, transport shapes, and mention drags compatible.
-- [Troubleshooting](./troubleshooting) maps visible symptoms to setup and ownership errors.
+```
+your app        setChatHost(...)          words, storage, files, navigation
+  |
+scope           ChatScopeContext          one per host of chats
+  |               transport               requests and events
+  |               ChatClient              writes them into the stores
+  |
+views           Timeline, Composer, ...   read the stores of their scope
+```
 
-## Find an entrypoint
+The views read a chat from a store, never from the wire. A `ChatClient` fills that store from a `ChatTransport`, the one object that knows how to reach the host. A `ChatScope` bundles the two with an id and puts them in context, so an app that talks to two hosts renders a scope for each and their threads never mix. What only the app can decide, such as where a file opens or whether a stop needs a confirmation, it hands over once with `setChatHost`.
 
-The [runtime reference](./reference-runtime), [chat reference](./reference-chat), and [settings reference](./reference-settings) group every public module by its role. They include lower-level modules for custom compositions; most hosts start with `Timeline`, `Composer`, and `ChatScopeContext`.
+## Entry points
 
-The package is private at `0.0.0` pending publication setup. Use the local checkout today; [setup](./getting-started#local-checkout-and-compiled-use) explains both source and compiled exports. The transferred code retains FSL-1.1-MIT. Read the [package license](https://github.com/basmilius/adecore/blob/main/packages/agents-react/LICENSE) before redistribution.
+There is no root import. Every module has its own subpath, `@adecore/agents-react/<path>`, without an extension; the [module reference](/agents-react/reference) lists all of them. `DiffPool`, `EditDiff` and `UnifiedDiff` are default exports, everything else is named. Two entries are assets: `@adecore/agents-react/theme.css` and the words under `@adecore/agents-react/locales/<language>/<namespace>.json`.
+
+## Where to go next
+
+- [Getting started](/agents-react/guide/getting-started) installs the package, its CSS and its words, and renders a first chat.
+- [Host adapters](/agents-react/guide/host) lists what `setChatHost` takes and what each part does without it.
+- [Chat client and state](/agents-react/guide/chat-client) covers opening, sending, reconnecting and reading the stores.
+- [Persistence](/agents-react/guide/persistence) covers drafts, preferences and their storage keys.
+- [Testing](/agents-react/guide/testing) shows a host in memory like the one these demos use.

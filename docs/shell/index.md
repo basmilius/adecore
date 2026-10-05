@@ -17,7 +17,7 @@ Electron and electron-updater are peer dependencies; the app brings its own.
 
 ## Nothing listens on its own
 
-The package registers no IPC handler and listens to no app-wide Electron event; it only follows a window the app hands it. Every IPC message from the page is a security boundary, so the app wires each channel itself, behind its own check of the sender ([`isAppSender`](/shell/web-guards#isappsender)), and calls into the package from there.
+The package registers no IPC handler and listens to no app-wide Electron event by itself; it only follows the windows, and with [`attach`](/shell/windows), the app that the app hands it. Every IPC message from the page is a security boundary, so the app wires each channel itself, behind its own check of the sender ([`isAppSender`](/shell/web-guards#isappsender)), and calls into the package from there.
 
 - [Application menu](/shell/menu): the menu the page builds, the one that stands until it does, and how a command gets back to the page.
 - [Updater](/shell/updater): electron-updater as a state the page watches.
@@ -25,3 +25,4 @@ The package registers no IPC handler and listens to no app-wide Electron event; 
 - [Window state](/shell/window-state): each window opens where it was left.
 - [Theme](/shell/theme): the page's theme on the window, its controls and Chromium.
 - [Web guards](/shell/web-guards): where the app's page may go, and who may speak for it.
+- [Bridge](/shell/bridge): the shapes a preload and the page share with the main process.

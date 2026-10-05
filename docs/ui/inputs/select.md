@@ -1,6 +1,6 @@
 # Select
 
-A Base UI select in the style of a menu, so a settings field and a picker in a toolbar read the same. It brings the keyboard with it: arrows, Home and End, typeahead, Enter and Escape.
+A Base UI select in the style of a menu, so a settings field and a picker in a toolbar read the same. Arrows, Home and End, typeahead, Enter and Escape work out of the box.
 
 ```tsx
 import { Select } from '@adecore/ui';
@@ -8,7 +8,7 @@ import { Select } from '@adecore/ui';
 
 <Demo src="inputs/select" />
 
-`outlined` is the default, a bordered field. `ghost` is the quiet trigger of a toolbar. An item can carry an icon, a description on a second line, and `disabled`. With no value picked the trigger shows the `placeholder`, or the library's "Select".
+`outlined` is the default, a bordered field at most 224 pixels wide. `ghost` is the quiet trigger of a toolbar. An item can carry an icon, a description on a second line, and `disabled`. With no value picked the trigger shows the `placeholder`, or "Select" from the `ui` namespace (`action.select`).
 
 ## Groups
 
@@ -26,7 +26,7 @@ Hand `items` a list of groups instead of a list of items, and each group gets a 
 | `onValueChange` | `(value: T) => void` | | Required. |
 | `items` | `SelectItem<T>[] \| SelectGroup<T>[]` | | Required. |
 | `label` | `string` | | Required. The accessible name of the trigger; the row above it usually carries the visible one. |
-| `placeholder` | `string` | `'Select'` | |
+| `placeholder` | `string` | "Select" | |
 | `size` | `'sm' \| 'md'` | `'md'` | |
 | `variant` | `'outlined' \| 'ghost'` | `'outlined'` | |
 | `disabled` | `boolean` | | |

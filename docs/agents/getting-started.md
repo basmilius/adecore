@@ -1,78 +1,84 @@
 # Getting started
 
-Start with an injected provider process so the transport, persistence, and turn lifecycle can be checked without a login or network. Create `agent-client.ts` from the complete client adapter on the [transport page](./transport#typed-client-adapter), then put this file beside it as `example.ts`.
+This page runs a host and sends it a message, in one file, without a real CLI: `fakeClaude` speaks Claude Code's protocol in the same process and answers every message with `echo:` and the text. Everything is written to a temporary folder that is removed at the end.
 
 ```ts
-import assert from 'node:assert/strict';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { AgentHost } from '@adecore/agents/host/agent-host';
+import type { ChatEventEnvelope, ServerFrame } from '@adecore/agent-contracts';
 import { ChatCore } from '@adecore/agents/chat/chat-core';
 import { fakeClaude } from '@adecore/agents/chat/fake-claude';
 import { inProcess } from '@adecore/agents/chat/fake-cli';
+import { AgentHost } from '@adecore/agents/host/agent-host';
 import { memoryPortPair } from '@adecore/agents/host/memory-port';
-import { withTimeout } from '@adecore/agents/async';
-import { createAgentClient } from './agent-client.js';
 
-const dataDir = await mkdtemp(join(tmpdir(), 'adecore-doc-chat-'));
+const dataDir = await mkdtemp(join(tmpdir(), 'agents-example-'));
 const fake = inProcess(fakeClaude);
 const host = await AgentHost.open({
     dataDir,
     background: false,
     env: { HOME: dataDir, PATH: '' },
-    command: ['fixture-cli'],
+    command: ['fake-claude'],
     spawn: fake.spawn,
-    detect: async () => ({ installed: true, version: 'fixture' }),
+    detect: async () => ({ installed: true, version: 'fake' }),
     core: (options) => new ChatCore({ ...options, nameChat: undefined })
 });
-const [clientPort, hostPort] = memoryPortPair();
-const disconnect = host.connect(hostPort);
-const client = createAgentClient(clientPort);
-const turn = new Promise<void>((resolve) => {
-    const release = client.on('chat.event', ({ event }) => {
-        if (event.type === 'item' && event.item.kind === 'turn' && event.item.state === 'done') {
-            release();
-            resolve();
+
+const [client, server] = memoryPortPair();
+const disconnect = host.connect(server);
+
+const answers = new Map<string, (frame: ServerFrame) => void>();
+const events: ChatEventEnvelope[] = [];
+client.onFrame((frame) => {
+    const reply = frame as ServerFrame;
+    if ('event' in reply) {
+        if (reply.event === 'chat.event') {
+            events.push(reply.payload as ChatEventEnvelope);
         }
-    });
+    } else if (reply.id !== null) {
+        answers.get(reply.id)?.(reply);
+    }
 });
 
+let nextId = 0;
+const request = (type: string, payload: unknown): Promise<any> =>
+    new Promise((resolve, reject) => {
+        const id = String(++nextId);
+        answers.set(id, (reply) => ('result' in reply ? resolve(reply.result) : reject(new Error('error' in reply ? reply.error.message : type))));
+        client.send({ id, type, payload });
+    });
+
+const turnDone = (): boolean => events.some(({ event }) => event.type === 'item' && event.item.kind === 'turn' && event.item.state === 'done');
+
 try {
-    await client.request('chat.create', { chatId: 'example', provider: 'claude', cwd: dataDir, runtimeMode: 'supervised' });
-    await client.request('chat.attach', { chatId: 'example' });
-    const sent = await client.request('chat.send', { chatId: 'example', text: 'hello' });
-    assert.equal(sent.queued, false);
-    await withTimeout(turn, 5000, 'The fake turn did not finish');
-    const snapshot = await client.request('chat.attach', { chatId: 'example' });
-    assert.ok(snapshot.items.some((item) => item.kind === 'assistant' && item.text === 'echo: hello'));
-    await client.request('chat.detach', { chatId: 'example' });
+    await request('chat.create', { chatId: 'first', provider: 'claude', cwd: dataDir, runtimeMode: 'supervised' });
+    await request('chat.attach', { chatId: 'first' });
+    await request('chat.send', { chatId: 'first', text: 'hello' });
+    while (!turnDone()) {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    const { items } = await request('chat.attach', { chatId: 'first' });
+    console.log(items.filter((item: { kind: string }) => item.kind === 'assistant'));
 } finally {
-    client.close();
     disconnect();
     await host.close();
     await rm(dataDir, { recursive: true, force: true });
 }
 ```
 
-The fake simulates provider frames in process. Detection is injected, `background: false` prevents scheduled account/limit probes, and the custom core disables one-shot title generation. All state is confined to a new temporary folder. The cleanup removes that fixture folder only.
+Run it with `bun example.ts`, or compile it for Node; it prints the reply item, with the text `echo: hello`.
 
-`chat.create` loads or creates a session; the CLI starts on the first prompt. Attach before sending if you want to receive its thread events. A send reply confirms admission or queuing, not turn completion. Wait for the matching turn event when the caller needs a final answer. The example has one turn; an application should also match chat and turn ids.
+What the options do here:
 
-## Run locally
+- `spawn` and `command` start the fake instead of a CLI, and `detect` says it is installed.
+- `env` is the whole environment the CLI gets. Without it the host passes on its own, filtered; see [Accounts and usage](/agents/accounts#the-environment).
+- `background: false` keeps the host from checking accounts and plan limits on a clock.
+- The custom `core` turns off naming the chat, which asks a CLI a question of its own.
+- `runtimeMode: 'supervised'` asks before every tool call. Without it a new chat runs in `full-access`.
 
-These packages are private workspace packages, not a published `0.0.0` npm installation. After the repository's workspace install:
+`chat.create` makes the chat; the CLI starts on the first message. Attach before you send to get the thread's events. The reply to `chat.send` says the message was taken or queued, not that the turn is done: wait for the turn item.
 
-```sh
-bun run --cwd packages/agent-contracts build
-bun run --cwd packages/agents build
-bun --conditions=source example.ts
-```
+## A real CLI
 
-For compiled Node use, transpile your ESM example and use the default package exports. Compiled relative imports use `.js`; JSON catalogs and fake CLI assets are included in `dist`. Packed execution is checked on Node 22 and 24.
-
-The existing [agent port example](https://github.com/basmilius/adecore/tree/main/examples/agent-port) also exercises `ChatClient`, `portTransport`, a React scope, and locale loading. Its `test` script selects source exports; `test:dist` uses built exports under Node. Backend setup needs no CSS or i18n. Follow [agent views](../agents-react/) when adding a rendered chat.
-
-## Enable an installed provider
-
-Supply a real environment filtered by [host policy](./accounts-and-environment#environment-policy), an authorized data directory, and a working directory. Omit fake `spawn`/`detect`/command overrides. Choose a runtime mode explicitly. `AgentHost.open` loads account settings and starts scheduled probes unless `background` is false. Installing and authenticating the CLI is a host/user prerequisite, not an operation this package performs automatically.
+Leave out `spawn`, `command` and `detect`, and the host starts the CLI it finds on the `PATH` of the environment. Pick the runtime mode on purpose, and give the host a `dataDir` that is yours alone. A client in a window talks to it over a port; [Host](/agents/host#electron) shows the shape in Electron, and the views of [`@adecore/agents-react`](/agents-react/guide/getting-started) take the other end.

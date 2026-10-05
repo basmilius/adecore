@@ -1,47 +1,45 @@
 # Security
 
-The page of a desktop app can open a connection to a database and run SQL on it. That is the point of the package, and it is also a lot of power to hand to a renderer. This page lists what the host checks, what it leaves to the app and which parts are raw SQL by design.
+A page that can open a connection and run SQL holds a lot of power for a renderer. This page lists what the host checks, what it leaves to the app, and which inputs are raw SQL by design.
 
 ## The host is the boundary
 
-The page is not trusted. Whatever reaches `host.handle` may have been written by code you did not ship, such as a script injected into a page. The host treats it that way in three ways: it checks the shape of a request, it keeps sessions apart by owner, and it distrusts the helper's answers too.
+Treat whatever reaches `host.handle` as written by code you did not ship, such as a script injected into the page. The host checks the shape of every request, keeps the sessions of each owner apart and distrusts the helper's answers.
 
 ### Shape
 
-`host.handle(request, owner)` takes `unknown` and checks it with `parseRequest` before anything reaches the helper. A request must have exactly the keys of its method, with the right types:
+`host.handle(request, owner)` takes `unknown` and checks it with [`parseRequest`](/database/api/host#parserequest) before anything reaches the helper:
 
-- An unknown key is refused, so a typo cannot pass for an option the helper ignores.
-- Ids are strings of 1 to 200 characters. Limits are integers, `limit` from 1 to 10000 and `cellLimit` from 1 to 1048576. `offset` is a safe non-negative integer.
-- The path of a SQLite connection, and the path of a file to export to, import from or sample, is absolute. A relative path would resolve against the helper's working directory.
-- A tunnel is an SSH or a Docker tunnel with the fields of its kind, and a format is one the method takes.
+- A request has exactly the keys of its method. An unknown key is refused, so a typo cannot pass for an option the helper ignores.
+- An id is a string of 1 to 200 characters. `limit` is an integer from 1 to 10000, `cellLimit` from 1 to 1048576, and `offset` a safe integer of 0 or more.
+- The path of a SQLite connection or of a file is absolute, since a relative one would resolve against the helper's working directory.
+- A port is an integer from 1 to 65535, a tunnel has the fields of its kind, and a format is one the method takes.
 - A binary value is lowercase hex of whole bytes, and a number is finite.
-- A change that updates or deletes names at least one column of the key.
+- An update or a delete names at least one key column, and an update at least one value.
 
-A request that fails any of this comes back as `invalid-request`, with a message that says which field. The helper never sees it.
+A request that fails comes back as `invalid-request`, with a message that names the field. The helper also refuses an SSH host or a container name that starts with a dash, which `ssh` and `docker` would read as an option.
 
 ### Owners
 
-The app passes an owner with every request: a window, a socket, a tab. A session belongs to the owner that opened it. Another owner that sends the session's id gets `unknown-session`, and a `cancel` from another owner cancels nothing. When an owner goes away, `host.release(owner)` cancels its requests and closes its sessions. Two owners can use the same request ids without clashing.
+A session belongs to the owner that opened it. Another owner that sends its id gets `unknown-session`, and a `cancel` only reaches the requests of the owner that sent it. Two owners can use the same request ids, since the host gives the helper ids of its own. `host.release(owner)` cancels an owner's requests and closes its sessions.
 
 ### The helper's answers
 
-The host reads what the helper writes and turns anything that is not a response of the protocol into an `internal` error. A helper from another release, with another `PROTOCOL_VERSION`, is refused at the first line it writes.
+A line from the helper that is not a response of the protocol becomes an `internal` error. A helper with another `PROTOCOL_VERSION` is stopped at its first line.
 
 ## What the app must do
 
-The host registers no channel and listens to no event. The app owns both ends of the check:
-
-1. Check the sender before calling `host.handle`. In Electron, that is the origin of `event.senderFrame` against the page you loaded, as for any other IPC channel that does something sensitive. In a server, it is the authentication of the WebSocket upgrade.
-2. Name the owner so that one window cannot reach another's sessions, and call `release` when it goes away. See [Getting started](/database/guide/getting-started#wire-the-host).
-3. Decide which connections may be opened. Without a check, a page can open any SQLite file the helper's user can read and any server the machine can reach, through any SSH host or Docker container it can see.
-4. Decide which files the page may export to and import from. Without a check, every file is refused. See [Files](#files).
-5. Decide whether the page may look for Docker containers. Without a check, discovery is refused. See [Discovery](#discovery).
+1. Check the sender before calling `host.handle`. In Electron, compare the origin of `event.senderFrame` with the page you loaded; on a server, authenticate the WebSocket upgrade.
+2. Name an owner per window or socket, so one cannot reach another's sessions, and call `release` when it goes away. See [Getting started](/database/guide/getting-started#wire-the-host).
+3. Decide which connections a page may open, with `authorize`. Without it, a page can open any SQLite file the helper's user can read and any server the machine can reach, through any SSH host or Docker container it can see.
+4. Decide which files a page may use, with `authorizeFile`. Without it every file is refused. See [Files](#files).
+5. Decide whether a page may list Docker containers, with `authorizeDiscovery`. Without it discovery is refused. See [Discovery](#discovery).
 
 ## Restricting connections
 
-`authorize` is asked on every `open` and `test`, with the connection and the owner. Return `false` and the request fails with `forbidden` before the helper starts. An `authorize` that throws or rejects counts as `false`. When you leave `authorize` out, every connection is allowed.
+`authorize(connection, owner)` is asked on every `open` and `test`, after the shape check. Return `false` and the request fails with `forbidden` before the helper starts; a check that throws or rejects counts as `false`. Without `authorize`, every connection is allowed.
 
-Only files under a folder:
+Only SQLite files that exist, in one folder:
 
 ```ts
 import { relative, resolve } from 'node:path';
@@ -59,78 +57,71 @@ const host = createDatabaseHost({
 });
 ```
 
-Only a server on this machine:
+Only a server on this machine, over TCP:
 
 ```ts
 const LOCAL = new Set(['localhost', '127.0.0.1', '::1']);
 
 const host = createDatabaseHost({
     start: () => spawnHelper(helperPath),
-    authorize: (connection) => connection.engine === 'mysql' && connection.socket === undefined && LOCAL.has(connection.host)
+    authorize: (connection) => connection.engine === 'mysql' && connection.tunnel === undefined && connection.socket === undefined && LOCAL.has(connection.host)
 });
 ```
 
-The connection reaches `authorize` after its shape is checked, and it carries the password. Do not log it. Think about `create` (a SQLite connection that makes the file), `socket` (a MySQL connection through a Unix socket instead of `host`) and `tunnel` when you decide what is allowed.
-
-A tunnel widens what a connection reaches. An SSH tunnel logs the helper into any `Host` of the person's `~/.ssh/config` or any machine its key opens, and then connects from there. A Docker tunnel talks to the Docker daemon the helper's user can reach, including the one a `context` names, and with no published port it runs `docker exec` in the container. A check that only looks at `host` is no check for those. Refuse the tunnels the app does not offer:
+A check that only looks at `host` misses the tunnels. An SSH tunnel logs the helper into any `Host` of the person's `~/.ssh/config`, or any machine their key opens, and connects from there. A Docker tunnel talks to any daemon the helper's user can reach, including one a `context` names, and may run `docker exec` in the container. Refuse the modes the app does not offer:
 
 ```ts
 const host = createDatabaseHost({
     start: () => spawnHelper(helperPath),
-    authorize: (connection) => connection.engine !== 'mysql' || connection.tunnel === undefined || connection.tunnel.kind === 'docker'
+    authorize: (connection) => connection.engine !== 'mysql' || connection.tunnel?.kind !== 'ssh'
 });
 ```
 
-If the app lets people type a host, a MySQL connection is a way to reach whatever the machine can reach. A desktop app that connects to the person's own servers is fine with that. A server that runs the host for many people is not, and `authorize` is where to say so.
+The connection carries the password, so do not log it. A desktop app that connects to the person's own servers can allow any host. A server that runs the host for many people should not, since a typed host reaches whatever the machine can reach.
 
 ## Discovery
 
-`discover` lists the running containers that look like database servers, and each entry carries `suggested` credentials read from the container's environment, passwords included. The page gets them so a form can fill itself in. That is the point, and it is also a way for a script in the page to read the root password of every database container on the machine.
+`discover` lists the running database containers, each with `suggested` credentials from its environment, passwords included. The form uses them to fill itself in, and a script in the page could use them to read the root password of every database container on the machine.
 
-`authorizeDiscovery(kind, owner)` is asked on every `discover`. Like the file check, it refuses when you leave the option out, since the credentials are the app's to hand over. A desktop app that connects to the person's own containers passes `authorizeDiscovery: () => true`, or a check of the owner. An app that does not offer the Docker mode, and an app that runs the host for people who must not see the machine's containers, leaves it out. The page then gets `forbidden`, and the form says why.
+`authorizeDiscovery(kind, owner)` is asked on every `discover`, and discovery is refused without it. A desktop app that connects to the person's own containers passes `authorizeDiscovery: () => true`, or a check of the owner. An app without the Docker mode leaves it out; the page then gets `forbidden`, and the form says so.
 
 ## Files
 
-`export`, `sample` and `import` name a path, and the page chooses the string. `authorizeFile(path, access, owner)` is asked on every one of them, with `'write'` for an export and `'read'` for a sample and an import. Without it every file request fails with `forbidden`.
+`export`, `sample` and `import` carry a path the page chose. `authorizeFile(path, access, owner)` is asked on every one, with `'write'` for an export and `'read'` for a sample or an import, and every file is refused without it.
 
-- The shape check has refused a path that is not absolute by then. It does not follow symbolic links, normalize `..` or look at the extension; that is the check's job.
-- A write replaces an existing file when the export succeeds. A path in a startup folder or a shell profile is a way to run code later.
-- A read tells the page the first lines of the file. A path that holds a secret is a way to read it, if the file happens to parse as CSV.
-- The helper's own user does the reading and writing.
+- The shape check refuses a path that is not absolute. It does not follow links, resolve `..` or look at the extension; that is up to the check.
+- An export replaces an existing file. A path in a startup folder or a shell profile is a way to run code later.
+- A sample shows the page the first lines of a file, so a readable path that holds a secret leaks it if the file parses as CSV.
+- The helper reads and writes as its own user.
 
-The safe rule is to allow exactly the paths the person picked in a dialog the app showed. [Files](/database/guide/files#allowing-a-path) has that check written out.
+The safe rule is to allow exactly the paths the person picked in a dialog of the app. [Files](/database/guide/files#allowing-a-path) has that check.
 
-## Read-only connections
+## Read only connections
 
-`readOnly: true` on a connection is enforced in the helper, not in the views:
+The helper enforces `readOnly: true`, not the views:
 
-- SQLite opens the file read-only and sets `PRAGMA query_only`.
+- SQLite opens the file read only and sets `PRAGMA query_only`.
 - MySQL and MariaDB start the session with `SET SESSION TRANSACTION READ ONLY`.
-- `apply` and `import` fail with `read-only`, and so does a statement the server refuses on a read-only session.
+- `apply` and `import` fail with `read-only`, and so does a statement the server refuses on a read only session.
 
-The views also disable their edit actions and say why, and the explorer and the designer leave out the items that write. On MySQL the setting is a session variable, so SQL typed in a [`QueryConsole`](/database/views/query-console) can change it back. For a guarantee, connect with an account that only has `SELECT` on the schema.
+The views disable their edit actions and say why. On MySQL the setting is a session variable, so SQL typed in a [`QueryConsole`](/database/views/query-console) can switch it back. For a guarantee, connect with an account that may only `SELECT`.
 
 ## `where` and `orderBy` are SQL
 
-The `rows` and `count` methods take `where` and `orderBy` as SQL text, the way a person types them after those keywords in a table view. They reach the server as written, inside one statement. That is by design: it is the filter box of a database tool, and a person who can type a filter can already run any query in the console.
+`rows`, `count` and a table `export` take `where` and `orderBy` as SQL, the way a person types them after those keywords in a table view. The helper puts `where` in parentheses and `orderBy` after it, in one `SELECT`, and sends that as written. It is the filter field of a database tool, and a person who can type a filter can already run any query in the console.
 
-What this means for you:
+- Never build a `where` from input of a third party. There is no parameter binding for it.
+- Neither gets around a read only connection.
+- `execute` runs whatever the person types, several statements at a time, with every right of the connection's account. Give that account only what the person may do.
 
-- Do not build a `where` from input of a third party. There is no parameter binding for it.
-- The helper builds one `SELECT`, with `where` in parentheses and `orderBy` after it, and sends it as one statement. Treat both as a filter and a sort, not as a way to run other statements.
-- Neither is a way around a read-only connection, which stays read only.
-- `execute` runs any SQL the person types, several statements at a time. It can do whatever the account of the connection can do. Give that account only what the person should be able to do.
-
-Schema, table and column names in the other methods are quoted by the helper, not interpolated as given.
+Schema, table and column names in the other methods are quoted by the helper.
 
 ## Passwords
 
-The package stores nothing. A `Connection` is a plain object the app keeps, and its `config` holds the password as typed. Where to put it is a decision for the app:
+The package stores nothing. A `Connection` is a plain object the app keeps, and `config.password` holds the password as typed. `ConnectionManager` and `ConnectionForm` send the whole connection on every edit, so splitting the password off before saving is the app's job.
 
-- Keep the password out of the saved list and fetch it from the operating system's keychain when a connection opens, for example with Electron's `safeStorage`.
-- Do not log requests. The `open` and `test` requests carry the password.
-- The helper's stderr goes to `onLog` of `spawnHelper`. Write it to your log as diagnostics, not as data.
-- `discover` answers with passwords from the environment of containers; see [Discovery](#discovery). A connection made from a container carries that password in its config, so it follows the same rule as any other: the app decides where it is stored.
-- An SSH tunnel never asks for a password or a passphrase, so none is stored for it. It uses the key or the agent of the person who runs the app.
-
-`ConnectionManager` and `ConnectionForm` call `onValueChange` with the whole connection on every edit. Splitting the password off before saving is the app's job.
+- Keep the password out of the saved list, for example in the keychain through Electron's `safeStorage`, and put it back when a connection opens.
+- Do not log requests: `open` and `test` carry the password.
+- Treat the helper's stderr, which `spawnHelper` hands to `onLog`, as diagnostics.
+- A connection made from a container carries the password from its environment, and follows the same rule.
+- An SSH tunnel never asks for a password or a passphrase, so there is none to store. It uses the key or the agent of the person who runs the app.

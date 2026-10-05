@@ -1,61 +1,50 @@
 # @adecore/editor-react
 
-Read the [React editor handbook](/editor-react/handbook/) for a working composition, host operations, language features, review displays, and lifecycle checks.
-
-Language-enabled editors and React popups over an injected `LanguageService`. Completion and snippets, hover, signature help, diagnostics, selection ranges, semantic tokens, inlay hints, folding, navigation, rename, code actions, symbols, peek and code vision retain their current implementation. The package starts no process and imports no application checkout.
-
-`ProjectLanguage` shares documents, navigation history and diagnostic counts across editors. `EditorLanguage` attaches the feature coordinators to one actual `Editor`. `EditorView` mounts an engine and renders `LanguagePopups`; use the coordinators directly when the host already owns mounting.
+Language features for [`@adecore/editor`](/editor/), over a [`LanguageService`](/lsp/language-service): suggestions and snippets, hover cards, signature help, problems, go to definition, peek, rename, code actions, symbols, semantic colors, inlay hints, folds and code vision, with the React cards that show them. The package starts no language server and touches no file; the app hands it a service and the file operations it allows.
 
 ```tsx
-import { createSmartEditorEngine } from '@adecore/editor';
-import { resolveKeymap } from '@adecore/editor/keymap';
 import { EditorView, ProjectLanguage } from '@adecore/editor-react';
 
-const keymap = resolveKeymap({ goToDefinition: { mac: 'Alt+Shift+D', other: 'Alt+Shift+D' } });
-const engine = createSmartEditorEngine({ tokenizer: async () => null, keymap, apple: false });
-const project = new ProjectLanguage(service, { keymap, apple: false, openPlace });
-const options = { text: 'const greeting = "Hello";', language: 'typescript', theme: 'github-light' };
+const project = new ProjectLanguage(service, { folder: '/shop', keymap, openPlace });
 
-// Render inside a parent with a height; dispose the project when its owner closes it.
-<EditorView engine={engine} options={options} project={project} uri="file:///example.ts" languageId="typescript" className="h-72" />;
+<EditorView engine={engine} options={options} project={project} uri="file:///shop/src/order.ts" languageId="typescript" className="h-96" />;
 ```
-
-Here `service` is the host's `LanguageService` and `openPlace` is its file-opening callback. Keep the engine, options, project and `onMount` callback stable across renders: changes remount the editor. `EditorView` disposes its editor and attachment on unmount; it does not dispose the supplied project or service. Dispose `ProjectLanguage` after its editor attachments, then let the host shut down its service. Editors sharing a URI must already share text through the host; the first editor sends document changes, and a surviving editor takes over when it closes.
-
-## CSS and translations
-
-Import these styles in order:
-
-```css
-@import '@adecore/ui/theme.css';
-@import '@adecore/editor/editor.css';
-@import '@adecore/editor-react/editor-react.css';
-@source "../node_modules/@adecore/ui/src";
-@source "../node_modules/@adecore/editor-react/src";
-```
-
-The last two lines are Tailwind v4 source registrations, relative to the consumer stylesheet. React popups use Adecore UI components and Tailwind utilities. The editor DOM itself uses plain CSS and needs no Tailwind. The editor's positioned container must have a width and height. Define theme mode with `data-theme="light"` or `data-theme="dark"`, then override editor tokens after the imports if needed.
-
-Register `@adecore/editor-react/locales/en.json` and `/locales/nl.json` under the `editor` i18next namespace before mounting popups. The host also initializes the `@adecore/ui` translations. `EditorRenderingProvider` optionally accepts a theme and asynchronous code highlighter for hover and peek previews. Plain code is rendered when none is provided. Markdown supports GFM without raw HTML.
-
-The working example in `examples/language-editor.tsx` owns an isolated i18next instance, mounts the real DOM engine and supplies `FakeLanguageService` completion and hover responses. Type text or press Ctrl+Space to request completion. It uses no filesystem, provider CLI or language-server process.
-
-## Host operations
-
-`LanguageHost` accepts the folder, platform, resolved keymap, path resolver, file-opening callback, server display names, notifications and optional rename suggestions. `ProjectFiles` supplies reads, unsaved staging, saves and renames. Open-file text edits are undoable; unopened files become drafts. Edits containing renames save their changes through the host before moving files. Create/delete operations remain unsupported and return a failure. Permission checks and drafts belong in these adapters.
-
-Git authorship is supplied explicitly to `language.codeVision.setBlame`; the library runs no Git command. Attribution marks and remote cursors remain engine primitives. `AttributionCard` accepts display content and host action elements. `ChangeReview` renders an explicit selected/proposed diff; its `startLine` is one-based. `RowHost`, `LineActionHost` and `HighlightLayers` coordinate independent display owners. Acceptance, persistence, AI prompts, chat routing, conflict policy and rollback remain host operations.
-
-`FindReplace` operates on an explicit editor. `EditorContextMenu` accepts host action children. `/models` exports the pure language, proposal, edit and view-state helpers; `/testing` exports `FakeLanguageService` and `ManualTimers`. Default imports load compiled JavaScript and declarations; workspace consumers can enable `source` in the bundler, TypeScript `customConditions` and `bun test --conditions=source`.
-
-## Current limits and validation
-
-This is the current implementation, with remaining feature work preserved. Language results depend on the injected service's supported providers. No bidirectional text or completed screen-reader validation is claimed. The engine retains its long-line coloring and row-list performance limits. File create/delete edits, AI workflows, language-server lifecycle and product shortcuts remain outside this package.
-
-Run `bun run build`, `bun run typecheck` and `bun run test` after workspace installation. Tests use editor fakes, memory services and manual timers. The package is private at version `0.0.0` and retains FSL-1.1-MIT. See the editor migration guide for source provenance and consumer cutover requirements.
-
-See [Consumer migration](../editor/migration) for adapters and provenance.
-
-## Language-enabled editor
 
 <Demo src="editor/language-editor" fill />
+
+The demos on these pages run over [`FakeLanguageService`](/editor-react/testing), with answers worked out from the text of the file in `docs/demos/shared/order-service.ts`. No server runs.
+
+## What is in it
+
+- [Getting started](/editor-react/getting-started): install, styles, translations and a first editor with a fake service.
+- [Projects and documents](/editor-react/project): `ProjectLanguage`, the operations the app hands it, shared documents, workspace edits and the problems of a project.
+- [EditorView](/editor-react/editor-view): the component, `EditorLanguage` for an editor mounted by hand, `LanguagePopups` and `AnchoredPopup`.
+- [Completion and signatures](/editor-react/completion), [Hover and problems](/editor-react/hover), [Navigation](/editor-react/navigation) and [Rename and code actions](/editor-react/rename): the features and their cards.
+- [FindReplace](/editor-react/find-replace): a find and replace bar.
+- [Reviews and agents](/editor-react/change-review): `ChangeReview`, `AttributionCard` and React in editor rows.
+- [Code vision](/editor-react/code-vision): usages and authors above declarations.
+- [Models](/editor-react/models): the pure functions behind the features.
+- [View state](/editor-react/view-state): where a file was scrolled, folded and left.
+- [Testing](/editor-react/testing): `FakeLanguageService` and `ManualTimers`.
+
+## Entry points
+
+| Import                                             | What it holds                                                                  |
+| -------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `@adecore/editor-react`                            | The components, `ProjectLanguage`, `EditorLanguage`, the hosts and every model |
+| `@adecore/editor-react/models`                     | Only the [models](/editor-react/models), without React                         |
+| `@adecore/editor-react/testing`                    | `FakeLanguageService`, `ManualTimers` and the `LanguageCall` type             |
+| `@adecore/editor-react/editor-react.css`           | The styles of the cards                                                        |
+| `@adecore/editor-react/locales/en.json`, `nl.json` | The words of the `editor` namespace                                            |
+
+## Limits
+
+- What works depends on what the service supports. A feature asks only for methods the service supports; a command for one it does not support tells the person so through the app's `notify`.
+- The view's limits hold: no bidirectional text, no tested screen reader support, and the [performance limits](/editor/#limits) of the editor.
+- Snippets are a subset: tab stops, placeholders and the first value of a choice. Variables insert nothing or their default, and transforms are skipped. Stops with the same number are not edited together.
+- Inlay hints flatten a label with parts to its text and ignore padding, tooltips, commands and edits.
+- Semantic tokens are asked in full after each pause in typing; the delta and range requests of the protocol are not used.
+- A workspace edit that creates or deletes a file is refused, versions in the edit are not checked, and a failure halfway does not roll back the steps before it. See [workspace edits](/editor-react/project#workspace-edits).
+- Code vision rows are skipped in files over 20,000 lines.
+
+The package is FSL-1.1-MIT.

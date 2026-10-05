@@ -1,66 +1,70 @@
 # FileTree reference
 
-Import `FileTree`, `useFileTree`, `FileTreeOptions`, `FileTreeRootProps`, `FileTreeModel`, `FileTreeVisibleRow`, `FileTreeDragAndDropConfig`, `FileTreeDropContext`, `FileTreeDropResult`, `FoldKeyOf` and `SortRow` from `@adecore/ui`. `FileTreeModel` aliases the engine model type; it is not a constructor export. `FILE_TREE_ICONS` is the default icon map.
+`FileTree`, `useFileTree` and the types below come from `@adecore/ui`. `FileTreeModel`, `FileTreeVisibleRow`, `FileTreeDragAndDropConfig`, `FileTreeDropContext` and `FileTreeDropResult` are the engine's own types under these names; `FileTreeModel` is a type, not a class you construct. `FILE_TREE_ICONS` is the icon set the hook passes by default.
 
-## Hook options
+## useFileTree
 
-`useFileTree(options)` returns `{ model }`. `FileTreeOptions` accepts the installed engine's options except `density` and `itemHeight`. Supply `paths` or its prepared-input alternative. Common options include `initialExpansion`, `initialExpandedPaths`, `initialSelectedPaths`, `flattenEmptyDirectories`, `sort`, `gitStatus`, `icons`, `search`, `stickyFolders`, `composition`, `renaming`, `dragAndDrop`, `onSelectionChange` and `unsafeCSS`.
+`useFileTree(options)` returns `{ model }`. `FileTreeOptions` is every option of the engine except `density` and `itemHeight`: `paths` (or its prepared form), `initialExpansion`, `initialExpandedPaths`, `initialSelectedPaths`, `flattenEmptyDirectories`, `sort`, `gitStatus`, `icons`, `search`, `stickyFolders`, `composition`, `renaming`, `dragAndDrop`, `onSelectionChange`, `unsafeCSS` and the rest.
 
-See [Getting started](/ui/display/file-tree/getting-started#defaults-and-ownership) for wrapper defaults. Options initialize the model; they are not controlled React props. Only the selection callback is kept current by the hook. New option callbacks captured by the engine may require a host adapter with its own current-value reference.
+The options create the model once; they are not controlled props. The hook keeps only `onSelectionChange` current. Another callback the engine holds on to may keep the function it was first given, so read changing values in it through a ref. The defaults are on the [overview](/ui/display/file-tree#defaults-and-ownership).
 
-## Root props
+## FileTree.Root
 
-| Prop                                     | Behavior                                                                         |
-| ---------------------------------------- | -------------------------------------------------------------------------------- |
-| `model`                                  | Required model.                                                                  |
-| `label`                                  | Accessible name; defaults to translated `tree.label`.                            |
-| `resetKey?: string`                      | Resets horizontal shift when changed.                                            |
-| `selectionFollowsFocus`                  | Defaults to `true` for unmodified navigation.                                    |
-| `onActivate(path)`                       | Normal file click or Enter on a file.                                            |
-| `onFocusMove(path)`                      | Changed focus reported by the wrapper's selection-following flow.                |
-| `onLoadChildren(path)`                   | Newly expanded directory; `void` callback, no managed async lifetime.            |
-| `onExpandedPathsChange(paths)`           | Expansion report, including remembered paths hidden beneath other rows.          |
-| `onRowContextMenu(path, targets, event)` | Native `MouseEvent`, host opens the menu.                                        |
-| `onRowDragStart(path, targets, event)`   | Native `DragEvent`, after engine drag data.                                      |
-| `renderControl(row)`                     | Current React content before the label; normalized terminal path.                |
-| `renderDecoration(row)`                  | Current React content at the trailing end.                                       |
-| `treeProps`                              | Engine React host props except `model`, including header/context-menu rendering. |
-| `className`, `ref`, `render`             | Frame styling, element reference and Base UI rendering.                          |
+| Prop | Type | Default | |
+| --- | --- | --- | --- |
+| `model` | `FileTreeModel` | | Required. |
+| `label` | `string` | "Files" | The tree's accessible name (`tree.label`). |
+| `resetKey` | `string` | | Puts the sideways shift back at zero when it changes. |
+| `selectionFollowsFocus` | `boolean` | `true` | Selects the row the arrow keys land on. |
+| `onActivate` | `(path: string) => void` | | A plain click or Enter on a file. |
+| `onFocusMove` | `(path: string) => void` | | Focus moved to another row, while selection follows focus. |
+| `onLoadChildren` | `(path: string) => void` | | A directory opened. Not awaited. |
+| `onExpandedPathsChange` | `(paths: readonly string[]) => void` | | Every open directory, including remembered ones under a closed directory. |
+| `onRowContextMenu` | `(path, targets, event: MouseEvent) => void` | | Your code opens the menu. |
+| `onRowDragStart` | `(path, targets, event: DragEvent) => void` | | After the engine wrote its drag data. |
+| `renderControl` | `(row: FileTreeVisibleRow) => ReactNode` | | Drawn before the icon. |
+| `renderDecoration` | `(row: FileTreeVisibleRow) => ReactNode` | | Drawn after the name. |
+| `treeProps` | engine React props without `model` | | For the engine's own tree element, such as its header or context menu rendering. |
+| `render` | `RenderProp` | | Another element to be the frame. |
 
-Callbacks are optional. The wrapper owns event listeners and its expansion subscription. There is no `onLoadError` or controlled expansion prop. Native host props in `treeProps` target the inner engine tree; ordinary root element props target the frame.
+Every other prop goes to the frame, a `<div>`. The rows passed to the render functions carry the path of the last directory of a flattened row. There is no `onLoadError` and no controlled expansion. `FileTreeRootProps` is the type.
+
+## Parts
+
+`FileTree.Checkbox`, `FileTree.Control` and `FileTree.Decoration` are the [`Tree`](/ui/display/tree/reference#controls) parts of the same name, drawn in the row slots. See [Interaction and row controls](/ui/display/file-tree/interaction-controls#checkboxes-and-decorations).
 
 ## Helpers
 
-| Helper                                                | Result or purpose                                                 |
-| ----------------------------------------------------- | ----------------------------------------------------------------- |
-| `FileTree.directoryHandle(model, path)`               | Expandable handle or `null`.                                      |
-| `FileTree.pathOfRow(row)`                             | Terminal path of a flattened row.                                 |
-| `FileTree.visibleRows(model)`                         | Visible rows with normalized paths.                               |
-| `FileTree.resetExpandedPaths(model, paths, expanded)` | Whole-path reset and beta.6 custom-sort expansion pass.           |
-| `FileTree.applyExpansion(model, collapsed, keyOf?)`   | Apply collapse keys, at most 32 passes.                           |
-| `FileTree.collapsedPathsOf(rows, keyOf?)`             | Collapsed directory keys.                                         |
-| `FileTree.mergeCollapsedPaths(current, rows, keyOf?)` | Preserve hidden folds; same array when unchanged.                 |
-| `FileTree.expansionChanges(rows, collapsed, keyOf?)`  | `FileTree.{ collapse, expand }` path arrays.                      |
-| `FileTree.dirPathOf(path)`                            | Remove one trailing slash for a stored bare key.                  |
-| `FileTree.ancestorDirsOf(path)`                       | Outer-to-inner ancestor directories.                              |
-| `FileTree.mergeExpanded(remembered, reported, known)` | Preserve remembered unknown directories.                          |
-| `FileTree.withoutClosedBranches(open, known)`         | Remove descendants beneath known closed branches.                 |
-| `FileTree.newlyExpanded(before, after)`               | Paths added to the open set.                                      |
-| `FileTree.compareRows(left, right)`                   | Directory-first numeric segment comparison.                       |
-| `FileTree.selectOnly(model, path)`                    | Replace selection; `null` clears it.                              |
-| `FileTree.focusRow(model, path)`                      | Focus mounted shadow row; boolean success.                        |
-| `FileTree.followFocus(model, onMoved?)`               | Defer selection until focus moves; returns cancellation function. |
-| `FileTree.movesFocus(event)`                          | Unmodified arrow, Home or End key.                                |
-| `FileTree.extendsSelection(event)`                    | Shift, Control or Command modifier.                               |
-| `FileTree.rowPathOf(event)`                           | Row path from native composed event path, or `null`.              |
-| `FileTree.menuTargetsOf(row, selected)`               | Multi-selection containing row, or only row.                      |
+| Helper | Returns or does |
+| --- | --- |
+| `FileTree.directoryHandle(model, path)` | The directory's handle, or `null` for a file. |
+| `FileTree.pathOfRow(row)` | The path of the last directory of a flattened row. |
+| `FileTree.visibleRows(model)` | The visible rows, with that path. |
+| `FileTree.resetExpandedPaths(model, paths, expanded)` | Resets the paths and expands `expanded` in a second pass. |
+| `FileTree.applyExpansion(model, collapsed, keyOf?)` | Folds and opens directories to match `collapsed`, in at most 32 passes. |
+| `FileTree.collapsedPathsOf(rows, keyOf?)` | The keys of the closed directories. |
+| `FileTree.mergeCollapsedPaths(current, rows, keyOf?)` | `current` with the visible folds applied; the same array when nothing changed. |
+| `FileTree.expansionChanges(rows, collapsed, keyOf?)` | `{ collapse, expand }`, the paths that differ from `collapsed`. |
+| `FileTree.dirPathOf(path)` | The path without its trailing slash. |
+| `FileTree.ancestorDirsOf(path)` | The directories above a path, outermost first. |
+| `FileTree.mergeExpanded(remembered, reported, known)` | `reported` plus the remembered paths the model does not know yet. |
+| `FileTree.withoutClosedBranches(open, known)` | `open` without the paths under a known closed directory. |
+| `FileTree.newlyExpanded(before, after)` | The paths in `after` that were not in `before`. |
+| `FileTree.compareRows(left, right)` | Directories first, then names in numeric order. |
+| `FileTree.selectOnly(model, path)` | Selects one path; `null` clears the selection. |
+| `FileTree.focusRow(model, path)` | Focuses a drawn row; `false` when it is not drawn. |
+| `FileTree.followFocus(model, onMoved?)` | Selects the focused row after the engine moved it; returns a cancel function. |
+| `FileTree.movesFocus(event)` | Whether a key is an arrow, Home or End without a modifier. |
+| `FileTree.extendsSelection(event)` | Whether Shift, Ctrl or Cmd is down. |
+| `FileTree.rowPathOf(event)` | The row path of an event, through the shadow root, or `null`. |
+| `FileTree.menuTargetsOf(row, selected)` | The selection when it holds the row and more, otherwise the row alone. |
 
-`FoldKeyOf` is `(rowPath: string) => string | null`. `SortRow` has `isDirectory` and readonly `segments`. These helper contracts carry host compatibility conventions; changing package names does not require changing stored folds.
+`FoldKeyOf` is `(rowPath: string) => string | null`. `SortRow` is `{ isDirectory, segments }`.
 
-## Migration and engine updates
+## Moving from a tree of your own
 
-Replace local row styling, icon mapping, 25px sizing, 12px chevrons, truncation and horizontal-shift code with the wrapper. Keep ordering overrides, filesystem/Git commands, listing/search caches, path resolution, creation placeholders and persisted key conventions in the host. Replace drawn checkbox markers with `FileTree.Checkbox` and move status into `renderDecoration`.
+The wrapper replaces row styling, icon mapping, the 25 pixel rows, the 12 pixel chevrons, truncation and the sideways shift. Keep your sort overrides, file and Git commands, listing and search caches, path resolution, placeholders and the keys you store folds under. Replace a drawn checkbox with `FileTree.Checkbox`, and move status into `renderDecoration`.
 
-The wrapper targets `@pierre/trees` beta.6. Before changing it, verify custom-sort expansion after reset, flattened terminal paths, shadow selectors, slot layout, focus timing, modifier selection, control isolation, truncation and shifting. Run the file-tree helper, DOM, interaction and shift tests, then verify the desktop runtime and screen reader.
+## Engine updates
 
-Adapted helper files retain [FSL-1.1-MIT](https://github.com/basmilius/adecore/blob/main/packages/ui/src/file-tree/LICENSE); existing UI modules retain MIT. Package metadata records the mixed terms. A publication license decision remains for the adapted files; these docs do not relicense them.
+The wrapper depends on internals of `@pierre/trees` `1.0.0-beta.6`. Before you move to another version, check expansion with a custom sort after a reset, the paths of flattened rows, the shadow root selectors, the slot layout, the timing of focus, selection with a modifier, isolation of the row controls, truncation and the sideways shift, then the file tree's tests and a screen reader in the desktop runtime.

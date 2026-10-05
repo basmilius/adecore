@@ -1,86 +1,55 @@
-# Text, fonts and reading order
+# Text and reading order
 
-## Text boxes and notes
+A `text` and a `note` are both a `WrittenElement`: they carry `text`, a `size` and an optional `font` and `align`. Lines are `size * LINE_HEIGHT` apart, and `LINE_HEIGHT` is 1.25.
 
-`WrittenElement` is a text or note element. Its `text`, integer `size` and optional `font`/`align` control writing. Text sizes range from 12 through 96. `fontOf(undefined)` returns `hand`; missing alignment reads as left.
+## Lines
 
-`LINE_HEIGHT` is `1.25`. `textLines` splits at LF and preserves empty paragraphs. `linesOf(element, measure)` chooses between those lines and wrapping:
+`linesOf(element, measure)` returns the lines to draw:
 
-| Element                    | Line layout                                           |
-| -------------------------- | ----------------------------------------------------- |
-| Text without `sized: true` | Explicit LF breaks only; its width does not wrap text |
-| Sized text                 | Wrap to `w`                                           |
-| Note                       | Wrap to the writing frame inside paper padding        |
+| Element                | Lines                                                                    |
+| ---------------------- | ------------------------------------------------------------------------ |
+| `text` without `sized` | Its own line breaks only. The box follows the text, so the app grows it. |
+| `text` with `sized`    | Wrapped to `w`.                                                          |
+| `note`                 | Wrapped to the box minus `NOTE_PADDING` (16) on each side.               |
 
-`writingFrameOf` returns local `{ x, y, w }`. Text uses `{ x: 0, y: 0, w }`. Notes use `NOTE_PADDING` of 16 on each side and a writing width of at least one unit. `NOTE_RADIUS` is 8.
+`writingFrameOf(element)` is where those lines start inside the element and how wide they may be. `textLines(text)` splits at line breaks; `wrapLines(text, maxWidth, measure)` also wraps at spaces, and breaks a word that does not fit on a line of its own between its characters. Wrapping only sets the width: a note with more text than room runs past the bottom of its sheet, and the app makes it taller.
 
-Wrapping is greedy, splits paragraphs on spaces and breaks oversized words between glyphs. It preserves hard LF breaks and emits at least one glyph even when the box is narrower than that glyph. It is not a full Unicode line-break or shaping engine. CRLF normalization belongs to the host before storing text.
+`fontOf(font)` reads an absent font as `hand`. `DEFAULT_FONT_STACKS` names a stack per font for outside the app: Kalam for `hand`, the system font for `sans` and the system monospace for `mono`. The package ships no font files.
 
-Changing text does not resize the box. A host must measure content and decide how unsized boxes follow it. SVG text does not clip to the element's height, so text can overflow a short note.
+## Measuring
 
-## Font and measurement policy
-
-`DEFAULT_FONT_STACKS` maps `hand` to Kalam with cursive fallbacks, `sans` to a system UI stack and `mono` to a system monospace stack. These are names, not supplied font assets. Load any desired font in the host and wait for it before measuring if export and canvas wrapping must agree.
-
-`MeasureLine` is `(line: string) => number`, measured in world units at the element's chosen font and size. `approximateMeasure(size, font)` estimates width as character count times size times `0.6` for mono or `0.55` otherwise. It works on a backend without fonts but cannot reproduce every browser's glyph metrics.
-
-```ts
-import { approximateMeasure, linesOf, writingFrameOf } from '@adecore/drawing';
-import type { DrawingElement } from '@adecore/drawing/protocol';
-
-const note: DrawingElement & { kind: 'note' } = {
-    kind: 'note',
-    id: 'note',
-    x: 0,
-    y: 0,
-    w: 180,
-    h: 120,
-    stroke: 'ink',
-    strokeWidth: 1,
-    seed: 1,
-    text: 'Review the result\nThen save',
-    size: 20,
-    font: 'sans'
-};
-console.log(writingFrameOf(note));
-console.log(linesOf(note, approximateMeasure(note.size, note.font)));
-```
-
-## Measure in a browser
-
-The host can inject a real canvas measure into SVG export. This adapter needs a browser and already-loaded fonts; it is not a backend example.
+A `MeasureLine` takes a line and returns its width in world units. Without a font engine, `approximateMeasure(size, font)` counts characters: each is `0.6 * size` wide in `mono` and `0.55 * size` otherwise. That is close enough for a backend, but wraps differently from a browser. To match what a person sees, give `toSvg` a measure from a canvas, after the fonts loaded:
 
 ```ts
 import { DEFAULT_FONT_STACKS, DEFAULT_PALETTE, fontOf, toSvg } from '@adecore/drawing';
-import type { WrittenElement } from '@adecore/drawing';
-import type { DrawingElement } from '@adecore/drawing/protocol';
 
-async function exportWithBrowserMetrics(elements: readonly DrawingElement[]): Promise<string> {
-    await document.fonts.ready;
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    if (context === null) {
-        throw new Error('A 2D context is required for font measurement');
+await document.fonts.ready;
+const context = document.createElement('canvas').getContext('2d')!;
+
+const svg = toSvg(elements, {
+    palette: DEFAULT_PALETTE,
+    measure: (element) => (line) => {
+        context.font = `${element.size}px ${DEFAULT_FONT_STACKS[fontOf(element.font)]}`;
+        return context.measureText(line).width;
     }
-    return toSvg(elements, {
-        palette: DEFAULT_PALETTE,
-        measure: (element: WrittenElement) => {
-            const family = DEFAULT_FONT_STACKS[fontOf(element.font)];
-            return (line: string) => {
-                context.font = `${element.size}px ${family}`;
-                return context.measureText(line).width;
-            };
-        }
-    });
-}
+});
 ```
 
-Set the font for each measurement because one context serves multiple elements. If `SvgOptions.fonts` overrides a family, use that same family in this adapter. The detached canvas needs no listener cleanup.
+If you pass `fonts`, measure with those stacks too.
 
 ## Reading order
 
-`readingOrder(elements)` returns plain string lines. It collects nonblank text and note labels, sorts them by y and groups rows within 24 units of the row's top text. Within a row it reads left to right. Anchoring the tolerance to the row's first y prevents a staircase from chaining into one row.
+`readingOrder(elements)` turns a drawing into lines of plain text, for an agent or for a text alternative next to the canvas. The [demo on the overview](/drawing/) prints them under the drawing:
 
-After the labels, it adds labeled line-arrow connections. It infers endpoint names from nearby text/notes or text inside a shape, with a reach of 48 units. An end-only head reads forward; a start-only head reads backward. A line with both heads still reads forward once. Missing labels, equal endpoint names and headless lines produce no connection entry.
+```
+Idea
+Review
+Shipped
+Ask for a second review when the change touches billing
+Idea -> Review
+Review -> Shipped
+```
 
-This is a spatial heuristic. It does not provide semantic grouping, exact rotated-endpoint inference, keyboard navigation or a verified screen-reader canvas. Line endpoints use unrotated absolute points. A host that requires authoritative graph relations should use [diagram documents](/diagram/) or store its own relationships.
+First come the texts and notes that say something, top to bottom. Texts within 24 units of the top of a row count as that row and read left to right. Then every line with an arrow head becomes `from -> to`, read in the direction the head points. An end of an arrow takes the name of the nearest text, note or shape with a text inside that it lands on or whose center is within 48 units. An arrow with an end that names nothing, or with the same name at both ends, is left out.
+
+It is a guess from positions, and it reads the unturned points of an arrow. When the connections matter, keep them as data: [`@adecore/diagram`](/diagram/) stores edges and reads them back exactly.

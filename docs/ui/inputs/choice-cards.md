@@ -1,6 +1,6 @@
 # ChoiceCards
 
-One of a few options, each a card that says what it means. Use it for a choice that deserves more than a select, where the description is what helps a person decide.
+One of a few options, each a card that says what it means, for a choice where the description is what helps a person decide.
 
 ```tsx
 import { ChoiceCards } from '@adecore/ui';

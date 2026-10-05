@@ -1,19 +1,48 @@
 # @adecore/plan
 
-A plan is a tree of steps, top-level sections and text blocks. The package validates stored data, creates plans from strict drafts, applies atomic operation batches under person or agent permissions, derives progress and exports Markdown or compact reading text.
+A plan that a person and an agent work through together: steps, sub-steps, sections and notes, with rules for who may check what. The agent builds and updates the plan; the person checks steps off, and what a person checked stays checked. Every change goes through one function that applies a batch of operations as a whole or refuses it with a code and a reason.
 
-The core has no storage, transport or UI dependency. The host authenticates actors, supplies timestamps and serializes changes against the latest stored plan. Permission refusals are data that a host can present or return to a caller.
+```sh
+bun add @adecore/plan
+```
 
-The package is private at `0.0.0` pending initial publication. Transferred code retains [FSL-1.1-MIT](https://github.com/basmilius/adecore/blob/main/packages/plan/LICENSE); Zod is its declared runtime dependency. Default imports use `dist`, while the `source` condition reads TypeScript.
+```ts
+import { applyPlanOps, createPlan } from '@adecore/plan';
 
-## Read the documentation
+const created = createPlan(
+    {
+        meta: { title: 'Ship the release' },
+        items: [
+            { type: 'step', id: 'tests', title: 'Run the tests', checks: 'agent', state: 'active' },
+            { type: 'step', id: 'approve', title: 'Approve the release', checks: 'person' }
+        ]
+    },
+    { id: 'release', now: new Date().toISOString() }
+);
 
-- [Getting started](./getting-started) creates a plan and demonstrates accepted and refused updates.
-- [Tree, state and progress](./concepts) explains structure, attribution, check ownership and derived state.
-- [Operations and permissions](./operations) covers batches, positioning, unlocks and person-state protection.
-- [Markdown and reading text](./formats) explains import/export fidelity and output options.
-- [API reference](./api) groups every behavioral export.
-- [Plan protocol](./protocol) covers stored schemas, operation shapes and limits.
-- [Integration, migration and testing](./migration) covers trusted host inputs, persistence and troubleshooting.
+if (created.ok) {
+    const result = applyPlanOps(created.plan, [{ op: 'set', ids: ['tests'], state: 'done', next: 'approve' }], {
+        actor: 'agent',
+        now: new Date().toISOString()
+    });
+    // { ok: false, code: 'person-only', message: 'Only a person checks "approve"' }
+}
+```
 
-The [standalone example](https://github.com/basmilius/adecore/blob/main/packages/plan/examples/check-plan.ts) imports a task list and checks a step. Plans model steps and test outcomes. Timed storyboards, creative variants or approval workflows need their own schemas and permission rules.
+<Demo src="canvas/plan-checklist" />
+
+Check steps as a person, then switch to the agent and try again. Typecheck and Tests are the agent's until a person unlocks them, Approve is the person's, and every accepted batch raises `rev` by one. Under the checklist is the plan as `planToMarkdown` writes it.
+
+## What is in it
+
+- [Plans](/plan/plans): the tree of sections, text blocks and steps, the state of a step and of its parent, progress, and creating a plan from a draft.
+- [Operations](/plan/operations): `applyPlanOps`, the eight operations, who may send which, and every refusal.
+- [Markdown and text](/plan/markdown): reading and writing a plan as a Markdown task list, and the compact text an agent reads.
+
+Schemas and types are on `@adecore/plan/protocol`; the behavior is on `@adecore/plan`. Both only need Zod. The package has no storage, no clock and no transport, and it runs the same in a page, a backend and a test.
+
+## What the app does
+
+- Who is asking. `actor` is `person` or `agent`, and the package believes it, so the app takes it from a session it verified, never from the request body.
+- The time. Every call that writes a state takes `now`, so a test never reads the clock.
+- Storage. Operations name items by id, not a base revision, so a person's click and an agent's update do not conflict. That makes the app responsible for applying each batch to the latest stored plan and saving the result in one transaction; see [in a store](/plan/operations#in-a-store).

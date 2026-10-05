@@ -1,76 +1,63 @@
-# Geometry and editing
+# Geometry
 
-## World coordinates and element frames
+Everything here works in world units, the coordinates the elements are stored in. A `Point` is `{ x, y }` and a `Rect` is `{ x, y, w, h }`. Converting a pointer from screen pixels through the zoom and pan of the canvas is the app's job; no function reads the DOM.
 
-`Point` is `{ x, y }`; `Rect` is `{ x, y, w, h }`. Values are world units. The host converts client coordinates through its zoom and pan transform before calling geometry helpers. No helper reads device pixel ratio or viewport state.
+<Demo src="canvas/drawing-hit-test" />
 
-`boundsOf` copies an element's stored box. `centerOf` returns its midpoint, `roundPoint` rounds each coordinate, and `rectFromPoints` makes a nonnegative box from either drag direction. `unionOf` normalizes the extents it combines and returns `null` for no rectangles; `boundsOfElements` combines stored element boxes.
+The demo maps the pointer onto the viewBox of the exported SVG, asks `elementAt` what is under it, and draws the `boundsOf` that element with a handle at every `handlePoint`. The inside of the ellipse is not a hit, because the ellipse has no fill.
 
-An optional `angle` is radians around the box's world center. `rotatePoint` rotates a world point; `toLocal` undoes an element's rotation but leaves the result in unrotated world coordinates. It does not subtract the element origin.
+## Bounds
 
-Line and freehand points are relative to `(x, y)`. `absolutePoints` adds the origin and returns `[]` for other kinds. It does not apply rotation. The points' extents and the stored `w`/`h` must stay consistent in the host.
+- `boundsOf(element)` is the stored box of one element. `boundsOfElements(elements)` is the box around all of them, or `null` for none.
+- `unionOf(rects)` is the box around any rects, also when one has a negative width or height, or `null` for an empty list.
+- `centerOf(rect)` is its middle. `roundPoint(point)` rounds both coordinates to whole units.
+- `rectFromPoints(from, to)` is the box of a drag in either direction, always with a positive size.
+- `intersects(a, b)` is true when two boxes overlap. Boxes that only touch do not.
+- `distanceToSegment(point, a, b)` is the distance from a point to the segment between `a` and `b`.
 
-Bounds do not include rotation, rough wobble, arrowheads, stroke thickness or text overflow. Marquee selection and SVG export use those boxes. Compute expanded visual bounds in the host when clipping or fit-to-content must include all painted pixels.
+A box is the stored `x`, `y`, `w` and `h`. It leaves out the rotation, the wobble of a rough shape, the stroke width, arrow heads and text that runs past a note. Add room for those yourself when you fit a view to its content.
 
-## Hit testing
+## Rotation
 
-`hitsElement(element, point, tolerance)` undoes rotation before testing. For shape outlines and line segments, the effective reach is the larger of `tolerance` and `strokeWidth`.
+`angle` turns an element around the center of its box, in radians. `rotatePoint(point, around, angle)` turns a point. `toLocal(element, point)` turns a point back by the element's angle, so a test can treat the element as unturned; the result is still in world units. `absolutePoints(element)` is the points of a line or freehand stroke in world units, without the rotation, and `[]` for any other kind.
 
-| Kind                   | Hit behavior                                                                  |
-| ---------------------- | ----------------------------------------------------------------------------- |
-| Rect, diamond, ellipse | Filled shapes accept interior hits; absent/`none` fill tests near the outline |
-| Text, note             | Accept any point in the stored box; tolerance does not enlarge it             |
-| Line, freehand         | Test distance to the polyline, including a single freehand point              |
-
-These are ideal geometry tests. Rect corner radius, rough path wobble, freehand painted width and arrowhead geometry do not change the hit outline.
-
-`hitsElement` does not consider `locked`. `elementAt` searches the element array from front to back and skips locked elements; it returns `undefined` when nothing hits. `elementsIn` returns unlocked elements whose stored boxes intersect the marquee, in input order. It tests intersection, not full containment. `intersects` uses strict overlap, so rectangles that only touch at an edge do not intersect.
+## Hit tests
 
 ```ts
 import { elementAt, elementsIn, rectFromPoints } from '@adecore/drawing';
-import type { DrawingElement } from '@adecore/drawing/protocol';
 
-const elements: DrawingElement[] = [
-    { kind: 'rect', id: 'back', x: 0, y: 0, w: 100, h: 60, stroke: 'ink', strokeWidth: 2, seed: 1, fill: 'solid' },
-    { kind: 'rect', id: 'front', x: 0, y: 0, w: 100, h: 60, stroke: 'red', strokeWidth: 2, seed: 2, fill: 'solid', locked: true }
-];
-console.log(elementAt(elements, { x: 50, y: 30 }, 4)?.id);
-console.log(elementsIn(elements, rectFromPoints({ x: 90, y: 50 }, { x: 110, y: 70 })).map((element) => element.id));
+const hit = elementAt(elements, pointer, 6 / zoom);
+const picked = elementsIn(elements, rectFromPoints(dragStart, pointer));
 ```
 
-Both selections include only `back`. Locked is a selection convention, not an authorization boundary; the host must protect locked items from its own write operations.
+`hitsElement(element, point, tolerance)` decides one element, after undoing its rotation:
 
-## Resize and scaling
+| Kind                         | A hit                                                                    |
+| ---------------------------- | ------------------------------------------------------------------------ |
+| `rect`, `diamond`, `ellipse` | Anywhere inside when it has a fill, else near the outline                |
+| `text`, `note`               | Anywhere inside the box; the tolerance does not widen it                 |
+| `line`, `freehand`           | Near the polyline through its points, or near the only point of a stroke |
 
-`RESIZE_HANDLES` lists `nw`, `n`, `ne`, `e`, `se`, `s`, `sw`, `w`. `handlePoint` places a handle on a box. `resizeRect(rect, handle, point, aspect = false)` follows the pointer and anchors the opposite side. It is an unrotated-box operation.
+"Near" is within `tolerance` or the stroke width, whichever is larger. The test uses the ideal outline: the corner radius of a rect and the wobble of a rough path do not change it.
 
-With `aspect: true` and positive original dimensions, side handles derive the other dimension from the original ratio; corners use the smaller pull. No minimum size is imposed. Crossing the opposite side can return negative dimensions. Normalize the result or constrain the gesture before storing it; `resizeRect` does not normalize it itself.
+`elementAt(elements, point, tolerance)` returns the topmost element that is hit, or `undefined`. `elementsIn(elements, rect)` returns every element whose box overlaps the rect, in stacking order. Both skip `locked` elements; `hitsElement` does not. A lock only keeps an element out of selection, so check it again where the app writes.
 
-`scaleElement(element, from, to)` scales position and size relative to a source selection box. It scales relative line/freehand points, preserves freehand pressure and marks text as `sized: true`. It keeps angle, seed, stroke width, font size and radius unchanged. A zero source width or height uses a scale of one for that axis.
+## Resizing
+
+`RESIZE_HANDLES` lists the eight handles of a box (`ResizeHandle`), clockwise from `nw`, and `handlePoint(rect, handle)` places one. While a handle is dragged, `resizeRect(rect, handle, pointer, aspect)` returns the new box: the handle follows the pointer and the opposite side stays put. With `aspect` set, as Shift does in most editors, the box keeps its proportions and a corner follows the smaller pull.
+
+`resizeRect` does not clamp. A handle dragged past the opposite side gives a negative width or height, which the app normalizes or refuses before it stores the box.
 
 ```ts
 import { boundsOf, resizeRect, scaleElement } from '@adecore/drawing';
-import type { DrawingElement } from '@adecore/drawing/protocol';
 
-const element: DrawingElement = {
-    kind: 'line',
-    id: 'line',
-    x: 0,
-    y: 0,
-    w: 100,
-    h: 50,
-    stroke: 'ink',
-    strokeWidth: 2,
-    seed: 3,
-    points: [
-        [0, 0],
-        [100, 50]
-    ]
-};
 const from = boundsOf(element);
-const to = resizeRect(from, 'se', { x: 200, y: 100 }, true);
+const to = resizeRect(from, 'se', pointer, event.shiftKey);
 const resized = scaleElement(element, from, to);
-console.log(resized.w, resized.h);
 ```
 
-For rotated gestures, the host first converts the pointer to the intended resize frame, then applies its placement policy. These helpers do not manage selection handles, undo, snapping, persistence or event listeners.
+`scaleElement(element, from, to)` moves and scales an element from one box to another; for a selection of several, pass the box around all of them as `from`. It scales the points of a line or stroke and keeps the pressure of a stroke. A text gets `sized: true`, so from then on it wraps to its box instead of growing with its text. The angle, seed, stroke width, font size and corner radius stay as they were. A box with no width or height scales by 1 along that axis. Both functions work on the unturned box; turn the pointer into the element's frame first for a rotated element.
+
+## Arrow heads
+
+`arrowHead(tip, from, size)` returns the two strokes of an arrow head at `tip`, pointing away from `from`. `arrowHeadSize(strokeWidth)` is the size the package draws for a stroke width: `12 + strokeWidth * 4`.

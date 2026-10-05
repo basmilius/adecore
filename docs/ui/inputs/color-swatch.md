@@ -10,7 +10,7 @@ import { ColorSwatch } from '@adecore/ui';
 
 Without a `color` the swatch is an outlined circle: no color at all, or the button that opens the rest of a palette. Children replace the tick, such as an ellipsis on a "more colors" swatch. `on="popup"` tightens the ring of a picked swatch for one inside a popup.
 
-`ColorSwatch` is a button. For a row of them, give the row `role="radiogroup"` and each swatch `role="radio"` and `aria-checked`, as the demo does, or use [`AccentSwatches`](/ui/inputs/accent-swatches), which does it for you.
+`ColorSwatch` is a button without a name of its own: give it an `aria-label` and put the name in a [`Tooltip`](/ui/overlays/tooltip). For a row of them, give the row `role="radiogroup"` and each swatch `role="radio"` and `aria-checked`, as the demo does, or use [`AccentSwatches`](/ui/inputs/accent-swatches), which does it for you.
 
 In a menu, make each swatch an item that is no row with `render={<Menu.Item unstyled />}`. The arrow keys reach it and picking it closes the menu, while the row's padding and highlight stay off the circle; the swatch draws the accent outline under the keyboard itself. See the swatches in [Menu](/ui/overlays/menu#checks-and-labels).
 

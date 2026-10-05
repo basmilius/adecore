@@ -8,7 +8,7 @@ import { DetailHeader, MasterDetail, MasterItem } from '@adecore/ui/settings';
 
 <Demo src="settings/master-detail" fill />
 
-Inside a [`SettingsDialog`](/ui/settings/settings-dialog), put it in a `split` section, so the dialog hands the pane its whole height instead of a padded scrolling column. Under 640 pixels the list stacks above the detail.
+Inside a [`SettingsDialog`](/ui/settings/settings-dialog), put it in a `split` section, so the dialog hands the pane its whole height instead of a padded scrolling column. Under 640 pixels wide the list stacks above the detail, at most 240 pixels tall.
 
 ## Parts
 
@@ -18,18 +18,20 @@ Inside a [`SettingsDialog`](/ui/settings/settings-dialog), put it in a `split` s
 
 `DetailHeader` is the head of a detail: a `mark` (a logo or an icon tile), the `title`, a `subtitle` line under it, and the `actions` of the thing on the right.
 
-| Component | Prop | Type |
-| --- | --- | --- |
-| `MasterDetail` | `list` | `ReactNode` |
-| | `listWidth` | `280 \| 320 \| 340` |
-| | `listLabel` | `string` |
-| | `detail` | `ReactNode` |
-| `MasterItem` | `selected` | `boolean` |
-| | `onSelect` | `() => void` |
-| | `children` | `ReactNode` |
-| `DetailHeader` | `mark` | `ReactNode` |
-| | `title` | `string` |
-| | `subtitle` | `ReactNode` |
-| | `actions` | `ReactNode`, optional |
+## Props
 
-Every prop is required unless it says otherwise, and all three take `className` and `ref`. `MasterDetailProps`, `MasterItemProps` and `DetailHeaderProps` are exported types.
+| Component | Prop | Type | Default | |
+| --- | --- | --- | --- | --- |
+| `MasterDetail` | `list` | `ReactNode` | | Required. |
+| | `listWidth` | `280 \| 320 \| 340` | | Required. In pixels. |
+| | `listLabel` | `string` | | Required. |
+| | `detail` | `ReactNode` | | Required. |
+| `MasterItem` | `selected` | `boolean` | | Required. |
+| | `onSelect` | `() => void` | | Required. |
+| | `children` | `ReactNode` | | Required. |
+| `DetailHeader` | `mark` | `ReactNode` | | Required. |
+| | `title` | `string` | | Required. |
+| | `subtitle` | `ReactNode` | | Required. |
+| | `actions` | `ReactNode` | | |
+
+All three take `className` and `ref`. `MasterDetailProps`, `MasterItemProps` and `DetailHeaderProps` are exported types.

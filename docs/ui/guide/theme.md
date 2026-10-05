@@ -22,7 +22,7 @@ Alpha over whatever is behind, never a gray of their own (see [Principles](/ui/g
 
 ## Accent
 
-The accent marks the primary button, the focus outline, a picked choice and the text selection. The default is a neutral blue. Your app sets its own, see [Your own accent](#your-own-accent) below.
+The accent marks the primary button, the focus outline, a picked choice and the text selection. The default is a neutral blue; your app sets its own ([below](#your-own-accent)).
 
 <TokenTable group="accent" />
 
@@ -52,7 +52,7 @@ The file type palette, which [`FileIcon`](/ui/display/file-icon) colors a file t
 
 ## Layers
 
-Whole numbers in one place, so a new popup cannot guess where it goes. A dialog sits under the menus and selects it can open, and tooltips sit over both. A component reaches the popup step with `z-(--z-popup)`.
+Whole numbers in one place, so a new popup cannot guess where it goes. A dialog sits under the menus and selects it can open, tooltips sit over both, and the [shortcut hints](/ui/display/shortcut-hints) over everything. A component reaches the popup step with `z-(--z-popup)`.
 
 <TokenTable group="layer" />
 
@@ -130,6 +130,6 @@ The theme also carries a few classes for what a utility cannot express: the stat
 | `.tooltip-positioner`, `.tooltip-popup` | A tooltip that slides from one button to the next. |
 | `.focus-ring`, `.focus-ring-within` | The keyboard focus outline on something that is not a button, or on a card around a focused field. |
 | `.scroll-fade-x`, `.scroll-fade-top` | A fade at an edge that still hides content, switched on by `data-fade-start` and `data-fade-end`. |
-| `.file-icon` | A file icon's color by its `data-hue`. |
+| `.file-icon` | A file icon outside the tree: the hue the sprite gives its file type, or the muted text color. |
 
 Every class sits in Tailwind's `components` layer, so a utility on the same element still wins.

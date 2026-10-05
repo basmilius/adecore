@@ -1,35 +1,50 @@
 # @adecore/diagram
 
-Directed graph schemas, deterministic layered layout, orthogonal routes, SVG export and reading order. The core has no DOM or canvas state. It depends on Zod and `@adecore/drawing` for shared schemas, geometry and palette defaults.
+[![npm](https://img.shields.io/npm/v/@adecore/diagram)](https://www.npmjs.com/package/@adecore/diagram)
+[![Docs](https://img.shields.io/badge/docs-adecore.dev-blue)](https://adecore.dev/diagram/)
 
-The package is private at `0.0.0` pending initial publication. Use local source exports or build drawing before diagram for default compiled JavaScript/declarations. The transferred code retains FSL-1.1-MIT in [LICENSE](./LICENSE).
+Directed graphs that are written rather than drawn. A diagram file names its nodes, groups and edges; the package lays them out, routes the edges and writes the result as SVG or as lines of text. The same file gives the same picture on every machine, and it needs no DOM.
+
+**[Documentation with live demos](https://adecore.dev/diagram/)**
+
+## Install
+
+```sh
+bun add @adecore/diagram
+```
+
+## Use
 
 ```ts
 import { layoutOf, readingOrder, toSvg } from '@adecore/diagram';
-import { DiagramDocumentSchema, diagramProblemIn } from '@adecore/diagram/protocol';
+import { diagramProblemIn, migrateDiagram } from '@adecore/diagram/protocol';
 
-const document = DiagramDocumentSchema.parse({
-    version: 1,
-    rev: 0,
-    meta: { title: 'Delivery', direction: 'right' },
-    nodes: [
-        { id: 'draft', label: 'Draft' },
-        { id: 'review', label: 'Review', shape: 'diamond' }
-    ],
-    groups: [],
-    edges: [{ from: 'draft', to: 'review' }]
-});
-const problem = diagramProblemIn(document);
-if (problem !== null) {
-    throw new Error(problem);
+const diagram = migrateDiagram(JSON.parse(file));
+const problem = diagram && diagramProblemIn(diagram);
+if (diagram === null || problem) {
+    throw new Error(problem ?? 'Not a diagram');
 }
-const layout = layoutOf(document);
-const svg = toSvg(document, { layout });
-const lines = readingOrder(document);
+
+const layout = layoutOf(diagram);
+const svg = toSvg(diagram, { layout });
+const lines = readingOrder(diagram);
 ```
 
-Graph validation is separate from parsing. It caps documents at 100 nodes/120 edges and checks ids and references. Cycles, loops and parallel edges are supported. Pins keep manual positions but do not reserve automatic-layout space. The host owns dragging, collision policy, fonts, persistence and revision checks.
+## Entry points
 
-Read the [overview](https://adecore.dev/diagram/), [getting started](https://adecore.dev/diagram/getting-started), [layout guide](https://adecore.dev/diagram/layout), [painting/output guide](https://adecore.dev/diagram/rendering), [API reference](https://adecore.dev/diagram/api), [protocol](https://adecore.dev/diagram/protocol) and [integration/testing guide](https://adecore.dev/diagram/migration).
+| Import | What it holds |
+|---|---|
+| `@adecore/diagram` | Layout, SVG export, the shape and text helpers and reading order |
+| `@adecore/diagram/protocol` | The Zod schemas and types of a diagram, and `diagramProblemIn` |
 
-From the repository root, run `bun run --cwd packages/diagram test`, `typecheck` or `build`. A standalone source-relative example is in [examples/export-graph.ts](./examples/export-graph.ts).
+## Documentation
+
+| Page | What it covers |
+|---|---|
+| [Documents](https://adecore.dev/diagram/documents) | Nodes, groups and edges, and checking a file |
+| [Layout](https://adecore.dev/diagram/layout) | Layers, ordering, sizes, groups, edge routes and dragged nodes |
+| [Painting and reading](https://adecore.dev/diagram/rendering) | `toSvg`, helpers for a painter of your own and `readingOrder` |
+
+## License
+
+FSL-1.1-MIT, see [LICENSE](./LICENSE).

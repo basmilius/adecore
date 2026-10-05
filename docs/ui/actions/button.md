@@ -1,6 +1,6 @@
 # Button
 
-Every button with a word in it. A button that is only an icon is an [`IconButton`](/ui/actions/icon-button), which is a square rather than a label.
+Every button with a word in it. A button that is only an icon is an [`IconButton`](/ui/actions/icon-button).
 
 ```tsx
 import { Button } from '@adecore/ui';
@@ -8,13 +8,13 @@ import { Button } from '@adecore/ui';
 
 ## Variants
 
-`ghost` is the default, a quiet button that lifts under the pointer. Give a screen one `primary` at most. `danger` is for a deletion that cannot come back, `danger-outline` for a step that forgets something rather than destroys it. `inverse` is dark on a light theme and light on a dark one, the way many sign-in buttons ask to be drawn.
+`ghost` is the default, a quiet button that lifts under the pointer. `secondary` has a border and a raised ground. Give a screen one `primary` at most. `danger` is for a deletion that cannot come back, `danger-outline` for a step that forgets something rather than destroys it, and `positive` for a step that completes something, such as a merge. `inverse` is dark on a light theme and light on a dark one, the way many sign-in buttons ask to be drawn.
 
 <Demo src="actions/button-variants" />
 
 ## Sizes and links
 
-`md` is 32 pixels tall, `sm` 28 and `xs` 24, which fits a header of 32. An icon inside a button is 14 pixels in `sm` and `md`. With `href` the button renders a real anchor that opens in a new tab, so it opens the way links open.
+`md` is 32 pixels tall, `sm` 28 and `xs` 24, which fits a header of 32. An icon before the word is a 14 pixel [`Icon`](/ui/display/icon). With `href` the button is an anchor that opens in a new tab.
 
 <Demo src="actions/button-sizes" />
 
@@ -27,11 +27,11 @@ import { Button } from '@adecore/ui';
 | `variant` | `ButtonVariant` | `'ghost'` | `'primary' \| 'secondary' \| 'ghost' \| 'danger' \| 'danger-outline' \| 'positive' \| 'inverse'` |
 | `size` | `ButtonSize` | `'md'` | `'xs' \| 'sm' \| 'md'` |
 | `href` | `string` | | Renders an anchor with `target="_blank"` and `rel="noreferrer"`. |
-| `type` | `string` | `'button'` | Set `'submit'` explicitly inside a form. |
+| `type` | `string` | `'button'` | Set `'submit'` inside a form. |
 | `ref` | `Ref<HTMLButtonElement>` | | |
 
 `ButtonProps`, `ButtonVariant` and `ButtonSize` are exported types.
 
 ## Accessibility
 
-A disabled button uses the native `disabled` attribute, which also takes it out of the tab order. When a person should still be able to reach it and hear why it does nothing, keep it enabled with `aria-disabled` and explain in a [`Tooltip`](/ui/overlays/tooltip).
+`disabled` is the native attribute. The button leaves the tab order, takes no pointer events and fades to half its opacity. `Button` styles no `aria-disabled` state; an [`IconButton`](/ui/actions/icon-button) does.

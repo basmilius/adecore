@@ -7,4 +7,4 @@
 | `MenuSpec`, `MenuNode`, `MENU_ROLES`, `MenuRole` | The [application menu](/shell/menu) the page builds. |
 | `UpdateState` | Where [updating](/shell/updater) stands. |
 | `ThemeState` | The [theme](/shell/theme) a page reports. |
-| `compareVersions`, `isVersion` | One ordering of versions for the shell and the page, so release notes land under the right heading. A version that is not a plain `1.2.3` sorts below every one that is. |
+| `compareVersions`, `isVersion` | One ordering of versions for the shell and the page, so release notes land under the right heading. `isVersion` accepts a plain `1.2.3` only, so strip the `v` of a git tag first. A version that is not one sorts below every one that is. |

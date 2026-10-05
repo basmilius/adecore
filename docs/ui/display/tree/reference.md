@@ -1,49 +1,74 @@
-# Tree part reference
+# Tree reference
 
-Import the `Tree` namespace and its prop types from `@adecore/ui`. There is no model hook for generic Tree rows.
+The parts take state and own none. Turn your model into a list of visible nodes with a stable id, a depth, a position among siblings, selection and expansion, and draw that list with `Tree.Row`. There is no model hook for `Tree`, and no path or expansion helpers: those belong to a file model, which is what [`FileTree`](/ui/display/file-tree) is.
 
 ## Root and rows
 
-`Tree.Root` renders a `div` with `role="tree"`. `TreeRootProps` includes ordinary div props and Base UI's `render`. Supply `aria-label` or `aria-labelledby`; Root does not invent a name.
+`Tree.Root` is a `<div>` with `role="tree"`. It invents no name, so give it `aria-label` or `aria-labelledby`. `TreeRootProps` is a `<div>`'s props plus `render`.
 
-| `Tree.Row` prop         | Default | Meaning                                                                            |
-| ----------------------- | ------- | ---------------------------------------------------------------------------------- |
-| `level?: number`        | `1`     | `aria-level` and indentation. Use valid positive levels.                           |
-| `selected?: boolean`    | `false` | `aria-selected` and selected appearance.                                           |
-| `joinedStart?: boolean` | `false` | Join selection styling to the preceding row.                                       |
-| `joinedEnd?: boolean`   | `false` | Join selection styling to the following row.                                       |
-| `interactive?: boolean` | `true`  | Interactive appearance only.                                                       |
-| Native div props        |         | Host event handlers, `tabIndex`, `aria-expanded`, `aria-setsize`, `aria-posinset`. |
+`Tree.Row` is a `<div>` with `role="treeitem"`:
 
-`TreeRowProps` renders a `div` with `role="treeitem"`. A nonselectable row can pass `aria-selected={undefined}`. The host owns focus, activation, range selection and loading. Row does not handle keys or make itself a tab stop. `className`, `ref`, `style` and `render` compose with its element props.
+| Prop | Type | Default | |
+| --- | --- | --- | --- |
+| `level` | `number` | `1` | `aria-level` and the indentation. |
+| `selected` | `boolean` | `false` | `aria-selected` and the selected look. |
+| `joinedStart` | `boolean` | `false` | Squares the corners toward the row before. |
+| `joinedEnd` | `boolean` | `false` | Squares the corners toward the row after. |
+| `interactive` | `boolean` | `true` | The hover look. `false` removes only that: no handler, no `aria-disabled`. |
 
-Rows are 25px tall. The first level starts at 4px inline padding; each further level adds 16px. Guides and selected corners share FileTree's internal row style. These are appearance defaults, not a data contract.
+Every other prop of a `<div>` passes through: `tabIndex`, `aria-expanded`, `aria-setsize`, `aria-posinset` and your handlers. A row that cannot be selected passes `aria-selected={undefined}`. The first level is padded 4 pixels and each level after it 16 more. `TreeRowProps` is the type.
 
 ## Chevron and content
 
-`Tree.Chevron` renders a button with a 12px icon in a 16px slot. `TreeChevronProps` requires `expanded: boolean` and optionally accepts `onExpandedChange(expanded)`. Its accessible label comes from translated Expand/Collapse words. It defaults to `type="button"` and `tabIndex={-1}` so the host row remains the navigation target.
+`Tree.Chevron` is a button with a 12 pixel chevron in a 16 pixel slot, named "Expand" or "Collapse" (`tree.expand`, `tree.collapse`). It takes `expanded` (required) and `onExpandedChange(expanded)`, and is `type="button"` with `tabIndex={-1}`, so the row stays the target of the keyboard. A click stops at the chevron, calls your `onClick`, then calls `onExpandedChange(!expanded)` unless your handler prevented the default. A double-click stops there too. It never selects or focuses the row; `aria-expanded` belongs on the row. `TreeChevronProps` is the type.
 
-A click stops propagation, calls your `onClick`, then calls `onExpandedChange(!expanded)` unless default was prevented. A double-click also stops propagation and calls your double-click handler. It does not select or focus the row. Its usual root state belongs on the row's `aria-expanded`, not on a leaf.
-
-`Tree.ChevronSlot` renders an aria-hidden span for leaf alignment. `Tree.Label` renders a span with end truncation. `Tree.Decoration` renders a trailing span group. Their types are `TreeChevronSlotProps`, `TreeLabelProps` and `TreeDecorationProps`.
+`Tree.ChevronSlot` is an `aria-hidden` `<span>`, `Tree.Label` a `<span>` cut off at the end, and `Tree.Decoration` a `<span>` at the end of the row with tabular figures. Their types are `TreeChevronSlotProps`, `TreeLabelProps` and `TreeDecorationProps`.
 
 ## Controls
 
-`Tree.Control` renders a span with `data-tree-control`. `TreeControlProps` stops click, double-click, keydown and pointerdown propagation, then invokes the supplied handler. It does not assign a role or accessible name to arbitrary content. Supply that on the actual control.
+`Tree.Control` is a `<span>` with `data-tree-control` that stops click, double-click, keydown and pointerdown at itself, then calls your handler. It adds no role or name; those belong on the control inside. `TreeControlProps` is the type.
 
-`Tree.Checkbox` wraps the UI checkbox in `Tree.Control`. `TreeCheckboxProps` is the same as `CheckboxProps`:
+`Tree.Checkbox` is a [`Checkbox`](/ui/inputs/checkbox) inside a `Tree.Control`, and takes its props: `checked`, `onCheckedChange` and `label` (required), `indeterminate`, `disabled`, `className` and `ref`. It takes no `render`. `TreeCheckboxProps` is the type.
 
-| Prop                       | Required/default | Meaning                                      |
-| -------------------------- | ---------------- | -------------------------------------------- |
-| `checked: boolean`         | Required         | Controlled checkbox value.                   |
-| `onCheckedChange(checked)` | Required         | Update host value or dispatch a host action. |
-| `label: string`            | Required         | Accessible name.                             |
-| `indeterminate?: boolean`  | `false`          | Mixed aggregate state.                       |
-| `disabled?: boolean`       | Optional         | Disable the checkbox.                        |
-| `className`, `ref`         | Optional         | Checkbox styling and button element ref.     |
+```tsx
+import { Tree } from '@adecore/ui';
+import { formatNumber } from '@adecore/ui/format';
 
-The checkbox accepts this explicit prop set; it does not accept the generic `render` prop offered by element parts. Tab and Space use actual checkbox semantics. `FileTree.Checkbox`, `FileTree.Control` and `FileTree.Decoration` reuse these parts, with the file wrapper projecting them into shadow slots.
+type ReviewRowProps = {
+    name: string;
+    count: number;
+    checked: boolean;
+    mixed: boolean;
+    pending: boolean;
+    onCheckedChange: (checked: boolean) => void;
+};
 
-## Integration checks
+export function ReviewRow({ name, count, checked, mixed, pending, onCheckedChange }: ReviewRowProps) {
+    return (
+        <Tree.Row interactive={false} aria-selected={undefined}>
+            <Tree.ChevronSlot />
+            <Tree.Checkbox label={`Mark ${name} as reviewed`} checked={checked} indeterminate={mixed} disabled={pending} onCheckedChange={onCheckedChange} />
+            <Tree.Label>{name}</Tree.Label>
+            <Tree.Decoration>{formatNumber(count)}</Tree.Decoration>
+        </Tree.Row>
+    );
+}
+```
 
-Verify one row tab stop, arrow/Home/End behavior, collapse with focused descendants, selection announcement, mixed/disabled checkbox states, and context-menu focus restoration. Generic Tree uses ordinary DOM; FileTree adds an engine shadow boundary with its own pending desktop screen-reader verification. Neither package promises that a host's unimplemented keyboard or loading policy becomes accessible by styling alone.
+## Loading
+
+`Tree.Chevron` only calls `onExpandedChange`; it starts and awaits nothing. Keep a branch that can open apart from the children it loaded, so it can stay open while a request runs or after one failed, and draw loading, error and retry rows from your own model. Cache per source, drop duplicate requests, ignore answers for a previous root, and never cache a failure as an empty listing.
+
+Store expansion by the stable ids of your model, and keep the ids of open branches whose parents have not loaded yet.
+
+## Menus and dragging
+
+The parts install no context menu or drag handler. Add your own, or render a row through a [`ContextMenu.Trigger`](/ui/overlays/context-menu) with `render`, keeping the row's `role`, ref, state attributes and focus handlers. Pick the targets of a menu from the selection, and put the focus back when the menu closes. A drag needs its own payload, a rule for what a drop accepts, and a change your code completes before the model follows.
+
+## Long names
+
+`Tree.Label` cuts a long name off at the end. The sideways shift of a `FileTree` is not part of these parts; choose your own way to show a very long name, and keep the decorations in view.
+
+## Accessibility
+
+Your code names the root, keeps one usable tab stop, sets expansion and the position among siblings, and implements the keys. Roles and labels alone make no tree a screen reader can use. Test loading, closing a branch with the focus inside it, disabled controls and the focus after a menu.

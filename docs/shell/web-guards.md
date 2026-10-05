@@ -17,7 +17,7 @@ originOf('app://main/index.html', ['app']); // 'app://main'
 
 ## appWindowNavigation
 
-Where the app window's own page may go. A dropped link or file navigates the top frame, and the page it lands on would inherit the bridge. So only the app stays (`allow`), a web link leaves for the system browser (`external`) and everything else stops (`refuse`).
+Where the app window's own page may go. A dropped link or file navigates the top frame, and the page it lands on would inherit the bridge. So only the app stays (`allow`), a web link leaves for the system browser (`external`) and everything else stops (`refuse`). The three are the `NavigationVerdict` type.
 
 ```ts
 contents.on('will-navigate', (event) => {
@@ -36,7 +36,7 @@ A frame inside the page is the app's own decision, since what it may show differ
 
 ## isAppSender
 
-Whether an IPC message came from the app itself: the top frame of an app window, still on the app's origin. The web contents alone says nothing, since it stays the same object whatever it navigates to. Check it in every handler before anything else.
+Whether an IPC message came from the app itself: the top frame of an app window, still on the app's origin. The web contents alone says nothing, since it stays the same object whatever it navigates to. Check it in every handler before anything else. `SenderFrame` is the part of `event.senderFrame` it reads: `url` and `parent`.
 
 ```ts
 const fromApp = (event: Electron.IpcMainInvokeEvent): boolean =>

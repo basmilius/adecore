@@ -6,7 +6,7 @@ A resizable column or row: a handle that drags the size its owner keeps. [`Slidi
 import { clampColumnSize, useColumnResize } from '@adecore/ui';
 ```
 
-<Demo src="layout/column-resize-handle" fill />
+<Demo src="hooks/use-column-resize" fill />
 
 ```tsx
 const column = useRef<HTMLElement>(null);
@@ -19,22 +19,22 @@ const { startResize } = useColumnResize(column, {
 });
 ```
 
-`from` is the edge the column hangs from, and with it the axis of the drag. A column pinned to the right edge of the window grows as the pointer moves left; one that starts at its own left edge grows as it moves right. `top` and `bottom` do the same for a row.
+`from` is the edge the column hangs from, and with it the axis of the drag. A column pinned to the right edge of the window grows as the pointer moves left; one that starts at its own left edge grows as it moves right. `top` and `bottom` do the same for a row, as in the demo, where a stored height of 400 is clamped to 176 before the first render.
 
-`startResize` goes on the handle's `onPointerDown`. The handle takes the pointer capture, so the drag keeps going when the pointer leaves the few pixels it is wide. While it lasts the column carries `data-resizing`, so a transition on its size can turn off. Every move calls `onSize` with a whole number held between `min` and `max()`; `max` is read at drag time, so a window resize between two drags counts.
+`startResize` goes on the handle's `onPointerDown`. The handle takes the pointer capture, so the drag keeps going when the pointer leaves the few pixels it is wide. While it lasts the column carries `data-resizing`, so a transition on its size can turn off. Every move calls `onSize` with a whole number held between `min` and `max()`. `max` is read at drag time, so a window resize between two drags counts.
 
 ## clampColumnSize
 
-`clampColumnSize({ min, max }, size)` holds a size between the two and rounds it. Run a stored width through it before the first render, since the window may be smaller than it was when the width was saved.
+`clampColumnSize({ min, max }, size)` rounds a size and holds it between `min` and `max()`, with the same `max` function the hook takes. Run a stored width through it before the first render, since the window may be smaller than it was when the width was saved.
 
 ## Options
 
-| Option | Type | |
-| --- | --- | --- |
-| `size` | `number` | Required. The size now, in whole pixels. |
-| `min` | `number` | Required. |
-| `from` | `ColumnEdge` | Required. `'left' \| 'right' \| 'top' \| 'bottom'` |
-| `onSize` | `(size: number) => void` | Required. |
-| `max` | `() => number` | |
+| Option | Type | Default | |
+| --- | --- | --- | --- |
+| `size` | `number` | | Required. The size now, in whole pixels. |
+| `min` | `number` | | Required. |
+| `from` | `ColumnEdge` | | Required. `'left' \| 'right' \| 'top' \| 'bottom'` |
+| `onSize` | `(size: number) => void` | | Required. Called on every move. |
+| `max` | `() => number` | no limit | Read at drag time. |
 
 `ColumnResizeOptions`, `ColumnResize` and `ColumnEdge` are exported types.

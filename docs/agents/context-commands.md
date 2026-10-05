@@ -1,10 +1,14 @@
 # Context commands
 
-`context/verb`, `context/argv`, and `context/refusal` help implement a host-owned command interface. They create no executable, server, socket, hook, or permissions endpoint. The consumer authenticates the caller and supplies the operations a command may invoke.
+A host can give its agents a command line to call back into it: to open another chat, hand over a task, read a document. The package has the parsing, the help and the refusals of such a command; it has no executable, server, socket or hook of its own. Your app decides how a call reaches it, checks who is calling, and hands each verb what it may touch.
 
-## A complete command adapter
+```ts
+import { createVerbRegistry, requiredField, VerbRefusal } from '@adecore/agents/context/verb';
+```
 
-This example defines a note command over an injected host write function. Its dry run validates the same arguments and permissions but omits the write.
+## A verb
+
+A note verb over a write function of your app's own, with a dry run that checks everything and writes nothing:
 
 ```ts
 import { z } from 'zod';
@@ -49,18 +53,16 @@ export async function runNote(argv: readonly string[], call: Call): Promise<{ ex
 }
 ```
 
-`write` is the host adapter, not a package method. It must enforce `expectedRevision` atomically with the write if a revision was supplied. The registry only parses and passes the revision number.
+`write` stands for your app's; when a revision was given, it has to check it in the same step as the write. The registry only parses the number and passes it on as `expectedRevision`.
 
 ## Arguments and help
 
-Flags normally use `--name value` or `--name=value`. A value beginning with `--` needs the equals form. Declared switches take no value; a name declared as both switch and value accepts a value only after `=`. The parser refuses unknown, duplicate, missing-value, and unexpected-value flags. Positionals and flag values then pass through their Zod schemas.
+A flag is `--name value` or `--name=value`; a value that starts with `--` needs the second form. A switch takes no value. Unknown, repeated and missing flags are refused before the verb runs, and then the positionals and flags go through their Zod schemas. `requiredField(message)` is a string flag that may not be missing or empty, `lengthOf` measures input for a message about its size, and `orNote(lines, note)` prints a note for an empty list.
 
-`defineAction(noun, spec)` and `defineNoun` group operations under a noun. `defineHelp({ entries, root, refusal, topics })` renders usage/detail/topic lines from the same definitions used for dispatch. Use `summaryLines` for a compact list. `requiredField` supplies a consistent missing/empty flag message, `lengthOf` supports input-size messages, and `orNote` prints a note when a list is empty.
+`defineNoun` and `defineAction` group verbs under a noun. `defineHelp` writes the usage, detail and topics from the same definitions the dispatch uses, and `summaryLines` the short list.
 
-Only a verb declaring `dryRun: true` accepts `--dry-run`; others refuse it with `no-dry-run` and list permitted verbs. The package does not stop side effects for you: your `run` adapter must take the dry-run branch. A revision-enabled verb accepts `--revision N` and adds it to `call.expectedRevision`. The parser validates a decimal whole-number spelling, but the host should enforce any range/safe-integer requirement its revision store needs.
+Only a verb with `dryRun: true` takes `--dry-run`; any other refuses it with `no-dry-run`. The flag only reaches your `run` as `dryRun`: taking the branch that writes nothing is yours. A verb with `revision: true` takes `--revision N`.
 
-## Refusal format
+## Refusals
 
-A `VerbRefusal` carries `code`, `message`, and advice `lines`. `refusalBody` prints `refused<TAB>code<TAB>message` followed by tab-separated advice rows. `refusalRows` omits the prefix for a host CLI that already adds it. `parseRefusalBody` accepts either format and returns null when the text is not a refusal.
-
-`field(value)` replaces tabs/newlines inside individual fields. Advice rows retain their tabs but drop newlines. Do not interpolate untrusted titles into raw rows without `field`. Exit code 3 in this adapter is a host CLI convention shown in the example; the helper itself writes no stderr and exits no process.
+`VerbRefusal(code, message, lines?)` is a refusal with advice. `refusalBody` writes it as `refused`, the code and the message on one line, tab separated, with an advice row per line after it; `refusalRows` leaves out the `refused`, for a command line that prints that itself. `parseRefusalBody` reads either back, or answers `null` for text that is no refusal. `field(value)` makes a value safe for one field, so a title with a tab in it cannot break a row. The helpers print nothing and exit nothing: exit code 3 above is the example's choice.

@@ -1,73 +1,97 @@
-# Operations and permissions
+# Operations
 
-## Atomic batches
+Every change to a plan is a batch of operations from one actor:
 
-`applyPlanOps(plan, ops, { actor, now, mintId? })` parses a nonempty operation array, clones the plan and applies operations sequentially. Each operation sees the previous operation's result. On success it prunes empty child arrays, increments `rev` once and validates the whole result. It returns `{ ok: true, plan, minted, dropped }`.
+```ts
+import { applyPlanOps } from '@adecore/plan';
 
-Any refusal returns `{ ok: false, code, message }` and leaves the original plan unchanged. Structural depth and count checks happen on the final result, while per-operation permission and positioning checks happen during application. The host should supply an already-validated latest plan. The core does not fetch it or accept a base revision.
+const result = applyPlanOps(plan, [{ op: 'set', ids: ['tests'], state: 'done', next: 'publish' }], {
+    actor: 'agent',
+    now: new Date().toISOString()
+});
 
-Even an accepted operation that repeats a state produces a new batch revision. A failed batch can still call the injected id minter before its refusal; keep that adapter free of persistence side effects. Collision retries stop after 1000 attempts and throw an error rather than returning a refusal. Custom minters must return valid ids; final validation catches invalid generated ids.
+if (result.ok) {
+    save(result.plan);
+} else {
+    reply(result.code, result.message);
+}
+```
 
-## Allowed operation families
+`applyPlanOps(plan, ops, options)` works on a copy. Each operation sees what the ones before it did, and the batch is all or nothing: one refusal and the plan you passed in is returned untouched. A batch that passes raises `rev` by exactly one, so a step marked done and the next one marked active land in the same revision. The result is checked like a loaded plan before it is returned.
 
-| Operation | Person                 | Agent                                  | Main behavior                                                     |
-| --------- | ---------------------- | -------------------------------------- | ----------------------------------------------------------------- |
-| `set`     | Yes, subject to checks | Yes, subject to checks/person state    | Set one or more leaf states; optional note                        |
-| `note`    | Yes                    | Yes                                    | Write or clear a step note, including on a parent                 |
-| `unlock`  | Yes                    | No                                     | Permanently unlock existing agent-only steps in selected subtrees |
-| `add`     | No                     | Yes                                    | Insert a section, text or step                                    |
-| `edit`    | No                     | Yes, subject to protection             | Change title, description or step checks                          |
-| `move`    | No                     | Yes, subject to destination protection | Relocate an existing item/subtree                                 |
-| `remove`  | No                     | Yes, subject to protection             | Remove an item/subtree                                            |
-| `meta`    | No                     | Yes, subject to person-only defaults   | Edit title, summary, status or default checks                     |
+`options` is a `PlanApplyOptions`: the `actor`, the `now` written into `at`, and an optional `mintId` for new items without an id. A success is a `PlanApplied`, `{ ok: true, plan, minted, dropped }`: `minted` lists the ids made for new items and `dropped` the steps that lost their state because they got their first sub-step.
 
-`canApply` previews permission against a typed operation and current plan. It does not parse the operation, validate its final position or promise that a whole batch succeeds. Always use `applyPlanOps` for the final decision. `PlanPersonOpSchema` narrows the operation family but still needs permission checks; it shares the `set` shape, including the agent-only `next` field that application rejects for a person.
+## The operations
 
-## Setting, notes and unlocks
+| `op`     | Fields                                                                    | Does                                                                             |
+| -------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `set`    | `ids`, `state`; optional `note`, `next`                                   | Sets the state of leaf steps. `next` marks one more step active.                 |
+| `note`   | `id`, `text`                                                              | Writes the note of a step. An empty text clears it.                              |
+| `unlock` | `ids`, or `'all'`                                                         | Makes every step only the agent checks, in those subtrees, a step anyone checks. |
+| `add`    | `type`, `title`; optional `id`, `description`, `checks`, `under`, `after` | Adds a section, text block or step.                                              |
+| `edit`   | `id`; optional `title`, `description`, `checks`                           | Changes an item. An empty description removes it.                                |
+| `move`   | `id`; optional `under`, `after`                                           | Moves an item with everything under it.                                          |
+| `remove` | `id`                                                                      | Removes an item with everything under it.                                        |
+| `meta`   | Optional `title`, `summary`, `status`, `checks`                           | Changes the plan's meta. An empty summary or status removes it.                  |
 
-State changes target leaves. Setting a section/text fails with `plan-not-a-step`; setting a parent fails with `plan-parent-state`. A person cannot set an agent-only leaf until it is unlocked. An agent cannot set a person-only leaf or change a different state last set by a person.
+`under` names the section or step to put an item in, and `after` the item it follows there. Without either the item goes last at the top; with only `after` it goes right after that item, beside it. A section only stands at the top, a text block not under a step, and nothing moves into itself.
 
-An agent's `set.next` activates another leaf in the same revision. Both the state targets and `next` pass the same permission checks. The operation does not deactivate unrelated active steps; multiple active leaves are allowed. A person cannot send `next`.
+A `set` only takes leaf steps: a parent's state follows from its children. Several active steps at once are fine; `next` does not end the others. When a person sets a step back to `open`, `by` and `at` go away, so a misclick does not leave a mark the agent has to respect. Adding the first sub-step to a step clears its state, as its children now decide it, and lists it in `dropped`.
 
-`set.note` applies the same note to each targeted leaf. A separate `note` can annotate any step regardless of check policy or person-set state. Empty note text removes the note.
+`PlanOpSchema` parses any operation and `PlanPersonOpSchema` only the three a person may send.
 
-`unlock` accepts a nonempty step-id array or `'all'`. It traverses each selected subtree, marking only steps whose effective checks are currently agent-only. Person-only steps remain person-only. The agent cannot relock an unlocked step, even by editing its stored `checks`; `unlocked` wins during resolution.
+## Permissions
 
-## Positioning and structural edits
+A person sends `set`, `note` and `unlock`. The agent sends everything except `unlock`: building the plan is the agent's job, and only a person can lift a lock.
 
-For `add` and `move`, absent `under` and `after` mean append at the top. `under` selects a section or step container; `after` chooses a sibling in that container. With only `after`, the item goes beside that item in its current container. If both are supplied, `after` must be directly under `under`.
+Who may set a step depends on [its checks](/plan/plans#who-checks-a-step):
 
-Sections can stand only at the top. Text can stand at the top or inside a section. Steps can stand at the top, in a section or under a step. An item cannot move into itself or a descendant, or after itself. Missing ids are refused; failed moves cannot remove anything from the input plan.
+| Checks   | A person                      | The agent                   |
+| -------- | ----------------------------- | --------------------------- |
+| `anyone` | Yes                           | Yes, unless a person set it |
+| `agent`  | Not until a person unlocks it | Yes, unless a person set it |
+| `person` | Yes                           | Never                       |
 
-Missing `add.id` is minted; supplied duplicates are refused. `checks` belongs only to a step, so adding/editing checks on text or a section is invalid. Adding the first child to a leaf clears its leaf attribution and returns its id in `dropped` if it had state. Removing the last child leaves an open leaf after empty-array pruning.
+A state a person set belongs to the person. The agent cannot change it, though it may set the same state again, which keeps the person's mark. Nor can the agent remove the step or anything holding it, rename it, or add a sub-step that would take its state away. A step only a person checks keeps its title and its checks and cannot be removed by the agent, even before anyone checked it, and `meta.checks` stays `person` while a step still takes its checks from it. Once a person unlocks a step, the agent cannot lock it again. Notes, descriptions and moves stay open to the agent.
 
-Empty descriptions, summary and status clear those optional fields. Missing edit fields leave the corresponding values unchanged. Operation objects strip unknown keys; use a stricter host request schema if accidental extra fields must be refused.
+`canApply(op, actor, plan)` answers the permission question for one operation without applying it, to grey out a control. Whether the result is a valid plan is only known after `applyPlanOps`. `canDeletePlan(plan, actor)` refuses an agent that would delete a plan holding a state a person set. Deleting a plan is the app's to do.
 
-## Protecting a person's decision
+## Refusals
 
-An agent cannot change a person's state, change the title of a step containing person-set state, remove an item containing person-set state or turn a person-set leaf into a parent. Repeating a person's exact state preserves attribution and is allowed when effective checks permit the agent to set it.
+A refusal is a `PlanRefusal`, `{ ok: false, code, message }`. The message names the item and reads well enough to pass to an agent, which can correct its next batch from it. `PlanVerdict` is a refusal or `{ ok: true }`, and `refuse(code, message)` builds one for the app's own checks.
 
-A person-only step's title and check ownership are protected even before anyone sets its state. Removing it or an ancestor is refused. Changing metadata away from a person-only default is refused while any locked step inherits that default.
+| `PlanRefusalCode`    | When                                                                       |
+| -------------------- | -------------------------------------------------------------------------- |
+| `op-not-allowed`     | The actor may not send this operation, or a person sent `next`             |
+| `step-locked`        | A person set a step only the agent checks                                  |
+| `person-only`        | The agent touched a step only a person checks                              |
+| `set-by-person`      | The agent would change or remove what a person set                         |
+| `unlocked-by-person` | The agent tried to lock a step a person unlocked                           |
+| `plan-missing-item`  | An id names no item                                                        |
+| `plan-not-a-step`    | A step operation named a section or text block                             |
+| `plan-parent-state`  | A state was set on, or stored on, a step with sub-steps                    |
+| `plan-bad-position`  | `under` or `after` puts an item where it cannot stand                      |
+| `duplicate-id`       | An id is taken                                                             |
+| `plan-too-deep`      | Steps nest deeper than 5                                                   |
+| `plan-too-large`     | The plan holds more than 300 items                                         |
+| `plan-invalid`       | The operations, the draft or the result do not fit the schema              |
+| `plan-not-found`     | Not returned by the package: for an app that looks plans up                |
+| `too-many-plans`     | Not returned by the package: for an app that limits plans per conversation |
 
-Descriptions, notes and moves have different rules from titles and removal. For example, an agent can move a checked subtree if the destination does not erase another protected leaf state. A host that needs broader approval or immutability rules must add them explicitly.
+## In a store
 
-`canDeletePlan(plan, actor)` protects whole-plan deletion from an agent only when the plan holds person-set state. It does not refuse deletion solely because an unset leaf is person-only. Collection access and deletion authorization remain host responsibilities.
+Because operations carry no base revision, a store applies each batch to the latest plan inside one transaction, or one queue per plan:
 
-## Refusal reference
+```ts
+import { applyPlanOps, refuse, type PlanApplied, type PlanRefusal } from '@adecore/plan';
+import type { PlanActor, PlanOp } from '@adecore/plan/protocol';
 
-| Code                              | Meaning                                                          |
-| --------------------------------- | ---------------------------------------------------------------- |
-| `person-only`                     | Operation would bypass person-only checks or protected ownership |
-| `set-by-person`                   | Operation would change or remove a person's state/meaning        |
-| `unlocked-by-person`              | Agent tried to relock a person's unlock                          |
-| `step-locked`                     | Person tried to set an agent-only step before unlocking          |
-| `op-not-allowed`                  | Actor cannot use this operation or `next`                        |
-| `plan-missing-item`               | Named item does not exist                                        |
-| `plan-not-a-step`                 | A step-only operation targeted another kind                      |
-| `plan-parent-state`               | Parent state was supplied or directly targeted                   |
-| `plan-bad-position`               | Invalid parent/sibling relationship or self move                 |
-| `duplicate-id`                    | An item id is already taken                                      |
-| `plan-too-deep`, `plan-too-large` | Whole-tree depth or item limit exceeded                          |
-| `plan-invalid`                    | Schema/draft/batch shape is invalid                              |
+async function update(id: string, ops: PlanOp[], actor: PlanActor): Promise<PlanApplied | PlanRefusal> {
+    return store.transaction(async (latest) => {
+        const plan = await latest(id);
+        return plan ? applyPlanOps(plan, ops, { actor, now: new Date().toISOString() }) : refuse('plan-not-found', `No plan "${id}"`);
+    });
+}
+```
 
-`PlanRefusalCode` also includes `plan-not-found` and `too-many-plans` for host-owned lookup/collection refusal paths. The core does not maintain a collection that could emit them by itself. `refuse(code, message)` builds the common shape.
+`store` stands for the app's own storage, which saves `result.plan` only when the result is `ok`. Tell the page about the change after the commit, not before. A custom `mintId` may be called for a batch that is refused later, so it must not write anything.

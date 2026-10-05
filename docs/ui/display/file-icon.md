@@ -8,18 +8,18 @@ import { FILE_TREE_ICONS, FileIcon } from '@adecore/ui';
 
 <Demo src="display/file-icon" />
 
-The glyphs are those of [Seti UI](https://github.com/jesseweed/seti-ui), which knows some 150 file types, and their colors are Seti's own, through the `--file-icon-*` tokens of the [theme](/ui/guide/theme#file-icons). A TypeScript blue or a Vue green is the mark of the file type, not a theme choice. Only the last segment of the path decides which icon it is: its whole name first, then a part of it, then its longest extension. The sprite with every glyph goes into the document once, before the first icon paints.
+The glyphs are those of [Seti UI](https://github.com/jesseweed/seti-ui), and so are their colors, through the `--file-icon-*` tokens of the [theme](/ui/guide/theme#file-icons): a TypeScript blue or a Vue green is the mark of the file type, not a theme choice. Only the last segment of the path decides which icon it is, first by its whole name (`package.json`), then by a part of it (`Dockerfile.dev`), then by its longest extension (`spec.ts` before `ts`). Anything else gets the generic file icon. The sprite with every glyph goes into the document once, before the first icon paints. The icon is decorative and hidden from screen readers.
 
 ## With a file tree
 
-A `@pierre/trees` tree resolves its own icons inside its shadow root. Hand it `FILE_TREE_ICONS` as its icon configuration: the sprite goes into the tree with the rules that color it, so the tree and every `FileIcon` beside it use the same set and never disagree about a file.
+A [`FileTree`](/ui/display/file-tree) resolves its own icons inside its shadow root, and `useFileTree` hands it `FILE_TREE_ICONS` already. Pass `FILE_TREE_ICONS` as the `icons` option yourself only when you build a `@pierre/trees` model without `useFileTree`, so the tree and every `FileIcon` beside it use the same set.
 
 ## Props
 
 | Prop | Type | Default | |
 | --- | --- | --- | --- |
 | `path` | `string` | | Required. Absolute or relative. |
-| `size` | `number` | `16` | |
+| `size` | `number` | `16` | In pixels. |
 | `className` | `string` | | |
 | `ref` | `Ref<SVGSVGElement>` | | |
 

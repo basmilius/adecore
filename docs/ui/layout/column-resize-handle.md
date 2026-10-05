@@ -8,15 +8,15 @@ import { ColumnResizeHandle, useColumnResize } from '@adecore/ui';
 
 <Demo src="layout/column-resize-handle" fill />
 
-`from` is the edge the column hangs from, the same value you hand the hook; the handle sits on the opposite edge. A column pinned to the left gets its handle on the right, and the cursor says which way it drags.
+`from` is the edge the column hangs from, the same value you hand the hook; the handle is an 8 pixel strip on the opposite edge, with a resize cursor. It takes the pointer only and is not in the tab order, so a size that has to be reachable from the keyboard needs another way in, such as a setting.
 
 ## Props
 
-| Prop | Type | |
-| --- | --- | --- |
-| `from` | `ColumnEdge` | Required. `'left' \| 'right' \| 'top' \| 'bottom'` |
-| `onPointerDown` | `(event: PointerEvent) => void` | Required. `startResize` from the hook. |
-| `className` | `string` | |
-| `ref` | `Ref<HTMLDivElement>` | |
+| Prop | Type | Default | |
+| --- | --- | --- | --- |
+| `from` | `ColumnEdge` | | Required. `'left' \| 'right' \| 'top' \| 'bottom'` |
+| `onPointerDown` | `(event: PointerEvent) => void` | | Required. `startResize` from the hook. |
+| `className` | `string` | | |
+| `ref` | `Ref<HTMLDivElement>` | | |
 
-The handle takes the pointer only; give a column a keyboard way to change its size elsewhere, such as a menu item or a setting, if that matters in your app. `ColumnResizeHandleProps` is an exported type.
+`ColumnResizeHandleProps` is an exported type.

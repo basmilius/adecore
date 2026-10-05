@@ -1,58 +1,33 @@
-# PHP language server
+# @adecore/php-language-server
 
-`@adecore/php-language-server` contains a native PHP language server and its standalone Cargo workspace. PHP 8.1 through 8.5, Composer indexing, completion, navigation, rename, inspections, formatting, refactors, PHPUnit, Pest, Laravel and Symfony come from the transferred implementation. The package remains private at `0.0.0`; the native binary reports `0.1.0`.
+A language server for PHP 8.1 through 8.5, written in Rust, that speaks LSP over stdio. It indexes a project with its Composer packages and the standard library, and answers completion, hover, navigation, usages, rename, inspections with fixes, refactors, formatting, semantic tokens, inlay hints and the tests a file can run, with support for PHPUnit, Pest, Laravel and Symfony. It reads code and never runs it.
+
+The npm package holds the Cargo workspace and a small Node entry point that finds the source and a built binary. It downloads, builds, installs and starts nothing.
 
 ```ts
-import {
-    PHP_LANGUAGE_SERVER_METADATA,
-    phpLanguageServerSourcePath,
-    phpLanguageServerBinaryPath,
-    type PhpLanguageServerRelease,
-    type PhpLanguageServerAsset,
-    type PhpLanguageServerPlatform,
-    type PhpLanguageServerBinaryOptions
-} from '@adecore/php-language-server';
+import { phpLanguageServerBinaryPath } from '@adecore/php-language-server';
 
-const sourcePath = phpLanguageServerSourcePath();
-const executable = phpLanguageServerBinaryPath({ sourcePath });
+const executable = phpLanguageServerBinaryPath(); // a release build of the bundled workspace, or null
 ```
 
-The Node entry point locates bundled source or an existing release build. It does not install, download or start anything. `PHP_LANGUAGE_SERVER_METADATA` records the native version, stubs commit and original handoff revision. `PhpLanguageServerBinaryOptions.targetDirectory` supports `CARGO_TARGET_DIR`. Executables inside an Electron archive must be unpacked by the host.
+## What is in it
 
-## Handbook
+- [Getting started](/php-language-server/getting-started): build the server, find it, start it and connect with [`@adecore/lsp`](/lsp/).
+- [Configuration](/php-language-server/configuration): the settings, the language level, Composer, the standard library stubs, the cache and the formatter.
+- [Features](/php-language-server/features): what it answers, the frameworks it knows, and runnable tests.
+- [Distribution](/php-language-server/distribution): the release archives per platform and the descriptor an installer pins.
+- [Maintaining](/php-language-server/maintaining): the crates, the checks and the corpus.
 
-- [Getting started](/php-language-server/handbook/getting-started)
-- [Distribution and native metadata](/php-language-server/handbook/distribution)
-- [Server and document lifecycle](/php-language-server/handbook/lifecycle)
-- [Configuration, Composer and stubs](/php-language-server/handbook/configuration)
-- [PHP features](/php-language-server/handbook/features)
-- [Frameworks and test support](/php-language-server/handbook/frameworks)
-- [Maintaining and validating](/php-language-server/handbook/maintainers)
+## Versions
 
-## Validation
+The npm package follows the version of every `@adecore` package. The server has a version of its own, `0.1.0`, which `php-language-server --version` prints and `PHP_LANGUAGE_SERVER_METADATA.version` holds. Check the binary against the second.
 
-JavaScript builds independently of native compilation. In `packages/php-language-server`, run `bun run build`, `bun run typecheck` and `bun run test`. Native validation uses:
+## Limits
 
-```sh
-cargo fmt --all --check
-cargo clippy --locked --all-targets -- -D warnings
-cargo test --locked
-cargo build --release --locked
-python3 scripts/handshake.py target/release/php-language-server
-```
+- Twig has no language model, and Blade only a minimal one: no `@foreach` scope, props, slots or component attributes.
+- Livewire, Inertia, DQL and the Doctrine query builder, Eloquent query strings and validation rule strings are not analyzed.
+- Usages are found in the project, not in installed packages, and not in ordinary strings and comments. There is no reference index kept on disk.
+- Composer autoloading is read from PSR-4 and PSR-0; an authoritative classmap and `files` are not looked up by name. `@psalm-type` aliases are not read.
+- Dynamic code, such as variable variables and members made at run time, gives `mixed`.
 
-The handshake runs a real process over framed stdio and checks initialization, UTF-8 negotiation, document symbols and clean shutdown. No external PHP interpreter, stubs download or fixed delay is required. Corpus tests skip when their separately downloaded fixtures are absent. The package's `NATIVE.md` retains the corpus instructions, measurements and full roadmap.
-
-## Distribution and host responsibilities
-
-`native-source.json` lists macOS arm64/x64, Linux arm64/x64 and Windows x64 targets. The dedicated native workflow validates these builds. Manual artifact generation against an existing release tag produces platform archives, SHA-256 sidecars and `php-language-server-release.json`. The shared release workflow calls the native workflow with the exact release tag, verifies the descriptor identity and attaches these assets before npm publication. An application must pin an actual published descriptor; no release assets have been published as part of this extraction.
-
-`PhpLanguageServerRelease` uses the binary's version, stubs commit and per-platform `PhpLanguageServerAsset` records. Each asset includes `url`, `sha256`, `format` and `executable`. Generated descriptors add the shared Adecore version and exact build source commit. Cargo's source version remains independent of the shared npm release series during this migration.
-
-A development host supplies an explicit source folder or uses `phpLanguageServerSourcePath()` instead of detecting a sibling application checkout. An installed host passes a pinned descriptor to its existing native installer. The host still decides when the user may install, verifies checksums before extraction, enforces custom-server permissions, keeps its existing cache and manages each project's server process. Supply `storagePath` and the pinned `stubsPath` through LSP initialization options.
-
-## Remaining work
-
-The transfer preserves the server's current limits. Twig and Blade still need complete language models. Livewire, Inertia, DQL and query strings, Composer classmap/files support, PHPDoc aliases and a persistent reference index remain pending. Usages in installed packages and names embedded in ordinary strings are not resolved today. See the complete roadmap in the native workspace guide before relying on an unfinished feature.
-
-The native workspace declares MIT. External phpstorm-stubs and php-src corpora are downloaded separately and retain their upstream licenses. Keep the consumer's original implementation until its complete editor and daemon cutover passes validation, including an installed binary outside a development checkout.
+`NATIVE.md` in the package describes the implementation, measurements and the full list of what is left. The server is MIT. The phpstorm-stubs it downloads are Apache 2.0 and keep their license; see `THIRD-PARTY.md`.

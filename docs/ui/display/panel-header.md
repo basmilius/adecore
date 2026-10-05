@@ -10,4 +10,4 @@ import { PanelHeader } from '@adecore/ui';
 
 `title` draws the name as a [`SectionLabel`](/ui/display/section-label). Leave it out when you lay out the name yourself. Put a growing spacer between the name and the controls to push them to the end.
 
-`PanelHeader` renders a `<header>` and takes its props, `title?: ReactNode`, `className`, `ref` and `render`. `PanelHeaderProps` is an exported type.
+`PanelHeader` renders a `<header>` with a border along its bottom and takes its props, plus `title?: ReactNode` and `render`. `PanelHeaderProps` is an exported type.

@@ -26,11 +26,11 @@ const spec: MenuSpec<ShellAction> = {
 
 | Kind | What the shell draws |
 |---|---|
-| `command` | An item that sends its `id` back. `checked` makes it a check box, `radio` one of a group. |
+| `command` | An item that sends its `id` back. `checked` makes it a check box, `radio` one of a group, and `enabled: false` greys it out. `keys` is the shortcut as the page prints it, for a menu the page draws itself; the shell ignores it. |
 | `role` | A native role from `MENU_ROLES`, with the page's label. |
 | `shell` | Something only the shell can carry out. The type parameter lists an app's own actions. |
 | `separator` | A line. |
-| `submenu` | A nested menu. |
+| `submenu` | A nested menu, which `enabled: false` greys out. |
 
 ## Drawing it
 
@@ -44,6 +44,7 @@ const runCommand = createMenuCommands({ pageKeys, window: () => BrowserWindow.ge
 
 window.webContents.on('before-input-event', (_event, input) => pageKeys.saw(input));
 
+// The app's own handler, behind its check of the sender.
 onFromApp('menu:set', (_event, spec: MenuSpec<ShellAction>) => {
     const template = menuTemplateOf(spec, {
         run: runCommand,
@@ -60,7 +61,7 @@ Off macOS an accelerator is only shown, never registered: a registered one would
 
 ## A key the page already had
 
-On macOS the menu fires its accelerator even when the page answered the key itself. `createMenuCommands` drops a command Electron says its accelerator fired when the page had a key with Cmd or Ctrl in the last `PAGE_KEY_MS`, as `createPageKeys` saw it. A pick with the mouse, through accessibility or from inside the open menu always runs.
+On macOS the menu fires its accelerator even when the page answered the key itself. `createMenuCommands` drops a command Electron says its accelerator fired when the page had a key with Cmd or Ctrl in the last `PAGE_KEY_MS`, as `createPageKeys` saw it. A mouse pick always runs. Electron reports a pick through accessibility or with the keyboard inside the open menu as fired by its accelerator too, so those run unless the page had such a key in that time.
 
 `keyBypassesPage` covers a page inside the app that never hands a key on, such as a `<webview>`: while it has the keyboard, the menu answers every key. A command reaches the page as `menu:run` with its id. Only a minimized window is shown first, so a pick from behind other work leaves the app where it is.
 
@@ -84,3 +85,5 @@ Menu.setApplicationMenu(
 ```
 
 `appItems` go at the top of the app menu on macOS; `quitItems` go right above Quit, in a File menu off macOS.
+
+`MenuTemplateOptions`, `MenuCommandOptions`, `MenuWindow` (the part of a window a command reaches), `StaticMenuOptions`, `PageKey` and `PageKeys` are exported types.

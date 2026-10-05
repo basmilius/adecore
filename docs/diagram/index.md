@@ -1,18 +1,38 @@
 # @adecore/diagram
 
-Schemas and deterministic layout for directed graphs with optional groups. The package computes node boxes, orthogonal edge routes, labels and bounds, then produces SVG or plain reading-order lines. It has no DOM or canvas state.
+Directed graphs that are written rather than drawn. A diagram file says which nodes exist, which groups hold them and what points at what; the package computes where everything goes, routes the edges, and writes the result as SVG or as lines of text. The same file always gives the same picture, so an agent can write a diagram without placing a single box.
 
-Use diagrams when the document should describe connections directly. Use [drawing](/drawing/) when people need freehand elements and arbitrary shapes. Diagram shares drawing's palette names, geometry types and export defaults through an explicit runtime dependency.
+```sh
+bun add @adecore/diagram
+```
 
-The package is private at `0.0.0` pending initial publication. Its transferred code retains [FSL-1.1-MIT](https://github.com/basmilius/adecore/blob/main/packages/diagram/LICENSE). Zod validates structure; a separate graph check validates ids, references and limits.
+```ts
+import { layoutOf, readingOrder, toSvg } from '@adecore/diagram';
+import { diagramProblemIn, migrateDiagram } from '@adecore/diagram/protocol';
 
-## Read the documentation
+const diagram = migrateDiagram(JSON.parse(file));
+const problem = diagram && diagramProblemIn(diagram);
+if (diagram === null || problem) {
+    throw new Error(problem ?? 'Not a diagram');
+}
 
-- [Getting started](./getting-started) validates a graph and exports a reused layout.
-- [Layers, groups and layout](./layout) explains cycles, ordering, directions, routes and pinned positions.
-- [Painting and reading output](./rendering) covers shapes, text positions, SVG options and reading order.
-- [API reference](./api) groups every root export.
-- [Diagram protocol](./protocol) describes schemas and graph checks.
-- [Integration, migration and testing](./migration) covers persistence, host boundaries and troubleshooting.
+const layout = layoutOf(diagram);
+const svg = toSvg(diagram, { layout });
+const lines = readingOrder(diagram);
+```
 
-The [standalone graph example](https://github.com/basmilius/adecore/blob/main/packages/diagram/examples/export-graph.ts) runs without a UI. A host provides dragging, selection, fonts, theme resolution, editing permissions and storage.
+<Demo src="canvas/diagram-layout" />
+
+The dashed edge from `Approved?` back to `Commit` closes a cycle. The layout ranks the nodes without it and still draws it. Under the diagram are the lines `readingOrder` writes for the same file.
+
+## What is in it
+
+- [Documents](/diagram/documents): the schemas of nodes, groups and edges on `@adecore/diagram/protocol`, and `diagramProblemIn`, which checks what a schema cannot.
+- [Layout](/diagram/layout): how `layoutOf` ranks, orders and places nodes, wraps groups around them and routes edges, and what a node a person dragged does.
+- [Painting and reading](/diagram/rendering): `toSvg`, the shape and text helpers for a painter of your own, and `readingOrder`.
+
+The package depends on [`@adecore/drawing`](/drawing/) for its palette names, its `Point` and `Rect` and its default colors, so a diagram follows a theme the way a drawing does. The protocol entry point loads Zod and the drawing protocol, without the layout or the renderer.
+
+## What the app does
+
+The package keeps no state. The app owns storage and the `rev` check on save, dragging (which writes a node's `pos`), selection, and the colors and font it paints in.

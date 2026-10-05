@@ -1,10 +1,10 @@
-# Durable coordination
+# Coordination
 
-A plain `AgentHost` does not install tasks, messages, lineage, or a context endpoint. Compose these modules when your consumer supports agents assigning work to each other. Persist their stores outside the agent-writable project and enforce ownership before invoking a verb.
+Modules for agents that hand each other work: an outbox that keeps a promise across restarts, tasks between a chat and the chats it opened, the lineage of who opened whom, and messages between chats. A plain `AgentHost` installs none of them; a host that lets agents work together composes them around its core. Keep their files outside every folder an agent can write to, and check who may do what before a call reaches them.
 
 ## Outbox
 
-`OutboxStore` keeps one validated record per owed operation under `outbox/`. `OutboxWorker` executes operations oldest first per target; separate targets can run concurrently. `enqueue` resolves when work is on disk, not when its handler finishes.
+`OutboxStore` keeps one record per thing owed, validated by a Zod schema of the work, under `outbox/` in the data folder. `OutboxWorker` runs them oldest first per target, different targets side by side. `enqueue` resolves once the work is on disk, not once it ran.
 
 ```ts
 import { z } from 'zod';
@@ -38,15 +38,13 @@ export async function runOutboxExample(dataDir: string): Promise<string[]> {
 }
 ```
 
-The in-memory result handler is idempotent within this fixture. Production handlers need idempotence across restarts: if an operation succeeds before its record is removed, it can run again after a crash. Use entry ids or domain operation ids in your destination store.
+A handler that throws is tried again after 1, 5 and 30 seconds (`RETRY_DELAYS_MS`); after that the entry is removed and handed to `onParked`, which is where a record of the failure belongs. A handler that answers `'wait'` keeps its entry, without using an attempt, until `wake(target)`. A handler can run again after a crash, when it finished before its entry was removed, so make it idempotent: key what it writes on the entry's id.
 
-A thrown handler retries after 1, 5, and 30 seconds. The next failure removes the entry, logs it, and calls `onParked`; parking is not a retained dead-letter file. Persist your own failure record there if needed. Returning `'wait'` retains work without consuming an attempt and waits for `wake(target)`. Waiting entries and newly scheduled future work hold no lane; retries retain ordering for their target. `lanesOf` can name additional resources held by running work. `outlivesTarget` preserves shutdown work when `prune` drops a removed target.
+`stop()` schedules nothing more but does not interrupt a handler that runs; `settled()` waits for those, not for retries or waiting entries. `ManualClock` moves time by hand in a test.
 
-`worker.stop()` cancels future scheduling but does not abort an in-flight handler. Await `settled()` to drain running work; it excludes future retries and entries waiting for a wake. Keep handler cancellation and service shutdown explicit in the host.
+## Tasks
 
-## Wire tasks
-
-The following function is a complete task adapter for an existing `ChatCore`. The `placedIds` set and alert collection stand in for host placement and notification services. It adds all four task work kinds to one outbox, recovers persisted obligations before starting, and exposes task verbs.
+A task is what a chat asked of a chat it opened. `TaskStore` keeps them under `tasks/`, and `wireTasks` puts the parts together over a core and an outbox: the coordinator that settles tasks, the outbox work that starts and wakes chats, and the verbs a context command calls. This is all of it, with your app's placement and notifications stood in for by a set and an array:
 
 ```ts
 import { z } from 'zod';
@@ -102,28 +100,22 @@ export async function openTaskServices(dataDir: string, chats: ChatCore, placedI
 }
 ```
 
-`verbs.open(record)` records a task for a newly opened child; the consumer still owes starting that child. `verbs.give(record)` records a task and owes a turn to a child that already exists. `verbs.done(childId, text)` explicitly settles its open task. `chatState` distinguishes missing, idle, and running chats; `involving` lists parent/child tasks.
+- `verbs.open(record)` records a task for a chat the caller just opened; starting that chat is yours. `verbs.give(record)` gives a task to a chat that exists and owes it the turn that carries it. `verbs.done(childId, text)` settles the child's open task, `chatState(nodeId)` says whether a chat is missing, idle or running, and `involving(nodeId)` lists its tasks.
+- A task settles when the child says it is done, when its first turn ends, or when its process leaves. A subagent or workflow of the child's CLI that still runs keeps it open; a background command for at most 30 minutes. A child that waits out a usage limit stays open and wakes nobody.
+- A settled task wakes its parent once the parent has no turn running; tasks of one `batchId` wake it together. The wake carries the first 8 KiB of the result, and `words.restOf(childId)` says where the rest is read.
+- A child's approval or question that waits 15 seconds leaves a note in the parent, without starting a turn there.
+- `prune(projectId, ids)` cancels the tasks of chats your app removed, rather than failing them.
 
-A task normally settles on the child's final answer or explicit completion, but native background subagents/workflows hold it open. Background shell/monitor commands hold it for at most 30 minutes. A restart converts persisted background command limits into immediate restart failures. Usage/overload pauses remain open when recovery is owed.
+`TaskStore.subscribe` tells you of every task written; send it over your own protocol as `TaskChangedEventSchema`. `wireTasks` watches the core for the life of the core: wire it once per core.
 
-A settled task wakes its parent once the parent has no active turn. Tasks with the same `batchId` wake it together. Wake results are clipped to an 8 KiB text budget; supply `words.restOf(childId)` for the remaining result location. `words.assignment` supplies host assignment wording. A child approval/question that stays pending for 15 seconds leaves a note in the parent without opening a parent turn.
+## Lineage
 
-`TaskStore.subscribe` emits `task.changed` through a consumer-owned transport. This event is separate from the standard agent schema table. `prune(projectId, ids)` cancels tasks involving removed nodes rather than reporting a child failure. `coordinator.startFailed`/`agentEnded` let the host report failed launch or terminal-agent exit.
+`AgentLineageStore` keeps under `lineage/` which chat opened which, at what depth, in which project, with which ceiling on its runtime mode, and when it ended. A fork a person made is recorded with `relation: 'fork'` and is no descendant of the chat it came from. `depthOf` and `openedCount` let your app cap how deep and how many; the store caps nothing itself. `ceilingForOpening(opener, requested)` refuses a mode wider than the opener's: keep the ceiling it answers and clamp later starts with `narrowerMode`, so a restart never widens an agent.
 
-`wireTasks` installs observers for the supplied core and store and returns no unsubscription for them. Use one task wiring for that core's lifetime; the example's close stops timers/work but does not support repeatedly mounting a new task wiring on the same live core. Dispose the containing host after closing task services.
-
-## Lineage and descendant shutdown
-
-`AgentLineageStore` records opener, depth, project, mode ceiling, and end marks under `lineage/`. `relation: 'fork'` represents a person-created sibling and excludes that node from ordinary opened-agent descendants. The host decides recursion and per-caller caps using `depthOf` and `openedCount`; the store itself imposes no numeric cap.
-
-`ceilingForOpening` refuses a requested mode wider than the opener's. Persist its returned ceiling and clamp later starts with `narrowerMode` so a restart cannot widen an agent's permission.
-
-`endChildren` requires lineage, tasks, outbox, an idempotent `stop(nodeId, reason)`, and host cleanup. Add `EndChildrenWorkSchema` to your outbox, keep its entry through target pruning, and assign lanes for all named descendants. `owe(target)` persists descendant shutdown first. Its handler marks lineage ended, removes reviving work, cancels tasks/drops parent wakes, then stops descendants deepest first. Add every host work kind that can revive an agent to `reviving`, including message or resume work if you use it.
+`endChildren` ends the chats a chat opened, and theirs. Add `EndChildrenWorkSchema` to the outbox; `owe(target)` writes the obligation first, and its handler marks the lineage ended, removes work that would start them again, cancels their tasks, and stops them deepest first through your `stop(nodeId, reason)`. List every kind of work of your own that would start a chat again in `reviving`.
 
 ## Messages
 
-`NoticeStore` retains at most ten notices per receiver for six hours under `notices/`. `take` consumes the model's queue once; `show` independently marks notices displayed to a person. Await `settled()` after a synchronous `take` when you need its file removal to finish.
+`NoticeStore` keeps the messages waiting for a chat under `notices/`, at most ten per chat and for six hours. `take` hands them to the model once; `show` marks them seen by a person, independently.
 
-After checking sender/receiver permissions, call `deliverToChat(store, chatNoticeTargets(core), notice)`. Outcomes are `wake`, `no-chat`, `in-turn`, and `from-message`; only `wake` owes a `DeliverMessageWorkSchema` entry. Busy or unopened chats read the queue before their next prompt. A turn opened by a message cannot wake another chat with its own message, preventing reciprocal wake loops.
-
-Integrate `NoticeNotes` through `promptNotesFor`, `unshownNotes` through `opened`, and `showNotices` for immediate human-visible delivery. `deliverMessageHandler` uses a host `chat` opener, `placed` check, and `MessageWords.prompt`/`label`. `heard` and `shown` also belong to `MessageWords`. A message handler makes one attempt to open a turn; if the chat is now busy, its next ordinary prompt consumes the notices. Terminal delivery and authorization remain host operations.
+After you checked who may write to whom, `deliverToChat(store, chatNoticeTargets(core), notice)` stores a message and answers what happens next: `wake` owes a turn (put a `DeliverMessageWorkSchema` entry in the outbox, handled by `deliverMessageHandler`), `no-chat` and `in-turn` leave it for the chat's next prompt, and `from-message` means the turn writing it was itself started by a message, which never wakes another chat, so two chats cannot wake each other forever. `NoticeNotes` hands waiting messages to the next prompt through `promptNotesFor`, and `unshownNotes` and `showNotices` show them to a person.

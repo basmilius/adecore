@@ -27,7 +27,7 @@ app.on('before-quit', () => windowState.flush());
 
 ## When it writes
 
-Half a second after a window stops moving or resizing, at once when it closes, and on `flush`, for the moment the app quits. The bounds are always the window's normal ones, so a window that was maximized comes back maximized, and at its own size once a person unmaximizes it.
+Half a second (`delayMs`) after a window stops moving or resizing, at once when it closes, and on `flush`, for the moment the app quits. `setTimeout` and `clearTimeout` replace the timer in a test. The bounds are always the window's normal ones, so a window that was maximized comes back maximized, and at its own size once a person unmaximizes it.
 
 ## Displays that changed
 
@@ -35,4 +35,6 @@ A display that was unplugged or rearranged would leave saved bounds off screen. 
 
 ## Storage
 
-`fileStorage` writes one JSON file through a file beside it, so a crash halfway leaves the last whole one. A file that does not parse, from another version, or with an entry that is not whole pixels is read as far as it holds; the rest opens at the default.
+`fileStorage` writes one JSON file through a file beside it, so a crash halfway leaves the last whole one. A file that does not parse or comes from another version counts as a first start. An entry whose bounds are not whole pixels is skipped, and that window opens at the default. Any `WindowStateStorage`, an object with `read()` and `write(text)`, can stand in for the file.
+
+`WindowStateOptions`, `WindowState`, `SavedWindow`, `StateWindow` (the part of a `BrowserWindow` it uses), `WindowDisplay` and `WindowSize` are exported types.

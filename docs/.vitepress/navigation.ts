@@ -70,18 +70,13 @@ const desktopUi: DefaultTheme.SidebarItem[] = [
         ['Banner', '/ui/display/banner'],
         ['ErrorBoundary', '/ui/display/error-boundary']
     ]),
-    group('FileTree', [
-        ['Overview', '/ui/display/file-tree'],
-        ['Getting started', '/ui/display/file-tree/getting-started'],
+    group('FileTree and Tree', [
+        ['FileTree', '/ui/display/file-tree'],
         ['Models, loading and expansion', '/ui/display/file-tree/models-loading'],
         ['Interaction and row controls', '/ui/display/file-tree/interaction-controls'],
-        ['Reference and migration', '/ui/display/file-tree/reference']
-    ]),
-    group('Tree', [
-        ['Overview', '/ui/display/tree'],
-        ['Getting started', '/ui/display/tree/getting-started'],
-        ['Integrating a custom model', '/ui/display/tree/model-integration'],
-        ['Part reference', '/ui/display/tree/reference']
+        ['FileTree reference', '/ui/display/file-tree/reference'],
+        ['Tree', '/ui/display/tree'],
+        ['Tree reference', '/ui/display/tree/reference']
     ]),
     group('Layout', [
         ['Tabs', '/ui/layout/tabs'],
@@ -171,175 +166,160 @@ export const sidebar: DefaultTheme.SidebarMulti = {
     '/agent-contracts/': [
         group('Agent contracts', [
             ['Overview', '/agent-contracts/'],
-            ['Getting started', '/agent-contracts/getting-started'],
-            ['Frames and events', '/agent-contracts/frames-and-events'],
-            ['Conversation content', '/agent-contracts/conversation'],
+            ['Protocol', '/agent-contracts/protocol'],
+            ['Conversation', '/agent-contracts/conversation'],
             ['Providers and accounts', '/agent-contracts/providers-and-accounts'],
-            ['Tasks and usage', '/agent-contracts/tasks-and-usage'],
-            ['Validation and compatibility', '/agent-contracts/validation-and-compatibility']
+            ['Tasks and usage', '/agent-contracts/tasks-and-usage']
         ])
     ],
     '/agents/': [
         group('Agents', [
             ['Overview', '/agents/'],
             ['Getting started', '/agents/getting-started'],
-            ['Transport', '/agents/transport'],
-            ['Host integration', '/agents/host-integration'],
-            ['Providers and models', '/agents/providers-and-models'],
-            ['Turns and requests', '/agents/turns-and-requests'],
-            ['Accounts and environment', '/agents/accounts-and-environment'],
-            ['Durable coordination', '/agents/coordination'],
+            ['Host', '/agents/host'],
+            ['Chats and turns', '/agents/chats'],
+            ['Providers', '/agents/providers'],
+            ['Accounts and usage', '/agents/accounts'],
+            ['Coordination', '/agents/coordination'],
             ['Context commands', '/agents/context-commands'],
-            ['Persistence and helpers', '/agents/persistence-and-helpers'],
-            ['Testing and troubleshooting', '/agents/testing-and-troubleshooting'],
-            ['Public entrypoints', '/agents/entrypoints'],
-            ['Migration', '/agents/migration']
-        ])
+            ['Storage', '/agents/storage'],
+            ['Testing', '/agents/testing']
+        ]),
+        group('Reference', [['Modules', '/agents/reference']])
     ],
     '/agents-react/': [
         group('Agent views', [
             ['Overview', '/agents-react/'],
-            ['Installation and setup', '/agents-react/getting-started'],
-            ['Host adapters', '/agents-react/host'],
-            ['Chat state and lifecycle', '/agents-react/chat-lifecycle']
+            ['Getting started', '/agents-react/guide/getting-started'],
+            ['Host adapters', '/agents-react/guide/host'],
+            ['Chat client and state', '/agents-react/guide/chat-client'],
+            ['Persistence', '/agents-react/guide/persistence'],
+            ['Testing', '/agents-react/guide/testing']
         ]),
         group('Chat', [
-            ['Composer', '/agents-react/composer'],
-            ['Attachments and mentions', '/agents-react/attachments'],
-            ['Messages and timeline', '/agents-react/timeline'],
-            ['Approvals and tasks', '/agents-react/approvals-tasks']
+            ['Timeline', '/agents-react/chat/timeline'],
+            ['Composer', '/agents-react/chat/composer'],
+            ['Prompts', '/agents-react/chat/prompts'],
+            ['Messages and code', '/agents-react/chat/messages'],
+            ['Diffs', '/agents-react/chat/diffs'],
+            ['Subagents', '/agents-react/chat/subagents'],
+            ['Limits', '/agents-react/chat/limits'],
+            ['Chat parts', '/agents-react/chat/parts'],
+            ['Attachments and mentions', '/agents-react/chat/attachments']
         ]),
-        group('Providers and usage', [
-            ['Accounts and models', '/agents-react/accounts-models'],
-            ['Usage', '/agents-react/usage']
+        group('Providers', [
+            ['ProvidersPane', '/agents-react/providers/providers-pane'],
+            ['Model picker', '/agents-react/providers/model-picker'],
+            ['Agent marks', '/agents-react/providers/marks']
         ]),
-        group('Integration', [
-            ['Persistence', '/agents-react/persistence'],
-            ['CSS, theme, and translations', '/agents-react/styling'],
-            ['Testing', '/agents-react/testing'],
-            ['Migration', '/agents-react/migration'],
-            ['Troubleshooting', '/agents-react/troubleshooting']
+        group('Usage', [
+            ['UsagePage', '/agents-react/usage/usage-page'],
+            ['Charts and tiles', '/agents-react/usage/charts'],
+            ['Plan limits', '/agents-react/usage/limits']
         ]),
-        group('Reference', [
-            ['Runtime', '/agents-react/reference-runtime'],
-            ['Chat', '/agents-react/reference-chat'],
-            ['Settings', '/agents-react/reference-settings']
-        ])
+        group('Reference', [['Modules', '/agents-react/reference']])
     ],
     '/merge/': [
         group('Merge', [
             ['Overview', '/merge/'],
-            ['Getting started', '/merge/getting-started'],
-            ['Lines, ranges and blocks', '/merge/concepts'],
-            ['Choosing a resolution', '/merge/resolution'],
-            ['API reference', '/merge/api'],
-            ['Host integration and testing', '/merge/integration']
+            ['Lines and diffs', '/merge/lines'],
+            ['Three-way merge', '/merge/three-way']
         ])
     ],
     '/drawing/': [
         group('Drawing', [
             ['Overview', '/drawing/'],
-            ['Getting started', '/drawing/getting-started'],
-            ['Geometry and editing', '/drawing/geometry'],
+            ['Documents', '/drawing/documents'],
+            ['Geometry', '/drawing/geometry'],
             ['Paths and SVG', '/drawing/rendering'],
-            ['Text, fonts and reading order', '/drawing/text'],
-            ['API reference', '/drawing/api'],
-            ['Drawing protocol', '/drawing/protocol'],
-            ['Integration, migration and testing', '/drawing/migration']
+            ['Text and reading order', '/drawing/text']
         ])
     ],
     '/diagram/': [
         group('Diagram', [
             ['Overview', '/diagram/'],
-            ['Getting started', '/diagram/getting-started'],
-            ['Layers, groups and layout', '/diagram/layout'],
-            ['Painting and reading output', '/diagram/rendering'],
-            ['API reference', '/diagram/api'],
-            ['Diagram protocol', '/diagram/protocol'],
-            ['Integration, migration and testing', '/diagram/migration']
+            ['Documents', '/diagram/documents'],
+            ['Layout', '/diagram/layout'],
+            ['Painting and reading', '/diagram/rendering']
         ])
     ],
     '/plan/': [
         group('Plan', [
             ['Overview', '/plan/'],
-            ['Getting started', '/plan/getting-started'],
-            ['Tree, state and progress', '/plan/concepts'],
-            ['Operations and permissions', '/plan/operations'],
-            ['Markdown and reading text', '/plan/formats'],
-            ['API reference', '/plan/api'],
-            ['Plan protocol', '/plan/protocol'],
-            ['Integration, migration and testing', '/plan/migration']
+            ['Plans', '/plan/plans'],
+            ['Operations', '/plan/operations'],
+            ['Markdown and text', '/plan/markdown']
         ])
     ],
     '/service/': [
         group('Service', [
             ['Overview', '/service/'],
-            ['Getting started', '/service/getting-started'],
-            ['Definitions and identity', '/service/definitions'],
-            ['Lifecycle', '/service/lifecycle'],
-            ['API reference', '/service/reference'],
-            ['Testing and host migration', '/service/testing-migration']
+            ['Definitions', '/service/definitions'],
+            ['Managers', '/service/managers']
         ])
     ],
     '/editor-core/': [
         group('Editor core', [
             ['Overview', '/editor-core/'],
-            ['Handbook', '/editor-core/handbook/'],
-            ['Text and selections', '/editor-core/handbook/document-model'],
-            ['Transactions and history', '/editor-core/handbook/transactions'],
-            ['Events and state', '/editor-core/handbook/events-state'],
-            ['Commands and structure', '/editor-core/handbook/commands-structure'],
-            ['Testing and provenance', '/editor-core/handbook/testing-provenance']
+            ['Documents and edits', '/editor-core/documents'],
+            ['Typing and commands', '/editor-core/commands'],
+            ['Search and folding', '/editor-core/search-folding'],
+            ['API reference', '/editor-core/api']
         ])
     ],
     '/editor/': [
         group('Editor', [
             ['Overview', '/editor/'],
-            ['Handbook', '/editor/handbook/'],
-            ['Configuration and keymaps', '/editor/handbook/configuration'],
-            ['Editing and events', '/editor/handbook/editing'],
-            ['Rendering and large files', '/editor/handbook/rendering'],
-            ['Theme and syntax', '/editor/handbook/theme-syntax'],
-            ['Search, folds and widgets', '/editor/handbook/search-widgets'],
-            ['Testing and migration', '/editor/handbook/testing-migration'],
-            ['Consumer migration', '/editor/migration']
+            ['Getting started', '/editor/getting-started'],
+            ['Options and keymaps', '/editor/options'],
+            ['Text and events', '/editor/editing'],
+            ['Theme and syntax', '/editor/theme'],
+            ['Testing', '/editor/testing']
+        ]),
+        group('Drawing', [
+            ['Decorations', '/editor/decorations'],
+            ['Rows and widgets', '/editor/rows'],
+            ['Agents', '/editor/agents'],
+            ['Find and folding', '/editor/find-folding']
         ])
     ],
     '/lsp/': [
         group('LSP', [
             ['Overview', '/lsp/'],
-            ['Handbook', '/lsp/handbook/'],
-            ['Transports and processes', '/lsp/handbook/transports'],
-            ['Initialization and capabilities', '/lsp/handbook/initialization'],
-            ['Documents and edits', '/lsp/handbook/documents-edits'],
-            ['Requests and results', '/lsp/handbook/requests-features'],
-            ['Vue and TypeScript', '/lsp/handbook/vue'],
-            ['Testing and host integration', '/lsp/handbook/testing-host']
+            ['Sessions and transports', '/lsp/sessions'],
+            ['Documents and edits', '/lsp/documents'],
+            ['Language service', '/lsp/language-service'],
+            ['Testing', '/lsp/testing']
         ])
     ],
     '/editor-react/': [
-        group('Editor React', [
+        group('Editor views', [
             ['Overview', '/editor-react/'],
-            ['Handbook', '/editor-react/handbook/'],
-            ['Getting started', '/editor-react/handbook/getting-started'],
-            ['Host integration', '/editor-react/handbook/host-integration'],
-            ['Completion and information', '/editor-react/handbook/completion-information'],
-            ['Diagnostics, tokens and hints', '/editor-react/handbook/diagnostics-tokens'],
-            ['Navigation and changes', '/editor-react/handbook/navigation-changes'],
-            ['Review and proposals', '/editor-react/handbook/review-proposals'],
-            ['Lifecycle and testing', '/editor-react/handbook/lifecycle-testing']
-        ])
+            ['Getting started', '/editor-react/getting-started'],
+            ['Projects and documents', '/editor-react/project'],
+            ['View state', '/editor-react/view-state'],
+            ['Testing', '/editor-react/testing']
+        ]),
+        group('Views', [
+            ['EditorView', '/editor-react/editor-view'],
+            ['Completion and signatures', '/editor-react/completion'],
+            ['Hover and problems', '/editor-react/hover'],
+            ['Navigation', '/editor-react/navigation'],
+            ['Rename and code actions', '/editor-react/rename'],
+            ['FindReplace', '/editor-react/find-replace'],
+            ['Reviews and agents', '/editor-react/change-review'],
+            ['Code vision', '/editor-react/code-vision']
+        ]),
+        group('Reference', [['Models', '/editor-react/models']])
     ],
     '/php-language-server/': [
         group('PHP language server', [
             ['Overview', '/php-language-server/'],
-            ['Getting started', '/php-language-server/handbook/getting-started'],
-            ['Distribution and native metadata', '/php-language-server/handbook/distribution'],
-            ['Server and document lifecycle', '/php-language-server/handbook/lifecycle'],
-            ['Configuration, Composer and stubs', '/php-language-server/handbook/configuration'],
-            ['PHP features', '/php-language-server/handbook/features'],
-            ['Frameworks and test support', '/php-language-server/handbook/frameworks'],
-            ['Maintaining and validating', '/php-language-server/handbook/maintainers']
+            ['Getting started', '/php-language-server/getting-started'],
+            ['Configuration', '/php-language-server/configuration'],
+            ['Features', '/php-language-server/features'],
+            ['Distribution', '/php-language-server/distribution'],
+            ['Maintaining', '/php-language-server/maintaining']
         ])
     ]
 };

@@ -1,19 +1,19 @@
 # Models, loading and expansion
 
-The file model knows the paths you give it. The host owns directory listings, search requests, caches, permissions and filesystem mutations. A model operation does not perform I/O.
+The model knows the paths you give it and nothing else. Listings, search requests, caches, permissions and filesystem changes are yours; no model method does any I/O.
 
 ## Sorting and flattened paths
 
-`FileTree.compareRows` orders directory segments before file segments, then compares names numerically without using case as the primary distinction. It breaks a case-insensitive tie with the raw name and orders a shorter ancestor before its descendants. A custom `sort` receives engine sort entries; the exported `SortRow` contains the subset the default comparator needs.
+`FileTree.compareRows`, the default `sort`, puts directories before files and compares names numerically, so `file2` comes before `file10`. Case only breaks a tie, and a directory comes before what it holds. A `sort` of your own receives the engine's sort entries; `SortRow` is the part of one the default needs.
 
-With `flattenEmptyDirectories`, a row can represent `src/utilities/` as joined segments. `FileTree.pathOfRow(row)` resolves that row to the terminal directory. `FileTree.visibleRows(model)` copies visible rows with that normalized path. The wrapper passes normalized rows to control and decoration renderers. Use these helpers when saving folds or loading children so an intermediate segment does not become the action target.
+With `flattenEmptyDirectories`, one row can stand for `src/utilities/` as joined segments. `FileTree.pathOfRow(row)` resolves such a row to its last directory, and `FileTree.visibleRows(model)` returns the visible rows with that path. `renderControl` and `renderDecoration` receive rows with that path too. Use these helpers when you save folds or load children, so an intermediate segment never becomes the target.
 
-## Mutation
+## Changing paths
 
 ```ts
 import type { FileTreeModel } from '@adecore/ui';
 
-export function addGeneratedFile(model: FileTreeModel) {
+export function addGeneratedFiles(model: FileTreeModel) {
     model.batch([
         { type: 'add', path: 'generated/types.ts' },
         { type: 'add', path: 'generated/schema.ts' }
@@ -23,15 +23,15 @@ export function addGeneratedFile(model: FileTreeModel) {
 }
 ```
 
-`batch` groups add/remove/move operations. Directory removal can use `{ recursive: true }`; move collision policy can be `error`, `replace` or `skip`. Choose policy in the host, then reconcile the model with the successful filesystem result. Drag/drop and renaming can also mutate the model, so an optimistic host must recover from a failed filesystem operation.
+`batch` groups adds, removes and moves. Removing a directory takes `{ recursive: true }`, and a move takes a `collision` of `'error'`, `'replace'` or `'skip'`. Change the filesystem first and bring the model in line with what succeeded. Dragging and renaming in the tree change the model too, so code that updates it ahead of the filesystem must undo a step that failed.
 
 ## Lazy listings
 
-`onLoadChildren(path)` runs for newly expanded directories, including initially expanded ones. Closing and reopening runs it again. It returns `void`; the wrapper does not await a promise, expose a loading state, catch asynchronous errors or cancel a request.
+`onLoadChildren(path)` runs for every directory that opens, including the ones open at the start, and again after a close and a reopen. It returns `void`: the wrapper does not await it, shows no loading state, catches no error and cancels nothing.
 
-An unloaded empty directory needs a placeholder child to retain beta.6's chevron. For example initialize `paths: ['src/__pending__']`, disable flattening for that loading state, and append an application rule such as `[data-item-path$="/__pending__"] { display: none; }` through `unsafeCSS`. This relies on the pinned shadow-row attributes. Recheck it on an engine upgrade.
+The engine draws no chevron on an empty directory, so a directory whose children are not loaded yet needs a placeholder child. Start with `paths: ['src/__pending__']`, leave flattening off while it loads, and hide the placeholder through `unsafeCSS` with `[data-item-path$="/__pending__"] { display: none; }`. This relies on attributes of the pinned engine version.
 
-This host-provided adapter caches successful listings and cancels requests on disposal. Its `listChildren` must return canonical paths relative to the same root, not just basenames. Give each tree/root its own loader.
+A loader of your own can cache what loaded and cancel what is pending. `listChildren` returns full paths relative to the root, not bare names. Give each tree its own loader.
 
 ```ts
 import type { FileTreeModel } from '@adecore/ui';
@@ -75,11 +75,11 @@ export function createListingLoader(model: FileTreeModel, listChildren: Listing,
 }
 ```
 
-Pass `loader.load` to `onLoadChildren`; call `loader.dispose()` on unmount or root replacement. Invalidating the cache does not start another request: call `load(path)` explicitly to refresh an already open row. This example adds entries; a full refresh adapter must also remove entries that disappeared. Add placeholders for newly discovered unloaded directories, and render retry/error UI in the host.
+Pass `loader.load` as `onLoadChildren` and call `loader.dispose()` on unmount or when the root changes. `invalidate` starts no request; call `load(path)` to refresh a row that is open. This loader only adds entries: a full refresh also removes the ones that are gone, and adds placeholders for new directories. Errors and a way to retry are yours to draw.
 
-## Persisting expansion
+## Remembering folds
 
-There is no controlled `expandedPaths` prop. Expansion lives in the model. `onExpandedPathsChange` reports changes, while the helpers let the host reconcile its own persisted state with the loaded paths.
+Expansion lives in the model; there is no controlled `expandedPaths` prop. `onExpandedPathsChange` reports every change, including remembered paths that are hidden under a closed directory. The helpers reconcile what you stored with what is loaded:
 
 ```ts
 import { FileTree, type FileTreeModel } from '@adecore/ui';
@@ -93,12 +93,14 @@ export function restoreExpanded(model: FileTreeModel, paths: readonly string[], 
 }
 ```
 
-`resetExpandedPaths` applies a second expansion pass because beta.6 restores initial expansion using its default sort. `mergeExpanded` keeps remembered paths that are not known yet. `withoutClosedBranches` removes descendants of a known closed directory. Do not replace persisted state with only the visible rows or folds beneath unloaded parents will disappear.
+`resetExpandedPaths` resets the paths and expands a second time, because the engine restores expansion with its default sort. `mergeExpanded` keeps remembered paths the model does not know yet. `withoutClosedBranches` drops paths under a known directory that is closed. Never store only what is visible, or the folds under a directory that has not loaded are lost.
 
-For a collapse-set convention, persist bare directory keys through `dirPathOf`, `collapsedPathsOf`, `mergeCollapsedPaths` and `applyExpansion`. Supply the same `FoldKeyOf` in both directions; returning `null` excludes a directory. `mergeCollapsedPaths` returns the original array when unchanged, avoiding selection notifications restarting a state cycle. `applyExpansion` caps reconciliation at 32 passes as flattened rows reveal more directories.
+To store collapsed directories instead, use `FileTree.dirPathOf`, `FileTree.collapsedPathsOf`, `FileTree.mergeCollapsedPaths` and `FileTree.applyExpansion`, with the same `FoldKeyOf` both ways; a key of `null` leaves a directory out. `mergeCollapsedPaths` returns the same array when nothing changed, since a selection also notifies the model's subscribers. `applyExpansion` runs at most 32 passes, as an opened directory can reveal more flattened ones.
+
+`FileTree.ancestorDirsOf(path)` lists the directories above a path, outermost first, and `FileTree.newlyExpanded(before, after)` the paths that opened between two sets.
 
 ## Search and subscriptions
 
-Enable engine search explicitly if you want it. `openSearch`, `setSearch`, `closeSearch`, `getSearchMatchingPaths` and next/previous-match methods operate on the model's known paths. They do not query the filesystem. A separate search-results model can represent remote or recursive results without replacing the normal listing cache.
+The engine's search is off by default; turn it on with `search`. `openSearch`, `setSearch`, `closeSearch`, `getSearchMatchingPaths` and the next and previous match methods work on the paths the model knows and never query the filesystem. For results from a recursive or remote search, use a second model rather than replacing the listing.
 
-Cancel or ignore stale host search responses when the query/root changes. Keep expansion and caches separate per model. `subscribe` and `onMutation` return unsubscribe functions; call them during host cleanup. Selection changes also notify subscribers, so only persist actual expansion changes.
+`subscribe` and `onMutation` return a function that unsubscribes. Selection changes notify subscribers too, so store expansion only when it changed.

@@ -20,7 +20,7 @@ pnpm add @adecore/ui
 
 :::
 
-React 19, `react-dom`, `i18next` and `react-i18next` are peer dependencies, so your app brings them. Base UI, Lucide, `clsx`, `zustand` and the file icon set come along with the library.
+React 19, `react-dom`, `i18next` and `react-i18next` are peer dependencies, so your app brings them. Base UI, Lucide, `clsx`, `zustand` and `@pierre/trees`, the engine of the file tree, come along with the library.
 
 ## Import the theme
 
@@ -53,12 +53,7 @@ createRoot(document.getElementById('root')!).render(
 );
 ```
 
-`UIProvider` does four things:
-
-- It adds the library's words to your i18next instance.
-- It hands the formatters your `formatSource`.
-- It mounts the shared tooltip provider, so moving along a row of buttons shows each tooltip without a new delay.
-- It starts noting whether the keyboard or the pointer is in use, as `data-modality` on `<html>`.
+It adds the library's words to your i18next instance and hands the formatters your `formatSource`. It mounts the shared tooltip provider, so moving along a row of buttons shows each tooltip without a new delay. And it writes whether the keyboard or the pointer was used last, as `data-modality` on `<html>`.
 
 Each of these is also exported on its own (`addUiResources`, `setFormatSource`, `TooltipProvider`, `startInputModality`) for an app that wants to wire them itself. See [UIProvider](/ui/utilities/ui-provider).
 
@@ -87,11 +82,11 @@ const formatSource: FormatSource = {
 };
 ```
 
-Without one, the formatters write English in the region of that language. [Format source](/ui/formatting/) explains how the region resolves.
+Without one, the formatters write English. [Format source](/ui/formatting/) explains how the region resolves.
 
 ## Optional pieces
 
-Mount `<ShortcutHints />` once if holding Cmd (Ctrl on Windows and Linux) should print every visible button's shortcut under it. Mount `<Toasts store={toasts} />` once for a stack of toasts from `createToastStore()`. Both are opt-in because both listen on the window.
+Mount [`<ShortcutHints />`](/ui/display/shortcut-hints) once if holding Cmd (Ctrl on Windows and Linux) should print every visible button's shortcut under it; it listens on the window. Mount [`<Toasts store={toasts} />`](/ui/overlays/toasts) once for a stack of toasts from `createToastStore()`.
 
 ## Working on a local checkout
 
@@ -100,14 +95,14 @@ The package has a `source` export condition that points into `src`. An app can u
 Link the checkout:
 
 ```sh
-# in packages/ui of the desktop checkout
+# in packages/ui of the checkout
 bun link
 
 # in your app
 bun link @adecore/ui
 ```
 
-A `file:../desktop/packages/ui` dependency works too, but Bun copies the checkout on install, so a change reaches the app only after the next `bun install`.
+A `file:../adecore/packages/ui` dependency works too, but Bun copies the checkout on install, so a change reaches the app only after the next `bun install`.
 
 Turn the condition on in Vite, keep one copy of each shared dependency, and let Vite compile the library's source like your own:
 
@@ -142,11 +137,11 @@ Your app then type-checks the library's source with its own settings, so it need
 Point Tailwind at the checkout's `src` instead of `dist`, again relative to the CSS file:
 
 ```css
-@source "../../desktop/packages/ui/src";
+@source "../../adecore/packages/ui/src";
 ```
 
 The theme import stays the same. It resolves through the `style` condition, which points at `src/theme.css` in a checkout and in the published package. If Vite refuses to serve files from the checkout, add its folder to `server.fs.allow`.
 
 `bun test` takes the condition as a flag (`bun test --conditions=source`) and has no `dedupe`; the library ships a preload for that, see [Testing](/ui/utilities/testing#a-linked-checkout-under-bun-test).
 
-These docs use the same condition. Every demo on this site imports `@adecore/ui` and draws the source in the repository, not a published build.
+These docs use the same condition: every demo on this site draws the source in the repository, not a published build.

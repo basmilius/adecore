@@ -1,28 +1,49 @@
-# Agent hosts
+# @adecore/agents
 
-`@adecore/agents` runs agent chats in Node and Bun, including an Electron utility process. It supplies Claude Code and Codex backends, provider/account services, chat storage, streamed events, usage, and durable coordination modules. [Agent contracts](../agent-contracts/) defines the shared schemas; [agent views](../agents-react/) is the browser/React client.
+A host for agent chats, for Node, Bun or an Electron utility process. It runs Claude Code and Codex as chat backends, keeps every thread on disk, streams it to the clients that read it, and manages the CLIs' accounts and what they cost. It answers the requests of [`@adecore/agent-contracts`](/agent-contracts/), so [`@adecore/agents-react`](/agents-react/) can draw it in a window.
 
-A consumer owns caller authorization, session and filesystem access, placement, context commands, task wording, and notification delivery. The package registers no application IPC channels or servers. `AgentHost` answers agent frames over a supplied `FramePort`; `wireAgents` supplies the same services and handlers for a larger host protocol.
+```ts
+import { AgentHost } from '@adecore/agents/host/agent-host';
+```
 
-## Read the guide
+## Install
 
-| Chapter                                                      | What it covers                                                                   |
-| ------------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| [Getting started](./getting-started)                         | A complete fake-provider turn and local setup                                    |
-| [Transport](./transport)                                     | A typed request client, message port adapter, validation, and disconnect         |
-| [Host integration](./host-integration)                       | `AgentHost`, `wireAgents`, `ChatCore` hooks, and consumer responsibilities       |
-| [Providers and models](./providers-and-models)               | Registry, catalogs, backend seams, prerequisites, and runtime modes              |
-| [Turns and requests](./turns-and-requests)                   | Queue, streaming, approval/question lifetime, cancellation, and restart          |
-| [Accounts and environment](./accounts-and-environment)       | Config homes, secret storage, policy filtering, and usage                        |
-| [Durable coordination](./coordination)                       | Outbox, tasks, lineage, descendant shutdown, and messages                        |
-| [Context commands](./context-commands)                       | Argument schemas, help, revision checks, dry runs, and refusals                  |
-| [Persistence and helpers](./persistence-and-helpers)         | File layouts, replay logs, atomic writes, serialization, watchers, and processes |
-| [Testing and troubleshooting](./testing-and-troubleshooting) | Deterministic fakes, error codes, and diagnostic checks                          |
-| [Public entrypoints](./entrypoints)                          | Supported backend subpaths and assets                                            |
-| [Migration](./migration)                                     | Import changes, preserved formats, adapters, and consumer validation             |
+::: code-group
 
-## Package status
+```sh [bun]
+bun add @adecore/agents @adecore/agent-contracts
+```
 
-Import modules by subpath, for example `@adecore/agents/host/agent-host`. The package has no root export. Source conditions select TypeScript; default exports select compiled JavaScript and declarations. Build contracts first.
+```sh [npm]
+npm install @adecore/agents @adecore/agent-contracts
+```
 
-This package is private at `0.0.0` until first publication and Trusted Publishing setup. Its transferred code retains FSL-1.1-MIT; see the [license](https://github.com/basmilius/adecore/blob/main/packages/agents/LICENSE). No provider executable is bundled or installed by the library.
+```sh [pnpm]
+pnpm add @adecore/agents @adecore/agent-contracts
+```
+
+:::
+
+The package brings no CLI. Install Claude Code or Codex and sign in with it the way it asks; the host finds what is installed and asks each CLI who is signed in. It has no CSS and no words.
+
+## What it does and what it leaves to you
+
+The host starts a CLI on a chat's first message and keeps it running between turns. It turns what the CLI writes into the items of a thread, writes the thread to disk, replays what a reconnecting client missed, and answers approvals and questions. Around the chats it lists the CLIs and their models, keeps accounts in their own config folders, reads usage from the CLIs' transcripts and the plan limits from the CLIs.
+
+It registers no IPC channel and opens no server: it serves a `FramePort` your app hands it, or hands you the request handlers to put behind a channel of your own. Who may connect, which folders a chat may work in and what an agent may do are yours to decide; [Host](/agents/host) shows where each check goes.
+
+## Entry points
+
+There is no root import. Every module has its own subpath, `@adecore/agents/<path>` without an extension, and the model catalogs are JSON: `@adecore/agents/providers/claude-models.json`. The [module reference](/agents/reference) lists every one. Keep them out of a page: the page imports the contracts and the views, never this package.
+
+## Where to go next
+
+- [Getting started](/agents/getting-started) runs a whole turn against a fake CLI, in one file.
+- [Host](/agents/host) covers `AgentHost`, its options, the hooks of `ChatCore` and an Electron utility process.
+- [Chats and turns](/agents/chats) covers sending, queuing, approvals, stopping and restarts.
+- [Providers](/agents/providers) covers the CLIs, their model catalogs and the runtime modes.
+- [Accounts and usage](/agents/accounts) covers config folders, secrets, the environment and usage.
+- [Coordination](/agents/coordination) covers the outbox, tasks between chats and messages.
+- [Context commands](/agents/context-commands) covers a command line your agents call back into.
+- [Storage](/agents/storage) covers what is written where, and the file helpers.
+- [Testing](/agents/testing) covers the fakes and the error codes.

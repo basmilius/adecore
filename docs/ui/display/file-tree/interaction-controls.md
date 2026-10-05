@@ -1,16 +1,16 @@
 # Interaction and row controls
 
-Selection, focus and activation are separate operations. A normal file click activates through `onActivate(path)`; Enter activates a focused file and toggles a directory once. Modifier selection stays with the engine.
+Focus, selection and activation are three things in a file tree. A plain click on a file calls `onActivate(path)`. Enter on a focused file does the same, and on a directory opens or closes it. Selection with a modifier stays with the engine.
 
-## Focus and modifier keys
+## Focus and selection
 
-Unmodified arrows, Home and End move engine focus. With the default `selectionFollowsFocus=true`, the wrapper selects the resulting row after the engine handles the key. `onFocusMove` reports a changed focused path on that flow. It is not a general callback for every possible focus change. Set `selectionFollowsFocus={false}` when your host manages selection independently.
+The arrow keys, Home and End without a modifier move the engine's focus. With `selectionFollowsFocus` (on by default) the wrapper then selects the focused row, and calls `onFocusMove(path)` when the focus landed on another row. That is the only flow that calls it. Turn `selectionFollowsFocus` off when your code manages selection itself.
 
-Shift, Control and Command selection gestures do not run normal file-click activation. `extendsSelection` recognizes those modifiers; `movesFocus` recognizes navigation without any modifier, including Alt. `selectOnly(model, path)` replaces selection, and `null` clears it. `focusRow(model, path)` focuses a mounted shadow row and returns `false` when that row is not mounted. Reveal and scroll to a path before depending on DOM focus.
+A click with Shift, Ctrl or Cmd extends the selection and does not activate. The helpers behind this are public: `FileTree.extendsSelection(event)` recognizes those modifiers, `FileTree.movesFocus(event)` a navigation key without any modifier, and `FileTree.followFocus(model, onMoved?)` selects the focused row once the engine has moved it, returning a function that cancels. `FileTree.selectOnly(model, path)` replaces the selection, and `null` clears it. `FileTree.focusRow(model, path)` focuses a row that is drawn and returns `false` when it is not, so scroll a path into view before you focus it.
 
-## Viewed or staging controls
+## Checkboxes and decorations
 
-Use genuine checkbox state rather than a CSS marker or drawn checkbox. This complete component keeps viewed state in React; a staging host can replace the state callback with its authorized command adapter and aggregate directory state itself.
+A row that can be checked carries a real checkbox, not a drawn mark. `renderControl` draws before the icon, `renderDecoration` after the name:
 
 ```tsx
 import { useState } from 'react';
@@ -53,26 +53,26 @@ export function ReviewFiles() {
 }
 ```
 
-This directory decoration shows the total viewed count; it does not claim to count that directory's descendants. For an aggregate checkbox compute `checked` and `indeterminate` from your own descendant set, supply `disabled` while appropriate, and route `onCheckedChange` to the host. Loading and partial listings need an explicit aggregate policy.
+The decoration here counts every viewed file, not the ones in that directory. A checkbox for a whole directory computes `checked` and `indeterminate` from your own set of descendants, and needs a rule for directories that are not fully loaded.
 
-`FileTree.Checkbox` shares [`Tree.Checkbox`](/ui/display/tree/reference#controls). Tab reaches enabled checkboxes and Space changes their state. Checking a box does not select, activate or collapse the row. Use `FileTree.Control` around another interactive control. Use `FileTree.Decoration` for trailing status content, and the [formatters](/ui/formatting/) for counts.
+`FileTree.Checkbox` is [`Tree.Checkbox`](/ui/display/tree/reference#controls). Tab reaches it and Space toggles it, and checking it never selects, activates or folds the row. Wrap any other control in `FileTree.Control`, and put counts and status in `FileTree.Decoration`, written with the [formatters](/ui/formatting/).
 
-## Shadow slots and accessibility
+## Slots
 
-beta.6 renders engine rows as buttons. The wrapper projects control and decoration content into sibling shadow slots outside those buttons, preserving React context and application styles. Event isolation prevents a checkbox click or key from becoming a row action. Do not replace this with a button nested inside an engine row or a style-based click detector.
+The engine draws each row as a button inside its shadow root. The wrapper puts the control and the decoration in slots beside that button, not inside it, so they keep your React context and your stylesheet. A click or a key in a slot never reaches the row. Do not nest a button of your own inside an engine row instead.
 
-Supply useful accessible names and actual mixed/disabled state. The light DOM controls have tested pointer and keyboard behavior, but screen-reader behavior across these shadow slots still needs verification in the consuming desktop runtime. The docs do not claim universal accessibility. Include the host's browser/desktop runtime and assistive technology in that verification.
+Give every control an accessible name and its real mixed and disabled state. Pointer and keyboard behavior in the slots is tested; how a screen reader reads them across the shadow boundary is not verified yet.
 
 ## Context menus and dragging
 
-`onRowContextMenu(path, targets, event)` receives a native `MouseEvent`. `onRowDragStart` receives a native `DragEvent` after the engine writes its drag data. `targets` is the complete selection if the triggering row belongs to a multi-selection, otherwise only that row. Call `event.preventDefault()` when taking over the context menu and open your host-owned menu at the event coordinates. The wrapper does not open it for you.
+`onRowContextMenu(path, targets, event)` receives the native `MouseEvent`, and `onRowDragStart(path, targets, event)` the native `DragEvent`, after the engine wrote its own drag data. `targets` is the whole selection when the row is part of a selection of more than one, and otherwise the row alone (`FileTree.menuTargetsOf`). The wrapper opens no menu: call `event.preventDefault()` and open yours at the pointer.
 
 ```tsx
 import { FileTree, type FileTreeModel } from '@adecore/ui';
 
-type MenuAdapter = (point: { x: number; y: number }, paths: readonly string[]) => void;
+type OpenMenu = (point: { x: number; y: number }, paths: readonly string[]) => void;
 
-export function FileActions({ model, openMenu }: { model: FileTreeModel; openMenu: MenuAdapter }) {
+export function FileActions({ model, openMenu }: { model: FileTreeModel; openMenu: OpenMenu }) {
     return (
         <FileTree.Root
             model={model}
@@ -89,10 +89,10 @@ export function FileActions({ model, openMenu }: { model: FileTreeModel; openMen
 }
 ```
 
-`MenuAdapter` is host provided. Validate drag payloads and authorize filesystem changes in that host. Use engine `dragAndDrop` options for drop acceptance and completion; adding drag data alone does not implement a drop. Do not serialize credentials or absolute private paths into transferable drag data.
+`FileTree.rowPathOf(event)` finds the row path of an event inside the shadow root. Drag data alone is no drop: the engine's `dragAndDrop` option decides what a drop accepts and how it completes (`FileTreeDragAndDropConfig`, `FileTreeDropContext`, `FileTreeDropResult`). Check a dropped payload before you act on it, and keep credentials and private absolute paths out of drag data.
 
 ## Long names
 
-A horizontal swipe or Shift-wheel shifts visible content until the longest visible name fits. The row width stays fixed and decorations stay pinned. Resize and visible-row changes recalculate the limit; the indicator uses whole pixels and honors reduced motion.
+A sideways swipe or Shift with the wheel shifts the names until the longest visible one fits. The rows keep their width and the decorations stay in place. A thin bar at the bottom shows the shift while it moves or while the pointer is near the bottom edge. A resize or other visible rows measure the limit again.
 
-Set `resetKey` to a stable root identity. Changing it resets the shift, but does not replace paths, clear selection or cancel host requests. Combine it with the model and loader reset appropriate to a root change. End truncation and shift depend on the beta.6 shadow layout; retain those workarounds until an engine update has been checked.
+`resetKey` puts the shift back at zero when it changes; set it to something that names the root. It does nothing else: replacing paths, clearing the selection and cancelling requests stay yours.
