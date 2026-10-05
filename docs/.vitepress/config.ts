@@ -20,8 +20,8 @@ const followAppearance = `(() => {
 const isolateDemos = postcssIsolateStyles({ includeFiles: [/vp-doc\.css/] });
 
 export default defineConfig({
-    title: 'adecore',
-    titleTemplate: ':title | adecore',
+    title: 'ADE CORE',
+    titleTemplate: ':title | ADE CORE',
     description:
         'Packages for desktop apps on Electron, React 19 and Tailwind 4: components and a theme for the page, the menu, updater and guards of the main process, a terminal and database views.',
     cleanUrls: true,
