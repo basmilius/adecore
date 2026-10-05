@@ -61,6 +61,7 @@ export default defineConfig({
         }
     },
     themeConfig: {
+        siteTitle: false,
         search: {
             provider: 'local'
         },

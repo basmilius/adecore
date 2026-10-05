@@ -3,7 +3,6 @@ layout: home
 titleTemplate: false
 
 hero:
-    name: adecore
     text: Packages for desktop apps
     tagline: The building blocks of desktop apps on Electron, React 19 and Tailwind 4, released together under one version.
     actions:
