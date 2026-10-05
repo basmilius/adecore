@@ -6,19 +6,25 @@ for (const [length, count] of [
     [3000, 1500]
 ] as const) {
     test(`a diff of two files of ${length} lines that differ on every other line stays under 20 MB`, () => {
-        // JSC's peak is process-wide; a fresh process keeps other packages' tests out of the measurement.
+        // Counts the bytes of every Int32Array the walk allocates: the process's RSS peak varied by hundreds of megabytes between runners.
+        // A fresh process, so the counting class replaces Int32Array before the diff module first uses it.
         const script = `
-            import { memoryUsage } from 'bun:jsc';
-            import { diffLines } from ${JSON.stringify(import.meta.resolve('./diff.ts'))};
+            let allocated = 0;
+            globalThis.Int32Array = class extends Int32Array {
+                constructor(...args) {
+                    super(...args);
+                    allocated += this.byteLength;
+                }
+            };
+            const { diffLines } = await import(${JSON.stringify(import.meta.resolve('./diff.ts'))});
             const left = Array.from({ length: ${length} }, (_, index) => index % 2 === 0 ? 'same ' + index : 'left ' + index);
             const right = Array.from({ length: ${length} }, (_, index) => index % 2 === 0 ? 'same ' + index : 'right ' + index);
-            Bun.gc(true);
-            const before = memoryUsage().current;
             const changes = diffLines(left, right);
-            console.log(JSON.stringify({ peak: memoryUsage().peak - before, count: changes.length }));
+            console.log(JSON.stringify({ allocated, count: changes.length }));
         `;
         const result = JSON.parse(execFileSync(process.execPath, ['--eval', script], { encoding: 'utf8' }));
-        expect(result.peak).toBeLessThan(20 * 1024 * 1024);
+        expect(result.allocated).toBeGreaterThan(0);
+        expect(result.allocated).toBeLessThan(20 * 1024 * 1024);
         expect(result.count).toBe(count);
     });
 }

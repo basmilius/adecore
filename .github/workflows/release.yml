@@ -50,8 +50,9 @@ jobs:
           if ! existing=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" --jq .object.sha 2> /dev/null); then
               gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$tag" -f sha="$GITHUB_SHA" > /dev/null
           elif [[ "$existing" != "$GITHUB_SHA" ]]; then
-              echo "::error::Tag $tag points at $existing, not at the commit this run builds ($GITHUB_SHA)."
-              exit 1
+              # The release is still a draft, so nothing published points at the tag yet.
+              echo "::notice::Moving tag $tag from $existing to $GITHUB_SHA."
+              gh api -X PATCH "repos/$GITHUB_REPOSITORY/git/refs/tags/$tag" -f sha="$GITHUB_SHA" -F force=true > /dev/null
           fi
           {
               echo "version=$version"
