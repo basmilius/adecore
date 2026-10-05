@@ -19,6 +19,7 @@ body:
       label: Which package?
       options:
         - ui
+        - terminal
         - shell
     validations:
       required: true

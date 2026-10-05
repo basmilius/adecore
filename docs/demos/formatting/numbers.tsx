@@ -1,13 +1,4 @@
-import {
-    formatBytes,
-    formatDecimal,
-    formatMoney,
-    formatNumber,
-    formatPercent,
-    formatTokens,
-    formatUsdSignificant,
-    useFormatLocale
-} from '@adecore/ui/format';
+import { formatBytes, formatDecimal, formatMoney, formatNumber, formatPercent, formatTokens, formatUsdSignificant, useFormatLocale } from '@adecore/ui/format';
 import { PreferencesBar } from '../shared/preferences-bar.tsx';
 import { Values } from '../shared/values.tsx';
 

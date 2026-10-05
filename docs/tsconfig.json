@@ -4,7 +4,8 @@
     "types": ["vitepress/client", "bun"],
     "paths": {
       "@adecore/ui": ["../packages/ui/src/index.ts"],
-      "@adecore/ui/*": ["../packages/ui/src/*/index.ts"]
+      "@adecore/ui/*": ["../packages/ui/src/*/index.ts"],
+      "@adecore/terminal": ["../packages/terminal/src/index.ts"]
     }
   },
   "include": ["demos", "*.ts", "*.tsx", ".vitepress/**/*.ts", ".vitepress/**/*.tsx"],

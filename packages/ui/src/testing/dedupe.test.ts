@@ -37,10 +37,7 @@ beforeAll(() => {
     }
     mkdirSync(join(modules, '@adecore'), { recursive: true });
     symlinkSync(ROOT, join(modules, '@adecore', 'ui'));
-    writeFileSync(
-        join(app, 'package.json'),
-        JSON.stringify({ name: 'app', private: true, dependencies: { '@adecore/ui': 'link:@adecore/ui' } })
-    );
+    writeFileSync(join(app, 'package.json'), JSON.stringify({ name: 'app', private: true, dependencies: { '@adecore/ui': 'link:@adecore/ui' } }));
     writeFileSync(join(app, 'tsconfig.json'), JSON.stringify({ compilerOptions: { jsx: 'react-jsx' } }));
     writeFileSync(
         join(app, 'field.test.tsx'),

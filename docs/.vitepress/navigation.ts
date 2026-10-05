@@ -64,7 +64,6 @@ const desktopUi: DefaultTheme.SidebarItem[] = [
         ['SegmentBar', '/ui/display/segment-bar'],
         ['Meter', '/ui/display/meter'],
         ['Waveform', '/ui/display/waveform'],
-        ['TerminalView', '/ui/display/terminal-view'],
         ['EmptyState', '/ui/display/empty-state'],
         ['PanelEmpty', '/ui/display/panel-empty'],
         ['Banner', '/ui/display/banner'],
@@ -120,8 +119,11 @@ const desktopShell: DefaultTheme.SidebarItem[] = [
     ])
 ];
 
+const terminal: DefaultTheme.SidebarItem[] = [group('Terminal', [['TerminalView', '/terminal/']])];
+
 export const sidebar: DefaultTheme.SidebarMulti = {
     '/guide/': guide,
     '/ui/': desktopUi,
-    '/shell/': desktopShell
+    '/shell/': desktopShell,
+    '/terminal/': terminal
 };

@@ -68,10 +68,11 @@ export default defineConfig({
             { text: 'Guide', link: '/guide/', activeMatch: '^/guide/' },
             {
                 text: 'Packages',
-                activeMatch: '^/(ui|shell)/',
+                activeMatch: '^/(ui|shell|terminal)/',
                 items: [
                     { text: 'UI', link: '/ui/' },
-                    { text: 'Shell', link: '/shell/' }
+                    { text: 'Shell', link: '/shell/' },
+                    { text: 'Terminal', link: '/terminal/' }
                 ]
             },
             {

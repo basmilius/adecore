@@ -11,7 +11,6 @@ const ENTRIES: Record<string, string> = {
     '.': 'index.ts',
     './settings': 'settings/index.ts',
     './format': 'format/index.ts',
-    './terminal': 'terminal/index.ts',
     './testing': 'testing/index.ts',
     './testing/dedupe': 'testing/dedupe.ts'
 };

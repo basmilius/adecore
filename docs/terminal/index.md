@@ -1,25 +1,28 @@
-# TerminalView
+# @adecore/terminal
 
-A terminal pane on [xterm.js](https://xtermjs.org) that looks like the rest of the interface in both themes. It fits the box it is given, opens links in the output and either takes typing or only shows output. The app feeds it output and reads back what is on screen through a handle, without touching xterm's addons.
+A terminal pane on [xterm.js](https://xtermjs.org) that looks like the rest of an `@adecore/ui` interface in both themes. It fits the box it is given, opens links in the output and either takes typing or only shows output. The app feeds it output and reads back what is on screen through a handle, without touching xterm's addons.
 
 ```tsx
-import { TerminalView, type TerminalViewHandle } from '@adecore/ui/terminal';
+import { TerminalView, type TerminalViewHandle } from '@adecore/terminal';
 ```
 
-<Demo src="display/terminal-view" />
+<Demo src="terminal/terminal-view" />
 
 ## Install
 
-The terminal has an entry point of its own, so an app without one never installs xterm. xterm and its addons are optional peer dependencies:
+xterm and its addons are peer dependencies, so the app picks the version:
 
 ```sh
-bun add @xterm/xterm @xterm/addon-fit @xterm/addon-web-links @xterm/addon-webgl
+bun add @adecore/terminal @xterm/xterm @xterm/addon-fit @xterm/addon-web-links @xterm/addon-webgl
 ```
 
-xterm's stylesheet has no entry a bundler finds on its own, so the app imports it once, next to the theme:
+Import xterm's stylesheet and the package's own after the theme of `@adecore/ui`. The package's stylesheet holds the `--term-*` tokens and the box the terminal sits in; the colors, the selection and the font of the [theme](/ui/guide/theme) apply to the terminal too.
 
-```ts
-import '@xterm/xterm/css/xterm.css';
+```css
+@import "tailwindcss";
+@import "@adecore/ui/theme.css";
+@import "@xterm/xterm/css/xterm.css";
+@import "@adecore/terminal/terminal.css";
 ```
 
 ## Feeding it
@@ -46,7 +49,7 @@ When two windows show the same program, the last one to resize decides its grid.
 
 ## Theme and font
 
-The colors come from the `--term-*` tokens of the [theme](/ui/guide/theme): a background, a foreground, a cursor that follows the accent and the sixteen colors a program asks for by number. The selection is `--selection` and the font `--font-mono`. The terminal reads them again whenever `data-theme`, `class` or the inline style on `<html>` changes, so a theme switch, a new accent or another monospace font reaches it without a prop. `fontSize` (13 by default) and `lineHeight` (1) are props, since an app usually lets a person set them.
+The colors come from the `--term-*` tokens in `terminal.css`: a background, a foreground, a cursor that follows the accent and the sixteen colors a program asks for by number. The selection is `--selection` and the font `--font-mono`. The terminal reads them again whenever `data-theme`, `class` or the inline style on `<html>` changes, so a theme switch, a new accent or another monospace font reaches it without a prop. `fontSize` (13 by default) and `lineHeight` (1) are props, since an app usually lets a person set them.
 
 ## Links
 
@@ -56,7 +59,7 @@ A URL in the output is a link. Without `onOpenLink` it opens in a new window; a 
 
 `webgl` draws with WebGL instead of the DOM, which is faster on a busy screen. A browser keeps about 16 contexts per page and silently drops the oldest, so every terminal with `webgl` shares one budget of ten: the focused one first, then the ones written to most recently. A terminal that loses its context falls back to the DOM and asks again on its next `focus()`. `webglTerminals()` lists the terminals that hold one, highest ranked first.
 
-The WebGL addon loads on the first grant. Register its import with the [prefetcher](/ui/utilities/lazy-loading) to have it ready before then:
+The WebGL addon loads on the first grant. Register its import with the [prefetcher](/ui/utilities/lazy-loading) of `@adecore/ui` to have it ready before then:
 
 ```ts
 prefetcher.register(() => import('@xterm/addon-webgl'));

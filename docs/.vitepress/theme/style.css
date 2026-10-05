@@ -8,8 +8,10 @@
 @import "tailwindcss/utilities.css" layer(utilities) source(none);
 @import "@adecore/ui/theme.css";
 @import "@xterm/xterm/css/xterm.css";
+@import "@adecore/terminal/terminal.css";
 
 @source "../../../packages/ui/src";
+@source "../../../packages/terminal/src";
 @source "../../demos";
 
 /*

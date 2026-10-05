@@ -1,0 +1,58 @@
+/* The tokens and rules of @adecore/terminal. An app imports this after the theme of @adecore/ui, whose
+   `--accent`, `--selection` and `--font-mono` the terminal reads too. */
+
+/* What `TerminalView` draws with, read as literal colors on every theme change. The cursor follows the
+   accent; the sixteen colors are the ones a program asks for by number. The selectors are the ones
+   the theme of @adecore/ui uses, so an app overrides both in one rule. */
+:root, [data-theme="light"] {
+    --term-bg: #fbfbfc;
+    --term-fg: #27272a;
+    --term-cursor: var(--accent);
+    --term-ansi-black: #3f3f46;
+    --term-ansi-red: #b91c1c;
+    --term-ansi-green: #15803d;
+    --term-ansi-yellow: #a16207;
+    --term-ansi-blue: #1d4ed8;
+    --term-ansi-magenta: #a21caf;
+    --term-ansi-cyan: #0e7490;
+    --term-ansi-white: #a1a1aa;
+    --term-ansi-bright-black: #71717a;
+    --term-ansi-bright-red: #dc2626;
+    --term-ansi-bright-green: #16a34a;
+    --term-ansi-bright-yellow: #ca8a04;
+    --term-ansi-bright-blue: #2563eb;
+    --term-ansi-bright-magenta: #c026d3;
+    --term-ansi-bright-cyan: #0891b2;
+    --term-ansi-bright-white: #e4e4e7;
+}
+
+[data-theme="dark"] {
+    --term-bg: #08080a;
+    --term-fg: #d6d6de;
+    --term-ansi-black: #2a2a31;
+    --term-ansi-red: #f87171;
+    --term-ansi-green: #4ade80;
+    --term-ansi-yellow: #fbbf24;
+    --term-ansi-blue: #60a5fa;
+    --term-ansi-magenta: #c084fc;
+    --term-ansi-cyan: #67e8f9;
+    --term-ansi-white: #d6d6de;
+    --term-ansi-bright-black: #6b6b76;
+    --term-ansi-bright-red: #fca5a5;
+    --term-ansi-bright-green: #86efac;
+    --term-ansi-bright-yellow: #fde68a;
+    --term-ansi-bright-blue: #93c5fd;
+    --term-ansi-bright-magenta: #d8b4fe;
+    --term-ansi-bright-cyan: #a5f3fc;
+    --term-ansi-bright-white: #f4f4f5;
+}
+
+/* In the components layer, so a caller's utilities, such as `absolute inset-0`, outrank the box. */
+@layer components {
+    /* The host takes no vertical padding, since the fit would count it as room for a
+       row that is cut off; the rows sit centered by the offset the fit sets instead. */
+    .terminal-view { position: relative; overflow: hidden; background: var(--term-bg); }
+    .terminal-view-host { position: absolute; inset: 0; overflow: hidden; padding: 0 0 0 8px; }
+    .terminal-view-host .xterm { height: 100%; top: var(--term-offset, 6px); }
+    .terminal-view-host .xterm .xterm-viewport { background-color: transparent !important; }
+}

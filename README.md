@@ -9,9 +9,10 @@
 [![CI](https://github.com/basmilius/adecore/actions/workflows/ci.yml/badge.svg)](https://github.com/basmilius/adecore/actions/workflows/ci.yml)
 [![ui on npm](https://img.shields.io/npm/v/@adecore/ui?label=ui)](https://www.npmjs.com/package/@adecore/ui)
 [![shell on npm](https://img.shields.io/npm/v/@adecore/shell?label=shell)](https://www.npmjs.com/package/@adecore/shell)
+[![terminal on npm](https://img.shields.io/npm/v/@adecore/terminal?label=terminal)](https://www.npmjs.com/package/@adecore/terminal)
 [![Docs](https://img.shields.io/badge/docs-adecore.dev-blue)](https://adecore.dev)
 
-Packages for desktop apps on Electron, React 19 and Tailwind 4. One package draws the page, the other runs the main process. Both are released together, under one version.
+Packages for desktop apps on Electron, React 19 and Tailwind 4. One package draws the page, one runs the main process and one adds a terminal to the page. All of them are released together, under one version.
 
 The documentation is at **[adecore.dev](https://adecore.dev)**, with a live demo of every component. The [introduction](https://adecore.dev/guide/) is the place to start.
 
@@ -20,14 +21,16 @@ The documentation is at **[adecore.dev](https://adecore.dev)**, with a live demo
 | Package | What it holds | Docs |
 |---|---|---|
 | [`@adecore/ui`](packages/ui) | For the page. React components, a theme of tokens, keyboard shortcuts, a settings dialog and formatters for numbers and dates, on Base UI and Lucide. | [ui](https://adecore.dev/ui/) |
+| [`@adecore/terminal`](packages/terminal) | A terminal pane on xterm.js in the colors of the theme, fed by the app through a handle. | [terminal](https://adecore.dev/terminal/) |
 | [`@adecore/shell`](packages/shell) | For the main process. The application menu the page builds, an updater the page watches, windows that open where they were left, the page's theme on its window and the guards around the page. | [shell](https://adecore.dev/shell/) |
 
 ```sh
 bun add @adecore/ui
 bun add @adecore/shell
+bun add @adecore/terminal
 ```
 
-Take both at the same version, since each version is tested against the same version of the other. While the version is `0.x`, a breaking change bumps the minor and anything else the patch. The [release notes](https://github.com/basmilius/adecore/releases) name every breaking change with what to do about it.
+Take them at the same version, since each version is tested against the same version of the others. While the version is `0.x`, a breaking change bumps the minor and anything else the patch. The [release notes](https://github.com/basmilius/adecore/releases) name every breaking change with what to do about it.
 
 Up to `0.13.x` the packages were `@basmilius/desktop-ui` and `@basmilius/desktop-shell`. From `0.14.0` they are `@adecore/ui` and `@adecore/shell`, with the same API; replacing the names in imports and in `package.json` is the whole migration.
 

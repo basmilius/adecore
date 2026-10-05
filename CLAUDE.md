@@ -1,6 +1,6 @@
 # basmilius/adecore
 
-The core that agentic development environments share, released together under one version. Every app that uses it is a variant of one: a desktop app on Electron in which a person works with agents. `@adecore/ui` (`packages/ui`) is the page's: components, a theme, formatters and a settings dialog, on React 19, Base UI, Lucide and Tailwind 4. `@adecore/shell` (`packages/shell`) is the main process's: the application menu, the updater, the set of windows with their state and the web guards. Up to `0.13.x` they were `@basmilius/desktop-ui` and `@basmilius/desktop-shell`, in `basmilius/desktop`; `@adecore/ui` was `@basmilius/react-ui` before that, up to `0.4.x`. Each package's `README.md` is for people who use it; this file is for agents who work on it.
+The core that agentic development environments share, released together under one version. Every app that uses it is a variant of one: a desktop app on Electron in which a person works with agents. `@adecore/ui` (`packages/ui`) is the page's: components, a theme, formatters and a settings dialog, on React 19, Base UI, Lucide and Tailwind 4. `@adecore/terminal` (`packages/terminal`) is a terminal pane on xterm.js for the page. `@adecore/shell` (`packages/shell`) is the main process's: the application menu, the updater, the set of windows with their state and the web guards. Up to `0.13.x` they were `@basmilius/desktop-ui` and `@basmilius/desktop-shell`, in `basmilius/desktop`; `@adecore/ui` was `@basmilius/react-ui` before that, up to `0.4.x`. Each package's `README.md` is for people who use it; this file is for agents who work on it.
 
 ## Who uses it
 
@@ -43,6 +43,13 @@ Bun workspaces: every package in `packages/`, published from its own folder with
 - Nothing in the package registers an IPC handler or listens to an app-wide Electron event; it only follows the windows and the app the app hands it (`window-state.ts`, `windows.ts` with its `attach(app)`). An app wires each channel behind its own check of the sender and calls in; a package that listened by itself would bypass that check.
 - Electron and electron-updater are optional peers and imported as types only, so every decision is a pure function or a factory with its clock, timer and updater injected, and the tests run in Bun without Electron.
 - The IPC channel names the package sends on (`menu:run`) are part of its API, as the preload of every app listens on them.
+
+## terminal
+
+- `TerminalView` is the terminal Ruimte builds by hand in `apps/client/src/terminal/xterm.ts`, `webgl-budget.ts` and `webgl-slots.ts`, lifted out so Ruimte can switch to it with no change in behavior. Ruimte is the reference: a change here keeps what its `TerminalBody`, `LaunchTerminal` and `LoginTerminal` would do on top of it, or it is a breaking change.
+- What only one app needs (Ruimte's key bindings, OSC 52, its registry of terminals) stays in the app and reaches xterm through `terminal` on the handle, never through a prop.
+- The fit and the pointer fix under a scaled ancestor read private fields of xterm (`xterm-internals.ts`). Widening the peer range of `@xterm/xterm` means checking those fields first.
+- `terminal.css` holds the `--term-*` tokens and the box; it relies on the `--accent`, `--selection` and `--font-mono` of the theme of `ui`, and the package imports nothing from `ui`.
 
 ## Scripts
 

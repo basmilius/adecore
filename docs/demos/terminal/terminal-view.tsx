@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { TerminalView, type TerminalViewHandle } from '@adecore/ui/terminal';
+import { TerminalView, type TerminalViewHandle } from '@adecore/terminal';
 
 const PROMPT = '\x1b[32m~\x1b[0m $ ';
 

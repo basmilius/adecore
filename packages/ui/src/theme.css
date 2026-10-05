@@ -56,27 +56,6 @@
     --status-error: #dc2626;
     --positive: #15803d;
     --positive-text: #ffffff;
-    /* What `TerminalView` draws with, read as literal colors on every theme change. The cursor
-       follows the accent; the sixteen colors are the ones a program asks for by number. */
-    --term-bg: #fbfbfc;
-    --term-fg: #27272a;
-    --term-cursor: var(--accent);
-    --term-ansi-black: #3f3f46;
-    --term-ansi-red: #b91c1c;
-    --term-ansi-green: #15803d;
-    --term-ansi-yellow: #a16207;
-    --term-ansi-blue: #1d4ed8;
-    --term-ansi-magenta: #a21caf;
-    --term-ansi-cyan: #0e7490;
-    --term-ansi-white: #a1a1aa;
-    --term-ansi-bright-black: #71717a;
-    --term-ansi-bright-red: #dc2626;
-    --term-ansi-bright-green: #16a34a;
-    --term-ansi-bright-yellow: #ca8a04;
-    --term-ansi-bright-blue: #2563eb;
-    --term-ansi-bright-magenta: #c026d3;
-    --term-ansi-bright-cyan: #0891b2;
-    --term-ansi-bright-white: #e4e4e7;
     /* A control drawn over a picture rather than over the interface, the handle of a wipe, so it
        stays the same in both themes. */
     --media-handle: #ffffff;
@@ -140,24 +119,6 @@
     /* Dark on light green: the dark theme's positive is a foreground color, so text sits on it the
        other way round from the light theme, where the same token is a fill deep enough for white. */
     --positive-text: #052e16;
-    --term-bg: #08080a;
-    --term-fg: #d6d6de;
-    --term-ansi-black: #2a2a31;
-    --term-ansi-red: #f87171;
-    --term-ansi-green: #4ade80;
-    --term-ansi-yellow: #fbbf24;
-    --term-ansi-blue: #60a5fa;
-    --term-ansi-magenta: #c084fc;
-    --term-ansi-cyan: #67e8f9;
-    --term-ansi-white: #d6d6de;
-    --term-ansi-bright-black: #6b6b76;
-    --term-ansi-bright-red: #fca5a5;
-    --term-ansi-bright-green: #86efac;
-    --term-ansi-bright-yellow: #fde68a;
-    --term-ansi-bright-blue: #93c5fd;
-    --term-ansi-bright-magenta: #d8b4fe;
-    --term-ansi-bright-cyan: #a5f3fc;
-    --term-ansi-bright-white: #f4f4f5;
     --file-icon-gray: #adadb1;
     --file-icon-red: #ff6762;
     --file-icon-vermilion: #d5512f;
@@ -598,11 +559,4 @@
     .sliding-column { transition: width 200ms cubic-bezier(0, 0, 0.2, 1); }
     .sliding-column[data-resizing],
     .sliding-column[data-instant] { transition: none; }
-
-    /* A `TerminalView`. The host takes no vertical padding, since the fit would count it as room for a
-       row that is cut off; the rows sit centered by the offset the fit sets instead. */
-    .terminal-view { position: relative; overflow: hidden; background: var(--term-bg); }
-    .terminal-view-host { position: absolute; inset: 0; overflow: hidden; padding: 0 0 0 8px; }
-    .terminal-view-host .xterm { height: 100%; top: var(--term-offset, 6px); }
-    .terminal-view-host .xterm .xterm-viewport { background-color: transparent !important; }
 }

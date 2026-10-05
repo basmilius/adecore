@@ -61,7 +61,6 @@ From there, every component is ready to use:
 | `@adecore/ui` | The components, hooks and helpers |
 | `@adecore/ui/settings` | `SettingsDialog` and the parts of a pane |
 | `@adecore/ui/format` | Numbers, dates, durations and regions, and `setFormatSource` |
-| `@adecore/ui/terminal` | `TerminalView`, on xterm.js as an optional peer |
 | `@adecore/ui/testing` | Fakes for an app's tests, such as `fakeFormatSource()` |
 | `@adecore/ui/testing/dedupe` | A `bun test` preload for an app that links a checkout |
 | `@adecore/ui/theme.css` | The theme |

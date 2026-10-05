@@ -26,4 +26,8 @@ features:
         details: The main process of an Electron app whose page draws its own interface. The menu the page builds, an updater it watches, windows that open where they were left and the guards around its bridge.
         link: /shell/
         linkText: View package
+    -   title: Terminal
+        details: A terminal pane on xterm.js in the colors of the theme. It fits its container, opens links and either takes typing or only shows output, fed by the app through a handle.
+        link: /terminal/
+        linkText: View package
 ---
