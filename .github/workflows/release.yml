@@ -47,8 +47,7 @@ jobs:
               exit 1
           fi
           # A draft creates its tag only when it is published, and the PHP workflow builds from the tag.
-          existing=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" --jq .object.sha 2> /dev/null || true)
-          if [[ -z "$existing" ]]; then
+          if ! existing=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" --jq .object.sha 2> /dev/null); then
               gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$tag" -f sha="$GITHUB_SHA" > /dev/null
           elif [[ "$existing" != "$GITHUB_SHA" ]]; then
               echo "::error::Tag $tag points at $existing, not at the commit this run builds ($GITHUB_SHA)."
