@@ -176,7 +176,7 @@ export function GridHeaderCell({
                 aria-sort={sortable ? (sort === null ? 'none' : sort.direction === 'asc' ? 'ascending' : 'descending') : undefined}
                 className={clsx(
                     'group/header flex h-full shrink-0 text-xs font-medium select-none',
-                    pinned ? 'sticky z-10 bg-surface-sunken' : 'relative',
+                    pinned ? 'sticky z-10 bg-surface-raised' : 'relative',
                     last ? 'border-r-0' : 'border-r',
                     pinned ? (lastPinned ? 'border-border-strong' : 'border-border') : 'border-border',
                     sort === null ? 'text-text-muted' : 'text-text',
@@ -207,7 +207,7 @@ export function GridHeaderCell({
                         size="xs"
                         label={t('grid.column.menu')}
                         tooltip={false}
-                        className="absolute top-1/2 right-2 -translate-y-1/2 bg-surface-sunken opacity-0 group-hover/header:opacity-100 focus-visible:opacity-100 data-[popup-open]:opacity-100"
+                        className="absolute top-1/2 right-2 -translate-y-1/2 bg-surface-raised opacity-0 group-hover/header:opacity-100 focus-visible:opacity-100 data-[popup-open]:opacity-100"
                     />
                     <Menu.Popup>
                         <HeaderMenuItems {...menuProps} />

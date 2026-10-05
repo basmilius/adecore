@@ -251,6 +251,7 @@
     "invalidHexOdd": "Een byte bestaat uit twee hex-cijfers, dus het aantal cijfers moet even zijn.",
     "dumpTruncated": "De eerste {{shown}} van {{total}} bytes worden getoond.",
     "characters_one": "{{formatted}} teken",
-    "characters_other": "{{formatted}} tekens"
+    "characters_other": "{{formatted}} tekens",
+    "more": "Meer acties"
   }
 }

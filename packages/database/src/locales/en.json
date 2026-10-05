@@ -251,6 +251,7 @@
     "invalidHexOdd": "A byte takes two hex digits, so the number of digits must be even.",
     "dumpTruncated": "Showing the first {{shown}} of {{total}} bytes.",
     "characters_one": "{{formatted}} character",
-    "characters_other": "{{formatted}} characters"
+    "characters_other": "{{formatted}} characters",
+    "more": "More actions"
   }
 }

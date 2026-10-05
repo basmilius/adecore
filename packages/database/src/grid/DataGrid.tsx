@@ -515,7 +515,7 @@ export function DataGrid({
                     role="rowheader"
                     data-selected={selected ? '' : undefined}
                     className={clsx(
-                        'sticky left-0 z-10 flex shrink-0 cursor-default items-center justify-end border-r border-border bg-surface-sunken pr-2 pl-1 font-mono text-xs text-text-faint tabular-nums select-none data-[selected]:bg-accent-soft data-[selected]:text-text',
+                        'sticky left-0 z-10 flex shrink-0 cursor-default items-center justify-end border-r border-border bg-surface-raised pr-2 pl-1 font-mono text-xs text-text-faint tabular-nums select-none data-[selected]:bg-accent-soft data-[selected]:text-text',
                         row.state === 'inserted' && 'text-positive'
                     )}
                     style={{ width: gutter }}
@@ -614,10 +614,10 @@ export function DataGrid({
                 <div
                     role="row"
                     aria-rowindex={1}
-                    className="sticky top-0 z-20 flex w-full border-b border-border bg-surface-sunken"
+                    className="sticky top-0 z-20 flex w-full border-b border-border bg-surface-raised"
                     style={{ height: HEADER_HEIGHT }}
                 >
-                    <div className="sticky left-0 z-10 shrink-0 border-r border-border bg-surface-sunken" style={{ width: gutter }} />
+                    <div className="sticky left-0 z-10 shrink-0 border-r border-border bg-surface-raised" style={{ width: gutter }} />
                     {order.map((columnIndex, position) => {
                         const column = columns[columnIndex]!;
                         return (

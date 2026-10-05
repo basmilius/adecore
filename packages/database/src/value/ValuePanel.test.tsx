@@ -56,13 +56,11 @@ describe('ValuePanel', () => {
         expect(markup).not.toContain('Set NULL');
     });
 
-    test('offers the actions of an edit when it can, and Set NULL only for a nullable column', () => {
+    test('offers the actions of an edit when it can, with NULL and DEFAULT behind a menu', () => {
         const markup = panel({ editable: true, onCommit: () => {} });
         expect(markup).toContain('>Apply<');
         expect(markup).toContain('>Revert<');
-        expect(markup).toContain('>Set NULL<');
-        expect(markup).toContain('>Set DEFAULT<');
-        expect(panel({ editable: true, column: column('text', { nullable: false }) })).not.toContain('Set NULL');
+        expect(markup).toContain('aria-label="More actions"');
     });
 
     test('has nothing to apply before the draft changes', () => {

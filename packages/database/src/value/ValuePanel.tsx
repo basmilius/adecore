@@ -1,6 +1,6 @@
 import { useMemo, useState, type KeyboardEvent, type ReactNode, type Ref } from 'react';
 import clsx from 'clsx';
-import { Copy, MousePointerClick, WrapText, X } from 'lucide-react';
+import { Copy, Ellipsis, MousePointerClick, WrapText, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
     Button,
@@ -11,6 +11,7 @@ import {
     isApplePlatform,
     KEY_SHORTCUTS,
     matchesShortcut,
+    Menu,
     PanelHeader,
     Segmented,
     TextArea,
@@ -214,15 +215,20 @@ function ValueEditor({ column, value, editable, onCommit }: ValueEditorProps) {
             <div className="flex min-h-0 flex-1 flex-col gap-2 px-2 pb-2">{body()}</div>
             {shownProblem !== null && <FormError className="shrink-0 px-3 pb-2 text-xs">{problemText(shownProblem)}</FormError>}
             {editable && (
-                <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-t border-border p-2">
-                    {column.nullable !== false && (
-                        <Button size="xs" disabled={draft.mode === 'null'} onClick={() => change({ text: '', mode: 'null' })}>
-                            {t('value.setNull')}
-                        </Button>
-                    )}
-                    <Button size="xs" disabled={draft.mode === 'default'} onClick={() => change({ text: '', mode: 'default' })}>
-                        {t('value.setDefault')}
-                    </Button>
+                <div className="flex shrink-0 items-center gap-1.5 border-t border-border p-2">
+                    <Menu.Root>
+                        <IconButton icon={Ellipsis} size="sm" label={t('value.more')} render={<Menu.Trigger />} />
+                        <Menu.Popup>
+                            {column.nullable !== false && (
+                                <Menu.Item disabled={draft.mode === 'null'} onClick={() => change({ text: '', mode: 'null' })}>
+                                    {t('value.setNull')}
+                                </Menu.Item>
+                            )}
+                            <Menu.Item disabled={draft.mode === 'default'} onClick={() => change({ text: '', mode: 'default' })}>
+                                {t('value.setDefault')}
+                            </Menu.Item>
+                        </Menu.Popup>
+                    </Menu.Root>
                     <span className="ml-auto flex items-center gap-1.5">
                         <Button size="xs" disabled={!dirty} onClick={() => change(source.original)}>
                             {t('value.revert')}
