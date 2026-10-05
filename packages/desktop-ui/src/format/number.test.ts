@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, test } from 'bun:test';
-import { formatBytes, formatDecimal, formatMoney, formatNumber, formatPercent, formatTokens, formatUsdSignificant } from './number.ts';
+import { formatBytes, formatDecimal, formatFixed, formatMoney, formatNumber, formatPercent, formatTokens, formatUsdSignificant } from './number.ts';
 import { FORMAT_SYSTEM } from './regions.ts';
 import { fakeFormatSource } from '../testing/fake-source.ts';
 import { setFormatSource, type FormatSource } from './locale.ts';
@@ -37,6 +37,17 @@ describe('a number', () => {
         inRegion('nl-NL');
         expect(formatPercent(8.5)).toBe('8,5%');
         expect(formatPercent(42.4)).toBe('42%');
+    });
+});
+
+describe('a number with a fixed precision', () => {
+    test('carries every place it is asked for, also a trailing zero', () => {
+        inRegion('nl-NL');
+        expect(formatFixed(1, 1)).toBe('1,0');
+        expect(formatFixed(1.25, 2)).toBe('1,25');
+        expect(formatFixed(2, 0)).toBe('2');
+        inRegion('en-US');
+        expect(formatFixed(1.5, 2)).toBe('1.50');
     });
 });
 

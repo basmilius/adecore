@@ -9,6 +9,18 @@ export const formatNumber = (value: number): string => numberFormatter(WHOLE).fo
 /* The same, to one decimal, where the fraction is the part that means something. */
 export const formatDecimal = (value: number): string => numberFormatter(ONE_DECIMAL).format(value);
 
+const fixedSpecs = new Map<number, Intl.NumberFormatOptions>();
+
+/* Always `decimals` places, so values that follow each other keep one width: `1,0` and `1,5`, never `1` and `1,5`. */
+export const formatFixed = (value: number, decimals: number): string => {
+    let spec = fixedSpecs.get(decimals);
+    if (spec === undefined) {
+        spec = { minimumFractionDigits: decimals, maximumFractionDigits: decimals };
+        fixedSpecs.set(decimals, spec);
+    }
+    return numberFormatter(spec).format(value);
+};
+
 /* Percent as Activity Monitor writes it: a decimal under ten, where the difference still shows. */
 export const formatPercent = (value: number): string => `${value < 10 ? formatDecimal(value) : formatNumber(value)}%`;
 

@@ -446,6 +446,34 @@ describe('a shortcut chip', () => {
     });
 });
 
+describe('a stepper', () => {
+    const renderStepper = (node: ReactNode): string => {
+        const source = fakeFormatSource();
+        source.set({ region: 'nl-NL' });
+        return renderToStaticMarkup(
+            <UIProvider i18n={i18n} formatSource={source}>
+                {node}
+            </UIProvider>
+        );
+    };
+
+    test('writes its value with the places of its step, the way the region does', () => {
+        const markup = renderStepper(<Stepper value={1} onValueChange={() => {}} min={1} max={2.5} step={0.1} unit="×" label="Line height" />);
+        expect(markup).toContain('aria-live="polite">1,0<span class="text-text-muted">×</span>');
+    });
+
+    test('takes the places it is handed over the ones of its step', () => {
+        const markup = renderStepper(<Stepper value={1.5} onValueChange={() => {}} min={1} max={2} step={0.5} decimals={2} label="Speed" />);
+        expect(markup).toContain('aria-live="polite">1,50</span>');
+    });
+
+    test('reserves the width of both ends of its range', () => {
+        const markup = renderStepper(<Stepper value={5} onValueChange={() => {}} min={-10} max={100} step={1} label="Offset" />);
+        expect(markup).toContain('<span class="invisible col-start-1 row-start-1">-10</span>');
+        expect(markup).toContain('<span class="invisible col-start-1 row-start-1">100</span>');
+    });
+});
+
 describe('the provider', () => {
     test('adds the words of the library to the app i18next, so a control reads them on its first render', () => {
         const fresh = i18next.createInstance();
