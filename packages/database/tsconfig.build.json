@@ -7,7 +7,8 @@
     "rootDir": "src",
     "types": [
       "node"
-    ]
+    ],
+    "customConditions": []
   },
   "include": [
     "src"
