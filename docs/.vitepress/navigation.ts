@@ -64,6 +64,7 @@ const desktopUi: DefaultTheme.SidebarItem[] = [
         ['SegmentBar', '/desktop-ui/display/segment-bar'],
         ['Meter', '/desktop-ui/display/meter'],
         ['Waveform', '/desktop-ui/display/waveform'],
+        ['TerminalView', '/desktop-ui/display/terminal-view'],
         ['EmptyState', '/desktop-ui/display/empty-state'],
         ['PanelEmpty', '/desktop-ui/display/panel-empty'],
         ['Banner', '/desktop-ui/display/banner'],

@@ -343,3 +343,13 @@ exports[`the public API the compound components have these parts 1`] = `
   ],
 }
 `;
+
+exports[`the public API ./terminal exports these names 1`] = `
+[
+  "TerminalView",
+  "type TerminalSize",
+  "type TerminalViewHandle",
+  "type TerminalViewProps",
+  "webglTerminals",
+]
+`;

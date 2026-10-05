@@ -61,6 +61,7 @@ From there, every component is ready to use:
 | `@basmilius/desktop-ui` | The components, hooks and helpers |
 | `@basmilius/desktop-ui/settings` | `SettingsDialog` and the parts of a pane |
 | `@basmilius/desktop-ui/format` | Numbers, dates, durations and regions, and `setFormatSource` |
+| `@basmilius/desktop-ui/terminal` | `TerminalView`, on xterm.js as an optional peer |
 | `@basmilius/desktop-ui/testing` | Fakes for an app's tests, such as `fakeFormatSource()` |
 | `@basmilius/desktop-ui/testing/dedupe` | A `bun test` preload for an app that links a checkout |
 | `@basmilius/desktop-ui/theme.css` | The theme |
