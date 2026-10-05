@@ -121,6 +121,7 @@ jobs:
 
       # Every package carries the same version, so one tag releases them all. After the install, since the lockfile holds the version a workspace had.
       # The optional dependencies on the platform packages follow, or the published package would ask for a version that does not exist.
+      # A peer on another package of this release asks for this minor, which is what a 0.x caret means.
       - name: ✏️ Version ${{ env.RELEASE_VERSION }}
         run: |
           for manifest in packages/*/package.json; do
@@ -128,6 +129,9 @@ jobs:
                   .version = $version
                   | if .optionalDependencies then
                       .optionalDependencies |= with_entries(if (.key | startswith("@adecore/")) then .value = $version else . end)
+                  else . end
+                  | if .peerDependencies then
+                      .peerDependencies |= with_entries(if (.key | startswith("@adecore/")) then .value = "^" + $version else . end)
                   else . end
               ' "$manifest" > "$manifest.tmp"
               mv "$manifest.tmp" "$manifest"
