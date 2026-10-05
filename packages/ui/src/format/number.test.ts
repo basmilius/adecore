@@ -1,5 +1,16 @@
 import { afterAll, afterEach, beforeAll, describe, expect, test } from 'bun:test';
-import { formatBytes, formatDecimal, formatFixed, formatMoney, formatNumber, formatPercent, formatTokens, formatUsdSignificant } from './number.ts';
+import {
+    formatBytes,
+    formatDecimal,
+    formatFixed,
+    formatMoney,
+    formatNumber,
+    formatNumeral,
+    formatPercent,
+    formatRounded,
+    formatTokens,
+    formatUsdSignificant
+} from './number.ts';
 import { FORMAT_SYSTEM } from './regions.ts';
 import { fakeFormatSource } from '../testing/fake-source.ts';
 import { setFormatSource, type FormatSource } from './locale.ts';
@@ -107,5 +118,37 @@ describe('dollars to significant digits', () => {
         expect(formatUsdSignificant(10)).toBe('$10');
         inRegion('nl-NL');
         expect(formatUsdSignificant(0.55)).toBe('$\u00a00,55');
+    });
+});
+
+describe('a figure to at most some decimals', () => {
+    test('drops the fraction that is not there', () => {
+        inRegion('nl-NL');
+        expect(formatRounded(39, 2)).toBe('39');
+        expect(formatRounded(1.95, 2)).toBe('1,95');
+        expect(formatRounded(1.998, 2)).toBe('2');
+        inRegion('en-US');
+        expect(formatRounded(1234.5, 2)).toBe('1,234.5');
+    });
+});
+
+describe('a numeral from a database', () => {
+    test('keeps every digit a double would round away', () => {
+        inRegion('en-US');
+        expect(formatNumeral('9007199254740993')).toBe('9,007,199,254,740,993');
+        expect(formatNumeral('12345678901234567890.123456789')).toBe('12,345,678,901,234,567,890.123456789');
+    });
+
+    test('keeps the decimals it was written with, in the region notation', () => {
+        inRegion('nl-NL');
+        expect(formatNumeral('-0.50')).toBe('-0,50');
+        expect(formatNumeral('12900')).toBe('12.900');
+        expect(formatNumeral(1.5)).toBe('1,5');
+    });
+
+    test('leaves text that is no plain numeral alone', () => {
+        expect(formatNumeral('NaN')).toBe('NaN');
+        expect(formatNumeral('1e999')).toBe('1e999');
+        expect(formatNumeral('Infinity')).toBe('Infinity');
     });
 });

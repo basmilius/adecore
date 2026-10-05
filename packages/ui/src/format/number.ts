@@ -12,13 +12,48 @@ export const formatDecimal = (value: number): string => numberFormatter(ONE_DECI
 const fixedSpecs = new Map<number, Intl.NumberFormatOptions>();
 
 /* Always `decimals` places, so values that follow each other keep one width: `1,0` and `1,5`, never `1` and `1,5`. */
-export const formatFixed = (value: number, decimals: number): string => {
+export const formatFixed = (value: number, decimals: number): string => numberFormatter(fixedSpec(decimals)).format(value);
+
+const fixedSpec = (decimals: number): Intl.NumberFormatOptions => {
     let spec = fixedSpecs.get(decimals);
     if (spec === undefined) {
         spec = { minimumFractionDigits: decimals, maximumFractionDigits: decimals };
         fixedSpecs.set(decimals, spec);
     }
+    return spec;
+};
+
+const roundedSpecs = new Map<number, Intl.NumberFormatOptions>();
+
+/* At most `decimals` places, trailing zeros dropped, for a figure whose fraction may or may not be there: `39`, `1,95`. */
+export const formatRounded = (value: number, decimals: number): string => {
+    let spec = roundedSpecs.get(decimals);
+    if (spec === undefined) {
+        spec = { maximumFractionDigits: decimals };
+        roundedSpecs.set(decimals, spec);
+    }
     return numberFormatter(spec).format(value);
+};
+
+/* Intl takes at most this many fraction digits. */
+const MAX_FRACTION_DIGITS = 100;
+
+const NUMERAL = /^[+-]?\d+(?:\.(\d+))?$/;
+
+/*
+ * A numeral as a database writes it (`12900`, `-0.50`, `9007199254740993`), in the region's notation
+ * with every digit kept: a decimal or a big integer arrives as text, and a float would round it.
+ * Text that is no plain numeral, such as `NaN` or `1e999`, comes back as it is.
+ */
+export const formatNumeral = (numeral: string | number): string => {
+    const text = typeof numeral === 'number' ? String(numeral) : numeral.trim();
+    const match = NUMERAL.exec(text);
+    if (match === null) {
+        return text;
+    }
+    const decimals = Math.min(match[1]?.length ?? 0, MAX_FRACTION_DIGITS);
+    // A string goes to Intl as it is, so it formats the exact decimal and not the nearest double.
+    return numberFormatter(fixedSpec(decimals)).format(text as Intl.StringNumericLiteral);
 };
 
 /* Percent as Activity Monitor writes it: a decimal under ten, where the difference still shows. */
