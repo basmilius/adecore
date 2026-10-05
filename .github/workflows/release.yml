@@ -133,13 +133,14 @@ jobs:
               mv "$manifest.tmp" "$manifest"
           done
 
+      # Before the tests: a test that imports another package of the repository reads its `dist`.
+      - name: 🔨 Build
+        run: bun run build
+
       - name: 🔍 Check and test
         run: |
           bun run check
           bun run test
-
-      - name: 🔨 Build
-        run: bun run build
 
       # One artifact per platform package, each holding `bin/`. After the check and the build so those never see a binary, before the publish so `files` picks it up.
       - name: ⬇️ Download the helper binaries
