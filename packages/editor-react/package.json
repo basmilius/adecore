@@ -1,6 +1,5 @@
 {
     "name": "@adecore/editor-react",
-    "private": true,
     "version": "0.0.0",
     "type": "module",
     "description": "Language-enabled editors, feature coordination and React popups over injected language services.",

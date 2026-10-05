@@ -1,6 +1,5 @@
 {
     "name": "@adecore/drawing",
-    "private": true,
     "version": "0.0.0",
     "description": "Drawing schemas, geometry, deterministic paths, SVG export and reading order.",
     "license": "FSL-1.1-MIT",

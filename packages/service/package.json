@@ -1,7 +1,6 @@
 {
   "name": "@adecore/service",
   "version": "0.0.0",
-  "private": true,
   "description": "User service definitions and injectable launchd and systemd managers.",
   "license": "FSL-1.1-MIT",
   "author": "Bas Milius",

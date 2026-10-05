@@ -1,6 +1,5 @@
 {
     "name": "@adecore/diagram",
-    "private": true,
     "version": "0.0.0",
     "description": "Directed graph schemas, layered layout, SVG export and reading order.",
     "license": "FSL-1.1-MIT",
