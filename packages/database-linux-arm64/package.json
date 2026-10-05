@@ -1,7 +1,6 @@
 {
   "name": "@adecore/database-linux-arm64",
   "version": "0.0.0",
-  "private": true,
   "description": "The prebuilt native helper of @adecore/database for Linux on arm64 (glibc).",
   "license": "MIT",
   "author": "Bas Milius",

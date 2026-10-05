@@ -1,7 +1,6 @@
 {
   "name": "@adecore/database-win32-x64",
   "version": "0.0.0",
-  "private": true,
   "description": "The prebuilt native helper of @adecore/database for Windows on x64.",
   "license": "MIT",
   "author": "Bas Milius",

@@ -1,7 +1,6 @@
 {
   "name": "@adecore/database",
   "version": "0.0.0",
-  "private": true,
   "description": "Browse, query and edit SQLite and MySQL databases: React views for the page, a host for the backend and a native helper that talks to the server.",
   "license": "MIT",
   "author": "Bas Milius",
