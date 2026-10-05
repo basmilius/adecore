@@ -70,6 +70,19 @@ const desktopUi: DefaultTheme.SidebarItem[] = [
         ['Banner', '/ui/display/banner'],
         ['ErrorBoundary', '/ui/display/error-boundary']
     ]),
+    group('FileTree', [
+        ['Overview', '/ui/display/file-tree'],
+        ['Getting started', '/ui/display/file-tree/getting-started'],
+        ['Models, loading and expansion', '/ui/display/file-tree/models-loading'],
+        ['Interaction and row controls', '/ui/display/file-tree/interaction-controls'],
+        ['Reference and migration', '/ui/display/file-tree/reference']
+    ]),
+    group('Tree', [
+        ['Overview', '/ui/display/tree'],
+        ['Getting started', '/ui/display/tree/getting-started'],
+        ['Integrating a custom model', '/ui/display/tree/model-integration'],
+        ['Part reference', '/ui/display/tree/reference']
+    ]),
     group('Layout', [
         ['Tabs', '/ui/layout/tabs'],
         ['SlidingColumn', '/ui/layout/sliding-column'],
@@ -154,5 +167,179 @@ export const sidebar: DefaultTheme.SidebarMulti = {
     '/ui/': desktopUi,
     '/shell/': desktopShell,
     '/terminal/': terminal,
-    '/database/': database
+    '/database/': database,
+    '/agent-contracts/': [
+        group('Agent contracts', [
+            ['Overview', '/agent-contracts/'],
+            ['Getting started', '/agent-contracts/getting-started'],
+            ['Frames and events', '/agent-contracts/frames-and-events'],
+            ['Conversation content', '/agent-contracts/conversation'],
+            ['Providers and accounts', '/agent-contracts/providers-and-accounts'],
+            ['Tasks and usage', '/agent-contracts/tasks-and-usage'],
+            ['Validation and compatibility', '/agent-contracts/validation-and-compatibility']
+        ])
+    ],
+    '/agents/': [
+        group('Agents', [
+            ['Overview', '/agents/'],
+            ['Getting started', '/agents/getting-started'],
+            ['Transport', '/agents/transport'],
+            ['Host integration', '/agents/host-integration'],
+            ['Providers and models', '/agents/providers-and-models'],
+            ['Turns and requests', '/agents/turns-and-requests'],
+            ['Accounts and environment', '/agents/accounts-and-environment'],
+            ['Durable coordination', '/agents/coordination'],
+            ['Context commands', '/agents/context-commands'],
+            ['Persistence and helpers', '/agents/persistence-and-helpers'],
+            ['Testing and troubleshooting', '/agents/testing-and-troubleshooting'],
+            ['Public entrypoints', '/agents/entrypoints'],
+            ['Migration', '/agents/migration']
+        ])
+    ],
+    '/agents-react/': [
+        group('Agent views', [
+            ['Overview', '/agents-react/'],
+            ['Installation and setup', '/agents-react/getting-started'],
+            ['Host adapters', '/agents-react/host'],
+            ['Chat state and lifecycle', '/agents-react/chat-lifecycle']
+        ]),
+        group('Chat', [
+            ['Composer', '/agents-react/composer'],
+            ['Attachments and mentions', '/agents-react/attachments'],
+            ['Messages and timeline', '/agents-react/timeline'],
+            ['Approvals and tasks', '/agents-react/approvals-tasks']
+        ]),
+        group('Providers and usage', [
+            ['Accounts and models', '/agents-react/accounts-models'],
+            ['Usage', '/agents-react/usage']
+        ]),
+        group('Integration', [
+            ['Persistence', '/agents-react/persistence'],
+            ['CSS, theme, and translations', '/agents-react/styling'],
+            ['Testing', '/agents-react/testing'],
+            ['Migration', '/agents-react/migration'],
+            ['Troubleshooting', '/agents-react/troubleshooting']
+        ]),
+        group('Reference', [
+            ['Runtime', '/agents-react/reference-runtime'],
+            ['Chat', '/agents-react/reference-chat'],
+            ['Settings', '/agents-react/reference-settings']
+        ])
+    ],
+    '/merge/': [
+        group('Merge', [
+            ['Overview', '/merge/'],
+            ['Getting started', '/merge/getting-started'],
+            ['Lines, ranges and blocks', '/merge/concepts'],
+            ['Choosing a resolution', '/merge/resolution'],
+            ['API reference', '/merge/api'],
+            ['Host integration and testing', '/merge/integration']
+        ])
+    ],
+    '/drawing/': [
+        group('Drawing', [
+            ['Overview', '/drawing/'],
+            ['Getting started', '/drawing/getting-started'],
+            ['Geometry and editing', '/drawing/geometry'],
+            ['Paths and SVG', '/drawing/rendering'],
+            ['Text, fonts and reading order', '/drawing/text'],
+            ['API reference', '/drawing/api'],
+            ['Drawing protocol', '/drawing/protocol'],
+            ['Integration, migration and testing', '/drawing/migration']
+        ])
+    ],
+    '/diagram/': [
+        group('Diagram', [
+            ['Overview', '/diagram/'],
+            ['Getting started', '/diagram/getting-started'],
+            ['Layers, groups and layout', '/diagram/layout'],
+            ['Painting and reading output', '/diagram/rendering'],
+            ['API reference', '/diagram/api'],
+            ['Diagram protocol', '/diagram/protocol'],
+            ['Integration, migration and testing', '/diagram/migration']
+        ])
+    ],
+    '/plan/': [
+        group('Plan', [
+            ['Overview', '/plan/'],
+            ['Getting started', '/plan/getting-started'],
+            ['Tree, state and progress', '/plan/concepts'],
+            ['Operations and permissions', '/plan/operations'],
+            ['Markdown and reading text', '/plan/formats'],
+            ['API reference', '/plan/api'],
+            ['Plan protocol', '/plan/protocol'],
+            ['Integration, migration and testing', '/plan/migration']
+        ])
+    ],
+    '/service/': [
+        group('Service', [
+            ['Overview', '/service/'],
+            ['Getting started', '/service/getting-started'],
+            ['Definitions and identity', '/service/definitions'],
+            ['Lifecycle', '/service/lifecycle'],
+            ['API reference', '/service/reference'],
+            ['Testing and host migration', '/service/testing-migration']
+        ])
+    ],
+    '/editor-core/': [
+        group('Editor core', [
+            ['Overview', '/editor-core/'],
+            ['Handbook', '/editor-core/handbook/'],
+            ['Text and selections', '/editor-core/handbook/document-model'],
+            ['Transactions and history', '/editor-core/handbook/transactions'],
+            ['Events and state', '/editor-core/handbook/events-state'],
+            ['Commands and structure', '/editor-core/handbook/commands-structure'],
+            ['Testing and provenance', '/editor-core/handbook/testing-provenance']
+        ])
+    ],
+    '/editor/': [
+        group('Editor', [
+            ['Overview', '/editor/'],
+            ['Handbook', '/editor/handbook/'],
+            ['Configuration and keymaps', '/editor/handbook/configuration'],
+            ['Editing and events', '/editor/handbook/editing'],
+            ['Rendering and large files', '/editor/handbook/rendering'],
+            ['Theme and syntax', '/editor/handbook/theme-syntax'],
+            ['Search, folds and widgets', '/editor/handbook/search-widgets'],
+            ['Testing and migration', '/editor/handbook/testing-migration'],
+            ['Consumer migration', '/editor/migration']
+        ])
+    ],
+    '/lsp/': [
+        group('LSP', [
+            ['Overview', '/lsp/'],
+            ['Handbook', '/lsp/handbook/'],
+            ['Transports and processes', '/lsp/handbook/transports'],
+            ['Initialization and capabilities', '/lsp/handbook/initialization'],
+            ['Documents and edits', '/lsp/handbook/documents-edits'],
+            ['Requests and results', '/lsp/handbook/requests-features'],
+            ['Vue and TypeScript', '/lsp/handbook/vue'],
+            ['Testing and host integration', '/lsp/handbook/testing-host']
+        ])
+    ],
+    '/editor-react/': [
+        group('Editor React', [
+            ['Overview', '/editor-react/'],
+            ['Handbook', '/editor-react/handbook/'],
+            ['Getting started', '/editor-react/handbook/getting-started'],
+            ['Host integration', '/editor-react/handbook/host-integration'],
+            ['Completion and information', '/editor-react/handbook/completion-information'],
+            ['Diagnostics, tokens and hints', '/editor-react/handbook/diagnostics-tokens'],
+            ['Navigation and changes', '/editor-react/handbook/navigation-changes'],
+            ['Review and proposals', '/editor-react/handbook/review-proposals'],
+            ['Lifecycle and testing', '/editor-react/handbook/lifecycle-testing']
+        ])
+    ],
+    '/php-language-server/': [
+        group('PHP language server', [
+            ['Overview', '/php-language-server/'],
+            ['Getting started', '/php-language-server/handbook/getting-started'],
+            ['Distribution and native metadata', '/php-language-server/handbook/distribution'],
+            ['Server and document lifecycle', '/php-language-server/handbook/lifecycle'],
+            ['Configuration, Composer and stubs', '/php-language-server/handbook/configuration'],
+            ['PHP features', '/php-language-server/handbook/features'],
+            ['Frameworks and test support', '/php-language-server/handbook/frameworks'],
+            ['Maintaining and validating', '/php-language-server/handbook/maintainers']
+        ])
+    ]
 };

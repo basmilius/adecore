@@ -1,0 +1,19 @@
+{
+    "name": "adecore-agent-port-example",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "test": "bun --conditions=source index.mjs",
+        "test:dist": "node index.mjs"
+    },
+    "dependencies": {
+        "@adecore/agent-contracts": "workspace:*",
+        "@adecore/agents": "workspace:*",
+        "@adecore/agents-react": "workspace:*",
+        "@adecore/ui": "workspace:*",
+        "i18next": "^26.4.2",
+        "react": "^19.3.0",
+        "react-dom": "^19.3.0",
+        "react-i18next": "^17.0.15"
+    }
+}

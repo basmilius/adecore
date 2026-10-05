@@ -12,17 +12,33 @@
 [![terminal on npm](https://img.shields.io/npm/v/@adecore/terminal?label=terminal)](https://www.npmjs.com/package/@adecore/terminal)
 [![Docs](https://img.shields.io/badge/docs-adecore.dev-blue)](https://adecore.dev)
 
-Packages for desktop apps on Electron, React 19 and Tailwind 4. One package draws the page, one runs the main process and one adds a terminal to the page. All of them are released together, under one version.
+Shared packages for development apps on Electron, React 19 and Tailwind 4. UI and terminal views, agent hosts and chat, database tooling, editors, language services, drawing and diagram cores, merge algorithms and user service managers follow one release version.
 
 The documentation is at **[adecore.dev](https://adecore.dev)**, with a live demo of every component. The [introduction](https://adecore.dev/guide/) is the place to start.
 
 ## Packages
 
-| Package | What it holds | Docs |
-|---|---|---|
-| [`@adecore/ui`](packages/ui) | For the page. React components, a theme of tokens, keyboard shortcuts, a settings dialog and formatters for numbers and dates, on Base UI and Lucide. | [ui](https://adecore.dev/ui/) |
-| [`@adecore/terminal`](packages/terminal) | A terminal pane on xterm.js in the colors of the theme, fed by the app through a handle. | [terminal](https://adecore.dev/terminal/) |
-| [`@adecore/shell`](packages/shell) | For the main process. The application menu the page builds, an updater the page watches, windows that open where they were left, the page's theme on its window and the guards around the page. | [shell](https://adecore.dev/shell/) |
+| Package                                                        | What it holds                                                                                                                                                                                   | Docs                                                            |
+| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| [`@adecore/ui`](packages/ui)                                   | For the page. React components, a theme of tokens, keyboard shortcuts, a settings dialog and formatters for numbers and dates, on Base UI and Lucide.                                           | [ui](https://adecore.dev/ui/)                                   |
+| [`@adecore/terminal`](packages/terminal)                       | A terminal pane on xterm.js in the colors of the theme, fed by the app through a handle.                                                                                                        | [terminal](https://adecore.dev/terminal/)                       |
+| [`@adecore/shell`](packages/shell)                             | For the main process. The application menu the page builds, an updater the page watches, windows that open where they were left, the page's theme on its window and the guards around the page. | [shell](https://adecore.dev/shell/)                             |
+| [`@adecore/database`](packages/database)                       | React database views, backend host and native database helpers.                                                                                                                                 | [database](https://adecore.dev/database/)                       |
+| [`@adecore/agent-contracts`](packages/agent-contracts)         | Schemas and transport contracts for agents.                                                                                                                                                     | [agent-contracts](https://adecore.dev/agent-contracts/)         |
+| [`@adecore/agents`](packages/agents)                           | Node-compatible chat hosts, providers, accounts, usage and task coordination.                                                                                                                   | [agents](https://adecore.dev/agents/)                           |
+| [`@adecore/agents-react`](packages/agents-react)               | Chat, composer, approvals, provider and usage views with host adapters.                                                                                                                         | [agents-react](https://adecore.dev/agents-react/)               |
+| [`@adecore/merge`](packages/merge)                             | Pure diff and conflict algorithms.                                                                                                                                                              | [merge](https://adecore.dev/merge/)                             |
+| [`@adecore/drawing`](packages/drawing)                         | Drawing schemas, geometry and rendering.                                                                                                                                                        | [drawing](https://adecore.dev/drawing/)                         |
+| [`@adecore/diagram`](packages/diagram)                         | Diagram schemas, graph layout and SVG rendering.                                                                                                                                                | [diagram](https://adecore.dev/diagram/)                         |
+| [`@adecore/plan`](packages/plan)                               | Plan schemas, task trees, operation permissions and Markdown conversion.                                                                                                                        | [plan](https://adecore.dev/plan/)                               |
+| [`@adecore/service`](packages/service)                         | Injectable launchd and systemd user service managers.                                                                                                                                           | [service](https://adecore.dev/service/)                         |
+| [`@adecore/editor-core`](packages/editor-core)                 | Document model, edits, selections and history.                                                                                                                                                  | [editor core](https://adecore.dev/editor-core/)                 |
+| [`@adecore/editor`](packages/editor)                           | Browser editor engine, rendering, keymaps and syntax highlighting.                                                                                                                              | [editor](https://adecore.dev/editor/)                           |
+| [`@adecore/lsp`](packages/lsp)                                 | Language service contracts, JSON-RPC client, transports and fakes.                                                                                                                              | [LSP](https://adecore.dev/lsp/)                                 |
+| [`@adecore/editor-react`](packages/editor-react)               | Language feature coordination, React popups and review displays.                                                                                                                                | [editor views](https://adecore.dev/editor-react/)               |
+| [`@adecore/php-language-server`](packages/php-language-server) | Native PHP language server, source and release metadata.                                                                                                                                        | [PHP language server](https://adecore.dev/php-language-server/) |
+
+Newly transferred packages stay private at `0.0.0` until their first npm publication and Trusted Publishing setup are complete. The editor family and PHP language server preserve their current implementation and documented remaining work.
 
 ```sh
 bun add @adecore/ui
@@ -44,9 +60,10 @@ The repository is a Bun workspace. `packages` holds one folder per package, and 
 
 ```sh
 bun install
+bun run build             # dependency-ordered JavaScript and declaration builds
 bun run check             # typecheck and oxlint, a warning fails
-bun run test              # every test, the docs and the demos included
-bun run build             # dist of every package
+bun run test              # unit tests, the docs and demos included
+bun run test:pack         # tarballs, exports and isolated Node/Bun consumer smoke tests
 bun run format            # oxfmt
 bun run --cwd docs build  # the docs site
 ```
@@ -57,7 +74,7 @@ An app can use a checkout of this repository without a build per change. Every p
 
 ## Releases
 
-A published GitHub release runs [`release.yml`](.github/workflows/release.yml). It sets the version from the tag in every package and runs check, test and build. Then it publishes each package to npm through Trusted Publishing, with provenance, and deploys the docs. A prerelease goes out under the `next` dist-tag and uploads the docs without making them live. Every `package.json` in the repository stays at `0.0.0`.
+A published GitHub release runs [`release.yml`](.github/workflows/release.yml). It sets the version from the tag in every package and runs check, test and build. It normalizes internal dependencies to the release version, validates packed artifacts, then publishes public packages in dependency order through Trusted Publishing, with provenance, and deploys the docs. Database platform binaries precede the host package. The native PHP workflow builds verified platform archives and attaches them with a pinned release descriptor. Private packages are skipped; a public package cannot depend on a private workspace. A prerelease goes out under the `next` dist-tag and uploads the docs without making them live. Every `package.json` in the repository stays at `0.0.0`.
 
 ## Issues
 
@@ -65,4 +82,4 @@ Use a template: a [bug](https://github.com/basmilius/adecore/issues/new?template
 
 ## License
 
-[MIT](LICENSE)
+Existing packages retain [MIT](LICENSE). Transferred TypeScript packages retain their package-local FSL-1.1-MIT license and provenance. Check each package's `license` field and `LICENSE` before redistribution. The native PHP workspace retains its declared MIT license and third-party notices. A publication must not silently change those licenses.

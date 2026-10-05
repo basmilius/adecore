@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": [
+      "bun"
+    ],
+    "customConditions": [
+      "source"
+    ]
+  },
+  "include": [
+    "src",
+    "scripts"
+  ]
+}

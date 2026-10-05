@@ -1,0 +1,21 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "noEmit": false,
+        "declaration": true,
+        "outDir": "dist",
+        "rootDir": "src",
+        "customConditions": [],
+        "rewriteRelativeImportExtensions": true,
+        "types": [
+            "node"
+        ]
+    },
+    "include": [
+        "src"
+    ],
+    "exclude": [
+        "src/**/*.test.ts",
+        "src/**/*.test.tsx"
+    ]
+}

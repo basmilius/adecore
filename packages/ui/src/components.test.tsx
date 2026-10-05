@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import i18next from 'i18next';
@@ -7,7 +7,7 @@ import { ButtonGroup } from './ButtonGroup.tsx';
 import { ColorSwatch } from './ColorSwatch.tsx';
 import { EmptyState } from './EmptyState.tsx';
 import { Field, FormError } from './Field.tsx';
-import { formatLocale } from './format/locale.ts';
+import { formatLocale, setFormatSource, type FormatSource } from './format/locale.ts';
 import { IconButton } from './IconButton.tsx';
 import { IconPicker, type IconPickerGroup } from './IconPicker.tsx';
 import { Input, TextArea } from './Input.tsx';
@@ -31,6 +31,16 @@ import { Waveform } from './Waveform.tsx';
 
 const i18n = i18next.createInstance();
 await i18n.init({ lng: 'en', fallbackLng: 'en', resources: {}, interpolation: { escapeValue: false } });
+
+let previousFormatSource: FormatSource;
+
+beforeEach(() => {
+    previousFormatSource = setFormatSource(fakeFormatSource());
+});
+
+afterEach(() => {
+    setFormatSource(previousFormatSource);
+});
 
 const render = (node: ReactNode): string => renderToStaticMarkup(<UIProvider i18n={i18n}>{node}</UIProvider>);
 

@@ -56,7 +56,7 @@ describe('the public API', () => {
     test('the compound components have these parts', async () => {
         const barrel = (await import('./index.ts')) as Record<string, unknown>;
         const parts = Object.fromEntries(
-            ['ContextMenu', 'Dialog', 'KeyValueList', 'Menu', 'Popover', 'PreviewCard', 'Tabs'].map((name) => [
+            ['ContextMenu', 'Dialog', 'FileTree', 'Tree', 'KeyValueList', 'Menu', 'Popover', 'PreviewCard', 'Tabs'].map((name) => [
                 name,
                 Object.keys(barrel[name] as object).sort()
             ])

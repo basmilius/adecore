@@ -1,26 +1,19 @@
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-
-/* The packages the demos import, read from `src`. */
-const PACKAGES = ['ui', 'terminal', 'database'].map((folder) => new URL(`../../packages/${folder}/`, import.meta.url));
-
-interface Manifest {
-    name: string;
-    exports: Record<string, { source: string }>;
-}
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { discoverPackages } from '../../scripts/workspaces.ts';
+import { exportTargets } from '../../scripts/packed-artifacts.ts';
 
 const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-/*
- * Every entry point of the packages, resolved through its `source` condition to the file in `src`, so
- * the docs always draw the code in this checkout. An alias rather than a dependency: Bun cannot link
- * the root package into a workspace, and a copy would go stale with the first edit.
- */
-export const librarySourceAliases = (): { find: RegExp; replacement: string }[] =>
-    PACKAGES.flatMap((root) => {
-        const manifest = JSON.parse(readFileSync(new URL('package.json', root), 'utf8')) as Manifest;
-        return Object.entries(manifest.exports).map(([subpath, targets]) => ({
-            find: new RegExp(`^${escapeRegExp(manifest.name + subpath.slice(1))}$`),
-            replacement: fileURLToPath(new URL(targets.source, root))
-        }));
-    });
+export function librarySourceAliases(): { find: RegExp; replacement: string }[] {
+    return discoverPackages()
+        .flatMap(({ directory, manifest }) =>
+            exportTargets(manifest).map((target) => ({
+                find: new RegExp(`^${(manifest.name + target.subpath.slice(1)).split('*').map(escapeRegExp).join('(.*)')}$`),
+                replacement: fileURLToPath(new URL(target.source, pathToFileURL(`${directory}/`))).replace('*', '$1')
+            }))
+        )
+        .sort(
+            (left, right) =>
+                Number(left.find.source.includes('(.*)')) - Number(right.find.source.includes('(.*)')) || right.find.source.length - left.find.source.length
+        );
+}

@@ -1,0 +1,171 @@
+{
+    "language": {
+        "hover": {
+            "quickFix": "Quick fix…",
+            "quickFixNone": "This language server offers no quick fixes",
+            "definition": "Go to definition",
+            "references_one": "{{formatted}} reference",
+            "references_other": "{{formatted}} references",
+            "none": "No information for this position"
+        },
+        "edit": {
+            "staged_one": "{{count}} file changed and not saved yet",
+            "staged_other": "{{count}} files changed and not saved yet",
+            "stagedMore": "{{names}} and {{count}} more",
+            "saveAll": "Save all",
+            "notSaved": "{{name}} could not be saved"
+        },
+        "actions": {
+            "show": "Show code actions",
+            "none": "No code actions here",
+            "unavailable": "No language server offers code actions here",
+            "organized": "The imports are already organized",
+            "noFormatter": "No language server formats this file",
+            "readOnly": "This file is read only",
+            "failed": "Could not apply the action: {{message}}",
+            "refused": "The edit was refused",
+            "moreLines": "{{count}} more lines",
+            "otherFiles_one": "and {{count}} other file",
+            "otherFiles_other": "and {{count}} other files",
+            "moves_one": "moves {{count}} file",
+            "moves_other": "moves {{count}} files",
+            "groups": {
+                "quickfix": "Quick fix",
+                "rewrite": "Rewrite",
+                "extract": "Extract",
+                "inline": "Inline",
+                "move": "Move",
+                "refactor": "Refactor",
+                "source": "Source",
+                "other": "Other"
+            }
+        },
+        "rename": {
+            "unavailable": "No language server renames in this file",
+            "nothing": "There is nothing to rename here",
+            "refused": "The language server refused the new name",
+            "stale": "The text changed while the rename was being asked for",
+            "failed": "Could not rename: {{message}}",
+            "occurrences_one": "{{formatted}} occurrence",
+            "occurrences_other": "{{formatted}} occurrences",
+            "occurrencesFiles_one": "{{formatted}} occurrence in {{files}} files",
+            "occurrencesFiles_other": "{{formatted}} occurrences in {{files}} files",
+            "rename": "Rename",
+            "preview": "Preview",
+            "cancel": "Cancel",
+            "apply": "Rename",
+            "suggestions": "Suggested names",
+            "useSuggestion": "Use suggestion"
+        },
+        "navigation": {
+            "unavailable": "No language server answers that here",
+            "none": "Nothing found",
+            "failed": "Could not look it up: {{message}}",
+            "titles": {
+                "definition": "Definitions",
+                "declaration": "Declarations",
+                "typeDefinition": "Type definitions",
+                "implementation": "Implementations",
+                "symbol": "Matches"
+            }
+        },
+        "peek": {
+            "unavailable": "No language server finds references in this file",
+            "none": "No references found",
+            "failed": "Could not look up the references: {{message}}",
+            "references_one": "{{formatted}} reference",
+            "references_other": "{{formatted}} references",
+            "close": "Close",
+            "collapse": "Collapse",
+            "expand": "Expand",
+            "definitions_one": "{{formatted}} definition",
+            "definitions_other": "{{formatted}} definitions",
+            "noDefinition": "No definition found",
+            "unavailableDefinition": "No language server finds definitions in this file"
+        },
+        "codeVision": {
+            "usagesNone": "No usages",
+            "usages_one": "{{formatted}} usage",
+            "usages_other": "{{formatted}} usages",
+            "newCode": "new *",
+            "lines_one": "{{formatted}} line",
+            "lines_other": "{{formatted}} lines",
+            "uncommitted": "Not committed yet",
+            "latest": "Latest change",
+            "showCommit": "Show commit"
+        },
+        "symbols": {
+            "unavailable": "No language server knows the symbols of this file",
+            "failed": "Could not read the symbols: {{message}}",
+            "placeholder": "Go to symbol in {{file}}",
+            "navigate": "Navigate",
+            "open": "Open",
+            "workspace": "Workspace symbols",
+            "line": "Go to line",
+            "none": "No matching symbols",
+            "workspaceHint": "Type the name of a symbol in the project",
+            "lineHint": "Type a line number",
+            "goToLine": "Go to line {{line}}",
+            "groups": {
+                "namespaces": "Namespaces",
+                "classes": "Classes",
+                "interfaces": "Interfaces",
+                "enums": "Enums",
+                "functions": "Functions",
+                "methods": "Methods",
+                "properties": "Properties",
+                "variables": "Variables",
+                "constants": "Constants",
+                "other": "Other"
+            }
+        },
+        "context": {
+            "refactor": "Refactor",
+            "cut": "Cut",
+            "copy": "Copy",
+            "paste": "Paste"
+        },
+        "completion": {
+            "insert": "Insert",
+            "replace": "Replace",
+            "details": "Details",
+            "none": "No suggestions"
+        },
+        "history": {
+            "recent": "Recent locations"
+        }
+    },
+    "commands": {
+        "goToDefinition": "Go to definition",
+        "goToTypeDefinition": "Go to type definition",
+        "goToImplementation": "Go to implementation",
+        "peekReferences": "Peek references",
+        "renameSymbol": "Rename symbol",
+        "codeActions": "Code actions",
+        "formatDocument": "Format document"
+    },
+    "find": {
+        "label": "Find",
+        "count": "{{current}} / {{total}}",
+        "none": "No results",
+        "invalid": "Invalid regular expression",
+        "caseSensitive": "Match case",
+        "wholeWord": "Match whole word",
+        "regex": "Use regular expression",
+        "inSelection": "In selection",
+        "noSelection": "No selection",
+        "selectAll": "Select all matches",
+        "previous": "Previous match",
+        "next": "Next match",
+        "close": "Close",
+        "replace": {
+            "label": "Replace with",
+            "one": "Replace",
+            "all": "All",
+            "allLabel": "Replace all",
+            "preserveCase": "Preserve case",
+            "toggle": "Show replace",
+            "hide": "Hide replace"
+        }
+    }
+}

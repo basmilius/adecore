@@ -1,0 +1,105 @@
+{
+    "name": "@adecore/agent-contracts",
+    "version": "0.0.0",
+    "description": "Schemas and port contracts for agent chats, provider accounts, models and usage.",
+    "type": "module",
+    "exports": {
+        ".": {
+            "source": "./src/index.ts",
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        },
+        "./agent": {
+            "source": "./src/agent.ts",
+            "types": "./dist/agent.d.ts",
+            "default": "./dist/agent.js"
+        },
+        "./chat": {
+            "source": "./src/chat.ts",
+            "types": "./dist/chat.d.ts",
+            "default": "./dist/chat.js"
+        },
+        "./envelope": {
+            "source": "./src/envelope.ts",
+            "types": "./dist/envelope.d.ts",
+            "default": "./dist/envelope.js"
+        },
+        "./ids": {
+            "source": "./src/ids.ts",
+            "types": "./dist/ids.d.ts",
+            "default": "./dist/ids.js"
+        },
+        "./model": {
+            "source": "./src/model.ts",
+            "types": "./dist/model.d.ts",
+            "default": "./dist/model.js"
+        },
+        "./port": {
+            "source": "./src/port.ts",
+            "types": "./dist/port.d.ts",
+            "default": "./dist/port.js"
+        },
+        "./protocol": {
+            "source": "./src/protocol.ts",
+            "types": "./dist/protocol.d.ts",
+            "default": "./dist/protocol.js"
+        },
+        "./provider-accounts": {
+            "source": "./src/provider-accounts.ts",
+            "types": "./dist/provider-accounts.d.ts",
+            "default": "./dist/provider-accounts.js"
+        },
+        "./task": {
+            "source": "./src/task.ts",
+            "types": "./dist/task.d.ts",
+            "default": "./dist/task.js"
+        },
+        "./text": {
+            "source": "./src/text.ts",
+            "types": "./dist/text.d.ts",
+            "default": "./dist/text.js"
+        },
+        "./usage": {
+            "source": "./src/usage.ts",
+            "types": "./dist/usage.d.ts",
+            "default": "./dist/usage.js"
+        },
+        "./worktree": {
+            "source": "./src/worktree.ts",
+            "types": "./dist/worktree.d.ts",
+            "default": "./dist/worktree.js"
+        }
+    },
+    "scripts": {
+        "typecheck": "tsc --noEmit",
+        "build": "bun scripts/build.ts",
+        "test": "bun --conditions=source test"
+    },
+    "dependencies": {
+        "zod": "^4.6.5"
+    },
+    "devDependencies": {
+        "@types/bun": "^1.4.2",
+        "typescript": "^7.0.2"
+    },
+    "private": true,
+    "license": "FSL-1.1-MIT",
+    "author": "Bas Milius",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/basmilius/adecore.git",
+        "directory": "packages/agent-contracts"
+    },
+    "bugs": {
+        "url": "https://github.com/basmilius/adecore/issues"
+    },
+    "homepage": "https://adecore.dev/agent-contracts/",
+    "files": [
+        "dist",
+        "src",
+        "!src/**/*.test.ts",
+        "!src/**/*.test.tsx",
+        "!src/**/__snapshots__"
+    ],
+    "sideEffects": false
+}

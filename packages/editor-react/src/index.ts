@@ -1,0 +1,63 @@
+export { EditorLanguage } from './editor-language.ts';
+export { ProjectLanguage } from './project-language.ts';
+export type { LanguageDocumentHandle } from './project-language.ts';
+export type { LanguageHost, DiskText, GitBlameCommit, GitBlameResult, EditorNotification, RenameSuggestionsRequest } from './host-types.ts';
+export { EditorView } from './EditorView.tsx';
+export { createHolder } from './holder.ts';
+export type { EditorViewProps } from './EditorView.tsx';
+export { LanguagePopups } from './LanguagePopups.tsx';
+export { AnchoredPopup } from './AnchoredPopup.tsx';
+export { HoverCard } from './HoverCard.tsx';
+export { CompletionPopup } from './CompletionPopup.tsx';
+export { SignatureCard } from './SignatureCard.tsx';
+export { RenameCard } from './RenameCard.tsx';
+export { PickPopup } from './PickPopup.tsx';
+export { PeekPanel } from './PeekPanel.tsx';
+export { SymbolPicker } from './SymbolPicker.tsx';
+export { CodeAuthorsCard } from './CodeAuthorsCard.tsx';
+export { EditorContextMenu } from './EditorContextMenu.tsx';
+export { EditorRenderingProvider } from './rendering.tsx';
+export type { EditorRendering } from './rendering-context.ts';
+export { FindReplace } from './FindReplace.tsx';
+export { ChangeReview } from './ChangeReview.tsx';
+export type { ChangeReviewProps } from './ChangeReview.tsx';
+export { ProjectProblems, countsOf, compareRows } from './project-problems.ts';
+export type { ProblemFile, ProblemRow } from './project-problems.ts';
+export { applyWorkspaceEdit } from './workspace-edit.ts';
+export type { ProjectFiles, StagedFile, WorkspaceEditHost } from './workspace-edit.ts';
+export { useProblemCounts } from './use-problem-counts.ts';
+export type { ProblemCounts } from './diagnostics.ts';
+export type { BlameSource, CodeVisionSettings } from './code-vision.ts';
+export type { Problem } from './diagnostics-model.ts';
+export type {
+    PopupState,
+    PopupStore,
+    HoverInfo,
+    HoverView,
+    CompletionView,
+    CompletionDocs,
+    CompletionRow,
+    SignatureView,
+    RenameView,
+    RenameFileView,
+    PeekView,
+    PickView,
+    PickGroup,
+    PickRow,
+    PickPreview,
+    SymbolsView,
+    MenuView,
+    AuthorsView
+} from './popups.ts';
+export { RowHost, LineActionHost } from './row-host.ts';
+export type { HostedRow, HostedAction } from './row-host.ts';
+export { HighlightLayers, highlightLayers } from './highlight-layers.ts';
+export { NavigationHistory } from './navigation-history.ts';
+export type { Place } from './navigation-history.ts';
+export { openingPlace, viewStates, followViewStates, viewStateKey, forgetMovesFrom } from './view-state.ts';
+export type { ViewState, RevealLineRequest } from './view-state.ts';
+export { lspLanguageIdOf, shikiLanguageOf, shikiLanguageOfPath } from './language-ids.ts';
+export { AttributionCard } from './AttributionCard.tsx';
+export type { AttributionCardProps } from './AttributionCard.tsx';
+export { ReviewGroup, joinReviewGroup } from './review-group.ts';
+export type { ReviewMember } from './review-group.ts';

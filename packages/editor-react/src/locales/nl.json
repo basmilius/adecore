@@ -1,0 +1,171 @@
+{
+    "language": {
+        "hover": {
+            "quickFix": "Quick fix…",
+            "quickFixNone": "Deze language server biedt geen quick fixes",
+            "definition": "Ga naar definitie",
+            "references_one": "{{formatted}} referentie",
+            "references_other": "{{formatted}} referenties",
+            "none": "Geen informatie voor deze plek"
+        },
+        "edit": {
+            "staged_one": "{{count}} bestand gewijzigd en nog niet opgeslagen",
+            "staged_other": "{{count}} bestanden gewijzigd en nog niet opgeslagen",
+            "stagedMore": "{{names}} en nog {{count}}",
+            "saveAll": "Alles opslaan",
+            "notSaved": "{{name}} kon niet worden opgeslagen"
+        },
+        "actions": {
+            "show": "Toon code actions",
+            "none": "Geen code actions hier",
+            "unavailable": "Geen language server biedt hier code actions",
+            "organized": "De imports zijn al georganiseerd",
+            "noFormatter": "Geen language server formatteert dit bestand",
+            "readOnly": "Dit bestand is alleen-lezen",
+            "failed": "De actie kon niet worden toegepast: {{message}}",
+            "refused": "De wijziging is geweigerd",
+            "moreLines": "nog {{count}} regels",
+            "otherFiles_one": "en nog {{count}} bestand",
+            "otherFiles_other": "en nog {{count}} bestanden",
+            "moves_one": "verplaatst {{count}} bestand",
+            "moves_other": "verplaatst {{count}} bestanden",
+            "groups": {
+                "quickfix": "Quick fix",
+                "rewrite": "Herschrijven",
+                "extract": "Extraheren",
+                "inline": "Inline",
+                "move": "Verplaatsen",
+                "refactor": "Refactor",
+                "source": "Source",
+                "other": "Overig"
+            }
+        },
+        "rename": {
+            "unavailable": "Geen language server hernoemt in dit bestand",
+            "nothing": "Hier is niets om te hernoemen",
+            "refused": "De language server weigerde de nieuwe naam",
+            "stale": "De tekst veranderde terwijl de hernoeming werd opgevraagd",
+            "failed": "Hernoemen mislukt: {{message}}",
+            "occurrences_one": "{{formatted}} voorkomen",
+            "occurrences_other": "{{formatted}} voorkomens",
+            "occurrencesFiles_one": "{{formatted}} voorkomen in {{files}} bestanden",
+            "occurrencesFiles_other": "{{formatted}} voorkomens in {{files}} bestanden",
+            "rename": "Hernoem",
+            "preview": "Voorbeeld",
+            "cancel": "Annuleer",
+            "apply": "Hernoem",
+            "suggestions": "Voorgestelde namen",
+            "useSuggestion": "Suggestie gebruiken"
+        },
+        "navigation": {
+            "unavailable": "Geen language server die dat hier beantwoordt",
+            "none": "Niets gevonden",
+            "failed": "Opzoeken mislukt: {{message}}",
+            "titles": {
+                "definition": "Definities",
+                "declaration": "Declaraties",
+                "typeDefinition": "Typedefinities",
+                "implementation": "Implementaties",
+                "symbol": "Overeenkomsten"
+            }
+        },
+        "peek": {
+            "unavailable": "Geen language server vindt referenties in dit bestand",
+            "none": "Geen referenties gevonden",
+            "failed": "Referenties opzoeken mislukt: {{message}}",
+            "references_one": "{{formatted}} referentie",
+            "references_other": "{{formatted}} referenties",
+            "close": "Sluit",
+            "collapse": "Inklappen",
+            "expand": "Uitklappen",
+            "definitions_one": "{{formatted}} definitie",
+            "definitions_other": "{{formatted}} definities",
+            "noDefinition": "Geen definitie gevonden",
+            "unavailableDefinition": "Geen language server vindt definities in dit bestand"
+        },
+        "codeVision": {
+            "usagesNone": "Niet gebruikt",
+            "usages_one": "{{formatted}} keer gebruikt",
+            "usages_other": "{{formatted}} keer gebruikt",
+            "newCode": "nieuw *",
+            "lines_one": "{{formatted}} regel",
+            "lines_other": "{{formatted}} regels",
+            "uncommitted": "Nog niet gecommit",
+            "latest": "Laatste wijziging",
+            "showCommit": "Commit tonen"
+        },
+        "symbols": {
+            "unavailable": "Geen language server kent de symbolen van dit bestand",
+            "failed": "De symbolen konden niet worden gelezen: {{message}}",
+            "placeholder": "Ga naar symbool in {{file}}",
+            "navigate": "Navigeer",
+            "open": "Open",
+            "workspace": "Symbolen in het project",
+            "line": "Ga naar regel",
+            "none": "Geen symbolen gevonden",
+            "workspaceHint": "Typ de naam van een symbool in het project",
+            "lineHint": "Typ een regelnummer",
+            "goToLine": "Ga naar regel {{line}}",
+            "groups": {
+                "namespaces": "Namespaces",
+                "classes": "Classes",
+                "interfaces": "Interfaces",
+                "enums": "Enums",
+                "functions": "Functies",
+                "methods": "Methoden",
+                "properties": "Properties",
+                "variables": "Variabelen",
+                "constants": "Constanten",
+                "other": "Overig"
+            }
+        },
+        "context": {
+            "refactor": "Refactor",
+            "cut": "Knip",
+            "copy": "Kopieer",
+            "paste": "Plak"
+        },
+        "completion": {
+            "insert": "Invoegen",
+            "replace": "Vervangen",
+            "details": "Details",
+            "none": "Geen suggesties"
+        },
+        "history": {
+            "recent": "Recente plekken"
+        }
+    },
+    "commands": {
+        "goToDefinition": "Ga naar definitie",
+        "goToTypeDefinition": "Ga naar typedefinitie",
+        "goToImplementation": "Ga naar implementatie",
+        "peekReferences": "Bekijk referenties",
+        "renameSymbol": "Symbool hernoemen",
+        "codeActions": "Codeacties",
+        "formatDocument": "Document formatteren"
+    },
+    "find": {
+        "label": "Zoeken",
+        "count": "{{current}} / {{total}}",
+        "none": "Geen resultaten",
+        "invalid": "Ongeldige reguliere expressie",
+        "caseSensitive": "Hoofdlettergevoelig",
+        "wholeWord": "Heel woord",
+        "regex": "Reguliere expressie gebruiken",
+        "inSelection": "In selectie",
+        "noSelection": "Geen selectie",
+        "selectAll": "Alle treffers selecteren",
+        "previous": "Vorige treffer",
+        "next": "Volgende treffer",
+        "close": "Sluiten",
+        "replace": {
+            "label": "Vervangen door",
+            "one": "Vervang",
+            "all": "Alles",
+            "allLabel": "Alles vervangen",
+            "preserveCase": "Hoofdletters behouden",
+            "toggle": "Vervangen tonen",
+            "hide": "Vervangen verbergen"
+        }
+    }
+}

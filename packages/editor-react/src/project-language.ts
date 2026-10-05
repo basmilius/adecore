@@ -1,0 +1,220 @@
+import { fileUriToPath, type ApplyWorkspaceEditResult, type ContentChange, type LanguageService, type WorkspaceEdit } from '@adecore/lsp';
+import type { Editor, EditorPosition } from '@adecore/editor';
+import { NavigationHistory, type Place } from './navigation-history.ts';
+import { ProjectProblems } from './project-problems.ts';
+import { applyWorkspaceEdit, type ProjectFiles } from './workspace-edit.ts';
+import type { LanguageHost } from './host-types.ts';
+
+export interface LanguageDocumentHandle {
+    readonly uri: string;
+    readonly service: LanguageService;
+    readonly ready: Promise<void>;
+    release(): void;
+}
+
+class DocumentSync {
+    readonly ready: Promise<void>;
+    private pending: ContentChange[] = [];
+    private opened = false;
+    private disposed = false;
+    private readonly stop: () => void;
+
+    private readonly service: LanguageService;
+    private readonly uri: string;
+    readonly editor: Editor;
+
+    constructor(service: LanguageService, uri: string, languageId: string, editor: Editor) {
+        this.service = service;
+        this.uri = uri;
+        this.editor = editor;
+        this.stop = editor.onTextChange((change) => this.changed(change.changes));
+        this.ready = service.openDocument({ uri, languageId, text: editor.getText() }).then(() => {
+            this.opened = true;
+            if (!this.disposed) {
+                this.flush();
+            }
+        });
+        // A failed open is also a document nothing can be asked of; the features' own requests say so.
+        this.ready.catch(() => undefined);
+    }
+
+    private changed(changes: readonly ContentChange[]): void {
+        this.pending.push(...changes);
+        if (this.opened) {
+            this.flush();
+        }
+    }
+
+    private flush(): void {
+        if (this.pending.length === 0) {
+            return;
+        }
+        const changes = this.pending;
+        this.pending = [];
+        void this.service.changeDocument(this.uri, changes).catch(() => undefined);
+    }
+
+    dispose(): void {
+        this.disposed = true;
+        this.pending = [];
+        this.stop();
+    }
+
+    get text(): string {
+        return this.editor.getText();
+    }
+}
+
+interface Holder {
+    readonly editors: Editor[];
+    sync: DocumentSync;
+    languageId: string;
+}
+
+/*
+ * A shared language service and document ownership for the editors of a project. Two editors on the same
+ * file hold one document, and only the first one sends changes, since both would report the same edit.
+ */
+export class ProjectLanguage {
+    readonly service: LanguageService;
+    readonly host: LanguageHost;
+    readonly folder: string;
+    readonly problems: ProjectProblems;
+    readonly history = new NavigationHistory();
+    private readonly holders = new Map<string, Holder>();
+    private readonly files: ProjectFiles | null;
+    private pendingCaret: Place | null = null;
+    private lastPlace: Place | null = null;
+    private disposed = false;
+
+    constructor(service: LanguageService, host: LanguageHost = {}) {
+        this.service = service;
+        this.host = host;
+        this.folder = host.folder ?? '';
+        this.files = host.files ?? null;
+        this.problems = new ProjectProblems(service, (uri) => this.pathOfLocation(uri) ?? uri);
+    }
+
+    pathOfLocation(uri: string): string | null {
+        if (this.host.pathOfUri !== undefined) {
+            return this.host.pathOfUri(uri);
+        }
+        const path = fileUriToPath(uri);
+        return path !== null && this.folder !== '' && path.startsWith(`${this.folder}/`) ? path.slice(this.folder.length + 1) : path;
+    }
+
+    /* Makes an edit of a language server: an open document takes it as one undo step and any other file gets an unsaved draft. */
+    applyWorkspaceEdit(edit: WorkspaceEdit): Promise<ApplyWorkspaceEditResult> {
+        return applyWorkspaceEdit(edit, { editorOf: (uri) => this.holders.get(uri)?.editors[0], files: this.files });
+    }
+
+    /* The text of a file as it stands now: an open document's, else a draft's or the machine's; null when it is no text file. */
+    async readText(uri: string): Promise<string | null> {
+        const open = this.holders.get(uri)?.sync.text;
+        if (open !== undefined) {
+            return open;
+        }
+        const path = fileUriToPath(uri);
+        return path === null || this.files === null ? null : ((await this.files.read(path))?.text ?? null);
+    }
+
+    /*
+     * Opens the file of a place on its line. A file opens on a line only, so the column is kept here until the editor
+     * that shows the line asks for it with `takeCaret`.
+     */
+    openPlace(place: Place): void {
+        this.pendingCaret = place;
+        this.host.openPlace?.(place);
+    }
+
+    /* Where an editor's caret stands now, so a jump from a surface without an editor, such as the Problems panel, still knows what it left. */
+    noteCaret(place: Place): void {
+        this.lastPlace = place;
+    }
+
+    /* Opens a place from outside any editor and remembers the caret that was last seen. */
+    jumpTo(place: Place): void {
+        if (this.lastPlace !== null) {
+            this.history.record(this.lastPlace);
+        }
+        this.openPlace(place);
+    }
+
+    /* The column an opened place waits for, once the editor of its file has put its caret on the line; each place is asked for once. */
+    takeCaret(uri: string, line: number): EditorPosition | null {
+        const pending = this.pendingCaret;
+        if (pending === null || pending.uri !== uri || pending.position.line !== line) {
+            return null;
+        }
+        this.pendingCaret = null;
+        return pending.position;
+    }
+
+    /* Opens `uri` for the editor, or joins the editors that already hold it. */
+    acquire(uri: string, languageId: string, editor: Editor): LanguageDocumentHandle {
+        if (this.disposed) {
+            throw new Error('The project language is disposed');
+        }
+        let holder = this.holders.get(uri);
+        if (holder === undefined) {
+            holder = { editors: [], sync: new DocumentSync(this.service, uri, languageId, editor), languageId };
+            this.holders.set(uri, holder);
+        }
+        holder.editors.push(editor);
+        let released = false;
+        return {
+            uri,
+            service: this.service,
+            get ready() {
+                return holder.sync.ready;
+            },
+            release: () => {
+                if (!released) {
+                    released = true;
+                    this.release(uri, editor);
+                }
+            }
+        };
+    }
+
+    private release(uri: string, editor: Editor): void {
+        const holder = this.holders.get(uri);
+        if (holder === undefined) {
+            return;
+        }
+        holder.editors.splice(holder.editors.indexOf(editor), 1);
+        const next = holder.editors[0];
+        if (next === undefined) {
+            holder.sync.dispose();
+            this.holders.delete(uri);
+            void holder.sync.ready
+                .catch(() => undefined)
+                .then(() => {
+                    if (!this.holders.has(uri)) {
+                        return this.service.closeDocument(uri);
+                    }
+                })
+                .catch(() => undefined);
+        } else if (holder.sync.editor === editor) {
+            // The editor that sent the changes is gone; the next one takes over and opens the document with its own text.
+            holder.sync.dispose();
+            holder.sync = new DocumentSync(this.service, uri, holder.languageId, next);
+        }
+    }
+
+    dispose(): void {
+        if (this.disposed) {
+            return;
+        }
+        this.disposed = true;
+        for (const [uri, holder] of this.holders) {
+            holder.sync.dispose();
+            void holder.sync.ready
+                .catch(() => undefined)
+                .then(() => this.service.closeDocument(uri))
+                .catch(() => undefined);
+        }
+        this.holders.clear();
+        this.problems.dispose();
+    }
+}

@@ -4,15 +4,22 @@
  * its reset never outranks a utility.
  */
 @layer __vitepress_base, theme, base, docs, components, utilities;
-@import "tailwindcss/theme.css" layer(theme);
-@import "tailwindcss/utilities.css" layer(utilities) source(none);
-@import "@adecore/ui/theme.css";
-@import "@xterm/xterm/css/xterm.css";
-@import "@adecore/terminal/terminal.css";
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities) source(none);
+@import '@adecore/ui/theme.css';
+@import '@adecore/editor/editor.css';
+@import '@adecore/editor-react/editor-react.css';
+@import '@xterm/xterm/css/xterm.css';
+@import '@adecore/terminal/terminal.css';
 
 @source "../../../packages/ui/src";
 @source "../../../packages/terminal/src";
 @source "../../../packages/database/src";
+@source "../../../packages/agents-react/src";
+@source "../../../packages/editor-react/src";
+@source "../../../packages/drawing/src";
+@source "../../../packages/diagram/src";
+@source "../../../packages/plan/src";
 @source "../../demos";
 
 /*
@@ -29,19 +36,26 @@
         user-select: auto;
     }
 
-    *, ::before, ::after {
+    *,
+    ::before,
+    ::after {
         background-clip: border-box;
     }
 
-    .demo-stage, [data-base-ui-portal] {
+    .demo-stage,
+    [data-base-ui-portal] {
         font-family: var(--font-sans);
         font-size: var(--text-sm);
         line-height: 1.5;
         color: var(--text);
     }
 
-    .demo-stage *, .demo-stage ::before, .demo-stage ::after,
-    [data-base-ui-portal] *, [data-base-ui-portal] ::before, [data-base-ui-portal] ::after {
+    .demo-stage *,
+    .demo-stage ::before,
+    .demo-stage ::after,
+    [data-base-ui-portal] *,
+    [data-base-ui-portal] ::before,
+    [data-base-ui-portal] ::after {
         background-clip: padding-box;
     }
 }

@@ -59,5 +59,10 @@
     "tabs": {
         "more": "More",
         "close": "Close tab"
+    },
+    "tree": {
+        "label": "Files",
+        "expand": "Expand",
+        "collapse": "Collapse"
     }
 }

@@ -1,17 +1,23 @@
 {
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
-    "types": ["vitepress/client", "bun"],
-    "paths": {
-      "@adecore/ui": ["../packages/ui/src/index.ts"],
-      "@adecore/ui/*": ["../packages/ui/src/*/index.ts"],
-      "@adecore/terminal": ["../packages/terminal/src/index.ts"],
-      "@adecore/database": ["../packages/database/src/index.ts"],
-      "@adecore/database/protocol": ["../packages/database/src/protocol/index.ts"],
-      "@adecore/database/host": ["../packages/database/src/host/index.ts"],
-      "@adecore/database/testing": ["../packages/database/src/testing/index.ts"]
-    }
+    "types": [
+      "vitepress/client",
+      "bun"
+    ],
+    "customConditions": [
+      "source"
+    ]
   },
-  "include": ["demos", "*.ts", "*.tsx", ".vitepress/**/*.ts", ".vitepress/**/*.tsx"],
-  "exclude": [".vitepress/cache", ".vitepress/dist"]
+  "include": [
+    "demos",
+    "*.ts",
+    "*.tsx",
+    ".vitepress/**/*.ts",
+    ".vitepress/**/*.tsx"
+  ],
+  "exclude": [
+    ".vitepress/cache",
+    ".vitepress/dist"
+  ]
 }

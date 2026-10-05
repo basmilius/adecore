@@ -4,6 +4,8 @@
  */
 
 export * as ContextMenu from './context-menu/index.parts.ts';
+export * as FileTree from './file-tree/index.parts.ts';
+export * as Tree from './tree/index.parts.ts';
 export * as Dialog from './dialog/index.parts.ts';
 export * as KeyValueList from './key-value-list/index.parts.ts';
 export * as Menu from './menu/index.parts.ts';
@@ -105,3 +107,18 @@ export { useContentSize, type ContentSize } from './useContentSize.ts';
 export { useMeasuredWidth } from './useMeasuredWidth.ts';
 export { useNow, useTickingText } from './useNow.ts';
 export { ZOOM_PRESETS } from './zoom.ts';
+
+export { useFileTree, type FileTreeOptions } from './file-tree/use-file-tree.ts';
+export type { FileTreeRootProps } from './file-tree/parts.tsx';
+export type { FileTree as FileTreeModel, FileTreeVisibleRow, FileTreeDragAndDropConfig, FileTreeDropContext, FileTreeDropResult } from '@pierre/trees';
+export type { FoldKeyOf, SortRow } from './file-tree/helpers.ts';
+export type {
+    TreeRootProps,
+    TreeRowProps,
+    TreeChevronProps,
+    TreeChevronSlotProps,
+    TreeLabelProps,
+    TreeDecorationProps,
+    TreeControlProps,
+    TreeCheckboxProps
+} from './tree/parts.tsx';

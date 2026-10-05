@@ -41,7 +41,8 @@ describe('DatabaseExplorer', () => {
     test('has a filter on top and rows of 25 pixels', () => {
         const markup = render(<DatabaseExplorer connections={connections} />);
         expect(markup).toContain('placeholder="Filter tables"');
-        expect(markup).toContain('h-[25px]');
+        expect(markup).toContain('adecore-tree-row');
+        expect(markup).toContain('height: var(--tree-row-height, 25px)');
     });
 
     test('says there is nothing to explore without connections', () => {

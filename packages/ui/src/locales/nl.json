@@ -59,5 +59,10 @@
     "tabs": {
         "more": "Meer",
         "close": "Tabblad sluiten"
+    },
+    "tree": {
+        "label": "Bestanden",
+        "expand": "Uitvouwen",
+        "collapse": "Invouwen"
     }
 }

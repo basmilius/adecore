@@ -1,0 +1,4 @@
+[test]
+# Provider integration tests require a separately configured host and never run in the unit suite.
+pathIgnorePatterns = ["**/agents/**/*.integration.test.ts", "**/agents/**/*.integration.test.tsx", "**/agents-react/**/*.integration.test.ts", "**/agents-react/**/*.integration.test.tsx"]
+preload = ["./packages/ui/src/testing/dedupe.ts", "./scripts/test-preload.ts"]

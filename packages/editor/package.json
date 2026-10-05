@@ -1,0 +1,72 @@
+{
+    "name": "@adecore/editor",
+    "private": true,
+    "version": "0.0.0",
+    "type": "module",
+    "exports": {
+        ".": {
+            "source": "./src/index.ts",
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        },
+        "./editor.css": {
+            "source": "./src/editor.css",
+            "default": "./dist/editor.css"
+        },
+        "./fake": {
+            "source": "./src/fake.ts",
+            "types": "./dist/fake.d.ts",
+            "default": "./dist/fake.js"
+        },
+        "./shiki": {
+            "source": "./src/shiki.ts",
+            "types": "./dist/shiki.d.ts",
+            "default": "./dist/shiki.js"
+        },
+        "./keymap": {
+            "source": "./src/keymap-table.ts",
+            "types": "./dist/keymap-table.d.ts",
+            "default": "./dist/keymap-table.js"
+        },
+        "./testing": {
+            "source": "./src/testing.ts",
+            "types": "./dist/testing.d.ts",
+            "default": "./dist/testing.js"
+        }
+    },
+    "scripts": {
+        "typecheck": "tsc --noEmit",
+        "build": "bun scripts/build.ts",
+        "test": "bun test --conditions=source"
+    },
+    "dependencies": {
+        "@adecore/editor-core": "workspace:*",
+        "shiki": "^4.4.3",
+        "linkedom": "^0.18.13"
+    },
+    "devDependencies": {
+        "@types/bun": "^1.4.2",
+        "typescript": "^7.0.2",
+        "@types/node": "^24.13.6"
+    },
+    "license": "FSL-1.1-MIT",
+    "author": "Bas Milius",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/basmilius/adecore.git",
+        "directory": "packages/editor"
+    },
+    "bugs": {
+        "url": "https://github.com/basmilius/adecore/issues"
+    },
+    "homepage": "https://adecore.dev/editor/",
+    "sideEffects": [
+        "**/*.css"
+    ],
+    "files": [
+        "dist",
+        "src",
+        "!src/**/*.test.ts",
+        "LICENSE"
+    ]
+}

@@ -1,0 +1,84 @@
+{
+    "name": "@adecore/editor-react",
+    "private": true,
+    "version": "0.0.0",
+    "type": "module",
+    "description": "Language-enabled editors, feature coordination and React popups over injected language services.",
+    "license": "FSL-1.1-MIT",
+    "author": "Bas Milius",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/basmilius/adecore.git",
+        "directory": "packages/editor-react"
+    },
+    "bugs": {
+        "url": "https://github.com/basmilius/adecore/issues"
+    },
+    "homepage": "https://adecore.dev/editor-react/",
+    "sideEffects": [
+        "**/*.css"
+    ],
+    "files": [
+        "dist",
+        "src",
+        "!src/**/*.test.ts",
+        "!src/**/*.test.tsx",
+        "!src/test-support.ts",
+        "LICENSE",
+        "!src/test-setup.ts"
+    ],
+    "exports": {
+        ".": {
+            "source": "./src/index.ts",
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        },
+        "./models": {
+            "source": "./src/models.ts",
+            "types": "./dist/models.d.ts",
+            "default": "./dist/models.js"
+        },
+        "./testing": {
+            "source": "./src/testing.ts",
+            "types": "./dist/testing.d.ts",
+            "default": "./dist/testing.js"
+        },
+        "./editor-react.css": {
+            "source": "./src/editor-react.css",
+            "default": "./dist/editor-react.css"
+        },
+        "./locales/*.json": {
+            "source": "./src/locales/*.json",
+            "default": "./dist/locales/*.json"
+        }
+    },
+    "scripts": {
+        "build": "bun scripts/build.ts",
+        "typecheck": "tsc --noEmit",
+        "test": "bun test --conditions=source"
+    },
+    "dependencies": {
+        "@adecore/editor": "workspace:*",
+        "@adecore/lsp": "workspace:*",
+        "@adecore/merge": "workspace:*",
+        "zustand": "^5.0.15",
+        "lucide-react": "^1.47.0",
+        "react-markdown": "^10.1.0",
+        "remark-gfm": "^4.0.1",
+        "remark-breaks": "^4.0.0"
+    },
+    "peerDependencies": {
+        "@adecore/ui": "workspace:*",
+        "react": "^19.3.0",
+        "react-dom": "^19.3.0",
+        "i18next": "^26.4.2",
+        "react-i18next": "^17.0.15"
+    },
+    "devDependencies": {
+        "@adecore/ui": "workspace:*",
+        "@types/bun": "^1.4.2",
+        "@types/react": "^19.3.0",
+        "@types/react-dom": "^19.3.0",
+        "typescript": "^7.0.2"
+    }
+}

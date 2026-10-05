@@ -1,0 +1,50 @@
+{
+    "name": "@adecore/plan",
+    "private": true,
+    "version": "0.0.0",
+    "description": "Plan schemas, atomic tree operations, actor permissions and Markdown.",
+    "license": "FSL-1.1-MIT",
+    "author": "Bas Milius",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/basmilius/adecore.git",
+        "directory": "packages/plan"
+    },
+    "bugs": {
+        "url": "https://github.com/basmilius/adecore/issues"
+    },
+    "homepage": "https://adecore.dev/plan/",
+    "type": "module",
+    "sideEffects": false,
+    "files": [
+        "dist",
+        "src",
+        "!src/**/*.test.ts",
+        "!src/fixtures"
+    ],
+    "exports": {
+        ".": {
+            "source": "./src/index.ts",
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        },
+        "./protocol": {
+            "source": "./src/protocol.ts",
+            "types": "./dist/protocol.d.ts",
+            "default": "./dist/protocol.js"
+        }
+    },
+    "scripts": {
+        "build": "bun scripts/build.ts",
+        "typecheck": "tsc --noEmit",
+        "test": "bun test --conditions=source"
+    },
+    "devDependencies": {
+        "@types/bun": "^1.4.2",
+        "@types/node": "^24.13.6",
+        "typescript": "^7.0.2"
+    },
+    "dependencies": {
+        "zod": "^4.6.5"
+    }
+}

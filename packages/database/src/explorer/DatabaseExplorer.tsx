@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode, type Ref } from 'react';
 import clsx from 'clsx';
-import { ChevronRight, CircleAlert, Database, Eye, Folder, KeyRound, Link2, Lock, RectangleVertical, Search, Table } from 'lucide-react';
+import { CircleAlert, Database, Eye, Folder, KeyRound, Link2, Lock, RectangleVertical, Search, Table } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Button, ContextMenu, EmptyState, Icon, Input, Spinner, Tooltip } from '@adecore/ui';
+import { Button, ContextMenu, EmptyState, Icon, Input, Spinner, Tooltip, Tree } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
 import type { ExplorerSelection } from '../actions.ts';
 import { useDatabaseAction, useDatabaseClient } from '../client-context.ts';
@@ -31,11 +31,6 @@ import {
 import { useExplorerLoads } from './use-explorer-loads.ts';
 import { usePopupPress } from '../use-popup-press.ts';
 import { useStoredExpansion } from './use-stored-expansion.ts';
-
-const INDENT = 16;
-/* Where the chevron slot of the first level starts inside a row. */
-const BASE_INDENT = 4;
-const CHEVRON_SIZE = 16;
 
 export interface DatabaseExplorerProps {
     connections: readonly Connection[];
@@ -221,22 +216,17 @@ export function DatabaseExplorer({ connections, value, defaultValue = null, onVa
             ) : null;
         const selectedRow = isSelected(row);
         const props = {
-            role: 'treeitem',
-            'aria-level': row.level,
+            level: row.level,
+            selected: selectedRow,
+            joinedStart: selectedRow && isSelected(rows[index - 1]),
+            joinedEnd: selectedRow && isSelected(rows[index + 1]),
+            interactive: row.focusable,
             'aria-setsize': row.setSize,
             'aria-posinset': row.posInSet,
             'aria-expanded': isExpandable(row) ? row.expanded : undefined,
             'aria-selected': isSelectable(row) ? selectedRow : undefined,
             'aria-busy': row.kind === 'loading' ? true : undefined,
             tabIndex: row.focusable ? (row.key === stop ? 0 : -1) : undefined,
-            className: clsx(
-                // The line box is the row's height, so the text lands on whole pixels in a row of an odd height.
-                'focus-ring relative mx-2 flex h-[25px] min-w-0 items-center gap-1.5 rounded-md pr-2 text-xs leading-[25px] text-text focus-visible:-outline-offset-2',
-                selectedRow ? 'bg-surface-active' : row.focusable && 'hover:bg-surface-hover',
-                selectedRow && isSelected(rows[index - 1]) && 'rounded-t-none',
-                selectedRow && isSelected(rows[index + 1]) && 'rounded-b-none'
-            ),
-            style: { paddingInlineStart: BASE_INDENT + (row.level - 1) * INDENT },
             ref: (element: HTMLElement | null) => {
                 if (element === null) {
                     rowElements.current.delete(row.key);
@@ -252,29 +242,17 @@ export function DatabaseExplorer({ connections, value, defaultValue = null, onVa
                 }
             }
         };
-        const content = (
-            <>
-                {Array.from({ length: row.level - 1 }, (_, i) => (
-                    <span
-                        key={i}
-                        aria-hidden
-                        className="pointer-events-none absolute inset-y-0 w-px bg-border"
-                        style={{ insetInlineStart: BASE_INDENT + i * INDENT + CHEVRON_SIZE / 2 - 1 }}
-                    />
-                ))}
-                <RowContent row={row} onToggle={isExpandable(row) ? () => toggle(row) : undefined} />
-            </>
-        );
+        const content = <RowContent row={row} onToggle={isExpandable(row) ? () => toggle(row) : undefined} />;
         if (menu === null) {
             return (
-                <div key={row.key} {...props}>
+                <Tree.Row key={row.key} {...props}>
                     {content}
-                </div>
+                </Tree.Row>
             );
         }
         return (
             <ContextMenu.Root key={row.key}>
-                <ContextMenu.Trigger render={<div {...props} />}>{content}</ContextMenu.Trigger>
+                <ContextMenu.Trigger render={<Tree.Row {...props} />}>{content}</ContextMenu.Trigger>
                 <ContextMenu.Popup>{menu}</ContextMenu.Popup>
             </ContextMenu.Root>
         );
@@ -304,9 +282,9 @@ export function DatabaseExplorer({ connections, value, defaultValue = null, onVa
             ) : rows.length === 0 ? (
                 <EmptyState icon={Search}>{t('explorer.noMatches', { query: filter.trim() })}</EmptyState>
             ) : (
-                <div role="tree" aria-label={t('explorer.label')} className="min-h-0 grow overflow-y-auto py-2" onKeyDown={onKeyDown}>
+                <Tree.Root aria-label={t('explorer.label')} className="min-h-0 grow overflow-y-auto py-2" onKeyDown={onKeyDown}>
                     {rows.map(renderRow)}
-                </div>
+                </Tree.Root>
             )}
             {request !== null && <TableDialog request={request} onClose={() => setRequest(null)} onDone={finish} />}
         </div>
@@ -319,9 +297,9 @@ function RowContent({ row, onToggle }: { row: TreeRow; onToggle?: () => void }) 
         case 'connection':
             return (
                 <>
-                    <Chevron open={row.expanded} onToggle={onToggle} />
+                    <Tree.Chevron expanded={row.expanded} onExpandedChange={onToggle} />
                     <EngineIcon engine={row.connection.config.engine} size={16} className="shrink-0 text-text-muted" />
-                    <span className="min-w-0 truncate">{row.connection.name || t('connections.untitled')}</span>
+                    <Tree.Label>{row.connection.name || t('connections.untitled')}</Tree.Label>
                     {row.connection.config.readOnly === true && (
                         <Tooltip label={t('explorer.readOnly')}>
                             <span className="inline-flex shrink-0 text-text-faint">
@@ -336,41 +314,41 @@ function RowContent({ row, onToggle }: { row: TreeRow; onToggle?: () => void }) 
         case 'schema':
             return (
                 <>
-                    <Chevron open={row.expanded} onToggle={onToggle} />
+                    <Tree.Chevron expanded={row.expanded} onExpandedChange={onToggle} />
                     <Icon icon={Database} size={16} className="shrink-0 text-text-muted" />
-                    <span className="min-w-0 truncate">{row.schema}</span>
+                    <Tree.Label>{row.schema}</Tree.Label>
                 </>
             );
         case 'folder':
             return (
                 <>
-                    <Chevron open={row.expanded} onToggle={onToggle} />
+                    <Tree.Chevron expanded={row.expanded} onExpandedChange={onToggle} />
                     <Icon icon={Folder} size={16} className="shrink-0 text-text-muted" />
-                    <span className="min-w-0 truncate">{t(row.group === 'view' ? 'explorer.views' : 'explorer.tables')}</span>
+                    <Tree.Label>{t(row.group === 'view' ? 'explorer.views' : 'explorer.tables')}</Tree.Label>
                     <span className="shrink-0 text-text-faint tabular-nums">{formatNumber(row.count)}</span>
                 </>
             );
         case 'table':
             return (
                 <>
-                    <Chevron open={row.expanded} onToggle={onToggle} />
+                    <Tree.Chevron expanded={row.expanded} onExpandedChange={onToggle} />
                     <Icon icon={row.table.kind === 'view' ? Eye : Table} size={16} className="shrink-0 text-text-muted" />
-                    <span className="min-w-0 truncate">{row.table.name}</span>
+                    <Tree.Label>{row.table.name}</Tree.Label>
                 </>
             );
         case 'column':
             return (
                 <>
-                    <ChevronSlot />
+                    <Tree.ChevronSlot />
                     <ColumnIcon primaryKey={row.primaryKey} foreignKey={row.foreignKey} />
-                    <span className="min-w-0 truncate">{row.column.name}</span>
+                    <Tree.Label>{row.column.name}</Tree.Label>
                     {row.column.type !== '' && <span className="min-w-0 shrink-[2] truncate text-text-faint">{row.column.type}</span>}
                 </>
             );
         case 'loading':
             return (
                 <>
-                    <ChevronSlot />
+                    <Tree.ChevronSlot />
                     <Spinner size={12} />
                     <span className="text-text-faint">{t('explorer.loading')}</span>
                 </>
@@ -380,7 +358,7 @@ function RowContent({ row, onToggle }: { row: TreeRow; onToggle?: () => void }) 
         case 'empty':
             return (
                 <>
-                    <ChevronSlot />
+                    <Tree.ChevronSlot />
                     <span className="text-text-faint">{t(EMPTY_WORDS[row.of])}</span>
                 </>
             );
@@ -388,26 +366,6 @@ function RowContent({ row, onToggle }: { row: TreeRow; onToggle?: () => void }) 
 }
 
 const EMPTY_WORDS = { schemas: 'explorer.noSchemas', tables: 'explorer.noTables', columns: 'explorer.noColumns' } as const;
-
-/* Where a chevron would be, so a row without one lines up with its siblings that have one. */
-function ChevronSlot() {
-    return <span className="size-4 shrink-0" />;
-}
-
-function Chevron({ open, onToggle }: { open: boolean; onToggle?: () => void }) {
-    return (
-        <span
-            className="grid size-4 shrink-0 place-items-center text-text-muted"
-            onClick={(e) => {
-                e.stopPropagation();
-                onToggle?.();
-            }}
-            onDoubleClick={(e) => e.stopPropagation()}
-        >
-            <Icon icon={ChevronRight} size={12} className={clsx('transition-transform', open && 'rotate-90')} />
-        </span>
-    );
-}
 
 function SchemaCount({ shown, total }: { shown: number; total: number }) {
     const { t } = useTranslation('database');
@@ -437,7 +395,7 @@ function ErrorContent({ row }: { row: ErrorRow }) {
     const { t } = useTranslation('database');
     return (
         <>
-            <ChevronSlot />
+            <Tree.ChevronSlot />
             <Icon icon={CircleAlert} size={16} className="shrink-0 text-status-error" />
             <Tooltip label={row.message}>
                 <span className="min-w-0 truncate text-status-error">{row.message}</span>
