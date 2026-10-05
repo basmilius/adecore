@@ -20,6 +20,7 @@ import { formatNumber } from '../format/number.ts';
 import { Icon } from '../Icon.tsx';
 import { IconButton } from '../IconButton.tsx';
 import { MenuItem, MenuPopup, MenuRoot, MenuTrigger } from '../menu/parts.tsx';
+import { Pill } from '../Pill.tsx';
 import { shownTabs } from './overflow.ts';
 
 export type TabsValue = BaseTabs.Tab.Value;
@@ -247,8 +248,8 @@ export function TabsCount({ value, render, className, ref, ...props }: TabsCount
         defaultTagName: 'span',
         props: {
             ...props,
-            children: formatNumber(value),
-            className: clsx('rounded-full bg-surface-sunken px-1.5 text-xs text-text-muted tabular-nums', inMenu && 'ml-auto', className)
+            children: <Pill className="tabular-nums">{formatNumber(value)}</Pill>,
+            className: clsx('inline-flex shrink-0', inMenu && 'ml-auto', className)
         }
     });
     return value === 0 ? null : element;

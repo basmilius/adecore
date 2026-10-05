@@ -346,10 +346,10 @@
         gap: 10px;
         padding: 6px 10px;
         border-radius: 6px;
-        font-size: var(--text-sm);
+        font-size: var(--text-xs);
         /* The type scale, not the 1.5 the reset inherits, so a row is a whole number of pixels tall
            and a glyph next to a two-line label lands on a whole pixel too. */
-        line-height: var(--text-sm--line-height);
+        line-height: var(--text-xs--line-height);
         color: var(--text);
         cursor: default;
         outline: none;
@@ -392,7 +392,7 @@
     .menu-row > .menu-item ~ .menu-item { border-top-left-radius: 0; border-bottom-left-radius: 0; }
     .menu-row-action {
         flex-shrink: 0;
-        width: calc(var(--text-sm--line-height) + 12px);
+        width: calc(var(--text-xs--line-height) + 12px);
         padding: 0;
         justify-content: center;
         gap: 0;
