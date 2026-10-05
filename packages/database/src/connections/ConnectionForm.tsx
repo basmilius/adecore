@@ -27,8 +27,8 @@ const MODE_ICONS: Record<ConnectMode, LucideIcon> = { tcp: Network, socket: Plug
 export interface ConnectionFormProps {
     value: Connection;
     onValueChange(next: Connection): void;
-    /* Opens the app's file dialog and resolves with the chosen path, or `null` when the person cancelled. Without it a path (of a database file or an SSH key) is typed. */
-    onBrowse?(): Promise<string | null>;
+    /* Opens the app's file dialog for a database file or an SSH identity file and resolves with the chosen path, or `null` when the person cancelled. Without it a path is typed. */
+    onBrowse?(purpose: 'database' | 'identity'): Promise<string | null>;
     className?: string;
     ref?: Ref<HTMLDivElement>;
 }
@@ -127,7 +127,7 @@ function SqliteFields({
 
     const browse = async (): Promise<void> => {
         await browsing.run(async () => {
-            const picked = await onBrowse?.();
+            const picked = await onBrowse?.('database');
             if (picked !== null && picked !== undefined) {
                 onConfigChange({ ...config, path: picked });
             }
@@ -333,7 +333,7 @@ function SshFields({
 
     const browse = async (): Promise<void> => {
         await browsing.run(async () => {
-            const picked = await onBrowse?.();
+            const picked = await onBrowse?.('identity');
             if (picked !== null && picked !== undefined) {
                 update({ identityFile: picked });
             }

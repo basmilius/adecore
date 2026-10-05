@@ -68,7 +68,7 @@ const raceAbort = <T>(promise: Promise<T>, signal: AbortSignal | undefined): Pro
 
 export const createDatabaseClient = (transport: DatabaseTransport, options: DatabaseClientOptions = {}): DatabaseClient => {
     const createId = options.createId ?? (() => crypto.randomUUID());
-    const live = new Map<string, ReturnType<typeof createSession>>();
+    const live = new Map<string, Map<string, ReturnType<typeof createSession>>>();
     const schemaListeners = new Set<(change: SchemaChange) => void>();
 
     const notifySchemaChange = (change: SchemaChange): void => {
@@ -120,16 +120,31 @@ export const createDatabaseClient = (transport: DatabaseTransport, options: Data
         });
     };
 
-    const createSession = (initial: Connection) => {
+    const createSession = (initial: Connection, channel: string) => {
         let connection = initial;
         let opened: Opened | null = null;
         let opening: Promise<Opened> | null = null;
+
+        /* A session that was closed and is used again is findable again, so `disconnect` and `dispose` reach it. */
+        const track = (): void => {
+            let channels = live.get(connection.id);
+
+            if (channels === undefined) {
+                channels = new Map();
+                live.set(connection.id, channels);
+            }
+
+            if (!channels.has(channel)) {
+                channels.set(channel, created);
+            }
+        };
 
         const open = (): Promise<Opened> => {
             if (opened !== null) {
                 return Promise.resolve(opened);
             }
 
+            track();
             opening ??= send('open', { connection: connection.config })
                 .then((result) => (opened = result))
                 .finally(() => {
@@ -174,8 +189,14 @@ export const createDatabaseClient = (transport: DatabaseTransport, options: Data
         };
 
         const close = async (): Promise<void> => {
-            if (live.get(connection.id) === created) {
-                live.delete(connection.id);
+            const channels = live.get(connection.id);
+
+            if (channels?.get(channel) === created) {
+                channels.delete(channel);
+
+                if (channels.size === 0) {
+                    live.delete(connection.id);
+                }
             }
 
             const current = opened ?? (opening === null ? null : await opening.catch(() => null));
@@ -268,8 +289,9 @@ export const createDatabaseClient = (transport: DatabaseTransport, options: Data
                 schemaListeners.delete(listener);
             };
         },
-        session(connection) {
-            const existing = live.get(connection.id);
+        session(connection, channel = '') {
+            let channels = live.get(connection.id);
+            const existing = channels?.get(channel);
 
             if (existing !== undefined && isEqual(existing.session.connection.config, connection.config)) {
                 existing.update(connection);
@@ -278,17 +300,23 @@ export const createDatabaseClient = (transport: DatabaseTransport, options: Data
 
             void existing?.close();
 
-            const created = createSession(connection);
-            live.set(connection.id, created);
+            const created = createSession(connection, channel);
+
+            if (channels === undefined) {
+                channels = new Map();
+                live.set(connection.id, channels);
+            }
+
+            channels.set(channel, created);
             return created.session;
         },
         async disconnect(connectionId) {
-            const existing = live.get(connectionId);
+            const existing = [...(live.get(connectionId)?.values() ?? [])];
             live.delete(connectionId);
-            await existing?.close();
+            await Promise.all(existing.map((entry) => entry.close()));
         },
         async dispose() {
-            const all = [...live.values()];
+            const all = [...live.values()].flatMap((channels) => [...channels.values()]);
             live.clear();
             await Promise.all(all.map((entry) => entry.close()));
         }

@@ -1,9 +1,10 @@
 import { existsSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { basename, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { app, BrowserWindow, dialog, ipcMain, Menu, session, type FileFilter, type IpcMainInvokeEvent } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, session, type FileFilter, type IpcMainInvokeEvent, type OpenDialogOptions } from 'electron';
 import { createDatabaseHost, spawnHelper } from '@adecore/database/host';
-import { CHANNELS } from '../shared/bridge.ts';
+import { CHANNELS, type BrowsePurpose } from '../shared/bridge.ts';
 import { ensureDemoDatabase } from './demo.ts';
 
 const appPath = app.getAppPath();
@@ -23,9 +24,26 @@ const FORMAT_FILTERS: Readonly<Record<string, FileFilter>> = {
     sql: { name: 'SQL', extensions: ['sql'] }
 };
 
+/* A database file has its extensions; an SSH key has none, and lives in a hidden folder. */
+const BROWSE_OPTIONS: Readonly<Record<BrowsePurpose, OpenDialogOptions>> = {
+    database: {
+        properties: ['openFile'],
+        filters: [
+            { name: 'SQLite', extensions: ['sqlite', 'db', 'sqlite3'] },
+            { name: 'All files', extensions: ['*'] }
+        ]
+    },
+    identity: {
+        properties: ['openFile', 'showHiddenFiles'],
+        defaultPath: join(homedir(), '.ssh')
+    }
+};
+
 const host = createDatabaseHost({
     start: () => spawnHelper(helperPath, { onLog: (line) => console.error('[helper]', line) }),
-    authorizeFile: (path, access) => granted[access].has(path)
+    authorizeFile: (path, access) => granted[access].has(path),
+    // The page may list the Docker containers of this machine; the demo's whole point is to connect to them.
+    authorizeDiscovery: (kind) => kind === 'docker'
 });
 
 let mainWindow: BrowserWindow | null = null;
@@ -68,15 +86,12 @@ const registerChannels = (): void => {
         return host.handle(request, `window:${event.sender.id}`);
     });
 
-    ipcMain.handle(CHANNELS.browse, async (event) => {
+    ipcMain.handle(CHANNELS.browse, async (event, purpose: unknown) => {
         assertOwnPage(event);
-        const options = {
-            properties: ['openFile' as const],
-            filters: [
-                { name: 'SQLite', extensions: ['sqlite', 'db', 'sqlite3'] },
-                { name: 'All files', extensions: ['*'] }
-            ]
-        };
+        if (purpose !== 'database' && purpose !== 'identity') {
+            throw new Error('Invalid browse purpose.');
+        }
+        const options = BROWSE_OPTIONS[purpose];
         const result = mainWindow ? await dialog.showOpenDialog(mainWindow, options) : await dialog.showOpenDialog(options);
         return result.canceled ? null : (result.filePaths[0] ?? null);
     });

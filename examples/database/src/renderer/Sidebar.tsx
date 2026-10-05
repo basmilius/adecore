@@ -3,11 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { Settings2 } from 'lucide-react';
 import { ConnectionManager, DatabaseExplorer, type Connection, type ExplorerSelection } from '@adecore/database';
 import { Button, ColumnResizeHandle, Dialog, IconButton, useColumnResize } from '@adecore/ui';
+import type { BrowsePurpose } from '../shared/bridge.ts';
 
 export interface SidebarProps {
     connections: readonly Connection[];
     onConnectionsChange(next: readonly Connection[]): void;
-    onBrowse(): Promise<string | null>;
+    onBrowse(purpose: BrowsePurpose): Promise<string | null>;
     selected: ExplorerSelection | null;
     onSelectedChange(selection: ExplorerSelection | null): void;
 }

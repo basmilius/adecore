@@ -101,6 +101,13 @@ describe.skipIf(!speaksProtocol())('the page, the host and the helper together',
         expect(rest.hasMore).toBe(false);
     });
 
+    test('an expression without a declared type takes the kind of its values', async () => {
+        const session = client.session(shop);
+        const { results } = await session.execute('SELECT COUNT(*) AS total, AVG(id) AS mean, MAX(name) AS last FROM customers');
+        const [result] = results;
+        expect(result?.kind === 'rows' ? result.columns.map((column) => column.kind) : []).toEqual(['integer', 'float', 'text']);
+    });
+
     test('an aborted query is cancelled on the server', async () => {
         const session = client.session(shop);
         const controller = new AbortController();

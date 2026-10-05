@@ -4,7 +4,7 @@ import { useDatabaseAction, useDatabaseClient, useDatabaseFiles, useDatabaseStor
 import type { Connection } from '../client/types.ts';
 import { TableDesigner } from '../designer/TableDesigner.tsx';
 import type { WorkbenchTab } from './tabs.ts';
-import { useStableCallback } from './use-stable-callback.ts';
+import { useStableCallback } from '../use-stable-callback.ts';
 
 export interface DesignerTabProps {
     connection: Connection;

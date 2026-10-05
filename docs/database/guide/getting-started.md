@@ -24,26 +24,43 @@ pnpm add @adecore/database
 
 Set up [`@adecore/ui`](/ui/guide/getting-started) first. The views are made of its components and read its theme.
 
-## Build the helper
+## The helper
 
-The helper is a Rust program, `adecore-database`, in `packages/database/helper`. Today you build it with cargo, from a checkout of the repository:
+The helper is a Rust program, `adecore-database`, that holds the database drivers. The install brings a prebuilt one: `@adecore/database` lists a package per platform as an optional dependency (`@adecore/database-darwin-arm64`, `-darwin-x64`, `-linux-x64`, `-linux-arm64` and `-win32-x64`), and the package manager installs the one that fits the machine. `helperPath()` from the host entry point returns the path of its binary.
+
+```ts
+import { createDatabaseHost, helperPath, spawnHelper } from '@adecore/database/host';
+
+const path = helperPath();
+
+if (path === null) {
+    throw new Error('No prebuilt helper for this platform.');
+}
+```
+
+`null` means the platform has no package, or the install left optional dependencies out. The Linux binaries link against glibc 2.35 or newer. An app packaged for one platform on another machine needs the package of the target platform installed there.
+
+### Package the helper
+
+A binary cannot run from inside an Electron `app.asar` archive. `helperPath()` maps `app.asar` to `app.asar.unpacked`, so the app unpacks the platform packages. With electron-builder:
+
+```json
+{
+    "asarUnpack": ["node_modules/@adecore/database-*/**"]
+}
+```
+
+The app's own code signing and notarization cover the binary, so sign the unpacked file with the rest of the app. Copying the binary into `extraResources` and passing that path to `spawnHelper` works as well, without `helperPath()`.
+
+### Build it yourself
+
+An app that wants another platform, or a patched helper, builds it with cargo from a checkout of the repository and passes that path to `spawnHelper` instead:
 
 ```sh
 cargo build --release --locked --manifest-path packages/database/helper/Cargo.toml
 ```
 
-The binary lands in `packages/database/helper/target/release/adecore-database` (`.exe` on Windows). The release profile strips it and links it with LTO. SQLite is compiled in, and MySQL connections use rustls, so the binary needs no system library.
-
-Ship it beside the app's own executable. In Electron that is an `extraResources` entry, and the binary is signed and notarized with the rest of the app. Build one per platform and architecture the app targets. Platform packages on npm that carry a prebuilt binary will follow; until then the app owns this step.
-
-Find the binary from the backend:
-
-```ts
-import { join } from 'node:path';
-
-const binary = process.platform === 'win32' ? 'adecore-database.exe' : 'adecore-database';
-const helperPath = app.isPackaged ? join(process.resourcesPath, binary) : join(app.getAppPath(), 'bin', binary);
-```
+The binary lands in `packages/database/helper/target/release/adecore-database` (`.exe` on Windows). SQLite is compiled in, and MySQL connections use rustls, so the binary needs no system library. `packages/database/helper/README.md` covers the tests and how the binaries are built for release.
 
 ## Wire the host
 
@@ -59,10 +76,11 @@ Register one `ipcMain.handle` channel. The check of the sender is yours: compare
 
 ```ts
 import { app, ipcMain } from 'electron';
-import { createDatabaseHost, spawnHelper } from '@adecore/database/host';
+import { createDatabaseHost, helperPath, spawnHelper } from '@adecore/database/host';
 
+const path = helperPath()!;
 const host = createDatabaseHost({
-    start: () => spawnHelper(helperPath, { onLog: (line) => console.error(`[database] ${line}`) })
+    start: () => spawnHelper(path, { onLog: (line) => console.error(`[database] ${line}`) })
 });
 
 ipcMain.handle('database:request', (event, request: unknown) => {
@@ -82,6 +100,8 @@ app.on('before-quit', () => void host.dispose());
 ```
 
 A window that reloads keeps its owner, so the sessions of the old page stay open until the window closes. Call `host.release(owner)` on a main-frame navigation if reloads matter to you.
+
+The host asks the app before it opens a connection, touches a file or lists containers. Pass `authorize`, `authorizeFile` and `authorizeDiscovery` to `createDatabaseHost` for those; see [Security](/database/guide/security). Without `authorizeFile`, export and import are refused, and without `authorizeDiscovery`, the Docker mode finds no containers.
 
 ### Electron utility process
 
@@ -106,9 +126,10 @@ process.parentPort.on('message', async ({ data }) => {
 ```ts
 // main.ts
 import { ipcMain, utilityProcess } from 'electron';
+import { helperPath } from '@adecore/database/host';
 
 const worker = utilityProcess.fork(join(__dirname, 'database-worker.js'), [], {
-    env: { ...process.env, ADECORE_DATABASE_HELPER: helperPath }
+    env: { ...process.env, ADECORE_DATABASE_HELPER: helperPath()! }
 });
 const waiting = new Map<number, (response: unknown) => void>();
 let ticket = 0;
@@ -137,9 +158,10 @@ Release an owner the same way, with `worker.postMessage({ release: owner })` whe
 When the page talks to a server over a WebSocket, an owner is a socket. The server authenticates the upgrade; the host does not know who a person is.
 
 ```ts
-import { createDatabaseHost, spawnHelper } from '@adecore/database/host';
+import { createDatabaseHost, helperPath, spawnHelper } from '@adecore/database/host';
 
-const host = createDatabaseHost({ start: () => spawnHelper(helperPath) });
+const path = helperPath()!;
+const host = createDatabaseHost({ start: () => spawnHelper(path) });
 
 Bun.serve<{ owner: string }>({
     fetch(request, server) {
@@ -228,17 +250,39 @@ createRoot(document.getElementById('root')!).render(
 );
 ```
 
-`DatabaseProvider` takes the `client` and `children` (`DatabaseProviderProps`). A view outside a `DatabaseProvider` throws. Components of your own that need the client read it with `useDatabaseClient()`. Call `client.dispose()` when the page goes away to close its sessions.
+A view outside a `DatabaseProvider` throws. Components of your own that need the client read it with `useDatabaseClient()`. Call `client.dispose()` when the page goes away to close its sessions.
 
-The views take a `Connection`, which is `{ id, name, config }`. The app keeps the list of them, with the password in its own storage, and [`ConnectionManager`](/database/views/connection-manager) edits it.
+The views take a `Connection`, which is `{ id, name, config }`. The app keeps the list of them, with the password in its own storage, and [`ConnectionManager`](/database/views/connection-manager) edits it. [Connections](/database/guide/connections) explains the four ways to reach a MySQL or MariaDB server.
+
+### DatabaseProvider
+
+`DatabaseProviderProps` has the `client`, the `children` and three hooks into the app. All three are optional, and a view leaves out what it cannot do without them.
+
+| Prop       | Type                               |                                                                                                                                                                                                                                 |
+| ---------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `client`   | `DatabaseClient`                   | The client every view below talks to.                                                                                                                                                                                           |
+| `onAction` | `(action: DatabaseAction) => void` | Where a table, a console or the designer that a view asks for opens. Without it the explorer offers no Open and no New console, and the table view no Go to referenced row. See [Opening tables as tabs](/database/guide/tabs). |
+| `storage`  | `DatabaseStorage`                  | Where the views keep what a person set, across a remount.                                                                                                                                                                       |
+| `files`    | `DatabaseFiles`                    | The app's file dialogs. Without them there is no export and no import. See [Files](/database/guide/files).                                                                                                                      |
+
+`DatabaseStorage` is `get(key)`, which returns a string or `null`, and `set(key, value)`, where `null` removes the key. Both are synchronous, like `localStorage`, so `localStorage` itself fits behind it:
+
+```tsx
+const storage: DatabaseStorage = {
+    get: (key) => localStorage.getItem(key),
+    set: (key, value) => (value === null ? localStorage.removeItem(key) : localStorage.setItem(key, value))
+};
+```
+
+The views keep four things in it, each under a key of its own: the open nodes of the explorer (`database:explorer:<connection id>`), the layout of a table (`database:table:<connection id>:<schema>.<table>`), the history of a console (`database:console-history:<connection id>`) and the open tabs of a [workbench](/database/views/workbench) (`database:workbench`). The values are JSON the package reads back and ignores when it does not recognize them. Without `storage` the views start the same every time.
 
 ## Tailwind
 
 The views are styled with Tailwind classes. Tell Tailwind to scan the package, next to the line for `@adecore/ui`. The path is relative to the CSS file it sits in:
 
 ```css
-@import "tailwindcss";
-@import "@adecore/ui/theme.css";
+@import 'tailwindcss';
+@import '@adecore/ui/theme.css';
 
 @source "../node_modules/@adecore/ui/dist";
 @source "../node_modules/@adecore/database/dist";
@@ -264,3 +308,9 @@ Numbers, dates and durations in the views come from the formatters of [`@adecore
 ## Try it without a server
 
 `fakeDatabaseTransport` answers the whole protocol from memory, so a page runs without a backend or a helper. See [Testing](/database/api/testing).
+
+## Next
+
+- [Connections](/database/guide/connections): TCP, socket, SSH and Docker, and what each needs.
+- [Opening tables as tabs](/database/guide/tabs): answer `onAction` with the app's own tabs, or use [`DatabaseWorkbench`](/database/views/workbench).
+- [Files](/database/guide/files): the dialogs, `authorizeFile` and the formats of export and import.

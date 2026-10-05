@@ -3,7 +3,7 @@
 [![npm](https://img.shields.io/npm/v/@adecore/database)](https://www.npmjs.com/package/@adecore/database)
 [![Docs](https://img.shields.io/badge/docs-adecore.dev-blue)](https://adecore.dev/database/)
 
-Browse, query and edit SQLite and MySQL or MariaDB databases from a desktop app. React views draw the connections, a table tree, the rows of a table, its structure and a query console. A host in the app's backend and a native helper that talks to the servers do the work behind them.
+Browse, query and edit SQLite and MySQL or MariaDB databases from a desktop app. React views draw the connections, a table tree, the rows of a table, its structure, a designer that creates and alters tables, a query console and a workbench that puts them together. A host in the app's backend and a native helper that talks to the servers do the work behind them.
 
 **[Documentation with a live demo of every view](https://adecore.dev/database/)**
 
@@ -41,7 +41,11 @@ import { createDatabaseHost, spawnHelper } from '@adecore/database/host';
 const host = createDatabaseHost({
     start: () => spawnHelper(helperPath),
     // Optional: turn down connections the page may not open.
-    authorize: (connection) => connection.engine !== 'sqlite' || connection.path.startsWith(dataFolder)
+    authorize: (connection) => connection.engine !== 'sqlite' || connection.path.startsWith(dataFolder),
+    // Optional: the files the page may export to and import from. Every file is refused without it.
+    authorizeFile: (path, access, owner) => isChosenInDialog(owner, access, path),
+    // Optional: whether the page may list Docker containers. Refused without it.
+    authorizeDiscovery: (kind, owner) => isTrusted(owner)
 });
 
 ipcMain.handle('database:request', (event, request) => {
@@ -76,11 +80,24 @@ createRoot(root).render(
 
 A `Connection` is `{ id, name, config }`. The app keeps the list, with the password in its own secure storage; the package stores nothing.
 
+`DatabaseProvider` also takes three optional hooks into the app. Without them the views leave out what they cannot do.
+
+```tsx
+<DatabaseProvider
+    client={client}
+    onAction={(action) => openInTab(action)}
+    storage={{ get: (key) => localStorage.getItem(key), set: (key, value) => (value === null ? localStorage.removeItem(key) : localStorage.setItem(key, value)) }}
+    files={{ save: (options) => window.app.saveFile(options), open: (options) => window.app.openFile(options) }}
+>
+```
+
+`onAction` receives a `DatabaseAction` when a view wants a table, a console or the designer opened, so the app decides where it goes. `storage` keeps layouts, console history and open tabs across a remount. `files` holds the app's save and open dialogs for export and import.
+
 Tell Tailwind to scan the package for its classes, next to the `@source` line of `@adecore/ui`. The path is relative to the CSS file:
 
 ```css
-@import "tailwindcss";
-@import "@adecore/ui/theme.css";
+@import 'tailwindcss';
+@import '@adecore/ui/theme.css';
 
 @source "../node_modules/@adecore/ui/dist";
 @source "../node_modules/@adecore/database/dist";
@@ -118,7 +135,7 @@ A binary cannot run from inside an `app.asar` archive. `helperPath()` maps `app.
 
 ```json
 {
-  "asarUnpack": ["node_modules/@adecore/database-*/**"]
+    "asarUnpack": ["node_modules/@adecore/database-*/**"]
 }
 ```
 
@@ -126,9 +143,11 @@ Or copy the binary into `extraResources` and pass that path to `spawnHelper`, wi
 
 ## Views and testing
 
-`ConnectionManager` and `ConnectionForm` edit the saved connections. `DatabaseExplorer` lists connections, schemas and tables. `TableView` pages through the rows of a table and edits them. `StructureView` shows columns, indexes, foreign keys and the DDL. `QueryConsole` runs SQL.
+`ConnectionManager` and `ConnectionForm` edit the saved connections: a SQLite file, or a MySQL or MariaDB server reached over TCP, a Unix socket, an SSH host or a Docker container. `DatabaseExplorer` is a tree of connections, schemas, tables and columns, with context menus. `TableView` pages through the rows of a table, filters and sorts them from one command field, and edits them. `StructureView` shows columns, indexes, foreign keys and the DDL. `TableDesigner` creates and alters a table and shows the SQL before it runs. `QueryConsole` runs SQL, with history, paging, transactions and export. `DatabaseWorkbench` is the explorer beside closable tabs for all of those.
 
 `@adecore/database/testing` has `fakeDatabaseTransport`, an in-memory server behind the same transport, for demos and for tests of an app.
+
+The documentation at https://adecore.dev/database/ has a page for each view, and guides for connections, files, security and the protocol.
 
 ## License
 

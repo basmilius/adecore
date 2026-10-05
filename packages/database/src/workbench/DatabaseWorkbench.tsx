@@ -42,7 +42,7 @@ import {
     STORAGE_KEY,
     type WorkbenchTab
 } from './tabs.ts';
-import { useStableCallback } from './use-stable-callback.ts';
+import { useStableCallback } from '../use-stable-callback.ts';
 
 export interface DatabaseWorkbenchProps {
     connections: readonly Connection[];
@@ -207,6 +207,7 @@ export function DatabaseWorkbench({ connections, onConnectionsChange, className,
                         schema={tab.schema}
                         value={tab.sql}
                         onValueChange={(sql) => setState((current) => setConsoleSql(current, tab.id, sql))}
+                        autoFocus={tab.id === active?.id}
                         className="h-full"
                     />
                 );

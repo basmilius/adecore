@@ -517,7 +517,34 @@ fn read_result_rows(statement: &mut Statement<'_>, params: &[Param], limit: usiz
         cells.push(read_row(row, count, cell_limit)?);
     }
 
-    Ok((columns, cells, has_more))
+    Ok((with_value_kinds(columns, &cells), cells, has_more))
+}
+
+/// An expression such as `COUNT(*)` has no declared type in SQLite, so its kind comes from the storage class of its first value.
+fn with_value_kinds(columns: Vec<ResultColumn>, rows: &[Vec<Cell>]) -> Vec<ResultColumn> {
+    columns
+        .into_iter()
+        .enumerate()
+        .map(|(index, column)| {
+            if column.kind != ValueKind::Other || !column.column_type.is_empty() {
+                return column;
+            }
+
+            let kind = rows.iter().filter_map(|row| row.get(index)).find_map(kind_of_cell).unwrap_or(ValueKind::Other);
+
+            ResultColumn { kind, ..column }
+        })
+        .collect()
+}
+
+fn kind_of_cell(cell: &Cell) -> Option<ValueKind> {
+    match cell {
+        Cell::Null => None,
+        Cell::Number(number) if number.is_f64() => Some(ValueKind::Float),
+        Cell::Number(_) => Some(ValueKind::Integer),
+        Cell::Object(CellObject::Binary { .. }) => Some(ValueKind::Binary),
+        _ => Some(ValueKind::Text),
+    }
 }
 
 fn read_rows(connection: &Connection, params: &RowsParams) -> Result<RowsResult> {

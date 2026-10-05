@@ -127,6 +127,9 @@ const database: DefaultTheme.SidebarItem[] = [
     group('Database', [
         ['Overview', '/database/'],
         ['Getting started', '/database/guide/getting-started'],
+        ['Connections', '/database/guide/connections'],
+        ['Opening tables as tabs', '/database/guide/tabs'],
+        ['Files', '/database/guide/files'],
         ['Security', '/database/guide/security'],
         ['Protocol', '/database/guide/protocol']
     ]),
@@ -135,7 +138,9 @@ const database: DefaultTheme.SidebarItem[] = [
         ['DatabaseExplorer', '/database/views/explorer'],
         ['TableView', '/database/views/table-view'],
         ['StructureView', '/database/views/structure-view'],
-        ['QueryConsole', '/database/views/query-console']
+        ['TableDesigner', '/database/views/table-designer'],
+        ['QueryConsole', '/database/views/query-console'],
+        ['DatabaseWorkbench', '/database/views/workbench']
     ]),
     group('API', [
         ['Client', '/database/api/client'],

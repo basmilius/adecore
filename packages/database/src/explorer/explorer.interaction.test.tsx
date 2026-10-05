@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import type { DatabaseAction, ExplorerSelection } from '../actions.ts';
-import type { Connection } from '../client/types.ts';
+import type { Connection, SchemaChange } from '../client/types.ts';
 import type { Mounted, RecordedTransport } from '../testing/dom/harness.tsx';
 import { SHOP_PATH, shopDatabase } from '../testing/dom/shop.ts';
 import {
@@ -12,10 +12,12 @@ import {
     find,
     findAll,
     focus,
+    memoryStorage,
     mount,
     perform,
     press,
     recordTransport,
+    type,
     waitFor
 } from '../testing/dom/harness.tsx';
 import { fakeDatabaseTransport } from '../testing/index.ts';
@@ -131,6 +133,36 @@ describe.skipIf(typeof document === 'undefined')('DatabaseExplorer in a DOM', ()
         expect(findAll('[role=dialog]')).toEqual([]);
     });
 
+    test('tells the listeners once for a truncate, which the client cannot tell from a delete', async () => {
+        recorded.onExecute((sql) => [done(sql, 2)]);
+        const changes: SchemaChange[] = [];
+        const stop = client.onSchemaChange((change) => changes.push(change));
+        await openTables();
+        await contextMenu(row('customers'));
+        await click(byText('[role=menuitem]', 'Truncate'));
+        await click(byText('[role=dialog] button', 'Truncate'));
+        await waitFor(() => expect(findAll('[role=dialog]')).toEqual([]));
+        stop();
+
+        expect(changes).toEqual([{ connectionId: 'one', schema: 'main' }]);
+    });
+
+    test('tells the listeners once for a drop, which the client announces itself', async () => {
+        recorded.onExecute((sql) => [done(sql, 0)]);
+        const changes: SchemaChange[] = [];
+        const stop = client.onSchemaChange((change) => changes.push(change));
+        await openTables();
+        await contextMenu(row('orders'));
+        await click(byText('[role=menuitem]', 'Drop'));
+        await type(find('[role=dialog] input') as HTMLInputElement, 'orders');
+        await click(byText('[role=dialog] button', 'Drop table'));
+        await waitFor(() => expect(findAll('[role=dialog]')).toEqual([]));
+        stop();
+
+        expect(recorded.executed()).toEqual(['DROP TABLE "orders"']);
+        expect(changes).toHaveLength(1);
+    });
+
     test('runs nothing when the question is cancelled', async () => {
         recorded.onExecute((sql) => [done(sql)]);
         await openTables();
@@ -180,5 +212,52 @@ describe.skipIf(typeof document === 'undefined')('DatabaseExplorer in a DOM', ()
         expect(labels()).toEqual(['Shop']);
         expect(row('Shop').getAttribute('aria-expanded')).toBe('false');
         expect(recorded.of('close')).toHaveLength(1);
+    });
+
+    test('does not select the row under the pointer when a click follows a press in the menu', async () => {
+        await openTables();
+        await contextMenu(row('customers'));
+        const item = byText('[role=menuitem]', 'Edit table');
+        await perform(() => {
+            item.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, cancelable: true }));
+        });
+        // The menu closes on the press in a browser, so the click lands on the row that was under it.
+        await click(row('orders'));
+        expect(selections).toEqual([]);
+        expect(row('orders').getAttribute('aria-selected')).toBe('false');
+
+        await perform(() => {
+            row('orders').dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, cancelable: true }));
+        });
+        await click(row('orders'));
+        expect(selections.at(-1)).toEqual({ connectionId: 'one', schema: 'main', table: 'orders' });
+    });
+
+    test('brings the tree back as it was when it mounts again over the same storage', async () => {
+        await mounted.unmount();
+        const storage = memoryStorage();
+        mounted = await mount(<DatabaseExplorer connections={[connection]} />, { client, actions, storage });
+        await openTables();
+        await focus(row('customers'));
+        await press(row('customers'), 'ArrowRight');
+        await focus(row('Tables'));
+        await press(row('Tables'), 'ArrowLeft');
+        await press(row('Tables'), 'ArrowRight');
+        expect(JSON.parse(storage.entries.get('database:explorer:one')!)).toMatchObject({ version: 1 });
+
+        await mounted.unmount();
+        const before = recorded.requests.length;
+        mounted = await mount(<DatabaseExplorer connections={[connection]} />, { client, actions, storage });
+        await waitFor(() => expect(labels()).toEqual(['Shop3.50.4', 'Tables2', 'customers', 'idINTEGER', 'nameTEXT', 'orders']));
+        expect(recorded.requests.length).toBeGreaterThan(before);
+    });
+
+    test('opens no connection that was not open, and ignores a stored state that is broken', async () => {
+        await mounted.unmount();
+        const storage = memoryStorage();
+        storage.set('database:explorer:one', '{"version":9,"expanded":["c:one"]}');
+        mounted = await mount(<DatabaseExplorer connections={[connection]} />, { client, actions, storage });
+        expect(labels()).toEqual(['Shop']);
+        expect(recorded.of('schemas')).toHaveLength(0);
     });
 });

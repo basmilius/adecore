@@ -9,11 +9,13 @@ export const CHANNELS = {
     openFile: 'database:open-file'
 } as const;
 
+export type BrowsePurpose = 'database' | 'identity';
+
 /* What the preload hands the page as `window.database`. */
 export interface DatabaseBridge {
     request(request: DatabaseRequest): Promise<DatabaseResponse>;
-    /* The path a person picked in the system file dialog, or null when they cancelled. */
-    browse(): Promise<string | null>;
+    /* The path a person picked in the system file dialog for a database file or an SSH key, or null when they cancelled. */
+    browse(purpose: BrowsePurpose): Promise<string | null>;
     demoPath(): Promise<string>;
     /* The file dialogs of the views, for export and import. */
     saveFile: DatabaseFiles['save'];

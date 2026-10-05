@@ -3,7 +3,7 @@ import type { DatabaseAction } from '../actions.ts';
 import type { Connection, SchemaChange } from '../client/types.ts';
 import type { Mounted, RecordedTransport } from '../testing/dom/harness.tsx';
 import { SHOP_PATH, shopDatabase } from '../testing/dom/shop.ts';
-import { MOD, byText, clientOver, click, done, find, findAll, mount, press, recordTransport, type, waitFor } from '../testing/dom/harness.tsx';
+import { MOD, byText, clientOver, click, done, find, findAll, mount, perform, press, recordTransport, type, waitFor } from '../testing/dom/harness.tsx';
 import { fakeDatabaseTransport } from '../testing/index.ts';
 import { TableDesigner } from './TableDesigner.tsx';
 
@@ -90,6 +90,37 @@ describe.skipIf(typeof document === 'undefined')('TableDesigner in a DOM', () =>
         expect(changes).toEqual([{ connectionId: 'one', schema: 'main' }]);
         await waitFor(() => expect(recorded.of('structure').length).toBeGreaterThan(structures));
         expect(findAll('[role=dialog]')).toEqual([]);
+    });
+
+    test('loads the table again when another view changed it and the draft is untouched', async () => {
+        await open('customers');
+        const structures = recorded.of('structure').length;
+        await perform(() => client.notifySchemaChange({ connectionId: 'one', schema: 'main' }));
+
+        await waitFor(() => expect(recorded.of('structure').length).toBeGreaterThan(structures));
+        expect(document.body.textContent).not.toContain('The table changed');
+    });
+
+    test('keeps an edited draft when another view changed the table, and reloads on request', async () => {
+        await open('customers');
+        await click(byText('button', 'Add column'));
+        const structures = recorded.of('structure').length;
+        await perform(() => client.notifySchemaChange({ connectionId: 'one', schema: 'main' }));
+
+        expect(document.body.textContent).toContain('The table changed elsewhere');
+        expect(recorded.of('structure')).toHaveLength(structures);
+        expect(nameFields()).toHaveLength(3);
+
+        await click(byText('button', 'Reload'));
+        await waitFor(() => expect(nameFields()).toHaveLength(2));
+        expect(document.body.textContent).not.toContain('The table changed');
+    });
+
+    test('ignores a change of another schema', async () => {
+        await open('customers');
+        const structures = recorded.of('structure').length;
+        await perform(() => client.notifySchemaChange({ connectionId: 'one', schema: 'other' }));
+        expect(recorded.of('structure')).toHaveLength(structures);
     });
 
     test('Mod+S asks as Apply does', async () => {

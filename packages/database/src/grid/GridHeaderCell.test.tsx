@@ -76,7 +76,7 @@ describe('GridHeaderCell', () => {
 
     test('draws a gold key before the name of a key column', () => {
         const markup = render(<GridHeaderCell {...props} column={{ ...props.column, primaryKey: true }} />);
-        expect(markup).toMatch(/lucide-key [^"]*text-file-icon-yellow/);
+        expect(markup).toMatch(/lucide-key [^"]*text-\(--file-icon-yellow\)/);
         expect(render(<GridHeaderCell {...props} />)).not.toContain('lucide-key');
     });
 

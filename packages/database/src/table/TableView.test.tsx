@@ -11,7 +11,7 @@ import { TableView } from './TableView.tsx';
 const i18n = i18next.createInstance();
 await i18n.init({ lng: 'en', fallbackLng: 'en', resources: {}, interpolation: { escapeValue: false } });
 
-const client = stubClient({ session: stubSession });
+const client = stubClient({ session: (connection) => stubSession(connection) });
 
 const render = (node: ReactNode): string =>
     renderToStaticMarkup(

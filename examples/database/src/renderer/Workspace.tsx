@@ -3,13 +3,14 @@ import { useTranslation } from 'react-i18next';
 import { Cable, PencilRuler, SquareTerminal, Table, TableProperties, type LucideIcon } from 'lucide-react';
 import { ConnectionManager, QueryConsole, TableDesigner, type Connection } from '@adecore/database';
 import { Button, EmptyState, Icon, IconButton, PromptDialog, Segmented, Tabs } from '@adecore/ui';
+import type { BrowsePurpose } from '../shared/bridge.ts';
 import { TableTab } from './TableTab.tsx';
 import { connectionIdOf, type TableViewMode, type WorkTab } from './useTabs.ts';
 
 export interface WorkspaceProps {
     connections: readonly Connection[];
     onConnectionsChange(next: readonly Connection[]): void;
-    onBrowse(): Promise<string | null>;
+    onBrowse(purpose: BrowsePurpose): Promise<string | null>;
     tabs: readonly WorkTab[];
     activeId: string | null;
     onActivate(id: string): void;
@@ -108,7 +109,7 @@ export function Workspace({
                     )
                 );
             case 'console':
-                return connection && <QueryConsole connection={connection} schema={tab.schema} defaultValue={tab.sql} className="h-full" />;
+                return connection && <QueryConsole connection={connection} schema={tab.schema} defaultValue={tab.sql} autoFocus className="h-full" />;
             case 'designer':
                 return connection && <TableDesigner connection={connection} schema={tab.schema} table={tab.table} className="h-full" />;
             case 'connections':

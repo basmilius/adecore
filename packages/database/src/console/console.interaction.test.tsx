@@ -161,6 +161,28 @@ describe.skipIf(typeof document === 'undefined')('QueryConsole in a DOM', () => 
         expect(recorded.of('transaction').map((request) => request.params.action)).toEqual(['begin', 'commit']);
     });
 
+    test('runs on a session of its own, apart from the one the other views of the connection share', async () => {
+        const shared = client.session(connection);
+        await shared.schemas();
+        await type(editor(), 'SELECT 1');
+        await press(editor(), 'Enter', MOD);
+
+        const opened = recorded.of('open');
+        expect(opened).toHaveLength(2);
+        const executed = recorded.of('execute')[0]!;
+        const sessions = recorded.requests.filter((request) => request.method === 'schemas').map((request) => (request.params as { session: string }).session);
+        expect(executed.params.session).not.toBe(sessions[0]);
+    });
+
+    test('closes its session when it unmounts', async () => {
+        await type(editor(), 'SELECT 1');
+        await press(editor(), 'Enter', MOD);
+        expect(recorded.of('close')).toEqual([]);
+
+        await mounted.unmount();
+        expect(recorded.of('close')).toHaveLength(1);
+    });
+
     test('in auto mode sends no begin', async () => {
         await type(editor(), 'SELECT 1');
         await press(editor(), 'Enter', MOD);

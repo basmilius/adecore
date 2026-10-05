@@ -49,6 +49,7 @@ import { moveFocus, type CellPosition, type NavigationKey } from './navigation.t
 import { selectRow } from './row-selection.ts';
 import { sortOnly, sortStateOf, type GridSort } from './sort.ts';
 import type { ColumnRequest, FocusedCell, GridColumn, GridMenuContext, GridRow } from './types.ts';
+import { usePopupPress } from '../use-popup-press.ts';
 
 export interface DataGridProps {
     columns: readonly GridColumn[];
@@ -185,6 +186,7 @@ export function DataGrid({
     const gridId = useId();
     const scroller = useRef<HTMLDivElement | null>(null);
     const anchor = useRef(-1);
+    const pressedInPopup = usePopupPress();
     /* Set once an edit commits or cancels, so the blur that follows the input's removal does not commit it again. */
     const settled = useRef(true);
     const dragging = useRef(false);
@@ -628,7 +630,11 @@ export function DataGrid({
     };
 
     const headerActions: HeaderActions = {
-        onSelect: pickColumn,
+        onSelect: (index, click) => {
+            if (!pressedInPopup()) {
+                pickColumn(index, click);
+            }
+        },
         onSortDirection: (index, direction) => onSortsChange?.(sortOnly(columns[index]!.name, direction)),
         onClearSort: () => onSortsChange?.([]),
         onResize: resizeColumn,
@@ -659,7 +665,11 @@ export function DataGrid({
                         row.state === 'inserted' && 'text-positive'
                     )}
                     style={{ width: gutter }}
-                    onClick={(event: MouseEvent) => selectRowAt(index, { shiftKey: event.shiftKey, mod: isModHeld(event, isApplePlatform()) })}
+                    onClick={(event: MouseEvent) => {
+                        if (!pressedInPopup()) {
+                            selectRowAt(index, { shiftKey: event.shiftKey, mod: isModHeld(event, isApplePlatform()) });
+                        }
+                    }}
                     onContextMenu={() => openRowMenu(index)}
                 >
                     {row.number === null ? '+' : formatNumber(row.number)}

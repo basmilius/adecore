@@ -27,6 +27,12 @@ export const schemaKey = (connectionId: string, schema: string): string => `s:${
 export const folderKey = (connectionId: string, schema: string, group: TableKind): string => `f:${connectionId}${SEPARATOR}${schema}${SEPARATOR}${group}`;
 export const tableKey = (ref: TableRef): string => `t:${ref.connectionId}${SEPARATOR}${ref.schema}${SEPARATOR}${ref.table}`;
 export const isFolderKey = (key: string): boolean => key.startsWith('f:');
+/* The connection a key of a connection, schema, folder or table belongs to. */
+export const connectionOfKey = (key: string): string => {
+    const rest = key.slice(2);
+    const end = rest.indexOf(SEPARATOR);
+    return end === -1 ? rest : rest.slice(0, end);
+};
 export const columnKey = (ref: TableRef, column: string): string => `${tableKey(ref)}${SEPARATOR}${column}`;
 
 export const loadKey = (target: LoadTarget): string => {

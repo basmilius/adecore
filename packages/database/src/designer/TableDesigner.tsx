@@ -1,6 +1,6 @@
-import { useMemo, useState, type Ref } from 'react';
+import { useMemo, useRef, useState, type Ref } from 'react';
 import clsx from 'clsx';
-import { CircleAlert } from 'lucide-react';
+import { CircleAlert, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Banner, Button, Spinner, messageOf } from '@adecore/ui';
 import { useDatabaseAction, useDatabaseClient } from '../client-context.ts';
@@ -8,6 +8,7 @@ import type { Connection, ExecuteResult } from '../client/types.ts';
 import { dialectOf, draftOf, emptyDraft, type Dialect, type TableDraft } from '../ddl/index.ts';
 import type { TableStructure } from '../protocol/index.ts';
 import { useLoaded } from '../table/useLoaded.ts';
+import { useSchemaChange } from '../use-schema-change.ts';
 import { DesignerView } from './DesignerView.tsx';
 import { planOf } from './plan.ts';
 import { recoverFrom } from './recover.ts';
@@ -46,6 +47,8 @@ export function TableDesigner({ connection, schema, table, className, ref }: Tab
     const [editing, setEditing] = useState<Editing>({ snapshot: null, baseline: emptyDraft(), draft: emptyDraft() });
     const [confirming, setConfirming] = useState(false);
     const [failure, setFailure] = useState<string | null>(null);
+    const [shapeChanged, setShapeChanged] = useState(false);
+    const applying = useRef(false);
 
     if (subject.requested !== table) {
         setSubject({ requested: table, current: table ?? null });
@@ -65,10 +68,24 @@ export function TableDesigner({ connection, schema, table, className, ref }: Tab
     );
     const snapshot = loaded.value;
 
+    // The apply of this designer reloads by itself; a change from elsewhere replaces an untouched draft and warns about an edited one.
+    useSchemaChange(connection.id, schema, () => {
+        if (applying.current) {
+            return;
+        }
+
+        if (editing.draft === editing.baseline) {
+            loaded.reload();
+        } else {
+            setShapeChanged(true);
+        }
+    });
+
     // A new snapshot, after a load or an apply, starts a fresh draft.
     if (snapshot !== null && editing.snapshot !== snapshot) {
         const baseline = snapshot.structure === null ? emptyDraft() : draftOf(snapshot.structure);
         setEditing({ snapshot, baseline, draft: baseline });
+        setShapeChanged(false);
     }
     const draft = editing.draft;
 
@@ -86,12 +103,15 @@ export function TableDesigner({ connection, schema, table, className, ref }: Tab
         const statements = plan.statements;
         const wasNew = snapshot.structure === null;
         let outcome: ExecuteResult;
+        applying.current = true;
         try {
             outcome = await session.execute(statements.join(';\n'), { schema });
         } catch (e) {
             setFailure(messageOf(e, t('designer.failed')));
             setConfirming(false);
             return;
+        } finally {
+            applying.current = false;
         }
         const failed = outcome.results.find((result) => result.kind === 'error');
         if (failed?.kind === 'error') {
@@ -123,6 +143,15 @@ export function TableDesigner({ connection, schema, table, className, ref }: Tab
                     <Banner icon={CircleAlert} tone="error" className="w-full" message={loaded.error}>
                         <Button variant="secondary" size="sm" onClick={loaded.reload}>
                             {t('designer.retry')}
+                        </Button>
+                    </Banner>
+                </div>
+            )}
+            {shapeChanged && (
+                <div className="shrink-0 px-3 pt-3">
+                    <Banner icon={RefreshCw} tone="neutral" className="w-full" message={t('designer.changed')}>
+                        <Button variant="secondary" size="sm" onClick={loaded.reload}>
+                            {t('designer.reload')}
                         </Button>
                     </Banner>
                 </div>

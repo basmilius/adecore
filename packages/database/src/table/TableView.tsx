@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode, type Ref } from 'react';
 import clsx from 'clsx';
-import { ArrowDownWideNarrow, ArrowUpRight, Check, CircleAlert, CopyPlus, Download, Filter, FilterX, Trash2, Undo2 } from 'lucide-react';
+import { ArrowDownWideNarrow, ArrowUpRight, Check, CircleAlert, CopyPlus, Download, Filter, FilterX, RefreshCw, Trash2, Undo2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
     Banner,
@@ -29,6 +29,7 @@ import { RecordView } from '../grid/RecordView.tsx';
 import { ValueDock } from '../grid/ValueDock.tsx';
 import { valueOfCell, type EditValue, type RowChange, type Value } from '../protocol/index.ts';
 import type { SqlTarget } from '../sql.ts';
+import { useSchemaChange } from '../use-schema-change.ts';
 import { ValuePanel } from '../value/ValuePanel.tsx';
 import {
     addChip,
@@ -148,6 +149,7 @@ function TableBody({ connection, schema, table, defaultWhere, defaultOrderBy, on
     const [counting, setCounting] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [failure, setFailure] = useState<string | null>(null);
+    const [shapeChanged, setShapeChanged] = useState(false);
     const [discard, setDiscard] = useState<{ run(): void } | null>(null);
     const [panelOpen, setPanelOpen] = useState(false);
     const [focus, setFocus] = useState<FocusedCell | null>(null);
@@ -245,6 +247,16 @@ function TableBody({ connection, schema, table, defaultWhere, defaultOrderBy, on
     const focusedRef = focus === null ? null : parseRowKey(focus.rowKey);
     const canFetch = focusedRef?.kind === 'loaded' && structure !== null && loaded !== null && rowKeyOf(structure, loaded, focusedRef.index) !== null;
     const fetchId = needsFetch && canFetch ? `${focus.rowKey}:${focus.column}` : null;
+
+    useSchemaChange(connection.id, schema, () => {
+        if (isPendingEmpty(pending)) {
+            setCounted(null);
+            structureLoad.reload();
+            rowsLoad.reload();
+        } else {
+            setShapeChanged(true);
+        }
+    });
 
     useEffect(() => {
         reportDirty.current = onDirtyChange;
@@ -371,6 +383,7 @@ function TableBody({ connection, schema, table, defaultWhere, defaultOrderBy, on
         guard(() => {
             setCounted(null);
             setFailure(null);
+            setShapeChanged(false);
             structureLoad.reload();
             rowsLoad.reload();
         });
@@ -717,6 +730,13 @@ function TableBody({ connection, schema, table, defaultWhere, defaultOrderBy, on
                             {t('table.dismiss')}
                         </Button>
                     )}
+                </Banner>
+            )}
+            {shapeChanged && (
+                <Banner icon={RefreshCw} tone="neutral" message={t('table.changed')} className="shrink-0 pt-2">
+                    <Button size="xs" onClick={refresh}>
+                        {t('table.reload')}
+                    </Button>
                 </Banner>
             )}
             {transfer.notice !== null && (

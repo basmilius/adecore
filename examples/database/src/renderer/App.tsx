@@ -16,7 +16,7 @@ export function App() {
         <DatabaseProvider client={client} storage={databaseStorage} files={databaseFiles}>
             <div className="flex h-screen flex-col bg-bg text-text">
                 <header className="flex h-11 shrink-0 items-center justify-between border-b border-border px-3">
-                    <h1 className="text-sm font-semibold text-text">{t('app.title')}</h1>
+                    <h1 className="text-sm font-semibold text-text">{t('title')}</h1>
                     <Segmented
                         label={t('layout.label')}
                         value={layout}

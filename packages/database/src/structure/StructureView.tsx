@@ -6,6 +6,7 @@ import { Banner, Button, EmptyState, Icon, Pill, Spinner, Tabs, copyText, messag
 import { useDatabaseClient } from '../client-context.ts';
 import type { Connection } from '../client/types.ts';
 import type { ColumnInfo, ForeignKeyInfo, IndexInfo, TableStructure } from '../protocol/index.ts';
+import { useSchemaChange } from '../use-schema-change.ts';
 import { referenceOf } from './structure-text.ts';
 
 export interface StructureViewProps {
@@ -40,8 +41,12 @@ export function StructureView({ connection, schema, table, className, ref }: Str
     const client = useDatabaseClient();
     const [answer, setAnswer] = useState<Answer | null>(null);
     const [attempt, setAttempt] = useState(0);
+    // A schema change reloads without leaving the structure on screen: the answer keeps its place until the new one arrives.
+    const [reloads, setReloads] = useState(0);
     const answered = answer !== null && answer.connection === connection && answer.schema === schema && answer.table === table && answer.attempt === attempt;
     const load: Load = answered ? answer.load : { status: 'loading' };
+
+    useSchemaChange(connection.id, schema, () => setReloads((now) => now + 1));
 
     useEffect(() => {
         let current = true;
@@ -60,7 +65,7 @@ export function StructureView({ connection, schema, table, className, ref }: Str
         return () => {
             current = false;
         };
-    }, [client, connection, schema, table, attempt, t]);
+    }, [client, connection, schema, table, attempt, reloads, t]);
 
     return (
         <div ref={ref} className={clsx('flex min-h-0 min-w-0 flex-col', className)}>

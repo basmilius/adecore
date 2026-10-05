@@ -6,7 +6,7 @@ import type { Mounted } from '../testing/dom/harness.tsx';
 
 import { byText, clientOver, click, find, findAll, mount, recordTransport, waitFor } from '../testing/dom/harness.tsx';
 import { fakeDatabaseTransport } from '../testing/index.ts';
-import { ConnectionForm } from './ConnectionForm.tsx';
+import { ConnectionForm, type ConnectionFormProps } from './ConnectionForm.tsx';
 
 const containers: DockerContainer[] = [
     {
@@ -33,7 +33,7 @@ const containers: DockerContainer[] = [
 
 const initial: Connection = { id: 'one', name: 'Shop', config: { engine: 'mysql', host: 'db.test', user: '', tls: 'prefer' } };
 
-function Controlled({ start, onValue }: { start: Connection; onValue(value: Connection): void }) {
+function Controlled({ start, onValue, onBrowse }: { start: Connection; onValue(value: Connection): void; onBrowse?: ConnectionFormProps['onBrowse'] }) {
     const [value, setValue] = useState(start);
     return (
         <ConnectionForm
@@ -42,6 +42,7 @@ function Controlled({ start, onValue }: { start: Connection; onValue(value: Conn
                 setValue(next);
                 onValue(next);
             }}
+            onBrowse={onBrowse}
         />
     );
 }
@@ -93,6 +94,33 @@ describe.skipIf(typeof document === 'undefined')('ConnectionForm in a DOM', () =
             database: 'shop',
             tunnel: { kind: 'docker', container: 'shop-db-1', port: 3306 }
         });
+    });
+
+    test('tells the dialog whether it picks a database file or an SSH key', async () => {
+        const asked: string[] = [];
+        const recorded = recordTransport(fakeDatabaseTransport({ databases: {} }));
+        client = clientOver(recorded.transport);
+        const onBrowse = (purpose: 'database' | 'identity'): Promise<string | null> => {
+            asked.push(purpose);
+            return Promise.resolve(purpose === 'database' ? '/data/shop.sqlite' : '/keys/id_ed25519');
+        };
+        const sqlite: Connection = { id: 'one', name: 'Shop', config: { engine: 'sqlite', path: '' } };
+        mounted = await mount(<Controlled start={sqlite} onValue={(value) => values.push(value)} onBrowse={onBrowse} />, { client });
+
+        await click(byText('button', 'Browse'));
+        expect(asked).toEqual(['database']);
+        await waitFor(() => expect(latest().config).toMatchObject({ path: '/data/shop.sqlite' }));
+        await mounted.unmount();
+
+        const viaSsh: Connection = {
+            id: 'two',
+            name: 'Remote',
+            config: { engine: 'mysql', host: '127.0.0.1', user: 'root', tunnel: { kind: 'ssh', host: 'bastion', user: 'deploy' } }
+        };
+        mounted = await mount(<Controlled start={viaSsh} onValue={(value) => values.push(value)} onBrowse={onBrowse} />, { client });
+        await click(byText('button', 'Browse'));
+        expect(asked).toEqual(['database', 'identity']);
+        await waitFor(() => expect(latest().config).toMatchObject({ tunnel: { identityFile: '/keys/id_ed25519' } }));
     });
 
     test('keeps what is already filled in when a container is picked', async () => {

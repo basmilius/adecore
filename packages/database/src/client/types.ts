@@ -134,8 +134,13 @@ export interface DatabaseClient {
     notifySchemaChange(change: SchemaChange): void;
     /* Returns the function that stops listening. */
     onSchemaChange(listener: (change: SchemaChange) => void): () => void;
-    /* The session of this connection, the same object on every call. A connection whose config changed gets a new one, and the old one closes. */
-    session(connection: Connection): DatabaseSession;
+    /*
+     * The session of this connection on a channel, the same object on every call. Each channel is its own
+     * session on the host, so a transaction on one does not reach the others. A connection whose config
+     * changed gets a new one, and the old one closes.
+     */
+    session(connection: Connection, channel?: string): DatabaseSession;
+    /* Closes every channel of the connection. */
     disconnect(connectionId: string): Promise<void>;
     dispose(): Promise<void>;
 }

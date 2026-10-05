@@ -418,7 +418,7 @@ describe('the new session methods', () => {
     });
 
     test('forward sample and discover without a session', async () => {
-        const { host, helpers } = harness({ authorizeFile: () => true });
+        const { host, helpers } = harness({ authorizeFile: () => true, authorizeDiscovery: () => true });
         expect((await host.handle(file('sample', ''), 'a')).ok).toBe(true);
         expect((await host.handle({ id: 'd1', method: 'discover', params: { kind: 'docker', context: 'desktop' } }, 'a')).ok).toBe(true);
         expect(helpers[0]!.written.map(({ method, params }) => [method, params])).toEqual([
@@ -501,9 +501,10 @@ describe('authorizeFile', () => {
 describe('authorizeDiscovery', () => {
     const discover = { id: 'd1', method: 'discover', params: { kind: 'docker' } };
 
-    test('allows discover when it is left out', async () => {
-        const { host } = harness();
-        expect((await host.handle(discover, 'a')).ok).toBe(true);
+    test('refuses discover, without starting a helper, when it is left out', async () => {
+        const { host, helpers } = harness();
+        expect(errorCode(await host.handle(discover, 'a'))).toBe('forbidden');
+        expect(helpers).toHaveLength(0);
     });
 
     test('is asked for the kind and the owner', async () => {

@@ -9,15 +9,30 @@ import { PROTOCOL_VERSION, valueOfCell, type DatabaseRequest, type DatabaseRespo
 A request names its own `id`, which its response repeats and a `cancel` points at:
 
 ```json
-{ "id": "r4", "method": "rows", "params": { "session": "s1", "schema": "main", "table": "users", "where": "id > 1", "orderBy": "email DESC", "offset": 0, "limit": 2, "cellLimit": 16 } }
+{
+    "id": "r4",
+    "method": "rows",
+    "params": { "session": "s1", "schema": "main", "table": "users", "where": "id > 1", "orderBy": "email DESC", "offset": 0, "limit": 2, "cellLimit": 16 }
+}
 ```
 
 ```json
-{ "id": "r4", "ok": true, "result": {
-    "columns": [{ "name": "id", "type": "INTEGER", "kind": "integer" }, { "name": "email", "type": "TEXT", "kind": "text" }],
-    "rows": [[3, "zoe@example.com"], [2, { "kind": "longText", "preview": "a.very.long.addr", "length": 41 }]],
-    "hasMore": true,
-    "elapsedMs": 0.4 } }
+{
+    "id": "r4",
+    "ok": true,
+    "result": {
+        "columns": [
+            { "name": "id", "type": "INTEGER", "kind": "integer" },
+            { "name": "email", "type": "TEXT", "kind": "text" }
+        ],
+        "rows": [
+            [3, "zoe@example.com"],
+            [2, { "kind": "longText", "preview": "a.very.long.addr", "length": 41 }]
+        ],
+        "hasMore": true,
+        "elapsedMs": 0.4
+    }
+}
 ```
 
 A failed request answers with `ok: false` and an error instead:
@@ -30,22 +45,28 @@ A failed request answers with `ok: false` and an error instead:
 
 ## Methods
 
-A session is what `open` returns. Every method but `open`, `test` and `cancel` names one in `session`.
+A session is what `open` returns. Every method but `open`, `test`, `sample`, `discover` and `cancel` names one in `session`.
 
-| Method | Params | Result |
-| --- | --- | --- |
-| `open` | `connection` | `{ session, server }` |
-| `close` | `session` | `null` |
-| `test` | `connection` | `{ server }` |
-| `schemas` | `session` | `{ schemas }` |
-| `tables` | `session`, `schema` | `{ tables }` |
-| `structure` | `session`, `schema`, `table` | `TableStructure` |
-| `rows` | `session`, `schema`, `table`, `offset`, `limit`, `where?`, `orderBy?`, `cellLimit?` | `RowsResult` |
-| `count` | `session`, `schema`, `table`, `where?` | `{ count }` |
-| `cell` | `session`, `schema`, `table`, `key`, `column` | `{ value }` |
-| `apply` | `session`, `schema`, `table`, `changes` | `{ affected }` |
-| `execute` | `session`, `sql`, `schema?`, `limit?`, `cellLimit?` | `{ results }` |
-| `cancel` | `request` | `{ cancelled }` |
+| Method        | Params                                                                              | Result                       |
+| ------------- | ----------------------------------------------------------------------------------- | ---------------------------- |
+| `open`        | `connection`                                                                        | `{ session, server }`        |
+| `close`       | `session`                                                                           | `null`                       |
+| `test`        | `connection`                                                                        | `{ server }`                 |
+| `schemas`     | `session`                                                                           | `{ schemas }`                |
+| `tables`      | `session`, `schema`                                                                 | `{ tables }`                 |
+| `structure`   | `session`, `schema`, `table`                                                        | `TableStructure`             |
+| `rows`        | `session`, `schema`, `table`, `offset`, `limit`, `where?`, `orderBy?`, `cellLimit?` | `RowsResult`                 |
+| `count`       | `session`, `schema`, `table`, `where?`                                              | `{ count }`                  |
+| `cell`        | `session`, `schema`, `table`, `key`, `column`                                       | `{ value }`                  |
+| `apply`       | `session`, `schema`, `table`, `changes`                                             | `{ affected }`               |
+| `execute`     | `session`, `sql`, `schema?`, `limit?`, `cellLimit?`                                 | `{ results, inTransaction }` |
+| `page`        | `session`, `sql`, `offset`, `limit`, `schema?`, `cellLimit?`                        | `RowsResult`                 |
+| `transaction` | `session`, `action`                                                                 | `{ active }`                 |
+| `export`      | `session`, `source`, `format`, `path`, `header?`, `tableName?`                      | `{ rows, bytes, elapsedMs }` |
+| `sample`      | `path`, `format`, `header`, `limit?`                                                | `{ columns, rows }`          |
+| `import`      | `session`, `schema`, `table`, `path`, `format`, `header`, `columns`                 | `{ rows, elapsedMs }`        |
+| `discover`    | `kind`, `context?`                                                                  | `{ containers }`             |
+| `cancel`      | `request`                                                                           | `{ cancelled }`              |
 
 - `open` connects with a `ConnectionConfig` and answers with the session id and a `ServerInfo`: the `flavor` (`sqlite`, `mysql` or `mariadb`) and the version the server reports. `test` opens a connection and closes it again, for a form that checks what a person filled in.
 - `schemas` lists `SchemaInfo`: a name and whether the server keeps it for itself (`system`). A schema is a database in MySQL terms. SQLite has `main` and one per attached file.
@@ -56,8 +77,40 @@ A session is what `open` returns. Every method but `open`, `test` and `cancel` n
 - `count` counts the rows that match `where`. It is a separate request because on a big table it is slow.
 - `cell` returns the whole `Value` of one cell, for a cell that a read cut off. The `key` is a `RowKey`: the columns of the row key and their values.
 - `apply` takes a list of `RowChange` values and runs them in one transaction, so all of them apply or none does. An `insert` has `values`, an `update` has a `key` and `values`, and a `delete` has a `key`. A value in an insert or an update is an `EditValue`: a `Value`, or `{ kind: 'default' }` to set the column to its default. An update or a delete that matches no row or more than one rolls everything back and fails with `conflict`, and `change` says which change it was, counted from zero.
-- `execute` runs one statement or several, separated by semicolons, and answers with one `StatementResult` per statement: `rows` for a result set, `done` for a statement that changed something (with `affected` and `lastInsertId`) or `error`. A failed statement ends the list, and the ones after it never ran. `limit` is the rows per result, at most 10000 and 500 when left out. `cellLimit` is 65536 when left out. `schema` switches to that schema first, and it stays selected for the session.
+- `execute` runs one statement or several, separated by semicolons, and answers with one `StatementResult` per statement: `rows` for a result set, `done` for a statement that changed something (with `affected` and `lastInsertId`) or `error`. A failed statement ends the list, and the ones after it never ran. `limit` is the rows per result, at most 10000 and 500 when left out. `cellLimit` is 65536 when left out. `schema` switches to that schema first, and it stays selected for the session. `inTransaction` says whether a transaction is open after the last statement, also one the SQL itself began or ended. MySQL sets `sql_select_limit` to the limit plus one for the script, so an explicit `LIMIT` in a statement overrides it.
 - `cancel` stops the request with that id. It answers whether the request was still running, and the request itself fails with `cancelled`.
+
+### Reading a result in pages
+
+`page` returns one page of a single statement that reads, so a console can read past its first page. The helper wraps the statement as `SELECT * FROM (<sql>) LIMIT ? OFFSET ?` (with an alias on MySQL) and reads one row more than `limit` for `hasMore`. The statement must start with `SELECT` or `WITH`, after comments, and a trailing semicolon is dropped. Anything else, several statements included, fails with `unsupported`. MySQL refuses a wrapped statement that has two columns of one name; SQLite renames them. `cellLimit` is 65536 when left out.
+
+### Transactions
+
+`transaction` takes `begin`, `commit` or `rollback` and answers whether a transaction is open afterwards. Beginning twice, or committing or rolling back with nothing open, changes nothing and answers the current state. While one is open, `execute` runs in it, and `apply` and `import` run as a savepoint inside it, since MySQL's `START TRANSACTION` would commit it. Closing a session, or ending the helper's input, rolls an open transaction back.
+
+`execute` reads the state of the connection after it ran, so SQL that begins or ends a transaction is noticed: SQLite asks whether it is in autocommit, and MySQL reads the server status of the last reply.
+
+### Files
+
+`export`, `sample` and `import` name a file by an absolute `path` on the machine of the helper. The host asks the app before it passes one on; see [Files](/database/guide/files) and [Security](/database/guide/security#files).
+
+- `export` streams every row of a source to a file. The `source` is a table (`{ kind: 'table', schema, table, where?, orderBy? }`) or one statement that reads (`{ kind: 'query', sql, schema? }`: `SELECT`, `WITH`, `SHOW`, `PRAGMA`, `EXPLAIN`, `DESCRIBE`, `VALUES` or `TABLE`). The `format` is a `FileFormat`: `csv`, `tsv`, `json` or `sql`. `header` (true when left out) adds the column names to CSV and TSV, and `tableName` names the table in the `INSERT` statements of `sql`. The helper writes to `<path>.partial` and renames it at the end, so a failure or a cancel leaves an existing file alone. Values are whole, without a cell limit.
+- `sample` reads the first `limit` lines (20 when left out) of a CSV or TSV file and answers the header, or `column1` to `columnN` when `header` is false, and the rows as strings. A short line is padded with empty strings. A byte order mark is skipped.
+- `import` reads a CSV or TSV file in batches and inserts them with multi-row `INSERT` statements, in one transaction. `columns` has one entry per field of a line: the column it goes into, or `null` to skip it. A field that is empty, or `\N`, becomes NULL. Every line needs as many fields as `columns` has entries. A failed insert is retried row by row to find the line, and the error reads `Line 42: <what the server said>` with its SQLSTATE. A line the file itself spoils is `file-failed`. The formats are described under [Files](/database/guide/files#exporting).
+
+### Discovering containers
+
+`discover` with `kind: 'docker'` lists the running containers that look like database servers: an image name that holds `mysql`, `mariadb` or `percona`, or a container that exposes 3306. `context` picks a Docker context other than the current one. Each entry is a `DockerContainer`.
+
+| Field                 |                                                                                                                                                                                                                                      |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `id`, `name`, `image` | What `docker ps` shows.                                                                                                                                                                                                              |
+| `engine`              | What the image or its ports suggest (`mysql` for MySQL and MariaDB), or `null`.                                                                                                                                                      |
+| `ports`               | The ports inside the container, each with the host port it is published on, or `null` when it is not.                                                                                                                                |
+| `project`, `service`  | From the Compose labels, or `null`.                                                                                                                                                                                                  |
+| `suggested`           | `user`, `password` and `database` from the container's environment: `MYSQL_USER`, `MYSQL_PASSWORD` and `MYSQL_DATABASE`, then the `MARIADB_` variants, falling back to `root` with `MYSQL_ROOT_PASSWORD` or `MARIADB_ROOT_PASSWORD`. |
+
+Without Docker, or with a daemon that is not running, `discover` fails with `unsupported` and what Docker said.
 
 ## Values
 
@@ -69,57 +122,71 @@ A `Cell` is what a result holds. It is a `Value` when it fits the cell limit, an
 
 ## Connections
 
-A `ConnectionConfig` is a `SqliteConnectionConfig` or a `MysqlConnectionConfig`. `Engine` is the union of their `engine` values.
+A `ConnectionConfig` is a `SqliteConnectionConfig` or a `MysqlConnectionConfig`. `Engine` is the union of their `engine` values. [Connections](/database/guide/connections) explains how each way of reaching a server works.
 
-| Field | SQLite | MySQL or MariaDB |
-| --- | --- | --- |
-| `engine` | `'sqlite'` | `'mysql'` |
-| `path` | An absolute path to the file | |
-| `create` | Create the file when it does not exist | |
-| `host` | | The server's host name |
-| `port` | | 3306 when left out |
-| `socket` | | A Unix socket, instead of `host` and `port` |
-| `user`, `password` | | The account |
-| `database` | | The schema a session starts in. Without it a session sees every schema and has none selected |
-| `tls` | | An `MysqlTlsMode` |
-| `readOnly` | Open the connection read only | Open the connection read only |
+| Field              | SQLite                                 | MySQL or MariaDB                                                                                                           |
+| ------------------ | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `engine`           | `'sqlite'`                             | `'mysql'`                                                                                                                  |
+| `path`             | An absolute path to the file           |                                                                                                                            |
+| `create`           | Create the file when it does not exist |                                                                                                                            |
+| `host`             |                                        | The server's host name. Through an SSH tunnel, as the SSH host sees it. A Docker tunnel ignores it, and may leave it empty |
+| `port`             |                                        | 3306 when left out                                                                                                         |
+| `socket`           |                                        | A Unix socket, instead of `host` and `port`. A tunnel overrides it                                                         |
+| `user`, `password` |                                        | The account                                                                                                                |
+| `database`         |                                        | The schema a session starts in. Without it a session sees every schema and has none selected                               |
+| `tls`              |                                        | An `MysqlTlsMode`                                                                                                          |
+| `tunnel`           |                                        | A `Tunnel`: an `SshTunnel` or a `DockerTunnel`                                                                             |
+| `readOnly`         | Open the connection read only          | Open the connection read only                                                                                              |
 
 A `MysqlTlsMode` is `disable`, `prefer`, `require` or `verify`. `prefer` falls back to plain text when the server offers no TLS. `verify` also checks the certificate against the host name.
+
+A tunnel belongs to the session: it comes up when the session opens and goes down when it closes, and when the helper exits. A tunnel through a listener binds `127.0.0.1` on a free port, and the connection `cancel` uses to kill a query goes through it as well.
+
+| Tunnel                            | Fields                                                                                                        |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `SshTunnel` (`kind: 'ssh'`)       | `host` (a host name or a `Host` of `~/.ssh/config`), `port?`, `user?`, `identityFile?`                        |
+| `DockerTunnel` (`kind: 'docker'`) | `container` (a name or id), `port?` (inside the container, 3306 when left out), `context?` (a Docker context) |
+
+A host or a container name that starts with a dash is refused with `invalid-request`, since `ssh` and `docker` would read it as an option.
 
 ## Error codes
 
 A `DatabaseError` has a `code` (a `DatabaseErrorCode`), a `message`, the five characters of the `sqlState` when the server sent them, and for `conflict` the `change` that failed. The client raises it as a [`DatabaseRequestError`](/database/api/client#errors).
 
-| Code | Sent by | Meaning |
-| --- | --- | --- |
-| `invalid-request` | Host, helper | The request does not have the shape of the protocol, or its id is already running. |
-| `unknown-session` | Host, helper | The session was closed, belonged to another owner, or belonged to a helper that has since exited. |
-| `connect-failed` | Helper | The server or file could not be reached or opened. |
-| `auth-failed` | Helper | The server turned the credentials down. |
-| `query-failed` | Helper | The server turned the SQL down. `sqlState` and `message` say why. |
-| `read-only` | Helper | A write on a connection opened read only. |
-| `no-row-key` | Helper | An update or a delete on a table without a primary key or a unique key over columns that cannot be null. |
-| `conflict` | Helper | An update or a delete matched no row or more than one, so the transaction was rolled back. |
-| `cancelled` | Helper, host, client | The request was cancelled. |
-| `unsupported` | Helper | The engine cannot do what was asked. |
-| `forbidden` | Host | The app's `authorize` turned the connection down. |
-| `helper-exited` | Host | The helper exited while the request was running. |
-| `helper-unavailable` | Host, client | The helper could not be started, did not become ready, speaks another protocol version or could not be written to. The client also uses it when the transport itself rejects. |
-| `internal` | Host, helper | Something the protocol does not describe went wrong. |
+| Code                 | Sent by              | Meaning                                                                                                                                                                       |
+| -------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `invalid-request`    | Host, helper         | The request does not have the shape of the protocol, or its id is already running.                                                                                            |
+| `unknown-session`    | Host, helper         | The session was closed, belonged to another owner, or belonged to a helper that has since exited.                                                                             |
+| `connect-failed`     | Helper               | The server or file could not be reached or opened.                                                                                                                            |
+| `auth-failed`        | Helper               | The server turned the credentials down.                                                                                                                                       |
+| `tunnel-failed`      | Helper               | The SSH or Docker tunnel did not come up. `message` holds what `ssh` or `docker` said.                                                                                        |
+| `query-failed`       | Helper               | The server turned the SQL down. `sqlState` and `message` say why.                                                                                                             |
+| `read-only`          | Helper               | A write on a connection opened read only, an import included.                                                                                                                 |
+| `no-row-key`         | Helper               | An update or a delete on a table without a primary key or a unique key over columns that cannot be null.                                                                      |
+| `conflict`           | Helper               | An update or a delete matched no row or more than one, so the transaction was rolled back.                                                                                    |
+| `cancelled`          | Helper, host, client | The request was cancelled.                                                                                                                                                    |
+| `unsupported`        | Helper               | The engine cannot do what was asked: a statement `page` cannot wrap, a `discover` without Docker.                                                                             |
+| `file-failed`        | Helper               | A file to export to or import from could not be read or written, or a line of it is broken.                                                                                   |
+| `forbidden`          | Host                 | The app's `authorize`, `authorizeFile` or `authorizeDiscovery` turned the connection, the file or the discovery down.                                                         |
+| `helper-exited`      | Host                 | The helper exited while the request was running.                                                                                                                              |
+| `helper-unavailable` | Host, client         | The helper could not be started, did not become ready, speaks another protocol version or could not be written to. The client also uses it when the transport itself rejects. |
+| `internal`           | Host, helper         | Something the protocol does not describe went wrong.                                                                                                                          |
 
 ## The helper's wire
 
 The host starts the helper with `spawnHelper(path)` and talks to it over its standard streams, as newline-delimited JSON. Anything else can speak the same wire, such as a test that starts the binary by hand.
 
-- The first line the helper writes on stdout is the ready line, before it reads a request: `{"event":"ready","protocol":1,"version":"0.1.0"}`. `protocol` is `PROTOCOL_VERSION` and `version` is the helper's own release (`HelperReady`).
+- The first line the helper writes on stdout is the ready line, before it reads a request: `{"event":"ready","protocol":2,"version":"0.1.0"}`. `protocol` is `PROTOCOL_VERSION` and `version` is the helper's own release (`HelperReady`).
 - The host reads the ready line and compares `protocol` with its own `PROTOCOL_VERSION`. A helper from another release is stopped, and the request that started it fails with `helper-unavailable`. The default wait for the line is 10 seconds (`readyTimeoutMs`).
-- After that, one request per line on stdin and one response per line on stdout. Requests run concurrently, so responses can come in another order. The `id` matches them. An empty line is ignored.
+- After that, one request per line on stdin and one response per line on stdout. A line that is not a valid request is answered with `invalid-request`, carrying the id when one could be read. An empty line is ignored.
+- Requests run concurrently, so responses can come in another order. The `id` matches them. Requests on one session run one after another, in the order they arrived, on the session's single connection. `open`, `test`, `sample`, `discover` and `cancel` need no session.
+- `cancel` points at the `id` of a request. SQLite interrupts the statement through its interrupt handle. MySQL runs `KILL QUERY` from a second connection with the same settings, through the same tunnel. The cancelled request answers `cancelled`, except an `apply` that already committed.
 - stderr holds logs for a person to read, one per line. It is not part of the protocol. `spawnHelper` passes each line to `onLog`.
 - A line can be megabytes: a page of rows with long cells is one line.
-- When stdin closes, the helper lets the requests in flight finish for up to two seconds, closes its sessions and exits.
+- When stdin closes, the helper lets the requests in flight finish for up to two seconds, cancels the queries still running, rolls back open transactions, closes its sessions and exits with code 0.
 
 The host does not pass the page's ids on. It sends each request to the helper under an id of its own (`h1`, `h2`, ...) and puts the page's id back on the response, so two owners can use the same ids.
 
 ## `PROTOCOL_VERSION`
 
-`PROTOCOL_VERSION` is a number, `1` today. It rises whenever a message changes shape, so a host refuses a helper from another release instead of misreading it. A release of the package ships a host and a helper that agree. If your app ships the helper binary on its own schedule, rebuild it when you update the package.
+`PROTOCOL_VERSION` is a number, `2` today. Version 2 added tunnels, `discover`, `page`, `transaction`, `export`, `sample` and `import`, the `inTransaction` field of `execute` and the error codes `tunnel-failed` and `file-failed`. It rises whenever a message changes shape, so a host refuses a helper from another release instead of misreading it. A release of the package ships a host and a helper that agree. If your app ships the helper binary on its own schedule, rebuild it when you update the package.

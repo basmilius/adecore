@@ -29,6 +29,8 @@ import {
     type TreeRow
 } from './tree.ts';
 import { useExplorerLoads } from './use-explorer-loads.ts';
+import { usePopupPress } from '../use-popup-press.ts';
+import { useStoredExpansion } from './use-stored-expansion.ts';
 
 const INDENT = 16;
 /* Where the chevron slot of the first level starts inside a row. */
@@ -57,8 +59,8 @@ export function DatabaseExplorer({ connections, value, defaultValue = null, onVa
     const loads = useExplorerLoads(connections);
     const [own, setOwn] = useState<ExplorerSelection | null>(defaultValue);
     const [request, setRequest] = useState<TableRequest | null>(null);
-    const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
-    const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
+    const { expanded, collapsed, setExpanded, setCollapsed } = useStoredExpansion(connections);
+    const pressedInPopup = usePopupPress();
     const [filter, setFilter] = useState('');
     const [activeKey, setActiveKey] = useState<string | null>(null);
     const rowElements = useRef(new Map<string, HTMLElement>());
@@ -174,6 +176,9 @@ export function DatabaseExplorer({ connections, value, defaultValue = null, onVa
     };
 
     const click = (row: TreeRow): void => {
+        if (pressedInPopup()) {
+            return;
+        }
         setActiveKey(row.key);
         pick(row);
         if (row.kind !== 'table' && isExpandable(row)) {

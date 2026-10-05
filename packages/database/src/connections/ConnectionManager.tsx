@@ -22,8 +22,8 @@ export interface ConnectionManagerProps {
     /* The id of the connection in the detail. Without it the manager keeps the selection itself; `null` is none. */
     selected?: string | null;
     onSelectedChange?(id: string | null): void;
-    /* Opens the app's file dialog for a SQLite path; without it the path is typed. */
-    onBrowse?(): Promise<string | null>;
+    /* Opens the app's file dialog for a database file or an SSH identity file; without it the path is typed. See `ConnectionForm`. */
+    onBrowse?(purpose: 'database' | 'identity'): Promise<string | null>;
     className?: string;
     ref?: Ref<HTMLDivElement>;
 }

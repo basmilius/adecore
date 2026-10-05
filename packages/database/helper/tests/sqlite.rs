@@ -357,7 +357,7 @@ async fn encodes_cells() {
     assert_eq!(row[6], json!({ "kind": "binary", "hex": "0102030405", "length": 8 }));
     assert_eq!(row[7], Value::Null);
     assert_eq!(row[8], "ok");
-    assert_eq!(result["results"][0]["columns"][0], json!({ "name": "safe", "type": "", "kind": "other" }));
+    assert_eq!(result["results"][0]["columns"][0], json!({ "name": "safe", "type": "", "kind": "integer" }));
 }
 
 #[tokio::test(flavor = "multi_thread")]

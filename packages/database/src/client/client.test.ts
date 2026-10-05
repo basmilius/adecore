@@ -117,6 +117,31 @@ describe('sessions', () => {
         expect(calls.at(-2)).toMatchObject({ method: 'open', params: { connection: { path: '/tmp/b.db' } } });
     });
 
+    test('keeps a session per channel, so a transaction on one does not reach the others', async () => {
+        const { transport, calls } = scripted();
+        const client = createDatabaseClient(transport);
+        const shared = client.session(connection);
+        const consoleSession = client.session(connection, 'console-1');
+        expect(consoleSession).not.toBe(shared);
+        expect(client.session(connection, 'console-1')).toBe(consoleSession);
+        expect(client.session(connection, '')).toBe(shared);
+
+        await Promise.all([shared.schemas(), consoleSession.schemas()]);
+        expect(calls.filter((call) => call.method === 'open')).toHaveLength(2);
+    });
+
+    test('replaces only the channel whose config changed, and closes the old one', async () => {
+        const { transport, methods } = scripted();
+        const client = createDatabaseClient(transport);
+        const shared = client.session(connection);
+        await shared.schemas();
+
+        const other = client.session({ ...connection, config: { engine: 'sqlite', path: '/tmp/b.db' } }, 'console-1');
+        expect(other).not.toBe(shared);
+        expect(client.session(connection)).toBe(shared);
+        expect(methods()).toEqual(['open', 'schemas']);
+    });
+
     test('compares configs deeply and counts an undefined option as absent', () => {
         const { transport } = scripted();
         const client = createDatabaseClient(transport);
@@ -544,6 +569,33 @@ describe('closing', () => {
         await closing;
         await opening.catch(() => {});
         expect(methods()).toContain('close');
+    });
+
+    test('disconnect closes every channel of the connection', async () => {
+        const { transport, calls } = scripted();
+        const client = createDatabaseClient(transport);
+        const shared = client.session(connection);
+        const consoleSession = client.session(connection, 'console-1');
+        const other = client.session({ ...connection, id: 'c2' });
+        await Promise.all([shared.schemas(), consoleSession.schemas(), other.schemas()]);
+
+        await client.disconnect('c1');
+        expect(calls.filter((call) => call.method === 'close')).toHaveLength(2);
+        expect(client.session(connection)).not.toBe(shared);
+        expect(client.session(connection, 'console-1')).not.toBe(consoleSession);
+        expect(client.session({ ...connection, id: 'c2' })).toBe(other);
+    });
+
+    test('tracks a session that opens again after it closed, so disconnect reaches it', async () => {
+        const { transport, calls } = scripted();
+        const client = createDatabaseClient(transport);
+        const session = client.session(connection, 'console-1');
+        await session.schemas();
+        await session.close();
+        await session.schemas();
+
+        await client.disconnect('c1');
+        expect(calls.filter((call) => call.method === 'close')).toHaveLength(2);
     });
 
     test('disconnect closes one connection and dispose closes all', async () => {

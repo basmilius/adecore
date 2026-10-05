@@ -285,7 +285,7 @@ export const createDatabaseHost = (options: DatabaseHostOptions): DatabaseHost =
             }
 
             case 'discover': {
-                if (options.authorizeDiscovery !== undefined && !(await permitted(() => options.authorizeDiscovery!(request.params.kind, owner)))) {
+                if (options.authorizeDiscovery === undefined || !(await permitted(() => options.authorizeDiscovery!(request.params.kind, owner)))) {
                     throw new Failure('forbidden', 'Discovery is not allowed.');
                 }
 

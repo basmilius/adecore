@@ -204,7 +204,7 @@ export function GridHeaderCell({
                         numeric && 'justify-end group-data-[selected]/header:pr-8'
                     )}
                 >
-                    {column.primaryKey === true && <Icon icon={Key} size={12} className="shrink-0 text-file-icon-yellow" />}
+                    {column.primaryKey === true && <Icon icon={Key} size={12} className="shrink-0 text-(--file-icon-yellow)" />}
                     <Tooltip label={<ColumnFacts column={column} />} side="bottom">
                         <span className="min-w-0 truncate">{column.name}</span>
                     </Tooltip>

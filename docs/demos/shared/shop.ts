@@ -1,6 +1,6 @@
 import { createDatabaseClient, type Connection } from '@adecore/database';
 import { fakeDatabaseTransport, type FakeDatabase } from '@adecore/database/testing';
-import type { ColumnInfo, ValueKind } from '@adecore/database/protocol';
+import type { ColumnInfo, DockerContainer, ValueKind } from '@adecore/database/protocol';
 
 const column = (name: string, type: string, kind: ValueKind, extra: Partial<ColumnInfo> = {}): ColumnInfo => ({
     name,
@@ -141,10 +141,47 @@ export const SHOP_READ_ONLY: Connection = {
     config: { engine: 'sqlite', path: '/Users/demo/shop.sqlite', readOnly: true }
 };
 
+/* A connection set to reach its server through a Docker container nobody has picked yet, for the form's Docker mode. */
+export const SHOP_DOCKER: Connection = {
+    id: 'local',
+    name: 'Local database',
+    config: { engine: 'mysql', host: '127.0.0.1', user: '', tunnel: { kind: 'docker', container: '', port: 3306 } }
+};
+
+/* What `discover` lists in the demos: a Compose service that publishes its port, and a container that publishes nothing. */
+export const SHOP_CONTAINERS: readonly DockerContainer[] = [
+    {
+        id: '4f1c0e8a2b7d',
+        name: 'shop-db-1',
+        image: 'mariadb:11',
+        engine: 'mysql',
+        ports: [{ container: 3306, host: 33061 }],
+        project: 'shop',
+        service: 'db',
+        suggested: { user: 'shop', password: 'shop', database: 'shop' }
+    },
+    {
+        id: '9b3d51c7e402',
+        name: 'legacy-mysql',
+        image: 'mysql:8.4',
+        engine: 'mysql',
+        ports: [{ container: 3306, host: null }],
+        project: null,
+        service: null,
+        suggested: { user: 'root', password: 'secret' }
+    }
+];
+
 export const createShopClient = () =>
     createDatabaseClient(
         fakeDatabaseTransport({
             latencyMs: 120,
-            databases: { '/Users/demo/shop.sqlite': shopDatabase('main'), 'staging.example.com': shopDatabase('shop') }
+            containers: SHOP_CONTAINERS,
+            // A connection through Docker keeps its host, `127.0.0.1` by default, and the fake finds a server by host.
+            databases: {
+                '/Users/demo/shop.sqlite': shopDatabase('main'),
+                'staging.example.com': shopDatabase('shop'),
+                '127.0.0.1': shopDatabase('shop')
+            }
         })
     );

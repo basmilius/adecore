@@ -23,16 +23,16 @@ A tab with nothing in it says that: a view has no indexes, and a table can have 
 
 ## Loading
 
-The view asks the client for the structure when it mounts and again when the connection, the schema or the table changes. A spinner shows while it loads. If the request fails, a banner shows the message with a Try again button. An answer to an earlier request never replaces the current one.
+The view asks the client for the structure when it mounts and again when the connection, the schema or the table changes. It also loads again on a [schema change](/database/api/client#schema-changes) for its connection and schema, or one that names no schema, and keeps the old structure on screen until the new one arrives. A spinner shows while it first loads. If the request fails, a banner shows the message with a Try again button. An answer to an earlier request never replaces the current one.
 
 ## Props
 
-| Prop | Type | |
-| --- | --- | --- |
-| `connection` | `Connection` | The connection the table is in. |
-| `schema` | `string` | The schema of the table. |
-| `table` | `string` | The table or view. |
-| `className` | `string` | The view fills its parent; this sizes it. |
-| `ref` | `Ref<HTMLDivElement>` | |
+| Prop         | Type                  |                                           |
+| ------------ | --------------------- | ----------------------------------------- |
+| `connection` | `Connection`          | The connection the table is in.           |
+| `schema`     | `string`              | The schema of the table.                  |
+| `table`      | `string`              | The table or view.                        |
+| `className`  | `string`              | The view fills its parent; this sizes it. |
+| `ref`        | `Ref<HTMLDivElement>` |                                           |
 
-`connection`, `schema` and `table` are required. `StructureViewProps` is an exported type.
+`connection`, `schema` and `table` are required. `StructureViewProps` is an exported type. The view needs a [`DatabaseProvider`](/database/guide/getting-started#databaseprovider) above it.

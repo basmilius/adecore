@@ -52,7 +52,7 @@ describe('DataGrid', () => {
     test('draws a gold key on a primary key column', () => {
         const markup = render(<DataGrid label="Users" columns={columns} rows={rows} />);
         expect(markup.match(/lucide-key /g)).toHaveLength(1);
-        expect(markup).toMatch(/lucide-key [^"]*text-file-icon-yellow/);
+        expect(markup).toMatch(/lucide-key [^"]*text-\(--file-icon-yellow\)/);
     });
 
     test('draws the header and the gutter on the surface of the cells, with a soft line between columns', () => {

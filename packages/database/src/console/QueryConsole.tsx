@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type Ref } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type Ref } from 'react';
 import clsx from 'clsx';
 import { Check, CircleAlert, History, Play, Square } from 'lucide-react';
 import type { TFunction } from 'i18next';
@@ -33,6 +33,8 @@ export interface QueryConsoleProps {
     onValueChange?(sql: string): void;
     /* Opens the history list beside the editor from the start. */
     defaultHistoryOpen?: boolean;
+    /* Puts the caret in the editor when the console mounts, for one a person just opened. */
+    autoFocus?: boolean;
     className?: string;
     ref?: Ref<HTMLDivElement>;
 }
@@ -77,12 +79,30 @@ const ranText = (ran: Ran, t: TFunction<'database'>): string => {
 };
 
 /* Type SQL, run it, and read what each statement did. Several statements give a tab each. */
-export function QueryConsole({ connection, schema, value, defaultValue = '', onValueChange, defaultHistoryOpen = false, className, ref }: QueryConsoleProps) {
+export function QueryConsole({
+    connection,
+    schema,
+    value,
+    defaultValue = '',
+    onValueChange,
+    defaultHistoryOpen = false,
+    autoFocus = false,
+    className,
+    ref
+}: QueryConsoleProps) {
     const { t } = useTranslation('database');
     const client = useDatabaseClient();
     const files = useDatabaseFiles();
-    const session = useMemo(() => client.session(connection), [client, connection]);
+    // A channel of its own, so a transaction a person starts here stays out of the table views and the designer.
+    const channel = `console:${useId()}`;
+    const session = useMemo(() => client.session(connection, channel), [client, connection, channel]);
     const engine = connection.config.engine;
+    useEffect(
+        () => () => {
+            void session.close();
+        },
+        [session]
+    );
     const history = useConsoleHistory(connection.id);
     const running = useRef<AbortController | null>(null);
     const generation = useRef(0);
@@ -116,6 +136,14 @@ export function QueryConsole({ connection, schema, value, defaultValue = '', onV
     }
 
     useEffect(() => () => running.current?.abort(), []);
+
+    useEffect(() => {
+        if (autoFocus) {
+            editor.current?.focus();
+        }
+        // Only on mount: a console that later becomes active keeps the focus where the person put it.
+        // eslint-disable-next-line react/exhaustive-deps
+    }, []);
 
     useEffect(() => {
         if (engine !== 'mysql') {

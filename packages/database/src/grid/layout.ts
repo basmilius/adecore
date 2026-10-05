@@ -71,8 +71,8 @@ export const clampColumnWidth = (width: number): number => Math.max(MIN_COLUMN_W
 /* From the longest text among the header and the first rows. `keyed` makes room for the key icon in front of the name. */
 export const estimateColumnWidth = (header: string, samples: readonly string[], keyed: boolean): number => {
     const body = samples.slice(0, SAMPLE_ROWS).reduce((longest, text) => Math.max(longest, text.length), 0);
-    const named = header.length + (keyed ? KEY_ICON_ROOM / CHARACTER_WIDTH : 0);
-    return clampColumnWidth(Math.max(body, named) * CHARACTER_WIDTH + CELL_PADDING);
+    const named = header.length * CHARACTER_WIDTH + (keyed ? KEY_ICON_ROOM : 0) + SORT_ROOM;
+    return clampColumnWidth(Math.max(body * CHARACTER_WIDTH, named) + CELL_PADDING);
 };
 
 /* Wide enough for the header and every text of the column, up to `MAX_FIT_WIDTH`. */

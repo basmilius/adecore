@@ -22,7 +22,10 @@ export interface DatabaseHostOptions {
      * `import` and `sample`. Every file is refused when left out, since the page names the path.
      */
     authorizeFile?(path: string, access: 'read' | 'write', owner: string): boolean | Promise<boolean>;
-    /* The app's say over `discover`. Allowed when left out. */
+    /*
+     * The app's say over `discover`, which hands container credentials to the page. Refused when left out,
+     * as with `authorizeFile`.
+     */
     authorizeDiscovery?(kind: 'docker', owner: string): boolean | Promise<boolean>;
     /* How long to wait for the helper's `ready` line. 10000 when left out. */
     readyTimeoutMs?: number;

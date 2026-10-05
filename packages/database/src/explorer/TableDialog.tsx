@@ -20,7 +20,7 @@ export interface TableDialogProps {
     onDone(request: TableRequest, to: string | undefined): void;
 }
 
-/* The question behind Rename, Truncate and Drop: it runs the statement, keeps a failure in the dialog and tells the client the shape changed. */
+/* The question behind Rename, Truncate and Drop: it runs the statement, keeps a failure in the dialog and sees to it that the listeners hear the shape changed. */
 export function TableDialog({ request, onClose, onDone }: TableDialogProps) {
     const { t } = useTranslation('database');
     const client = useDatabaseClient();
@@ -35,7 +35,10 @@ export function TableDialog({ request, onClose, onDone }: TableDialogProps) {
         if (failed !== undefined && failed.kind === 'error') {
             throw new Error(failed.error.message);
         }
-        client.notifySchemaChange({ connectionId: ref.connectionId, schema: ref.schema });
+        // The client tells its listeners after a `RENAME`, a `DROP` and a `TRUNCATE`, but not after a SQLite emptying, which is a `DELETE FROM`.
+        if (change === 'truncate' && dialect.engine === 'sqlite') {
+            client.notifySchemaChange({ connectionId: ref.connectionId, schema: ref.schema });
+        }
         onDone(request, to);
     };
 
