@@ -1,12 +1,24 @@
-import { Children, createContext, isValidElement, useContext, useLayoutEffect, useRef, useState, type ComponentProps, type ReactElement } from 'react';
+import {
+    Children,
+    createContext,
+    isValidElement,
+    useContext,
+    useLayoutEffect,
+    useRef,
+    useState,
+    type ComponentProps,
+    type ReactElement,
+    type ReactNode
+} from 'react';
 import clsx from 'clsx';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Tabs as BaseTabs } from '@base-ui-components/react/tabs';
 import { useRender } from '@base-ui-components/react/use-render';
 import { withClass } from '../class-name.ts';
 import { formatNumber } from '../format/number.ts';
 import { Icon } from '../Icon.tsx';
+import { IconButton } from '../IconButton.tsx';
 import { MenuItem, MenuPopup, MenuRoot, MenuTrigger } from '../menu/parts.tsx';
 import { shownTabs } from './overflow.ts';
 
@@ -53,6 +65,8 @@ export function TabsRoot({ value, defaultValue = 0, onValueChange, ...props }: T
 export type TabsListProps = Omit<ComponentProps<typeof BaseTabs.List>, 'className'> & {
     /* On the strip, which runs the width of the pane; padding here insets the tabs from its edges. */
     className?: string;
+    /* Drawn after the tabs, such as a button that adds one. It keeps its own width: the tabs fit in what is left. */
+    end?: ReactNode;
 };
 
 const sameIndices = (left: readonly number[] | null, right: readonly number[]): boolean =>
@@ -63,11 +77,12 @@ const sameIndices = (left: readonly number[] | null, right: readonly number[]): 
  * in a row nobody sees, so the strip knows what fits before it draws. The tabs are the direct children,
  * since the menu repeats what a tab holds.
  */
-export function TabsList({ className, children, ...props }: TabsListProps) {
+export function TabsList({ className, children, end, ...props }: TabsListProps) {
     const { t } = useTranslation('ui');
     const { value, select } = useContext(SelectionContext);
     const strip = useRef<HTMLDivElement>(null);
     const measure = useRef<HTMLDivElement>(null);
+    const tail = useRef<HTMLDivElement>(null);
     // Null until the first measure, which runs before the first paint.
     const [shown, setShown] = useState<number[] | null>(null);
     const tabs = Children.toArray(children).filter(
@@ -83,7 +98,9 @@ export function TabsList({ className, children, ...props }: TabsListProps) {
         }
         const fit = (): void => {
             const style = getComputedStyle(host);
-            const room = host.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+            const gap = parseFloat(style.columnGap) || 0;
+            const taken = tail.current === null ? 0 : tail.current.getBoundingClientRect().width + gap;
+            const room = host.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) - taken;
             const cells = [...row.children].map((cell) => cell.getBoundingClientRect().width);
             const more = cells.pop() ?? 0;
             const next = shownTabs(cells, room, parseFloat(getComputedStyle(row).columnGap) || 0, more, picked);
@@ -93,6 +110,9 @@ export function TabsList({ className, children, ...props }: TabsListProps) {
         const observer = new ResizeObserver(fit);
         observer.observe(host);
         observer.observe(row);
+        if (tail.current !== null) {
+            observer.observe(tail.current);
+        }
         return () => observer.disconnect();
     });
 
@@ -121,10 +141,16 @@ export function TabsList({ className, children, ...props }: TabsListProps) {
                     </MenuPopup>
                 </MenuRoot>
             )}
+            {end !== undefined && end !== null && (
+                <div ref={tail} className={clsx('flex shrink-0 items-center gap-1', hidden.length === 0 && 'ml-auto')}>
+                    {end}
+                </div>
+            )}
             <div ref={measure} aria-hidden inert className="pointer-events-none invisible absolute top-0 left-0 flex gap-4">
                 {tabs.map((tab) => (
                     <span key={tab.key} className={TAB}>
                         {tab.props.children}
+                        {tab.props.onClose !== undefined && <span className="size-5 shrink-0" />}
                     </span>
                 ))}
                 <span className={MORE}>
@@ -136,8 +162,74 @@ export function TabsList({ className, children, ...props }: TabsListProps) {
     );
 }
 
-export function TabsTab({ className, ...props }: ComponentProps<typeof BaseTabs.Tab>) {
-    return <BaseTabs.Tab className={withClass(TAB, className)} {...props} />;
+type TabProps = ComponentProps<typeof BaseTabs.Tab>;
+
+export type TabsTabProps = TabProps & {
+    /* Makes the tab closable: a close button in it, a middle click, and Delete or Backspace while the tab has focus. */
+    onClose?(): void;
+};
+
+/* The close button stays out of the tab order, so a closable tab is still one stop; the keys close it from the tab itself. */
+export function TabsTab({ className, onClose, children, ...props }: TabsTabProps) {
+    const { t } = useTranslation('ui');
+
+    if (onClose === undefined) {
+        return (
+            <BaseTabs.Tab className={withClass(TAB, className)} {...props}>
+                {children}
+            </BaseTabs.Tab>
+        );
+    }
+
+    const { onKeyDown, onAuxClick, onMouseDown, ...rest } = props;
+
+    const handleKeyDown = (e: Parameters<NonNullable<TabProps['onKeyDown']>>[0]): void => {
+        onKeyDown?.(e);
+        if (!e.defaultPrevented && e.target === e.currentTarget && (e.key === 'Delete' || e.key === 'Backspace')) {
+            e.preventDefault();
+            onClose();
+        }
+    };
+
+    // A middle press starts autoscroll on some platforms; the release is what closes.
+    const handleMouseDown = (e: Parameters<NonNullable<TabProps['onAuxClick']>>[0]): void => {
+        onMouseDown?.(e);
+        if (e.button === 1) {
+            e.preventDefault();
+        }
+    };
+
+    const handleAuxClick = (e: Parameters<NonNullable<TabProps['onAuxClick']>>[0]): void => {
+        onAuxClick?.(e);
+        if (!e.defaultPrevented && e.button === 1) {
+            e.preventDefault();
+            onClose();
+        }
+    };
+
+    return (
+        <BaseTabs.Tab
+            nativeButton={false}
+            render={<div />}
+            className={withClass(TAB, className)}
+            onKeyDown={handleKeyDown}
+            onMouseDown={handleMouseDown}
+            onAuxClick={handleAuxClick}
+            {...rest}
+        >
+            {children}
+            <IconButton
+                icon={X}
+                size="2xs"
+                label={t('tabs.close')}
+                tabIndex={-1}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onClose();
+                }}
+            />
+        </BaseTabs.Tab>
+    );
 }
 
 export const TabsPanel = BaseTabs.Panel;

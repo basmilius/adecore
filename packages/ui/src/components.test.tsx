@@ -502,6 +502,22 @@ describe('tabs', () => {
         expect(strip(1234)).toContain('>1.234</span>');
         expect(strip(0)).not.toContain('tabular-nums');
     });
+
+    test('keep a closable tab one stop, with its close button out of the tab order', () => {
+        const markup = render(
+            <Tabs.Root value="one">
+                <Tabs.List aria-label="Views" end={<span>after</span>}>
+                    <Tabs.Tab value="one" onClose={() => {}}>
+                        One
+                    </Tabs.Tab>
+                    <Tabs.Tab value="two">Two</Tabs.Tab>
+                </Tabs.List>
+            </Tabs.Root>
+        );
+        expect(markup.match(/aria-label="Close tab"/g)).toHaveLength(1);
+        expect(markup).toContain('tabindex="-1"');
+        expect(markup).toContain('>after</span>');
+    });
 });
 
 describe('a stepper', () => {

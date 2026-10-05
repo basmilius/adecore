@@ -178,6 +178,7 @@ exports[`the public API . exports these names 1`] = `
   "type TabsCountProps",
   "type TabsListProps",
   "type TabsRootProps",
+  "type TabsTabProps",
   "type TabsValue",
   "type TextAreaProps",
   "type TextMenuProps",

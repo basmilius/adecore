@@ -22,13 +22,13 @@ import { Tabs } from '@adecore/ui';
 
 ## Parts
 
-| Part | What it is |
-| --- | --- |
-| `Tabs.Root` | Holds the picked tab: `value` and `onValueChange(value)`, or `defaultValue`. |
-| `Tabs.List` | The strip, with a border along its bottom and a menu for the tabs that do not fit. Name it with `aria-label`. |
-| `Tabs.Tab` | One tab, with its `value`. `disabled` keeps it out of reach. |
-| `Tabs.Count` | The number after a label, written the way the region writes numbers. Nothing at zero. |
-| `Tabs.Panel` | The view of one tab, shown while that tab is picked. |
+| Part         | What it is                                                                                                                                        |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Tabs.Root`  | Holds the picked tab: `value` and `onValueChange(value)`, or `defaultValue`.                                                                      |
+| `Tabs.List`  | The strip, with a border along its bottom and a menu for the tabs that do not fit. Name it with `aria-label`. `end` holds actions after the tabs. |
+| `Tabs.Tab`   | One tab, with its `value`. `disabled` keeps it out of reach. `onClose` makes it closable.                                                         |
+| `Tabs.Count` | The number after a label, written the way the region writes numbers. Nothing at zero.                                                             |
+| `Tabs.Panel` | The view of one tab, shown while that tab is picked.                                                                                              |
 
 ## The strip
 
@@ -41,6 +41,14 @@ The strip never scrolls or wraps. It shows the tabs that fit from the start, and
 <Demo src="layout/tabs-overflow" />
 
 The strip measures its tabs before it draws, so nothing jumps on the first paint. It reads what a tab holds from its props, so the tabs are the direct children of `Tabs.List`, or an array of them.
+
+## Closable tabs
+
+`onClose` on `Tabs.Tab` draws a close button in the tab and closes it on a middle click and on Delete or Backspace while the tab has focus. `onClose` only asks: you remove the tab from the list you render, and pick the next one when it was the picked tab. The close button stays out of the tab order, so a closable tab is still one stop for the arrow keys. A tab in the "More" menu has no close button.
+
+`end` on `Tabs.List` holds actions after the tabs, such as a button that adds one. It keeps its own width, and the tabs fit in what is left.
+
+<Demo src="layout/tabs-closable" />
 
 ## Panels
 
@@ -56,4 +64,4 @@ A tab takes an [`Icon`](/ui/display/icon) before its label, at 14 pixels.
 
 The arrow keys move between tabs and wrap around at the ends, Home and End go to the first and the last, and Enter or Space picks the focused one. With `activateOnFocus` on `Tabs.List`, landing on a tab picks it. Tab moves on to the panel. A disabled tab is skipped.
 
-`TabsRootProps`, `TabsListProps`, `TabsCountProps` and `TabsValue` are exported types.
+`TabsRootProps`, `TabsListProps`, `TabsTabProps`, `TabsCountProps` and `TabsValue` are exported types.
