@@ -28,6 +28,7 @@ export { DatabaseExplorer, type DatabaseExplorerProps } from './explorer/Databas
 export { TableDesigner, type TableDesignerProps } from './designer/TableDesigner.tsx';
 export { DatabaseProvider, type DatabaseProviderProps } from './DatabaseProvider.tsx';
 export { useDatabaseClient } from './client-context.ts';
+export type { NumberNotation } from './grid/display.ts';
 export { QueryConsole, type QueryConsoleProps } from './console/QueryConsole.tsx';
 export { StructureView, type StructureViewProps } from './structure/StructureView.tsx';
 export { TableView, type TableViewProps } from './table/TableView.tsx';

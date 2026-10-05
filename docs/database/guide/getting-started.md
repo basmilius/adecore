@@ -256,7 +256,7 @@ The views take a `Connection`, which is `{ id, name, config }`. The app keeps th
 
 ### DatabaseProvider
 
-`DatabaseProviderProps` has the `client`, the `children` and three hooks into the app. All three are optional, and a view leaves out what it cannot do without them.
+`DatabaseProviderProps` has the `client`, the `children`, three hooks into the app and a setting for numbers. All of them but the client are optional, and a view leaves out what it cannot do without them.
 
 | Prop       | Type                               |                                                                                                                                                                                                                                 |
 | ---------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -264,6 +264,7 @@ The views take a `Connection`, which is `{ id, name, config }`. The app keeps th
 | `onAction` | `(action: DatabaseAction) => void` | Where a table, a console or the designer that a view asks for opens. Without it the explorer offers no Open and no New console, and the table view no Go to referenced row. See [Opening tables as tabs](/database/guide/tabs). |
 | `storage`  | `DatabaseStorage`                  | Where the views keep what a person set, across a remount.                                                                                                                                                                       |
 | `files`    | `DatabaseFiles`                    | The app's file dialogs. Without them there is no export and no import. See [Files](/database/guide/files).                                                                                                                      |
+| `numberNotation` | `'database' \| 'region'`     | How cells show numbers; `'database'` unless set. See [Number notation](#number-notation).                                                                                                                                         |
 
 `DatabaseStorage` is `get(key)`, which returns a string or `null`, and `set(key, value)`, where `null` removes the key. Both are synchronous, like `localStorage`, so `localStorage` itself fits behind it:
 
@@ -275,6 +276,18 @@ const storage: DatabaseStorage = {
 ```
 
 The views keep four things in it, each under a key of its own: the open nodes of the explorer (`database:explorer:<connection id>`), the layout of a table (`database:table:<connection id>:<schema>.<table>`), the history of a console (`database:console-history:<connection id>`) and the open tabs of a [workbench](/database/views/workbench) (`database:workbench`). The values are JSON the package reads back and ignores when it does not recognize them. Without `storage` the views start the same every time.
+
+### Number notation
+
+`numberNotation` decides how a cell shows an integer, a decimal or a float. The default, `'database'`, draws it as the server wrote it, because a database tool is read for the exact value: `12900.50` stays `12900.50`. `'region'` draws it in the number format of the [format source](/ui/formatting/) you gave `UIProvider`, with every digit kept, so a big integer or a decimal with trailing zeros does not round: `12.900,50` in a Dutch region.
+
+The setting changes how numbers are drawn and nothing else. Editing, the value panel's editor, copying (Cmd or Ctrl and C, and Copy as), filters made from a cell, export and everything sent to the server keep the server's text, so what a person copies is what the database holds. The row numbers, counts, sums and averages in the views follow the region either way, since they are the view's own numbers and not the database's. The type is exported as `NumberNotation`.
+
+```tsx
+<DatabaseProvider client={client} numberNotation="region">
+    <App />
+</DatabaseProvider>
+```
 
 ## Tailwind
 

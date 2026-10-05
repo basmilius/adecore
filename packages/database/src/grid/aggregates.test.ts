@@ -1,6 +1,8 @@
-import { describe, expect, test } from 'bun:test';
+import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
+import { setFormatSource, type FormatSource } from '@adecore/ui/format';
+import { fakeFormatSource } from '@adecore/ui/testing';
 import { aggregateBlock, blockSize } from './aggregates.ts';
-import type { Shown } from './display.ts';
+import { numeralText, type Shown } from './display.ts';
 
 const rows: Shown[][] = [
     ['a', 10, '2.50'],
@@ -50,5 +52,32 @@ describe('aggregateBlock', () => {
 
     test('stops at the last row it has', () => {
         expect(aggregateBlock(rows, kinds, { top: 3, bottom: 9, columns: [1] }).count).toBe(1);
+    });
+});
+
+describe('the extremes of a block in each notation', () => {
+    const source = fakeFormatSource();
+    let previous: FormatSource;
+
+    beforeAll(() => {
+        source.set({ region: 'nl-NL' });
+        previous = setFormatSource(source);
+    });
+
+    afterAll(() => {
+        setFormatSource(previous);
+    });
+
+    const extremes = (notation: 'database' | 'region'): [string, string] => {
+        const numeric = aggregateBlock([['1200.50'], ['9007199254740993'], ['-3.250']], ['decimal'], { top: 0, bottom: 2, columns: [0] }).numeric;
+        return [numeralText(numeric!.minimumText, notation), numeralText(numeric!.maximumText, notation)];
+    };
+
+    test('the database notation shows them as the cells wrote them', () => {
+        expect(extremes('database')).toEqual(['-3.250', '9007199254740993']);
+    });
+
+    test('the region notation keeps every digit of them', () => {
+        expect(extremes('region')).toEqual(['-3,250', '9.007.199.254.740.993']);
     });
 });

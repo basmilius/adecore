@@ -586,18 +586,18 @@ function TableBody({ connection, schema, table, defaultWhere, defaultOrderBy, on
             <>
                 <ContextMenu.Item disabled={!editable} onClick={() => cloneRows(context.rowKeys)}>
                     <Icon icon={CopyPlus} size={14} />
-                    {t('table.menu.duplicateRows', { count })}
+                    {t('table.menu.duplicateRows', { count, formatted: formatNumber(count) })}
                     <Kbd shortcut={DUPLICATE_ROWS} />
                 </ContextMenu.Item>
                 {canRevert(context.rowKeys) && (
                     <ContextMenu.Item onClick={() => revertRowKeys(context.rowKeys)}>
                         <Icon icon={Undo2} size={14} />
-                        {t('table.menu.revertRows', { count })}
+                        {t('table.menu.revertRows', { count, formatted: formatNumber(count) })}
                     </ContextMenu.Item>
                 )}
                 <ContextMenu.Item className="text-status-error" disabled={!editable} onClick={() => deleteRows(context.rowKeys)}>
                     <Icon icon={Trash2} size={14} />
-                    {t('table.menu.deleteRows', { count })}
+                    {t('table.menu.deleteRows', { count, formatted: formatNumber(count) })}
                     <Kbd shortcut={KEY_SHORTCUTS.backspace} />
                 </ContextMenu.Item>
             </>
@@ -609,7 +609,7 @@ function TableBody({ connection, schema, table, defaultWhere, defaultOrderBy, on
         if (error.change === undefined || change === undefined || change.kind === 'insert') {
             return error.message;
         }
-        return t('table.conflict', { number: error.change + 1, row: describeKey(change.key) });
+        return t('table.conflict', { number: formatNumber(error.change + 1), row: describeKey(change.key) });
     };
 
     const submit = async (): Promise<void> => {

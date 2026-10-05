@@ -3,6 +3,8 @@ import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import i18next from 'i18next';
 import { UIProvider } from '@adecore/ui';
+import { setFormatSource } from '@adecore/ui/format';
+import { fakeFormatSource } from '@adecore/ui/testing';
 import { DatabaseProvider } from '../DatabaseProvider.tsx';
 import type { DatabaseClient } from '../client/types.ts';
 import type { Aggregates } from '../grid/aggregates.ts';
@@ -134,6 +136,32 @@ describe('TableStatusBar selection', () => {
 
     test('names several columns by their number', () => {
         expect(render(statusBar(0, 20, false, null, { columns: ['a', 'b', 'c'], aggregates: numeric }))).toContain('3 columns');
+    });
+
+    test('writes the extremes as the cells wrote them, or in the region notation, and rounds the computed figures', () => {
+        const source = fakeFormatSource();
+        source.set({ region: 'nl-NL' });
+        const previous = setFormatSource(source);
+        const exact: Aggregates = {
+            count: 3,
+            numeric: { count: 3, sum: 12901.255, average: 4300.4183, minimum: 0.5, maximum: 12900.5, minimumText: '0.50', maximumText: '12900.50' }
+        };
+        const renderIn = (numberNotation: 'database' | 'region'): string =>
+            renderToStaticMarkup(
+                <UIProvider i18n={i18n} formatSource={source}>
+                    <DatabaseProvider client={{} as DatabaseClient} numberNotation={numberNotation}>
+                        {statusBar(0, 3, false, null, { columns: ['price'], aggregates: exact })}
+                    </DatabaseProvider>
+                </UIProvider>
+            );
+        const database = renderIn('database');
+        const region = renderIn('region');
+        setFormatSource(previous);
+        expect(database).toContain('<span class="text-text">12.901,26</span>');
+        expect(database).toContain('<span class="text-text">0.50</span>');
+        expect(database).toContain('<span class="text-text">12900.50</span>');
+        expect(region).toContain('<span class="text-text">0,50</span>');
+        expect(region).toContain('<span class="text-text">12.900,50</span>');
     });
 
     test('shows only the count when the selection holds no numbers', () => {

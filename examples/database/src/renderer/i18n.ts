@@ -7,6 +7,14 @@ const resources = {
         app: {
             title: 'adecore database',
             layout: { label: 'Layout', workbench: 'Workbench', pane: 'Side pane' },
+            format: {
+                region: 'Number format',
+                language: 'Same as language',
+                system: 'System',
+                notation: 'Numbers in cells',
+                database: 'Database notation',
+                regional: 'Regional'
+            },
             sidebar: { title: 'Databases', manage: 'Manage connections' },
             connections: { title: 'Connections', close: 'Close' },
             tabs: {
@@ -35,6 +43,14 @@ const resources = {
         app: {
             title: 'adecore database',
             layout: { label: 'Indeling', workbench: 'Werkbank', pane: 'Zijpaneel' },
+            format: {
+                region: 'Getalnotatie',
+                language: 'Zelfde als taal',
+                system: 'Systeem',
+                notation: 'Getallen in cellen',
+                database: 'Databasenotatie',
+                regional: 'Regionaal'
+            },
             sidebar: { title: 'Databases', manage: 'Verbindingen beheren' },
             connections: { title: 'Verbindingen', close: 'Sluiten' },
             tabs: {

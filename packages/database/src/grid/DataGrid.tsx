@@ -26,7 +26,7 @@ import { NO_COLUMN_SELECTION, selectColumn, shownSelection, type ColumnSelection
 import { displayOrder, hideColumn, pinnedCount, showAllColumns, togglePin, type ColumnView } from './column-view.ts';
 import { COPY_FORMATS, formatCopy, type CopyFormat, type CopyInput } from './copy-formats.ts';
 import { CopyAsMenu } from './CopyAsMenu.tsx';
-import { cellView, copyTextOf, isPreview, type CellView } from './display.ts';
+import { cellView, copyTextOf, isPreview, type CellView, type NumberNotation } from './display.ts';
 import { draftOf, parseDraft } from './edit-value.ts';
 import { parseEnumType } from './enum-type.ts';
 import { EnumPicker } from './EnumPicker.tsx';
@@ -49,6 +49,7 @@ import { moveFocus, type CellPosition, type NavigationKey } from './navigation.t
 import { selectRow } from './row-selection.ts';
 import { sortOnly, sortStateOf, type GridSort } from './sort.ts';
 import type { ColumnRequest, FocusedCell, GridColumn, GridMenuContext, GridRow } from './types.ts';
+import { useNumberNotation } from '../client-context.ts';
 import { usePopupPress } from '../use-popup-press.ts';
 
 export interface DataGridProps {
@@ -116,6 +117,7 @@ interface MenuTarget {
 interface Layout {
     signature: string;
     rows: readonly GridRow[];
+    notation: NumberNotation;
     estimated: readonly number[];
     resized: Readonly<Record<number, number>>;
     view: ColumnView;
@@ -128,11 +130,11 @@ const signatureOf = (columns: readonly GridColumn[]): string => columns.map((col
 
 const textOf = (view: CellView): string => (view.suffix === undefined ? view.text : `${view.text} ${view.suffix}`);
 
-const estimateWidths = (columns: readonly GridColumn[], rows: readonly GridRow[]): number[] =>
+const estimateWidths = (columns: readonly GridColumn[], rows: readonly GridRow[], notation: NumberNotation): number[] =>
     columns.map((column, index) =>
         estimateColumnWidth(
             column.name,
-            rows.slice(0, 50).map((row) => textOf(cellView(row.cells[index] ?? null, column.kind))),
+            rows.slice(0, 50).map((row) => textOf(cellView(row.cells[index] ?? null, column.kind, notation))),
             column.primaryKey === true
         )
     );
@@ -187,6 +189,7 @@ export function DataGrid({
     const scroller = useRef<HTMLDivElement | null>(null);
     const anchor = useRef(-1);
     const pressedInPopup = usePopupPress();
+    const notation = useNumberNotation();
     /* Set once an edit commits or cancels, so the blur that follows the input's removal does not commit it again. */
     const settled = useRef(true);
     const dragging = useRef(false);
@@ -205,19 +208,21 @@ export function DataGrid({
     const [layout, setLayout] = useState<Layout>(() => ({
         signature: signatureOf(columns),
         rows,
-        estimated: estimateWidths(columns, rows),
+        notation,
+        estimated: estimateWidths(columns, rows, notation),
         ...restoreLayout(columns, initialLayout)
     }));
     const reportedLayout = useRef<GridLayout>(captureLayout(columns, layout));
 
     const signature = signatureOf(columns);
     let current = layout;
-    if (layout.signature !== signature || layout.rows !== rows) {
+    if (layout.signature !== signature || layout.rows !== rows || layout.notation !== notation) {
         const same = layout.signature === signature;
-        const estimated = estimateWidths(columns, rows);
+        const estimated = estimateWidths(columns, rows, notation);
         current = {
             signature,
             rows,
+            notation,
             estimated: same ? growWidths(layout.estimated, estimated) : estimated,
             ...(same ? { resized: layout.resized, view: layout.view } : restoreLayout(columns, initialLayout))
         };
@@ -618,7 +623,7 @@ export function DataGrid({
                 index,
                 fitColumnWidth(
                     column.name,
-                    rows.map((row) => textOf(cellView(row.cells[index] ?? null, column.kind))),
+                    rows.map((row) => textOf(cellView(row.cells[index] ?? null, column.kind, notation))),
                     column.primaryKey === true
                 )
             );
@@ -677,7 +682,7 @@ export function DataGrid({
                 {order.map((columnIndex, position) => {
                     const column = columns[columnIndex]!;
                     const cell = row.cells[columnIndex] ?? null;
-                    const view = cellView(cell, column.kind);
+                    const view = cellView(cell, column.kind, notation);
                     const cellPosition = { row: index, column: columnIndex };
                     const isFocused = focusCell !== null && focusCell.row === index && focusCell.column === columnIndex;
                     const ranged = pickedSet.has(columnIndex) || (columnBlock === null && rectContains(rect, index, position));
@@ -748,7 +753,11 @@ export function DataGrid({
                                     tabIndex={-1}
                                     className="absolute top-1/2 right-1 -translate-y-1/2 bg-surface-raised opacity-0 group-hover/cell:opacity-100 group-data-[focused]/cell:opacity-100 focus-visible:opacity-100"
                                     onPointerDown={(event) => event.stopPropagation()}
-                                    onClick={() => onFollow?.({ rowKey: row.key, column: columnIndex })}
+                                    onClick={() => {
+                                        if (!pressedInPopup()) {
+                                            onFollow?.({ rowKey: row.key, column: columnIndex });
+                                        }
+                                    }}
                                 />
                             )}
                         </div>

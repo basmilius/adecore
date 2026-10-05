@@ -74,7 +74,7 @@ const ranText = (ran: Ran, t: TFunction<'database'>): string => {
         case 'selection':
             return t('console.ranSelection');
         case 'all':
-            return t('console.ranAll', { count: ran.count });
+            return t('console.ranAll', { count: ran.count, formatted: formatNumber(ran.count) });
     }
 };
 

@@ -1,9 +1,12 @@
-import { describe, expect, test } from 'bun:test';
+import { afterAll, describe, expect, test } from 'bun:test';
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import i18next from 'i18next';
 import { UIProvider } from '@adecore/ui';
+import { setFormatSource, type FormatSource } from '@adecore/ui/format';
+import { fakeFormatSource } from '@adecore/ui/testing';
 import { DatabaseProvider } from '../DatabaseProvider.tsx';
+import type { NumberNotation } from './display.ts';
 import type { DatabaseClient } from '../client/types.ts';
 import { DataGrid } from './DataGrid.tsx';
 import type { GridColumn, GridRow } from './types.ts';
@@ -180,5 +183,52 @@ describe('DataGrid', () => {
     test('keeps the arrow out of the way until the cell is hovered or focused', () => {
         const markup = render(<DataGrid label="Users" columns={columns} rows={rows} onFollow={() => {}} />);
         expect(markup).toContain('opacity-0 group-hover/cell:opacity-100 group-data-[focused]/cell:opacity-100');
+    });
+});
+
+describe('DataGrid numbers in a Dutch region', () => {
+    const source = fakeFormatSource();
+    source.set({ region: 'nl-NL' });
+    const previous: FormatSource = setFormatSource(source);
+
+    afterAll(() => {
+        setFormatSource(previous);
+    });
+
+    const numbers: GridColumn[] = [
+        { name: 'id', type: 'BIGINT', kind: 'integer' },
+        { name: 'price', type: 'DECIMAL(10,2)', kind: 'decimal' },
+        { name: 'ratio', type: 'DOUBLE', kind: 'float' },
+        { name: 'name', type: 'TEXT', kind: 'text' }
+    ];
+    const values: GridRow[] = [{ key: 'row:0', number: 1234, cells: ['9007199254740993', '12900.50', -0.25, '1234'] }];
+
+    const renderIn = (numberNotation: NumberNotation): string =>
+        renderToStaticMarkup(
+            <UIProvider i18n={i18n} formatSource={source}>
+                <DatabaseProvider client={client} numberNotation={numberNotation}>
+                    <DataGrid label="Prices" columns={numbers} rows={values} />
+                </DatabaseProvider>
+            </UIProvider>
+        );
+
+    test('draws the cells of numeric columns in the region notation', () => {
+        const markup = renderIn('region');
+        expect(markup).toContain('>9.007.199.254.740.993<');
+        expect(markup).toContain('>12.900,50<');
+        expect(markup).toContain('>-0,25<');
+        expect(markup).toContain('>1234<');
+    });
+
+    test('draws them as the server wrote them in the database notation', () => {
+        const markup = renderIn('database');
+        expect(markup).toContain('>9007199254740993<');
+        expect(markup).toContain('>12900.50<');
+        expect(markup).toContain('>-0.25<');
+    });
+
+    test('draws the row number in the region notation in either', () => {
+        expect(renderIn('database')).toContain('>1.234</div>');
+        expect(renderIn('region')).toContain('>1.234</div>');
     });
 });

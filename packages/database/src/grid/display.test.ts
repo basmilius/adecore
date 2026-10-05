@@ -1,5 +1,61 @@
-import { describe, expect, test } from 'bun:test';
-import { BINARY_PREVIEW_BYTES, cellView, copyTextOf, DISPLAY_LIMIT, isPreview, shownOfEdit } from './display.ts';
+import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
+import { setFormatSource, type FormatSource } from '@adecore/ui/format';
+import { fakeFormatSource } from '@adecore/ui/testing';
+import { BINARY_PREVIEW_BYTES, cellView, copyTextOf, DISPLAY_LIMIT, isPreview, numeralText, shownOfEdit } from './display.ts';
+
+const source = fakeFormatSource();
+let previous: FormatSource;
+
+beforeAll(() => {
+    source.set({ region: 'nl-NL' });
+    previous = setFormatSource(source);
+});
+
+afterAll(() => {
+    setFormatSource(previous);
+});
+
+describe('number notation', () => {
+    test('the database notation draws numbers as the server wrote them', () => {
+        expect(cellView('9007199254740993', 'integer').text).toBe('9007199254740993');
+        expect(cellView('12900.50', 'decimal').text).toBe('12900.50');
+        expect(cellView(1234.5, 'float').text).toBe('1234.5');
+    });
+
+    test('the region notation groups and separates a big integer without rounding it', () => {
+        expect(cellView('9007199254740993', 'integer', 'region').text).toBe('9.007.199.254.740.993');
+        expect(cellView(1234567, 'integer', 'region').text).toBe('1.234.567');
+    });
+
+    test('the region notation keeps the trailing zeros of a decimal', () => {
+        expect(cellView('12900.50', 'decimal', 'region').text).toBe('12.900,50');
+        expect(cellView('-0.500', 'decimal', 'region').text).toBe('-0,500');
+    });
+
+    test('the region notation writes a float with the digits it has', () => {
+        expect(cellView(1234.5, 'float', 'region').text).toBe('1.234,5');
+        expect(cellView(-2.25, 'float', 'region')).toEqual({ text: '-2,25', tone: 'value', align: 'end' });
+    });
+
+    test('text that is no numeral, a NULL and text columns stay as they are', () => {
+        expect(cellView('NaN', 'float', 'region').text).toBe('NaN');
+        expect(cellView('1e999', 'float', 'region').text).toBe('1e999');
+        expect(cellView(Number.POSITIVE_INFINITY, 'float', 'region').text).toBe('Infinity');
+        expect(cellView('1234', 'text', 'region').text).toBe('1234');
+        expect(cellView(null, 'integer', 'region').text).toBe('NULL');
+    });
+
+    test('copying keeps the server text in either notation', () => {
+        expect(copyTextOf('12900.50')).toBe('12900.50');
+        expect(copyTextOf(1234.5)).toBe('1234.5');
+    });
+
+    test('a numeral in either notation', () => {
+        expect(numeralText('1234.50', 'database')).toBe('1234.50');
+        expect(numeralText('1234.50', 'region')).toBe('1.234,50');
+        expect(numeralText(' abc ', 'region')).toBe(' abc ');
+    });
+});
 
 describe('cellView', () => {
     test('null is the faint word NULL', () => {

@@ -278,14 +278,14 @@
         "lastPageCounts": "Counts the rows first",
         "menu": {
             "revertRows_one": "Revert row",
-            "revertRows_other": "Revert {{count}} rows",
+            "revertRows_other": "Revert {{formatted}} rows",
             "deleteRows_one": "Delete row",
-            "deleteRows_other": "Delete {{count}} rows",
+            "deleteRows_other": "Delete {{formatted}} rows",
             "filterOn": "Filter on",
             "exclude": "Exclude",
             "sortBy": "Sort by",
             "duplicateRows_one": "Duplicate row",
-            "duplicateRows_other": "Duplicate {{count}} rows"
+            "duplicateRows_other": "Duplicate {{formatted}} rows"
         },
         "goToReferenced": "Go to referenced row",
         "recordView": "Record view",
@@ -303,7 +303,7 @@
             "minimum": "Min",
             "maximum": "Max",
             "cells": "{{count}} cells selected",
-            "columns": "{{count}} columns",
+            "columns": "{{formatted}} columns",
             "cells_one": "{{cells}} cell",
             "cells_other": "{{cells}} cells"
         },
@@ -371,8 +371,8 @@
         "dismiss": "Dismiss",
         "ranStatement": "Ran: {{statement}}",
         "ranSelection": "Ran the selection",
-        "ranAll_one": "Ran {{count}} statement",
-        "ranAll_other": "Ran all {{count}} statements",
+        "ranAll_one": "Ran {{formatted}} statement",
+        "ranAll_other": "Ran all {{formatted}} statements",
         "rowRange": "Rows: {{from}} to {{to}}",
         "page": "Page {{page}}",
         "previousPage": "Previous page",

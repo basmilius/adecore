@@ -4,8 +4,9 @@ import { ArrowUpRight, Ban, ChevronDown, ChevronUp, Copy, RotateCcw } from 'luci
 import { useTranslation } from 'react-i18next';
 import { ContextMenu, copyText, EDIT_SHORTCUTS, Icon, IconButton, Input, isApplePlatform, isModHeld, Kbd, shortcut, Spinner } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
+import { useNumberNotation } from '../client-context.ts';
 import type { EditValue, Value } from '../protocol/index.ts';
-import { cellView, copyTextOf, isPreview } from './display.ts';
+import { cellView, copyTextOf, isNumericKind, isPreview, numeralText, type NumberNotation } from './display.ts';
 import { draftOf, parseDraft } from './edit-value.ts';
 import { parseEnumType } from './enum-type.ts';
 import { EnumPicker } from './EnumPicker.tsx';
@@ -44,11 +45,18 @@ interface Editing {
 const PREVIOUS_ROW = shortcut('Mod+ArrowUp');
 const NEXT_ROW = shortcut('Mod+ArrowDown');
 
-const textOf = (cell: GridRow['cells'][number], kind: GridColumn['kind']): string => {
+const textOf = (cell: GridRow['cells'][number], kind: GridColumn['kind'], notation: NumberNotation, readOnly: boolean): string => {
     if (isPreview(cell)) {
-        return cellView(cell, kind).text;
+        return cellView(cell, kind, notation).text;
     }
-    return cell !== null && typeof cell === 'object' && cell.kind === 'default' ? '' : draftOf(cell);
+    if (cell !== null && typeof cell === 'object' && cell.kind === 'default') {
+        return '';
+    }
+    // A field that can be edited holds the server's text, which is what an edit starts from.
+    if (readOnly && isNumericKind(kind) && (typeof cell === 'number' || typeof cell === 'string')) {
+        return numeralText(cell, notation);
+    }
+    return draftOf(cell);
 };
 
 /*
@@ -73,6 +81,7 @@ export function RecordView({
     ref
 }: RecordViewProps) {
     const { t } = useTranslation('database');
+    const notation = useNumberNotation();
     const fields = useRef<(HTMLElement | null)[]>([]);
     const [editing, setEditing] = useState<Editing | null>(null);
     const row = rows[index];
@@ -118,7 +127,7 @@ export function RecordView({
         setEditing((now) =>
             now !== null && now.column === column
                 ? { ...now, draft }
-                : { column, draft, initial: textOf(row?.cells[column] ?? null, columns[column]!.kind), loading: false }
+                : { column, draft, initial: textOf(row?.cells[column] ?? null, columns[column]!.kind, 'database', false), loading: false }
         );
     };
 
@@ -233,7 +242,7 @@ export function RecordView({
                                                 ref={(node) => {
                                                     fields.current[position] = node;
                                                 }}
-                                                value={active ? editing.draft : textOf(cell, column.kind)}
+                                                value={active ? editing.draft : textOf(cell, column.kind, notation, !editableField)}
                                                 placeholder={placeholder}
                                                 readOnly={!editableField || (preview && (!active || editing.loading))}
                                                 className={clsx('min-w-0 flex-1', row.state === 'deleted' && 'line-through')}

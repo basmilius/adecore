@@ -3,9 +3,10 @@ import clsx from 'clsx';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button, IconButton, Spinner, Tooltip } from '@adecore/ui';
-import { formatDecimal, formatNumber } from '@adecore/ui/format';
+import { formatDecimal, formatNumber, formatRounded } from '@adecore/ui/format';
+import { useNumberNotation } from '../client-context.ts';
 import type { Aggregates } from '../grid/aggregates.ts';
-import { formatFigure } from './figure.ts';
+import { numeralText } from '../grid/display.ts';
 import type { PageBounds } from './paging.ts';
 
 /* What the selected cells add up to, and which columns they are in. */
@@ -64,6 +65,7 @@ function SelectionSummary({ selection }: { selection: SelectionFigures }) {
     const { t } = useTranslation('database');
     const { columns, aggregates } = selection;
     const { count, numeric } = aggregates;
+    const notation = useNumberNotation();
     const figure = (label: string, value: string) => (
         <span className="shrink-0">
             <span className="text-text-faint">{label}</span> <span className="text-text">{value}</span>
@@ -73,15 +75,15 @@ function SelectionSummary({ selection }: { selection: SelectionFigures }) {
     return (
         <span className="ml-auto flex min-w-0 items-center gap-4 tabular-nums" data-selection="">
             <span className="min-w-0 truncate font-mono text-text">
-                {columns.length === 1 ? columns[0] : t('table.aggregates.columns', { count: columns.length })}
+                {columns.length === 1 ? columns[0] : t('table.aggregates.columns', { formatted: formatNumber(columns.length) })}
             </span>
             <span className="shrink-0 text-text-faint">{t('table.aggregates.cells', { count, cells: formatNumber(count) })}</span>
             {numeric !== null && (
                 <>
-                    {figure(t('table.aggregates.sum'), formatFigure(numeric.sum))}
-                    {figure(t('table.aggregates.average'), formatFigure(numeric.average))}
-                    {figure(t('table.aggregates.minimum'), formatFigure(numeric.minimum))}
-                    {figure(t('table.aggregates.maximum'), formatFigure(numeric.maximum))}
+                    {figure(t('table.aggregates.sum'), formatRounded(numeric.sum, 2))}
+                    {figure(t('table.aggregates.average'), formatRounded(numeric.average, 2))}
+                    {figure(t('table.aggregates.minimum'), numeralText(numeric.minimumText, notation))}
+                    {figure(t('table.aggregates.maximum'), numeralText(numeric.maximumText, notation))}
                 </>
             )}
         </span>

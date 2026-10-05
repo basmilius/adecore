@@ -1,6 +1,6 @@
 import { DatabaseProvider } from '../DatabaseProvider.tsx';
 import type { DatabaseAction } from '../actions.ts';
-import { useDatabaseAction, useDatabaseClient, useDatabaseFiles, useDatabaseStorage } from '../client-context.ts';
+import { useDatabaseAction, useDatabaseClient, useDatabaseFiles, useDatabaseStorage, useNumberNotation } from '../client-context.ts';
 import type { Connection } from '../client/types.ts';
 import { TableDesigner } from '../designer/TableDesigner.tsx';
 import type { WorkbenchTab } from './tabs.ts';
@@ -19,6 +19,7 @@ export function DesignerTab({ connection, tab, onTableChange }: DesignerTabProps
     const storage = useDatabaseStorage();
     const files = useDatabaseFiles();
     const outer = useDatabaseAction();
+    const numberNotation = useNumberNotation();
 
     const onAction = useStableCallback((action: DatabaseAction): void => {
         if (action.kind === 'edit-table' && action.ref.connectionId === tab.connectionId && action.ref.schema === tab.schema) {
@@ -29,7 +30,7 @@ export function DesignerTab({ connection, tab, onTableChange }: DesignerTabProps
     });
 
     return (
-        <DatabaseProvider client={client} storage={storage} files={files} onAction={onAction}>
+        <DatabaseProvider client={client} storage={storage} files={files} numberNotation={numberNotation} onAction={onAction}>
             <TableDesigner connection={connection} schema={tab.schema} table={tab.table} className="h-full" />
         </DatabaseProvider>
     );

@@ -18,7 +18,7 @@ The view fills the height its parent gives it: a toolbar with the command field,
 
 The view asks for the structure of the table and for the first page of rows. 500 rows make a page, and the More menu lets a person pick 100, 500 or 1000. A grid renders only the rows in view, so a big page stays cheap.
 
-Cells are drawn by the `kind` of their column: numbers align right, `NULL` is shown as such, binary is hex with its size, and a long text is a preview that ends in an ellipsis. The whole value of a long cell is fetched with the `cell` method before its editor opens, so a person edits the real value and not the preview.
+Cells are drawn by the `kind` of their column: numbers align right, `NULL` is shown as such, binary is hex with its size, and a long text is a preview that ends in an ellipsis. Numbers are written as the server wrote them, unless the provider sets `numberNotation` to `'region'`, which draws integers, decimals and floats in the person's number format with every digit kept. Editing, copying and filters keep the server's text; see [Number notation](/database/guide/getting-started#number-notation). The whole value of a long cell is fetched with the `cell` method before its editor opens, so a person edits the real value and not the preview.
 
 ## The command field
 
@@ -44,7 +44,7 @@ The `501+` is a button. Count rows asks for the real number with the `count` met
 
 ## Selecting
 
-A click on a column header selects the column, and Shift or Cmd or Ctrl and click extends the selection. Shift with the arrow keys or Shift and click on a cell selects a block of cells. When a selection covers more than one cell, the status bar shows how many cells and how many columns it covers, and for the cells that hold numbers their sum, average, minimum and maximum. NULLs and text are skipped. A decimal or a large integer keeps all its digits.
+A click on a column header selects the column, and Shift or Cmd or Ctrl and click extends the selection. Shift with the arrow keys or Shift and click on a cell selects a block of cells. When a selection covers more than one cell, the status bar shows how many cells and how many columns it covers, and for the cells that hold numbers their sum, average, minimum and maximum. NULLs and text are skipped. The sum and the average are computed, so they are rounded to two decimals in the person's number format. The minimum and maximum are cells, so a decimal or a large integer keeps all its digits, in the notation the provider sets.
 
 Cmd or Ctrl and C copies the selection: the value of one cell, or a block as tab separated text. The context menu of a cell has Copy as, which writes the selected cells as TSV, CSV, JSON or SQL `INSERT` statements for the table.
 

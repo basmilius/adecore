@@ -1,4 +1,4 @@
-import { formatBytes } from '@adecore/ui/format';
+import { formatBytes, formatNumeral } from '@adecore/ui/format';
 import type { BinaryValue, Cell, EditValue, ValueKind } from '../protocol/index.ts';
 
 /* What a cell shows: a cell of a result, or the column's default for a value an edit set to `DEFAULT`. */
@@ -13,6 +13,9 @@ export interface CellView {
     /* Faint text after the value, such as the size of a binary value. */
     readonly suffix?: string;
 }
+
+/* How a numeric cell is drawn: as the server wrote it, or in the notation of the person's region. */
+export type NumberNotation = 'database' | 'region';
 
 /* A cell never draws more than this, however long the text: the DOM stays small and the cell is one line anyway. */
 export const DISPLAY_LIMIT = 200;
@@ -39,10 +42,20 @@ export const isPreview = (cell: Shown): boolean => {
     return cell.kind === 'binary' && cell.hex.length < cell.length * 2;
 };
 
+/* A numeral in the notation asked for; text that is no numeral stays as it is. */
+export const numeralText = (numeral: string | number, notation: NumberNotation): string => {
+    if (notation === 'database') {
+        return String(numeral);
+    }
+    const formatted = formatNumeral(numeral);
+    return formatted === String(numeral).trim() ? String(numeral) : formatted;
+};
+
 const cut = (text: string): string => (text.length > DISPLAY_LIMIT ? `${text.slice(0, DISPLAY_LIMIT)}${ELLIPSIS}` : text);
 
-export const cellView = (cell: Shown, kind: ValueKind): CellView => {
-    const align = isNumericKind(kind) ? 'end' : 'start';
+export const cellView = (cell: Shown, kind: ValueKind, notation: NumberNotation = 'database'): CellView => {
+    const numeric = isNumericKind(kind);
+    const align = numeric ? 'end' : 'start';
     if (cell === null) {
         return { text: 'NULL', tone: 'null', align };
     }
@@ -50,10 +63,10 @@ export const cellView = (cell: Shown, kind: ValueKind): CellView => {
         return { text: cell ? 'true' : 'false', tone: 'value', align };
     }
     if (typeof cell === 'number') {
-        return { text: String(cell), tone: 'value', align };
+        return { text: numeric ? numeralText(cell, notation) : String(cell), tone: 'value', align };
     }
     if (typeof cell === 'string') {
-        return { text: cut(cell), tone: 'value', align };
+        return { text: cut(numeric ? numeralText(cell, notation) : cell), tone: 'value', align };
     }
     switch (cell.kind) {
         case 'default':

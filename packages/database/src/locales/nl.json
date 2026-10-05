@@ -278,14 +278,14 @@
         "lastPageCounts": "Telt eerst de rijen",
         "menu": {
             "revertRows_one": "Rij terugdraaien",
-            "revertRows_other": "{{count}} rijen terugdraaien",
+            "revertRows_other": "{{formatted}} rijen terugdraaien",
             "deleteRows_one": "Rij verwijderen",
-            "deleteRows_other": "{{count}} rijen verwijderen",
+            "deleteRows_other": "{{formatted}} rijen verwijderen",
             "filterOn": "Filteren op",
             "exclude": "Uitsluiten",
             "sortBy": "Sorteren op",
             "duplicateRows_one": "Rij dupliceren",
-            "duplicateRows_other": "{{count}} rijen dupliceren"
+            "duplicateRows_other": "{{formatted}} rijen dupliceren"
         },
         "goToReferenced": "Ga naar de verwezen rij",
         "recordView": "Recordweergave",
@@ -303,7 +303,7 @@
             "minimum": "Min",
             "maximum": "Max",
             "cells": "{{count}} cellen geselecteerd",
-            "columns": "{{count}} kolommen",
+            "columns": "{{formatted}} kolommen",
             "cells_one": "{{cells}} cel",
             "cells_other": "{{cells}} cellen"
         },
@@ -371,8 +371,8 @@
         "dismiss": "Sluiten",
         "ranStatement": "Uitgevoerd: {{statement}}",
         "ranSelection": "De selectie is uitgevoerd",
-        "ranAll_one": "{{count}} opdracht uitgevoerd",
-        "ranAll_other": "Alle {{count}} opdrachten uitgevoerd",
+        "ranAll_one": "{{formatted}} opdracht uitgevoerd",
+        "ranAll_other": "Alle {{formatted}} opdrachten uitgevoerd",
         "rowRange": "Rijen: {{from}} tot {{to}}",
         "page": "Pagina {{page}}",
         "previousPage": "Vorige pagina",

@@ -1,12 +1,14 @@
 import { createContext, use } from 'react';
 import type { DatabaseAction, DatabaseFiles, DatabaseStorage } from './actions.ts';
 import type { DatabaseClient } from './client/types.ts';
+import type { NumberNotation } from './grid/display.ts';
 
 export interface DatabaseContextValue {
     readonly client: DatabaseClient;
     readonly onAction: ((action: DatabaseAction) => void) | undefined;
     readonly storage: DatabaseStorage | undefined;
     readonly files: DatabaseFiles | undefined;
+    readonly numberNotation: NumberNotation;
 }
 
 export const DatabaseContext = createContext<DatabaseContextValue | null>(null);
@@ -28,3 +30,6 @@ export const useDatabaseStorage = (): DatabaseStorage | undefined => useDatabase
 
 /* The app's file dialogs; export and import stay hidden without them. */
 export const useDatabaseFiles = (): DatabaseFiles | undefined => useDatabaseContext().files;
+
+/* Read without the guard of the other hooks: a grid drawn on its own, such as in a test, writes numbers as the database does. */
+export const useNumberNotation = (): NumberNotation => use(DatabaseContext)?.numberNotation ?? 'database';

@@ -2,13 +2,14 @@ import { createRoot } from 'react-dom/client';
 import { UIProvider } from '@adecore/ui';
 import { App } from './App.tsx';
 import { i18n } from './i18n.ts';
+import { formatSource } from './app-hooks.ts';
 import { followSystemTheme } from './theme.ts';
 import './styles.css';
 
 followSystemTheme();
 
 createRoot(document.getElementById('root')!).render(
-    <UIProvider i18n={i18n}>
+    <UIProvider i18n={i18n} formatSource={formatSource}>
         <App />
     </UIProvider>
 );
