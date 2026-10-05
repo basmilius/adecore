@@ -1,7 +1,7 @@
 {
   "version": 3,
-  "name": "Desktop",
+  "name": "ADE CORE",
   "color": "#7c74ff",
-  "icon": {"kind":"lucide","value":"star"},
+  "icon": {"kind":"lucide","value":"brain"},
   "views": []
 }
