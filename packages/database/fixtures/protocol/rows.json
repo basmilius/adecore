@@ -1,0 +1,25 @@
+{
+  "request": {
+    "id": "r4",
+    "method": "rows",
+    "params": { "session": "s1", "schema": "main", "table": "users", "where": "id > 1", "orderBy": "email DESC", "offset": 0, "limit": 2, "cellLimit": 16 }
+  },
+  "response": {
+    "id": "r4",
+    "ok": true,
+    "result": {
+      "columns": [
+        { "name": "id", "type": "INTEGER", "kind": "integer" },
+        { "name": "email", "type": "TEXT", "kind": "text" },
+        { "name": "avatar", "type": "BLOB", "kind": "binary" },
+        { "name": "created_at", "type": "TEXT", "kind": "text" }
+      ],
+      "rows": [
+        [3, "zoe@example.com", null, "2026-10-04 12:47:54"],
+        [2, { "kind": "longText", "preview": "a.very.long.addr", "length": 41 }, { "kind": "binary", "hex": "89504e470d0a1a0a0000000d49484452", "length": 2048 }, "2026-10-03 12:15:41"]
+      ],
+      "hasMore": true,
+      "elapsedMs": 0.4
+    }
+  }
+}

@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 /* The packages the demos import, read from `src`. */
-const PACKAGES = ['ui', 'terminal'].map((folder) => new URL(`../../packages/${folder}/`, import.meta.url));
+const PACKAGES = ['ui', 'terminal', 'database'].map((folder) => new URL(`../../packages/${folder}/`, import.meta.url));
 
 interface Manifest {
     name: string;

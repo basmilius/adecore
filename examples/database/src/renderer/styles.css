@@ -1,0 +1,4 @@
+@import "tailwindcss";
+@import "@adecore/ui/theme.css";
+@source "../../../../packages/ui/src";
+@source "../../../../packages/database/src";

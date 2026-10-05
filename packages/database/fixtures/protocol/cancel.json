@@ -1,0 +1,4 @@
+{
+  "request": { "id": "r7", "method": "cancel", "params": { "request": "r6" } },
+  "response": { "id": "r7", "ok": true, "result": { "cancelled": true } }
+}

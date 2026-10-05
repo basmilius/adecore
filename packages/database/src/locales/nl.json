@@ -1,0 +1,180 @@
+{
+  "engine": {
+    "sqlite": "SQLite",
+    "mysql": "MySQL of MariaDB",
+    "flavor": {
+      "sqlite": "SQLite",
+      "mysql": "MySQL",
+      "mariadb": "MariaDB"
+    }
+  },
+  "connections": {
+    "list": "Verbindingen",
+    "new": "Nieuwe verbinding",
+    "newName": "Nieuwe verbinding",
+    "untitled": "Naamloze verbinding",
+    "empty": "Nog geen verbindingen. Voeg er een toe om een database te bekijken.",
+    "test": {
+      "action": "Verbinding testen",
+      "success": "Verbonden met {{server}}.",
+      "failed": "De verbinding is mislukt."
+    },
+    "delete": {
+      "action": "Verwijderen",
+      "title": "Deze verbinding verwijderen?",
+      "description": "\"{{name}}\" verdwijnt uit de lijst. De database zelf blijft ongemoeid.",
+      "confirm": "Verbinding verwijderen"
+    },
+    "form": {
+      "name": "Naam",
+      "engine": "Type",
+      "path": "Bestand",
+      "pathHint": "Het absolute pad van het databasebestand.",
+      "browse": "Bladeren",
+      "create": "Bestand aanmaken",
+      "createHint": "Maakt het bestand aan als het niet bestaat.",
+      "host": "Host",
+      "port": "Poort",
+      "socket": "Socket (geavanceerd)",
+      "socketHint": "Een Unix-socket om mee te verbinden in plaats van host en poort.",
+      "user": "Gebruiker",
+      "password": "Wachtwoord",
+      "database": "Database",
+      "databaseHint": "Optioneel. Het schema waarin een sessie begint.",
+      "readOnly": "Alleen lezen",
+      "readOnlyHint": "Weigert elke wijziging van de gegevens.",
+      "tls": {
+        "label": "Versleuteling",
+        "disable": "Uit",
+        "disableHint": "Platte tekst.",
+        "prefer": "Bij voorkeur",
+        "preferHint": "Versleuteld als de server dat aanbiedt.",
+        "require": "Vereist",
+        "requireHint": "Mislukt als de server geen versleuteling aanbiedt.",
+        "verify": "Geverifieerd",
+        "verifyHint": "Controleert ook het certificaat tegen de hostnaam."
+      },
+      "problems": {
+        "path-required": "Vul het pad van het databasebestand in.",
+        "path-relative": "Het pad moet absoluut zijn.",
+        "host-required": "Vul een host in.",
+        "port-range": "De poort is een getal van 1 tot 65535."
+      }
+    }
+  },
+  "explorer": {
+    "label": "Database-verkenner",
+    "filter": "Tabellen filteren",
+    "noConnections": "Geen verbindingen om te verkennen.",
+    "noMatches": "Geen geladen tabel past bij \"{{query}}\".",
+    "noSchemas": "Geen schema's",
+    "noTables": "Geen tabellen",
+    "loading": "Laden",
+    "retry": "Opnieuw proberen",
+    "view": "View",
+    "refresh": "Vernieuwen",
+    "disconnect": "Verbinding verbreken",
+    "open": "Openen",
+    "copyName": "Naam kopiëren"
+  },
+  "structure": {
+    "loading": "Structuur laden",
+    "failed": "De structuur kon niet worden geladen.",
+    "retry": "Opnieuw proberen",
+    "columns": "Kolommen",
+    "indexes": "Indexen",
+    "foreignKeys": "Foreign keys",
+    "ddl": "DDL",
+    "yes": "Ja",
+    "no": "Nee",
+    "autoIncrement": "Auto-increment",
+    "generated": "Berekend",
+    "primary": "Primair",
+    "unique": "Uniek",
+    "engineDefault": "Standaard",
+    "noColumns": "Deze tabel heeft geen kolommen.",
+    "noIndexes": "Deze tabel heeft geen indexen.",
+    "noForeignKeys": "Deze tabel heeft geen foreign keys.",
+    "noDdl": "De server gaf geen statement voor deze tabel.",
+    "copy": "Kopiëren",
+    "column": {
+      "name": "Naam",
+      "type": "Type",
+      "nullable": "Nullable",
+      "default": "Standaard",
+      "extra": "Extra",
+      "comment": "Opmerking"
+    },
+    "index": {
+      "name": "Naam",
+      "columns": "Kolommen",
+      "kind": "Soort"
+    },
+    "foreignKey": {
+      "name": "Naam",
+      "columns": "Kolommen",
+      "references": "Verwijst naar",
+      "onUpdate": "Bij update",
+      "onDelete": "Bij verwijderen"
+    }
+  },
+  "grid": {
+    "copyValue": "Waarde kopiëren",
+    "setNull": "Op NULL zetten",
+    "setDefault": "Op DEFAULT zetten",
+    "loadingValue": "De hele waarde wordt geladen"
+  },
+  "table": {
+    "grid": "Rijen van {{table}}",
+    "loading": "Rijen laden",
+    "notLoaded": "De rijen konden niet worden geladen.",
+    "empty": "Deze tabel heeft geen rijen.",
+    "noRows": "Geen rijen",
+    "refresh": "Vernieuwen",
+    "addRow": "Rij toevoegen",
+    "deleteRows": "Geselecteerde rijen verwijderen",
+    "unavailable": "{{action}} ({{reason}})",
+    "readOnly": {
+      "connection": "Deze verbinding is alleen-lezen.",
+      "view": "Een view kan niet worden bewerkt.",
+      "noKey": "Deze tabel heeft geen primaire of unieke sleutel, dus de rijen zijn niet van elkaar te onderscheiden."
+    },
+    "submit": "Opslaan ({{changes}})",
+    "revert": "Terugdraaien",
+    "retry": "Opnieuw proberen",
+    "dismiss": "Sluiten",
+    "conflict": "Wijziging {{number}} ({{row}}) paste op geen of op meer dan één rij, dus er is niets opgeslagen. Vernieuw de pagina en probeer het opnieuw.",
+    "queryTime": "Querytijd",
+    "elapsed": "{{value}} ms",
+    "range": "Rijen {{from}} tot {{to}}",
+    "total": "van {{total}}",
+    "totalAtLeast": "van {{total}}+",
+    "count": "Rijen tellen",
+    "pageSize": "Rijen per pagina",
+    "perPage": "{{size}} rijen",
+    "previousPage": "Vorige pagina",
+    "nextPage": "Volgende pagina",
+    "discard": {
+      "title": "De wijzigingen negeren?",
+      "description": "De wijzigingen die je niet hebt opgeslagen gaan verloren als de pagina wisselt.",
+      "confirm": "Wijzigingen negeren"
+    }
+  },
+  "console": {
+    "editor": "SQL",
+    "placeholder": "SELECT * FROM users;",
+    "run": "Uitvoeren",
+    "cancel": "Annuleren",
+    "running": "Bezig",
+    "cancelled": "De opdracht is geannuleerd.",
+    "result": "Resultaat",
+    "noRows": "De opdracht gaf geen rijen terug.",
+    "rows": "Rijen: {{rows}}",
+    "hasMore": "Er zijn meer rijen, maar die worden niet getoond.",
+    "elapsed": "{{value}} ms",
+    "sqlState": "SQLSTATE {{state}}",
+    "affected_one": "{{formatted}} rij gewijzigd",
+    "affected_other": "{{formatted}} rijen gewijzigd",
+    "lastInsertId": "Laatste insert-id: {{id}}"
+  }
+}

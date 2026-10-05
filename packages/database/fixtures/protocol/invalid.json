@@ -1,0 +1,4 @@
+{
+  "request": { "id": "r9", "method": "drop-everything", "params": {} },
+  "response": { "id": "r9", "ok": false, "error": { "code": "invalid-request", "message": "Unknown method \"drop-everything\"." } }
+}

@@ -4,12 +4,13 @@
   "type": "module",
   "workspaces": [
     "packages/*",
+    "examples/*",
     "docs"
   ],
   "packageManager": "bun@1.4.0",
   "scripts": {
     "build": "bun run --filter './packages/*' build",
-    "typecheck": "bun run --filter './packages/*' typecheck",
+    "typecheck": "bun run --filter './packages/*' --filter './examples/*' typecheck",
     "lint": "oxlint --deny-warnings",
     "check": "bun run typecheck && bun run lint",
     "test": "bun test",

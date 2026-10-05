@@ -1,0 +1,81 @@
+{
+  "name": "@adecore/database",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Browse, query and edit SQLite and MySQL databases: React views for the page, a host for the backend and a native helper that talks to the server.",
+  "license": "MIT",
+  "author": "Bas Milius",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/basmilius/adecore.git",
+    "directory": "packages/database"
+  },
+  "bugs": {
+    "url": "https://github.com/basmilius/adecore/issues"
+  },
+  "homepage": "https://adecore.dev/database/",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "src",
+    "!src/**/*.test.ts",
+    "!src/**/*.test.tsx",
+    "!src/**/__snapshots__"
+  ],
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./protocol": {
+      "source": "./src/protocol/index.ts",
+      "types": "./dist/protocol/index.d.ts",
+      "default": "./dist/protocol/index.js"
+    },
+    "./host": {
+      "source": "./src/host/index.ts",
+      "types": "./dist/host/index.d.ts",
+      "default": "./dist/host/index.js"
+    },
+    "./testing": {
+      "source": "./src/testing/index.ts",
+      "types": "./dist/testing/index.d.ts",
+      "default": "./dist/testing/index.js"
+    }
+  },
+  "scripts": {
+    "build": "bun scripts/build.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "helper:build": "cargo build --release --locked --manifest-path helper/Cargo.toml",
+    "helper:check": "cargo fmt --manifest-path helper/Cargo.toml --check && cargo clippy --locked --manifest-path helper/Cargo.toml --all-targets -- -D warnings",
+    "helper:test": "cargo test --locked --manifest-path helper/Cargo.toml"
+  },
+  "dependencies": {
+    "@base-ui-components/react": "^1.0.0-rc.0",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.47.0"
+  },
+  "peerDependencies": {
+    "@adecore/ui": "^0.14.0",
+    "i18next": "^26.4.2",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-i18next": "^17.0.15"
+  },
+  "devDependencies": {
+    "@adecore/ui": "workspace:*",
+    "@types/bun": "^1.4.2",
+    "@types/node": "^24.13.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "i18next": "^26.4.2",
+    "oxc-parser": "^0.151.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-i18next": "^17.0.15",
+    "typescript": "^7.0.2"
+  }
+}

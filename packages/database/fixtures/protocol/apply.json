@@ -1,0 +1,17 @@
+{
+  "request": {
+    "id": "r5",
+    "method": "apply",
+    "params": {
+      "session": "s1",
+      "schema": "main",
+      "table": "users",
+      "changes": [
+        { "kind": "insert", "values": { "email": "new@example.com", "created_at": { "kind": "default" }, "avatar": { "kind": "binary", "hex": "00ff" } } },
+        { "kind": "update", "key": { "id": 2 }, "values": { "email": "b@example.com", "avatar": null } },
+        { "kind": "delete", "key": { "id": 3 } }
+      ]
+    }
+  },
+  "response": { "id": "r5", "ok": false, "error": { "code": "conflict", "message": "The update matched no row.", "change": 1 } }
+}

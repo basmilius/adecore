@@ -1,0 +1,502 @@
+use crate::cells::{MAX_SAFE_INTEGER, from_hex};
+use crate::error::{DatabaseError, ErrorCode, Result};
+use crate::protocol::{BinaryValue, ColumnInfo, EditValue, RowChange, RowKey, TableStructure, Value};
+use crate::quoting::Dialect;
+
+pub const MAX_LIMIT: i64 = 10_000;
+pub const DEFAULT_ROWS_CELL_LIMIT: usize = 1024;
+pub const DEFAULT_EXECUTE_LIMIT: usize = 500;
+pub const DEFAULT_EXECUTE_CELL_LIMIT: usize = 65_536;
+
+/// A bound parameter in terms both engines share.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Param {
+    Null,
+    Int(i64),
+    Float(f64),
+    Text(String),
+    Blob(Vec<u8>),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct PlannedStatement {
+    pub sql: String,
+    pub params: Vec<Param>,
+    /// An update or a delete must hit exactly one row; an insert has no such rule.
+    pub expects_one_row: bool,
+}
+
+pub fn param_of(value: &Value) -> Result<Param> {
+    Ok(match value {
+        Value::Null => Param::Null,
+        Value::Bool(flag) => Param::Int(i64::from(*flag)),
+        Value::Text(text) => Param::Text(text.clone()),
+        Value::Binary(BinaryValue::Binary { hex }) => {
+            Param::Blob(from_hex(hex).ok_or_else(|| DatabaseError::invalid_request("A binary value needs an even number of hex digits."))?)
+        }
+        Value::Number(number) => {
+            if let Some(int) = number.as_i64() {
+                Param::Int(int)
+            } else if let Some(float) = number.as_f64() {
+                if float.fract() == 0.0 && float.abs() <= MAX_SAFE_INTEGER as f64 {
+                    Param::Int(float as i64)
+                } else {
+                    Param::Float(float)
+                }
+            } else {
+                return Err(DatabaseError::invalid_request("A number is out of range."));
+            }
+        }
+    })
+}
+
+/// A where or order by fragment, or `None` when it is empty.
+pub fn fragment(text: &Option<String>) -> Option<&str> {
+    text.as_deref().map(str::trim).filter(|trimmed| !trimmed.is_empty())
+}
+
+pub struct Paging {
+    pub limit: usize,
+    pub offset: u64,
+    pub cell_limit: usize,
+}
+
+pub fn paging(limit: i64, offset: i64, cell_limit: Option<i64>) -> Result<Paging> {
+    if !(1..=MAX_LIMIT).contains(&limit) {
+        return Err(DatabaseError::invalid_request(format!("The limit must be between 1 and {MAX_LIMIT}.")));
+    }
+
+    if offset < 0 {
+        return Err(DatabaseError::invalid_request("The offset must not be negative."));
+    }
+
+    Ok(Paging {
+        limit: limit as usize,
+        offset: offset as u64,
+        cell_limit: resolve_cell_limit(cell_limit, DEFAULT_ROWS_CELL_LIMIT)?,
+    })
+}
+
+pub fn resolve_cell_limit(cell_limit: Option<i64>, default: usize) -> Result<usize> {
+    match cell_limit {
+        None => Ok(default),
+        Some(value) if value >= 0 => Ok(value as usize),
+        Some(_) => Err(DatabaseError::invalid_request("The cell limit must not be negative.")),
+    }
+}
+
+/// The SQL of a page of rows. The fragments end on a newline so a trailing line comment cannot swallow what follows.
+pub fn rows_sql(dialect: Dialect, schema: &str, table: &str, filter: Option<&str>, order_by: Option<&str>) -> String {
+    let mut sql = format!("SELECT * FROM {}", dialect.qualified(schema, table));
+
+    if let Some(filter) = filter {
+        sql.push_str(&format!(" WHERE ({filter}\n)"));
+    }
+
+    if let Some(order_by) = order_by {
+        sql.push_str(&format!(" ORDER BY {order_by}\n"));
+    }
+
+    sql.push_str(" LIMIT ? OFFSET ?");
+
+    sql
+}
+
+pub fn count_sql(dialect: Dialect, schema: &str, table: &str, filter: Option<&str>) -> String {
+    let mut sql = format!("SELECT COUNT(*) FROM {}", dialect.qualified(schema, table));
+
+    if let Some(filter) = filter {
+        sql.push_str(&format!(" WHERE ({filter}\n)"));
+    }
+
+    sql
+}
+
+/// `col = ? AND other IS NULL`, with the parameters for the placeholders.
+fn key_condition(dialect: Dialect, key: &RowKey) -> Result<(String, Vec<Param>)> {
+    let mut parts = Vec::with_capacity(key.len());
+    let mut params = Vec::with_capacity(key.len());
+
+    for (column, value) in key {
+        let quoted = dialect.quote_ident(column);
+
+        if *value == Value::Null {
+            parts.push(format!("{quoted} IS NULL"));
+        } else {
+            parts.push(format!("{quoted} = ?"));
+            params.push(param_of(value)?);
+        }
+    }
+
+    Ok((parts.join(" AND "), params))
+}
+
+pub fn cell_sql(dialect: Dialect, schema: &str, table: &str, column: &str, key: &RowKey) -> Result<(String, Vec<Param>)> {
+    if key.is_empty() {
+        return Err(DatabaseError::invalid_request("The key must name at least one column."));
+    }
+
+    let (condition, params) = key_condition(dialect, key)?;
+    let sql = format!(
+        "SELECT {} FROM {} WHERE {condition} LIMIT 2",
+        dialect.quote_ident(column),
+        dialect.qualified(schema, table)
+    );
+
+    Ok((sql, params))
+}
+
+/// The row key of a table: its primary key, else the first unique index over columns that cannot be null.
+pub fn pick_row_key(columns: &[ColumnInfo], primary_key: &[String], unique_indexes: &[&[String]]) -> Option<Vec<String>> {
+    if !primary_key.is_empty() {
+        return Some(primary_key.to_vec());
+    }
+
+    let not_null = |name: &String| columns.iter().any(|column| &column.name == name && !column.nullable);
+
+    unique_indexes
+        .iter()
+        .find(|index_columns| !index_columns.is_empty() && index_columns.iter().all(not_null))
+        .map(|index_columns| index_columns.to_vec())
+}
+
+fn find_column<'a>(structure: &'a TableStructure, name: &str, index: usize) -> Result<&'a ColumnInfo> {
+    let column = structure
+        .columns
+        .iter()
+        .find(|column| column.name == name)
+        .ok_or_else(|| DatabaseError::invalid_request(format!("Change {index}: the table has no column \"{name}\".")))?;
+
+    if column.generated {
+        return Err(DatabaseError::invalid_request(format!(
+            "Change {index}: column \"{name}\" is generated and cannot be written."
+        )));
+    }
+
+    Ok(column)
+}
+
+fn check_key(structure: &TableStructure, key: &RowKey, index: usize) -> Result<()> {
+    let Some(row_key) = &structure.row_key else {
+        return Err(DatabaseError::new(
+            ErrorCode::NoRowKey,
+            format!("\"{}\" has no primary key or unique key over columns that cannot be null.", structure.name),
+        ));
+    };
+
+    let names_the_row_key = key.len() == row_key.len() && row_key.iter().all(|column| key.contains_key(column));
+
+    if !names_the_row_key {
+        return Err(DatabaseError::invalid_request(format!(
+            "Change {index}: the key must name exactly the row key columns ({}).",
+            row_key.join(", ")
+        )));
+    }
+
+    Ok(())
+}
+
+/// Turns changes into statements, rejecting a bad one before anything touches the database.
+pub fn plan_apply(dialect: Dialect, structure: &TableStructure, changes: &[RowChange]) -> Result<Vec<PlannedStatement>> {
+    let table = dialect.qualified(&structure.schema, &structure.name);
+    let mut planned = Vec::with_capacity(changes.len());
+
+    for (index, change) in changes.iter().enumerate() {
+        planned.push(match change {
+            RowChange::Insert { values } => {
+                let mut names = Vec::new();
+                let mut params = Vec::new();
+
+                for (name, value) in values {
+                    find_column(structure, name, index)?;
+
+                    if let EditValue::Value(value) = value {
+                        names.push(dialect.quote_ident(name));
+                        params.push(param_of(value)?);
+                    }
+                }
+
+                let sql = if names.is_empty() {
+                    match dialect {
+                        Dialect::Sqlite => format!("INSERT INTO {table} DEFAULT VALUES"),
+                        Dialect::Mysql => format!("INSERT INTO {table} () VALUES ()"),
+                    }
+                } else {
+                    let placeholders = vec!["?"; names.len()].join(", ");
+                    format!("INSERT INTO {table} ({}) VALUES ({placeholders})", names.join(", "))
+                };
+
+                PlannedStatement {
+                    sql,
+                    params,
+                    expects_one_row: false,
+                }
+            }
+            RowChange::Update { key, values } => {
+                check_key(structure, key, index)?;
+
+                if values.is_empty() {
+                    return Err(DatabaseError::invalid_request(format!("Change {index}: an update needs at least one value.")));
+                }
+
+                let mut assignments = Vec::new();
+                let mut params = Vec::new();
+
+                for (name, value) in values {
+                    find_column(structure, name, index)?;
+                    let quoted = dialect.quote_ident(name);
+
+                    match value {
+                        EditValue::Value(value) => {
+                            assignments.push(format!("{quoted} = ?"));
+                            params.push(param_of(value)?);
+                        }
+                        EditValue::Default(_) if dialect == Dialect::Mysql => assignments.push(format!("{quoted} = DEFAULT")),
+                        EditValue::Default(_) => {
+                            return Err(DatabaseError::new(
+                                ErrorCode::Unsupported,
+                                "SQLite cannot set a column to its default in an update.",
+                            ));
+                        }
+                    }
+                }
+
+                let (condition, key_params) = key_condition(dialect, key)?;
+                params.extend(key_params);
+
+                PlannedStatement {
+                    sql: format!("UPDATE {table} SET {} WHERE {condition}", assignments.join(", ")),
+                    params,
+                    expects_one_row: true,
+                }
+            }
+            RowChange::Delete { key } => {
+                check_key(structure, key, index)?;
+                let (condition, params) = key_condition(dialect, key)?;
+
+                PlannedStatement {
+                    sql: format!("DELETE FROM {table} WHERE {condition}"),
+                    params,
+                    expects_one_row: true,
+                }
+            }
+        });
+    }
+
+    Ok(planned)
+}
+
+pub fn conflict(index: usize, affected: u64) -> DatabaseError {
+    let message = if affected == 0 {
+        "The change matched no row.".to_string()
+    } else {
+        format!("The change matched {affected} rows.")
+    };
+
+    DatabaseError::new(ErrorCode::Conflict, message).with_change(index)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::protocol::{DefaultMarker, TableKind, ValueKind};
+    use indexmap::IndexMap;
+    use serde_json::Number;
+
+    fn column(name: &str, nullable: bool, generated: bool) -> ColumnInfo {
+        ColumnInfo {
+            name: name.to_string(),
+            column_type: "text".to_string(),
+            kind: ValueKind::Text,
+            nullable,
+            default_value: None,
+            auto_increment: false,
+            generated,
+            comment: None,
+        }
+    }
+
+    fn structure(row_key: Option<Vec<&str>>) -> TableStructure {
+        TableStructure {
+            schema: "main".to_string(),
+            name: "users".to_string(),
+            kind: TableKind::Table,
+            columns: vec![column("id", false, false), column("name", true, false), column("total", true, true)],
+            primary_key: vec![],
+            row_key: row_key.map(|columns| columns.into_iter().map(String::from).collect()),
+            indexes: vec![],
+            foreign_keys: vec![],
+            ddl: None,
+        }
+    }
+
+    fn number(value: i64) -> Value {
+        Value::Number(Number::from(value))
+    }
+
+    fn text(value: &str) -> Value {
+        Value::Text(value.to_string())
+    }
+
+    #[test]
+    fn binds_numbers_as_integers_when_integral() {
+        assert_eq!(param_of(&number(5)).unwrap(), Param::Int(5));
+        assert_eq!(param_of(&Value::Number(Number::from_f64(5.0).unwrap())).unwrap(), Param::Int(5));
+        assert_eq!(param_of(&Value::Number(Number::from_f64(5.5).unwrap())).unwrap(), Param::Float(5.5));
+        assert_eq!(param_of(&Value::Number(Number::from_f64(1e300).unwrap())).unwrap(), Param::Float(1e300));
+        assert_eq!(param_of(&Value::Bool(true)).unwrap(), Param::Int(1));
+        assert_eq!(param_of(&Value::binary("00ff".to_string())).unwrap(), Param::Blob(vec![0, 255]));
+        assert!(param_of(&Value::binary("0".to_string())).is_err());
+    }
+
+    #[test]
+    fn builds_row_queries() {
+        assert_eq!(
+            rows_sql(Dialect::Sqlite, "main", "users", Some("id > 1"), Some("email DESC")),
+            "SELECT * FROM \"main\".\"users\" WHERE (id > 1\n) ORDER BY email DESC\n LIMIT ? OFFSET ?"
+        );
+        assert_eq!(
+            rows_sql(Dialect::Mysql, "shop", "users", None, None),
+            "SELECT * FROM `shop`.`users` LIMIT ? OFFSET ?"
+        );
+        assert_eq!(
+            count_sql(Dialect::Mysql, "shop", "users", Some("a = 1")),
+            "SELECT COUNT(*) FROM `shop`.`users` WHERE (a = 1\n)"
+        );
+    }
+
+    #[test]
+    fn validates_paging() {
+        assert!(paging(0, 0, None).is_err());
+        assert!(paging(10_001, 0, None).is_err());
+        assert!(paging(10, -1, None).is_err());
+        assert!(paging(10, 0, Some(-1)).is_err());
+        let page = paging(10_000, 5, None).unwrap();
+        assert_eq!((page.limit, page.offset, page.cell_limit), (10_000, 5, 1024));
+    }
+
+    #[test]
+    fn picks_the_row_key() {
+        let columns = vec![column("a", false, false), column("b", true, false), column("c", false, false)];
+        let primary = vec!["a".to_string()];
+        let nullable = vec!["b".to_string()];
+        let solid = vec!["c".to_string()];
+
+        assert_eq!(pick_row_key(&columns, &primary, &[&solid]), Some(vec!["a".to_string()]));
+        assert_eq!(pick_row_key(&columns, &[], &[&nullable, &solid]), Some(vec!["c".to_string()]));
+        assert_eq!(pick_row_key(&columns, &[], &[&nullable]), None);
+        assert_eq!(pick_row_key(&columns, &[], &[]), None);
+    }
+
+    #[test]
+    fn plans_each_kind_of_change() {
+        let mut insert = IndexMap::new();
+        insert.insert("name".to_string(), EditValue::Value(text("x")));
+        insert.insert("id".to_string(), EditValue::Default(DefaultMarker::Default));
+
+        let mut update = IndexMap::new();
+        update.insert("name".to_string(), EditValue::Value(Value::Null));
+
+        let mut key = IndexMap::new();
+        key.insert("id".to_string(), number(2));
+
+        let changes = vec![
+            RowChange::Insert { values: insert },
+            RowChange::Update {
+                key: key.clone(),
+                values: update,
+            },
+            RowChange::Delete { key },
+        ];
+        let planned = plan_apply(Dialect::Sqlite, &structure(Some(vec!["id"])), &changes).unwrap();
+
+        assert_eq!(planned[0].sql, "INSERT INTO \"main\".\"users\" (\"name\") VALUES (?)");
+        assert_eq!(planned[1].sql, "UPDATE \"main\".\"users\" SET \"name\" = ? WHERE \"id\" = ?");
+        assert_eq!(planned[1].params, vec![Param::Null, Param::Int(2)]);
+        assert_eq!(planned[2].sql, "DELETE FROM \"main\".\"users\" WHERE \"id\" = ?");
+        assert!(!planned[0].expects_one_row && planned[1].expects_one_row && planned[2].expects_one_row);
+    }
+
+    #[test]
+    fn inserts_defaults_when_no_value_remains() {
+        let mut values = IndexMap::new();
+        values.insert("id".to_string(), EditValue::Default(DefaultMarker::Default));
+        let changes = vec![RowChange::Insert { values }];
+
+        assert_eq!(
+            plan_apply(Dialect::Sqlite, &structure(None), &changes).unwrap()[0].sql,
+            "INSERT INTO \"main\".\"users\" DEFAULT VALUES"
+        );
+        assert_eq!(
+            plan_apply(Dialect::Mysql, &structure(None), &changes).unwrap()[0].sql,
+            "INSERT INTO `main`.`users` () VALUES ()"
+        );
+    }
+
+    #[test]
+    fn updates_to_default_only_on_mysql() {
+        let mut values = IndexMap::new();
+        values.insert("name".to_string(), EditValue::Default(DefaultMarker::Default));
+        let mut key = IndexMap::new();
+        key.insert("id".to_string(), number(1));
+        let changes = vec![RowChange::Update { key, values }];
+
+        assert_eq!(
+            plan_apply(Dialect::Mysql, &structure(Some(vec!["id"])), &changes).unwrap()[0].sql,
+            "UPDATE `main`.`users` SET `name` = DEFAULT WHERE `id` = ?"
+        );
+        assert_eq!(
+            plan_apply(Dialect::Sqlite, &structure(Some(vec!["id"])), &changes).unwrap_err().code,
+            ErrorCode::Unsupported
+        );
+    }
+
+    #[test]
+    fn null_keys_use_is_null() {
+        let mut key = IndexMap::new();
+        key.insert("id".to_string(), Value::Null);
+        let planned = plan_apply(Dialect::Sqlite, &structure(Some(vec!["id"])), &[RowChange::Delete { key }]).unwrap();
+
+        assert_eq!(planned[0].sql, "DELETE FROM \"main\".\"users\" WHERE \"id\" IS NULL");
+        assert!(planned[0].params.is_empty());
+    }
+
+    #[test]
+    fn rejects_bad_changes() {
+        let mut key = IndexMap::new();
+        key.insert("id".to_string(), number(1));
+        let delete = vec![RowChange::Delete { key: key.clone() }];
+
+        assert_eq!(plan_apply(Dialect::Sqlite, &structure(None), &delete).unwrap_err().code, ErrorCode::NoRowKey);
+
+        let mut wrong_key = IndexMap::new();
+        wrong_key.insert("name".to_string(), text("x"));
+        let wrong = vec![RowChange::Delete { key: wrong_key }];
+        assert_eq!(
+            plan_apply(Dialect::Sqlite, &structure(Some(vec!["id"])), &wrong).unwrap_err().code,
+            ErrorCode::InvalidRequest
+        );
+
+        let mut unknown = IndexMap::new();
+        unknown.insert("nope".to_string(), EditValue::Value(Value::Null));
+        let insert = vec![RowChange::Insert { values: unknown }];
+        assert_eq!(
+            plan_apply(Dialect::Sqlite, &structure(None), &insert).unwrap_err().code,
+            ErrorCode::InvalidRequest
+        );
+
+        let mut generated = IndexMap::new();
+        generated.insert("total".to_string(), EditValue::Value(number(1)));
+        let insert = vec![RowChange::Insert { values: generated }];
+        assert_eq!(
+            plan_apply(Dialect::Sqlite, &structure(None), &insert).unwrap_err().code,
+            ErrorCode::InvalidRequest
+        );
+
+        let update = vec![RowChange::Update { key, values: IndexMap::new() }];
+        assert_eq!(
+            plan_apply(Dialect::Sqlite, &structure(Some(vec!["id"])), &update).unwrap_err().code,
+            ErrorCode::InvalidRequest
+        );
+    }
+}

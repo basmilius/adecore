@@ -30,4 +30,8 @@ features:
         details: A terminal pane on xterm.js in the colors of the theme. It fits its container, opens links and either takes typing or only shows output, fed by the app through a handle.
         link: /terminal/
         linkText: View package
+    -   title: Database
+        details: Browse, query and edit SQLite and MySQL databases. React views for the page, a host for the backend and a native helper that talks to the servers.
+        link: /database/
+        linkText: View package
 ---

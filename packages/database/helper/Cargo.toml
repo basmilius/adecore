@@ -1,0 +1,32 @@
+[package]
+name = "adecore-database-helper"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT"
+publish = false
+description = "Native helper that talks to SQLite and MySQL/MariaDB servers over newline-delimited JSON."
+
+[lib]
+name = "adecore_database_helper"
+path = "src/lib.rs"
+
+[[bin]]
+name = "adecore-database"
+path = "src/main.rs"
+
+[dependencies]
+mysql_async = { version = "0.37", default-features = false, features = ["default-rustls-ring"] }
+rusqlite = { version = "0.40", features = ["bundled", "column_decltype"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+indexmap = { version = "2", features = ["serde"] }
+tokio = { version = "1", features = ["rt-multi-thread", "io-std", "io-util", "sync", "macros", "time"] }
+
+[dev-dependencies]
+tempfile = "3"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true

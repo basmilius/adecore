@@ -7,6 +7,7 @@ This repository holds the packages two or more desktop apps share, so the parts 
 | [`@adecore/ui`](/ui/) | React components, a theme, formatters and a settings dialog |
 | [`@adecore/terminal`](/terminal/) | A terminal pane on xterm.js in the colors of the theme, fed by the app through a handle |
 | [`@adecore/shell`](/shell/) | The main process of an Electron app: its menu, its updater and the guards around its page |
+| [`@adecore/database`](/database/) | Views to browse, query and edit SQLite and MySQL databases, a host for the backend and a native helper |
 
 ## One version
 

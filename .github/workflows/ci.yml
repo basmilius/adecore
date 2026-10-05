@@ -31,6 +31,18 @@ jobs:
       - name: 🔍 Check
         run: bun run check
 
+      - name: 🦀 Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: 💾 Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: packages/database/helper
+
+      # The tests that run the page, the host and the helper together need the helper built.
+      - name: 🦀 Build the database helper
+        run: bun run --cwd packages/database helper:build
+
       - name: 🧪 Test
         run: bun run test
 
@@ -41,3 +53,54 @@ jobs:
         run: |
           bun run --cwd docs typecheck
           bun run --cwd docs build
+
+  helper:
+    runs-on: ubuntu-latest
+    name: 🦀 Database helper
+    services:
+      mariadb:
+        image: mariadb:11
+        env:
+          MARIADB_ROOT_PASSWORD: test
+        ports:
+          - 33061:3306
+        options: --health-cmd="healthcheck.sh --connect --innodb_initialized" --health-interval=5s --health-timeout=5s --health-retries=20
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: test
+        ports:
+          - 33062:3306
+        options: --health-cmd="mysqladmin ping -h 127.0.0.1 -ptest" --health-interval=5s --health-timeout=5s --health-retries=20
+    defaults:
+      run:
+        working-directory: packages/database/helper
+    steps:
+      - name: 👀 Checkout
+        uses: actions/checkout@v6
+
+      - name: 🦀 Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: 💾 Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: packages/database/helper
+
+      - name: 🔍 Check
+        run: |
+          cargo fmt --check
+          cargo clippy --locked --all-targets -- -D warnings
+
+      # The MySQL tests run once against each server, since MariaDB and MySQL differ in what information_schema answers.
+      - name: 🧪 Test against MariaDB
+        run: cargo test --locked
+        env:
+          ADECORE_TEST_MYSQL_URL: mysql://root:test@127.0.0.1:33061
+
+      - name: 🧪 Test against MySQL
+        run: cargo test --locked
+        env:
+          ADECORE_TEST_MYSQL_URL: mysql://root:test@127.0.0.1:33062

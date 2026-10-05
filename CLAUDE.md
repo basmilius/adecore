@@ -44,6 +44,14 @@ Bun workspaces: every package in `packages/`, published from its own folder with
 - Electron and electron-updater are optional peers and imported as types only, so every decision is a pure function or a factory with its clock, timer and updater injected, and the tests run in Bun without Electron.
 - The IPC channel names the package sends on (`menu:run`) are part of its API, as the preload of every app listens on them.
 
+## database
+
+- Three layers: the views and the client for the page (`.`), the host for the app's backend (`/host`, Bun or Node), and the Rust helper in `helper/` (binary `adecore-database`, SQLite through rusqlite and MySQL/MariaDB through mysql_async) that the host spawns. `/protocol` is the contract between all three and imports nothing; `/testing` is an in-memory fake of the protocol for demos and the apps' tests.
+- The protocol is written in TypeScript (`src/protocol`) and mirrored by hand in `helper/src/protocol.rs`. `fixtures/protocol/*.json` are read by the tests on both sides; a change to a message changes the fixtures, both sides and `PROTOCOL_VERSION`.
+- The host registers no channel, like `shell`: the app checks the sender and calls `handle(request, owner)`. Ruimte runs it in its Bun daemon, the Command Center in its Electron utility process.
+- `bun run --cwd packages/database helper:check`, `helper:test` and `helper:build` run cargo. `helper.integration.test.ts` runs the page, the host and the helper together and skips without a release build. The MySQL tests of the helper run when `ADECORE_TEST_MYSQL_URL` is set; CI runs them against MariaDB and MySQL.
+- `examples/database` is a private Electron app over both sides. Bas starts it with `bun run --cwd examples/database start`.
+
 ## terminal
 
 - `TerminalView` is the terminal Ruimte builds by hand in `apps/client/src/terminal/xterm.ts`, `webgl-budget.ts` and `webgl-slots.ts`, lifted out so Ruimte can switch to it with no change in behavior. Ruimte is the reference: a change here keeps what its `TerminalBody`, `LaunchTerminal` and `LoginTerminal` would do on top of it, or it is a breaking change.

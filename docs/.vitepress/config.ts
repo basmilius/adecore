@@ -23,7 +23,7 @@ export default defineConfig({
     title: 'adecore',
     titleTemplate: ':title | adecore',
     description:
-        'Packages for desktop apps on Electron, React 19 and Tailwind 4: components and a theme for the page, and the menu, updater and guards of the main process.',
+        'Packages for desktop apps on Electron, React 19 and Tailwind 4: components and a theme for the page, the menu, updater and guards of the main process, a terminal and database views.',
     cleanUrls: true,
     sitemap: {
         hostname: 'https://adecore.dev'
@@ -68,11 +68,12 @@ export default defineConfig({
             { text: 'Guide', link: '/guide/', activeMatch: '^/guide/' },
             {
                 text: 'Packages',
-                activeMatch: '^/(ui|shell|terminal)/',
+                activeMatch: '^/(ui|shell|terminal|database)/',
                 items: [
                     { text: 'UI', link: '/ui/' },
                     { text: 'Shell', link: '/shell/' },
-                    { text: 'Terminal', link: '/terminal/' }
+                    { text: 'Terminal', link: '/terminal/' },
+                    { text: 'Database', link: '/database/' }
                 ]
             },
             {

@@ -123,9 +123,31 @@ const desktopShell: DefaultTheme.SidebarItem[] = [
 
 const terminal: DefaultTheme.SidebarItem[] = [group('Terminal', [['TerminalView', '/terminal/']])];
 
+const database: DefaultTheme.SidebarItem[] = [
+    group('Database', [
+        ['Overview', '/database/'],
+        ['Getting started', '/database/guide/getting-started'],
+        ['Security', '/database/guide/security'],
+        ['Protocol', '/database/guide/protocol']
+    ]),
+    group('Views', [
+        ['ConnectionManager', '/database/views/connection-manager'],
+        ['DatabaseExplorer', '/database/views/explorer'],
+        ['TableView', '/database/views/table-view'],
+        ['StructureView', '/database/views/structure-view'],
+        ['QueryConsole', '/database/views/query-console']
+    ]),
+    group('API', [
+        ['Client', '/database/api/client'],
+        ['Host', '/database/api/host'],
+        ['Testing', '/database/api/testing']
+    ])
+];
+
 export const sidebar: DefaultTheme.SidebarMulti = {
     '/guide/': guide,
     '/ui/': desktopUi,
     '/shell/': desktopShell,
-    '/terminal/': terminal
+    '/terminal/': terminal,
+    '/database/': database
 };

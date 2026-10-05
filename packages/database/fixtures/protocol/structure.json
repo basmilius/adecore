@@ -1,0 +1,23 @@
+{
+  "request": { "id": "r3", "method": "structure", "params": { "session": "s1", "schema": "main", "table": "users" } },
+  "response": {
+    "id": "r3",
+    "ok": true,
+    "result": {
+      "schema": "main",
+      "name": "users",
+      "kind": "table",
+      "columns": [
+        { "name": "id", "type": "INTEGER", "kind": "integer", "nullable": false, "defaultValue": null, "autoIncrement": true, "generated": false, "comment": null },
+        { "name": "email", "type": "TEXT", "kind": "text", "nullable": false, "defaultValue": null, "autoIncrement": false, "generated": false, "comment": null },
+        { "name": "avatar", "type": "BLOB", "kind": "binary", "nullable": true, "defaultValue": null, "autoIncrement": false, "generated": false, "comment": null },
+        { "name": "created_at", "type": "TEXT", "kind": "text", "nullable": false, "defaultValue": "CURRENT_TIMESTAMP", "autoIncrement": false, "generated": false, "comment": null }
+      ],
+      "primaryKey": ["id"],
+      "rowKey": ["id"],
+      "indexes": [{ "name": "users_email", "columns": ["email"], "unique": true, "primary": false }],
+      "foreignKeys": [],
+      "ddl": "CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL UNIQUE, avatar BLOB, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"
+    }
+  }
+}

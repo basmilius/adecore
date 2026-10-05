@@ -1,0 +1,71 @@
+import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterAll, describe, expect, test } from 'bun:test';
+import { createDatabaseClient } from './client/index.ts';
+import type { Connection } from './client/types.ts';
+import { createDatabaseHost, spawnHelper } from './host/index.ts';
+
+/* The release build of the helper; cargo builds it, so a checkout without Rust skips these tests. */
+const HELPER = new URL('../helper/target/release/adecore-database', import.meta.url).pathname;
+
+const folder = mkdtempSync(join(tmpdir(), 'adecore-database-'));
+const host = createDatabaseHost({ start: () => spawnHelper(HELPER) });
+const client = createDatabaseClient((request) => host.handle(request, 'test'));
+const shop: Connection = { id: 'shop', name: 'Shop', config: { engine: 'sqlite', path: join(folder, 'shop.sqlite'), create: true } };
+
+afterAll(async () => {
+    await client.dispose();
+    await host.dispose();
+    rmSync(folder, { recursive: true, force: true });
+});
+
+describe.skipIf(!existsSync(HELPER))('the page, the host and the helper together', () => {
+    test('a table made in the console reads back, edits and counts', async () => {
+        const session = client.session(shop);
+        const created = await session.execute(`
+            CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL, note TEXT, avatar BLOB);
+            INSERT INTO customers (name, note, avatar) VALUES ('Ada', '${'x'.repeat(2000)}', x'89504e47'), ('Linus', NULL, NULL);
+        `);
+        expect(created.map((result) => result.kind)).toEqual(['done', 'done']);
+
+        const page = await session.rows('main', 'customers', { offset: 0, limit: 1, orderBy: 'id' });
+        expect(page.hasMore).toBe(true);
+        expect(page.columns.map((column) => column.kind)).toEqual(['integer', 'text', 'text', 'binary']);
+        expect(page.rows[0]).toEqual([1, 'Ada', { kind: 'longText', preview: 'x'.repeat(1024), length: 2000 }, { kind: 'binary', hex: '89504e47', length: 4 }]);
+
+        expect(await session.cell('main', 'customers', { id: 1 }, 'note')).toBe('x'.repeat(2000));
+
+        const affected = await session.apply('main', 'customers', [
+            { kind: 'update', key: { id: 2 }, values: { note: 'kernel' } },
+            { kind: 'insert', values: { name: 'Grace' } }
+        ]);
+        expect(affected).toBe(2);
+        expect(await session.count('main', 'customers', 'note IS NOT NULL')).toBe(2);
+
+        const structure = await session.structure('main', 'customers');
+        expect(structure.rowKey).toEqual(['id']);
+    });
+
+    test('a write the server refuses rolls the whole change set back', async () => {
+        const session = client.session(shop);
+        await expect(
+            session.apply('main', 'customers', [
+                { kind: 'insert', values: { name: 'Margaret' } },
+                { kind: 'update', key: { id: 999 }, values: { name: 'Nobody' } }
+            ])
+        ).rejects.toMatchObject({ code: 'conflict', change: 1 });
+        expect(await session.count('main', 'customers')).toBe(3);
+    });
+
+    test('an aborted query is cancelled on the server', async () => {
+        const session = client.session(shop);
+        const controller = new AbortController();
+        const running = session.execute('WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n) SELECT COUNT(*) FROM n', {
+            signal: controller.signal
+        });
+        setTimeout(() => controller.abort(), 100);
+        await expect(running).rejects.toMatchObject({ code: 'cancelled' });
+        expect(await session.count('main', 'customers')).toBe(3);
+    });
+});

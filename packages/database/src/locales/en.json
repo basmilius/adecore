@@ -1,0 +1,180 @@
+{
+  "engine": {
+    "sqlite": "SQLite",
+    "mysql": "MySQL or MariaDB",
+    "flavor": {
+      "sqlite": "SQLite",
+      "mysql": "MySQL",
+      "mariadb": "MariaDB"
+    }
+  },
+  "connections": {
+    "list": "Connections",
+    "new": "New connection",
+    "newName": "New connection",
+    "untitled": "Untitled connection",
+    "empty": "No connections yet. Add one to browse a database.",
+    "test": {
+      "action": "Test connection",
+      "success": "Connected to {{server}}.",
+      "failed": "The connection failed."
+    },
+    "delete": {
+      "action": "Delete",
+      "title": "Delete this connection?",
+      "description": "\"{{name}}\" is removed from the list. The database itself is not touched.",
+      "confirm": "Delete connection"
+    },
+    "form": {
+      "name": "Name",
+      "engine": "Engine",
+      "path": "File",
+      "pathHint": "The absolute path of the database file.",
+      "browse": "Browse",
+      "create": "Create file",
+      "createHint": "Creates the file when it does not exist.",
+      "host": "Host",
+      "port": "Port",
+      "socket": "Socket (advanced)",
+      "socketHint": "A Unix socket to connect through instead of host and port.",
+      "user": "User",
+      "password": "Password",
+      "database": "Database",
+      "databaseHint": "Optional. The schema a session starts in.",
+      "readOnly": "Read only",
+      "readOnlyHint": "Refuses every change to the data.",
+      "tls": {
+        "label": "Encryption",
+        "disable": "Off",
+        "disableHint": "Plain text.",
+        "prefer": "Preferred",
+        "preferHint": "Encrypted when the server offers it.",
+        "require": "Required",
+        "requireHint": "Fails when the server offers no encryption.",
+        "verify": "Verified",
+        "verifyHint": "Also checks the certificate against the host name."
+      },
+      "problems": {
+        "path-required": "Enter the path of the database file.",
+        "path-relative": "The path must be absolute.",
+        "host-required": "Enter a host.",
+        "port-range": "The port is a number from 1 to 65535."
+      }
+    }
+  },
+  "explorer": {
+    "label": "Database explorer",
+    "filter": "Filter tables",
+    "noConnections": "No connections to explore.",
+    "noMatches": "No loaded table matches \"{{query}}\".",
+    "noSchemas": "No schemas",
+    "noTables": "No tables",
+    "loading": "Loading",
+    "retry": "Try again",
+    "view": "View",
+    "refresh": "Refresh",
+    "disconnect": "Disconnect",
+    "open": "Open",
+    "copyName": "Copy name"
+  },
+  "structure": {
+    "loading": "Loading structure",
+    "failed": "The structure could not be loaded.",
+    "retry": "Try again",
+    "columns": "Columns",
+    "indexes": "Indexes",
+    "foreignKeys": "Foreign keys",
+    "ddl": "DDL",
+    "yes": "Yes",
+    "no": "No",
+    "autoIncrement": "Auto increment",
+    "generated": "Generated",
+    "primary": "Primary",
+    "unique": "Unique",
+    "engineDefault": "Default",
+    "noColumns": "This table has no columns.",
+    "noIndexes": "This table has no indexes.",
+    "noForeignKeys": "This table has no foreign keys.",
+    "noDdl": "The server did not return a statement for this table.",
+    "copy": "Copy",
+    "column": {
+      "name": "Name",
+      "type": "Type",
+      "nullable": "Nullable",
+      "default": "Default",
+      "extra": "Extra",
+      "comment": "Comment"
+    },
+    "index": {
+      "name": "Name",
+      "columns": "Columns",
+      "kind": "Kind"
+    },
+    "foreignKey": {
+      "name": "Name",
+      "columns": "Columns",
+      "references": "References",
+      "onUpdate": "On update",
+      "onDelete": "On delete"
+    }
+  },
+  "grid": {
+    "copyValue": "Copy value",
+    "setNull": "Set NULL",
+    "setDefault": "Set DEFAULT",
+    "loadingValue": "Loading the whole value"
+  },
+  "table": {
+    "grid": "Rows of {{table}}",
+    "loading": "Loading rows",
+    "notLoaded": "The rows could not be loaded.",
+    "empty": "This table has no rows.",
+    "noRows": "No rows",
+    "refresh": "Refresh",
+    "addRow": "Add row",
+    "deleteRows": "Delete selected rows",
+    "unavailable": "{{action}} ({{reason}})",
+    "readOnly": {
+      "connection": "This connection is read only.",
+      "view": "A view cannot be edited.",
+      "noKey": "This table has no primary key or unique key, so its rows cannot be told apart."
+    },
+    "submit": "Submit ({{changes}})",
+    "revert": "Revert",
+    "retry": "Try again",
+    "dismiss": "Dismiss",
+    "conflict": "Change {{number}} ({{row}}) matched no row or more than one, so nothing was saved. Refresh the page and try again.",
+    "queryTime": "Query time",
+    "elapsed": "{{value}} ms",
+    "range": "Rows {{from}} to {{to}}",
+    "total": "of {{total}}",
+    "totalAtLeast": "of {{total}}+",
+    "count": "Count rows",
+    "pageSize": "Rows per page",
+    "perPage": "{{size}} rows",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "discard": {
+      "title": "Discard the pending changes?",
+      "description": "The changes you have not submitted are lost when the page changes.",
+      "confirm": "Discard changes"
+    }
+  },
+  "console": {
+    "editor": "SQL",
+    "placeholder": "SELECT * FROM users;",
+    "run": "Run",
+    "cancel": "Cancel",
+    "running": "Running",
+    "cancelled": "The statement was cancelled.",
+    "result": "Result",
+    "noRows": "The statement returned no rows.",
+    "rows": "Rows: {{rows}}",
+    "hasMore": "More rows exist but are not shown.",
+    "elapsed": "{{value}} ms",
+    "sqlState": "SQLSTATE {{state}}",
+    "affected_one": "{{formatted}} row affected",
+    "affected_other": "{{formatted}} rows affected",
+    "lastInsertId": "Last insert id: {{id}}"
+  }
+}

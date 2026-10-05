@@ -1,0 +1,4 @@
+{
+  "request": { "id": "r8", "method": "close", "params": { "session": "s1" } },
+  "response": { "id": "r8", "ok": true, "result": null }
+}
