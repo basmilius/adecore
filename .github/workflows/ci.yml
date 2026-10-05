@@ -13,9 +13,38 @@ permissions:
   contents: read
 
 jobs:
+  # The helper takes minutes to build, so it only builds when the push or the pull request touched it or what speaks to it.
+  changes:
+    runs-on: ubuntu-latest
+    name: 🔎 What changed
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      helper: ${{ steps.filter.outputs.helper }}
+    steps:
+      - name: 👀 Checkout
+        uses: actions/checkout@v6
+
+      - name: 🔎 Filter the paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            helper:
+              - 'packages/database/helper/**'
+              - 'packages/database/fixtures/**'
+              - 'packages/database/src/protocol/**'
+              - 'packages/database/src/host/**'
+              - 'packages/database/src/client/**'
+              - 'packages/database/src/ddl/**'
+              - 'packages/database/src/helper.integration.test.ts'
+              - '.github/workflows/ci.yml'
+
   check:
     runs-on: ubuntu-latest
     name: ✅ Check, test and build
+    needs: changes
     steps:
       - name: 👀 Checkout
         uses: actions/checkout@v6
@@ -31,16 +60,19 @@ jobs:
       - name: 🔍 Check
         run: bun run check
 
+      # The tests that run the page, the host and the helper together need the helper built; without it they skip.
       - name: 🦀 Setup Rust
+        if: needs.changes.outputs.helper == 'true'
         uses: dtolnay/rust-toolchain@stable
 
       - name: 💾 Cache cargo
+        if: needs.changes.outputs.helper == 'true'
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: packages/database/helper
 
-      # The tests that run the page, the host and the helper together need the helper built.
       - name: 🦀 Build the database helper
+        if: needs.changes.outputs.helper == 'true'
         run: bun run --cwd packages/database helper:build
 
       - name: 🧪 Test
@@ -57,6 +89,8 @@ jobs:
   helper:
     runs-on: ubuntu-latest
     name: 🦀 Database helper
+    needs: changes
+    if: needs.changes.outputs.helper == 'true'
     services:
       mariadb:
         image: mariadb:11
