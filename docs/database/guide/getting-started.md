@@ -26,7 +26,7 @@ Set up [`@adecore/ui`](/ui/guide/getting-started) first. The views are made of i
 
 ## The helper
 
-The helper is a Rust program, `adecore-database`, that holds the database drivers. The install brings a prebuilt one: `@adecore/database` lists a package per platform as an optional dependency (`@adecore/database-darwin-arm64`, `-darwin-x64`, `-linux-x64`, `-linux-arm64` and `-win32-x64`), and the package manager installs the one that fits the machine. `helperPath()` from the host entry point returns the path of its binary.
+The helper is a Rust program, `adecore-database`, that holds the database drivers. The install brings a prebuilt one: `@adecore/database` lists a package per platform as an optional dependency (`@adecore/database-darwin-arm64` for Apple silicon, `-linux-x64`, `-linux-arm64` and `-win32-x64`), and the package manager installs the one that fits the machine. `helperPath()` from the host entry point returns the path of its binary.
 
 ```ts
 import { createDatabaseHost, helperPath, spawnHelper } from '@adecore/database/host';

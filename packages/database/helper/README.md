@@ -40,7 +40,6 @@ The release workflow builds the binary on a runner of each platform (`cargo buil
 | Package | Target |
 | --- | --- |
 | `database-darwin-arm64` | `aarch64-apple-darwin` |
-| `database-darwin-x64` | `x86_64-apple-darwin` |
 | `database-linux-x64` | `x86_64-unknown-linux-gnu` |
 | `database-linux-arm64` | `aarch64-unknown-linux-gnu` |
 | `database-win32-x64` | `x86_64-pc-windows-msvc` |

@@ -37,10 +37,6 @@ jobs:
             os: macos-14
             target: aarch64-apple-darwin
             binary: adecore-database
-          - package: database-darwin-x64
-            os: macos-14
-            target: x86_64-apple-darwin
-            binary: adecore-database
           - package: database-linux-x64
             os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu

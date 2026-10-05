@@ -84,7 +84,6 @@
       },
       "optionalDependencies": {
         "@adecore/database-darwin-arm64": "0.0.0",
-        "@adecore/database-darwin-x64": "0.0.0",
         "@adecore/database-linux-arm64": "0.0.0",
         "@adecore/database-linux-x64": "0.0.0",
         "@adecore/database-win32-x64": "0.0.0",
@@ -99,10 +98,6 @@
     },
     "packages/database-darwin-arm64": {
       "name": "@adecore/database-darwin-arm64",
-      "version": "0.0.0",
-    },
-    "packages/database-darwin-x64": {
-      "name": "@adecore/database-darwin-x64",
       "version": "0.0.0",
     },
     "packages/database-linux-arm64": {
@@ -200,8 +195,6 @@
     "@adecore/database": ["@adecore/database@workspace:packages/database"],
 
     "@adecore/database-darwin-arm64": ["@adecore/database-darwin-arm64@workspace:packages/database-darwin-arm64"],
-
-    "@adecore/database-darwin-x64": ["@adecore/database-darwin-x64@workspace:packages/database-darwin-x64"],
 
     "@adecore/database-linux-arm64": ["@adecore/database-linux-arm64@workspace:packages/database-linux-arm64"],
 

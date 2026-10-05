@@ -17,7 +17,7 @@ describe('helperPath', () => {
     test('asks for the package named after the platform and architecture', () => {
         const asked: string[] = [];
         find(
-            'darwin',
+            'linux',
             'x64',
             (specifier) => {
                 asked.push(specifier);
@@ -25,7 +25,7 @@ describe('helperPath', () => {
             },
             present
         );
-        expect(asked).toEqual(['@adecore/database-darwin-x64/package.json']);
+        expect(asked).toEqual(['@adecore/database-linux-x64/package.json']);
     });
 
     test('adds .exe on Windows', () => {

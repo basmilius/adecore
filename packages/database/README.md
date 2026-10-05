@@ -107,7 +107,7 @@ The words live in the `database` namespace, in English and Dutch. `DatabaseProvi
 
 ## The helper binary
 
-The helper is a Rust program that holds the database drivers, so a crashing driver cannot take the backend down. The install brings a prebuilt one: `@adecore/database` lists a package per platform as an optional dependency (`@adecore/database-darwin-arm64`, `-darwin-x64`, `-linux-x64`, `-linux-arm64` and `-win32-x64`), and the package manager installs the one that fits the machine. `helperPath()` returns its path, or `null` when the platform has no package or optional dependencies were left out.
+The helper is a Rust program that holds the database drivers, so a crashing driver cannot take the backend down. The install brings a prebuilt one: `@adecore/database` lists a package per platform as an optional dependency (`@adecore/database-darwin-arm64` for Apple silicon, `-linux-x64`, `-linux-arm64` and `-win32-x64`), and the package manager installs the one that fits the machine. `helperPath()` returns its path, or `null` when the platform has no package or optional dependencies were left out.
 
 ```ts
 import { createDatabaseHost, helperPath, spawnHelper } from '@adecore/database/host';

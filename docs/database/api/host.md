@@ -97,7 +97,7 @@ Lines are cut at `\n`, and a trailing `\r` is dropped. A line can be megabytes, 
 const path = helperPath();
 ```
 
-Finds the prebuilt helper that the package manager installed for this machine. `@adecore/database` lists one package per platform as an optional dependency (`@adecore/database-darwin-arm64`, `-darwin-x64`, `-linux-x64`, `-linux-arm64` and `-win32-x64`), and the manager installs the one that fits. `helperPath` returns the path of its binary, or `null` when the platform has no package or the install left optional dependencies out.
+Finds the prebuilt helper that the package manager installed for this machine. `@adecore/database` lists one package per platform as an optional dependency (`@adecore/database-darwin-arm64` for Apple silicon, `-linux-x64`, `-linux-arm64` and `-win32-x64`), and the manager installs the one that fits. `helperPath` returns the path of its binary, or `null` when the platform has no package or the install left optional dependencies out.
 
 ```ts
 const path = helperPath();

@@ -63,7 +63,6 @@
   },
   "optionalDependencies": {
     "@adecore/database-darwin-arm64": "0.0.0",
-    "@adecore/database-darwin-x64": "0.0.0",
     "@adecore/database-linux-arm64": "0.0.0",
     "@adecore/database-linux-x64": "0.0.0",
     "@adecore/database-win32-x64": "0.0.0"
