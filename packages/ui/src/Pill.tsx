@@ -1,20 +1,24 @@
 import type { ReactNode, Ref } from 'react';
 import clsx from 'clsx';
 
-/* What the label says about the thing it names, drawn as its ground. */
+/*
+ * What the label says about the thing it names, drawn as its ground. Every ground is an alpha over
+ * whatever the pill stands on, the way a border is: in the dark theme it lifts a shade off the row
+ * under it, in the light theme it sinks one. A solid sunken ground read as a hole on a dark row.
+ */
 const TONES = {
-    muted: 'bg-surface-sunken text-text-muted',
-    /* Lifted off a sunken header, for a label that should stand out as a control. */
-    raised: 'bg-surface-active text-text-muted',
+    muted: 'bg-text/7 text-text-muted',
+    /* A step further off the ground, for a label that should stand out as a control. */
+    raised: 'bg-text/12 text-text-muted',
     idle: 'bg-status-idle/15 text-status-idle',
     needsYou: 'bg-status-needs-you/15 text-status-needs-you',
     error: 'bg-status-error/15 text-status-error',
-    accent: 'bg-accent-soft text-accent'
+    accent: 'bg-accent/16 text-accent'
 };
 
-/* A pill rides in a header or a row; a tag sits at the end of a line of prose, tighter and bolder. */
+/* The corners of a button, so a pill reads as a small label of the same family and not as a badge. A tag, at the end of a line of prose, is tighter and heavier. */
 const SHAPES = {
-    pill: 'rounded-full px-2 py-0.5',
+    pill: 'rounded-md px-2 py-0.5',
     tag: 'rounded-md px-1.5 py-0.5 font-medium'
 };
 
@@ -36,7 +40,8 @@ export interface PillProps {
 
 /* The small rounded label in a header, a sidebar row or a settings line: a count, a branch, a status. */
 export function Pill({ icon, children, tone = 'muted', shape = 'pill', mono = false, onClick, pressed, disabled, className, ref }: PillProps) {
-    const shared = clsx('inline-flex shrink-0 items-center gap-1 text-xs', SHAPES[shape], TONES[tone], mono && 'font-mono', className);
+    // Never broken inside itself: in a row that wraps, a pill that does not fit moves to the next line whole.
+    const shared = clsx('inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-2xs', SHAPES[shape], TONES[tone], mono && 'font-mono', className);
     if (!onClick) {
         return (
             <span ref={ref} className={shared}>
@@ -51,7 +56,7 @@ export function Pill({ icon, children, tone = 'muted', shape = 'pill', mono = fa
             type="button"
             aria-pressed={pressed}
             disabled={disabled}
-            className={clsx(shared, 'enabled:hover:text-text disabled:opacity-50 aria-pressed:bg-surface-active aria-pressed:text-text')}
+            className={clsx(shared, 'enabled:hover:text-text disabled:opacity-50 aria-pressed:bg-text/14 aria-pressed:text-text')}
             onClick={onClick}
         >
             {icon}

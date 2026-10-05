@@ -62,6 +62,8 @@ Whole numbers in one place, so a new popup cannot guess where it goes. A dialog 
 
 The sizes are rem, rounded to whole pixels, against the font size your app sets on `<html>`. 15px reads well in a desktop app. Code keeps an absolute size.
 
+`2xs` (12px at a 15px root) is only for a small label inside a row of `xs`, such as a [`Pill`](/ui/actions/pill). Nothing in the theme goes below it.
+
 <TokenTable group="type" />
 
 <TokenTable group="leading" />

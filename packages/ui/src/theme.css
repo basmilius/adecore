@@ -154,6 +154,9 @@
     /* No default palette: a component reaches only the semantic colors below. */
     --color-*: initial;
     --spacing: round(0.25rem, 1px);
+    /* Only for a label that rides in a row of `xs`, such as a pill: 12px, the smallest the theme sets. */
+    --text-2xs: round(0.8rem, 1px);
+    --text-2xs--line-height: round(1.25rem, 1px);
     --text-xs: round(0.875rem, 1px);
     --text-xs--line-height: round(1.25rem, 1px);
     --text-sm: round(0.9375rem, 1px);
