@@ -6,7 +6,7 @@ import { Tabs as BaseTabs } from '@base-ui-components/react/tabs';
 import { useRender } from '@base-ui-components/react/use-render';
 import { withClass } from '../class-name.ts';
 import { formatNumber } from '../format/number.ts';
-import { IconButton } from '../IconButton.tsx';
+import { Icon } from '../Icon.tsx';
 import { MenuItem, MenuPopup, MenuRoot, MenuTrigger } from '../menu/parts.tsx';
 import { shownTabs } from './overflow.ts';
 
@@ -25,6 +25,9 @@ const InMenuContext = createContext(false);
 /* The underline sits over the strip's border rather than above it, without a negative margin that would make the strip scroll. */
 const TAB =
     'relative flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap text-xs font-medium text-text-muted hover:text-text data-[active]:text-text data-[disabled]:opacity-50 after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 data-[active]:after:bg-text';
+
+/* The button that opens the tabs that do not fit reads as one more tab, at the very end of the strip. */
+const MORE = clsx(TAB, 'ml-auto data-[popup-open]:text-text');
 
 export type TabsRootProps = Omit<ComponentProps<typeof BaseTabs.Root>, 'onValueChange'> & {
     onValueChange?(value: TabsValue): void;
@@ -103,7 +106,10 @@ export function TabsList({ className, children, ...props }: TabsListProps) {
             </BaseTabs.List>
             {hidden.length > 0 && (
                 <MenuRoot>
-                    <IconButton icon={ChevronDown} size="xs" label={t('tabs.more')} className="ml-auto" render={<MenuTrigger />} />
+                    <MenuTrigger className={MORE}>
+                        {t('tabs.more')}
+                        <Icon icon={ChevronDown} size={14} />
+                    </MenuTrigger>
                     <MenuPopup align="end" className="min-w-48">
                         <InMenuContext value>
                             {hidden.map((tab) => (
@@ -121,7 +127,10 @@ export function TabsList({ className, children, ...props }: TabsListProps) {
                         {tab.props.children}
                     </span>
                 ))}
-                <span className="icon-btn icon-btn-xs" />
+                <span className={MORE}>
+                    {t('tabs.more')}
+                    <Icon icon={ChevronDown} size={14} />
+                </span>
             </div>
         </div>
     );

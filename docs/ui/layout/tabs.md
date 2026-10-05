@@ -36,7 +36,7 @@ The picked tab is underlined over the strip's border, the others are muted. The 
 
 ## Tabs that do not fit
 
-The strip never scrolls or wraps. It shows the tabs that fit from the start, and a chevron at its end opens a menu with the rest, each with its icon and its count. Picking one there makes it the picked tab. The picked tab always stays in the strip: when it is one that would not fit, it takes the place of the last tab before the chevron. The demo below puts eight views in a pane too narrow for them; drag its corner to make it wider.
+The strip never scrolls or wraps. It shows the tabs that fit from the start, and "More" at its end opens a menu with the rest, each with its icon and its count. Picking one there makes it the picked tab. The picked tab always stays in the strip: when it is one that would not fit, it takes the place of the last tab before "More". The demo below puts eight views in a pane too narrow for them; drag its corner to make it wider.
 
 <Demo src="layout/tabs-overflow" />
 
