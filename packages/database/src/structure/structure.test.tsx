@@ -4,7 +4,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import i18next from 'i18next';
 import { UIProvider } from '@adecore/ui';
 import { DatabaseProvider } from '../DatabaseProvider.tsx';
-import type { Connection, DatabaseClient } from '../client/types.ts';
+import type { Connection } from '../client/types.ts';
+import { stubClient } from '../testing/stub.ts';
 import type { TableStructure } from '../protocol/index.ts';
 import { StructureTabs, StructureView } from './StructureView.tsx';
 import { referenceOf } from './structure-text.ts';
@@ -12,14 +13,7 @@ import { referenceOf } from './structure-text.ts';
 const i18n = i18next.createInstance();
 await i18n.init({ lng: 'en', fallbackLng: 'en', resources: {}, interpolation: { escapeValue: false } });
 
-const client: DatabaseClient = {
-    test: () => Promise.reject(new Error('stub')),
-    session: () => {
-        throw new Error('stub');
-    },
-    disconnect: () => Promise.resolve(),
-    dispose: () => Promise.resolve()
-};
+const client = stubClient();
 
 const render = (node: ReactNode): string =>
     renderToStaticMarkup(

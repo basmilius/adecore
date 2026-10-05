@@ -1,0 +1,18 @@
+{
+  "request": {
+    "id": "r10",
+    "method": "open",
+    "params": {
+      "connection": {
+        "engine": "mysql",
+        "host": "127.0.0.1",
+        "port": 3306,
+        "user": "app",
+        "password": "secret",
+        "database": "shop",
+        "tunnel": { "kind": "ssh", "host": "production", "port": 22, "user": "deploy", "identityFile": "/Users/demo/.ssh/id_ed25519" }
+      }
+    }
+  },
+  "response": { "id": "r10", "ok": false, "error": { "code": "tunnel-failed", "message": "ssh: Could not resolve hostname production: nodename nor servname provided, or not known" } }
+}

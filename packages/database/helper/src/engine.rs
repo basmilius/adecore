@@ -110,6 +110,34 @@ impl Engine {
         }
     }
 
+    pub async fn page(&mut self, params: PageParams) -> Result<RowsResult> {
+        match self {
+            Engine::Sqlite(engine) => engine.page(params).await,
+            Engine::Mysql(engine) => engine.page(params).await,
+        }
+    }
+
+    pub async fn transaction(&mut self, params: TransactionParams) -> Result<TransactionResult> {
+        match self {
+            Engine::Sqlite(engine) => engine.transaction(params.action).await,
+            Engine::Mysql(engine) => engine.transaction(params.action).await,
+        }
+    }
+
+    pub async fn export(&mut self, params: ExportParams, cancelled: Arc<AtomicBool>) -> Result<ExportResult> {
+        match self {
+            Engine::Sqlite(engine) => engine.export(params, cancelled).await,
+            Engine::Mysql(engine) => engine.export(params, cancelled).await,
+        }
+    }
+
+    pub async fn import(&mut self, params: ImportParams, cancelled: Arc<AtomicBool>) -> Result<ImportResult> {
+        match self {
+            Engine::Sqlite(engine) => engine.import(params, cancelled).await,
+            Engine::Mysql(engine) => engine.import(params, cancelled).await,
+        }
+    }
+
     pub async fn close(self) {
         match self {
             Engine::Sqlite(engine) => engine.close().await,

@@ -4,21 +4,15 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import i18next from 'i18next';
 import { UIProvider } from '@adecore/ui';
 import { DatabaseProvider } from '../DatabaseProvider.tsx';
-import type { Connection, DatabaseClient } from '../client/types.ts';
+import type { Connection } from '../client/types.ts';
+import { stubClient } from '../testing/stub.ts';
 import { ConnectionForm } from './ConnectionForm.tsx';
 import { ConnectionManager } from './ConnectionManager.tsx';
 
 const i18n = i18next.createInstance();
 await i18n.init({ lng: 'en', fallbackLng: 'en', resources: {}, interpolation: { escapeValue: false } });
 
-const client: DatabaseClient = {
-    test: () => Promise.reject(new Error('stub')),
-    session: () => {
-        throw new Error('stub');
-    },
-    disconnect: () => Promise.resolve(),
-    dispose: () => Promise.resolve()
-};
+const client = stubClient();
 
 const render = (node: ReactNode): string =>
     renderToStaticMarkup(
@@ -71,6 +65,93 @@ describe('ConnectionForm', () => {
         expect(markup).toContain('The port is a number from 1 to 65535.');
     });
 
+    test('offers the four ways to connect, TCP first, and shows no socket field in TCP mode', () => {
+        const markup = render(<ConnectionForm value={mysql} onValueChange={() => undefined} />);
+        expect(markup).toContain('Connect through');
+        for (const label of ['TCP', 'Socket', 'SSH', 'Docker']) {
+            expect(markup).toContain(`>${label}</button>`);
+        }
+        expect(markup).toContain('aria-checked="true"');
+        expect(markup).not.toContain('/tmp/mysql.sock');
+        expect(markup).not.toContain('SSH host');
+    });
+
+    test('shows the socket path in socket mode and no host', () => {
+        const markup = render(
+            <ConnectionForm
+                value={{ ...mysql, config: { ...mysql.config, socket: '/tmp/mysql.sock' } as Connection['config'] }}
+                onValueChange={() => undefined}
+            />
+        );
+        expect(markup).toContain('value="/tmp/mysql.sock"');
+        expect(markup).not.toContain('value="db.test"');
+        expect(markup).not.toContain('SSH host');
+    });
+
+    test('asks for the socket once the person has typed some of it', () => {
+        const markup = render(
+            <ConnectionForm value={{ ...mysql, config: { ...mysql.config, socket: '' } as Connection['config'] }} onValueChange={() => undefined} />
+        );
+        expect(markup).toContain('placeholder="/tmp/mysql.sock"');
+        expect(markup).not.toContain('Enter the path of the socket.');
+    });
+
+    const viaSsh: Connection = {
+        ...mysql,
+        config: {
+            engine: 'mysql',
+            host: '127.0.0.1',
+            port: 3306,
+            user: 'root',
+            tunnel: { kind: 'ssh', host: 'bastion', port: 2222, user: 'deploy', identityFile: '~/.ssh/id_ed25519' }
+        }
+    };
+
+    test('shows the SSH host, port, user and key beside the server it reaches', () => {
+        const markup = render(<ConnectionForm value={viaSsh} onValueChange={() => undefined} />);
+        expect(markup).toContain('SSH host');
+        expect(markup).toContain('value="bastion"');
+        expect(markup).toContain('value="2222"');
+        expect(markup).toContain('value="deploy"');
+        expect(markup).toContain('value="~/.ssh/id_ed25519"');
+        expect(markup).toContain('Server host');
+        expect(markup).toContain('value="127.0.0.1"');
+        expect(markup).toContain('A key or the SSH agent has to answer.');
+        expect(markup).not.toContain('Browse');
+    });
+
+    test('browses for the key of an SSH tunnel when the app can open a file dialog', () => {
+        expect(render(<ConnectionForm value={viaSsh} onValueChange={() => undefined} onBrowse={() => Promise.resolve(null)} />)).toContain('Browse');
+    });
+
+    test('says why an SSH host that was left empty is no good', () => {
+        const bad: Connection = { ...viaSsh, config: { ...viaSsh.config, tunnel: { kind: 'ssh', host: '', port: 99999 } } as Connection['config'] };
+        const markup = render(<ConnectionForm value={bad} onValueChange={() => undefined} />);
+        expect(markup).toContain('The SSH port is a number from 1 to 65535.');
+        expect(markup).not.toContain('Enter the SSH host.');
+    });
+
+    const viaDocker: Connection = {
+        ...mysql,
+        config: { engine: 'mysql', host: '127.0.0.1', user: 'app', tunnel: { kind: 'docker', container: 'shop-db-1', port: 3307 } }
+    };
+
+    test('shows the container, its refresh button and the port inside it, and no host', () => {
+        const markup = render(<ConnectionForm value={viaDocker} onValueChange={() => undefined} />);
+        expect(markup).toContain('Container');
+        expect(markup).toContain('Container port');
+        expect(markup).toContain('value="3307"');
+        expect(markup).toContain('aria-label="Look for containers again"');
+        expect(markup).toContain('Looking for containers');
+        expect(markup).not.toContain('SSH host');
+        expect(markup).not.toContain('>Host<');
+    });
+
+    test('asks for a container before one is picked', () => {
+        const none: Connection = { ...viaDocker, config: { ...viaDocker.config, tunnel: { kind: 'docker', container: '' } } as Connection['config'] };
+        expect(render(<ConnectionForm value={none} onValueChange={() => undefined} />)).toContain('Pick a container');
+    });
+
     test('takes a class name and keeps one root', () => {
         expect(render(<ConnectionForm value={sqlite} onValueChange={() => undefined} className="extra" />)).toContain('class="flex flex-col gap-4 extra"');
     });
@@ -88,6 +169,22 @@ describe('ConnectionManager', () => {
     test('shows the connection it is told to select', () => {
         const markup = render(<ConnectionManager value={[sqlite, mysql]} selected="two" onValueChange={() => undefined} />);
         expect(markup).toContain('value="db.test"');
+    });
+
+    test('names a connection through SSH or Docker by where it ends up', () => {
+        const viaSsh: Connection = {
+            id: 'three',
+            name: 'Staging',
+            config: { engine: 'mysql', host: '127.0.0.1', user: 'root', tunnel: { kind: 'ssh', host: 'bastion' } }
+        };
+        const viaDocker: Connection = {
+            id: 'four',
+            name: 'Local',
+            config: { engine: 'mysql', host: '127.0.0.1', user: 'app', tunnel: { kind: 'docker', container: 'shop-db-1' } }
+        };
+        const markup = render(<ConnectionManager value={[viaSsh, viaDocker]} onValueChange={() => undefined} />);
+        expect(markup).toContain('root@127.0.0.1 via bastion');
+        expect(markup).toContain('app@shop-db-1 (Docker)');
     });
 
     test('says there is nothing yet, and still offers a new connection', () => {

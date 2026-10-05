@@ -1,23 +1,22 @@
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Settings2 } from 'lucide-react';
-import { ConnectionManager, DatabaseExplorer, type Connection, type TableRef } from '@adecore/database';
+import { ConnectionManager, DatabaseExplorer, type Connection, type ExplorerSelection } from '@adecore/database';
 import { Button, ColumnResizeHandle, Dialog, IconButton, useColumnResize } from '@adecore/ui';
 
 export interface SidebarProps {
     connections: readonly Connection[];
     onConnectionsChange(next: readonly Connection[]): void;
     onBrowse(): Promise<string | null>;
-    selected: TableRef | null;
-    onSelectedChange(ref: TableRef | null): void;
-    onOpenTable(ref: TableRef): void;
+    selected: ExplorerSelection | null;
+    onSelectedChange(selection: ExplorerSelection | null): void;
 }
 
 const DEFAULT_WIDTH = 280;
 const MIN_WIDTH = 200;
 
 /* The explorer under a header, on a column the pointer can resize. */
-export function Sidebar({ connections, onConnectionsChange, onBrowse, selected, onSelectedChange, onOpenTable }: SidebarProps) {
+export function Sidebar({ connections, onConnectionsChange, onBrowse, selected, onSelectedChange }: SidebarProps) {
     const { t } = useTranslation();
     const column = useRef<HTMLElement>(null);
     const [width, setWidth] = useState(DEFAULT_WIDTH);
@@ -36,13 +35,7 @@ export function Sidebar({ connections, onConnectionsChange, onBrowse, selected, 
                 <h1 className="text-sm font-semibold text-text">{t('sidebar.title')}</h1>
                 <IconButton icon={Settings2} size="sm" label={t('sidebar.manage')} onClick={() => setManaging(true)} />
             </header>
-            <DatabaseExplorer
-                connections={connections}
-                value={selected}
-                onValueChange={onSelectedChange}
-                onOpen={onOpenTable}
-                className="min-h-0 flex-1"
-            />
+            <DatabaseExplorer connections={connections} value={selected} onValueChange={onSelectedChange} className="min-h-0 flex-1" />
             <ColumnResizeHandle from="left" onPointerDown={startResize} />
             <Dialog.Root open={managing} onOpenChange={setManaging}>
                 <Dialog.Popup className="flex h-[560px] w-[900px] flex-col overflow-hidden">

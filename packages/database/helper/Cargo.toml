@@ -21,7 +21,8 @@ rusqlite = { version = "0.40", features = ["bundled", "column_decltype"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 indexmap = { version = "2", features = ["serde"] }
-tokio = { version = "1", features = ["rt-multi-thread", "io-std", "io-util", "sync", "macros", "time"] }
+tokio = { version = "1", features = ["rt-multi-thread", "io-std", "io-util", "sync", "macros", "time", "process", "net", "fs", "rt"] }
+csv = "1"
 
 [dev-dependencies]
 tempfile = "3"

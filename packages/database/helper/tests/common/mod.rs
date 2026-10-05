@@ -56,3 +56,5 @@ impl Client {
         result["session"].as_str().expect("a session id").to_string()
     }
 }
+
+pub mod scenarios;

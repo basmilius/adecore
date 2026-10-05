@@ -387,6 +387,168 @@ describe('authorize', () => {
     });
 });
 
+const file = (method: 'export' | 'import' | 'sample', session: string, path = '/tmp/a.csv') => {
+    const params = {
+        export: { session, source: { kind: 'query', sql: 'SELECT 1' }, format: 'csv', path },
+        import: { session, schema: 'main', table: 't', path, format: 'csv', header: true, columns: ['a'] },
+        sample: { path, format: 'csv', header: true }
+    };
+    return { id: `f-${method}`, method, params: params[method] };
+};
+
+describe('the new session methods', () => {
+    const page = (session: string) => ({ id: 'p1', method: 'page', params: { session, sql: 'SELECT 1', offset: 0, limit: 1 } });
+    const transaction = (session: string) => ({ id: 't1', method: 'transaction', params: { session, action: 'begin' } });
+
+    test('belong to the owner that opened the session, without reaching the helper', async () => {
+        const { host, helpers } = harness({ authorizeFile: () => true });
+        const session = sessionOf(await host.handle(open('r1'), 'a'));
+        const before = helpers[0]!.written.length;
+
+        for (const request of [page(session), transaction(session), file('export', session), file('import', session)]) {
+            expect(errorCode(await host.handle(request, 'b'))).toBe('unknown-session');
+            expect(errorCode(await host.handle({ ...request, params: { ...request.params, session: 'never-opened' } }, 'a'))).toBe('unknown-session');
+        }
+
+        expect(helpers[0]!.written).toHaveLength(before);
+
+        for (const request of [page(session), transaction(session), file('export', session), file('import', session)]) {
+            expect((await host.handle(request, 'a')).ok).toBe(true);
+        }
+    });
+
+    test('forward sample and discover without a session', async () => {
+        const { host, helpers } = harness({ authorizeFile: () => true });
+        expect((await host.handle(file('sample', ''), 'a')).ok).toBe(true);
+        expect((await host.handle({ id: 'd1', method: 'discover', params: { kind: 'docker', context: 'desktop' } }, 'a')).ok).toBe(true);
+        expect(helpers[0]!.written.map(({ method, params }) => [method, params])).toEqual([
+            ['sample', { path: '/tmp/a.csv', format: 'csv', header: true }],
+            ['discover', { kind: 'docker', context: 'desktop' }]
+        ]);
+    });
+});
+
+describe('authorizeFile', () => {
+    test('is asked for the path, the access and the owner', async () => {
+        const asked: unknown[] = [];
+        const { host } = harness({
+            authorizeFile: (path, access, owner) => {
+                asked.push([path, access, owner]);
+                return true;
+            }
+        });
+        const session = sessionOf(await host.handle(open('r1'), 'a'));
+
+        for (const method of ['export', 'import', 'sample'] as const) {
+            expect((await host.handle(file(method, session, `/tmp/${method}.csv`), 'a')).ok).toBe(true);
+        }
+
+        expect(asked).toEqual([
+            ['/tmp/export.csv', 'write', 'a'],
+            ['/tmp/import.csv', 'read', 'a'],
+            ['/tmp/sample.csv', 'read', 'a']
+        ]);
+    });
+
+    test('answers forbidden for every file request when it is left out', async () => {
+        const { host, helpers } = harness();
+        const session = sessionOf(await host.handle(open('r1'), 'a'));
+        const before = helpers[0]!.written.length;
+
+        for (const method of ['export', 'import', 'sample'] as const) {
+            expect(errorCode(await host.handle(file(method, session), 'a'))).toBe('forbidden');
+        }
+
+        expect(helpers[0]!.written).toHaveLength(before);
+    });
+
+    test('answers forbidden when it says no or throws, and lets a path it allows through', async () => {
+        for (const authorizeFile of [
+            () => false,
+            () => Promise.resolve(false),
+            () => {
+                throw new Error('no');
+            },
+            () => Promise.reject(new Error('no'))
+        ]) {
+            const { host, helpers } = harness({ authorizeFile });
+            const session = sessionOf(await host.handle(open('r1'), 'a'));
+            const before = helpers[0]!.written.length;
+            expect(errorCode(await host.handle(file('export', session), 'a'))).toBe('forbidden');
+            expect(helpers[0]!.written).toHaveLength(before);
+        }
+
+        const { host } = harness({ authorizeFile: (path) => path.startsWith('/allowed/') });
+        const session = sessionOf(await host.handle(open('r1'), 'a'));
+        expect(errorCode(await host.handle(file('import', session, '/etc/passwd'), 'a'))).toBe('forbidden');
+        expect((await host.handle(file('import', session, '/allowed/a.csv'), 'a')).ok).toBe(true);
+    });
+
+    test("is not asked for another owner's session", async () => {
+        let asked = 0;
+        const { host } = harness({
+            authorizeFile: () => {
+                asked++;
+                return true;
+            }
+        });
+        const session = sessionOf(await host.handle(open('r1'), 'a'));
+        expect(errorCode(await host.handle(file('export', session), 'b'))).toBe('unknown-session');
+        expect(asked).toBe(0);
+    });
+});
+
+describe('authorizeDiscovery', () => {
+    const discover = { id: 'd1', method: 'discover', params: { kind: 'docker' } };
+
+    test('allows discover when it is left out', async () => {
+        const { host } = harness();
+        expect((await host.handle(discover, 'a')).ok).toBe(true);
+    });
+
+    test('is asked for the kind and the owner', async () => {
+        const asked: unknown[] = [];
+        const { host } = harness({
+            authorizeDiscovery: (kind, owner) => {
+                asked.push([kind, owner]);
+                return true;
+            }
+        });
+        await host.handle(discover, 'a');
+        expect(asked).toEqual([['docker', 'a']]);
+    });
+
+    test('answers forbidden, without starting a helper, when it says no or throws', async () => {
+        for (const authorizeDiscovery of [
+            () => false,
+            () => Promise.resolve(false),
+            () => {
+                throw new Error('no');
+            }
+        ]) {
+            const { host, helpers } = harness({ authorizeDiscovery });
+            expect(errorCode(await host.handle(discover, 'a'))).toBe('forbidden');
+            expect(helpers).toHaveLength(0);
+        }
+    });
+});
+
+describe('authorize and tunnels', () => {
+    test('still decides on a connection with a tunnel', async () => {
+        const seen: unknown[] = [];
+        const { host } = harness({
+            authorize: (connection) => {
+                seen.push(connection);
+                return false;
+            }
+        });
+        const connection = { engine: 'mysql', host: '', user: 'root', tunnel: { kind: 'docker', container: 'db' } };
+        expect(errorCode(await host.handle({ id: 'r1', method: 'open', params: { connection } }, 'a'))).toBe('forbidden');
+        expect(errorCode(await host.handle({ id: 'r2', method: 'test', params: { connection } }, 'a'))).toBe('forbidden');
+        expect(seen).toEqual([connection, connection]);
+    });
+});
+
 describe('the helper exits', () => {
     test('fails every pending request and forgets the sessions', async () => {
         const { host, helpers } = harness({ hold: ['rows'] });

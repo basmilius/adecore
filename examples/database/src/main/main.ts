@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { app, BrowserWindow, dialog, ipcMain, session, type IpcMainInvokeEvent } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, session, type FileFilter, type IpcMainInvokeEvent } from 'electron';
 import { createDatabaseHost, spawnHelper } from '@adecore/database/host';
 import { CHANNELS } from '../shared/bridge.ts';
 import { ensureDemoDatabase } from './demo.ts';
@@ -13,8 +13,19 @@ const helperPath =
     process.env.ADECORE_DATABASE_HELPER ??
     resolve(appPath, '../../packages/database/helper/target/release', process.platform === 'win32' ? 'adecore-database.exe' : 'adecore-database');
 
+/* The files the page may export to or import from: only those a dialog returned in this run, never a path the page names itself. */
+const granted = { read: new Set<string>(), write: new Set<string>() };
+
+const FORMAT_FILTERS: Readonly<Record<string, FileFilter>> = {
+    csv: { name: 'CSV', extensions: ['csv'] },
+    tsv: { name: 'TSV', extensions: ['tsv'] },
+    json: { name: 'JSON', extensions: ['json'] },
+    sql: { name: 'SQL', extensions: ['sql'] }
+};
+
 const host = createDatabaseHost({
-    start: () => spawnHelper(helperPath, { onLog: (line) => console.error('[helper]', line) })
+    start: () => spawnHelper(helperPath, { onLog: (line) => console.error('[helper]', line) }),
+    authorizeFile: (path, access) => granted[access].has(path)
 });
 
 let mainWindow: BrowserWindow | null = null;
@@ -68,6 +79,38 @@ const registerChannels = (): void => {
         };
         const result = mainWindow ? await dialog.showOpenDialog(mainWindow, options) : await dialog.showOpenDialog(options);
         return result.canceled ? null : (result.filePaths[0] ?? null);
+    });
+
+    ipcMain.handle(CHANNELS.saveFile, async (event, options: unknown) => {
+        assertOwnPage(event);
+        const { suggestedName, format } = (options ?? {}) as { suggestedName?: unknown; format?: unknown };
+        const filter = typeof format === 'string' ? FORMAT_FILTERS[format] : undefined;
+        if (typeof suggestedName !== 'string' || filter === undefined) {
+            throw new Error('Invalid save options.');
+        }
+        const dialogOptions = { defaultPath: basename(suggestedName), filters: [filter] };
+        const result = mainWindow ? await dialog.showSaveDialog(mainWindow, dialogOptions) : await dialog.showSaveDialog(dialogOptions);
+        if (result.canceled || result.filePath === '') {
+            return null;
+        }
+        granted.write.add(result.filePath);
+        return result.filePath;
+    });
+
+    ipcMain.handle(CHANNELS.openFile, async (event, options: unknown) => {
+        assertOwnPage(event);
+        const { formats } = (options ?? {}) as { formats?: unknown };
+        const filters = Array.isArray(formats) ? formats.map((format) => (typeof format === 'string' ? FORMAT_FILTERS[format] : undefined)) : [];
+        if (filters.length === 0 || filters.some((filter) => filter === undefined)) {
+            throw new Error('Invalid open options.');
+        }
+        const dialogOptions = { properties: ['openFile' as const], filters: filters as FileFilter[] };
+        const result = mainWindow ? await dialog.showOpenDialog(mainWindow, dialogOptions) : await dialog.showOpenDialog(dialogOptions);
+        const path = result.canceled ? null : (result.filePaths[0] ?? null);
+        if (path !== null) {
+            granted.read.add(path);
+        }
+        return path;
     });
 
     ipcMain.handle(CHANNELS.demoPath, (event) => {
@@ -126,12 +169,22 @@ app.on('window-all-closed', () => {
     app.quit();
 });
 
+/* The default menu closes the window on Cmd+W before the page hears it, and the workbench uses that key to close a tab. */
+const buildMenu = (): Menu =>
+    Menu.buildFromTemplate([
+        process.platform === 'darwin' ? { role: 'appMenu' } : { label: 'File', submenu: [{ role: 'quit' }] },
+        { role: 'editMenu' },
+        { role: 'viewMenu' },
+        { label: 'Window', submenu: [{ role: 'minimize' }, { role: 'zoom' }] }
+    ]);
+
 void app.whenReady().then(() => {
     if (!existsSync(helperPath)) {
         console.error(`[demo] No helper at ${helperPath}. Run "bun run helper" or set ADECORE_DATABASE_HELPER.`);
     }
 
     session.defaultSession.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
+    Menu.setApplicationMenu(buildMenu());
     registerChannels();
     createWindow();
 });

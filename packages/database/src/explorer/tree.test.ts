@@ -7,9 +7,14 @@ import {
     connectionKey,
     flattenTree,
     folderKey,
+    hasMenu,
+    isSelectable,
     navigate,
     neededLoads,
     schemaKey,
+    selectAllSql,
+    selectionKey,
+    selectionOf,
     tabStop,
     tableKey,
     type Load,
@@ -413,5 +418,55 @@ describe('tabStop', () => {
         expect(tabStop(rows, 'gone', shopTables)).toBe(shopTables);
         expect(tabStop(rows, null, null)).toBe(connectionKey('app'));
         expect(tabStop([], null, null)).toBeNull();
+    });
+});
+
+describe('selecting a row', () => {
+    const rows = flattenTree(
+        inputOf({
+            ...world,
+            expanded: [...openShop, usersKey],
+            structures: { 'app/shop/users': ready(structure('users', [column('id')], ['id'])) }
+        })
+    );
+    const rowOf = (kind: TreeRow['kind']): TreeRow => rows.find((row) => row.kind === kind)!;
+
+    test('gives a connection its id, a schema or a folder its schema, a table or a column its table', () => {
+        expect(selectionOf(rowOf('connection'))).toEqual({ connectionId: 'app' });
+        expect(selectionOf(rowOf('schema'))).toEqual({ connectionId: 'app', schema: 'shop' });
+        expect(selectionOf(rowOf('folder'))).toEqual({ connectionId: 'app', schema: 'shop' });
+        expect(selectionOf(rowOf('table'))).toEqual({ connectionId: 'app', schema: 'shop', table: 'orders' });
+        expect(selectionOf(rowOf('column'))).toEqual({ connectionId: 'app', schema: 'shop', table: 'users' });
+    });
+
+    test('selects nothing on a row that only reports', () => {
+        const loading = flattenTree(inputOf({ ...world, expanded: [connectionKey('app')], schemas: { app: { status: 'loading' } } }));
+        expect(selectionOf(loading.find((row) => row.kind === 'loading')!)).toBeNull();
+    });
+
+    test('has a menu on every row that stands for something, and none on a status row', () => {
+        expect(new Set(rows.filter(hasMenu).map((row) => row.kind))).toEqual(new Set(['connection', 'schema', 'folder', 'table', 'column']));
+        const loading = flattenTree(inputOf({ ...world, expanded: [connectionKey('app')], schemas: { app: { status: 'loading' } } }));
+        expect(loading.filter(hasMenu).map((row) => row.kind)).toEqual(['connection']);
+    });
+
+    test('points a selection at the row of its table, else its schema, else its connection', () => {
+        expect(selectionKey({ connectionId: 'app', schema: 'shop', table: 'users' })).toBe(usersKey);
+        expect(selectionKey({ connectionId: 'app', schema: 'shop' })).toBe(schemaKey('app', 'shop'));
+        expect(selectionKey({ connectionId: 'app' })).toBe(connectionKey('app'));
+    });
+
+    test('draws a connection, a schema and a table selected, and no other row', () => {
+        expect(new Set(rows.filter(isSelectable).map((row) => row.kind))).toEqual(new Set(['connection', 'schema', 'table']));
+        expect(new Set(rows.filter((row) => !isSelectable(row)).map((row) => row.kind))).toEqual(new Set(['folder', 'column']));
+    });
+});
+
+describe('selectAllSql', () => {
+    const ref = { connectionId: 'app', schema: 'shop', table: 'order items' };
+
+    test('quotes the schema and the table the way the engine does', () => {
+        expect(selectAllSql('mysql', ref)).toBe('SELECT * FROM `shop`.`order items`');
+        expect(selectAllSql('sqlite', ref)).toBe('SELECT * FROM "shop"."order items"');
     });
 });

@@ -46,13 +46,19 @@ fn round_trip_result(call: &Call, result: &Value) -> Value {
         Call::Cell(_) => round_trip::<CellResult>(result),
         Call::Apply(_) => round_trip::<ApplyResult>(result),
         Call::Execute(_) => round_trip::<ExecuteResult>(result),
+        Call::Page(_) => round_trip::<RowsResult>(result),
+        Call::Transaction(_) => round_trip::<TransactionResult>(result),
+        Call::Export(_) => round_trip::<ExportResult>(result),
+        Call::Sample(_) => round_trip::<SampleResult>(result),
+        Call::Import(_) => round_trip::<ImportResult>(result),
+        Call::Discover(_) => round_trip::<DiscoverResult>(result),
         Call::Cancel(_) => round_trip::<CancelResult>(result),
     }
 }
 
 #[test]
 fn every_fixture_is_read() {
-    assert!(fixtures().len() >= 9);
+    assert!(fixtures().len() >= 17);
 }
 
 #[test]
@@ -100,6 +106,14 @@ fn requests_pick_the_right_call() {
     let expected = [
         ("open-sqlite", "Open"),
         ("open-mysql", "Open"),
+        ("open-mysql-ssh", "Open"),
+        ("open-mysql-docker", "Open"),
+        ("discover", "Discover"),
+        ("page", "Page"),
+        ("transaction", "Transaction"),
+        ("export", "Export"),
+        ("sample", "Sample"),
+        ("import", "Import"),
         ("structure", "Structure"),
         ("rows", "Rows"),
         ("apply", "Apply"),
@@ -121,5 +135,39 @@ fn requests_pick_the_right_call() {
 fn the_ready_line_has_the_agreed_shape() {
     let line = ready_line("1.2.3");
 
-    assert_eq!(line, r#"{"event":"ready","protocol":1,"version":"1.2.3"}"#);
+    assert_eq!(line, r#"{"event":"ready","protocol":2,"version":"1.2.3"}"#);
+}
+
+#[test]
+fn tunnels_parse_from_the_open_fixtures() {
+    let all = fixtures();
+    let tunnel = |name: &str| {
+        let (_, fixture) = all.iter().find(|(candidate, _)| candidate == name).unwrap();
+        let Call::Open(open) = Request::parse(&fixture["request"].to_string()).unwrap().call else {
+            panic!("{name} is not an open");
+        };
+        let ConnectionConfig::Mysql(config) = open.connection else {
+            panic!("{name} is not MySQL");
+        };
+
+        config.tunnel.unwrap()
+    };
+
+    assert_eq!(
+        tunnel("open-mysql-ssh"),
+        Tunnel::Ssh(SshTunnel {
+            host: "production".to_string(),
+            port: Some(22),
+            user: Some("deploy".to_string()),
+            identity_file: Some("/Users/demo/.ssh/id_ed25519".to_string()),
+        })
+    );
+    assert_eq!(
+        tunnel("open-mysql-docker"),
+        Tunnel::Docker(DockerTunnel {
+            container: "shop_db_1".to_string(),
+            port: Some(3306),
+            context: None,
+        })
+    );
 }

@@ -8,6 +8,9 @@ const MAX_ID_LENGTH = 200;
 const MAX_LIMIT = 10000;
 const MAX_CELL_LIMIT = 1048576;
 const TLS_MODES = ['disable', 'prefer', 'require', 'verify'];
+const TRANSACTION_ACTIONS = ['begin', 'commit', 'rollback'];
+const EXPORT_FORMATS = ['csv', 'tsv', 'json', 'sql'];
+const DELIMITED_FORMATS = ['csv', 'tsv'];
 const HEX = /^(?:[0-9a-f]{2})*$/;
 const ABSOLUTE_PATH = /^(?:\/|[A-Za-z]:[\\/]|\\\\)/;
 
@@ -66,6 +69,22 @@ const integer = (value: unknown, label: string, min: number, max: number): void 
     }
 };
 
+const oneOf = (allowed: readonly string[]) => (value: unknown, label: string) => {
+    if (typeof value !== 'string' || !allowed.includes(value)) {
+        fail(`"${label}" must be one of ${allowed.join(', ')}.`);
+    }
+};
+
+const absolutePath = (value: unknown, label: string): void => {
+    text(value, label);
+
+    if (!ABSOLUTE_PATH.test(value as string)) {
+        fail(`"${label}" must be an absolute path.`);
+    }
+};
+
+const port = (value: unknown, label: string): void => integer(value, label, 1, 65535);
+
 const optional = (source: Dict, key: string, label: string, check: (value: unknown, label: string) => void): void => {
     if (source[key] !== undefined) {
         check(source[key], `${label}.${key}`);
@@ -121,6 +140,32 @@ const values = (input: unknown, label: string, check: (value: unknown, label: st
     }
 };
 
+const tunnel = (input: unknown, label: string): void => {
+    if (!isDict(input)) {
+        fail(`"${label}" must be an object.`);
+        return;
+    }
+
+    if (input.kind === 'ssh') {
+        const config = shape(input, label, ['kind', 'host'], ['port', 'user', 'identityFile']);
+        text(config.host, `${label}.host`);
+        optional(config, 'port', label, port);
+        optional(config, 'user', label, text);
+        optional(config, 'identityFile', label, text);
+        return;
+    }
+
+    if (input.kind === 'docker') {
+        const config = shape(input, label, ['kind', 'container'], ['port', 'context']);
+        text(config.container, `${label}.container`);
+        optional(config, 'port', label, port);
+        optional(config, 'context', label, text);
+        return;
+    }
+
+    fail(`"${label}.kind" must be "ssh" or "docker".`);
+};
+
 const connection = (input: unknown, label: string): void => {
     if (!isDict(input)) {
         fail(`"${label}" must be an object.`);
@@ -129,30 +174,25 @@ const connection = (input: unknown, label: string): void => {
 
     if (input.engine === 'sqlite') {
         const config = shape(input, label, ['engine', 'path'], ['create', 'readOnly']);
-        text(config.path, `${label}.path`);
-
-        if (!ABSOLUTE_PATH.test(config.path as string)) {
-            fail(`"${label}.path" must be an absolute path.`);
-        }
-
+        absolutePath(config.path, `${label}.path`);
         optional(config, 'create', label, flag);
         optional(config, 'readOnly', label, flag);
         return;
     }
 
     if (input.engine === 'mysql') {
-        const config = shape(input, label, ['engine', 'host', 'user'], ['port', 'socket', 'password', 'database', 'tls', 'readOnly']);
-        text(config.host, `${label}.host`);
+        const config = shape(input, label, ['engine', 'host', 'user'], ['port', 'socket', 'password', 'database', 'tls', 'readOnly', 'tunnel']);
+        optional(config, 'tunnel', label, tunnel);
+
+        // A Docker tunnel finds the server by its container, so the host is left empty.
+        const viaDocker = isDict(config.tunnel) && config.tunnel.kind === 'docker';
+        (viaDocker ? plainText : text)(config.host, `${label}.host`);
         text(config.user, `${label}.user`);
-        optional(config, 'port', label, (port, name) => integer(port, name, 1, 65535));
+        optional(config, 'port', label, port);
         optional(config, 'socket', label, text);
         optional(config, 'password', label, plainText);
         optional(config, 'database', label, plainText);
-        optional(config, 'tls', label, (mode, name) => {
-            if (typeof mode !== 'string' || !TLS_MODES.includes(mode)) {
-                fail(`"${name}" must be one of ${TLS_MODES.join(', ')}.`);
-            }
-        });
+        optional(config, 'tls', label, oneOf(TLS_MODES));
         optional(config, 'readOnly', label, flag);
         return;
     }
@@ -179,6 +219,31 @@ const rowChange = (input: unknown, label: string): void => {
     } else {
         fail(`"${label}.kind" must be "insert", "update" or "delete".`);
     }
+};
+
+const exportSource = (input: unknown, label: string): void => {
+    if (!isDict(input)) {
+        fail(`"${label}" must be an object.`);
+        return;
+    }
+
+    if (input.kind === 'table') {
+        const source = shape(input, label, ['kind', 'schema', 'table'], ['where', 'orderBy']);
+        text(source.schema, `${label}.schema`);
+        text(source.table, `${label}.table`);
+        optional(source, 'where', label, plainText);
+        optional(source, 'orderBy', label, plainText);
+        return;
+    }
+
+    if (input.kind === 'query') {
+        const source = shape(input, label, ['kind', 'sql'], ['schema']);
+        text(source.sql, `${label}.sql`);
+        optional(source, 'schema', label, text);
+        return;
+    }
+
+    fail(`"${label}.kind" must be "table" or "query".`);
 };
 
 const cellLimit = (params: Dict): void => optional(params, 'cellLimit', 'params', (limit, name) => integer(limit, name, 1, MAX_CELL_LIMIT));
@@ -240,6 +305,59 @@ const PARAMS: { readonly [M in DatabaseMethod]: (input: unknown) => void } = {
         optional(params, 'schema', 'params', text);
         optional(params, 'limit', 'params', (limit, name) => integer(limit, name, 1, MAX_LIMIT));
         cellLimit(params);
+    },
+    page: (input) => {
+        const params = shape(input, 'params', ['session', 'sql', 'offset', 'limit'], ['schema', 'cellLimit']);
+        text(params.session, 'params.session');
+        text(params.sql, 'params.sql');
+        optional(params, 'schema', 'params', text);
+        integer(params.offset, 'params.offset', 0, Number.MAX_SAFE_INTEGER);
+        integer(params.limit, 'params.limit', 1, MAX_LIMIT);
+        cellLimit(params);
+    },
+    transaction: (input) => {
+        const params = shape(input, 'params', ['session', 'action']);
+        text(params.session, 'params.session');
+        oneOf(TRANSACTION_ACTIONS)(params.action, 'params.action');
+    },
+    export: (input) => {
+        const params = shape(input, 'params', ['session', 'source', 'format', 'path'], ['header', 'tableName']);
+        text(params.session, 'params.session');
+        exportSource(params.source, 'params.source');
+        oneOf(EXPORT_FORMATS)(params.format, 'params.format');
+        absolutePath(params.path, 'params.path');
+        optional(params, 'header', 'params', flag);
+        optional(params, 'tableName', 'params', text);
+    },
+    sample: (input) => {
+        const params = shape(input, 'params', ['path', 'format', 'header'], ['limit']);
+        absolutePath(params.path, 'params.path');
+        oneOf(DELIMITED_FORMATS)(params.format, 'params.format');
+        flag(params.header, 'params.header');
+        optional(params, 'limit', 'params', (limit, name) => integer(limit, name, 1, MAX_LIMIT));
+    },
+    import: (input) => {
+        const params = shape(input, 'params', [...TARGET, 'path', 'format', 'header', 'columns']);
+        table(params);
+        absolutePath(params.path, 'params.path');
+        oneOf(DELIMITED_FORMATS)(params.format, 'params.format');
+        flag(params.header, 'params.header');
+
+        if (!Array.isArray(params.columns)) {
+            fail('"params.columns" must be a list.');
+            return;
+        }
+
+        params.columns.forEach((column, i) => {
+            if (column !== null) {
+                text(column, `params.columns[${i}]`);
+            }
+        });
+    },
+    discover: (input) => {
+        const params = shape(input, 'params', ['kind'], ['context']);
+        oneOf(['docker'])(params.kind, 'params.kind');
+        optional(params, 'context', 'params', text);
     },
     cancel: (input) => {
         const params = shape(input, 'params', ['request']);

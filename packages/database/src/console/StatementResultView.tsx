@@ -1,21 +1,39 @@
 import { useMemo, useState } from 'react';
-import { CircleAlert, PanelRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CircleAlert, Download, PanelRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Banner, IconButton } from '@adecore/ui';
+import { Banner, IconButton, Menu, Spinner } from '@adecore/ui';
 import { formatDecimal, formatNumber } from '@adecore/ui/format';
 import { DataGrid } from '../grid/DataGrid.tsx';
 import { previewValueOf } from '../grid/focused-value.ts';
 import type { FocusedCell, GridRow } from '../grid/types.ts';
 import { ValueDock } from '../grid/ValueDock.tsx';
-import type { Engine, StatementResult } from '../protocol/index.ts';
+import type { Engine, FileFormat, StatementResult } from '../protocol/index.ts';
 import type { SqlTarget } from '../sql.ts';
 import { ValuePanel } from '../value/ValuePanel.tsx';
 
 /* What "Copy as SQL INSERT" names the table of a result that comes from no table. */
 const RESULT_TABLE = 'result';
 
+const EXPORT_FORMATS: readonly FileFormat[] = ['csv', 'tsv', 'json', 'sql'];
+
+/* Paging through the rows of a statement that reads, one page at a time. */
+export interface ResultPager {
+    /* Counted from 1. */
+    readonly page: number;
+    readonly loading: boolean;
+    onPrevious(): void;
+    onNext(): void;
+}
+
 export interface StatementResultViewProps {
     result: StatementResult;
+    /* The rows before the first one shown, so a later page counts on from the page before it. */
+    offset?: number;
+    /* Draws the controls of the page under the grid, in place of the note that more rows exist. */
+    pager?: ResultPager;
+    /* Offers the export menu in the footer of a result set; told the format chosen. */
+    onExport?(format: FileFormat): void;
+    exporting?: boolean;
     /* The engine the statement ran on, which decides how "Copy as SQL INSERT" quotes. Without it that format is not offered. */
     engine?: Engine;
     valuePanelOpen?: boolean;
@@ -24,12 +42,21 @@ export interface StatementResultViewProps {
 }
 
 /* One statement's outcome: a result set in a read-only grid, a count of affected rows, or the error the server gave. */
-export function StatementResultView({ result, engine, valuePanelOpen = false, onValuePanelOpenChange }: StatementResultViewProps) {
+export function StatementResultView({
+    result,
+    offset = 0,
+    pager,
+    onExport,
+    exporting = false,
+    engine,
+    valuePanelOpen = false,
+    onValuePanelOpenChange
+}: StatementResultViewProps) {
     const { t } = useTranslation('database');
     const [focus, setFocus] = useState<FocusedCell | null>(null);
     const rows = useMemo(
-        () => (result.kind === 'rows' ? result.rows.map((cells, index): GridRow => ({ key: `row:${index}`, number: index + 1, cells })) : []),
-        [result]
+        () => (result.kind === 'rows' ? result.rows.map((cells, index): GridRow => ({ key: `row:${index}`, number: offset + index + 1, cells })) : []),
+        [result, offset]
     );
     const sqlTarget = useMemo((): SqlTarget | undefined => (engine === undefined ? undefined : { engine, table: RESULT_TABLE }), [engine]);
     const elapsed = t('console.elapsed', { value: formatDecimal(result.elapsedMs) });
@@ -93,19 +120,56 @@ export function StatementResultView({ result, engine, valuePanelOpen = false, on
                 />
             </ValueDock>
             <footer className="flex h-10 shrink-0 items-center gap-4 border-t border-border px-3 text-xs text-text-muted">
-                <span className="text-text tabular-nums">{t('console.rows', { rows: formatNumber(result.rows.length) })}</span>
-                {result.hasMore && <span>{t('console.hasMore')}</span>}
+                <span className="text-text tabular-nums">
+                    {offset > 0 || pager !== undefined
+                        ? t('console.rowRange', { from: formatNumber(offset + Math.min(1, rows.length)), to: formatNumber(offset + rows.length) })
+                        : t('console.rows', { rows: formatNumber(result.rows.length) })}
+                </span>
+                {pager === undefined && result.hasMore && <span>{t('console.hasMore')}</span>}
                 <span className="tabular-nums">{elapsed}</span>
-                {onValuePanelOpenChange !== undefined && (
-                    <IconButton
-                        icon={PanelRight}
-                        size="sm"
-                        label={t('console.valuePanel')}
-                        aria-pressed={valuePanelOpen}
-                        className="ml-auto"
-                        onClick={() => onValuePanelOpenChange(!valuePanelOpen)}
-                    />
-                )}
+                <span className="ml-auto flex items-center gap-1">
+                    {pager !== undefined && (
+                        <>
+                            {pager.loading && <Spinner size={14} label={t('console.loading')} />}
+                            <IconButton
+                                icon={ChevronLeft}
+                                size="sm"
+                                label={t('console.previousPage')}
+                                disabled={pager.page <= 1 || pager.loading}
+                                onClick={pager.onPrevious}
+                            />
+                            <span className="min-w-12 text-center tabular-nums">{t('console.page', { page: formatNumber(pager.page) })}</span>
+                            <IconButton
+                                icon={ChevronRight}
+                                size="sm"
+                                label={t('console.nextPage')}
+                                disabled={!result.hasMore || pager.loading}
+                                onClick={pager.onNext}
+                            />
+                        </>
+                    )}
+                    {onExport !== undefined && (
+                        <Menu.Root>
+                            <IconButton icon={Download} size="sm" label={t('console.export')} disabled={exporting} render={<Menu.Trigger />} />
+                            <Menu.Popup>
+                                {EXPORT_FORMATS.map((format) => (
+                                    <Menu.Item key={format} onClick={() => onExport(format)}>
+                                        {t('console.exportAs', { format: format.toUpperCase() })}
+                                    </Menu.Item>
+                                ))}
+                            </Menu.Popup>
+                        </Menu.Root>
+                    )}
+                    {onValuePanelOpenChange !== undefined && (
+                        <IconButton
+                            icon={PanelRight}
+                            size="sm"
+                            label={t('console.valuePanel')}
+                            aria-pressed={valuePanelOpen}
+                            onClick={() => onValuePanelOpenChange(!valuePanelOpen)}
+                        />
+                    )}
+                </span>
             </footer>
         </>
     );

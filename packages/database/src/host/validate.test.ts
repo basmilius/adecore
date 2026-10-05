@@ -100,6 +100,38 @@ describe('connections', () => {
         expect(rejection(open({ engine: 'mysql', host: 'db', user: 'root', path: '/a.db' }))).toContain('"path"');
     });
 
+    test('accepts an ssh or docker tunnel, and an empty host behind a docker one', () => {
+        const base = { engine: 'mysql', user: 'root' };
+        const ssh = { kind: 'ssh', host: 'production', port: 22, user: 'deploy', identityFile: '/Users/demo/.ssh/id' };
+        expect(parseRequest(open({ ...base, host: '127.0.0.1', tunnel: ssh })).ok).toBe(true);
+        expect(parseRequest(open({ ...base, host: '', tunnel: { kind: 'docker', container: 'db', port: 3306, context: 'desktop' } })).ok).toBe(true);
+        expect(parseRequest(open({ ...base, host: '127.0.0.1', tunnel: { kind: 'docker', container: 'db' } })).ok).toBe(true);
+    });
+
+    test('rejects a malformed tunnel', () => {
+        const base = { engine: 'mysql', host: 'db', user: 'root' };
+        const tunnel = (value: unknown) => open({ ...base, tunnel: value });
+        expect(rejection(tunnel('ssh'))).toContain('tunnel');
+        expect(rejection(tunnel({ kind: 'vpn', host: 'x' }))).toContain('tunnel.kind');
+        expect(rejection(tunnel({ kind: 'ssh' }))).toContain('"host"');
+        expect(rejection(tunnel({ kind: 'ssh', host: '' }))).toContain('tunnel.host');
+        expect(rejection(tunnel({ kind: 'ssh', host: 'h', port: 0 }))).toContain('tunnel.port');
+        expect(rejection(tunnel({ kind: 'ssh', host: 'h', port: 65536 }))).toContain('tunnel.port');
+        expect(rejection(tunnel({ kind: 'ssh', host: 'h', user: '' }))).toContain('tunnel.user');
+        expect(rejection(tunnel({ kind: 'ssh', host: 'h', container: 'db' }))).toContain('"container"');
+        expect(rejection(tunnel({ kind: 'docker' }))).toContain('"container"');
+        expect(rejection(tunnel({ kind: 'docker', container: '' }))).toContain('tunnel.container');
+        expect(rejection(tunnel({ kind: 'docker', container: 'db', port: 1.5 }))).toContain('tunnel.port');
+        expect(rejection(tunnel({ kind: 'docker', container: 'db', host: 'x' }))).toContain('"host"');
+    });
+
+    test('needs a host unless a docker tunnel stands in for it', () => {
+        const base = { engine: 'mysql', user: 'root', host: '' };
+        expect(rejection(open(base))).toContain('host');
+        expect(rejection(open({ ...base, tunnel: { kind: 'ssh', host: 'h' } }))).toContain('connection.host');
+        expect(rejection(open({ ...base, host: 5, tunnel: { kind: 'docker', container: 'db' } }))).toContain('connection.host');
+    });
+
     test('treats an undefined optional as absent', () => {
         expect(parseRequest(open({ engine: 'mysql', host: 'db', user: 'root', port: undefined })).ok).toBe(true);
     });
@@ -189,5 +221,93 @@ describe('execute, cancel and the session methods', () => {
         expect(rejection(request('schemas', {}))).toContain('"session"');
         expect(rejection(request('tables', { session: 's' }))).toContain('"schema"');
         expect(parseRequest(request('tables', { session: 's', schema: 'main' })).ok).toBe(true);
+    });
+});
+
+describe('page and transaction', () => {
+    const page = (params: object) => request('page', { session: 's', sql: 'SELECT 1', offset: 0, limit: 10, ...params });
+
+    test('checks page', () => {
+        expect(parseRequest(page({ schema: 'main', cellLimit: 8, limit: 10000, offset: 500 })).ok).toBe(true);
+        expect(rejection(page({ limit: 0 }))).toContain('limit');
+        expect(rejection(page({ limit: 10001 }))).toContain('limit');
+        expect(rejection(page({ offset: -1 }))).toContain('offset');
+        expect(rejection(page({ offset: 0.5 }))).toContain('offset');
+        expect(rejection(page({ sql: '' }))).toContain('sql');
+        expect(rejection(page({ schema: '' }))).toContain('schema');
+        expect(rejection(page({ cellLimit: 0 }))).toContain('cellLimit');
+        expect(rejection(page({ where: 'id > 1' }))).toContain('"where"');
+        expect(rejection(request('page', { session: 's', sql: 'x', limit: 1 }))).toContain('"offset"');
+    });
+
+    test('checks the action of a transaction', () => {
+        for (const action of ['begin', 'commit', 'rollback']) {
+            expect(parseRequest(request('transaction', { session: 's', action })).ok).toBe(true);
+        }
+
+        expect(rejection(request('transaction', { session: 's', action: 'savepoint' }))).toContain('action');
+        expect(rejection(request('transaction', { session: 's' }))).toContain('"action"');
+        expect(rejection(request('transaction', { action: 'begin' }))).toContain('"session"');
+    });
+});
+
+describe('export, sample and import', () => {
+    const table = { kind: 'table', schema: 'main', table: 'users' };
+    const exporting = (params: object) => request('export', { session: 's', source: table, format: 'csv', path: '/tmp/a.csv', ...params });
+
+    test('checks export', () => {
+        expect(parseRequest(exporting({ header: false, tableName: 'users', format: 'sql' })).ok).toBe(true);
+        expect(parseRequest(exporting({ source: { ...table, where: 'id > 1', orderBy: '' }, path: 'C:\\out\\a.csv' })).ok).toBe(true);
+        expect(parseRequest(exporting({ source: { kind: 'query', sql: 'SELECT 1', schema: 'main' }, format: 'json' })).ok).toBe(true);
+
+        for (const format of ['csv', 'tsv', 'json', 'sql']) {
+            expect(parseRequest(exporting({ format })).ok).toBe(true);
+        }
+
+        expect(rejection(exporting({ format: 'xml' }))).toContain('format');
+        expect(rejection(exporting({ path: 'a.csv' }))).toContain('absolute');
+        expect(rejection(exporting({ path: '' }))).toContain('path');
+        expect(rejection(exporting({ header: 'yes' }))).toContain('header');
+        expect(rejection(exporting({ tableName: '' }))).toContain('tableName');
+        expect(rejection(exporting({ source: undefined }))).toContain('"source"');
+        expect(rejection(exporting({ source: { kind: 'file' } }))).toContain('source.kind');
+        expect(rejection(exporting({ source: { kind: 'table', schema: 'main' } }))).toContain('"table"');
+        expect(rejection(exporting({ source: { kind: 'table', schema: '', table: 't' } }))).toContain('source.schema');
+        expect(rejection(exporting({ source: { kind: 'table', schema: 'main', table: 't', sql: 'x' } }))).toContain('"sql"');
+        expect(rejection(exporting({ source: { kind: 'query', sql: '' } }))).toContain('source.sql');
+        expect(rejection(exporting({ source: { kind: 'query', sql: 'x', table: 't' } }))).toContain('"table"');
+    });
+
+    test('checks sample', () => {
+        const sample = (params: object) => request('sample', { path: '/tmp/a.csv', format: 'tsv', header: true, ...params });
+        expect(parseRequest(sample({ limit: 10 })).ok).toBe(true);
+        expect(rejection(sample({ path: 'a.csv' }))).toContain('absolute');
+        expect(rejection(sample({ format: 'json' }))).toContain('format');
+        expect(rejection(sample({ header: 1 }))).toContain('header');
+        expect(rejection(sample({ limit: 0 }))).toContain('limit');
+        expect(rejection(sample({ limit: 10001 }))).toContain('limit');
+        expect(rejection(sample({ session: 's' }))).toContain('"session"');
+    });
+
+    test('checks import', () => {
+        const importing = (params: object) =>
+            request('import', { ...tableTarget, path: '/tmp/a.csv', format: 'csv', header: true, columns: [null, 'email'], ...params });
+        expect(parseRequest(importing({})).ok).toBe(true);
+        expect(rejection(importing({ path: 'a.csv' }))).toContain('absolute');
+        expect(rejection(importing({ format: 'sql' }))).toContain('format');
+        expect(rejection(importing({ header: 'yes' }))).toContain('header');
+        expect(rejection(importing({ columns: 'email' }))).toContain('columns');
+        expect(rejection(importing({ columns: ['email', 5] }))).toContain('columns[1]');
+        expect(rejection(importing({ columns: [''] }))).toContain('columns[0]');
+        expect(rejection(importing({ table: undefined }))).toContain('"table"');
+    });
+
+    test('checks discover', () => {
+        expect(parseRequest(request('discover', { kind: 'docker' })).ok).toBe(true);
+        expect(parseRequest(request('discover', { kind: 'docker', context: 'desktop' })).ok).toBe(true);
+        expect(rejection(request('discover', { kind: 'podman' }))).toContain('kind');
+        expect(rejection(request('discover', {}))).toContain('"kind"');
+        expect(rejection(request('discover', { kind: 'docker', context: '' }))).toContain('context');
+        expect(rejection(request('discover', { kind: 'docker', session: 's' }))).toContain('"session"');
     });
 });

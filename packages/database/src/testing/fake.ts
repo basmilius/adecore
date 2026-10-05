@@ -7,6 +7,7 @@ import type {
     DatabaseRequest,
     DatabaseResponse,
     DatabaseResult,
+    DockerContainer,
     ForeignKeyInfo,
     IndexInfo,
     ResultColumn,
@@ -44,6 +45,8 @@ export interface FakeDatabaseTransportOptions {
     readonly latencyMs?: number;
     /* What every `open` and `test` reports. Derived from the engine when left out. */
     readonly server?: ServerInfo;
+    /* What `discover` lists. Nothing when left out. */
+    readonly containers?: readonly DockerContainer[];
 }
 
 interface Table {
@@ -60,6 +63,7 @@ interface Session {
     readonly schemas: Map<string, Map<string, Table>>;
     readonly readOnly: boolean;
     schema: string | null;
+    inTransaction: boolean;
 }
 
 class FakeError extends Error {
@@ -280,16 +284,20 @@ const applyChanges = (table: Table, changes: DatabaseParams<'apply'>['changes'])
 
 const SELECT_ALL = /^select\s+\*\s+from\s+(\S+)$/i;
 
-const runStatement = (session: Session, sql: string, limit: number, cellLimit: number): StatementResult => {
-    const name = SELECT_ALL.exec(sql)?.[1]?.replace(/^[`"]|[`"]$/g, '');
+/* The table of a `SELECT * FROM <table>`, the only statement the fake runs. */
+const selectedTable = (session: Session, sql: string): Table => {
+    const name = SELECT_ALL.exec(sql.trim().replace(/;+$/, ''))?.[1]?.replace(/^[`"]|[`"]$/g, '');
 
     if (name === undefined) {
-        return { kind: 'error', sql, error: { code: 'unsupported', message: 'The fake database only runs SELECT * FROM <table>.' }, elapsedMs: 0 };
+        throw new FakeError('unsupported', 'The fake database only runs SELECT * FROM <table>.');
     }
 
+    return findTable(session, session.schema ?? session.schemas.keys().next().value ?? '', name);
+};
+
+const runStatement = (session: Session, sql: string, limit: number, cellLimit: number): StatementResult => {
     try {
-        const schema = session.schema ?? session.schemas.keys().next().value ?? '';
-        const table = findTable(session, schema, name);
+        const table = selectedTable(session, sql);
         return { kind: 'rows', sql, ...toRowsResult(table, table.rows, 0, limit, cellLimit) };
     } catch (error) {
         if (error instanceof FakeError) {
@@ -305,14 +313,29 @@ const runStatement = (session: Session, sql: string, limit: number, cellLimit: n
     }
 };
 
+/* Makes a schema the selected one, as a call that names `schema` does. */
+const selectSchema = (session: Session, schema: string | undefined): void => {
+    if (schema === undefined) {
+        return;
+    }
+
+    if (!session.schemas.has(schema)) {
+        throw new FakeError('query-failed', `Unknown database '${schema}'`, '42000');
+    }
+
+    session.schema = schema;
+};
+
 type Handlers = { readonly [M in DatabaseMethod]: (params: DatabaseParams<M>) => DatabaseResult<M> };
 
 /*
  * An in-memory database server behind the transport of the client, for demos and for tests of an app.
  * It answers the whole protocol, with these limits: `where` and `orderBy` are not interpreted, so
- * `rows` and `count` return every row in stored order; `execute` runs `SELECT * FROM <table>` on the
- * selected schema (the first one until a call names another) and answers every other statement with
- * an `unsupported` error; and, as in the protocol, the first failed statement ends the list.
+ * `rows` and `count` return every row in stored order; `execute` and `page` run `SELECT * FROM <table>`
+ * on the selected schema (the first one until a call names another) and answer every other statement
+ * with an `unsupported` error; and, as in the protocol, the first failed statement ends the list.
+ * `transaction` only raises a flag that `execute` reports: a rollback does not undo a change. There
+ * are no files, so `export`, `import` and `sample` answer `unsupported`.
  */
 export const fakeDatabaseTransport = (options: FakeDatabaseTransportOptions): DatabaseTransport => {
     const databases = new Map(Object.entries(options.databases).map(([name, database]) => [name, toTables(database)]));
@@ -331,7 +354,7 @@ export const fakeDatabaseTransport = (options: FakeDatabaseTransportOptions): Da
             throw new FakeError('connect-failed', config.engine === 'sqlite' ? `Unable to open database file "${name}"` : `Unknown MySQL server "${name}"`);
         }
 
-        return { schemas, readOnly: config.readOnly === true, schema: config.engine === 'mysql' ? config.database || null : null };
+        return { schemas, readOnly: config.readOnly === true, schema: config.engine === 'mysql' ? config.database || null : null, inTransaction: false };
     };
 
     const sessionOf = (id: string): Session => {
@@ -418,14 +441,7 @@ export const fakeDatabaseTransport = (options: FakeDatabaseTransportOptions): Da
         },
         execute: ({ session, sql, schema, limit, cellLimit }) => {
             const target = sessionOf(session);
-
-            if (schema !== undefined) {
-                if (!target.schemas.has(schema)) {
-                    throw new FakeError('query-failed', `Unknown database '${schema}'`, '42000');
-                }
-
-                target.schema = schema;
-            }
+            selectSchema(target, schema);
 
             const results: StatementResult[] = [];
 
@@ -441,8 +457,31 @@ export const fakeDatabaseTransport = (options: FakeDatabaseTransportOptions): Da
                 }
             }
 
-            return { results };
+            return { results, inTransaction: target.inTransaction };
         },
+        page: ({ session, sql, schema, offset, limit, cellLimit }) => {
+            const target = sessionOf(session);
+            selectSchema(target, schema);
+            const table = selectedTable(target, sql);
+            return toRowsResult(table, table.rows, offset, limit, cellLimit ?? DEFAULT_EXECUTE_CELL_LIMIT);
+        },
+        transaction: ({ session, action }) => {
+            const target = sessionOf(session);
+            target.inTransaction = action === 'begin';
+            return { active: target.inTransaction };
+        },
+        export: ({ session }) => {
+            sessionOf(session);
+            throw new FakeError('unsupported', 'The fake database has no files to export to.');
+        },
+        sample: () => {
+            throw new FakeError('unsupported', 'The fake database has no files to read.');
+        },
+        import: ({ session }) => {
+            sessionOf(session);
+            throw new FakeError('unsupported', 'The fake database has no files to import from.');
+        },
+        discover: () => ({ containers: structuredClone([...(options.containers ?? [])]) }),
         cancel: ({ request }) => {
             const stop = waiting.get(request);
             stop?.();

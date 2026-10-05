@@ -71,6 +71,16 @@ export const sqlLiteral = (engine: Engine, value: LiteralValue, kind?: ValueKind
 export const equalsCondition = (engine: Engine, column: string, value: LiteralValue, kind?: ValueKind): string =>
     value === null ? `${quoteIdentifier(engine, column)} IS NULL` : `${quoteIdentifier(engine, column)} = ${sqlLiteral(engine, value, kind)}`;
 
+export interface ColumnMatch {
+    readonly column: string;
+    readonly value: LiteralValue;
+    readonly kind?: ValueKind;
+}
+
+/* `a = 1 AND b IS NULL` for the columns of a key; the text a WHERE field holds. */
+export const matchCondition = (engine: Engine, matches: readonly ColumnMatch[]): string =>
+    matches.map((match) => equalsCondition(engine, match.column, match.value, match.kind)).join(' AND ');
+
 /* The text after `ORDER BY`: every column quoted, every direction spelled out. */
 export const orderByClause = (engine: Engine, sorts: readonly ColumnSort[]): string =>
     sorts.map((sort) => `${quoteIdentifier(engine, sort.column)} ${sort.direction === 'asc' ? 'ASC' : 'DESC'}`).join(', ');

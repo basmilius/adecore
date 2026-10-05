@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { messageOf } from '@adecore/ui';
 import { useDatabaseClient } from '../client-context.ts';
-import type { Connection } from '../client/types.ts';
+import type { Connection, SchemaChange } from '../client/types.ts';
 import type { SchemaInfo, TableInfo, TableStructure } from '../protocol/index.ts';
 import { IDLE, loadKey, type Load, type LoadTarget } from './tree.ts';
 
@@ -38,6 +38,10 @@ const within = (reset: LoadTarget, target: LoadTarget): boolean =>
     (reset.schema === undefined || reset.schema === target.schema) &&
     (reset.table === undefined || reset.table === target.table);
 
+/* A change to a schema also changes the schema list, and one without a schema changes every list of the connection. */
+const touches = (change: SchemaChange, target: LoadTarget): boolean =>
+    change.connectionId === target.connectionId && (change.schema === undefined || target.schema === undefined || change.schema === target.schema);
+
 /* The schemas, tables and column lists the explorer has asked a session for, by connection, schema and table. */
 export function useExplorerLoads(connections: readonly Connection[]): ExplorerLoads {
     const client = useDatabaseClient();
@@ -62,17 +66,11 @@ export function useExplorerLoads(connections: readonly Connection[]): ExplorerLo
         }));
     };
 
-    const start = (target: LoadTarget): void => {
-        const key = loadKey(target);
-        if (started.current.has(key)) {
-            return;
+    /* A silent load keeps showing what it replaces, so a reload does not blink the tree. */
+    const run = (target: LoadTarget, connection: Connection, silent: boolean): void => {
+        if (!silent) {
+            store(target, { status: 'loading' });
         }
-        const connection = connections.find((entry) => entry.id === target.connectionId);
-        if (connection === undefined) {
-            return;
-        }
-        started.current.set(key, target);
-        store(target, { status: 'loading' });
         const session = client.session(connection);
         const request: Promise<Loaded> =
             target.schema === undefined
@@ -94,6 +92,42 @@ export function useExplorerLoads(connections: readonly Connection[]): ExplorerLo
             (e: unknown) => store(target, { status: 'error', message: messageOf(e) })
         );
     };
+
+    const start = (target: LoadTarget): void => {
+        const key = loadKey(target);
+        if (started.current.has(key)) {
+            return;
+        }
+        const connection = connections.find((entry) => entry.id === target.connectionId);
+        if (connection === undefined) {
+            return;
+        }
+        started.current.set(key, target);
+        run(target, connection, false);
+    };
+
+    /* Lists load again in place and column lists are dropped, since the table they describe may be gone; an open table asks again by itself. */
+    const reload = (change: SchemaChange): void => {
+        const connection = connections.find((entry) => entry.id === change.connectionId);
+        const dropped: LoadTarget[] = [];
+        for (const [key, began] of [...started.current]) {
+            if (!touches(change, began)) {
+                continue;
+            }
+            if (began.table !== undefined) {
+                started.current.delete(key);
+                dropped.push(began);
+            } else if (connection !== undefined) {
+                run(began, connection, true);
+            }
+        }
+        if (dropped.length > 0) {
+            const gone = new Set(dropped.map(loadKey));
+            setLoads((current) => ({ ...current, entries: new Map([...current.entries].filter(([key]) => !gone.has(key))) }));
+        }
+    };
+
+    useEffect(() => client.onSchemaChange(reload));
 
     // A connection that was edited or removed is a different session, so what it listed is stale.
     useEffect(() => {

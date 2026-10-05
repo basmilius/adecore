@@ -4,20 +4,14 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import i18next from 'i18next';
 import { UIProvider } from '@adecore/ui';
 import { DatabaseProvider } from '../DatabaseProvider.tsx';
-import type { Connection, DatabaseClient } from '../client/types.ts';
+import type { Connection } from '../client/types.ts';
+import { stubClient } from '../testing/stub.ts';
 import { DatabaseExplorer } from './DatabaseExplorer.tsx';
 
 const i18n = i18next.createInstance();
 await i18n.init({ lng: 'en', fallbackLng: 'en', resources: {}, interpolation: { escapeValue: false } });
 
-const client: DatabaseClient = {
-    test: () => Promise.reject(new Error('stub')),
-    session: () => {
-        throw new Error('stub');
-    },
-    disconnect: () => Promise.resolve(),
-    dispose: () => Promise.resolve()
-};
+const client = stubClient();
 
 const render = (node: ReactNode): string =>
     renderToStaticMarkup(
@@ -54,6 +48,23 @@ describe('DatabaseExplorer', () => {
         const markup = render(<DatabaseExplorer connections={[]} />);
         expect(markup).toContain('No connections to explore.');
         expect(markup).not.toContain('role="tree"');
+    });
+
+    test('marks the row of the selection and no other', () => {
+        const markup = render(<DatabaseExplorer connections={connections} value={{ connectionId: 'two' }} />);
+        expect(markup.match(/aria-selected="true"/g)).toHaveLength(1);
+        expect(markup.match(/aria-selected="false"/g)).toHaveLength(1);
+    });
+
+    test('starts at its default selection when it is not controlled', () => {
+        const markup = render(<DatabaseExplorer connections={connections} defaultValue={{ connectionId: 'one' }} />);
+        expect(markup.match(/aria-selected="true"/g)).toHaveLength(1);
+        expect(markup).toContain('tabindex="0"');
+    });
+
+    test('selects nothing for a null value', () => {
+        const markup = render(<DatabaseExplorer connections={connections} value={null} />);
+        expect(markup).not.toContain('aria-selected="true"');
     });
 
     test('takes a class name', () => {

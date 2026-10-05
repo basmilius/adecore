@@ -13,6 +13,7 @@ use crate::engine::{self, Canceller, Engine};
 use crate::error::{DatabaseError, ErrorCode, Result};
 use crate::mysql::MysqlCanceller;
 use crate::protocol::*;
+use crate::{discover, import};
 
 pub type ResponseFuture = Pin<Box<dyn Future<Output = String> + Send>>;
 
@@ -98,6 +99,8 @@ impl Dispatcher {
                 isolated(id, async move { dispatcher.open(params).await })
             }
             Call::Test(params) => isolated(id, async move { test(params).await }),
+            Call::Sample(params) => isolated(id, async move { sample(params).await }),
+            Call::Discover(params) => isolated(id, async move { discover(params).await }),
             Call::Cancel(params) => {
                 let dispatcher = self.clone();
 
@@ -311,6 +314,18 @@ async fn test(params: OpenParams) -> Result<Json> {
     to_json(TestResult { server })
 }
 
+async fn sample(params: SampleParams) -> Result<Json> {
+    let sampled = tokio::task::spawn_blocking(move || import::sample(&params))
+        .await
+        .map_err(|e| DatabaseError::internal(format!("The file reader failed: {e}.")))??;
+
+    to_json(sampled)
+}
+
+async fn discover(params: DiscoverParams) -> Result<Json> {
+    to_json(discover::discover(params).await?)
+}
+
 /// Runs a request in a task of its own, so a panic answers `internal` instead of ending the helper.
 fn isolated<F>(id: String, work: F) -> ResponseFuture
 where
@@ -354,7 +369,7 @@ async fn session_worker(mut engine: Engine, mut commands: mpsc::UnboundedReceive
             return;
         }
 
-        let writes = matches!(call, Call::Apply(_));
+        let writes = matches!(call, Call::Apply(_) | Call::Import(_) | Call::Export(_) | Call::Transaction(_));
         let cancelled = state.cancelled.clone();
         let task = tokio::spawn(async move {
             let outcome = run_call(&mut engine, call, cancelled).await;
@@ -410,6 +425,12 @@ async fn run_call(engine: &mut Engine, call: Call, cancelled: Arc<AtomicBool>) -
         Call::Cell(params) => to_json(engine.cell(params).await?),
         Call::Apply(params) => to_json(engine.apply(params).await?),
         Call::Execute(params) => to_json(engine.execute(params, cancelled).await?),
-        Call::Open(_) | Call::Close(_) | Call::Test(_) | Call::Cancel(_) => Err(DatabaseError::internal("A call without a session reached a session.")),
+        Call::Page(params) => to_json(engine.page(params).await?),
+        Call::Transaction(params) => to_json(engine.transaction(params).await?),
+        Call::Export(params) => to_json(engine.export(params, cancelled).await?),
+        Call::Import(params) => to_json(engine.import(params, cancelled).await?),
+        Call::Open(_) | Call::Close(_) | Call::Test(_) | Call::Sample(_) | Call::Discover(_) | Call::Cancel(_) => {
+            Err(DatabaseError::internal("A call without a session reached a session."))
+        }
     }
 }

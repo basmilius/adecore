@@ -1,0 +1,8 @@
+{
+  "request": {
+    "id": "r11",
+    "method": "open",
+    "params": { "connection": { "engine": "mysql", "host": "", "user": "root", "password": "root", "database": "default", "tunnel": { "kind": "docker", "container": "shop_db_1", "port": 3306 } } }
+  },
+  "response": { "id": "r11", "ok": true, "result": { "session": "s3", "server": { "flavor": "mysql", "version": "8.0.39" } } }
+}

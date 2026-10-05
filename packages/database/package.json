@@ -21,7 +21,8 @@
     "src",
     "!src/**/*.test.ts",
     "!src/**/*.test.tsx",
-    "!src/**/__snapshots__"
+    "!src/**/__snapshots__",
+    "!src/testing/stub.ts"
   ],
   "exports": {
     ".": {
@@ -57,6 +58,13 @@
     "@base-ui-components/react": "^1.0.0-rc.0",
     "clsx": "^2.1.1",
     "lucide-react": "^1.47.0"
+  },
+  "optionalDependencies": {
+    "@adecore/database-darwin-arm64": "0.0.0",
+    "@adecore/database-darwin-x64": "0.0.0",
+    "@adecore/database-linux-arm64": "0.0.0",
+    "@adecore/database-linux-x64": "0.0.0",
+    "@adecore/database-win32-x64": "0.0.0"
   },
   "peerDependencies": {
     "@adecore/ui": "^0.14.0",

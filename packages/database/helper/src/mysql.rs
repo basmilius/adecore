@@ -2,32 +2,42 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
-use mysql_async::consts::{ColumnFlags, ColumnType};
+use tokio::io::AsyncWriteExt;
+
+use mysql_async::consts::{ColumnFlags, ColumnType, StatusFlags};
 use mysql_async::prelude::{Protocol, Queryable};
 use mysql_async::{Column, Conn, Opts, OptsBuilder, Params, QueryResult, Row, SslOpts, Value as MyValue};
 
 use crate::cells::{binary_cell, cell_to_value, elapsed_ms, float_cell, insert_id, int_cell, text_cell, uint_cell};
 use crate::error::{DatabaseError, ErrorCode, Result};
+use crate::export::{Exporter, PartialFile};
+use crate::import::{ImportPlan, ImportReader, ImportRow, at_line, at_lines, insert_sql};
 use crate::kinds::mysql_kind;
 use crate::protocol::*;
 use crate::quoting::{Dialect, mysql_string_literal};
 use crate::splitter::split_statements;
 use crate::sql::{
-    DEFAULT_EXECUTE_CELL_LIMIT, DEFAULT_EXECUTE_LIMIT, MAX_LIMIT, Param, cell_sql, conflict, count_sql, fragment, paging, pick_row_key, plan_apply,
-    resolve_cell_limit, rows_sql,
+    DEFAULT_EXECUTE_CELL_LIMIT, DEFAULT_EXECUTE_LIMIT, MAX_LIMIT, Param, cell_sql, conflict, count_sql, export_query, fragment, page_sql, paging, paging_with,
+    pick_row_key, plan_apply, resolve_cell_limit, rows_sql, single_statement,
 };
+use crate::tunnel::Tunnel as LocalTunnel;
 
 const DIALECT: Dialect = Dialect::Mysql;
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
+const CANCEL_DRAIN_TIMEOUT: Duration = Duration::from_secs(10);
 const DEFAULT_PORT: u16 = 3306;
 const ACCESS_DENIED: u16 = 1045;
 const QUERY_INTERRUPTED_STATE: &str = "70100";
+const APPLY_SAVEPOINT: &str = "adecore_apply";
+const IMPORT_SAVEPOINT: &str = "adecore_import";
 const SYSTEM_SCHEMAS: [&str; 4] = ["information_schema", "performance_schema", "mysql", "sys"];
 
 pub struct MysqlEngine {
     connection: Conn,
     flavor: Flavor,
     read_only: bool,
+    /// Kept so the listener and its processes live as long as the session.
+    _tunnel: Option<LocalTunnel>,
 }
 
 /// Stops a running query of a session from a second, short-lived connection.
@@ -53,7 +63,24 @@ enum TlsAttempt {
     Verified,
 }
 
-fn build_opts(config: &MysqlConfig, attempt: &TlsAttempt) -> Opts {
+/// The host and port a connection is made to: the local end of the tunnel when there is one.
+fn address_of(config: &MysqlConfig, tunnel: Option<&LocalTunnel>) -> (String, u16) {
+    match tunnel {
+        Some(tunnel) => (tunnel.host().to_string(), tunnel.port()),
+        None => (config.host.clone(), config.port.unwrap_or(DEFAULT_PORT)),
+    }
+}
+
+/// Through an SSH tunnel the certificate is checked against the name the far end has; a container has no name to check.
+fn verified_ssl(config: &MysqlConfig) -> SslOpts {
+    match &config.tunnel {
+        None => SslOpts::default(),
+        Some(Tunnel::Ssh(_)) => SslOpts::default().with_danger_tls_hostname_override(Some(config.host.clone())),
+        Some(Tunnel::Docker(_)) => SslOpts::default().with_danger_skip_domain_validation(true),
+    }
+}
+
+fn build_opts(config: &MysqlConfig, attempt: &TlsAttempt, tunnel: Option<&LocalTunnel>) -> Opts {
     let ssl = match attempt {
         TlsAttempt::Plain => None,
         TlsAttempt::Unverified => Some(
@@ -61,13 +88,14 @@ fn build_opts(config: &MysqlConfig, attempt: &TlsAttempt) -> Opts {
                 .with_danger_accept_invalid_certs(true)
                 .with_danger_skip_domain_validation(true),
         ),
-        TlsAttempt::Verified => Some(SslOpts::default()),
+        TlsAttempt::Verified => Some(verified_ssl(config)),
     };
+    let (host, port) = address_of(config, tunnel);
 
     // Found rows rather than changed rows, so an update that sets the same values still counts as a hit.
     OptsBuilder::default()
-        .ip_or_hostname(config.host.clone())
-        .tcp_port(config.port.unwrap_or(DEFAULT_PORT))
+        .ip_or_hostname(host)
+        .tcp_port(port)
         .socket(config.socket.clone())
         .user(Some(config.user.clone()))
         .pass(config.password.clone())
@@ -429,23 +457,44 @@ fn foreign_key_action(action: Option<String>) -> Option<String> {
 
 impl MysqlEngine {
     pub async fn open(config: &MysqlConfig) -> Result<(MysqlEngine, ServerInfo, MysqlCanceller)> {
-        let attempts = tls_attempts(config);
+        let mut config = config.clone();
+        let tunnel = match &config.tunnel {
+            Some(tunnel) => {
+                config.socket = None;
+
+                Some(LocalTunnel::start(tunnel, &config.host, config.port.unwrap_or(DEFAULT_PORT)).await?)
+            }
+            None => None,
+        };
+        let attempts = tls_attempts(&config);
         let last = attempts.len() - 1;
 
         for (index, attempt) in attempts.iter().enumerate() {
-            let opts = build_opts(config, attempt);
+            let opts = build_opts(&config, attempt, tunnel.as_ref());
 
             match connect_with_timeout(opts.clone()).await {
-                Ok(connection) => return Self::finish_open(connection, opts, config).await,
-                Err(error) if index < last && error.is_worth_retrying_without_tls() => {}
-                Err(error) => return Err(error.into()),
+                Ok(connection) => return Self::finish_open(connection, opts, &config, tunnel).await,
+                Err(error) => {
+                    if let Some(failure) = tunnel.as_ref().and_then(LocalTunnel::failure) {
+                        return Err(failure);
+                    }
+
+                    if index == last || !error.is_worth_retrying_without_tls() {
+                        return Err(error.into());
+                    }
+                }
             }
         }
 
         Err(DatabaseError::connect_failed("Could not connect."))
     }
 
-    async fn finish_open(mut connection: Conn, opts: Opts, config: &MysqlConfig) -> Result<(MysqlEngine, ServerInfo, MysqlCanceller)> {
+    async fn finish_open(
+        mut connection: Conn,
+        opts: Opts,
+        config: &MysqlConfig,
+        tunnel: Option<LocalTunnel>,
+    ) -> Result<(MysqlEngine, ServerInfo, MysqlCanceller)> {
         let version: Option<String> = connection
             .query_first("SELECT VERSION()")
             .await
@@ -470,14 +519,93 @@ impl MysqlEngine {
                 connection,
                 flavor,
                 read_only: config.read_only,
+                _tunnel: tunnel,
             },
             ServerInfo { flavor, version },
             canceller,
         ))
     }
 
-    pub async fn close(self) {
+    /// The server rolls back an open transaction when the connection ends; saying so first keeps that explicit.
+    pub async fn close(mut self) {
+        if self.in_transaction().await {
+            let _ = self.connection.query_drop("ROLLBACK").await;
+        }
+
         let _ = self.connection.disconnect().await;
+    }
+
+    /// The server tells in every OK packet whether a transaction is open. An error clears the packet, and a ping brings a new one.
+    async fn in_transaction(&mut self) -> bool {
+        if self.connection.last_ok_packet().is_none() {
+            let _ = self.connection.ping().await;
+        }
+
+        self.connection
+            .last_ok_packet()
+            .is_some_and(|packet| packet.status_flags().contains(StatusFlags::SERVER_STATUS_IN_TRANS))
+    }
+
+    /// Starts a unit of work: a savepoint inside the transaction a person has open, else a transaction of its own.
+    /// Returns whether it is nested.
+    async fn begin_unit(&mut self, savepoint: &str) -> Result<bool> {
+        let nested = self.in_transaction().await;
+
+        if nested {
+            self.connection.query_drop(format!("SAVEPOINT {savepoint}")).await?;
+        } else {
+            self.connection.query_drop("START TRANSACTION").await?;
+        }
+
+        Ok(nested)
+    }
+
+    async fn end_unit(&mut self, nested: bool, savepoint: &str, commit: bool) -> Result<()> {
+        match (nested, commit) {
+            (false, true) => self.connection.query_drop("COMMIT").await?,
+            (false, false) => self.connection.query_drop("ROLLBACK").await?,
+            (true, true) => self.connection.query_drop(format!("RELEASE SAVEPOINT {savepoint}")).await?,
+            (true, false) => {
+                self.connection.query_drop(format!("ROLLBACK TO SAVEPOINT {savepoint}")).await?;
+                self.connection.query_drop(format!("RELEASE SAVEPOINT {savepoint}")).await?;
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Ends a unit of work that did `outcome`, undoing it when committing fails too.
+    async fn conclude<T>(&mut self, nested: bool, savepoint: &str, outcome: Result<T>) -> Result<T> {
+        match outcome {
+            Ok(value) => match self.end_unit(nested, savepoint, true).await {
+                Ok(()) => Ok(value),
+                Err(error) => {
+                    let _ = self.end_unit(nested, savepoint, false).await;
+
+                    Err(error)
+                }
+            },
+            Err(error) => {
+                let _ = self.end_unit(nested, savepoint, false).await;
+
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn transaction(&mut self, action: TransactionAction) -> Result<TransactionResult> {
+        let active = self.in_transaction().await;
+
+        match action {
+            TransactionAction::Begin if !active => self.connection.query_drop("START TRANSACTION").await?,
+            TransactionAction::Commit if active => self.connection.query_drop("COMMIT").await?,
+            TransactionAction::Rollback if active => self.connection.query_drop("ROLLBACK").await?,
+            _ => {}
+        }
+
+        Ok(TransactionResult {
+            active: self.in_transaction().await,
+        })
     }
 
     pub async fn schemas(&mut self) -> Result<SchemasResult> {
@@ -769,25 +897,17 @@ impl MysqlEngine {
 
     pub async fn apply(&mut self, params: ApplyParams) -> Result<ApplyResult> {
         if self.read_only {
-            return Err(DatabaseError::new(ErrorCode::ReadOnly, "The connection is read only."));
+            return Err(DatabaseError::read_only());
         }
 
         let structure = self.structure(params.schema.clone(), params.table.clone()).await?;
         let planned = plan_apply(DIALECT, &structure, &params.changes)?;
 
-        self.connection.query_drop("START TRANSACTION").await?;
-
+        let nested = self.begin_unit(APPLY_SAVEPOINT).await?;
         let outcome = self.run_planned(&planned).await;
-        let finished = match outcome {
-            Ok(affected) => self.connection.query_drop("COMMIT").await.map(|_| affected).map_err(DatabaseError::from),
-            Err(error) => Err(error),
-        };
+        let affected = self.conclude(nested, APPLY_SAVEPOINT, outcome).await?;
 
-        if finished.is_err() {
-            let _ = self.connection.query_drop("ROLLBACK").await;
-        }
-
-        finished.map(|affected| ApplyResult { affected })
+        Ok(ApplyResult { affected })
     }
 
     async fn run_planned(&mut self, planned: &[crate::sql::PlannedStatement]) -> Result<u64> {
@@ -823,11 +943,15 @@ impl MysqlEngine {
         self.connection.query_drop(format!("SET SESSION sql_select_limit = {}", limit + 1)).await?;
         let outcome = self.run_script(&params.sql, limit, cell_limit, &cancelled).await;
         let _ = self.connection.query_drop("SET SESSION sql_select_limit = DEFAULT").await;
+        let results = outcome?;
 
-        outcome
+        Ok(ExecuteResult {
+            results,
+            in_transaction: self.in_transaction().await,
+        })
     }
 
-    async fn run_script(&mut self, script: &str, limit: usize, cell_limit: usize, cancelled: &AtomicBool) -> Result<ExecuteResult> {
+    async fn run_script(&mut self, script: &str, limit: usize, cell_limit: usize, cancelled: &AtomicBool) -> Result<Vec<StatementResult>> {
         let mut results = Vec::new();
 
         for statement in split_statements(script, DIALECT) {
@@ -853,7 +977,173 @@ impl MysqlEngine {
             }
         }
 
-        Ok(ExecuteResult { results })
+        Ok(results)
+    }
+
+    pub async fn page(&mut self, params: PageParams) -> Result<RowsResult> {
+        let page = paging_with(params.limit, params.offset, params.cell_limit, DEFAULT_EXECUTE_CELL_LIMIT)?;
+        let statement = single_statement(&params.sql, DIALECT, &["SELECT", "WITH"], "A page")?;
+
+        if let Some(schema) = &params.schema {
+            self.connection.query_drop(format!("USE {}", DIALECT.quote_ident(schema))).await?;
+        }
+
+        let started = Instant::now();
+        let bound = Params::Positional(vec![MyValue::UInt(page.limit as u64 + 1), MyValue::UInt(page.offset)]);
+        let mut result = self.connection.exec_iter(page_sql(DIALECT, &statement), bound).await?;
+        let (columns, rows, has_more) = read_set(&mut result, page.limit, page.cell_limit).await?;
+        result.drop_result().await?;
+
+        Ok(RowsResult {
+            columns,
+            rows,
+            has_more,
+            elapsed_ms: elapsed_ms(started.elapsed()),
+        })
+    }
+
+    pub async fn export(&mut self, params: ExportParams, cancelled: Arc<AtomicBool>) -> Result<ExportResult> {
+        let started = Instant::now();
+        let (sql, table_name) = export_query(DIALECT, &params.source, params.table_name.as_deref())?;
+
+        if let ExportSource::Query { schema: Some(schema), .. } = &params.source {
+            self.connection.query_drop(format!("USE {}", DIALECT.quote_ident(schema))).await?;
+        }
+
+        let (mut partial, file) = PartialFile::create(&params.path)?;
+        let mut file = tokio::fs::File::from_std(file);
+        let mut result = self.connection.query_iter(sql).await?;
+        let columns: Vec<Column> = result.columns_ref().to_vec();
+
+        if columns.is_empty() {
+            result.drop_result().await?;
+
+            return Err(DatabaseError::unsupported("The statement returns no rows to export."));
+        }
+
+        let expected = result.columns();
+        let mut exporter = Exporter::new(params.format, DIALECT, result_columns(&columns), params.header.unwrap_or(true), &table_name);
+
+        while let Some(row) = result.next().await? {
+            if expected.as_ref().is_some_and(|expected| !Arc::ptr_eq(expected, &row.columns())) {
+                break;
+            }
+
+            if cancelled.load(Ordering::SeqCst) {
+                // The server is told to stop, but the rest of the result is still in flight and would fail the next request.
+                let _ = tokio::time::timeout(CANCEL_DRAIN_TIMEOUT, result.drop_result()).await;
+
+                return Err(DatabaseError::cancelled());
+            }
+
+            let cells: Vec<Cell> = row
+                .unwrap()
+                .into_iter()
+                .enumerate()
+                .map(|(index, value)| cell_of(value, &columns[index], usize::MAX))
+                .collect();
+            exporter.push(&cells);
+
+            if exporter.is_full() {
+                file.write_all(&exporter.take()).await?;
+            }
+        }
+
+        result.drop_result().await?;
+        exporter.finish();
+        file.write_all(&exporter.take()).await?;
+        file.flush().await?;
+        drop(file);
+        partial.commit()?;
+
+        Ok(ExportResult {
+            rows: exporter.rows(),
+            bytes: exporter.bytes(),
+            elapsed_ms: elapsed_ms(started.elapsed()),
+        })
+    }
+
+    pub async fn import(&mut self, params: ImportParams, cancelled: Arc<AtomicBool>) -> Result<ImportResult> {
+        if self.read_only {
+            return Err(DatabaseError::read_only());
+        }
+
+        let started = Instant::now();
+        let structure = self.structure(params.schema.clone(), params.table.clone()).await?;
+        let plan = ImportPlan::new(&params.columns, &structure)?;
+        let names = plan.names();
+        let reader = ImportReader::open(&params, plan)?;
+
+        let nested = self.begin_unit(IMPORT_SAVEPOINT).await?;
+        let outcome = self.insert_batches(&params, &names, reader, &cancelled).await;
+        let rows = self.conclude(nested, IMPORT_SAVEPOINT, outcome).await?;
+
+        Ok(ImportResult {
+            rows,
+            elapsed_ms: elapsed_ms(started.elapsed()),
+        })
+    }
+
+    async fn insert_batches(&mut self, params: &ImportParams, names: &[String], mut reader: ImportReader, cancelled: &AtomicBool) -> Result<u64> {
+        let mut total = 0;
+
+        loop {
+            let (returned, batch) = tokio::task::spawn_blocking(move || {
+                let batch = reader.next_batch();
+
+                (reader, batch)
+            })
+            .await
+            .map_err(|e| DatabaseError::internal(format!("The import reader failed: {e}.")))?;
+            reader = returned;
+            let batch = batch?;
+
+            if batch.is_empty() {
+                return Ok(total);
+            }
+
+            if cancelled.load(Ordering::SeqCst) {
+                return Err(DatabaseError::cancelled());
+            }
+
+            if let Err(error) = self.insert_rows(params, names, &batch).await {
+                return Err(self.locate_failure(params, names, &batch, error).await);
+            }
+
+            total += batch.len() as u64;
+        }
+    }
+
+    async fn insert_rows(&mut self, params: &ImportParams, names: &[String], rows: &[ImportRow]) -> Result<()> {
+        let sql = insert_sql(DIALECT, &params.schema, &params.table, names, rows.len());
+        let values: Vec<MyValue> = rows
+            .iter()
+            .flat_map(|row| row.values.iter())
+            .map(|value| value.clone().map_or(MyValue::NULL, |text| MyValue::Bytes(text.into_bytes())))
+            .collect();
+
+        self.connection.exec_drop(sql, Params::Positional(values)).await?;
+
+        Ok(())
+    }
+
+    /// A failed batch inserted nothing, so inserting its rows one at a time shows which line the server turns down.
+    async fn locate_failure(&mut self, params: &ImportParams, names: &[String], batch: &[ImportRow], error: DatabaseError) -> DatabaseError {
+        if error.code == ErrorCode::Cancelled {
+            return error;
+        }
+
+        if let [row] = batch {
+            return at_line(error, row.line);
+        }
+
+        for row in batch {
+            if let Err(row_error) = self.insert_rows(params, names, std::slice::from_ref(row)).await {
+                return at_line(row_error, row.line);
+            }
+        }
+
+        at_lines(error, batch)
     }
 
     async fn run_statement(&mut self, sql: &str, limit: usize, cell_limit: usize, started: Instant) -> Result<StatementResult> {

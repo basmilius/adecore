@@ -9,12 +9,14 @@ pub enum ErrorCode {
     UnknownSession,
     ConnectFailed,
     AuthFailed,
+    TunnelFailed,
     QueryFailed,
     ReadOnly,
     NoRowKey,
     Conflict,
     Cancelled,
     Unsupported,
+    FileFailed,
     Internal,
 }
 
@@ -57,6 +59,22 @@ impl DatabaseError {
         Self::new(ErrorCode::QueryFailed, message)
     }
 
+    pub fn tunnel_failed(message: impl Into<String>) -> Self {
+        Self::new(ErrorCode::TunnelFailed, message)
+    }
+
+    pub fn file_failed(message: impl Into<String>) -> Self {
+        Self::new(ErrorCode::FileFailed, message)
+    }
+
+    pub fn unsupported(message: impl Into<String>) -> Self {
+        Self::new(ErrorCode::Unsupported, message)
+    }
+
+    pub fn read_only() -> Self {
+        Self::new(ErrorCode::ReadOnly, "The connection is read only.")
+    }
+
     pub fn cancelled() -> Self {
         Self::new(ErrorCode::Cancelled, "The request was cancelled.")
     }
@@ -83,6 +101,12 @@ impl fmt::Display for DatabaseError {
 }
 
 impl std::error::Error for DatabaseError {}
+
+impl From<std::io::Error> for DatabaseError {
+    fn from(error: std::io::Error) -> Self {
+        DatabaseError::file_failed(error.to_string())
+    }
+}
 
 impl From<rusqlite::Error> for DatabaseError {
     fn from(error: rusqlite::Error) -> Self {

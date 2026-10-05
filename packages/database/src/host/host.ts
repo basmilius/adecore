@@ -252,23 +252,45 @@ export const createDatabaseHost = (options: DatabaseHostOptions): DatabaseHost =
         }
     };
 
+    /* An app's check that throws or rejects counts as a no. */
+    const permitted = async (check: () => boolean | Promise<boolean>): Promise<boolean> => {
+        try {
+            return await check();
+        } catch {
+            return false;
+        }
+    };
+
     const authorize = async (request: DatabaseRequest, owner: string): Promise<void> => {
-        if (request.method !== 'open' && request.method !== 'test') {
-            return;
-        }
+        switch (request.method) {
+            case 'open':
+            case 'test': {
+                if (options.authorize !== undefined && !(await permitted(() => options.authorize!(request.params.connection, owner)))) {
+                    throw new Failure('forbidden', 'This connection is not allowed.');
+                }
 
-        let allowed = true;
-
-        if (options.authorize !== undefined) {
-            try {
-                allowed = await options.authorize(request.params.connection, owner);
-            } catch {
-                allowed = false;
+                break;
             }
-        }
 
-        if (!allowed) {
-            throw new Failure('forbidden', 'This connection is not allowed.');
+            case 'export':
+            case 'import':
+            case 'sample': {
+                const access = request.method === 'export' ? 'write' : 'read';
+
+                if (options.authorizeFile === undefined || !(await permitted(() => options.authorizeFile!(request.params.path, access, owner)))) {
+                    throw new Failure('forbidden', 'This file is not allowed.');
+                }
+
+                break;
+            }
+
+            case 'discover': {
+                if (options.authorizeDiscovery !== undefined && !(await permitted(() => options.authorizeDiscovery!(request.params.kind, owner)))) {
+                    throw new Failure('forbidden', 'Discovery is not allowed.');
+                }
+
+                break;
+            }
         }
     };
 

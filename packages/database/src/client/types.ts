@@ -1,6 +1,9 @@
 import type {
     ConnectionConfig,
     DatabaseErrorCode,
+    DockerContainer,
+    ExportSource,
+    FileFormat,
     DatabaseRequest,
     DatabaseResponse,
     RowChange,
@@ -66,12 +69,71 @@ export interface DatabaseSession {
     count(schema: string, table: string, where?: string, options?: RequestOptions): Promise<number>;
     cell(schema: string, table: string, key: RowKey, column: string, options?: RequestOptions): Promise<Value>;
     apply(schema: string, table: string, changes: readonly RowChange[], options?: RequestOptions): Promise<number>;
-    execute(sql: string, options?: ExecuteOptions): Promise<readonly StatementResult[]>;
+    execute(sql: string, options?: ExecuteOptions): Promise<ExecuteResult>;
+    page(sql: string, query: PageQuery, options?: RequestOptions): Promise<RowsResult>;
+    /* Resolves whether a transaction is open after the action. */
+    transaction(action: 'begin' | 'commit' | 'rollback', options?: RequestOptions): Promise<boolean>;
+    export(request: ExportRequest, options?: RequestOptions): Promise<ExportResult>;
+    import(schema: string, table: string, request: ImportRequest, options?: RequestOptions): Promise<number>;
     close(): Promise<void>;
+}
+
+export interface ExecuteResult {
+    readonly results: readonly StatementResult[];
+    readonly inTransaction: boolean;
+}
+
+export interface PageQuery {
+    readonly schema?: string;
+    readonly offset: number;
+    readonly limit: number;
+    readonly cellLimit?: number;
+}
+
+export interface ExportRequest {
+    readonly source: ExportSource;
+    readonly format: FileFormat;
+    readonly path: string;
+    readonly header?: boolean;
+    readonly tableName?: string;
+}
+
+export interface ExportResult {
+    readonly rows: number;
+    readonly bytes: number;
+    readonly elapsedMs: number;
+}
+
+export interface ImportRequest {
+    readonly path: string;
+    readonly format: 'csv' | 'tsv';
+    readonly header: boolean;
+    readonly columns: readonly (string | null)[];
+}
+
+/* What changed in the shape of a database, so a tree or a structure view that shows it loads it again. */
+export interface SchemaChange {
+    readonly connectionId: string;
+    /* `undefined` when the statement did not say which schema, which reloads every schema of the connection. */
+    readonly schema?: string;
 }
 
 export interface DatabaseClient {
     test(config: ConnectionConfig, options?: RequestOptions): Promise<ServerInfo>;
+    discover(kind: 'docker', options?: RequestOptions & { readonly context?: string }): Promise<readonly DockerContainer[]>;
+    sample(
+        path: string,
+        format: 'csv' | 'tsv',
+        header: boolean,
+        options?: RequestOptions
+    ): Promise<{ readonly columns: readonly string[]; readonly rows: readonly (readonly string[])[] }>;
+    /*
+     * Tells every listener the shape of a database changed. The client calls it itself after an `execute`
+     * that ran `CREATE`, `ALTER`, `DROP`, `RENAME` or `TRUNCATE`; a view that changes the shape another way calls it too.
+     */
+    notifySchemaChange(change: SchemaChange): void;
+    /* Returns the function that stops listening. */
+    onSchemaChange(listener: (change: SchemaChange) => void): () => void;
     /* The session of this connection, the same object on every call. A connection whose config changed gets a new one, and the old one closes. */
     session(connection: Connection): DatabaseSession;
     disconnect(connectionId: string): Promise<void>;

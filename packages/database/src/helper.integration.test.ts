@@ -5,9 +5,24 @@ import { afterAll, describe, expect, test } from 'bun:test';
 import { createDatabaseClient } from './client/index.ts';
 import type { Connection } from './client/types.ts';
 import { createDatabaseHost, spawnHelper } from './host/index.ts';
+import { PROTOCOL_VERSION } from './protocol/index.ts';
 
 /* The release build of the helper; cargo builds it, so a checkout without Rust skips these tests. */
 const HELPER = new URL('../helper/target/release/adecore-database', import.meta.url).pathname;
+
+/* A build from before the protocol last changed would fail every test on the handshake, so it skips them like a missing one. */
+const speaksProtocol = (): boolean => {
+    if (!existsSync(HELPER)) {
+        return false;
+    }
+
+    try {
+        const output = Bun.spawnSync([HELPER], { stdin: 'ignore', stdout: 'pipe', stderr: 'ignore', timeout: 5000 }).stdout.toString();
+        return (JSON.parse(output.split('\n')[0] ?? '') as { protocol?: unknown }).protocol === PROTOCOL_VERSION;
+    } catch {
+        return false;
+    }
+};
 
 const folder = mkdtempSync(join(tmpdir(), 'adecore-database-'));
 const host = createDatabaseHost({ start: () => spawnHelper(HELPER) });
@@ -20,10 +35,10 @@ afterAll(async () => {
     rmSync(folder, { recursive: true, force: true });
 });
 
-describe.skipIf(!existsSync(HELPER))('the page, the host and the helper together', () => {
+describe.skipIf(!speaksProtocol())('the page, the host and the helper together', () => {
     test('a table made in the console reads back, edits and counts', async () => {
         const session = client.session(shop);
-        const created = await session.execute(`
+        const { results: created } = await session.execute(`
             CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL, note TEXT, avatar BLOB);
             INSERT INTO customers (name, note, avatar) VALUES ('Ada', '${'x'.repeat(2000)}', x'89504e47'), ('Linus', NULL, NULL);
         `);
@@ -56,6 +71,34 @@ describe.skipIf(!existsSync(HELPER))('the page, the host and the helper together
             ])
         ).rejects.toMatchObject({ code: 'conflict', change: 1 });
         expect(await session.count('main', 'customers')).toBe(3);
+    });
+
+    test('a transaction the person drives rolls its insert back', async () => {
+        const session = client.session(shop);
+        const before = await session.count('main', 'customers');
+
+        expect(await session.transaction('begin')).toBe(true);
+        const inserted = await session.execute(`INSERT INTO customers (name) VALUES ('Dennis')`);
+        expect(inserted.inTransaction).toBe(true);
+        expect(await session.count('main', 'customers')).toBe(before + 1);
+
+        expect(await session.transaction('rollback')).toBe(false);
+        expect(await session.count('main', 'customers')).toBe(before);
+        expect((await session.execute('SELECT 1')).inTransaction).toBe(false);
+    });
+
+    test('a page of a statement continues where the first page of the console stopped', async () => {
+        const session = client.session(shop);
+        const total = await session.count('main', 'customers');
+        const first = await session.page('SELECT id, name FROM customers ORDER BY id', { offset: 0, limit: 2 });
+        const rest = await session.page('SELECT id, name FROM customers ORDER BY id', { offset: 2, limit: 2 });
+
+        expect(first.hasMore).toBe(total > 2);
+        expect(first.columns.map((column) => column.name)).toEqual(['id', 'name']);
+        expect(first.rows.map((row) => row[0])).toEqual([1, 2]);
+        expect(rest.rows).toHaveLength(total - 2);
+        expect(rest.rows[0]![0]).toBe(3);
+        expect(rest.hasMore).toBe(false);
     });
 
     test('an aborted query is cancelled on the server', async () => {

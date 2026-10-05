@@ -1,7 +1,8 @@
 use crate::cells::{MAX_SAFE_INTEGER, from_hex};
 use crate::error::{DatabaseError, ErrorCode, Result};
-use crate::protocol::{BinaryValue, ColumnInfo, EditValue, RowChange, RowKey, TableStructure, Value};
+use crate::protocol::{BinaryValue, ColumnInfo, EditValue, ExportSource, RowChange, RowKey, TableStructure, Value};
 use crate::quoting::Dialect;
+use crate::splitter::{first_keyword, split_statements};
 
 pub const MAX_LIMIT: i64 = 10_000;
 pub const DEFAULT_ROWS_CELL_LIMIT: usize = 1024;
@@ -62,6 +63,10 @@ pub struct Paging {
 }
 
 pub fn paging(limit: i64, offset: i64, cell_limit: Option<i64>) -> Result<Paging> {
+    paging_with(limit, offset, cell_limit, DEFAULT_ROWS_CELL_LIMIT)
+}
+
+pub fn paging_with(limit: i64, offset: i64, cell_limit: Option<i64>, default_cell_limit: usize) -> Result<Paging> {
     if !(1..=MAX_LIMIT).contains(&limit) {
         return Err(DatabaseError::invalid_request(format!("The limit must be between 1 and {MAX_LIMIT}.")));
     }
@@ -73,7 +78,7 @@ pub fn paging(limit: i64, offset: i64, cell_limit: Option<i64>) -> Result<Paging
     Ok(Paging {
         limit: limit as usize,
         offset: offset as u64,
-        cell_limit: resolve_cell_limit(cell_limit, DEFAULT_ROWS_CELL_LIMIT)?,
+        cell_limit: resolve_cell_limit(cell_limit, default_cell_limit)?,
     })
 }
 
@@ -85,8 +90,16 @@ pub fn resolve_cell_limit(cell_limit: Option<i64>, default: usize) -> Result<usi
     }
 }
 
-/// The SQL of a page of rows. The fragments end on a newline so a trailing line comment cannot swallow what follows.
+/// The SQL of a page of rows.
 pub fn rows_sql(dialect: Dialect, schema: &str, table: &str, filter: Option<&str>, order_by: Option<&str>) -> String {
+    let mut sql = select_sql(dialect, schema, table, filter, order_by);
+    sql.push_str(" LIMIT ? OFFSET ?");
+
+    sql
+}
+
+/// Every row of a table, filtered and ordered. The fragments end on a newline so a trailing line comment cannot swallow what follows.
+pub fn select_sql(dialect: Dialect, schema: &str, table: &str, filter: Option<&str>, order_by: Option<&str>) -> String {
     let mut sql = format!("SELECT * FROM {}", dialect.qualified(schema, table));
 
     if let Some(filter) = filter {
@@ -97,9 +110,53 @@ pub fn rows_sql(dialect: Dialect, schema: &str, table: &str, filter: Option<&str
         sql.push_str(&format!(" ORDER BY {order_by}\n"));
     }
 
-    sql.push_str(" LIMIT ? OFFSET ?");
-
     sql
+}
+
+/// The one statement of `script`, provided it starts with one of the `allowed` keywords.
+pub fn single_statement(script: &str, dialect: Dialect, allowed: &[&str], what: &str) -> Result<String> {
+    let mut statements = split_statements(script, dialect);
+
+    if statements.len() != 1 {
+        return Err(DatabaseError::unsupported(format!("{what} takes exactly one statement.")));
+    }
+
+    let statement = statements.remove(0);
+
+    if !allowed.contains(&first_keyword(&statement).as_str()) {
+        return Err(DatabaseError::unsupported(format!(
+            "{what} takes a statement that starts with {}.",
+            allowed.join(", ")
+        )));
+    }
+
+    Ok(statement)
+}
+
+const EXPORT_KEYWORDS: [&str; 9] = ["SELECT", "WITH", "SHOW", "PRAGMA", "EXPLAIN", "DESCRIBE", "DESC", "VALUES", "TABLE"];
+
+/// The statement that yields every row of an export source, and the table name its INSERT statements use.
+pub fn export_query(dialect: Dialect, source: &ExportSource, table_name: Option<&str>) -> Result<(String, String)> {
+    let (sql, default_name) = match source {
+        ExportSource::Table {
+            schema,
+            table,
+            r#where,
+            order_by,
+        } => (select_sql(dialect, schema, table, fragment(r#where), fragment(order_by)), table.as_str()),
+        ExportSource::Query { sql, .. } => (single_statement(sql, dialect, &EXPORT_KEYWORDS, "An export")?, "result"),
+    };
+    let name = table_name.filter(|name| !name.is_empty()).unwrap_or(default_name);
+
+    Ok((sql, name.to_string()))
+}
+
+/// A statement that reads, wrapped so a limit and an offset apply to it. The closing parenthesis follows a newline so a trailing line comment stays inside.
+pub fn page_sql(dialect: Dialect, statement: &str) -> String {
+    match dialect {
+        Dialect::Sqlite => format!("SELECT * FROM ({statement}\n) LIMIT ? OFFSET ?"),
+        Dialect::Mysql => format!("SELECT * FROM ({statement}\n) AS adecore_page LIMIT ? OFFSET ?"),
+    }
 }
 
 pub fn count_sql(dialect: Dialect, schema: &str, table: &str, filter: Option<&str>) -> String {

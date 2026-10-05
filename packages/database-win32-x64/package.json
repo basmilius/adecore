@@ -1,0 +1,26 @@
+{
+  "name": "@adecore/database-win32-x64",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The prebuilt native helper of @adecore/database for Windows on x64.",
+  "license": "MIT",
+  "author": "Bas Milius",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/basmilius/adecore.git",
+    "directory": "packages/database-win32-x64"
+  },
+  "bugs": {
+    "url": "https://github.com/basmilius/adecore/issues"
+  },
+  "homepage": "https://adecore.dev/database/",
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "files": [
+    "bin"
+  ]
+}

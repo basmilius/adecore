@@ -1,10 +1,22 @@
 import type { KeyboardEvent } from 'react';
-import { CopyPlus, PanelRight, Plus, RefreshCw, Trash2, Undo2 } from 'lucide-react';
+import { CopyPlus, Download, FileInput, PanelRight, Plus, RefreshCw, TableProperties, Trash2, Undo2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Button, IconButton, Input, Separator } from '@adecore/ui';
+import { Button, Icon, IconButton, Input, Menu, Separator } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
+import type { FileFormat } from '../protocol/index.ts';
 
 export type FilterField = 'where' | 'orderBy';
+
+/* The menu of export and import; present only when the app can show file dialogs. */
+export interface TransferMenu {
+    /* An export is running. */
+    busy: boolean;
+    onExport(format: FileFormat): void;
+    /* Left out where rows cannot be added. */
+    onImport?(): void;
+}
+
+const EXPORT_FORMATS: readonly FileFormat[] = ['csv', 'tsv', 'json', 'sql'];
 
 export interface TableToolbarProps {
     refreshing: boolean;
@@ -14,6 +26,9 @@ export interface TableToolbarProps {
     /* Whether any selected row has a change to take back. */
     canRevertSelection: boolean;
     valuePanelOpen: boolean;
+    /* The record view replaces the grid with the focused row as a list of fields. */
+    recordViewOpen?: boolean;
+    transfer?: TransferMenu;
     pendingCount: number;
     submitting: boolean;
     where: string;
@@ -29,6 +44,7 @@ export interface TableToolbarProps {
     onCloneRows(): void;
     onRevertRows(): void;
     onToggleValuePanel(): void;
+    onToggleRecordView?(): void;
     onSubmit(): void;
     onRevert(): void;
 }
@@ -40,6 +56,8 @@ export function TableToolbar({
     hasSelection,
     canRevertSelection,
     valuePanelOpen,
+    recordViewOpen = false,
+    transfer,
     pendingCount,
     submitting,
     where,
@@ -53,6 +71,7 @@ export function TableToolbar({
     onCloneRows,
     onRevertRows,
     onToggleValuePanel,
+    onToggleRecordView,
     onSubmit,
     onRevert
 }: TableToolbarProps) {
@@ -104,6 +123,33 @@ export function TableToolbar({
                 aria-disabled={!canRevertSelection || undefined}
                 onClick={() => canRevertSelection && onRevertRows()}
             />
+            {transfer !== undefined && (
+                <Menu.Root>
+                    <IconButton
+                        icon={Download}
+                        size="sm"
+                        label={t(transfer.onImport === undefined ? 'table.export.label' : 'table.export.labelWithImport')}
+                        disabled={transfer.busy}
+                        render={<Menu.Trigger />}
+                    />
+                    <Menu.Popup>
+                        {EXPORT_FORMATS.map((format) => (
+                            <Menu.Item key={format} onClick={() => transfer.onExport(format)}>
+                                {t('table.export.as', { format: format.toUpperCase() })}
+                            </Menu.Item>
+                        ))}
+                        {transfer.onImport !== undefined && (
+                            <>
+                                <Menu.Separator />
+                                <Menu.Item onClick={transfer.onImport}>
+                                    <Icon icon={FileInput} size={14} />
+                                    {t('table.import.menu')}
+                                </Menu.Item>
+                            </>
+                        )}
+                    </Menu.Popup>
+                </Menu.Root>
+            )}
             {pendingCount > 0 && (
                 <>
                     <Separator />
@@ -141,6 +187,9 @@ export function TableToolbar({
                     />
                 </label>
             </div>
+            {onToggleRecordView !== undefined && (
+                <IconButton icon={TableProperties} size="sm" label={t('table.recordView')} aria-pressed={recordViewOpen} onClick={onToggleRecordView} />
+            )}
             <IconButton icon={PanelRight} size="sm" label={t('table.valuePanel')} aria-pressed={valuePanelOpen} onClick={onToggleValuePanel} />
         </div>
     );

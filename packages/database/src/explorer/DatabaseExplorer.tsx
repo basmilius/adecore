@@ -2,22 +2,29 @@ import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode, type R
 import clsx from 'clsx';
 import { ChevronRight, CircleAlert, Database, Eye, Folder, KeyRound, Link2, Lock, RectangleVertical, Search, Table } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Button, ContextMenu, EmptyState, Icon, Input, Spinner, Tooltip, copyText } from '@adecore/ui';
+import { Button, ContextMenu, EmptyState, Icon, Input, Spinner, Tooltip } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
-import { useDatabaseClient } from '../client-context.ts';
-import type { Connection, TableRef } from '../client/types.ts';
+import type { ExplorerSelection } from '../actions.ts';
+import { useDatabaseAction, useDatabaseClient } from '../client-context.ts';
+import type { Connection } from '../client/types.ts';
 import { EngineIcon } from '../connections/EngineIcon.tsx';
+import { RowMenu } from './RowMenu.tsx';
+import { TableDialog, type TableRequest } from './TableDialog.tsx';
 import {
     connectionKey,
     flattenTree,
+    hasMenu,
     isExpandable,
     isFolderKey,
+    isSelectable,
     navigate,
     neededLoads,
+    selectionKey,
+    selectionOf,
     tabStop,
-    tableKey,
     tableOf,
     type ErrorRow,
+    type LoadTarget,
     type ExpandableRow,
     type TreeRow
 } from './tree.ts';
@@ -30,32 +37,26 @@ const CHEVRON_SIZE = 16;
 
 export interface DatabaseExplorerProps {
     connections: readonly Connection[];
-    /* The selected table. Without it the explorer keeps the selection itself, starting at `defaultValue`. */
-    value?: TableRef | null;
-    defaultValue?: TableRef | null;
-    onValueChange?(ref: TableRef | null): void;
-    /* A double click or Enter on a table, or Open in its menu. */
-    onOpen?(ref: TableRef): void;
+    /* The selected connection, schema or table. Without it the explorer keeps the selection itself, starting at `defaultValue`. */
+    value?: ExplorerSelection | null;
+    defaultValue?: ExplorerSelection | null;
+    onValueChange?(selection: ExplorerSelection | null): void;
     showSystemSchemas?: boolean;
     className?: string;
     ref?: Ref<HTMLDivElement>;
 }
 
-/* The connections, their schemas and their tables as a tree, loaded as each node opens. */
-export function DatabaseExplorer({
-    connections,
-    value,
-    defaultValue = null,
-    onValueChange,
-    onOpen,
-    showSystemSchemas = false,
-    className,
-    ref
-}: DatabaseExplorerProps) {
+/*
+ * The connections, their schemas and their tables as a tree, loaded as each node opens. Every row
+ * selects; a double click or Enter on a table asks the app to open it through `useDatabaseAction`.
+ */
+export function DatabaseExplorer({ connections, value, defaultValue = null, onValueChange, showSystemSchemas = false, className, ref }: DatabaseExplorerProps) {
     const { t } = useTranslation('database');
     const client = useDatabaseClient();
+    const act = useDatabaseAction();
     const loads = useExplorerLoads(connections);
-    const [own, setOwn] = useState<TableRef | null>(defaultValue);
+    const [own, setOwn] = useState<ExplorerSelection | null>(defaultValue);
+    const [request, setRequest] = useState<TableRequest | null>(null);
     const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
     const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
     const [filter, setFilter] = useState('');
@@ -63,7 +64,7 @@ export function DatabaseExplorer({
     const rowElements = useRef(new Map<string, HTMLElement>());
     const focusAfterRender = useRef(false);
     const selected = value === undefined ? own : value;
-    const selectedKey = selected === null ? null : tableKey(selected);
+    const selectedKey = selected === null ? null : selectionKey(selected);
 
     const input = {
         connections,
@@ -110,26 +111,38 @@ export function DatabaseExplorer({
         setOpen(row.key, !row.expanded);
     };
 
-    const select = (ref: TableRef): void => {
+    const select = (selection: ExplorerSelection): void => {
         if (value === undefined) {
-            setOwn(ref);
+            setOwn(selection);
         }
-        onValueChange?.(ref);
+        onValueChange?.(selection);
+    };
+
+    const pick = (row: TreeRow): void => {
+        const selection = selectionOf(row);
+        if (selection !== null) {
+            select(selection);
+        }
+    };
+
+    const open = (row: TreeRow): void => {
+        const ref = tableOf(row);
+        if (ref !== null) {
+            pick(row);
+            act?.({ kind: 'open-table', ref, view: 'data' });
+        }
     };
 
     const activate = (row: TreeRow): void => {
         switch (row.kind) {
             case 'table':
-                select(row.ref);
-                onOpen?.(row.ref);
-                break;
             case 'column':
-                select(row.ref);
-                onOpen?.(row.ref);
+                open(row);
                 break;
             case 'connection':
             case 'schema':
             case 'folder':
+                pick(row);
                 toggle(row);
                 break;
             case 'error':
@@ -162,17 +175,16 @@ export function DatabaseExplorer({
 
     const click = (row: TreeRow): void => {
         setActiveKey(row.key);
-        if (row.kind === 'table') {
-            select(row.ref);
-        } else if (isExpandable(row)) {
+        pick(row);
+        if (row.kind !== 'table' && isExpandable(row)) {
             toggle(row);
         } else if (row.kind === 'error') {
             loads.reset(row.retry);
         }
     };
 
-    const refresh = (connection: Connection): void => {
-        loads.reset({ connectionId: connection.id });
+    const refresh = (target: LoadTarget): void => {
+        loads.reset(target);
     };
 
     const disconnect = (connection: Connection): void => {
@@ -181,44 +193,27 @@ export function DatabaseExplorer({
         setOpen(connectionKey(connection.id), false);
     };
 
-    const menuOf = (row: TreeRow): ReactNode => {
-        switch (row.kind) {
-            case 'connection':
-                return (
-                    <>
-                        <ContextMenu.Item onClick={() => refresh(row.connection)}>{t('explorer.refresh')}</ContextMenu.Item>
-                        <ContextMenu.Item onClick={() => disconnect(row.connection)}>{t('explorer.disconnect')}</ContextMenu.Item>
-                    </>
-                );
-            case 'schema':
-                return (
-                    <ContextMenu.Item onClick={() => loads.reset({ connectionId: row.connection.id, schema: row.schema })}>
-                        {t('explorer.refresh')}
-                    </ContextMenu.Item>
-                );
-            case 'table':
-                return (
-                    <>
-                        <ContextMenu.Item onClick={() => onOpen?.(row.ref)}>{t('explorer.open')}</ContextMenu.Item>
-                        <ContextMenu.Item onClick={() => copyText(row.ref.table)}>{t('explorer.copyName')}</ContextMenu.Item>
-                    </>
-                );
-            case 'column':
-                return (
-                    <>
-                        <ContextMenu.Item onClick={() => onOpen?.(row.ref)}>{t('explorer.open')}</ContextMenu.Item>
-                        <ContextMenu.Item onClick={() => copyText(row.column.name)}>{t('explorer.copyName')}</ContextMenu.Item>
-                    </>
-                );
-            default:
-                return null;
+    const finish = (done: TableRequest, to: string | undefined): void => {
+        setRequest(null);
+        const { connectionId, schema, table } = done.ref;
+        if (selected?.connectionId === connectionId && selected.schema === schema && selected.table === table) {
+            select(to === undefined ? { connectionId, schema } : { connectionId, schema, table: to });
         }
     };
 
-    const isSelected = (row: TreeRow | undefined): boolean => row !== undefined && row.kind === 'table' && row.key === selectedKey;
+    const connectionOf = (row: TreeRow): Connection | undefined => {
+        const selection = selectionOf(row);
+        return selection === null ? undefined : connections.find((entry) => entry.id === selection.connectionId);
+    };
+
+    const isSelected = (row: TreeRow | undefined): boolean => row !== undefined && isSelectable(row) && row.key === selectedKey;
 
     const renderRow = (row: TreeRow, index: number): ReactNode => {
-        const menu = menuOf(row);
+        const connection = connectionOf(row);
+        const menu =
+            connection !== undefined && hasMenu(row) ? (
+                <RowMenu row={row} connection={connection} onRefresh={refresh} onDisconnect={disconnect} onRequest={setRequest} />
+            ) : null;
         const selectedRow = isSelected(row);
         const props = {
             role: 'treeitem',
@@ -226,7 +221,7 @@ export function DatabaseExplorer({
             'aria-setsize': row.setSize,
             'aria-posinset': row.posInSet,
             'aria-expanded': isExpandable(row) ? row.expanded : undefined,
-            'aria-selected': row.kind === 'table' ? selectedRow : undefined,
+            'aria-selected': isSelectable(row) ? selectedRow : undefined,
             'aria-busy': row.kind === 'loading' ? true : undefined,
             tabIndex: row.focusable ? (row.key === stop ? 0 : -1) : undefined,
             className: clsx(
@@ -245,7 +240,7 @@ export function DatabaseExplorer({
                 }
             },
             onClick: () => click(row),
-            onDoubleClick: tableOf(row) === null ? undefined : () => activate(row),
+            onDoubleClick: tableOf(row) === null ? undefined : () => open(row),
             onFocus: () => {
                 if (row.focusable) {
                     setActiveKey(row.key);
@@ -308,6 +303,7 @@ export function DatabaseExplorer({
                     {rows.map(renderRow)}
                 </div>
             )}
+            {request !== null && <TableDialog request={request} onClose={() => setRequest(null)} onDone={finish} />}
         </div>
     );
 }

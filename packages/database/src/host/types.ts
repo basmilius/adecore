@@ -17,6 +17,13 @@ export interface DatabaseHostOptions {
      * connection it turns down fails with `forbidden`. Every connection is allowed when left out.
      */
     authorize?(connection: ConnectionConfig, owner: string): boolean | Promise<boolean>;
+    /*
+     * The app's say over the files a page may export to or import from, asked on every `export`,
+     * `import` and `sample`. Every file is refused when left out, since the page names the path.
+     */
+    authorizeFile?(path: string, access: 'read' | 'write', owner: string): boolean | Promise<boolean>;
+    /* The app's say over `discover`. Allowed when left out. */
+    authorizeDiscovery?(kind: 'docker', owner: string): boolean | Promise<boolean>;
     /* How long to wait for the helper's `ready` line. 10000 when left out. */
     readyTimeoutMs?: number;
 }

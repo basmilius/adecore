@@ -1,0 +1,14 @@
+{
+  "request": { "id": "r16", "method": "sample", "params": { "path": "/Users/demo/Downloads/users.csv", "format": "csv", "header": true, "limit": 2 } },
+  "response": {
+    "id": "r16",
+    "ok": true,
+    "result": {
+      "columns": ["id", "email", "created_at"],
+      "rows": [
+        ["11", "a@example.com", "2026-10-01 10:00:00"],
+        ["12", "b@example.com", ""]
+      ]
+    }
+  }
+}

@@ -4,8 +4,16 @@ import type { TableRef } from '@adecore/database';
 export type TableViewMode = 'data' | 'structure';
 
 export type WorkTab =
-    | { readonly id: string; readonly kind: 'table'; readonly ref: TableRef; readonly view: TableViewMode }
-    | { readonly id: string; readonly kind: 'console'; readonly connectionId: string; readonly schema: string | undefined; readonly number: number }
+    | { readonly id: string; readonly kind: 'table'; readonly ref: TableRef; readonly view: TableViewMode; readonly where?: string }
+    | {
+          readonly id: string;
+          readonly kind: 'console';
+          readonly connectionId: string;
+          readonly schema: string | undefined;
+          readonly sql: string;
+          readonly number: number;
+      }
+    | { readonly id: string; readonly kind: 'designer'; readonly connectionId: string; readonly schema: string; readonly table: string | undefined }
     | { readonly id: string; readonly kind: 'connections' };
 
 interface Workspace {
@@ -20,6 +28,7 @@ export const connectionIdOf = (tab: WorkTab): string | null => {
         case 'table':
             return tab.ref.connectionId;
         case 'console':
+        case 'designer':
             return tab.connectionId;
         case 'connections':
             return null;
@@ -31,6 +40,7 @@ const tableTabId = (ref: TableRef): string => `table:${ref.connectionId}\u0000${
 /* The open tabs and the one in front. Opening something that is already open brings its tab forward. */
 export const useTabs = () => {
     const [workspace, setWorkspace] = useState<Workspace>({ tabs: [], activeId: null });
+    const serial = useRef(0);
     const consoles = useRef(0);
 
     const open = (tab: WorkTab): void => {
@@ -40,13 +50,27 @@ export const useTabs = () => {
         }));
     };
 
-    const openTable = (ref: TableRef): void => {
-        open({ id: tableTabId(ref), kind: 'table', ref, view: 'data' });
+    /* A filtered table is a tab of its own: the filter is what was asked for. */
+    const openTable = (ref: TableRef, view: TableViewMode = 'data', where?: string): void => {
+        serial.current += 1;
+        open({ id: where === undefined ? tableTabId(ref) : `filtered:${serial.current}`, kind: 'table', ref, view, where });
     };
 
-    const openConsole = (connectionId: string, schema?: string): void => {
+    const openConsole = (connectionId: string, schema?: string, sql = ''): void => {
         consoles.current += 1;
-        open({ id: `console:${consoles.current}`, kind: 'console', connectionId, schema, number: consoles.current });
+        serial.current += 1;
+        open({ id: `console:${serial.current}`, kind: 'console', connectionId, schema, sql, number: consoles.current });
+    };
+
+    const openDesigner = (connectionId: string, schema: string, table?: string): void => {
+        serial.current += 1;
+        open({
+            id: table === undefined ? `designer:${serial.current}` : `designer:${connectionId}\u0000${schema}\u0000${table}`,
+            kind: 'designer',
+            connectionId,
+            schema,
+            table
+        });
     };
 
     const openConnections = (): void => {
@@ -82,5 +106,16 @@ export const useTabs = () => {
         });
     };
 
-    return { tabs: workspace.tabs, activeId: workspace.activeId, openTable, openConsole, openConnections, activate, close, setView, keepConnections };
+    return {
+        tabs: workspace.tabs,
+        activeId: workspace.activeId,
+        openTable,
+        openConsole,
+        openDesigner,
+        openConnections,
+        activate,
+        close,
+        setView,
+        keepConnections
+    };
 };

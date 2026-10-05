@@ -1,6 +1,6 @@
 /*
  * Why a request failed. The helper sends the first group; the host adds `helper-exited` and
- * `helper-unavailable`, and `forbidden` when the app's check turns a connection down.
+ * `helper-unavailable`, and `forbidden` when the app's check turns a connection, a file or a discovery down.
  */
 export type DatabaseErrorCode =
     /* The request does not have the shape of the protocol. */
@@ -9,6 +9,8 @@ export type DatabaseErrorCode =
     | 'unknown-session'
     | 'connect-failed'
     | 'auth-failed'
+    /* The SSH or Docker tunnel did not come up; `message` holds what `ssh` or `docker` said. */
+    | 'tunnel-failed'
     /* The server turned the SQL down; `sqlState` and `message` say why. */
     | 'query-failed'
     /* A write on a connection opened read only. */
@@ -19,6 +21,8 @@ export type DatabaseErrorCode =
     | 'conflict'
     | 'cancelled'
     | 'unsupported'
+    /* A file to export to or import from could not be read or written. */
+    | 'file-failed'
     | 'forbidden'
     | 'helper-exited'
     | 'helper-unavailable'

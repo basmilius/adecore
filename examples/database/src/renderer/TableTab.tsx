@@ -8,11 +8,13 @@ export interface TableTabProps {
     connection: Connection;
     tableRef: TableRef;
     view: TableViewMode;
+    /* The filter the table opens with. */
+    where?: string;
     onViewChange(view: TableViewMode): void;
 }
 
 /* Both views stay mounted, so pending edits in the data survive a look at the structure. */
-export function TableTab({ connection, tableRef, view, onViewChange }: TableTabProps) {
+export function TableTab({ connection, tableRef, view, where, onViewChange }: TableTabProps) {
     const { t } = useTranslation();
 
     return (
@@ -32,7 +34,7 @@ export function TableTab({ connection, tableRef, view, onViewChange }: TableTabP
                 </span>
             </div>
             <div className="min-h-0 flex-1" hidden={view !== 'data'}>
-                <TableView connection={connection} schema={tableRef.schema} table={tableRef.table} className="h-full" />
+                <TableView connection={connection} schema={tableRef.schema} table={tableRef.table} defaultWhere={where} className="h-full" />
             </div>
             <div className="min-h-0 flex-1" hidden={view !== 'structure'}>
                 <StructureView connection={connection} schema={tableRef.schema} table={tableRef.table} className="h-full" />

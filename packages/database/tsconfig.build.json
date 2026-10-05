@@ -5,8 +5,16 @@
     "declaration": true,
     "outDir": "dist",
     "rootDir": "src",
-    "types": ["node"]
+    "types": [
+      "node"
+    ]
   },
-  "include": ["src"],
-  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"]
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/testing/stub.ts"
+  ]
 }

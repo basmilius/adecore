@@ -4,7 +4,7 @@ mod common;
 
 use std::time::{Duration, Instant};
 
-use common::Client;
+use common::{Client, scenarios};
 use serde_json::{Value, json};
 
 struct Target {
@@ -718,5 +718,106 @@ async fn cancels_a_running_query() {
     let cancelled: Value = serde_json::from_str(&tokio::time::timeout(Duration::from_secs(10), slow_rows).await.unwrap().unwrap()).unwrap();
     assert_eq!(cancelled["error"]["code"], "cancelled", "{cancelled}");
 
+    sandbox.finish().await;
+}
+
+impl Sandbox {
+    fn db(&mut self) -> scenarios::Db<'_> {
+        scenarios::Db {
+            connection: self.target.config(json!({})),
+            session: self.session.clone(),
+            schema: self.schema.clone(),
+            mysql: true,
+            client: &mut self.client,
+        }
+    }
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn mysql_pages_statements() {
+    let Some(mut sandbox) = Sandbox::new("page").await else {
+        return;
+    };
+    scenarios::pages_statements(&mut sandbox.db()).await;
+    sandbox.finish().await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn mysql_drives_transactions() {
+    let Some(mut sandbox) = Sandbox::new("transaction").await else {
+        return;
+    };
+    scenarios::drives_transactions(&mut sandbox.db()).await;
+    sandbox.finish().await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn mysql_exports_every_format() {
+    let Some(mut sandbox) = Sandbox::new("export").await else {
+        return;
+    };
+    let directory = tempfile::tempdir().unwrap();
+    scenarios::exports_every_format(&mut sandbox.db(), directory.path()).await;
+    sandbox.finish().await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn mysql_export_failures_leave_nothing_behind() {
+    let Some(mut sandbox) = Sandbox::new("export_fail").await else {
+        return;
+    };
+    let directory = tempfile::tempdir().unwrap();
+    scenarios::export_failures_leave_nothing_behind(&mut sandbox.db(), directory.path()).await;
+    sandbox.finish().await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn mysql_cancels_an_export() {
+    let Some(mut sandbox) = Sandbox::new("export_cancel").await else {
+        return;
+    };
+    let directory = tempfile::tempdir().unwrap();
+    let endless = "SELECT a.COLUMN_NAME FROM information_schema.COLUMNS a, information_schema.COLUMNS b, information_schema.COLUMNS c";
+    scenarios::cancels_an_export(&mut sandbox.db(), directory.path(), endless).await;
+    sandbox.finish().await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn mysql_samples_files() {
+    let Some(mut sandbox) = Sandbox::new("sample").await else {
+        return;
+    };
+    let directory = tempfile::tempdir().unwrap();
+    scenarios::samples_files(&mut sandbox.db(), directory.path()).await;
+    sandbox.finish().await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn mysql_imports_files() {
+    let Some(mut sandbox) = Sandbox::new("import").await else {
+        return;
+    };
+    let directory = tempfile::tempdir().unwrap();
+    scenarios::imports_files(&mut sandbox.db(), directory.path()).await;
+    sandbox.finish().await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn mysql_imports_inside_a_transaction() {
+    let Some(mut sandbox) = Sandbox::new("import_tx").await else {
+        return;
+    };
+    let directory = tempfile::tempdir().unwrap();
+    scenarios::imports_inside_a_transaction(&mut sandbox.db(), directory.path()).await;
+    sandbox.finish().await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn mysql_read_only_sessions_refuse_imports() {
+    let Some(mut sandbox) = Sandbox::new("import_ro").await else {
+        return;
+    };
+    let directory = tempfile::tempdir().unwrap();
+    scenarios::read_only_sessions_refuse_imports(&mut sandbox.db(), directory.path()).await;
     sandbox.finish().await;
 }

@@ -6,6 +6,7 @@ import {
     fitColumnWidth,
     isDoubleClick,
     MAX_FIT_WIDTH,
+    growWidths,
     gutterWidth,
     MAX_COLUMN_WIDTH,
     MIN_COLUMN_WIDTH,
@@ -105,5 +106,19 @@ describe('isDoubleClick', () => {
         expect(isDoubleClick(1000, 1200)).toBe(true);
         expect(isDoubleClick(1000, 1600)).toBe(false);
         expect(isDoubleClick(null, 1000)).toBe(false);
+    });
+});
+
+describe('growWidths', () => {
+    test('widens a column the next page needs more room for', () => {
+        expect(growWidths([100, 120], [100, 180])).toEqual([100, 180]);
+    });
+
+    test('never narrows a column', () => {
+        expect(growWidths([200, 120], [90, 120])).toEqual([200, 120]);
+    });
+
+    test('takes the widths of the next page when there are none before', () => {
+        expect(growWidths([], [64, 80])).toEqual([64, 80]);
     });
 });

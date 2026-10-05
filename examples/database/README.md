@@ -2,7 +2,9 @@
 
 An Electron app that runs both sides of `@adecore/database`: the views in the page, and the host with the Rust helper in the main process. It is private and never published.
 
-It opens with a demo shop (SQLite, created in the app's user data folder on first start). The sidebar browses connections, schemas and tables. A table opens in a tab with its data and its structure, a console runs SQL, and the connection manager shows up both in a dialog and in a tab.
+It opens with a demo shop (SQLite, created in the app's user data folder on first start). A switch in the title bar picks one of two layouts. "Workbench" is the `DatabaseWorkbench` as it comes: the explorer, and closable tabs for tables (data and structure), consoles and the table designer. "Side pane" places the same views the way an app with tabs of its own would: the explorer in a side pane, and the app's tabs wired through the `onAction` of `DatabaseProvider`, with the connection manager in a dialog and in a tab.
+
+Export and import use the system file dialogs. The main process remembers the paths the dialogs returned in this run, and the host refuses every other file.
 
 ## Run
 

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { andWhere, equalsCondition, orderByClause, parseOrderBy, qualifiedName, quoteIdentifier, sqlLiteral } from './sql.ts';
+import { andWhere, equalsCondition, matchCondition, orderByClause, parseOrderBy, qualifiedName, quoteIdentifier, sqlLiteral } from './sql.ts';
 
 describe('quoteIdentifier', () => {
     test('quotes with double quotes for SQLite and backticks for MySQL', () => {
@@ -149,5 +149,24 @@ describe('andWhere', () => {
 
     test('does not mistake a word that contains or for an OR', () => {
         expect(andWhere('color = 1', 'c = 3')).toBe('color = 1 AND c = 3');
+    });
+});
+
+describe('matchCondition', () => {
+    test('ands the columns of a key, each quoted for the engine', () => {
+        expect(
+            matchCondition('mysql', [
+                { column: 'order_id', value: '7', kind: 'integer' },
+                { column: 'sku', value: "A'1" }
+            ])
+        ).toBe("`order_id` = 7 AND `sku` = 'A''1'");
+    });
+
+    test('writes a single column without an AND', () => {
+        expect(matchCondition('sqlite', [{ column: 'id', value: 3 }])).toBe('"id" = 3');
+    });
+
+    test('is empty for no columns', () => {
+        expect(matchCondition('sqlite', [])).toBe('');
     });
 });

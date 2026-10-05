@@ -1,7 +1,7 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, spyOn, test } from 'bun:test';
 import type { ConnectionConfig, DatabaseRequest, DatabaseResponse } from '../protocol/index.ts';
 import { createDatabaseClient } from './client.ts';
-import { DatabaseRequestError, type Connection, type DatabaseTransport } from './types.ts';
+import { DatabaseRequestError, type Connection, type DatabaseTransport, type SchemaChange } from './types.ts';
 
 const config: ConnectionConfig = { engine: 'sqlite', path: '/tmp/a.db' };
 const connection: Connection = { id: 'c1', name: 'Shop', config };
@@ -41,7 +41,17 @@ const scripted = (respond: Responder = () => undefined) => {
             case 'apply':
                 return ok(request.id, { affected: 2 });
             case 'execute':
-                return ok(request.id, { results: [] });
+                return ok(request.id, { results: [], inTransaction: false });
+            case 'transaction':
+                return ok(request.id, { active: true });
+            case 'export':
+                return ok(request.id, { rows: 3, bytes: 40, elapsedMs: 1 });
+            case 'import':
+                return ok(request.id, { rows: 5, elapsedMs: 1 });
+            case 'sample':
+                return ok(request.id, { columns: ['a'], rows: [['1']] });
+            case 'discover':
+                return ok(request.id, { containers: [] });
             case 'test':
                 return ok(request.id, { server: SERVER });
             case 'cancel':
@@ -160,7 +170,12 @@ describe('requests', () => {
         await session.count('main', 'users', 'id > 1');
         expect(await session.cell('main', 'users', { id: 1 }, 'email')).toBe('x');
         expect(await session.apply('main', 'users', [{ kind: 'delete', key: { id: 1 } }])).toBe(2);
-        await session.execute('SELECT 1', { schema: 'main', limit: 10 });
+        expect(await session.execute('SELECT 1', { schema: 'main', limit: 10 })).toEqual({ results: [], inTransaction: false });
+        await session.page('SELECT 1', { schema: 'main', offset: 20, limit: 10, cellLimit: 8 });
+        expect(await session.transaction('begin')).toBe(true);
+        const source = { kind: 'query', sql: 'SELECT 1' } as const;
+        expect(await session.export({ source, format: 'sql', path: '/tmp/a.sql', tableName: 't' })).toEqual({ rows: 3, bytes: 40, elapsedMs: 1 });
+        expect(await session.import('main', 'users', { path: '/tmp/a.csv', format: 'csv', header: true, columns: [null, 'email'] })).toBe(5);
 
         expect<unknown>(calls.slice(1).map(({ method, params }) => [method, params])).toEqual([
             ['tables', { session: 's1', schema: 'main' }],
@@ -170,9 +185,13 @@ describe('requests', () => {
             ['count', { session: 's1', schema: 'main', table: 'users', where: 'id > 1' }],
             ['cell', { session: 's1', schema: 'main', table: 'users', key: { id: 1 }, column: 'email' }],
             ['apply', { session: 's1', schema: 'main', table: 'users', changes: [{ kind: 'delete', key: { id: 1 } }] }],
-            ['execute', { session: 's1', sql: 'SELECT 1', schema: 'main', limit: 10 }]
+            ['execute', { session: 's1', sql: 'SELECT 1', schema: 'main', limit: 10 }],
+            ['page', { session: 's1', sql: 'SELECT 1', schema: 'main', offset: 20, limit: 10, cellLimit: 8 }],
+            ['transaction', { session: 's1', action: 'begin' }],
+            ['export', { session: 's1', source, format: 'sql', path: '/tmp/a.sql', tableName: 't' }],
+            ['import', { session: 's1', schema: 'main', table: 'users', path: '/tmp/a.csv', format: 'csv', header: true, columns: [null, 'email'] }]
         ]);
-        expect(calls.map((call) => call.id)).toEqual(['id1', 'id2', 'id3', 'id4', 'id5', 'id6', 'id7', 'id8', 'id9']);
+        expect(calls.map((call) => call.id)).toEqual(Array.from({ length: calls.length }, (_, i) => `id${i + 1}`));
     });
 
     test('makes a uuid for each request by default', async () => {
@@ -206,6 +225,19 @@ describe('requests', () => {
         expect(await caught(client.session(connection).schemas())).toMatchObject({ code: 'helper-unavailable', message: 'no bridge' });
     });
 
+    test('discovers containers and samples a file without a session', async () => {
+        const { transport, calls } = scripted();
+        const client = createDatabaseClient(transport);
+        expect(await client.discover('docker')).toEqual([]);
+        expect(await client.discover('docker', { context: 'desktop' })).toEqual([]);
+        expect(await client.sample('/tmp/a.csv', 'csv', true)).toEqual({ columns: ['a'], rows: [['1']] });
+        expect<unknown>(calls.map(({ method, params }) => [method, params])).toEqual([
+            ['discover', { kind: 'docker' }],
+            ['discover', { kind: 'docker', context: 'desktop' }],
+            ['sample', { path: '/tmp/a.csv', format: 'csv', header: true }]
+        ]);
+    });
+
     test('tests a config without a session', async () => {
         const { transport, calls } = scripted();
         expect(await createDatabaseClient(transport).test(config)).toEqual(SERVER);
@@ -214,7 +246,7 @@ describe('requests', () => {
 });
 
 describe('unknown-session', () => {
-    test.each(['schemas', 'tables', 'structure', 'rows', 'count', 'cell'] as const)('opens again and retries %s once', async (method) => {
+    test.each(['schemas', 'tables', 'structure', 'rows', 'count', 'cell', 'page'] as const)('opens again and retries %s once', async (method) => {
         let first = true;
         const { transport, methods, calls } = scripted((request) => {
             if (request.method === method && first) {
@@ -229,7 +261,8 @@ describe('unknown-session', () => {
             structure: () => session.structure('main', 't'),
             rows: () => session.rows('main', 't', { offset: 0, limit: 1 }),
             count: () => session.count('main', 't'),
-            cell: () => session.cell('main', 't', { id: 1 }, 'a')
+            cell: () => session.cell('main', 't', { id: 1 }, 'a'),
+            page: () => session.page('SELECT 1', { offset: 0, limit: 1 })
         };
 
         await run[method]();
@@ -258,7 +291,7 @@ describe('unknown-session', () => {
         expect(methods().filter((method) => method === 'open')).toHaveLength(2);
     });
 
-    for (const method of ['apply', 'execute'] as const) {
+    for (const method of ['apply', 'execute', 'transaction', 'export', 'import'] as const) {
         test(`${method} rejects with the original error and opens again for the next request`, async () => {
             let first = true;
             const { transport, methods } = scripted((request) => {
@@ -268,7 +301,14 @@ describe('unknown-session', () => {
                 }
             });
             const session = createDatabaseClient(transport).session(connection);
-            const run = () => (method === 'apply' ? session.apply('main', 't', []) : session.execute('SELECT 1'));
+            const run = () =>
+                ({
+                    apply: () => session.apply('main', 't', []),
+                    execute: () => session.execute('SELECT 1'),
+                    transaction: () => session.transaction('begin'),
+                    export: () => session.export({ source: { kind: 'query', sql: 'SELECT 1' }, format: 'csv', path: '/tmp/a.csv' }),
+                    import: () => session.import('main', 't', { path: '/tmp/a.csv', format: 'csv', header: false, columns: ['a'] })
+                })[method]();
 
             expect(await caught(run())).toMatchObject({ code: 'unknown-session', message: 'gone' });
             expect(methods()).toEqual(['open', method]);
@@ -277,6 +317,115 @@ describe('unknown-session', () => {
             expect(methods()).toEqual(['open', method, 'open', method]);
         });
     }
+});
+
+describe('schema changes', () => {
+    const setup = () => {
+        const { transport } = scripted();
+        const client = createDatabaseClient(transport);
+        const changes: SchemaChange[] = [];
+        client.onSchemaChange((change) => changes.push(change));
+        return { client, changes, session: client.session(connection) };
+    };
+
+    test('tells the listeners after an execute of a statement that changes the shape, with the schema it named', async () => {
+        const { transport } = scripted((request) =>
+            request.method === 'execute'
+                ? ok(request.id, {
+                      results: [
+                          { kind: 'rows', sql: '-- note\n  /* more */ ALTER TABLE t ADD c INT', columns: [], rows: [], hasMore: false, elapsedMs: 0 },
+                          { kind: 'done', sql: 'SELECT 1', affected: 0, lastInsertId: null, elapsedMs: 0 }
+                      ],
+                      inTransaction: false
+                  })
+                : undefined
+        );
+        const client = createDatabaseClient(transport);
+        const changes: SchemaChange[] = [];
+        client.onSchemaChange((change) => changes.push(change));
+        const session = client.session(connection);
+
+        await session.execute('ALTER TABLE t ADD c INT', { schema: 'shop' });
+        await session.execute('ALTER TABLE t ADD c INT');
+        expect(changes).toEqual([{ connectionId: 'c1', schema: 'shop' }, { connectionId: 'c1' }]);
+    });
+
+    test.each(['CREATE TABLE t (id INT)', 'alter table t add c int', 'DROP VIEW v', 'rename table a to b', 'Truncate t', '# hi\nDROP TABLE t'])(
+        'counts %s',
+        async (sql) => {
+            const results = [{ kind: 'done', sql, affected: 0, lastInsertId: null, elapsedMs: 0 }];
+            const { transport } = scripted((request) => (request.method === 'execute' ? ok(request.id, { results, inTransaction: false }) : undefined));
+            const client = createDatabaseClient(transport);
+            const changes: SchemaChange[] = [];
+            client.onSchemaChange((change) => changes.push(change));
+            await client.session(connection).execute(sql);
+            expect(changes).toHaveLength(1);
+        }
+    );
+
+    test.each(['SELECT * FROM created', 'INSERT INTO t VALUES (1)', 'UPDATE t SET dropped = 1', 'SELECT 1 /* DROP */', 'CREATED'])(
+        'ignores %s',
+        async (sql) => {
+            const results = [{ kind: 'done', sql, affected: 0, lastInsertId: null, elapsedMs: 0 }];
+            const { transport } = scripted((request) => (request.method === 'execute' ? ok(request.id, { results, inTransaction: false }) : undefined));
+            const client = createDatabaseClient(transport);
+            const changes: SchemaChange[] = [];
+            client.onSchemaChange((change) => changes.push(change));
+            await client.session(connection).execute(sql);
+            expect(changes).toEqual([]);
+        }
+    );
+
+    test('does not tell when the statement failed or the execute rejected', async () => {
+        const failed = [{ kind: 'error', sql: 'DROP TABLE t', error: { code: 'query-failed', message: 'no' }, elapsedMs: 0 }];
+        const { transport } = scripted((request) => {
+            if (request.method !== 'execute') {
+                return undefined;
+            }
+
+            return (request.params as { sql: string }).sql === 'reject'
+                ? err(request.id, 'read-only')
+                : ok(request.id, { results: failed, inTransaction: false });
+        });
+        const client = createDatabaseClient(transport);
+        const changes: SchemaChange[] = [];
+        client.onSchemaChange((change) => changes.push(change));
+        const session = client.session(connection);
+
+        await session.execute('DROP TABLE t');
+        await caught(session.execute('reject'));
+        expect(changes).toEqual([]);
+    });
+
+    test('lets a view tell the listeners itself, and stops telling one that unsubscribed', () => {
+        const { client, changes } = setup();
+        const second: SchemaChange[] = [];
+        const stop = client.onSchemaChange((change) => second.push(change));
+
+        client.notifySchemaChange({ connectionId: 'c1', schema: 'main' });
+        stop();
+        client.notifySchemaChange({ connectionId: 'c2' });
+
+        expect(changes).toEqual([{ connectionId: 'c1', schema: 'main' }, { connectionId: 'c2' }]);
+        expect(second).toEqual([{ connectionId: 'c1', schema: 'main' }]);
+    });
+
+    test('keeps the result of an execute when a listener throws', async () => {
+        const results = [{ kind: 'done', sql: 'DROP TABLE t', affected: 0, lastInsertId: null, elapsedMs: 0 }];
+        const { transport } = scripted((request) => (request.method === 'execute' ? ok(request.id, { results, inTransaction: false }) : undefined));
+        const client = createDatabaseClient(transport);
+        const heard: SchemaChange[] = [];
+        const report = spyOn(console, 'error').mockImplementation(() => {});
+        client.onSchemaChange(() => {
+            throw new Error('broken view');
+        });
+        client.onSchemaChange((change) => heard.push(change));
+
+        expect(await client.session(connection).execute('DROP TABLE t')).toMatchObject({ results });
+        expect(heard).toHaveLength(1);
+        expect(report).toHaveBeenCalledTimes(1);
+        report.mockRestore();
+    });
 });
 
 describe('abort', () => {

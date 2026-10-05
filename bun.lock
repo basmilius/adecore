@@ -81,6 +81,13 @@
         "react-i18next": "^17.0.15",
         "typescript": "^7.0.2",
       },
+      "optionalDependencies": {
+        "@adecore/database-darwin-arm64": "0.0.0",
+        "@adecore/database-darwin-x64": "0.0.0",
+        "@adecore/database-linux-arm64": "0.0.0",
+        "@adecore/database-linux-x64": "0.0.0",
+        "@adecore/database-win32-x64": "0.0.0",
+      },
       "peerDependencies": {
         "@adecore/ui": "^0.14.0",
         "i18next": "^26.4.2",
@@ -88,6 +95,26 @@
         "react-dom": "^19.3.0",
         "react-i18next": "^17.0.15",
       },
+    },
+    "packages/database-darwin-arm64": {
+      "name": "@adecore/database-darwin-arm64",
+      "version": "0.0.0",
+    },
+    "packages/database-darwin-x64": {
+      "name": "@adecore/database-darwin-x64",
+      "version": "0.0.0",
+    },
+    "packages/database-linux-arm64": {
+      "name": "@adecore/database-linux-arm64",
+      "version": "0.0.0",
+    },
+    "packages/database-linux-x64": {
+      "name": "@adecore/database-linux-x64",
+      "version": "0.0.0",
+    },
+    "packages/database-win32-x64": {
+      "name": "@adecore/database-win32-x64",
+      "version": "0.0.0",
     },
     "packages/shell": {
       "name": "@adecore/shell",
@@ -170,6 +197,16 @@
     "@11ty/gray-matter": ["@11ty/gray-matter@2.1.0", "", { "dependencies": { "js-yaml": "^4.2.0", "section-matter": "^1.0.0" } }, "sha512-fNdBOb3MgDz/1UCIoeY4wDuGbp+/3s5y6UrsyfMabECbh/CVycj7Er33JXqSxRwxrRKXcGE1Jipuq/1mODInsQ=="],
 
     "@adecore/database": ["@adecore/database@workspace:packages/database"],
+
+    "@adecore/database-darwin-arm64": ["@adecore/database-darwin-arm64@workspace:packages/database-darwin-arm64"],
+
+    "@adecore/database-darwin-x64": ["@adecore/database-darwin-x64@workspace:packages/database-darwin-x64"],
+
+    "@adecore/database-linux-arm64": ["@adecore/database-linux-arm64@workspace:packages/database-linux-arm64"],
+
+    "@adecore/database-linux-x64": ["@adecore/database-linux-x64@workspace:packages/database-linux-x64"],
+
+    "@adecore/database-win32-x64": ["@adecore/database-win32-x64@workspace:packages/database-win32-x64"],
 
     "@adecore/example-database": ["@adecore/example-database@workspace:examples/database"],
 

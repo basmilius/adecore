@@ -4,34 +4,14 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import i18next from 'i18next';
 import { UIProvider } from '@adecore/ui';
 import { DatabaseProvider } from '../DatabaseProvider.tsx';
-import type { Connection, DatabaseClient, DatabaseSession } from '../client/types.ts';
+import type { Connection } from '../client/types.ts';
+import { stubClient, stubSession } from '../testing/stub.ts';
 import { TableView } from './TableView.tsx';
 
 const i18n = i18next.createInstance();
 await i18n.init({ lng: 'en', fallbackLng: 'en', resources: {}, interpolation: { escapeValue: false } });
 
-const pending = <T,>(): Promise<T> => new Promise<T>(() => {});
-
-const session = (connection: Connection): DatabaseSession => ({
-    connection,
-    server: pending,
-    schemas: pending,
-    tables: pending,
-    structure: pending,
-    rows: pending,
-    count: pending,
-    cell: pending,
-    apply: pending,
-    execute: pending,
-    close: () => Promise.resolve()
-});
-
-const client: DatabaseClient = {
-    test: pending,
-    session,
-    disconnect: () => Promise.resolve(),
-    dispose: () => Promise.resolve()
-};
+const client = stubClient({ session: stubSession });
 
 const render = (node: ReactNode): string =>
     renderToStaticMarkup(

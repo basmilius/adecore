@@ -1,0 +1,8 @@
+{
+  "request": {
+    "id": "r17",
+    "method": "import",
+    "params": { "session": "s1", "schema": "main", "table": "users", "path": "/Users/demo/Downloads/users.csv", "format": "csv", "header": true, "columns": [null, "email", "created_at"] }
+  },
+  "response": { "id": "r17", "ok": false, "error": { "code": "file-failed", "message": "No such file or directory (os error 2)" } }
+}

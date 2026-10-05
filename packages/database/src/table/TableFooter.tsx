@@ -1,7 +1,8 @@
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Button, IconButton, Select, Spinner } from '@adecore/ui';
+import { Button, IconButton, Select, Spinner, Tooltip } from '@adecore/ui';
 import { formatDecimal, formatNumber } from '@adecore/ui/format';
+import type { Aggregates } from '../grid/aggregates.ts';
 import { PAGE_SIZES, type PageBounds } from './paging.ts';
 
 export interface TableFooterProps {
@@ -9,6 +10,8 @@ export interface TableFooterProps {
     bounds: PageBounds;
     pageSize: number;
     counting: boolean;
+    /* The count, sum and so on of the selected cells; left out when fewer than two cells are selected. */
+    aggregates?: Aggregates | null;
     onCount(): void;
     onFirst(): void;
     onPrevious(): void;
@@ -19,7 +22,19 @@ export interface TableFooterProps {
 }
 
 /* How long the read took, which rows are on the page and how many there are, and the way to the other pages. */
-export function TableFooter({ elapsedMs, bounds, pageSize, counting, onCount, onFirst, onPrevious, onNext, onLast, onPageSizeChange }: TableFooterProps) {
+export function TableFooter({
+    elapsedMs,
+    bounds,
+    pageSize,
+    counting,
+    aggregates,
+    onCount,
+    onFirst,
+    onPrevious,
+    onNext,
+    onLast,
+    onPageSizeChange
+}: TableFooterProps) {
     const { t } = useTranslation('database');
 
     return (
@@ -39,6 +54,7 @@ export function TableFooter({ elapsedMs, bounds, pageSize, counting, onCount, on
                     {t('table.count')}
                 </Button>
             )}
+            {aggregates != null && <AggregatesSummary aggregates={aggregates} />}
             <div className="ml-auto flex items-center gap-1">
                 <Select
                     size="sm"
@@ -62,5 +78,47 @@ export function TableFooter({ elapsedMs, bounds, pageSize, counting, onCount, on
                 />
             </div>
         </footer>
+    );
+}
+
+/* The figures of the selected cells over the loaded page; the tooltip has the same in full. */
+function AggregatesSummary({ aggregates }: { aggregates: Aggregates }) {
+    const { t } = useTranslation('database');
+    const { count, numeric } = aggregates;
+    const figure = (label: string, value: string) => (
+        <span className="shrink-0">
+            {label} <span className="text-text">{value}</span>
+        </span>
+    );
+
+    return (
+        <Tooltip
+            label={
+                <span className="flex flex-col gap-0.5 tabular-nums">
+                    <span>{t('table.aggregates.cells', { count: formatNumber(count) })}</span>
+                    {numeric !== null && (
+                        <>
+                            <span>{t('table.aggregates.numbers', { count: formatNumber(numeric.count) })}</span>
+                            <span>{t('table.aggregates.sumFull', { value: formatDecimal(numeric.sum) })}</span>
+                            <span>{t('table.aggregates.averageFull', { value: formatDecimal(numeric.average) })}</span>
+                            <span>{t('table.aggregates.minimumFull', { value: numeric.minimumText })}</span>
+                            <span>{t('table.aggregates.maximumFull', { value: numeric.maximumText })}</span>
+                        </>
+                    )}
+                </span>
+            }
+        >
+            <span className="flex min-w-0 items-center gap-3 tabular-nums" data-aggregates="">
+                {figure(t('table.aggregates.count'), formatNumber(count))}
+                {numeric !== null && (
+                    <>
+                        {figure(t('table.aggregates.sum'), formatDecimal(numeric.sum))}
+                        {figure(t('table.aggregates.average'), formatDecimal(numeric.average))}
+                        {figure(t('table.aggregates.minimum'), formatDecimal(numeric.minimum))}
+                        {figure(t('table.aggregates.maximum'), formatDecimal(numeric.maximum))}
+                    </>
+                )}
+            </span>
+        </Tooltip>
     );
 }

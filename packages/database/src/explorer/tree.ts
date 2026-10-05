@@ -1,5 +1,7 @@
+import type { ExplorerSelection } from '../actions.ts';
 import type { Connection, TableRef } from '../client/types.ts';
-import type { ColumnInfo, SchemaInfo, TableInfo, TableKind, TableStructure } from '../protocol/index.ts';
+import type { ColumnInfo, Engine, SchemaInfo, TableInfo, TableKind, TableStructure } from '../protocol/index.ts';
+import { qualifiedName } from '../sql.ts';
 
 /* Where a lazy list stands: not asked for yet, on its way, failed, or here. */
 export type Load<T> =
@@ -119,6 +121,42 @@ export const isExpandable = (row: TreeRow): row is ExpandableRow =>
 
 /* The table a row stands for, when it stands for one. */
 export const tableOf = (row: TreeRow): TableRef | null => (row.kind === 'table' || row.kind === 'column' ? row.ref : null);
+
+/* What picking a row selects: its connection, its schema, or its table (a column stands for its table). Status rows select nothing. */
+export const selectionOf = (row: TreeRow): ExplorerSelection | null => {
+    switch (row.kind) {
+        case 'connection':
+            return { connectionId: row.connection.id };
+        case 'schema':
+        case 'folder':
+            return { connectionId: row.connection.id, schema: row.schema };
+        case 'table':
+        case 'column':
+            return { connectionId: row.ref.connectionId, schema: row.ref.schema, table: row.ref.table };
+        default:
+            return null;
+    }
+};
+
+/* The key of the row a selection points at: its table, else its schema, else its connection. */
+export const selectionKey = (selection: ExplorerSelection): string => {
+    if (selection.schema === undefined) {
+        return connectionKey(selection.connectionId);
+    }
+    return selection.table === undefined
+        ? schemaKey(selection.connectionId, selection.schema)
+        : tableKey({ connectionId: selection.connectionId, schema: selection.schema, table: selection.table });
+};
+
+/* Whether a row has a menu: the rows of a connection, a schema, a table or a column, and none of the rows that only report. */
+export const hasMenu = (row: TreeRow): boolean =>
+    row.kind === 'connection' || row.kind === 'schema' || row.kind === 'folder' || row.kind === 'table' || row.kind === 'column';
+
+/* Only the rows a selection can point at are drawn selected; a folder or a column leaves that to the row above it. */
+export const isSelectable = (row: TreeRow): boolean => row.kind === 'connection' || row.kind === 'schema' || row.kind === 'table';
+
+/* The statement behind New console here on a table: every row, as the engine quotes it. */
+export const selectAllSql = (engine: Engine, ref: TableRef): string => `SELECT * FROM ${qualifiedName({ engine, schema: ref.schema, table: ref.table })}`;
 
 export interface TreeInput {
     readonly connections: readonly Connection[];

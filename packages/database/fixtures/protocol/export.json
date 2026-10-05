@@ -1,0 +1,14 @@
+{
+  "request": {
+    "id": "r15",
+    "method": "export",
+    "params": {
+      "session": "s1",
+      "source": { "kind": "table", "schema": "main", "table": "users", "where": "id > 10", "orderBy": "id" },
+      "format": "csv",
+      "path": "/Users/demo/Downloads/users.csv",
+      "header": true
+    }
+  },
+  "response": { "id": "r15", "ok": true, "result": { "rows": 491, "bytes": 30211, "elapsedMs": 12.4 } }
+}

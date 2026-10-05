@@ -5,9 +5,19 @@ export const i18n = i18next.createInstance();
 const resources = {
     en: {
         app: {
+            title: 'adecore database',
+            layout: { label: 'Layout', workbench: 'Workbench', pane: 'Side pane' },
             sidebar: { title: 'Databases', manage: 'Manage connections' },
             connections: { title: 'Connections', close: 'Close' },
-            tabs: { label: 'Open tabs', newConsole: 'New console', close: 'Close tab', console: 'Console', views: 'Table views' },
+            tabs: {
+                label: 'Open tabs',
+                newConsole: 'New console',
+                console: 'Console',
+                views: 'Table views',
+                filtered: '{{table}} (filtered)',
+                newTable: 'New table',
+                designer: 'Design {{table}}'
+            },
             views: { data: 'Data', structure: 'Structure' },
             empty: {
                 title: 'Nothing open',
@@ -18,9 +28,19 @@ const resources = {
     },
     nl: {
         app: {
+            title: 'adecore database',
+            layout: { label: 'Indeling', workbench: 'Werkbank', pane: 'Zijpaneel' },
             sidebar: { title: 'Databases', manage: 'Verbindingen beheren' },
             connections: { title: 'Verbindingen', close: 'Sluiten' },
-            tabs: { label: 'Open tabbladen', newConsole: 'Nieuwe console', close: 'Tabblad sluiten', console: 'Console', views: 'Tabelweergaven' },
+            tabs: {
+                label: 'Open tabbladen',
+                newConsole: 'Nieuwe console',
+                console: 'Console',
+                views: 'Tabelweergaven',
+                filtered: '{{table}} (gefilterd)',
+                newTable: 'Nieuwe tabel',
+                designer: 'Ontwerp {{table}}'
+            },
             views: { data: 'Gegevens', structure: 'Structuur' },
             empty: {
                 title: 'Niets geopend',

@@ -1,7 +1,12 @@
 pub mod cells;
+pub mod delimited;
+pub mod discover;
 pub mod dispatcher;
+pub mod docker;
 pub mod engine;
 pub mod error;
+pub mod export;
+pub mod import;
 pub mod kinds;
 pub mod mysql;
 pub mod protocol;
@@ -9,3 +14,5 @@ pub mod quoting;
 pub mod splitter;
 pub mod sql;
 pub mod sqlite;
+pub mod tools;
+pub mod tunnel;

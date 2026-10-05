@@ -90,13 +90,39 @@ The words live in the `database` namespace, in English and Dutch. `DatabaseProvi
 
 ## The helper binary
 
-The helper is a Rust program that holds the database drivers, so a crashing driver cannot take the backend down. Build it with cargo from this folder:
+The helper is a Rust program that holds the database drivers, so a crashing driver cannot take the backend down. The install brings a prebuilt one: `@adecore/database` lists a package per platform as an optional dependency (`@adecore/database-darwin-arm64`, `-darwin-x64`, `-linux-x64`, `-linux-arm64` and `-win32-x64`), and the package manager installs the one that fits the machine. `helperPath()` returns its path, or `null` when the platform has no package or optional dependencies were left out.
+
+```ts
+import { createDatabaseHost, helperPath, spawnHelper } from '@adecore/database/host';
+
+const path = helperPath();
+
+if (path === null) {
+    throw new Error('No prebuilt helper for this platform.');
+}
+
+const host = createDatabaseHost({ start: () => spawnHelper(path) });
+```
+
+The Linux binaries link against glibc 2.35 or newer. An app that wants its own build, for another platform or a patched helper, builds it with cargo from this folder and passes that path to `spawnHelper` instead:
 
 ```sh
 cargo build --release --locked --manifest-path helper/Cargo.toml
 ```
 
-The binary is `helper/target/release/adecore-database`. Ship it beside the app's own executable (for Electron, as an entry in `extraResources`) and sign it with the app. Build it once per platform and architecture the app targets. Platform packages on npm that carry a prebuilt binary are not there yet.
+The binary is `helper/target/release/adecore-database`.
+
+### In an Electron app
+
+A binary cannot run from inside an `app.asar` archive. `helperPath()` maps `app.asar` to `app.asar.unpacked`, so the app unpacks the platform packages. With electron-builder:
+
+```json
+{
+  "asarUnpack": ["node_modules/@adecore/database-*/**"]
+}
+```
+
+Or copy the binary into `extraResources` and pass that path to `spawnHelper`, without `helperPath()`. Either way the app's own code signing and notarization cover the binary, so sign the unpacked file with the rest of the app. An app packaged for one platform from another machine needs the package of the target platform installed there.
 
 ## Views and testing
 

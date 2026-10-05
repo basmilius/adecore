@@ -1,0 +1,31 @@
+{
+  "request": { "id": "r12", "method": "discover", "params": { "kind": "docker" } },
+  "response": {
+    "id": "r12",
+    "ok": true,
+    "result": {
+      "containers": [
+        {
+          "id": "4f1c2b7e9a10",
+          "name": "shop_db_1",
+          "image": "docksal/mysql:8.0",
+          "engine": "mysql",
+          "ports": [{ "container": 3306, "host": 32768 }],
+          "project": "shop",
+          "service": "db",
+          "suggested": { "user": "user", "password": "user", "database": "default" }
+        },
+        {
+          "id": "9d8e7f6a5b4c",
+          "name": "blog-mariadb-1",
+          "image": "mariadb:11",
+          "engine": "mysql",
+          "ports": [{ "container": 3306, "host": null }],
+          "project": "blog",
+          "service": "mariadb",
+          "suggested": {}
+        }
+      ]
+    }
+  }
+}

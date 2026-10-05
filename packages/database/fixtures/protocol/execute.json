@@ -1,14 +1,56 @@
 {
-  "request": { "id": "r6", "method": "execute", "params": { "session": "s2", "sql": "UPDATE users SET name = 'x' WHERE id = 1; SELECT COUNT(*) AS n FROM users; SELECT nope", "schema": "shop", "limit": 500 } },
+  "request": {
+    "id": "r6",
+    "method": "execute",
+    "params": {
+      "session": "s2",
+      "sql": "UPDATE users SET name = 'x' WHERE id = 1; SELECT COUNT(*) AS n FROM users; SELECT nope",
+      "schema": "shop",
+      "limit": 500
+    }
+  },
   "response": {
     "id": "r6",
     "ok": true,
     "result": {
       "results": [
-        { "kind": "done", "sql": "UPDATE users SET name = 'x' WHERE id = 1", "affected": 1, "lastInsertId": null, "elapsedMs": 1.2 },
-        { "kind": "rows", "sql": "SELECT COUNT(*) AS n FROM users", "columns": [{ "name": "n", "type": "BIGINT", "kind": "integer" }], "rows": [["9007199254740993"]], "hasMore": false, "elapsedMs": 0.8 },
-        { "kind": "error", "sql": "SELECT nope", "error": { "code": "query-failed", "message": "Unknown column 'nope' in 'field list'", "sqlState": "42S22" }, "elapsedMs": 0.3 }
-      ]
+        {
+          "kind": "done",
+          "sql": "UPDATE users SET name = 'x' WHERE id = 1",
+          "affected": 1,
+          "lastInsertId": null,
+          "elapsedMs": 1.2
+        },
+        {
+          "kind": "rows",
+          "sql": "SELECT COUNT(*) AS n FROM users",
+          "columns": [
+            {
+              "name": "n",
+              "type": "BIGINT",
+              "kind": "integer"
+            }
+          ],
+          "rows": [
+            [
+              "9007199254740993"
+            ]
+          ],
+          "hasMore": false,
+          "elapsedMs": 0.8
+        },
+        {
+          "kind": "error",
+          "sql": "SELECT nope",
+          "error": {
+            "code": "query-failed",
+            "message": "Unknown column 'nope' in 'field list'",
+            "sqlState": "42S22"
+          },
+          "elapsedMs": 0.3
+        }
+      ],
+      "inTransaction": false
     }
   }
 }

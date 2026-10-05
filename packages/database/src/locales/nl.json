@@ -35,8 +35,8 @@
       "createHint": "Maakt het bestand aan als het niet bestaat.",
       "host": "Host",
       "port": "Poort",
-      "socket": "Socket (geavanceerd)",
-      "socketHint": "Een Unix-socket om mee te verbinden in plaats van host en poort.",
+      "socket": "Socket",
+      "socketHint": "De Unix-socket waarop de server luistert.",
       "user": "Gebruiker",
       "password": "Wachtwoord",
       "database": "Database",
@@ -58,8 +58,50 @@
         "path-required": "Vul het pad van het databasebestand in.",
         "path-relative": "Het pad moet absoluut zijn.",
         "host-required": "Vul een host in.",
-        "port-range": "De poort is een getal van 1 tot 65535."
+        "port-range": "De poort is een getal van 1 tot 65535.",
+        "socket-required": "Vul het pad van de socket in.",
+        "ssh-host-required": "Vul de SSH-host in.",
+        "ssh-port-range": "De SSH-poort is een getal van 1 tot 65535.",
+        "container-required": "Kies een container.",
+        "container-port-range": "De poort is een getal van 1 tot 65535."
+      },
+      "mode": {
+        "label": "Verbinden via",
+        "tcp": "TCP",
+        "socket": "Socket",
+        "ssh": "SSH",
+        "docker": "Docker"
+      },
+      "ssh": {
+        "host": "SSH-host",
+        "hostHint": "Een hostnaam, of een Host uit ~/.ssh/config.",
+        "port": "SSH-poort",
+        "user": "SSH-gebruiker",
+        "identityFile": "Sleutelbestand",
+        "keyHint": "Een sleutel of de SSH-agent moet antwoorden. Een wachtwoord wordt nooit gevraagd.",
+        "serverHost": "Serverhost",
+        "serverPort": "Serverpoort",
+        "serverHint": "Het adres van de databaseserver zoals de SSH-host het ziet."
+      },
+      "docker": {
+        "container": "Container",
+        "pick": "Kies een container",
+        "refresh": "Opnieuw naar containers zoeken",
+        "loading": "Containers zoeken",
+        "empty": "Geen draaiende containers die op een database lijken.",
+        "unsupported": "Docker is niet beschikbaar.",
+        "notRunning": "Draait niet",
+        "published": "Gepubliceerd op poort {{port}}",
+        "notPublished": "Niet gepubliceerd",
+        "port": "Containerpoort"
       }
+    },
+    "fromDocker": {
+      "label": "Vanuit een Docker-container",
+      "loading": "Containers zoeken",
+      "empty": "Geen draaiende containers die op een database lijken.",
+      "unsupported": "Docker is niet beschikbaar.",
+      "retry": "Opnieuw proberen"
     }
   },
   "explorer": {
@@ -83,7 +125,43 @@
     "refresh": "Vernieuwen",
     "disconnect": "Verbinding verbreken",
     "open": "Openen",
-    "copyName": "Naam kopiëren"
+    "copyName": "Naam kopiëren",
+    "openData": "Gegevens openen",
+    "openStructure": "Structuur openen",
+    "editTable": "Tabel bewerken",
+    "newConsole": "Nieuwe console",
+    "newConsoleHere": "Nieuwe console hier",
+    "newTable": "Nieuwe tabel",
+    "editConnection": "Verbinding bewerken",
+    "copyDdl": "DDL kopiëren",
+    "rename": {
+      "action": "Hernoemen",
+      "title": "\"{{name}}\" hernoemen",
+      "field": "Nieuwe naam",
+      "confirm": "Hernoemen"
+    },
+    "truncate": {
+      "action": "Leegmaken",
+      "title": "\"{{name}}\" leegmaken?",
+      "description": "Verwijdert elke rij in \"{{name}}\". Dit kan niet ongedaan worden gemaakt.",
+      "confirm": "Leegmaken"
+    },
+    "drop": {
+      "field": "Typ \"{{name}}\" om te bevestigen",
+      "mismatch": "De naam komt niet overeen.",
+      "table": {
+        "action": "Verwijderen",
+        "title": "\"{{name}}\" verwijderen?",
+        "description": "Verwijdert de tabel en elke rij erin. Dit kan niet ongedaan worden gemaakt.",
+        "confirm": "Tabel verwijderen"
+      },
+      "view": {
+        "action": "View verwijderen",
+        "title": "\"{{name}}\" verwijderen?",
+        "description": "Verwijdert de view. De tabellen erachter blijven ongemoeid.",
+        "confirm": "View verwijderen"
+      }
+    }
   },
   "structure": {
     "loading": "Structuur laden",
@@ -152,7 +230,9 @@
       "csv": "CSV",
       "json": "JSON",
       "sql": "SQL INSERT-statements"
-    }
+    },
+    "followReference": "Ga naar de verwezen rij",
+    "emptyValue": "(leeg)"
   },
   "table": {
     "grid": "Rijen van {{table}}",
@@ -203,6 +283,54 @@
       "revertRows_other": "{{count}} rijen terugdraaien",
       "deleteRows_one": "Rij verwijderen",
       "deleteRows_other": "{{count}} rijen verwijderen"
+    },
+    "goToReferenced": "Ga naar de verwezen rij",
+    "recordView": "Recordweergave",
+    "recordFields": "Velden van {{table}}",
+    "record": {
+      "previous": "Vorige rij",
+      "next": "Volgende rij",
+      "newRow": "Nieuwe rij",
+      "row": "Rij {{number}}",
+      "position": "{{index}} van {{count}} op deze pagina"
+    },
+    "aggregates": {
+      "count": "Aantal",
+      "sum": "Som",
+      "average": "Gemiddelde",
+      "minimum": "Min",
+      "maximum": "Max",
+      "cells": "{{count}} cellen geselecteerd",
+      "numbers": "{{count}} getallen",
+      "sumFull": "Som: {{value}}",
+      "averageFull": "Gemiddelde: {{value}}",
+      "minimumFull": "Minimum: {{value}}",
+      "maximumFull": "Maximum: {{value}}"
+    },
+    "export": {
+      "label": "Exporteren",
+      "labelWithImport": "Exporteren en importeren",
+      "as": "Exporteren als {{format}}",
+      "running": "Exporteren als {{format}}",
+      "cancel": "Annuleren",
+      "done_one": "{{rows}} rij geëxporteerd.",
+      "done_other": "{{rows}} rijen geëxporteerd."
+    },
+    "import": {
+      "menu": "Importeren uit bestand",
+      "done_one": "{{rows}} rij geïmporteerd.",
+      "done_other": "{{rows}} rijen geïmporteerd.",
+      "title": "Importeren uit bestand",
+      "description": "Kies welke kolom van het bestand welke kolom van de tabel vult.",
+      "header": "Eerste regel is een kopregel",
+      "sampling": "Bestand lezen",
+      "fileColumn": "Bestandskolom",
+      "tableColumn": "Tabelkolom",
+      "mapTo": "Tabelkolom voor {{column}}",
+      "skip": "Overslaan",
+      "preview": "Eerste {{count}} rijen van het bestand",
+      "cancel": "Annuleren",
+      "confirm": "Importeren"
     }
   },
   "console": {
@@ -221,7 +349,56 @@
     "affected_one": "{{formatted}} rij gewijzigd",
     "affected_other": "{{formatted}} rijen gewijzigd",
     "lastInsertId": "Laatste insert-id: {{id}}",
-    "valuePanel": "Waardepaneel"
+    "valuePanel": "Waardepaneel",
+    "runAll": "Alles uitvoeren",
+    "loading": "Laden",
+    "dismiss": "Sluiten",
+    "ranStatement": "Uitgevoerd: {{statement}}",
+    "ranSelection": "De selectie is uitgevoerd",
+    "ranAll_one": "{{count}} opdracht uitgevoerd",
+    "ranAll_other": "Alle {{count}} opdrachten uitgevoerd",
+    "rowRange": "Rijen: {{from}} tot {{to}}",
+    "page": "Pagina {{page}}",
+    "previousPage": "Vorige pagina",
+    "nextPage": "Volgende pagina",
+    "export": "Resultaat exporteren",
+    "exportAs": "Exporteren als {{format}}",
+    "exported_one": "{{formatted}} rij geëxporteerd.",
+    "exported_other": "{{formatted}} rijen geëxporteerd.",
+    "schema": "Schema",
+    "schemaPlaceholder": "Schema",
+    "transaction": {
+      "mode": "Transactiemodus",
+      "auto": "Automatisch",
+      "manual": "Handmatig",
+      "hint": "Automatisch legt elke uitvoering vast. Handmatig houdt een transactie open tot je vastlegt of terugdraait.",
+      "open": "Transactie open",
+      "commit": "Vastleggen",
+      "rollback": "Terugdraaien",
+      "endTitle": "De transactie afsluiten?",
+      "endDescription": "Er staat nog een transactie open. Leg haar vast om de wijzigingen te bewaren, of draai haar terug om ze weg te gooien."
+    },
+    "destructive": {
+      "title": "Destructieve opdrachten uitvoeren?",
+      "description_one": "Deze opdracht verwijdert of overschrijft gegevens.",
+      "description_other": "Deze opdrachten verwijderen of overschrijven gegevens.",
+      "confirm": "Toch uitvoeren",
+      "drop": "Verwijdert een object",
+      "truncate": "Maakt een tabel leeg",
+      "delete": "Verwijdert elke rij, zonder WHERE",
+      "update": "Wijzigt elke rij, zonder WHERE",
+      "alterDrop": "Verwijdert een kolom, een index of een constraint"
+    },
+    "history": {
+      "title": "Geschiedenis",
+      "search": "Geschiedenis doorzoeken",
+      "clear": "Geschiedenis wissen",
+      "empty": "Er is nog niets uitgevoerd.",
+      "noMatches": "Geen enkele uitvoering past.",
+      "hint": "Klik om te bewerken, dubbelklik om uit te voeren.",
+      "rows_one": "{{formatted}} rij",
+      "rows_other": "{{formatted}} rijen"
+    }
   },
   "value": {
     "title": "Waarde",
@@ -253,5 +430,125 @@
     "characters_one": "{{formatted}} teken",
     "characters_other": "{{formatted}} tekens",
     "more": "Meer acties"
+  },
+  "ddl": {
+    "problem": {
+      "tableName": "De tabel heeft een naam nodig.",
+      "noColumns": "De tabel heeft minstens één kolom nodig.",
+      "columnName": "Een kolom heeft geen naam.",
+      "columnDuplicate": "Twee kolommen heten {{subject}}.",
+      "columnType": "Kolom {{subject}} heeft een type nodig.",
+      "indexName": "Een index heeft een naam nodig.",
+      "indexColumns": "Index {{subject}} heeft minstens één kolom nodig.",
+      "foreignKey": "Foreign key {{subject}} heeft een tabel nodig en evenveel verwezen kolommen als kolommen."
+    }
+  },
+  "designer": {
+    "loading": "Tabel laden",
+    "retry": "Opnieuw proberen",
+    "tableName": "Tabelnaam",
+    "tableNamePlaceholder": "tabel_naam",
+    "apply": "Toepassen",
+    "create": "Tabel maken",
+    "applying": "Bezig met toepassen",
+    "revert": "Terugdraaien",
+    "dismiss": "Sluiten",
+    "failed": "De wijzigingen konden niet worden toegepast.",
+    "copy": "Kopiëren",
+    "sql": "SQL",
+    "noChanges": "Geen wijzigingen",
+    "fixProblems": "Los eerst de problemen onder de tabs op.",
+    "noColumnsToPick": "Voeg eerst een kolom toe.",
+    "readOnly": {
+      "connection": "Deze verbinding is alleen-lezen.",
+      "view": "Een view kan hier niet worden aangepast."
+    },
+    "tabs": {
+      "columns": "Kolommen",
+      "indexes": "Indexen",
+      "foreignKeys": "Foreign keys",
+      "options": "Opties"
+    },
+    "columns": {
+      "empty": "Deze tabel heeft nog geen kolommen.",
+      "order": "Volgorde",
+      "name": "Naam",
+      "type": "Type",
+      "notNull": "Niet null",
+      "notNullFor": "{{name}} mag niet null zijn",
+      "default": "Standaardwaarde",
+      "noDefault": "Geen standaardwaarde",
+      "autoIncrement": "Auto-increment",
+      "autoIncrementFor": "{{name}} telt zelf op",
+      "primaryKey": "Sleutel",
+      "addToKey": "Toevoegen aan de primaire sleutel",
+      "removeFromKey": "Verwijderen uit de primaire sleutel",
+      "comment": "Opmerking",
+      "remove": "Kolom verwijderen",
+      "moveUp": "Omhoog",
+      "moveDown": "Omlaag",
+      "generated": "Gegenereerd",
+      "add": "Kolom toevoegen"
+    },
+    "indexes": {
+      "empty": "Deze tabel heeft geen indexen naast de primaire sleutel.",
+      "name": "Indexnaam",
+      "unique": "Uniek",
+      "columns": "Kolommen van de index",
+      "remove": "Index verwijderen",
+      "add": "Index toevoegen"
+    },
+    "foreignKeys": {
+      "empty": "Deze tabel heeft geen foreign keys.",
+      "name": "Naam",
+      "columns": "Kolommen",
+      "referencedTable": "Verwijst naar tabel",
+      "pickTable": "Kies een tabel",
+      "referencedColumns": "Verwezen kolommen",
+      "loadingColumns": "Kolommen laden",
+      "onUpdate": "Bij wijzigen",
+      "onDelete": "Bij verwijderen",
+      "engineDefault": "Standaard van de server",
+      "remove": "Foreign key verwijderen",
+      "add": "Foreign key toevoegen"
+    },
+    "options": {
+      "withoutRowid": "Zonder rowid",
+      "withoutRowidHint": "Bewaart de tabel in zijn primaire sleutel, wat plaats scheelt bij tabellen met een tekst- of samengestelde sleutel.",
+      "strict": "Strikt",
+      "strictHint": "Laat SQLite een waarde weigeren die niet bij het type van de kolom past.",
+      "engine": "Opslagengine",
+      "charset": "Tekenset",
+      "collation": "Collatie",
+      "comment": "Opmerking",
+      "serverDefault": "Laat leeg voor de standaard van de server."
+    },
+    "confirm": {
+      "title_one": "{{formatted}} statement uitvoeren?",
+      "title_other": "{{formatted}} statements uitvoeren?",
+      "create": "Dit maakt de tabel {{table}} aan.",
+      "alter": "Dit wijzigt de tabel {{table}}.",
+      "destructive": "Er wordt een kolom verwijderd en de gegevens erin gaan verloren."
+    }
+  },
+  "workbench": {
+    "title": "Databases",
+    "manage": "Verbindingen beheren",
+    "connections": "Verbindingen",
+    "close": "Sluiten",
+    "tabs": "Open tabbladen",
+    "newConsole": "Nieuwe console",
+    "noConnection": "Voeg eerst een verbinding toe",
+    "console": "Console {{number}}",
+    "filtered": "{{table}} (gefilterd)",
+    "newTable": "Nieuwe tabel",
+    "designer": "Ontwerp {{table}}",
+    "views": "Tabelweergaven",
+    "data": "Gegevens",
+    "structure": "Structuur",
+    "empty": {
+      "title": "Niets geopend",
+      "body": "Open een tabel in de verkenner of start een console."
+    }
   }
 }

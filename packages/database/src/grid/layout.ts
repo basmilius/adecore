@@ -83,3 +83,9 @@ export const fitColumnWidth = (header: string, texts: readonly string[], keyed: 
 };
 
 export const isDoubleClick = (previous: number | null, now: number): boolean => previous !== null && now - previous <= DOUBLE_CLICK_MS;
+
+/*
+ * The estimated widths of a new page, never narrower than they were. A page with longer content widens
+ * a column; a page with shorter content leaves it, so a sort does not make columns jump.
+ */
+export const growWidths = (previous: readonly number[], next: readonly number[]): number[] => next.map((width, index) => Math.max(width, previous[index] ?? 0));

@@ -5,7 +5,7 @@ use serde_json::{Number, json};
 
 use crate::error::DatabaseError;
 
-pub const PROTOCOL_VERSION: u32 = 1;
+pub const PROTOCOL_VERSION: u32 = 2;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "engine", rename_all = "lowercase")]
@@ -47,6 +47,31 @@ pub struct MysqlConfig {
     pub tls: TlsMode,
     #[serde(default)]
     pub read_only: bool,
+    #[serde(default)]
+    pub tunnel: Option<Tunnel>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "lowercase")]
+pub enum Tunnel {
+    Ssh(SshTunnel),
+    Docker(DockerTunnel),
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SshTunnel {
+    pub host: String,
+    pub port: Option<u16>,
+    pub user: Option<String>,
+    pub identity_file: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DockerTunnel {
+    pub container: String,
+    pub port: Option<u16>,
+    pub context: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -348,6 +373,104 @@ pub struct ExecuteParams {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PageParams {
+    pub session: String,
+    pub sql: String,
+    pub schema: Option<String>,
+    pub offset: i64,
+    pub limit: i64,
+    pub cell_limit: Option<i64>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum TransactionAction {
+    Begin,
+    Commit,
+    Rollback,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct TransactionParams {
+    pub session: String,
+    pub action: TransactionAction,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum FileFormat {
+    Csv,
+    Tsv,
+    Json,
+    Sql,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum DelimitedFormat {
+    Csv,
+    Tsv,
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(tag = "kind", rename_all = "lowercase", rename_all_fields = "camelCase")]
+pub enum ExportSource {
+    Table {
+        schema: String,
+        table: String,
+        r#where: Option<String>,
+        order_by: Option<String>,
+    },
+    Query {
+        sql: String,
+        schema: Option<String>,
+    },
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExportParams {
+    pub session: String,
+    pub source: ExportSource,
+    pub format: FileFormat,
+    pub path: String,
+    pub header: Option<bool>,
+    pub table_name: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct SampleParams {
+    pub path: String,
+    pub format: DelimitedFormat,
+    pub header: bool,
+    pub limit: Option<i64>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ImportParams {
+    pub session: String,
+    pub schema: String,
+    pub table: String,
+    pub path: String,
+    pub format: DelimitedFormat,
+    pub header: bool,
+    pub columns: Vec<Option<String>>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum DiscoverKind {
+    Docker,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct DiscoverParams {
+    pub kind: DiscoverKind,
+    pub context: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct CancelParams {
     pub request: String,
 }
@@ -389,8 +512,76 @@ pub struct ApplyResult {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct ExecuteResult {
     pub results: Vec<StatementResult>,
+    pub in_transaction: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct TransactionResult {
+    pub active: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ExportResult {
+    pub rows: u64,
+    pub bytes: u64,
+    pub elapsed_ms: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct SampleResult {
+    pub columns: Vec<String>,
+    pub rows: Vec<Vec<String>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportResult {
+    pub rows: u64,
+    pub elapsed_ms: f64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum EngineName {
+    Sqlite,
+    Mysql,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ContainerPort {
+    pub container: u16,
+    pub host: Option<u16>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SuggestedLogin {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub password: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub database: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DockerContainer {
+    pub id: String,
+    pub name: String,
+    pub image: String,
+    pub engine: Option<EngineName>,
+    pub ports: Vec<ContainerPort>,
+    pub project: Option<String>,
+    pub service: Option<String>,
+    pub suggested: SuggestedLogin,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct DiscoverResult {
+    pub containers: Vec<DockerContainer>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -411,6 +602,12 @@ pub enum Call {
     Cell(CellParams),
     Apply(ApplyParams),
     Execute(ExecuteParams),
+    Page(PageParams),
+    Transaction(TransactionParams),
+    Export(ExportParams),
+    Sample(SampleParams),
+    Import(ImportParams),
+    Discover(DiscoverParams),
     Cancel(CancelParams),
 }
 
@@ -426,7 +623,11 @@ impl Call {
             Call::Cell(params) => Some(&params.session),
             Call::Apply(params) => Some(&params.session),
             Call::Execute(params) => Some(&params.session),
-            Call::Open(_) | Call::Test(_) | Call::Cancel(_) => None,
+            Call::Page(params) => Some(&params.session),
+            Call::Transaction(params) => Some(&params.session),
+            Call::Export(params) => Some(&params.session),
+            Call::Import(params) => Some(&params.session),
+            Call::Open(_) | Call::Test(_) | Call::Sample(_) | Call::Discover(_) | Call::Cancel(_) => None,
         }
     }
 }
@@ -484,6 +685,12 @@ impl Request {
             "cell" => Call::Cell(params_of(params, method).map_err(fail)?),
             "apply" => Call::Apply(params_of(params, method).map_err(fail)?),
             "execute" => Call::Execute(params_of(params, method).map_err(fail)?),
+            "page" => Call::Page(params_of(params, method).map_err(fail)?),
+            "transaction" => Call::Transaction(params_of(params, method).map_err(fail)?),
+            "export" => Call::Export(params_of(params, method).map_err(fail)?),
+            "sample" => Call::Sample(params_of(params, method).map_err(fail)?),
+            "import" => Call::Import(params_of(params, method).map_err(fail)?),
+            "discover" => Call::Discover(params_of(params, method).map_err(fail)?),
             "cancel" => Call::Cancel(params_of(params, method).map_err(fail)?),
             other => return Err(fail(DatabaseError::invalid_request(format!("Unknown method \"{other}\".")))),
         };

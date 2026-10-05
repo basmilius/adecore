@@ -1,0 +1,19 @@
+{
+  "request": { "id": "r13", "method": "page", "params": { "session": "s1", "sql": "SELECT id, email FROM users ORDER BY id", "offset": 500, "limit": 2 } },
+  "response": {
+    "id": "r13",
+    "ok": true,
+    "result": {
+      "columns": [
+        { "name": "id", "type": "INTEGER", "kind": "integer" },
+        { "name": "email", "type": "TEXT", "kind": "text" }
+      ],
+      "rows": [
+        [501, "ada@example.com"],
+        [502, "grace@example.com"]
+      ],
+      "hasMore": false,
+      "elapsedMs": 0.6
+    }
+  }
+}

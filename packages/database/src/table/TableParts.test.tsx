@@ -5,6 +5,7 @@ import i18next from 'i18next';
 import { UIProvider } from '@adecore/ui';
 import { DatabaseProvider } from '../DatabaseProvider.tsx';
 import type { DatabaseClient } from '../client/types.ts';
+import type { Aggregates } from '../grid/aggregates.ts';
 import { pageBounds } from './paging.ts';
 import { TableFooter } from './TableFooter.tsx';
 import { TableToolbar, type TableToolbarProps } from './TableToolbar.tsx';
@@ -21,12 +22,13 @@ const render = (node: ReactNode): string =>
 
 const noop = () => {};
 
-const footer = (offset: number, rows: number, hasMore: boolean, counted: number | null) => (
+const footer = (offset: number, rows: number, hasMore: boolean, counted: number | null, aggregates?: Aggregates | null) => (
     <TableFooter
         elapsedMs={12.34}
         bounds={pageBounds(offset, rows, hasMore, counted)}
         pageSize={500}
         counting={false}
+        aggregates={aggregates}
         onCount={noop}
         onFirst={noop}
         onPrevious={noop}
@@ -134,5 +136,58 @@ describe('TableToolbar', () => {
     test('keeps deleting closed until a row is selected', () => {
         expect(render(<TableToolbar {...toolbarProps} hasSelection={false} />)).toMatch(/aria-label="Delete selected rows" aria-disabled="true"/);
         expect(render(<TableToolbar {...toolbarProps} />)).not.toMatch(/aria-label="Delete selected rows" aria-disabled/);
+    });
+});
+
+describe('TableFooter aggregates', () => {
+    const numeric: Aggregates = {
+        count: 6,
+        numeric: { count: 4, sum: 1234.5, average: 308.6, minimum: 5, maximum: 900, minimumText: '5', maximumText: '900' }
+    };
+
+    test('shows nothing about a selection while there is none', () => {
+        expect(render(footer(0, 10, false, null))).not.toContain('Count</span>');
+        expect(render(footer(0, 10, false, null, null))).not.toContain('Sum');
+    });
+
+    test('shows the count of the selected cells, and the figures of the numbers in them', () => {
+        const markup = render(footer(0, 10, false, null, numeric));
+        expect(markup).toContain('Count <span class="text-text">6</span>');
+        expect(markup).toContain('Sum <span class="text-text">1,234.5</span>');
+        expect(markup).toContain('Average <span class="text-text">308.6</span>');
+        expect(markup).toContain('Min <span class="text-text">5</span>');
+        expect(markup).toContain('Max <span class="text-text">900</span>');
+    });
+
+    test('shows only the count when the selection holds no numbers', () => {
+        const markup = render(footer(0, 10, false, null, { count: 4, numeric: null }));
+        expect(markup).toContain('Count <span class="text-text">4</span>');
+        expect(markup).not.toContain('Sum');
+    });
+});
+
+describe('TableToolbar export, import and record view', () => {
+    test('has no export menu without file dialogs', () => {
+        expect(render(<TableToolbar {...toolbarProps} />)).not.toContain('aria-label="Export"');
+    });
+
+    test('offers Export when the app has file dialogs, and busy disables it', () => {
+        const open = render(<TableToolbar {...toolbarProps} transfer={{ busy: false, onExport: noop }} />);
+        expect(open).toContain('aria-label="Export"');
+        expect(open).not.toMatch(/disabled=""[^>]*aria-label="Export"/);
+        expect(render(<TableToolbar {...toolbarProps} transfer={{ busy: true, onExport: noop }} />)).toMatch(/disabled=""[^>]*aria-label="Export"/);
+    });
+
+    test('names the menu for the import as well when the table takes rows', () => {
+        const markup = render(<TableToolbar {...toolbarProps} transfer={{ busy: false, onExport: noop, onImport: noop }} />);
+        expect(markup).toContain('aria-label="Export and import"');
+    });
+
+    test('has a record view toggle that says whether the view is open', () => {
+        expect(render(<TableToolbar {...toolbarProps} onToggleRecordView={noop} />)).toMatch(/aria-label="Record view"[^>]* aria-pressed="false"/);
+        expect(render(<TableToolbar {...toolbarProps} onToggleRecordView={noop} recordViewOpen />)).toMatch(
+            /aria-label="Record view"[^>]* aria-pressed="true"/
+        );
+        expect(render(<TableToolbar {...toolbarProps} />)).not.toContain('Record view');
     });
 });

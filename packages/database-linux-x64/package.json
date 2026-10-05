@@ -1,0 +1,29 @@
+{
+  "name": "@adecore/database-linux-x64",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The prebuilt native helper of @adecore/database for Linux on x64 (glibc).",
+  "license": "MIT",
+  "author": "Bas Milius",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/basmilius/adecore.git",
+    "directory": "packages/database-linux-x64"
+  },
+  "bugs": {
+    "url": "https://github.com/basmilius/adecore/issues"
+  },
+  "homepage": "https://adecore.dev/database/",
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "libc": [
+    "glibc"
+  ],
+  "files": [
+    "bin"
+  ]
+}

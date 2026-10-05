@@ -35,8 +35,8 @@
       "createHint": "Creates the file when it does not exist.",
       "host": "Host",
       "port": "Port",
-      "socket": "Socket (advanced)",
-      "socketHint": "A Unix socket to connect through instead of host and port.",
+      "socket": "Socket",
+      "socketHint": "The Unix socket the server listens on.",
       "user": "User",
       "password": "Password",
       "database": "Database",
@@ -58,8 +58,50 @@
         "path-required": "Enter the path of the database file.",
         "path-relative": "The path must be absolute.",
         "host-required": "Enter a host.",
-        "port-range": "The port is a number from 1 to 65535."
+        "port-range": "The port is a number from 1 to 65535.",
+        "socket-required": "Enter the path of the socket.",
+        "ssh-host-required": "Enter the SSH host.",
+        "ssh-port-range": "The SSH port is a number from 1 to 65535.",
+        "container-required": "Pick a container.",
+        "container-port-range": "The port is a number from 1 to 65535."
+      },
+      "mode": {
+        "label": "Connect through",
+        "tcp": "TCP",
+        "socket": "Socket",
+        "ssh": "SSH",
+        "docker": "Docker"
+      },
+      "ssh": {
+        "host": "SSH host",
+        "hostHint": "A host name, or a Host of ~/.ssh/config.",
+        "port": "SSH port",
+        "user": "SSH user",
+        "identityFile": "Identity file",
+        "keyHint": "A key or the SSH agent has to answer. A password is never asked.",
+        "serverHost": "Server host",
+        "serverPort": "Server port",
+        "serverHint": "The address of the database server as the SSH host sees it."
+      },
+      "docker": {
+        "container": "Container",
+        "pick": "Pick a container",
+        "refresh": "Look for containers again",
+        "loading": "Looking for containers",
+        "empty": "No running containers that look like a database.",
+        "unsupported": "Docker is not available.",
+        "notRunning": "Not running",
+        "published": "Published on port {{port}}",
+        "notPublished": "Not published",
+        "port": "Container port"
       }
+    },
+    "fromDocker": {
+      "label": "From a Docker container",
+      "loading": "Looking for containers",
+      "empty": "No running containers that look like a database.",
+      "unsupported": "Docker is not available.",
+      "retry": "Try again"
     }
   },
   "explorer": {
@@ -83,7 +125,43 @@
     "refresh": "Refresh",
     "disconnect": "Disconnect",
     "open": "Open",
-    "copyName": "Copy name"
+    "copyName": "Copy name",
+    "openData": "Open data",
+    "openStructure": "Open structure",
+    "editTable": "Edit table",
+    "newConsole": "New console",
+    "newConsoleHere": "New console here",
+    "newTable": "New table",
+    "editConnection": "Edit connection",
+    "copyDdl": "Copy DDL",
+    "rename": {
+      "action": "Rename",
+      "title": "Rename \"{{name}}\"",
+      "field": "New name",
+      "confirm": "Rename"
+    },
+    "truncate": {
+      "action": "Truncate",
+      "title": "Truncate \"{{name}}\"?",
+      "description": "Deletes every row in \"{{name}}\". This cannot be undone.",
+      "confirm": "Truncate"
+    },
+    "drop": {
+      "field": "Type \"{{name}}\" to confirm",
+      "mismatch": "The name does not match.",
+      "table": {
+        "action": "Drop",
+        "title": "Drop \"{{name}}\"?",
+        "description": "Deletes the table and every row in it. This cannot be undone.",
+        "confirm": "Drop table"
+      },
+      "view": {
+        "action": "Drop view",
+        "title": "Drop \"{{name}}\"?",
+        "description": "Deletes the view. The tables behind it are not touched.",
+        "confirm": "Drop view"
+      }
+    }
   },
   "structure": {
     "loading": "Loading structure",
@@ -152,7 +230,9 @@
       "csv": "CSV",
       "json": "JSON",
       "sql": "SQL INSERT statements"
-    }
+    },
+    "followReference": "Go to referenced row",
+    "emptyValue": "(empty)"
   },
   "table": {
     "grid": "Rows of {{table}}",
@@ -203,6 +283,54 @@
       "revertRows_other": "Revert {{count}} rows",
       "deleteRows_one": "Delete row",
       "deleteRows_other": "Delete {{count}} rows"
+    },
+    "goToReferenced": "Go to referenced row",
+    "recordView": "Record view",
+    "recordFields": "Fields of {{table}}",
+    "record": {
+      "previous": "Previous row",
+      "next": "Next row",
+      "newRow": "New row",
+      "row": "Row {{number}}",
+      "position": "{{index}} of {{count}} on this page"
+    },
+    "aggregates": {
+      "count": "Count",
+      "sum": "Sum",
+      "average": "Average",
+      "minimum": "Min",
+      "maximum": "Max",
+      "cells": "{{count}} cells selected",
+      "numbers": "{{count}} numbers",
+      "sumFull": "Sum: {{value}}",
+      "averageFull": "Average: {{value}}",
+      "minimumFull": "Minimum: {{value}}",
+      "maximumFull": "Maximum: {{value}}"
+    },
+    "export": {
+      "label": "Export",
+      "labelWithImport": "Export and import",
+      "as": "Export as {{format}}",
+      "running": "Exporting as {{format}}",
+      "cancel": "Cancel",
+      "done_one": "Exported {{rows}} row.",
+      "done_other": "Exported {{rows}} rows."
+    },
+    "import": {
+      "menu": "Import from file",
+      "done_one": "Imported {{rows}} row.",
+      "done_other": "Imported {{rows}} rows.",
+      "title": "Import from file",
+      "description": "Choose which column of the file fills which column of the table.",
+      "header": "First line is a header",
+      "sampling": "Reading the file",
+      "fileColumn": "File column",
+      "tableColumn": "Table column",
+      "mapTo": "Table column for {{column}}",
+      "skip": "Skip",
+      "preview": "First {{count}} rows of the file",
+      "cancel": "Cancel",
+      "confirm": "Import"
     }
   },
   "console": {
@@ -221,7 +349,56 @@
     "affected_one": "{{formatted}} row affected",
     "affected_other": "{{formatted}} rows affected",
     "lastInsertId": "Last insert id: {{id}}",
-    "valuePanel": "Value panel"
+    "valuePanel": "Value panel",
+    "runAll": "Run all",
+    "loading": "Loading",
+    "dismiss": "Dismiss",
+    "ranStatement": "Ran: {{statement}}",
+    "ranSelection": "Ran the selection",
+    "ranAll_one": "Ran {{count}} statement",
+    "ranAll_other": "Ran all {{count}} statements",
+    "rowRange": "Rows: {{from}} to {{to}}",
+    "page": "Page {{page}}",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "export": "Export result",
+    "exportAs": "Export as {{format}}",
+    "exported_one": "Exported {{formatted}} row.",
+    "exported_other": "Exported {{formatted}} rows.",
+    "schema": "Schema",
+    "schemaPlaceholder": "Schema",
+    "transaction": {
+      "mode": "Transaction mode",
+      "auto": "Auto",
+      "manual": "Manual",
+      "hint": "Auto commits every run. Manual keeps a transaction open until you commit or roll back.",
+      "open": "Transaction open",
+      "commit": "Commit",
+      "rollback": "Roll back",
+      "endTitle": "End the transaction?",
+      "endDescription": "A transaction is still open. Commit it to keep its changes, or roll it back to discard them."
+    },
+    "destructive": {
+      "title": "Run destructive statements?",
+      "description_one": "This statement removes or overwrites data.",
+      "description_other": "These statements remove or overwrite data.",
+      "confirm": "Run anyway",
+      "drop": "Drops an object",
+      "truncate": "Empties a table",
+      "delete": "Deletes every row, with no WHERE",
+      "update": "Updates every row, with no WHERE",
+      "alterDrop": "Drops a column, an index or a constraint"
+    },
+    "history": {
+      "title": "History",
+      "search": "Search history",
+      "clear": "Clear history",
+      "empty": "Nothing has run yet.",
+      "noMatches": "No run matches.",
+      "hint": "Click to edit, double click to run.",
+      "rows_one": "{{formatted}} row",
+      "rows_other": "{{formatted}} rows"
+    }
   },
   "value": {
     "title": "Value",
@@ -253,5 +430,125 @@
     "characters_one": "{{formatted}} character",
     "characters_other": "{{formatted}} characters",
     "more": "More actions"
+  },
+  "ddl": {
+    "problem": {
+      "tableName": "The table needs a name.",
+      "noColumns": "The table needs at least one column.",
+      "columnName": "A column has no name.",
+      "columnDuplicate": "Two columns are called {{subject}}.",
+      "columnType": "Column {{subject}} needs a type.",
+      "indexName": "An index needs a name.",
+      "indexColumns": "Index {{subject}} needs at least one column.",
+      "foreignKey": "Foreign key {{subject}} needs a table and as many referenced columns as it has columns."
+    }
+  },
+  "designer": {
+    "loading": "Loading table",
+    "retry": "Try again",
+    "tableName": "Table name",
+    "tableNamePlaceholder": "table_name",
+    "apply": "Apply",
+    "create": "Create table",
+    "applying": "Applying",
+    "revert": "Revert",
+    "dismiss": "Dismiss",
+    "failed": "The changes could not be applied.",
+    "copy": "Copy",
+    "sql": "SQL",
+    "noChanges": "No changes",
+    "fixProblems": "Fix the problems listed under the tabs first.",
+    "noColumnsToPick": "Add a column first.",
+    "readOnly": {
+      "connection": "This connection is read only.",
+      "view": "A view cannot be modified here."
+    },
+    "tabs": {
+      "columns": "Columns",
+      "indexes": "Indexes",
+      "foreignKeys": "Foreign keys",
+      "options": "Options"
+    },
+    "columns": {
+      "empty": "This table has no columns yet.",
+      "order": "Order",
+      "name": "Name",
+      "type": "Type",
+      "notNull": "Not null",
+      "notNullFor": "{{name}} cannot be null",
+      "default": "Default",
+      "noDefault": "No default",
+      "autoIncrement": "Auto increment",
+      "autoIncrementFor": "{{name}} counts up by itself",
+      "primaryKey": "Key",
+      "addToKey": "Add to the primary key",
+      "removeFromKey": "Remove from the primary key",
+      "comment": "Comment",
+      "remove": "Remove column",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "generated": "Generated",
+      "add": "Add column"
+    },
+    "indexes": {
+      "empty": "This table has no indexes besides its primary key.",
+      "name": "Index name",
+      "unique": "Unique",
+      "columns": "Columns of the index",
+      "remove": "Remove index",
+      "add": "Add index"
+    },
+    "foreignKeys": {
+      "empty": "This table has no foreign keys.",
+      "name": "Name",
+      "columns": "Columns",
+      "referencedTable": "References table",
+      "pickTable": "Pick a table",
+      "referencedColumns": "Referenced columns",
+      "loadingColumns": "Loading columns",
+      "onUpdate": "On update",
+      "onDelete": "On delete",
+      "engineDefault": "Server default",
+      "remove": "Remove foreign key",
+      "add": "Add foreign key"
+    },
+    "options": {
+      "withoutRowid": "Without rowid",
+      "withoutRowidHint": "Stores the table in its primary key, which saves space for tables with a text or composite key.",
+      "strict": "Strict",
+      "strictHint": "Makes SQLite refuse a value that does not fit the type of its column.",
+      "engine": "Storage engine",
+      "charset": "Character set",
+      "collation": "Collation",
+      "comment": "Comment",
+      "serverDefault": "Leave empty for the default of the server."
+    },
+    "confirm": {
+      "title_one": "Run {{formatted}} statement?",
+      "title_other": "Run {{formatted}} statements?",
+      "create": "This creates the table {{table}}.",
+      "alter": "This changes the table {{table}}.",
+      "destructive": "A column is removed, and the data in it is lost."
+    }
+  },
+  "workbench": {
+    "title": "Databases",
+    "manage": "Manage connections",
+    "connections": "Connections",
+    "close": "Close",
+    "tabs": "Open tabs",
+    "newConsole": "New console",
+    "noConnection": "Add a connection first",
+    "console": "Console {{number}}",
+    "filtered": "{{table}} (filtered)",
+    "newTable": "New table",
+    "designer": "Design {{table}}",
+    "views": "Table views",
+    "data": "Data",
+    "structure": "Structure",
+    "empty": {
+      "title": "Nothing open",
+      "body": "Open a table from the explorer or start a console."
+    }
   }
 }

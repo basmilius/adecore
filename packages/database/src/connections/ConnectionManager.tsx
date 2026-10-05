@@ -1,13 +1,15 @@
 import { useState, type Ref } from 'react';
-import { CircleAlert, CircleCheck, Database, Plus, Trash2, Unplug } from 'lucide-react';
+import { CircleAlert, CircleCheck, Container, Database, Plus, Trash2, Unplug } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Banner, Button, EmptyState, Icon, Menu, messageOf, PromptDialog, Spinner } from '@adecore/ui';
 import { DetailHeader, MasterDetail, MasterItem } from '@adecore/ui/settings';
 import { useDatabaseClient } from '../client-context.ts';
 import type { Connection } from '../client/types.ts';
-import type { ConnectionConfig, Engine, ServerInfo } from '../protocol/index.ts';
+import type { ConnectionConfig, DockerContainer, Engine, ServerInfo } from '../protocol/index.ts';
 import { defaultConfig, isValidConfig, targetOf } from './connection-config.ts';
 import { ConnectionForm } from './ConnectionForm.tsx';
+import { composeNameOf, connectionFromContainer, isMysqlContainer } from './docker.ts';
+import { useDockerContainers } from './use-docker-containers.ts';
 import { ENGINE_ICONS } from './engine-icons.ts';
 import { EngineIcon } from './EngineIcon.tsx';
 
@@ -50,6 +52,12 @@ export function ConnectionManager({ value, onValueChange, selected, onSelectedCh
         select(connection.id);
     };
 
+    const addFromContainer = (container: DockerContainer): void => {
+        const connection = connectionFromContainer(crypto.randomUUID(), container);
+        onValueChange([...value, connection]);
+        select(connection.id);
+    };
+
     const change = (next: Connection): void => {
         onValueChange(value.map((connection) => (connection.id === next.id ? next : connection)));
     };
@@ -76,6 +84,16 @@ export function ConnectionManager({ value, onValueChange, selected, onSelectedCh
                             {t(`engine.${engine}`)}
                         </Menu.Item>
                     ))}
+                    <Menu.Separator />
+                    <Menu.SubmenuRoot>
+                        <Menu.SubmenuTrigger>
+                            <Icon icon={Container} size={14} />
+                            {t('connections.fromDocker.label')}
+                        </Menu.SubmenuTrigger>
+                        <Menu.Popup>
+                            <DockerMenuItems onPick={addFromContainer} />
+                        </Menu.Popup>
+                    </Menu.SubmenuRoot>
                 </Menu.Popup>
             </Menu.Root>
             {value.map((connection) => (
@@ -124,6 +142,44 @@ export function ConnectionManager({ value, onValueChange, selected, onSelectedCh
         );
 
     return <MasterDetail ref={ref} className={className} list={list} listWidth={280} listLabel={t('connections.list')} detail={detail} />;
+}
+
+/* The containers Docker is running as menu items. The submenu mounts this when it opens, so Docker is asked only then. */
+function DockerMenuItems({ onPick }: { onPick(container: DockerContainer): void }) {
+    const { t } = useTranslation('database');
+    const { state, reload } = useDockerContainers();
+    if (state.status === 'loading') {
+        return (
+            <Menu.Label className="flex items-center gap-2">
+                <Spinner size={12} />
+                {t('connections.fromDocker.loading')}
+            </Menu.Label>
+        );
+    }
+    if (state.status !== 'ready') {
+        return (
+            <>
+                <Menu.Label className="max-w-64 break-words">
+                    {state.status === 'unsupported' ? `${t('connections.fromDocker.unsupported')} ${state.message}` : state.message}
+                </Menu.Label>
+                <Menu.Item closeOnClick={false} onClick={reload}>
+                    {t('connections.fromDocker.retry')}
+                </Menu.Item>
+            </>
+        );
+    }
+    const containers = state.containers.filter(isMysqlContainer);
+    if (containers.length === 0) {
+        return <Menu.Label>{t('connections.fromDocker.empty')}</Menu.Label>;
+    }
+    return containers.map((container) => (
+        <Menu.Item key={container.id} onClick={() => onPick(container)}>
+            <span className="flex min-w-0 flex-col">
+                <span className="truncate">{composeNameOf(container) ?? container.name}</span>
+                <span className="truncate text-xs text-text-faint">{container.image}</span>
+            </span>
+        </Menu.Item>
+    ));
 }
 
 /* The button that asks the server who it is, and what it answered; an answer to an older config is not shown. */

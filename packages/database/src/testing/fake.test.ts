@@ -230,31 +230,126 @@ describe('apply', () => {
 describe('execute', () => {
     test('answers SELECT * FROM <table> on the first schema, in any case and quoting', async () => {
         const { session } = setup();
-        const [result] = await session.execute('select * from `notes`;');
+        const {
+            results: [result]
+        } = await session.execute('select * from `notes`;');
         expect(result).toMatchObject({ kind: 'rows', sql: 'select * from `notes`', hasMore: false });
         expect(result!.kind === 'rows' ? result.rows : []).toEqual([['one'], ['two']]);
     });
 
     test('honors the schema, the limit and keeps the schema selected', async () => {
         const { session } = setup();
-        const [archive] = await session.execute('SELECT * FROM old', { schema: 'archive' });
+        const {
+            results: [archive]
+        } = await session.execute('SELECT * FROM old', { schema: 'archive' });
         expect(archive!.kind).toBe('rows');
-        const [again] = await session.execute('SELECT * FROM old');
+        const {
+            results: [again]
+        } = await session.execute('SELECT * FROM old');
         expect(again!.kind).toBe('rows');
 
-        const [elsewhere] = await session.execute('SELECT * FROM old', { schema: 'main' });
+        const {
+            results: [elsewhere]
+        } = await session.execute('SELECT * FROM old', { schema: 'main' });
         expect(elsewhere!.kind).toBe('error');
-        const [paged] = await session.execute('SELECT * FROM users', { schema: 'main', limit: 2 });
+        const {
+            results: [paged]
+        } = await session.execute('SELECT * FROM users', { schema: 'main', limit: 2 });
         expect(paged).toMatchObject({ kind: 'rows', hasMore: true });
         await expect(session.execute('SELECT * FROM users', { schema: 'nope' })).rejects.toMatchObject({ code: 'query-failed' });
     });
 
     test('answers anything else with an unsupported error and stops the list there', async () => {
         const { session } = setup();
-        const results = await session.execute('SELECT * FROM notes; DELETE FROM notes; SELECT * FROM users');
+        const { results } = await session.execute('SELECT * FROM notes; DELETE FROM notes; SELECT * FROM users');
         expect(results.map((result) => result.kind)).toEqual(['rows', 'error']);
         expect(results[1]).toMatchObject({ kind: 'error', sql: 'DELETE FROM notes', error: { code: 'unsupported' } });
-        expect((await session.execute('SELECT * FROM missing'))[0]).toMatchObject({ kind: 'error', error: { code: 'query-failed', sqlState: '42S02' } });
+        expect((await session.execute('SELECT * FROM missing')).results[0]).toMatchObject({
+            kind: 'error',
+            error: { code: 'query-failed', sqlState: '42S02' }
+        });
+    });
+});
+
+describe('page', () => {
+    test('pages the rows of SELECT * FROM <table> with offset, limit and hasMore', async () => {
+        const { session } = setup();
+        const first = await session.page('select * from users;', { offset: 0, limit: 2 });
+        expect(first).toMatchObject({ hasMore: true });
+        expect(first.rows.map((row) => row[0])).toEqual([1, 2]);
+
+        const last = await session.page('SELECT * FROM users', { offset: 2, limit: 2 });
+        expect(last).toMatchObject({ hasMore: false });
+        expect(last.rows.map((row) => row[0])).toEqual([3]);
+        expect(last.columns.map((entry) => entry.name)).toEqual(users.map((entry) => entry.name));
+    });
+
+    test('keeps the schema it names selected, and cuts cells at the cell limit', async () => {
+        const { session } = setup();
+        const archive = await session.page('SELECT * FROM old', { schema: 'archive', offset: 0, limit: 5 });
+        expect(archive.rows).toEqual([[1]]);
+        expect((await session.execute('SELECT * FROM old')).results[0]!.kind).toBe('rows');
+
+        const cut = await session.page('SELECT * FROM users', { schema: 'main', offset: 1, limit: 1, cellLimit: 8 });
+        expect(cut.rows[0]![1]).toMatchObject({ kind: 'longText', preview: 'bbbbbbbb' });
+    });
+
+    test('answers unsupported for any other statement and query-failed for a missing table', async () => {
+        const { session } = setup();
+        await expect(session.page('SHOW TABLES', { offset: 0, limit: 1 })).rejects.toMatchObject({ code: 'unsupported' });
+        await expect(session.page('SELECT * FROM missing', { offset: 0, limit: 1 })).rejects.toMatchObject({ code: 'query-failed', sqlState: '42S02' });
+        await expect(session.page('SELECT * FROM users', { schema: 'nope', offset: 0, limit: 1 })).rejects.toMatchObject({ code: 'query-failed' });
+    });
+});
+
+describe('transactions', () => {
+    test('raises a flag that execute reports, and commit and rollback lower it', async () => {
+        const { session } = setup();
+        expect((await session.execute('SELECT * FROM notes')).inTransaction).toBe(false);
+        expect(await session.transaction('begin')).toBe(true);
+        expect((await session.execute('SELECT * FROM notes')).inTransaction).toBe(true);
+        expect(await session.transaction('commit')).toBe(false);
+        expect(await session.transaction('begin')).toBe(true);
+        expect(await session.transaction('rollback')).toBe(false);
+        expect((await session.execute('SELECT * FROM notes')).inTransaction).toBe(false);
+    });
+
+    test('belongs to the session', async () => {
+        const { client, session } = setup();
+        await session.transaction('begin');
+        const other = client.session({ id: 'other', name: 'Other', config: { engine: 'sqlite', path: '/tmp/shop.db' } });
+        expect((await other.execute('SELECT * FROM notes')).inTransaction).toBe(false);
+    });
+});
+
+describe('files and discovery', () => {
+    test('answers unsupported for export, import and sample, since it has no files', async () => {
+        const { client, session } = setup();
+        await expect(
+            session.export({ source: { kind: 'table', schema: 'main', table: 'users' }, format: 'csv', path: '/tmp/users.csv' })
+        ).rejects.toMatchObject({ code: 'unsupported', message: expect.stringContaining('no files') });
+        await expect(session.import('main', 'users', { path: '/tmp/users.csv', format: 'csv', header: true, columns: ['id'] })).rejects.toMatchObject({
+            code: 'unsupported'
+        });
+        await expect(client.sample('/tmp/users.csv', 'csv', true)).rejects.toMatchObject({ code: 'unsupported' });
+    });
+
+    test('lists no containers unless the options hold some', async () => {
+        const { client } = setup();
+        expect(await client.discover('docker')).toEqual([]);
+
+        const container = {
+            id: '4f1c2b7e9a10',
+            name: 'shop_db_1',
+            image: 'mysql:8.0',
+            engine: 'mysql',
+            ports: [{ container: 3306, host: 32768 }],
+            project: 'shop',
+            service: 'db',
+            suggested: {}
+        } as const;
+        const listed = createDatabaseClient(fakeDatabaseTransport({ databases: {}, containers: [container] }));
+        expect(await listed.discover('docker', { context: 'desktop' })).toEqual([container]);
     });
 });
 

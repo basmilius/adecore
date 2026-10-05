@@ -1,0 +1,4 @@
+{
+  "request": { "id": "r14", "method": "transaction", "params": { "session": "s2", "action": "begin" } },
+  "response": { "id": "r14", "ok": true, "result": { "active": true } }
+}

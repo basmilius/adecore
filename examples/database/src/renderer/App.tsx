@@ -1,56 +1,39 @@
 import { useState } from 'react';
-import { createDatabaseClient, DatabaseProvider, type Connection, type TableRef } from '@adecore/database';
-import { Sidebar } from './Sidebar.tsx';
-import { connectionIdOf, useTabs } from './useTabs.ts';
+import { useTranslation } from 'react-i18next';
+import { createDatabaseClient, DatabaseProvider, DatabaseWorkbench } from '@adecore/database';
+import { Segmented } from '@adecore/ui';
+import { databaseFiles, databaseStorage, useLayout } from './app-hooks.ts';
+import { SidePane } from './SidePane.tsx';
 import { useConnections } from './useConnections.ts';
-import { Workspace } from './Workspace.tsx';
 
 export function App() {
+    const { t } = useTranslation();
     const [client] = useState(() => createDatabaseClient(window.database.request));
     const [connections, saveConnections] = useConnections();
-    const [selected, setSelected] = useState<TableRef | null>(null);
-    const workspace = useTabs();
-
-    const activeTab = workspace.tabs.find((tab) => tab.id === workspace.activeId);
-    const consoleConnectionId = (activeTab && connectionIdOf(activeTab)) ?? selected?.connectionId ?? connections[0]?.id;
-
-    const changeConnections = (next: readonly Connection[]): void => {
-        saveConnections(next);
-        workspace.keepConnections(new Set(next.map((connection) => connection.id)));
-    };
-
-    const openConsole = (): void => {
-        if (consoleConnectionId !== undefined) {
-            workspace.openConsole(consoleConnectionId, selected?.connectionId === consoleConnectionId ? selected.schema : undefined);
-        }
-    };
+    const [layout, setLayout] = useLayout();
 
     return (
-        <DatabaseProvider client={client}>
-            <div className="flex h-screen bg-bg text-text">
-                <Sidebar
-                    connections={connections}
-                    onConnectionsChange={changeConnections}
-                    onBrowse={window.database.browse}
-                    selected={selected}
-                    onSelectedChange={setSelected}
-                    onOpenTable={workspace.openTable}
-                />
-                <main className="min-w-0 flex-1 bg-surface">
-                    <Workspace
-                        connections={connections}
-                        onConnectionsChange={changeConnections}
-                        onBrowse={window.database.browse}
-                        tabs={workspace.tabs}
-                        activeId={workspace.activeId}
-                        onActivate={workspace.activate}
-                        onClose={workspace.close}
-                        onViewChange={workspace.setView}
-                        canOpenConsole={consoleConnectionId !== undefined}
-                        onNewConsole={openConsole}
-                        onOpenConnections={workspace.openConnections}
+        <DatabaseProvider client={client} storage={databaseStorage} files={databaseFiles}>
+            <div className="flex h-screen flex-col bg-bg text-text">
+                <header className="flex h-11 shrink-0 items-center justify-between border-b border-border px-3">
+                    <h1 className="text-sm font-semibold text-text">{t('app.title')}</h1>
+                    <Segmented
+                        label={t('layout.label')}
+                        value={layout}
+                        onValueChange={setLayout}
+                        options={[
+                            { id: 'workbench', label: t('layout.workbench') },
+                            { id: 'pane', label: t('layout.pane') }
+                        ]}
                     />
-                </main>
+                </header>
+                <div className="min-h-0 flex-1">
+                    {layout === 'workbench' ? (
+                        <DatabaseWorkbench connections={connections} onConnectionsChange={saveConnections} />
+                    ) : (
+                        <SidePane connections={connections} onConnectionsChange={saveConnections} />
+                    )}
+                </div>
             </div>
         </DatabaseProvider>
     );

@@ -2,7 +2,7 @@ mod common;
 
 use std::time::Duration;
 
-use common::Client;
+use common::{Client, scenarios};
 use serde_json::{Value, json};
 
 fn sqlite_config(path: &std::path::Path) -> Value {
@@ -720,4 +720,98 @@ async fn cancelling_a_finished_request_leaves_the_session_alone() {
     let answer: Value = serde_json::from_str(&long.await.unwrap()).unwrap();
     assert_eq!(answer["ok"], true, "{answer}");
     assert_eq!(answer["result"]["results"][0]["rows"], json!([[3_000_000]]));
+}
+
+async fn scenario_db<'a>(client: &'a mut Client, directory: &tempfile::TempDir) -> scenarios::Db<'a> {
+    let path = directory.path().join("scenario.sqlite");
+    let connection = sqlite_config(&path);
+    let session = client.open(connection.clone()).await;
+
+    scenarios::Db {
+        client,
+        connection,
+        session,
+        schema: "main".to_string(),
+        mysql: false,
+    }
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn sqlite_pages_statements() {
+    let directory = tempfile::tempdir().unwrap();
+    let mut client = Client::new();
+    scenarios::pages_statements(&mut scenario_db(&mut client, &directory).await).await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn sqlite_drives_transactions() {
+    let directory = tempfile::tempdir().unwrap();
+    let mut client = Client::new();
+    scenarios::drives_transactions(&mut scenario_db(&mut client, &directory).await).await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn sqlite_exports_every_format() {
+    let directory = tempfile::tempdir().unwrap();
+    let mut client = Client::new();
+    scenarios::exports_every_format(&mut scenario_db(&mut client, &directory).await, directory.path()).await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn sqlite_export_failures_leave_nothing_behind() {
+    let directory = tempfile::tempdir().unwrap();
+    let mut client = Client::new();
+    scenarios::export_failures_leave_nothing_behind(&mut scenario_db(&mut client, &directory).await, directory.path()).await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn sqlite_cancels_an_export() {
+    let directory = tempfile::tempdir().unwrap();
+    let mut client = Client::new();
+    let endless = "WITH RECURSIVE forever(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM forever) SELECT x FROM forever";
+    scenarios::cancels_an_export(&mut scenario_db(&mut client, &directory).await, directory.path(), endless).await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn sqlite_samples_files() {
+    let directory = tempfile::tempdir().unwrap();
+    let mut client = Client::new();
+    scenarios::samples_files(&mut scenario_db(&mut client, &directory).await, directory.path()).await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn sqlite_imports_files() {
+    let directory = tempfile::tempdir().unwrap();
+    let mut client = Client::new();
+    scenarios::imports_files(&mut scenario_db(&mut client, &directory).await, directory.path()).await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn sqlite_imports_inside_a_transaction() {
+    let directory = tempfile::tempdir().unwrap();
+    let mut client = Client::new();
+    scenarios::imports_inside_a_transaction(&mut scenario_db(&mut client, &directory).await, directory.path()).await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn sqlite_read_only_sessions_refuse_imports() {
+    let directory = tempfile::tempdir().unwrap();
+    let mut client = Client::new();
+    scenarios::read_only_sessions_refuse_imports(&mut scenario_db(&mut client, &directory).await, directory.path()).await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn sqlite_rolls_back_an_open_transaction_when_the_helper_closes() {
+    let directory = tempfile::tempdir().unwrap();
+    let mut client = Client::new();
+    let mut db = scenario_db(&mut client, &directory).await;
+    db.script("CREATE TABLE t (a INTEGER)").await;
+    db.ok("transaction", json!({ "action": "begin" })).await;
+    db.script("INSERT INTO t VALUES (1)").await;
+    db.client.dispatcher.shutdown().await;
+
+    let mut fresh = Client::new();
+    let session = fresh.open(sqlite_config(&directory.path().join("scenario.sqlite"))).await;
+    let count = fresh.ok("execute", json!({ "session": session, "sql": "SELECT COUNT(*) FROM t" })).await;
+    assert_eq!(count["results"][0]["rows"], json!([[0]]));
 }

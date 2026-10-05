@@ -1,18 +1,34 @@
-import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode, type Ref } from 'react';
+import {
+    useCallback,
+    useEffect,
+    useId,
+    useMemo,
+    useRef,
+    useState,
+    type KeyboardEvent,
+    type MouseEvent,
+    type PointerEvent,
+    type ReactNode,
+    type Ref
+} from 'react';
 import clsx from 'clsx';
-import { Ban, Copy, RotateCcw } from 'lucide-react';
+import { ArrowUpRight, Ban, Copy, RotateCcw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { ContextMenu, copyText, EDIT_SHORTCUTS, Icon, isApplePlatform, isModHeld, Kbd, Spinner, useContentSize } from '@adecore/ui';
+import { ContextMenu, copyText, EDIT_SHORTCUTS, Icon, IconButton, isApplePlatform, isModHeld, Kbd, Spinner, useContentSize } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
 import type { EditValue, Value } from '../protocol/index.ts';
 import type { SqlTarget } from '../sql.ts';
+import type { RangeBlock } from './aggregates.ts';
 import { fullRect, rectBetween, rectContains } from './cell-range.ts';
 import { CellEditor, type EditMove } from './CellEditor.tsx';
-import { displayOrder, hideColumn, NO_COLUMN_VIEW, pinnedCount, showAllColumns, togglePin, type ColumnView } from './column-view.ts';
+import { captureLayout, restoreLayout, sameLayout, type GridLayout } from './column-layout.ts';
+import { displayOrder, hideColumn, pinnedCount, showAllColumns, togglePin, type ColumnView } from './column-view.ts';
 import { COPY_FORMATS, formatCopy, type CopyFormat, type CopyInput } from './copy-formats.ts';
 import { CopyAsMenu } from './CopyAsMenu.tsx';
 import { cellView, copyTextOf, isPreview, type CellView } from './display.ts';
 import { draftOf, parseDraft } from './edit-value.ts';
+import { parseEnumType } from './enum-type.ts';
+import { EnumPicker } from './EnumPicker.tsx';
 import { GridHeaderCell, type HeaderActions } from './GridHeaderCell.tsx';
 import {
     clampColumnWidth,
@@ -20,6 +36,7 @@ import {
     estimateColumnWidth,
     fitColumnWidth,
     FALLBACK_VIEWPORT_HEIGHT,
+    growWidths,
     gutterWidth,
     HEADER_HEIGHT,
     OVERSCAN_ROWS,
@@ -57,6 +74,18 @@ export interface DataGridProps {
     sqlTarget?: SqlTarget;
     /* Items for the context menu of a cell or a row number, drawn under the grid's own. */
     menu?(context: GridMenuContext): ReactNode;
+    /* Draws an arrow on the cells `canFollow` allows, and runs on a click on it or a Mod+click on the cell. */
+    onFollow?(cell: FocusedCell): void;
+    /* Without it every cell can be followed. */
+    canFollow?(cell: FocusedCell): boolean;
+    /* The block of cells the range covers, or `null` when no cell has focus. Told again when the block changes. */
+    onRangeChange?(block: RangeBlock | null): void;
+    /* The widths, hidden columns and pins to start from, by column name. Read when the columns first appear. */
+    initialLayout?: GridLayout;
+    /* A person resized, hid or pinned a column. */
+    onLayoutChange?(layout: GridLayout): void;
+    /* Puts the focus on a cell, whenever the object changes. */
+    focusRequest?: FocusedCell | null;
     /* Drawn under the header while there are no rows. */
     empty?: ReactNode;
     className?: string;
@@ -78,7 +107,7 @@ interface MenuTarget {
 /* What the person did to the columns, kept while the same columns come back with new rows. */
 interface Layout {
     signature: string;
-    hasRows: boolean;
+    rows: readonly GridRow[];
     estimated: readonly number[];
     resized: Readonly<Record<number, number>>;
     view: ColumnView;
@@ -132,6 +161,12 @@ export function DataGrid({
     onDeleteSelected,
     sqlTarget,
     menu,
+    onFollow,
+    canFollow,
+    onRangeChange,
+    initialLayout,
+    onLayoutChange,
+    focusRequest,
     empty,
     className,
     ref
@@ -145,6 +180,8 @@ export function DataGrid({
     const dragging = useRef(false);
     const dragOrigin = useRef<CellPosition | null>(null);
     const reportFocus = useRef(onFocusedCellChange);
+    const reportRange = useRef(onRangeChange);
+    const reportLayout = useRef(onLayoutChange);
     const [measure, size] = useContentSize();
     const [scrollTop, setScrollTop] = useState(0);
     const [focused, setFocused] = useState<CellPosition | null>(null);
@@ -154,22 +191,22 @@ export function DataGrid({
     const [ownSelection, setOwnSelection] = useState<ReadonlySet<string>>(NO_KEYS);
     const [layout, setLayout] = useState<Layout>(() => ({
         signature: signatureOf(columns),
-        hasRows: rows.length > 0,
+        rows,
         estimated: estimateWidths(columns, rows),
-        resized: {},
-        view: NO_COLUMN_VIEW
+        ...restoreLayout(columns, initialLayout)
     }));
+    const reportedLayout = useRef<GridLayout>(captureLayout(columns, layout));
 
     const signature = signatureOf(columns);
     let current = layout;
-    if (layout.signature !== signature || layout.hasRows !== rows.length > 0) {
+    if (layout.signature !== signature || layout.rows !== rows) {
         const same = layout.signature === signature;
+        const estimated = estimateWidths(columns, rows);
         current = {
             signature,
-            hasRows: rows.length > 0,
-            estimated: estimateWidths(columns, rows),
-            resized: same ? layout.resized : {},
-            view: same ? layout.view : NO_COLUMN_VIEW
+            rows,
+            estimated: same ? growWidths(layout.estimated, estimated) : estimated,
+            ...(same ? { resized: layout.resized, view: layout.view } : restoreLayout(columns, initialLayout))
         };
         setLayout(current);
     }
@@ -198,14 +235,48 @@ export function DataGrid({
     const sortList = sorts ?? NO_SORTS;
     const focusedRowKey = focusCell === null ? null : (rows[focusCell.row]?.key ?? null);
     const focusedColumn = focusCell?.column ?? -1;
+    const rangeKey = rect === null ? '' : `${rect.top}:${rect.bottom}:${order.slice(rect.left, rect.right + 1).join(',')}`;
+    const enumTypes = useMemo(() => columns.map((column) => parseEnumType(column.type)), [columns]);
 
     useEffect(() => {
         reportFocus.current = onFocusedCellChange;
     });
 
     useEffect(() => {
+        reportRange.current = onRangeChange;
+        reportLayout.current = onLayoutChange;
+    });
+
+    useEffect(() => {
+        const captured = captureLayout(columns, current);
+        if (!sameLayout(captured, reportedLayout.current)) {
+            reportedLayout.current = captured;
+            reportLayout.current?.(captured);
+        }
+    }, [columns, current]);
+
+    useEffect(() => {
         reportFocus.current?.(focusedRowKey === null ? null : { rowKey: focusedRowKey, column: focusedColumn });
     }, [focusedRowKey, focusedColumn]);
+
+    useEffect(() => {
+        if (rangeKey === '') {
+            reportRange.current?.(null);
+            return;
+        }
+        const [top, bottom, list] = rangeKey.split(':');
+        reportRange.current?.({ top: Number(top), bottom: Number(bottom), columns: list === '' ? [] : list!.split(',').map(Number) });
+    }, [rangeKey]);
+
+    useEffect(() => {
+        const index = focusRequest === null || focusRequest === undefined ? -1 : rows.findIndex((row) => row.key === focusRequest.rowKey);
+        if (focusRequest !== null && focusRequest !== undefined && index >= 0) {
+            focusAt({ row: index, column: focusRequest.column });
+            scroller.current?.focus();
+        }
+        // Only a new request moves the focus; the rows changing under a request already handled must not.
+        // oxlint-disable-next-line react-hooks/exhaustive-deps
+    }, [focusRequest]);
 
     useEffect(() => {
         const stop = (): void => {
@@ -327,6 +398,22 @@ export function DataGrid({
         }
     };
 
+    const finishPick = (result: { readonly value: string | null } | undefined): void => {
+        if (editing === null || settled.current) {
+            return;
+        }
+        settled.current = true;
+        const row = rows[editing.row];
+        const before = row?.cells[editing.column] ?? null;
+        if (result !== undefined && row !== undefined && result.value !== (typeof before === 'string' ? before : null)) {
+            onCommit?.(row.key, editing.column, result.value);
+        }
+        setEditing(null);
+        scroller.current?.focus();
+    };
+
+    const followCell = (cell: FocusedCell): boolean => onFollow !== undefined && (canFollow?.(cell) ?? true);
+
     const commitValue = (value: EditValue): void => {
         const position = menuTarget === null || menuTarget.column === null ? null : { row: menuTarget.row, column: menuTarget.column };
         const row = position === null ? undefined : rows[position.row];
@@ -437,6 +524,12 @@ export function DataGrid({
         if (event.button !== 0 || isEditing) {
             return;
         }
+        const row = rows[position.row];
+        if (row !== undefined && isModHeld(event, isApplePlatform()) && followCell({ rowKey: row.key, column: position.column })) {
+            focusAt(position);
+            onFollow?.({ rowKey: row.key, column: position.column });
+            return;
+        }
         const extend = event.shiftKey && focusCell !== null;
         dragOrigin.current = extend ? (anchorCell ?? focusCell) : position;
         dragging.current = true;
@@ -534,6 +627,8 @@ export function DataGrid({
                     const edited = row.edited?.has(columnIndex) === true;
                     const isEditing = editing !== null && editing.row === index && editing.column === columnIndex;
                     const pinned = position < pinnedShown;
+                    const enumType = enumTypes[columnIndex] ?? null;
+                    const followable = !isEditing && followCell({ rowKey: row.key, column: columnIndex });
                     return (
                         <div
                             key={columnIndex}
@@ -544,7 +639,7 @@ export function DataGrid({
                             data-focused={isFocused ? '' : undefined}
                             data-ranged={ranged ? '' : undefined}
                             className={clsx(
-                                'flex h-full shrink-0 items-center overflow-hidden px-3 font-mono text-code whitespace-nowrap outline-0 select-none data-[focused]:outline-1 data-[focused]:-outline-offset-1 data-[focused]:outline-border-strong group-focus-within/grid:data-[focused]:outline-accent',
+                                'group/cell flex h-full shrink-0 items-center overflow-hidden px-3 font-mono text-code whitespace-nowrap outline-0 select-none data-[focused]:outline-1 data-[focused]:-outline-offset-1 data-[focused]:outline-border-strong group-focus-within/grid:data-[focused]:outline-accent',
                                 position === order.length - 1 ? 'border-r-0' : 'border-r',
                                 view.align === 'end' ? 'justify-end tabular-nums' : 'justify-start',
                                 pinned
@@ -563,7 +658,17 @@ export function DataGrid({
                         >
                             {pinned && !ranged && <span aria-hidden className={clsx('pointer-events-none absolute inset-0', tint, edited && 'bg-accent/10')} />}
                             {isEditing && editing.loading && <Spinner size={12} label={t('grid.loadingValue')} />}
-                            {isEditing && !editing.loading && (
+                            {isEditing && !editing.loading && enumType !== null && (
+                                <EnumPicker
+                                    autoOpen
+                                    type={enumType}
+                                    value={typeof cell === 'string' ? cell : null}
+                                    nullable={column.nullable !== false}
+                                    label={column.name}
+                                    onDone={finishPick}
+                                />
+                            )}
+                            {isEditing && !editing.loading && enumType === null && (
                                 <CellEditor
                                     value={editing.draft}
                                     label={column.name}
@@ -577,6 +682,17 @@ export function DataGrid({
                                     <span className={clsx('min-w-0 truncate', TONE[view.tone], row.state === 'deleted' && 'line-through')}>{view.text}</span>
                                     {view.suffix !== undefined && <span className="ml-2 shrink-0 text-text-faint">{view.suffix}</span>}
                                 </>
+                            )}
+                            {followable && (
+                                <IconButton
+                                    icon={ArrowUpRight}
+                                    size="2xs"
+                                    label={t('grid.followReference')}
+                                    tabIndex={-1}
+                                    className="absolute top-1/2 right-1 -translate-y-1/2 bg-surface-raised opacity-0 group-hover/cell:opacity-100 group-data-[focused]/cell:opacity-100 focus-visible:opacity-100"
+                                    onPointerDown={(event) => event.stopPropagation()}
+                                    onClick={() => onFollow?.({ rowKey: row.key, column: columnIndex })}
+                                />
                             )}
                         </div>
                     );

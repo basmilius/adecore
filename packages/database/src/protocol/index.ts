@@ -1,6 +1,17 @@
 /* The messages between a page, the host in the app's backend and the helper. Types and pure helpers only, so a page, a preload and a backend can all read it. */
 
-export type { ConnectionConfig, Engine, MysqlConnectionConfig, MysqlTlsMode, ServerInfo, SqliteConnectionConfig } from './connection.ts';
+export type {
+    ConnectionConfig,
+    DockerContainer,
+    DockerTunnel,
+    Engine,
+    MysqlConnectionConfig,
+    MysqlTlsMode,
+    ServerInfo,
+    SqliteConnectionConfig,
+    SshTunnel,
+    Tunnel
+} from './connection.ts';
 export type { DatabaseError, DatabaseErrorCode } from './errors.ts';
 export {
     PROTOCOL_VERSION,
@@ -10,6 +21,8 @@ export {
     type DatabaseRequest,
     type DatabaseResponse,
     type DatabaseResult,
+    type ExportSource,
+    type FileFormat,
     type HelperReady,
     type RowChange,
     type RowKey,

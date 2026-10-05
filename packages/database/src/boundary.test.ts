@@ -71,8 +71,10 @@ describe('the public API', () => {
             'DatabaseExplorer',
             'DatabaseProvider',
             'DatabaseRequestError',
+            'DatabaseWorkbench',
             'QueryConsole',
             'StructureView',
+            'TableDesigner',
             'TableView',
             'addDatabaseResources',
             'createDatabaseClient',
@@ -85,7 +87,7 @@ describe('the public API', () => {
     });
 
     test('the host exports these names', async () => {
-        expect(await names('./host/index.ts')).toEqual(['createDatabaseHost', 'parseRequest', 'spawnHelper']);
+        expect(await names('./host/index.ts')).toEqual(['createDatabaseHost', 'helperPath', 'parseRequest', 'spawnHelper']);
     });
 
     test('the client exports these names', async () => {

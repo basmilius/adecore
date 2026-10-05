@@ -1,3 +1,4 @@
+use std::io::Write;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -8,13 +9,15 @@ use rusqlite::{Connection, InterruptHandle, OpenFlags, OptionalExtension, Row, S
 
 use crate::cells::{binary_cell, cell_to_value, elapsed_ms, float_cell, insert_id, int_cell, text_cell};
 use crate::error::{DatabaseError, ErrorCode, Result};
+use crate::export::{Exporter, PartialFile};
+use crate::import::{ImportPlan, ImportReader, ImportRow, at_line, at_lines, insert_sql};
 use crate::kinds::sqlite_kind;
 use crate::protocol::*;
 use crate::quoting::Dialect;
 use crate::splitter::{first_keyword, split_statements};
 use crate::sql::{
-    DEFAULT_EXECUTE_CELL_LIMIT, DEFAULT_EXECUTE_LIMIT, MAX_LIMIT, Param, cell_sql, conflict, count_sql, fragment, paging, pick_row_key, plan_apply,
-    resolve_cell_limit, rows_sql,
+    DEFAULT_EXECUTE_CELL_LIMIT, DEFAULT_EXECUTE_LIMIT, MAX_LIMIT, Param, cell_sql, conflict, count_sql, export_query, fragment, page_sql, paging, paging_with,
+    pick_row_key, plan_apply, resolve_cell_limit, rows_sql, single_statement,
 };
 
 const DIALECT: Dialect = Dialect::Sqlite;
@@ -149,8 +152,38 @@ impl SqliteEngine {
         self.run(move |connection| execute_script(connection, &params, &cancelled)).await
     }
 
+    pub async fn page(&self, params: PageParams) -> Result<RowsResult> {
+        let paging = paging_with(params.limit, params.offset, params.cell_limit, DEFAULT_EXECUTE_CELL_LIMIT)?;
+        let statement = single_statement(&params.sql, DIALECT, &["SELECT", "WITH"], "A page")?;
+
+        self.run(move |connection| read_page(connection, &statement, &paging)).await
+    }
+
+    pub async fn transaction(&self, action: TransactionAction) -> Result<TransactionResult> {
+        self.run(move |connection| change_transaction(connection, action)).await
+    }
+
+    pub async fn export(&self, params: ExportParams, cancelled: Arc<AtomicBool>) -> Result<ExportResult> {
+        self.run(move |connection| export_file(connection, &params, &cancelled)).await
+    }
+
+    pub async fn import(&self, params: ImportParams, cancelled: Arc<AtomicBool>) -> Result<ImportResult> {
+        let read_only = self.read_only;
+
+        self.run(move |connection| import_file(connection, read_only, &params, &cancelled)).await
+    }
+
+    /// Closing the connection rolls back what a transaction left open; doing it first keeps that visible.
     pub async fn close(self) {
-        drop(self.connection);
+        let connection = self.connection;
+        let _ = tokio::task::spawn_blocking(move || {
+            let connection = lock(&connection);
+
+            if !connection.is_autocommit() {
+                let _ = connection.execute_batch("ROLLBACK");
+            }
+        })
+        .await;
     }
 }
 
@@ -593,7 +626,10 @@ fn execute_script(connection: &Connection, params: &ExecuteParams, cancelled: &A
         }
     }
 
-    Ok(ExecuteResult { results })
+    Ok(ExecuteResult {
+        results,
+        in_transaction: !connection.is_autocommit(),
+    })
 }
 
 fn run_statement(connection: &Connection, sql: &str, limit: usize, cell_limit: usize, started: Instant) -> Result<StatementResult> {
@@ -623,4 +659,158 @@ fn run_statement(connection: &Connection, sql: &str, limit: usize, cell_limit: u
         last_insert_id: inserted.then(|| insert_id(i128::from(connection.last_insert_rowid()))),
         elapsed_ms: elapsed_ms(started.elapsed()),
     })
+}
+
+fn read_page(connection: &Connection, statement: &str, page: &crate::sql::Paging) -> Result<RowsResult> {
+    let started = Instant::now();
+    let mut prepared = connection.prepare(&page_sql(DIALECT, statement))?;
+    let bound = [Param::Int(page.limit as i64 + 1), Param::Int(page.offset as i64)];
+    let (columns, rows, has_more) = read_result_rows(&mut prepared, &bound, page.limit, page.cell_limit)?;
+
+    Ok(RowsResult {
+        columns,
+        rows,
+        has_more,
+        elapsed_ms: elapsed_ms(started.elapsed()),
+    })
+}
+
+fn change_transaction(connection: &Connection, action: TransactionAction) -> Result<TransactionResult> {
+    let active = !connection.is_autocommit();
+
+    match action {
+        TransactionAction::Begin if !active => connection.execute_batch("BEGIN")?,
+        TransactionAction::Commit if active => connection.execute_batch("COMMIT")?,
+        TransactionAction::Rollback if active => connection.execute_batch("ROLLBACK")?,
+        _ => {}
+    }
+
+    Ok(TransactionResult {
+        active: !connection.is_autocommit(),
+    })
+}
+
+fn export_file(connection: &Connection, params: &ExportParams, cancelled: &AtomicBool) -> Result<ExportResult> {
+    let started = Instant::now();
+    let (sql, table_name) = export_query(DIALECT, &params.source, params.table_name.as_deref())?;
+    let (mut partial, mut file) = PartialFile::create(&params.path)?;
+    let mut statement = connection.prepare(&sql)?;
+    let count = statement.column_count();
+
+    if count == 0 {
+        return Err(DatabaseError::unsupported("The statement returns no rows to export."));
+    }
+
+    let mut exporter = Exporter::new(params.format, DIALECT, result_columns(&statement), params.header.unwrap_or(true), &table_name);
+    let mut rows = statement.query([])?;
+
+    while let Some(row) = rows.next()? {
+        if cancelled.load(Ordering::SeqCst) {
+            return Err(DatabaseError::cancelled());
+        }
+
+        exporter.push(&read_row(row, count, usize::MAX)?);
+
+        if exporter.is_full() {
+            file.write_all(&exporter.take())?;
+        }
+    }
+
+    exporter.finish();
+    file.write_all(&exporter.take())?;
+    file.flush()?;
+    drop(file);
+    partial.commit()?;
+
+    Ok(ExportResult {
+        rows: exporter.rows(),
+        bytes: exporter.bytes(),
+        elapsed_ms: elapsed_ms(started.elapsed()),
+    })
+}
+
+fn import_file(connection: &Connection, read_only: bool, params: &ImportParams, cancelled: &AtomicBool) -> Result<ImportResult> {
+    if read_only {
+        return Err(DatabaseError::read_only());
+    }
+
+    let started = Instant::now();
+    let structure = table_structure(connection, &params.schema, &params.table)?;
+    let plan = ImportPlan::new(&params.columns, &structure)?;
+    let names = plan.names();
+    let mut reader = ImportReader::open(params, plan)?;
+
+    connection.execute_batch("SAVEPOINT adecore_import")?;
+
+    let outcome = insert_batches(connection, params, &names, &mut reader, cancelled);
+
+    match outcome {
+        Ok(rows) => {
+            connection.execute_batch("RELEASE adecore_import")?;
+
+            Ok(ImportResult {
+                rows,
+                elapsed_ms: elapsed_ms(started.elapsed()),
+            })
+        }
+        Err(error) => {
+            let _ = connection.execute_batch("ROLLBACK TO adecore_import; RELEASE adecore_import");
+
+            Err(error)
+        }
+    }
+}
+
+fn insert_batches(connection: &Connection, params: &ImportParams, names: &[String], reader: &mut ImportReader, cancelled: &AtomicBool) -> Result<u64> {
+    let mut total = 0;
+
+    loop {
+        let batch = reader.next_batch()?;
+
+        if batch.is_empty() {
+            return Ok(total);
+        }
+
+        if cancelled.load(Ordering::SeqCst) {
+            return Err(DatabaseError::cancelled());
+        }
+
+        if let Err(error) = insert_rows(connection, params, names, &batch) {
+            return Err(locate_failure(connection, params, names, &batch, error));
+        }
+
+        total += batch.len() as u64;
+    }
+}
+
+fn insert_rows(connection: &Connection, params: &ImportParams, names: &[String], rows: &[ImportRow]) -> Result<()> {
+    let sql = insert_sql(DIALECT, &params.schema, &params.table, names, rows.len());
+    let values: Vec<SqlValue> = rows
+        .iter()
+        .flat_map(|row| row.values.iter())
+        .map(|value| value.clone().map_or(SqlValue::Null, SqlValue::Text))
+        .collect();
+
+    connection.prepare_cached(&sql)?.execute(params_from_iter(values))?;
+
+    Ok(())
+}
+
+/// A failed batch inserted nothing, so inserting its rows one at a time shows which line the server turns down.
+fn locate_failure(connection: &Connection, params: &ImportParams, names: &[String], batch: &[ImportRow], error: DatabaseError) -> DatabaseError {
+    if error.code == ErrorCode::Cancelled {
+        return error;
+    }
+
+    if let [row] = batch {
+        return at_line(error, row.line);
+    }
+
+    for row in batch {
+        if let Err(row_error) = insert_rows(connection, params, names, std::slice::from_ref(row)) {
+            return at_line(row_error, row.line);
+        }
+    }
+
+    at_lines(error, batch)
 }

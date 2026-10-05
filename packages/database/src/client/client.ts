@@ -6,7 +6,8 @@ import {
     type DatabaseSession,
     type DatabaseTransport,
     type ExecuteOptions,
-    type RequestOptions
+    type RequestOptions,
+    type SchemaChange
 } from './types.ts';
 
 export interface DatabaseClientOptions {
@@ -22,6 +23,11 @@ interface Opened {
 const cancelledError = (): DatabaseRequestError => new DatabaseRequestError('cancelled', 'The request was cancelled.');
 
 const isUnknownSession = (error: unknown): boolean => error instanceof DatabaseRequestError && error.code === 'unknown-session';
+
+const LEADING_COMMENTS = /^(?:\s+|--[^\n]*(?:\n|$)|#[^\n]*(?:\n|$)|\/\*[\s\S]*?\*\/)+/;
+const CHANGES_SHAPE = /^(?:create|alter|drop|rename|truncate)\b/i;
+
+const changesShape = (sql: string): boolean => CHANGES_SHAPE.test(sql.replace(LEADING_COMMENTS, ''));
 
 /* Structural equality for the JSON a config is made of; a key set to `undefined` counts as absent. */
 const isEqual = (left: unknown, right: unknown): boolean => {
@@ -63,6 +69,18 @@ const raceAbort = <T>(promise: Promise<T>, signal: AbortSignal | undefined): Pro
 export const createDatabaseClient = (transport: DatabaseTransport, options: DatabaseClientOptions = {}): DatabaseClient => {
     const createId = options.createId ?? (() => crypto.randomUUID());
     const live = new Map<string, ReturnType<typeof createSession>>();
+    const schemaListeners = new Set<(change: SchemaChange) => void>();
+
+    const notifySchemaChange = (change: SchemaChange): void => {
+        for (const listener of [...schemaListeners]) {
+            try {
+                listener(change);
+            } catch (error) {
+                // One failing listener must neither hide the result of the statement nor keep the others from hearing it.
+                console.error('A schema change listener failed.', error);
+            }
+        }
+    };
 
     const send = async <M extends DatabaseMethod>(method: M, params: DatabaseParams<M>, signal?: AbortSignal): Promise<DatabaseResult<M>> => {
         if (signal?.aborted) {
@@ -199,7 +217,25 @@ export const createDatabaseClient = (transport: DatabaseTransport, options: Data
             },
             async execute(sql, executeOptions?: ExecuteOptions) {
                 const { signal: _signal, ...rest } = executeOptions ?? {};
-                return (await request('execute', (id) => ({ session: id, sql, ...rest }), executeOptions, false)).results;
+                const result = await request('execute', (id) => ({ session: id, sql, ...rest }), executeOptions, false);
+
+                if (result.results.some((item) => item.kind !== 'error' && changesShape(item.sql))) {
+                    notifySchemaChange({ connectionId: connection.id, ...(rest.schema === undefined ? {} : { schema: rest.schema }) });
+                }
+
+                return result;
+            },
+            page(sql, query, requestOptions) {
+                return request('page', (id) => ({ session: id, sql, ...query }), requestOptions, true);
+            },
+            async transaction(action, requestOptions) {
+                return (await request('transaction', (id) => ({ session: id, action }), requestOptions, false)).active;
+            },
+            export(exportRequest, requestOptions) {
+                return request('export', (id) => ({ session: id, ...exportRequest }), requestOptions, false);
+            },
+            async import(schema, table, importRequest, requestOptions) {
+                return (await request('import', (id) => ({ session: id, schema, table, ...importRequest }), requestOptions, false)).rows;
             },
             close
         };
@@ -217,6 +253,20 @@ export const createDatabaseClient = (transport: DatabaseTransport, options: Data
     return {
         test(config: ConnectionConfig, requestOptions?: RequestOptions) {
             return send('test', { connection: config }, requestOptions?.signal).then((result) => result.server);
+        },
+        async discover(kind, discoverOptions) {
+            const params = discoverOptions?.context === undefined ? { kind } : { kind, context: discoverOptions.context };
+            return (await send('discover', params, discoverOptions?.signal)).containers;
+        },
+        sample(path, format, header, requestOptions) {
+            return send('sample', { path, format, header }, requestOptions?.signal);
+        },
+        notifySchemaChange,
+        onSchemaChange(listener) {
+            schemaListeners.add(listener);
+            return () => {
+                schemaListeners.delete(listener);
+            };
         },
         session(connection) {
             const existing = live.get(connection.id);
