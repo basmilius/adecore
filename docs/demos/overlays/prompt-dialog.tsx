@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { GitBranch } from 'lucide-react';
-import { Button, PromptDialog } from '@basmilius/desktop-ui';
+import { Button, PromptDialog } from '@adecore/ui';
 
 const wait = (ms: number): Promise<void> => new Promise((resolve) => window.setTimeout(resolve, ms));
 

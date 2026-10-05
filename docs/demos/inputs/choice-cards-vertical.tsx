@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChoiceCards, Field, Input } from '@basmilius/desktop-ui';
+import { ChoiceCards, Field, Input } from '@adecore/ui';
 
 type Source = 'empty' | 'clone';
 

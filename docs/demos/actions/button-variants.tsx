@@ -1,4 +1,4 @@
-import { Button } from '@basmilius/desktop-ui';
+import { Button } from '@adecore/ui';
 
 export default function ButtonVariants() {
     return (

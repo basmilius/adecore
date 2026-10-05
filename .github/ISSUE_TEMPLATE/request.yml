@@ -13,6 +13,7 @@ body:
       options:
         - Ruimte
         - AfterMotion
+        - Command Center
         - Other
     validations:
       required: true
@@ -21,8 +22,8 @@ body:
     attributes:
       label: Which package?
       options:
-        - desktop-ui
-        - desktop-shell
+        - ui
+        - shell
     validations:
       required: true
   - type: textarea
@@ -42,8 +43,8 @@ body:
   - type: textarea
     id: impact
     attributes:
-      label: Impact on the other app
-      description: The other app's call sites of the same component, shell part or pattern that a change would touch, and whether it would change what they draw or break them. Say so when there are none.
+      label: Impact on the other apps
+      description: The other apps' call sites of the same component, shell part or pattern that a change would touch, and whether it would change what they draw or break them. Say so when there are none.
     validations:
       required: true
   - type: checkboxes

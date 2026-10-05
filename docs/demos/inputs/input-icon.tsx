@@ -1,5 +1,5 @@
 import { Folder, Search } from 'lucide-react';
-import { Button, Field, Input } from '@basmilius/desktop-ui';
+import { Button, Field, Input } from '@adecore/ui';
 
 export default function InputIconDemo() {
     return (

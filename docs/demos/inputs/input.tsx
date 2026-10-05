@@ -1,4 +1,4 @@
-import { Field, Input, TextArea } from '@basmilius/desktop-ui';
+import { Field, Input, TextArea } from '@adecore/ui';
 
 export default function InputDemo() {
     return (

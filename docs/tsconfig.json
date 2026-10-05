@@ -3,8 +3,8 @@
   "compilerOptions": {
     "types": ["vitepress/client", "bun"],
     "paths": {
-      "@basmilius/desktop-ui": ["../packages/desktop-ui/src/index.ts"],
-      "@basmilius/desktop-ui/*": ["../packages/desktop-ui/src/*/index.ts"]
+      "@adecore/ui": ["../packages/ui/src/index.ts"],
+      "@adecore/ui/*": ["../packages/ui/src/*/index.ts"]
     }
   },
   "include": ["demos", "*.ts", "*.tsx", ".vitepress/**/*.ts", ".vitepress/**/*.tsx"],

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Field, FieldHint, FormError, Input, Segmented } from '@basmilius/desktop-ui';
+import { Field, FieldHint, FormError, Input, Segmented } from '@adecore/ui';
 
 export default function FieldDemo() {
     const [name, setName] = useState('feature/export');

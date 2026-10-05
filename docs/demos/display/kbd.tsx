@@ -1,4 +1,4 @@
-import { Kbd, KeyCap, Keys, shortcut } from '@basmilius/desktop-ui';
+import { Kbd, KeyCap, Keys, shortcut } from '@adecore/ui';
 
 const PALETTE = shortcut('Mod+Shift+P');
 const PAN = shortcut('Mod');

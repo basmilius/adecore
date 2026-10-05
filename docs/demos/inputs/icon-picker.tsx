@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Bookmark, Bug, Flag, Heart, Rocket, Star, Tag, Zap } from 'lucide-react';
-import { IconPicker } from '@basmilius/desktop-ui';
+import { IconPicker } from '@adecore/ui';
 
 const ICONS = { Bookmark, Bug, Flag, Heart, Rocket, Star, Tag, Zap };
 

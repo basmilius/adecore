@@ -1,5 +1,5 @@
 import { History, Info, Search } from 'lucide-react';
-import { Button, Icon, Tooltip, shortcut } from '@basmilius/desktop-ui';
+import { Button, Icon, Tooltip, shortcut } from '@adecore/ui';
 
 const SEARCH = shortcut('Mod+K');
 

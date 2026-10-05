@@ -1,5 +1,5 @@
 import { GitCommitHorizontal } from 'lucide-react';
-import { Icon, ListRow } from '@basmilius/desktop-ui';
+import { Icon, ListRow } from '@adecore/ui';
 
 const COMMITS = [
     { hash: 'a1c9e2f', message: 'Keep a nested dialog above its parent' },

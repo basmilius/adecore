@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
-import { Select } from '@basmilius/desktop-ui';
-import { FORMAT_LANGUAGE, FORMAT_REGION_CHOICES, FORMAT_SYSTEM, regionName } from '@basmilius/desktop-ui/format';
+import { Select } from '@adecore/ui';
+import { FORMAT_LANGUAGE, FORMAT_REGION_CHOICES, FORMAT_SYSTEM, regionName } from '@adecore/ui/format';
 import { preferences } from './preferences.ts';
 
 const LANGUAGES = [

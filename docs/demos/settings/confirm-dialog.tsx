@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Button } from '@basmilius/desktop-ui';
-import { ConfirmDialog } from '@basmilius/desktop-ui/settings';
+import { Button } from '@adecore/ui';
+import { ConfirmDialog } from '@adecore/ui/settings';
 
 const wait = (ms: number): Promise<void> => new Promise((resolve) => window.setTimeout(resolve, ms));
 

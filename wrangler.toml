@@ -1,6 +1,6 @@
-name = "desktop-docs"
+name = "adecore-docs"
 compatibility_date = "2026-09-01"
-routes = [{ pattern = "desktop.bas.dev", custom_domain = true }]
+routes = [{ pattern = "adecore.dev", custom_domain = true }]
 
 [assets]
 directory = "./docs/.vitepress/dist"

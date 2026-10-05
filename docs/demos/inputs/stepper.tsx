@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Stepper } from '@basmilius/desktop-ui';
+import { Stepper } from '@adecore/ui';
 
 export default function StepperDemo() {
     const [size, setSize] = useState(14);

@@ -1,5 +1,5 @@
 import { Plus } from 'lucide-react';
-import { IconButton } from '@basmilius/desktop-ui';
+import { IconButton } from '@adecore/ui';
 
 export default function IconButtonSizes() {
     return (

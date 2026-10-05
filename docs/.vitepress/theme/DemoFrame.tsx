@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ErrorBoundary, UIProvider } from '@basmilius/desktop-ui';
+import { ErrorBoundary, UIProvider } from '@adecore/ui';
 import { i18n } from '../../demos/shared/i18n.ts';
 import { formatSource } from '../../demos/shared/preferences.ts';
 

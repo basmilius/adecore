@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Bold, ChevronRight, Italic, RefreshCw, Settings, Trash } from 'lucide-react';
-import { ButtonGroup, IconButton, Separator, shortcut } from '@basmilius/desktop-ui';
+import { ButtonGroup, IconButton, Separator, shortcut } from '@adecore/ui';
 
 const REFRESH = shortcut('Mod+R');
 

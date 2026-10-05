@@ -4,34 +4,36 @@
 
 ---
 
-# Desktop
+# adecore
 
-[![CI](https://github.com/basmilius/desktop/actions/workflows/ci.yml/badge.svg)](https://github.com/basmilius/desktop/actions/workflows/ci.yml)
-[![desktop-ui on npm](https://img.shields.io/npm/v/@basmilius/desktop-ui?label=desktop-ui)](https://www.npmjs.com/package/@basmilius/desktop-ui)
-[![desktop-shell on npm](https://img.shields.io/npm/v/@basmilius/desktop-shell?label=desktop-shell)](https://www.npmjs.com/package/@basmilius/desktop-shell)
-[![Docs](https://img.shields.io/badge/docs-desktop.bas.dev-blue)](https://desktop.bas.dev)
+[![CI](https://github.com/basmilius/adecore/actions/workflows/ci.yml/badge.svg)](https://github.com/basmilius/adecore/actions/workflows/ci.yml)
+[![ui on npm](https://img.shields.io/npm/v/@adecore/ui?label=ui)](https://www.npmjs.com/package/@adecore/ui)
+[![shell on npm](https://img.shields.io/npm/v/@adecore/shell?label=shell)](https://www.npmjs.com/package/@adecore/shell)
+[![Docs](https://img.shields.io/badge/docs-adecore.dev-blue)](https://adecore.dev)
 
 Packages for desktop apps on Electron, React 19 and Tailwind 4. One package draws the page, the other runs the main process. Both are released together, under one version.
 
-The documentation is at **[desktop.bas.dev](https://desktop.bas.dev)**, with a live demo of every component. The [introduction](https://desktop.bas.dev/guide/) is the place to start.
+The documentation is at **[adecore.dev](https://adecore.dev)**, with a live demo of every component. The [introduction](https://adecore.dev/guide/) is the place to start.
 
 ## Packages
 
 | Package | What it holds | Docs |
 |---|---|---|
-| [`@basmilius/desktop-ui`](packages/desktop-ui) | For the page. React components, a theme of tokens, keyboard shortcuts, a settings dialog and formatters for numbers and dates, on Base UI and Lucide. | [desktop-ui](https://desktop.bas.dev/desktop-ui/) |
-| [`@basmilius/desktop-shell`](packages/desktop-shell) | For the main process. The application menu the page builds, an updater the page watches, windows that open where they were left, the page's theme on its window and the guards around the page. | [desktop-shell](https://desktop.bas.dev/desktop-shell/) |
+| [`@adecore/ui`](packages/ui) | For the page. React components, a theme of tokens, keyboard shortcuts, a settings dialog and formatters for numbers and dates, on Base UI and Lucide. | [ui](https://adecore.dev/ui/) |
+| [`@adecore/shell`](packages/shell) | For the main process. The application menu the page builds, an updater the page watches, windows that open where they were left, the page's theme on its window and the guards around the page. | [shell](https://adecore.dev/shell/) |
 
 ```sh
-bun add @basmilius/desktop-ui
-bun add @basmilius/desktop-shell
+bun add @adecore/ui
+bun add @adecore/shell
 ```
 
-Take both at the same version, since each version is tested against the same version of the other. While the version is `0.x`, a breaking change bumps the minor and anything else the patch. The [release notes](https://github.com/basmilius/desktop/releases) name every breaking change with what to do about it.
+Take both at the same version, since each version is tested against the same version of the other. While the version is `0.x`, a breaking change bumps the minor and anything else the patch. The [release notes](https://github.com/basmilius/adecore/releases) name every breaking change with what to do about it.
+
+Up to `0.13.x` the packages were `@basmilius/desktop-ui` and `@basmilius/desktop-shell`. From `0.14.0` they are `@adecore/ui` and `@adecore/shell`, with the same API; replacing the names in imports and in `package.json` is the whole migration.
 
 ## For coding agents
 
-The docs site serves [`llms.txt`](https://desktop.bas.dev/llms.txt) as an index of every page and [`llms-full.txt`](https://desktop.bas.dev/llms-full.txt) with every page in one file. Each page is also plain Markdown at its own URL plus `.md`, such as [`/desktop-ui/actions/button.md`](https://desktop.bas.dev/desktop-ui/actions/button.md).
+The docs site serves [`llms.txt`](https://adecore.dev/llms.txt) as an index of every page and [`llms-full.txt`](https://adecore.dev/llms-full.txt) with every page in one file. Each page is also plain Markdown at its own URL plus `.md`, such as [`/ui/actions/button.md`](https://adecore.dev/ui/actions/button.md).
 
 ## Development
 
@@ -46,9 +48,9 @@ bun run format            # oxfmt
 bun run --cwd docs build  # the docs site
 ```
 
-Tests sit next to the code. `packages/desktop-ui/src/__snapshots__/exports.test.ts.snap` lists every exported name, so a diff there is an API change; accept it with `bun test --update-snapshots` when you meant it. `docs/docs.test.ts` fails when an export appears on no page of the docs, so a new export comes with its docs.
+Tests sit next to the code. `packages/ui/src/__snapshots__/exports.test.ts.snap` lists every exported name, so a diff there is an API change; accept it with `bun test --update-snapshots` when you meant it. `docs/docs.test.ts` fails when an export appears on no page of the docs, so a new export comes with its docs.
 
-An app can use a checkout of this repository without a build per change. Every package has a `source` export condition that points into its `src`; [Working on a local checkout](https://desktop.bas.dev/guide/#working-on-a-local-checkout) shows how to link it.
+An app can use a checkout of this repository without a build per change. Every package has a `source` export condition that points into its `src`; [Working on a local checkout](https://adecore.dev/guide/#working-on-a-local-checkout) shows how to link it.
 
 ## Releases
 
@@ -56,7 +58,7 @@ A published GitHub release runs [`release.yml`](.github/workflows/release.yml). 
 
 ## Issues
 
-Use a template: a [bug](https://github.com/basmilius/desktop/issues/new?template=bug.yml) for a component or shell API that does not do what its docs or its types say, a [request](https://github.com/basmilius/desktop/issues/new?template=request.yml) for something an app needs. A request describes the need. The answer may be a different API than the one proposed, or a no when the need belongs in the app.
+Use a template: a [bug](https://github.com/basmilius/adecore/issues/new?template=bug.yml) for a component or shell API that does not do what its docs or its types say, a [request](https://github.com/basmilius/adecore/issues/new?template=request.yml) for something an app needs. A request describes the need. The answer may be a different API than the one proposed, or a no when the need belongs in the app.
 
 ## License
 

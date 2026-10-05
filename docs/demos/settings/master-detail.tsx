@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Laptop, Smartphone, Trash } from 'lucide-react';
-import { Button, Icon } from '@basmilius/desktop-ui';
-import { DetailHeader, MasterDetail, MasterItem, SettingsRow, SettingsSection } from '@basmilius/desktop-ui/settings';
+import { Button, Icon } from '@adecore/ui';
+import { DetailHeader, MasterDetail, MasterItem, SettingsRow, SettingsSection } from '@adecore/ui/settings';
 
 const DEVICES = [
     { id: 'laptop', name: 'Work laptop', kind: 'macOS', icon: Laptop },

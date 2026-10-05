@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Columns2, LayoutGrid, List } from 'lucide-react';
-import { Segmented } from '@basmilius/desktop-ui';
+import { Segmented } from '@adecore/ui';
 
 type View = 'list' | 'grid' | 'split';
 

@@ -36,8 +36,8 @@
         "typescript": "^7.0.2",
       },
     },
-    "packages/desktop-shell": {
-      "name": "@basmilius/desktop-shell",
+    "packages/shell": {
+      "name": "@adecore/shell",
       "version": "0.0.0",
       "devDependencies": {
         "@types/bun": "^1.4.2",
@@ -55,8 +55,8 @@
         "electron-updater",
       ],
     },
-    "packages/desktop-ui": {
-      "name": "@basmilius/desktop-ui",
+    "packages/ui": {
+      "name": "@adecore/ui",
       "version": "0.0.0",
       "dependencies": {
         "@base-ui-components/react": "^1.0.0-rc.0",
@@ -103,6 +103,10 @@
   "packages": {
     "@11ty/gray-matter": ["@11ty/gray-matter@2.1.0", "", { "dependencies": { "js-yaml": "^4.2.0", "section-matter": "^1.0.0" } }, "sha512-fNdBOb3MgDz/1UCIoeY4wDuGbp+/3s5y6UrsyfMabECbh/CVycj7Er33JXqSxRwxrRKXcGE1Jipuq/1mODInsQ=="],
 
+    "@adecore/shell": ["@adecore/shell@workspace:packages/shell"],
+
+    "@adecore/ui": ["@adecore/ui@workspace:packages/ui"],
+
     "@babel/helper-string-parser": ["@babel/helper-string-parser@7.29.7", "", {}, "sha512-Pb5ijPrZ89GDH8223L4UP8i6QApWxs04RbPQJTeWDV0/keR2E36MeKnyr6LYmUUvqRRI+Iv87SuF1W6ErINzYw=="],
 
     "@babel/helper-validator-identifier": ["@babel/helper-validator-identifier@7.29.7", "", {}, "sha512-qehxGkRj55h/ff8EMaJ+cYhyaKlHIxqYDn682wQD7RNp9UujOQsHog2uS0r2vzr4pW+sXf90NeeayjcNaX3fFg=="],
@@ -116,10 +120,6 @@
     "@base-ui-components/react": ["@base-ui-components/react@1.0.0-rc.0", "", { "dependencies": { "@babel/runtime": "^7.28.4", "@base-ui-components/utils": "0.2.2", "@floating-ui/react-dom": "^2.1.6", "@floating-ui/utils": "^0.2.10", "reselect": "^5.1.1", "tabbable": "^6.3.0", "use-sync-external-store": "^1.6.0" }, "peerDependencies": { "@types/react": "^17 || ^18 || ^19", "react": "^17 || ^18 || ^19", "react-dom": "^17 || ^18 || ^19" }, "optionalPeers": ["@types/react"] }, "sha512-9lhUFbJcbXvc9KulLev1WTFxS/alJRBWDH/ibKSQaNvmDwMFS2gKp1sTeeldYSfKuS/KC1w2MZutc0wHu2hRHQ=="],
 
     "@base-ui-components/utils": ["@base-ui-components/utils@0.2.2", "", { "dependencies": { "@babel/runtime": "^7.28.4", "@floating-ui/utils": "^0.2.10", "reselect": "^5.1.1", "use-sync-external-store": "^1.6.0" }, "peerDependencies": { "@types/react": "^17 || ^18 || ^19", "react": "^17 || ^18 || ^19", "react-dom": "^17 || ^18 || ^19" }, "optionalPeers": ["@types/react"] }, "sha512-rNJCD6TFy3OSRDKVHJDzLpxO3esTV1/drRtWNUpe7rCpPN9HZVHUCuP+6rdDYDGWfXnQHbqi05xOyRP2iZAlkw=="],
-
-    "@basmilius/desktop-shell": ["@basmilius/desktop-shell@workspace:packages/desktop-shell"],
-
-    "@basmilius/desktop-ui": ["@basmilius/desktop-ui@workspace:packages/desktop-ui"],
 
     "@docsearch/css": ["@docsearch/css@4.7.0", "", {}, "sha512-Sk5xkdRFeE7PeWjG9l4AfTwdvMfr9wHiwNNCpHXT4v4SNyNMKdHGvEILc31BgaVFGDDNbv5u/a73tofRiwbEZw=="],
 

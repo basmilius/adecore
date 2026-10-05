@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Cloud, HardDrive } from 'lucide-react';
-import { ChoiceCards } from '@basmilius/desktop-ui';
+import { ChoiceCards } from '@adecore/ui';
 
 type Storage = 'local' | 'cloud';
 

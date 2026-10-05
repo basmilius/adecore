@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Checkbox } from '@basmilius/desktop-ui';
+import { Checkbox } from '@adecore/ui';
 
 const SCRIPTS = ['dev', 'build', 'check', 'preview'];
 

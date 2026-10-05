@@ -1,4 +1,4 @@
-import { formatDayClock, formatLocale, formatNumber, formatPercent, useFormatLocale } from '@basmilius/desktop-ui/format';
+import { formatDayClock, formatLocale, formatNumber, formatPercent, useFormatLocale } from '@adecore/ui/format';
 import { PreferencesBar } from '../shared/preferences-bar.tsx';
 import { Values } from '../shared/values.tsx';
 

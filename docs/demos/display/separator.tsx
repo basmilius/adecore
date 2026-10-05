@@ -1,5 +1,5 @@
 import { Bold, Italic, Link, List, ListOrdered } from 'lucide-react';
-import { ButtonGroup, IconButton, Separator } from '@basmilius/desktop-ui';
+import { ButtonGroup, IconButton, Separator } from '@adecore/ui';
 
 export default function SeparatorDemo() {
     return (

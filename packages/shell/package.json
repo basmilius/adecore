@@ -1,0 +1,60 @@
+{
+  "name": "@adecore/shell",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The main process of an Electron app: its menu, its updater and the guards around its page.",
+  "license": "MIT",
+  "author": "Bas Milius",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/basmilius/adecore.git",
+    "directory": "packages/shell"
+  },
+  "bugs": {
+    "url": "https://github.com/basmilius/adecore/issues"
+  },
+  "homepage": "https://adecore.dev/shell/",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "src",
+    "!src/**/*.test.ts"
+  ],
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./bridge": {
+      "source": "./src/bridge/index.ts",
+      "types": "./dist/bridge/index.d.ts",
+      "default": "./dist/bridge/index.js"
+    }
+  },
+  "scripts": {
+    "build": "bun scripts/build.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "peerDependencies": {
+    "electron": ">=44",
+    "electron-updater": "^6.8.9"
+  },
+  "peerDependenciesMeta": {
+    "electron": {
+      "optional": true
+    },
+    "electron-updater": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.2",
+    "@types/node": "^24.13.6",
+    "electron": "^44.4.4",
+    "electron-updater": "^6.8.9",
+    "typescript": "^7.0.2"
+  }
+}

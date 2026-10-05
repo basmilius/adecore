@@ -20,13 +20,13 @@ const followAppearance = `(() => {
 const isolateDemos = postcssIsolateStyles({ includeFiles: [/vp-doc\.css/] });
 
 export default defineConfig({
-    title: 'Desktop',
-    titleTemplate: ':title | Desktop',
+    title: 'adecore',
+    titleTemplate: ':title | adecore',
     description:
         'Packages for desktop apps on Electron, React 19 and Tailwind 4: components and a theme for the page, and the menu, updater and guards of the main process.',
     cleanUrls: true,
     sitemap: {
-        hostname: 'https://desktop.bas.dev'
+        hostname: 'https://adecore.dev'
     },
     head: [['script', {}, followAppearance]],
     markdown: {
@@ -47,7 +47,7 @@ export default defineConfig({
             react({ include: /\.tsx$/ }),
             tailwindcss(),
             llmstxt({
-                domain: 'https://desktop.bas.dev',
+                domain: 'https://adecore.dev',
                 generateLLMsTxt: true,
                 generateLLMsFullTxt: true,
                 generateLLMFriendlyDocsForEachPage: true,
@@ -68,30 +68,30 @@ export default defineConfig({
             { text: 'Guide', link: '/guide/', activeMatch: '^/guide/' },
             {
                 text: 'Packages',
-                activeMatch: '^/desktop-(ui|shell)/',
+                activeMatch: '^/(ui|shell)/',
                 items: [
-                    { text: 'Desktop UI', link: '/desktop-ui/' },
-                    { text: 'Desktop Shell', link: '/desktop-shell/' }
+                    { text: 'UI', link: '/ui/' },
+                    { text: 'Shell', link: '/shell/' }
                 ]
             },
             {
                 text: 'Links',
                 items: [
-                    { text: 'GitHub', link: 'https://github.com/basmilius/desktop' },
+                    { text: 'GitHub', link: 'https://github.com/basmilius/adecore' },
                     { text: 'npm', link: 'https://www.npmjs.com/org/basmilius' }
                 ]
             }
         ],
         sidebar,
-        socialLinks: [{ icon: 'github', link: 'https://github.com/basmilius/desktop' }],
+        socialLinks: [{ icon: 'github', link: 'https://github.com/basmilius/adecore' }],
         editLink: {
-            pattern: 'https://github.com/basmilius/desktop/edit/main/docs/:path'
+            pattern: 'https://github.com/basmilius/adecore/edit/main/docs/:path'
         },
         outline: {
             level: [2, 3]
         },
         footer: {
-            message: 'Released under the <a href="https://github.com/basmilius/desktop/blob/main/LICENSE">MIT License</a>.',
+            message: 'Released under the <a href="https://github.com/basmilius/adecore/blob/main/LICENSE">MIT License</a>.',
             copyright: 'Copyright 2026 <a href="https://github.com/basmilius">Bas Milius</a>'
         }
     }

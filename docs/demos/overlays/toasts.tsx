@@ -1,4 +1,4 @@
-import { Button, Toasts, createToastStore } from '@basmilius/desktop-ui';
+import { Button, Toasts, createToastStore } from '@adecore/ui';
 
 const toasts = createToastStore();
 

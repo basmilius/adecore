@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Folder, FolderOpen, NotebookPen, Settings2, X } from 'lucide-react';
-import { Icon, Menu, ProjectSwitcher, type ProjectSwitcherItem } from '@basmilius/desktop-ui';
+import { Icon, Menu, ProjectSwitcher, type ProjectSwitcherItem } from '@adecore/ui';
 
 const PROJECTS: ProjectSwitcherItem[] = [
     { id: 'studio', name: 'Studio', icon: <Icon icon={Folder} size={16} />, description: '~/Projects/studio', hint: 'This Mac' },

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { TerminalView, type TerminalViewHandle } from '@basmilius/desktop-ui/terminal';
+import { TerminalView, type TerminalViewHandle } from '@adecore/ui/terminal';
 
 const PROMPT = '\x1b[32m~\x1b[0m $ ';
 
@@ -9,7 +9,7 @@ export default function TerminalViewDemo() {
     const line = useRef('');
 
     useEffect(() => {
-        view.current?.write(`\x1b[1mbun test\x1b[0m\r\n\x1b[32m 236 pass\x1b[0m\r\n\x1b[2m 0 fail\x1b[0m\r\nDocs: https://desktop.bas.dev\r\n\r\n${PROMPT}`);
+        view.current?.write(`\x1b[1mbun test\x1b[0m\r\n\x1b[32m 236 pass\x1b[0m\r\n\x1b[2m 0 fail\x1b[0m\r\nDocs: https://adecore.dev\r\n\r\n${PROMPT}`);
     }, []);
 
     const type = (data: string): void => {

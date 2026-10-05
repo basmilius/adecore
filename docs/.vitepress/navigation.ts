@@ -9,119 +9,119 @@ const group = (text: string, items: [string, string][]): DefaultTheme.SidebarIte
 const guide: DefaultTheme.SidebarItem[] = [group('Guide', [['Introduction', '/guide/']])];
 
 const desktopUi: DefaultTheme.SidebarItem[] = [
-    group('Desktop UI', [
-        ['Overview', '/desktop-ui/'],
-        ['Getting started', '/desktop-ui/guide/getting-started'],
-        ['Principles', '/desktop-ui/guide/principles'],
-        ['Theme', '/desktop-ui/guide/theme']
+    group('UI', [
+        ['Overview', '/ui/'],
+        ['Getting started', '/ui/guide/getting-started'],
+        ['Principles', '/ui/guide/principles'],
+        ['Theme', '/ui/guide/theme']
     ]),
     group('Actions', [
-        ['Button', '/desktop-ui/actions/button'],
-        ['IconButton', '/desktop-ui/actions/icon-button'],
-        ['ButtonGroup', '/desktop-ui/actions/button-group'],
-        ['CloseButton', '/desktop-ui/actions/close-button'],
-        ['Pill', '/desktop-ui/actions/pill'],
-        ['Tile', '/desktop-ui/actions/tile']
+        ['Button', '/ui/actions/button'],
+        ['IconButton', '/ui/actions/icon-button'],
+        ['ButtonGroup', '/ui/actions/button-group'],
+        ['CloseButton', '/ui/actions/close-button'],
+        ['Pill', '/ui/actions/pill'],
+        ['Tile', '/ui/actions/tile']
     ]),
     group('Inputs', [
-        ['Field', '/desktop-ui/inputs/field'],
-        ['Input and TextArea', '/desktop-ui/inputs/input'],
-        ['Select', '/desktop-ui/inputs/select'],
-        ['Switch', '/desktop-ui/inputs/switch'],
-        ['Checkbox', '/desktop-ui/inputs/checkbox'],
-        ['Segmented', '/desktop-ui/inputs/segmented'],
-        ['Stepper', '/desktop-ui/inputs/stepper'],
-        ['ChoiceCards', '/desktop-ui/inputs/choice-cards'],
-        ['IconPicker', '/desktop-ui/inputs/icon-picker'],
-        ['ColorSwatch', '/desktop-ui/inputs/color-swatch'],
-        ['AccentSwatches', '/desktop-ui/inputs/accent-swatches']
+        ['Field', '/ui/inputs/field'],
+        ['Input and TextArea', '/ui/inputs/input'],
+        ['Select', '/ui/inputs/select'],
+        ['Switch', '/ui/inputs/switch'],
+        ['Checkbox', '/ui/inputs/checkbox'],
+        ['Segmented', '/ui/inputs/segmented'],
+        ['Stepper', '/ui/inputs/stepper'],
+        ['ChoiceCards', '/ui/inputs/choice-cards'],
+        ['IconPicker', '/ui/inputs/icon-picker'],
+        ['ColorSwatch', '/ui/inputs/color-swatch'],
+        ['AccentSwatches', '/ui/inputs/accent-swatches']
     ]),
     group('Overlays', [
-        ['Menu', '/desktop-ui/overlays/menu'],
-        ['ProjectSwitcher', '/desktop-ui/overlays/project-switcher'],
-        ['ContextMenu', '/desktop-ui/overlays/context-menu'],
-        ['Dialog', '/desktop-ui/overlays/dialog'],
-        ['PromptDialog', '/desktop-ui/overlays/prompt-dialog'],
-        ['Popover', '/desktop-ui/overlays/popover'],
-        ['PreviewCard', '/desktop-ui/overlays/preview-card'],
-        ['Tooltip', '/desktop-ui/overlays/tooltip'],
-        ['DisabledReason', '/desktop-ui/overlays/disabled-reason'],
-        ['TextMenu', '/desktop-ui/overlays/text-menu'],
-        ['Toasts', '/desktop-ui/overlays/toasts']
+        ['Menu', '/ui/overlays/menu'],
+        ['ProjectSwitcher', '/ui/overlays/project-switcher'],
+        ['ContextMenu', '/ui/overlays/context-menu'],
+        ['Dialog', '/ui/overlays/dialog'],
+        ['PromptDialog', '/ui/overlays/prompt-dialog'],
+        ['Popover', '/ui/overlays/popover'],
+        ['PreviewCard', '/ui/overlays/preview-card'],
+        ['Tooltip', '/ui/overlays/tooltip'],
+        ['DisabledReason', '/ui/overlays/disabled-reason'],
+        ['TextMenu', '/ui/overlays/text-menu'],
+        ['Toasts', '/ui/overlays/toasts']
     ]),
     group('Display', [
-        ['Kbd, KeyCap and Keys', '/desktop-ui/display/kbd'],
-        ['ShortcutHints', '/desktop-ui/display/shortcut-hints'],
-        ['Icon', '/desktop-ui/display/icon'],
-        ['FileIcon', '/desktop-ui/display/file-icon'],
-        ['SectionLabel', '/desktop-ui/display/section-label'],
-        ['Surface', '/desktop-ui/display/surface'],
-        ['ListRow', '/desktop-ui/display/list-row'],
-        ['PanelHeader', '/desktop-ui/display/panel-header'],
-        ['Separator', '/desktop-ui/display/separator'],
-        ['Skeleton', '/desktop-ui/display/skeleton'],
-        ['Spinner', '/desktop-ui/display/spinner'],
-        ['SegmentBar', '/desktop-ui/display/segment-bar'],
-        ['Meter', '/desktop-ui/display/meter'],
-        ['Waveform', '/desktop-ui/display/waveform'],
-        ['TerminalView', '/desktop-ui/display/terminal-view'],
-        ['EmptyState', '/desktop-ui/display/empty-state'],
-        ['PanelEmpty', '/desktop-ui/display/panel-empty'],
-        ['Banner', '/desktop-ui/display/banner'],
-        ['ErrorBoundary', '/desktop-ui/display/error-boundary']
+        ['Kbd, KeyCap and Keys', '/ui/display/kbd'],
+        ['ShortcutHints', '/ui/display/shortcut-hints'],
+        ['Icon', '/ui/display/icon'],
+        ['FileIcon', '/ui/display/file-icon'],
+        ['SectionLabel', '/ui/display/section-label'],
+        ['Surface', '/ui/display/surface'],
+        ['ListRow', '/ui/display/list-row'],
+        ['PanelHeader', '/ui/display/panel-header'],
+        ['Separator', '/ui/display/separator'],
+        ['Skeleton', '/ui/display/skeleton'],
+        ['Spinner', '/ui/display/spinner'],
+        ['SegmentBar', '/ui/display/segment-bar'],
+        ['Meter', '/ui/display/meter'],
+        ['Waveform', '/ui/display/waveform'],
+        ['TerminalView', '/ui/display/terminal-view'],
+        ['EmptyState', '/ui/display/empty-state'],
+        ['PanelEmpty', '/ui/display/panel-empty'],
+        ['Banner', '/ui/display/banner'],
+        ['ErrorBoundary', '/ui/display/error-boundary']
     ]),
     group('Layout', [
-        ['SlidingColumn', '/desktop-ui/layout/sliding-column'],
-        ['ColumnResizeHandle', '/desktop-ui/layout/column-resize-handle'],
-        ['DockShell', '/desktop-ui/layout/dock-shell'],
-        ['ZoomControls', '/desktop-ui/layout/zoom-controls'],
-        ['Wipe', '/desktop-ui/layout/wipe']
+        ['SlidingColumn', '/ui/layout/sliding-column'],
+        ['ColumnResizeHandle', '/ui/layout/column-resize-handle'],
+        ['DockShell', '/ui/layout/dock-shell'],
+        ['ZoomControls', '/ui/layout/zoom-controls'],
+        ['Wipe', '/ui/layout/wipe']
     ]),
     group('Settings', [
-        ['SettingsDialog', '/desktop-ui/settings/settings-dialog'],
-        ['SettingsSection and SettingsRow', '/desktop-ui/settings/settings-section'],
-        ['MasterDetail', '/desktop-ui/settings/master-detail'],
-        ['ConfirmDialog', '/desktop-ui/settings/confirm-dialog']
+        ['SettingsDialog', '/ui/settings/settings-dialog'],
+        ['SettingsSection and SettingsRow', '/ui/settings/settings-section'],
+        ['MasterDetail', '/ui/settings/master-detail'],
+        ['ConfirmDialog', '/ui/settings/confirm-dialog']
     ]),
     group('Formatting', [
-        ['Format source', '/desktop-ui/formatting/'],
-        ['Numbers', '/desktop-ui/formatting/numbers'],
-        ['Dates and times', '/desktop-ui/formatting/dates'],
-        ['Durations', '/desktop-ui/formatting/durations'],
-        ['Regions', '/desktop-ui/formatting/regions']
+        ['Format source', '/ui/formatting/'],
+        ['Numbers', '/ui/formatting/numbers'],
+        ['Dates and times', '/ui/formatting/dates'],
+        ['Durations', '/ui/formatting/durations'],
+        ['Regions', '/ui/formatting/regions']
     ]),
     group('Hooks', [
-        ['useAsyncAction', '/desktop-ui/hooks/use-async-action'],
-        ['useColumnResize', '/desktop-ui/hooks/use-column-resize'],
-        ['useContentSize', '/desktop-ui/hooks/use-content-size'],
-        ['useNow', '/desktop-ui/hooks/use-now']
+        ['useAsyncAction', '/ui/hooks/use-async-action'],
+        ['useColumnResize', '/ui/hooks/use-column-resize'],
+        ['useContentSize', '/ui/hooks/use-content-size'],
+        ['useNow', '/ui/hooks/use-now']
     ]),
     group('Utilities', [
-        ['UIProvider', '/desktop-ui/utilities/ui-provider'],
-        ['Shortcuts', '/desktop-ui/utilities/shortcuts'],
-        ['Lazy loading', '/desktop-ui/utilities/lazy-loading'],
-        ['Clipboard and selection', '/desktop-ui/utilities/clipboard'],
-        ['Floating layers', '/desktop-ui/utilities/floating-layers'],
-        ['Error messages', '/desktop-ui/utilities/error-messages'],
-        ['Testing', '/desktop-ui/utilities/testing']
+        ['UIProvider', '/ui/utilities/ui-provider'],
+        ['Shortcuts', '/ui/utilities/shortcuts'],
+        ['Lazy loading', '/ui/utilities/lazy-loading'],
+        ['Clipboard and selection', '/ui/utilities/clipboard'],
+        ['Floating layers', '/ui/utilities/floating-layers'],
+        ['Error messages', '/ui/utilities/error-messages'],
+        ['Testing', '/ui/utilities/testing']
     ])
 ];
 
 const desktopShell: DefaultTheme.SidebarItem[] = [
-    group('Desktop Shell', [
-        ['Overview', '/desktop-shell/'],
-        ['Application menu', '/desktop-shell/menu'],
-        ['Updater', '/desktop-shell/updater'],
-        ['Windows', '/desktop-shell/windows'],
-        ['Window state', '/desktop-shell/window-state'],
-        ['Theme', '/desktop-shell/theme'],
-        ['Web guards', '/desktop-shell/web-guards'],
-        ['Bridge', '/desktop-shell/bridge']
+    group('Shell', [
+        ['Overview', '/shell/'],
+        ['Application menu', '/shell/menu'],
+        ['Updater', '/shell/updater'],
+        ['Windows', '/shell/windows'],
+        ['Window state', '/shell/window-state'],
+        ['Theme', '/shell/theme'],
+        ['Web guards', '/shell/web-guards'],
+        ['Bridge', '/shell/bridge']
     ])
 ];
 
 export const sidebar: DefaultTheme.SidebarMulti = {
     '/guide/': guide,
-    '/desktop-ui/': desktopUi,
-    '/desktop-shell/': desktopShell
+    '/ui/': desktopUi,
+    '/shell/': desktopShell
 };

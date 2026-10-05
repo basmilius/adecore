@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Field, Input, Segmented, TextArea } from '@basmilius/desktop-ui';
+import { Field, Input, Segmented, TextArea } from '@adecore/ui';
 
 export default function FieldHorizontalDemo() {
     const [kind, setKind] = useState('service');

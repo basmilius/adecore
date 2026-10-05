@@ -1,5 +1,5 @@
 import { Inbox } from 'lucide-react';
-import { Button, EmptyState } from '@basmilius/desktop-ui';
+import { Button, EmptyState } from '@adecore/ui';
 
 export default function EmptyStateDemo() {
     return (

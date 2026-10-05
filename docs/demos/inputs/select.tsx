@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Select } from '@basmilius/desktop-ui';
+import { Select } from '@adecore/ui';
 
 type Theme = 'system' | 'light' | 'dark';
 

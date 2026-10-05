@@ -1,5 +1,5 @@
 import { Ellipsis } from 'lucide-react';
-import { DisabledReason, IconButton, Menu } from '@basmilius/desktop-ui';
+import { DisabledReason, IconButton, Menu } from '@adecore/ui';
 
 const pushReason = (): string | null => 'Nothing to push: the branch has no commits the remote lacks.';
 

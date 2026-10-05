@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AccentSwatches } from '@basmilius/desktop-ui';
+import { AccentSwatches } from '@adecore/ui';
 
 type Accent = 'blue' | 'violet' | 'rose' | 'amber' | 'green' | 'teal' | 'slate';
 

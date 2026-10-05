@@ -1,4 +1,4 @@
-import { Button, Dialog } from '@basmilius/desktop-ui';
+import { Button, Dialog } from '@adecore/ui';
 
 export default function DialogNested() {
     return (

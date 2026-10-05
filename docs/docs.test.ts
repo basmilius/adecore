@@ -4,7 +4,7 @@ import { Glob } from 'bun';
 import { describe, expect, test } from 'bun:test';
 
 const HERE = new URL('.', import.meta.url).pathname;
-const SNAPSHOT = readFileSync(join(HERE, '../packages/desktop-ui/src/__snapshots__/exports.test.ts.snap'), 'utf8');
+const SNAPSHOT = readFileSync(join(HERE, '../packages/ui/src/__snapshots__/exports.test.ts.snap'), 'utf8');
 
 const filesIn = (pattern: string): { path: string; text: string }[] =>
     [...new Glob(pattern).scanSync({ cwd: HERE, dot: true })]
@@ -56,7 +56,7 @@ describe('the docs', () => {
 
     test('never name an app that uses the library', () => {
         const naming = filesIn('**/*.{md,ts,tsx,vue,css}')
-            .filter(({ path, text }) => path !== 'docs.test.ts' && /ruimte|aftermotion/i.test(text))
+            .filter(({ path, text }) => path !== 'docs.test.ts' && /ruimte|aftermotion|solvidi|command[ -]center/i.test(text))
             .map(({ path }) => path);
         expect(naming).toEqual([]);
     });

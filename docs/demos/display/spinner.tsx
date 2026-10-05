@@ -1,4 +1,4 @@
-import { Spinner, Tooltip } from '@basmilius/desktop-ui';
+import { Spinner, Tooltip } from '@adecore/ui';
 
 export default function SpinnerDemo() {
     return (

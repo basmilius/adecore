@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Circle, Ellipsis, ListTodo, Pencil, Play, Square, Trash } from 'lucide-react';
-import { Button, Icon, Menu } from '@basmilius/desktop-ui';
+import { Button, Icon, Menu } from '@adecore/ui';
 
 const TASKS = ['Dev server', 'Tests', 'Docs'];
 

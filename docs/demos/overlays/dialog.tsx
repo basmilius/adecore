@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Dialog } from '@basmilius/desktop-ui';
+import { Button, Dialog } from '@adecore/ui';
 
 export default function DialogDemo() {
     const [open, setOpen] = useState(false);

@@ -1,4 +1,4 @@
-import { Skeleton } from '@basmilius/desktop-ui';
+import { Skeleton } from '@adecore/ui';
 
 export default function SkeletonDemo() {
     return (

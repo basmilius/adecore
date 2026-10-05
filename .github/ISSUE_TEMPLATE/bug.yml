@@ -9,6 +9,7 @@ body:
       options:
         - Ruimte
         - AfterMotion
+        - Command Center
         - Other
     validations:
       required: true
@@ -17,8 +18,8 @@ body:
     attributes:
       label: Which package?
       options:
-        - desktop-ui
-        - desktop-shell
+        - ui
+        - shell
     validations:
       required: true
   - type: textarea

@@ -22,7 +22,7 @@ import {
     Terminal,
     Wand
 } from 'lucide-react';
-import { IconPicker, type IconPickerGroup } from '@basmilius/desktop-ui';
+import { IconPicker, type IconPickerGroup } from '@adecore/ui';
 
 const GROUPS: IconPickerGroup[] = [
     { id: 'code', label: 'Code', icons: { code: Code, braces: Braces, terminal: Terminal, bug: Bug, 'git-branch': GitBranch, 'git-merge': GitMerge } },

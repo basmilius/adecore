@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ZoomControls, shortcut } from '@basmilius/desktop-ui';
+import { ZoomControls, shortcut } from '@adecore/ui';
 
 const SHORTCUTS = { zoomReset: shortcut('Mod+0'), fitAll: shortcut('Mod+1') };
 

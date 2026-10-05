@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Bell, Info, Keyboard, Palette, Settings, Sparkles } from 'lucide-react';
-import { Button, Icon, Select, Switch } from '@basmilius/desktop-ui';
-import { MasterDetail, MasterItem, SettingsDialog, SettingsRow, SettingsSection, type SettingsSearchResult } from '@basmilius/desktop-ui/settings';
+import { Button, Icon, Select, Switch } from '@adecore/ui';
+import { MasterDetail, MasterItem, SettingsDialog, SettingsRow, SettingsSection, type SettingsSearchResult } from '@adecore/ui/settings';
 
 function AppearancePane() {
     const [theme, setTheme] = useState('system');

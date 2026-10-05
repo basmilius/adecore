@@ -25,10 +25,11 @@ jobs:
           case "$consumer" in
               Ruimte) gh issue edit "$NUMBER" --add-label Ruimte ;;
               AfterMotion) gh issue edit "$NUMBER" --add-label AfterMotion ;;
+              "Command Center") gh issue edit "$NUMBER" --add-label "Command Center" ;;
               *) echo "No consumer label for '$consumer'." ;;
           esac
           package=$(printf '%s\n' "$BODY" | awk '/^### Which package\?/ { found = 1; next } found && NF { print; exit }')
           case "$package" in
-              desktop-ui|desktop-shell) gh issue edit "$NUMBER" --add-label "$package" ;;
+              ui|shell) gh issue edit "$NUMBER" --add-label "$package" ;;
               *) echo "No package label for '$package'." ;;
           esac

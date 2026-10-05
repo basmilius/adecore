@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useContentSize, useMeasuredWidth } from '@basmilius/desktop-ui';
+import { useContentSize, useMeasuredWidth } from '@adecore/ui';
 
 export default function UseContentSizeDemo() {
     const [measure, size] = useContentSize();

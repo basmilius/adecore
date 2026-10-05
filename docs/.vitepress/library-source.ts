@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-const ROOT = new URL('../../packages/desktop-ui/', import.meta.url);
+const ROOT = new URL('../../packages/ui/', import.meta.url);
 
 interface Manifest {
     name: string;

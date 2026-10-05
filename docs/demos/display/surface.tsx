@@ -1,4 +1,4 @@
-import { Surface } from '@basmilius/desktop-ui';
+import { Surface } from '@adecore/ui';
 
 export default function SurfaceDemo() {
     return (

@@ -7,7 +7,7 @@ import {
     formatTokens,
     formatUsdSignificant,
     useFormatLocale
-} from '@basmilius/desktop-ui/format';
+} from '@adecore/ui/format';
 import { PreferencesBar } from '../shared/preferences-bar.tsx';
 import { Values } from '../shared/values.tsx';
 

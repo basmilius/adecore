@@ -1,4 +1,4 @@
-import { ListRow, SectionLabel } from '@basmilius/desktop-ui';
+import { ListRow, SectionLabel } from '@adecore/ui';
 
 export default function SectionLabelDemo() {
     return (

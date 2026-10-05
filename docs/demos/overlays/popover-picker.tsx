@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Input, Popover } from '@basmilius/desktop-ui';
+import { Button, Input, Popover } from '@adecore/ui';
 
 const PEOPLE = ['Ada Lovelace', 'Alan Turing', 'Grace Hopper', 'Katherine Johnson', 'Margaret Hamilton'];
 

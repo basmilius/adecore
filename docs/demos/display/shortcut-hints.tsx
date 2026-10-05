@@ -1,5 +1,5 @@
 import { FilePlus, FolderOpen, Save } from 'lucide-react';
-import { ButtonGroup, IconButton, ShortcutHints, shortcut } from '@basmilius/desktop-ui';
+import { ButtonGroup, IconButton, ShortcutHints, shortcut } from '@adecore/ui';
 
 const NEW = shortcut('Mod+N');
 const OPEN = shortcut('Mod+O');

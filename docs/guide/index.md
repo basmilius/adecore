@@ -4,8 +4,8 @@ This repository holds the packages two or more desktop apps share, so the parts 
 
 | Package | What it holds |
 |---|---|
-| [`@basmilius/desktop-ui`](/desktop-ui/) | React components, a theme, formatters and a settings dialog |
-| [`@basmilius/desktop-shell`](/desktop-shell/) | The main process of an Electron app: its menu, its updater and the guards around its page |
+| [`@adecore/ui`](/ui/) | React components, a theme, formatters and a settings dialog |
+| [`@adecore/shell`](/shell/) | The main process of an Electron app: its menu, its updater and the guards around its page |
 
 ## One version
 
@@ -18,7 +18,7 @@ While the version is `0.x`, a breaking change bumps the minor and everything els
 Every package comes from npm and is installed on its own:
 
 ```sh
-bun add @basmilius/desktop-ui
+bun add @adecore/ui
 ```
 
 The page of a package says which peer dependencies it expects and how to wire it into an app.
@@ -28,11 +28,11 @@ The page of a package says which peer dependencies it expects and how to wire it
 Every package has a `source` export condition that points into its `src`, so an app can use a checkout without building it after every change. Link the package from its own folder:
 
 ```sh
-# in packages/<name> of the desktop checkout
+# in packages/<name> of the adecore checkout
 bun link
 
 # in your app
-bun link @basmilius/<name>
+bun link @adecore/<name>
 ```
 
 Then turn the condition on wherever the app resolves modules: `resolve.conditions` in Vite, `customConditions` in TypeScript and `--conditions=source` for `bun test`. A package's own page lists what else it needs, such as a single copy of React.
