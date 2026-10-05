@@ -22,6 +22,8 @@ import { SegmentBar } from './SegmentBar.tsx';
 import { SlidingColumn } from './SlidingColumn.tsx';
 import { Spinner } from './Spinner.tsx';
 import { Stepper } from './Stepper.tsx';
+import * as KeyValueList from './key-value-list/index.parts.ts';
+import * as Tabs from './tabs/index.parts.ts';
 import { Surface } from './Surface.tsx';
 import { fakeFormatSource } from './testing/fake-source.ts';
 import { UIProvider } from './UIProvider.tsx';
@@ -443,6 +445,62 @@ describe('a check in a menu row', () => {
 describe('a shortcut chip', () => {
     test('prints what it is handed when it has no shortcut', () => {
         expect(render(<Kbd variant="inline">↑</Kbd>)).toContain('>↑</kbd>');
+    });
+});
+
+describe('a key value list', () => {
+    const list = (divided: boolean): string =>
+        render(
+            <KeyValueList.Root divided={divided}>
+                <KeyValueList.Item>
+                    <KeyValueList.Name>Message-ID</KeyValueList.Name>
+                    <KeyValueList.Value mono>abc@example.com</KeyValueList.Value>
+                </KeyValueList.Item>
+            </KeyValueList.Root>
+        );
+
+    test('is a description list whose values can be selected', () => {
+        const markup = list(false);
+        expect(markup).toContain('<dl class=');
+        expect(markup).toContain('>Message-ID</dt>');
+        expect(markup).toMatch(/<dd class="[^"]*select-text[^"]*font-mono[^"]*">abc@example.com<\/dd>/);
+    });
+
+    test('draws a hairline between rows only when divided', () => {
+        expect(list(true)).toContain('divide-y');
+        expect(list(false)).not.toContain('divide-y');
+    });
+});
+
+describe('tabs', () => {
+    const strip = (count: number): string => {
+        const source = fakeFormatSource();
+        source.set({ region: 'nl-NL' });
+        return renderToStaticMarkup(
+            <UIProvider i18n={i18n} formatSource={source}>
+                <Tabs.Root value="links">
+                    <Tabs.List aria-label="Views">
+                        <Tabs.Tab value="preview">Preview</Tabs.Tab>
+                        <Tabs.Tab value="links">
+                            Links
+                            <Tabs.Count value={count} />
+                        </Tabs.Tab>
+                    </Tabs.List>
+                </Tabs.Root>
+            </UIProvider>
+        );
+    };
+
+    test('mark the picked tab in a named tab list', () => {
+        const markup = strip(3);
+        expect(markup).toContain('role="tablist"');
+        expect(markup).toContain('aria-label="Views"');
+        expect(markup).toMatch(/aria-selected="true"[^>]*>Links/);
+    });
+
+    test('write a count the way the region does, and none at zero', () => {
+        expect(strip(1234)).toContain('>1.234</span>');
+        expect(strip(0)).not.toContain('tabular-nums');
     });
 });
 

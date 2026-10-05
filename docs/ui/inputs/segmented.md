@@ -1,6 +1,6 @@
 # Segmented
 
-One of a few options side by side in one sunken track, the picked one lifted out of it. It suits two to four short options that change what a view shows.
+One of a few options side by side in one sunken track, the picked one lifted out of it. It suits two to four short options that change what a view shows. For many views of one thing, or a view with a count, use [`Tabs`](/ui/layout/tabs).
 
 ```tsx
 import { Segmented } from '@adecore/ui';

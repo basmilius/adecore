@@ -5,9 +5,11 @@
 
 export * as ContextMenu from './context-menu/index.parts.ts';
 export * as Dialog from './dialog/index.parts.ts';
+export * as KeyValueList from './key-value-list/index.parts.ts';
 export * as Menu from './menu/index.parts.ts';
 export * as Popover from './popover/index.parts.ts';
 export * as PreviewCard from './preview-card/index.parts.ts';
+export * as Tabs from './tabs/index.parts.ts';
 
 export type { DialogDescriptionProps, DialogFooterProps, DialogPopupProps, DialogTextProps, DialogTitleProps } from './dialog/parts.tsx';
 export type {
@@ -19,7 +21,9 @@ export type {
     MenuRowProps,
     MenuRowSubmenuTriggerProps
 } from './menu/parts.tsx';
+export type { KeyValueListItemProps, KeyValueListNameProps, KeyValueListRootProps, KeyValueListValueProps } from './key-value-list/parts.tsx';
 export type { PopoverPopupProps, PopupVariant, PreviewCardPopupProps } from './popover/parts.tsx';
+export type { TabsCountProps } from './tabs/parts.tsx';
 
 export { AccentSwatches, type AccentSwatchesProps } from './AccentSwatches.tsx';
 export { Banner, type BannerProps, type BannerTone } from './Banner.tsx';

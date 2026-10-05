@@ -57,6 +57,7 @@ const desktopUi: DefaultTheme.SidebarItem[] = [
         ['SectionLabel', '/ui/display/section-label'],
         ['Surface', '/ui/display/surface'],
         ['ListRow', '/ui/display/list-row'],
+        ['KeyValueList', '/ui/display/key-value-list'],
         ['PanelHeader', '/ui/display/panel-header'],
         ['Separator', '/ui/display/separator'],
         ['Skeleton', '/ui/display/skeleton'],
@@ -70,6 +71,7 @@ const desktopUi: DefaultTheme.SidebarItem[] = [
         ['ErrorBoundary', '/ui/display/error-boundary']
     ]),
     group('Layout', [
+        ['Tabs', '/ui/layout/tabs'],
         ['SlidingColumn', '/ui/layout/sliding-column'],
         ['ColumnResizeHandle', '/ui/layout/column-resize-handle'],
         ['DockShell', '/ui/layout/dock-shell'],
