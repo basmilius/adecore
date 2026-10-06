@@ -4,6 +4,7 @@ import { act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import { createSmartEditorEngine, type Editor } from '@adecore/editor';
 import { createPage, typeInto } from '@adecore/editor/testing';
+import type { EditorLanguage } from './editor-language.ts';
 import { EditorView } from './EditorView.tsx';
 import { ProjectLanguage } from './project-language.ts';
 import { FakeLanguageService } from './testing.ts';
@@ -62,6 +63,60 @@ test('the React view mounts the real engine, forwards edits and releases its doc
             Reflect.deleteProperty(globalThis, 'window');
         } else {
             Object.defineProperty(globalThis, 'window', previousWindow);
+        }
+    }
+});
+
+test('the view hands its language to the rows the app adds to the context menu', async () => {
+    const page = createPage();
+    // The menu portals into the document and opens on a mouse event, which LinkeDOM only has as a plain event.
+    const scope = { window: page.window, document: page.window.document, MouseEvent: page.window.MouseEvent ?? page.window.Event };
+    const names = Object.keys(scope) as (keyof typeof scope)[];
+    const previous = Object.fromEntries(names.map((name) => [name, Object.getOwnPropertyDescriptor(globalThis, name)]));
+    for (const name of names) {
+        Object.defineProperty(globalThis, name, { value: scope[name], configurable: true });
+    }
+    const globals = globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean };
+    const previousAct = globals.IS_REACT_ACT_ENVIRONMENT;
+    globals.IS_REACT_ACT_ENVIRONMENT = true;
+    const root = createRoot(page.host);
+    const project = new ProjectLanguage(new FakeLanguageService());
+    const asked: EditorLanguage[] = [];
+    let attached: EditorLanguage | null = null;
+    try {
+        await act(async () =>
+            root.render(
+                createElement(EditorView, {
+                    engine: createSmartEditorEngine({ tokenizer: async () => null }),
+                    options: { text: 'hello', language: 'typescript', theme: 'light' },
+                    project,
+                    uri: 'file:///example.ts',
+                    languageId: 'typescript',
+                    onMount: (_editor, language) => {
+                        attached = language;
+                    },
+                    contextMenuItems: (language) => {
+                        asked.push(language);
+                        return null;
+                    }
+                })
+            )
+        );
+        expect(asked).toHaveLength(0);
+        await act(async () => attached!.popups.setState({ menu: { x: 10, y: 20, refactors: [] } }));
+        expect(asked.length).toBeGreaterThan(0);
+        expect(asked.every((language) => language === attached)).toBe(true);
+    } finally {
+        await act(async () => root.unmount());
+        project.dispose();
+        globals.IS_REACT_ACT_ENVIRONMENT = previousAct;
+        for (const name of names) {
+            const descriptor = previous[name];
+            if (descriptor === undefined) {
+                Reflect.deleteProperty(globalThis, name);
+            } else {
+                Object.defineProperty(globalThis, name, descriptor);
+            }
         }
     }
 });

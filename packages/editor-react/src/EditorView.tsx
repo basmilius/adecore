@@ -1,5 +1,5 @@
 import { createHolder } from './holder.ts';
-import { useLayoutEffect, useMemo, useRef, useSyncExternalStore, type Ref } from 'react';
+import { useLayoutEffect, useMemo, useRef, useSyncExternalStore, type ReactNode, type Ref } from 'react';
 import type { Editor, EditorEngine, EditorOptions } from '@adecore/editor';
 import { EditorLanguage } from './editor-language.ts';
 import { LanguagePopups } from './LanguagePopups.tsx';
@@ -14,9 +14,11 @@ export interface EditorViewProps {
     className?: string;
     ref?: Ref<HTMLDivElement>;
     onMount?(editor: Editor, language: EditorLanguage | null): void | (() => void);
+    /* Rows of the app in the context menu, between the refactorings and the clipboard rows. */
+    contextMenuItems?(language: EditorLanguage): ReactNode;
 }
 
-export function EditorView({ engine, options, project, uri, languageId, className, ref, onMount }: EditorViewProps) {
+export function EditorView({ engine, options, project, uri, languageId, className, ref, onMount, contextMenuItems }: EditorViewProps) {
     const element = useRef<HTMLDivElement>(null);
     const holder = useMemo(() => createHolder<EditorLanguage>(), []);
     const language = useSyncExternalStore(holder.subscribe, holder.get, holder.get);
@@ -39,7 +41,7 @@ export function EditorView({ engine, options, project, uri, languageId, classNam
     return (
         <div className={className} ref={ref} style={{ position: 'relative', minHeight: 0 }}>
             <div ref={element} style={{ position: 'absolute', inset: 0 }} />
-            {language !== null && <LanguagePopups language={language} />}
+            {language !== null && <LanguagePopups language={language} contextMenuItems={contextMenuItems} />}
         </div>
     );
 }

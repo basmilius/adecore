@@ -25,6 +25,7 @@
 | `uri`                | `string`                                 | The document's `file:` URI                                                          |
 | `languageId`         | `string`                                 | The LSP language id, such as `typescript` or `php`                                  |
 | `onMount`            | `(editor, language) => void \| (() => void)` | Called after mounting with the `Editor` and the `EditorLanguage`, or `null`; the function it returns runs before the editor goes |
+| `contextMenuItems`   | `(language) => ReactNode`                | Rows of the app in the [context menu](/editor-react/rename#context-menu)            |
 | `className`, `ref`   |                                          | On the outer element, which needs a height                                          |
 
 A change of `engine`, `options`, `project`, `uri`, `languageId` or `onMount` mounts the editor again. On unmount it runs the cleanup of `onMount`, disposes the `EditorLanguage` and then the editor. It never disposes the project.
@@ -48,7 +49,7 @@ Attach one `EditorLanguage` per editor. `EditorView` already makes one, so do no
 
 ## LanguagePopups
 
-`<LanguagePopups language={language} />` draws every card a feature opens over the editor: hover, suggestions, signature help, the pick list, rename, peek, the symbol picker, the context menu and the authors card. `EditorView` renders it; an app that mounts by hand renders it next to the editor. Each card is placed from the screen position of its character and placed again when the editor scrolls or resizes.
+`<LanguagePopups language={language} contextMenuItems={...} />` draws every card a feature opens over the editor: hover, suggestions, signature help, the pick list, rename, peek, the symbol picker, the context menu and the authors card. `EditorView` renders it; an app that mounts by hand renders it next to the editor. Each card is placed from the screen position of its character and placed again when the editor scrolls or resizes.
 
 `createHolder<T>()` is the small store `EditorView` uses to hand the `EditorLanguage` it created to React: `get`, `set` and `subscribe`, for `useSyncExternalStore`.
 

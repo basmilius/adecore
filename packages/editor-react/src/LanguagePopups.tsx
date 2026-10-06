@@ -1,4 +1,4 @@
-import { useEffect, useReducer } from 'react';
+import { useEffect, useReducer, type ReactNode } from 'react';
 import { useStore } from 'zustand';
 import type { EditorLanguage } from './editor-language.ts';
 import { AnchoredPopup } from './AnchoredPopup.tsx';
@@ -15,9 +15,9 @@ import { SignatureCard } from './SignatureCard.tsx';
 /*
  * Every card a language feature opens over the editor. Each feature keeps its own state and these
  * only draw it, placed by the screen position of the character it belongs to, which is read again
- * whenever the editor scrolls or resizes.
+ * whenever the editor scrolls or resizes. `contextMenuItems` adds rows of the app to the context menu.
  */
-export function LanguagePopups({ language }: { language: EditorLanguage }) {
+export function LanguagePopups({ language, contextMenuItems }: { language: EditorLanguage; contextMenuItems?: (language: EditorLanguage) => ReactNode }) {
     const [, redraw] = useReducer((count: number) => count + 1, 0);
     const hover = useStore(language.popups, (state) => state.hover);
     const completion = useStore(language.popups, (state) => state.completion);
@@ -51,7 +51,11 @@ export function LanguagePopups({ language }: { language: EditorLanguage }) {
             )}
             {completion !== null && completionRect !== null && <CompletionPopup language={language} view={completion} rect={completionRect} />}
             {pick !== null && pickRect !== null && <PickPopup language={language} view={pick} rect={pickRect} />}
-            {menu !== null && <EditorContextMenu language={language} view={menu} />}
+            {menu !== null && (
+                <EditorContextMenu language={language} view={menu}>
+                    {contextMenuItems?.(language)}
+                </EditorContextMenu>
+            )}
             {symbols !== null && <SymbolPicker language={language} view={symbols} />}
             {peek !== null && <PeekPanel language={language} view={peek} />}
             {authors !== null && <CodeAuthorsCard language={language} view={authors} />}

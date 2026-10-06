@@ -31,4 +31,18 @@ Applying resolves the action through `codeAction/resolve` when the server needs 
 
 A right click asks the editor for a context menu, and `EditorContextMenu` draws it: go to definition, type definition and implementation, peek references, rename and code actions where the service supports them, a submenu of refactorings, cut, copy and paste, and format document. Each row shows its key from the key table. A right click outside the selection moves the caret there first.
 
-`LanguagePopups` draws it with these rows only. `children` adds rows of the app between the refactorings and the clipboard rows, for an app that renders the menu itself.
+`contextMenuItems` on `EditorView` or `LanguagePopups` adds rows of the app between the refactorings and the clipboard rows. It gets the `EditorLanguage`, so a row can call a feature:
+
+```tsx
+<EditorView
+    {...props}
+    contextMenuItems={(language) => (
+        <>
+            <ContextMenu.Separator />
+            <ContextMenu.Item onClick={() => void language.navigation.go('declaration')}>Go to declaration</ContextMenu.Item>
+        </>
+    )}
+/>
+```
+
+An app that renders the menu itself passes the same rows to `EditorContextMenu` as `children`.
