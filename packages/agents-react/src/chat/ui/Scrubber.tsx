@@ -199,7 +199,7 @@ export const Scrubber = memo(function Scrubber({
                                         <span
                                             aria-hidden
                                             className={clsx(
-                                                'absolute right-0 rounded-full bg-find-current',
+                                                'absolute right-0 rounded-full bg-chat-find',
                                                 index === currentSlot ? 'opacity-100' : 'opacity-50'
                                             )}
                                             style={{ top: slot.y, height: TICK_HEIGHT_PX, width: FOUND_WIDTH_PX }}

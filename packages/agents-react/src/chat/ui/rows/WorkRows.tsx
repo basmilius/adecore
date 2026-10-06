@@ -103,7 +103,7 @@ function ToolBody({ tool }: { tool: ChatToolItem }) {
                     data-find-field="output"
                     className={clsx(
                         'max-h-64 overflow-auto whitespace-pre-wrap border-t border-border px-3 py-2 font-mono text-code select-text',
-                        tool.state === 'error' ? 'text-term-red' : 'text-term-fg'
+                        tool.state === 'error' ? 'text-chat-removed' : 'text-chat-output'
                     )}
                 >
                     <AnsiOutput text={tool.output} limit={OUTPUT_LIMIT} />
@@ -161,7 +161,7 @@ export function WorkLiveRow({ chatId, tool: derived }: { chatId: string; tool: C
             />
             {open && <ToolBody tool={tool} />}
             {tail !== null && !open && (
-                <pre className="mt-1.5 mb-2 ml-6 max-h-48 overflow-auto rounded-md border border-border bg-surface-raised px-3 py-2 font-mono text-code whitespace-pre-wrap text-term-fg select-text">
+                <pre className="mt-1.5 mb-2 ml-6 max-h-48 overflow-auto rounded-md border border-border bg-surface-raised px-3 py-2 font-mono text-code whitespace-pre-wrap text-chat-output select-text">
                     <AnsiOutput text={tail} tailLines={12} />
                 </pre>
             )}
@@ -267,8 +267,8 @@ function ChangedFilesCard({
                 <span className="shrink-0 font-medium text-text">{t('work.changedFiles', { count })}</span>
                 {truncated && <span className="min-w-0 truncate text-text-faint">{t('work.andMore')}</span>}
                 <span className="grow" />
-                {added !== undefined && <span className="text-term-green tabular-nums">+{added}</span>}
-                {deleted !== undefined && <span className="text-term-red tabular-nums">-{deleted}</span>}
+                {added !== undefined && <span className="text-chat-added tabular-nums">+{added}</span>}
+                {deleted !== undefined && <span className="text-chat-removed tabular-nums">-{deleted}</span>}
                 <Icon icon={ChevronRight} size={12} className={clsx('shrink-0 text-text-faint transition-transform', expanded && 'rotate-90')} />
             </button>
             {expanded && children}
@@ -343,8 +343,8 @@ export function ChangedFilesRow({
                             />
                             <span className="min-w-0 truncate font-mono text-text">{file.path}</span>
                             <span className="grow" />
-                            <span className="text-term-green tabular-nums">+{file.added}</span>
-                            <span className="text-term-red tabular-nums">-{file.deleted}</span>
+                            <span className="text-chat-added tabular-nums">+{file.added}</span>
+                            <span className="text-chat-removed tabular-nums">-{file.deleted}</span>
                         </button>
                         {open[file.path] && (
                             <div className="border-t border-border">

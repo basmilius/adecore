@@ -18,6 +18,8 @@
     --chart-context-files: #9a63e0;
     --chart-context-conversation: #2f9e5a;
     --chart-context-system: var(--text-faint);
+    /* The current hit of a find, which has to stand out from the accent of a bookmark next to it. */
+    --chat-find: #facc15;
 }
 
 [data-theme="dark"] {
@@ -31,6 +33,16 @@
     --chart-context-files: #b98af3;
     --chart-context-conversation: #6dd08b;
     --chart-context-system: var(--text-faint);
+    --chat-find: #f5c542;
+}
+
+/* Output and diffs take the terminal's colors when the app loads `@adecore/terminal/terminal.css`,
+   and the base theme's otherwise. Declared on every themed element, so a nested theme resolves its own. */
+:root, [data-theme] {
+    --chat-code-bg: var(--term-bg, var(--surface-sunken));
+    --chat-output: var(--term-fg, var(--text));
+    --chat-added: var(--term-ansi-green, var(--positive));
+    --chat-removed: var(--term-ansi-red, var(--status-error));
 }
 
 @theme inline {
@@ -44,6 +56,10 @@
     --color-chart-context-files: var(--chart-context-files);
     --color-chart-context-conversation: var(--chart-context-conversation);
     --color-chart-context-system: var(--chart-context-system);
+    --color-chat-find: var(--chat-find);
+    --color-chat-output: var(--chat-output);
+    --color-chat-added: var(--chat-added);
+    --color-chat-removed: var(--chat-removed);
 }
 
 @layer components {
@@ -160,7 +176,7 @@
 .chat-markdown :is(th, td) { border: 1px solid var(--tw-prose-td-borders); padding: 4px 8px; text-align: left; }
 
 /* A code block is shiki's own `<pre>`, which brings a background of its own to override. */
-.chat-code { border-radius: 8px; border: 1px solid var(--border); background: var(--term-bg); overflow: auto; }
+.chat-code { border-radius: 8px; border: 1px solid var(--border); background: var(--chat-code-bg); overflow: auto; }
 .chat-code pre { margin: 0; padding: round(0.625rem, 1px) round(0.75rem, 1px); background: transparent !important; font-family: var(--font-mono); font-size: var(--text-code); line-height: var(--text-code--line-height); }
 .chat-code code { font-family: inherit; }
 

@@ -74,7 +74,7 @@ describe('ANSI tool output', () => {
         });
         expect(tokens[1]!.style).toEqual({ color: 'var(--term-ansi-blue)', backgroundColor: 'var(--term-ansi-red)' });
         expect(tokens[2]!.style).toEqual({});
-        expect(parseAnsi('\x1b[7minverse').tokens[0]!.style).toEqual({ color: 'var(--term-bg)', backgroundColor: 'var(--term-fg)' });
+        expect(parseAnsi('\x1b[7minverse').tokens[0]!.style).toEqual({ color: 'var(--chat-code-bg)', backgroundColor: 'var(--chat-output)' });
     });
 
     test('supports indexed colors across the theme palette, RGB cube and grayscale ramp', () => {

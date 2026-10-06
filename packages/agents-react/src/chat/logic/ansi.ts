@@ -144,8 +144,8 @@ function applyRendition(state: AnsiState, parameters: string): AnsiState {
 
 function styleOf(state: AnsiState): CSSProperties {
     const style: CSSProperties = {};
-    const color = state.inverse ? (state.background ?? 'var(--term-bg)') : state.foreground;
-    const background = state.inverse ? (state.foreground ?? 'var(--term-fg)') : state.background;
+    const color = state.inverse ? (state.background ?? 'var(--chat-code-bg)') : state.foreground;
+    const background = state.inverse ? (state.foreground ?? 'var(--chat-output)') : state.background;
     if (color !== undefined || state.dim) {
         style.color = state.dim ? `color-mix(in srgb, ${color ?? 'currentColor'} 65%, transparent)` : color;
     }

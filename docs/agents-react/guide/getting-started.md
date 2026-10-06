@@ -38,16 +38,7 @@ The package ships `theme.css` with the tokens and rules of its own, and builds t
 
 The `@source` paths are relative to the CSS file. An app that links a checkout and resolves the `source` condition scans `src` instead of `dist`.
 
-Tool output, diffs and find use terminal colors the theme does not define. [`@adecore/terminal`](/terminal/) has them in `terminal.css` (`--term-bg`, `--term-fg` and the sixteen `--term-ansi-*`); otherwise define them yourself. A few classes also need a Tailwind color of that name:
-
-```css
-@theme inline {
-    --color-term-fg: var(--term-fg);
-    --color-term-green: var(--term-ansi-green);
-    --color-term-red: var(--term-ansi-red);
-    --color-find-current: var(--accent);
-}
-```
+Tool output, code and diffs take the colors of the terminal when the app imports `terminal.css` of [`@adecore/terminal`](/terminal/), and the colors of the base theme when it does not. The colors of a command's output come from the sixteen `--term-ansi-*` tokens of that file; without it the output keeps one color.
 
 ## Words
 

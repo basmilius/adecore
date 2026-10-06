@@ -35,10 +35,10 @@ pre > [data-code] { flex-grow: 1; align-self: stretch; align-content: start; }
 
 function lineClass(line: string): string {
     if (line.startsWith('+')) {
-        return 'text-term-green';
+        return 'text-chat-added';
     }
     if (line.startsWith('-')) {
-        return 'text-term-red';
+        return 'text-chat-removed';
     }
     return 'text-text-muted';
 }
