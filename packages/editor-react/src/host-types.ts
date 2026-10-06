@@ -1,3 +1,4 @@
+import type { i18n } from 'i18next';
 import type { Keymap } from '@adecore/editor/keymap';
 import type { ProjectFiles } from './workspace-edit.ts';
 import type { Place } from './navigation-history.ts';
@@ -37,6 +38,8 @@ export interface RenameSuggestionsRequest {
 }
 
 export interface LanguageHost {
+    /* The instance the app hands `UIProvider`, which the features read their words from too; the default instance without one. */
+    readonly i18n?: i18n;
     readonly folder?: string;
     readonly files?: ProjectFiles;
     readonly apple?: boolean;

@@ -1,4 +1,4 @@
-import i18next from 'i18next';
+import type { i18n } from 'i18next';
 import { diffLines, splitLines } from '@adecore/merge';
 import type { GitBlameCommit, GitBlameResult } from './host-types.ts';
 import { formatNumber } from '@adecore/ui/format';
@@ -94,10 +94,10 @@ export function authorshipOf(commits: readonly GitBlameCommit[], mapped: Int32Ar
 }
 
 /* The row's words: the author with most lines, how many others wrote some, and a star when the range is edited since the commit. */
-export function authorsText(authorship: CodeAuthorship): string {
+export function authorsText(authorship: CodeAuthorship, i18n: i18n): string {
     const main = authorship.authors[0];
     if (main === undefined) {
-        return i18next.t('editor:language.codeVision.newCode');
+        return i18n.t('editor:language.codeVision.newCode');
     }
     const others = authorship.authors.length - 1;
     return `${main.name}${others > 0 ? ` +${formatNumber(others)}` : ''}${authorship.modified ? ' *' : ''}`;

@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import './test-setup.ts';
 import { describe, expect, test } from 'bun:test';
 import type { GitBlameCommit } from './host-types.ts';
@@ -81,7 +82,7 @@ describe('the authors of a range', () => {
     test('are nobody for a range no commit holds yet', () => {
         const authorship = authorshipOf(commits, Int32Array.from([UNCOMMITTED, UNCOMMITTED, UNCOMMITTED, UNCOMMITTED, UNCOMMITTED, UNCOMMITTED]), lines, 0, 5);
         expect(authorship.authors).toEqual([]);
-        expect(authorsText(authorship)).toBe('new *');
+        expect(authorsText(authorship, i18next)).toBe('new *');
     });
 
     test('name a person once whatever address their commits came from', () => {
@@ -96,11 +97,11 @@ describe('the words of a row', () => {
     const one = { authors: [{ name: 'Bas Milius', email: 'b@example.com', lines: 4 }], uncommittedLines: 0, modified: false, latest: null };
 
     test('are the name, a plus for the others and a star for an edit', () => {
-        expect(authorsText(one)).toBe('Bas Milius');
-        expect(authorsText({ ...one, modified: true })).toBe('Bas Milius *');
+        expect(authorsText(one, i18next)).toBe('Bas Milius');
+        expect(authorsText({ ...one, modified: true }, i18next)).toBe('Bas Milius *');
         const more = { ...one, authors: [...one.authors, { name: 'Ada', email: '', lines: 1 }, { name: 'Cy', email: '', lines: 1 }] };
-        expect(authorsText(more)).toBe('Bas Milius +2');
-        expect(authorsText({ ...more, modified: true })).toBe('Bas Milius +2 *');
+        expect(authorsText(more, i18next)).toBe('Bas Milius +2');
+        expect(authorsText({ ...more, modified: true }, i18next)).toBe('Bas Milius +2 *');
     });
 
     test('collapse the space in a name', () => {

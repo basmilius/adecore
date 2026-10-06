@@ -1,5 +1,6 @@
 import './test-setup.ts';
 import { describe, expect, test } from 'bun:test';
+import { createInstance } from 'i18next';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { FakeEditorEngine } from '@adecore/editor/fake';
@@ -102,6 +103,19 @@ describe('language host seam', () => {
         expect(visits).toEqual([{ uri: 'file:///work/other.ts', position }]);
         await language.navigation.go('definition');
         expect(notifications).toHaveLength(1);
+        language.dispose();
+        project.dispose();
+    });
+
+    test('says its notices in the words of the instance the host hands it', async () => {
+        const i18n = createInstance();
+        await i18n.init({ lng: 'en', resources: { en: { editor: { language: { navigation: { unavailable: 'No server here' } } } } } });
+        const notifications: { title: string }[] = [];
+        const project = new ProjectLanguage(new FakeLanguageService(), { i18n, notify: (message) => notifications.push(message) });
+        const language = new EditorLanguage(project, editor('one'), uri, 'typescript', new ManualTimers());
+        await language.document.ready;
+        await language.navigation.go('definition');
+        expect(notifications.map((message) => message.title)).toEqual(['No server here']);
         language.dispose();
         project.dispose();
     });

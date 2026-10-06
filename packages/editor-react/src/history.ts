@@ -1,4 +1,3 @@
-import i18next from 'i18next';
 import type { EditorLanguage } from './editor-language.ts';
 import { isShortcut } from './shortcut-keys.ts';
 
@@ -51,7 +50,7 @@ export class HistoryFeature {
         this.language.locations(
             places.map((place) => ({ uri: place.uri, range: { start: place.position, end: place.position } })),
             this.language.editor.getCaret(),
-            i18next.t('editor:language.history.recent')
+            this.language.project.i18n.t('editor:language.history.recent')
         );
     }
 }

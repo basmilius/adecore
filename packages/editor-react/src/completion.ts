@@ -1,4 +1,3 @@
-import i18next from 'i18next';
 import { StaleResultError, type CompletionContext, type CompletionItem } from '@adecore/lsp';
 import type { EditorContentChange, EditorPosition, EditorRange, EditorTextChange } from '@adecore/editor';
 import { comparePositions, shiftPosition } from './diagnostics-model.ts';
@@ -399,7 +398,7 @@ export class CompletionFeature {
         const asked = this.explicit && !refresh;
         this.refilter();
         if (asked && !this.isOpen && !this.incomplete) {
-            this.language.project.host.notify?.({ id: TOAST_ID, kind: 'error', title: i18next.t('editor:language.completion.none') });
+            this.language.project.host.notify?.({ id: TOAST_ID, kind: 'error', title: this.language.project.i18n.t('editor:language.completion.none') });
         } else if (asked && this.ranked.length === 1 && !this.incomplete) {
             // One answer to a list that was asked for is the one wanted.
             void this.accept(false, 0);

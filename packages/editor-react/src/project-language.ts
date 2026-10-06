@@ -1,3 +1,4 @@
+import i18next, { type i18n } from 'i18next';
 import { fileUriToPath, type ApplyWorkspaceEditResult, type ContentChange, type LanguageService, type WorkspaceEdit } from '@adecore/lsp';
 import type { Editor, EditorPosition } from '@adecore/editor';
 import { NavigationHistory, type Place } from './navigation-history.ts';
@@ -78,6 +79,7 @@ interface Holder {
 export class ProjectLanguage {
     readonly service: LanguageService;
     readonly host: LanguageHost;
+    readonly i18n: i18n;
     readonly folder: string;
     readonly problems: ProjectProblems;
     readonly history = new NavigationHistory();
@@ -90,6 +92,7 @@ export class ProjectLanguage {
     constructor(service: LanguageService, host: LanguageHost = {}) {
         this.service = service;
         this.host = host;
+        this.i18n = host.i18n ?? i18next;
         this.folder = host.folder ?? '';
         this.files = host.files ?? null;
         this.problems = new ProjectProblems(service, (uri) => this.pathOfLocation(uri) ?? uri);

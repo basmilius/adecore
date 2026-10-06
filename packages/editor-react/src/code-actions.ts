@@ -1,4 +1,3 @@
-import i18next from 'i18next';
 import { ErrorCodes, LspError, StaleResultError, type CodeAction, type Command, type Diagnostic, type Position } from '@adecore/lsp';
 import type { EditorPosition, EditorRange } from '@adecore/editor';
 import {
@@ -49,9 +48,6 @@ interface AskOptions {
     readonly groups?: readonly ActionGroup[];
 }
 
-function say(key: string, options?: Record<string, unknown>): string {
-    return i18next.t(`editor:language.actions.${key}`, options);
-}
 
 /*
  * What the language servers offer to do at the caret or the selection: a lightbulb in the gutter on the line
@@ -137,7 +133,7 @@ export class CodeActionsFeature {
         const entries = await this.request(everything, ['source.organizeImports'], INVOKED);
         const entry = entries?.find((candidate) => candidate.action.kind?.startsWith('source.organizeImports') === true);
         if (entry === undefined) {
-            this.tell('success', say(entries === null ? 'unavailable' : 'organized'));
+            this.tell('success', this.say(entries === null ? 'unavailable' : 'organized'));
             return;
         }
         await this.apply(entry);
@@ -146,13 +142,13 @@ export class CodeActionsFeature {
     async formatDocument(): Promise<void> {
         const { editor, project, uri } = this.language;
         if (!project.service.supports('textDocument/formatting', uri)) {
-            this.tell('error', say('noFormatter'));
+            this.tell('error', this.say('noFormatter'));
             return;
         }
         try {
             const edits = await project.service.formatting(uri, { ...editor.getIndentation() });
             if (edits !== null && edits.length > 0 && !editor.applyEdits(edits.map((edit) => ({ range: edit.range, text: edit.newText })))) {
-                this.tell('error', say('readOnly'));
+                this.tell('error', this.say('readOnly'));
             }
         } catch (error) {
             this.fail(error);
@@ -175,7 +171,7 @@ export class CodeActionsFeature {
 
     private async ask(options: AskOptions): Promise<void> {
         if (!this.supported) {
-            this.tell('error', say('unavailable'));
+            this.tell('error', this.say('unavailable'));
             return;
         }
         // The press on a card or the gutter may have taken the focus, and the list answers to the editor's keys.
@@ -193,13 +189,13 @@ export class CodeActionsFeature {
             return;
         }
         if (entries.length === 0) {
-            this.tell('success', say('none'));
+            this.tell('success', this.say('none'));
             return;
         }
         const byId = new Map(entries.map((entry) => [entry.id, entry]));
         const groups: PickGroup[] = (options.groups ?? ACTION_GROUPS).flatMap((group): PickGroup[] => {
             const rows = entries.filter((entry) => entry.group === group).map((entry) => ({ id: entry.id, label: entry.action.title, detail: '' }));
-            return rows.length === 0 ? [] : [{ title: say(`groups.${group}`), rows }];
+            return rows.length === 0 ? [] : [{ title: this.say(`groups.${group}`), rows }];
         });
         this.language.completion.close();
         this.language.pick.open({
@@ -278,7 +274,7 @@ export class CodeActionsFeature {
         if (signal.aborted || this.asking) {
             return;
         }
-        editor.setGutterAction(entries?.some(isHint) === true ? { line: editor.getCaret().line, label: say('show') } : null);
+        editor.setGutterAction(entries?.some(isHint) === true ? { line: editor.getCaret().line, label: this.say('show') } : null);
     }
 
     private async resolve(entry: ActionEntry, signal?: AbortSignal): Promise<CodeAction> {
@@ -325,9 +321,9 @@ export class CodeActionsFeature {
             return null;
         }
         const notes = [
-            ...(found.hiddenLines > 0 ? [say('moreLines', { count: found.hiddenLines })] : []),
-            ...(found.otherFiles > 0 ? [say('otherFiles', { count: found.otherFiles })] : []),
-            ...(found.moves > 0 ? [say('moves', { count: found.moves })] : [])
+            ...(found.hiddenLines > 0 ? [this.say('moreLines', { count: found.hiddenLines })] : []),
+            ...(found.otherFiles > 0 ? [this.say('otherFiles', { count: found.otherFiles })] : []),
+            ...(found.moves > 0 ? [this.say('moves', { count: found.moves })] : [])
         ];
         return { removed: found.removed, added: found.added, note: notes.length === 0 ? null : notes.join(' · ') };
     }
@@ -353,7 +349,7 @@ export class CodeActionsFeature {
             if (action.edit !== undefined) {
                 const result = await project.applyWorkspaceEdit(action.edit);
                 if (!result.applied) {
-                    this.tell('error', say('failed', { message: result.failureReason ?? say('refused') }));
+                    this.tell('error', this.say('failed', { message: result.failureReason ?? this.say('refused') }));
                     return;
                 }
             }
@@ -381,7 +377,11 @@ export class CodeActionsFeature {
 
     private fail(error: unknown): void {
         if (!(error instanceof StaleResultError)) {
-            this.tell('error', say('failed', { message: error instanceof Error ? error.message : String(error) }));
+            this.tell('error', this.say('failed', { message: error instanceof Error ? error.message : String(error) }));
         }
+    }
+
+    private say(key: string, options?: Record<string, unknown>): string {
+        return this.language.project.i18n.t(`editor:language.actions.${key}`, options);
     }
 }

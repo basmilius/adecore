@@ -1,4 +1,3 @@
-import i18next from 'i18next';
 import { StaleResultError, fileUriToPath, type Location, type LocationLink, type NavigationResult, type Range } from '@adecore/lsp';
 import type { EditorPosition } from '@adecore/editor';
 import { basenameOf } from './paths.ts';
@@ -24,9 +23,6 @@ const SHORTCUT_KINDS: readonly [NavigationKind, 'goToDefinition' | 'goToTypeDefi
 
 const TOAST_ID = 'language-navigation';
 
-function say(key: string, options?: Record<string, unknown>): string {
-    return i18next.t(`editor:language.navigation.${key}`, options);
-}
 
 /* The places of a result, each once: the two servers of a Vue file may both know the same one. `target` is the whole declaration when the server gave it. */
 export function uniquePlaces(result: NavigationResult): { location: Location; target: Range | null }[] {
@@ -96,7 +92,7 @@ export class NavigationFeature {
     async go(kind: NavigationKind, position: EditorPosition = this.language.editor.getCaret()): Promise<void> {
         const { project, uri, editor } = this.language;
         if (!this.supports(kind)) {
-            this.tell(say('unavailable'));
+            this.tell(this.say('unavailable'));
             return;
         }
         let result: NavigationResult;
@@ -111,20 +107,20 @@ export class NavigationFeature {
                     : service.implementation(uri, position));
         } catch (error) {
             if (!(error instanceof StaleResultError)) {
-                this.tell(say('failed', { message: error instanceof Error ? error.message : String(error) }));
+                this.tell(this.say('failed', { message: error instanceof Error ? error.message : String(error) }));
             }
             return;
         }
         const places = uniqueLocations(result);
         if (places.length === 0) {
-            this.tell(say('none'));
+            this.tell(this.say('none'));
         } else if (kind === 'definition' && places.length === 1 && places[0]!.uri === uri && rangeHolds(places[0]!.range, position)) {
             // The name is its own definition, so what a person wants to see is where it is used.
             void this.language.peek.open(position);
         } else if (places.length === 1) {
             this.language.goTo(places[0]!);
         } else {
-            this.language.locations(places, position, say(`titles.${kind}`));
+            this.language.locations(places, position, this.say(`titles.${kind}`));
         }
         editor.focus();
     }
@@ -148,7 +144,7 @@ export class NavigationFeature {
             if (places.length === 1) {
                 this.language.goTo(places[0]!);
             } else if (places.length > 1) {
-                this.language.locations(places, anchor, say('titles.symbol'));
+                this.language.locations(places, anchor, this.say('titles.symbol'));
             }
         } catch {
             // A name that cannot be found is a link that does nothing, not an error.
@@ -157,6 +153,10 @@ export class NavigationFeature {
 
     private tell(title: string): void {
         this.language.project.host.notify?.({ id: TOAST_ID, kind: 'error', title });
+    }
+
+    private say(key: string, options?: Record<string, unknown>): string {
+        return this.language.project.i18n.t(`editor:language.navigation.${key}`, options);
     }
 }
 

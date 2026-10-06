@@ -11,6 +11,7 @@ The `host` is what the app allows the features to do. Every field is optional.
 | `folder`                        | The project's folder, so paths show relative to it                                                 |
 | `files`                         | Reads, drafts, saves and renames files; see [workspace edits](#workspace-edits)                    |
 | `keymap`, `apple`               | The same resolved [key table](/editor/options#keymaps) and platform as the engine                  |
+| `i18n`                          | The i18next instance the features read their words from; the default instance without one         |
 | `openPlace(place)`              | Opens another file at a zero-based position; the features call it to go to a definition elsewhere |
 | `pathOfUri(uri)`                | The path to show for a URI, or `null`; without it, `file:` URIs under `folder` are made relative   |
 | `serverNames(uri)`              | The names of the servers of a document, for the cards                                              |

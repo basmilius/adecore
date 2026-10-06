@@ -1,6 +1,6 @@
 import type { DocumentSymbol, DocumentSymbolResult, Position, SymbolInformation } from '@adecore/lsp';
 import { formatNumber } from '@adecore/ui/format';
-import i18next from 'i18next';
+import type { i18n } from 'i18next';
 
 /* More declarations than this in one file and the rows are left out, which is the file that is too big for them to be quiet. */
 export const MAX_DECLARATIONS = 3000;
@@ -223,8 +223,8 @@ export function declarationsOf(result: DocumentSymbolResult, source: Declaration
 }
 
 /* "No usages", "1 usage" and "N usages". */
-export function usagesText(count: number): string {
+export function usagesText(count: number, i18n: i18n): string {
     return count === 0
-        ? i18next.t('editor:language.codeVision.usagesNone')
-        : i18next.t('editor:language.codeVision.usages', { count, formatted: formatNumber(count) });
+        ? i18n.t('editor:language.codeVision.usagesNone')
+        : i18n.t('editor:language.codeVision.usages', { count, formatted: formatNumber(count) });
 }

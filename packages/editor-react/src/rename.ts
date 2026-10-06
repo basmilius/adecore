@@ -1,4 +1,3 @@
-import i18next from 'i18next';
 import { StaleResultError, type Location, type PrepareRenameResult, type WorkspaceEdit } from '@adecore/lsp';
 import type { EditorRange } from '@adecore/editor';
 import type { EditorLanguage } from './editor-language.ts';
@@ -13,9 +12,6 @@ const SAMPLE_LOCATIONS = 8;
 const SAMPLE_OTHER_FILES = 3;
 const CONTEXT_LINES = 3;
 
-function say(key: string, options?: Record<string, unknown>): string {
-    return i18next.t(`editor:language.rename.${key}`, options);
-}
 
 interface Session {
     readonly target: RenameTarget;
@@ -67,7 +63,7 @@ export class RenameFeature {
     async start(): Promise<void> {
         const { editor, project, uri } = this.language;
         if (!project.service.supports(METHOD, uri)) {
-            this.tell('error', say('unavailable'));
+            this.tell('error', this.say('unavailable'));
             return;
         }
         this.cancel();
@@ -78,7 +74,7 @@ export class RenameFeature {
             answer = prepare ? await project.service.prepareRename(uri, caret) : { defaultBehavior: true };
         } catch (error) {
             if (!(error instanceof StaleResultError)) {
-                this.tell('error', say('nothing'));
+                this.tell('error', this.say('nothing'));
             }
             return;
         }
@@ -92,7 +88,7 @@ export class RenameFeature {
                 )
         );
         if (target === null) {
-            this.tell('error', say('nothing'));
+            this.tell('error', this.say('nothing'));
             return;
         }
         const session: Session = { target, original: editor.textInRange(target.range), edit: null, names: new AbortController() };
@@ -120,7 +116,7 @@ export class RenameFeature {
                 return;
             }
             if (edit === null) {
-                this.fail(say('refused'));
+                this.fail(this.say('refused'));
                 return;
             }
             session.edit = edit;
@@ -140,7 +136,7 @@ export class RenameFeature {
             this.publish({ phase: 'preview', busy: false, name: next, files });
         } catch (error) {
             if (this.session === session) {
-                this.fail(error instanceof StaleResultError ? say('stale') : error instanceof Error ? error.message : String(error));
+                this.fail(error instanceof StaleResultError ? this.say('stale') : error instanceof Error ? error.message : String(error));
             }
         }
     }
@@ -168,7 +164,7 @@ export class RenameFeature {
         if (result.applied) {
             this.finish();
         } else {
-            this.fail(result.failureReason ?? say('refused'));
+            this.fail(result.failureReason ?? this.say('refused'));
         }
     }
 
@@ -176,7 +172,7 @@ export class RenameFeature {
     private fail(message: string): void {
         if (this.session !== null) {
             this.session.edit = null;
-            this.publish({ phase: 'input', busy: false, files: [], error: say('failed', { message }) });
+            this.publish({ phase: 'input', busy: false, files: [], error: this.say('failed', { message }) });
         }
     }
 
@@ -287,5 +283,9 @@ export class RenameFeature {
                 ...patch
             }
         });
+    }
+
+    private say(key: string, options?: Record<string, unknown>): string {
+        return this.language.project.i18n.t(`editor:language.rename.${key}`, options);
     }
 }

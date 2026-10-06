@@ -36,7 +36,7 @@ Import the styles in this order and let Tailwind scan the package, since the car
 
 ## Words
 
-The package's words live in the `editor` namespace, in English and Dutch. Add them before the first editor mounts. The cards read them through `react-i18next` from the instance of `UIProvider`; the features read them through the default `i18next` instance, for the notices they send. An app that hands the default instance to `UIProvider` registers them once:
+The package's words live in the `editor` namespace, in English and Dutch. Add them before the first editor mounts. The cards read them through `react-i18next` from the instance of `UIProvider`; the features read them from the `i18n` of the project's [host](/editor-react/project#languagehost), for the notices they send, and from the default `i18next` instance without one.
 
 ```ts
 import i18next from 'i18next';
@@ -47,7 +47,7 @@ i18next.addResourceBundle('en', 'editor', en);
 i18next.addResourceBundle('nl', 'editor', nl);
 ```
 
-An app with an instance of its own adds the bundles to both.
+An app with an instance of its own adds the bundles to it and hands it to both: to `UIProvider`, and as `i18n` to every `ProjectLanguage`.
 
 ## A first editor
 

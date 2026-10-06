@@ -1,4 +1,3 @@
-import i18next from 'i18next';
 import { StaleResultError, type Location, type Range } from '@adecore/lsp';
 import type { EditorPosition } from '@adecore/editor';
 import type { EditorLanguage } from './editor-language.ts';
@@ -22,9 +21,6 @@ function placeKey(location: Location): string {
     return `${location.uri}\0${location.range.start.line}\0${location.range.start.character}`;
 }
 
-function say(key: string, options?: Record<string, unknown>): string {
-    return i18next.t(`editor:language.peek.${key}`, options);
-}
 
 /*
  * The references of the name at the caret, between the lines of the file under the line it is on. The
@@ -75,7 +71,7 @@ export class PeekFeature {
         const { editor, project, uri } = this.language;
         const method = KINDS[kind].method;
         if (!project.service.supports(method, uri)) {
-            this.tell(say(KINDS[kind].unavailable));
+            this.tell(this.say(KINDS[kind].unavailable));
             return;
         }
         const token = ++this.token;
@@ -84,7 +80,7 @@ export class PeekFeature {
             found = await this.fetch(kind, position);
         } catch (error) {
             if (!(error instanceof StaleResultError)) {
-                this.tell(say('failed', { message: error instanceof Error ? error.message : String(error) }));
+                this.tell(this.say('failed', { message: error instanceof Error ? error.message : String(error) }));
             }
             return;
         }
@@ -102,7 +98,7 @@ export class PeekFeature {
                 ) === index
         );
         if (unique.length === 0) {
-            this.tell(say(KINDS[kind].none));
+            this.tell(this.say(KINDS[kind].none));
             return;
         }
         const uris = [...new Set(unique.map((location) => location.uri))].slice(0, PEEK_READ_FILES);
@@ -244,5 +240,9 @@ export class PeekFeature {
 
     private tell(title: string): void {
         this.language.project.host.notify?.({ id: TOAST_ID, kind: 'error', title });
+    }
+
+    private say(key: string, options?: Record<string, unknown>): string {
+        return this.language.project.i18n.t(`editor:language.peek.${key}`, options);
     }
 }

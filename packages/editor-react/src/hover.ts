@@ -1,4 +1,3 @@
-import i18next from 'i18next';
 import type { EditorHover, EditorPosition, EditorRange } from '@adecore/editor';
 import type { EditorLanguage } from './editor-language.ts';
 import { rangeHolds, type Problem } from './diagnostics-model.ts';
@@ -212,7 +211,7 @@ export class HoverFeature {
         if (problems.length === 0 && info === null) {
             this.hide();
             if (pinned) {
-                this.language.project.host.notify?.({ id: TOAST_ID, kind: 'error', title: i18next.t('editor:language.hover.none') });
+                this.language.project.host.notify?.({ id: TOAST_ID, kind: 'error', title: this.language.project.i18n.t('editor:language.hover.none') });
             }
             return;
         }

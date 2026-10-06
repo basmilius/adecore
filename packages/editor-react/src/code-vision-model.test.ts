@@ -1,3 +1,4 @@
+import i18next from 'i18next';
 import './test-setup.ts';
 import { describe, expect, test } from 'bun:test';
 import type { DocumentSymbol } from '@adecore/lsp';
@@ -154,9 +155,9 @@ describe('where a declaration starts', () => {
 
 describe('the words', () => {
     test('say no usages, one usage and many', () => {
-        expect(usagesText(0)).toBe('No usages');
-        expect(usagesText(1)).toBe('1 usage');
-        expect(usagesText(1234)).toContain('usages');
-        expect(usagesText(7)).toBe('7 usages');
+        expect(usagesText(0, i18next)).toBe('No usages');
+        expect(usagesText(1, i18next)).toBe('1 usage');
+        expect(usagesText(1234, i18next)).toContain('usages');
+        expect(usagesText(7, i18next)).toBe('7 usages');
     });
 });

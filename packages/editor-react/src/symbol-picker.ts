@@ -1,4 +1,3 @@
-import i18next from 'i18next';
 import { StaleResultError, type Location } from '@adecore/lsp';
 import { basenameOf } from './paths.ts';
 import type { EditorLanguage } from './editor-language.ts';
@@ -33,7 +32,7 @@ export class SymbolPickerFeature {
     async open(): Promise<void> {
         const { project, uri, popups } = this.language;
         if (!project.service.supports('textDocument/documentSymbol', uri)) {
-            this.language.project.host.notify?.({ id: TOAST_ID, kind: 'error', title: i18next.t('editor:language.symbols.unavailable') });
+            this.language.project.host.notify?.({ id: TOAST_ID, kind: 'error', title: this.language.project.i18n.t('editor:language.symbols.unavailable') });
             return;
         }
         try {
@@ -44,7 +43,7 @@ export class SymbolPickerFeature {
                 this.language.project.host.notify?.({
                     id: TOAST_ID,
                     kind: 'error',
-                    title: i18next.t('editor:language.symbols.failed', { message: error instanceof Error ? error.message : String(error) })
+                    title: this.language.project.i18n.t('editor:language.symbols.failed', { message: error instanceof Error ? error.message : String(error) })
                 });
             }
         }
