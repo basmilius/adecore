@@ -728,13 +728,15 @@
 
 /*
  * A code vision row is quiet text one code line high above a declaration, in the declaration's
- * indentation. Its entries stand a text size apart and light up as a link under the pointer.
+ * indentation, a step below the code as the platform draws it. Its entries stand a text size apart
+ * and light up as a link under the pointer.
  */
 .se-block.se-lens {
     display: flex;
     align-items: center;
     gap: var(--text-xs);
     padding: 0;
+    font-size: max(12px, calc(var(--code-font-size, 13px) - 2px));
     white-space: nowrap;
 }
 .se-lens-entry {
