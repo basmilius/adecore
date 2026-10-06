@@ -171,7 +171,8 @@ export const sidebar: DefaultTheme.SidebarMulti = {
             ['Conversation', '/agent-contracts/conversation'],
             ['Providers and accounts', '/agent-contracts/providers-and-accounts'],
             ['Tasks and usage', '/agent-contracts/tasks-and-usage']
-        ])
+        ]),
+        group('Reference', [['Exports', '/agent-contracts/reference']])
     ],
     '/agents/': [
         group('Agents', [
@@ -282,7 +283,8 @@ export const sidebar: DefaultTheme.SidebarMulti = {
             ['Rows and widgets', '/editor/rows'],
             ['Agents', '/editor/agents'],
             ['Find and folding', '/editor/find-folding']
-        ])
+        ]),
+        group('Reference', [['Exports', '/editor/reference']])
     ],
     '/lsp/': [
         group('LSP', [
@@ -291,7 +293,8 @@ export const sidebar: DefaultTheme.SidebarMulti = {
             ['Documents and edits', '/lsp/documents'],
             ['Language service', '/lsp/language-service'],
             ['Testing', '/lsp/testing']
-        ])
+        ]),
+        group('Reference', [['Exports', '/lsp/reference']])
     ],
     '/editor-react/': [
         group('Editor views', [
@@ -311,6 +314,9 @@ export const sidebar: DefaultTheme.SidebarMulti = {
             ['Reviews and agents', '/editor-react/change-review'],
             ['Code vision', '/editor-react/code-vision']
         ]),
-        group('Reference', [['Models', '/editor-react/models']])
+        group('Reference', [
+            ['Models', '/editor-react/models'],
+            ['Exports', '/editor-react/reference']
+        ])
     ]
 };

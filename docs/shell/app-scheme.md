@@ -25,6 +25,8 @@ app.whenReady().then(() => {
 
 ## Options
 
+`AppSchemeOptions`:
+
 | Option       | Default                | Meaning                                                                                       |
 | ------------ | ---------------------- | --------------------------------------------------------------------------------------------- |
 | `scheme`     | required               | The scheme without its colon                                                                  |
@@ -62,7 +64,7 @@ const scheme = createAppScheme({
 
 ## The guards
 
-`origin` is what the guards take for the app's, and `url` is what the window loads. The guards are bound to both: `originOf(url)`, `isAppUrl(url)`, `navigation(url)` for [`appWindowNavigation`](/shell/web-guards#appwindownavigation) and `isAppSender(isAppWindow, frame)`. With `pageUrl` the app's origin is the dev server's, so the page's own host on the scheme is then not the app.
+The `AppScheme` it returns holds the guards. `origin` is what the guards take for the app's, and `url` is what the window loads. The guards are bound to both: `originOf(url)`, `isAppUrl(url)`, `navigation(url)` for [`appWindowNavigation`](/shell/web-guards#appwindownavigation) and `isAppSender(isAppWindow, frame)`. With `pageUrl` the app's origin is the dev server's, so the page's own host on the scheme is then not the app.
 
 ```ts
 const fromApp = (event: Electron.IpcMainInvokeEvent): boolean => scheme.isAppSender(isAppWindow(event.sender), event.senderFrame);

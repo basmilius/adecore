@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Glob } from 'bun';
 import { describe, expect, test } from 'bun:test';
+import { absolute, exportedNames, publishedEntries } from './published-exports.ts';
 
 const HERE = new URL('.', import.meta.url).pathname;
 const SNAPSHOT = readFileSync(join(HERE, '../packages/ui/src/__snapshots__/exports.test.ts.snap'), 'utf8');
@@ -38,7 +39,13 @@ const compoundParts = (): string[] => {
     return parts;
 };
 
-const mentioned = (name: string): boolean => new RegExp(`(?<![\\w$])${name.replace('.', '\\.')}(?![\\w$])`).test(PAGES);
+const WORDS = new Set(PAGES.match(/[\w$]+/g));
+
+const mentioned = (name: string): boolean =>
+    name.includes('.') ? new RegExp(`(?<![\\w$])${name.replace('.', '\\.')}(?![\\w$])`).test(PAGES) : WORDS.has(name);
+
+/* The apps that use the library, which no page names. */
+const APP_NAMES = /ruimte|aftermotion|solvidi|command[ -]center/i;
 
 describe('the docs', () => {
     test('read the public API out of the snapshot', () => {
@@ -50,13 +57,25 @@ describe('the docs', () => {
         expect(exportedNames().filter((name) => !mentioned(name))).toEqual([]);
     });
 
+    test('mention every name every published package exports', () => {
+        const entries = publishedEntries();
+        expect(new Set(entries.map((entry) => entry.pkg)).size).toBeGreaterThan(10);
+        const missing = entries.flatMap(({ pkg, entry, file }) =>
+            exportedNames(absolute(file))
+                // A legacy name that carries an app's name stays out of the pages, which describe it generically.
+                .filter((name) => !mentioned(name) && !APP_NAMES.test(name))
+                .map((name) => `${pkg} ${entry} ${name}`)
+        );
+        expect(missing).toEqual([]);
+    });
+
     test('mention every part of every compound component', () => {
         expect(compoundParts().filter((part) => !mentioned(part))).toEqual([]);
     });
 
     test('never name an app that uses the library', () => {
         const naming = filesIn('**/*.{md,ts,tsx,vue,css}')
-            .filter(({ path, text }) => path !== 'docs.test.ts' && /ruimte|aftermotion|solvidi|command[ -]center/i.test(text))
+            .filter(({ path, text }) => path !== 'docs.test.ts' && APP_NAMES.test(text))
             .map(({ path }) => path);
         expect(naming).toEqual([]);
     });

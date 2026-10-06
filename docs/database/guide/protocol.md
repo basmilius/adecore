@@ -94,7 +94,7 @@ A session is what `open` returns. Every method except `open`, `test`, `sample`, 
 
 `export`, `sample` and `import` name a file by an absolute `path` on the machine of the helper. The host asks the app first; see [Files](/database/guide/files).
 
-- `export` streams every row of a `source` to a file: a table (`{ kind: 'table', schema, table, where?, orderBy? }`) or one statement that reads (`{ kind: 'query', sql, schema? }`). The `format` is a `FileFormat`: `csv`, `tsv`, `json` or `sql`. `header`, true when left out, puts the column names on the first line of CSV and TSV, and `tableName` names the table in the `INSERT` statements of `sql`. The [formats](/database/guide/files#exporting) have the details.
+- `export` streams every row of a `source`, an `ExportSource`, to a file: a table (`{ kind: 'table', schema, table, where?, orderBy? }`) or one statement that reads (`{ kind: 'query', sql, schema? }`). The `format` is a `FileFormat`: `csv`, `tsv`, `json` or `sql`. `header`, true when left out, puts the column names on the first line of CSV and TSV, and `tableName` names the table in the `INSERT` statements of `sql`. The [formats](/database/guide/files#exporting) have the details.
 - `sample` reads the first `limit` lines, 20 when left out, of a CSV or TSV file. It answers the column names, or `column1` to `columnN` without a header, and the rows as strings, short lines padded with empty strings.
 - `import` inserts the lines of a CSV or TSV file in one transaction. `columns` has one entry per field of a line: the column it goes into, or `null` to skip it. A field that is empty or `\N` becomes NULL.
 
