@@ -1,3 +1,5 @@
+export { APP_SCHEME_PRIVILEGES, createAppScheme, segmentsOf } from './app-scheme.ts';
+export type { AppScheme, AppSchemeOptions, SchemeFolder, SchemeResolver } from './app-scheme.ts';
 export { createMenuCommands, devToolsAccelerator, menuTemplateOf, staticMenuTemplate } from './menu.ts';
 export type { MenuCommandOptions, MenuTemplateOptions, MenuWindow, StaticMenuOptions } from './menu.ts';
 export { createPageKeys, PAGE_KEY_MS } from './page-keys.ts';

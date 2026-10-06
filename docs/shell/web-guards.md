@@ -2,7 +2,7 @@
 
 The app's page carries the whole bridge, so where it may go and who may speak for it are security decisions. These are pure functions; the app wires them to Electron's events.
 
-An app that serves its page from a scheme of its own (`app://main`) passes that scheme as `schemes`: Node's URL gives every scheme it does not know the origin `null`, where Chromium gives a registered standard scheme a real one.
+An app that serves its page from a scheme of its own (`app://main`) passes that scheme as `schemes`: Node's URL gives every scheme it does not know the origin `null`, where Chromium gives a registered standard scheme a real one. [`createAppScheme`](/shell/app-scheme) binds the scheme and the origin to all of them once.
 
 ## originOf
 

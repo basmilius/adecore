@@ -23,7 +23,7 @@ The package registers no IPC handler and listens to no app-wide Electron event. 
 
 | Import | What it holds |
 |---|---|
-| `@adecore/shell` | For the main process: `createWindows`, `createWindowState`, `createUpdater`, `createTheme`, `menuTemplateOf`, `staticMenuTemplate`, `createMenuCommands`, `createPageKeys` and the web guards |
+| `@adecore/shell` | For the main process: `createWindows`, `createWindowState`, `createUpdater`, `createTheme`, `menuTemplateOf`, `staticMenuTemplate`, `createMenuCommands`, `createPageKeys`, `createAppScheme` and the web guards |
 | `@adecore/shell/bridge` | The shapes that cross IPC: `MenuSpec`, `MenuNode`, `MENU_ROLES`, `UpdateState`, `ThemeState` and `compareVersions`. It imports nothing from Electron, so a preload and the page read it too. |
 
 ## Documentation
@@ -36,6 +36,7 @@ The package registers no IPC handler and listens to no app-wide Electron event. 
 | [Window state](https://adecore.dev/shell/window-state) | Each window opens where it was left |
 | [Theme](https://adecore.dev/shell/theme) | The page's theme on the window, its controls and Chromium |
 | [Web guards](https://adecore.dev/shell/web-guards) | Where the app's page may go, and who may speak for it |
+| [App scheme](https://adecore.dev/shell/app-scheme) | The app's page served from a scheme of its own, with the guards bound to it |
 | [Bridge](https://adecore.dev/shell/bridge) | The shapes that cross IPC |
 
 ## License

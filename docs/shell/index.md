@@ -25,4 +25,5 @@ The package registers no IPC handler and listens to no app-wide Electron event b
 - [Window state](/shell/window-state): each window opens where it was left.
 - [Theme](/shell/theme): the page's theme on the window, its controls and Chromium.
 - [Web guards](/shell/web-guards): where the app's page may go, and who may speak for it.
+- [App scheme](/shell/app-scheme): the app's page served from a scheme of its own, with the guards bound to it.
 - [Bridge](/shell/bridge): the shapes a preload and the page share with the main process.

@@ -125,6 +125,7 @@ const desktopShell: DefaultTheme.SidebarItem[] = [
         ['Window state', '/shell/window-state'],
         ['Theme', '/shell/theme'],
         ['Web guards', '/shell/web-guards'],
+        ['App scheme', '/shell/app-scheme'],
         ['Bridge', '/shell/bridge']
     ])
 ];
