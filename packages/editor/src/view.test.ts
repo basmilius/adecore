@@ -449,6 +449,20 @@ describe('indent guides, the right margin, whitespace and wrap signs', () => {
         expect(lefts(host, '.se-guide-active')).toEqual(['31.2px/60px']);
     });
 
+    test('light the guide the caret stands on as well, past the first column', () => {
+        const nested = 'class A {\n    method() {\n        if (x) {\n            body();\n        }\n    }\n}';
+        const { host, model, view } = mount(nested);
+        model.setSelections([{ anchor: model.getLine(3).start + 4, head: model.getLine(3).start + 4 }]);
+        view.render();
+        expect(lefts(host, '.se-guide-active').sort()).toEqual(['31.2px/60px', '62.4px/20px']);
+        model.setSelections([{ anchor: model.getLine(3).start, head: model.getLine(3).start }]);
+        view.render();
+        expect(lefts(host, '.se-guide-active')).toEqual(['62.4px/20px']);
+        model.setSelections([{ anchor: model.getLine(3).start + 14, head: model.getLine(3).start + 14 }]);
+        view.render();
+        expect(lefts(host, '.se-guide-active')).toEqual(['62.4px/20px']);
+    });
+
     test('draw none when they are off, and the margin only when a column is given', () => {
         const off = mount(source, { guides: false });
         expect(off.host.querySelectorAll('.se-guide').length).toBe(0);

@@ -1375,11 +1375,25 @@ export class EditorView {
         return { column, first, last };
     }
 
-    /* A line at each indentation level of the rows on screen, joined where the lines go on, and the one of the scope around the caret apart. */
+    /* The line and the indentation column of a caret in the whitespace that leads its line, past the first column, where it can stand on a guide. */
+    private caretOnGuide(): { line: number; column: number } | null {
+        const position = this.model.positionAt(this.model.getPrimary().head);
+        const lead = this.model.getLine(position.line).text.slice(0, position.column);
+        if (position.column === 0 || !/^[\t ]*$/.test(lead)) {
+            return null;
+        }
+        return { line: position.line, column: indentationColumn(lead, this.settings.tabSize) };
+    }
+
+    /*
+     * A line at each indentation level of the rows on screen, joined where the lines go on. Apart from them stand the one
+     * of the scope around the caret, and as the platform does, the one the caret stands on.
+     */
     private guideRects(rows: readonly LayoutRow[]): { plain: LayoutRect[]; active: LayoutRect[] } {
         const size = this.settings.tabSize;
         const charWidth = this.layout.metrics.charWidth;
         const active = this.activeGuide();
+        const caret = this.caretOnGuide();
         const plain: LayoutRect[] = [];
         const marked: LayoutRect[] = [];
         interface Open {
@@ -1393,7 +1407,9 @@ export class EditorView {
             const segment = open.get(column)!;
             open.delete(column);
             const rect = { x: column * charWidth, y: segment.top, width: 1, height: segment.bottom - segment.top };
-            (active !== null && active.column === column && segment.last >= active.first && segment.first <= active.last ? marked : plain).push(rect);
+            const scope = active !== null && active.column === column && segment.last >= active.first && segment.first <= active.last;
+            const under = caret !== null && caret.column === column && segment.first <= caret.line && caret.line <= segment.last;
+            (scope || under ? marked : plain).push(rect);
         };
         for (const row of rows) {
             if (row.kind !== 'text') {

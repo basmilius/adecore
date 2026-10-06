@@ -8,7 +8,7 @@
     --find-current-text: var(--text);
     --editor-selection: color-mix(in srgb, var(--accent) 16%, transparent);
     --editor-occurrence: color-mix(in srgb, var(--text) 7%, transparent);
-    --editor-guide: color-mix(in srgb, var(--text) 8%, transparent);
+    --editor-guide: color-mix(in srgb, var(--text) 5%, transparent);
     --editor-guide-active: color-mix(in srgb, var(--text) 24%, transparent);
     --editor-margin: color-mix(in srgb, var(--text) 14%, transparent);
     --editor-whitespace: color-mix(in srgb, var(--text) 30%, transparent);
@@ -29,7 +29,7 @@
     --find-match: color-mix(in srgb, var(--status-needs-you) 24%, transparent);
     --editor-selection: color-mix(in srgb, var(--accent) 28%, transparent);
     --editor-occurrence: color-mix(in srgb, var(--text) 9%, transparent);
-    --editor-guide: color-mix(in srgb, var(--text) 10%, transparent);
+    --editor-guide: color-mix(in srgb, var(--text) 6%, transparent);
     --editor-guide-active: color-mix(in srgb, var(--text) 28%, transparent);
     --editor-margin: color-mix(in srgb, var(--text) 16%, transparent);
     --editor-whitespace: color-mix(in srgb, var(--text) 32%, transparent);
