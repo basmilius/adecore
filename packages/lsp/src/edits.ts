@@ -1,5 +1,5 @@
 import { ErrorCodes, LspError } from './connection.ts';
-import type { ContentChange, Position, TextEdit, WorkspaceEdit } from './protocol.ts';
+import type { ContentChange, CreateFile, Position, TextEdit, WorkspaceEdit } from './protocol.ts';
 
 export interface DocumentSnapshot {
     text: string;
@@ -11,6 +11,8 @@ export interface PlannedDocumentEdit {
     version: number | null;
     before: string;
     text: string;
+    /* A file the edit creates, which was not there: the host makes it with `text` and fails when it is there by then. */
+    created?: true;
 }
 
 /* A line ends at `\n`, `\r\n` or a lone `\r`, which is how the protocol counts lines. */
@@ -158,25 +160,47 @@ export function minimalChange(before: string, after: string): ContentChange {
     };
 }
 
-/* Plans text edits in memory. A create, rename or delete needs the host's own handling and is refused. */
+function snapshotEdit(uri: string, snapshots: ReadonlyMap<string, DocumentSnapshot>): PlannedDocumentEdit {
+    const snapshot = snapshots.get(uri);
+    if (!snapshot) {
+        throw new LspError(`Missing workspace snapshot: ${uri}`);
+    }
+    return { uri, version: snapshot.version, before: snapshot.text, text: snapshot.text };
+}
+
+/* A file that is there already is refused, unless the create says to empty it or to leave it as it is. */
+function planCreate(change: CreateFile, snapshots: ReadonlyMap<string, DocumentSnapshot>, planned: Map<string, PlannedDocumentEdit>): void {
+    const existing = planned.get(change.uri) ?? (snapshots.has(change.uri) ? snapshotEdit(change.uri, snapshots) : null);
+    if (existing === null) {
+        planned.set(change.uri, { uri: change.uri, version: null, before: '', text: '', created: true });
+    } else if (change.options?.overwrite) {
+        planned.set(change.uri, { ...existing, text: '' });
+    } else if (!change.options?.ignoreIfExists) {
+        throw new LspError(`${change.uri} already exists`);
+    }
+}
+
+/*
+ * Plans text edits and created files in memory, in the order the edit gives them. `snapshots` holds the
+ * files that are there; a file the edit creates is absent from it. A rename or delete needs the host's own handling and is refused.
+ */
 export function planWorkspaceEdit(edit: WorkspaceEdit, snapshots: ReadonlyMap<string, DocumentSnapshot>): PlannedDocumentEdit[] {
     const planned = new Map<string, PlannedDocumentEdit>();
     const changes = edit.documentChanges ?? Object.entries(edit.changes ?? {}).map(([uri, edits]) => ({ textDocument: { uri, version: null }, edits }));
     for (const change of changes) {
         if ('kind' in change) {
-            throw new LspError(`A host file-operation handler is required for ${change.kind}`);
+            if (change.kind !== 'create') {
+                throw new LspError(`A host file-operation handler is required for ${change.kind}`);
+            }
+            planCreate(change, snapshots, planned);
+            continue;
         }
         const { uri, version } = change.textDocument;
-        const snapshot = snapshots.get(uri);
-        if (!snapshot) {
-            throw new LspError(`Missing workspace snapshot: ${uri}`);
-        }
-        if (version !== null && snapshot.version !== version) {
+        const current = planned.get(uri) ?? snapshotEdit(uri, snapshots);
+        if (version !== null && current.version !== version) {
             throw new LspError(`Workspace edit version mismatch: ${uri}`, ErrorCodes.ContentModified);
         }
-        const before = planned.get(uri)?.text ?? snapshot.text;
-        const text = applyTextEdits(before, change.edits);
-        planned.set(uri, { uri, version: snapshot.version, before: snapshot.text, text });
+        planned.set(uri, { ...current, text: applyTextEdits(current.text, change.edits) });
     }
     return [...planned.values()];
 }

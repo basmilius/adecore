@@ -480,7 +480,7 @@ function clientCapabilities(options: LspSessionOptions): object {
         general: { positionEncodings: ['utf-16'] },
         workspace: {
             applyEdit: !!options.onApplyEdit,
-            workspaceEdit: { documentChanges: true, resourceOperations: ['rename'], failureHandling: 'abort' },
+            workspaceEdit: { documentChanges: true, resourceOperations: ['create', 'rename'], failureHandling: 'abort' },
             fileOperations: { dynamicRegistration: true, willRename: true, didRename: true },
             configuration: true,
             workspaceFolders: true,

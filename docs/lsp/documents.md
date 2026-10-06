@@ -56,7 +56,7 @@ applyContentChanges('red blue red', [minimalChange('red blue red', after)]) === 
 
 ## Workspace edits
 
-`planWorkspaceEdit(edit, snapshots)` works out a `WorkspaceEdit` in memory without applying it. `snapshots` maps each URI to a `DocumentSnapshot`, its `text` and `version` (or `null`). The result is a `PlannedDocumentEdit` per document: `uri`, `version`, the text `before` and the planned `text`. It throws an `LspError` for a document without a snapshot, a version that does not match, edits that overlap, and any create, rename or delete. The app applies the plan, after its own permission checks.
+`planWorkspaceEdit(edit, snapshots)` works out a `WorkspaceEdit` in memory without applying it. `snapshots` maps each URI to a `DocumentSnapshot`, its `text` and `version` (or `null`). The result is a `PlannedDocumentEdit` per document: `uri`, `version`, the text `before` and the planned `text`. A file the edit creates has no snapshot, since it is not there; it is planned from an empty text with `created: true`, and the app makes it with exclusive creation, so a file that appeared in the meantime is not written over. It throws an `LspError` for a document without a snapshot, a version that does not match, edits that overlap, a create of a file that has a snapshot (unless its options say `overwrite` or `ignoreIfExists`), and any rename or delete. The app applies the plan, after its own permission checks.
 
 [`applyWorkspaceEdit`](/editor-react/project#workspace-edits) of the editor views goes further: it edits open editors, stages drafts and moves files, but checks no versions.
 

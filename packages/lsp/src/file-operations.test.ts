@@ -36,7 +36,7 @@ describe('telling a server about renamed files', () => {
     it('declares what the host does before any server registers', async () => {
         const { transport, session } = await sessionWith({});
         const { capabilities } = transport.request('initialize').params as { capabilities: { workspace: Record<string, unknown> } };
-        expect(capabilities.workspace.workspaceEdit).toMatchObject({ documentChanges: true, resourceOperations: ['rename'] });
+        expect(capabilities.workspace.workspaceEdit).toMatchObject({ documentChanges: true, resourceOperations: ['create', 'rename'] });
         expect(capabilities.workspace.fileOperations).toEqual({ dynamicRegistration: true, willRename: true, didRename: true });
         await session.shutdown();
     });

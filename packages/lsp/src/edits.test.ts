@@ -89,6 +89,51 @@ describe('workspace edit planning', () => {
         expect(snapshots.get('file:///a')?.text).toBe('old');
     });
 
+    it('plans a file the edit creates with the text the edit after the create writes into it', () => {
+        const created = 'file:///b.php';
+        const snapshots = new Map([['file:///a.php', { text: 'class A {}', version: 4 }]]);
+        const write = { range: { start: origin, end: origin }, newText: 'interface B {}' };
+        const implement = { range: { start: { line: 0, character: 7 }, end: { line: 0, character: 7 } }, newText: ' implements B' };
+        expect(
+            planWorkspaceEdit(
+                {
+                    documentChanges: [
+                        { kind: 'create', uri: created, options: { overwrite: false, ignoreIfExists: false } },
+                        { textDocument: { uri: created, version: null }, edits: [write] },
+                        { textDocument: { uri: 'file:///a.php', version: 4 }, edits: [implement] }
+                    ]
+                },
+                snapshots
+            )
+        ).toEqual([
+            { uri: created, version: null, before: '', text: 'interface B {}', created: true },
+            { uri: 'file:///a.php', version: 4, before: 'class A {}', text: 'class A implements B {}' }
+        ]);
+    });
+
+    it('refuses to create a file that is there, unless the create says to empty it or to leave it', () => {
+        const snapshots = new Map([['file:///a.php', { text: 'class A {}', version: 4 }]]);
+        const write = { textDocument: { uri: 'file:///a.php', version: null }, edits: [{ range: { start: origin, end: origin }, newText: '<?php ' }] };
+        expect(() => planWorkspaceEdit({ documentChanges: [{ kind: 'create', uri: 'file:///a.php' }, write] }, snapshots)).toThrow('already exists');
+        expect(planWorkspaceEdit({ documentChanges: [{ kind: 'create', uri: 'file:///a.php', options: { overwrite: true } }, write] }, snapshots)).toEqual([
+            { uri: 'file:///a.php', version: 4, before: 'class A {}', text: '<?php ' }
+        ]);
+        expect(planWorkspaceEdit({ documentChanges: [{ kind: 'create', uri: 'file:///a.php', options: { ignoreIfExists: true } }, write] }, snapshots)).toEqual(
+            [{ uri: 'file:///a.php', version: 4, before: 'class A {}', text: '<?php class A {}' }]
+        );
+        expect(() =>
+            planWorkspaceEdit(
+                {
+                    documentChanges: [
+                        { kind: 'create', uri: 'file:///b.php' },
+                        { kind: 'create', uri: 'file:///b.php' }
+                    ]
+                },
+                snapshots
+            )
+        ).toThrow('already exists');
+    });
+
     it('validates every target before exposing a multi-file edit plan', () => {
         const edit = { range: { start: origin, end: { line: 0, character: 3 } }, newText: 'new' };
         const snapshots = new Map([['file:///a', { text: 'old', version: 3 }]]);
