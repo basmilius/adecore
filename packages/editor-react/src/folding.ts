@@ -1,4 +1,4 @@
-import type { EditorFoldHints, EditorFoldRange, EditorFoldSymbol } from '@adecore/editor';
+import type { EditorFoldHints, EditorFoldRangeHint, EditorFoldSymbol } from '@adecore/editor';
 import type { DocumentSymbol, DocumentSymbolResult, FoldingRange, SymbolInformation } from '@adecore/lsp';
 import type { EditorLanguage } from './editor-language.ts';
 import { Refresher } from './refresher.ts';
@@ -51,11 +51,17 @@ export function foldSymbolsOf(result: DocumentSymbolResult): EditorFoldSymbol[] 
     return found;
 }
 
-/* The ranges a server folds that span more than one line. */
-export function foldRangesOf(ranges: readonly FoldingRange[] | null): (EditorFoldRange & { kind?: string })[] {
+/* The ranges a server folds that span more than one line, with where a range starts and ends within its lines when it says. */
+export function foldRangesOf(ranges: readonly FoldingRange[] | null): EditorFoldRangeHint[] {
     return (ranges ?? [])
         .filter((range) => range.endLine > range.startLine)
-        .map((range) => ({ startLine: range.startLine, endLine: range.endLine, ...(range.kind === undefined ? {} : { kind: range.kind }) }));
+        .map((range) => ({
+            startLine: range.startLine,
+            endLine: range.endLine,
+            ...(range.kind === undefined ? {} : { kind: range.kind }),
+            ...(range.startCharacter === undefined ? {} : { startCharacter: range.startCharacter }),
+            ...(range.endCharacter === undefined ? {} : { endCharacter: range.endCharacter })
+        }));
 }
 
 /*
@@ -65,7 +71,7 @@ export function foldRangesOf(ranges: readonly FoldingRange[] | null): (EditorFol
  */
 export class FoldingFeature {
     private symbols: EditorFoldSymbol[] = [];
-    private ranges: (EditorFoldRange & { kind?: string })[] = [];
+    private ranges: EditorFoldRangeHint[] = [];
     private readonly refresher: Refresher;
     private readonly language: EditorLanguage;
 
