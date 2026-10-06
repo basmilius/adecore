@@ -1,10 +1,9 @@
-<a href="https://bas.dev" target="_blank" rel="noopener">
-    <img src="https://bmcdn.nl/assets/branding/logo.svg" alt="Bas Milius logo" height="60" width="60" />
+<a href="https://adecore.dev">
+    <picture>
+        <source media="(prefers-color-scheme: dark)" srcset=".github/logo-dark.svg" />
+        <img src=".github/logo-light.svg" alt="adecore" height="48" />
+    </picture>
 </a>
-
----
-
-# adecore
 
 [![CI](https://github.com/basmilius/adecore/actions/workflows/ci.yml/badge.svg)](https://github.com/basmilius/adecore/actions/workflows/ci.yml)
 [![ui on npm](https://img.shields.io/npm/v/@adecore/ui?label=ui)](https://www.npmjs.com/package/@adecore/ui)
@@ -82,3 +81,9 @@ Use a template: a [bug](https://github.com/basmilius/adecore/issues/new?template
 ## License
 
 Every package is licensed under [FSL-1.1-MIT](LICENSE). Code adapted from third parties keeps its own license, named in the package that carries it.
+
+<p align="center">
+    <a href="https://bas.dev" target="_blank" rel="noopener">
+        <img src="https://bmcdn.nl/assets/branding/logo.svg" alt="Bas Milius logo" height="60" width="60" />
+    </a>
+</p>
