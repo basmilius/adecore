@@ -5,6 +5,7 @@ import { ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from './Icon.tsx';
 import { MENU_LABEL, MenuCheck } from './menu/parts.tsx';
+import { renderPositioner } from './popup-layer.ts';
 
 export interface SelectItem<T extends string> {
     value: T;
@@ -113,7 +114,7 @@ export function Select<T extends string>({
                 </BaseSelect.Icon>
             </BaseSelect.Trigger>
             <BaseSelect.Portal>
-                <BaseSelect.Positioner className="popup-positioner" side="bottom" align={align} sideOffset={6} alignItemWithTrigger={false}>
+                <BaseSelect.Positioner className="popup-positioner" render={renderPositioner} side="bottom" align={align} sideOffset={6} alignItemWithTrigger={false}>
                     <BaseSelect.Popup className="menu-popup">
                         <BaseSelect.List className="max-h-80 overflow-auto">
                             {groups

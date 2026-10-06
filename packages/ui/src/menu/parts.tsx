@@ -8,6 +8,7 @@ import { useRender } from '@base-ui-components/react/use-render';
 import { withClass } from '../class-name.ts';
 import { Icon } from '../Icon.tsx';
 import { Tooltip } from '../Tooltip.tsx';
+import { renderPositioner } from '../popup-layer.ts';
 
 /* Where a popup opens from decides where it goes when a call site says nothing. */
 type MenuKind = 'menu' | 'context' | 'submenu';
@@ -96,6 +97,7 @@ export function MenuPopup({
         <BaseMenu.Portal>
             <BaseMenu.Positioner
                 className="popup-positioner"
+                render={renderPositioner}
                 side={side ?? defaults.side}
                 align={align ?? defaults.align}
                 sideOffset={sideOffset ?? defaults.sideOffset}

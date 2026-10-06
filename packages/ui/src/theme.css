@@ -424,7 +424,7 @@
     /* A press on a window's drag region goes to the system and never reaches the page, so a popup
        that closes on a press outside it would stay open over a custom title bar. While one is open
        nothing drags, the way a native title bar takes that first press to close a menu. */
-    :root:has(.popup-positioner[data-open]) * { -webkit-app-region: no-drag; }
+    :root[data-popup-open] * { -webkit-app-region: no-drag; }
     .dialog-backdrop { position: fixed; inset: 0; z-index: var(--z-dialog-backdrop); background: color-mix(in srgb, var(--bg) 55%, transparent); }
     .dialog-backdrop[data-starting-style], .dialog-backdrop[data-ending-style] { opacity: 0; }
     .dialog-popup {

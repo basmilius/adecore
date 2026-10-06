@@ -2,6 +2,7 @@ import type { ComponentProps } from 'react';
 import { Popover as BasePopover } from '@base-ui-components/react/popover';
 import { PreviewCard as BasePreviewCard } from '@base-ui-components/react/preview-card';
 import { withClass } from '../class-name.ts';
+import { renderPositioner } from '../popup-layer.ts';
 
 /*
  * The surface a popup is drawn on. `menu` is the padded card menus use, `picker` a card whose
@@ -55,6 +56,7 @@ export function PopoverPopup({
         <BasePopover.Portal>
             <BasePopover.Positioner
                 className="popup-positioner"
+                render={renderPositioner}
                 side={side}
                 align={align}
                 sideOffset={sideOffset}
