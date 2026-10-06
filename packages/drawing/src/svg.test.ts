@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import type { DrawingColor, DrawingElement } from './protocol.ts';
 import { pathsOfElement } from './paths.ts';
 import { toSvg } from './svg.ts';
+import { rotatePoint } from './geometry.ts';
 import { readingOrder } from './reading-order.ts';
 
 const palette = Object.fromEntries(
@@ -155,6 +156,15 @@ describe('toSvg', () => {
 
     test('without a background the paper stays transparent', () => {
         expect(toSvg([rect('a')], { palette })).not.toContain('<rect');
+    });
+
+    test('a rotated element away from the origin lands where the canvas draws it', () => {
+        const turned: DrawingElement = { ...rect('a', 200, 120), angle: Math.PI / 3 };
+        const [, tx, ty, degrees, cx, cy] = toSvg([turned], { palette }).match(/translate\(([-\d.]+) ([-\d.]+)\) rotate\(([-\d.]+) ([-\d.]+) ([-\d.]+)\)/)!.map(Number);
+        const corner = rotatePoint({ x: 0, y: 0 }, { x: cx, y: cy }, (degrees * Math.PI) / 180);
+        const expected = rotatePoint({ x: 200, y: 120 }, { x: 250, y: 150 }, Math.PI / 3);
+        expect(corner.x + tx).toBeCloseTo(expected.x, 1);
+        expect(corner.y + ty).toBeCloseTo(expected.y, 1);
     });
 
     test('a control character in a text leaves only characters XML allows', () => {

@@ -29,10 +29,6 @@ The SVG is sized to the bounds of the elements plus a margin, and keeps their st
 
 Fonts are named, not embedded, so a file opened on another machine falls back to a font it has. Text and font names are escaped, and characters XML cannot hold are dropped. The colors are written into attributes as they are: they come from the app, never from the document, which can only name a palette color.
 
-::: warning Rotated elements
-`toSvg` turns an element around its center in world units after moving it to `(x, y)`, so a rotated element that is not at the origin ends up in the wrong place. Until that is fixed, paint rotated elements from `pathsOfElement`, as below.
-:::
-
 ## pathsOfElement
 
 ```ts

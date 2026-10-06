@@ -1,5 +1,5 @@
 import type { DrawingColor, DrawingElement, DrawingFont } from './protocol.ts';
-import { boundsOfElements, centerOf, boundsOf, type Rect } from './geometry.ts';
+import { boundsOfElements, type Rect } from './geometry.ts';
 import { pathsOfElement } from './paths.ts';
 import { DEFAULT_FONT_STACKS, LINE_HEIGHT, approximateMeasure, fontOf, linesOf, writingFrameOf, type MeasureLine, type WrittenElement } from './text.ts';
 
@@ -76,8 +76,8 @@ function round(value: number): number {
 }
 
 function transformOf(element: DrawingElement): string {
-    const center = centerOf(boundsOf(element));
-    const turn = element.angle ? ` rotate(${round((element.angle * 180) / Math.PI)} ${round(center.x)} ${round(center.y)})` : '';
+    // After the translate the paths are in the element's own frame, so its center is half its size.
+    const turn = element.angle ? ` rotate(${round((element.angle * 180) / Math.PI)} ${round(element.w / 2)} ${round(element.h / 2)})` : '';
     return `translate(${round(element.x)} ${round(element.y)})${turn}`;
 }
 
