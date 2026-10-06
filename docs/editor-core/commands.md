@@ -11,6 +11,7 @@ Three methods turn what a person does into edits on every caret at once. Each re
 - A bracket, quote or `<` typed over a selection wraps it. A quote typed over one quote of a string swaps both.
 - A closing bracket typed alone on its line moves back to the indentation of its opener.
 - In TypeScript, JavaScript and PHP a `;` typed just before the `)` and `]` that close a call goes past them, to the end of the statement.
+- In PHP a `-` typed right after a variable, a property or method name after `->`, or a `)` or `]` becomes `->`, with the `>` as an undo step of its own. A `>` typed next goes over it, and so does Backspace, which takes both. A key that cannot follow `->` (anything but a letter, `_` or `{`) makes it a minus again, typed with that key.
 
 ```ts
 const document = new DocumentModel('call(x)');
@@ -68,6 +69,7 @@ The plain word commands stop at camel humps only with `camelCase: true`; the `ca
 | `autoClosingBrackets`, `autoClosingQuotes`   | on             |                                                                       |
 | `surroundSelection`                          | on             | A bracket or quote typed over a selection wraps it                    |
 | `smartSemicolon`                             | on             | Only in TypeScript, JavaScript and PHP                                |
+| `smartArrow`                                 | on             | In PHP a `-` after a variable, a member, `)` or `]` becomes `->`      |
 | `tabOutOfClosers`                            | on             | Tab steps over a closer the editor added                              |
 | `smartEnter`                                 | on             | Enter computes indentation, continues comments and closes braces      |
 | `indentOnPaste`                              | on             | A pasted block takes the indentation of its line                      |

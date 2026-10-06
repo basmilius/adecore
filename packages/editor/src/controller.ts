@@ -293,6 +293,7 @@ export class InputController {
             smartEnter: keys.smartIndentOnEnter,
             indentOnPaste: keys.indentOnPaste,
             smartSemicolon: keys.smartSemicolon,
+            smartArrow: keys.smartArrow,
             language: settings.language ?? 'plaintext',
             camelCase: keys.camelHumps,
             visualLine: (offset) => this.view.rowOf(offset),

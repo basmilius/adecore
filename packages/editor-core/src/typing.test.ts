@@ -202,3 +202,110 @@ describe('backspace at the start of a line', () => {
         expect(model.getText()).toBe('foo  \nbr');
     });
 });
+
+describe('the arrow of PHP', () => {
+    const OPEN = '<?php\n';
+
+    /* Types each key into a PHP file in turn and shows the code after the open tag. */
+    function php(source: string, keys: readonly string[], options: TypeTextOptions = {}): { model: DocumentModel; shown: () => string } {
+        const initial = parse(OPEN + source);
+        const model = new DocumentModel(initial.text);
+        model.setSelections([{ anchor: initial.anchor, head: initial.head }]);
+        for (const key of keys) {
+            model.typeText(key, { language: 'php', ...options });
+        }
+        return { model, shown: () => render(model).slice(OPEN.length) };
+    }
+
+    it.each([
+        ['$user¦', '$user->¦'],
+        ['$this¦', '$this->¦'],
+        ['$user->profile¦', '$user->profile->¦'],
+        ['$user?->profile¦', '$user?->profile->¦'],
+        ['$user->load()¦', '$user->load()->¦'],
+        ['$items[0]¦', '$items[0]->¦']
+    ])('completes the arrow after %s', (source, expected) => {
+        expect(php(source, ['-']).shown()).toBe(expected);
+    });
+
+    it.each([['$user ¦'], ['count¦'], ['Foo¦'], ['1¦'], ['if ($a)¦'], ["'$user¦'"], ['"$user¦"'], ['// $user¦'], ['/* $user¦ */']])(
+        'types a minus after %s',
+        (source) => {
+            expect(php(source, ['-']).shown()).toBe(source.replace('¦', '-¦'));
+        }
+    );
+
+    it.each([
+        ['-', '$i--¦'],
+        ['=', '$i-=¦'],
+        ['1', '$i-1¦'],
+        [' ', '$i- ¦'],
+        ['$', '$i-$¦'],
+        ['(', '$i-(¦)']
+    ])('makes it a minus again when %j follows, which cannot follow an arrow', (key, expected) => {
+        expect(php('$i¦', ['-', key]).shown()).toBe(expected);
+    });
+
+    it.each([
+        ['n', '$user->n¦'],
+        ['_', '$user->_¦'],
+        ['{', '$user->{¦}']
+    ])('keeps the arrow when %j follows', (key, expected) => {
+        expect(php('$user¦', ['-', key]).shown()).toBe(expected);
+    });
+
+    it('goes over its own > when a person types the arrow out', () => {
+        const { model, shown } = php('$user¦', ['-', '>']);
+        expect(shown()).toBe('$user->¦');
+        model.typeText('n', { language: 'php' });
+        expect(shown()).toBe('$user->n¦');
+    });
+
+    it('takes the whole arrow back with backspace', () => {
+        const { model, shown } = php('$user¦', ['-']);
+        model.execute('smartBackspace', { language: 'php' });
+        expect(shown()).toBe('$user¦');
+    });
+
+    it('undoes the > first and then the minus', () => {
+        const { model, shown } = php('$user¦', ['-']);
+        model.undo();
+        expect(shown()).toBe('$user-¦');
+        model.undo();
+        expect(shown()).toBe('$user¦');
+    });
+
+    it('undoes a minus that the next key made of the arrow as one keystroke with it', () => {
+        const { model, shown } = php('$i¦', ['-', '-']);
+        model.undo();
+        expect(shown()).toBe('$i¦');
+        expect(model.redo()).toBe(true);
+        expect(shown()).toBe('$i--¦');
+    });
+
+    it('forgets the arrow once the caret moves', () => {
+        const { model, shown } = php('$user¦', ['-']);
+        const caret = model.getSelections()[0]!.head;
+        model.setSelections([{ anchor: caret - 1, head: caret - 1 }]);
+        model.setSelections([{ anchor: caret, head: caret }]);
+        model.typeText('1', { language: 'php' });
+        expect(shown()).toBe('$user->1¦');
+    });
+
+    it('decides for every caret on its own', () => {
+        const model = new DocumentModel(`${OPEN}$a\n1`);
+        model.setSelections([
+            { anchor: OPEN.length + 2, head: OPEN.length + 2 },
+            { anchor: OPEN.length + 4, head: OPEN.length + 4 }
+        ]);
+        model.typeText('-', { language: 'php' });
+        expect(model.getText()).toBe(`${OPEN}$a->\n1-`);
+        model.typeText('b', { language: 'php' });
+        expect(model.getText()).toBe(`${OPEN}$a->b\n1-b`);
+    });
+
+    it('types a minus when the arrow is off, and outside PHP', () => {
+        expect(php('$user¦', ['-'], { smartArrow: false }).shown()).toBe('$user-¦');
+        type('$user¦', '-', '$user-¦');
+    });
+});

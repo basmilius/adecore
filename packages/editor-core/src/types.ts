@@ -123,6 +123,8 @@ export interface CommandOptions {
     /* A language id such as `typescript` or `php`; it decides what counts as a comment or a string. */
     language?: string;
     smartSemicolon?: boolean;
+    /* In PHP a `-` typed after a variable, a member or a `)` or `]` becomes `->`. On unless false. */
+    smartArrow?: boolean;
     /* Tab steps over a closer the editor inserted. On unless false. */
     tabOutOfClosers?: boolean;
     /* Enter computes the indentation of the new line, continues comments and closes braces. On unless false. */

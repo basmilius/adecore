@@ -44,6 +44,7 @@
 | `smartIndentOnEnter` | Enter indents, continues comments and closes braces                  |
 | `indentOnPaste`      | A pasted block takes the indentation of the line it lands on         |
 | `smartSemicolon`     | A `;` typed inside a call goes to the end of the statement           |
+| `smartArrow`         | In PHP a `-` after a variable, a member, `)` or `]` becomes `->`     |
 | `camelHumps`         | Word moves also stop inside `camelCase` and `snake_case` words       |
 
 ## Keymaps

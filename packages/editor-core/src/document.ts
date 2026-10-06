@@ -13,7 +13,7 @@ import { lexicalFolds } from './lexical-folds.ts';
 import { isQuote, replacesComparison, surround, swapQuotes } from './typing-handlers.ts';
 import { scanBrackets } from './brackets.ts';
 import type { BracketIndex } from './brackets.ts';
-import { hasSmartSemicolon } from './lexical.ts';
+import { hasSmartSemicolon, isPhp } from './lexical.ts';
 import { clampInteger, TextRope } from './rope.ts';
 import type { DocumentLine } from './rope.ts';
 import { findMatches, replacementText, splitsSurrogate } from './search.ts';
@@ -88,6 +88,8 @@ interface SelectionEdit extends TextEdit {
     consumed?: boolean;
     /* An opener and the closer the editor added with it, with the caret between them. */
     paired?: boolean;
+    /* A `-` the editor completes to `->` in a step of its own, once the `-` is in. */
+    arrow?: boolean;
 }
 
 interface SelectionTransaction {
@@ -108,6 +110,9 @@ interface TypingInput {
     quotes: boolean;
     surround: boolean;
     smartSemicolon: boolean;
+    smartArrow: boolean;
+    /* The carets right after a `->` the editor completed, where a typed `>` goes over the one that is there. */
+    overArrows: ReadonlySet<number>;
     /* A closing bracket typed on a line of its own goes back to the indentation of its opener. */
     dedent: boolean;
 }
@@ -144,6 +149,8 @@ const bracketScanLimit = 2_000_000;
 const matchScanLimit = 400_000;
 const pairs: Readonly<Record<string, string>> = { '(': ')', '[': ']', '{': '}', '"': '"', "'": "'", '`': '`' };
 const identifier = /[\p{L}\p{N}\p{M}\p{Pc}$]/u;
+/* What can follow `->`: the first letter of a member name, or the `{` of a dynamic one. */
+const arrowContinues = /^[\p{L}_{]/u;
 const wordCommand = /^(select|delete)?(word|camel)(Left|Right)$/i;
 const graphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
 
@@ -362,6 +369,8 @@ export class DocumentModel {
     private selectionHistory: Selection[][] = [];
     private typingContexts = new TypingContexts((line) => this.getLine(line));
     private statementClosers = new Map<number, { text: string; language: string }>();
+    /* The carets that stand right after a `->` the editor completed, where the next keystroke decides whether it stays. */
+    private arrows = new Set<number>();
     private cloneSession: { signature: string; frames: { direction: -1 | 1; carets: CaretClone[] }[] } | undefined;
     private occurrenceSession: { wholeWord: boolean; notFound: boolean; signature: string } | undefined;
     /* The last select next occurrence found no more, which a host may say. */
@@ -442,6 +451,7 @@ export class DocumentModel {
         this.cloneSession = undefined;
         this.selectionHistory = [];
         this.statementClosers.clear();
+        this.arrows.clear();
         if (sameSelections(this.selections, normalized)) {
             return;
         }
@@ -630,8 +640,8 @@ export class DocumentModel {
     /*
      * Types `text` at every caret as one keystroke would: it wraps a selection in a bracket or quote,
      * closes an opener, types over a closer that is already there and, in TypeScript, JavaScript and
-     * PHP, moves a `;` to the end of a statement. Comments and string contents are left alone.
-     * Returns whether anything changed, a swallowed closer included.
+     * PHP, moves a `;` to the end of a statement. In PHP a `-` after a variable becomes `->`. Comments
+     * and string contents are left alone. Returns whether anything changed, a swallowed closer included.
      */
     typeText(text: string, options: TypeTextOptions = {}): boolean {
         if (options.expectedRevision !== undefined && options.expectedRevision !== this.revision) {
@@ -639,6 +649,11 @@ export class DocumentModel {
         }
         if (!text) {
             return false;
+        }
+        const arrows = this.arrows;
+        this.arrows = new Set();
+        if (arrows.size > 0 && text !== '>' && !arrowContinues.test(text)) {
+            this.takeBackArrows();
         }
         const language = options.language ?? 'typescript';
         const single = text.length === 1;
@@ -650,6 +665,8 @@ export class DocumentModel {
             quotes: pairing && options.autoClosingQuotes !== false,
             surround: options.surroundSelection !== false && single,
             smartSemicolon: options.smartSemicolon !== false && hasSmartSemicolon(language),
+            smartArrow: options.smartArrow !== false && single && isPhp(language),
+            overArrows: text === '>' ? arrows : new Set(),
             dedent: options.smartEnter !== false
         };
         const plans = this.selections.map((selection) => this.planTyping(selection, input));
@@ -665,8 +682,37 @@ export class DocumentModel {
         if (this.revision === appliedRevision) {
             this.rememberStatementClosers(plans, transaction, language);
             this.rememberPairs(plans, transaction);
+            this.completeArrows(plans, transaction);
         }
         return changed || plans.some((plan) => plan.consumed);
+    }
+
+    /*
+     * A key after a `->` the editor completed that cannot follow it means the `-` was a minus. The `>` is the
+     * last undo step, so it goes without a redo, and the key joins the typing of the `-`.
+     */
+    private takeBackArrows(): void {
+        this.undo();
+        this.redoStack.pop();
+        this.groupOpen = true;
+    }
+
+    /* Adds the `>` after every `-` that became an arrow, as its own undo step, so the first undo leaves the `-` that was typed. */
+    private completeArrows(plans: readonly SelectionEdit[], transaction: SelectionTransaction): void {
+        const at = transaction.selections.flatMap((selection, index) => (plans[index]?.arrow ? [selection.head] : [])).sort((left, right) => left - right);
+        if (at.length === 0) {
+            return;
+        }
+        const moved = (offset: number): number => offset + at.filter((inserted) => inserted <= offset).length;
+        const selections = this.selections.map((selection) => ({ anchor: moved(selection.anchor), head: moved(selection.head) }));
+        if (
+            this.applyEdits(
+                at.map((offset) => ({ from: offset, to: offset, text: '>' })),
+                { source: 'input', selections }
+            )
+        ) {
+            this.arrows = new Set(at.map(moved));
+        }
     }
 
     /*
@@ -799,13 +845,20 @@ export class DocumentModel {
         const after = this.rope.charAt(to);
         const quote = isQuote(text);
         const pairing = quote ? input.quotes : input.brackets;
+        if (text === '>' && from === to && input.overArrows.has(from)) {
+            return { from, to, text: '', anchor: 0, head: 0, skip: true, consumed: true };
+        }
         const pendingClosers = this.statementClosers.get(from);
         if (input.brackets && smartSemicolon && from === to && pendingClosers?.language === language && pendingClosers.text.startsWith(text)) {
             return { from, to, text: '', anchor: 0, head: 0, skip: true, consumed: true, completedClosers: pendingClosers.text.slice(1) };
         }
 
-        const needsContext = text.length === 1 && (/[()[\]{}'"`<]/.test(text) || (text === ';' && smartSemicolon));
+        const arrow = text === '-' && input.smartArrow && from === to;
+        const needsContext = text.length === 1 && (/[()[\]{}'"`<]/.test(text) || (text === ';' && smartSemicolon) || arrow);
         const context = needsContext ? this.typingContext(from, language) : undefined;
+        if (arrow && context?.mode === 'code' && context.word !== 'control-close' && this.endsOperand(from)) {
+            return { from, to, text, anchor: 1, head: 1, arrow: true };
+        }
         const insideQuote = context && (context.mode === 'quote' || context.mode === 'template') && context.quote === text && !context.escaped;
         if (pairing && from === to && after === text && (quote ? insideQuote : context?.mode === 'code' && context.bracket?.close === text)) {
             return { from, to, text: '', anchor: 1, head: 1, skip: true };
@@ -918,6 +971,24 @@ export class DocumentModel {
         const text = this.getText();
         const scanned = scanBrackets(text.slice(0, offset) + opener + text.slice(offset), language);
         return scanned.pairs.has(offset);
+    }
+
+    /*
+     * Whether the text before `offset` ends in something a member is read from: a variable, the name of a
+     * property or method after `->` or `?->`, or a `)` or `]`.
+     */
+    private endsOperand(offset: number): boolean {
+        const line = this.rope.lineBounds(this.rope.lineAt(offset));
+        const before = this.slice(line.start, offset);
+        if (/[)\]]$/.test(before)) {
+            return true;
+        }
+        const name = /[\p{L}_][\p{L}\p{N}_]*$/u.exec(before);
+        if (name === null) {
+            return false;
+        }
+        const ahead = before.slice(0, name.index);
+        return ahead.endsWith('$') || ahead.endsWith('->');
     }
 
     /* Remembers the closers a smart semicolon stepped over for the caret that did it, so typing them again is absorbed. */
@@ -1538,6 +1609,8 @@ export class DocumentModel {
                 if (from === to) {
                     if (!backwards) {
                         to = deletionStep(this.rope, to, 1);
+                    } else if (this.arrows.has(from)) {
+                        from -= 2;
                     } else if ((isQuote(this.rope.charAt(from - 1)) ? pairing.quotes : pairing.brackets) && this.isEmptyPair(from, language)) {
                         from--;
                         to++;
@@ -1989,6 +2062,7 @@ export class DocumentModel {
         this.structureCache = undefined;
         this.selectionHistory = [];
         this.statementClosers.clear();
+        this.arrows.clear();
     }
 
     private restore(state: State, changes: readonly (readonly DocumentChange[])[]): void {

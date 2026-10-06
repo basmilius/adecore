@@ -103,6 +103,8 @@ export interface EditorSmartKeys {
     readonly indentOnPaste: boolean;
     /* A `;` typed inside a call goes to the end of the statement. */
     readonly smartSemicolon: boolean;
+    /* In PHP a `-` typed after a variable, a member or a `)` or `]` becomes `->`. */
+    readonly smartArrow: boolean;
     /* Moving by word also stops inside `camelCase` and `snake_case` words. Off. */
     readonly camelHumps: boolean;
 }
