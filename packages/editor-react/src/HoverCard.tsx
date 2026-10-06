@@ -13,12 +13,15 @@ import { SymbolSections } from './HoverSections.tsx';
 const SEVERITY_ICONS = { error: CircleX, warning: TriangleAlert, info: Info, hint: Info } as const;
 const SEVERITY_COLORS = { error: 'text-status-error', warning: 'text-status-needs-you', info: 'text-status-running', hint: 'text-text-muted' } as const;
 
-/* Where a definition is: only its line in the file of the card, else the file and the line, with a long name cut short before the line. */
-export function DefinitionPlace({ definition, uri }: { definition: Location; uri: string }) {
+/*
+ * Where a definition is: only its line in the file of the card, else the file and the line, with a long name cut
+ * short before the line. A definition outside the project folder, such as the stubs of a standard library, has none.
+ */
+export function DefinitionPlace({ definition, uri, folder }: { definition: Location; uri: string; folder: string }) {
     const { t } = useTranslation('editor');
     const path = fileUriToPath(definition.uri);
     const line = formatNumber(definition.range.start.line + 1);
-    if (path === null) {
+    if (path === null || (folder !== '' && !path.startsWith(`${folder}/`))) {
         return null;
     }
     if (definition.uri === uri) {
@@ -125,7 +128,7 @@ export function HoverCard({
                                 </button>
                             )}
                         </div>
-                        {info.definition !== null && <DefinitionPlace definition={info.definition} uri={language.uri} />}
+                        {info.definition !== null && <DefinitionPlace definition={info.definition} uri={language.uri} folder={language.project.folder} />}
                     </div>
                 </>
             )}
