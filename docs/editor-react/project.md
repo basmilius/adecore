@@ -28,7 +28,7 @@ Two editors of one file share a document, not a text. Keeping their texts the sa
 
 Changes made while the document is opening wait for it. `document.ready` rejects when opening failed. Later failures of a change or a close are swallowed, so a service reports its own errors.
 
-The features ask for symbols, folds, inlay hints and semantic colors after an edit and when the service fires `onProvidersChanged` for the document, not when it opens. A service fires it once its server is ready for a document; the demos call `service.refresh(uri)` after `ready` for that.
+The features ask for symbols, folds, inlay hints, semantic colors, code actions and code vision once the document is open, after an edit, and when the service fires `onProvidersChanged` for the document. `language.onProvidersChanged(listener)` is that signal for one editor: it runs once the document is open and on every change the service fires for it.
 
 ## Workspace edits
 

@@ -62,7 +62,7 @@ export class CodeVisionFeature {
     constructor(language: EditorLanguage, onSymbols: (listener: (result: DocumentSymbolResult) => void) => () => void, timers: Timers = realTimers) {
         this.language = language;
         this.timers = timers;
-        const { editor, project, uri } = language;
+        const { editor } = language;
         const offs = [
             onSymbols((result) => this.read(result)),
             editor.onTextChange(() => {
@@ -74,19 +74,17 @@ export class CodeVisionFeature {
                 this.scrollTimer = this.timers.set(() => this.plan(), SCROLL_PAUSE_MS);
             })
         ];
-        const providers = project.service.onProvidersChanged((changed) => {
-            if (changed === uri) {
-                this.failed.clear();
-                this.publish();
-                this.plan();
-            }
+        const providers = language.onProvidersChanged(() => {
+            this.failed.clear();
+            this.publish();
+            this.plan();
         });
         language.onDispose(() => {
             this.disposed = true;
             for (const off of offs) {
                 off();
             }
-            providers.dispose();
+            providers();
             this.timers.clear(this.scrollTimer);
             for (const controller of this.running.values()) {
                 controller.abort();

@@ -145,6 +145,32 @@ export class EditorLanguage {
         this.pick.open({ anchor, title, groups: [{ title: null, rows }], accept: (id) => this.goTo(places[Number(id)]!) });
     }
 
+    /*
+     * Runs `listener` once the document is open and again whenever the service says what it can ask for
+     * this document changed. A service that is ready before the document opens never says so, so the
+     * opening counts as the first change.
+     */
+    onProvidersChanged(listener: () => void): () => void {
+        let listening = true;
+        void this.document.ready.then(
+            () => {
+                if (listening && !this.disposed) {
+                    listener();
+                }
+            },
+            () => undefined
+        );
+        const providers = this.project.service.onProvidersChanged((uri) => {
+            if (uri === this.uri) {
+                listener();
+            }
+        });
+        return () => {
+            listening = false;
+            providers.dispose();
+        };
+    }
+
     /* Runs `dispose` when the editor lets go of its document. */
     onDispose(dispose: () => void): void {
         this.disposers.push(dispose);

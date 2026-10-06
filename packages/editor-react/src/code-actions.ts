@@ -68,12 +68,10 @@ export class CodeActionsFeature {
 
     constructor(language: EditorLanguage, timers: Timers = realTimers) {
         this.language = language;
-        const { editor, project, uri } = language;
+        const { editor } = language;
         this.refresher = new Refresher((signal) => this.hint(signal), PAUSE_MS, timers);
-        const providers = project.service.onProvidersChanged((changed) => {
-            if (changed === uri) {
-                this.refresher.later();
-            }
+        const providers = language.onProvidersChanged(() => {
+            this.refresher.later();
         });
         const offs = [
             editor.onCaret(() => {
@@ -94,7 +92,7 @@ export class CodeActionsFeature {
                 return false;
             }),
             language.diagnostics.onChange(() => this.refresher.later()),
-            () => providers.dispose()
+            providers
         ];
         language.onDispose(() => {
             for (const off of offs) {

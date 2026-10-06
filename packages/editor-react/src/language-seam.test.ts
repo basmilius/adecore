@@ -120,6 +120,23 @@ describe('language host seam', () => {
         project.dispose();
     });
 
+    test('asks a service that was ready before the document opened once it is open', async () => {
+        const service = new FakeLanguageService();
+        service.respond('textDocument/documentSymbol', () => []);
+        service.respond('textDocument/foldingRange', () => []);
+        service.respond('textDocument/inlayHint', () => []);
+        const project = new ProjectLanguage(service);
+        const language = new EditorLanguage(project, editor('one'), uri, 'typescript', new ManualTimers());
+        await language.document.ready;
+        await settle();
+        const asked = new Set(service.calls.map((call) => call.method));
+        expect(asked).toContain('textDocument/documentSymbol');
+        expect(asked).toContain('textDocument/foldingRange');
+        expect(asked).toContain('textDocument/inlayHint');
+        language.dispose();
+        project.dispose();
+    });
+
     test('completes a snippet through the actual editor and injected service', async () => {
         const service = new FakeLanguageService();
         service.respond('textDocument/completion', () => [{ label: 'print', insertText: 'print(${1:value})$0', insertTextFormat: 2, kind: 3 }]);

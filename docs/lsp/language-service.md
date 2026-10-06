@@ -17,7 +17,7 @@ Every request takes `LanguageRequestOptions`: a `signal`, and `parallel: true` f
 
 - `openDocument` opens the document, or joins it when another client of the service has it open; the text it gets then replaces what is held. `changeDocument` applies `ContentChange`s in order and raises the version by one. `closeDocument` lets go; a service shared by several clients closes the server's document after the last one.
 - An answer for a text that moved on rejects with `StaleResultError`. A method nothing supports rejects with an `LspError` of `-32601`, and a server that is not up with `-32002`.
-- `onProvidersChanged(uri)` fires when what a document can ask changed: its server came up, registered a capability or asked for a refresh. Fire it once a document's server is ready, since the editor features ask for symbols, folds, hints and colors on that signal.
+- `onProvidersChanged(uri)` fires when what a document can ask changed: its server came up, registered a capability or asked for a refresh. The editor features ask once when a document opens, so fire it when a server comes up for a document that is already open.
 - A `DiagnosticsReport` has the `uri`, the `source` (which server), an optional `version` and the `diagnostics`. A report replaces the earlier one of the same source, so give each server a stable source and send an empty report when its problems are gone.
 - A completion item, code action, lens or hint resolves on the server that produced it, and so does the command of an action.
 

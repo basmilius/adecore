@@ -71,15 +71,13 @@ export class InlayHintsFeature {
                 this.refresher.later();
             }
         });
-        const providers = project.service.onProvidersChanged((changed) => {
-            if (changed === uri) {
-                this.refresher.now();
-            }
+        const providers = language.onProvidersChanged(() => {
+            this.refresher.now();
         });
         language.onDispose(() => {
             edits();
             scrolls();
-            providers.dispose();
+            providers();
             this.refresher.dispose();
             editor.setInlayHints([]);
         });

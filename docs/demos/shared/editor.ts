@@ -142,11 +142,9 @@ export function useDemoLanguage(configure: (service: FakeLanguageService) => voi
     const onMount = useCallback(
         (_editor: Editor, attached: EditorLanguage | null) => {
             setLanguage(attached);
-            // A server says when it is up for a document; symbols, folds, hints and colors are asked then.
-            void attached?.document.ready.then(() => project.service.refresh(attached.uri));
             return () => setLanguage(null);
         },
-        [project]
+        []
     );
 
     useEffect(() => () => project.language.dispose(), [project]);

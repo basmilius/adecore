@@ -89,14 +89,12 @@ export class SymbolsFeature {
             timers
         );
         const edits = editor.onTextChange(() => this.refresher.later());
-        const providers = project.service.onProvidersChanged((changed) => {
-            if (changed === uri) {
-                this.refresher.now();
-            }
+        const providers = language.onProvidersChanged(() => {
+            this.refresher.now();
         });
         language.onDispose(() => {
             edits();
-            providers.dispose();
+            providers();
             this.refresher.dispose();
             editor.setBlocks(null);
         });
