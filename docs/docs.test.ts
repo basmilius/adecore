@@ -17,7 +17,7 @@ const PAGES = filesIn('**/*.md')
     .join('\n');
 
 /* Every name an entry point exports, types included, read from the snapshot that holds the public API. */
-const exportedNames = (): string[] =>
+const snapshotNames = (): string[] =>
     [...SNAPSHOT.matchAll(/exports\[`the public API \S+ exports these names 1`\] = `([^`]*)`/g)].flatMap((block) =>
         [...block[1]!.matchAll(/"(?:type )?([\w$]+)"/g)].map((name) => name[1]!)
     );
@@ -49,12 +49,12 @@ const APP_NAMES = /ruimte|aftermotion|solvidi|command[ -]center/i;
 
 describe('the docs', () => {
     test('read the public API out of the snapshot', () => {
-        expect(exportedNames().length).toBeGreaterThan(200);
+        expect(snapshotNames().length).toBeGreaterThan(200);
         expect(compoundParts()).toContain('Menu.Item');
     });
 
     test('mention every exported name on some page', () => {
-        expect(exportedNames().filter((name) => !mentioned(name))).toEqual([]);
+        expect(snapshotNames().filter((name) => !mentioned(name))).toEqual([]);
     });
 
     test('mention every name every published package exports', () => {
