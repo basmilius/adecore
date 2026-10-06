@@ -6,6 +6,7 @@ import type { SubagentStep } from '../../subagent-view';
 import { AgentTurnRow, ApprovalHistoryRow, AssistantRow, CompactionRow, NoteRow, QuestionHistoryRow, ReportRow, ThinkingRow, UserRow } from './MessageRows';
 import { ForksRow } from './ForksRow';
 import { SubagentBranchRow } from './SubagentRow';
+import { VisualRow } from './VisualRow';
 import { WorkflowRow } from './WorkflowRow';
 import { ChangedFilesRow, TurnFoldRow, WorkGroupRow, WorkLiveRow, WorkRow, WorkingRow } from './WorkRows';
 
@@ -77,5 +78,7 @@ export function Row({ row, chatId, toggleGroup, toggleTurn, toggleSubagent, open
             return <WorkingRow startedAt={row.startedAt} />;
         case 'app-card':
             return <AppCardRow card={row.card} />;
+        case 'visual':
+            return <VisualRow chatId={chatId} visual={row.visual} />;
     }
 }

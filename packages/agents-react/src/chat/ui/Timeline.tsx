@@ -7,7 +7,7 @@ import type { ChatBookmark } from '@adecore/agent-contracts';
 import { useForkedTurns } from '../forks';
 import { bookmarkRows } from '../logic/bookmarks';
 import { deriveTimelineRows, findSubagentBranch, type TimelineRow } from '../logic/timeline';
-import { withThreadCards } from '../logic/thread-cards';
+import { timedRowsOf, withTimedRows } from '../logic/thread-cards';
 import { openFromMain, useSubagentTrail, type SubagentStep } from '../subagent-view';
 import {
     registerItemJumper,
@@ -38,6 +38,7 @@ import { BookmarkMarker } from './BookmarkMarker';
 import { MessageActions } from './MessageActions';
 import { Scrubber, type CardChat } from './Scrubber';
 import { TimelineMenuPopup } from './TimelineMenu';
+import { VisualDialogs } from './VisualDialogs';
 import { FOLLOW_THRESHOLD_PX, replyHeader, rowRhythm } from './rows/row-rhythm';
 import { QuoteButton } from './QuoteButton';
 import { QuoteTakerContext, type QuoteTaker } from './quote-selection';
@@ -123,6 +124,7 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
     const items = useChatRow(chatId, (row) => row?.structure);
     const activeTurnId = useChatRow(chatId, (row) => row?.info.activeTurnId ?? null);
     const bookmarks = useChatRow(chatId, (row) => row?.bookmarks);
+    const visuals = useChatRow(chatId, (row) => row?.visuals);
     const forkedTurns = useForkedTurns(chatId);
     const info = useChatRow(chatId, (row) => row?.info ?? null);
     const cursor = useChatRow(chatId, (row) => row?.history?.cursor ?? null);
@@ -188,7 +190,13 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
         );
     }, [order, items, groups.ids, turns.ids, subagents.ids, activeTurnId, forkedTurns]);
     const cards = chatHost().useThreadCards(scopeId, chatId);
-    const rows = useMemo(() => withThreadCards(threadRows, cards), [threadRows, cards]);
+    const drawsVisuals = chatHost().visuals !== null;
+    // Where the part of the thread this client holds begins, while there is a page before it.
+    const heldFrom = cursor === null ? null : (items?.[order?.[0] ?? '']?.createdAt ?? null);
+    const rows = useMemo(
+        () => withTimedRows(threadRows, timedRowsOf(cards, drawsVisuals ? (visuals ?? []) : null, heldFrom)),
+        [threadRows, cards, drawsVisuals, visuals, heldFrom]
+    );
     const welcomes = chatHost().useWelcome(chatId);
 
     const empty = rows.length === 0;
@@ -596,6 +604,7 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
                     </div>
                     <TimelineMenuPopup target={target} thread={threadRef} chatId={onMainAgent ? chatId : null} />
                 </ContextMenu.Root>
+                {drawsVisuals && <VisualDialogs chatId={chatId} />}
                 {loadingEarlier && !overlay && (
                     <div className="pointer-events-none absolute inset-x-0 top-3 z-10 flex justify-center" role="status">
                         <Icon icon={LoaderCircle} size={16} className="animate-spin text-text-faint" />

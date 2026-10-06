@@ -662,3 +662,31 @@ export function injectVisualBootstrap(html: string): string {
     const bootstrap = bootstrapMarkup(!hasViewport(html));
     return html.slice(0, place.at) + (place.head ? bootstrap : `<head>${bootstrap}</head>`) + html.slice(place.at);
 }
+
+function hostPageScript(): string {
+    const methods = { ready: VISUAL_BRIDGE_METHODS.sandboxProxyReady, resource: VISUAL_BRIDGE_METHODS.sandboxResourceReady };
+    return `(function () {
+if (window.parent === window) { return; }
+var methods = ${inlineJson(methods)};
+var written = false;
+window.addEventListener('message', function (event) {
+    var data = event.data;
+    if (written || event.source !== window.parent || typeof data !== 'object' || data === null || data.jsonrpc !== '2.0' || data.method !== methods.resource) { return; }
+    var params = data.params;
+    if (typeof params !== 'object' || params === null || typeof params.html !== 'string') { return; }
+    written = true;
+    document.open();
+    document.write(params.html);
+    document.close();
+});
+window.parent.postMessage({ jsonrpc: '2.0', method: methods.ready }, '*');
+})();`;
+}
+
+/*
+ * The sandbox host page: the first document of every frame a visual is drawn in, which an app serves
+ * as UTF-8 HTML on an origin other than its own, with its policy as a header. It says it listens,
+ * becomes the first page its parent sends, once, and ignores every other message. The page runs in
+ * this very document, so the policy this page was served with is the page's policy too.
+ */
+export const VISUAL_HOST_PAGE = `<!doctype html>\n<html><head><meta charset="utf-8"><script>${hostPageScript()}</script></head><body></body></html>\n`;

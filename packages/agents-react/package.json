@@ -184,6 +184,11 @@
             "types": "./dist/chat/logic/tools.d.ts",
             "default": "./dist/chat/logic/tools.js"
         },
+        "./chat/logic/visual-height": {
+            "source": "./src/chat/logic/visual-height.ts",
+            "types": "./dist/chat/logic/visual-height.d.ts",
+            "default": "./dist/chat/logic/visual-height.js"
+        },
         "./chat/logic/welcome": {
             "source": "./src/chat/logic/welcome.ts",
             "types": "./dist/chat/logic/welcome.d.ts",
@@ -268,6 +273,16 @@
             "source": "./src/chat/timeline-scroll.ts",
             "types": "./dist/chat/timeline-scroll.d.ts",
             "default": "./dist/chat/timeline-scroll.js"
+        },
+        "./chat/visual-bridge": {
+            "source": "./src/chat/visual-bridge.ts",
+            "types": "./dist/chat/visual-bridge.d.ts",
+            "default": "./dist/chat/visual-bridge.js"
+        },
+        "./chat/visuals": {
+            "source": "./src/chat/visuals.ts",
+            "types": "./dist/chat/visuals.d.ts",
+            "default": "./dist/chat/visuals.js"
         },
         "./chat/ui/AccountPill": {
             "source": "./src/chat/ui/AccountPill.tsx",
@@ -419,6 +434,16 @@
             "types": "./dist/chat/ui/UploadThumb.d.ts",
             "default": "./dist/chat/ui/UploadThumb.js"
         },
+        "./chat/ui/VisualDialogs": {
+            "source": "./src/chat/ui/VisualDialogs.tsx",
+            "types": "./dist/chat/ui/VisualDialogs.d.ts",
+            "default": "./dist/chat/ui/VisualDialogs.js"
+        },
+        "./chat/ui/VisualFrame": {
+            "source": "./src/chat/ui/VisualFrame.tsx",
+            "types": "./dist/chat/ui/VisualFrame.d.ts",
+            "default": "./dist/chat/ui/VisualFrame.js"
+        },
         "./chat/ui/Welcome": {
             "source": "./src/chat/ui/Welcome.tsx",
             "types": "./dist/chat/ui/Welcome.d.ts",
@@ -549,6 +574,11 @@
             "types": "./dist/chat/ui/rows/TaskRow.d.ts",
             "default": "./dist/chat/ui/rows/TaskRow.js"
         },
+        "./chat/ui/rows/VisualRow": {
+            "source": "./src/chat/ui/rows/VisualRow.tsx",
+            "types": "./dist/chat/ui/rows/VisualRow.d.ts",
+            "default": "./dist/chat/ui/rows/VisualRow.js"
+        },
         "./chat/ui/rows/WorkRows": {
             "source": "./src/chat/ui/rows/WorkRows.tsx",
             "types": "./dist/chat/ui/rows/WorkRows.d.ts",
@@ -568,6 +598,11 @@
             "source": "./src/chat/ui/useToggleSet.ts",
             "types": "./dist/chat/ui/useToggleSet.d.ts",
             "default": "./dist/chat/ui/useToggleSet.js"
+        },
+        "./chat/ui/visual-theme": {
+            "source": "./src/chat/ui/visual-theme.ts",
+            "types": "./dist/chat/ui/visual-theme.d.ts",
+            "default": "./dist/chat/ui/visual-theme.js"
         },
         "./host": {
             "source": "./src/host.ts",

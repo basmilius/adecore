@@ -5,6 +5,7 @@ import type {
     ChatBookmark,
     ChatPreferencesPayload,
     ChatSkill,
+    ChatVisual,
     ModelSelection,
     ProviderInfo,
     RuntimeMode
@@ -78,6 +79,7 @@ export class ChatClient {
             // Every chat on the machine, attached or not, so a node waiting on a person says so on a view nobody has open.
             transport.on('chat.status', ({ chatId, info }) => this.sink.status(chatId, info)),
             transport.on('chat.bookmarks', ({ chatId, bookmarks }) => this.sink.bookmarks(chatId, bookmarks)),
+            transport.on('chat.visuals', ({ chatId, visuals }) => this.sink.visuals(chatId, visuals)),
             transport.subscribeStatus((status) => this.onStatus(status))
         );
         if (transport.status === 'open') {
@@ -190,6 +192,12 @@ export class ChatClient {
     async removeBookmark(chatId: string, itemId: string): Promise<ChatBookmark[]> {
         const { bookmarks } = await this.transport.request('chat.removeBookmark', { chatId, itemId });
         return bookmarks;
+    }
+
+    /* Takes a visual and its page out of the chat for good; the list every client of the chat holds comes back as `chat.visuals`. */
+    async removeVisual(chatId: string, visualId: string): Promise<ChatVisual[]> {
+        const { visuals } = await this.transport.request('chat.removeVisual', { chatId, visualId });
+        return visuals;
     }
 
     /* What this chat's CLI would run as a skill, for the composer's `$` picker. */
@@ -321,8 +329,9 @@ export class ChatClient {
             const page = result.history === undefined ? undefined : { history: result.history, pending: result.pending ?? [] };
             this.sink.reset(chatId, result.info, result.items, page);
         }
-        // A host without bookmarks sends none, and then this chat has none.
+        // A host without bookmarks or visuals sends none, and then this chat has none.
         this.sink.bookmarks(chatId, result.bookmarks ?? []);
+        this.sink.visuals(chatId, result.visuals ?? []);
     }
 
     private sendPreferences(): void {

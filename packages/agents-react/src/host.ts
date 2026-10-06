@@ -154,6 +154,14 @@ export interface ThreadCard {
     render(): ReactNode;
 }
 
+/* Where the visuals agents publish are drawn: a frame on an origin of the app's own that is not the app's. */
+export interface VisualHost {
+    /* The address of the sandbox host page (`VISUAL_HOST_PAGE`), served on that origin. A frame adds the theme to it as a fragment. */
+    frameUrl: string;
+    /* Opens an http or https link a person followed in a visual, outside the app. */
+    openLink(url: string): void;
+}
+
 /* Who writes a chat's replies, as the header over each one names them. */
 export interface ReplyAuthor {
     name: string;
@@ -264,6 +272,8 @@ export interface ChatHost {
     useThreadCards(scopeId: string, chatId: string): readonly ThreadCard[];
     /* A header over every reply with its author and how long ago it began; null names the agent for a screen reader only. */
     useReplyAuthor(scopeId: string, chatId: string): ReplyAuthor | null;
+    /* The pages agents publish, drawn in the thread above their reply; null draws none. */
+    visuals: VisualHost | null;
 }
 
 const NO_PROMPTS: readonly HostPrompt[] = [];
@@ -307,7 +317,8 @@ const DEFAULT_HOST: ChatHost = {
     ComposerSlot: null,
     SubagentSlot: null,
     useThreadCards: () => NO_CARDS,
-    useReplyAuthor: () => null
+    useReplyAuthor: () => null,
+    visuals: null
 };
 
 let host: ChatHost = DEFAULT_HOST;

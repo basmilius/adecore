@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ChatApprovalItem, ChatBookmark, ChatEvent, ChatHistoryResult, ChatInfo, ChatItem, ChatQuestionItem } from '@adecore/agent-contracts';
+import type { ChatApprovalItem, ChatBookmark, ChatEvent, ChatHistoryResult, ChatInfo, ChatItem, ChatQuestionItem, ChatVisual } from '@adecore/agent-contracts';
 import { useChatScope } from '../scope';
 
 export interface ChatState {
@@ -22,6 +22,8 @@ export interface ChatState {
     waitingBefore?: string[];
     /* The messages marked to come back to, as the host last said; absent until it said anything. */
     bookmarks?: ChatBookmark[];
+    /* The pages agents published in the chat, as the host last said; absent until it said anything. */
+    visuals?: ChatVisual[];
 }
 
 export type ChatHistoryPage = ChatHistoryResult['history'];
@@ -49,6 +51,7 @@ export interface ChatSink {
     /* What a chat is doing, for a thread nobody in this window has open. */
     status(chatId: string, info: ChatInfo): void;
     bookmarks(chatId: string, bookmarks: ChatBookmark[]): void;
+    visuals(chatId: string, visuals: ChatVisual[]): void;
     forget(chatId: string): void;
 }
 
@@ -61,6 +64,7 @@ interface ChatsStore {
     apply(key: string, event: ChatEvent): void;
     status(key: string, info: ChatInfo): void;
     bookmarks(key: string, bookmarks: ChatBookmark[]): void;
+    visuals(key: string, visuals: ChatVisual[]): void;
     forget(key: string): void;
     /* Drops the threads whose key matches, such as every thread of one host. They keep running there; this client is done looking at them. */
     forgetWhere(matches: (key: string) => boolean): void;
@@ -182,11 +186,11 @@ export const useChats = create<ChatsStore>((set) => ({
     statusByKey: {},
     reset(key, info, items, page) {
         set((s) => {
-            // The bookmarks are not part of the thread; they come in on their own and outlive a reset of it.
-            const bookmarks = s.byKey[key]?.bookmarks;
-            const next = stateOf(info, items, page);
+            // The bookmarks and the visuals are not part of the thread; they come in on their own and outlive a reset of it.
+            const { bookmarks, visuals } = s.byKey[key] ?? {};
+            const next = { ...stateOf(info, items, page), ...(bookmarks === undefined ? {} : { bookmarks }), ...(visuals === undefined ? {} : { visuals }) };
             return {
-                byKey: { ...s.byKey, [key]: bookmarks === undefined ? next : { ...next, bookmarks } },
+                byKey: { ...s.byKey, [key]: next },
                 statusByKey: withStatus(s.statusByKey, key, info)
             };
         });
@@ -238,6 +242,15 @@ export const useChats = create<ChatsStore>((set) => ({
             return { byKey: { ...s.byKey, [key]: { ...current, bookmarks } } };
         });
     },
+    visuals(key, visuals) {
+        set((s) => {
+            const current = s.byKey[key];
+            if (!current) {
+                return {};
+            }
+            return { byKey: { ...s.byKey, [key]: { ...current, visuals } } };
+        });
+    },
     forget(key) {
         set((s) => {
             const next = { ...s.byKey };
@@ -260,6 +273,7 @@ export function chatSink(keyOf: (chatId: string) => string): ChatSink {
         apply: (chatId, event) => useChats.getState().apply(keyOf(chatId), event),
         status: (chatId, info) => useChats.getState().status(keyOf(chatId), info),
         bookmarks: (chatId, bookmarks) => useChats.getState().bookmarks(keyOf(chatId), bookmarks),
+        visuals: (chatId, visuals) => useChats.getState().visuals(keyOf(chatId), visuals),
         forget: (chatId) => useChats.getState().forget(keyOf(chatId))
     };
 }

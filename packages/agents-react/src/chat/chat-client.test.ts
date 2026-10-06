@@ -1,5 +1,15 @@
 import { describe, expect, test } from 'bun:test';
-import type { AgentEventType, AgentRequestType, ChatBookmark, ChatEvent, ChatHistoryResult, ChatInfo, ChatItem, ProviderInfo } from '@adecore/agent-contracts';
+import type {
+    AgentEventType,
+    AgentRequestType,
+    ChatBookmark,
+    ChatEvent,
+    ChatHistoryResult,
+    ChatInfo,
+    ChatItem,
+    ChatVisual,
+    ProviderInfo
+} from '@adecore/agent-contracts';
 import type { ChatPage, ChatSink } from '../state/chats';
 import { ChatTransportError, type ChatEventMap, type ChatRequestMap, type ChatTransport, type ChatTransportStatus } from '../transport';
 import { ChatClient } from './chat-client';
@@ -66,6 +76,8 @@ class FakeTransport implements ChatTransport {
                 return this.history instanceof ChatTransportError ? Promise.reject(this.history) : Promise.resolve(this.history as ChatRequestMap[T]['result']);
             case 'chat.send':
                 return Promise.resolve({ queued: false, turnId: 'turn-test' } as ChatRequestMap[T]['result']);
+            case 'chat.removeVisual':
+                return Promise.resolve({ visuals: [] } as ChatRequestMap[T]['result']);
             case 'chat.list':
                 return Promise.resolve({ chats: this.chats } as ChatRequestMap[T]['result']);
             case 'provider.list':
@@ -121,6 +133,7 @@ class FakeSink implements ChatSink {
     readonly forgotten: string[] = [];
     readonly statuses: Array<{ chatId: string; info: ChatInfo }> = [];
     readonly bookmarked: Array<{ chatId: string; bookmarks: ChatBookmark[] }> = [];
+    readonly visualized: Array<{ chatId: string; visuals: ChatVisual[] }> = [];
 
     reset(chatId: string, _info: ChatInfo, items: ChatItem[], page?: ChatPage): void {
         this.resets.push({ chatId, items, ...(page === undefined ? {} : { page }) });
@@ -140,6 +153,10 @@ class FakeSink implements ChatSink {
 
     bookmarks(chatId: string, bookmarks: ChatBookmark[]): void {
         this.bookmarked.push({ chatId, bookmarks });
+    }
+
+    visuals(chatId: string, visuals: ChatVisual[]): void {
+        this.visualized.push({ chatId, visuals });
     }
 
     forget(chatId: string): void {
@@ -221,6 +238,27 @@ describe('ChatClient', () => {
             { chatId: 'plain', bookmarks: [] },
             { chatId: 'marked', bookmarks: [] }
         ]);
+    });
+
+    test('the visuals come with the attach and after that with every change, and a host without them leaves none', async () => {
+        const { transport, sink, client } = setup();
+        const visual: ChatVisual = { id: 'v1', title: 'Sales', at: 5, maxHeight: 600, size: 120 };
+        transport.attachResult = (payload) => (payload.chatId === 'drawn' ? { visuals: [visual] } : {});
+        await client.open('drawn', {});
+        await client.open('plain', {});
+        transport.emit('chat.visuals', { chatId: 'drawn', visuals: [] });
+        expect(sink.visualized).toEqual([
+            { chatId: 'drawn', visuals: [visual] },
+            { chatId: 'plain', visuals: [] },
+            { chatId: 'drawn', visuals: [] }
+        ]);
+    });
+
+    test('a remove asks the host and leaves the store to the event that follows it', async () => {
+        const { transport, sink, client } = setup();
+        expect(await client.removeVisual('drawn', 'v1')).toEqual([]);
+        expect(transport.of('chat.removeVisual').map((call) => call.payload)).toEqual([{ chatId: 'drawn', visualId: 'v1' }]);
+        expect(sink.visualized).toEqual([]);
     });
 
     test('events reach the store, whatever chat they are for', () => {

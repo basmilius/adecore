@@ -170,6 +170,24 @@ describe('bookmarks in the store', () => {
     });
 });
 
+describe('visuals in the store', () => {
+    test('a reset of the thread keeps the visuals, which only their own list replaces', () => {
+        const key = 'visuals-test:chat-1';
+        const visual = { id: 'v1', title: 'Sales', at: 5, maxHeight: 600, size: 120 };
+        useChats.getState().visuals(key, [visual]);
+        expect(useChats.getState().byKey[key]).toBeUndefined();
+        useChats.getState().reset(key, info(), [user('u1', 'hi')]);
+        useChats.getState().visuals(key, [visual]);
+        useChats.getState().bookmarks(key, []);
+        useChats.getState().reset(key, info(), [user('u1', 'hi'), user('u2', 'again')]);
+        expect(useChats.getState().byKey[key]?.visuals).toEqual([visual]);
+        expect(useChats.getState().byKey[key]?.bookmarks).toEqual([]);
+        chatSink((chatId) => `visuals-test:${chatId}`).visuals('chat-1', []);
+        expect(useChats.getState().byKey[key]?.visuals).toEqual([]);
+        useChats.getState().forget(key);
+    });
+});
+
 describe('the statuses beside the threads', () => {
     test('stay the same object while a reply streams, and change with the info', () => {
         const key = 'status-test/chat-1';

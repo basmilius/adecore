@@ -10,6 +10,7 @@ import type {
     ChatToolItem,
     ChatTurnItem,
     ChatUserItem,
+    ChatVisual,
     ChatWorkflow
 } from '@adecore/agent-contracts';
 import { abortedByMachine } from '@adecore/agent-contracts';
@@ -55,7 +56,9 @@ export type TimelineRow =
     | { kind: 'forks'; id: string; turnId: string }
     | { kind: 'working'; id: string; startedAt: number }
     // A card of the app's own (`thread-cards.ts`), never derived from an item.
-    | { kind: 'app-card'; id: string; card: ThreadCard };
+    | { kind: 'app-card'; id: string; card: ThreadCard }
+    // A page an agent published, placed by when it was published (`thread-cards.ts`), never derived from an item.
+    | { kind: 'visual'; id: string; visual: ChatVisual };
 
 interface TimelineOptions {
     expandedGroups: ReadonlySet<string>;
@@ -71,7 +74,7 @@ interface TimelineOptions {
  * against each other; prose and cards are blocks and need room around them. Where the two meet,
  * the block gap marks the seam, so an answer never looks glued to the call above it.
  */
-const BLOCK_KINDS = new Set<TimelineRow['kind']>(['assistant', 'report', 'thinking', 'changed-files', 'compaction', 'app-card']);
+const BLOCK_KINDS = new Set<TimelineRow['kind']>(['assistant', 'report', 'thinking', 'changed-files', 'compaction', 'app-card', 'visual']);
 
 export function isBlock(row: TimelineRow): boolean {
     return BLOCK_KINDS.has(row.kind);

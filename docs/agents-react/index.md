@@ -13,7 +13,7 @@ The demos on these pages run on a host in memory: two CLIs, three accounts, a ch
 
 ## What is in it
 
-- Chat: [`Timeline`](/agents-react/chat/timeline) draws the thread and [`Composer`](/agents-react/chat/composer) writes to it, with [prompts](/agents-react/chat/prompts) for the approvals and questions a chat waits on. [Messages and code](/agents-react/chat/messages), [diffs](/agents-react/chat/diffs), [subagents](/agents-react/chat/subagents), [limits](/agents-react/chat/limits) and [smaller parts](/agents-react/chat/parts) are there for a layout of your own.
+- Chat: [`Timeline`](/agents-react/chat/timeline) draws the thread and [`Composer`](/agents-react/chat/composer) writes to it, with [prompts](/agents-react/chat/prompts) for the approvals and questions a chat waits on. [Messages and code](/agents-react/chat/messages), [diffs](/agents-react/chat/diffs), [subagents](/agents-react/chat/subagents), [limits](/agents-react/chat/limits) and [smaller parts](/agents-react/chat/parts) are there for a layout of your own. The pages an agent publishes appear in the thread as [visuals](/agents-react/chat/visuals).
 - Providers: [`ProvidersPane`](/agents-react/providers/providers-pane) is the settings of the CLIs and their accounts; [marks](/agents-react/providers/marks) and the [model picker](/agents-react/providers/model-picker) are its parts.
 - Usage: [`UsagePage`](/agents-react/usage/usage-page) shows what the CLIs cost over a period, with its [charts and tiles](/agents-react/usage/charts) and the [plan limits](/agents-react/usage/limits).
 

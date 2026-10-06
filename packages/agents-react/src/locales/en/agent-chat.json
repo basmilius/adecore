@@ -416,6 +416,18 @@
     "renameFailed": "The bookmark could not be renamed",
     "removeFailed": "The bookmark could not be removed"
   },
+  "visuals": {
+    "actions": "Actions for {{title}}",
+    "expand": "Open large",
+    "more": "More actions",
+    "remove": "Remove visual",
+    "removeTitle": "Remove this visual?",
+    "removeDescription": "{{title}} is deleted from the chat. This cannot be undone.",
+    "removeFailed": "The visual could not be removed",
+    "loading": "Loading {{title}}",
+    "failed": "Could not load {{title}}",
+    "renderFailed": "This visual failed to render"
+  },
   "image": {
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",

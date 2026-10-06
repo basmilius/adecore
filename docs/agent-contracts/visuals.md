@@ -39,7 +39,7 @@ Nothing about visuals is a chat item, so a client that validates `chat.attach` a
 
 ## The bridge
 
-`VISUAL_BRIDGE_METHODS` names the five messages. The frame loads a small sandbox host page the app serves on an origin of its own; that page writes the visual's document into itself with `document.open`, `write` and `close`.
+`VISUAL_BRIDGE_METHODS` names the five messages. The frame loads a small sandbox host page the app serves on an origin of its own ([`VISUAL_HOST_PAGE`](#serving-a-page)); that page writes the visual's document into itself with `document.open`, `write` and `close`.
 
 | Method                                   | From, to                    | Builder                         |
 | ---------------------------------------- | --------------------------- | ------------------------------- |
@@ -89,3 +89,7 @@ Three short texts, product-neutral, for a host's tool or command help: `VISUAL_P
 ## Serving a page
 
 A page's bytes are an attachment with the mime type `text/html`. Never let one render on the app's own origin: serve `text/html` attachments as a download, or with `Content-Security-Policy: sandbox allow-scripts allow-forms`, and hand a frame the page only through the sandbox host page on its separate origin.
+
+`VISUAL_HOST_PAGE` is that sandbox host page: a UTF-8 HTML document with one inline script and nothing else. Serve it from code as `text/html; charset=utf-8` on an origin other than the app's, with its policy as a header, since it carries none. In a frame it posts `ui/notifications/sandbox-proxy-ready` to its parent, writes the first `ui/notifications/sandbox-resource-ready` from its parent into itself and ignores every message after that, and every message from anyone else. Opened on its own, it does nothing.
+
+The page runs in that same document, so the policy the host page was served with is the page's policy as well. It has to allow inline scripts and styles, and whatever a page may load, such as public `https:` sources. A frame that shows it is `sandbox="allow-scripts allow-forms"`, never with `allow-same-origin`, `allow-popups` or `allow-top-navigation`: the page runs on an opaque origin, opens no window and never moves the app. [`@adecore/agents-react`](/agents-react/chat/visuals) draws such frames.

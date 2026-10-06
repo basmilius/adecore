@@ -33,6 +33,7 @@ The names and payloads are those of the [agent protocol](/agent-contracts/protoc
 | `kill(chatId)`                          | Forgets the chat here and asks the host to remove it.                                            |
 | `listSkills(chatId)`                    | What the chat's CLI runs as a skill, for the `$` picker.                                         |
 | `addBookmark`, `renameBookmark`, `removeBookmark` | Answer the chat's whole bookmark list.                                                 |
+| `removeVisual(chatId, visualId)`        | Deletes a visual and its page for good, and answers the chat's whole list of visuals.           |
 | `setPreferences(payload)`               | Tells the host what a chat it starts on its own is made with, now and after every reconnect.     |
 | `loadProviders()`, `loadStatuses()`     | Read the CLIs and every chat's status again; the client does this on every `open`.               |
 | `isMounted(chatId)`, `dispose()`        | Whether a chat is open here, and letting go of everything. `dispose` leaves the agents running.  |
@@ -55,7 +56,7 @@ useUsageStore.getState().forget(scope.id);
 
 The stores are Zustand stores shared by every scope.
 
-- `useChats` holds a `ChatState` per key: the chat's `info`, its `items` by id, its `order`, `history` when only the newest page is held, `waitingBefore` for requests older than that page, and `bookmarks`. `statusByKey` holds only the info, and changes only when the info does.
+- `useChats` holds a `ChatState` per key: the chat's `info`, its `items` by id, its `order`, `history` when only the newest page is held, `waitingBefore` for requests older than that page, `bookmarks`, and `visuals`, the pages agents published in it. Bookmarks and visuals come with the attach and with their own events, and a fresh thread from the host keeps them. `statusByKey` holds only the info, and changes only when the info does.
 - `useChatRow(chatId, select)` reads one chat of the scope in context. Select the field you draw: a streamed word replaces `items`.
 - `structure` is `items` minus the growth of a streaming reply, thought or tool output. Derive rows from it, and read the live item with `useCurrentItem(chatId, item)`; that keeps a word from redrawing the whole thread.
 - `waitingRequestsOf(chat)` lists every approval and question that waits, also those before the loaded page.

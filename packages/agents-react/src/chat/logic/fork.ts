@@ -128,6 +128,8 @@ export function turnIdOfRow(row: TimelineRow): string | null {
             return row.tool.turnId;
         case 'work-group':
             return row.tools[0]?.turnId ?? null;
+        case 'visual':
+            return row.visual.turnId ?? null;
         case 'user':
         case 'assistant':
         case 'thinking':

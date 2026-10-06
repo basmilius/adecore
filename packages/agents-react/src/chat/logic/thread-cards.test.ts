@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
-import type { ChatItem, ChatToolItem } from '@adecore/agent-contracts';
+import type { ChatItem, ChatToolItem, ChatVisual } from '@adecore/agent-contracts';
 import type { ThreadCard } from '../../host';
-import { withThreadCards } from './thread-cards';
+import { timedRowsOf, withThreadCards, withTimedRows } from './thread-cards';
 import { deriveTimelineRows, type TimelineRow } from './timeline';
 
 function tool(id: string, createdAt: number, turnId: string, state: ChatToolItem['state'] = 'done'): ChatToolItem {
@@ -34,8 +34,12 @@ function card(id: string, at: number): ThreadCard {
     return { id, at, render: () => null };
 }
 
+function visual(id: string, at: number): ChatVisual {
+    return { id, title: id, at, maxHeight: 600, size: 1 };
+}
+
 function shape(rows: readonly TimelineRow[]): string[] {
-    return rows.map((row) => (row.kind === 'app-card' ? row.id : row.kind));
+    return rows.map((row) => (row.kind === 'app-card' || row.kind === 'visual' ? row.id : row.kind));
 }
 
 describe('withThreadCards', () => {
@@ -83,6 +87,65 @@ describe('withThreadCards', () => {
     test('a card keeps its row key apart from the chat items, whatever id the app gave it', () => {
         const rows = deriveTimelineRows(settled, options);
         const merged = withThreadCards(rows, [card('u1', 20_000)]);
+        expect(new Set(merged.map((row) => row.id)).size).toBe(merged.length);
+    });
+});
+
+describe('visuals among the rows', () => {
+    const running: ChatItem[] = [
+        { id: 't2', kind: 'turn', createdAt: 1000, turnId: 't2', state: 'running', endedAt: null, costUsd: 0 },
+        { id: 'u2', kind: 'user', createdAt: 1000, turnId: 't2', text: 'chart it' },
+        tool('b3', 2000, 't2'),
+        tool('b4', 4000, 't2', 'running')
+    ];
+
+    test('a visual of a settled turn waits under the fold, above the answer that closed it', () => {
+        const rows = deriveTimelineRows(settled, options);
+        expect(shape(withTimedRows(rows, timedRowsOf([], [visual('chart', 7000)], null)))).toEqual(['user', 'turn-fold', 'visual-chart', 'assistant']);
+    });
+
+    test('a running turn shows a visual between the calls around it, and keeps its working row last', () => {
+        const rows = deriveTimelineRows(running, { ...options, activeTurnId: 't2' });
+        expect(shape(withTimedRows(rows, timedRowsOf([], [visual('early', 3000), visual('late', 9000)], null)))).toEqual([
+            'user',
+            'work',
+            'visual-early',
+            'work-live',
+            'visual-late',
+            'working'
+        ]);
+    });
+
+    test('a visual of the same moment as an app card comes first', () => {
+        const rows = deriveTimelineRows(settled, options);
+        expect(shape(withTimedRows(rows, timedRowsOf([card('version', 7000)], [visual('chart', 7000)], null)))).toEqual([
+            'user',
+            'turn-fold',
+            'visual-chart',
+            'app-card-version',
+            'assistant'
+        ]);
+    });
+
+    test('a host that draws no visuals keeps the thread as its cards alone make it', () => {
+        const rows = deriveTimelineRows(settled, options);
+        expect(withTimedRows(rows, timedRowsOf([], null, null))).toBe(rows);
+        expect(shape(withTimedRows(rows, timedRowsOf([card('version', 7000)], null, null)))).toEqual(shape(withThreadCards(rows, [card('version', 7000)])));
+    });
+
+    test('a visual from before the page the thread holds waits for that page', () => {
+        const rows = deriveTimelineRows(settled, options);
+        expect(shape(withTimedRows(rows, timedRowsOf([], [visual('older', 500), visual('held', 1500)], 1000)))).toEqual([
+            'user',
+            'turn-fold',
+            'visual-held',
+            'assistant'
+        ]);
+    });
+
+    test('a visual keeps its row key apart from the chat items and the cards, whatever its id', () => {
+        const rows = deriveTimelineRows(settled, options);
+        const merged = withTimedRows(rows, timedRowsOf([card('u1', 20_000)], [visual('u1', 20_000)], null));
         expect(new Set(merged.map((row) => row.id)).size).toBe(merged.length);
     });
 });

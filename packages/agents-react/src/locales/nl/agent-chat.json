@@ -416,6 +416,18 @@
     "renameFailed": "De bladwijzer kon niet worden hernoemd",
     "removeFailed": "De bladwijzer kon niet worden verwijderd"
   },
+  "visuals": {
+    "actions": "Acties voor {{title}}",
+    "expand": "Groot openen",
+    "more": "Meer acties",
+    "remove": "Visualisatie verwijderen",
+    "removeTitle": "Deze visualisatie verwijderen?",
+    "removeDescription": "{{title}} wordt uit de chat verwijderd. Dit kan niet ongedaan worden gemaakt.",
+    "removeFailed": "De visualisatie kon niet worden verwijderd",
+    "loading": "{{title}} wordt geladen",
+    "failed": "{{title}} kon niet worden geladen",
+    "renderFailed": "Deze visualisatie kon niet worden getekend"
+  },
   "image": {
     "zoomIn": "Inzoomen",
     "zoomOut": "Uitzoomen",

@@ -208,7 +208,8 @@ export const sidebar: DefaultTheme.SidebarMulti = {
             ['Subagents', '/agents-react/chat/subagents'],
             ['Limits', '/agents-react/chat/limits'],
             ['Chat parts', '/agents-react/chat/parts'],
-            ['Attachments and mentions', '/agents-react/chat/attachments']
+            ['Attachments and mentions', '/agents-react/chat/attachments'],
+            ['Visuals', '/agents-react/chat/visuals']
         ]),
         group('Providers', [
             ['ProvidersPane', '/agents-react/providers/providers-pane'],

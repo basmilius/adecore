@@ -4,6 +4,7 @@ import { AGENT_EVENT_SCHEMAS, AGENT_REQUEST_SCHEMAS } from './protocol.ts';
 import {
     ChatVisualSchema,
     VISUAL_DARK_THEME,
+    VISUAL_HOST_PAGE,
     VISUAL_LAYOUT_GUIDE,
     VISUAL_LIGHT_THEME,
     VISUAL_LIMITS,
@@ -473,5 +474,72 @@ describe('the bootstrap script', () => {
         const page = boot({ another: true });
         expect(page.removed).toEqual(['style', 'script']);
         expect(page.listeners.size).toBe(0);
+    });
+});
+
+/*
+ * The sandbox host page's script run against a window and a document of plain objects, since this
+ * package has no DOM to load it in: what it posts to its parent and what it writes into itself.
+ */
+function host(options: { framed?: boolean } = {}) {
+    const source = /<script>([\s\S]*?)<\/script>/.exec(VISUAL_HOST_PAGE)![1]!;
+    const posted: unknown[] = [];
+    const parent = { postMessage: (data: unknown, origin: string) => posted.push({ data, origin }) };
+    const listeners: Array<(event: unknown) => void> = [];
+    const window: Record<string, unknown> = {
+        addEventListener: (type: string, listener: (event: unknown) => void) => {
+            if (type === 'message') {
+                listeners.push(listener);
+            }
+        }
+    };
+    window.parent = options.framed === false ? window : parent;
+    const written: string[] = [];
+    const document = {
+        open: () => written.push('open'),
+        write: (html: string) => written.push(`write ${html}`),
+        close: () => written.push('close')
+    };
+    new Function('window', 'document', source)(window, document);
+    const send = (data: unknown, source: unknown = parent): void => listeners.forEach((listener) => listener({ source, data }));
+    return { posted, listeners, written, send };
+}
+
+describe('the sandbox host page', () => {
+    test('is one UTF-8 document with one inline script, and no policy of its own', () => {
+        expect(VISUAL_HOST_PAGE).toStartWith('<!doctype html>\n<html><head><meta charset="utf-8"><script>');
+        expect(VISUAL_HOST_PAGE.match(/<script/g)).toHaveLength(1);
+        expect(VISUAL_HOST_PAGE).not.toContain('Content-Security-Policy');
+        expect(VISUAL_HOST_PAGE).not.toMatch(/\ssrc=/);
+    });
+
+    test('tells its parent that it listens, to any origin, since its own is opaque', () => {
+        expect(host().posted).toEqual([{ data: visualProxyReadyMessage(), origin: '*' }]);
+    });
+
+    test('opened on its own it says nothing and listens to nobody', () => {
+        const page = host({ framed: false });
+        expect(page.posted).toEqual([]);
+        expect(page.listeners).toEqual([]);
+    });
+
+    test('becomes the first page its parent sends, once', () => {
+        const page = host();
+        page.send(visualResourceReadyMessage('<p>one</p>'));
+        page.send(visualResourceReadyMessage('<p>two</p>'));
+        expect(page.written).toEqual(['open', 'write <p>one</p>', 'close']);
+    });
+
+    test('ignores a page from anyone but its parent, and every other message', () => {
+        const page = host();
+        page.send(visualResourceReadyMessage('<p>stranger</p>'), {});
+        page.send(null);
+        page.send('<p>bare</p>');
+        page.send({ jsonrpc: '2.0', method: 'ui/notifications/sandbox-resource-ready', params: { html: 7 } });
+        page.send({ method: 'ui/notifications/sandbox-resource-ready', params: { html: '<p>no version</p>' } });
+        page.send(visualHostContextMessage(VISUAL_DARK_THEME));
+        expect(page.written).toEqual([]);
+        page.send(visualResourceReadyMessage('<p>parent</p>'));
+        expect(page.written).toEqual(['open', 'write <p>parent</p>', 'close']);
     });
 });

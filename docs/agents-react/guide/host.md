@@ -42,6 +42,7 @@ A patch replaces top-level fields only: to change one function of `code`, `promp
 | `SubagentSlot`                     | One flyout                                         | Chips of your own for a chat's subagents over the composer.                                            |
 | `useThreadCards(scopeId, chatId)`  | No cards                                           | Cards of your own between the messages, each `{ id, at, render }`.                                     |
 | `useReplyAuthor(scopeId, chatId)`  | The agent is named for screen readers only         | A header over each reply: `{ name, mark? }`.                                                           |
+| `visuals`                          | No visuals in a thread                             | A `VisualHost`: where the pages agents publish are drawn, and how a link in one opens. See [Visuals](#visuals). |
 | `accents`                          | No colors                                          | The colors an account may wear: `all`, the `featured` ones, a `label` and the `current` accent.        |
 | `isApplePlatform()`, `isAppShortcut(event)` | From `@adecore/ui`; no shortcut           | Which modifier is Mod, and keys the app keeps even while the composer has focus.                       |
 
@@ -87,6 +88,26 @@ function InsertSelection({ disabled, insert }: ComposerSlotProps) {
 
 setChatHost({ ComposerSlot: InsertSelection });
 ```
+
+## Visuals
+
+A thread draws the visuals of its chat, pages an agent published, only when `visuals` is set. A `VisualHost` is `{ frameUrl, openLink(url) }`:
+
+- `frameUrl` is the address of the sandbox host page, [`VISUAL_HOST_PAGE`](/agent-contracts/visuals#serving-a-page) from `@adecore/agent-contracts/visual`, served from your code on an origin other than the app's. A frame adds the theme to it as a fragment.
+- `openLink(url)` opens an http or https link a person followed in a visual, outside the app, such as in their browser.
+
+```ts
+import { setChatHost } from '@adecore/agents-react/host';
+
+setChatHost({
+    visuals: {
+        frameUrl: 'https://visuals.example.test/frame.html',
+        openLink: (url) => openInBrowser(url)
+    }
+});
+```
+
+The frame reads a page's bytes through `attachments.read`, since a stored page is an attachment of its chat whose id is the visual's own. Serve the host page with a policy that lets a page run its inline scripts and styles and load public sources, and never serve a stored page on the app's origin. [Visuals](/agents-react/chat/visuals) has how a thread draws them.
 
 ## Lazy modules
 

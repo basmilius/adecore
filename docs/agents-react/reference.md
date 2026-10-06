@@ -8,7 +8,7 @@ Many props and options are not exported types. Derive them where you need one, a
 
 | Module | Exports |
 | --- | --- |
-| [`host`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/host.ts) | `AccentChoice`, `ChatToast`, `ChatActions`, `FileRef`, `ChatPlace`, `SubagentTask`, `TimelineFindOptions`, `TimelineFind`, `ComposerDictationProps`, `TextareaProps`, `ResourceUrl`, `ComposerSlotProps`, `SubagentSlotProps`, `ThreadCard`, `ReplyAuthor`, `ChatHost`, `setChatHost`, `chatHost` |
+| [`host`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/host.ts) | `AccentChoice`, `ChatToast`, `ChatActions`, `FileRef`, `ChatPlace`, `SubagentTask`, `TimelineFindOptions`, `TimelineFind`, `ComposerDictationProps`, `TextareaProps`, `ResourceUrl`, `ComposerSlotProps`, `SubagentSlotProps`, `ThreadCard`, `ReplyAuthor`, `VisualHost`, `ChatHost`, `setChatHost`, `chatHost` |
 | [`lazy`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/lazy.tsx) | `setLazyPrefetch`, `onLazyOpenError`, `lazyNamed` |
 | [`locales`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/locales.ts) | `AGENTS_NAMESPACES`, `AgentsNamespace`, `AGENTS_LOCALES` |
 | [`mounted-registry`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/mounted-registry.ts) | `MountedEntry`, `MountedRegistry` |
@@ -50,6 +50,8 @@ Many props and options are not exported types. Derive them where you need one, a
 | [`chat/thumbnails`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/thumbnails.ts) | `THUMBNAIL_PX`, `ThumbnailCrop`, `thumbnailCrop`, `useUploadThumbnail` |
 | [`chat/timeline-flash`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/timeline-flash.ts) | `TimelineFlash`, `useTimelineFlash` |
 | [`chat/timeline-scroll`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/timeline-scroll.ts) | `registerTimeline`, `setTimelineAtEnd`, `subscribeTimelineEnd`, `timelineAtEnd`, `scrollTimelineToEnd`, `pageTimeline`, `registerMessageStepper`, `stepTimelineMessage`, `registerItemJumper`, `jumpToTimelineItem`, `TurnTarget`, `registerTurnJumper`, `jumpToTimelineTurn`, `wantsEarlier`, `ReadingAnchor`, `firstRowInView`, `restoreAnchor` |
+| [`chat/visual-bridge`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/visual-bridge.ts) | `VisualFrameWindow`, `VisualBridgeOptions`, `VisualBridge` |
+| [`chat/visuals`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/visuals.ts) | `useVisualDialog` |
 
 ## Chat logic
 
@@ -65,12 +67,13 @@ Many props and options are not exported types. Derive them where you need one, a
 | [`chat/logic/limit`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/logic/limit.ts) | `LimitView`, `limitView` |
 | [`chat/logic/resume-compaction`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/logic/resume-compaction.ts) | `RESUME_COMPACTION_TOKENS`, `RESUME_COMPACTION_IDLE_MS`, `ResumeCompactionOffer`, `resumeCompactionOffer` |
 | [`chat/logic/scrubber`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/logic/scrubber.ts) | `TickKind`, `ScrubberTick`, `SCRUBBER_MIN_TICKS`, `TICK_HEIGHT_PX`, `STRIP_WIDTH_PX`, `STRIP_INSET_PX`, `ticksOf`, `TickSlot`, `ScrubberLayout`, `layoutTicks`, `tickOfRow`, `ticksWithHits`, `messageAt`, `slotOf`, `tickWidth`, `ReadingPosition`, `MessageRange`, `messagesInView`, `slotInView`, `stepMessage`, `threadPaddingLeft` |
-| [`chat/logic/thread-cards`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/logic/thread-cards.ts) | `withThreadCards` |
+| [`chat/logic/thread-cards`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/logic/thread-cards.ts) | `TimedRow`, `cardRows`, `visualRows`, `withTimedRows`, `timedRowsOf`, `withThreadCards` |
 | [`chat/logic/timeline-copy`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/logic/timeline-copy.ts) | `stripMarkdown`, `messageTextOf`, `markdownOf` |
 | [`chat/logic/timeline-target`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/logic/timeline-target.ts) | `TimelineTarget`, `EMPTY_TARGET`, `withCurrentText`, `readTimelineTarget` |
 | [`chat/logic/timeline`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/logic/timeline.ts) | `SubagentBranch`, `TimelineRow`, `isBlock`, `summarizeGroup`, `summarizeTurn`, `agentTurnLabel`, `turnLabel`, `findSubagentBranch`, `deriveTimelineRows` |
 | [`chat/logic/tool-catalog`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/logic/tool-catalog.ts) | `ToolEntry`, `TOOL_CATALOG`, `toolEntry` |
 | [`chat/logic/tools`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/logic/tools.ts) | `FileChange`, `toolSummary`, `readImagePath`, `fileChanges`, `isFileChange`, `unifiedChanges`, `approvalChanges`, `hasFileChanges`, `toolStartedAt`, `liveOutput` |
+| [`chat/logic/visual-height`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/logic/visual-height.ts) | `clampVisualHeight`, `initialVisualHeight`, `rememberVisualHeight` |
 | [`chat/logic/welcome`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/logic/welcome.ts) | `DayPart`, `dayPartOf` |
 | [`chat/logic/workflow`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/logic/workflow.ts) | `WorkflowAgentState`, `WorkflowAgentView`, `WorkflowPhaseView`, `workflowAgentState`, `workflowPhases`, `workflowAgentTime` |
 
@@ -108,6 +111,8 @@ Many props and options are not exported types. Derive them where you need one, a
 | [`chat/ui/TimelineMenu`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/TimelineMenu.tsx) | `TimelineMenuPopup`, `BookmarkMenuItems` |
 | [`chat/ui/UnifiedDiff`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/UnifiedDiff.tsx) | `UnifiedDiff` (default) |
 | [`chat/ui/UploadThumb`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/UploadThumb.tsx) | `UploadThumb` |
+| [`chat/ui/VisualFrame`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/VisualFrame.tsx) | `VisualFrameProps`, `VisualFrame` |
+| [`chat/ui/VisualDialogs`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/VisualDialogs.tsx) | `VisualDialogs` |
 | [`chat/ui/Welcome`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/Welcome.tsx) | `WelcomeGreeting` |
 | [`chat/ui/chips`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/chips.ts) | `MENTION_TONE`, `SKILL_TONE`, `CHIP_IN_EDITOR`, `CHIP_IN_MESSAGE` |
 | [`chat/ui/code-lines`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/code-lines.ts) | `CodeToken`, `Tokenize`, `IncrementalLines` |
@@ -126,6 +131,7 @@ Many props and options are not exported types. Derive them where you need one, a
 | [`chat/ui/reply-context`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/reply-context.ts) | `ReplyContext` |
 | [`chat/ui/reveal`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/reveal.ts) | `REVEAL_FADE_MS`, `REVEAL_TAU_MS`, `REVEAL_MIN_CPS`, `REVEAL_FINISH_MIN_CPS`, `REVEAL_MAX_FRAME_MS`, `REVEAL_MAX_HELD_WORD`, `advanceReveal`, `revealBoundary`, `RevealedText`, `useRevealedText` |
 | [`chat/ui/useToggleSet`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/useToggleSet.ts) | `ToggleSet`, `useToggleSet` |
+| [`chat/ui/visual-theme`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/visual-theme.ts) | `VisualTokens`, `visualThemeOf`, `backgroundBehind`, `useVisualTheme` |
 
 ## Composer editor
 
@@ -145,6 +151,7 @@ Many props and options are not exported types. Derive them where you need one, a
 | [`chat/ui/rows/Rows`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/rows/Rows.tsx) | `RowProps`, `Row` |
 | [`chat/ui/rows/SubagentRow`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/rows/SubagentRow.tsx) | `SubagentRow`, `SubagentBranchRow` |
 | [`chat/ui/rows/TaskRow`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/rows/TaskRow.tsx) | `TaskRow` |
+| [`chat/ui/rows/VisualRow`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/rows/VisualRow.tsx) | `VisualRow` |
 | [`chat/ui/rows/WorkRows`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/rows/WorkRows.tsx) | `ToggleLine`, `WorkRow`, `RunningFor`, `WorkLiveRow`, `WorkGroupRow`, `TurnFoldRow`, `ChangedFilesRow`, `WorkingRow` |
 | [`chat/ui/rows/WorkflowRow`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/rows/WorkflowRow.tsx) | `WorkflowRow` |
 | [`chat/ui/rows/row-rhythm`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/rows/row-rhythm.ts) | `FOLLOW_THRESHOLD_PX`, `rowRhythm`, `replyHeader` |

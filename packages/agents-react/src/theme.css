@@ -20,6 +20,13 @@
     --chart-context-system: var(--text-faint);
     /* The current hit of a find, which has to stand out from the accent of a bookmark next to it. */
     --chat-find: #facc15;
+    /* The series of a chart in a visual after the first, which is the accent. A categorical order checked
+       for color vision deficiency on both grounds: orange, aqua, yellow, magenta, green. */
+    --chart-2: #eb6834;
+    --chart-3: #1baf7a;
+    --chart-4: #eda100;
+    --chart-5: #e87ba4;
+    --chart-6: #008300;
 }
 
 [data-theme="dark"] {
@@ -34,6 +41,11 @@
     --chart-context-conversation: #6dd08b;
     --chart-context-system: var(--text-faint);
     --chat-find: #f5c542;
+    --chart-2: #d95926;
+    --chart-3: #199e70;
+    --chart-4: #c98500;
+    --chart-5: #d55181;
+    --chart-6: #008300;
 }
 
 /* Output and diffs take the terminal's colors when the app loads `@adecore/terminal/terminal.css`,
@@ -43,6 +55,7 @@
     --chat-output: var(--term-fg, var(--text));
     --chat-added: var(--term-ansi-green, var(--positive));
     --chat-removed: var(--term-ansi-red, var(--status-error));
+    --chart-1: var(--accent);
 }
 
 @theme inline {
@@ -114,6 +127,8 @@
         @starting-style { opacity: 0; }
     }
     @keyframes chat-fade { from { opacity: 0; } to { opacity: 1; } }
+    /* A visual still on its way says so only once it takes long enough to be noticed. */
+    .chat-visual-wait { animation: chat-fade 200ms ease-out 600ms both; }
 
     /* The row a jump from outside the chat (the card of a change in a file) landed on. */
     .chat-flash { animation: chat-flash 1600ms ease-out both; }
