@@ -23,7 +23,6 @@ const SHORTCUT_KINDS: readonly [NavigationKind, 'goToDefinition' | 'goToTypeDefi
 
 const TOAST_ID = 'language-navigation';
 
-
 /* The places of a result, each once: the two servers of a Vue file may both know the same one. `target` is the whole declaration when the server gave it. */
 export function uniquePlaces(result: NavigationResult): { location: Location; target: Range | null }[] {
     const seen = new Set<string>();

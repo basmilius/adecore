@@ -139,13 +139,10 @@ export function useDemoLanguage(configure: (service: FakeLanguageService) => voi
         return { service, language: new ProjectLanguage(service, { folder: '/shop', files: demoFiles }) };
     });
     const [language, setLanguage] = useState<EditorLanguage | null>(null);
-    const onMount = useCallback(
-        (_editor: Editor, attached: EditorLanguage | null) => {
-            setLanguage(attached);
-            return () => setLanguage(null);
-        },
-        []
-    );
+    const onMount = useCallback((_editor: Editor, attached: EditorLanguage | null) => {
+        setLanguage(attached);
+        return () => setLanguage(null);
+    }, []);
 
     useEffect(() => () => project.language.dispose(), [project]);
 

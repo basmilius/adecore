@@ -14,7 +14,9 @@ export interface PublishedEntry {
 
 const moduleOf = (from: string, specifier: string): string | null => {
     const base = resolve(dirname(from), specifier);
-    return [base, `${base}.ts`, `${base}.tsx`, join(base, 'index.ts'), join(base, 'index.tsx')].find((path) => /\.tsx?$/.test(path) && existsSync(path)) ?? null;
+    return (
+        [base, `${base}.ts`, `${base}.tsx`, join(base, 'index.ts'), join(base, 'index.tsx')].find((path) => /\.tsx?$/.test(path) && existsSync(path)) ?? null
+    );
 };
 
 /*
@@ -32,13 +34,20 @@ export const exportedNames = (file: string, seen = new Set<string>()): string[] 
     const names: string[] = [];
     for (const match of text.matchAll(/^export\s+(?:type\s+)?\{([^}]*)\}/gm)) {
         for (const part of match[1]!.split(',')) {
-            const name = part.trim().replace(/^type\s+/, '').split(/\s+as\s+/).at(-1)!.trim();
+            const name = part
+                .trim()
+                .replace(/^type\s+/, '')
+                .split(/\s+as\s+/)
+                .at(-1)!
+                .trim();
             if (name !== '' && name !== 'default') {
                 names.push(name);
             }
         }
     }
-    for (const match of text.matchAll(/^export\s+(?:declare\s+)?(?:abstract\s+)?(?:async\s+)?(?:function\*?|class|const|let|var|interface|type|enum|namespace)\s+([\w$]+)/gm)) {
+    for (const match of text.matchAll(
+        /^export\s+(?:declare\s+)?(?:abstract\s+)?(?:async\s+)?(?:function\*?|class|const|let|var|interface|type|enum|namespace)\s+([\w$]+)/gm
+    )) {
         names.push(match[1]!);
     }
     for (const match of text.matchAll(/^export\s+\*\s+as\s+([\w$]+)\s+from/gm)) {

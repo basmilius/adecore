@@ -12,7 +12,6 @@ const SAMPLE_LOCATIONS = 8;
 const SAMPLE_OTHER_FILES = 3;
 const CONTEXT_LINES = 3;
 
-
 interface Session {
     readonly target: RenameTarget;
     readonly original: string;

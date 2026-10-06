@@ -160,7 +160,9 @@ describe('toSvg', () => {
 
     test('a rotated element away from the origin lands where the canvas draws it', () => {
         const turned: DrawingElement = { ...rect('a', 200, 120), angle: Math.PI / 3 };
-        const [, tx, ty, degrees, cx, cy] = toSvg([turned], { palette }).match(/translate\(([-\d.]+) ([-\d.]+)\) rotate\(([-\d.]+) ([-\d.]+) ([-\d.]+)\)/)!.map(Number);
+        const [, tx, ty, degrees, cx, cy] = toSvg([turned], { palette })
+            .match(/translate\(([-\d.]+) ([-\d.]+)\) rotate\(([-\d.]+) ([-\d.]+) ([-\d.]+)\)/)!
+            .map(Number);
         const corner = rotatePoint({ x: 0, y: 0 }, { x: cx, y: cy }, (degrees * Math.PI) / 180);
         const expected = rotatePoint({ x: 200, y: 120 }, { x: 250, y: 150 }, Math.PI / 3);
         expect(corner.x + tx).toBeCloseTo(expected.x, 1);

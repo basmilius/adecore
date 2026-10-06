@@ -198,10 +198,7 @@ export const Scrubber = memo(function Scrubber({
                                     {slot.found && (
                                         <span
                                             aria-hidden
-                                            className={clsx(
-                                                'absolute right-0 rounded-full bg-chat-find',
-                                                index === currentSlot ? 'opacity-100' : 'opacity-50'
-                                            )}
+                                            className={clsx('absolute right-0 rounded-full bg-chat-find', index === currentSlot ? 'opacity-100' : 'opacity-50')}
                                             style={{ top: slot.y, height: TICK_HEIGHT_PX, width: FOUND_WIDTH_PX }}
                                         />
                                     )}

@@ -48,7 +48,6 @@ interface AskOptions {
     readonly groups?: readonly ActionGroup[];
 }
 
-
 /*
  * What the language servers offer to do at the caret or the selection: a lightbulb in the gutter on the line
  * that has something, a list under the caret (Mod+.) grouped by kind with the change an action would make

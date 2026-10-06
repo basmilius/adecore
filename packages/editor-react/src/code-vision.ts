@@ -207,7 +207,11 @@ export class CodeVisionFeature {
             const entries: EditorCodeVisionEntry[] = [];
             const known = this.counts.get(declaration.id);
             if (counted && declaration.usages && known !== undefined) {
-                entries.push({ id: 'usages', text: usagesText(known.count, this.language.project.i18n), activate: () => void this.language.peek.open(declaration.position) });
+                entries.push({
+                    id: 'usages',
+                    text: usagesText(known.count, this.language.project.i18n),
+                    activate: () => void this.language.peek.open(declaration.position)
+                });
             }
             if (mapped !== null && declaration.authors) {
                 let authorship = this.authorships.get(declaration.id);

@@ -114,7 +114,14 @@ export function Select<T extends string>({
                 </BaseSelect.Icon>
             </BaseSelect.Trigger>
             <BaseSelect.Portal>
-                <BaseSelect.Positioner className="popup-positioner" render={renderPositioner} side="bottom" align={align} sideOffset={6} alignItemWithTrigger={false}>
+                <BaseSelect.Positioner
+                    className="popup-positioner"
+                    render={renderPositioner}
+                    side="bottom"
+                    align={align}
+                    sideOffset={6}
+                    alignItemWithTrigger={false}
+                >
                     <BaseSelect.Popup className="menu-popup">
                         <BaseSelect.List className="max-h-80 overflow-auto">
                             {groups

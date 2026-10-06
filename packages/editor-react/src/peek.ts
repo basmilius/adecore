@@ -21,7 +21,6 @@ function placeKey(location: Location): string {
     return `${location.uri}\0${location.range.start.line}\0${location.range.start.character}`;
 }
 
-
 /*
  * The references of the name at the caret, between the lines of the file under the line it is on. The
  * editor keeps the keyboard: arrows pick a reference, Enter goes to it and Escape closes the peek; typing
