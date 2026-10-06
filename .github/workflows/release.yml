@@ -112,7 +112,7 @@ jobs:
           cp "packages/database/helper/target/${{ matrix.target }}/release/${{ matrix.binary }}" stage/bin/
 
       - name: ⬆️ Upload the binary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.package }}
           path: stage
@@ -159,7 +159,7 @@ jobs:
 
       # One artifact per platform package, each holding `bin/`. After the check and the build so those never see a binary, before the publish so `files` picks it up.
       - name: ⬇️ Download the helper binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: database-*
           path: packages
