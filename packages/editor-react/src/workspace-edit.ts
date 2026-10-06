@@ -1,5 +1,13 @@
 import type { Editor, EditorContentChange } from '@adecore/editor';
-import { applyTextEdits, fileUriToPath, type ApplyWorkspaceEditResult, type RenameFile, type TextEdit, type WorkspaceEdit } from '@adecore/lsp';
+import {
+    applyTextEdits,
+    fileUriToPath,
+    type ApplyWorkspaceEditResult,
+    type CreateFile,
+    type RenameFile,
+    type TextEdit,
+    type WorkspaceEdit
+} from '@adecore/lsp';
 import type { DiskText } from './host-types.ts';
 
 /* A file that changed without an editor of this project holding it: its new text waits as an unsaved draft. */
@@ -18,6 +26,8 @@ export interface ProjectFiles {
     save(files: readonly StagedFile[]): Promise<string | null>;
     /* Moves a file or folder on the machine, with what is open on it, and tells the servers it moved; the reason it could not, or null. */
     rename(from: string, to: string): Promise<string | null>;
+    /* Makes a file that is not there with its text, through the machine; the reason it could not, or null. Without it no edit creates a file. */
+    create?(path: string, text: string): Promise<string | null>;
 }
 
 export interface WorkspaceEditHost {
@@ -30,17 +40,20 @@ function refused(failureReason: string): ApplyWorkspaceEditResult {
     return { applied: false, failureReason };
 }
 
-/* One thing an edit does, in the order it says: text edits of a document, or a file that moves. */
+/* One thing an edit does, in the order it says: text edits of a document, a file that is made, or a file that moves. */
 type Step =
     | { readonly kind: 'edits'; readonly uri: string; readonly edits: TextEdit[] }
+    | { readonly kind: 'create'; readonly file: CreateFile }
     | { readonly kind: 'rename'; readonly oldUri: string; readonly newUri: string };
 
-/* The steps of an edit; null when it creates or deletes a file, which an edit is not applied with. */
+/* The steps of an edit; null when it deletes a file, which an edit is not applied with. */
 function stepsOf(edit: WorkspaceEdit): Step[] | null {
     const steps: Step[] = [];
     for (const change of edit.documentChanges ?? []) {
         if ('textDocument' in change) {
             steps.push({ kind: 'edits', uri: change.textDocument.uri, edits: change.edits });
+        } else if (change.kind === 'create') {
+            steps.push({ kind: 'create', file: change });
         } else if (change.kind === 'rename') {
             steps.push({ kind: 'rename', oldUri: change.oldUri, newUri: change.newUri });
         } else {
@@ -55,7 +68,7 @@ function stepsOf(edit: WorkspaceEdit): Step[] | null {
     return steps;
 }
 
-/* The text edits of an edit per document, as the entries a document has in it; null when it creates or deletes a file. */
+/* The text edits of an edit per document, as the entries a document has in it; null when it deletes a file. */
 export function entriesOf(edit: WorkspaceEdit): Map<string, TextEdit[][]> | null {
     const steps = stepsOf(edit);
     if (steps === null) {
@@ -90,19 +103,27 @@ interface PlannedEdits {
     readonly disk: DiskText | null;
 }
 
-type Planned = PlannedEdits | { readonly kind: 'rename'; readonly oldPath: string; readonly newPath: string };
+/* A file to make, with the text every step of the edit leaves in it. */
+interface PlannedCreate {
+    readonly kind: 'create';
+    readonly path: string;
+    text: string;
+}
+
+type Planned = PlannedEdits | PlannedCreate | { readonly kind: 'rename'; readonly oldPath: string; readonly newPath: string };
 
 /*
  * Applies an LSP workspace edit on the client, step by step in the order it says. A file an editor holds takes
  * its edits as one undo step. Any other file gets its new text as an unsaved draft that a person saves, and
  * nothing is written to disk on a server's word alone, unless the edit also moves a file: the edits and the
- * move are then one change, so every file is saved through the machine and the move is made there. The
- * edit is checked against every text first, so one that does not fit changes nothing.
+ * move are then one change, so every file is saved through the machine and the move is made there. A file
+ * the edit creates is made through the machine with the text the edit writes into it. The edit is checked
+ * against every text first, so one that does not fit changes nothing.
  */
 export async function applyWorkspaceEdit(edit: WorkspaceEdit, host: WorkspaceEditHost): Promise<ApplyWorkspaceEditResult> {
     const steps = stepsOf(edit);
     if (steps === null) {
-        return refused('Creating and deleting files is not supported yet');
+        return refused('Deleting files is not supported yet');
     }
     const planned = await plan(steps, host);
     if (typeof planned === 'string') {
@@ -111,8 +132,8 @@ export async function applyWorkspaceEdit(edit: WorkspaceEdit, host: WorkspaceEdi
     const moving = planned.some((item) => item.kind === 'rename');
     const staged: StagedFile[] = [];
     for (const item of planned) {
-        if (item.kind === 'rename') {
-            const reason = await host.files!.rename(item.oldPath, item.newPath);
+        if (item.kind === 'rename' || item.kind === 'create') {
+            const reason = item.kind === 'rename' ? await host.files!.rename(item.oldPath, item.newPath) : await host.files!.create!(item.path, item.text);
             if (reason !== null) {
                 return refused(reason);
             }
@@ -154,8 +175,21 @@ async function plan(steps: readonly Step[], host: WorkspaceEditHost): Promise<Pl
     const texts = new Map<string, { text: string; disk: DiskText | null }>();
     // A file that has moved is read where it still stands: nothing moves until the plan is made.
     const origins = new Map<string, string>();
+    // A file that is made is written once, with what every step leaves in it.
+    const creates = new Map<string, PlannedCreate>();
     const planned: Planned[] = [];
     for (const step of steps) {
+        if (step.kind === 'create') {
+            const made = await planCreate(step.file, host, texts);
+            if (typeof made === 'string') {
+                return made;
+            }
+            if (made !== null) {
+                creates.set(step.file.uri, made);
+                planned.push(made);
+            }
+            continue;
+        }
         if (step.kind === 'rename') {
             const oldPath = fileUriToPath(step.oldUri);
             const newPath = fileUriToPath(step.newUri);
@@ -167,6 +201,15 @@ async function plan(steps: readonly Step[], host: WorkspaceEditHost): Promise<Pl
             continue;
         }
         const source = origins.get(step.uri) ?? step.uri;
+        const created = creates.get(source);
+        if (created !== undefined) {
+            try {
+                created.text = applyTextEdits(created.text, step.edits);
+            } catch (error) {
+                return error instanceof Error ? error.message : String(error);
+            }
+            continue;
+        }
         if (!texts.has(source)) {
             const editor = host.editorOf(source);
             if (editor) {
@@ -191,4 +234,21 @@ async function plan(steps: readonly Step[], host: WorkspaceEditHost): Promise<Pl
         texts.set(source, { text: after, disk: held.disk });
     }
     return planned;
+}
+
+/* A file that is not there yet, or null when it is and the create says to leave it. Making one over a file that is there is not supported. */
+async function planCreate(
+    file: CreateFile,
+    host: WorkspaceEditHost,
+    texts: ReadonlyMap<string, { text: string; disk: DiskText | null }>
+): Promise<PlannedCreate | null | string> {
+    const path = fileUriToPath(file.uri);
+    if (path === null || host.files?.create === undefined) {
+        return `Creating ${file.uri} is not supported here`;
+    }
+    const there = texts.has(file.uri) || host.editorOf(file.uri) !== undefined || (await host.files.read(path)) !== null;
+    if (!there) {
+        return { kind: 'create', path, text: '' };
+    }
+    return file.options?.ignoreIfExists === true && file.options.overwrite !== true ? null : `${path} already exists`;
 }

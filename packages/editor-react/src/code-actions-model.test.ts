@@ -124,6 +124,18 @@ describe('preview of an edit', () => {
         expect(previewOf(text, edit, uri)).toEqual({ removed: [], added: [], hiddenLines: 0, otherFiles: 0, moves: 1 });
     });
 
+    test('counts a file an edit creates as another file', () => {
+        const created = 'file:///work/BInterface.ts';
+        const edit = {
+            documentChanges: [
+                { kind: 'create' as const, uri: created },
+                { textDocument: { uri: created, version: null }, edits: [{ range: range(0, 0, 0), newText: 'export interface B {}\n' }] },
+                { textDocument: { uri, version: null }, edits: [{ range: range(0, 0, 0), newText: '// B\n' }] }
+            ]
+        };
+        expect(previewOf(text, edit, uri)).toMatchObject({ added: ['// B'], otherFiles: 1, moves: 0 });
+    });
+
     test('has none for an edit that changes nothing or one that cannot be shown', () => {
         expect(previewOf(text, { changes: { [uri]: [{ range: range(0, 0, 0), newText: '' }] } }, uri)).toBeNull();
         expect(previewOf(text, { documentChanges: [{ kind: 'delete', uri }] }, uri)).toBeNull();

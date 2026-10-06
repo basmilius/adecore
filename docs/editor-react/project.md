@@ -39,17 +39,19 @@ It checks every text edit against its document first, so an edit that does not f
 - A file open in an editor takes its edits as one undo step.
 - Any other file becomes an unsaved draft through `files.stage`. Nothing is written on a server's word alone.
 - When the edit also moves files, the drafts are saved through `files.save` and the moves go through `files.rename`, since a move and the edits that come with it are one change.
+- A file the edit creates is made through `files.create`, once, with the text every step of the edit writes into it. One that is there already is refused, unless the create says `ignoreIfExists`; then the edits after it go to that file.
 
 `ProjectFiles` is the app's side:
 
-| Method             | What it does                                                                       |
-| ------------------ | ---------------------------------------------------------------------------------- |
-| `read(path)`       | The `DiskText` (`text`, `mtime`) of a file, from its draft or the disk; or `null` |
-| `stage(files)`     | Puts `StagedFile`s (`path`, `disk`, `text`) in drafts and tells the person         |
-| `save(files)`      | Writes the files; returns the reason the first one failed, or `null`               |
-| `rename(from, to)` | Moves a file or folder; returns the reason it failed, or `null`                    |
+| Method               | What it does                                                                      |
+| -------------------- | --------------------------------------------------------------------------------- |
+| `read(path)`         | The `DiskText` (`text`, `mtime`) of a file, from its draft or the disk; or `null` |
+| `stage(files)`       | Puts `StagedFile`s (`path`, `disk`, `text`) in drafts and tells the person        |
+| `save(files)`        | Writes the files; returns the reason the first one failed, or `null`              |
+| `rename(from, to)`   | Moves a file or folder; returns the reason it failed, or `null`                   |
+| `create(path, text)` | Optional. Makes a file that is not there; returns the reason it failed, or `null` |
 
-The permission checks belong in these four. An edit that creates or deletes a file is refused with `Creating and deleting files is not supported yet`. Versions in the edit are not checked, and a failure halfway leaves the steps before it applied. For a check of versions without applying anything, see [`planWorkspaceEdit`](/lsp/documents#workspace-edits).
+The permission checks belong in these. Without `create` an edit that creates a file is refused, and an edit that deletes a file always is, with `Deleting files is not supported yet`. Versions in the edit are not checked, and a failure halfway leaves the steps before it applied. For a check of versions without applying anything, see [`planWorkspaceEdit`](/lsp/documents#workspace-edits).
 
 ## Problems
 

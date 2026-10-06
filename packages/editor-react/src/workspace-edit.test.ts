@@ -72,8 +72,10 @@ describe('workspace edits', () => {
         const { host } = setup();
         const missing: WorkspaceEdit = { changes: { 'file:///work/app/src/c.ts': [{ range: range(0, 0, 0), newText: 'x' }] } };
         expect(await applyWorkspaceEdit(missing, host)).toMatchObject({ applied: false, failureReason: expect.stringContaining('cannot be read') });
-        const create: WorkspaceEdit = { documentChanges: [{ kind: 'create', uri: closedUri }] };
+        const create: WorkspaceEdit = { documentChanges: [{ kind: 'create', uri: 'file:///work/app/src/c.ts' }] };
         expect(await applyWorkspaceEdit(create, host)).toMatchObject({ applied: false, failureReason: expect.stringContaining('not supported') });
+        const remove: WorkspaceEdit = { documentChanges: [{ kind: 'delete', uri: closedUri }] };
+        expect(await applyWorkspaceEdit(remove, host)).toMatchObject({ applied: false, failureReason: expect.stringContaining('not supported') });
     });
 
     test('refuses an edit of a read-only editor', async () => {
@@ -159,5 +161,76 @@ describe('workspace edits that move a file', () => {
         expect(renamesOf(move)).toEqual([{ kind: 'rename', oldUri: openUri, newUri: movedUri }]);
         expect([...entriesOf(move)!.keys()]).toEqual([openUri, closedUri]);
         expect(entriesOf({ documentChanges: [{ kind: 'delete', uri: openUri }] })).toBeNull();
+    });
+});
+
+describe('workspace edits that create a file', () => {
+    const createdUri = 'file:///work/app/src/CountInterface.ts';
+
+    function creating(closedText?: string, answer: string | null = null) {
+        const rig = setup(closedText);
+        const created: Array<[string, string]> = [];
+        const files: ProjectFiles = {
+            ...rig.host.files,
+            create: async (path, text) => {
+                created.push([path, text]);
+                return answer;
+            }
+        };
+        return { ...rig, created, host: { ...rig.host, files } };
+    }
+
+    const extract: WorkspaceEdit = {
+        documentChanges: [
+            { kind: 'create', uri: createdUri, options: { overwrite: false, ignoreIfExists: false } },
+            { textDocument: { uri: createdUri, version: null }, edits: [{ range: range(0, 0, 0), newText: 'export interface CountInterface {}\n' }] },
+            { textDocument: { uri: openUri, version: 3 }, edits: [{ range: range(0, 4, 9), newText: 'count' }] }
+        ]
+    };
+
+    test('makes the file through the machine with the text the edit writes into it, before the other edits', async () => {
+        const { editor, created, staged, saved, reads, host } = creating();
+        expect(await applyWorkspaceEdit(extract, host)).toEqual({ applied: true });
+        expect(created).toEqual([['/work/app/src/CountInterface.ts', 'export interface CountInterface {}\n']]);
+        expect(reads).toEqual(['/work/app/src/CountInterface.ts']);
+        expect(editor.getText()).toBe('let count = 1;\nvalue + 1;');
+        expect([staged, saved]).toEqual([[], []]);
+    });
+
+    test('refuses to make a file that is there, and changes nothing', async () => {
+        const { editor, created, host } = creating();
+        const over: WorkspaceEdit = {
+            documentChanges: [
+                { textDocument: { uri: openUri, version: null }, edits: [{ range: range(0, 4, 9), newText: 'count' }] },
+                { kind: 'create', uri: closedUri, options: { overwrite: true } }
+            ]
+        };
+        expect(await applyWorkspaceEdit(over, host)).toEqual({ applied: false, failureReason: '/work/app/src/b.ts already exists' });
+        expect(await applyWorkspaceEdit({ documentChanges: [{ kind: 'create', uri: openUri }] }, host)).toMatchObject({ applied: false });
+        expect(editor.getText()).toBe('let value = 1;\nvalue + 1;');
+        expect(created).toEqual([]);
+    });
+
+    test('leaves a file that is there when the create says so, and edits it', async () => {
+        const { created, staged, host } = creating();
+        const edit: WorkspaceEdit = {
+            documentChanges: [
+                { kind: 'create', uri: closedUri, options: { ignoreIfExists: true } },
+                { textDocument: { uri: closedUri, version: null }, edits: [{ range: range(0, 4, 9), newText: 'count' }] }
+            ]
+        };
+        expect(await applyWorkspaceEdit(edit, host)).toEqual({ applied: true });
+        expect(created).toEqual([]);
+        expect(staged.map((file) => file.text)).toEqual(['let count = 2;\nuse(value);']);
+    });
+
+    test('says why the machine did not make the file, and stops there', async () => {
+        const { editor, host } = creating(undefined, 'CountInterface.ts is there already');
+        expect(await applyWorkspaceEdit(extract, host)).toEqual({ applied: false, failureReason: 'CountInterface.ts is there already' });
+        expect(editor.getText()).toBe('let value = 1;\nvalue + 1;');
+    });
+
+    test('lists the text a created file gets with the other entries', () => {
+        expect([...entriesOf(extract)!.keys()]).toEqual([createdUri, openUri]);
     });
 });

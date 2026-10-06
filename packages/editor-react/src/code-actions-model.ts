@@ -107,7 +107,7 @@ function linesOf(text: string): string[] {
     return text.split(/\r\n|\r|\n/);
 }
 
-/* Null when the edit changes nothing, or creates or deletes a file, which a preview of lines cannot show. */
+/* Null when the edit changes nothing, or deletes a file, which a preview of lines cannot show. A file it creates counts as another file. */
 export function previewOf(text: string, edit: WorkspaceEdit, uri: string): EditPreview | null {
     const entries = entriesOf(edit);
     if (entries === null) {
