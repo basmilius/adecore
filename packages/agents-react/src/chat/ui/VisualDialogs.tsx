@@ -33,12 +33,14 @@ export function VisualDialogs({ chatId }: { chatId: string }) {
                         <Dialog.Title className="min-w-0 grow truncate">{shown?.title}</Dialog.Title>
                         <CloseButton label={t('common.action.close')} kbd="esc" dialog />
                     </div>
-                    <div className="relative min-h-0 grow">
-                        {shown !== null && (
-                            <ErrorBoundary label={t('visuals.renderFailed')} resetKeys={[shown]}>
-                                <VisualFrame chatId={chatId} visual={shown} fill />
-                            </ErrorBoundary>
-                        )}
+                    <div className="min-h-0 grow p-5">
+                        <div className="relative size-full">
+                            {shown !== null && (
+                                <ErrorBoundary label={t('visuals.renderFailed')} resetKeys={[shown]}>
+                                    <VisualFrame chatId={chatId} visual={shown} fill />
+                                </ErrorBoundary>
+                            )}
+                        </div>
                     </div>
                 </Dialog.Popup>
             </Dialog.Root>
