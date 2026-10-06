@@ -154,9 +154,9 @@ export interface ThreadCard {
     render(): ReactNode;
 }
 
-/* Where the visuals agents publish are drawn: a frame on an origin of the app's own that is not the app's. */
+/* Where the visuals agents publish are drawn: a sandboxed frame on an opaque origin, with no rights over the app. */
 export interface VisualHost {
-    /* The address of the sandbox host page (`VISUAL_HOST_PAGE`), served on that origin. A frame adds the theme to it as a fragment. */
+    /* The address of the sandbox host page (`VISUAL_HOST_PAGE`), on another origin or on the app's own behind a `sandbox` policy. A frame adds the theme to it as a fragment. */
     frameUrl: string;
     /* Opens an http or https link a person followed in a visual, outside the app. */
     openLink(url: string): void;

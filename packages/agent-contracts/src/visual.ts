@@ -685,8 +685,9 @@ window.parent.postMessage({ jsonrpc: '2.0', method: methods.ready }, '*');
 
 /*
  * The sandbox host page: the first document of every frame a visual is drawn in, which an app serves
- * as UTF-8 HTML on an origin other than its own, with its policy as a header. It says it listens,
- * becomes the first page its parent sends, once, and ignores every other message. The page runs in
- * this very document, so the policy this page was served with is the page's policy too.
+ * as UTF-8 HTML with its policy as a header, on another origin or on its own behind a `sandbox`
+ * policy. It says it listens, becomes the first page its parent sends, once, and ignores every other
+ * message. The page runs in this very document, so the policy this page was served with is the
+ * page's policy too.
  */
 export const VISUAL_HOST_PAGE = `<!doctype html>\n<html><head><meta charset="utf-8"><script>${hostPageScript()}</script></head><body></body></html>\n`;

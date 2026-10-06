@@ -1,6 +1,6 @@
 # Visuals
 
-A visual is a self-contained HTML page an agent publishes in a chat: a chart, a table, a diagram, a collage of images, a mockup. A client shows it in the thread above the agent's reply, in a sandboxed frame on an origin of its own, drawn in the app's theme. The page talks to the app over a small JSON-RPC 2.0 bridge on `postMessage`, whose method names follow the MCP Apps extension, so the same frame can later show an app a server ships.
+A visual is a self-contained HTML page an agent publishes in a chat: a chart, a table, a diagram, a collage of images, a mockup. A client shows it in the thread above the agent's reply, in a sandboxed frame on an opaque origin, drawn in the app's theme. The page talks to the app over a small JSON-RPC 2.0 bridge on `postMessage`, whose method names follow the MCP Apps extension, so the same frame can later show an app a server ships.
 
 ```ts
 import { ChatVisualSchema, injectVisualBootstrap, parseVisualMessage, visualFrameHeight } from '@adecore/agent-contracts/visual';
@@ -39,7 +39,7 @@ Nothing about visuals is a chat item, so a client that validates `chat.attach` a
 
 ## The bridge
 
-`VISUAL_BRIDGE_METHODS` names the five messages. The frame loads a small sandbox host page the app serves on an origin of its own ([`VISUAL_HOST_PAGE`](#serving-a-page)); that page writes the visual's document into itself with `document.open`, `write` and `close`.
+`VISUAL_BRIDGE_METHODS` names the five messages. The frame loads a small sandbox host page the app serves ([`VISUAL_HOST_PAGE`](#serving-a-page)); that page writes the visual's document into itself with `document.open`, `write` and `close`.
 
 | Method                                   | From, to                    | Builder                         |
 | ---------------------------------------- | --------------------------- | ------------------------------- |
@@ -88,8 +88,13 @@ Three short texts, product-neutral, for a host's tool or command help: `VISUAL_P
 
 ## Serving a page
 
-A page's bytes are an attachment with the mime type `text/html`. Never let one render on the app's own origin: serve `text/html` attachments as a download, or with `Content-Security-Policy: sandbox allow-scripts allow-forms`, and hand a frame the page only through the sandbox host page on its separate origin.
+A page's bytes are an attachment with the mime type `text/html`. Never let one render on the app's own origin: serve `text/html` attachments as a download, or with `Content-Security-Policy: sandbox allow-scripts allow-forms`, and hand a frame the page only through the sandbox host page.
 
-`VISUAL_HOST_PAGE` is that sandbox host page: a UTF-8 HTML document with one inline script and nothing else. Serve it from code as `text/html; charset=utf-8` on an origin other than the app's, with its policy as a header, since it carries none. In a frame it posts `ui/notifications/sandbox-proxy-ready` to its parent, writes the first `ui/notifications/sandbox-resource-ready` from its parent into itself and ignores every message after that, and every message from anyone else. Opened on its own, it does nothing.
+`VISUAL_HOST_PAGE` is that sandbox host page: a UTF-8 HTML document with one inline script and nothing else. Serve it from code as `text/html; charset=utf-8`, with its policy as a header, since it carries none. In a frame it posts `ui/notifications/sandbox-proxy-ready` to its parent, writes the first `ui/notifications/sandbox-resource-ready` from its parent into itself and ignores every message after that, and every message from anyone else. Opened on its own, it does nothing.
 
-The page runs in that same document, so the policy the host page was served with is the page's policy as well. It has to allow inline scripts and styles, and whatever a page may load, such as public `https:` sources. A frame that shows it is `sandbox="allow-scripts allow-forms"`, never with `allow-same-origin`, `allow-popups` or `allow-top-navigation`: the page runs on an opaque origin, opens no window and never moves the app. [`@adecore/agents-react`](/agents-react/chat/visuals) draws such frames.
+A frame that shows it is `sandbox="allow-scripts allow-forms"`, never with `allow-same-origin`, `allow-popups` or `allow-top-navigation`: the page runs on an opaque origin, opens no window and never moves the app. [`@adecore/agents-react`](/agents-react/chat/visuals) draws such frames. Without `allow-same-origin`, the address the host page came from grants the page nothing, so the host page can live in either of two places:
+
+- On an origin other than the app's.
+- On a path of the app's own origin, which works the same in a dev server, a desktop shell and a web build. Its `Content-Security-Policy` then adds `sandbox allow-scripts allow-forms`, so the document has an opaque origin even when something loads it without the frame's attribute. It also limits `frame-ancestors` to the app, so no other site can frame it and hand it a page.
+
+The page runs in that same document, so the policy the host page was served with is the page's policy as well. It has to allow inline scripts and styles, and whatever a page may load, such as public `https:` sources. The app's own policy has to let it frame the host page: its `frame-src`, or what that falls back to, names the host page's origin, or `'self'` when the host page is on the app's own.

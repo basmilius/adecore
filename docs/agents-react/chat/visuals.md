@@ -24,7 +24,7 @@ const rows = withTimedRows(threadRows, timedRowsOf(cards, visuals, heldFrom));
 
 ## The frame
 
-`VisualFrame` (`VisualFrameProps`: `chatId`, `visual`, `fill?`, `className?`) loads the host's `frameUrl` with the theme as a fragment, in `<iframe sandbox="allow-scripts allow-forms">` with the visual's title and `loading="lazy"`. It keeps that first address for its life, so a theme change never loads the page again.
+`VisualFrame` (`VisualFrameProps`: `chatId`, `visual`, `fill?`, `className?`) loads the host's `frameUrl` with the theme as a fragment, in `<iframe sandbox="allow-scripts allow-forms">` with the visual's title and `loading="lazy"`. Without `allow-same-origin` the page runs on an opaque origin, wherever the host page is served. It keeps that first address for its life, so a theme change never loads the page again.
 
 `VisualBridge` does the talking, over the frame's window (`VisualFrameWindow`), with `VisualBridgeOptions` for what it reads and reports. It answers only the frame's own window:
 

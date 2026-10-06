@@ -93,7 +93,7 @@ setChatHost({ ComposerSlot: InsertSelection });
 
 A thread draws the visuals of its chat, pages an agent published, only when `visuals` is set. A `VisualHost` is `{ frameUrl, openLink(url) }`:
 
-- `frameUrl` is the address of the sandbox host page, [`VISUAL_HOST_PAGE`](/agent-contracts/visuals#serving-a-page) from `@adecore/agent-contracts/visual`, served from your code on an origin other than the app's. A frame adds the theme to it as a fragment.
+- `frameUrl` is the address of the sandbox host page, [`VISUAL_HOST_PAGE`](/agent-contracts/visuals#serving-a-page) from `@adecore/agent-contracts/visual`, served from your code. A frame adds the theme to it as a fragment.
 - `openLink(url)` opens an http or https link a person followed in a visual, outside the app, such as in their browser.
 
 ```ts
@@ -107,7 +107,7 @@ setChatHost({
 });
 ```
 
-The frame reads a page's bytes through `attachments.read`, since a stored page is an attachment of its chat whose id is the visual's own. Serve the host page with a policy that lets a page run its inline scripts and styles and load public sources, and never serve a stored page on the app's origin. [Visuals](/agents-react/chat/visuals) has how a thread draws them.
+The frame reads a page's bytes through `attachments.read`, since a stored page is an attachment of its chat whose id is the visual's own. Serve the host page on an origin other than the app's, or on a path of the app's own origin with a `Content-Security-Policy` that adds `sandbox allow-scripts allow-forms` and limits `frame-ancestors` to the app. Either is safe, since the frame never gets `allow-same-origin`. The host page's policy is the page's too, so it lets a page run its inline scripts and styles and load the public sources you want pages to reach, and your app's own policy allows the host page as a frame source. Never serve a stored page on the app's origin. [Serving a page](/agent-contracts/visuals#serving-a-page) has the details, [Visuals](/agents-react/chat/visuals) how a thread draws them.
 
 ## Lazy modules
 
