@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { CircleX, Info, TriangleAlert } from 'lucide-react';
-import { fileUriToPath } from '@adecore/lsp';
+import { fileUriToPath, type Location } from '@adecore/lsp';
 import { Button, Icon, Tooltip } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
 import type { EditorPosition } from '@adecore/editor';
@@ -12,6 +12,25 @@ import { SymbolSections } from './HoverSections.tsx';
 
 const SEVERITY_ICONS = { error: CircleX, warning: TriangleAlert, info: Info, hint: Info } as const;
 const SEVERITY_COLORS = { error: 'text-status-error', warning: 'text-status-needs-you', info: 'text-status-running', hint: 'text-text-muted' } as const;
+
+/* Where a definition is: only its line in the file of the card, else the file and the line, with a long name cut short before the line. */
+export function DefinitionPlace({ definition, uri }: { definition: Location; uri: string }) {
+    const { t } = useTranslation('editor');
+    const path = fileUriToPath(definition.uri);
+    const line = formatNumber(definition.range.start.line + 1);
+    if (path === null) {
+        return null;
+    }
+    if (definition.uri === uri) {
+        return <span className="text-text-faint">{t('language.hover.line', { line })}</span>;
+    }
+    return (
+        <span className="flex min-w-0 font-mono text-text-faint">
+            <span className="truncate">{basenameOf(path)}</span>
+            <span className="shrink-0">:{line}</span>
+        </span>
+    );
+}
 
 function ProblemSection({ problem, language }: { problem: Problem; language: EditorLanguage }) {
     const { t } = useTranslation('editor');
@@ -75,7 +94,6 @@ export function HoverCard({
     position: EditorPosition;
 }) {
     const { t } = useTranslation('editor');
-    const place = info?.definition === null || info === null ? null : fileUriToPath(info.definition.uri);
     return (
         <div className="flex w-max min-w-[280px] max-w-[min(520px,calc(100vw-16px))] flex-col divide-y divide-border">
             {info !== null && (
@@ -87,29 +105,27 @@ export function HoverCard({
                             void language.navigation.goToName(name, anchor, name === (declared ?? info.word) ? info.definition : null);
                         }}
                     />
-                    <div className="flex items-center gap-3 px-3 py-1.5 text-xs">
-                        {info.definition !== null && (
-                            <button type="button" className="text-accent hover:underline" onClick={() => language.goTo(info.definition!)}>
-                                {t('language.hover.definition')}
-                            </button>
-                        )}
-                        {info.references !== null && info.references > 0 && (
-                            <button
-                                type="button"
-                                className="text-accent hover:underline"
-                                onClick={() => {
-                                    language.hover.hide();
-                                    void language.peek.open(position);
-                                }}
-                            >
-                                {t('language.hover.references', { count: info.references, formatted: formatNumber(info.references) })}
-                            </button>
-                        )}
-                        {place !== null && info.definition !== null && (
-                            <span className="ml-auto font-mono text-text-faint">
-                                {basenameOf(place)}:{formatNumber(info.definition.range.start.line + 1)}
-                            </span>
-                        )}
+                    <div className="flex flex-col gap-0.5 px-3 py-1.5 text-xs">
+                        <div className="flex items-center gap-3 whitespace-nowrap">
+                            {info.definition !== null && (
+                                <button type="button" className="text-accent hover:underline" onClick={() => language.goTo(info.definition!)}>
+                                    {t('language.hover.definition')}
+                                </button>
+                            )}
+                            {info.references !== null && info.references > 0 && (
+                                <button
+                                    type="button"
+                                    className="text-accent hover:underline"
+                                    onClick={() => {
+                                        language.hover.hide();
+                                        void language.peek.open(position);
+                                    }}
+                                >
+                                    {t('language.hover.references', { count: info.references, formatted: formatNumber(info.references) })}
+                                </button>
+                            )}
+                        </div>
+                        {info.definition !== null && <DefinitionPlace definition={info.definition} uri={language.uri} />}
                     </div>
                 </>
             )}

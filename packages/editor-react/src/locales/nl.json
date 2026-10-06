@@ -6,6 +6,7 @@
             "definition": "Ga naar definitie",
             "references_one": "{{formatted}} referentie",
             "references_other": "{{formatted}} referenties",
+            "line": "Regel {{line}}",
             "none": "Geen informatie voor deze plek"
         },
         "edit": {

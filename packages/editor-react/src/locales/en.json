@@ -6,6 +6,7 @@
             "definition": "Go to definition",
             "references_one": "{{formatted}} reference",
             "references_other": "{{formatted}} references",
+            "line": "Line {{line}}",
             "none": "No information for this position"
         },
         "edit": {
