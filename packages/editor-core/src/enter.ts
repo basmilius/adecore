@@ -159,7 +159,7 @@ class Enter {
                 return { from, to: afterWhitespace, text: newline + inner + newline + start, caret: newline.length + inner.length };
             }
             const closing =
-                last === '{' && source.unmatchedBrace(context.bracket!.at) ? this.closeBrace(from, afterWhitespace, line, rest, newline, start, inner) : null;
+                last === '{' && source.unclosedBrace(context.bracket!.at) ? this.closeBrace(from, afterWhitespace, line, rest, newline, start, inner) : null;
             return closing ?? plain(inner);
         }
 

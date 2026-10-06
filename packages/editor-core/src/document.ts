@@ -1584,8 +1584,28 @@ export class DocumentModel {
             newline: (index) => this.newlineAt(index),
             context: (offset) => this.typingContext(offset, language),
             region: (line) => (/^vue$/i.test(language) ? vueRegionAt((index) => this.getLine(index).text, line) : null),
-            unmatchedBrace: (offset) => this.bracketIndex(language)?.unmatched.has(offset) ?? false
+            unclosedBrace: (offset) => this.isUnclosedBrace(offset, language)
         };
+    }
+
+    /*
+     * Whether the `{` at `offset` has no closer of its own: none in the document, or only the closer of a block around
+     * it, which it took from that block. Such a closer sits shallower than the brace's line and leaves an opener before it unmatched.
+     */
+    private isUnclosedBrace(offset: number, language: string): boolean {
+        const index = this.bracketIndex(language);
+        if (index === undefined) {
+            return false;
+        }
+        if (index.unmatched.has(offset)) {
+            return true;
+        }
+        const closer = index.pairs.get(offset);
+        const indentAt = (at: number): number => this.getLine(this.rope.lineAt(at)).text.match(/^[\t ]*/)![0].length;
+        if (closer === undefined || indentAt(closer) >= indentAt(offset)) {
+            return false;
+        }
+        return [...index.unmatched].some((at) => at < offset && this.rope.charAt(at) === '{');
     }
 
     /* Undefined for a document too large to scan on every Enter. */

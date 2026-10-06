@@ -14,8 +14,8 @@ export interface EditSource {
     newline(index: number): string;
     context(offset: number): TypingContext;
     region(line: number): VueRegion | null;
-    /* Whether a `{` at this offset has no closer anywhere in the document. */
-    unmatchedBrace(offset: number): boolean;
+    /* Whether a `{` at this offset has no closer of its own, so Enter after it adds one. */
+    unclosedBrace(offset: number): boolean;
 }
 
 /* Edits to apply together and the selections that stand after them. */

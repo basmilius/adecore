@@ -200,7 +200,19 @@ describe('Enter after an opener', () => {
         enter('if (x) {¦foo();', 'if (x) {\n    ¦foo();\n}');
         enter('foo({¦)', 'foo({\n    ¦\n})');
         enter('function a() {\n    if (x) {¦', 'function a() {\n    if (x) {\n        ¦\n    }');
-        enter('function a() {\n    if (x) {¦\n}', 'function a() {\n    if (x) {\n        ¦\n}');
+    });
+
+    it('closes a brace that took the closer of a block around it', () => {
+        enter('function a() {\n    if (x) {¦\n}', 'function a() {\n    if (x) {\n        ¦\n    }\n}');
+        enter('class A {\n    a() {¦\n}', 'class A {\n    a() {\n        ¦\n    }\n}');
+        enter('<?php\n\nclass A\n{\n    public function a()\n    {¦\n}', '<?php\n\nclass A\n{\n    public function a()\n    {\n        ¦\n    }\n}', {
+            language: 'php'
+        });
+        enter('impl A {\n    fn a() {¦\n}', 'impl A {\n    fn a() {\n        ¦\n    }\n}', { language: 'rust' });
+    });
+
+    it('leaves a brace alone that only reads as shallower without a block around it', () => {
+        enter('    if (x) {¦\n}', '    if (x) {\n        ¦\n}');
     });
 
     it('does not add a closer when the brace has one, or for another bracket', () => {
