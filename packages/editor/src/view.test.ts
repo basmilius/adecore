@@ -101,6 +101,24 @@ describe('folding', () => {
         expect(row.querySelector('.se-fold-chip')).not.toBeNull();
     });
 
+    test('draws a fold a server starts within its first line up to there, and its last line from where it shows again', () => {
+        const source = '<?php\nuse App\\A;\nuse App\\B;\nuse App\\C;\n\nfinal class D {}';
+        const { host, model, view } = mount(source, { language: 'php' });
+        const at = (line: number, column: number) => model.offsetAt({ line, column });
+        view.setFoldHints({ ranges: [{ from: at(1, 0), to: at(3, 0), kind: 'imports', head: at(1, 3), tail: at(3, 9) }] });
+        view.refreshFolds();
+        model.setSelections([{ anchor: at(1, 6), head: at(1, 6) }]);
+        view.toggleFold(1);
+        const runs = [...host.querySelectorAll('.se-line[data-line="1"] .se-run')].map((run) => run.textContent);
+        expect(runs).toEqual(['use', ';']);
+        expect(host.querySelector('.se-line[data-line="1"] .se-fold-chip')).not.toBeNull();
+        expect(model.getSelections()[0]).toEqual({ anchor: at(1, 3), head: at(1, 3) });
+        expect(rendered(host)).toEqual(['0', '1', '4', '5']);
+        view.revealOffset(at(1, 5));
+        expect(rendered(host)).toEqual(['0', '1', '2', '3', '4', '5']);
+        expect([...host.querySelectorAll('.se-line[data-line="1"] .se-run')].map((run) => run.textContent).join('')).toBe('use App\\A;');
+    });
+
     test('draws no tail for a fold that has no closer', () => {
         const { host, view } = mount('def a():\n    one\n    two\nb = 1', { language: 'python' });
         view.refreshFolds();

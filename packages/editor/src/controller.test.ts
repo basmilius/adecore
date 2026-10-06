@@ -319,6 +319,16 @@ describe('the mouse', () => {
     });
 });
 
+describe('the folds a server names', () => {
+    test('take the characters it gives as where a collapsed fold hides from and shows again from', () => {
+        const { editor, page } = mountEditor({ text: '<?php\nuse A;\nuse B;\n\nfinal class C {}', language: 'php' });
+        editor.setFoldHints({ ranges: [{ startLine: 1, endLine: 2, kind: 'imports', startCharacter: 3, endCharacter: 5 }] });
+        editor.runCommand('collapseAllRegions');
+        const runs = [...page.host.querySelectorAll('.se-line[data-line="1"] .se-run')].map((run) => run.textContent);
+        expect(runs).toEqual(['use', ';']);
+    });
+});
+
 describe('the keyboard', () => {
     test('completes the arrow of PHP from a typed minus, and makes it a minus again for a key that cannot follow it', () => {
         const arrow = mountEditor({ text: '<?php\n$user', language: 'php', line: 2, column: 6 });

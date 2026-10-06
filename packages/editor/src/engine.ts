@@ -676,11 +676,19 @@ class SmartEditor implements Editor {
                           to: this.offsetAt(symbol.range.end),
                           body: symbol.body
                       })),
-                      ranges: (hints.ranges ?? []).map((range) => ({
-                          from: this.model.getLine(Math.min(range.startLine, this.model.getLineCount() - 1)).start,
-                          to: this.model.getLine(Math.min(range.endLine, this.model.getLineCount() - 1)).start,
-                          ...(range.kind === undefined ? {} : { kind: range.kind })
-                      }))
+                      ranges: (hints.ranges ?? []).map((range) => {
+                          const first = this.model.getLine(Math.min(range.startLine, this.model.getLineCount() - 1));
+                          const last = this.model.getLine(Math.min(range.endLine, this.model.getLineCount() - 1));
+                          const within = (line: { start: number; end: number }, character: number): number =>
+                              Math.min(line.end, line.start + Math.max(0, character));
+                          return {
+                              from: first.start,
+                              to: last.start,
+                              ...(range.kind === undefined ? {} : { kind: range.kind }),
+                              ...(range.startCharacter === undefined ? {} : { head: within(first, range.startCharacter) }),
+                              ...(range.endCharacter === undefined ? {} : { tail: within(last, range.endCharacter) })
+                          };
+                      })
                   }
         );
     }

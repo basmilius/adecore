@@ -570,7 +570,14 @@ export class EditorView {
                     this.foldHints = {
                         symbols:
                             this.foldHints.symbols?.map((hint) => ({ ...hint, from: mapOffset(hint.from, changes), to: mapOffset(hint.to, changes) })) ?? [],
-                        ranges: this.foldHints.ranges?.map((hint) => ({ ...hint, from: mapOffset(hint.from, changes), to: mapOffset(hint.to, changes) })) ?? []
+                        ranges:
+                            this.foldHints.ranges?.map((hint) => ({
+                                ...hint,
+                                from: mapOffset(hint.from, changes),
+                                to: mapOffset(hint.to, changes),
+                                ...(hint.head === undefined ? {} : { head: mapOffset(hint.head, changes) }),
+                                ...(hint.tail === undefined ? {} : { tail: mapOffset(hint.tail, changes) })
+                            })) ?? []
                     };
                 }
                 this.customFolds = this.customFolds.map((fold) => ({ from: mapOffset(fold.from, changes), to: mapOffset(fold.to, changes) }));
@@ -723,12 +730,16 @@ export class EditorView {
     }
 
     private foldStates(): FoldState[] {
-        return this.foldRanges.map((range) => ({
-            startLine: range.startLine,
-            endLine: range.endLine,
-            collapsed: this.collapsed.has(range.from),
-            closer: this.collapsed.has(range.from) ? this.closerOf(range) : undefined
-        }));
+        return this.foldRanges.map((range) => {
+            const collapsed = this.collapsed.has(range.from);
+            return {
+                startLine: range.startLine,
+                endLine: range.endLine,
+                collapsed,
+                closer: collapsed ? (range.tail ?? this.closerOf(range)) : undefined,
+                ...(collapsed && range.head !== undefined ? { head: range.head } : {})
+            };
+        });
     }
 
     /* The folds of the document, a moment after the last edit since they read all of it. */
@@ -1046,14 +1057,14 @@ export class EditorView {
         this.render();
     }
 
-    /* A caret in a line a fold hides would be typing where nobody can see. */
+    /* A caret in what a fold hides would be typing where nobody can see; it goes to where the fold's first line stops. */
     private moveHiddenCarets(): void {
         const visible = (offset: number): number => {
-            const line = this.model.positionAt(offset).line;
-            if (!this.layout.isHidden(line)) {
+            if (!this.layout.hides(offset)) {
                 return offset;
             }
-            return this.model.getLine(this.layout.rowForLine(line).line).end;
+            const row = this.layout.rowForLine(this.model.positionAt(offset).line);
+            return row.kind === 'text' && row.head !== null ? row.head : this.model.getLine(row.line).end;
         };
         const selections = this.model.getSelections();
         const moved = selections.map((selection) => ({ anchor: visible(selection.anchor), head: visible(selection.head) }));
@@ -1065,11 +1076,11 @@ export class EditorView {
     /* Opens the folds that hide an offset, so a caret or a search result is where it can be seen. */
     ensureVisible(offset: number): void {
         const line = this.model.positionAt(offset).line;
-        if (!this.layout.isHidden(line)) {
+        if (!this.layout.hides(offset)) {
             return;
         }
         for (const range of this.foldRanges) {
-            if (range.startLine < line && range.endLine >= line) {
+            if ((range.startLine < line && range.endLine >= line) || (range.startLine === line && range.head !== undefined && offset > range.head)) {
                 this.collapsed.delete(range.from);
                 this.settled.add(range.from);
             }

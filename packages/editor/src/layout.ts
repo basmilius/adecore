@@ -49,6 +49,8 @@ export interface FoldState {
     collapsed: boolean;
     /* Where the closing delimiter starts on `endLine`; a collapsed fold keeps it drawn after its placeholder. */
     closer?: number;
+    /* Where a collapsed fold starts hiding on `startLine`; without it the whole first line stays drawn. */
+    head?: number;
 }
 
 interface RowBase {
@@ -66,6 +68,8 @@ export interface TextRow extends RowBase {
     lastLine: number;
     /* The offset on `lastLine` from which a collapsed fold draws what stays visible after its placeholder. */
     tail: number | null;
+    /* The offset on `line` up to which a collapsed fold draws its first line; null when it draws the whole line. */
+    head: number | null;
     /* Visual lines, which is more than one for a wrapped line. */
     subRows: number;
 }
@@ -429,6 +433,7 @@ export class EditorLayout {
             const fold = folds.get(line);
             const last = Math.max(line, Math.min(count - 1, fold?.endLine ?? line));
             const tail = fold?.closer !== undefined && last > line ? this.tailOf(fold.closer, last) : null;
+            const head = fold?.head !== undefined && last > line ? this.tailOf(fold.head, line) : null;
             const index = this.rows.length;
             const bounds = this.wrapWidth === null ? null : this.document.getLine(line);
             const subRows = this.rowCountOf(line, bounds === null ? 0 : bounds.end - bounds.start);
@@ -439,6 +444,7 @@ export class EditorLayout {
                 line,
                 lastLine: last,
                 tail,
+                head,
                 subRows,
                 top: 0,
                 height: subRows * this.metrics.lineHeight
@@ -454,7 +460,7 @@ export class EditorLayout {
         this.reflow();
     }
 
-    /* The closer a fold ends in, clamped to its last line since the fold may be a moment older than an edit. */
+    /* An offset of a fold clamped to its line, since the fold may be a moment older than an edit. */
     private tailOf(closer: number, line: number): number {
         const bounds = this.document.getLine(line);
         return Math.min(bounds.end, Math.max(bounds.start, closer));
@@ -541,6 +547,13 @@ export class EditorLayout {
         return row.kind === 'text' && line > row.line && line <= row.lastLine;
     }
 
+    /* Whether a fold hides the offset: on a line it hides, or past where it starts on its first line. */
+    hides(offset: number): boolean {
+        const line = this.document.positionAt(offset).line;
+        const row = this.rowForLine(line);
+        return row.kind === 'text' && (this.isHidden(line) || (row.head !== null && line === row.line && offset > row.head));
+    }
+
     visibleRows(top: number, height: number, overscan = 120): LayoutRow[] {
         const result: LayoutRow[] = [];
         for (let index = this.rowAt(top - overscan).index; index < this.rows.length && this.rows[index]!.top < top + height + overscan; index++) {
@@ -550,6 +563,17 @@ export class EditorLayout {
     }
 
     geometry(row: TextRow): LineGeometry {
+        if (row.head !== null) {
+            // The first line of a fold that starts within it, laid out up to there; seldom drawn, so never kept.
+            const line = this.document.getLine(row.line);
+            const shown = { ...line, end: row.head, text: line.text.slice(0, row.head - line.start) };
+            return scanLine(
+                shown,
+                this.metrics,
+                this.wrapWidth,
+                (this.inlaysByLine.get(row.line) ?? []).filter((inlay) => inlay.at <= row.head!)
+            );
+        }
         const cached = this.geometryCache.get(row.line);
         if (cached) {
             return cached;

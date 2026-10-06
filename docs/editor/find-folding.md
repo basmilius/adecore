@@ -28,7 +28,7 @@ The editor reads the [folding ranges of the model](/editor-core/search-folding#f
 
 `foldDefaults` lists the [roles](/editor-core/search-folding#roles) that fold when a file opens without kept folds, such as `['imports', 'file-header']`. They fold once: never a range a person opened or closed, never one with the caret in it, and nothing after the first edit. As a language server names more ranges, through hints, those fold too.
 
-`setFoldHints(hints)` hands over what a language server knows: `symbols` with their `range` and `body` kind, and `ranges` with their `kind`. They name the function, method and class bodies the text cannot tell apart. `null` forgets them.
+`setFoldHints(hints)` hands over what a language server knows: `symbols` with their `range` and `body` kind, and `ranges` (`EditorFoldRangeHint`) with their `kind`. They name the function, method and class bodies the text cannot tell apart. A range with a `startCharacter` or an `endCharacter`, as LSP gives them, folds from within its first line up to within its last: a collapsed import list of `use A;` to `use C;` with `3` and `5` reads `use …;`. The fold the text has of the same lines takes them too. `null` forgets them.
 
 The fold commands go through [`runCommand`](/editor/editing#commands).
 

@@ -20,6 +20,7 @@ export type {
     EditorEngine,
     EditorFindQuery,
     EditorFoldHints,
+    EditorFoldRangeHint,
     EditorFoldOutline,
     EditorFoldRange,
     EditorFoldSymbol,

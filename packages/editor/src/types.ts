@@ -116,9 +116,16 @@ export interface EditorFoldSymbol {
     readonly body: 'function' | 'method' | 'class' | 'value';
 }
 
+/* A range a server folds; with characters, a collapsed fold hides from `startCharacter` on its first line up to `endCharacter` on its last, as LSP says. */
+export interface EditorFoldRangeHint extends EditorFoldRange {
+    readonly kind?: string;
+    readonly startCharacter?: number;
+    readonly endCharacter?: number;
+}
+
 export interface EditorFoldHints {
     readonly symbols?: readonly EditorFoldSymbol[];
-    readonly ranges?: readonly (EditorFoldRange & { readonly kind?: string })[];
+    readonly ranges?: readonly EditorFoldRangeHint[];
 }
 
 /* A part of the document with a header line, such as a function, a class or a method. */
