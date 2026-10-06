@@ -165,22 +165,22 @@ describe('pairing, smart deletion and newline', () => {
         expect(model.getText()).toBe(')');
     });
 
-    it('removes indentation to visual tab stops and merges overlapping deletion ranges', () => {
+    it('removes indentation to visual tab stops where brackets say nothing, and merges overlapping deletion ranges', () => {
         const model = new DocumentModel('\t      text');
         caret(model, 7);
-        model.execute('smartBackspace', { tabSize: 4 });
+        model.execute('smartBackspace', { tabSize: 4, language: 'python' });
         expect(model.getText()).toBe('\t    text');
         expect(model.getSelections()[0]!.head).toBe(5);
-        model.execute('smartBackspace', { tabSize: 4 });
+        model.execute('smartBackspace', { tabSize: 4, language: 'python' });
         expect(model.getText()).toBe('\ttext');
-        model.execute('smartBackspace', { tabSize: 4 });
+        model.execute('smartBackspace', { tabSize: 4, language: 'python' });
         expect(model.getText()).toBe('text');
         model.setText('      x');
         model.setSelections([
             { anchor: 2, head: 2 },
             { anchor: 4, head: 4 }
         ]);
-        model.execute('smartBackspace');
+        model.execute('smartBackspace', { language: 'python' });
         expect(model.getText()).toBe('  x');
         expect(model.getSelections()).toEqual([{ anchor: 0, head: 0 }]);
         model.undo();

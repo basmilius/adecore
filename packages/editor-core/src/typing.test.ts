@@ -172,23 +172,23 @@ describe('a closing bracket typed on a line of its own', () => {
     });
 });
 
-describe('backspace at the start of a line', () => {
+describe('backspace at the start of a line where brackets say nothing', () => {
     it('joins with the line above and takes the whitespace that trailed it', () => {
         const model = new DocumentModel('foo   \nbar');
         model.setSelections([{ anchor: 7, head: 7 }]);
-        model.execute('smartBackspace');
+        model.execute('smartBackspace', { language: 'python' });
         expect(model.getText()).toBe('foobar');
         expect(model.getSelections()).toEqual([{ anchor: 3, head: 3 }]);
         const tabbed = new DocumentModel('foo\t \r\nbar');
         tabbed.setSelections([{ anchor: 7, head: 7 }]);
-        tabbed.execute('smartBackspace');
+        tabbed.execute('smartBackspace', { language: 'python' });
         expect(tabbed.getText()).toBe('foobar');
     });
 
     it('takes a line of whitespace entirely and leaves the text of the line alone', () => {
         const model = new DocumentModel('a\n    \n  b');
         model.setSelections([{ anchor: 7, head: 7 }]);
-        model.execute('smartBackspace');
+        model.execute('smartBackspace', { language: 'python' });
         expect(model.getText()).toBe('a\n  b');
         expect(model.getSelections()).toEqual([{ anchor: 2, head: 2 }]);
     });
@@ -307,5 +307,46 @@ describe('the arrow of PHP', () => {
     it('types a minus when the arrow is off, and outside PHP', () => {
         expect(php('$user¦', ['-'], { smartArrow: false }).shown()).toBe('$user-¦');
         type('$user¦', '-', '$user-¦');
+    });
+});
+
+describe('backspace in the indentation of a bracketed language', () => {
+    /* Presses backspace once in a PHP file and shows the code after the open tag. */
+    function backspace(source: string, language = 'php'): string {
+        const open = language === 'php' ? '<?php\n' : '';
+        const initial = parse(open + source);
+        const model = new DocumentModel(initial.text);
+        model.setSelections([{ anchor: initial.anchor, head: initial.head }]);
+        model.execute('smartBackspace', { language, tabSize: 4 });
+        return render(model).slice(open.length);
+    }
+
+    it('goes from an empty line at its indentation to the end of the line above', () => {
+        expect(backspace('function f()\n{\n    ¦\n    return 1;\n}')).toBe('function f()\n{¦\n    return 1;\n}');
+    });
+
+    it('takes a line indented past where its brackets put it back to there', () => {
+        expect(backspace('function f()\n{\n          ¦return 1;\n}')).toBe('function f()\n{\n    ¦return 1;\n}');
+        expect(backspace('if (a) {\n      ¦  b();\n}', 'typescript')).toBe('if (a) {\n    ¦b();\n}');
+    });
+
+    it('joins a line at its indentation with the line above, spaced as join lines spaces it', () => {
+        expect(backspace('{\n    a();\n    ¦b();\n}')).toBe('{\n    a(); ¦b();\n}');
+        expect(backspace('{\n  ¦  b();\n}')).toBe('{ ¦b();\n}');
+        expect(backspace('f(\n    ¦a\n)', 'typescript')).toBe('f(¦a\n)');
+    });
+
+    it('takes the place of a blank line above', () => {
+        expect(backspace('{\n\n    ¦b();\n}')).toBe('{\n    ¦b();\n}');
+    });
+
+    it('takes the indentation of the first line away and leaves the rest', () => {
+        expect(backspace('    ¦a();', 'typescript')).toBe('¦a();');
+        expect(backspace('\n¦a();', 'typescript')).toBe('¦a();');
+    });
+
+    it('deletes one character when text stands before the caret, and goes by tab stops in a comment', () => {
+        expect(backspace('{\n    a¦b();\n}')).toBe('{\n    ¦b();\n}');
+        expect(backspace('/*\n        ¦x\n*/')).toBe('/*\n    ¦x\n*/');
     });
 });

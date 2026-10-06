@@ -43,7 +43,7 @@ function skipWhitespace(source: EditSource, from: number): number {
 }
 
 /* What goes where two lines meet: nothing before a closer, a comma or a dot and after an opener, else a space. */
-function spacingBetween(previous: string, next: string): string {
+export function spacingBetween(previous: string, next: string): string {
     if (next === '' || /^[)\],;]/.test(next) || /^\.(?![.\d])/.test(next) || /[([]$/.test(previous)) {
         return '';
     }
@@ -277,6 +277,15 @@ export function planAutoIndent(source: EditSource, lines: readonly number[], opt
         }
     }
     return edits.length === 0 ? null : { edits, selections: [] };
+}
+
+/* The indentation the brackets give a line, or null where they say nothing: outside code, in markup and in a language that is not bracketed. */
+export function properIndent(source: EditSource, line: number, options: LineCommandOptions): string | null {
+    const context = source.context(source.line(line).start);
+    if (!indentsByBrackets(options.language) || context.mode !== 'code' || markupGuard(source, options.language)(line)) {
+        return null;
+    }
+    return targetIndent(source, options, line, context, (index) => whitespaceOf(source.line(index).text));
 }
 
 function targetIndent(source: EditSource, options: LineCommandOptions, line: number, context: TypingContext, indentOf: (line: number) => string): string {

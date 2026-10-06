@@ -1,7 +1,7 @@
 import { CloserTracker } from './closer-tracker.ts';
 import { planBlockComment, planLineComments } from './comments.ts';
 import { planEnter } from './enter.ts';
-import { planAutoIndent, planJoinLines, planToggleCase } from './line-commands.ts';
+import { planAutoIndent, planJoinLines, planToggleCase, properIndent, spacingBetween } from './line-commands.ts';
 import { mapOffset } from './offsets.ts';
 import { planPaste } from './paste.ts';
 import type { EnterOptions, EnterPlan } from './enter.ts';
@@ -772,16 +772,16 @@ export class DocumentModel {
         }
         const tabSize = tabWidth(options);
         const language = options.language ?? 'typescript';
+        const unit = options.insertSpaces === false ? '\t' : ' '.repeat(tabSize);
         if (command === 'smartBackspace' || command === 'deleteForward') {
             const pairing = options.autoClosingPairs !== false && !isPlainText(language);
             return this.deleteCharacter(
                 command === 'smartBackspace',
-                tabSize,
+                { tabSize, unit },
                 { brackets: pairing && options.autoClosingBrackets !== false, quotes: pairing && options.autoClosingQuotes !== false },
                 language
             );
         }
-        const unit = options.insertSpaces === false ? '\t' : ' '.repeat(tabSize);
         const enter = { language, unit, tabSize, smart: options.smartEnter !== false, reach: true };
         if (command === 'insertNewline' || command === 'startNewLine' || command === 'splitLine') {
             return this.insertNewline(enter, command === 'insertNewline' ? 'enter' : command === 'startNewLine' ? 'below' : 'split');
@@ -1602,7 +1602,12 @@ export class DocumentModel {
         return index;
     }
 
-    private deleteCharacter(backwards: boolean, tabSize: number, pairing: { brackets: boolean; quotes: boolean }, language: string): boolean {
+    private deleteCharacter(
+        backwards: boolean,
+        indent: { tabSize: number; unit: string },
+        pairing: { brackets: boolean; quotes: boolean },
+        language: string
+    ): boolean {
         return this.deleteRanges(
             this.selections.map((selection) => {
                 let { from, to } = rangeOf(selection);
@@ -1615,12 +1620,46 @@ export class DocumentModel {
                         from--;
                         to++;
                     } else {
-                        from = this.backspaceStart(from, tabSize);
+                        return this.unindent(from, indent, language) ?? { from: this.backspaceStart(from, indent.tabSize), to, text: '' };
                     }
                 }
                 return { from, to, text: '' };
             })
         );
+    }
+
+    /*
+     * Backspace with only whitespace before the caret, after the platform's smart backspace: a line indented past
+     * where its brackets put it goes back to there, and one at or before it joins the line above, or takes the place
+     * of that line when it is blank. Null where the brackets say nothing.
+     */
+    private unindent(offset: number, indent: { tabSize: number; unit: string }, language: string): TextEdit | null {
+        const index = this.rope.lineAt(offset);
+        const line = this.rope.lineBounds(index);
+        if (!/^[\t ]*$/.test(this.slice(line.start, offset))) {
+            return null;
+        }
+        const proper = properIndent(this.editSource(language), index, { language, unit: indent.unit });
+        if (proper === null) {
+            return null;
+        }
+        let end = offset;
+        while (end < line.end && /[\t ]/.test(this.rope.charAt(end))) {
+            end++;
+        }
+        if (indentationColumn(this.slice(line.start, end), indent.tabSize) > indentationColumn(proper, indent.tabSize)) {
+            return { from: line.start, to: end, text: proper };
+        }
+        if (index === 0) {
+            return { from: 0, to: end, text: '' };
+        }
+        const previous = this.getLine(index - 1);
+        const start = previous.end - trailingBlankLength(previous.text);
+        if (start !== previous.start || start === 0) {
+            const before = this.slice(previous.start, start);
+            return { from: start, to: end, text: before === '' ? '' : spacingBetween(before, this.slice(end, line.end).trimEnd()) };
+        }
+        return { from: start, to: end, text: proper };
     }
 
     /* Whether the caret sits between an opener and its own closer, which backspace removes together. */

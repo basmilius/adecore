@@ -47,7 +47,7 @@ A few of them do more than their name says:
 
 - `insertNewline` continues a line comment when text follows the caret, closes and continues a `/**` block, splits a string with the language's concatenation, indents after an opener or a `case` label, and closes a brace nothing closes.
 - `smartHome` goes to the first non-blank character, and from there to the start of the line.
-- `smartBackspace` in the indentation goes back a tab stop. At the start of a line it also takes the whitespace that trails the line above.
+- `smartBackspace` with only whitespace before the caret, in a language whose brackets set the indentation, works from where the brackets put the line. A line indented past that goes back to it in one step. A line at or before it joins the line above, with the spacing of `joinLines` and no space when the line is empty, so an empty line under `{` goes to the end of the `{`; a blank line above is taken instead. Elsewhere, in comments and strings, it goes back a tab stop, and at the start of a line it also takes the whitespace that trails the line above.
 - `insertTab` steps over a closer the editor added before it inserts anything.
 - `selectNextOccurrence` from a bare caret selects the word, then the next whole word with the same case. From a selection it finds the text anywhere, also inside other words. When there is no further match, `occurrencesExhausted` on the model is `true` until the next press starts over.
 - `expandSelection` grows through the word, the inside of a string or bracket pair, the pair itself, the line and the document, and `shrinkSelection` walks back. A host with better ranges, such as those of a language server, passes them to `expandSelectionTo(ranges)`, one `OffsetRange` or `null` per selection.
