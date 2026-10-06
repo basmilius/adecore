@@ -10,6 +10,7 @@ import {
     itemsOf,
     matchedCharacters,
     mirroredInsertions,
+    opensCompletion,
     prefixFor,
     qualifiersOf,
     rankCompletions,
@@ -312,6 +313,12 @@ export class CompletionFeature {
         if (text.length > 0 && triggers.includes(last) && text.length === 1) {
             this.close();
             this.beginRequest({ triggerKind: 2, triggerCharacter: last }, 0);
+        } else if (
+            isEmpty(range) &&
+            opensCompletion(this.language.editor.textInRange({ start: { line: range.start.line, character: 0 }, end: range.start }), text)
+        ) {
+            this.close();
+            this.beginRequest({ triggerKind: 1 }, START_DELAY_MS);
         } else if (this.isOpen) {
             if (text === '' || typedIdentifier) {
                 this.refilter();

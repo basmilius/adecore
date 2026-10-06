@@ -10,6 +10,7 @@ import {
     matchedCharacters,
     matchScore,
     mirroredInsertions,
+    opensCompletion,
     prefixFor,
     qualifierOf,
     qualifiersOf,
@@ -35,6 +36,28 @@ describe('identifierPrefix after another line', () => {
         expect(identifierPrefix('foo.bar')).toBe('bar');
         expect(identifierPrefix('baz')).toBe('baz');
         expect(identifierPrefix('foo.bar')).toBe('bar');
+    });
+});
+
+describe('opensCompletion', () => {
+    test('opens after an opening bracket, paired or not', () => {
+        expect(opensCompletion('foo', '(')).toBe(true);
+        expect(opensCompletion('foo', '()')).toBe(true);
+        expect(opensCompletion('items', '[]')).toBe(true);
+    });
+
+    test('opens on a space after an operator, a comma or a keyword', () => {
+        for (const before of ['x ===', 'x !==', 'a =', 'a <=', 'a &&', 'a ??', 'a +=', 'x =>', 'a ?', 'key:', 'foo(a,', '    return', 'new', '$x instanceof']) {
+            expect(opensCompletion(before, ' ')).toBe(true);
+        }
+    });
+
+    test('opens nothing after a word, a comment opener, a list marker or a step', () => {
+        for (const before of ['', 'foo', 'x', '$return', 'returns', '//', '/*', '/**', '     *', '- ', '-', 'i++', 'i--']) {
+            expect(opensCompletion(before, ' ')).toBe(false);
+        }
+        expect(opensCompletion('x ===', '  ')).toBe(false);
+        expect(opensCompletion('x', '{')).toBe(false);
     });
 });
 

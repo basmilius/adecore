@@ -29,6 +29,22 @@ export function identifierPrefix(before: string): string {
     return lastPrefix;
 }
 
+const OPENS_VALUE =
+    /(?:[-=!<>&|?+*/%^:,]|(?:^|[^\p{L}\p{N}_$])(?:return|new|case|in|of|instanceof|typeof|keyof|await|yield|throw|extends|implements|as|is|not|and|or|echo|print|use|import|from|clone))$/u;
+const NOT_A_VALUE = /(?:\+\+|--|\/\/|\/\*\*?|^\s*[-+*])$/;
+
+/*
+ * Whether `text`, typed after `before` on its line, puts the caret where a value or a name comes next, so the list
+ * opens without a word typed: an opening bracket, or a space after an operator, a comma or a keyword. A comment
+ * opener, a list marker and `++` or `--` open nothing.
+ */
+export function opensCompletion(before: string, text: string): boolean {
+    if (text === '(' || text === '()' || text === '[' || text === '[]') {
+        return true;
+    }
+    return text === ' ' && OPENS_VALUE.test(before) && !NOT_A_VALUE.test(before);
+}
+
 export interface MatchDetail {
     /* Lower is better. */
     readonly score: number;
