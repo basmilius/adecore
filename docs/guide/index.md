@@ -34,7 +34,6 @@ This repository holds the packages that desktop apps for working with agents sha
 | [Editor](/editor/) (`@adecore/editor`) | The DOM view that draws a document model |
 | [Editor views](/editor-react/) (`@adecore/editor-react`) | React editors with language features, popups and change review over an injected language service |
 | [LSP](/lsp/) (`@adecore/lsp`) | A Language Server Protocol client with no DOM, and the language service interface the editor asks |
-| [PHP language server](/php-language-server/) (`@adecore/php-language-server`) | A native PHP language server over stdio, with the metadata to find or pin its binary |
 | [Merge](/merge/) (`@adecore/merge`) | Line diffs, three-way merge blocks and conflict resolution for text |
 
 ### Data

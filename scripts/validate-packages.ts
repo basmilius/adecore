@@ -131,17 +131,6 @@ const updated = packedPlan.applyPlanOps(created.plan, [{ op: 'set', ids: ['verif
 assert.equal(updated.ok, true);
 assert.match(packedPlan.planToMarkdown(updated.plan), /\\[x\\]/);`);
     }
-    if (available.has('@adecore/php-language-server')) {
-        checks.push(`const native = await import('@adecore/php-language-server');
-const { readFileSync, existsSync } = await import('node:fs');
-const { join } = await import('node:path');
-const source = native.phpLanguageServerSourcePath();
-assert.ok(existsSync(join(source, 'Cargo.toml')));
-const metadata = JSON.parse(readFileSync(join(source, 'native-source.json'), 'utf8'));
-assert.equal(metadata.version, native.PHP_LANGUAGE_SERVER_METADATA.version);
-assert.equal(metadata.stubsCommit, native.PHP_LANGUAGE_SERVER_METADATA.stubsCommit);
-assert.equal(native.phpLanguageServerBinaryPath(), null);`);
-    }
     if (available.has('@adecore/ui')) {
         checks.push(`const React = await import('react'); const { renderToStaticMarkup } = await import('react-dom/server');
 const ui = await import('@adecore/ui'); assert.match(renderToStaticMarkup(React.createElement(ui.Button, null, 'Packed button')), /Packed button/);`);

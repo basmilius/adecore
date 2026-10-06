@@ -30,7 +30,7 @@ export default defineConfig({
     title: 'ADE CORE',
     titleTemplate: ':title | ADE CORE',
     description:
-        'Packages for desktop apps on Electron, React 19 and Tailwind 4: UI and terminal views, agent hosts and chat, database tooling, drawing and diagram cores, merge algorithms, language-enabled editors, a PHP language server and user services.',
+        'Packages for desktop apps on Electron, React 19 and Tailwind 4: UI and terminal views, agent hosts and chat, database tooling, drawing and diagram cores, merge algorithms, language-enabled editors and user services.',
     cleanUrls: true,
     sitemap: {
         hostname: 'https://adecore.dev'
@@ -92,7 +92,6 @@ export default defineConfig({
                 ['Editor', 'editor'],
                 ['Editor views', 'editor-react'],
                 ['LSP', 'lsp'],
-                ['PHP language server', 'php-language-server'],
                 ['Merge', 'merge']
             ]),
             category('Data', [['Database', 'database']]),

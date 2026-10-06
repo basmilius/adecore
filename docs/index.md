@@ -39,7 +39,6 @@ hero:
 - [Editor](/editor/): the DOM view that draws a document model.
 - [Editor views](/editor-react/): React editors with completion, hovers, diagnostics, navigation and change review over an injected language service.
 - [LSP](/lsp/): a Language Server Protocol client with no DOM.
-- [PHP language server](/php-language-server/): a native PHP language server over stdio.
 - [Merge](/merge/): line diffs and three-way merge blocks for resolving conflicts in text.
 
 ## Data

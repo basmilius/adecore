@@ -30,7 +30,6 @@
         "@adecore/editor-react": "workspace:*",
         "@adecore/lsp": "workspace:*",
         "@adecore/merge": "workspace:*",
-        "@adecore/php-language-server": "workspace:*",
         "@adecore/plan": "workspace:*",
         "@adecore/service": "workspace:*",
         "@adecore/shell": "workspace:*",
@@ -310,15 +309,6 @@
         "typescript": "^7.0.2",
       },
     },
-    "packages/php-language-server": {
-      "name": "@adecore/php-language-server",
-      "version": "0.0.0",
-      "devDependencies": {
-        "@types/bun": "^1.4.2",
-        "@types/node": "^24.13.6",
-        "typescript": "^7.0.2",
-      },
-    },
     "packages/plan": {
       "name": "@adecore/plan",
       "version": "0.0.0",
@@ -452,8 +442,6 @@
     "@adecore/lsp": ["@adecore/lsp@workspace:packages/lsp"],
 
     "@adecore/merge": ["@adecore/merge@workspace:packages/merge"],
-
-    "@adecore/php-language-server": ["@adecore/php-language-server@workspace:packages/php-language-server"],
 
     "@adecore/plan": ["@adecore/plan@workspace:packages/plan"],
 

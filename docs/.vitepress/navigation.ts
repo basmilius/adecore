@@ -311,15 +311,5 @@ export const sidebar: DefaultTheme.SidebarMulti = {
             ['Code vision', '/editor-react/code-vision']
         ]),
         group('Reference', [['Models', '/editor-react/models']])
-    ],
-    '/php-language-server/': [
-        group('PHP language server', [
-            ['Overview', '/php-language-server/'],
-            ['Getting started', '/php-language-server/getting-started'],
-            ['Configuration', '/php-language-server/configuration'],
-            ['Features', '/php-language-server/features'],
-            ['Distribution', '/php-language-server/distribution'],
-            ['Maintaining', '/php-language-server/maintaining']
-        ])
     ]
 };

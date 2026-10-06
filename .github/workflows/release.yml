@@ -1,6 +1,6 @@
 name: 🚀 Release
 
-# Releases are immutable once published, so the PHP assets go onto a draft that this workflow publishes last.
+# Releases are immutable once published, so this workflow fills a draft and publishes it last.
 on:
   workflow_dispatch:
     inputs:
@@ -46,7 +46,7 @@ jobs:
               echo "::error::Release $tag is already published and can no longer take assets."
               exit 1
           fi
-          # A draft creates its tag only when it is published, and the PHP workflow builds from the tag.
+          # A draft creates its tag only when it is published, so the tag is made here for the commit this run builds.
           if ! existing=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" --jq .object.sha 2> /dev/null); then
               gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$tag" -f sha="$GITHUB_SHA" > /dev/null
           elif [[ "$existing" != "$GITHUB_SHA" ]]; then
@@ -59,38 +59,6 @@ jobs:
               echo "tag=$tag"
               echo "prerelease=$(jq -r .isPrerelease <<< "$release")"
           } >> "$GITHUB_OUTPUT"
-
-  php-native:
-    name: PHP native binaries
-    needs: release-info
-    permissions:
-      contents: read
-    uses: ./.github/workflows/php-language-server.yml
-    with:
-      release_tag: ${{ needs.release-info.outputs.tag }}
-
-  php-assets:
-    name: Attach verified PHP native assets
-    needs: [release-info, php-native]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: php-language-server-release
-          path: native-artifacts
-      - name: Verify release identity and attach assets
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ needs.release-info.outputs.tag }}
-          EXPECTED_VERSION: ${{ needs.release-info.outputs.version }}
-        run: |
-          descriptor="native-artifacts/php-language-server-release.json"
-          jq -e --arg version "$EXPECTED_VERSION" '.adecoreVersion == $version' "$descriptor" > /dev/null
-          mapfile -d '' assets < <(find native-artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' -o -name '*.sha256' \) -print0)
-          test "${#assets[@]}" -eq 8
-          gh release upload "$RELEASE_TAG" "$descriptor" "${assets[@]}" --repo "$GITHUB_REPOSITORY" --clobber
 
   # The helper is native, so it is built once per platform on a runner of that platform. Ubuntu 22.04 keeps the glibc floor of the Linux binaries low.
   helper:
@@ -153,7 +121,7 @@ jobs:
 
   publish:
     runs-on: ubuntu-latest
-    needs: [helper, php-assets, release-info]
+    needs: [helper, release-info]
     name: 🚀 Publish to npm
     env:
       RELEASE_VERSION: ${{ needs.release-info.outputs.version }}

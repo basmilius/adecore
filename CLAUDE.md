@@ -76,7 +76,7 @@ All three of check, test and build pass before a commit, and so does `bun run --
 
 ## Releases
 
-- Releases are immutable once published, so a release starts as a draft: `gh release create v<version> --draft [--prerelease] --notes-file <notes>`, then `gh workflow run release.yml -f version=<version>`. The workflow tags the commit it runs on, sets the version in every package, checks, tests, builds, attaches the PHP assets to the draft, publishes every package that is not `private` with npm Trusted Publishing (a prerelease under `next`), deploys the docs and publishes the release last. Every `package.json` stays at `0.0.0`. A version already on npm is skipped, so a failed run can run again while the release is still a draft.
+- Releases are immutable once published, so a release starts as a draft: `gh release create v<version> --draft [--prerelease] --notes-file <notes>`, then `gh workflow run release.yml -f version=<version>`. The workflow tags the commit it runs on, sets the version in every package, checks, tests, builds, publishes every package that is not `private` with npm Trusted Publishing (a prerelease under `next`), deploys the docs and publishes the release last. Every `package.json` stays at `0.0.0`. A version already on npm is skipped, so a failed run can run again while the release is still a draft.
 - A new package gets its first version on npm by hand, with a token, before its trusted publisher (`basmilius/adecore`, `release.yml`) can be set; until then it stays `private`.
 - While the version is `0.x`, a breaking change bumps the minor and everything else the patch.
 - An app takes a release only when its own repository bumps the version. Neither happens from here: after a release, name the version on the issues it closed so the apps know what to take.
@@ -117,7 +117,7 @@ And these, which the tests do not catch:
 
 ## Shared extraction and integration
 
-Adecore owns reusable agent contracts, backend hosts and React views, merge algorithms, drawing, diagram and plan cores, generic user service managers, and the shared tree in UI/database. New packages stay private at `0.0.0` until first publication and Trusted Publishing are configured. Adecore also owns editor-core, editor, lsp and editor-react, plus the standalone PHP native workspace. Preserve their current limitations and remaining feature work; the extraction does not complete them.
+Adecore owns reusable agent contracts, backend hosts and React views, merge algorithms, drawing, diagram and plan cores, generic user service managers, and the shared tree in UI/database. New packages stay private at `0.0.0` until first publication and Trusted Publishing are configured. Adecore also owns editor-core, editor, lsp and editor-react. Preserve their current limitations and remaining feature work; the extraction does not complete them.
 
 Application catalogs/actions, full wire contracts, IPC sender checks/channels, CSP policy, account/auth product behavior, views/canvas navigation, daemon defaults and branding stay in consumers. A rename must preserve persisted records and wire shapes. No extracted implementation may import application aliases, `@ruimte/*` or a sibling application checkout.
 
@@ -133,8 +133,8 @@ Ruimte's service adapter keeps its daemon spec, RUIMTE_HOME/RUIMTE_SERVICE, exec
 
 Legacy compatibility data remains unchanged: `ChatSubagentItemSchema.origin` retains `'ruimte'`; `RUIMTE_SESSION_VARIABLES` and the `RUIMTE_HOOK_`/`RUIMTE_CONTEXT_` prefix filters prevent inherited session callbacks. `LEGACY_MENTION_DRAG_TYPE` retains `application/x-ruimte-mention` during coordinated producer/receiver migration. Library docs describe these legacy boundaries generically and link their source definitions; this maintenance guide records their exact spellings.
 
-## Editor and native language tooling
+## Editor and language tooling
 
 The editor family was transferred from Ruimte revision `9729144f0df3f25628f20cc283dee54f8d9e8162`. `editor-core` owns documents/history, `editor` owns the DOM engine and host-resolved keymaps, `lsp` owns transports and language-service contracts, and `editor-react` owns feature coordination and React displays. Hosts retain files/drafts/save permissions, routing, server process/install policy, AI orchestration and Git/provenance. Import both editor CSS assets after UI theme CSS, scan editor-react source with Tailwind, and initialize its editor locale namespace. Document current accessibility, bidi and language/performance limits. Editor core retains its Apache notice alongside transferred FSL provenance.
 
-`php-language-server` builds its JavaScript locator/metadata independently of Cargo. Native checks and platform builds live in `php-language-server.yml`; the shared release workflow calls it with the exact release tag and attaches its verified archives/checksums/descriptor before npm publication. The native version is currently `0.1.0`, independent of the shared npm version. Corpus downloads remain optional and third-party licensed. The consumer supplies explicit source/package lookup or a pinned published descriptor; user authorization, checksum verification, caches and project process lifecycle stay in the application. Do not delete Ruimte originals before the complete validated cutover.
+The PHP language server lives in `basmilius/language-server-php` (`/Users/bas/Development/Projects/language-server-php`), with its own releases and no npm package. `lsp` and `editor-react` stay generic over language servers; nothing here imports it.

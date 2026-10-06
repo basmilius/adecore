@@ -36,9 +36,8 @@ The documentation is at **[adecore.dev](https://adecore.dev)**, with a live demo
 | [`@adecore/editor`](packages/editor)                           | Browser editor engine, rendering, keymaps and syntax highlighting.                                                                                                                              | [editor](https://adecore.dev/editor/)                           |
 | [`@adecore/lsp`](packages/lsp)                                 | Language service contracts, JSON-RPC client, transports and fakes.                                                                                                                              | [LSP](https://adecore.dev/lsp/)                                 |
 | [`@adecore/editor-react`](packages/editor-react)               | Language feature coordination, React popups and review displays.                                                                                                                                | [editor views](https://adecore.dev/editor-react/)               |
-| [`@adecore/php-language-server`](packages/php-language-server) | Native PHP language server, source and release metadata.                                                                                                                                        | [PHP language server](https://adecore.dev/php-language-server/) |
 
-Newly transferred packages stay private at `0.0.0` until their first npm publication and Trusted Publishing setup are complete. The editor family and PHP language server preserve their current implementation and documented remaining work.
+Newly transferred packages stay private at `0.0.0` until their first npm publication and Trusted Publishing setup are complete. The editor family preserves its current implementation and documented remaining work.
 
 ```sh
 bun add @adecore/ui
@@ -74,7 +73,7 @@ An app can use a checkout of this repository without a build per change. Every p
 
 ## Releases
 
-A release starts as a draft GitHub release, and [`release.yml`](.github/workflows/release.yml) runs by hand for its version. It tags the commit, sets the version in every package and runs check, test and build. It normalizes internal dependencies to the release version, validates packed artifacts, then publishes public packages in dependency order through Trusted Publishing, with provenance, and deploys the docs. Database platform binaries precede the host package. The native PHP workflow builds verified platform archives and attaches them with a pinned release descriptor. Private packages are skipped; a public package cannot depend on a private workspace. A prerelease goes out under the `next` dist-tag and uploads the docs without making them live. The workflow publishes the GitHub release last, because a published release is immutable. Every `package.json` in the repository stays at `0.0.0`.
+A release starts as a draft GitHub release, and [`release.yml`](.github/workflows/release.yml) runs by hand for its version. It tags the commit, sets the version in every package and runs check, test and build. It normalizes internal dependencies to the release version, validates packed artifacts, then publishes public packages in dependency order through Trusted Publishing, with provenance, and deploys the docs. Database platform binaries precede the host package. Private packages are skipped; a public package cannot depend on a private workspace. A prerelease goes out under the `next` dist-tag and uploads the docs without making them live. The workflow publishes the GitHub release last, because a published release is immutable. Every `package.json` in the repository stays at `0.0.0`.
 
 ## Issues
 
@@ -82,4 +81,4 @@ Use a template: a [bug](https://github.com/basmilius/adecore/issues/new?template
 
 ## License
 
-Existing packages retain [MIT](LICENSE). Transferred TypeScript packages retain their package-local FSL-1.1-MIT license and provenance. Check each package's `license` field and `LICENSE` before redistribution. The native PHP workspace retains its declared MIT license and third-party notices. A publication must not silently change those licenses.
+Existing packages retain [MIT](LICENSE). Transferred TypeScript packages retain their package-local FSL-1.1-MIT license and provenance. Check each package's `license` field and `LICENSE` before redistribution. A publication must not silently change those licenses.
