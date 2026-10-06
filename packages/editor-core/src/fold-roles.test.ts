@@ -145,6 +145,22 @@ describe('hints of a language server', () => {
         expect(roles(source, 'typescript', hints)).toEqual([[0, 3, null]]);
     });
 
+    it('takes where a server hides from and shows again from, on its own range and on the fold the text has of the same lines', () => {
+        const source = '<?php\nuse A;\nuse B;\nuse C;\n\nfunction f() {\n    a();\n    b();\n}';
+        const model = new DocumentModel(source);
+        const at = (line: number, column: number) => model.offsetAt({ line, column });
+        const hints: FoldHints = {
+            ranges: [
+                { from: at(1, 0), to: at(3, 0), kind: 'imports', head: at(1, 3), tail: at(3, 5) },
+                { from: at(5, 0), to: at(8, 0), head: at(5, 14), tail: at(8, 0) }
+            ]
+        };
+        const ranges = model.getFoldingRanges({ language: 'php', hints });
+        expect(ranges.find((range) => range.startLine === 1)).toMatchObject({ endLine: 3, role: 'imports', head: at(1, 3), tail: at(3, 5) });
+        expect(ranges.find((range) => range.startLine === 5)).toMatchObject({ kind: 'bracket', head: at(5, 14), tail: at(8, 0) });
+        expect(model.getFoldingRanges({ language: 'php' }).find((range) => range.startLine === 1)).not.toHaveProperty('head');
+    });
+
     it('reads the kinds a server gives a range', () => {
         const source = "import a from 'a';\nimport b from 'b';\n\n/**\n * Doc.\n */\n// region\nx;\n// endregion";
         const model = new DocumentModel(source);

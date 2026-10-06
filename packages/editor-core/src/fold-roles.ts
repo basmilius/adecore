@@ -1,6 +1,6 @@
 import { isImportLine } from './lexical-folds.ts';
 import type { DocumentLine } from './rope.ts';
-import type { FoldHints, FoldRole, FoldingRange } from './structure.ts';
+import type { FoldHints, FoldRangeHint, FoldRole, FoldingRange } from './structure.ts';
 
 const SCRIPT_LANGUAGES = /^(typescript|javascript|typescriptreact|javascriptreact|tsx|jsx|ts|js|mjs|cjs|mts|cts)$/i;
 /* How far back from a bracket the text before it is read. */
@@ -116,6 +116,12 @@ export function applyFoldHints(
     for (const hint of hints.ranges ?? []) {
         const startLine = lineAt(hint.from);
         const endLine = lineAt(hint.to);
+        const same = result.find((range) => range.startLine === startLine && range.endLine === endLine);
+        // The text's own fold of the same lines keeps its kind and role, and takes where the server hides from and shows again from.
+        if (same !== undefined) {
+            Object.assign(same, edgesOf(hint));
+            continue;
+        }
         if (endLine - startLine < minimum || starts.has(startLine)) {
             continue;
         }
@@ -129,10 +135,15 @@ export function applyFoldHints(
             from: first.start + indent,
             to: getLine(endLine).end,
             kind: 'server',
-            ...(role === undefined ? {} : { role })
+            ...(role === undefined ? {} : { role }),
+            ...edgesOf(hint)
         });
     }
     return result.sort((left, right) => left.startLine - right.startLine || right.endLine - left.endLine);
+}
+
+function edgesOf(hint: FoldRangeHint): Pick<FoldingRange, 'head' | 'tail'> {
+    return { ...(hint.head === undefined ? {} : { head: hint.head }), ...(hint.tail === undefined ? {} : { tail: hint.tail }) };
 }
 
 /* The fold that is the body of a symbol, and what kind of body it is. */

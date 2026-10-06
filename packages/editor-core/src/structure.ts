@@ -44,6 +44,9 @@ export interface FoldingRange {
     kind: 'bracket' | 'comment' | 'indentation' | 'imports' | 'line-comments' | 'region' | 'block' | 'section' | 'server';
     /* What the range is, where the text or a language server says; most ranges have none. */
     role?: FoldRole;
+    /* Where a collapsed fold hides from on its first line and shows again from on its last, when a server says; else whole lines. */
+    head?: number;
+    tail?: number;
 }
 
 export interface FoldingOptions {
@@ -79,6 +82,9 @@ export interface FoldRangeHint {
     to: number;
     /* The LSP kind: `comment`, `imports` or `region`. */
     kind?: string;
+    /* Where it hides from on its first line and shows again from on its last, from the LSP `startCharacter` and `endCharacter`. */
+    head?: number;
+    tail?: number;
 }
 
 export interface FoldHints {
