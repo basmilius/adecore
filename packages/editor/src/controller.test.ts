@@ -320,6 +320,22 @@ describe('the mouse', () => {
 });
 
 describe('the keyboard', () => {
+    test('completes the arrow of PHP from a typed minus, and makes it a minus again for a key that cannot follow it', () => {
+        const arrow = mountEditor({ text: '<?php\n$user', language: 'php', line: 2, column: 6 });
+        arrow.type('-');
+        expect(arrow.editor.getText()).toBe('<?php\n$user->');
+        arrow.type('>');
+        arrow.type('n');
+        expect(arrow.editor.getText()).toBe('<?php\n$user->n');
+        const minus = mountEditor({ text: '<?php\n$i', language: 'php', line: 2, column: 3 });
+        minus.type('-');
+        minus.type('-');
+        expect(minus.editor.getText()).toBe('<?php\n$i--');
+        const off = mountEditor({ text: '<?php\n$user', language: 'php', line: 2, column: 6, smartKeys: { smartArrow: false } });
+        off.type('-');
+        expect(off.editor.getText()).toBe('<?php\n$user-');
+    });
+
     test('moves the caret with the arrow keys, over line ends and at a remembered column', () => {
         const { editor, press, type } = mountEditor({ text: 'abcd\nx\nabcd', line: 1, column: 4 });
         press('ArrowDown');

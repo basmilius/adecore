@@ -77,7 +77,6 @@ let lineClip: string | null = null;
 
 /* Typing in the same stretch is one undo step until a pause this long. */
 const TYPING_PAUSE_MS = 750;
-const PAIR_CHARACTER = /^[()[\]{}'"`;<]$/;
 
 /*
  * What a person does to the editor: keys, typing, the clipboard, an input method, the mouse. It turns
@@ -416,7 +415,8 @@ export class InputController {
         for (const selection of this.view.model.getSelections()) {
             this.view.ensureVisible(selection.head);
         }
-        if (PAIR_CHARACTER.test(text)) {
+        // Every key goes through the model, which decides by the key before it too, as for the arrow of PHP.
+        if (text.length === 1) {
             this.view.model.typeText(text, { ...this.commandOptions(), historyGroup: this.inputGroup() });
             this.view.revealCaret();
         } else {
