@@ -4,6 +4,15 @@ import i18next from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import ui from '../packages/ui/src/locales/en.json';
 
+// A demo imports a Web Worker the way Vite bundles one; a test renders it without ever starting the worker.
+Bun.plugin({
+    name: 'vite-worker',
+    setup(build) {
+        build.onResolve({ filter: /\?worker$/ }, (args) => ({ path: args.path, namespace: 'vite-worker' }));
+        build.onLoad({ filter: /.*/, namespace: 'vite-worker' }, () => ({ contents: 'export default class {}', loader: 'js' }));
+    }
+});
+
 const resources: Record<string, object> = { ui };
 const locales = new URL('../packages/agents-react/src/locales/en/', import.meta.url).pathname;
 if (existsSync(locales)) {

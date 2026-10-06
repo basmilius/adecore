@@ -18,7 +18,9 @@ import {
     chatItems,
     commandApproval,
     FILES,
+    FORK_TITLES,
     initialAccounts,
+    NOW,
     PROVIDERS,
     SKILLS,
     subagentItems,
@@ -87,7 +89,8 @@ setChatHost({
         },
         open: () => undefined
     },
-    openLogin: async () => undefined
+    openLogin: async () => undefined,
+    useChatPlace: (chatId) => ({ title: FORK_TITLES[chatId] ?? null, go: () => undefined })
 });
 
 type Handlers = { [T in AgentRequestType]?: (payload: ChatRequestMap[T]['payload']) => ChatRequestMap[T]['result'] | Promise<ChatRequestMap[T]['result']> };
@@ -382,6 +385,16 @@ export class FakeAgentHost implements ChatTransport {
 }
 
 export const DEMO_CHAT = 'chat-demo';
+
+/* The chats that went on from the first turn of the demo chat, which the thread offers under that turn. */
+export function forkChats(): Record<string, { info: ChatInfo; items: ChatItem[] }> {
+    return Object.fromEntries(
+        Object.keys(FORK_TITLES).map((chatId, index) => [
+            chatId,
+            { info: chatInfo(chatId, { forkOf: { chatId: DEMO_CHAT, turnId: 'turn-1', at: NOW - (20 - index) * 60_000 } }), items: [] }
+        ])
+    );
+}
 
 /* The chat every demo opens on, two turns into a conversation about a weather station. */
 export function demoChats(): Record<string, { info: ChatInfo; items: ChatItem[] }> {

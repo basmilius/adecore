@@ -38,7 +38,7 @@ import DiffWorker from '@pierre/diffs/worker/worker.js?worker';
 <DiffPool workerFactory={() => new DiffWorker()}>{chat}</DiffPool>;
 ```
 
-Without a pool the diffs highlight on the page's own thread, as the demo above does. The pool follows the theme the host's `code` names; `useDiffTheme()` answers it.
+The demo above runs under such a pool. Without one the diffs highlight on the page's own thread. The pool follows the theme the host's `code` names; `useDiffTheme()` answers it.
 
 ## Changes of a turn
 

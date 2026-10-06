@@ -4,6 +4,7 @@ import type {
     ChatItem,
     ChatSkill,
     ChatSubagentItem,
+    ChatToolItem,
     ModelOptionDescriptor,
     ProviderAccounts,
     ProviderCapabilities,
@@ -15,6 +16,7 @@ import type {
     UsageSummaryResult,
     UsageTotals
 } from '@adecore/agent-contracts';
+import type { SubagentTask } from '@adecore/agents-react/host';
 
 /* The moment the demos were loaded; every time in the fixtures counts back from it. */
 export const NOW = Date.now();
@@ -308,6 +310,103 @@ export function subagentItems(): ChatItem[] {
         }
     ];
 }
+
+/* A workflow halfway: the first phase done, two agents of the second at work and one waiting for its turn. */
+export function workflowTool(): ChatToolItem {
+    const at = NOW - 6 * MINUTE;
+    return {
+        id: 'item-workflow',
+        createdAt: at,
+        turnId: 'turn-2',
+        kind: 'tool',
+        toolUseId: 'call-workflow',
+        name: 'Workflow',
+        input: { name: 'harden-sensors' },
+        output: null,
+        state: 'running',
+        parentToolUseId: null,
+        workflow: {
+            name: 'Harden the sensors',
+            phases: [
+                { index: 0, title: 'Survey' },
+                { index: 1, title: 'Fix' }
+            ],
+            agents: [
+                {
+                    index: 0,
+                    label: 'Map the callers',
+                    phaseIndex: 0,
+                    agentId: 'agent-map',
+                    status: 'done',
+                    startedAt: at,
+                    durationMs: 48_000,
+                    lastTool: 'Grep'
+                },
+                {
+                    index: 1,
+                    label: 'Barometer',
+                    phaseIndex: 1,
+                    agentId: 'agent-barometer',
+                    status: 'running',
+                    startedAt: at + 60_000,
+                    durationMs: null,
+                    lastTool: 'Edit'
+                },
+                {
+                    index: 2,
+                    label: 'Thermometer',
+                    phaseIndex: 1,
+                    agentId: 'agent-thermometer',
+                    status: 'running',
+                    startedAt: at + 62_000,
+                    durationMs: null,
+                    lastTool: 'Read'
+                },
+                { index: 3, label: 'Station', phaseIndex: 1, agentId: null, status: 'running', startedAt: null, durationMs: null, lastTool: null }
+            ],
+            lastProgressAt: NOW - 20_000
+        }
+    };
+}
+
+/* Agents the app started with tasks of its own, one at work and one done, with the task each one runs under. */
+export function taskRows(): { item: ChatSubagentItem; task: SubagentTask }[] {
+    const task = (id: string, description: string, startedAt: number, finishedAt: number | null): ChatSubagentItem => ({
+        id,
+        createdAt: startedAt,
+        turnId: 'turn-2',
+        kind: 'subagent',
+        toolUseId: `call-${id}`,
+        description,
+        subagentType: null,
+        prompt: description,
+        background: true,
+        status: finishedAt === null ? 'running' : 'done',
+        startedAt,
+        finishedAt,
+        summary: null,
+        result: null,
+        usage: null,
+        lastTool: null,
+        itemsTruncated: false
+    });
+    return [
+        {
+            item: task('task-docs', 'Write the changelog for the retry', NOW - 3 * MINUTE, null),
+            task: { status: 'open', createdAt: NOW - 3 * MINUTE, settledAt: null }
+        },
+        {
+            item: task('task-tests', 'Add a test for a 503 answer', NOW - 9 * MINUTE, NOW - 5 * MINUTE),
+            task: { status: 'done', createdAt: NOW - 9 * MINUTE, settledAt: NOW - 5 * MINUTE }
+        }
+    ];
+}
+
+/* The titles of two chats that went on from the first turn, as the app's own list names them. */
+export const FORK_TITLES: Readonly<Record<string, string>> = {
+    'chat-fork-jitter': 'Backoff with jitter',
+    'chat-fork-codex': 'The same retry in Codex'
+};
 
 /* The permission the agent asks for when a message mentions a check. */
 export function commandApproval(turnId: string): ChatApprovalItem {
