@@ -51,6 +51,7 @@ A frame arrives as `unknown` because the receiving end checks it. `onFrame` answ
 | Turns and forks        | `chat.turnDiff`, `chat.fork`, `chat.forkInfo`, `chat.summarize`, `chat.continueOn`                    |
 | Delegated work         | `chat.subagent`, `chat.stopSubagent`, `chat.stopTask`                                                 |
 | Bookmarks              | `chat.addBookmark`, `chat.renameBookmark`, `chat.removeBookmark`                                      |
+| Visuals                | `chat.removeVisual`                                                                                   |
 | Accounts               | `accounts.list`, `accounts.save`, `accounts.refresh`, `accounts.create`, `accounts.watchLogin`        |
 | Usage                  | `usage.summary`, `usage.subscribe`, `usage.unsubscribe`, `usage.limits`, `usage.refreshLimits`        |
 
@@ -68,6 +69,7 @@ A name in the table is a shape, not a promise that every host does it. A fork la
 | `chat.status`          | `{ chatId, info }`: the chat's whole `ChatInfo`, to every client, attached or not.               |
 | `chat.subagentChanged` | `{ chatId, toolUseId }`: ask for the watched subagent page again. It carries no conversation.    |
 | `chat.bookmarks`       | `{ chatId, bookmarks }`: the attached chat's whole bookmark list.                                |
+| `chat.visuals`         | `{ chatId, visuals }`: the attached chat's whole list of [visuals](/agent-contracts/visuals).    |
 | `accounts.changed`     | The whole account snapshot.                                                                      |
 | `usage.changed`        | `{ scannedAt }`: ask for the period on screen again.                                             |
 | `usage.limitsChanged`  | The whole plan limit snapshot.                                                                   |
@@ -85,7 +87,7 @@ A name in the table is a shape, not a promise that every host does it. A fork la
 | `info`  | Replace the chat's `ChatInfo`.                                                      |
 | `reset` | Replace the info and the whole thread.                                              |
 
-`chat.attach` answers `{ info, items }` and may add `history` (where the page starts and the cursor before it), `pending` (every request still waiting, wherever it is in the thread), `bookmarks` and `seq`. Keep the last `seq` applied. On a reconnect, send it as `since`: a host that still holds every event after it answers them in order as `events`, with an empty `items`. A host that does not answers a fresh snapshot. Replace the thread with that snapshot; appending it duplicates the conversation. `seq` and `since` are optional, so an older host simply always answers a snapshot.
+`chat.attach` answers `{ info, items }` and may add `history` (where the page starts and the cursor before it), `pending` (every request still waiting, wherever it is in the thread), `bookmarks`, `visuals` and `seq`. Keep the last `seq` applied. On a reconnect, send it as `since`: a host that still holds every event after it answers them in order as `events`, with an empty `items`. A host that does not answers a fresh snapshot. Replace the thread with that snapshot; appending it duplicates the conversation. `seq` and `since` are optional, so an older host simply always answers a snapshot.
 
 `historyLimit` and `limit` are whole numbers from 1 to 100. A cursor is opaque: hand it back as it came. `chat.history` takes cursors of at most 128 characters, `chat.subagent` 256. A host that no longer knows a cursor refuses with `history-expired`, and the client attaches again.
 

@@ -64,6 +64,11 @@
             "types": "./dist/usage.d.ts",
             "default": "./dist/usage.js"
         },
+        "./visual": {
+            "source": "./src/visual.ts",
+            "types": "./dist/visual.d.ts",
+            "default": "./dist/visual.js"
+        },
         "./worktree": {
             "source": "./src/worktree.ts",
             "types": "./dist/worktree.d.ts",

@@ -15,7 +15,7 @@ const disconnect = host.connect(port);
 
 | Option                                       |                                                                                                       |
 | -------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `dataDir`                                    | Where the chats, attachments, bookmarks, accounts and usage index go. See [Storage](/agents/storage). |
+| `dataDir`                                    | Where the chats, attachments, bookmarks, visuals, accounts and usage index go. See [Storage](/agents/storage). |
 | `env`                                        | The environment the CLIs start in. Without it, this process's own, filtered by `cliEnvironment`.      |
 | `environmentPolicy`                          | More to filter out. With it, an `env` you pass is filtered too; without it, it is taken as it is.     |
 | `systemNote`                                 | What every agent is told once, at the start of its process.                                           |

@@ -5,6 +5,7 @@ import { ChatCore, type ChatCoreOptions } from '../chat/chat-core.ts';
 import type { SpawnChatProcess } from '../chat/chat-process.ts';
 import { ChatStore } from '../chat/chat-store.ts';
 import { suggestChatTitle } from '../chat/chat-title.ts';
+import { VisualStore } from '../chat/visual-store.ts';
 import type { ClaudeBackendOptions } from '../chat/claude-backend.ts';
 import { ClaudeTitleReader } from '../chat/claude-title.ts';
 import { DEFAULT_CODEX_CLIENT, type CodexClientInfo } from '../chat/codex-transport.ts';
@@ -24,7 +25,7 @@ import { cliEnvironment, type CliEnvironmentPolicy } from './environment.ts';
 import { accountHandlers, chatHandlers, usageHandlers, type AgentHandlers } from './handlers.ts';
 
 export interface AgentWiringOptions<Core extends ChatCore = ChatCore> {
-    // Where the chats, their attachments and bookmarks, the accounts and the usage index are kept.
+    // Where the chats, their attachments, bookmarks and visuals, the accounts and the usage index are kept.
     dataDir: string;
     // The environment the CLIs start in; absent, this process's own through `cliEnvironment`.
     env?: Record<string, string | undefined>;
@@ -103,6 +104,7 @@ export function wireAgents<Core extends ChatCore = ChatCore>(options: AgentWirin
         store: new ChatStore(options.dataDir, { attachments }),
         attachments,
         bookmarks: new BookmarkStore(options.dataDir),
+        visuals: new VisualStore(options.dataDir, attachments),
         env,
         ...(options.systemNote === undefined ? {} : { instructions: options.systemNote }),
         ...(options.command ? { command: options.command } : {}),

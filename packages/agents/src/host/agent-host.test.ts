@@ -1,8 +1,18 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { access, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { AGENT_EVENT_SCHEMAS, parseServerFrame, type ChatInfo, type ChatItem, type FramePort, type ReplyError, type ReplyOk } from '@adecore/agent-contracts';
+import {
+    AGENT_EVENT_SCHEMAS,
+    parseServerFrame,
+    type ChatInfo,
+    type ChatItem,
+    type ChatVisual,
+    type ChatVisualsEvent,
+    type FramePort,
+    type ReplyError,
+    type ReplyOk
+} from '@adecore/agent-contracts';
 import { ChatCore } from '../chat/chat-core.ts';
 import { ChatStore } from '../chat/chat-store.ts';
 import { fakeClaude } from '../chat/fake-claude.ts';
@@ -284,6 +294,50 @@ describe('AgentHost over a port', () => {
         expect(closed).toBe('The disk is full');
         expect(signaled).toEqual(['SIGTERM', 'SIGTERM']);
         host = await AgentHost.open({ dataDir, env: { HOME: dataDir, PATH: process.env.PATH }, background: false, command: ['claude'], spawn: claude.spawn });
+    });
+
+    test('keeps the visuals of a chat: on attach, as an event to its clients, and until a clear or a removal', async () => {
+        const visualsOf = (chatId: string): ChatVisual[][] =>
+            client.events
+                .filter((event) => event.event === 'chat.visuals' && (event.payload as ChatVisualsEvent).chatId === chatId)
+                .map((event) => (event.payload as ChatVisualsEvent).visuals);
+        ok(await client.request('chat.create', { chatId: 'chat-7', provider: 'claude', cwd: dataDir }));
+        ok(await client.request('chat.create', { chatId: 'chat-8', provider: 'claude', cwd: dataDir }));
+        const before = await host.chats.publishVisual('chat-7', { title: 'Before attach', html: '<p>one</p>' });
+        expect(before.turnId).toBeUndefined();
+        expect(ok(await client.request('chat.attach', { chatId: 'chat-7' }))).toMatchObject({ visuals: [before] });
+        expect(visualsOf('chat-7')).toEqual([]);
+
+        // Published while a turn runs, it belongs to that turn.
+        ok(await client.request('chat.send', { chatId: 'chat-7', text: 'slow' }));
+        await client.until(() => typeof client.info?.activeTurnId === 'string');
+        const during = await host.chats.publishVisual('chat-7', { title: 'During a turn', html: '<p>two</p>' });
+        expect(during.turnId).toBe(client.info!.activeTurnId!);
+        await host.chats.publishVisual('chat-8', { title: 'Elsewhere', html: '<p>three</p>' });
+        expect(host.chats.attachment('chat-7', during.id)).toMatchObject({ mime: 'text/html', size: during.size });
+
+        expect(ok(await client.request('chat.removeVisual', { chatId: 'chat-7', visualId: before.id }))).toEqual({ visuals: [during] });
+        expect(visualsOf('chat-7')).toEqual([[before, during], [during]]);
+        expect(visualsOf('chat-8')).toEqual([]);
+        expect(await host.chats.listVisuals('chat-7')).toEqual([during]);
+
+        ok(await client.request('chat.cancel', { chatId: 'chat-7' }));
+        await client.until(() => client.info?.activeTurnId === null);
+        ok(await client.request('chat.clear', { chatId: 'chat-7' }));
+        expect(await host.chats.listVisuals('chat-7')).toEqual([]);
+        expect(visualsOf('chat-7').at(-1)).toEqual([]);
+
+        const elsewhere = (await host.chats.listVisuals('chat-8'))[0]!;
+        ok(await client.request('chat.kill', { chatId: 'chat-8' }));
+        expect(await host.chats.listVisuals('chat-8')).toEqual([]);
+        expect(
+            await access(join(dataDir, 'attachments', 'chat-8', `${elsewhere.id}.html`)).then(
+                () => true,
+                () => false
+            )
+        ).toBe(false);
+        await expect(host.chats.publishVisual('nobody', { title: 'Lost', html: '<p>x</p>' })).rejects.toMatchObject({ code: 'chat-not-found' });
+        expect(await client.request('chat.removeVisual', { chatId: 'nobody', visualId: 'x' })).toMatchObject({ ok: false, error: { code: 'chat-not-found' } });
     });
 
     test('refuses a chat whose record it cannot read, and leaves the record and its log as they are', async () => {

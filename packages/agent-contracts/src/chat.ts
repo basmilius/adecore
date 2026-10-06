@@ -3,6 +3,7 @@ import { AgentKindSchema, AgentStatusSchema, SuggestedTitleSchema } from './agen
 import { WorktreeSchema } from './worktree.ts';
 import { ModelSelectionSchema, RuntimeModeSchema } from './model.ts';
 import { ProviderAccountIdSchema } from './provider-accounts.ts';
+import { ChatVisualsSchema } from './visual.ts';
 
 // The client picks the id (its node id), like a terminal session.
 export const ChatIdSchema = z.string().min(1);
@@ -762,6 +763,17 @@ export type ChatBookmarksResult = z.infer<typeof ChatBookmarksResultSchema>;
 export const ChatBookmarksEventSchema = z.object({ chatId: ChatIdSchema, bookmarks: ChatBookmarksSchema });
 export type ChatBookmarksEvent = z.infer<typeof ChatBookmarksEventSchema>;
 
+// A person takes a visual out of the thread from its card; one that is already gone is no refusal.
+export const ChatRemoveVisualPayloadSchema = ChatTargetPayloadSchema.extend({ visualId: z.string().min(1) });
+export type ChatRemoveVisualPayload = z.infer<typeof ChatRemoveVisualPayloadSchema>;
+
+export const ChatVisualsResultSchema = z.object({ visuals: ChatVisualsSchema });
+export type ChatVisualsResult = z.infer<typeof ChatVisualsResultSchema>;
+
+// The whole list after every change, to every client attached to the chat.
+export const ChatVisualsEventSchema = z.object({ chatId: ChatIdSchema, visuals: ChatVisualsSchema });
+export type ChatVisualsEvent = z.infer<typeof ChatVisualsEventSchema>;
+
 export const ChatAttachResultSchema = z.object({
     info: ChatInfoSchema,
     items: z.array(ChatItemSchema),
@@ -771,7 +783,9 @@ export const ChatAttachResultSchema = z.object({
     // Only when `since` was honored: what happened after it, in order; `items` is then empty.
     events: z.array(ChatEventSchema).optional(),
     // Absent from a daemon that keeps no bookmarks.
-    bookmarks: ChatBookmarksSchema.optional()
+    bookmarks: ChatBookmarksSchema.optional(),
+    // Absent from a host that keeps no visuals.
+    visuals: ChatVisualsSchema.optional()
 });
 export type ChatAttachResult = z.infer<typeof ChatAttachResultSchema>;
 

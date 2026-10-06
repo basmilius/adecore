@@ -87,6 +87,10 @@ A request can settle elsewhere first: another client answered, or the person use
 
 A bookmark hangs on an item id, with an optional `name` and an `excerpt` of the message. `CHAT_BOOKMARK_LIMITS` allows a name of 120 characters, an excerpt of 160 and 200 bookmarks per chat. Adding a bookmark to an item that has one keeps it and names it when a name comes along; renaming to an empty name removes the name; removing one that is already gone is no error. Every change sends the whole list to every attached client as `chat.bookmarks`.
 
+## Visuals
+
+A visual is a page an agent published, shown in the thread at its `at`, between the items around it. It is no item: the chat's list comes with `chat.attach` and as `chat.visuals`, and `chat.removeVisual` takes one away. See [Visuals](/agent-contracts/visuals) for the record, the bridge between the page and the app, and the theme.
+
 ## Checkpoints and forks
 
 A turn's `checkpointDiff` lists the files the working tree changed against the tree the turn started from: `path`, `kind` (`add`, `update`, `delete`), lines `added` and `deleted`, and a unified `diff`. `omitted` says why a diff is empty (`binary` or `too-large`), and `truncated` that more files changed than the list holds. `chat.turnDiff` answers `{ diff: null }` when there is no checkpoint, such as outside a repository. The contracts run no git.

@@ -8,5 +8,6 @@ export * from './provider-accounts.ts';
 export * from './task.ts';
 export * from './text.ts';
 export * from './usage.ts';
+export * from './visual.ts';
 export * from './worktree.ts';
 export type * from './port.ts';

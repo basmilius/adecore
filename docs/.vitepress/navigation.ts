@@ -169,6 +169,7 @@ export const sidebar: DefaultTheme.SidebarMulti = {
             ['Overview', '/agent-contracts/'],
             ['Protocol', '/agent-contracts/protocol'],
             ['Conversation', '/agent-contracts/conversation'],
+            ['Visuals', '/agent-contracts/visuals'],
             ['Providers and accounts', '/agent-contracts/providers-and-accounts'],
             ['Tasks and usage', '/agent-contracts/tasks-and-usage']
         ]),

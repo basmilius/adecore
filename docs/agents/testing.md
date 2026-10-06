@@ -53,4 +53,4 @@ A refusal carries a code; branch on it, show the message.
 | `secrets-unavailable`                                    | No keychain on this machine.                                                      |
 | `internal`                                               | Something else failed; the host logged it.                                        |
 
-Others name what was not found (`subagent-not-found`, `task-not-found`, `turn-not-found`, `item-not-found`, `bookmark-not-found`), `too-many-bookmarks`, and a CLI transcript that is missing or not readable (`transcript-missing`, `transcript-format`). [Context commands](/agents/context-commands#refusals) refuse in their own format.
+Others name what was not found (`subagent-not-found`, `task-not-found`, `turn-not-found`, `item-not-found`, `bookmark-not-found`), `too-many-bookmarks`, a visual that breaks a limit (`visual-invalid`, `visual-too-large`), and a CLI transcript that is missing or not readable (`transcript-missing`, `transcript-format`). [Context commands](/agents/context-commands#refusals) refuse in their own format.

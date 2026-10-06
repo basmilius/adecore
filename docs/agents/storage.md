@@ -9,7 +9,8 @@ Everything a host keeps lives in its data folder. Give each host a folder of its
 | `chats/<id>.json`                                  | A chat's record: `{ info, items, seq?, resetSeq?, preambles? }` and the host's own extras. |
 | `chats/<id>.log`                                   | Its events since the record, one JSON line each: `{ seq, at, event }`.            |
 | `chats/<id>.bookmarks.json`                        | Its bookmarks.                                                                    |
-| `attachments/<id>/`                                | The files attached to its messages.                                               |
+| `chats/<id>.visuals.json`                          | Its [visuals](/agents/chats#visuals), as `{ version: 1, visuals }`.               |
+| `attachments/<id>/`                                | The files attached to its messages, and the page of each visual as `<visual id>.html`. |
 | `providers.json`                                   | The accounts, as `{ version: 1, accounts }`, without secrets.                     |
 | `accounts/`                                        | The folders of accounts the host made.                                            |
 | `usage/index.json`, `prices.json`, `exchange-rate.json` | The usage index, and the prices and rate last fetched.                       |

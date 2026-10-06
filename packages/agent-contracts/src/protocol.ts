@@ -26,6 +26,7 @@ import {
     ChatPreferencesPayloadSchema,
     ChatQueuePayloadSchema,
     ChatRemoveBookmarkPayloadSchema,
+    ChatRemoveVisualPayloadSchema,
     ChatRenameBookmarkPayloadSchema,
     ChatSendPayloadSchema,
     ChatSendResultSchema,
@@ -41,6 +42,8 @@ import {
     ChatTurnDiffPayloadSchema,
     ChatTurnDiffResultSchema,
     ChatUnqueueResultSchema,
+    ChatVisualsEventSchema,
+    ChatVisualsResultSchema,
     SkillsListPayloadSchema,
     SkillsListResultSchema
 } from './chat.ts';
@@ -88,6 +91,7 @@ export const AGENT_REQUEST_SCHEMAS = {
     'chat.addBookmark': { payload: ChatAddBookmarkPayloadSchema, result: ChatBookmarksResultSchema },
     'chat.renameBookmark': { payload: ChatRenameBookmarkPayloadSchema, result: ChatBookmarksResultSchema },
     'chat.removeBookmark': { payload: ChatRemoveBookmarkPayloadSchema, result: ChatBookmarksResultSchema },
+    'chat.removeVisual': { payload: ChatRemoveVisualPayloadSchema, result: ChatVisualsResultSchema },
     'skills.list': { payload: SkillsListPayloadSchema, result: SkillsListResultSchema },
     'provider.list': { payload: EmptySchema, result: ProviderListResultSchema },
     'accounts.list': { payload: EmptySchema, result: ProviderAccountsSchema },
@@ -111,6 +115,7 @@ export const AGENT_EVENT_SCHEMAS = {
     'chat.status': ChatStatusEventSchema,
     'chat.subagentChanged': ChatSubagentChangedEventSchema,
     'chat.bookmarks': ChatBookmarksEventSchema,
+    'chat.visuals': ChatVisualsEventSchema,
     'usage.changed': UsageChangedEventSchema,
     'usage.limitsChanged': UsageLimitsSnapshotSchema,
     'accounts.changed': ProviderAccountsSchema

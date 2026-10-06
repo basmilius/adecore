@@ -64,6 +64,7 @@ The root exports everything below. Each group also has a subpath of its own, whi
 | `@adecore/agent-contracts/task`              | Tasks between chats and `TaskChangedEventSchema`.                                                 |
 | `@adecore/agent-contracts/worktree`          | Git worktree metadata and the work in one.                                                        |
 | `@adecore/agent-contracts/usage`             | Token totals, usage summaries, prices, plan limits.                                               |
+| `@adecore/agent-contracts/visual`            | A chat's visuals, the bridge to their page, its theme and its bootstrap. See [Visuals](/agent-contracts/visuals). |
 | `@adecore/agent-contracts/ids`               | `SessionIdSchema` and `SessionId`.                                                                |
 | `@adecore/agent-contracts/text`              | `clipText`.                                                                                       |
 
@@ -73,5 +74,6 @@ The [source](https://github.com/basmilius/adecore/tree/main/packages/agent-contr
 
 - [Protocol](/agent-contracts/protocol): frames, the request and event tables, replay after a reconnect, and adding requests of your own.
 - [Conversation](/agent-contracts/conversation): a chat's info and items, attachments, approvals and questions, bookmarks and checkpoints.
+- [Visuals](/agent-contracts/visuals): pages an agent publishes in a chat, the bridge between a page and the app, and the theme it is drawn in.
 - [Providers and accounts](/agent-contracts/providers-and-accounts): agent kinds, model catalogs, capabilities, runtime modes and accounts.
 - [Tasks and usage](/agent-contracts/tasks-and-usage): tasks between chats, worktrees, token totals, summaries and plan limits.

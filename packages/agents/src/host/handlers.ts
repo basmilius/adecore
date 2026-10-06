@@ -99,6 +99,7 @@ export function chatHandlers(chats: ChatCore, providers: ProviderRegistry): { [T
         'chat.addBookmark': async (payload) => ({ bookmarks: await chats.addBookmark(payload.chatId, payload.itemId, payload.name) }),
         'chat.renameBookmark': async (payload) => ({ bookmarks: await chats.renameBookmark(payload.chatId, payload.itemId, payload.name) }),
         'chat.removeBookmark': async (payload) => ({ bookmarks: await chats.removeBookmark(payload.chatId, payload.itemId) }),
+        'chat.removeVisual': async (payload) => ({ visuals: await chats.removeVisual(payload.chatId, payload.visualId) }),
         'chat.kill': async (payload) => {
             await chats.kill(payload.chatId);
             return {};

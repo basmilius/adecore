@@ -24,6 +24,14 @@ Stopping a turn settles the requests it left open, so no approval stays pending 
 
 `chat.subagent` reads the conversation of an agent the chat delegated to, from the CLI's own transcript, a page at a time, and with `watch: true` sends `chat.subagentChanged` while it grows. `chat.stopSubagent` stops a subagent a task of your app opened; a subagent of the CLI's own can only be marked stopped. `chat.stopTask` stops one background shell or monitor, on a CLI that can.
 
+## Visuals
+
+A [visual](/agent-contracts/visuals) is a page an agent publishes in a chat. Agents publish through a command of your app, which calls `host.chats.publishVisual(chatId, { title, html, maxHeight?, heights?, turnId? })` and gets the `ChatVisual` back. The chat may be one nobody loaded; a visual published while a turn runs belongs to that turn unless the input names another. `listVisuals(chatId)` answers a chat's visuals in the order they were published, and `chat.removeVisual` takes one away.
+
+`VisualStore` keeps them: the list in `chats/<id>.visuals.json`, each page as `<id>.html` in the chat's attachment folder, so `host.chats.attachment(chatId, visualId)` finds a page the way it finds an attached file, with the mime type `text/html`. Publishing puts the bootstrap of `injectVisualBootstrap` in the page and checks `VISUAL_LIMITS`; a page that breaks one is refused with `visual-invalid` or `visual-too-large`, with a message that tells the agent what to change. Every change goes to the clients attached to the chat as `chat.visuals`, and `chat.attach` answers the list too.
+
+A clear and `chat.kill` take a chat's visuals along. A core of your own that forks chats gives the fork its visuals with `visuals.copyChat(fromChatId, toChatId, keep?)`, which writes each page again under the fork, so removing either chat leaves the other's pages. `removeChat(chatId)` takes back what a fork that failed wrote. Never serve an attached `text/html` file on your app's own origin; see [Serving a page](/agent-contracts/visuals#serving-a-page).
+
 ## Stopping and removing
 
 | Request                                 |                                                                                                  |
@@ -31,7 +39,7 @@ Stopping a turn settles the requests it left open, so no approval stays pending 
 | `chat.cancel`                           | Stops the turn and keeps the conversation. With `subagents`, also ends the agents the chat opened. |
 | `chat.clear`                            | Starts the chat over. Refused with `chat-busy` during a turn, unless `force`.                    |
 | `chat.compact`                          | Folds the context, natively or by prompt, as the CLI's `compaction` capability says.             |
-| `chat.kill`                             | Removes the chat: its record, log, attachments and bookmarks, and ends its CLI.                  |
+| `chat.kill`                             | Removes the chat: its record, log, attachments, bookmarks and visuals, and ends its CLI.         |
 | Detaching or disconnecting              | Stops streaming to that client. The chat goes on.                                                |
 | `host.close()`, `ChatCore.shutdown()`   | Writes every thread and ends every CLI, and settles once they exited.                            |
 

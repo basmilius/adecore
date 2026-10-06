@@ -19,6 +19,7 @@ import {
     type ChatSubagentPayload,
     type ChatSubagentResult,
     type ChatTurnItem,
+    type ChatVisual,
     type ModelSelection,
     type RuntimeMode
 } from '@adecore/agent-contracts';
@@ -54,6 +55,7 @@ import { DeltaCoalescer } from './delta-coalescer.ts';
 import { ChatError } from './errors.ts';
 import { commandLabel, isBackgroundWork, runsInBackground, type BackgroundWork } from './background-work.ts';
 import { SubagentReader, type SubagentReaderOptions } from './subagent-reader.ts';
+import type { VisualInput, VisualStore } from './visual-store.ts';
 
 /* A turn that was running when the host went down, and the attempt that would take it up again. */
 export interface InterruptedRun {
@@ -115,6 +117,8 @@ export interface ChatCoreOptions {
     // Where the files people attach are written.
     attachments: AttachmentStore;
     bookmarks?: BookmarkStore;
+    // Pages agents publish in a chat; their files go in the same attachment folders.
+    visuals?: VisualStore;
     // What a running turn says about the plan its CLI runs on; the usage monitor takes it from here.
     onLimits?: (update: LimitsUpdate) => void;
     // Where Claude Code's own name for a session is read, in the projects folder of the chat's account; the other CLIs write none down.
@@ -151,6 +155,7 @@ export class ChatCore {
     protected readonly providers: ProviderRegistry;
     protected readonly store: ChatStore | null;
     protected readonly bookmarks: BookmarkStore | null;
+    protected readonly visuals: VisualStore | null;
     protected readonly accounts: AccountLaunches | null;
     protected readonly attachments: AttachmentStore;
     protected readonly env: Record<string, string>;
@@ -192,6 +197,7 @@ export class ChatCore {
         this.providers = options.providers;
         this.store = options.store ?? null;
         this.bookmarks = options.bookmarks ?? null;
+        this.visuals = options.visuals ?? null;
         this.accounts = options.accounts ?? null;
         this.attachments = options.attachments;
         this.checkpoints = options.checkpoints ?? null;
@@ -209,10 +215,15 @@ export class ChatCore {
         this.spawn = options.spawn ?? null;
         this.codexClient = options.codexClient ?? null;
         this.env = definedEnv(options.env ?? process.env);
-        // Only whoever reads the thread has anything to point a bookmark at, so the list goes where the thread goes.
+        // Only whoever reads the thread has anything to point a bookmark at or to place a visual in, so the lists go where the thread goes.
         this.bookmarks?.listen((chatId, bookmarks) => {
             for (const clientId of this.attached.get(chatId) ?? []) {
                 this.sinks.to(clientId, { event: 'chat.bookmarks', payload: { chatId, bookmarks } });
+            }
+        });
+        this.visuals?.listen((chatId, visuals) => {
+            for (const clientId of this.attached.get(chatId) ?? []) {
+                this.sinks.to(clientId, { event: 'chat.visuals', payload: { chatId, visuals } });
             }
         });
         this.claudeProjectsDir =
@@ -492,18 +503,22 @@ export class ChatCore {
     }
 
     /*
-     * `attach` with the chat's bookmarks. They are read before the client joins, so a change written
-     * after the read reaches it as `chat.bookmarks` and never falls between the two. A file that
-     * cannot be read leaves the list out rather than the thread.
+     * `attach` with the chat's bookmarks and visuals. They are read before the client joins, so a
+     * change written after the read reaches it as `chat.bookmarks` or `chat.visuals` and never falls
+     * between the two. A file that cannot be read leaves its list out rather than the thread.
      */
     async attachWithBookmarks(chatId: string, clientId: string, historyLimit?: number, since?: number): Promise<ChatAttachResult> {
         this.require(chatId);
-        const bookmarks = await this.bookmarks?.read(chatId).catch((e: unknown) => {
-            console.error(`The bookmarks of chat ${chatId} could not be read:`, errorText(e));
+        const unreadable = (what: string) => (e: unknown) => {
+            console.error(`The ${what} of chat ${chatId} could not be read:`, errorText(e));
             return undefined;
-        });
+        };
+        const [bookmarks, visuals] = await Promise.all([
+            this.bookmarks?.read(chatId).catch(unreadable('bookmarks')),
+            this.visuals?.list(chatId).catch(unreadable('visuals'))
+        ]);
         const result = this.attach(chatId, clientId, historyLimit, since);
-        return bookmarks === undefined ? result : { ...result, bookmarks };
+        return { ...result, ...(bookmarks === undefined ? {} : { bookmarks }), ...(visuals === undefined ? {} : { visuals }) };
     }
 
     /* Marks a message of the chat's own thread; a message that already has one keeps it. */
@@ -530,6 +545,37 @@ export class ChatCore {
             throw new ChatError('chat-unsupported', 'This host keeps no bookmarks');
         }
         return this.bookmarks;
+    }
+
+    /*
+     * Publishes a page an agent made in a chat, for an app's own agent command. Without a `turnId` it
+     * belongs to the turn that is running, if one is. The chat may be one nobody loaded.
+     */
+    async publishVisual(chatId: string, input: VisualInput): Promise<ChatVisual> {
+        const visuals = this.requireVisuals();
+        await this.loaded(chatId);
+        if (!(await this.hasStored(chatId))) {
+            throw new ChatError('chat-not-found', `No chat ${chatId}`);
+        }
+        const turnId = input.turnId ?? this.chats.get(chatId)?.info.activeTurnId ?? undefined;
+        return visuals.publish(chatId, turnId === undefined ? input : { ...input, turnId });
+    }
+
+    /* The visuals of a chat in the order they were published. */
+    listVisuals(chatId: string): Promise<ChatVisual[]> {
+        return this.requireVisuals().list(chatId);
+    }
+
+    removeVisual(chatId: string, visualId: string): Promise<ChatVisual[]> {
+        this.require(chatId);
+        return this.requireVisuals().remove(chatId, visualId);
+    }
+
+    private requireVisuals(): VisualStore {
+        if (!this.visuals) {
+            throw new ChatError('chat-unsupported', 'This host keeps no visuals');
+        }
+        return this.visuals;
     }
 
     history(chatId: string, cursor: string, limit?: number): ChatHistoryResult {
@@ -657,7 +703,7 @@ export class ChatCore {
         return session.send(text, { ...extras, ...(attachments.length > 0 ? { attachments } : {}) });
     }
 
-    /* The file behind an attachment id: what this chat's thread or queue says it is. */
+    /* The file behind an attachment id: what this chat's thread or queue says it is, or a visual's page. */
     attachment(chatId: string, id: string): ChatAttachment | null {
         const session = this.chats.get(chatId);
         if (!session) {
@@ -675,7 +721,7 @@ export class ChatCore {
                 return found;
             }
         }
-        return null;
+        return this.visuals?.attachment(chatId, id) ?? null;
     }
 
     unqueue(chatId: string, messageId: string): ChatQueuedMessage {
@@ -706,7 +752,7 @@ export class ChatCore {
         session.compact();
     }
 
-    /* Empties the thread and drops the CLI's session and the chat's bookmarks; `force` stops a turn that is in the way. */
+    /* Empties the thread and drops the CLI's session and the chat's bookmarks and visuals; `force` stops a turn that is in the way. */
     async clear(chatId: string, force = false): Promise<void> {
         const session = this.require(chatId);
         if (session.busy && !force) {
@@ -719,7 +765,13 @@ export class ChatCore {
         // A debounced write still waiting holds the old thread and must not land after the empty one.
         this.cancelWaiting(chatId);
         // Folded right away: every line before the reset describes a thread that is gone.
-        await Promise.all([this.persistNow(chatId, true), this.attachments.removeAll(chatId), this.bookmarks?.removeChat(chatId), cleared]);
+        await Promise.all([
+            this.persistNow(chatId, true),
+            this.attachments.removeAll(chatId),
+            this.bookmarks?.removeChat(chatId),
+            this.visuals?.removeChat(chatId),
+            cleared
+        ]);
     }
 
     /* Stops the running turn; with `subagents` also marks the CLI's own subagents stopped, which that turn no longer waits on. */
@@ -754,7 +806,7 @@ export class ChatCore {
         }
     }
 
-    /* Removes a chat: its CLI, its record, its log, its attachments and its bookmarks. */
+    /* Removes a chat: its CLI, its record, its log, its attachments, its bookmarks and its visuals. */
     async kill(chatId: string): Promise<void> {
         await this.loaded(chatId);
         const session = this.require(chatId);
@@ -777,7 +829,13 @@ export class ChatCore {
         const snapshot = session.thread.snapshot();
         this.forgotten(chatId);
         await writing;
-        await Promise.all([this.store?.delete(chatId), this.attachments.removeAll(chatId), this.bookmarks?.removeChat(chatId), this.removed(chatId, snapshot)]);
+        await Promise.all([
+            this.store?.delete(chatId),
+            this.attachments.removeAll(chatId),
+            this.bookmarks?.removeChat(chatId),
+            this.visuals?.removeChat(chatId),
+            this.removed(chatId, snapshot)
+        ]);
     }
 
     /*

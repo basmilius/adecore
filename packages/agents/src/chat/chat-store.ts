@@ -8,6 +8,7 @@ import { isBookmarkFileName } from './bookmark-store.ts';
 import { migrateInlineAttachments, type AttachmentStore } from './attachment-store.ts';
 import { parseLog, type ChatLogLine } from './chat-log.ts';
 import { ChatThread } from './thread.ts';
+import { isVisualFileName } from './visual-store.ts';
 import { recordFileName } from '../record-directory.ts';
 
 // zod strips what it does not know inside the info and the items, so a file written by an older build
@@ -98,8 +99,10 @@ export class ChatStore {
             throw e;
         }
         const ids = names
-            // A chat's bookmarks, and whatever a host keeps per chat, sit beside its record under names that also end in .json.
-            .filter((name) => (name.endsWith('.json') && !isBookmarkFileName(name) && !this.isSidecar(name)) || name.endsWith('.log'))
+            // A chat's bookmarks and visuals, and whatever a host keeps per chat, sit beside its record under names that also end in .json.
+            .filter(
+                (name) => (name.endsWith('.json') && !isBookmarkFileName(name) && !isVisualFileName(name) && !this.isSidecar(name)) || name.endsWith('.log')
+            )
             .map((name) => decodeURIComponent(name.replace(/\.(json|log)$/, '')));
         return [...new Set(ids)];
     }

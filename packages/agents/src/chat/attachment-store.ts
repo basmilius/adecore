@@ -50,7 +50,7 @@ export class AttachmentStore {
         const bytes = Buffer.from(upload.data, 'base64');
         const mime = attachmentImageMime(upload) ?? upload.mime;
         const id = randomBytes(8).toString('hex');
-        const folder = this.folder(chatId);
+        const folder = this.folderOf(chatId);
         await mkdir(folder, { recursive: true, mode: 0o700 });
         const path = join(folder, `${id}.${extensionFor(upload.name, mime)}`);
         await writeFile(path, bytes, { mode: 0o600 });
@@ -59,10 +59,11 @@ export class AttachmentStore {
 
     /* Everything a chat attached; used when the chat itself is deleted. */
     async removeAll(chatId: string): Promise<void> {
-        await rm(this.folder(chatId), { recursive: true, force: true });
+        await rm(this.folderOf(chatId), { recursive: true, force: true });
     }
 
-    private folder(chatId: string): string {
+    /* Where the files of one chat are; a store that keeps more of a chat's files beside them writes them here. */
+    folderOf(chatId: string): string {
         return join(this.dir, encodeURIComponent(chatId));
     }
 }

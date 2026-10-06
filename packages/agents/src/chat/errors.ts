@@ -19,7 +19,10 @@ export type ChatErrorCode =
     // What a bookmark is refused with.
     | 'item-not-found'
     | 'bookmark-not-found'
-    | 'too-many-bookmarks';
+    | 'too-many-bookmarks'
+    // What publishing a visual is refused with; the message says what to change.
+    | 'visual-invalid'
+    | 'visual-too-large';
 
 /* A host that refuses more than a chat does widens the codes with its own. */
 export class ChatError<TCode extends string = ChatErrorCode> extends CodedError<TCode> {}
