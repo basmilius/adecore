@@ -5,6 +5,8 @@
     </picture>
 </a>
 
+---
+
 [![CI](https://github.com/basmilius/adecore/actions/workflows/ci.yml/badge.svg)](https://github.com/basmilius/adecore/actions/workflows/ci.yml)
 [![ui on npm](https://img.shields.io/npm/v/@adecore/ui?label=ui)](https://www.npmjs.com/package/@adecore/ui)
 [![shell on npm](https://img.shields.io/npm/v/@adecore/shell?label=shell)](https://www.npmjs.com/package/@adecore/shell)
