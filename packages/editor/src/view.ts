@@ -67,6 +67,7 @@ export interface ViewSettings {
     wrap: boolean;
     smartKeys: EditorSmartKeys;
     messages: Partial<EditorMessages>;
+    label: string;
     /* A line at each indentation level, and the one of the scope around the caret stronger. */
     guides: boolean;
     /* Spaces drawn as dots and tabs as arrows. */
@@ -299,7 +300,6 @@ export class EditorView {
             this.input.setAttribute(name, 'off');
         }
         this.input.setAttribute('aria-multiline', 'true');
-        this.input.setAttribute('aria-label', 'Code editor');
         this.sticky.setAttribute('aria-hidden', 'true');
         this.sticky.hidden = true;
         this.overview = make('div', 'se-overview');
@@ -345,6 +345,7 @@ export class EditorView {
     /* Settings that are read off the page or off `settings` are applied again: after a change to either. */
     applySettings(): void {
         this.input.readOnly = this.settings.readOnly;
+        this.input.setAttribute('aria-label', this.settings.label);
         this.root.dataset.readonly = String(this.settings.readOnly);
         this.root.dataset.wrap = String(this.settings.wrap);
         this.root.dataset.foldOutline = this.settings.foldOutline;

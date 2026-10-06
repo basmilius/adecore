@@ -51,6 +51,7 @@ import { fillLens, lensSignature } from './lens.ts';
 import { EditorView, type ViewSettings } from './view.ts';
 
 const DEFAULT_TAB_SIZE = 4;
+const DEFAULT_LABEL = 'Code editor';
 const DEFAULT_WIDGET_OWNER = 'default';
 
 class SmartEditor implements Editor {
@@ -90,6 +91,7 @@ class SmartEditor implements Editor {
             wrap: options.wrap ?? false,
             smartKeys: resolveSmartKeys(options.smartKeys),
             messages: options.messages ?? {},
+            label: options.label ?? DEFAULT_LABEL,
             guides: options.guides !== false,
             whitespace: options.whitespace === true,
             rightMargin: options.rightMargin ?? null,
@@ -656,6 +658,11 @@ class SmartEditor implements Editor {
 
     setFoldOutline(outline: EditorFoldOutline): void {
         this.settings.foldOutline = outline;
+        this.view.applySettings();
+    }
+
+    setLabel(label: string): void {
+        this.settings.label = label;
         this.view.applySettings();
     }
 

@@ -39,7 +39,7 @@ The demos on these pages color TypeScript with a small tokenizer of their own in
 ## Limits
 
 - The editor has no bidirectional text layout. Right-to-left text is drawn left to right.
-- The textarea carries the text around the caret and an `aria-label` of `Code editor` for assistive technology. Nothing has been tested with a screen reader beyond that, and the label cannot be changed through the options.
+- The textarea carries the text around the caret and an `aria-label` from the `label` option for assistive technology. Nothing has been tested with a screen reader beyond that.
 - A line longer than 20,000 characters is not colored.
 - Every edit rebuilds the list of rows, which is linear in the number of lines.
 - Folding ranges and the marks of a selection's other occurrences are skipped in a document over 2 million characters.

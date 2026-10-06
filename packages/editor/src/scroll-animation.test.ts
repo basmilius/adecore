@@ -32,6 +32,7 @@ describe('scrolling the view', () => {
         wrap: false,
         smartKeys: DEFAULT_SMART_KEYS,
         messages: {},
+        label: 'Code editor',
         guides: true,
         whitespace: false,
         rightMargin: null,

@@ -21,6 +21,7 @@
 | `rightMargin`    | none                    | `setRightMargin`  | A column to draw a line at; `null` removes it                                |
 | `foldOutline`    | `'hover'`               | `setFoldOutline`  | When the fold arrows show in the gutter: `'off'`, `'hover'` or `'always'`    |
 | `messages`       | none                    |                   | `{ noMoreOccurrences }`, said when select next occurrence finds no more; without it the editor says nothing |
+| `label`          | `Code editor`           | `setLabel`        | The accessible name of the editor, such as `Commit message`, in the app's language |
 | `folds`          |                         |                   | Folds kept from the last time; see [folding](/editor/find-folding#folding)   |
 | `foldDefaults`   |                         |                   | Fold roles to collapse when a file opens without kept folds                  |
 | `line`, `column` |                         |                   | One-based, where the caret starts                                            |

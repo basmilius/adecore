@@ -33,6 +33,16 @@ describe('mounting', () => {
         expect(host.querySelectorAll('.se-line').length).toBeLessThan(60);
     });
 
+    test('names its input with the label of the host, and takes a new one later', () => {
+        const label = (host: HTMLElement): string | null => host.querySelector('.se-input')!.getAttribute('aria-label');
+        expect(label(setup().host)).toBe('Code editor');
+        const { editor, host } = setup({ label: 'Commit message' });
+        expect(label(host)).toBe('Commit message');
+        editor.setLabel('Commitbericht');
+        expect(label(host)).toBe('Commitbericht');
+        editor.dispose();
+    });
+
     test('reads a line past the end as the last one', () => {
         const { editor, host } = setup({ line: 99, column: 99 });
         expect(host.querySelector('.se-active-number')!.textContent).toBe('3');

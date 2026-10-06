@@ -68,6 +68,8 @@ export interface EditorOptions {
     readonly foldOutline?: EditorFoldOutline;
     /* What the editor says to a person itself, in the host's words. */
     readonly messages?: Partial<EditorMessages>;
+    /* The accessible name of the editor, such as "Commit message", in the host's language; `Code editor` without one. */
+    readonly label?: string;
     /* The folds a host kept when the file was last open. */
     readonly folds?: EditorFolds;
     /* Without remembered folds, the folds of these roles fold, as they do the first time a file opens, and again as a language server names more of them. */
@@ -491,6 +493,7 @@ export interface Editor {
     /* The column to draw a line at; null takes it away. */
     setRightMargin(column: number | null): void;
     setFoldOutline(outline: EditorFoldOutline): void;
+    setLabel(label: string): void;
     /* What a language server knows about the folds: the bodies of symbols and the ranges it folds. They follow their text through edits until set again; null forgets them. */
     setFoldHints(hints: EditorFoldHints | null): void;
     /* Marks that follow their lines through edits until the host sets them again. */

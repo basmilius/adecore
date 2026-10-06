@@ -91,6 +91,7 @@ export class FakeEditor implements Editor {
         this.theme = options.theme;
         this.readOnly = options.readOnly ?? false;
         this.readOnlyReason = options.readOnlyReason;
+        this.label = options.label ?? 'Code editor';
         this.revealedLine = options.line ?? null;
         this.column = options.column ?? null;
         this.scrollTop = options.scrollTop ?? null;
@@ -485,6 +486,12 @@ export class FakeEditor implements Editor {
 
     setFoldOutline(outline: EditorFoldOutline): void {
         this.foldOutline = outline;
+    }
+
+    label: string;
+
+    setLabel(label: string): void {
+        this.label = label;
     }
 
     setFoldHints(hints: EditorFoldHints | null): void {
