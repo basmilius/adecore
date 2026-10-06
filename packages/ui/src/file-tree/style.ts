@@ -1,4 +1,3 @@
-// SPDX-License-Identifier: FSL-1.1-MIT
 import { treeRowStyle } from '../tree/style.ts';
 
 // beta.6 splits the extension into nested grids; flatten them to truncate the end of the entire name.

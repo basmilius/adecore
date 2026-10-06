@@ -151,4 +151,4 @@ The documentation at https://adecore.dev/database/ has a page for each view, and
 
 ## License
 
-MIT
+FSL-1.1-MIT, see [LICENSE](./LICENSE).

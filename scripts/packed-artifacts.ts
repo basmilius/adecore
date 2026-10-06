@@ -29,7 +29,7 @@ export function packedEntrypoints(manifest: PackageManifest, files: string[]): s
         throw new Error(`${manifest.name} includes tests or snapshots in its artifact.`);
     }
     if (manifest.license === 'FSL-1.1-MIT' && !paths.has('LICENSE')) {
-        throw new Error(`${manifest.name} is missing its transferred LICENSE.`);
+        throw new Error(`${manifest.name} is missing its LICENSE.`);
     }
     return exportTargets(manifest).flatMap((target) => {
         const matches = files.flatMap((file) => {

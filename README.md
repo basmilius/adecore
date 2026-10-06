@@ -81,4 +81,4 @@ Use a template: a [bug](https://github.com/basmilius/adecore/issues/new?template
 
 ## License
 
-Existing packages retain [MIT](LICENSE). Transferred TypeScript packages retain their package-local FSL-1.1-MIT license and provenance. Check each package's `license` field and `LICENSE` before redistribution. A publication must not silently change those licenses.
+Every package is licensed under [FSL-1.1-MIT](LICENSE). Code adapted from third parties keeps its own license, named in the package that carries it.

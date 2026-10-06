@@ -2,7 +2,7 @@
   "name": "@adecore/database-darwin-arm64",
   "version": "0.0.0",
   "description": "The prebuilt native helper of @adecore/database for macOS on Apple silicon.",
-  "license": "MIT",
+  "license": "FSL-1.1-MIT",
   "author": "Bas Milius",
   "repository": {
     "type": "git",

@@ -2,7 +2,7 @@
   "name": "@adecore/terminal",
   "version": "0.0.0",
   "description": "A themed terminal pane on xterm.js that fits its container and is fed by the app.",
-  "license": "MIT",
+  "license": "FSL-1.1-MIT",
   "author": "Bas Milius",
   "repository": {
     "type": "git",

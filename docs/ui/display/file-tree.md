@@ -68,5 +68,3 @@ Your code owns filesystem changes, listings, search requests, caches and permiss
 ## Limits
 
 The row controls sit in slots beside the engine's own row buttons, in its shadow root. Pointer and keyboard behavior there is tested; screen reader behavior across those slots is not verified yet. The wrapper relies on internals of the pinned engine version, so a dependency update needs the checks listed in the [reference](/ui/display/file-tree/reference#engine-updates).
-
-The file tree's helper, style and shift modules carry the [FSL-1.1-MIT](https://github.com/basmilius/adecore/blob/main/packages/ui/src/file-tree/LICENSE) license, marked in their SPDX headers; the rest of the package is MIT.

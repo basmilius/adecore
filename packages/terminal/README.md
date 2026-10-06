@@ -36,4 +36,4 @@ useEffect(() => session.onOutput((data) => view.current?.write(data)), [session]
 
 ## License
 
-MIT
+FSL-1.1-MIT, see [LICENSE](./LICENSE).

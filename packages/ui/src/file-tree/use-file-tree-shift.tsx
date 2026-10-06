@@ -1,4 +1,3 @@
-// SPDX-License-Identifier: FSL-1.1-MIT
 import { useEffect, useState, type ReactElement } from 'react';
 import type { FileTree } from '@pierre/trees';
 import { clampShift, maxShift, SHIFT_PROPERTY, shiftNeed, shiftThumb, sidewaysDelta } from './shift.ts';

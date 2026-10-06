@@ -1,4 +1,3 @@
-// SPDX-License-Identifier: FSL-1.1-MIT
 export const SHIFT_PROPERTY = '--adecore-tree-shift';
 
 const LINE_WIDTH = 16;

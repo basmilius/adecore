@@ -1,4 +1,3 @@
-// SPDX-License-Identifier: FSL-1.1-MIT
 import type { FileTree, FileTreeDirectoryHandle, FileTreeVisibleRow } from '@pierre/trees';
 
 // Expanded folders can reveal more flattened rows; cap custom-key cycles.

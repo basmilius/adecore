@@ -3,7 +3,7 @@ name = "adecore-database-helper"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.88"
-license = "MIT"
+license = "FSL-1.1-MIT"
 publish = false
 description = "Native helper that talks to SQLite and MySQL/MariaDB servers over newline-delimited JSON."
 

@@ -40,4 +40,4 @@ The package registers no IPC handler and listens to no app-wide Electron event. 
 
 ## License
 
-MIT
+FSL-1.1-MIT, see [LICENSE](./LICENSE).

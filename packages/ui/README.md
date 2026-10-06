@@ -80,4 +80,4 @@ Nothing else is public. No module does work on import, so a bundler keeps only w
 
 ## License
 
-MIT
+FSL-1.1-MIT, see [LICENSE](./LICENSE).
