@@ -10,6 +10,7 @@ import type { Connection } from '../client/types.ts';
 import { EngineIcon } from '../connections/EngineIcon.tsx';
 import { keyLabelOf, type ColumnKeys } from '../column-keys.ts';
 import { KeyIcon } from '../KeyIcon.tsx';
+import type { ExplorerFolder } from './folders.ts';
 import { RowMenu } from './RowMenu.tsx';
 import { TableDialog, type TableRequest } from './TableDialog.tsx';
 import {
@@ -46,13 +47,16 @@ export interface DatabaseExplorerProps {
     showSystemSchemas?: boolean;
     /* Opens a table on a click too, with `preview: true`; a double click or Enter then sends `preview: false`. */
     openOnClick?: boolean;
+    /* The app's own folders under each connection, by connection id, after its schemas. */
+    folders?: Readonly<Record<string, readonly ExplorerFolder[]>>;
     className?: string;
     ref?: Ref<HTMLDivElement>;
 }
 
 /*
  * The connections, their schemas and their tables as a tree, loaded as each node opens. Every row
- * selects; a double click or Enter on a table asks the app to open it through `useDatabaseAction`.
+ * selects; a double click or Enter on a table asks the app to open it through `useDatabaseAction`,
+ * and on an item of a folder the app added opens it through the item's own `onOpen`.
  */
 export function DatabaseExplorer({
     connections,
@@ -61,6 +65,7 @@ export function DatabaseExplorer({
     onValueChange,
     showSystemSchemas = false,
     openOnClick = false,
+    folders,
     className,
     ref
 }: DatabaseExplorerProps) {
@@ -87,7 +92,8 @@ export function DatabaseExplorer({
         schemas: loads.schemas,
         tables: loads.tables,
         structures: loads.structures,
-        versions: loads.versions
+        versions: loads.versions,
+        folders: (connectionId: string) => folders?.[connectionId] ?? []
     };
     const rows = flattenTree({ ...input, filter });
     const stop = tabStop(rows, activeKey, selectedKey);
@@ -139,6 +145,10 @@ export function DatabaseExplorer({
 
     /* `preview` says a click opened it, which only an explorer that opens on a click tells the app. */
     const open = (row: TreeRow, preview = false): void => {
+        if (row.kind === 'appItem') {
+            row.item.onOpen?.({ preview });
+            return;
+        }
         const ref = openedTableOf(row);
         if (ref === null) {
             return;
@@ -153,12 +163,14 @@ export function DatabaseExplorer({
             case 'table':
             case 'column':
             case 'entry':
+            case 'appItem':
                 open(row);
                 break;
             case 'connection':
             case 'schema':
             case 'folder':
             case 'part':
+            case 'appFolder':
                 pick(row);
                 toggle(row);
                 break;
@@ -196,7 +208,7 @@ export function DatabaseExplorer({
             return;
         }
         setActiveKey(row.key);
-        if (openOnClick && row.kind === 'table') {
+        if (openOnClick && (row.kind === 'table' || row.kind === 'appItem')) {
             if (count <= 1) {
                 open(row, true);
             }
@@ -238,7 +250,9 @@ export function DatabaseExplorer({
     const renderRow = (row: TreeRow, index: number): ReactNode => {
         const connection = connectionOf(row);
         const menu =
-            connection !== undefined && hasMenu(row) ? (
+            row.kind === 'appItem' ? (
+                (row.item.menu ?? null)
+            ) : connection !== undefined && hasMenu(row) ? (
                 <RowMenu row={row} connection={connection} onRefresh={refresh} onDisconnect={disconnect} onRequest={setRequest} />
             ) : null;
         const selectedRow = isSelected(row);
@@ -262,7 +276,7 @@ export function DatabaseExplorer({
                 }
             },
             onClick: (event: MouseEvent) => click(row, event.detail),
-            onDoubleClick: tableOf(row) === null ? undefined : () => open(row),
+            onDoubleClick: tableOf(row) === null && row.kind !== 'appItem' ? undefined : () => open(row),
             onFocus: () => {
                 if (row.focusable) {
                     setActiveKey(row.key);
@@ -370,6 +384,23 @@ function RowContent({ row, onToggle }: { row: TreeRow; onToggle?: () => void }) 
                     <Icon icon={Folder} size={16} className="shrink-0 text-text-muted" />
                     <Tree.Label>{t(`explorer.parts.${row.part}`)}</Tree.Label>
                     <span className="shrink-0 text-text-faint tabular-nums">{formatNumber(row.count)}</span>
+                </>
+            );
+        case 'appFolder':
+            return (
+                <>
+                    <Tree.Chevron expanded={row.expanded} onExpandedChange={onToggle} />
+                    <Icon icon={Folder} size={16} className="shrink-0 text-text-muted" />
+                    <Tree.Label>{row.folder.label}</Tree.Label>
+                    <span className="shrink-0 text-text-faint tabular-nums">{formatNumber(row.count)}</span>
+                </>
+            );
+        case 'appItem':
+            return (
+                <>
+                    <Tree.ChevronSlot />
+                    <Icon icon={row.item.icon} size={16} className="shrink-0 text-text-muted" />
+                    <Tree.Label>{row.item.label}</Tree.Label>
                 </>
             );
         case 'entry':

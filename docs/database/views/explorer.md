@@ -43,6 +43,37 @@ With `openOnClick`, a click on a table or a view opens it too, with `preview: tr
 <DatabaseExplorer connections={connections} openOnClick className="h-full" />
 ```
 
+## Folders of your own
+
+`folders` adds the app's own folders under a connection, keyed by the connection's id, such as files that belong to it. A folder comes after the schemas of the connection, with the number of items it holds, and only while it holds some. It starts closed, the explorer remembers whether it is open like the rest of the tree, and it shows while the connection is still connecting or failed to, since its items do not come from the server. The filter field narrows the items by their label.
+
+An `ExplorerFolder` is an `id`, unique among the folders of the connection, a `label` and its `items`. An `ExplorerItem` is an `id`, a `label`, an `icon` (a Lucide icon), and two optional parts:
+
+- `onOpen({ preview })`, called on a double click or Enter with `preview: false`, and with `openOnClick` on a click with `preview: true`, the way a table opens.
+- `menu`, the `ContextMenu.Item`s of its context menu. Without it the row has none.
+
+```tsx
+const folders = {
+    [connection.id]: [
+        {
+            id: 'notes',
+            label: 'Notes',
+            items: notes.map((note) => ({
+                id: note.path,
+                label: note.name,
+                icon: FileText,
+                onOpen: ({ preview }) => openNote(note, preview),
+                menu: <ContextMenu.Item onClick={() => deleteNote(note)}>Delete</ContextMenu.Item>
+            }))
+        }
+    ]
+};
+
+<DatabaseExplorer connections={connections} folders={folders} className="h-full" />;
+```
+
+An item selects nothing: the explorer's selection stays a connection, a schema or a table.
+
 The tree takes one tab stop. The arrow keys move, Right and Left expand and collapse, Home and End jump, and Enter activates.
 
 ## Context menus
@@ -71,7 +102,8 @@ The tree takes one tab stop. The arrow keys move, Right and Left expand and coll
 | `onValueChange`     | `(selection: ExplorerSelection \| null) => void` |         | The person picked a row.                              |
 | `showSystemSchemas` | `boolean`                                        | `false` | Lists the schemas the server keeps for itself.        |
 | `openOnClick`       | `boolean`                                        | `false` | Opens a table on a click as well, as a preview.       |
+| `folders`           | `Record<string, readonly ExplorerFolder[]>`      |         | The app's own folders, by connection id.              |
 | `className`         | `string`                                         |         | The tree has no height of its own; this gives it one. |
 | `ref`               | `Ref<HTMLDivElement>`                            |         |                                                       |
 
-`DatabaseExplorerProps` and `ExplorerSelection` are exported types. The explorer needs a [`DatabaseProvider`](/database/guide/getting-started#databaseprovider) above it.
+`DatabaseExplorerProps`, `ExplorerSelection`, `ExplorerFolder` and `ExplorerItem` are exported types. The explorer needs a [`DatabaseProvider`](/database/guide/getting-started#databaseprovider) above it.

@@ -13,6 +13,7 @@ import type {
     TriggerInfo
 } from '../protocol/index.ts';
 import { qualifiedName } from '../sql.ts';
+import type { ExplorerFolder, ExplorerItem } from './folders.ts';
 
 /* Where a lazy list stands: not asked for yet, on its way, failed, or here. */
 export type Load<T> =
@@ -50,6 +51,9 @@ export const connectionOfKey = (key: string): string => {
     return end === -1 ? rest : rest.slice(0, end);
 };
 export const columnKey = (ref: TableRef, column: string): string => `${tableKey(ref)}${SEPARATOR}${column}`;
+/* A folder of the app's own under a connection, and an item in it. */
+export const appFolderKey = (connectionId: string, folder: string): string => `x:${connectionId}${SEPARATOR}${folder}`;
+const appItemKey = (connectionId: string, folder: string, item: string): string => `${appFolderKey(connectionId, folder)}${SEPARATOR}${item}`;
 const entryKey = (ref: TableRef, part: TablePart, index: number): string => `${partKey(ref, part)}${SEPARATOR}${index}`;
 
 export const loadKey = (target: LoadTarget): string => {
@@ -153,18 +157,46 @@ export interface ErrorRow extends RowBase {
     readonly retry: LoadTarget;
 }
 
+/* A folder of the app's own under a connection. */
+export interface AppFolderRow extends RowBase {
+    readonly kind: 'appFolder';
+    readonly connection: Connection;
+    readonly folder: ExplorerFolder;
+    readonly expanded: boolean;
+    /* Its items, or those that match the filter. */
+    readonly count: number;
+}
+
+export interface AppItemRow extends RowBase {
+    readonly kind: 'appItem';
+    readonly connection: Connection;
+    readonly item: ExplorerItem;
+}
+
 /* A connection without schemas, a schema without tables or a table without columns. */
 export interface EmptyRow extends RowBase {
     readonly kind: 'empty';
     readonly of: 'schemas' | 'tables' | 'columns';
 }
 
-export type TreeRow = ConnectionRow | SchemaRow | FolderRow | TableRow | PartRow | ColumnRow | EntryRow | LoadingRow | ErrorRow | EmptyRow;
+export type TreeRow =
+    | ConnectionRow
+    | SchemaRow
+    | FolderRow
+    | TableRow
+    | PartRow
+    | ColumnRow
+    | EntryRow
+    | AppFolderRow
+    | AppItemRow
+    | LoadingRow
+    | ErrorRow
+    | EmptyRow;
 
-export type ExpandableRow = ConnectionRow | SchemaRow | FolderRow | TableRow | PartRow;
+export type ExpandableRow = ConnectionRow | SchemaRow | FolderRow | TableRow | PartRow | AppFolderRow;
 
 export const isExpandable = (row: TreeRow): row is ExpandableRow =>
-    row.kind === 'connection' || row.kind === 'schema' || row.kind === 'folder' || row.kind === 'table' || row.kind === 'part';
+    row.kind === 'connection' || row.kind === 'schema' || row.kind === 'folder' || row.kind === 'table' || row.kind === 'part' || row.kind === 'appFolder';
 
 /* The table a row stands for, when it stands for one. */
 export const tableOf = (row: TreeRow): TableRef | null => (row.kind === 'table' || row.kind === 'column' || row.kind === 'entry' ? row.ref : null);
@@ -207,9 +239,14 @@ export const selectionKey = (selection: ExplorerSelection): string => {
         : tableKey({ connectionId: selection.connectionId, schema: selection.schema, table: selection.table });
 };
 
-/* Whether a row has a menu: the rows of a connection, a schema, a table or a column, and none of the rows that only report. */
+/* Whether a row has a menu: the rows of a connection, a schema, a table or a column, an item the app gave one, and none of the rows that only report. */
 export const hasMenu = (row: TreeRow): boolean =>
-    row.kind === 'connection' || row.kind === 'schema' || row.kind === 'folder' || row.kind === 'table' || row.kind === 'column';
+    row.kind === 'connection' ||
+    row.kind === 'schema' ||
+    row.kind === 'folder' ||
+    row.kind === 'table' ||
+    row.kind === 'column' ||
+    (row.kind === 'appItem' && row.item.menu !== undefined);
 
 /* Only the rows a selection can point at are drawn selected; a folder or a column leaves that to the row above it. */
 export const isSelectable = (row: TreeRow): boolean => row.kind === 'connection' || row.kind === 'schema' || row.kind === 'table';
@@ -228,6 +265,8 @@ export interface TreeInput {
     tables(connectionId: string, schema: string): Load<readonly TableInfo[]>;
     structures(connectionId: string, schema: string, table: string): Load<TableStructure>;
     versions(connectionId: string): string | null;
+    /* The app's own folders under a connection. */
+    folders?(connectionId: string): readonly ExplorerFolder[];
 }
 
 /* The schemas a list shows. */
@@ -422,10 +461,52 @@ export const flattenTree = (input: TreeInput): TreeRow[] => {
         };
     };
 
+    /* The app's folders under a connection, each while it holds items; with a filter only the items that match, in folders that count as open. */
+    const appFolderDrafts = (connection: Connection, level: number, parent: string): Draft[] =>
+        (input.folders?.(connection.id) ?? []).flatMap((folder): Draft[] => {
+            const items = filtering ? folder.items.filter((item) => matches(item.label, query)) : folder.items;
+            if (items.length === 0) {
+                return [];
+            }
+            const key = appFolderKey(connection.id, folder.id);
+            const open = filtering || input.expanded.has(key);
+            const rows = items.map((item): Draft => ({
+                make: (place) => ({
+                    kind: 'appItem',
+                    key: appItemKey(connection.id, folder.id, item.id),
+                    level: level + 1,
+                    parent: key,
+                    focusable: true,
+                    connection,
+                    item,
+                    ...place
+                }),
+                below: []
+            }));
+            return [
+                {
+                    make: (place) => ({
+                        kind: 'appFolder',
+                        key,
+                        level,
+                        parent,
+                        focusable: true,
+                        connection,
+                        folder,
+                        expanded: open,
+                        count: items.length,
+                        ...place
+                    }),
+                    below: open ? settle(rows) : []
+                }
+            ];
+        });
+
     const connectionDraft = (connection: Connection): Draft | null => {
         const key = connectionKey(connection.id);
         const load = input.schemas(connection.id);
-        const open = filtering ? load.status === 'ready' : input.expanded.has(key);
+        const appFolders = appFolderDrafts(connection, 2, key);
+        const open = filtering ? load.status === 'ready' || appFolders.length > 0 : input.expanded.has(key);
         let children: Draft[] = [];
         let schemaCount: ConnectionRow['schemaCount'] = null;
         if (load.status === 'ready') {
@@ -441,11 +522,13 @@ export const flattenTree = (input: TreeInput): TreeRow[] => {
             } else {
                 children = visible.flatMap((entry) => schemaDraft(connection, entry.name, key) ?? []);
             }
-        } else if (open) {
+        } else if (open && !filtering) {
             const row: StatusRow =
                 load.status === 'error' ? { kind: 'error', message: load.message, retry: { connectionId: connection.id } } : { kind: 'loading' };
             children = [statusDraft(row, 2, key, load.status === 'error')];
         }
+        // Behind a status row too: what the app keeps of a connection does not wait on its server.
+        children = [...children, ...(open ? appFolders : [])];
         if (filtering && children.length === 0) {
             return null;
         }

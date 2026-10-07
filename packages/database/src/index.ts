@@ -27,6 +27,7 @@ export { configProblems, isValidConfig, type ConfigProblem, type ConfigProblems 
 export { ConnectionManager, type ConnectionManagerProps } from './connections/ConnectionManager.tsx';
 export { connectionFromContainer, containerTitle, isMysqlContainer, withContainer } from './connections/docker.ts';
 export { DatabaseExplorer, type DatabaseExplorerProps } from './explorer/DatabaseExplorer.tsx';
+export type { ExplorerFolder, ExplorerItem } from './explorer/folders.ts';
 export { TableDesigner, type TableDesignerProps } from './designer/TableDesigner.tsx';
 export { DatabaseProvider, type DatabaseProviderProps } from './DatabaseProvider.tsx';
 export { useDatabaseClient } from './client-context.ts';

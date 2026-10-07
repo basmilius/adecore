@@ -22,7 +22,10 @@ import {
     waitFor
 } from '../testing/dom/harness.tsx';
 import { fakeDatabaseTransport } from '../testing/index.ts';
+import { FileCode } from 'lucide-react';
+import { ContextMenu } from '@adecore/ui';
 import { DatabaseExplorer } from './DatabaseExplorer.tsx';
+import type { ExplorerItem } from './folders.ts';
 
 const connection: Connection = { id: 'one', name: 'Shop', config: { engine: 'sqlite', path: SHOP_PATH } };
 
@@ -184,6 +187,39 @@ describe.skipIf(typeof document === 'undefined')('DatabaseExplorer in a DOM', ()
 
         expect(actions).toEqual([]);
         expect(row('Tables').getAttribute('aria-expanded')).toBe('false');
+    });
+
+    test('draws the app’s own folder under a connection, opens its items as a table opens and offers their menu', async () => {
+        await mounted.unmount();
+        const opened: { id: string; preview: boolean }[] = [];
+        const item = (id: string): ExplorerItem => ({
+            id,
+            label: id,
+            icon: FileCode,
+            onOpen: ({ preview }) => opened.push({ id, preview }),
+            menu: <ContextMenu.Item onClick={() => opened.push({ id: `menu:${id}`, preview: false })}>Rename</ContextMenu.Item>
+        });
+        const folders = { one: [{ id: 'consoles', label: 'Consoles', items: [item('shop 1.sql'), item('shop 2.sql')] }] };
+        mounted = await mount(<DatabaseExplorer connections={[connection]} folders={folders} openOnClick />, { client, actions });
+        await openTables();
+        expect(labels()).toEqual(['Shop3.50.4', 'Tables2', 'customers', 'orders', 'Consoles2']);
+
+        await click(row('Consoles'));
+        expect(labels().slice(-2)).toEqual(['shop 1.sql', 'shop 2.sql']);
+        await click(row('shop 1.sql'));
+        await doubleClick(row('shop 2.sql'));
+        await focus(row('shop 1.sql'));
+        await press(row('shop 1.sql'), 'Enter');
+        expect(opened).toEqual([
+            { id: 'shop 1.sql', preview: true },
+            { id: 'shop 2.sql', preview: false },
+            { id: 'shop 1.sql', preview: false }
+        ]);
+
+        await contextMenu(row('shop 2.sql'));
+        await click(byText('[role=menuitem]', 'Rename'));
+        expect(opened.at(-1)).toEqual({ id: 'menu:shop 2.sql', preview: false });
+        expect(actions).toEqual([]);
     });
 
     test('says that a view is a view when it opens one', async () => {

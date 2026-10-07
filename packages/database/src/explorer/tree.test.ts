@@ -1,8 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 import type { Connection } from '../client/types.ts';
 import type { ColumnInfo, SchemaInfo, TableInfo, TableStructure } from '../protocol/index.ts';
+import { FileCode } from 'lucide-react';
+import type { ExplorerFolder } from './folders.ts';
 import {
     IDLE,
+    appFolderKey,
     columnKey,
     connectionKey,
     flattenTree,
@@ -82,6 +85,7 @@ interface World {
     collapsed?: string[];
     filter?: string;
     showSystemSchemas?: boolean;
+    folders?: Record<string, readonly ExplorerFolder[]>;
 }
 
 const inputOf = (world: World): TreeInput => ({
@@ -93,7 +97,8 @@ const inputOf = (world: World): TreeInput => ({
     schemas: (id) => world.schemas?.[id] ?? IDLE,
     tables: (id, name) => world.tables?.[`${id}/${name}`] ?? IDLE,
     structures: (id, name, table) => world.structures?.[`${id}/${name}/${table}`] ?? IDLE,
-    versions: (id) => world.versions?.[id] ?? null
+    versions: (id) => world.versions?.[id] ?? null,
+    folders: (id) => world.folders?.[id] ?? []
 });
 
 const nameOf = (row: TreeRow): string => {
@@ -112,6 +117,10 @@ const nameOf = (row: TreeRow): string => {
             return `[${row.part}]`;
         case 'entry':
             return `${row.entry.type}`;
+        case 'appFolder':
+            return `[${row.folder.label}]`;
+        case 'appItem':
+            return row.item.label;
         default:
             return row.kind;
     }
@@ -579,5 +588,36 @@ describe('selectAllSql', () => {
     test('quotes the schema and the table the way the engine does', () => {
         expect(selectAllSql('mysql', ref)).toBe('SELECT * FROM `shop`.`order items`');
         expect(selectAllSql('sqlite', ref)).toBe('SELECT * FROM "shop"."order items"');
+    });
+});
+
+describe('the folders of the app', () => {
+    const item = (label: string) => ({ id: label, label, icon: FileCode });
+    const consoles: ExplorerFolder = { id: 'consoles', label: 'Consoles', items: [item('shop 1.sql'), item('orders.sql')] };
+    const withFolders: World = { ...world, folders: { app: [consoles, { id: 'empty', label: 'Empty', items: [] }] } };
+
+    test('come after the schemas of an open connection, closed, with their count, and only while they hold items', () => {
+        const rows = flattenTree(inputOf({ ...withFolders, expanded: [connectionKey('app')] }));
+        expect(labels(rows)).toEqual(['1:app', '2:shop', '2:blog', '2:[Consoles]']);
+        expect(rows.at(-1)).toMatchObject({ kind: 'appFolder', expanded: false, count: 2, key: appFolderKey('app', 'consoles') });
+        expect(flattenTree(inputOf(withFolders)).map((row) => row.kind)).toEqual(['connection']);
+    });
+
+    test('open into their items, and stay out of the expansion that starts open', () => {
+        const rows = flattenTree(inputOf({ ...withFolders, expanded: [connectionKey('app'), appFolderKey('app', 'consoles')] }));
+        expect(labels(rows).slice(-3)).toEqual(['2:[Consoles]', '3:shop 1.sql', '3:orders.sql']);
+        expect(startsOpen(appFolderKey('app', 'consoles'))).toBe(false);
+        expect(rows.filter((row) => row.kind === 'appItem').every((row) => hasMenu(row) === false)).toBe(true);
+    });
+
+    test('show while the connection is still loading or failed, since they do not come from its server', () => {
+        const down: World = { ...withFolders, schemas: { app: { status: 'error', message: 'down' } }, expanded: [connectionKey('app')] };
+        expect(labels(flattenTree(inputOf(down)))).toEqual(['1:app', '2:error', '2:[Consoles]']);
+    });
+
+    test('keep the items that match a filter, in a folder that counts as open', () => {
+        const rows = flattenTree(inputOf({ connections: [app], folders: { app: [consoles] }, filter: 'ORDERS' }));
+        expect(labels(rows)).toEqual(['1:app', '2:[Consoles]', '3:orders.sql']);
+        expect(rows[1]).toMatchObject({ expanded: true, count: 1 });
     });
 });
