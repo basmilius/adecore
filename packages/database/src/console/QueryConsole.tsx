@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Banner, Button, ColumnResizeHandle, Icon, IconButton, messageOf, PromptDialog, Spinner, Tabs, Tooltip, useColumnResize } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
 import { DatabaseRequestError, type Connection } from '../client/types.ts';
-import { useDatabaseClient, useDatabaseFiles, useDatabaseStorage } from '../client-context.ts';
+import { useDatabaseAction, useDatabaseClient, useDatabaseFiles, useDatabaseStorage } from '../client-context.ts';
 import type { FileFormat, RowsResult, SchemaInfo, StatementResult } from '../protocol/index.ts';
 import { splitStatements, statementAt } from '../sql-split.ts';
 import { DestructiveDialog } from './DestructiveDialog.tsx';
@@ -17,6 +17,7 @@ import { statementLabel } from './labels.ts';
 import { isPageable, outcomeOf } from './outcome.ts';
 import { SchemaPicker } from './SchemaPicker.tsx';
 import { orderSchemas } from './schemas.ts';
+import { useResultKeys } from './result-keys.ts';
 import { RUN_ALL_SHORTCUT, RUN_SHORTCUT } from './shortcuts.ts';
 import { SqlEditor } from './SqlEditor.tsx';
 import { StatementResultView, type ResultPager } from './StatementResultView.tsx';
@@ -104,6 +105,7 @@ export function QueryConsole({
 }: QueryConsoleProps) {
     const { t } = useTranslation('database');
     const client = useDatabaseClient();
+    const act = useDatabaseAction();
     const files = useDatabaseFiles();
     const storage = useDatabaseStorage();
     // A channel of its own, so a transaction a person starts here stays out of the table views and the designer.
@@ -346,6 +348,8 @@ export function QueryConsole({
               }
             : undefined;
     const exportBase = files !== undefined && base?.kind === 'rows' ? base : undefined;
+    // Read for the statement, not for each page of it, so paging through a result asks for nothing again.
+    const keys = useResultKeys(session, engine, base);
 
     const editorProps: QueryConsoleEditorProps = {
         ref: editorHandle,
@@ -480,6 +484,18 @@ export function QueryConsole({
                             engine={engine}
                             valuePanelOpen={panelOpen}
                             onValuePanelOpenChange={setPanelOpen}
+                            keys={keys}
+                            onFollowReference={
+                                act === undefined || connection === undefined
+                                    ? undefined
+                                    : (reference) =>
+                                          act({
+                                              kind: 'open-table',
+                                              ref: { connectionId: connection.id, schema: reference.schema, table: reference.table },
+                                              view: 'data',
+                                              where: reference.where
+                                          })
+                            }
                         />
                     )}
                 </section>

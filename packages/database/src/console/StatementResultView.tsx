@@ -1,14 +1,16 @@
-import { useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, CircleAlert, Download, PanelRight } from 'lucide-react';
+import { useMemo, useState, type ReactNode } from 'react';
+import { ArrowUpRight, ChevronLeft, ChevronRight, CircleAlert, Download, PanelRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Banner, ButtonGroup, IconButton, Menu, Spinner } from '@adecore/ui';
+import { Banner, ButtonGroup, ContextMenu, Icon, IconButton, Menu, Spinner } from '@adecore/ui';
 import { formatDecimal, formatNumber } from '@adecore/ui/format';
 import { DataGrid } from '../grid/DataGrid.tsx';
 import { previewValueOf } from '../grid/focused-value.ts';
-import type { FocusedCell, GridRow } from '../grid/types.ts';
+import type { FocusedCell, GridMenuContext, GridRow } from '../grid/types.ts';
 import { ValueDock } from '../grid/ValueDock.tsx';
 import type { Engine, FileFormat, StatementResult } from '../protocol/index.ts';
 import type { SqlTarget } from '../sql.ts';
+import type { Reference } from '../table/references.ts';
+import type { ResultKeys } from './result-keys.ts';
 import { ValuePanel } from '../value/ValuePanel.tsx';
 
 /* What "Copy as SQL INSERT" names the table of a result that comes from no table. */
@@ -39,6 +41,10 @@ export interface StatementResultViewProps {
     valuePanelOpen?: boolean;
     /* Offers the toggle of the value panel in the footer of a result set. */
     onValuePanelOpenChange?(open: boolean): void;
+    /* What the tables of the columns say about them, which marks the keys in the headers. */
+    keys?: ResultKeys | null;
+    /* Offers Go to referenced row on a cell of a foreign key, as the table view does. */
+    onFollowReference?(reference: Reference): void;
 }
 
 /* One statement's outcome: a result set in a read-only grid, a count of affected rows, or the error the server gave. */
@@ -50,7 +56,9 @@ export function StatementResultView({
     exporting = false,
     engine,
     valuePanelOpen = false,
-    onValuePanelOpenChange
+    onValuePanelOpenChange,
+    keys = null,
+    onFollowReference
 }: StatementResultViewProps) {
     const { t } = useTranslation('database');
     const [focus, setFocus] = useState<FocusedCell | null>(null);
@@ -92,6 +100,27 @@ export function StatementResultView({
         );
     }
 
+    const referenceAt = (cell: FocusedCell): Reference | null => {
+        const row = rows.find((candidate) => candidate.key === cell.rowKey);
+        return keys === null || row === undefined ? null : keys.referenceAt(cell.column, row.cells);
+    };
+    const follow =
+        keys === null || onFollowReference === undefined
+            ? undefined
+            : (cell: FocusedCell): void => {
+                  const reference = referenceAt(cell);
+                  if (reference !== null) {
+                      onFollowReference(reference);
+                  }
+              };
+    const referenceMenu = (context: GridMenuContext): ReactNode =>
+        follow === undefined || context.cell === null || keys?.isReference(context.cell.column) !== true ? null : (
+            <ContextMenu.Item disabled={referenceAt(context.cell) === null} onClick={() => context.cell !== null && follow(context.cell)}>
+                <Icon icon={ArrowUpRight} size={14} />
+                {t('table.goToReferenced')}
+            </ContextMenu.Item>
+        );
+
     const focusedRow = valuePanelOpen && focus !== null ? rows.find((row) => row.key === focus.rowKey) : undefined;
     const focusedCell = focus === null ? undefined : focusedRow?.cells[focus.column];
 
@@ -112,11 +141,14 @@ export function StatementResultView({
             >
                 <DataGrid
                     label={t('console.result')}
-                    columns={result.columns}
+                    columns={keys?.columns ?? result.columns}
                     rows={rows}
                     empty={t('console.noRows')}
                     sqlTarget={sqlTarget}
                     onFocusedCellChange={setFocus}
+                    onFollow={follow}
+                    canFollow={(cell) => referenceAt(cell) !== null}
+                    menu={referenceMenu}
                 />
             </ValueDock>
             <footer className="flex h-10 shrink-0 items-center gap-4 border-t border-border px-3 text-xs text-text-muted">

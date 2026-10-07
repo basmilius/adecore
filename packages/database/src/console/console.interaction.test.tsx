@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { useImperativeHandle, useRef } from 'react';
+import type { DatabaseAction } from '../actions.ts';
 import type { Connection } from '../client/types.ts';
 import type { Mounted, RecordedTransport } from '../testing/dom/harness.tsx';
 import { SHOP_PATH, shopDatabase } from '../testing/dom/shop.ts';
@@ -9,6 +10,7 @@ import {
     byText,
     clientOver,
     click,
+    contextMenu,
     doubleClick,
     done,
     find,
@@ -404,5 +406,39 @@ describe.skipIf(typeof document === 'undefined')('the schema of a QueryConsole o
         await mounted.rerender(<QueryConsole connection={server} schema="archive" onSchemaChange={(schema) => asked.push(schema)} defaultValue="SELECT 1" />);
         await click(byText('button', 'Run'));
         expect(schemasOfRuns()).toEqual(['shop', 'archive']);
+    });
+});
+
+describe.skipIf(typeof document === 'undefined')('the keys in the results of a QueryConsole', () => {
+    let recorded: RecordedTransport;
+    let client: ReturnType<typeof clientOver>;
+    let mounted: Mounted;
+    let actions: DatabaseAction[];
+
+    beforeEach(async () => {
+        recorded = recordTransport(fakeDatabaseTransport({ databases: { [SHOP_PATH]: shopDatabase } }));
+        client = clientOver(recorded.transport);
+        actions = [];
+        mounted = await mount(<QueryConsole connection={connection} defaultValue="SELECT * FROM orders" />, { client, actions });
+    });
+
+    afterEach(async () => {
+        await mounted.unmount();
+        await client.dispose();
+    });
+
+    test('mark the keys of the table a column comes from, read once for the result, and follow a foreign key', async () => {
+        await click(byText('button', 'Run'));
+        await waitFor(() => expect(findAll('[role=columnheader] .lucide-key-round')).toHaveLength(2));
+        const headers = findAll('[role=columnheader]');
+        expect(headers[0]!.innerHTML).toMatch(/lucide-key-round [^"]*text-\(--file-icon-yellow\)/);
+        expect(headers[1]!.innerHTML).toMatch(/lucide-key-round [^"]*text-\(--file-icon-blue\)/);
+        expect(headers[2]!.innerHTML).not.toContain('lucide-key-round');
+        expect(recorded.of('structure').map((request) => request.params.table)).toEqual(['orders']);
+
+        const customer = findAll('[role=gridcell]')[1]!;
+        await contextMenu(customer);
+        await click(byText('[role=menuitem]', 'Go to referenced row'));
+        expect(actions).toEqual([{ kind: 'open-table', ref: { connectionId: 'one', schema: 'main', table: 'customers' }, view: 'data', where: '"id" = 1' }]);
     });
 });

@@ -34,6 +34,12 @@ Before the first run the editor takes the whole height of the console. A run ope
 
 The results start at half the console. The height a person drags them to is kept in the provider's `storage` under `database:console-results`, in pixels, and every console starts from it. The editor keeps at least 120 pixels, and the results at least 96.
 
+## Keys in the results
+
+A column of a result that the server says comes from a column of a table wears the key icons of that column in its header, as the headers of a [table view](/database/views/table-view) do: a yellow key on a primary key column and a blue one on a column of a foreign key. The console reads the structure of each table its columns come from once per result, through its session, after the rows are on screen. A computed column, an alias of an expression, or a table the server names but cannot describe, such as a derived one on MariaDB, gets no icon. See [where a result column comes from](/database/guide/protocol#methods).
+
+With `onAction` on the provider, a cell of a foreign key column offers Go to referenced row in its menu, and Cmd or Ctrl and click follows it, with `open-table` and a `where` that picks the referenced row, as in a table view. The values of the key come from the columns of the same table in the result, so a join follows each key with the columns of its own table.
+
 ## Destructive statements
 
 Before it sends a run, the console reads its statements. A statement that removes data or structure opens a dialog that lists it, with Run anyway:
