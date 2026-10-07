@@ -120,6 +120,14 @@ function SqlCodeEditor({ ref, value, onValueChange, run, label, autoFocus }: Que
 <QueryConsole connection={connection} value={sql} onValueChange={setSql} renderEditor={(editor) => <SqlCodeEditor {...editor} />} className="h-full" />;
 ```
 
+## Your own content in the bar
+
+`toolbarEnd` draws the app's own content in the group at the end of the bar, before the schema picker and History, such as a picker of the connection the console runs on. Run, Run all and the transaction mode stay at the start of the bar.
+
+```tsx
+<QueryConsole connection={connection} toolbarEnd={<ConnectionPicker value={connection.id} onValueChange={switchConnection} />} className="h-full" />
+```
+
 ## Props
 
 | Prop                 | Type                                             | Default |                                                                            |
@@ -133,6 +141,7 @@ function SqlCodeEditor({ ref, value, onValueChange, run, label, autoFocus }: Que
 | `defaultHistoryOpen` | `boolean`                                        | `false` | Opens the history from the start.                                          |
 | `autoFocus`          | `boolean`                                        | `false` | Puts the caret in the editor on mount, for a console a person just opened. |
 | `renderEditor`       | `(editor: QueryConsoleEditorProps) => ReactNode` |         | The app's own editor. See [Your own editor](#your-own-editor).             |
+| `toolbarEnd`         | `ReactNode`                                      |         | The app's own content before the schema picker and History.                |
 | `className`          | `string`                                         |         | Its size.                                                                  |
 | `ref`                | `Ref<HTMLDivElement>`                            |         |                                                                            |
 

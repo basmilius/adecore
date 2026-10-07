@@ -40,6 +40,8 @@ export interface QueryConsoleProps {
     autoFocus?: boolean;
     /* Draws the app's own editor in place of the console's text area. It owns its keys and runs through `run`. */
     renderEditor?(editor: QueryConsoleEditorProps): ReactNode;
+    /* The app's own content in the group at the end of the bar, before the schema picker and History, such as where the console runs. */
+    toolbarEnd?: ReactNode;
     className?: string;
     ref?: Ref<HTMLDivElement>;
 }
@@ -115,6 +117,7 @@ export function QueryConsole({
     defaultHistoryOpen = false,
     autoFocus = false,
     renderEditor,
+    toolbarEnd,
     className,
     ref
 }: QueryConsoleProps) {
@@ -415,6 +418,7 @@ export function QueryConsole({
                         />
                         {ran !== null && run.status !== 'idle' && <span className="min-w-0 truncate text-xs text-text-muted">{ranText(ran, t)}</span>}
                         <div className="ml-auto flex items-center gap-2">
+                            {toolbarEnd}
                             {schemas.length > 0 && (
                                 <SchemaPicker
                                     schemas={schemas}
@@ -424,6 +428,7 @@ export function QueryConsole({
                                 />
                             )}
                             <Button
+                                variant="secondary"
                                 size="sm"
                                 aria-pressed={historyOpen}
                                 className="aria-pressed:bg-surface-active aria-pressed:text-text"

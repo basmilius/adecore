@@ -68,10 +68,18 @@ describe('QueryConsole toolbar', () => {
         expect(markup).not.toContain('aria-label="Schema"');
     });
 
-    test('keeps the history closed until it is asked for', () => {
+    test('keeps the history closed until it is asked for, behind a button like Run all', () => {
         const markup = render(<QueryConsole connection={connection} />);
         expect(markup).toMatch(/aria-pressed="false"[^>]*>.*History/);
+        expect(markup).toMatch(/<button[^>]*class="[^"]*border-border[^"]*"[^>]*aria-pressed="false"/);
         expect(markup).not.toContain('Search history');
+    });
+
+    test('draws the app’s own content at the end of the bar, before History', () => {
+        const markup = render(<QueryConsole connection={connection} toolbarEnd={<span>On Notes</span>} />);
+        const end = markup.indexOf('>On Notes</span>');
+        expect(end).toBeGreaterThan(markup.indexOf('Run all'));
+        expect(end).toBeLessThan(markup.indexOf('aria-pressed="false"'));
     });
 
     test('opens the history beside the editor with the runs kept for this connection', () => {
