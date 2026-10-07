@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode, type Ref } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode, type Ref } from 'react';
 import clsx from 'clsx';
 import { CircleAlert, Columns2, Database, Eye, Folder, KeyRound, ListOrdered, Lock, Search, ShieldCheck, Table, Zap, type LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -25,6 +25,7 @@ import {
     selectionOf,
     tabStop,
     openedTableOf,
+    tableKindIn,
     tableOf,
     type EntryRow,
     type ErrorRow,
@@ -43,6 +44,8 @@ export interface DatabaseExplorerProps {
     defaultValue?: ExplorerSelection | null;
     onValueChange?(selection: ExplorerSelection | null): void;
     showSystemSchemas?: boolean;
+    /* Opens a table on a click too, with `preview: true`; a double click or Enter then sends `preview: false`. */
+    openOnClick?: boolean;
     className?: string;
     ref?: Ref<HTMLDivElement>;
 }
@@ -51,7 +54,16 @@ export interface DatabaseExplorerProps {
  * The connections, their schemas and their tables as a tree, loaded as each node opens. Every row
  * selects; a double click or Enter on a table asks the app to open it through `useDatabaseAction`.
  */
-export function DatabaseExplorer({ connections, value, defaultValue = null, onValueChange, showSystemSchemas = false, className, ref }: DatabaseExplorerProps) {
+export function DatabaseExplorer({
+    connections,
+    value,
+    defaultValue = null,
+    onValueChange,
+    showSystemSchemas = false,
+    openOnClick = false,
+    className,
+    ref
+}: DatabaseExplorerProps) {
     const { t } = useTranslation('database');
     const client = useDatabaseClient();
     const act = useDatabaseAction();
@@ -125,12 +137,15 @@ export function DatabaseExplorer({ connections, value, defaultValue = null, onVa
         }
     };
 
-    const open = (row: TreeRow): void => {
+    /* `preview` says a click opened it, which only an explorer that opens on a click tells the app. */
+    const open = (row: TreeRow, preview = false): void => {
         const ref = openedTableOf(row);
-        if (ref !== null) {
-            pick(row);
-            act?.({ kind: 'open-table', ref, view: 'data' });
+        if (ref === null) {
+            return;
         }
+        pick(row);
+        const tableKind = row.kind === 'table' && row.ref === ref ? row.table.kind : tableKindIn(loads.tables(ref.connectionId, ref.schema), ref.table);
+        act?.({ kind: 'open-table', ref, view: 'data', ...(tableKind === undefined ? {} : { tableKind }), ...(openOnClick ? { preview } : {}) });
     };
 
     const activate = (row: TreeRow): void => {
@@ -175,11 +190,18 @@ export function DatabaseExplorer({ connections, value, defaultValue = null, onVa
         }
     };
 
-    const click = (row: TreeRow): void => {
+    /* `count` is the click's `detail`: the second click of a double click leaves the opening to the double click. */
+    const click = (row: TreeRow, count: number): void => {
         if (pressedInPopup()) {
             return;
         }
         setActiveKey(row.key);
+        if (openOnClick && row.kind === 'table') {
+            if (count <= 1) {
+                open(row, true);
+            }
+            return;
+        }
         pick(row);
         if (row.kind !== 'table' && isExpandable(row)) {
             toggle(row);
@@ -239,7 +261,7 @@ export function DatabaseExplorer({ connections, value, defaultValue = null, onVa
                     rowElements.current.set(row.key, element);
                 }
             },
-            onClick: () => click(row),
+            onClick: (event: MouseEvent) => click(row, event.detail),
             onDoubleClick: tableOf(row) === null ? undefined : () => open(row),
             onFocus: () => {
                 if (row.focusable) {

@@ -9,6 +9,7 @@ import {
     click,
     contextMenu,
     done,
+    doubleClick,
     find,
     findAll,
     focus,
@@ -95,7 +96,12 @@ describe.skipIf(typeof document === 'undefined')('DatabaseExplorer in a DOM', ()
         expect(foreign.textContent).toContain('customer_id → customers (id)');
         await focus(foreign);
         await press(foreign, 'Enter');
-        expect(actions.at(-1)).toEqual({ kind: 'open-table', ref: { connectionId: 'one', schema: 'main', table: 'customers' }, view: 'data' });
+        expect(actions.at(-1)).toEqual({
+            kind: 'open-table',
+            ref: { connectionId: 'one', schema: 'main', table: 'customers' },
+            view: 'data',
+            tableKind: 'table'
+        });
     });
 
     test('moves with the arrow keys, closes with ArrowLeft and leaves one tab stop', async () => {
@@ -124,9 +130,74 @@ describe.skipIf(typeof document === 'undefined')('DatabaseExplorer in a DOM', ()
         await press(row('Tables'), 'ArrowDown');
         await press(row('customers'), 'Enter');
 
-        expect(actions).toEqual([{ kind: 'open-table', ref: { connectionId: 'one', schema: 'main', table: 'customers' }, view: 'data' }]);
+        expect(actions).toEqual([{ kind: 'open-table', ref: { connectionId: 'one', schema: 'main', table: 'customers' }, view: 'data', tableKind: 'table' }]);
         expect(selections.at(-1)).toEqual({ connectionId: 'one', schema: 'main', table: 'customers' });
         expect(row('customers').getAttribute('aria-selected')).toBe('true');
+    });
+
+    test('opens a table on a double click and only selects it on a click', async () => {
+        await openTables();
+        await click(row('orders'));
+        expect(actions).toEqual([]);
+        expect(selections.at(-1)).toEqual({ connectionId: 'one', schema: 'main', table: 'orders' });
+
+        await doubleClick(row('orders'));
+        expect(actions).toEqual([{ kind: 'open-table', ref: { connectionId: 'one', schema: 'main', table: 'orders' }, view: 'data', tableKind: 'table' }]);
+    });
+
+    test('with openOnClick, opens a table on a click as a preview and keeps it on a double click or Enter', async () => {
+        await mounted.unmount();
+        mounted = await mount(<DatabaseExplorer connections={[connection]} openOnClick onValueChange={(selection) => selections.push(selection)} />, {
+            client,
+            actions
+        });
+        await openTables();
+        const orders = { kind: 'open-table', ref: { connectionId: 'one', schema: 'main', table: 'orders' }, view: 'data', tableKind: 'table' } as const;
+
+        await click(row('orders'));
+        expect(actions).toEqual([{ ...orders, preview: true }]);
+        expect(selections.at(-1)).toEqual({ connectionId: 'one', schema: 'main', table: 'orders' });
+
+        // The second click of a double click comes with a detail of two, and leaves the opening to the double click.
+        await perform(() => {
+            row('orders').dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 2 }));
+        });
+        await doubleClick(row('orders'));
+        expect(actions).toEqual([
+            { ...orders, preview: true },
+            { ...orders, preview: false }
+        ]);
+
+        await focus(row('customers'));
+        await press(row('customers'), 'Enter');
+        expect(actions.at(-1)).toEqual({ ...orders, ref: { ...orders.ref, table: 'customers' }, preview: false });
+    });
+
+    test('with openOnClick, a click on a column or a folder still only selects or toggles', async () => {
+        await mounted.unmount();
+        mounted = await mount(<DatabaseExplorer connections={[connection]} openOnClick />, { client, actions });
+        await openTables();
+        await focus(row('customers'));
+        await press(row('customers'), 'ArrowRight');
+        await click(row('idINTEGER'));
+        await click(row('Tables'));
+
+        expect(actions).toEqual([]);
+        expect(row('Tables').getAttribute('aria-expanded')).toBe('false');
+    });
+
+    test('says that a view is a view when it opens one', async () => {
+        await mounted.unmount();
+        await client.dispose();
+        const totals = { kind: 'view' as const, columns: shopDatabase.schemas.main!.customers!.columns, rows: [] };
+        const withView = { schemas: { main: { ...shopDatabase.schemas.main, totals } } };
+        recorded = recordTransport(fakeDatabaseTransport({ databases: { [SHOP_PATH]: withView } }));
+        client = clientOver(recorded.transport);
+        mounted = await mount(<DatabaseExplorer connections={[connection]} />, { client, actions });
+        await openTables();
+        await doubleClick(row('totals'));
+
+        expect(actions).toEqual([{ kind: 'open-table', ref: { connectionId: 'one', schema: 'main', table: 'totals' }, view: 'data', tableKind: 'view' }]);
     });
 
     test('Enter on a connection toggles it instead of opening anything', async () => {

@@ -66,8 +66,8 @@ export function RowMenu({ row, connection, onRefresh, onDisconnect, onRequest }:
         const request = (change: TableRequest['change']) => (): void => onRequest({ change, connection, ref, kind });
         return [
             [
-                actionItem('open-data', Table, t('explorer.openData'), { kind: 'open-table', ref, view: 'data' }),
-                actionItem('open-structure', TableProperties, t('explorer.openStructure'), { kind: 'open-table', ref, view: 'structure' }),
+                actionItem('open-data', Table, t('explorer.openData'), { kind: 'open-table', ref, view: 'data', tableKind: kind }),
+                actionItem('open-structure', TableProperties, t('explorer.openStructure'), { kind: 'open-table', ref, view: 'structure', tableKind: kind }),
                 kind === 'table' && writable ? actionItem('edit-table', PencilRuler, t('explorer.editTable'), { kind: 'edit-table', ref }) : null,
                 actionItem('console', SquareTerminal, t('explorer.newConsoleHere'), consoleAction(ref.schema, selectAllSql(connection.config.engine, ref)))
             ],

@@ -175,6 +175,10 @@ export const openedTableOf = (row: TreeRow): TableRef | null =>
         ? { connectionId: row.ref.connectionId, schema: row.entry.foreignKey.referencedSchema, table: row.entry.foreignKey.referencedTable }
         : tableOf(row);
 
+/* Whether a list of tables holds `name` as a table or a view; `undefined` while the list has not loaded or lacks it. */
+export const tableKindIn = (tables: Load<readonly TableInfo[]>, name: string): TableKind | undefined =>
+    tables.status === 'ready' ? tables.value.find((table) => table.name === name)?.kind : undefined;
+
 /* What picking a row selects: its connection, its schema, or its table (a column stands for its table). Status rows select nothing. */
 export const selectionOf = (row: TreeRow): ExplorerSelection | null => {
     switch (row.kind) {

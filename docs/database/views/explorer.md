@@ -35,7 +35,13 @@ System schemas, such as `information_schema` and `mysql`, are hidden unless `sho
 
 ## Selecting and opening
 
-A click selects a row, and on a connection, a schema or a folder it also opens or closes it. A double click or Enter on a table or a column asks the app to open the table with `{ kind: 'open-table', ref, view: 'data' }`.
+A click selects a row, and on a connection, a schema or a folder it also opens or closes it. A double click or Enter on a table or a column asks the app to open the table with `{ kind: 'open-table', ref, view: 'data' }`, and with `tableKind` (`'table'` or `'view'`) when the explorer has loaded the list it is in.
+
+With `openOnClick`, a click on a table or a view opens it too, with `preview: true`, and a double click or Enter sends `preview: false`. An app can open the first in a tab the next look replaces and keep the second, the way a file opens in an editor's preview tab. A click on a column or a key still only selects it. Without `openOnClick` no action carries `preview`.
+
+```tsx
+<DatabaseExplorer connections={connections} openOnClick className="h-full" />
+```
 
 The tree takes one tab stop. The arrow keys move, Right and Left expand and collapse, Home and End jump, and Enter activates.
 
@@ -64,6 +70,7 @@ The tree takes one tab stop. The arrow keys move, Right and Left expand and coll
 | `defaultValue`      | `ExplorerSelection \| null`                      | `null`  | Where the selection starts without `value`.           |
 | `onValueChange`     | `(selection: ExplorerSelection \| null) => void` |         | The person picked a row.                              |
 | `showSystemSchemas` | `boolean`                                        | `false` | Lists the schemas the server keeps for itself.        |
+| `openOnClick`       | `boolean`                                        | `false` | Opens a table on a click as well, as a preview.       |
 | `className`         | `string`                                         |         | The tree has no height of its own; this gives it one. |
 | `ref`               | `Ref<HTMLDivElement>`                            |         |                                                       |
 

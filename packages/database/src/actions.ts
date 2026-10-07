@@ -1,12 +1,25 @@
 import type { TableRef } from './client/types.ts';
+import type { TableKind } from './protocol/index.ts';
 
 /*
  * Something a view asks the app to open. The views draw no tabs and no windows of their own: the app
  * decides where a table, a console or the designer lands, such as a tab beside its file tabs.
  */
 export type DatabaseAction =
-    /* `where` opens the table filtered, as a jump along a foreign key does. */
-    | { readonly kind: 'open-table'; readonly ref: TableRef; readonly view: 'data' | 'structure'; readonly where?: string }
+    | {
+          readonly kind: 'open-table';
+          readonly ref: TableRef;
+          readonly view: 'data' | 'structure';
+          /* Opens the table filtered, as a jump along a foreign key does. */
+          readonly where?: string;
+          /* Whether `ref` is a table or a view, where the sender knows it. */
+          readonly tableKind?: TableKind;
+          /*
+           * Only from an explorer that opens on a click: `true` for that click, a look a person may move on from, and
+           * `false` for a double click or Enter, which mean to keep the table open.
+           */
+          readonly preview?: boolean;
+      }
     | { readonly kind: 'open-console'; readonly connectionId: string; readonly schema?: string; readonly sql?: string }
     | { readonly kind: 'new-table'; readonly connectionId: string; readonly schema: string }
     | { readonly kind: 'edit-table'; readonly ref: TableRef }

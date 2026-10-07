@@ -20,6 +20,7 @@ import {
     startsOpen,
     tabStop,
     tableKey,
+    tableKindIn,
     tableOf,
     type Load,
     type TablePart,
@@ -372,6 +373,18 @@ describe('the folders of a table', () => {
         const foreign = rows.find((row) => row.kind === 'entry')!;
         expect(openedTableOf(foreign)).toEqual({ connectionId: 'app', schema: 'shop', table: 'users' });
         expect(tableOf(foreign)).toEqual(users);
+    });
+
+    test('say whether a name is a table or a view once the list of the schema has loaded', () => {
+        const list: Load<readonly TableInfo[]> = {
+            status: 'ready',
+            value: [
+                { name: 'users', kind: 'table', rowEstimate: null, comment: null },
+                { name: 'totals', kind: 'view', rowEstimate: null, comment: null }
+            ]
+        };
+        expect([tableKindIn(list, 'users'), tableKindIn(list, 'totals'), tableKindIn(list, 'gone')]).toEqual(['table', 'view', undefined]);
+        expect(tableKindIn({ status: 'loading' }, 'users')).toBeUndefined();
     });
 
     test('keep a table folder open or closed through the stored expansion', () => {

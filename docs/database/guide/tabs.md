@@ -10,15 +10,15 @@ import type { DatabaseAction, ExplorerSelection } from '@adecore/database';
 
 ## The actions
 
-| `kind`              | Fields                                              | Sent by                                                                              |
-| ------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `open-table`        | `ref`, `view` (`'data'` or `'structure'`), `where?` | The explorer, and a jump along a foreign key in the table view                       |
-| `open-console`      | `connectionId`, `schema?`, `sql?`                   | The explorer's New console items                                                     |
-| `new-table`         | `connectionId`, `schema`                            | The explorer's New table item                                                        |
-| `edit-table`        | `ref`                                               | The explorer's Edit table item, and the designer after it created or renamed a table |
-| `manage-connection` | `connectionId`                                      | The explorer's Edit connection item                                                  |
+| `kind`              | Fields                                                                        | Sent by                                                                              |
+| ------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `open-table`        | `ref`, `view` (`'data'` or `'structure'`), `where?`, `tableKind?`, `preview?` | The explorer, and a jump along a foreign key in the table view                       |
+| `open-console`      | `connectionId`, `schema?`, `sql?`                                             | The explorer's New console items                                                     |
+| `new-table`         | `connectionId`, `schema`                                                      | The explorer's New table item                                                        |
+| `edit-table`        | `ref`                                                                         | The explorer's Edit table item, and the designer after it created or renamed a table |
+| `manage-connection` | `connectionId`                                                                | The explorer's Edit connection item                                                  |
 
-`ref` is a `TableRef`: `connectionId`, `schema` and `table`. `where` is a condition as typed after `WHERE`, and the table should open filtered by it. `sql` is the text a new console starts with, such as a `SELECT` of the table that was right clicked.
+`ref` is a `TableRef`: `connectionId`, `schema` and `table`. `where` is a condition as typed after `WHERE`, and the table should open filtered by it. `tableKind` says whether `ref` is a `'table'` or a `'view'`, where the sender knows it; the explorer does once the schema's list has loaded. `preview` comes only from an explorer with [`openOnClick`](/database/views/explorer#selecting-and-opening): `true` for a click, `false` for a double click or Enter. `sql` is the text a new console starts with, such as a `SELECT` of the table that was right clicked.
 
 Without `onAction`, the views leave out the items that would send one: the explorer has no Open data and no New console, and the table view has no Go to referenced row.
 
@@ -137,7 +137,7 @@ The example leaves these decisions to you:
 
 ## What the explorer selects
 
-`DatabaseExplorer` reports the row a person picked as an `ExplorerSelection`: the `connectionId`, and a `schema` and a `table` when the row has them. Use it to decide where New console runs when no tab is in front, or to highlight the table of the open tab. A click selects; a double click or Enter on a table also sends `open-table`.
+`DatabaseExplorer` reports the row a person picked as an `ExplorerSelection`: the `connectionId`, and a `schema` and a `table` when the row has them. Use it to decide where New console runs when no tab is in front, or to highlight the table of the open tab. A click selects; a double click or Enter on a table also sends `open-table`, and with `openOnClick` a click on a table does too.
 
 ## Nested providers
 
