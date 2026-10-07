@@ -33,7 +33,16 @@ const rows: GridRow[] = [
 ];
 
 const view = (index: number, extra: Partial<Parameters<typeof RecordView>[0]> = {}) => (
-    <RecordView label="Fields of users" columns={columns} rows={rows} index={index} onIndexChange={() => {}} {...extra} />
+    <RecordView
+        label="Fields of users"
+        columns={columns}
+        rows={rows}
+        index={index}
+        onIndexChange={() => {}}
+        focusedColumn={null}
+        onClose={() => {}}
+        {...extra}
+    />
 );
 
 describe('RecordView', () => {
@@ -77,6 +86,37 @@ describe('RecordView', () => {
         expect(render(view(0, { editable: true })).match(/readOnly=""/g)).toBeNull();
     });
 
+    test('marks the field of the focused column', () => {
+        const markup = render(view(1, { focusedColumn: 1 }));
+        expect(markup.match(/data-focused=""/g)).toHaveLength(1);
+        expect(render(view(1)).match(/data-focused=""/g)).toBeNull();
+    });
+
+    test('offers to open up a long text, JSON or binary value, and nothing else', () => {
+        const wide: GridColumn[] = [
+            { name: 'id', type: 'int', kind: 'integer' },
+            { name: 'doc', type: 'json', kind: 'json' },
+            { name: 'body', type: 'text', kind: 'text' },
+            { name: 'photo', type: 'blob', kind: 'binary' }
+        ];
+        const markup = render(
+            <RecordView
+                label="Fields"
+                columns={wide}
+                rows={[{ key: 'row:0', number: 1, cells: [1, '{"a":1}', { kind: 'longText', preview: 'Once', length: 9000 }, null] }]}
+                index={0}
+                onIndexChange={() => {}}
+                focusedColumn={null}
+                onClose={() => {}}
+            />
+        );
+        expect(markup.match(/aria-label="Show the whole value"/g)).toHaveLength(3);
+    });
+
+    test('has a close button', () => {
+        expect(render(view(0))).toContain('aria-label="Close record view"');
+    });
+
     test('tints the field of a pending edit', () => {
         expect(render(view(1)).match(/bg-accent\/10/g)).toHaveLength(1);
     });
@@ -87,9 +127,20 @@ describe('RecordView', () => {
     });
 
     test('says there are no rows', () => {
-        expect(render(<RecordView label="Fields" columns={columns} rows={[]} index={0} onIndexChange={() => {}} empty="No rows here." />)).toContain(
-            'No rows here.'
-        );
+        expect(
+            render(
+                <RecordView
+                    label="Fields"
+                    columns={columns}
+                    rows={[]}
+                    index={-1}
+                    onIndexChange={() => {}}
+                    focusedColumn={null}
+                    onClose={() => {}}
+                    empty="No rows here."
+                />
+            )
+        ).toContain('No rows here.');
     });
 });
 

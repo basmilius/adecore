@@ -67,15 +67,15 @@ Rows are found by the row key: the primary key, or else the first unique index o
 
 ## Record view
 
-Record view in the More menu shows one row as a list of fields, with Previous row and Next row. It edits like the grid, with the same pending changes. Closing it puts the focus back on the grid's cell.
+The record view button in the toolbar, or Record view in the More menu, opens the fields of one row in a sidebar beside the grid. It shows the row of the focused cell and follows the grid's focus as it moves; Previous row and Next row, or Cmd or Ctrl and the up and down arrows, move it, and the grid's focus with it. The field of the focused column is marked and scrolled into view. Drag the sidebar's left edge to make it wider; with `storage` on the provider the width is kept under `database:record-view`, in pixels, for every table.
 
-## Value editor
+Every field is edited right there, into the same pending changes as the grid: Enter takes the edit, Escape drops it, Tab and the up and down arrows move between the fields. A field that cannot be edited says so the way the grid does, and a key field of a foreign key has the arrow to the referenced row beside it.
 
-Value editor in the More menu opens a panel beside the grid with the whole value of the focused cell. It shows Text, Formatted for JSON, or Hex, Text and UUID for binary, and the dump of a binary value stops at 16 KiB. An editable value is changed there and added as a pending edit with Apply, which checks JSON and hex first.
+A long text, JSON or binary value opens up in place to its whole value, fetched with `cell` when the row holds only a preview. It shows Text, Formatted for JSON, or Hex, Text and UUID for binary, and the dump of a binary value stops at 16 KiB. An editable value is changed there and added as a pending edit with Apply, which checks JSON and hex first.
 
 ## Foreign keys
 
-Cmd or Ctrl and click on a cell of a foreign key column, or Go to referenced row in its menu, sends `open-table` with a `where` that picks the referenced row, over every column of the key. The grid draws nothing over the value; the record view shows an arrow beside it. A NULL cell references nothing. Without `onAction` on the [provider](/database/guide/tabs) none of this is offered.
+Cmd or Ctrl and click on a cell of a foreign key column, or Go to referenced row in its menu, sends `open-table` with a `where` that picks the referenced row, over every column of the key. The grid draws nothing over the value; the record view shows an arrow beside the field. A NULL cell references nothing. Without `onAction` on the [provider](/database/guide/tabs) none of this is offered.
 
 <Demo src="database/table-view-references" />
 
@@ -101,7 +101,7 @@ Add row, Delete, editing and import are off, and their tooltips say why:
 | The table is a view.                               | A view cannot be edited.                                                       |
 | The table has no primary key or usable unique key. | This table has no primary key or unique key, so its rows cannot be told apart. |
 
-Filtering, sorting, export, the record view and the value editor keep working.
+Filtering, sorting, export and the record view keep working; its fields are read only.
 
 <Demo src="database/table-view-read-only" fill />
 

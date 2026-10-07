@@ -48,7 +48,6 @@ const toolbarProps: TableToolbarProps = {
     readOnlyReason: null,
     hasSelection: true,
     canRevertSelection: true,
-    valuePanelOpen: false,
     pendingCount: 0,
     submitting: false,
     engine: 'sqlite',
@@ -63,7 +62,6 @@ const toolbarProps: TableToolbarProps = {
     onDeleteRows: noop,
     onCloneRows: noop,
     onRevertRows: noop,
-    onToggleValuePanel: noop,
     onPageSizeChange: noop,
     onFirstPage: noop,
     onLastPage: noop,
@@ -225,8 +223,14 @@ describe('TableToolbar', () => {
 
     test('keeps the removed controls out of the row', () => {
         const markup = render(<TableToolbar {...toolbarProps} onToggleRecordView={noop} transfer={{ busy: false, onExport: noop }} />);
-        for (const label of ['Delete selected rows', 'Clone selected rows', 'Revert selected rows', 'Value editor', 'Record view', 'Export']) {
+        for (const label of ['Delete selected rows', 'Clone selected rows', 'Revert selected rows', 'Value editor', 'Export']) {
             expect(markup).not.toContain(`aria-label="${label}"`);
         }
+    });
+
+    test('opens and closes the record view from the row', () => {
+        expect(render(<TableToolbar {...toolbarProps} onToggleRecordView={noop} />)).toMatch(/aria-label="Record view"[^>]*aria-pressed="false"/);
+        expect(render(<TableToolbar {...toolbarProps} onToggleRecordView={noop} recordViewOpen />)).toMatch(/aria-label="Record view"[^>]*aria-pressed="true"/);
+        expect(render(<TableToolbar {...toolbarProps} />)).not.toContain('aria-label="Record view"');
     });
 });

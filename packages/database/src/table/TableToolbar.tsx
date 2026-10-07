@@ -41,7 +41,6 @@ export interface TableToolbarProps {
     hasSelection: boolean;
     /* Whether any selected row has a change to take back. */
     canRevertSelection: boolean;
-    valuePanelOpen: boolean;
     /* The record view replaces the grid with the focused row as a list of fields. */
     recordViewOpen?: boolean;
     transfer?: TransferMenu;
@@ -62,7 +61,6 @@ export interface TableToolbarProps {
     onDeleteRows(): void;
     onCloneRows(): void;
     onRevertRows(): void;
-    onToggleValuePanel(): void;
     onToggleRecordView?(): void;
     onPageSizeChange(size: number): void;
     onFirstPage(): void;
@@ -80,7 +78,6 @@ export function TableToolbar({
     readOnlyReason,
     hasSelection,
     canRevertSelection,
-    valuePanelOpen,
     recordViewOpen = false,
     transfer,
     pendingCount,
@@ -98,7 +95,6 @@ export function TableToolbar({
     onDeleteRows,
     onCloneRows,
     onRevertRows,
-    onToggleValuePanel,
     onToggleRecordView,
     onPageSizeChange,
     onFirstPage,
@@ -134,6 +130,16 @@ export function TableToolbar({
                 aria-disabled={readOnly || undefined}
                 onClick={() => !readOnly && onAddRow()}
             />
+            {onToggleRecordView !== undefined && (
+                <IconButton
+                    icon={PanelRight}
+                    size="sm"
+                    label={t('table.recordView')}
+                    aria-pressed={recordViewOpen}
+                    active={recordViewOpen}
+                    onClick={onToggleRecordView}
+                />
+            )}
             <Menu.Root>
                 <IconButton icon={Ellipsis} size="sm" label={t('table.more')} render={<Menu.Trigger />} />
                 <Menu.Popup align="end">
@@ -168,10 +174,6 @@ export function TableToolbar({
                             {t('table.recordView')}
                         </Menu.CheckboxItem>
                     )}
-                    <Menu.CheckboxItem checked={valuePanelOpen} onCheckedChange={onToggleValuePanel}>
-                        <Icon icon={PanelRight} size={14} />
-                        {t('table.valuePanel')}
-                    </Menu.CheckboxItem>
                     <Menu.Separator />
                     {readOnly && <Menu.Label>{readOnlyReason}</Menu.Label>}
                     <Menu.Item disabled={readOnly || !hasSelection} onClick={onCloneRows}>

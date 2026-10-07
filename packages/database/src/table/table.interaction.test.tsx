@@ -94,3 +94,59 @@ describe.skipIf(typeof document === 'undefined')('the views of a table in a DOM,
         });
     });
 });
+
+describe.skipIf(typeof document === 'undefined')('the record view beside a table', () => {
+    let client: ReturnType<typeof clientOver>;
+    let mounted: Mounted;
+
+    const fields = (): HTMLElement => find('[role=group][aria-label="Fields of customers"]');
+    const field = (name: string): HTMLInputElement => fields().querySelector<HTMLInputElement>(`input[aria-label="${name}"]`)!;
+
+    beforeEach(async () => {
+        client = clientOver(recordTransport(fakeDatabaseTransport({ databases: { [SHOP_PATH]: shopDatabase } })).transport);
+        mounted = await mount(<TableView connection={connection} schema="main" table="customers" />, { client });
+        await waitFor(() => expect(findAll('[role=gridcell]').length).toBeGreaterThan(0));
+        await click(byLabel('Record view'));
+    });
+
+    afterEach(async () => {
+        await mounted.unmount();
+        await client.dispose();
+    });
+
+    test('opens beside the grid on the first row, and closes again', async () => {
+        expect(findAll('[role=grid]')).toHaveLength(1);
+        expect(field('name').value).toBe('Ada');
+        await click(byLabel('Close record view'));
+        expect(findAll('[role=group][aria-label="Fields of customers"]')).toEqual([]);
+    });
+
+    test("follows the grid's focus, and marks the field of the focused column", async () => {
+        const linus = findAll('[role=gridcell]').find((cell) => cell.textContent === 'Linus')!;
+        await perform(() => linus.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0 })));
+        await waitFor(() => expect(field('name').value).toBe('Linus'));
+        const marked = fields().querySelectorAll('[data-focused]');
+        expect(marked).toHaveLength(1);
+        expect(marked[0]!.textContent).toContain('name');
+    });
+
+    test('moves to the next row and back with its buttons', async () => {
+        await click(byLabel('Next row'));
+        await waitFor(() => expect(field('name').value).toBe('Linus'));
+        await click(byLabel('Previous row'));
+        await waitFor(() => expect(field('name').value).toBe('Ada'));
+    });
+
+    test('edits a field into the pending changes of the grid', async () => {
+        const input = field('name');
+        await perform(() => {
+            input.focus();
+            const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!;
+            setter.call(input, 'Augusta');
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+        await perform(() => input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })));
+        await waitFor(() => expect(byText('button', /Submit/).textContent).toContain('1'));
+        expect(findAll('[role=gridcell]').some((cell) => cell.textContent === 'Augusta')).toBe(true);
+    });
+});

@@ -52,6 +52,11 @@ export interface FocusedCell {
     readonly column: number;
 }
 
+/* A cell to move the grid's focus to. `quiet` moves it without taking the keyboard, for a panel beside the grid that follows along. */
+export interface FocusRequest extends FocusedCell {
+    readonly quiet?: boolean;
+}
+
 /* What a menu item added to the grid's context menu acts on. */
 export interface GridMenuContext {
     /* The selected rows when the row under the pointer is one of them, else that row alone. */

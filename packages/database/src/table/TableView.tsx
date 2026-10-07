@@ -22,15 +22,14 @@ import { DatabaseRequestError, type Connection } from '../client/types.ts';
 import { useDatabaseAction, useDatabaseClient, useDatabaseFiles, useDatabaseStorage } from '../client-context.ts';
 import { aggregateBlock, blockSize, type RangeBlock } from '../grid/aggregates.ts';
 import { DataGrid } from '../grid/DataGrid.tsx';
-import { wholeValueOf } from '../grid/focused-value.ts';
 import type { GridSort } from '../grid/sort.ts';
-import type { ColumnRequest, FocusedCell, GridMenuContext } from '../grid/types.ts';
+import type { ColumnRequest, FocusedCell, FocusRequest, GridMenuContext } from '../grid/types.ts';
 import { RecordView } from '../grid/RecordView.tsx';
 import { ValueDock } from '../grid/ValueDock.tsx';
 import { valueOfCell, type EditValue, type RowChange, type Value } from '../protocol/index.ts';
 import type { SqlTarget } from '../sql.ts';
 import { useSchemaChange } from '../use-schema-change.ts';
-import { ValuePanel } from '../value/ValuePanel.tsx';
+import { useStableCallback } from '../use-stable-callback.ts';
 import {
     addChip,
     cellChip,
@@ -73,6 +72,19 @@ import { TableToolbar } from './TableToolbar.tsx';
 import { useLoaded } from './useLoaded.ts';
 import { useStoredLayout } from './useStoredLayout.ts';
 import { useTableTransfer } from './useTableTransfer.ts';
+
+/* Where the width of the record view is kept, in pixels, for every table. */
+export const RECORD_WIDTH_KEY = 'database:record-view';
+const RECORD_WIDTH = 360;
+
+const parseRecordWidth = (raw: string | null | undefined): number | null => {
+    try {
+        const value: unknown = JSON.parse(raw ?? 'null');
+        return typeof value === 'number' && Number.isFinite(value) && value > 0 ? Math.round(value) : null;
+    } catch {
+        return null;
+    }
+};
 
 export interface TableViewProps {
     connection: Connection;
@@ -126,7 +138,8 @@ function TableBody({ connection, schema, table, defaultWhere, defaultOrderBy, on
     const client = useDatabaseClient();
     const onAction = useDatabaseAction();
     const files = useDatabaseFiles();
-    const { stored, remember } = useStoredLayout(useDatabaseStorage(), layoutStorageKey(connection.id, schema, table));
+    const storage = useDatabaseStorage();
+    const { stored, remember } = useStoredLayout(storage, layoutStorageKey(connection.id, schema, table));
     const session = useMemo(() => client.session(connection), [client, connection]);
     const grid = useRef<HTMLDivElement>(null);
     const command = useRef<HTMLInputElement>(null);
@@ -151,14 +164,12 @@ function TableBody({ connection, schema, table, defaultWhere, defaultOrderBy, on
     const [failure, setFailure] = useState<string | null>(null);
     const [shapeChanged, setShapeChanged] = useState(false);
     const [discard, setDiscard] = useState<{ run(): void } | null>(null);
-    const [panelOpen, setPanelOpen] = useState(false);
     const [focus, setFocus] = useState<FocusedCell | null>(null);
     const [recordOpen, setRecordOpen] = useState(false);
-    const [recordKey, setRecordKey] = useState<string | null>(null);
-    const [focusRequest, setFocusRequest] = useState<FocusedCell | null>(null);
+    const [recordWidth, setRecordWidth] = useState(() => parseRecordWidth(storage?.get(RECORD_WIDTH_KEY)));
+    const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null);
     const [columnRequest, setColumnRequest] = useState<ColumnRequest | null>(null);
     const [range, setRange] = useState<RangeBlock | null>(null);
-    const [fetched, setFetched] = useState<{ id: string; rows: unknown; value: Value | undefined } | null>(null);
 
     const applied = useMemo((): Filters => ({ where: chipsToWhere(chips), orderBy: chipsToOrderBy(engine, chips) }), [chips, engine]);
     const target = `${connection.id}|${schema}|${table}`;
@@ -218,13 +229,12 @@ function TableBody({ connection, schema, table, defaultWhere, defaultOrderBy, on
     const sorts = useMemo(() => sortsOf(chips), [chips]);
     const commandColumns = useMemo((): CommandColumn[] => columns.map((column) => ({ name: column.name, type: column.type })), [columns]);
     const rowByKey = useMemo(() => new Map(rows.map((row) => [row.key, row])), [rows]);
-    const recordIndex = Math.max(
-        0,
-        rows.findIndex((row) => row.key === recordKey)
-    );
+    // The record view shows the row of the focused cell, or the first row before a cell has the focus.
+    const focusedIndex = focus === null ? -1 : rows.findIndex((row) => row.key === focus.rowKey);
+    const recordIndex = focusedIndex >= 0 ? focusedIndex : rows.length > 0 ? 0 : -1;
     const selectionFigures = useMemo(
         () =>
-            recordOpen || range === null || blockSize(range) < 2
+            range === null || blockSize(range) < 2
                 ? null
                 : {
                       columns: range.columns.map((index) => columns[index]?.name ?? ''),
@@ -234,19 +244,9 @@ function TableBody({ connection, schema, table, defaultWhere, defaultOrderBy, on
                           range
                       )
                   },
-        [recordOpen, range, rows, columns]
+        [range, rows, columns]
     );
     const sqlTarget = useMemo((): SqlTarget => ({ engine, schema, table }), [engine, schema, table]);
-    const focusedRow = panelOpen && focus !== null ? rows.find((row) => row.key === focus.rowKey) : undefined;
-    const focusedCell = focus === null ? undefined : focusedRow?.cells[focus.column];
-    const needsFetch =
-        focusedCell !== undefined &&
-        focus !== null &&
-        wholeValueOf(focusedCell) === undefined &&
-        !(focusedCell !== null && typeof focusedCell === 'object' && focusedCell.kind === 'default');
-    const focusedRef = focus === null ? null : parseRowKey(focus.rowKey);
-    const canFetch = focusedRef?.kind === 'loaded' && structure !== null && loaded !== null && rowKeyOf(structure, loaded, focusedRef.index) !== null;
-    const fetchId = needsFetch && canFetch ? `${focus.rowKey}:${focus.column}` : null;
 
     useSchemaChange(connection.id, schema, () => {
         if (isPendingEmpty(pending)) {
@@ -286,31 +286,10 @@ function TableBody({ connection, schema, table, defaultWhere, defaultOrderBy, on
     }, [pending.inserts.length]);
 
     useEffect(() => {
-        if (fetchId === null || focus === null || structure === null || loaded === null) {
-            return;
+        if (recordWidth !== null) {
+            storage?.set(RECORD_WIDTH_KEY, JSON.stringify(recordWidth));
         }
-        const row = parseRowKey(focus.rowKey);
-        const key = row.kind === 'loaded' ? rowKeyOf(structure, loaded, row.index) : null;
-        const name = loaded.columns[focus.column]?.name;
-        if (key === null || name === undefined) {
-            return;
-        }
-        const controller = new AbortController();
-        session.cell(schema, table, key, name, { signal: controller.signal }).then(
-            (value) => {
-                if (!controller.signal.aborted) {
-                    setFetched({ id: fetchId, rows: loaded, value });
-                }
-            },
-            (error: unknown) => {
-                if (!controller.signal.aborted) {
-                    setFetched({ id: fetchId, rows: loaded, value: undefined });
-                    setFailure(messageOf(error));
-                }
-            }
-        );
-        return () => controller.abort();
-    }, [fetchId, focus, structure, loaded, session, schema, table]);
+    }, [storage, recordWidth]);
 
     const discardPending = (): void => {
         setPending(emptyPending);
@@ -447,7 +426,7 @@ function TableBody({ connection, schema, table, defaultWhere, defaultOrderBy, on
         }
     };
 
-    const loadValue = async (rowKey: string, column: number): Promise<Value | undefined> => {
+    const loadValue = useStableCallback(async (rowKey: string, column: number): Promise<Value | undefined> => {
         const row = parseRowKey(rowKey);
         const name = loaded?.columns[column]?.name;
         const key = row.kind === 'loaded' && structure !== null && loaded !== null ? rowKeyOf(structure, loaded, row.index) : null;
@@ -460,7 +439,7 @@ function TableBody({ connection, schema, table, defaultWhere, defaultOrderBy, on
             setFailure(messageOf(error));
             return undefined;
         }
-    };
+    });
 
     const refsOf = (keys: Iterable<string>): RowSelectionRefs => {
         const loadedRows: number[] = [];
@@ -527,24 +506,19 @@ function TableBody({ connection, schema, table, defaultWhere, defaultOrderBy, on
     };
 
     const toggleRecordView = (): void => {
-        if (recordOpen) {
-            const row = rows[recordIndex];
-            setRecordOpen(false);
-            if (row !== undefined) {
-                setFocusRequest({ rowKey: row.key, column: focus?.column ?? 0 });
-            }
-            return;
-        }
-        const focused = focus === null ? undefined : rows.find((row) => row.key === focus.rowKey);
-        setRecordKey((focused ?? rows[0])?.key ?? null);
-        setRecordOpen(true);
+        setRecordOpen((now) => !now);
+    };
+
+    /* The record view moves the grid's focus along with it, without taking the keyboard from its field. */
+    const followInGrid = (cell: FocusedCell): void => {
+        setFocus(cell);
+        setFocusRequest({ ...cell, quiet: true });
     };
 
     const changeRecordIndex = (index: number): void => {
         const row = rows[index];
         if (row !== undefined) {
-            setRecordKey(row.key);
-            setFocus((now) => (now === null ? now : { rowKey: row.key, column: now.column }));
+            followInGrid({ rowKey: row.key, column: focus?.column ?? 0 });
         }
     };
 
@@ -645,25 +619,6 @@ function TableBody({ connection, schema, table, defaultWhere, defaultOrderBy, on
     };
 
     const bounds = pageBounds(loadedOffset, loaded?.rows.length ?? 0, loaded?.hasMore ?? false, counted);
-    const focusedColumn = focus === null ? null : (columns[focus.column] ?? null);
-    const panelEditable =
-        editable && focusedRow !== undefined && focusedRow.locked !== true && focusedRow.state !== 'deleted' && focusedColumn?.readOnly !== true;
-    const fetchedNow = fetched !== null && fetched.id === fetchId && fetched.rows === loaded;
-    const panelValue = ((): Value | undefined => {
-        if (focusedCell === undefined || focusedRow === undefined || focus === null) {
-            return undefined;
-        }
-        const whole = wholeValueOf(focusedCell);
-        if (whole !== undefined) {
-            return whole;
-        }
-        if (focusedCell !== null && typeof focusedCell === 'object' && focusedCell.kind === 'default') {
-            // A pending DEFAULT holds no value of its own, so the panel keeps showing what the row had.
-            const row = parseRowKey(focusedRow.key);
-            return row.kind === 'loaded' && loaded !== null ? wholeValueOf(loaded.rows[row.index]?.[focus.column] ?? null) : null;
-        }
-        return fetchedNow ? fetched.value : undefined;
-    })();
     const notice = failure ?? rowsLoad.error ?? structureLoad.error;
     const noticeText = (found: NonNullable<typeof transfer.notice>): string => {
         switch (found.kind) {
@@ -685,7 +640,6 @@ function TableBody({ connection, schema, table, defaultWhere, defaultOrderBy, on
                 readOnlyReason={readOnlyReason}
                 hasSelection={selected.size > 0}
                 canRevertSelection={selected.size > 0 && canRevert(selected)}
-                valuePanelOpen={panelOpen}
                 recordViewOpen={recordOpen}
                 transfer={
                     files === undefined
@@ -711,7 +665,6 @@ function TableBody({ connection, schema, table, defaultWhere, defaultOrderBy, on
                 onDeleteRows={deleteSelected}
                 onCloneRows={() => cloneRows([...selected])}
                 onRevertRows={() => revertRowKeys(selected)}
-                onToggleValuePanel={() => setPanelOpen((now) => !now)}
                 onToggleRecordView={toggleRecordView}
                 onPageSizeChange={changePageSize}
                 onFirstPage={() => goToPage(0)}
@@ -765,26 +718,31 @@ function TableBody({ connection, schema, table, defaultWhere, defaultOrderBy, on
             ) : (
                 <>
                     <ValueDock
-                        open={panelOpen}
+                        open={recordOpen}
+                        width={recordWidth ?? RECORD_WIDTH}
+                        onWidthChange={setRecordWidth}
                         panel={
-                            <ValuePanel
-                                column={focusedColumn}
-                                value={panelValue}
-                                loading={fetchId !== null && !fetchedNow}
-                                editable={panelEditable}
-                                onCommit={(value) => focus !== null && commit(focus.rowKey, focus.column, value)}
-                                onClose={() => setPanelOpen(false)}
-                                className="min-w-0 flex-1"
+                            <RecordView
+                                label={t('table.recordFields', { table })}
+                                columns={columns}
+                                rows={rows}
+                                index={recordIndex}
+                                onIndexChange={changeRecordIndex}
+                                focusedColumn={focus !== null && focusedIndex === recordIndex ? focus.column : null}
+                                editable={editable}
+                                onCommit={commit}
+                                loadValue={loadValue}
+                                onFocusedCellChange={followInGrid}
+                                onFollow={onAction === undefined ? undefined : follow}
+                                canFollow={(cell) => referenceAt(cell) !== null}
+                                onClose={() => setRecordOpen(false)}
+                                empty={t('table.empty')}
                             />
                         }
                     >
                         <div
                             aria-busy={rowsLoad.loading}
-                            className={clsx(
-                                'relative min-h-0 flex-1 flex-col',
-                                recordOpen ? 'hidden' : 'flex',
-                                rowsLoad.loading && 'pointer-events-none opacity-60'
-                            )}
+                            className={clsx('relative flex min-h-0 flex-1 flex-col', rowsLoad.loading && 'pointer-events-none opacity-60')}
                         >
                             <DataGrid
                                 ref={grid}
@@ -814,22 +772,6 @@ function TableBody({ connection, schema, table, defaultWhere, defaultOrderBy, on
                                 columnRequest={columnRequest}
                             />
                         </div>
-                        {recordOpen && (
-                            <RecordView
-                                label={t('table.recordFields', { table })}
-                                columns={columns}
-                                rows={rows}
-                                index={recordIndex}
-                                onIndexChange={changeRecordIndex}
-                                editable={editable}
-                                onCommit={commit}
-                                loadValue={loadValue}
-                                onFocusedCellChange={setFocus}
-                                onFollow={onAction === undefined ? undefined : follow}
-                                canFollow={(cell) => referenceAt(cell) !== null}
-                                empty={t('table.empty')}
-                            />
-                        )}
                     </ValueDock>
                     <TableStatusBar
                         elapsedMs={loaded.elapsedMs}

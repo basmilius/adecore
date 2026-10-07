@@ -11,21 +11,30 @@ export interface ValueDockProps {
     panel: ReactNode;
     /* The grid and whatever shares its column. */
     children: ReactNode;
+    /* The width of the panel, when the owner keeps it; without it the dock keeps it itself. */
+    width?: number;
+    onWidthChange?(width: number): void;
     className?: string;
     ref?: Ref<HTMLDivElement>;
 }
 
 /* A grid with a panel along its right edge that a person can widen by its left edge. */
-export function ValueDock({ open, panel, children, className, ref }: ValueDockProps) {
+export function ValueDock({ open, panel, children, width: given, onWidthChange, className, ref }: ValueDockProps) {
     const root = useRef<HTMLDivElement | null>(null);
     const dock = useRef<HTMLDivElement>(null);
-    const [width, setWidth] = useState(VALUE_PANEL_WIDTH);
+    const [own, setOwn] = useState(VALUE_PANEL_WIDTH);
+    const width = given ?? own;
     const { startResize } = useColumnResize(dock, {
         size: width,
         min: VALUE_PANEL_MIN_WIDTH,
         from: 'right',
         max: () => (root.current?.clientWidth ?? 960) - VALUE_PANEL_MIN_WIDTH,
-        onSize: setWidth
+        onSize: (next) => {
+            if (given === undefined) {
+                setOwn(next);
+            }
+            onWidthChange?.(next);
+        }
     });
 
     return (

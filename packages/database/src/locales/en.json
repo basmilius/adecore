@@ -284,7 +284,6 @@
         },
         "cloneRows": "Clone selected rows",
         "revertRows": "Revert selected rows",
-        "valuePanel": "Value editor",
         "firstPage": "First page",
         "lastPage": "Last page",
         "lastPageCounts": "Counts the rows first",
@@ -307,7 +306,10 @@
             "next": "Next row",
             "newRow": "New row",
             "row": "Row {{number}}",
-            "position": "{{index}} of {{count}} on this page"
+            "position": "{{index}} of {{count}} on this page",
+            "close": "Close record view",
+            "expand": "Show the whole value",
+            "collapse": "Hide the whole value"
         },
         "aggregates": {
             "sum": "Sum",

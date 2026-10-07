@@ -48,7 +48,7 @@ import {
 import { moveFocus, type CellPosition, type NavigationKey } from './navigation.ts';
 import { selectRow } from './row-selection.ts';
 import { sortOnly, sortStateOf, type GridSort } from './sort.ts';
-import type { ColumnRequest, FocusedCell, GridColumn, GridMenuContext, GridRow } from './types.ts';
+import type { ColumnRequest, FocusedCell, FocusRequest, GridColumn, GridMenuContext, GridRow } from './types.ts';
 import { useNumberNotation } from '../client-context.ts';
 import { usePopupPress } from '../use-popup-press.ts';
 import { useStableCallback } from '../use-stable-callback.ts';
@@ -93,7 +93,7 @@ export interface DataGridProps {
     /* A person resized, hid or pinned a column. */
     onLayoutChange?(layout: GridLayout): void;
     /* Puts the focus on a cell, whenever the object changes. */
-    focusRequest?: FocusedCell | null;
+    focusRequest?: FocusRequest | null;
     /* Picks a column and brings it into view, whenever the object changes. */
     columnRequest?: ColumnRequest | null;
     /* Drawn under the header while there are no rows. */
@@ -284,7 +284,9 @@ export function DataGrid({
         const index = focusRequest === null || focusRequest === undefined ? -1 : rows.findIndex((row) => row.key === focusRequest.rowKey);
         if (focusRequest !== null && focusRequest !== undefined && index >= 0) {
             focusAt({ row: index, column: focusRequest.column });
-            scroller.current?.focus();
+            if (focusRequest.quiet !== true) {
+                scroller.current?.focus();
+            }
         }
         // Only a new request moves the focus; the rows changing under a request already handled must not.
         // oxlint-disable-next-line react-hooks/exhaustive-deps

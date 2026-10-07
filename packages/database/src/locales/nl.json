@@ -284,7 +284,6 @@
         },
         "cloneRows": "Geselecteerde rijen klonen",
         "revertRows": "Geselecteerde rijen terugdraaien",
-        "valuePanel": "Waardeneditor",
         "firstPage": "Eerste pagina",
         "lastPage": "Laatste pagina",
         "lastPageCounts": "Telt eerst de rijen",
@@ -307,7 +306,10 @@
             "next": "Volgende rij",
             "newRow": "Nieuwe rij",
             "row": "Rij {{number}}",
-            "position": "{{index}} van {{count}} op deze pagina"
+            "position": "{{index}} van {{count}} op deze pagina",
+            "close": "Recordweergave sluiten",
+            "expand": "Hele waarde tonen",
+            "collapse": "Hele waarde verbergen"
         },
         "aggregates": {
             "sum": "Som",
