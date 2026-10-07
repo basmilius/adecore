@@ -1,7 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode, type Ref } from 'react';
 import clsx from 'clsx';
 import { Check, CircleAlert, History, Play, Square, X } from 'lucide-react';
-import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { Banner, Button, ColumnResizeHandle, Icon, IconButton, messageOf, PromptDialog, Spinner, Tabs, Tooltip, useColumnResize } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
@@ -54,14 +53,6 @@ type Run =
     | { readonly status: 'failed'; readonly message: string }
     | { readonly status: 'cancelled' };
 
-/* What a run is about to execute, and how the toolbar names it afterwards. */
-interface RunTarget {
-    readonly sql: string;
-    readonly ran: Ran;
-}
-
-type Ran = { readonly kind: 'statement'; readonly label: string } | { readonly kind: 'selection' } | { readonly kind: 'all'; readonly count: number };
-
 interface PageState {
     readonly offset: number;
     readonly rows: RowsResult;
@@ -88,17 +79,6 @@ const parseHeight = (raw: string | null | undefined): number | null => {
         return typeof value === 'number' && Number.isFinite(value) && value >= MIN_RESULTS_HEIGHT ? Math.round(value) : null;
     } catch {
         return null;
-    }
-};
-
-const ranText = (ran: Ran, t: TFunction<'database'>): string => {
-    switch (ran.kind) {
-        case 'statement':
-            return t('console.ranStatement', { statement: ran.label });
-        case 'selection':
-            return t('console.ranSelection');
-        case 'all':
-            return t('console.ranAll', { count: ran.count, formatted: formatNumber(ran.count) });
     }
 };
 
@@ -144,7 +124,6 @@ export function QueryConsole({
     const resultsPane = useRef<HTMLElement>(null);
     const [own, setOwn] = useState(defaultValue);
     const [run, setRun] = useState<Run>({ status: 'idle' });
-    const [ran, setRan] = useState<Ran | null>(null);
     const [tab, setTab] = useState(0);
     const [pages, setPages] = useState<Readonly<Record<number, PageState>>>({});
     const [paging, setPaging] = useState(false);
@@ -154,7 +133,7 @@ export function QueryConsole({
     const [inTransaction, setInTransaction] = useState(false);
     const [settling, setSettling] = useState(false);
     const [endingManual, setEndingManual] = useState(false);
-    const [confirming, setConfirming] = useState<{ readonly target: RunTarget; readonly statements: readonly DestructiveStatement[] } | null>(null);
+    const [confirming, setConfirming] = useState<{ readonly target: string; readonly statements: readonly DestructiveStatement[] } | null>(null);
     const [schemas, setSchemas] = useState<readonly SchemaInfo[]>([]);
     const [seededSchema, setSeededSchema] = useState(schema);
     const [pickedSchema, setPickedSchema] = useState<string | undefined>(undefined);
@@ -207,33 +186,28 @@ export function QueryConsole({
         onValueChange?.(next);
     };
 
-    const targetOf = (scope: QueryConsoleRunScope): RunTarget | null => {
+    /* The SQL a run of the scope sends, or null when there is nothing to run. */
+    const targetOf = (scope: QueryConsoleRunScope): string | null => {
         if (engine === undefined) {
             return null;
         }
         const selection = editorHandle.current?.selection();
         if (scope === 'all' || selection === undefined) {
-            const statements = splitStatements(sql, engine);
-            const [only] = statements;
-            if (only === undefined) {
-                return null;
-            }
-            return { sql, ran: statements.length > 1 ? { kind: 'all', count: statements.length } : { kind: 'statement', label: statementLabel(only.text) } };
+            return splitStatements(sql, engine).length === 0 ? null : sql;
         }
         const { start, end } = selection;
         const selected = sql.slice(start, end);
         if (splitStatements(selected, engine).length > 0) {
-            return { sql: selected, ran: { kind: 'selection' } };
+            return selected;
         }
-        const statement = statementAt(sql, start, engine);
-        return statement === null ? null : { sql: statement.text, ran: { kind: 'statement', label: statementLabel(statement.text) } };
+        return statementAt(sql, start, engine)?.text ?? null;
     };
 
-    const requestRun = (target: RunTarget | null): void => {
+    const requestRun = (target: string | null): void => {
         if (target === null || busy || engine === undefined) {
             return;
         }
-        const statements = findDestructive(target.sql, engine);
+        const statements = findDestructive(target, engine);
         if (statements.length > 0) {
             setConfirming({ target, statements });
             return;
@@ -241,7 +215,7 @@ export function QueryConsole({
         void execute(target);
     };
 
-    const execute = async (target: RunTarget): Promise<void> => {
+    const execute = async (target: string): Promise<void> => {
         if (session === null || connection === undefined) {
             return;
         }
@@ -250,15 +224,14 @@ export function QueryConsole({
         running.current = controller;
         setResultsOpen(true);
         setRun({ status: 'running' });
-        setRan(target.ran);
         setNotice(null);
         const record = (outcome: Pick<HistoryEntry, 'ok' | 'rows'>): void =>
-            history.record({ sql: target.sql, at: Date.now(), connection: connection.name, ...outcome });
+            history.record({ sql: target, at: Date.now(), connection: connection.name, ...outcome });
         try {
             if (mode === 'manual' && !inTransaction) {
                 setInTransaction(await session.transaction('begin', { signal: controller.signal }));
             }
-            const executed = await session.execute(target.sql, { schema: activeSchema, limit: PAGE_SIZE, signal: controller.signal });
+            const executed = await session.execute(target, { schema: activeSchema, limit: PAGE_SIZE, signal: controller.signal });
             if (controller.signal.aborted) {
                 setRun({ status: 'cancelled' });
                 return;
@@ -285,7 +258,7 @@ export function QueryConsole({
     const pickHistory = (entry: HistoryEntry, runIt: boolean): void => {
         changeSql(entry.sql);
         if (runIt) {
-            requestRun({ sql: entry.sql, ran: { kind: 'statement', label: statementLabel(entry.sql) } });
+            requestRun(entry.sql);
         }
     };
 
@@ -437,7 +410,6 @@ export function QueryConsole({
                                     onCommit={() => void settle('commit')}
                                     onRollback={() => void settle('rollback')}
                                 />
-                                {ran !== null && run.status !== 'idle' && <span className="min-w-0 truncate text-xs text-text-muted">{ranText(ran, t)}</span>}
                             </>
                         )}
                         <div className="ml-auto flex items-center gap-2">

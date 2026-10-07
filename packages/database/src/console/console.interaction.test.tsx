@@ -57,7 +57,9 @@ describe.skipIf(typeof document === 'undefined')('QueryConsole in a DOM', () => 
         await press(editor(), 'Enter', MOD);
 
         expect(recorded.executed()).toEqual(['SELECT 2']);
-        expect(document.body.textContent).toContain('Ran: SELECT 2');
+        // The tab of the result names what ran; the bar does not say it again.
+        expect(findAll('[role=tab]').map((tab) => tab.textContent)).toEqual(['SELECT 2']);
+        expect(document.body.textContent).not.toContain('Ran');
     });
 
     test('Mod+Enter runs the selection when there is one', async () => {
@@ -66,7 +68,6 @@ describe.skipIf(typeof document === 'undefined')('QueryConsole in a DOM', () => 
         await press(editor(), 'Enter', MOD);
 
         expect(recorded.executed()).toEqual(['SELECT 1;\nSELECT 2;']);
-        expect(document.body.textContent).toContain('Ran the selection');
     });
 
     test('Mod+Shift+Enter runs the whole script', async () => {
@@ -75,7 +76,6 @@ describe.skipIf(typeof document === 'undefined')('QueryConsole in a DOM', () => 
         await press(editor(), 'Enter', { ...MOD, shiftKey: true });
 
         expect(recorded.executed()).toEqual([SCRIPT]);
-        expect(document.body.textContent).toContain('Ran all 3 statements');
     });
 
     test('runs nothing for a blank editor', async () => {
