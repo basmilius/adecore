@@ -14,6 +14,8 @@ import { TableDesigner } from '@adecore/database';
 
 Leave out `table` and the designer starts a new table in `schema`. A different `table` loads that table and drops the draft. The demo's in-memory server runs no `ALTER TABLE`, so Apply shows its error there.
 
+`toolbarStart` draws the app's own content at the start of the toolbar, before the name of the table, with a separator after it, the way [`TableView`](/database/views/table-view#your-own-content-in-the-toolbar) draws it in its toolbar. It shows once the table has loaded.
+
 ## The draft
 
 The designer loads the table and the server's version, and turns them into a draft the four tabs edit. The SQL differs between SQLite and MySQL or MariaDB, and so do some fields. Each tab shows how many items the draft holds.
@@ -51,12 +53,13 @@ The tabs and the name are disabled, and a banner says why:
 
 ## Props
 
-| Prop         | Type                  | Default |                                                                 |
-| ------------ | --------------------- | ------- | --------------------------------------------------------------- |
-| `connection` | `Connection`          |         | Required. The connection the table is in.                       |
-| `schema`     | `string`              |         | Required. The schema of the table, or of the new table.         |
-| `table`      | `string`              |         | The table to change. Without it the designer makes a new table. |
-| `className`  | `string`              |         | Its size.                                                       |
-| `ref`        | `Ref<HTMLDivElement>` |         |                                                                 |
+| Prop           | Type                  | Default |                                                                 |
+| -------------- | --------------------- | ------- | --------------------------------------------------------------- |
+| `connection`   | `Connection`          |         | Required. The connection the table is in.                       |
+| `schema`       | `string`              |         | Required. The schema of the table, or of the new table.         |
+| `table`        | `string`              |         | The table to change. Without it the designer makes a new table. |
+| `toolbarStart` | `ReactNode`           |         | The app's own content at the start of the toolbar.              |
+| `className`    | `string`              |         | Its size.                                                       |
+| `ref`          | `Ref<HTMLDivElement>` |         |                                                                 |
 
 `TableDesignerProps` is an exported type. The designer needs a [`DatabaseProvider`](/database/guide/getting-started#databaseprovider) above it.

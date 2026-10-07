@@ -17,16 +17,19 @@ import { StructureView } from '@adecore/database';
 - Foreign keys lists the name, the columns, the table and columns they reference, and the On update and On delete actions. An action the engine decides reads Default.
 - DDL shows the `CREATE` statement as the server writes it, with a Copy button.
 
+`toolbarStart` draws the app's own content before the four tabs, in the same row, with a separator after it, the way [`TableView`](/database/views/table-view#your-own-content-in-the-toolbar) draws it in its toolbar. It shows once the structure has loaded.
+
 A tab with nothing to show says so. The view loads again when the connection, the schema or the table changes. After a [schema change](/database/api/client#schema-changes) for its schema it loads again too, and keeps the old structure on screen until the new one arrives. A failed load shows the message with Try again.
 
 ## Props
 
-| Prop         | Type                  | Default |                                           |
-| ------------ | --------------------- | ------- | ----------------------------------------- |
-| `connection` | `Connection`          |         | Required. The connection the table is in. |
-| `schema`     | `string`              |         | Required. The schema of the table.        |
-| `table`      | `string`              |         | Required. The table or view.              |
-| `className`  | `string`              |         | Its size.                                 |
-| `ref`        | `Ref<HTMLDivElement>` |         |                                           |
+| Prop           | Type                  | Default |                                           |
+| -------------- | --------------------- | ------- | ----------------------------------------- |
+| `connection`   | `Connection`          |         | Required. The connection the table is in. |
+| `schema`       | `string`              |         | Required. The schema of the table.        |
+| `table`        | `string`              |         | Required. The table or view.              |
+| `toolbarStart` | `ReactNode`           |         | The app's own content before the tabs.    |
+| `className`    | `string`              |         | Its size.                                 |
+| `ref`          | `Ref<HTMLDivElement>` |         |                                           |
 
 `StructureViewProps` is an exported type. The view needs a [`DatabaseProvider`](/database/guide/getting-started#databaseprovider) above it.

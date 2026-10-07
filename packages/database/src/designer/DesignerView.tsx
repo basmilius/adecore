@@ -1,8 +1,8 @@
-import type { KeyboardEvent, Ref } from 'react';
+import type { KeyboardEvent, ReactNode, Ref } from 'react';
 import clsx from 'clsx';
 import { CircleAlert, Lock, Undo2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Banner, Button, DisabledReason, Field, Icon, Input, PromptDialog, Tabs, isApplePlatform, matchesShortcut, shortcut } from '@adecore/ui';
+import { Banner, Button, DisabledReason, Field, Icon, Input, PromptDialog, Separator, Tabs, isApplePlatform, matchesShortcut, shortcut } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
 import { CODE_TEXT } from '../code-text.ts';
 import type { Dialect, TableDraft } from '../ddl/index.ts';
@@ -40,6 +40,8 @@ export interface DesignerViewProps {
     onCancelConfirm(): void;
     onRevert(): void;
     onDismissFailure(): void;
+    /* The app's own content before the name of the table, such as where it is, with a separator after it. */
+    toolbarStart?: ReactNode;
     className?: string;
     ref?: Ref<HTMLDivElement>;
 }
@@ -65,6 +67,7 @@ export function DesignerView({
     onCancelConfirm,
     onRevert,
     onDismissFailure,
+    toolbarStart,
     className,
     ref
 }: DesignerViewProps) {
@@ -85,6 +88,13 @@ export function DesignerView({
     return (
         <div ref={ref} className={clsx('flex min-h-0 min-w-0 flex-col', className)} onKeyDown={handleKeyDown}>
             <div className="flex shrink-0 items-end gap-3 border-b border-border-soft px-3 py-2">
+                {toolbarStart !== undefined && toolbarStart !== null && toolbarStart !== false && (
+                    // As tall as the field's input and level with it, since the field's label stands above the row.
+                    <span className="flex h-8 shrink-0 items-center gap-3">
+                        {toolbarStart}
+                        <Separator />
+                    </span>
+                )}
                 <Field label={t('designer.tableName')} className="w-80">
                     <Input
                         mono

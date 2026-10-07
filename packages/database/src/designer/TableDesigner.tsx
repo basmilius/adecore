@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type Ref } from 'react';
+import { useMemo, useRef, useState, type ReactNode, type Ref } from 'react';
 import clsx from 'clsx';
 import { CircleAlert, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -19,6 +19,8 @@ export interface TableDesignerProps {
     schema: string;
     /* The table to modify; without one the designer makes a new table. */
     table?: string;
+    /* The app's own content at the start of the toolbar, before the name of the table, such as where it is. */
+    toolbarStart?: ReactNode;
     className?: string;
     ref?: Ref<HTMLDivElement>;
 }
@@ -39,7 +41,7 @@ interface Editing {
 }
 
 /* Creates a table or modifies one: its columns, indexes, foreign keys and options, with the SQL it will run shown before it runs. */
-export function TableDesigner({ connection, schema, table, className, ref }: TableDesignerProps) {
+export function TableDesigner({ connection, schema, table, toolbarStart, className, ref }: TableDesignerProps) {
     const { t } = useTranslation('database');
     const client = useDatabaseClient();
     const onAction = useDatabaseAction();
@@ -179,6 +181,7 @@ export function TableDesigner({ connection, schema, table, className, ref }: Tab
                         setFailure(null);
                     }}
                     onDismissFailure={() => setFailure(null)}
+                    toolbarStart={toolbarStart}
                 />
             )}
         </div>

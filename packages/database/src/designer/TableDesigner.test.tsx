@@ -135,6 +135,14 @@ describe('DesignerView', () => {
     test('takes a class name', () => {
         expect(view(draftOf(structure), { className: 'extra' })).toContain('extra');
     });
+
+    test('draws the app’s own content before the name of the table, with a separator after it', () => {
+        const markup = view(draftOf(structure), { toolbarStart: <span>Shop › shop</span> });
+        const start = markup.indexOf('>Shop › shop</span>');
+        const separator = markup.search(/<span aria-hidden="true" class="[^"]*h-4 w-px/);
+        expect(start).toBeGreaterThan(-1);
+        expect(start < separator && separator < markup.indexOf('Table name')).toBe(true);
+    });
 });
 
 describe('the tabs of the designer', () => {

@@ -90,6 +90,8 @@ export interface TableViewProps {
     connection: Connection;
     schema: string;
     table: string;
+    /* The app's own content at the start of the toolbar, such as where the table is; the view draws the separators around the command field. */
+    toolbarStart?: ReactNode;
     /* The filters the view starts with, such as the condition of a jump along a foreign key. They win over the ones remembered. */
     defaultWhere?: string;
     defaultOrderBy?: string;
@@ -116,7 +118,7 @@ const DUPLICATE_ROWS = shortcut('Mod+D');
  * The rows of one table: read a page at a time, filtered and sorted with SQL a person types, and
  * editable in place. Changes pile up as pending and go to the server together on Submit.
  */
-export function TableView({ connection, schema, table, defaultWhere, defaultOrderBy, onDirtyChange, className, ref }: TableViewProps) {
+export function TableView({ connection, schema, table, toolbarStart, defaultWhere, defaultOrderBy, onDirtyChange, className, ref }: TableViewProps) {
     // A new table, or the same one asked for with other filters, starts from nothing: no page, no pending change.
     return (
         <TableBody
@@ -124,6 +126,7 @@ export function TableView({ connection, schema, table, defaultWhere, defaultOrde
             connection={connection}
             schema={schema}
             table={table}
+            toolbarStart={toolbarStart}
             defaultWhere={defaultWhere}
             defaultOrderBy={defaultOrderBy}
             onDirtyChange={onDirtyChange}
@@ -133,7 +136,7 @@ export function TableView({ connection, schema, table, defaultWhere, defaultOrde
     );
 }
 
-function TableBody({ connection, schema, table, defaultWhere, defaultOrderBy, onDirtyChange, className, ref }: TableViewProps) {
+function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defaultOrderBy, onDirtyChange, className, ref }: TableViewProps) {
     const { t } = useTranslation('database');
     const client = useDatabaseClient();
     const onAction = useDatabaseAction();
@@ -636,6 +639,7 @@ function TableBody({ connection, schema, table, defaultWhere, defaultOrderBy, on
     return (
         <div ref={ref} className={clsx('flex min-h-0 flex-col bg-surface text-text', className)} onKeyDown={handleKeyDown}>
             <TableToolbar
+                start={toolbarStart}
                 refreshing={rowsLoad.loading}
                 readOnlyReason={readOnlyReason}
                 hasSelection={selected.size > 0}

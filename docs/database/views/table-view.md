@@ -105,6 +105,14 @@ Filtering, sorting, export and the record view keep working; its fields are read
 
 <Demo src="database/table-view-read-only" fill />
 
+## Your own content in the toolbar
+
+`toolbarStart` draws the app's own content at the start of the toolbar, before the command field, such as where the table is when the view is one tab among many. The view draws a separator after it and another after the command field, so the bar reads as three groups: yours, the command field, and the buttons. Without it the toolbar has no separators.
+
+```tsx
+<TableView connection={connection} schema="main" table="orders" toolbarStart={<Breadcrumb connection={connection} schema="main" />} />
+```
+
 ## Props
 
 | Prop             | Type                       | Default |                                                         |
@@ -112,6 +120,7 @@ Filtering, sorting, export and the record view keep working; its fields are read
 | `connection`     | `Connection`               |         | Required. The connection the table is in.               |
 | `schema`         | `string`                   |         | Required. The schema of the table, `main` in SQLite.    |
 | `table`          | `string`                   |         | Required. The table or view.                            |
+| `toolbarStart`   | `ReactNode`                |         | The app's own content at the start of the toolbar.      |
 | `defaultWhere`   | `string`                   |         | A filter the view starts with, as typed after `WHERE`.  |
 | `defaultOrderBy` | `string`                   |         | A sort the view starts with, as typed after `ORDER BY`. |
 | `onDirtyChange`  | `(dirty: boolean) => void` |         | Whether the view holds pending changes.                 |

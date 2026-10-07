@@ -68,6 +68,15 @@ describe('StructureTabs', () => {
         }
     });
 
+    test('draws the app’s own content before the tabs, with a separator after it', () => {
+        const markup = render(<StructureTabs structure={structure} start={<span>Shop › shop</span>} />);
+        const start = markup.indexOf('>Shop › shop</span>');
+        const separator = markup.search(/<span aria-hidden="true" class="[^"]*h-4 w-px/);
+        expect(start).toBeGreaterThan(-1);
+        expect(start < separator && separator < markup.indexOf('role="tablist"')).toBe(true);
+        expect(render(<StructureTabs structure={structure} />)).not.toMatch(/h-4 w-px/);
+    });
+
     test('lists the columns with their type, default, extra and comment', () => {
         const markup = render(<StructureTabs structure={structure} />);
         expect(markup).toContain('user_id');

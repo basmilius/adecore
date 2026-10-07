@@ -1,4 +1,4 @@
-import type { Ref } from 'react';
+import type { ReactNode, Ref } from 'react';
 import clsx from 'clsx';
 import {
     ChevronsLeft,
@@ -16,7 +16,7 @@ import {
     Undo2
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Button, ButtonGroup, Icon, IconButton, Menu } from '@adecore/ui';
+import { Button, ButtonGroup, Icon, IconButton, Menu, Separator } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
 import type { Engine, FileFormat } from '../protocol/index.ts';
 import { CommandField } from './CommandField.tsx';
@@ -35,6 +35,8 @@ export interface TransferMenu {
 const EXPORT_FORMATS: readonly FileFormat[] = ['csv', 'tsv', 'json', 'sql'];
 
 export interface TableToolbarProps {
+    /* The app's own content before the command field, such as where the table is, with a separator after it and after the field. */
+    start?: ReactNode;
     refreshing: boolean;
     /* Why rows cannot be added, changed or deleted, or `null` when they can. */
     readOnlyReason: string | null;
@@ -74,6 +76,7 @@ export interface TableToolbarProps {
 
 /* The command field for filtering, sorting and jumping to a column, refresh, add row, the submit of pending changes, and a menu of the rest. */
 export function TableToolbar({
+    start,
     refreshing,
     readOnlyReason,
     hasSelection,
@@ -106,11 +109,19 @@ export function TableToolbar({
 }: TableToolbarProps) {
     const { t } = useTranslation('database');
     const readOnly = readOnlyReason !== null;
+    const hasStart = start !== undefined && start !== null && start !== false;
     const tooltipOf = (label: string): string => (readOnly ? t('table.unavailable', { action: label, reason: readOnlyReason }) : label);
 
     return (
         <div ref={ref} className={clsx('flex shrink-0 items-center gap-2 border-b border-border px-3 py-2', className)}>
+            {hasStart && (
+                <>
+                    {start}
+                    <Separator />
+                </>
+            )}
             <CommandField chips={chips} columns={columns} engine={engine} inputRef={commandRef} onChipsChange={onChipsChange} onJumpToColumn={onJumpToColumn} />
+            {hasStart && <Separator />}
             {pendingCount > 0 && (
                 <>
                     <Button variant="primary" size="sm" disabled={submitting} onClick={onSubmit}>

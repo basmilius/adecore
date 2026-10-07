@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode, type Ref } from 'react';
 import clsx from 'clsx';
 import { CircleAlert, Copy, KeyRound, Link2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Banner, Button, EmptyState, Icon, Pill, Spinner, Tabs, copyText, messageOf } from '@adecore/ui';
+import { Banner, Button, EmptyState, Icon, Pill, Separator, Spinner, Tabs, copyText, messageOf } from '@adecore/ui';
 import { useDatabaseClient } from '../client-context.ts';
 import type { Connection } from '../client/types.ts';
 import { CODE_TEXT } from '../code-text.ts';
@@ -14,6 +14,8 @@ export interface StructureViewProps {
     connection: Connection;
     schema: string;
     table: string;
+    /* The app's own content before the tabs, such as where the table is, with a separator after it. */
+    toolbarStart?: ReactNode;
     className?: string;
     ref?: Ref<HTMLDivElement>;
 }
@@ -37,7 +39,7 @@ const TD = 'h-7 border-t border-border-soft px-3 text-xs whitespace-nowrap text-
 const MONO = CODE_TEXT;
 
 /* The columns, indexes, foreign keys and DDL of one table or view. */
-export function StructureView({ connection, schema, table, className, ref }: StructureViewProps) {
+export function StructureView({ connection, schema, table, toolbarStart, className, ref }: StructureViewProps) {
     const { t } = useTranslation('database');
     const client = useDatabaseClient();
     const [answer, setAnswer] = useState<Answer | null>(null);
@@ -84,16 +86,23 @@ export function StructureView({ connection, schema, table, className, ref }: Str
                     </Banner>
                 </div>
             )}
-            {load.status === 'ready' && <StructureTabs structure={load.structure} />}
+            {load.status === 'ready' && <StructureTabs structure={load.structure} start={toolbarStart} />}
         </div>
     );
 }
 
-export function StructureTabs({ structure }: { structure: TableStructure }) {
+export function StructureTabs({ structure, start }: { structure: TableStructure; start?: ReactNode }) {
     const { t } = useTranslation('database');
+    const head =
+        start === undefined || start === null || start === false ? undefined : (
+            <span className="flex items-center gap-4">
+                {start}
+                <Separator />
+            </span>
+        );
     return (
         <Tabs.Root defaultValue="columns" className="flex min-h-0 grow flex-col">
-            <Tabs.List className="shrink-0 px-3">
+            <Tabs.List className="shrink-0 px-3" start={head}>
                 <Tabs.Tab value="columns">
                     {t('structure.columns')}
                     <Tabs.Count value={structure.columns.length} />

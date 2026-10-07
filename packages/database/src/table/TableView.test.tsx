@@ -33,6 +33,19 @@ describe('TableView', () => {
         expect(markup).not.toContain('role="grid"');
     });
 
+    test('draws the app’s own content at the start of the toolbar, with a separator before and after the command field', () => {
+        const separator = /<span aria-hidden="true" class="[^"]*h-4 w-px[^"]*"><\/span>/g;
+        const markup = render(<TableView connection={writable} schema="main" table="users" toolbarStart={<span>Notes › main</span>} />);
+        const start = markup.indexOf('>Notes › main</span>');
+        const field = markup.indexOf('role="combobox"');
+        const refresh = markup.indexOf('aria-label="Refresh"');
+        const separators = [...markup.matchAll(separator)].map((match) => match.index);
+        expect(start).toBeGreaterThan(-1);
+        expect(separators).toHaveLength(2);
+        expect(start < separators[0]! && separators[0]! < field && field < separators[1]! && separators[1]! < refresh).toBe(true);
+        expect(render(<TableView connection={writable} schema="main" table="users" />).match(separator)).toBeNull();
+    });
+
     test('has one command field for filtering, sorting and jumping to a column, and no WHERE or ORDER BY input', () => {
         const markup = render(<TableView connection={writable} schema="main" table="users" />);
         expect(markup.match(/role="combobox"/g)).toHaveLength(1);
