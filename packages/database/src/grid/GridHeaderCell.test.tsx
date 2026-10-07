@@ -56,6 +56,12 @@ describe('GridHeaderCell', () => {
         expect(markup).toContain('text-text-muted');
     });
 
+    test('writes the name in the face and size of the cells', () => {
+        const markup = render(<GridHeaderCell {...props} />);
+        expect(markup).toMatch(/role="columnheader"[^>]*class="[^"]*font-mono text-\(length:--code-font-size\)/);
+        expect(markup).not.toMatch(/role="columnheader"[^>]*class="[^"]*text-xs/);
+    });
+
     test('wears the accent when its column is picked, with the menu button in view', () => {
         const markup = render(<GridHeaderCell {...props} selected />);
         expect(markup).toContain('aria-selected="true"');

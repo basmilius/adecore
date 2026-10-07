@@ -20,6 +20,8 @@ The view loads the structure of the table and its first page of rows, 500 by def
 
 A cell draws by the `kind` of its column: numbers align right, NULL reads `NULL`, binary shows as hex with its size, and a long text as a preview. Numbers appear as the server wrote them, unless the provider's [`numberNotation`](/database/guide/getting-started#number-notation) is `'region'`. Before an editor opens on a preview, the view fetches the whole value with `cell`.
 
+The cells, the column headers and the field names of the record view are written in the code font at [`--code-font-size`](/ui/guide/theme), the way the columns are written in SQL; the results of a [console](/database/views/query-console) draw the same grid.
+
 ## The command field
 
 The field in the toolbar holds the filters and the sorts, as chips before the text. Cmd or Ctrl and F puts the focus in it.

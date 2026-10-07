@@ -4,6 +4,7 @@ import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, Copy, Eye, EyeOff, Pin, P
 import { useTranslation } from 'react-i18next';
 import { ColumnResizeHandle, ContextMenu, copyText, Icon, IconButton, isApplePlatform, isModHeld, Menu, Tooltip, useColumnResize } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
+import { CODE_TEXT } from '../code-text.ts';
 import { keyLabelOf } from '../column-keys.ts';
 import { KeyIcon } from '../KeyIcon.tsx';
 import type { SortDirection } from '../sql.ts';
@@ -187,7 +188,9 @@ export function GridHeaderCell({
                 aria-sort={sortable ? (sort === null ? 'none' : sort.direction === 'asc' ? 'ascending' : 'descending') : undefined}
                 data-selected={selected ? '' : undefined}
                 className={clsx(
-                    'group/header flex h-full shrink-0 cursor-default text-xs font-medium select-none',
+                    // The name in the face and size of the cells under it, which is how the column is written in SQL too.
+                    'group/header flex h-full shrink-0 cursor-default font-medium select-none',
+                    CODE_TEXT,
                     'relative',
                     pinned && 'bg-clip-border',
                     selected ? 'bg-accent text-accent-text' : [pinned && 'bg-surface', sort === null ? 'text-text-muted' : 'text-text'],
