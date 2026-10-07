@@ -328,7 +328,8 @@
             "running": "Exporteren als {{format}}",
             "cancel": "Annuleren",
             "done_one": "{{rows}} rij geëxporteerd.",
-            "done_other": "{{rows}} rijen geëxporteerd."
+            "done_other": "{{rows}} rijen geëxporteerd.",
+            "failed": "Exporteren is mislukt"
         },
         "import": {
             "menu": "Importeren uit bestand",
@@ -344,7 +345,8 @@
             "skip": "Overslaan",
             "preview": "Eerste {{count}} rijen van het bestand",
             "cancel": "Annuleren",
-            "confirm": "Importeren"
+            "confirm": "Importeren",
+            "readFailed": "Het bestand kon niet worden gelezen"
         },
         "more": "Meer acties",
         "of": "van",
@@ -403,7 +405,9 @@
             "commit": "Vastleggen",
             "rollback": "Terugdraaien",
             "endTitle": "De transactie afsluiten?",
-            "endDescription": "Er staat nog een transactie open. Leg haar vast om de wijzigingen te bewaren, of draai haar terug om ze weg te gooien."
+            "endDescription": "Er staat nog een transactie open. Leg haar vast om de wijzigingen te bewaren, of draai haar terug om ze weg te gooien.",
+            "commitFailed": "Vastleggen is mislukt",
+            "rollbackFailed": "Terugdraaien is mislukt"
         },
         "destructive": {
             "title": "Destructieve opdrachten uitvoeren?",
@@ -425,7 +429,9 @@
             "hint": "Klik om te bewerken, dubbelklik om uit te voeren.",
             "rows_one": "{{formatted}} rij",
             "rows_other": "{{formatted}} rijen"
-        }
+        },
+        "pageFailed": "De pagina kon niet worden gelezen",
+        "exportFailed": "Exporteren is mislukt"
     },
     "value": {
         "title": "Waarde",

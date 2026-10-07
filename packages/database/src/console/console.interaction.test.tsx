@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { useImperativeHandle, useRef } from 'react';
-import type { DatabaseAction } from '../actions.ts';
+import type { DatabaseAction, DatabaseFiles, DatabaseNotice } from '../actions.ts';
 import type { Connection } from '../client/types.ts';
 import type { Mounted, RecordedTransport } from '../testing/dom/harness.tsx';
 import { SHOP_PATH, shopDatabase } from '../testing/dom/shop.ts';
@@ -440,5 +440,44 @@ describe.skipIf(typeof document === 'undefined')('the keys in the results of a Q
         await contextMenu(customer);
         await click(byText('[role=menuitem]', 'Go to referenced row'));
         expect(actions).toEqual([{ kind: 'open-table', ref: { connectionId: 'one', schema: 'main', table: 'customers' }, view: 'data', where: '"id" = 1' }]);
+    });
+});
+
+describe.skipIf(typeof document === 'undefined')('the notices of a QueryConsole', () => {
+    let client: ReturnType<typeof clientOver>;
+    let mounted: Mounted;
+    const files: DatabaseFiles = { save: () => Promise.resolve('/tmp/result.csv'), open: () => Promise.resolve(null) };
+
+    beforeEach(() => {
+        client = clientOver(fakeDatabaseTransport({ databases: { [SHOP_PATH]: shopDatabase } }));
+    });
+
+    afterEach(async () => {
+        await mounted.unmount();
+        await client.dispose();
+    });
+
+    const exportResult = async (): Promise<void> => {
+        await click(byText('button', 'Run'));
+        await waitFor(() => expect(findAll('[role=gridcell]').length).toBeGreaterThan(0));
+        await click(byLabel('Export result'));
+        await click(byText('[role=menuitem]', 'Export as CSV'));
+    };
+
+    test('go to the app when it takes them, and the console shows none itself', async () => {
+        const notices: DatabaseNotice[] = [];
+        mounted = await mount(<QueryConsole connection={connection} defaultValue="SELECT * FROM orders" />, { client, notices, files });
+        await exportResult();
+        await waitFor(() => expect(notices).toHaveLength(1));
+
+        expect(notices[0]).toEqual({ tone: 'error', title: 'Export failed', description: 'The fake database has no files to export to.' });
+        expect(findAll('button').map((button) => button.textContent)).not.toContain('Dismiss');
+    });
+
+    test('stay in the console without an app that takes them', async () => {
+        mounted = await mount(<QueryConsole connection={connection} defaultValue="SELECT * FROM orders" />, { client, files });
+        await exportResult();
+        await waitFor(() => expect(document.body.textContent).toContain('The fake database has no files to export to.'));
+        expect(byText('button', 'Dismiss')).toBeDefined();
     });
 });

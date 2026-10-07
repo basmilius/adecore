@@ -11,7 +11,7 @@ export type TransferNotice =
     | { readonly kind: 'exporting'; readonly format: FileFormat }
     | { readonly kind: 'exported'; readonly rows: number }
     | { readonly kind: 'imported'; readonly rows: number }
-    | { readonly kind: 'failed'; readonly message: string };
+    | { readonly kind: 'failed'; readonly during: 'export' | 'import'; readonly message: string };
 
 /* The import a person is setting up. */
 export interface ImportDraft {
@@ -38,6 +38,8 @@ export interface TableTransferInput {
     readonly orderBy: string;
     /* Rows were added; the table reloads. */
     readonly onImported: () => void;
+    /* Takes what finished or failed off the strip, for the app to show; the strip keeps only a running export. */
+    readonly report?: (notice: TransferNotice) => void;
 }
 
 export interface TableTransfer {
@@ -55,7 +57,7 @@ export interface TableTransfer {
 }
 
 /* Export of the table as filtered, and import of a file into it, with the state both need between the dialogs and the strip. */
-export function useTableTransfer({ client, session, files, schema, table, structure, where, orderBy, onImported }: TableTransferInput): TableTransfer {
+export function useTableTransfer({ client, session, files, schema, table, structure, where, orderBy, onImported, report }: TableTransferInput): TableTransfer {
     const [notice, setNotice] = useState<TransferNotice | null>(null);
     const [importDraft, setImportDraft] = useState<ImportDraft | null>(null);
     const exporting = useRef<AbortController | null>(null);
@@ -71,6 +73,15 @@ export function useTableTransfer({ client, session, files, schema, table, struct
     }, [notice]);
 
     useEffect(() => () => sampling.current?.abort(), []);
+
+    const show = (next: TransferNotice): void => {
+        if (report === undefined) {
+            setNotice(next);
+        } else {
+            setNotice(null);
+            report(next);
+        }
+    };
 
     const exportAs = (format: FileFormat): void => {
         if (files === undefined || exporting.current !== null) {
@@ -89,10 +100,14 @@ export function useTableTransfer({ client, session, files, schema, table, struct
                     { source: { kind: 'table', schema, table, where: where || undefined, orderBy: orderBy || undefined }, format, path },
                     { signal: controller.signal }
                 );
-                setNotice({ kind: 'exported', rows: result.rows });
+                show({ kind: 'exported', rows: result.rows });
             } catch (error) {
                 const cancelled = controller.signal.aborted || (error instanceof DatabaseRequestError && error.code === 'cancelled');
-                setNotice(cancelled ? null : { kind: 'failed', message: messageOf(error) });
+                if (cancelled) {
+                    setNotice(null);
+                } else {
+                    show({ kind: 'failed', during: 'export', message: messageOf(error) });
+                }
             } finally {
                 exporting.current = null;
             }
@@ -120,7 +135,7 @@ export function useTableTransfer({ client, session, files, schema, table, struct
                 const read = await sample(path, format, true);
                 setImportDraft({ path, format, header: true, sample: read, mapping: matchColumns(read.columns, tableColumns, true), busy: false, error: null });
             } catch (error) {
-                setNotice({ kind: 'failed', message: messageOf(error) });
+                show({ kind: 'failed', during: 'import', message: messageOf(error) });
             }
         })();
     };
@@ -159,7 +174,7 @@ export function useTableTransfer({ client, session, files, schema, table, struct
             try {
                 const rows = await session.import(schema, table, { path, format, header, columns: mapping });
                 setImportDraft(null);
-                setNotice({ kind: 'imported', rows });
+                show({ kind: 'imported', rows });
                 onImported();
             } catch (error) {
                 setImportDraft((now) => (now === null ? now : { ...now, busy: false, error: messageOf(error) }));

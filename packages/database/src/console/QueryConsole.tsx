@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { Banner, Button, ColumnResizeHandle, Icon, IconButton, messageOf, PromptDialog, Spinner, Tabs, Tooltip, useColumnResize } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
 import { DatabaseRequestError, type Connection } from '../client/types.ts';
-import { useDatabaseAction, useDatabaseClient, useDatabaseFiles, useDatabaseStorage } from '../client-context.ts';
+import type { DatabaseNotice } from '../actions.ts';
+import { useDatabaseAction, useDatabaseClient, useDatabaseFiles, useDatabaseNotice, useDatabaseStorage } from '../client-context.ts';
 import type { FileFormat, RowsResult, SchemaInfo, StatementResult } from '../protocol/index.ts';
 import { splitStatements, statementAt } from '../sql-split.ts';
 import { DestructiveDialog } from './DestructiveDialog.tsx';
@@ -59,11 +60,6 @@ interface PageState {
     readonly rows: RowsResult;
 }
 
-interface Notice {
-    readonly tone: 'error' | 'neutral';
-    readonly message: string;
-}
-
 /* Rows in the first page of a result, and in every page after it. */
 const PAGE_SIZE = 500;
 
@@ -106,6 +102,7 @@ export function QueryConsole({
     const { t } = useTranslation('database');
     const client = useDatabaseClient();
     const act = useDatabaseAction();
+    const onNotice = useDatabaseNotice();
     const files = useDatabaseFiles();
     const storage = useDatabaseStorage();
     // A channel of its own, so a transaction a person starts here stays out of the table views and the designer.
@@ -140,7 +137,8 @@ export function QueryConsole({
     const [seededSchema, setSeededSchema] = useState(schema);
     const [pickedSchema, setPickedSchema] = useState<string | undefined>(undefined);
     const [exporting, setExporting] = useState(false);
-    const [notice, setNotice] = useState<Notice | null>(null);
+    // What the console shows itself when the app takes no notices.
+    const [notice, setNotice] = useState<DatabaseNotice | null>(null);
     /* Closed until the first run, so the editor has the whole height before anything ran. */
     const [resultsOpen, setResultsOpen] = useState(false);
     const [resultsHeight, setResultsHeight] = useState(() => parseHeight(storage?.get(RESULTS_HEIGHT_KEY)));
@@ -180,6 +178,14 @@ export function QueryConsole({
             .catch(() => undefined);
         return () => controller.abort();
     }, [engine, session]);
+
+    const notify = (next: DatabaseNotice): void => {
+        if (onNotice === undefined) {
+            setNotice(next);
+        } else {
+            onNotice(next);
+        }
+    };
 
     const changeSql = (next: string): void => {
         if (value === undefined) {
@@ -273,7 +279,11 @@ export function QueryConsole({
             setInTransaction(await session.transaction(action));
             return true;
         } catch (error) {
-            setNotice({ tone: 'error', message: messageOf(error) });
+            notify({
+                tone: 'error',
+                title: t(action === 'commit' ? 'console.transaction.commitFailed' : 'console.transaction.rollbackFailed'),
+                description: messageOf(error)
+            });
             return false;
         } finally {
             setSettling(false);
@@ -308,7 +318,7 @@ export function QueryConsole({
                 setPages((current) => ({ ...current, [index]: { offset, rows } }));
             }
         } catch (error) {
-            setNotice({ tone: 'error', message: messageOf(error) });
+            notify({ tone: 'error', title: t('console.pageFailed'), description: messageOf(error) });
         } finally {
             setPaging(false);
         }
@@ -323,10 +333,10 @@ export function QueryConsole({
             const path = await files.save({ suggestedName: `result.${format}`, format });
             if (path !== null) {
                 const exported = await session.export({ source: { kind: 'query', sql: result.sql, schema: activeSchema }, format, path });
-                setNotice({ tone: 'neutral', message: t('console.exported', { count: exported.rows, formatted: formatNumber(exported.rows) }) });
+                notify({ tone: 'success', title: t('console.exported', { count: exported.rows, formatted: formatNumber(exported.rows) }) });
             }
         } catch (error) {
-            setNotice({ tone: 'error', message: messageOf(error) });
+            notify({ tone: 'error', title: t('console.exportFailed'), description: messageOf(error) });
         } finally {
             setExporting(false);
         }
@@ -444,7 +454,12 @@ export function QueryConsole({
                 {session !== null && historyOpen && <HistoryPanel entries={history.entries} onPick={pickHistory} onClear={history.clear} />}
             </div>
             {session !== null && notice !== null && (
-                <Banner icon={notice.tone === 'error' ? CircleAlert : Check} tone={notice.tone} message={notice.message} className="shrink-0 pb-2">
+                <Banner
+                    icon={notice.tone === 'error' ? CircleAlert : Check}
+                    tone={notice.tone === 'error' ? 'error' : 'neutral'}
+                    message={notice.description ?? notice.title}
+                    className="shrink-0 pb-2"
+                >
                     <Button size="xs" onClick={() => setNotice(null)}>
                         {t('console.dismiss')}
                     </Button>

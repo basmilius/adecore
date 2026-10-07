@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import type { DatabaseFiles, DatabaseNotice } from '../actions.ts';
 import type { Connection } from '../client/types.ts';
 import { StructureView } from '../structure/StructureView.tsx';
 import type { Mounted, RecordedTransport } from '../testing/dom/harness.tsx';
@@ -148,5 +149,33 @@ describe.skipIf(typeof document === 'undefined')('the record view beside a table
         await perform(() => input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })));
         await waitFor(() => expect(byText('button', /Submit/).textContent).toContain('1'));
         expect(findAll('[role=gridcell]').some((cell) => cell.textContent === 'Augusta')).toBe(true);
+    });
+});
+
+describe.skipIf(typeof document === 'undefined')('the notices of a TableView', () => {
+    let client: ReturnType<typeof clientOver>;
+    let mounted: Mounted;
+    const files: DatabaseFiles = { save: () => Promise.resolve('/tmp/customers.csv'), open: () => Promise.resolve(null) };
+
+    beforeEach(() => {
+        client = clientOver(fakeDatabaseTransport({ databases: { [SHOP_PATH]: shopDatabase } }));
+    });
+
+    afterEach(async () => {
+        await mounted.unmount();
+        await client.dispose();
+    });
+
+    test('hand a failed export to the app, and leave the strip over the table empty', async () => {
+        const notices: DatabaseNotice[] = [];
+        mounted = await mount(<TableView connection={connection} schema="main" table="customers" />, { client, notices, files });
+        await waitFor(() => expect(findAll('[role=gridcell]').length).toBeGreaterThan(0));
+        await click(byLabel('More actions'));
+        await click(byText('[role=menuitem]', 'Export'));
+        await click(byText('[role=menuitem]', /CSV/));
+        await waitFor(() => expect(notices).toHaveLength(1));
+
+        expect(notices[0]).toEqual({ tone: 'error', title: 'Export failed', description: 'The fake database has no files to export to.' });
+        expect(document.body.textContent).not.toContain('The fake database has no files to export to.');
     });
 });

@@ -141,7 +141,7 @@ The example leaves these decisions to you:
 
 ## Nested providers
 
-`onAction` belongs to the nearest provider, so a provider inside another answers for a part of the page. A provider inside another takes every prop it leaves out from the one above it: the client, `storage`, `files`, `numberNotation` and `onAction` too. Set only what differs for that part.
+`onAction` belongs to the nearest provider, so a provider inside another answers for a part of the page. A provider inside another takes every prop it leaves out from the one above it: the client, `storage`, `files`, `numberNotation`, `onAction` and `onNotice` too. Set only what differs for that part.
 
 To know which tab an action came from, wrap the view of each tab in a provider with an `onAction` of its own. A designer that created or renamed its table then turns its own tab into the designer of that table:
 

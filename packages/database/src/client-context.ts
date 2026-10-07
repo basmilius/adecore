@@ -1,11 +1,12 @@
 import { createContext, use } from 'react';
-import type { DatabaseAction, DatabaseFiles, DatabaseStorage } from './actions.ts';
+import type { DatabaseAction, DatabaseFiles, DatabaseNotice, DatabaseStorage } from './actions.ts';
 import type { DatabaseClient } from './client/types.ts';
 import type { NumberNotation } from './grid/display.ts';
 
 export interface DatabaseContextValue {
     readonly client: DatabaseClient;
     readonly onAction: ((action: DatabaseAction) => void) | undefined;
+    readonly onNotice: ((notice: DatabaseNotice) => void) | undefined;
     readonly storage: DatabaseStorage | undefined;
     readonly files: DatabaseFiles | undefined;
     readonly numberNotation: NumberNotation;
@@ -25,6 +26,9 @@ export const useDatabaseClient = (): DatabaseClient => useDatabaseContext().clie
 
 /* Hands an action to the app, or `undefined` when the app takes none, so a view can leave out what would go nowhere. */
 export const useDatabaseAction = (): ((action: DatabaseAction) => void) | undefined => useDatabaseContext().onAction;
+
+/* Hands a notice to the app, or `undefined` when the app takes none and the view shows it itself. */
+export const useDatabaseNotice = (): ((notice: DatabaseNotice) => void) | undefined => useDatabaseContext().onNotice;
 
 export const useDatabaseStorage = (): DatabaseStorage | undefined => useDatabaseContext().storage;
 

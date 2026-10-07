@@ -3,8 +3,8 @@ import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import i18next from 'i18next';
 import { UIProvider } from '@adecore/ui';
-import type { DatabaseAction, DatabaseFiles, DatabaseStorage } from './actions.ts';
-import { useDatabaseAction, useDatabaseClient, useDatabaseFiles, useDatabaseStorage, useNumberNotation } from './client-context.ts';
+import type { DatabaseAction, DatabaseFiles, DatabaseNotice, DatabaseStorage } from './actions.ts';
+import { useDatabaseAction, useDatabaseClient, useDatabaseFiles, useDatabaseNotice, useDatabaseStorage, useNumberNotation } from './client-context.ts';
 import { DatabaseProvider } from './DatabaseProvider.tsx';
 import { stubClient } from './testing/stub.ts';
 
@@ -22,9 +22,10 @@ interface Seen {
     files: unknown;
     notation: string;
     act: ((action: DatabaseAction) => void) | undefined;
+    notify: ((notice: DatabaseNotice) => void) | undefined;
 }
 
-let seen: Seen = { client: undefined, storage: undefined, files: undefined, notation: '', act: undefined };
+let seen: Seen = { client: undefined, storage: undefined, files: undefined, notation: '', act: undefined, notify: undefined };
 
 function Probe({ report }: { report(value: Seen): void }) {
     report({
@@ -32,7 +33,8 @@ function Probe({ report }: { report(value: Seen): void }) {
         storage: useDatabaseStorage(),
         files: useDatabaseFiles(),
         notation: useNumberNotation(),
-        act: useDatabaseAction()
+        act: useDatabaseAction(),
+        notify: useDatabaseNotice()
     });
     return null;
 }
@@ -69,7 +71,21 @@ describe('DatabaseProvider', () => {
         );
         expect(seen.notation).toBe('database');
         expect(seen.act).toBeUndefined();
+        expect(seen.notify).toBeUndefined();
         expect(seen.storage).toBeUndefined();
+    });
+
+    test('hands a notice to the app, also from inside another provider that sets none', () => {
+        const notices: DatabaseNotice[] = [];
+        render(
+            <DatabaseProvider client={outerClient} onNotice={(notice) => notices.push(notice)}>
+                <DatabaseProvider onAction={() => {}}>
+                    <Probe report={report} />
+                </DatabaseProvider>
+            </DatabaseProvider>
+        );
+        seen.notify?.({ tone: 'success', title: 'Exported 3 rows.' });
+        expect(notices).toEqual([{ tone: 'success', title: 'Exported 3 rows.' }]);
     });
 
     test('inside another, takes what it leaves out from the one above and overrides what it sets', () => {

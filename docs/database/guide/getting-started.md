@@ -248,12 +248,25 @@ Call `client.dispose()` when the page goes away, to close its sessions. The view
 | ---------------- | ---------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `client`         | `DatabaseClient`                   |              | Required on the outermost provider. A provider inside another takes every prop it leaves out from the one above; see [Nested providers](/database/guide/tabs#nested-providers). |
 | `onAction`       | `(action: DatabaseAction) => void` |              | Where a table, a console or the designer opens. Without it the views leave out the items that would open one. See [Opening tables as tabs](/database/guide/tabs).               |
+| `onNotice`       | `(notice: DatabaseNotice) => void` |              | Where the views' passing news goes, such as an export that finished. Without it each view shows its own. See [Notices](#notices).                                               |
 | `storage`        | `DatabaseStorage`                  |              | Where the views keep what a person set. Without it they start the same every time.                                                                                              |
 | `files`          | `DatabaseFiles`                    |              | The app's file dialogs. Without them there is no export and no import. See [Files](/database/guide/files).                                                                      |
 | `numberNotation` | `NumberNotation`                   | `'database'` | How cells draw numbers. See [Number notation](#number-notation).                                                                                                                |
 | `children`       | `ReactNode`                        |              | Required.                                                                                                                                                                       |
 
 `DatabaseProviderProps` is an exported type.
+
+### Notices
+
+A view has news that passes: an export that finished or failed, an import that finished, a file it could not read, a page of results or the end of a transaction that failed. With `onNotice` on the provider the views hand each one to the app, to show where it shows such news, such as a toast, and show none themselves. Without it each view shows its own, above its content, with Dismiss.
+
+A `DatabaseNotice` is a `tone` (`'success'` or `'error'`), a `title` that says what happened in a few words, a `description` with what the server or the file system said for a failure, and an optional `action` of a `label` and `run()`.
+
+```tsx
+<DatabaseProvider client={client} onNotice={(notice) => toasts.show({ kind: notice.tone, title: notice.title, description: notice.description })}>
+```
+
+What belongs to the state of a view stays in the view: a conflict of a submit that names the change, why a table is read only, a table that changed with Reload, a running export with Cancel, a failed apply in the designer, and the answer of Test connection.
 
 `DatabaseStorage` is `get(key)`, which returns a string or `null`, and `set(key, value)`, where `null` removes the key. Both are synchronous, so `localStorage` fits behind it:
 

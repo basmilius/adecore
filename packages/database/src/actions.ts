@@ -26,6 +26,19 @@ export type DatabaseAction =
     /* The app opens its connection manager on this connection. */
     | { readonly kind: 'manage-connection'; readonly connectionId: string };
 
+/*
+ * Something a view tells a person that passes, such as an export that finished or failed, for the app to show
+ * where it shows such news. What stays part of a view, such as a conflict or a read-only reason, is no notice.
+ */
+export interface DatabaseNotice {
+    readonly tone: 'success' | 'error';
+    /* What happened in a few words, such as "Exported 1,884 rows." or "Export failed". */
+    readonly title: string;
+    /* Why it failed, as the server or the file system said it. */
+    readonly description?: string;
+    readonly action?: { readonly label: string; run(): void };
+}
+
 /* What is selected in the explorer: a connection, a schema in it, or a table in that schema. */
 export interface ExplorerSelection {
     readonly connectionId: string;

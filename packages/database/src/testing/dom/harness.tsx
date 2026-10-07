@@ -2,7 +2,7 @@ import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import i18next from 'i18next';
 import { UIProvider, isApplePlatform } from '@adecore/ui';
-import type { DatabaseAction } from '../../actions.ts';
+import type { DatabaseAction, DatabaseFiles, DatabaseNotice } from '../../actions.ts';
 import { DatabaseProvider } from '../../DatabaseProvider.tsx';
 import { createDatabaseClient } from '../../client/index.ts';
 import type { DatabaseClient, DatabaseTransport } from '../../client/types.ts';
@@ -59,7 +59,10 @@ export const done = (sql: string, affected = 1): StatementResult => ({ kind: 'do
 export interface MountOptions {
     readonly client: DatabaseClient;
     readonly actions?: DatabaseAction[];
+    /* Collects what the views hand the app as notices; without it they show their own. */
+    readonly notices?: DatabaseNotice[];
     readonly storage?: DatabaseStorage;
+    readonly files?: DatabaseFiles;
 }
 
 export interface Mounted {
@@ -94,14 +97,20 @@ export const memoryStorage = (): DatabaseStorage & { readonly entries: Map<strin
 };
 
 /* Mounts a view the way an app does: inside `UIProvider` and `DatabaseProvider`, in a document that is part of the page so focus and portals behave. */
-export const mount = async (node: ReactNode, { client, actions, storage }: MountOptions): Promise<Mounted> => {
+export const mount = async (node: ReactNode, { client, actions, notices, storage, files }: MountOptions): Promise<Mounted> => {
     const i18n = await createI18n();
     const container = document.createElement('div');
     document.body.append(container);
     const root: Root = createRoot(container);
     const wrap = (inner: ReactNode): ReactNode => (
         <UIProvider i18n={i18n}>
-            <DatabaseProvider client={client} storage={storage} onAction={actions === undefined ? undefined : (action) => actions.push(action)}>
+            <DatabaseProvider
+                client={client}
+                storage={storage}
+                files={files}
+                onAction={actions === undefined ? undefined : (action) => actions.push(action)}
+                onNotice={notices === undefined ? undefined : (notice) => notices.push(notice)}
+            >
                 {inner}
             </DatabaseProvider>
         </UIProvider>

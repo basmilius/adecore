@@ -328,7 +328,8 @@
             "running": "Exporting as {{format}}",
             "cancel": "Cancel",
             "done_one": "Exported {{rows}} row.",
-            "done_other": "Exported {{rows}} rows."
+            "done_other": "Exported {{rows}} rows.",
+            "failed": "Export failed"
         },
         "import": {
             "menu": "Import from file",
@@ -344,7 +345,8 @@
             "skip": "Skip",
             "preview": "First {{count}} rows of the file",
             "cancel": "Cancel",
-            "confirm": "Import"
+            "confirm": "Import",
+            "readFailed": "Could not read the file"
         },
         "more": "More actions",
         "of": "of",
@@ -403,7 +405,9 @@
             "commit": "Commit",
             "rollback": "Roll back",
             "endTitle": "End the transaction?",
-            "endDescription": "A transaction is still open. Commit it to keep its changes, or roll it back to discard them."
+            "endDescription": "A transaction is still open. Commit it to keep its changes, or roll it back to discard them.",
+            "commitFailed": "Could not commit",
+            "rollbackFailed": "Could not roll back"
         },
         "destructive": {
             "title": "Run destructive statements?",
@@ -425,7 +429,9 @@
             "hint": "Click to edit, double click to run.",
             "rows_one": "{{formatted}} row",
             "rows_other": "{{formatted}} rows"
-        }
+        },
+        "pageFailed": "Could not read the page",
+        "exportFailed": "Export failed"
     },
     "value": {
         "title": "Value",

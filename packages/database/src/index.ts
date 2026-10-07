@@ -20,7 +20,7 @@ export {
     type TableRef
 } from './client/index.ts';
 
-export type { DatabaseAction, DatabaseFiles, DatabaseStorage, ExplorerSelection } from './actions.ts';
+export type { DatabaseAction, DatabaseFiles, DatabaseNotice, DatabaseStorage, ExplorerSelection } from './actions.ts';
 
 export { ConnectionForm, type ConnectionFormProps } from './connections/ConnectionForm.tsx';
 export { configProblems, isValidConfig, type ConfigProblem, type ConfigProblems } from './connections/connection-config.ts';

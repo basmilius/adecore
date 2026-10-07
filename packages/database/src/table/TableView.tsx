@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode, type Ref } from 'react';
 import clsx from 'clsx';
 import { ArrowDownWideNarrow, ArrowUpRight, Check, CircleAlert, CopyPlus, Download, Filter, FilterX, RefreshCw, Trash2, Undo2 } from 'lucide-react';
+import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import {
     Banner,
@@ -19,7 +20,7 @@ import {
 } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
 import { DatabaseRequestError, type Connection } from '../client/types.ts';
-import { useDatabaseAction, useDatabaseClient, useDatabaseFiles, useDatabaseStorage } from '../client-context.ts';
+import { useDatabaseAction, useDatabaseClient, useDatabaseFiles, useDatabaseNotice, useDatabaseStorage } from '../client-context.ts';
 import { aggregateBlock, blockSize, type RangeBlock } from '../grid/aggregates.ts';
 import { DataGrid } from '../grid/DataGrid.tsx';
 import type { GridSort } from '../grid/sort.ts';
@@ -71,7 +72,7 @@ import { TableStatusBar } from './TableStatusBar.tsx';
 import { TableToolbar } from './TableToolbar.tsx';
 import { useLoaded } from './useLoaded.ts';
 import { useStoredLayout } from './useStoredLayout.ts';
-import { useTableTransfer } from './useTableTransfer.ts';
+import { useTableTransfer, type TransferNotice } from './useTableTransfer.ts';
 
 /* Where the width of the record view is kept, in pixels, for every table. */
 export const RECORD_WIDTH_KEY = 'database:record-view';
@@ -108,6 +109,20 @@ interface Filters {
 
 const NO_KEYS: ReadonlySet<string> = new Set();
 
+/* What the strip over the table, or the app's notice, says of an export or an import. */
+const transferText = (found: TransferNotice, t: TFunction<'database'>): string => {
+    switch (found.kind) {
+        case 'exporting':
+            return t('table.export.running', { format: found.format.toUpperCase() });
+        case 'exported':
+            return t('table.export.done', { count: found.rows, rows: formatNumber(found.rows) });
+        case 'imported':
+            return t('table.import.done', { count: found.rows, rows: formatNumber(found.rows) });
+        case 'failed':
+            return found.message;
+    }
+};
+
 /* How much of a value a menu item spells out before it cuts it. */
 const MENU_VALUE_LENGTH = 40;
 
@@ -140,6 +155,7 @@ function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defa
     const { t } = useTranslation('database');
     const client = useDatabaseClient();
     const onAction = useDatabaseAction();
+    const onNotice = useDatabaseNotice();
     const files = useDatabaseFiles();
     const storage = useDatabaseStorage();
     const { stored, remember } = useStoredLayout(storage, layoutStorageKey(connection.id, schema, table));
@@ -223,7 +239,20 @@ function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defa
         onImported: () => {
             setCounted(null);
             rowsLoad.reload();
-        }
+        },
+        report:
+            onNotice === undefined
+                ? undefined
+                : (found) =>
+                      onNotice(
+                          found.kind === 'failed'
+                              ? {
+                                    tone: 'error',
+                                    title: t(found.during === 'export' ? 'table.export.failed' : 'table.import.readFailed'),
+                                    description: found.message
+                                }
+                              : { tone: 'success', title: transferText(found, t) }
+                      )
     });
     const changeCount = pendingCount(pending);
     const dirty = changeCount > 0;
@@ -623,18 +652,6 @@ function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defa
 
     const bounds = pageBounds(loadedOffset, loaded?.rows.length ?? 0, loaded?.hasMore ?? false, counted);
     const notice = failure ?? rowsLoad.error ?? structureLoad.error;
-    const noticeText = (found: NonNullable<typeof transfer.notice>): string => {
-        switch (found.kind) {
-            case 'exporting':
-                return t('table.export.running', { format: found.format.toUpperCase() });
-            case 'exported':
-                return t('table.export.done', { count: found.rows, rows: formatNumber(found.rows) });
-            case 'imported':
-                return t('table.import.done', { count: found.rows, rows: formatNumber(found.rows) });
-            case 'failed':
-                return found.message;
-        }
-    };
 
     return (
         <div ref={ref} className={clsx('flex min-h-0 flex-col bg-surface text-text', className)} onKeyDown={handleKeyDown}>
@@ -700,7 +717,7 @@ function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defa
                 <Banner
                     icon={transfer.notice.kind === 'failed' ? CircleAlert : transfer.notice.kind === 'exporting' ? Download : Check}
                     tone={transfer.notice.kind === 'failed' ? 'error' : 'neutral'}
-                    message={noticeText(transfer.notice)}
+                    message={transferText(transfer.notice, t)}
                     className="shrink-0 pt-2"
                 >
                     {transfer.notice.kind === 'exporting' ? (
