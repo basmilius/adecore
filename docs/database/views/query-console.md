@@ -101,7 +101,7 @@ With `files` on the provider, a result with rows has Export result, as CSV, TSV,
 
 `QueryConsoleRunScope` is `'selection-or-statement'`, the selection or the statement at the caret when nothing is selected, or `'all'`, the whole text. `QueryConsoleEditorHandle` has one method, `selection()`, which returns `{ start, end }` as offsets into the text, with `start` equal to `end` for a caret. Without a handle, a run of the selection or the statement runs the whole text.
 
-The editor owns its keys. Bind Cmd or Ctrl and Enter to `run('selection-or-statement')` and Shift with it to `run('all')`, the keys the toolbar's tooltips name. The editor fills the space above the toolbar, edge to edge.
+The editor owns its keys. Bind Cmd or Ctrl and Enter to `run('selection-or-statement')` and Shift with it to `run('all')`, the keys the toolbar's tooltips name. The toolbar sits above the editor, as a table view's toolbar sits above its grid, and the editor fills the space under it, edge to edge.
 
 ```tsx
 function SqlCodeEditor({ ref, value, onValueChange, run, label, autoFocus }: QueryConsoleEditorProps) {

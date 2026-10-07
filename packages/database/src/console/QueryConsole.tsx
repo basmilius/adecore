@@ -376,16 +376,7 @@ export function QueryConsole({
         <div ref={ref} className={clsx('flex min-h-0 flex-col bg-surface text-text', className)}>
             <div className="flex min-h-0 flex-1">
                 <div className="flex min-w-0 flex-1 flex-col">
-                    {/* The app's editor runs edge to edge, the way it draws a file; the text area keeps the inset of a field. */}
-                    <div className={clsx('flex min-h-0 flex-1 flex-col', renderEditor === undefined && 'px-3 pt-3')}>
-                        {renderEditor === undefined ? <SqlEditor {...editorProps} /> : <AppEditor render={renderEditor} {...editorProps} />}
-                    </div>
-                    <div
-                        className={clsx(
-                            'flex shrink-0 flex-wrap items-center gap-2 px-3 pb-3',
-                            renderEditor === undefined ? 'pt-2' : 'border-t border-border pt-3'
-                        )}
-                    >
+                    <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border px-3 py-2">
                         {session !== null && (
                             <>
                                 {run.status === 'running' ? (
@@ -449,6 +440,10 @@ export function QueryConsole({
                                 </Button>
                             )}
                         </div>
+                    </div>
+                    {/* The app's editor runs edge to edge, the way it draws a file; the text area keeps the inset of a field. */}
+                    <div className={clsx('flex min-h-0 flex-1 flex-col', renderEditor === undefined && 'p-3')}>
+                        {renderEditor === undefined ? <SqlEditor {...editorProps} /> : <AppEditor render={renderEditor} {...editorProps} />}
                     </div>
                 </div>
                 {session !== null && historyOpen && <HistoryPanel entries={history.entries} onPick={pickHistory} onClear={history.clear} />}
