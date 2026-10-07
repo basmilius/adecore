@@ -82,7 +82,7 @@ A session is what `open` returns. Every method except `open`, `test`, `sample`, 
 
 ### Reading a result in pages
 
-`page` returns one page of a single statement that reads, so a console can read past its first page. The statement must start with `SELECT` or `WITH`; anything else, several statements included, fails with `unsupported`. The helper wraps it as `SELECT * FROM (<sql>) LIMIT ? OFFSET ?` and reads one row past `limit` for `hasMore`. `cellLimit` is 65536 when left out.
+`page` returns one page of a single statement that reads, so a console can read past its first page. The statement must start with `SELECT` or `WITH`; anything else, several statements included, fails with `unsupported`. The helper wraps it as `SELECT * FROM (<sql>) LIMIT ? OFFSET ?` and reads one row past `limit` for `hasMore`. A statement with an `ORDER BY` and no `LIMIT` of its own takes the limit and the offset inside the parentheses instead, since MariaDB ignores the order of a subquery without a `LIMIT`; a page keeps the statement's order on every engine. `cellLimit` is 65536 when left out.
 
 ### Transactions
 

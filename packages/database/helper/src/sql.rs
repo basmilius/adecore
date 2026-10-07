@@ -2,7 +2,7 @@ use crate::cells::{MAX_SAFE_INTEGER, from_hex};
 use crate::error::{DatabaseError, ErrorCode, Result};
 use crate::protocol::{BinaryValue, ColumnInfo, EditValue, ExportSource, RowChange, RowKey, TableStructure, Value};
 use crate::quoting::Dialect;
-use crate::splitter::{first_keyword, split_statements};
+use crate::splitter::{first_keyword, split_statements, top_level_words};
 
 pub const MAX_LIMIT: i64 = 10_000;
 pub const DEFAULT_ROWS_CELL_LIMIT: usize = 1024;
@@ -151,11 +151,26 @@ pub fn export_query(dialect: Dialect, source: &ExportSource, table_name: Option<
     Ok((sql, name.to_string()))
 }
 
+/// The words that page a statement themselves, or that no LIMIT may follow.
+const OWN_PAGING_WORDS: [&str; 7] = ["LIMIT", "FETCH", "OFFSET", "FOR", "LOCK", "INTO", "PROCEDURE"];
+
 /// A statement that reads, wrapped so a limit and an offset apply to it. The closing parenthesis follows a newline so a trailing line comment stays inside.
+///
+/// MariaDB ignores the ORDER BY of a derived table that has no LIMIT, so a statement that orders its rows and pages nothing
+/// itself takes the limit and the offset inside the parentheses. The placeholders are the limit and then the offset either way.
 pub fn page_sql(dialect: Dialect, statement: &str) -> String {
-    match dialect {
-        Dialect::Sqlite => format!("SELECT * FROM ({statement}\n) LIMIT ? OFFSET ?"),
-        Dialect::Mysql => format!("SELECT * FROM ({statement}\n) AS adecore_page LIMIT ? OFFSET ?"),
+    let words = top_level_words(statement, dialect);
+    let ordered = words.windows(2).any(|pair| pair[0] == "ORDER" && pair[1] == "BY");
+    let inside = ordered && !words.iter().any(|word| OWN_PAGING_WORDS.contains(&word.as_str()));
+    let alias = match dialect {
+        Dialect::Sqlite => "",
+        Dialect::Mysql => " AS adecore_page",
+    };
+
+    if inside {
+        format!("SELECT * FROM ({statement}\nLIMIT ? OFFSET ?\n){alias}")
+    } else {
+        format!("SELECT * FROM ({statement}\n){alias} LIMIT ? OFFSET ?")
     }
 }
 
@@ -420,6 +435,40 @@ mod tests {
             count_sql(Dialect::Mysql, "shop", "users", Some("a = 1")),
             "SELECT COUNT(*) FROM `shop`.`users` WHERE (a = 1\n)"
         );
+    }
+
+    #[test]
+    fn pages_an_ordered_statement_inside_the_wrapper() {
+        assert_eq!(
+            page_sql(Dialect::Mysql, "SELECT * FROM orders ORDER BY id DESC -- newest"),
+            "SELECT * FROM (SELECT * FROM orders ORDER BY id DESC -- newest\nLIMIT ? OFFSET ?\n) AS adecore_page"
+        );
+        assert_eq!(
+            page_sql(Dialect::Sqlite, "SELECT * FROM orders ORDER BY id DESC"),
+            "SELECT * FROM (SELECT * FROM orders ORDER BY id DESC\nLIMIT ? OFFSET ?\n)"
+        );
+        assert_eq!(
+            page_sql(Dialect::Mysql, "SELECT * FROM orders ORDER BY id DESC LIMIT 10"),
+            "SELECT * FROM (SELECT * FROM orders ORDER BY id DESC LIMIT 10\n) AS adecore_page LIMIT ? OFFSET ?"
+        );
+        assert_eq!(
+            page_sql(Dialect::Mysql, "SELECT * FROM orders"),
+            "SELECT * FROM (SELECT * FROM orders\n) AS adecore_page LIMIT ? OFFSET ?"
+        );
+        assert_eq!(
+            page_sql(Dialect::Mysql, "SELECT id FROM orders WHERE id IN (SELECT id FROM a ORDER BY id)"),
+            "SELECT * FROM (SELECT id FROM orders WHERE id IN (SELECT id FROM a ORDER BY id)\n) AS adecore_page LIMIT ? OFFSET ?"
+        );
+        for paged in [
+            "ORDER BY id FOR UPDATE",
+            "ORDER BY id LOCK IN SHARE MODE",
+            "ORDER BY id OFFSET 1 ROWS FETCH FIRST 2 ROWS ONLY",
+        ] {
+            assert!(
+                page_sql(Dialect::Mysql, &format!("SELECT id FROM orders {paged}")).ends_with(") AS adecore_page LIMIT ? OFFSET ?"),
+                "{paged}"
+            );
+        }
     }
 
     #[test]

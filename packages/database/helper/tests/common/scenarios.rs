@@ -92,6 +92,35 @@ pub async fn pages_statements(db: &mut Db<'_>) {
     assert_eq!(last["rows"], json!([[5]]));
     assert_eq!(last["hasMore"], false);
 
+    // MariaDB drops the ORDER BY of a derived table without a LIMIT, which turned the last rows into the first.
+    let newest = db
+        .ok("page", json!({ "sql": "SELECT id FROM items ORDER BY id DESC", "offset": 0, "limit": 2 }))
+        .await;
+    assert_eq!(newest["rows"], json!([[5], [4]]));
+    assert_eq!(newest["hasMore"], true);
+    let older = db
+        .ok(
+            "page",
+            json!({ "sql": "SELECT id FROM items ORDER BY id DESC -- newest first", "offset": 2, "limit": 2 }),
+        )
+        .await;
+    assert_eq!(older["rows"], json!([[3], [2]]));
+    let picked = db
+        .ok(
+            "page",
+            json!({ "sql": "WITH picked AS (SELECT id, label FROM items) SELECT label FROM picked ORDER BY id DESC", "offset": 0, "limit": 3 }),
+        )
+        .await;
+    assert_eq!(picked["rows"], json!([["e"], ["d"], ["c"]]));
+    let limited = db
+        .ok(
+            "page",
+            json!({ "sql": "SELECT id FROM items ORDER BY id DESC LIMIT 3", "offset": 1, "limit": 5 }),
+        )
+        .await;
+    assert_eq!(limited["rows"], json!([[4], [3]]));
+    assert_eq!(limited["hasMore"], false);
+
     let beyond = db.ok("page", json!({ "sql": "SELECT id FROM items", "offset": 50, "limit": 2 })).await;
     assert_eq!(beyond["rows"], json!([]));
     assert_eq!(beyond["hasMore"], false);

@@ -79,6 +79,75 @@ pub fn split_statements(sql: &str, dialect: Dialect) -> Vec<String> {
     statements
 }
 
+/// The words of a statement outside parentheses, strings, quoted names and comments, in upper case.
+///
+/// MySQL runs the inside of a `/*! ... */` comment, so its words count.
+pub fn top_level_words(sql: &str, dialect: Dialect) -> Vec<String> {
+    let bytes = sql.as_bytes();
+    let mut words = Vec::new();
+    let mut depth = 0_usize;
+    let mut i = 0;
+
+    while i < bytes.len() {
+        let byte = bytes[i];
+
+        match byte {
+            b'\'' | b'"' | b'`' => {
+                i = skip_quoted(bytes, i, dialect);
+            }
+            b'[' if dialect == Dialect::Sqlite => {
+                i = bytes[i..]
+                    .iter()
+                    .position(|&candidate| candidate == b']')
+                    .map_or(bytes.len(), |offset| i + offset + 1);
+            }
+            b'-' if bytes.get(i + 1) == Some(&b'-') && is_line_comment_start(bytes, i, dialect) => {
+                i = skip_line(bytes, i);
+            }
+            b'#' if dialect == Dialect::Mysql => {
+                i = skip_line(bytes, i);
+            }
+            b'/' if dialect == Dialect::Mysql && bytes.get(i + 1) == Some(&b'*') && bytes.get(i + 2) == Some(&b'!') => {
+                i += 3;
+                while bytes.get(i).is_some_and(u8::is_ascii_digit) {
+                    i += 1;
+                }
+            }
+            b'*' if dialect == Dialect::Mysql && bytes.get(i + 1) == Some(&b'/') => {
+                i += 2;
+            }
+            b'/' if bytes.get(i + 1) == Some(&b'*') => {
+                i = find(bytes, i + 2, b"*/").map_or(bytes.len(), |end| end + 2);
+            }
+            b'(' => {
+                depth += 1;
+                i += 1;
+            }
+            b')' => {
+                depth = depth.saturating_sub(1);
+                i += 1;
+            }
+            _ if is_word_byte(byte) => {
+                let end = bytes[i..]
+                    .iter()
+                    .position(|&candidate| !is_word_byte(candidate))
+                    .map_or(bytes.len(), |offset| i + offset);
+
+                if depth == 0 {
+                    words.push(sql[i..end].to_uppercase());
+                }
+
+                i = end;
+            }
+            _ => {
+                i += 1;
+            }
+        }
+    }
+
+    words
+}
+
 /// The first word of a statement in upper case, skipping whitespace and comments.
 pub fn first_keyword(sql: &str) -> String {
     let bytes = sql.as_bytes();
@@ -274,6 +343,26 @@ mod tests {
             sqlite("BEGIN; INSERT INTO a VALUES (1); END;"),
             vec!["BEGIN", "INSERT INTO a VALUES (1)", "END"]
         );
+    }
+
+    #[test]
+    fn finds_the_words_outside_parentheses() {
+        assert_eq!(
+            top_level_words(
+                "select a, (select max(b) from c order by b limit 1) from `limit` order by a -- limit\n",
+                Dialect::Mysql
+            ),
+            vec!["SELECT", "A", "FROM", "ORDER", "BY", "A"]
+        );
+        assert_eq!(
+            top_level_words("WITH x AS (SELECT 1 LIMIT 1) SELECT * FROM x /* LIMIT */ ORDER BY 'LIMIT'", Dialect::Sqlite),
+            vec!["WITH", "X", "AS", "SELECT", "FROM", "X", "ORDER", "BY"]
+        );
+        assert_eq!(
+            top_level_words("SELECT 1 /*!50000 LIMIT 1 */", Dialect::Mysql),
+            vec!["SELECT", "1", "LIMIT", "1"]
+        );
+        assert_eq!(top_level_words("SELECT [limit] FROM a", Dialect::Sqlite), vec!["SELECT", "FROM", "A"]);
     }
 
     #[test]
