@@ -249,12 +249,38 @@ pub struct TableStructure {
     pub ddl: Option<String>,
 }
 
+/// The column of a table a result column holds, as the server reports it.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ColumnSource {
+    pub schema: String,
+    pub table: String,
+    pub column: String,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ResultColumn {
     pub name: String,
     #[serde(rename = "type")]
     pub column_type: String,
     pub kind: ValueKind,
+    /// Left out for an expression, an alias of one and, on MySQL, a derived table.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source: Option<ColumnSource>,
+}
+
+impl ColumnSource {
+    /// A source only where the server names all three parts; anything less is not a column of a table.
+    pub fn of(schema: &str, table: &str, column: &str) -> Option<ColumnSource> {
+        if schema.is_empty() || table.is_empty() || column.is_empty() {
+            return None;
+        }
+
+        Some(ColumnSource {
+            schema: schema.to_string(),
+            table: table.to_string(),
+            column: column.to_string(),
+        })
+    }
 }
 
 pub type RowKey = IndexMap<String, Value>;

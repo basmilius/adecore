@@ -4,7 +4,7 @@
     "method": "execute",
     "params": {
       "session": "s2",
-      "sql": "UPDATE users SET name = 'x' WHERE id = 1; SELECT COUNT(*) AS n FROM users; SELECT nope",
+      "sql": "UPDATE users SET name = 'x' WHERE id = 1; SELECT id, COUNT(*) AS n FROM users GROUP BY id; SELECT nope",
       "schema": "shop",
       "limit": 500
     }
@@ -23,8 +23,18 @@
         },
         {
           "kind": "rows",
-          "sql": "SELECT COUNT(*) AS n FROM users",
+          "sql": "SELECT id, COUNT(*) AS n FROM users GROUP BY id",
           "columns": [
+            {
+              "name": "id",
+              "type": "INT",
+              "kind": "integer",
+              "source": {
+                "schema": "shop",
+                "table": "users",
+                "column": "id"
+              }
+            },
             {
               "name": "n",
               "type": "BIGINT",
@@ -33,6 +43,7 @@
           ],
           "rows": [
             [
+              1,
               "9007199254740993"
             ]
           ],

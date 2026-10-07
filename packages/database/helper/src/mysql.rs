@@ -386,6 +386,7 @@ fn result_columns(columns: &[Column]) -> Vec<ResultColumn> {
             name: column.name_str().into_owned(),
             column_type: type_name(column).to_string(),
             kind: kind_of(column),
+            source: ColumnSource::of(&column.schema_str(), &column.org_table_str(), &column.org_name_str()),
         })
         .collect()
 }

@@ -122,7 +122,7 @@ describe('reading', () => {
         const first = await session.rows('main', 'users', { offset: 0, limit: 2 });
         expect(first.rows.map((row) => row[0])).toEqual([1, 2]);
         expect(first.hasMore).toBe(true);
-        expect(first.columns[0]).toEqual({ name: 'id', type: 'INTEGER', kind: 'integer' });
+        expect(first.columns[0]).toEqual({ name: 'id', type: 'INTEGER', kind: 'integer', source: { schema: 'main', table: 'users', column: 'id' } });
 
         const last = await session.rows('main', 'users', { offset: 2, limit: 2 });
         expect(last.rows.map((row) => row[0])).toEqual([3]);

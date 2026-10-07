@@ -215,8 +215,15 @@ async fn reads_pages_of_rows() {
         .await;
 
     assert_eq!(page["hasMore"], true);
-    assert_eq!(page["columns"][0], json!({ "name": "id", "type": "INTEGER", "kind": "integer" }));
-    assert_eq!(page["columns"][2], json!({ "name": "avatar", "type": "BLOB", "kind": "binary" }));
+    let source = |column: &str| json!({ "schema": "main", "table": "users", "column": column });
+    assert_eq!(
+        page["columns"][0],
+        json!({ "name": "id", "type": "INTEGER", "kind": "integer", "source": source("id") })
+    );
+    assert_eq!(
+        page["columns"][2],
+        json!({ "name": "avatar", "type": "BLOB", "kind": "binary", "source": source("avatar") })
+    );
     assert_eq!(page["rows"].as_array().unwrap().len(), 1);
     assert_eq!(page["rows"][0][0], 3);
     assert_eq!(page["rows"][0][1], json!({ "kind": "longText", "preview": "c@ex", "length": 13 }));
@@ -597,6 +604,50 @@ async fn executes_scripts_statement_by_statement() {
     );
     let empty = client.ok("execute", json!({ "session": session, "sql": " ; -- nothing\n" })).await;
     assert_eq!(empty["results"], json!([]));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn names_where_result_columns_come_from() {
+    let directory = tempfile::tempdir().unwrap();
+    let mut client = Client::new();
+    let (session, _) = seeded(&mut client, &directory).await;
+
+    let result = client
+        .ok(
+            "execute",
+            json!({ "session": session, "sql": "SELECT * FROM orders o; SELECT u.email AS address, upper(u.email) AS shout, 1 AS one FROM users u; SELECT id FROM user_emails" }),
+        )
+        .await;
+    let sources = |index: usize| -> Vec<Value> {
+        result["results"][index]["columns"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|column| column.get("source").cloned().unwrap_or(Value::Null))
+            .collect()
+    };
+    let source = |table: &str, column: &str| json!({ "schema": "main", "table": table, "column": column });
+
+    assert_eq!(
+        sources(0),
+        vec![
+            source("orders", "id"),
+            source("orders", "user_id"),
+            source("orders", "total"),
+            source("orders", "qty")
+        ]
+    );
+    assert_eq!(sources(1), vec![source("users", "email"), Value::Null, Value::Null]);
+    // SQLite looks through a view to the table it reads.
+    assert_eq!(sources(2), vec![source("users", "id")]);
+
+    let rows = client
+        .ok(
+            "rows",
+            json!({ "session": session, "schema": "main", "table": "orders", "offset": 0, "limit": 1 }),
+        )
+        .await;
+    assert_eq!(rows["columns"][1]["source"], source("orders", "user_id"));
 }
 
 #[tokio::test(flavor = "multi_thread")]

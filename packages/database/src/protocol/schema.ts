@@ -86,10 +86,19 @@ export interface TableStructure {
     readonly ddl: string | null;
 }
 
+/* The column of a table a result column holds, as the server reports it. */
+export interface ColumnSource {
+    readonly schema: string;
+    readonly table: string;
+    readonly column: string;
+}
+
 /* A column of a result, which may come from a table or from an expression. */
 export interface ResultColumn {
     readonly name: string;
     /* The engine's name for the type of the value, such as `VARCHAR`; empty when it reports none. */
     readonly type: string;
     readonly kind: ValueKind;
+    /* Where the values come from, when the server says: left out for an expression, an alias of one and, on MySQL, a derived table. */
+    readonly source?: ColumnSource;
 }

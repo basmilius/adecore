@@ -32,6 +32,7 @@ export {
 export type {
     CheckInfo,
     ColumnInfo,
+    ColumnSource,
     ForeignKeyInfo,
     IndexInfo,
     ResultColumn,

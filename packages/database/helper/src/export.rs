@@ -295,6 +295,7 @@ mod tests {
             name: name.to_string(),
             column_type: String::new(),
             kind,
+            source: None,
         }
     }
 

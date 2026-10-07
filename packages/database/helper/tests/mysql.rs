@@ -471,13 +471,14 @@ async fn encodes_cells_over_both_protocols() {
     assert_eq!(binary["hasMore"], false);
     check_typed_row(&binary["rows"][0]);
     assert_eq!(binary["rows"][1].as_array().unwrap().iter().skip(1).filter(|cell| !cell.is_null()).count(), 0);
-    assert_eq!(binary["columns"][1], json!({ "name": "big", "type": "BIGINT", "kind": "integer" }));
-    assert_eq!(binary["columns"][4], json!({ "name": "ratio", "type": "DECIMAL", "kind": "decimal" }));
+    let column = |name: &str, column_type: &str, kind: &str| json!({ "name": name, "type": column_type, "kind": kind, "source": { "schema": sandbox.schema, "table": "kinds", "column": name } });
+    assert_eq!(binary["columns"][1], column("big", "BIGINT", "integer"));
+    assert_eq!(binary["columns"][4], column("ratio", "DECIMAL", "decimal"));
     assert_eq!(binary["columns"][7]["kind"], "datetime");
     assert_eq!(binary["columns"][12]["type"], "VARCHAR");
-    assert_eq!(binary["columns"][13], json!({ "name": "body", "type": "LONGTEXT", "kind": "text" }));
-    assert_eq!(binary["columns"][14], json!({ "name": "raw", "type": "VARBINARY", "kind": "binary" }));
-    assert_eq!(binary["columns"][15], json!({ "name": "blob_data", "type": "BLOB", "kind": "binary" }));
+    assert_eq!(binary["columns"][13], column("body", "LONGTEXT", "text"));
+    assert_eq!(binary["columns"][14], column("raw", "VARBINARY", "binary"));
+    assert_eq!(binary["columns"][15], column("blob_data", "BLOB", "binary"));
 
     let text = sandbox
         .client
@@ -766,6 +767,44 @@ async fn executes_scripts() {
             .await["code"],
         "query-failed"
     );
+
+    sandbox.finish().await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn names_where_result_columns_come_from() {
+    let Some(mut sandbox) = Sandbox::new("sources").await else {
+        return;
+    };
+    sandbox.script(SCHEMA_SQL).await;
+    let schema = sandbox.schema.clone();
+    let result = sandbox
+        .script(
+            "SELECT * FROM orders o; SELECT u.email AS address, UPPER(u.email) AS shout, 1 AS one FROM users u; SELECT d.id FROM (SELECT id FROM users) d; SELECT id FROM user_emails",
+        )
+        .await;
+    let sources = |index: usize| -> Vec<Value> {
+        result["results"][index]["columns"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|column| column.get("source").cloned().unwrap_or(Value::Null))
+            .collect()
+    };
+
+    assert_eq!(
+        sources(0),
+        vec![
+            json!({ "schema": schema, "table": "orders", "column": "id" }),
+            json!({ "schema": schema, "table": "orders", "column": "user_id" })
+        ]
+    );
+    assert_eq!(
+        sources(1),
+        vec![json!({ "schema": schema, "table": "users", "column": "email" }), Value::Null, Value::Null]
+    );
+    // A view is named as the view, which has no keys; what a server says of a derived table differs between MySQL and MariaDB.
+    assert_eq!(sources(3), vec![json!({ "schema": schema, "table": "user_emails", "column": "id" })]);
 
     sandbox.finish().await;
 }

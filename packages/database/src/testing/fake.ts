@@ -55,6 +55,9 @@ export interface FakeDatabaseTransportOptions {
 }
 
 interface Table {
+    /* Where the table is, which the columns of a result read from it name as their source. */
+    schema: string;
+    name: string;
     kind: TableKind;
     columns: ColumnInfo[];
     primaryKey: string[];
@@ -99,6 +102,8 @@ const toTables = (database: FakeDatabase): Map<string, Map<string, Table>> =>
                 Object.entries(tables).map(([name, table]) => [
                     name,
                     {
+                        schema,
+                        name,
                         kind: table.kind ?? 'table',
                         columns: structuredClone([...table.columns]),
                         primaryKey: [...(table.primaryKey ?? [])],
@@ -176,7 +181,8 @@ const toCell = (value: Value, cellLimit: number): Cell => {
     return value;
 };
 
-const toResultColumns = (table: Table): ResultColumn[] => table.columns.map(({ name, type, kind }) => ({ name, type, kind }));
+const toResultColumns = (table: Table): ResultColumn[] =>
+    table.columns.map(({ name, type, kind }) => ({ name, type, kind, source: { schema: table.schema, table: table.name, column: name } }));
 
 const toRowsResult = (table: Table, rows: readonly (readonly Value[])[], offset: number, limit: number, cellLimit: number): RowsResult => ({
     columns: toResultColumns(table),

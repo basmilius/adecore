@@ -513,16 +513,24 @@ fn foreign_key_action(action: &str) -> Option<String> {
 }
 
 fn result_columns(statement: &Statement<'_>) -> Vec<ResultColumn> {
+    let origins = statement.columns_with_metadata();
+
     statement
         .columns()
         .iter()
-        .map(|column| {
+        .zip(origins.iter())
+        .map(|(column, origin)| {
             let declared = column.decl_type().unwrap_or_default();
+            let source = match (origin.database_name(), origin.table_name(), origin.origin_name()) {
+                (Some(schema), Some(table), Some(name)) => ColumnSource::of(schema, table, name),
+                _ => None,
+            };
 
             ResultColumn {
                 name: column.name().to_string(),
                 column_type: declared.to_string(),
                 kind: sqlite_kind(declared),
+                source,
             }
         })
         .collect()
