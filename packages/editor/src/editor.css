@@ -81,12 +81,12 @@
     width: max-content;
     min-width: 100%;
     min-height: 100%;
+    cursor: text;
 }
 .se-content {
     position: relative;
     flex: none;
     min-height: 100%;
-    cursor: text;
 }
 .se-overlays,
 .se-code,
@@ -643,6 +643,7 @@
 .se-content-link {
     cursor: pointer;
 }
+.se-editor[data-column='true'] .se-scroller,
 .se-editor[data-column='true'] .se-content {
     cursor: crosshair;
 }
