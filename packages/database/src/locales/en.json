@@ -17,7 +17,8 @@
         "test": {
             "action": "Test connection",
             "success": "Connected to {{server}}.",
-            "failed": "The connection failed."
+            "failed": "The connection failed.",
+            "dismiss": "Dismiss"
         },
         "delete": {
             "action": "Delete",

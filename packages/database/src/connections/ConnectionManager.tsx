@@ -2,7 +2,7 @@ import { useState, type ReactNode, type Ref } from 'react';
 import clsx from 'clsx';
 import { CircleAlert, CircleCheck, Container, Database, Plus, Trash2, Unplug } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Banner, Button, EmptyState, Icon, Menu, messageOf, PromptDialog, Spinner } from '@adecore/ui';
+import { Banner, Button, CloseButton, EmptyState, Icon, Menu, messageOf, PromptDialog, Spinner } from '@adecore/ui';
 import { DetailHeader, MasterItem } from '@adecore/ui/settings';
 import { useDatabaseClient } from '../client-context.ts';
 import type { Connection } from '../client/types.ts';
@@ -31,7 +31,8 @@ export interface ConnectionManagerProps {
     ref?: Ref<HTMLDivElement>;
 }
 
-type TestOutcome = { readonly config: ConnectionConfig; readonly info: ServerInfo } | { readonly config: ConnectionConfig; readonly error: string };
+/* What the server answered a test, for the connection and the config that were tested. */
+type TestOutcome = { readonly connectionId: string; readonly config: ConnectionConfig } & ({ readonly info: ServerInfo } | { readonly error: string });
 
 /*
  * The saved connections beside the form of the one picked, for a dialog, a settings pane or a view of its own. The list
@@ -41,9 +42,16 @@ export function ConnectionManager({ value, onValueChange, selected, onSelectedCh
     const { t } = useTranslation('database');
     const [own, setOwn] = useState<string | null>(null);
     const [deleting, setDeleting] = useState(false);
+    const [outcome, setOutcome] = useState<TestOutcome | null>(null);
     const client = useDatabaseClient();
     const pickedId = selected === undefined ? own : selected;
     const current = value.find((connection) => connection.id === pickedId) ?? value[0] ?? null;
+    // The answer of one connection is gone once another is picked, so coming back does not bring it back.
+    if (outcome !== null && outcome.connectionId !== current?.id) {
+        setOutcome(null);
+    }
+    // An answer to an older config is never shown for a newer one.
+    const shown = outcome !== null && current !== null && outcome.config === current.config ? outcome : null;
 
     const select = (id: string | null): void => {
         if (selected === undefined) {
@@ -124,6 +132,20 @@ export function ConnectionManager({ value, onValueChange, selected, onSelectedCh
             <EmptyState icon={Database}>{t('connections.empty')}</EmptyState>
         ) : (
             <>
+                {shown !== null && (
+                    <Banner
+                        icon={'info' in shown ? CircleCheck : CircleAlert}
+                        tone={'info' in shown ? 'neutral' : 'error'}
+                        className="sticky top-0 z-10"
+                        message={
+                            'info' in shown
+                                ? t('connections.test.success', { server: `${t(`engine.flavor.${shown.info.flavor}`)} ${shown.info.version}` })
+                                : shown.error
+                        }
+                    >
+                        <CloseButton size="sm" label={t('connections.test.dismiss')} onClick={() => setOutcome(null)} />
+                    </Banner>
+                )}
                 <DetailHeader
                     mark={<EngineIcon engine={current.config.engine} size={20} className="mt-0.5 shrink-0 text-text-muted" />}
                     title={current.name || t('connections.untitled')}
@@ -139,7 +161,7 @@ export function ConnectionManager({ value, onValueChange, selected, onSelectedCh
                     <ConnectionForm value={current} onValueChange={change} onBrowse={onBrowse} />
                     {renderFields?.(current)}
                 </div>
-                <ConnectionTest key={current.id} connection={current} />
+                <ConnectionTest key={current.id} connection={current} onOutcome={setOutcome} />
                 <PromptDialog
                     open={deleting}
                     danger
@@ -203,43 +225,30 @@ function DockerMenuItems({ onPick }: { onPick(container: DockerContainer): void 
     ));
 }
 
-/* The button that asks the server who it is, and what it answered; an answer to an older config is not shown. */
-function ConnectionTest({ connection }: { connection: Connection }) {
+/* The button that asks the server who it is. The manager shows the answer at the top of the detail. */
+function ConnectionTest({ connection, onOutcome }: { connection: Connection; onOutcome(outcome: TestOutcome): void }) {
     const { t } = useTranslation('database');
     const client = useDatabaseClient();
     const [busy, setBusy] = useState(false);
-    const [outcome, setOutcome] = useState<TestOutcome | null>(null);
-    const shown = outcome !== null && outcome.config === connection.config ? outcome : null;
 
     const test = async (): Promise<void> => {
         const config = connection.config;
         setBusy(true);
         try {
-            setOutcome({ config, info: await client.test(config) });
+            onOutcome({ connectionId: connection.id, config, info: await client.test(config) });
         } catch (e) {
-            setOutcome({ config, error: messageOf(e, t('connections.test.failed')) });
+            onOutcome({ connectionId: connection.id, config, error: messageOf(e, t('connections.test.failed')) });
         } finally {
             setBusy(false);
         }
     };
 
     return (
-        <div className="flex flex-col gap-3">
-            <div>
-                <Button variant="secondary" disabled={busy || !isValidConfig(connection.config)} onClick={() => void test()}>
-                    {busy ? <Spinner size={14} /> : <Icon icon={Unplug} size={14} />}
-                    {t('connections.test.action')}
-                </Button>
-            </div>
-            {shown !== null && 'info' in shown && (
-                <Banner
-                    icon={CircleCheck}
-                    tone="neutral"
-                    className="w-full"
-                    message={t('connections.test.success', { server: `${t(`engine.flavor.${shown.info.flavor}`)} ${shown.info.version}` })}
-                />
-            )}
-            {shown !== null && 'error' in shown && <Banner icon={CircleAlert} tone="error" className="w-full" message={shown.error} />}
+        <div>
+            <Button variant="secondary" disabled={busy || !isValidConfig(connection.config)} onClick={() => void test()}>
+                {busy ? <Spinner size={14} /> : <Icon icon={Unplug} size={14} />}
+                {t('connections.test.action')}
+            </Button>
         </div>
     );
 }

@@ -17,7 +17,8 @@
         "test": {
             "action": "Verbinding testen",
             "success": "Verbonden met {{server}}.",
-            "failed": "De verbinding is mislukt."
+            "failed": "De verbinding is mislukt.",
+            "dismiss": "Sluiten"
         },
         "delete": {
             "action": "Verwijderen",

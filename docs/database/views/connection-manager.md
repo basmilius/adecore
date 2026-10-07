@@ -32,7 +32,7 @@ It fills the height it gets. The list of connections is 224 pixels wide and scro
 - New connection offers the two engines and From a Docker container. A new connection gets a generated id and the defaults of its engine: port 3306 and `prefer` for TLS on MySQL, an empty path on SQLite.
 - From a Docker container lists the running database containers when the submenu opens, and adds a connection to the one picked. See [Finding containers](/database/guide/connections#finding-containers).
 - The line under each name is the file name of a SQLite file, or `user@host:port`, `user@host via <ssh host>` or `user@container (Docker)`.
-- Test connection opens the connection through the client and shows the server and its version, such as `MariaDB 11.4.2`, or the error. It is disabled while the form has a problem, and an answer to an older config is never shown for a newer one.
+- Test connection opens the connection through the client. The answer, the server and its version such as `MariaDB 11.4.2` or the error, shows at the top of the detail and stays there while the detail scrolls, until its close button, a change to the config or another connection takes it away. Test connection is disabled while the form has a problem, and an answer to an older config is never shown for a newer one.
 - Delete asks first, closes the connection's sessions and selects a neighbor. It does not touch the database.
 - Without `selected` the manager keeps the selection itself, starting at the first connection. Pass `selected` and `onSelectedChange` to control it, for example to open the manager on one connection.
 
