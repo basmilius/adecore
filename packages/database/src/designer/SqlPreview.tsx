@@ -3,6 +3,7 @@ import clsx from 'clsx';
 import { Copy } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button, Icon, copyText } from '@adecore/ui';
+import { CODE_TEXT } from '../code-text.ts';
 import type { DraftProblem } from '../ddl/index.ts';
 import type { Plan } from './plan.ts';
 import { scriptOf } from './plan.ts';
@@ -48,7 +49,7 @@ export function SqlPreview({ plan, className, ref }: SqlPreviewProps) {
                 ) : script === '' ? (
                     <p className="text-xs text-text-faint">{t('designer.noChanges')}</p>
                 ) : (
-                    <pre className="font-mono text-code whitespace-pre text-text">{script}</pre>
+                    <pre className={clsx(CODE_TEXT, 'whitespace-pre text-text')}>{script}</pre>
                 )}
             </div>
         </section>

@@ -85,7 +85,8 @@ const GROUPS: [string, RegExp][] = [
     ['media', /^media-/],
     ['shadow', /-shadow$/],
     ['file-icon', /^file-icon-/],
-    ['layer', /^z-/]
+    ['layer', /^z-/],
+    ['code', /^code-/]
 ];
 
 const SCALE_GROUPS: [string, RegExp][] = [

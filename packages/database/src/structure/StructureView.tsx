@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Banner, Button, EmptyState, Icon, Pill, Spinner, Tabs, copyText, messageOf } from '@adecore/ui';
 import { useDatabaseClient } from '../client-context.ts';
 import type { Connection } from '../client/types.ts';
+import { CODE_TEXT } from '../code-text.ts';
 import type { ColumnInfo, ForeignKeyInfo, IndexInfo, TableStructure } from '../protocol/index.ts';
 import { useSchemaChange } from '../use-schema-change.ts';
 import { referenceOf } from './structure-text.ts';
@@ -33,7 +34,7 @@ interface Answer {
 
 const TH = 'sticky top-0 h-7 bg-surface px-3 text-left text-xs font-medium whitespace-nowrap text-text-faint';
 const TD = 'h-7 border-t border-border-soft px-3 text-xs whitespace-nowrap text-text select-text';
-const MONO = 'font-mono text-code';
+const MONO = CODE_TEXT;
 
 /* The columns, indexes, foreign keys and DDL of one table or view. */
 export function StructureView({ connection, schema, table, className, ref }: StructureViewProps) {

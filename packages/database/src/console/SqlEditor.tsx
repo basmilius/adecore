@@ -1,5 +1,7 @@
 import { useEffect, useImperativeHandle, useRef, type KeyboardEvent } from 'react';
+import clsx from 'clsx';
 import { isApplePlatform, matchesShortcut, TextArea } from '@adecore/ui';
+import { CODE_TEXT } from '../code-text.ts';
 import { applyEdit, indentEdit, newlineEdit, outdentEdit, type TextEdit } from './editing.ts';
 import type { QueryConsoleEditorProps } from './editor-slot.ts';
 import { RUN_ALL_SHORTCUT, RUN_SHORTCUT } from './shortcuts.ts';
@@ -75,14 +77,13 @@ export function SqlEditor({ ref, value, onValueChange, run, label, placeholder, 
     return (
         <TextArea
             ref={area}
-            mono
             aria-label={label}
             placeholder={placeholder}
             spellCheck={false}
             autoCapitalize="off"
             autoCorrect="off"
             value={value}
-            className="flex-1"
+            className={clsx(CODE_TEXT, 'flex-1')}
             onChange={(event) => onValueChange(event.target.value)}
             onKeyDown={handleKeyDown}
         />

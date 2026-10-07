@@ -18,6 +18,7 @@ import {
     Tooltip
 } from '@adecore/ui';
 import { formatBytes, formatNumber } from '@adecore/ui/format';
+import { CODE_TEXT } from '../code-text.ts';
 import type { GridColumn } from '../grid/types.ts';
 import type { EditValue, Value } from '../protocol/index.ts';
 import { editValueOf, sameDraft, sameSource, sourceOf, type Draft, type DraftProblem } from './draft.ts';
@@ -41,7 +42,7 @@ export interface ValuePanelProps {
 
 const WRAPPING_VIEWS: ReadonlySet<ViewId> = new Set(['text', 'formatted', 'utf8']);
 
-const READING = 'min-h-0 flex-1 overflow-auto rounded-lg border border-border bg-surface p-2 font-mono text-code text-text';
+const READING = `min-h-0 flex-1 overflow-auto rounded-lg border border-border bg-surface p-2 ${CODE_TEXT} text-text`;
 
 /* The whole value of the focused cell beside the grid, to read and edit what a cell is too small for. */
 export function ValuePanel({ column, value, loading, editable, onCommit, onClose, className, ref }: ValuePanelProps) {
@@ -142,14 +143,13 @@ function ValueEditor({ column, value, editable, onCommit }: ValueEditorProps) {
 
     const editor = (extra?: string): ReactNode => (
         <TextArea
-            mono
             aria-label={t(source.binary ? 'value.hexEditor' : 'value.editor', { column: column.name })}
             wrap={wrap || source.binary ? 'soft' : 'off'}
             spellCheck={false}
             readOnly={!editable}
             placeholder={placeholder}
             value={draft.mode === 'value' ? draft.text : ''}
-            className={extra}
+            className={clsx(CODE_TEXT, extra)}
             onChange={(event) => change({ text: event.target.value, mode: 'value' })}
             onKeyDown={handleKeyDown}
         />
@@ -250,5 +250,5 @@ function ValueEditor({ column, value, editable, onCommit }: ValueEditorProps) {
 }
 
 function Faint({ children }: { children?: ReactNode }) {
-    return <div className="grid min-h-0 flex-1 place-items-center font-mono text-code text-text-faint">{children}</div>;
+    return <div className={clsx(CODE_TEXT, 'grid min-h-0 flex-1 place-items-center text-text-faint')}>{children}</div>;
 }

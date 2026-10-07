@@ -16,6 +16,7 @@ import { Ban, Copy, RotateCcw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { ContextMenu, copyText, EDIT_SHORTCUTS, Icon, isApplePlatform, isModHeld, Kbd, Spinner, useContentSize } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
+import { CODE_TEXT } from '../code-text.ts';
 import type { EditValue, Value } from '../protocol/index.ts';
 import type { SqlTarget } from '../sql.ts';
 import type { RangeBlock } from './aggregates.ts';
@@ -700,7 +701,8 @@ export function DataGrid({
                             data-focused={isFocused ? '' : undefined}
                             data-ranged={ranged ? '' : undefined}
                             className={clsx(
-                                'flex h-full shrink-0 items-center overflow-hidden px-3 font-mono text-code whitespace-nowrap outline-0 select-none data-[focused]:outline-1 data-[focused]:-outline-offset-1 data-[focused]:outline-border-strong group-focus-within/grid:data-[focused]:outline-accent',
+                                CODE_TEXT,
+                                'flex h-full shrink-0 items-center overflow-hidden px-3 whitespace-nowrap outline-0 select-none data-[focused]:outline-1 data-[focused]:-outline-offset-1 data-[focused]:outline-border-strong group-focus-within/grid:data-[focused]:outline-accent',
                                 position === order.length - 1 ? 'border-r-0' : 'border-r',
                                 view.align === 'end' ? 'justify-end tabular-nums' : 'justify-start',
                                 pinned

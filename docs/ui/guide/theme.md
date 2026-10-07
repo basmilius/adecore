@@ -72,6 +72,12 @@ The sizes are rem, rounded to whole pixels, against the font size your app sets 
 
 <TokenTable group="radius" />
 
+## Code
+
+Code a person reads as code, such as an editor, a grid of database values or a statement, comes in one size apart from the type scale. `--code-font-size` and `--code-line-height` are `--text-code` and its line height until your app sets them on `<html>`, for instance from a font size setting of its code editor; every view that draws code follows at once. Utilities reach them as `text-(length:--code-font-size)` and `leading-(--code-line-height)`.
+
+<TokenTable group="code" />
+
 ## Spacing and fonts
 
 The spacing unit is rounded, not each multiple of it, so every step lands on a whole pixel. `--font-mono` is a variable your app can override on `<html>` when a person picks a monospace font, and `font-mono` follows.

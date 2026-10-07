@@ -1,5 +1,7 @@
 import { useEffect, useRef, type KeyboardEvent } from 'react';
+import clsx from 'clsx';
 import { Input } from '@adecore/ui';
+import { CODE_TEXT } from '../code-text.ts';
 
 export type EditMove = 'next' | 'previous';
 
@@ -40,11 +42,10 @@ export function CellEditor({ value, label, onValueChange, onCommit, onCancel }: 
     return (
         <Input
             ref={input}
-            mono
             size="sm"
             aria-label={label}
             value={value}
-            className="absolute inset-0 z-10 h-full min-w-0 rounded-none px-3"
+            className={clsx(CODE_TEXT, 'absolute inset-0 z-10 h-full min-w-0 rounded-none px-3')}
             onChange={(event) => onValueChange(event.target.value)}
             onKeyDown={handleKeyDown}
             onBlur={() => onCommit()}

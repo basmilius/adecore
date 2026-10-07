@@ -3,6 +3,7 @@ import clsx from 'clsx';
 import { Ban, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Icon, Menu } from '@adecore/ui';
+import { CODE_TEXT } from '../code-text.ts';
 import { joinMembers, membersOf, type EnumType } from './enum-type.ts';
 
 export interface EnumPickerProps {
@@ -24,7 +25,7 @@ export interface EnumPickerProps {
 }
 
 const LOOK = {
-    cell: 'absolute inset-0 z-10 flex items-center gap-2 border border-accent bg-surface-raised px-3 font-mono text-code outline-0',
+    cell: `absolute inset-0 z-10 flex items-center gap-2 border border-accent bg-surface-raised px-3 ${CODE_TEXT} outline-0`,
     field: 'field field-sm flex w-full items-center gap-2 font-mono text-code data-disabled:opacity-50'
 } as const;
 

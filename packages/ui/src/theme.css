@@ -134,6 +134,13 @@
     --file-icon-mauve: #79697b;
 }
 
+/* Code a person reads as code (an editor, a grid of values, a statement) at one size the app may set on
+   `<html>`, apart from the interface's own type. Left alone it is `--text-code`. */
+:root {
+    --code-font-size: var(--text-code);
+    --code-line-height: var(--text-code--line-height);
+}
+
 /* Who floats over whom. Whole numbers in one place, so a new popup cannot guess. */
 :root {
     --z-dialog-backdrop: 80;
