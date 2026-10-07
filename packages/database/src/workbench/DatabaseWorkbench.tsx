@@ -4,6 +4,7 @@ import { PencilRuler, Settings2, SquareTerminal, Table, TableProperties } from '
 import { useTranslation } from 'react-i18next';
 import {
     Button,
+    CloseButton,
     ColumnResizeHandle,
     Dialog,
     EmptyState,
@@ -322,9 +323,10 @@ export function DatabaseWorkbench({ connections, onConnectionsChange, className,
                 />
                 {onConnectionsChange !== undefined && (
                     <Dialog.Root open={managing} onOpenChange={setManaging}>
-                        <Dialog.Popup className="flex h-[560px] w-[900px] flex-col overflow-hidden">
-                            <div className="border-b border-border px-4 py-3">
-                                <Dialog.Title>{t('workbench.connections')}</Dialog.Title>
+                        <Dialog.Popup className="flex h-[640px] w-[800px] flex-col overflow-hidden">
+                            <div className="flex items-center gap-4 border-b border-border px-5 py-4">
+                                <Dialog.Title className="grow">{t('workbench.connections')}</Dialog.Title>
+                                <CloseButton label={t('workbench.close')} dialog />
                             </div>
                             <ConnectionManager
                                 value={connections}
@@ -333,9 +335,9 @@ export function DatabaseWorkbench({ connections, onConnectionsChange, className,
                                 onSelectedChange={setManaged}
                                 className="min-h-0 flex-1"
                             />
-                            <Dialog.Footer>
+                            <div className="flex shrink-0 justify-end border-t border-border px-5 py-3">
                                 <Dialog.Close render={<Button variant="secondary" />}>{t('workbench.close')}</Dialog.Close>
-                            </Dialog.Footer>
+                            </div>
                         </Dialog.Popup>
                     </Dialog.Root>
                 )}

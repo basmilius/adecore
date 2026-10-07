@@ -1,8 +1,9 @@
 import { useState, type ReactNode, type Ref } from 'react';
+import clsx from 'clsx';
 import { CircleAlert, CircleCheck, Container, Database, Plus, Trash2, Unplug } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Banner, Button, EmptyState, Icon, Menu, messageOf, PromptDialog, Spinner } from '@adecore/ui';
-import { DetailHeader, MasterDetail, MasterItem } from '@adecore/ui/settings';
+import { DetailHeader, MasterItem } from '@adecore/ui/settings';
 import { useDatabaseClient } from '../client-context.ts';
 import type { Connection } from '../client/types.ts';
 import type { ConnectionConfig, DockerContainer, Engine, ServerInfo } from '../protocol/index.ts';
@@ -32,7 +33,10 @@ export interface ConnectionManagerProps {
 
 type TestOutcome = { readonly config: ConnectionConfig; readonly info: ServerInfo } | { readonly config: ConnectionConfig; readonly error: string };
 
-/* The saved connections beside the form of the one picked, for a settings pane or a view of its own. */
+/*
+ * The saved connections beside the form of the one picked, for a dialog, a settings pane or a view of its own. The list
+ * scrolls on its own with New connection under it, and the detail scrolls beside it; in a narrow window they stack.
+ */
 export function ConnectionManager({ value, onValueChange, selected, onSelectedChange, onBrowse, renderFields, className, ref }: ConnectionManagerProps) {
     const { t } = useTranslation('database');
     const [own, setOwn] = useState<string | null>(null);
@@ -73,41 +77,46 @@ export function ConnectionManager({ value, onValueChange, selected, onSelectedCh
     };
 
     const list = (
-        <>
-            <Menu.Root>
-                <Menu.Trigger render={<Button variant="secondary" size="sm" className="mb-2" />}>
-                    <Icon icon={Plus} size={14} />
-                    {t('connections.new')}
-                </Menu.Trigger>
-                <Menu.Popup>
-                    {ENGINES.map((engine) => (
-                        <Menu.Item key={engine} onClick={() => add(engine)}>
-                            <Icon icon={ENGINE_ICONS[engine]} size={14} />
-                            {t(`engine.${engine}`)}
-                        </Menu.Item>
-                    ))}
-                    <Menu.Separator />
-                    <Menu.SubmenuRoot>
-                        <Menu.SubmenuTrigger>
-                            <Icon icon={Container} size={14} />
-                            {t('connections.fromDocker.label')}
-                        </Menu.SubmenuTrigger>
-                        <Menu.Popup>
-                            <DockerMenuItems onPick={addFromContainer} />
-                        </Menu.Popup>
-                    </Menu.SubmenuRoot>
-                </Menu.Popup>
-            </Menu.Root>
-            {value.map((connection) => (
-                <MasterItem key={connection.id} selected={connection.id === current?.id} onSelect={() => select(connection.id)}>
-                    <EngineIcon engine={connection.config.engine} size={16} className="shrink-0 text-text-muted" />
-                    <span className="flex min-w-0 flex-col">
-                        <span className="truncate">{connection.name || t('connections.untitled')}</span>
-                        <span className="truncate text-xs text-text-faint">{targetOf(connection)}</span>
-                    </span>
-                </MasterItem>
-            ))}
-        </>
+        <div className="flex w-56 shrink-0 flex-col border-r border-border max-[640px]:max-h-60 max-[640px]:w-auto max-[640px]:border-r-0 max-[640px]:border-b">
+            <nav aria-label={t('connections.list')} className="flex min-h-0 grow flex-col gap-0.5 overflow-y-auto p-2">
+                {value.length === 0 && <p className="px-2 py-1.5 text-xs text-text-faint">{t('connections.empty')}</p>}
+                {value.map((connection) => (
+                    <MasterItem key={connection.id} selected={connection.id === current?.id} onSelect={() => select(connection.id)}>
+                        <EngineIcon engine={connection.config.engine} size={16} className="shrink-0 text-text-muted" />
+                        <span className="flex min-w-0 flex-col">
+                            <span className="truncate">{connection.name || t('connections.untitled')}</span>
+                            <span className="truncate text-xs text-text-faint">{targetOf(connection)}</span>
+                        </span>
+                    </MasterItem>
+                ))}
+            </nav>
+            <div className="flex shrink-0 flex-col gap-1 border-t border-border p-2">
+                <Menu.Root>
+                    <Menu.Trigger render={<Button variant="ghost" size="sm" className="justify-start" />}>
+                        <Icon icon={Plus} size={14} />
+                        {t('connections.new')}
+                    </Menu.Trigger>
+                    <Menu.Popup>
+                        {ENGINES.map((engine) => (
+                            <Menu.Item key={engine} onClick={() => add(engine)}>
+                                <Icon icon={ENGINE_ICONS[engine]} size={14} />
+                                {t(`engine.${engine}`)}
+                            </Menu.Item>
+                        ))}
+                        <Menu.Separator />
+                        <Menu.SubmenuRoot>
+                            <Menu.SubmenuTrigger>
+                                <Icon icon={Container} size={14} />
+                                {t('connections.fromDocker.label')}
+                            </Menu.SubmenuTrigger>
+                            <Menu.Popup>
+                                <DockerMenuItems onPick={addFromContainer} />
+                            </Menu.Popup>
+                        </Menu.SubmenuRoot>
+                    </Menu.Popup>
+                </Menu.Root>
+            </div>
+        </div>
     );
 
     const detail =
@@ -146,7 +155,14 @@ export function ConnectionManager({ value, onValueChange, selected, onSelectedCh
             </>
         );
 
-    return <MasterDetail ref={ref} className={className} list={list} listWidth={280} listLabel={t('connections.list')} detail={detail} />;
+    return (
+        <div ref={ref} className={clsx('flex min-h-0 min-w-0 grow max-[640px]:flex-col', className)}>
+            {list}
+            <div className="min-h-0 min-w-0 grow overflow-y-auto">
+                <div className="flex min-w-0 flex-col gap-6 px-5 py-4">{detail}</div>
+            </div>
+        </div>
+    );
 }
 
 /* The containers Docker is running as menu items. The submenu mounts this when it opens, so Docker is asked only then. */

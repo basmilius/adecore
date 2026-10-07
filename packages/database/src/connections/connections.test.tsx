@@ -166,6 +166,15 @@ describe('ConnectionManager', () => {
         expect(markup).toContain('value="Notes"');
     });
 
+    test('keeps New connection under the list, apart from the rows that scroll', () => {
+        const markup = render(<ConnectionManager value={[sqlite, mysql]} onValueChange={() => undefined} />);
+        const list = markup.indexOf('aria-label="Connections"');
+        expect(list).toBeGreaterThan(-1);
+        expect(markup.indexOf('root@db.test:3307')).toBeGreaterThan(list);
+        expect(markup.indexOf('New connection')).toBeGreaterThan(markup.indexOf('root@db.test:3307'));
+        expect(markup).toMatch(/overflow-y-auto p-2/);
+    });
+
     test('shows the connection it is told to select', () => {
         const markup = render(<ConnectionManager value={[sqlite, mysql]} selected="two" onValueChange={() => undefined} />);
         expect(markup).toContain('value="db.test"');

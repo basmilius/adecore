@@ -14,7 +14,20 @@ const [connections, setConnections] = useState<readonly Connection[]>(saved);
 <ConnectionManager value={connections} onValueChange={setConnections} className="h-full" />;
 ```
 
-It is a [`MasterDetail`](/ui/settings/master-detail), so it fills the height it gets, scrolls each side on its own and stacks in a window under 640 pixels wide.
+It fills the height it gets. The list of connections is 224 pixels wide and scrolls on its own, with New connection pinned under it behind a line; the detail of the picked connection scrolls beside it. In a window under 640 pixels wide the two stack. It draws no border around itself, so a dialog puts its header above it and its footer under both columns:
+
+```tsx
+<Dialog.Popup className="flex h-[640px] w-[800px] flex-col">
+    <div className="flex items-center gap-4 border-b border-border px-5 py-4">
+        <Dialog.Title className="grow">Connections</Dialog.Title>
+        <CloseButton label="Close" dialog />
+    </div>
+    <ConnectionManager value={connections} onValueChange={save} className="min-h-0 flex-1" />
+    <div className="flex justify-end border-t border-border px-5 py-3">
+        <Dialog.Close render={<Button variant="secondary" />}>Done</Dialog.Close>
+    </div>
+</Dialog.Popup>
+```
 
 - New connection offers the two engines and From a Docker container. A new connection gets a generated id and the defaults of its engine: port 3306 and `prefer` for TLS on MySQL, an empty path on SQLite.
 - From a Docker container lists the running database containers when the submenu opens, and adds a connection to the one picked. See [Finding containers](/database/guide/connections#finding-containers).
