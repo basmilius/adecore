@@ -12,9 +12,9 @@ import {
     type Ref
 } from 'react';
 import clsx from 'clsx';
-import { ArrowUpRight, Ban, Copy, RotateCcw } from 'lucide-react';
+import { Ban, Copy, RotateCcw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { ContextMenu, copyText, EDIT_SHORTCUTS, Icon, IconButton, isApplePlatform, isModHeld, Kbd, Spinner, useContentSize } from '@adecore/ui';
+import { ContextMenu, copyText, EDIT_SHORTCUTS, Icon, isApplePlatform, isModHeld, Kbd, Spinner, useContentSize } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
 import type { EditValue, Value } from '../protocol/index.ts';
 import type { SqlTarget } from '../sql.ts';
@@ -690,7 +690,6 @@ export function DataGrid({
                     const isEditing = editing !== null && editing.row === index && editing.column === columnIndex;
                     const pinned = position < pinnedShown;
                     const enumType = enumTypes[columnIndex] ?? null;
-                    const followable = !isEditing && followCell({ rowKey: row.key, column: columnIndex });
                     return (
                         <div
                             key={columnIndex}
@@ -701,7 +700,7 @@ export function DataGrid({
                             data-focused={isFocused ? '' : undefined}
                             data-ranged={ranged ? '' : undefined}
                             className={clsx(
-                                'group/cell flex h-full shrink-0 items-center overflow-hidden px-3 font-mono text-code whitespace-nowrap outline-0 select-none data-[focused]:outline-1 data-[focused]:-outline-offset-1 data-[focused]:outline-border-strong group-focus-within/grid:data-[focused]:outline-accent',
+                                'flex h-full shrink-0 items-center overflow-hidden px-3 font-mono text-code whitespace-nowrap outline-0 select-none data-[focused]:outline-1 data-[focused]:-outline-offset-1 data-[focused]:outline-border-strong group-focus-within/grid:data-[focused]:outline-accent',
                                 position === order.length - 1 ? 'border-r-0' : 'border-r',
                                 view.align === 'end' ? 'justify-end tabular-nums' : 'justify-start',
                                 pinned
@@ -744,21 +743,6 @@ export function DataGrid({
                                     <span className={clsx('min-w-0 truncate', TONE[view.tone], row.state === 'deleted' && 'line-through')}>{view.text}</span>
                                     {view.suffix !== undefined && <span className="ml-2 shrink-0 text-text-faint">{view.suffix}</span>}
                                 </>
-                            )}
-                            {followable && (
-                                <IconButton
-                                    icon={ArrowUpRight}
-                                    size="2xs"
-                                    label={t('grid.followReference')}
-                                    tabIndex={-1}
-                                    className="absolute top-1/2 right-1 -translate-y-1/2 bg-surface-raised opacity-0 group-hover/cell:opacity-100 group-data-[focused]/cell:opacity-100 focus-visible:opacity-100"
-                                    onPointerDown={(event) => event.stopPropagation()}
-                                    onClick={() => {
-                                        if (!pressedInPopup()) {
-                                            onFollow?.({ rowKey: row.key, column: columnIndex });
-                                        }
-                                    }}
-                                />
                             )}
                         </div>
                     );

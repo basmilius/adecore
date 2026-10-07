@@ -75,7 +75,7 @@ Value editor in the More menu opens a panel beside the grid with the whole value
 
 ## Foreign keys
 
-A cell of a foreign key column shows an arrow. A click on it, Cmd or Ctrl and click on the cell, or Go to referenced row in its menu sends `open-table` with a `where` that picks the referenced row, over every column of the key. A NULL cell references nothing. Without `onAction` on the [provider](/database/guide/tabs) none of this is offered.
+Cmd or Ctrl and click on a cell of a foreign key column, or Go to referenced row in its menu, sends `open-table` with a `where` that picks the referenced row, over every column of the key. The grid draws nothing over the value; the record view shows an arrow beside it. A NULL cell references nothing. Without `onAction` on the [provider](/database/guide/tabs) none of this is offered.
 
 <Demo src="database/table-view-references" />
 

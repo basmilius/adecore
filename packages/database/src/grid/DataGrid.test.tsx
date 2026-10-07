@@ -169,20 +169,9 @@ describe('DataGrid', () => {
         }
     });
 
-    test('draws the arrow of a reference on the cells that can be followed, and nowhere else', () => {
-        const markup = render(
-            <DataGrid label="Users" columns={columns} rows={rows} onFollow={() => {}} canFollow={(cell) => cell.column === 0 && cell.rowKey === 'row:0'} />
-        );
-        expect(markup.match(/aria-label="Go to referenced row"/g)).toHaveLength(1);
-    });
-
-    test('draws no arrow without a handler to follow it', () => {
-        expect(render(<DataGrid label="Users" columns={columns} rows={rows} canFollow={() => true} />)).not.toContain('Go to referenced row');
-    });
-
-    test('keeps the arrow out of the way until the cell is hovered or focused', () => {
-        const markup = render(<DataGrid label="Users" columns={columns} rows={rows} onFollow={() => {}} />);
-        expect(markup).toContain('opacity-0 group-hover/cell:opacity-100 group-data-[focused]/cell:opacity-100');
+    test('draws nothing over the value of a cell that can be followed', () => {
+        const markup = render(<DataGrid label="Users" columns={columns} rows={rows} onFollow={() => {}} canFollow={() => true} />);
+        expect(markup).not.toContain('Go to referenced row');
     });
 });
 
