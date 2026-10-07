@@ -25,7 +25,8 @@ import { TransactionControls, type TransactionMode } from './TransactionControls
 import { useConsoleHistory } from './useConsoleHistory.ts';
 
 export interface QueryConsoleProps {
-    connection: Connection;
+    /* Without one the console draws its editor and a bar with only `toolbarEnd`, where an app can offer to pick one; nothing runs. */
+    connection?: Connection;
     /* The schema the statements run in. Without `onSchemaChange` the picker starts from it, and a new one resets the pick. */
     schema?: string;
     /* Makes the schema the app's: the picker shows `schema` and asks for another through this. */
@@ -127,15 +128,16 @@ export function QueryConsole({
     const storage = useDatabaseStorage();
     // A channel of its own, so a transaction a person starts here stays out of the table views and the designer.
     const channel = `console:${useId()}`;
-    const session = useMemo(() => client.session(connection, channel), [client, connection, channel]);
-    const engine = connection.config.engine;
+    const session = useMemo(() => (connection === undefined ? null : client.session(connection, channel)), [client, connection, channel]);
+    const engine = connection?.config.engine;
     useEffect(
         () => () => {
-            void session.close();
+            void session?.close();
         },
         [session]
     );
-    const history = useConsoleHistory(connection.id);
+    // Nothing is recorded without a connection, so the key of none is never written.
+    const history = useConsoleHistory(connection?.id ?? '');
     const running = useRef<AbortController | null>(null);
     const generation = useRef(0);
     const editorHandle = useRef<QueryConsoleEditorHandle>(null);
@@ -187,7 +189,7 @@ export function QueryConsole({
     }, [storage, resultsHeight]);
 
     useEffect(() => {
-        if (engine !== 'mysql') {
+        if (session === null || engine !== 'mysql') {
             return undefined;
         }
         const controller = new AbortController();
@@ -206,6 +208,9 @@ export function QueryConsole({
     };
 
     const targetOf = (scope: QueryConsoleRunScope): RunTarget | null => {
+        if (engine === undefined) {
+            return null;
+        }
         const selection = editorHandle.current?.selection();
         if (scope === 'all' || selection === undefined) {
             const statements = splitStatements(sql, engine);
@@ -225,7 +230,7 @@ export function QueryConsole({
     };
 
     const requestRun = (target: RunTarget | null): void => {
-        if (target === null || busy) {
+        if (target === null || busy || engine === undefined) {
             return;
         }
         const statements = findDestructive(target.sql, engine);
@@ -237,6 +242,9 @@ export function QueryConsole({
     };
 
     const execute = async (target: RunTarget): Promise<void> => {
+        if (session === null || connection === undefined) {
+            return;
+        }
         const controller = new AbortController();
         const mine = ++generation.current;
         running.current = controller;
@@ -282,6 +290,9 @@ export function QueryConsole({
     };
 
     const settle = async (action: 'commit' | 'rollback'): Promise<boolean> => {
+        if (session === null) {
+            return false;
+        }
         setSettling(true);
         try {
             setInTransaction(await session.transaction(action));
@@ -310,6 +321,9 @@ export function QueryConsole({
     };
 
     const loadPage = async (index: number, result: StatementResult, offset: number): Promise<void> => {
+        if (session === null) {
+            return;
+        }
         const mine = generation.current;
         setPaging(true);
         setNotice(null);
@@ -326,7 +340,7 @@ export function QueryConsole({
     };
 
     const exportResult = async (result: StatementResult, format: FileFormat): Promise<void> => {
-        if (files === undefined) {
+        if (files === undefined || session === null) {
             return;
         }
         setExporting(true);
@@ -350,7 +364,7 @@ export function QueryConsole({
     const shown: StatementResult | undefined = base?.kind === 'rows' && page !== undefined ? { kind: 'rows', sql: base.sql, ...page.rows } : base;
     const offset = page?.offset ?? 0;
     const pager: ResultPager | undefined =
-        base?.kind === 'rows' && shown?.kind === 'rows' && isPageable(base.sql, engine) && (shown.hasMore || offset > 0)
+        base?.kind === 'rows' && shown?.kind === 'rows' && engine !== undefined && isPageable(base.sql, engine) && (shown.hasMore || offset > 0)
             ? {
                   page: offset / PAGE_SIZE + 1,
                   loading: paging,
@@ -385,41 +399,50 @@ export function QueryConsole({
                             renderEditor === undefined ? 'pt-2' : 'border-t border-border pt-3'
                         )}
                     >
-                        {run.status === 'running' ? (
+                        {session !== null && (
                             <>
-                                <Button size="sm" onClick={() => running.current?.abort()}>
-                                    <Icon icon={Square} size={12} />
-                                    {t('console.cancel')}
-                                </Button>
-                                <Spinner size={14} label={t('console.running')} />
-                            </>
-                        ) : (
-                            <>
-                                <Tooltip label={t('console.run')} kbd={RUN_SHORTCUT}>
-                                    <Button variant="primary" size="sm" disabled={blank || busy} onClick={() => requestRun(targetOf('selection-or-statement'))}>
-                                        <Icon icon={Play} size={12} />
-                                        {t('console.run')}
-                                    </Button>
-                                </Tooltip>
-                                <Tooltip label={t('console.runAll')} kbd={RUN_ALL_SHORTCUT}>
-                                    <Button variant="secondary" size="sm" disabled={blank || busy} onClick={() => requestRun(targetOf('all'))}>
-                                        {t('console.runAll')}
-                                    </Button>
-                                </Tooltip>
+                                {run.status === 'running' ? (
+                                    <>
+                                        <Button size="sm" onClick={() => running.current?.abort()}>
+                                            <Icon icon={Square} size={12} />
+                                            {t('console.cancel')}
+                                        </Button>
+                                        <Spinner size={14} label={t('console.running')} />
+                                    </>
+                                ) : (
+                                    <>
+                                        <Tooltip label={t('console.run')} kbd={RUN_SHORTCUT}>
+                                            <Button
+                                                variant="primary"
+                                                size="sm"
+                                                disabled={blank || busy}
+                                                onClick={() => requestRun(targetOf('selection-or-statement'))}
+                                            >
+                                                <Icon icon={Play} size={12} />
+                                                {t('console.run')}
+                                            </Button>
+                                        </Tooltip>
+                                        <Tooltip label={t('console.runAll')} kbd={RUN_ALL_SHORTCUT}>
+                                            <Button variant="secondary" size="sm" disabled={blank || busy} onClick={() => requestRun(targetOf('all'))}>
+                                                {t('console.runAll')}
+                                            </Button>
+                                        </Tooltip>
+                                    </>
+                                )}
+                                <TransactionControls
+                                    mode={mode}
+                                    onModeChange={changeMode}
+                                    open={inTransaction}
+                                    busy={busy}
+                                    onCommit={() => void settle('commit')}
+                                    onRollback={() => void settle('rollback')}
+                                />
+                                {ran !== null && run.status !== 'idle' && <span className="min-w-0 truncate text-xs text-text-muted">{ranText(ran, t)}</span>}
                             </>
                         )}
-                        <TransactionControls
-                            mode={mode}
-                            onModeChange={changeMode}
-                            open={inTransaction}
-                            busy={busy}
-                            onCommit={() => void settle('commit')}
-                            onRollback={() => void settle('rollback')}
-                        />
-                        {ran !== null && run.status !== 'idle' && <span className="min-w-0 truncate text-xs text-text-muted">{ranText(ran, t)}</span>}
                         <div className="ml-auto flex items-center gap-2">
                             {toolbarEnd}
-                            {schemas.length > 0 && (
+                            {session !== null && schemas.length > 0 && (
                                 <SchemaPicker
                                     schemas={schemas}
                                     value={activeSchema ?? null}
@@ -427,29 +450,31 @@ export function QueryConsole({
                                     onValueChange={onSchemaChange ?? setPickedSchema}
                                 />
                             )}
-                            <Button
-                                variant="secondary"
-                                size="sm"
-                                aria-pressed={historyOpen}
-                                className="aria-pressed:bg-surface-active aria-pressed:text-text"
-                                onClick={() => setHistoryOpen(!historyOpen)}
-                            >
-                                <Icon icon={History} size={12} />
-                                {t('console.history.title')}
-                            </Button>
+                            {session !== null && (
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    aria-pressed={historyOpen}
+                                    className="aria-pressed:bg-surface-active aria-pressed:text-text"
+                                    onClick={() => setHistoryOpen(!historyOpen)}
+                                >
+                                    <Icon icon={History} size={12} />
+                                    {t('console.history.title')}
+                                </Button>
+                            )}
                         </div>
                     </div>
                 </div>
-                {historyOpen && <HistoryPanel entries={history.entries} onPick={pickHistory} onClear={history.clear} />}
+                {session !== null && historyOpen && <HistoryPanel entries={history.entries} onPick={pickHistory} onClear={history.clear} />}
             </div>
-            {notice !== null && (
+            {session !== null && notice !== null && (
                 <Banner icon={notice.tone === 'error' ? CircleAlert : Check} tone={notice.tone} message={notice.message} className="shrink-0 pb-2">
                     <Button size="xs" onClick={() => setNotice(null)}>
                         {t('console.dismiss')}
                     </Button>
                 </Banner>
             )}
-            {resultsOpen && (
+            {session !== null && resultsOpen && (
                 <section
                     ref={resultsPane}
                     aria-label={t('console.results')}

@@ -124,6 +124,8 @@ function SqlCodeEditor({ ref, value, onValueChange, run, label, autoFocus }: Que
 
 `toolbarEnd` draws the app's own content in the group at the end of the bar, before the schema picker and History, such as a picker of the connection the console runs on. Run, Run all and the transaction mode stay at the start of the bar.
 
+Without `connection` the console draws its editor and a bar with only `toolbarEnd`, at the same height, and runs nothing: no Run, no schema, no history and no results. An app can offer to pick a connection there, and once it passes one the full bar appears. The editor stays mounted across the change, so an editor of the app keeps its state.
+
 ```tsx
 <QueryConsole connection={connection} toolbarEnd={<ConnectionPicker value={connection.id} onValueChange={switchConnection} />} className="h-full" />
 ```
@@ -132,7 +134,7 @@ function SqlCodeEditor({ ref, value, onValueChange, run, label, autoFocus }: Que
 
 | Prop                 | Type                                             | Default |                                                                            |
 | -------------------- | ------------------------------------------------ | ------- | -------------------------------------------------------------------------- |
-| `connection`         | `Connection`                                     |         | Required. The connection to run on.                                        |
+| `connection`         | `Connection`                                     |         | The connection to run on. Without it nothing runs.                         |
 | `schema`             | `string`                                         |         | The schema the statements run in.                                          |
 | `onSchemaChange`     | `(schema: string) => void`                       |         | Makes the schema the app's; the picker asks through it.                    |
 | `value`              | `string`                                         |         | The SQL, when the app keeps it, such as in a tab that survives a reload.   |

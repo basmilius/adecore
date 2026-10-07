@@ -330,6 +330,24 @@ describe.skipIf(typeof document === 'undefined')('a QueryConsole with the editor
         expect(recorded.executed()).toEqual(['SELECT 1;', SCRIPT]);
     });
 
+    test('keeps the editor of the app when the connection goes and comes back, and runs only with one', async () => {
+        const editorBefore = own();
+        const draw = (withConnection: boolean) => (
+            <QueryConsole connection={withConnection ? connection : undefined} value={sql} renderEditor={(editorProps) => <OwnEditor {...editorProps} />} />
+        );
+        await mounted.rerender(draw(false));
+        expect(own()).toBe(editorBefore);
+        expect(findAll('button').map((button) => button.textContent)).not.toContain('Run');
+        caret(0);
+        await press(own(), 'F5');
+        expect(recorded.executed()).toEqual([]);
+
+        await mounted.rerender(draw(true));
+        expect(own()).toBe(editorBefore);
+        await press(own(), 'F5');
+        expect(recorded.executed()).toEqual(['SELECT 1']);
+    });
+
     test('hands every edit to onValueChange', async () => {
         await type(own(), 'SELECT 9');
         expect(sql).toBe('SELECT 9');

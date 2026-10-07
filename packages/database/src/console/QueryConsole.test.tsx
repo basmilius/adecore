@@ -75,6 +75,15 @@ describe('QueryConsole toolbar', () => {
         expect(markup).not.toContain('Search history');
     });
 
+    test('without a connection draws the editor and a bar with only the app’s own content', () => {
+        const markup = render(<QueryConsole defaultValue="SELECT 1" toolbarEnd={<button type="button">Run on a connection</button>} />);
+        expect(markup).toContain('aria-label="SQL"');
+        expect(markup).toContain('>Run on a connection</button>');
+        for (const word of ['Run all', 'History', 'Auto', 'aria-label="Schema"']) {
+            expect(markup).not.toContain(word);
+        }
+    });
+
     test('draws the app’s own content at the end of the bar, before History', () => {
         const markup = render(<QueryConsole connection={connection} toolbarEnd={<span>On Notes</span>} />);
         const end = markup.indexOf('>On Notes</span>');
