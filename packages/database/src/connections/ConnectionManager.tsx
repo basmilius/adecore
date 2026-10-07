@@ -1,4 +1,4 @@
-import { useState, type Ref } from 'react';
+import { useState, type ReactNode, type Ref } from 'react';
 import { CircleAlert, CircleCheck, Container, Database, Plus, Trash2, Unplug } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Banner, Button, EmptyState, Icon, Menu, messageOf, PromptDialog, Spinner } from '@adecore/ui';
@@ -24,6 +24,8 @@ export interface ConnectionManagerProps {
     onSelectedChange?(id: string | null): void;
     /* Opens the app's file dialog for a database file or an SSH identity file; without it the path is typed. See `ConnectionForm`. */
     onBrowse?(purpose: 'database' | 'identity'): Promise<string | null>;
+    /* The app's own settings of the picked connection, drawn after the form's fields and in their rhythm, such as a horizontal `Field`. */
+    renderFields?(connection: Connection): ReactNode;
     className?: string;
     ref?: Ref<HTMLDivElement>;
 }
@@ -31,7 +33,7 @@ export interface ConnectionManagerProps {
 type TestOutcome = { readonly config: ConnectionConfig; readonly info: ServerInfo } | { readonly config: ConnectionConfig; readonly error: string };
 
 /* The saved connections beside the form of the one picked, for a settings pane or a view of its own. */
-export function ConnectionManager({ value, onValueChange, selected, onSelectedChange, onBrowse, className, ref }: ConnectionManagerProps) {
+export function ConnectionManager({ value, onValueChange, selected, onSelectedChange, onBrowse, renderFields, className, ref }: ConnectionManagerProps) {
     const { t } = useTranslation('database');
     const [own, setOwn] = useState<string | null>(null);
     const [deleting, setDeleting] = useState(false);
@@ -124,7 +126,10 @@ export function ConnectionManager({ value, onValueChange, selected, onSelectedCh
                         </Button>
                     }
                 />
-                <ConnectionForm value={current} onValueChange={change} onBrowse={onBrowse} />
+                <div className="flex flex-col gap-4">
+                    <ConnectionForm value={current} onValueChange={change} onBrowse={onBrowse} />
+                    {renderFields?.(current)}
+                </div>
                 <ConnectionTest key={current.id} connection={current} />
                 <PromptDialog
                     open={deleting}

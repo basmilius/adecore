@@ -187,6 +187,21 @@ describe('ConnectionManager', () => {
         expect(markup).toContain('app@shop-db-1 (Docker)');
     });
 
+    test("draws the app's own fields of the picked connection after the form's and before the test", () => {
+        const markup = render(
+            <ConnectionManager
+                value={[sqlite, mysql]}
+                selected="two"
+                onValueChange={() => undefined}
+                renderFields={(connection) => <p>Own {connection.name}</p>}
+            />
+        );
+        expect(markup).toContain('<p>Own Shop</p>');
+        expect(markup.indexOf('Read only')).toBeLessThan(markup.indexOf('<p>Own Shop</p>'));
+        expect(markup.indexOf('<p>Own Shop</p>')).toBeLessThan(markup.indexOf('Test connection'));
+        expect(render(<ConnectionManager value={[]} onValueChange={() => undefined} renderFields={() => <p>Own</p>} />)).not.toContain('<p>Own</p>');
+    });
+
     test('says there is nothing yet, and still offers a new connection', () => {
         const markup = render(<ConnectionManager value={[]} onValueChange={() => undefined} />);
         expect(markup).toContain('No connections yet.');

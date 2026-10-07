@@ -23,6 +23,22 @@ It is a [`MasterDetail`](/ui/settings/master-detail), so it fills the height it 
 - Delete asks first, closes the connection's sessions and selects a neighbor. It does not touch the database.
 - Without `selected` the manager keeps the selection itself, starting at the first connection. Pass `selected` and `onSelectedChange` to control it, for example to open the manager on one connection.
 
+## Settings of your own
+
+`renderFields` draws what an app keeps about a connection beyond its config, such as whether it is shared with a team, after the form's last field and before Test connection. It gets the picked connection and scrolls with the form. Use a horizontal `Field`, like the form's own Read only, so it reads as one more row:
+
+```tsx
+<ConnectionManager
+    value={connections}
+    onValueChange={save}
+    renderFields={(connection) => (
+        <Field label="Shared" hint="Everyone on the team sees this connection." orientation="horizontal" group>
+            <Switch label="Shared" checked={shared.has(connection.id)} onCheckedChange={(next) => setShared(connection.id, next)} />
+        </Field>
+    )}
+/>
+```
+
 ## Drafts
 
 The manager hands over every edit as it happens, so its list can hold a connection a person is still filling in: a new SQLite connection without a path, or a MySQL connection whose host was cleared to type another. `isValidConfig(config)` tells a connection the app can save from such a draft. Keep showing the draft, and save the last version that was whole:
@@ -86,15 +102,16 @@ Both need a [`DatabaseProvider`](/database/guide/getting-started#databaseprovide
 
 ### ConnectionManager
 
-| Prop               | Type                                                             | Default |                                                              |
-| ------------------ | ---------------------------------------------------------------- | ------- | ------------------------------------------------------------ |
-| `value`            | `readonly Connection[]`                                          |         | Required. The saved connections.                             |
-| `onValueChange`    | `(next: readonly Connection[]) => void`                          |         | Required. Every add, edit and delete, as the whole new list. |
-| `selected`         | `string \| null`                                                 |         | The id of the connection in the detail. `null` is none.      |
-| `onSelectedChange` | `(id: string \| null) => void`                                   |         | The person picked another connection.                        |
-| `onBrowse`         | `(purpose: 'database' \| 'identity') => Promise<string \| null>` |         | Opens the app's file dialog.                                 |
-| `className`        | `string`                                                         |         | Its size.                                                    |
-| `ref`              | `Ref<HTMLDivElement>`                                            |         |                                                              |
+| Prop               | Type                                                             | Default |                                                                                                     |
+| ------------------ | ---------------------------------------------------------------- | ------- | --------------------------------------------------------------------------------------------------- |
+| `value`            | `readonly Connection[]`                                          |         | Required. The saved connections.                                                                    |
+| `onValueChange`    | `(next: readonly Connection[]) => void`                          |         | Required. Every add, edit and delete, as the whole new list.                                        |
+| `selected`         | `string \| null`                                                 |         | The id of the connection in the detail. `null` is none.                                             |
+| `onSelectedChange` | `(id: string \| null) => void`                                   |         | The person picked another connection.                                                               |
+| `onBrowse`         | `(purpose: 'database' \| 'identity') => Promise<string \| null>` |         | Opens the app's file dialog.                                                                        |
+| `renderFields`     | `(connection: Connection) => ReactNode`                          |         | The app's own settings of the picked connection. See [Settings of your own](#settings-of-your-own). |
+| `className`        | `string`                                                         |         | Its size.                                                                                           |
+| `ref`              | `Ref<HTMLDivElement>`                                            |         |                                                                                                     |
 
 `ConnectionManagerProps` is an exported type.
 
