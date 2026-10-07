@@ -91,7 +91,7 @@ A `Connection` is `{ id, name, config }`. The app keeps the list, with the passw
 >
 ```
 
-`onAction` receives a `DatabaseAction` when a view wants a table, a console or the designer opened, so the app decides where it goes. `storage` keeps layouts, console history and open tabs across a remount. `files` holds the app's save and open dialogs for export and import.
+`onAction` receives a `DatabaseAction` when a view wants a table, a console or the designer opened, so the app decides where it goes. `storage` keeps layouts, console history and open tabs across a remount. `files` holds the app's save and open dialogs for export and import. A provider inside another needs none of them: it takes what it leaves out from the one above, so `<DatabaseProvider onAction={...}>` around one tab tells which tab an action came from.
 
 Tell Tailwind to scan the package for its classes, next to the `@source` line of `@adecore/ui`. The path is relative to the CSS file:
 

@@ -20,7 +20,7 @@ import {
 import { formatNumber } from '@adecore/ui/format';
 import { DatabaseProvider } from '../DatabaseProvider.tsx';
 import type { DatabaseAction, ExplorerSelection } from '../actions.ts';
-import { useDatabaseAction, useDatabaseClient, useDatabaseFiles, useDatabaseStorage, useNumberNotation } from '../client-context.ts';
+import { useDatabaseAction, useDatabaseStorage } from '../client-context.ts';
 import type { Connection } from '../client/types.ts';
 import { ConnectionManager } from '../connections/ConnectionManager.tsx';
 import { QueryConsole } from '../console/QueryConsole.tsx';
@@ -63,11 +63,8 @@ const MIN_WIDTH = 200;
  */
 export function DatabaseWorkbench({ connections, onConnectionsChange, className, ref }: DatabaseWorkbenchProps) {
     const { t } = useTranslation('database');
-    const client = useDatabaseClient();
     const outer = useDatabaseAction();
     const storage = useDatabaseStorage();
-    const files = useDatabaseFiles();
-    const numberNotation = useNumberNotation();
     const column = useRef<HTMLElement>(null);
     const [state, setState] = useState(() => parseState(storage?.get(STORAGE_KEY) ?? null));
     const [selection, setSelection] = useState<ExplorerSelection | null>(null);
@@ -225,7 +222,7 @@ export function DatabaseWorkbench({ connections, onConnectionsChange, className,
     const closingTable = closingTab?.kind === 'table' ? closingTab.ref.table : '';
 
     return (
-        <DatabaseProvider client={client} onAction={onAction} storage={storage} files={files} numberNotation={numberNotation}>
+        <DatabaseProvider onAction={onAction}>
             <div ref={ref} className={clsx('flex h-full min-h-0 min-w-0 bg-surface text-text', className)} onKeyDown={onKeyDown}>
                 <aside ref={column} className="relative flex shrink-0 flex-col border-r border-border" style={{ width }}>
                     <header className="flex h-9 shrink-0 items-center justify-between border-b border-border pr-2 pl-3">

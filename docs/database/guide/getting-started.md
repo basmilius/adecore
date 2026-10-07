@@ -244,14 +244,14 @@ Call `client.dispose()` when the page goes away, to close its sessions. The view
 
 `DatabaseProvider` hands the client and the app's hooks to every view below it, and adds the package's words to the i18next instance of `UIProvider`. A view outside one throws. A component of your own reads the client with `useDatabaseClient()`.
 
-| Prop             | Type                               | Default      |                                                                                                                                                                   |
-| ---------------- | ---------------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `client`         | `DatabaseClient`                   |              | Required.                                                                                                                                                         |
-| `onAction`       | `(action: DatabaseAction) => void` |              | Where a table, a console or the designer opens. Without it the views leave out the items that would open one. See [Opening tables as tabs](/database/guide/tabs). |
-| `storage`        | `DatabaseStorage`                  |              | Where the views keep what a person set. Without it they start the same every time.                                                                                |
-| `files`          | `DatabaseFiles`                    |              | The app's file dialogs. Without them there is no export and no import. See [Files](/database/guide/files).                                                        |
-| `numberNotation` | `NumberNotation`                   | `'database'` | How cells draw numbers. See [Number notation](#number-notation).                                                                                                  |
-| `children`       | `ReactNode`                        |              | Required.                                                                                                                                                         |
+| Prop             | Type                               | Default      |                                                                                                                                                                                 |
+| ---------------- | ---------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `client`         | `DatabaseClient`                   |              | Required on the outermost provider. A provider inside another takes every prop it leaves out from the one above; see [Nested providers](/database/guide/tabs#nested-providers). |
+| `onAction`       | `(action: DatabaseAction) => void` |              | Where a table, a console or the designer opens. Without it the views leave out the items that would open one. See [Opening tables as tabs](/database/guide/tabs).               |
+| `storage`        | `DatabaseStorage`                  |              | Where the views keep what a person set. Without it they start the same every time.                                                                                              |
+| `files`          | `DatabaseFiles`                    |              | The app's file dialogs. Without them there is no export and no import. See [Files](/database/guide/files).                                                                      |
+| `numberNotation` | `NumberNotation`                   | `'database'` | How cells draw numbers. See [Number notation](#number-notation).                                                                                                                |
+| `children`       | `ReactNode`                        |              | Required.                                                                                                                                                                       |
 
 `DatabaseProviderProps` is an exported type.
 

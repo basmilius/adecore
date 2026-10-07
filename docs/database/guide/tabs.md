@@ -141,4 +141,18 @@ The example leaves these decisions to you:
 
 ## Nested providers
 
-`onAction` belongs to the nearest provider, so a provider inside another answers for a part of the page. [`DatabaseWorkbench`](/database/views/workbench) does this: it answers the actions it can place, and passes the rest to the provider above it.
+`onAction` belongs to the nearest provider, so a provider inside another answers for a part of the page. A provider inside another takes every prop it leaves out from the one above it: the client, `storage`, `files`, `numberNotation` and `onAction` too. Set only what differs for that part.
+
+To know which tab an action came from, wrap the view of each tab in a provider with an `onAction` of its own. A designer that created or renamed its table then turns its own tab into the designer of that table:
+
+```tsx
+<DatabaseProvider client={client} storage={storage} files={files} onAction={openTab}>
+    {tabs.map((tab) => (
+        <Tabs.Panel key={tab.id} value={tab.id} keepMounted>
+            <DatabaseProvider onAction={(action) => openTab(action, tab.id)}>{viewOf(tab, connections)}</DatabaseProvider>
+        </Tabs.Panel>
+    ))}
+</DatabaseProvider>
+```
+
+[`DatabaseWorkbench`](/database/views/workbench) nests one the same way: it answers the actions it can place, and passes the rest to the provider above it. Only the outermost provider needs a `client`; one without a client and without a provider above it throws.

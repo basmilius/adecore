@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { use, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { DatabaseAction, DatabaseFiles, DatabaseStorage } from './actions.ts';
 import type { DatabaseClient } from './client/types.ts';
@@ -7,7 +7,8 @@ import type { NumberNotation } from './grid/display.ts';
 import { addDatabaseResources } from './locales.ts';
 
 export interface DatabaseProviderProps {
-    client: DatabaseClient;
+    /* Required on the outermost provider. A provider inside another takes every prop it leaves out from the one above. */
+    client?: DatabaseClient;
     /* Where a table, a console or the designer a view asks for opens. Without it the views offer none of those. */
     onAction?(action: DatabaseAction): void;
     storage?: DatabaseStorage;
@@ -22,8 +23,9 @@ export interface DatabaseProviderProps {
 }
 
 /* Hands every view below it the client and the app's hooks, and adds the package's words to the i18next the app's `UIProvider` was given. Mount it inside that provider. */
-export function DatabaseProvider({ client, onAction, storage, files, numberNotation = 'database', children }: DatabaseProviderProps) {
+export function DatabaseProvider({ client, onAction, storage, files, numberNotation, children }: DatabaseProviderProps) {
     const { i18n } = useTranslation();
+    const outer = use(DatabaseContext);
     const [added, setAdded] = useState<typeof i18n | null>(null);
     // In render, as `UIProvider` does, so the first view already reads its words.
     if (added !== i18n) {
@@ -31,7 +33,18 @@ export function DatabaseProvider({ client, onAction, storage, files, numberNotat
         setAdded(i18n);
     }
 
-    const value = useMemo(() => ({ client, onAction, storage, files, numberNotation }), [client, onAction, storage, files, numberNotation]);
+    const ownClient = client ?? outer?.client;
+    const ownAction = onAction ?? outer?.onAction;
+    const ownStorage = storage ?? outer?.storage;
+    const ownFiles = files ?? outer?.files;
+    const ownNotation = numberNotation ?? outer?.numberNotation ?? 'database';
+    const value = useMemo(
+        () => (ownClient === undefined ? null : { client: ownClient, onAction: ownAction, storage: ownStorage, files: ownFiles, numberNotation: ownNotation }),
+        [ownClient, ownAction, ownStorage, ownFiles, ownNotation]
+    );
+    if (value === null) {
+        throw new Error('A DatabaseProvider needs a client, or a DatabaseProvider above it to take one from.');
+    }
 
     return <DatabaseContext value={value}>{children}</DatabaseContext>;
 }
