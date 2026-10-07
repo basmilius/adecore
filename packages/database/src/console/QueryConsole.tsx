@@ -1,15 +1,16 @@
-import { useEffect, useId, useMemo, useRef, useState, type Ref } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode, type Ref } from 'react';
 import clsx from 'clsx';
-import { Check, CircleAlert, History, Play, Square } from 'lucide-react';
+import { Check, CircleAlert, History, Play, Square, X } from 'lucide-react';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
-import { Banner, Button, Icon, messageOf, PromptDialog, Spinner, Tabs, Tooltip } from '@adecore/ui';
+import { Banner, Button, ColumnResizeHandle, Icon, IconButton, messageOf, PromptDialog, Spinner, Tabs, Tooltip, useColumnResize } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
 import { DatabaseRequestError, type Connection } from '../client/types.ts';
-import { useDatabaseClient, useDatabaseFiles } from '../client-context.ts';
+import { useDatabaseClient, useDatabaseFiles, useDatabaseStorage } from '../client-context.ts';
 import type { FileFormat, RowsResult, SchemaInfo, StatementResult } from '../protocol/index.ts';
 import { splitStatements, statementAt } from '../sql-split.ts';
 import { DestructiveDialog } from './DestructiveDialog.tsx';
+import type { QueryConsoleEditorHandle, QueryConsoleEditorProps, QueryConsoleRunScope } from './editor-slot.ts';
 import { findDestructive, type DestructiveStatement } from './destructive.ts';
 import type { HistoryEntry } from './history.ts';
 import { HistoryPanel } from './HistoryPanel.tsx';
@@ -18,7 +19,7 @@ import { isPageable, outcomeOf } from './outcome.ts';
 import { SchemaPicker } from './SchemaPicker.tsx';
 import { orderSchemas } from './schemas.ts';
 import { RUN_ALL_SHORTCUT, RUN_SHORTCUT } from './shortcuts.ts';
-import { SqlEditor, type RunScope } from './SqlEditor.tsx';
+import { SqlEditor } from './SqlEditor.tsx';
 import { StatementResultView, type ResultPager } from './StatementResultView.tsx';
 import { TransactionControls, type TransactionMode } from './TransactionControls.tsx';
 import { useConsoleHistory } from './useConsoleHistory.ts';
@@ -35,6 +36,8 @@ export interface QueryConsoleProps {
     defaultHistoryOpen?: boolean;
     /* Puts the caret in the editor when the console mounts, for one a person just opened. */
     autoFocus?: boolean;
+    /* Draws the app's own editor in place of the console's text area. It owns its keys and runs through `run`. */
+    renderEditor?(editor: QueryConsoleEditorProps): ReactNode;
     className?: string;
     ref?: Ref<HTMLDivElement>;
 }
@@ -67,6 +70,22 @@ interface Notice {
 /* Rows in the first page of a result, and in every page after it. */
 const PAGE_SIZE = 500;
 
+/* Where the height of the results is kept, in pixels, for every console. */
+export const RESULTS_HEIGHT_KEY = 'database:console-results';
+
+/* The results and the editor never shrink below these; the results start at half the console. */
+const MIN_RESULTS_HEIGHT = 96;
+const MIN_EDITOR_HEIGHT = 120;
+
+const parseHeight = (raw: string | null | undefined): number | null => {
+    try {
+        const value: unknown = JSON.parse(raw ?? 'null');
+        return typeof value === 'number' && Number.isFinite(value) && value >= MIN_RESULTS_HEIGHT ? Math.round(value) : null;
+    } catch {
+        return null;
+    }
+};
+
 const ranText = (ran: Ran, t: TFunction<'database'>): string => {
     switch (ran.kind) {
         case 'statement':
@@ -78,6 +97,11 @@ const ranText = (ran: Ran, t: TFunction<'database'>): string => {
     }
 };
 
+/* The app's editor as an element of its own, so it gets its props the way `SqlEditor` does and not during the console's render. */
+function AppEditor({ render, ...editor }: QueryConsoleEditorProps & { render(editor: QueryConsoleEditorProps): ReactNode }) {
+    return render(editor);
+}
+
 /* Type SQL, run it, and read what each statement did. Several statements give a tab each. */
 export function QueryConsole({
     connection,
@@ -87,12 +111,14 @@ export function QueryConsole({
     onValueChange,
     defaultHistoryOpen = false,
     autoFocus = false,
+    renderEditor,
     className,
     ref
 }: QueryConsoleProps) {
     const { t } = useTranslation('database');
     const client = useDatabaseClient();
     const files = useDatabaseFiles();
+    const storage = useDatabaseStorage();
     // A channel of its own, so a transaction a person starts here stays out of the table views and the designer.
     const channel = `console:${useId()}`;
     const session = useMemo(() => client.session(connection, channel), [client, connection, channel]);
@@ -106,7 +132,8 @@ export function QueryConsole({
     const history = useConsoleHistory(connection.id);
     const running = useRef<AbortController | null>(null);
     const generation = useRef(0);
-    const editor = useRef<HTMLTextAreaElement>(null);
+    const editorHandle = useRef<QueryConsoleEditorHandle>(null);
+    const resultsPane = useRef<HTMLElement>(null);
     const [own, setOwn] = useState(defaultValue);
     const [run, setRun] = useState<Run>({ status: 'idle' });
     const [ran, setRan] = useState<Ran | null>(null);
@@ -125,6 +152,16 @@ export function QueryConsole({
     const [pickedSchema, setPickedSchema] = useState<string | undefined>(undefined);
     const [exporting, setExporting] = useState(false);
     const [notice, setNotice] = useState<Notice | null>(null);
+    /* Closed until the first run, so the editor has the whole height before anything ran. */
+    const [resultsOpen, setResultsOpen] = useState(false);
+    const [resultsHeight, setResultsHeight] = useState(() => parseHeight(storage?.get(RESULTS_HEIGHT_KEY)));
+    const { startResize } = useColumnResize(resultsPane, {
+        size: resultsHeight ?? MIN_RESULTS_HEIGHT,
+        min: MIN_RESULTS_HEIGHT,
+        from: 'bottom',
+        max: () => (resultsPane.current?.parentElement?.clientHeight ?? 0) - MIN_EDITOR_HEIGHT,
+        onSize: setResultsHeight
+    });
     const sql = value ?? own;
     const blank = sql.trim() === '';
     const busy = run.status === 'running' || settling;
@@ -138,12 +175,10 @@ export function QueryConsole({
     useEffect(() => () => running.current?.abort(), []);
 
     useEffect(() => {
-        if (autoFocus) {
-            editor.current?.focus();
+        if (resultsHeight !== null) {
+            storage?.set(RESULTS_HEIGHT_KEY, JSON.stringify(resultsHeight));
         }
-        // Only on mount: a console that later becomes active keeps the focus where the person put it.
-        // eslint-disable-next-line react/exhaustive-deps
-    }, []);
+    }, [storage, resultsHeight]);
 
     useEffect(() => {
         if (engine !== 'mysql') {
@@ -164,8 +199,9 @@ export function QueryConsole({
         onValueChange?.(next);
     };
 
-    const targetOf = (scope: RunScope): RunTarget | null => {
-        if (scope === 'all') {
+    const targetOf = (scope: QueryConsoleRunScope): RunTarget | null => {
+        const selection = editorHandle.current?.selection();
+        if (scope === 'all' || selection === undefined) {
             const statements = splitStatements(sql, engine);
             const [only] = statements;
             if (only === undefined) {
@@ -173,8 +209,7 @@ export function QueryConsole({
             }
             return { sql, ran: statements.length > 1 ? { kind: 'all', count: statements.length } : { kind: 'statement', label: statementLabel(only.text) } };
         }
-        const start = editor.current?.selectionStart ?? 0;
-        const end = editor.current?.selectionEnd ?? 0;
+        const { start, end } = selection;
         const selected = sql.slice(start, end);
         if (splitStatements(selected, engine).length > 0) {
             return { sql: selected, ran: { kind: 'selection' } };
@@ -199,6 +234,7 @@ export function QueryConsole({
         const controller = new AbortController();
         const mine = ++generation.current;
         running.current = controller;
+        setResultsOpen(true);
         setRun({ status: 'running' });
         setRan(target.ran);
         setNotice(null);
@@ -318,19 +354,31 @@ export function QueryConsole({
             : undefined;
     const exportBase = files !== undefined && base?.kind === 'rows' ? base : undefined;
 
+    const editorProps: QueryConsoleEditorProps = {
+        ref: editorHandle,
+        value: sql,
+        onValueChange: changeSql,
+        run: (scope) => requestRun(targetOf(scope)),
+        busy,
+        label: t('console.editor'),
+        placeholder: t('console.placeholder'),
+        autoFocus
+    };
+
     return (
         <div ref={ref} className={clsx('flex min-h-0 flex-col bg-surface text-text', className)}>
-            <div className="flex shrink-0 border-b border-border">
-                <div className="flex min-w-0 flex-1 flex-col gap-2 p-3">
-                    <SqlEditor
-                        ref={editor}
-                        value={sql}
-                        onValueChange={changeSql}
-                        onRun={(scope) => requestRun(targetOf(scope))}
-                        label={t('console.editor')}
-                        placeholder={t('console.placeholder')}
-                    />
-                    <div className="flex flex-wrap items-center gap-2">
+            <div className="flex min-h-0 flex-1">
+                <div className="flex min-w-0 flex-1 flex-col">
+                    {/* The app's editor runs edge to edge, the way it draws a file; the text area keeps the inset of a field. */}
+                    <div className={clsx('flex min-h-0 flex-1 flex-col', renderEditor === undefined && 'px-3 pt-3')}>
+                        {renderEditor === undefined ? <SqlEditor {...editorProps} /> : <AppEditor render={renderEditor} {...editorProps} />}
+                    </div>
+                    <div
+                        className={clsx(
+                            'flex shrink-0 flex-wrap items-center gap-2 px-3 pb-3',
+                            renderEditor === undefined ? 'pt-2' : 'border-t border-border pt-3'
+                        )}
+                    >
                         {run.status === 'running' ? (
                             <>
                                 <Button size="sm" onClick={() => running.current?.abort()}>
@@ -381,38 +429,50 @@ export function QueryConsole({
                 </div>
                 {historyOpen && <HistoryPanel entries={history.entries} onPick={pickHistory} onClear={history.clear} />}
             </div>
-            {run.status === 'failed' && <Banner icon={CircleAlert} tone="error" message={run.message} className="shrink-0 pt-2" />}
-            {run.status === 'cancelled' && <Banner icon={CircleAlert} tone="neutral" message={t('console.cancelled')} className="shrink-0 pt-2" />}
             {notice !== null && (
-                <Banner icon={notice.tone === 'error' ? CircleAlert : Check} tone={notice.tone} message={notice.message} className="shrink-0 pt-2">
+                <Banner icon={notice.tone === 'error' ? CircleAlert : Check} tone={notice.tone} message={notice.message} className="shrink-0 pb-2">
                     <Button size="xs" onClick={() => setNotice(null)}>
                         {t('console.dismiss')}
                     </Button>
                 </Banner>
             )}
-            {results.length > 1 && (
-                <Tabs.Root value={tab} onValueChange={(next) => setTab(Number(next))}>
-                    <Tabs.List className="shrink-0 px-3">
-                        {results.map((result, position) => (
-                            <Tabs.Tab key={position} value={position}>
-                                {statementLabel(result.sql)}
-                            </Tabs.Tab>
-                        ))}
-                    </Tabs.List>
-                </Tabs.Root>
-            )}
-            {shown !== undefined && (
-                <StatementResultView
-                    key={`${index}:${offset}`}
-                    result={shown}
-                    offset={offset}
-                    pager={pager}
-                    onExport={exportBase === undefined ? undefined : (format) => void exportResult(exportBase, format)}
-                    exporting={exporting}
-                    engine={engine}
-                    valuePanelOpen={panelOpen}
-                    onValuePanelOpenChange={setPanelOpen}
-                />
+            {resultsOpen && (
+                <section
+                    ref={resultsPane}
+                    aria-label={t('console.results')}
+                    className="relative flex min-h-24 shrink-0 flex-col border-t border-border"
+                    style={{ height: resultsHeight ?? '50%', maxHeight: `calc(100% - ${MIN_EDITOR_HEIGHT}px)` }}
+                >
+                    <ColumnResizeHandle from="bottom" onPointerDown={startResize} />
+                    <Tabs.Root value={index} onValueChange={(next) => setTab(Number(next))}>
+                        <Tabs.List
+                            aria-label={t('console.results')}
+                            className="shrink-0 pr-1.5 pl-3"
+                            end={<IconButton icon={X} size="sm" label={t('console.closeResults')} onClick={() => setResultsOpen(false)} />}
+                        >
+                            {results.map((result, position) => (
+                                <Tabs.Tab key={position} value={position}>
+                                    {statementLabel(result.sql)}
+                                </Tabs.Tab>
+                            ))}
+                        </Tabs.List>
+                    </Tabs.Root>
+                    {run.status === 'failed' && <Banner icon={CircleAlert} tone="error" message={run.message} className="shrink-0 pt-2" />}
+                    {run.status === 'cancelled' && <Banner icon={CircleAlert} tone="neutral" message={t('console.cancelled')} className="shrink-0 pt-2" />}
+                    {shown !== undefined && (
+                        <StatementResultView
+                            key={`${index}:${offset}`}
+                            result={shown}
+                            offset={offset}
+                            pager={pager}
+                            onExport={exportBase === undefined ? undefined : (format) => void exportResult(exportBase, format)}
+                            exporting={exporting}
+                            engine={engine}
+                            valuePanelOpen={panelOpen}
+                            onValuePanelOpenChange={setPanelOpen}
+                        />
+                    )}
+                </section>
             )}
             <DestructiveDialog
                 statements={confirming?.statements ?? []}

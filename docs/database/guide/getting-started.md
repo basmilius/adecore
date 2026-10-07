@@ -266,12 +266,13 @@ const storage: DatabaseStorage = {
 
 The views keep JSON under these keys, and ignore a value they do not recognize:
 
-| Key                                               | What                                                                                   |
-| ------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `database:explorer:<connection id>`               | The open nodes of the [explorer](/database/views/explorer)                             |
-| `database:table:<connection id>:<schema>.<table>` | The layout and filters of a [table view](/database/views/table-view#remembered-layout) |
-| `database:console-history:<connection id>`        | The history of a [console](/database/views/query-console#history)                      |
-| `database:workbench`                              | The open tabs of a [workbench](/database/views/workbench)                              |
+| Key                                               | What                                                                                           |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `database:explorer:<connection id>`               | The open nodes of the [explorer](/database/views/explorer)                                     |
+| `database:table:<connection id>:<schema>.<table>` | The layout and filters of a [table view](/database/views/table-view#remembered-layout)         |
+| `database:console-history:<connection id>`        | The history of a [console](/database/views/query-console#history)                              |
+| `database:console-results`                        | The height of the results of every [console](/database/views/query-console#results), in pixels |
+| `database:workbench`                              | The open tabs of a [workbench](/database/views/workbench)                                      |
 
 ### Number notation
 

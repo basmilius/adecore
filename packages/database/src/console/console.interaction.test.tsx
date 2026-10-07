@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { useImperativeHandle, useRef } from 'react';
 import type { Connection } from '../client/types.ts';
 import type { Mounted, RecordedTransport } from '../testing/dom/harness.tsx';
 import { SHOP_PATH, shopDatabase } from '../testing/dom/shop.ts';
 import {
     MOD,
+    byLabel,
     byText,
     clientOver,
     click,
@@ -19,8 +21,9 @@ import {
     type
 } from '../testing/dom/harness.tsx';
 import { fakeDatabaseTransport } from '../testing/index.ts';
+import type { QueryConsoleEditorProps } from './editor-slot.ts';
 import { historyKey, parseHistory } from './history.ts';
-import { QueryConsole } from './QueryConsole.tsx';
+import { QueryConsole, RESULTS_HEIGHT_KEY } from './QueryConsole.tsx';
 
 const connection: Connection = { id: 'one', name: 'Shop', config: { engine: 'sqlite', path: SHOP_PATH } };
 
@@ -187,5 +190,146 @@ describe.skipIf(typeof document === 'undefined')('QueryConsole in a DOM', () => 
         await type(editor(), 'SELECT 1');
         await press(editor(), 'Enter', MOD);
         expect(recorded.of('transaction')).toEqual([]);
+    });
+});
+
+const results = (): HTMLElement | null => document.querySelector('section[aria-label=Results]');
+
+describe.skipIf(typeof document === 'undefined')('the results of a QueryConsole', () => {
+    let recorded: RecordedTransport;
+    let client: ReturnType<typeof clientOver>;
+    let mounted: Mounted | null = null;
+
+    beforeEach(() => {
+        recorded = recordTransport(fakeDatabaseTransport({ databases: { [SHOP_PATH]: shopDatabase } }));
+        recorded.onExecute((sql) => [done(sql, 3)]);
+        client = clientOver(recorded.transport);
+    });
+
+    afterEach(async () => {
+        await mounted?.unmount();
+        mounted = null;
+        await client.dispose();
+    });
+
+    test('take no room before the first run, open on a run, close, and open again on the next run', async () => {
+        mounted = await mount(<QueryConsole connection={connection} />, { client, storage: memoryStorage() });
+        expect(results()).toBeNull();
+
+        await type(editor(), 'SELECT 1');
+        await press(editor(), 'Enter', MOD);
+        expect(results()?.textContent).toContain('SELECT 1');
+        expect(results()?.style.height).toBe('50%');
+
+        await click(byLabel('Close results'));
+        expect(results()).toBeNull();
+
+        await press(editor(), 'Enter', MOD);
+        expect(results()).not.toBeNull();
+    });
+
+    test('keep the height a person gave them in storage', async () => {
+        const storage = memoryStorage();
+        storage.set(RESULTS_HEIGHT_KEY, '240');
+        mounted = await mount(<QueryConsole connection={connection} />, { client, storage });
+        await type(editor(), 'SELECT 1');
+        await press(editor(), 'Enter', MOD);
+        expect(results()?.style.height).toBe('240px');
+    });
+
+    test('start at half the console from a stored height that is not one', async () => {
+        const storage = memoryStorage();
+        storage.set(RESULTS_HEIGHT_KEY, '"tall"');
+        mounted = await mount(<QueryConsole connection={connection} />, { client, storage });
+        await type(editor(), 'SELECT 1');
+        await press(editor(), 'Enter', MOD);
+        expect(results()?.style.height).toBe('50%');
+    });
+});
+
+/* An editor of the app's own, with the selection a test sets and a key that runs. */
+function OwnEditor({ ref, value, onValueChange, run, label, busy }: QueryConsoleEditorProps) {
+    const area = useRef<HTMLTextAreaElement>(null);
+    useImperativeHandle(
+        ref,
+        () => ({ selection: () => ({ start: Number(area.current?.dataset.start ?? 0), end: Number(area.current?.dataset.end ?? 0) }) }),
+        []
+    );
+    return (
+        <textarea
+            ref={area}
+            aria-label={`Own ${label}`}
+            data-busy={busy}
+            value={value}
+            onChange={(event) => onValueChange(event.target.value)}
+            onKeyDown={(event) => {
+                if (event.key === 'F5') {
+                    run(event.shiftKey ? 'all' : 'selection-or-statement');
+                }
+            }}
+        />
+    );
+}
+
+describe.skipIf(typeof document === 'undefined')('a QueryConsole with the editor of the app', () => {
+    let recorded: RecordedTransport;
+    let client: ReturnType<typeof clientOver>;
+    let mounted: Mounted;
+    let sql = '';
+
+    const own = (): HTMLTextAreaElement => find('textarea[aria-label="Own SQL"]') as HTMLTextAreaElement;
+    const caret = (start: number, end = start): void => {
+        own().dataset.start = String(start);
+        own().dataset.end = String(end);
+    };
+
+    beforeEach(async () => {
+        recorded = recordTransport(fakeDatabaseTransport({ databases: { [SHOP_PATH]: shopDatabase } }));
+        recorded.onExecute((statement) => [done(statement, 3)]);
+        client = clientOver(recorded.transport);
+        sql = SCRIPT;
+        mounted = await mount(
+            <QueryConsole
+                connection={connection}
+                value={sql}
+                onValueChange={(next) => {
+                    sql = next;
+                }}
+                renderEditor={(editorProps) => <OwnEditor {...editorProps} />}
+            />,
+            { client, storage: memoryStorage() }
+        );
+    });
+
+    afterEach(async () => {
+        await mounted.unmount();
+        await client.dispose();
+    });
+
+    test('draws it in place of the text area, with the text and the label', () => {
+        expect(findAll('textarea[aria-label=SQL]')).toEqual([]);
+        expect(own().value).toBe(SCRIPT);
+    });
+
+    test('runs the statement at the caret the editor reports, from its own key and from Run', async () => {
+        caret(SCRIPT.indexOf('SELECT 2') + 2);
+        await press(own(), 'F5');
+        expect(recorded.executed()).toEqual(['SELECT 2']);
+
+        caret(SCRIPT.indexOf('SELECT 3'));
+        await click(byText('button', 'Run'));
+        expect(recorded.executed()).toEqual(['SELECT 2', 'SELECT 3']);
+    });
+
+    test('runs the selection, or everything', async () => {
+        caret(0, SCRIPT.indexOf('SELECT 2') - 1);
+        await press(own(), 'F5');
+        await press(own(), 'F5', { shiftKey: true });
+        expect(recorded.executed()).toEqual(['SELECT 1;', SCRIPT]);
+    });
+
+    test('hands every edit to onValueChange', async () => {
+        await type(own(), 'SELECT 9');
+        expect(sql).toBe('SELECT 9');
     });
 });

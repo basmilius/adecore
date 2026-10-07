@@ -32,6 +32,7 @@ export { DatabaseProvider, type DatabaseProviderProps } from './DatabaseProvider
 export { useDatabaseClient } from './client-context.ts';
 export type { NumberNotation } from './grid/display.ts';
 export { QueryConsole, type QueryConsoleProps } from './console/QueryConsole.tsx';
+export type { QueryConsoleEditorHandle, QueryConsoleEditorProps, QueryConsoleRunScope } from './console/editor-slot.ts';
 export { StructureView, type StructureViewProps } from './structure/StructureView.tsx';
 export { TableView, type TableViewProps } from './table/TableView.tsx';
 export { DatabaseWorkbench, type DatabaseWorkbenchProps } from './workbench/DatabaseWorkbench.tsx';

@@ -357,6 +357,8 @@
         "running": "Running",
         "cancelled": "The statement was cancelled.",
         "result": "Result",
+        "results": "Results",
+        "closeResults": "Close results",
         "noRows": "The statement returned no rows.",
         "rows": "Rows: {{rows}}",
         "hasMore": "More rows exist but are not shown.",

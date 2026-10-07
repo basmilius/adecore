@@ -24,9 +24,15 @@ While a run is busy, Run becomes Cancel, which aborts the request and sends a `c
 - A statement that changes something shows the rows it affected and the last insert id.
 - A statement that fails shows the server's message and SQLSTATE. The statements after it did not run.
 
-The editor is a plain text area without highlighting or completion. Tab and Shift and Tab indent and outdent the lines a selection touches, and a new line keeps the indent of the one above.
+The editor is a plain text area without highlighting or completion. Tab and Shift and Tab indent and outdent the lines a selection touches, and a new line keeps the indent of the one above. An app can draw its own editor instead; see [Your own editor](#your-own-editor).
 
 A run is never sent twice. When the helper exited and the session was lost, the console shows the `unknown-session` error instead of running the SQL again.
+
+## Results
+
+Before the first run the editor takes the whole height of the console. A run opens the results below it, as a split: drag the line between the two to give the results more or less room, and Close results to give the editor everything again. The next run opens them again.
+
+The results start at half the console. The height a person drags them to is kept in the provider's `storage` under `database:console-results`, in pixels, and every console starts from it. The editor keeps at least 120 pixels, and the results at least 96.
 
 ## Destructive statements
 
@@ -66,18 +72,61 @@ The Value panel of a result shows the whole value of the selected cell, like the
 
 With `files` on the provider, a result with rows has Export result, as CSV, TSV, JSON or SQL. It runs the statement again and streams every row it returns to the file the person picks, not only the page on screen. See [Files](/database/guide/files).
 
+## Your own editor
+
+`renderEditor` draws the app's editor in place of the text area, such as a code editor with its own key bindings, find and a language server on the document. The console keeps everything else: the toolbar, the schema, transactions, history, the results, paging and export. It calls `renderEditor` with a `QueryConsoleEditorProps`:
+
+| Prop            | Type                                    |                                                                                                                                    |
+| --------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `ref`           | `Ref<QueryConsoleEditorHandle>`         | Where the editor puts its handle, so a run reads its selection.                                                                    |
+| `value`         | `string`                                | The SQL.                                                                                                                           |
+| `onValueChange` | `(sql: string) => void`                 | Every edit. It reaches the console's own `onValueChange`, so the app can keep the SQL in a file of its own.                        |
+| `run`           | `(scope: QueryConsoleRunScope) => void` | Runs what the scope names, as Run and Run all in the toolbar do. Nothing runs while `busy`, or when the text holds nothing to run. |
+| `busy`          | `boolean`                               | A run or the end of a transaction is under way.                                                                                    |
+| `label`         | `string`                                | The accessible name of the editor, in the person's language.                                                                       |
+| `placeholder`   | `string`                                | A statement to show while the editor is empty.                                                                                     |
+| `autoFocus`     | `boolean`                               | The console's `autoFocus`: take the caret once the editor is there.                                                                |
+
+`QueryConsoleRunScope` is `'selection-or-statement'`, the selection or the statement at the caret when nothing is selected, or `'all'`, the whole text. `QueryConsoleEditorHandle` has one method, `selection()`, which returns `{ start, end }` as offsets into the text, with `start` equal to `end` for a caret. Without a handle, a run of the selection or the statement runs the whole text.
+
+The editor owns its keys. Bind Cmd or Ctrl and Enter to `run('selection-or-statement')` and Shift with it to `run('all')`, the keys the toolbar's tooltips name. The editor fills the space above the toolbar, edge to edge.
+
+```tsx
+function SqlCodeEditor({ ref, value, onValueChange, run, label, autoFocus }: QueryConsoleEditorProps) {
+    const editor = useRef<CodeEditorHandle>(null);
+
+    useImperativeHandle(ref, () => ({ selection: () => editor.current!.selection() }), []);
+
+    return (
+        <CodeEditor
+            ref={editor}
+            language="sql"
+            value={value}
+            onValueChange={onValueChange}
+            aria-label={label}
+            autoFocus={autoFocus}
+            keys={{ 'Mod-Enter': () => run('selection-or-statement'), 'Mod-Shift-Enter': () => run('all') }}
+            className="h-full"
+        />
+    );
+}
+
+<QueryConsole connection={connection} value={sql} onValueChange={setSql} renderEditor={(editor) => <SqlCodeEditor {...editor} />} className="h-full" />;
+```
+
 ## Props
 
-| Prop                 | Type                    | Default |                                                                            |
-| -------------------- | ----------------------- | ------- | -------------------------------------------------------------------------- |
-| `connection`         | `Connection`            |         | Required. The connection to run on.                                        |
-| `schema`             | `string`                |         | The schema the statements run in.                                          |
-| `value`              | `string`                |         | The SQL, when the app keeps it, such as in a tab that survives a reload.   |
-| `defaultValue`       | `string`                | `''`    | Where the text starts without `value`.                                     |
-| `onValueChange`      | `(sql: string) => void` |         | The text changed.                                                          |
-| `defaultHistoryOpen` | `boolean`               | `false` | Opens the history from the start.                                          |
-| `autoFocus`          | `boolean`               | `false` | Puts the caret in the editor on mount, for a console a person just opened. |
-| `className`          | `string`                |         | Its size.                                                                  |
-| `ref`                | `Ref<HTMLDivElement>`   |         |                                                                            |
+| Prop                 | Type                                             | Default |                                                                            |
+| -------------------- | ------------------------------------------------ | ------- | -------------------------------------------------------------------------- |
+| `connection`         | `Connection`                                     |         | Required. The connection to run on.                                        |
+| `schema`             | `string`                                         |         | The schema the statements run in.                                          |
+| `value`              | `string`                                         |         | The SQL, when the app keeps it, such as in a tab that survives a reload.   |
+| `defaultValue`       | `string`                                         | `''`    | Where the text starts without `value`.                                     |
+| `onValueChange`      | `(sql: string) => void`                          |         | The text changed.                                                          |
+| `defaultHistoryOpen` | `boolean`                                        | `false` | Opens the history from the start.                                          |
+| `autoFocus`          | `boolean`                                        | `false` | Puts the caret in the editor on mount, for a console a person just opened. |
+| `renderEditor`       | `(editor: QueryConsoleEditorProps) => ReactNode` |         | The app's own editor. See [Your own editor](#your-own-editor).             |
+| `className`          | `string`                                         |         | Its size.                                                                  |
+| `ref`                | `Ref<HTMLDivElement>`                            |         |                                                                            |
 
-`QueryConsoleProps` is an exported type. The console needs a [`DatabaseProvider`](/database/guide/getting-started#databaseprovider) above it.
+`QueryConsoleProps`, `QueryConsoleEditorProps`, `QueryConsoleEditorHandle` and `QueryConsoleRunScope` are exported types. The console needs a [`DatabaseProvider`](/database/guide/getting-started#databaseprovider) above it.

@@ -357,6 +357,8 @@
         "running": "Bezig",
         "cancelled": "De opdracht is geannuleerd.",
         "result": "Resultaat",
+        "results": "Resultaten",
+        "closeResults": "Resultaten sluiten",
         "noRows": "De opdracht gaf geen rijen terug.",
         "rows": "Rijen: {{rows}}",
         "hasMore": "Er zijn meer rijen, maar die worden niet getoond.",
