@@ -20,7 +20,7 @@ An `ExplorerSelection` is the `connectionId`, plus the `schema` and the `table` 
 
 - A connection shows its engine, a lock when it is read only, the server version once it has connected, and how many schemas show out of how many exist when system schemas are hidden.
 - A schema lists its tables under Tables and its views under Views, each folder with a count, and only when it has some. A connection with one visible schema, such as a SQLite file with only `main`, shows the folders straight under it.
-- A table expands to its columns, each with its type, a key icon for a primary key column and a link icon for a column of a foreign key.
+- A table expands to its columns, each with its type: a yellow key on a primary key column, a blue key on a column of a foreign key, the yellow key with both in its tooltip on a column that is both, and a column icon on every other column. The headers of a [table view](/database/views/table-view) draw the same keys.
 
 Nothing loads before a person opens it: a connection connects when it expands, a schema lists its tables, a table loads its columns. A node that fails shows the error with Try again.
 

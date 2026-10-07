@@ -72,6 +72,17 @@ describe.skipIf(typeof document === 'undefined')('DatabaseExplorer in a DOM', ()
         expect(labels()).toEqual(['Shop3.50.4', 'Tables2', 'customers', 'idINTEGER', 'nameTEXT', 'orders']);
     });
 
+    test('marks a primary key column with a yellow key, a foreign key column with a blue one, and the others with a column', async () => {
+        await openTables();
+        await focus(row('orders'));
+        await press(row('orders'), 'ArrowRight');
+
+        expect(row('idINTEGER').innerHTML).toMatch(/lucide-key-round [^"]*text-\(--file-icon-yellow\)/);
+        expect(row('customer_idINTEGER').innerHTML).toMatch(/lucide-key-round [^"]*text-\(--file-icon-blue\)/);
+        expect(row('totalINTEGER').innerHTML).toContain('lucide-columns-2');
+        expect(row('totalINTEGER').innerHTML).not.toContain('lucide-key');
+    });
+
     test('moves with the arrow keys, closes with ArrowLeft and leaves one tab stop', async () => {
         await focus(row('Shop'));
         await press(row('Shop'), 'ArrowRight');

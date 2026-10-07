@@ -31,6 +31,17 @@ export const shopDatabase: FakeDatabase = {
                 columns: [column('id', 'INTEGER', { autoIncrement: true }), column('customer_id', 'INTEGER'), column('total', 'INTEGER', { nullable: true })],
                 primaryKey: ['id'],
                 indexes: [{ name: 'PRIMARY', columns: ['id'], unique: true, primary: true }],
+                foreignKeys: [
+                    {
+                        name: 'orders_customer',
+                        columns: ['customer_id'],
+                        referencedSchema: 'main',
+                        referencedTable: 'customers',
+                        referencedColumns: ['id'],
+                        onUpdate: null,
+                        onDelete: null
+                    }
+                ],
                 rows: [[1, 1, 10]]
             }
         }

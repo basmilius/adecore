@@ -116,6 +116,7 @@
         "views": "Views",
         "primaryKey": "Primary key",
         "foreignKey": "Foreign key",
+        "primaryAndForeignKey": "Primary key and foreign key",
         "readOnly": "Read only",
         "schemaCount": "{{shown}} of {{total}}",
         "schemaCountHint_one": "{{shown}} of {{total}} schema shown, system schemas are hidden",

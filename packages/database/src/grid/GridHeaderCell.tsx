@@ -1,9 +1,11 @@
 import { useRef, type MouseEvent, type PointerEvent } from 'react';
 import clsx from 'clsx';
-import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, Copy, Eye, EyeOff, Key, Pin, PinOff } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, Copy, Eye, EyeOff, Pin, PinOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { ColumnResizeHandle, ContextMenu, copyText, Icon, IconButton, isApplePlatform, isModHeld, Menu, Tooltip, useColumnResize } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
+import { keyLabelOf } from '../column-keys.ts';
+import { KeyIcon } from '../KeyIcon.tsx';
 import type { SortDirection } from '../sql.ts';
 import type { ColumnClick } from './column-selection.ts';
 import { isNumericKind } from './display.ts';
@@ -101,7 +103,9 @@ function HeaderMenuItems({ column, index, sortable, hasSorts, pinned, hasHidden,
 /* The facts about a table column that a tooltip can carry: its type, whether it takes NULL, its default. */
 function ColumnFacts({ column }: { column: GridColumn }) {
     const { t } = useTranslation('database');
+    const keys = { primaryKey: column.primaryKey === true, foreignKey: column.foreignKey === true };
     const facts = [
+        keys.primaryKey || keys.foreignKey ? t(keyLabelOf(keys)) : null,
         column.type === '' ? null : column.type,
         column.nullable === undefined ? null : t(column.nullable ? 'grid.column.nullable' : 'grid.column.notNull'),
         column.defaultValue === undefined || column.defaultValue === null ? null : t('grid.column.default', { value: column.defaultValue }),
@@ -115,7 +119,7 @@ function ColumnFacts({ column }: { column: GridColumn }) {
     );
 }
 
-/* One column's head: its name, the sort it carries, a key on a primary key column, a menu and the strip that resizes it. Numbers sit against the end, like their cells. */
+/* One column's head: its name, the sort it carries, the key of a key column, a menu and the strip that resizes it. Numbers sit against the end, like their cells. */
 export function GridHeaderCell({
     column,
     index,
@@ -204,7 +208,7 @@ export function GridHeaderCell({
                         numeric && 'justify-end group-data-[selected]/header:pr-8'
                     )}
                 >
-                    {column.primaryKey === true && <Icon icon={Key} size={12} className="shrink-0 text-(--file-icon-yellow)" />}
+                    <KeyIcon primaryKey={column.primaryKey === true} foreignKey={column.foreignKey === true} size={12} />
                     <Tooltip label={<ColumnFacts column={column} />} side="bottom">
                         <span className="min-w-0 truncate">{column.name}</span>
                     </Tooltip>

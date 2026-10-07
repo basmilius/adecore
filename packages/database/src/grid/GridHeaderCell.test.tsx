@@ -74,9 +74,14 @@ describe('GridHeaderCell', () => {
         expect(picked).toContain('aria-sort="descending"');
     });
 
-    test('draws a gold key before the name of a key column', () => {
-        const markup = render(<GridHeaderCell {...props} column={{ ...props.column, primaryKey: true }} />);
-        expect(markup).toMatch(/lucide-key [^"]*text-\(--file-icon-yellow\)/);
+    test('draws a yellow key before a primary key, a blue one before a foreign key, and the yellow one for both', () => {
+        const primary = render(<GridHeaderCell {...props} column={{ ...props.column, primaryKey: true }} />);
+        expect(primary).toMatch(/lucide-key-round [^"]*text-\(--file-icon-yellow\)/);
+        const foreign = render(<GridHeaderCell {...props} column={{ ...props.column, foreignKey: true }} />);
+        expect(foreign).toMatch(/lucide-key-round [^"]*text-\(--file-icon-blue\)/);
+        const both = render(<GridHeaderCell {...props} column={{ ...props.column, primaryKey: true, foreignKey: true }} />);
+        expect(both.match(/lucide-key-round/g)).toHaveLength(1);
+        expect(both).toContain('text-(--file-icon-yellow)');
         expect(render(<GridHeaderCell {...props} />)).not.toContain('lucide-key');
     });
 

@@ -4,6 +4,8 @@ import type { Shown } from './display.ts';
 /* A column of a result, with what the grid draws from its table when it comes from one. */
 export interface GridColumn extends ResultColumn {
     readonly primaryKey?: boolean;
+    /* A column of a foreign key of its table. */
+    readonly foreignKey?: boolean;
     /* `false` makes Set NULL unavailable; unknown (an expression) leaves it open. */
     readonly nullable?: boolean;
     /* A column no cell of which can be edited, such as a generated one. */
@@ -29,10 +31,15 @@ export interface GridRow {
     readonly locked?: boolean;
 }
 
-/* Builds the column of a table from the result column and the structure's column of the same name. */
-export const gridColumnOf = (column: ResultColumn, info: ColumnInfo | undefined, primaryKey: readonly string[]): GridColumn => ({
+/* Builds the column of a table from the result column, the structure's column of the same name and the columns of its keys. */
+export const gridColumnOf = (
+    column: ResultColumn,
+    info: ColumnInfo | undefined,
+    keys: { readonly primaryKey: readonly string[]; readonly foreignKey: readonly string[] }
+): GridColumn => ({
     ...column,
-    primaryKey: primaryKey.includes(column.name),
+    primaryKey: keys.primaryKey.includes(column.name),
+    foreignKey: keys.foreignKey.includes(column.name),
     nullable: info?.nullable,
     readOnly: info?.generated === true,
     defaultValue: info?.defaultValue,

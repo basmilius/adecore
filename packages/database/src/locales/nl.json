@@ -116,6 +116,7 @@
         "views": "Views",
         "primaryKey": "Primaire sleutel",
         "foreignKey": "Refererende sleutel",
+        "primaryAndForeignKey": "Primaire en refererende sleutel",
         "readOnly": "Alleen lezen",
         "schemaCount": "{{shown}} van {{total}}",
         "schemaCountHint_one": "{{shown}} van {{total}} schema getoond, systeemschema's zijn verborgen",

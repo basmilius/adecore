@@ -41,8 +41,28 @@ describe('row keys', () => {
 describe('buildGridColumns', () => {
     test('marks the primary key and takes the flags of the structure', () => {
         const [id, name] = buildGridColumns(loaded, structure);
-        expect(id).toMatchObject({ name: 'id', primaryKey: true, nullable: false, readOnly: false });
+        expect(id).toMatchObject({ name: 'id', primaryKey: true, foreignKey: false, nullable: false, readOnly: false });
         expect(name).toMatchObject({ primaryKey: false, nullable: true, readOnly: true });
+    });
+
+    test('marks the columns of a foreign key', () => {
+        const linked: TableStructure = {
+            ...structure,
+            foreignKeys: [
+                {
+                    name: 'fk',
+                    columns: ['name'],
+                    referencedSchema: 'main',
+                    referencedTable: 'names',
+                    referencedColumns: ['name'],
+                    onUpdate: null,
+                    onDelete: null
+                }
+            ]
+        };
+        const [id, name] = buildGridColumns(loaded, linked);
+        expect(id).toMatchObject({ primaryKey: true, foreignKey: false });
+        expect(name).toMatchObject({ primaryKey: false, foreignKey: true });
     });
 
     test('knows nothing extra without a structure', () => {

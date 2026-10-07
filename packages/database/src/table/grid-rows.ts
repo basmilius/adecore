@@ -13,14 +13,16 @@ export const insertedRowKey = (id: number): string => `new:${id}`;
 export const parseRowKey = (key: string): RowRef =>
     key.startsWith('new:') ? { kind: 'inserted', id: Number(key.slice(4)) } : { kind: 'loaded', index: Number(key.slice(4)) };
 
-export const buildGridColumns = (loaded: Pick<RowsResult, 'columns'>, structure: TableStructure | null): GridColumn[] =>
-    loaded.columns.map((column) =>
+export const buildGridColumns = (loaded: Pick<RowsResult, 'columns'>, structure: TableStructure | null): GridColumn[] => {
+    const keys = { primaryKey: structure?.primaryKey ?? [], foreignKey: structure?.foreignKeys.flatMap((key) => key.columns) ?? [] };
+    return loaded.columns.map((column) =>
         gridColumnOf(
             column,
             structure?.columns.find((info) => info.name === column.name),
-            structure?.primaryKey ?? []
+            keys
         )
     );
+};
 
 export interface GridRowsInput {
     readonly structure: TableStructure | null;

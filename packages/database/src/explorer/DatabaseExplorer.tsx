@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode, type Ref } from 'react';
 import clsx from 'clsx';
-import { CircleAlert, Database, Eye, Folder, KeyRound, Link2, Lock, RectangleVertical, Search, Table } from 'lucide-react';
+import { CircleAlert, Columns2, Database, Eye, Folder, Lock, Search, Table } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button, ContextMenu, EmptyState, Icon, Input, Spinner, Tooltip, Tree } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
@@ -8,6 +8,8 @@ import type { ExplorerSelection } from '../actions.ts';
 import { useDatabaseAction, useDatabaseClient } from '../client-context.ts';
 import type { Connection } from '../client/types.ts';
 import { EngineIcon } from '../connections/EngineIcon.tsx';
+import { keyLabelOf, type ColumnKeys } from '../column-keys.ts';
+import { KeyIcon } from '../KeyIcon.tsx';
 import { RowMenu } from './RowMenu.tsx';
 import { TableDialog, type TableRequest } from './TableDialog.tsx';
 import {
@@ -377,15 +379,15 @@ function SchemaCount({ shown, total }: { shown: number; total: number }) {
     );
 }
 
-function ColumnIcon({ primaryKey, foreignKey }: { primaryKey: boolean; foreignKey: boolean }) {
+function ColumnIcon(keys: ColumnKeys) {
     const { t } = useTranslation('database');
-    if (!primaryKey && !foreignKey) {
-        return <Icon icon={RectangleVertical} size={16} className="shrink-0 text-text-faint" />;
+    if (!keys.primaryKey && !keys.foreignKey) {
+        return <Icon icon={Columns2} size={16} className="shrink-0 text-text-faint" />;
     }
     return (
-        <Tooltip label={t(primaryKey ? 'explorer.primaryKey' : 'explorer.foreignKey')}>
-            <span className="inline-flex shrink-0 text-text-muted">
-                <Icon icon={primaryKey ? KeyRound : Link2} size={16} />
+        <Tooltip label={t(keyLabelOf(keys))}>
+            <span className="inline-flex shrink-0">
+                <KeyIcon {...keys} size={16} />
             </span>
         </Tooltip>
     );
