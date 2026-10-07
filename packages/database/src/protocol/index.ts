@@ -29,5 +29,16 @@ export {
     type RowsResult,
     type StatementResult
 } from './messages.ts';
-export type { ColumnInfo, ForeignKeyInfo, IndexInfo, ResultColumn, SchemaInfo, TableInfo, TableKind, TableStructure } from './schema.ts';
+export type {
+    CheckInfo,
+    ColumnInfo,
+    ForeignKeyInfo,
+    IndexInfo,
+    ResultColumn,
+    SchemaInfo,
+    TableInfo,
+    TableKind,
+    TableStructure,
+    TriggerInfo
+} from './schema.ts';
 export { valueOfCell, type BinaryCell, type BinaryValue, type Cell, type EditValue, type LongTextCell, type Value, type ValueKind } from './values.ts';

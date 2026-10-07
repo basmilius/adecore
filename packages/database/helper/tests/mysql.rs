@@ -284,6 +284,37 @@ async fn honors_the_tls_modes() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+async fn describes_checks_and_triggers() {
+    let Some(mut sandbox) = Sandbox::new("checks").await else {
+        return;
+    };
+    sandbox
+        .script(
+            "CREATE TABLE ledger (id INT PRIMARY KEY, amount INT NOT NULL, CONSTRAINT ledger_amount CHECK (amount >= 0)); \
+             CREATE TABLE ledger_log (id INT); \
+             CREATE TRIGGER ledger_audit AFTER INSERT ON ledger FOR EACH ROW INSERT INTO ledger_log VALUES (NEW.id); \
+             CREATE VIEW ledger_ids AS SELECT id FROM ledger",
+        )
+        .await;
+
+    let ledger = sandbox.ok("structure", json!({ "table": "ledger" })).await;
+    let checks = ledger["checks"].as_array().expect("a server with a list of its checks");
+    assert_eq!(checks.len(), 1, "{ledger}");
+    assert_eq!(checks[0]["name"], "ledger_amount");
+    assert_eq!(checks[0]["expression"], "`amount` >= 0");
+    assert_eq!(ledger["triggers"], json!([{ "name": "ledger_audit", "timing": "AFTER", "event": "INSERT" }]));
+
+    let log = sandbox.ok("structure", json!({ "table": "ledger_log" })).await;
+    assert_eq!(log["checks"], json!([]));
+    assert_eq!(log["triggers"], json!([]));
+
+    let view = sandbox.ok("structure", json!({ "table": "ledger_ids" })).await;
+    assert!(view.get("checks").is_none() && view.get("triggers").is_none(), "{view}");
+
+    sandbox.finish().await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
 async fn lists_tables_and_describes_them() {
     let Some(mut sandbox) = Sandbox::new("structure").await else {
         return;

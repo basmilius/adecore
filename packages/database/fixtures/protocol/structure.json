@@ -17,6 +17,7 @@
       "rowKey": ["id"],
       "indexes": [{ "name": "users_email", "columns": ["email"], "unique": true, "primary": false }],
       "foreignKeys": [],
+      "triggers": [{ "name": "users_touch", "timing": "AFTER", "event": "UPDATE" }],
       "ddl": "CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL UNIQUE, avatar BLOB, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"
     }
   }

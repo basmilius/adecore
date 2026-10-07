@@ -5,7 +5,7 @@ use serde_json::{Number, json};
 
 use crate::error::DatabaseError;
 
-pub const PROTOCOL_VERSION: u32 = 2;
+pub const PROTOCOL_VERSION: u32 = 3;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "engine", rename_all = "lowercase")]
@@ -217,6 +217,19 @@ pub struct ForeignKeyInfo {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CheckInfo {
+    pub name: Option<String>,
+    pub expression: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TriggerInfo {
+    pub name: String,
+    pub timing: String,
+    pub event: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TableStructure {
     pub schema: String,
@@ -227,6 +240,12 @@ pub struct TableStructure {
     pub row_key: Option<Vec<String>>,
     pub indexes: Vec<IndexInfo>,
     pub foreign_keys: Vec<ForeignKeyInfo>,
+    /// Left out on a view, and where the engine keeps no list of them: SQLite has its checks only inside the DDL.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub checks: Option<Vec<CheckInfo>>,
+    /// Left out on a view.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub triggers: Option<Vec<TriggerInfo>>,
     pub ddl: Option<String>,
 }
 

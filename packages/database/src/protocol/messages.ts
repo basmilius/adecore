@@ -4,7 +4,7 @@ import type { ResultColumn, SchemaInfo, TableInfo, TableStructure } from './sche
 import type { Cell, EditValue, Value } from './values.ts';
 
 /* Raised whenever a message changes shape, so a host refuses a helper from another release. */
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;
 
 /* The columns of the row key and their values. */
 export type RowKey = Readonly<Record<string, Value>>;

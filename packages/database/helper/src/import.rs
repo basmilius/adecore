@@ -219,6 +219,8 @@ mod tests {
             row_key: None,
             indexes: vec![],
             foreign_keys: vec![],
+            checks: None,
+            triggers: None,
             ddl: None,
         }
     }

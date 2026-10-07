@@ -174,6 +174,46 @@ pub fn page_sql(dialect: Dialect, statement: &str) -> String {
     }
 }
 
+/// A check's condition without the parentheses MySQL writes around the whole of it; MariaDB writes none.
+pub fn bare_condition(text: &str) -> &str {
+    let trimmed = text.trim();
+    let bytes = trimmed.as_bytes();
+
+    if bytes.first() != Some(&b'(') || bytes.last() != Some(&b')') {
+        return trimmed;
+    }
+
+    let mut depth = 0_usize;
+    let mut quote: Option<u8> = None;
+    let mut i = 0;
+
+    while i < bytes.len() {
+        let byte = bytes[i];
+
+        match quote {
+            Some(open) if byte == b'\\' && open != b'`' => i += 1,
+            Some(open) if byte == open => quote = None,
+            Some(_) => {}
+            None => match byte {
+                b'\'' | b'"' | b'`' => quote = Some(byte),
+                b'(' => depth += 1,
+                b')' => {
+                    depth -= 1;
+                    // The opening parenthesis closes before the end, so it does not wrap the whole condition.
+                    if depth == 0 && i != bytes.len() - 1 {
+                        return trimmed;
+                    }
+                }
+                _ => {}
+            },
+        }
+
+        i += 1;
+    }
+
+    trimmed[1..trimmed.len() - 1].trim()
+}
+
 pub fn count_sql(dialect: Dialect, schema: &str, table: &str, filter: Option<&str>) -> String {
     let mut sql = format!("SELECT COUNT(*) FROM {}", dialect.qualified(schema, table));
 
@@ -398,6 +438,8 @@ mod tests {
             row_key: row_key.map(|columns| columns.into_iter().map(String::from).collect()),
             indexes: vec![],
             foreign_keys: vec![],
+            checks: None,
+            triggers: None,
             ddl: None,
         }
     }
@@ -469,6 +511,16 @@ mod tests {
                 "{paged}"
             );
         }
+    }
+
+    #[test]
+    fn unwraps_a_check_condition() {
+        assert_eq!(bare_condition("(`total` >= 0)"), "`total` >= 0");
+        assert_eq!(bare_condition("`total` >= 0"), "`total` >= 0");
+        assert_eq!(bare_condition("(a > 0) and (b > 0)"), "(a > 0) and (b > 0)");
+        assert_eq!(bare_condition("((a > 0) and (b > 0))"), "(a > 0) and (b > 0)");
+        assert_eq!(bare_condition("(name <> ')')"), "name <> ')'");
+        assert_eq!(bare_condition(" json_valid(`doc`) "), "json_valid(`doc`)");
     }
 
     #[test]

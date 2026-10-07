@@ -14,7 +14,7 @@ use crate::import::{ImportPlan, ImportReader, ImportRow, at_line, at_lines, inse
 use crate::kinds::sqlite_kind;
 use crate::protocol::*;
 use crate::quoting::Dialect;
-use crate::splitter::{first_keyword, split_statements};
+use crate::splitter::{first_keyword, split_statements, top_level_words};
 use crate::sql::{
     DEFAULT_EXECUTE_CELL_LIMIT, DEFAULT_EXECUTE_LIMIT, MAX_LIMIT, Param, cell_sql, conflict, count_sql, export_query, fragment, page_sql, paging, paging_with,
     pick_row_key, plan_apply, resolve_cell_limit, rows_sql, single_statement,
@@ -330,8 +330,52 @@ fn table_structure(connection: &Connection, schema: &str, table: &str) -> Result
         row_key,
         indexes,
         foreign_keys: read_foreign_keys(connection, schema, &quoted_schema, &quoted_table)?,
+        // SQLite keeps its checks only inside the DDL, so they are left out rather than guessed.
+        checks: None,
+        triggers: if kind == TableKind::View {
+            None
+        } else {
+            Some(read_triggers(connection, &quoted_schema, table)?)
+        },
         ddl,
     })
+}
+
+fn read_triggers(connection: &Connection, quoted_schema: &str, table: &str) -> Result<Vec<TriggerInfo>> {
+    let mut statement = connection.prepare(&format!(
+        "SELECT name, sql FROM {quoted_schema}.sqlite_schema WHERE type = 'trigger' AND tbl_name = ?1 ORDER BY name"
+    ))?;
+    let triggers = statement
+        .query_map([table], |row| Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?)))?
+        .collect::<std::result::Result<Vec<_>, _>>()?;
+
+    Ok(triggers
+        .into_iter()
+        .map(|(name, sql)| {
+            let (timing, event) = trigger_shape(sql.as_deref().unwrap_or_default());
+            TriggerInfo { name, timing, event }
+        })
+        .collect())
+}
+
+/// When a trigger fires and on what, read from the words of its statement before `ON`. Without a timing it fires before.
+fn trigger_shape(sql: &str) -> (String, String) {
+    let words = top_level_words(sql, DIALECT);
+    let head: Vec<&str> = words.iter().map(String::as_str).take_while(|word| *word != "ON").collect();
+    let timing = if head.contains(&"INSTEAD") {
+        "INSTEAD OF"
+    } else if head.contains(&"AFTER") {
+        "AFTER"
+    } else {
+        "BEFORE"
+    };
+    let event = head
+        .iter()
+        .find(|word| matches!(**word, "INSERT" | "UPDATE" | "DELETE"))
+        .copied()
+        .unwrap_or_default();
+
+    (timing.to_string(), event.to_string())
 }
 
 fn is_without_rowid(connection: &Connection, quoted_schema: &str, quoted_table: &str) -> bool {
@@ -840,4 +884,26 @@ fn locate_failure(connection: &Connection, params: &ImportParams, names: &[Strin
     }
 
     at_lines(error, batch)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::trigger_shape;
+
+    #[test]
+    fn reads_when_a_trigger_fires() {
+        let shape = |sql: &str| {
+            let (timing, event) = trigger_shape(sql);
+            format!("{timing} {event}")
+        };
+        assert_eq!(shape("CREATE TRIGGER t AFTER INSERT ON a BEGIN SELECT 1; END"), "AFTER INSERT");
+        assert_eq!(
+            shape("CREATE TEMP TRIGGER IF NOT EXISTS \"after\" UPDATE OF b ON a BEGIN SELECT 1; END"),
+            "BEFORE UPDATE"
+        );
+        assert_eq!(
+            shape("create trigger audit_after instead of delete on v begin select 1; end"),
+            "INSTEAD OF DELETE"
+        );
+    }
 }

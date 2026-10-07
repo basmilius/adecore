@@ -50,6 +50,21 @@ export interface ForeignKeyInfo {
     readonly onDelete: string | null;
 }
 
+export interface CheckInfo {
+    /* `null` where the engine keeps no name. */
+    readonly name: string | null;
+    /* The condition as the server writes it, without `CHECK` and the parentheses around it. */
+    readonly expression: string;
+}
+
+export interface TriggerInfo {
+    readonly name: string;
+    /* `BEFORE`, `AFTER` or `INSTEAD OF`. */
+    readonly timing: string;
+    /* `INSERT`, `UPDATE` or `DELETE`. */
+    readonly event: string;
+}
+
 export interface TableStructure {
     readonly schema: string;
     readonly name: string;
@@ -63,6 +78,10 @@ export interface TableStructure {
     readonly rowKey: readonly string[] | null;
     readonly indexes: readonly IndexInfo[];
     readonly foreignKeys: readonly ForeignKeyInfo[];
+    /* Left out on a view, and where the engine keeps no list of them: SQLite has its checks only inside the DDL. */
+    readonly checks?: readonly CheckInfo[];
+    /* Left out on a view. */
+    readonly triggers?: readonly TriggerInfo[];
     /* The `CREATE` statement as the server writes it. */
     readonly ddl: string | null;
 }

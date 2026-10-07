@@ -1,11 +1,11 @@
-import { connectionOfKey, isFolderKey } from './tree.ts';
+import { connectionOfKey, startsOpen } from './tree.ts';
 
 const VERSION = 1;
 
 export interface Expansion {
-    /* Connections, schemas and tables the person opened. */
+    /* Connections, schemas, tables and the folders of a table the person opened. */
     readonly expanded: ReadonlySet<string>;
-    /* Folders the person closed, since a folder is open until then. */
+    /* What starts open and the person closed: the folders of a schema and the columns of a table. */
     readonly collapsed: ReadonlySet<string>;
 }
 
@@ -28,7 +28,7 @@ export const parseExpansion = (raw: string | null, connectionId: string): Expans
                 Array.isArray(keys)
                     ? keys.filter(
                           (key): key is string =>
-                              typeof key === 'string' && key.length > 2 && isFolderKey(key) === folders && connectionOfKey(key) === connectionId
+                              typeof key === 'string' && key.length > 2 && startsOpen(key) === folders && connectionOfKey(key) === connectionId
                       )
                     : []
             );

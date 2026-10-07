@@ -11,13 +11,18 @@ import {
     isSelectable,
     navigate,
     neededLoads,
+    openedTableOf,
+    partKey,
     schemaKey,
     selectAllSql,
     selectionKey,
     selectionOf,
+    startsOpen,
     tabStop,
     tableKey,
+    tableOf,
     type Load,
+    type TablePart,
     type TreeInput,
     type TreeRow
 } from './tree.ts';
@@ -102,6 +107,10 @@ const nameOf = (row: TreeRow): string => {
             return row.table.name;
         case 'column':
             return row.column.name;
+        case 'part':
+            return `[${row.part}]`;
+        case 'entry':
+            return `${row.entry.type}`;
         default:
             return row.kind;
     }
@@ -252,7 +261,7 @@ describe('the columns of a table', () => {
                 }
             })
         );
-        expect(labels(rows).slice(4, 9)).toEqual(['4:users', '5:id', '5:team_id', '5:name', '3:[views]']);
+        expect(labels(rows).slice(4, 12)).toEqual(['4:users', '5:[columns]', '6:id', '6:team_id', '6:name', '5:[keys]', '5:[foreignKeys]', '3:[views]']);
         const columns = rows.filter((row) => row.kind === 'column');
         expect(columns.map((row) => [row.primaryKey, row.foreignKey])).toEqual([
             [true, false],
@@ -261,7 +270,7 @@ describe('the columns of a table', () => {
         ]);
         expect(columns[0]).toMatchObject({
             key: columnKey({ connectionId: 'app', schema: 'shop', table: 'users' }, 'id'),
-            parent: usersKey,
+            parent: partKey({ connectionId: 'app', schema: 'shop', table: 'users' }, 'columns'),
             ref: { table: 'users' },
             posInSet: 1,
             setSize: 3
@@ -281,10 +290,95 @@ describe('the columns of a table', () => {
             '2:shop',
             '3:[tables]',
             '4:users',
-            '5:id',
+            '5:[columns]',
+            '6:id',
             '3:[views]',
             '4:active_users'
         ]);
+    });
+});
+
+describe('the folders of a table', () => {
+    const users = { connectionId: 'app', schema: 'shop', table: 'users' };
+    const full: TableStructure = {
+        ...structure('users', [column('id'), column('team_id'), column('email')], ['id'], ['team_id']),
+        indexes: [
+            { name: 'PRIMARY', columns: ['id'], unique: true, primary: true },
+            { name: 'users_email', columns: ['email'], unique: true, primary: false },
+            { name: 'users_team', columns: ['team_id'], unique: false, primary: false }
+        ],
+        checks: [{ name: 'users_email_set', expression: "email <> ''" }],
+        triggers: [{ name: 'users_audit', timing: 'AFTER', event: 'UPDATE' }]
+    };
+    const opened = (expanded: string[] = [], collapsed: string[] = [], value: TableStructure = full) =>
+        flattenTree(inputOf({ ...world, expanded: [...openShop, usersKey, ...expanded], collapsed, structures: { 'app/shop/users': ready(value) } }));
+
+    test('come in a fixed order with their counts, the columns open and the rest closed', () => {
+        const rows = opened();
+        expect(labels(rows).slice(4, 14)).toEqual([
+            '4:users',
+            '5:[columns]',
+            '6:id',
+            '6:team_id',
+            '6:email',
+            '5:[keys]',
+            '5:[foreignKeys]',
+            '5:[indexes]',
+            '5:[checks]',
+            '5:[triggers]'
+        ]);
+        expect(rows.filter((row) => row.kind === 'part').map((row) => (row.kind === 'part' ? [row.part, row.count, row.expanded] : null))).toEqual([
+            ['columns', 3, true],
+            ['keys', 2, false],
+            ['foreignKeys', 1, false],
+            ['indexes', 2, false],
+            ['checks', 1, false],
+            ['triggers', 1, false]
+        ]);
+    });
+
+    test('show only the folders that hold something, and a view only its columns', () => {
+        expect(labels(opened([], [], structure('users', [column('id')]))).slice(4, 7)).toEqual(['4:users', '5:[columns]', '6:id']);
+        const view = flattenTree(
+            inputOf({
+                ...world,
+                expanded: [...openShop, tableKey({ connectionId: 'app', schema: 'shop', table: 'active_users' })],
+                structures: { 'app/shop/active_users': ready({ ...structure('active_users', [column('id')]), kind: 'view' }) }
+            })
+        );
+        expect(labels(view).slice(-3, -1)).toEqual(['4:active_users', '5:id']);
+    });
+
+    test('hold the keys, foreign keys, indexes, checks and triggers of the structure', () => {
+        const rows = opened(
+            ['keys', 'foreignKeys', 'indexes', 'checks', 'triggers'].map((part) => partKey(users, part as TablePart)),
+            [partKey(users, 'columns')]
+        );
+        const entries = rows.flatMap((row) => (row.kind === 'entry' ? [row.entry] : []));
+        expect(entries).toEqual([
+            { type: 'key', name: 'PRIMARY', columns: ['id'], primary: true },
+            { type: 'key', name: 'users_email', columns: ['email'], primary: false },
+            { type: 'foreignKey', foreignKey: full.foreignKeys[0] },
+            { type: 'index', index: full.indexes[1] },
+            { type: 'index', index: full.indexes[2] },
+            { type: 'check', check: full.checks![0] },
+            { type: 'trigger', trigger: full.triggers![0] }
+        ]);
+        expect(labels(rows).slice(4, 6)).toEqual(['4:users', '5:[columns]']);
+    });
+
+    test('open a foreign key onto the table it references', () => {
+        const rows = opened([partKey(users, 'foreignKeys')]);
+        const foreign = rows.find((row) => row.kind === 'entry')!;
+        expect(openedTableOf(foreign)).toEqual({ connectionId: 'app', schema: 'shop', table: 'users' });
+        expect(tableOf(foreign)).toEqual(users);
+    });
+
+    test('keep a table folder open or closed through the stored expansion', () => {
+        expect(startsOpen(partKey(users, 'columns'))).toBe(true);
+        expect(startsOpen(partKey(users, 'keys'))).toBe(false);
+        expect(startsOpen(folderKey('app', 'shop', 'table'))).toBe(true);
+        expect(startsOpen(usersKey)).toBe(false);
     });
 });
 
@@ -362,12 +456,14 @@ describe('navigate', () => {
     const firstColumn = columnKey({ connectionId: 'app', schema: 'shop', table: 'users' }, 'id');
     const lastColumn = columnKey({ connectionId: 'app', schema: 'shop', table: 'users' }, 'name');
     const view = tableKey({ connectionId: 'app', schema: 'shop', table: 'active_users' });
+    const columnsFolder = partKey({ connectionId: 'app', schema: 'shop', table: 'users' }, 'columns');
 
     test('moves with the arrows and stops at both ends', () => {
         expect(navigate(rows, app_, 'ArrowDown')).toEqual({ type: 'focus', key: shop });
         expect(navigate(rows, app_, 'ArrowUp')).toEqual({ type: 'focus', key: app_ });
         expect(navigate(rows, blog, 'ArrowDown')).toEqual({ type: 'focus', key: blog });
-        expect(navigate(rows, usersKey, 'ArrowDown')).toEqual({ type: 'focus', key: firstColumn });
+        expect(navigate(rows, usersKey, 'ArrowDown')).toEqual({ type: 'focus', key: columnsFolder });
+        expect(navigate(rows, columnsFolder, 'ArrowDown')).toEqual({ type: 'focus', key: firstColumn });
     });
 
     test('jumps to the first and the last row', () => {
@@ -379,14 +475,16 @@ describe('navigate', () => {
         expect(navigate(rows, blog, 'ArrowRight')).toEqual({ type: 'expand', key: blog });
         expect(navigate(rows, orders, 'ArrowRight')).toEqual({ type: 'expand', key: orders });
         expect(navigate(rows, tablesFolder, 'ArrowRight')).toEqual({ type: 'focus', key: orders });
-        expect(navigate(rows, usersKey, 'ArrowRight')).toEqual({ type: 'focus', key: firstColumn });
+        expect(navigate(rows, usersKey, 'ArrowRight')).toEqual({ type: 'focus', key: columnsFolder });
+        expect(navigate(rows, columnsFolder, 'ArrowRight')).toEqual({ type: 'focus', key: firstColumn });
         expect(navigate(rows, firstColumn, 'ArrowRight')).toBeNull();
     });
 
     test('closes an open node with the left arrow and otherwise goes to the parent', () => {
         expect(navigate(rows, shop, 'ArrowLeft')).toEqual({ type: 'collapse', key: shop });
         expect(navigate(rows, usersKey, 'ArrowLeft')).toEqual({ type: 'collapse', key: usersKey });
-        expect(navigate(rows, lastColumn, 'ArrowLeft')).toEqual({ type: 'focus', key: usersKey });
+        expect(navigate(rows, lastColumn, 'ArrowLeft')).toEqual({ type: 'focus', key: columnsFolder });
+        expect(navigate(rows, columnsFolder, 'ArrowLeft')).toEqual({ type: 'collapse', key: columnsFolder });
         expect(navigate(rows, orders, 'ArrowLeft')).toEqual({ type: 'focus', key: tablesFolder });
         expect(navigate(rows, view, 'ArrowLeft')).toEqual({ type: 'focus', key: folderKey('app', 'shop', 'view') });
         expect(navigate(rows, blog, 'ArrowLeft')).toEqual({ type: 'focus', key: app_ });
@@ -458,7 +556,7 @@ describe('selecting a row', () => {
 
     test('draws a connection, a schema and a table selected, and no other row', () => {
         expect(new Set(rows.filter(isSelectable).map((row) => row.kind))).toEqual(new Set(['connection', 'schema', 'table']));
-        expect(new Set(rows.filter((row) => !isSelectable(row)).map((row) => row.kind))).toEqual(new Set(['folder', 'column']));
+        expect(new Set(rows.filter((row) => !isSelectable(row)).map((row) => row.kind))).toEqual(new Set(['folder', 'part', 'column']));
     });
 });
 

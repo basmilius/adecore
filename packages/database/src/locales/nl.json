@@ -117,6 +117,17 @@
         "primaryKey": "Primaire sleutel",
         "foreignKey": "Refererende sleutel",
         "primaryAndForeignKey": "Primaire en refererende sleutel",
+        "parts": {
+            "columns": "Kolommen",
+            "keys": "Sleutels",
+            "foreignKeys": "Refererende sleutels",
+            "indexes": "Indexen",
+            "checks": "Checks",
+            "triggers": "Triggers"
+        },
+        "references": "{{columns}} → {{table}} ({{referenced}})",
+        "unique": "uniek",
+        "check": "Check",
         "readOnly": "Alleen lezen",
         "schemaCount": "{{shown}} van {{total}}",
         "schemaCountHint_one": "{{shown}} van {{total}} schema getoond, systeemschema's zijn verborgen",

@@ -36,6 +36,7 @@ A `FakeDatabase` is `{ schemas }`: schema name to table name to a `FakeTable`. S
 | `primaryKey`             | The columns of the primary key, which is also the row key.                                                                 |
 | `kind`                   | `table` when left out. A view cannot be edited.                                                                            |
 | `indexes`, `foreignKeys` | What `structure` reports. A unique index over columns that cannot be null is the row key of a table without a primary key. |
+| `checks`, `triggers`     | What `structure` reports; left out, they are left out of the structure too.                                                |
 | `ddl`                    | The `CREATE` statement `structure` reports.                                                                                |
 
 ```ts

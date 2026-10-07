@@ -71,7 +71,7 @@ A session is what `open` returns. Every method except `open`, `test`, `sample`, 
 - `open` and `test` take a [`ConnectionConfig`](#connections) and report a `ServerInfo`: the `flavor` (`sqlite`, `mysql` or `mariadb`) and the `version` the server reports. `test` closes the connection again.
 - `schemas` lists `SchemaInfo`: a `name`, and `system` for a schema the server keeps for itself. A schema is a database in MySQL terms; SQLite has `main` and one per attached file.
 - `tables` lists `TableInfo`: the `name`, the `kind` (a `TableKind`, `table` or `view`), a `rowEstimate` from the server's statistics, which can be far off or `null`, and the `comment`.
-- `structure` returns a `TableStructure`: `ColumnInfo`, `IndexInfo` and `ForeignKeyInfo` lists, the `primaryKey`, the `rowKey` and the `ddl`. The `rowKey` is the primary key, or else the first unique index over columns that cannot be null; without one it is `null` and the table is read only.
+- `structure` returns a `TableStructure`: `ColumnInfo`, `IndexInfo` and `ForeignKeyInfo` lists, the `primaryKey`, the `rowKey` and the `ddl`. The `rowKey` is the primary key, or else the first unique index over columns that cannot be null; without one it is `null` and the table is read only. A table also has `triggers`, `TriggerInfo` with its `name`, `timing` (`BEFORE`, `AFTER` or `INSTEAD OF`) and `event` (`INSERT`, `UPDATE` or `DELETE`), and on MySQL and MariaDB `checks`, `CheckInfo` with its `name` and the `expression` without `CHECK` and its parentheses. SQLite keeps its checks only inside the DDL, so a SQLite table has no `checks`; neither field is there on a view, nor from a MySQL server older than 8.0.16 for `checks`.
 - `rows` returns one page: the `ResultColumn` list, rows of `Cell` values, `hasMore` and `elapsedMs`. `limit` is at most 10000. `cellLimit` is how many characters of text, or bytes of a binary value, a cell holds before it becomes a preview: 1024 when left out. The helper reads one row past `limit` to learn `hasMore`.
 - `where` and `orderBy` are SQL as a person types it after those keywords. See [Security](/database/guide/security#where-and-orderby-are-sql).
 - `count` counts the rows that match `where`.
@@ -172,7 +172,7 @@ A `DatabaseError` has a `code` (a `DatabaseErrorCode`), a `message`, the five ch
 
 The host talks to the helper over its standard streams, one JSON message per line. Anything else can speak the same wire, such as a test that starts the binary by hand.
 
-- Before it reads a request, the helper writes a ready line (`HelperReady`): `{"event":"ready","protocol":2,"version":"0.1.0"}`. `protocol` is its `PROTOCOL_VERSION` and `version` its own release.
+- Before it reads a request, the helper writes a ready line (`HelperReady`): `{"event":"ready","protocol":3,"version":"0.1.0"}`. `protocol` is its `PROTOCOL_VERSION` and `version` its own release.
 - The host stops a helper whose `protocol` differs from its own, or that writes no ready line within `readyTimeoutMs` (10000 by default). The request that started it fails with `helper-unavailable`.
 - Then one request per line on stdin and one response per line on stdout. An empty line is ignored, and a line that is not a valid request gets `invalid-request`, with its id when one could be read.
 - Requests run concurrently, so responses can arrive in another order; the `id` matches them. Requests on one session queue up in the order they arrived, on its single connection.

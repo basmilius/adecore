@@ -159,6 +159,18 @@ async fn describes_a_table() {
         .error("structure", json!({ "session": session, "schema": "main", "table": "nope" }))
         .await;
     assert_eq!(missing["code"], "query-failed");
+
+    assert!(users.get("checks").is_none(), "SQLite keeps its checks only in the DDL");
+    assert_eq!(users["triggers"], json!([]));
+    assert!(view.get("triggers").is_none());
+    client
+        .ok(
+            "execute",
+            json!({ "session": session, "sql": "CREATE TRIGGER users_touch AFTER UPDATE OF email ON users BEGIN SELECT 1; END" }),
+        )
+        .await;
+    let touched = client.ok("structure", json!({ "session": session, "schema": "main", "table": "users" })).await;
+    assert_eq!(touched["triggers"], json!([{ "name": "users_touch", "timing": "AFTER", "event": "UPDATE" }]));
 }
 
 #[tokio::test(flavor = "multi_thread")]

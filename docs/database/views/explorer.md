@@ -20,7 +20,11 @@ An `ExplorerSelection` is the `connectionId`, plus the `schema` and the `table` 
 
 - A connection shows its engine, a lock when it is read only, the server version once it has connected, and how many schemas show out of how many exist when system schemas are hidden.
 - A schema lists its tables under Tables and its views under Views, each folder with a count, and only when it has some. A connection with one visible schema, such as a SQLite file with only `main`, shows the folders straight under it.
-- A table expands to its columns, each with its type: a yellow key on a primary key column, a blue key on a column of a foreign key, the yellow key with both in its tooltip on a column that is both, and a column icon on every other column. The headers of a [table view](/database/views/table-view) draw the same keys. The icons of a table's entries are a step smaller than those of the rows above them.
+- A table expands to folders, each with a count and only when it holds something: Columns, open from the start, then Keys, Foreign keys, Indexes, Checks and Triggers. A view has only its columns, straight under it.
+    - Columns each show their type: a yellow key on a primary key column, a blue key on a column of a foreign key, the yellow key with both in its tooltip on a column that is both, and a column icon on every other column. The headers of a [table view](/database/views/table-view) draw the same keys.
+    - Keys lists the primary key and the unique keys, each with its columns. Foreign keys lists each foreign key with its columns and the table and columns it references; activating one opens the referenced table. Indexes lists the other indexes with their columns, and says which are unique. Checks lists each check with its condition, and Triggers each trigger with when it fires, such as `BEFORE INSERT`.
+    - SQLite keeps its checks only inside the `CREATE TABLE` statement, so a SQLite table has no Checks folder; its triggers are listed.
+    - The icons of a table's entries are a step smaller than those of the rows above them.
 - A row wider than the panel is not cut off: the rows scroll sideways together, like a file tree.
 
 Nothing loads before a person opens it: a connection connects when it expands, a schema lists its tables, a table loads its columns. A node that fails shows the error with Try again.

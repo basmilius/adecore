@@ -135,7 +135,7 @@ fn requests_pick_the_right_call() {
 fn the_ready_line_has_the_agreed_shape() {
     let line = ready_line("1.2.3");
 
-    assert_eq!(line, r#"{"event":"ready","protocol":2,"version":"1.2.3"}"#);
+    assert_eq!(line, r#"{"event":"ready","protocol":3,"version":"1.2.3"}"#);
 }
 
 #[test]

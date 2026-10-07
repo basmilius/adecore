@@ -1,5 +1,6 @@
 import type {
     Cell,
+    CheckInfo,
     ColumnInfo,
     DatabaseErrorCode,
     DatabaseMethod,
@@ -16,6 +17,7 @@ import type {
     ServerInfo,
     StatementResult,
     TableKind,
+    TriggerInfo,
     Value
 } from '../protocol/index.ts';
 import type { DatabaseTransport } from '../client/types.ts';
@@ -30,6 +32,9 @@ export interface FakeTable {
     readonly rows: readonly (readonly Value[])[];
     readonly indexes?: readonly IndexInfo[];
     readonly foreignKeys?: readonly ForeignKeyInfo[];
+    /* Left out, `structure` leaves them out too, as SQLite does for its checks. */
+    readonly checks?: readonly CheckInfo[];
+    readonly triggers?: readonly TriggerInfo[];
     readonly ddl?: string;
 }
 
@@ -56,6 +61,8 @@ interface Table {
     rows: Value[][];
     indexes: IndexInfo[];
     foreignKeys: ForeignKeyInfo[];
+    checks: CheckInfo[] | undefined;
+    triggers: TriggerInfo[] | undefined;
     ddl: string | null;
 }
 
@@ -98,6 +105,8 @@ const toTables = (database: FakeDatabase): Map<string, Map<string, Table>> =>
                         rows: structuredClone(table.rows.map((row) => [...row])),
                         indexes: structuredClone([...(table.indexes ?? [])]),
                         foreignKeys: structuredClone([...(table.foreignKeys ?? [])]),
+                        checks: table.checks === undefined ? undefined : structuredClone([...table.checks]),
+                        triggers: table.triggers === undefined ? undefined : structuredClone([...table.triggers]),
                         ddl: table.ddl ?? null
                     } satisfies Table
                 ])
@@ -406,6 +415,8 @@ export const fakeDatabaseTransport = (options: FakeDatabaseTransportOptions): Da
                 rowKey: rowKeyOf(table),
                 indexes: table.indexes,
                 foreignKeys: table.foreignKeys,
+                ...(table.checks === undefined ? {} : { checks: table.checks }),
+                ...(table.triggers === undefined ? {} : { triggers: table.triggers }),
                 ddl: table.ddl
             };
         },

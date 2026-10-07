@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode, type Ref } from 'react';
 import clsx from 'clsx';
-import { CircleAlert, Columns2, Database, Eye, Folder, Lock, Search, Table } from 'lucide-react';
+import { CircleAlert, Columns2, Database, Eye, Folder, KeyRound, ListOrdered, Lock, Search, ShieldCheck, Table, Zap, type LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button, ContextMenu, EmptyState, Icon, Input, Spinner, Tooltip, Tree } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
@@ -17,14 +17,16 @@ import {
     flattenTree,
     hasMenu,
     isExpandable,
-    isFolderKey,
+    startsOpen,
     isSelectable,
     navigate,
     neededLoads,
     selectionKey,
     selectionOf,
     tabStop,
+    openedTableOf,
     tableOf,
+    type EntryRow,
     type ErrorRow,
     type LoadTarget,
     type ExpandableRow,
@@ -92,8 +94,7 @@ export function DatabaseExplorer({ connections, value, defaultValue = null, onVa
     }, [activeKey]);
 
     const setOpen = (key: string, open: boolean): void => {
-        // A folder is open until the person closes it, everything else is closed until they open it.
-        const folder = isFolderKey(key);
+        const folder = startsOpen(key);
         const toggle = (current: ReadonlySet<string>): ReadonlySet<string> => {
             const next = new Set(current);
             if (open !== folder) {
@@ -125,7 +126,7 @@ export function DatabaseExplorer({ connections, value, defaultValue = null, onVa
     };
 
     const open = (row: TreeRow): void => {
-        const ref = tableOf(row);
+        const ref = openedTableOf(row);
         if (ref !== null) {
             pick(row);
             act?.({ kind: 'open-table', ref, view: 'data' });
@@ -136,11 +137,13 @@ export function DatabaseExplorer({ connections, value, defaultValue = null, onVa
         switch (row.kind) {
             case 'table':
             case 'column':
+            case 'entry':
                 open(row);
                 break;
             case 'connection':
             case 'schema':
             case 'folder':
+            case 'part':
                 pick(row);
                 toggle(row);
                 break;
@@ -338,6 +341,17 @@ function RowContent({ row, onToggle }: { row: TreeRow; onToggle?: () => void }) 
                     <Tree.Label>{row.table.name}</Tree.Label>
                 </>
             );
+        case 'part':
+            return (
+                <>
+                    <Tree.Chevron expanded={row.expanded} onExpandedChange={onToggle} />
+                    <Icon icon={Folder} size={16} className="shrink-0 text-text-muted" />
+                    <Tree.Label>{t(`explorer.parts.${row.part}`)}</Tree.Label>
+                    <span className="shrink-0 text-text-faint tabular-nums">{formatNumber(row.count)}</span>
+                </>
+            );
+        case 'entry':
+            return <EntryContent row={row} />;
         case 'column':
             return (
                 <>
@@ -398,6 +412,74 @@ function ColumnIcon(keys: ColumnKeys) {
             </span>
         </Tooltip>
     );
+}
+
+/* A key, a foreign key, an index, a check or a trigger of a table: its name, and what it covers in the quiet color of a column's type. */
+function EntryContent({ row }: { row: EntryRow }) {
+    const { t } = useTranslation('database');
+    const { entry } = row;
+    const icon = (glyph: LucideIcon, className: string): ReactNode => (
+        <span className={ENTRY_ICON_SLOT}>
+            <Icon icon={glyph} size={14} className={className} />
+        </span>
+    );
+    switch (entry.type) {
+        case 'key':
+            return (
+                <>
+                    <Tree.ChevronSlot />
+                    {icon(KeyRound, entry.primary ? 'text-(--file-icon-yellow)' : 'text-text-muted')}
+                    <Tree.Label>{entry.name ?? t('explorer.primaryKey')}</Tree.Label>
+                    <span className="text-text-faint">{entry.columns.join(', ')}</span>
+                </>
+            );
+        case 'foreignKey': {
+            const { foreignKey } = entry;
+            const columns = foreignKey.columns.join(', ');
+            return (
+                <>
+                    <Tree.ChevronSlot />
+                    {icon(KeyRound, 'text-(--file-icon-blue)')}
+                    <Tree.Label>{foreignKey.name ?? columns}</Tree.Label>
+                    <span className="text-text-faint">
+                        {t('explorer.references', {
+                            columns,
+                            table: foreignKey.referencedTable,
+                            referenced: foreignKey.referencedColumns.join(', ')
+                        })}
+                    </span>
+                </>
+            );
+        }
+        case 'index':
+            return (
+                <>
+                    <Tree.ChevronSlot />
+                    {icon(ListOrdered, 'text-text-faint')}
+                    <Tree.Label>{entry.index.name}</Tree.Label>
+                    <span className="text-text-faint">{entry.index.columns.join(', ')}</span>
+                    {entry.index.unique && <span className="text-text-faint">{t('explorer.unique')}</span>}
+                </>
+            );
+        case 'check':
+            return (
+                <>
+                    <Tree.ChevronSlot />
+                    {icon(ShieldCheck, 'text-text-faint')}
+                    <Tree.Label>{entry.check.name ?? t('explorer.check')}</Tree.Label>
+                    <span className="font-mono text-text-faint">{entry.check.expression}</span>
+                </>
+            );
+        case 'trigger':
+            return (
+                <>
+                    <Tree.ChevronSlot />
+                    {icon(Zap, 'text-text-faint')}
+                    <Tree.Label>{entry.trigger.name}</Tree.Label>
+                    <span className="text-text-faint">{`${entry.trigger.timing} ${entry.trigger.event}`}</span>
+                </>
+            );
+    }
 }
 
 function ErrorContent({ row }: { row: ErrorRow }) {

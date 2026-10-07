@@ -17,8 +17,8 @@ use crate::protocol::*;
 use crate::quoting::{Dialect, mysql_string_literal};
 use crate::splitter::split_statements;
 use crate::sql::{
-    DEFAULT_EXECUTE_CELL_LIMIT, DEFAULT_EXECUTE_LIMIT, MAX_LIMIT, Param, cell_sql, conflict, count_sql, export_query, fragment, page_sql, paging, paging_with,
-    pick_row_key, plan_apply, resolve_cell_limit, rows_sql, single_statement,
+    DEFAULT_EXECUTE_CELL_LIMIT, DEFAULT_EXECUTE_LIMIT, MAX_LIMIT, Param, bare_condition, cell_sql, conflict, count_sql, export_query, fragment, page_sql,
+    paging, paging_with, pick_row_key, plan_apply, resolve_cell_limit, rows_sql, single_statement,
 };
 use crate::tunnel::Tunnel as LocalTunnel;
 
@@ -719,6 +719,11 @@ impl MysqlEngine {
             pick_row_key(&columns, &primary_key, &candidate_refs)
         };
         let foreign_keys = self.read_foreign_keys(&schema, &table).await?;
+        let (checks, triggers) = if kind == TableKind::View {
+            (None, None)
+        } else {
+            (self.read_checks(&schema, &table).await, Some(self.read_triggers(&schema, &table).await?))
+        };
         let ddl = self.read_ddl(&schema, &table, kind).await;
 
         Ok(TableStructure {
@@ -730,8 +735,56 @@ impl MysqlEngine {
             row_key,
             indexes,
             foreign_keys,
+            checks,
+            triggers,
             ddl,
         })
+    }
+
+    /// `None` where the server keeps no list of its checks, which MySQL before 8.0.16 does not.
+    async fn read_checks(&mut self, schema: &str, table: &str) -> Option<Vec<CheckInfo>> {
+        // A MariaDB check is named per table, a MySQL one per schema, so only MariaDB can filter the checks by table directly.
+        let sql = match self.flavor {
+            Flavor::Mariadb => {
+                "SELECT CONSTRAINT_NAME, CHECK_CLAUSE FROM information_schema.CHECK_CONSTRAINTS \
+                 WHERE CONSTRAINT_SCHEMA = ? AND TABLE_NAME = ? ORDER BY CONSTRAINT_NAME"
+            }
+            Flavor::Mysql | Flavor::Sqlite => {
+                "SELECT c.CONSTRAINT_NAME, c.CHECK_CLAUSE FROM information_schema.TABLE_CONSTRAINTS t \
+                 JOIN information_schema.CHECK_CONSTRAINTS c ON c.CONSTRAINT_SCHEMA = t.CONSTRAINT_SCHEMA AND c.CONSTRAINT_NAME = t.CONSTRAINT_NAME \
+                 WHERE t.TABLE_SCHEMA = ? AND t.TABLE_NAME = ? AND t.CONSTRAINT_TYPE = 'CHECK' ORDER BY c.CONSTRAINT_NAME"
+            }
+        };
+        let rows: Vec<Row> = self.connection.exec(sql, (schema, table)).await.ok()?;
+
+        Some(
+            rows.iter()
+                .map(|row| CheckInfo {
+                    name: text_at(row, 0),
+                    expression: bare_condition(&text_at(row, 1).unwrap_or_default()).to_string(),
+                })
+                .collect(),
+        )
+    }
+
+    async fn read_triggers(&mut self, schema: &str, table: &str) -> Result<Vec<TriggerInfo>> {
+        let rows: Vec<Row> = self
+            .connection
+            .exec(
+                "SELECT TRIGGER_NAME, ACTION_TIMING, EVENT_MANIPULATION FROM information_schema.TRIGGERS \
+                 WHERE EVENT_OBJECT_SCHEMA = ? AND EVENT_OBJECT_TABLE = ? ORDER BY TRIGGER_NAME",
+                (schema, table),
+            )
+            .await?;
+
+        Ok(rows
+            .iter()
+            .map(|row| TriggerInfo {
+                name: text_at(row, 0).unwrap_or_default(),
+                timing: text_at(row, 1).unwrap_or_default().to_uppercase(),
+                event: text_at(row, 2).unwrap_or_default().to_uppercase(),
+            })
+            .collect())
     }
 
     async fn read_indexes(&mut self, schema: &str, table: &str) -> Result<(Vec<IndexInfo>, Vec<String>, Vec<Vec<String>>)> {

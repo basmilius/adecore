@@ -69,7 +69,7 @@ describe.skipIf(typeof document === 'undefined')('DatabaseExplorer in a DOM', ()
         await focus(row('customers'));
         await press(row('customers'), 'ArrowRight');
         expect(recorded.of('structure').map((request) => request.params.table)).toEqual(['customers']);
-        expect(labels()).toEqual(['Shop3.50.4', 'Tables2', 'customers', 'idINTEGER', 'nameTEXT', 'orders']);
+        expect(labels()).toEqual(['Shop3.50.4', 'Tables2', 'customers', 'Columns2', 'idINTEGER', 'nameTEXT', 'Keys1', 'orders']);
     });
 
     test('marks a primary key column with a yellow key, a foreign key column with a blue one, and the others with a column', async () => {
@@ -81,6 +81,21 @@ describe.skipIf(typeof document === 'undefined')('DatabaseExplorer in a DOM', ()
         expect(row('customer_idINTEGER').innerHTML).toMatch(/lucide-key-round [^"]*text-\(--file-icon-blue\)/);
         expect(row('totalINTEGER').innerHTML).toContain('lucide-columns-2');
         expect(row('totalINTEGER').innerHTML).not.toContain('lucide-key');
+    });
+
+    test('opens a table into folders, and a foreign key onto the table it references', async () => {
+        await openTables();
+        await focus(row('orders'));
+        await press(row('orders'), 'ArrowRight');
+        expect(labels().slice(-7)).toEqual(['orders', 'Columns3', 'idINTEGER', 'customer_idINTEGER', 'totalINTEGER', 'Keys1', 'Foreign keys1']);
+
+        await focus(row('Foreign keys'));
+        await press(row('Foreign keys'), 'ArrowRight');
+        const foreign = row('orders_customer');
+        expect(foreign.textContent).toContain('customer_id → customers (id)');
+        await focus(foreign);
+        await press(foreign, 'Enter');
+        expect(actions.at(-1)).toEqual({ kind: 'open-table', ref: { connectionId: 'one', schema: 'main', table: 'customers' }, view: 'data' });
     });
 
     test('moves with the arrow keys, closes with ArrowLeft and leaves one tab stop', async () => {
@@ -259,7 +274,7 @@ describe.skipIf(typeof document === 'undefined')('DatabaseExplorer in a DOM', ()
         await mounted.unmount();
         const before = recorded.requests.length;
         mounted = await mount(<DatabaseExplorer connections={[connection]} />, { client, actions, storage });
-        await waitFor(() => expect(labels()).toEqual(['Shop3.50.4', 'Tables2', 'customers', 'idINTEGER', 'nameTEXT', 'orders']));
+        await waitFor(() => expect(labels()).toEqual(['Shop3.50.4', 'Tables2', 'customers', 'Columns2', 'idINTEGER', 'nameTEXT', 'Keys1', 'orders']));
         expect(recorded.requests.length).toBeGreaterThan(before);
     });
 

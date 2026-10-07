@@ -117,6 +117,17 @@
         "primaryKey": "Primary key",
         "foreignKey": "Foreign key",
         "primaryAndForeignKey": "Primary key and foreign key",
+        "parts": {
+            "columns": "Columns",
+            "keys": "Keys",
+            "foreignKeys": "Foreign keys",
+            "indexes": "Indexes",
+            "checks": "Checks",
+            "triggers": "Triggers"
+        },
+        "references": "{{columns}} → {{table}} ({{referenced}})",
+        "unique": "unique",
+        "check": "Check",
         "readOnly": "Read only",
         "schemaCount": "{{shown}} of {{total}}",
         "schemaCountHint_one": "{{shown}} of {{total}} schema shown, system schemas are hidden",

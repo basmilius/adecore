@@ -1,6 +1,17 @@
 import type { ExplorerSelection } from '../actions.ts';
 import type { Connection, TableRef } from '../client/types.ts';
-import type { ColumnInfo, Engine, SchemaInfo, TableInfo, TableKind, TableStructure } from '../protocol/index.ts';
+import type {
+    CheckInfo,
+    ColumnInfo,
+    Engine,
+    ForeignKeyInfo,
+    IndexInfo,
+    SchemaInfo,
+    TableInfo,
+    TableKind,
+    TableStructure,
+    TriggerInfo
+} from '../protocol/index.ts';
 import { qualifiedName } from '../sql.ts';
 
 /* Where a lazy list stands: not asked for yet, on its way, failed, or here. */
@@ -26,7 +37,12 @@ export const connectionKey = (connectionId: string): string => `c:${connectionId
 export const schemaKey = (connectionId: string, schema: string): string => `s:${connectionId}${SEPARATOR}${schema}`;
 export const folderKey = (connectionId: string, schema: string, group: TableKind): string => `f:${connectionId}${SEPARATOR}${schema}${SEPARATOR}${group}`;
 export const tableKey = (ref: TableRef): string => `t:${ref.connectionId}${SEPARATOR}${ref.schema}${SEPARATOR}${ref.table}`;
-export const isFolderKey = (key: string): boolean => key.startsWith('f:');
+/* The folders of a table, in the order they come under it. */
+export const PARTS = ['columns', 'keys', 'foreignKeys', 'indexes', 'checks', 'triggers'] as const;
+export type TablePart = (typeof PARTS)[number];
+export const partKey = (ref: TableRef, part: TablePart): string => `p:${ref.connectionId}${SEPARATOR}${ref.schema}${SEPARATOR}${ref.table}${SEPARATOR}${part}`;
+/* A folder of a schema, and the columns of a table, are open until the person closes them; everything else is closed until they open it. */
+export const startsOpen = (key: string): boolean => key.startsWith('f:') || (key.startsWith('p:') && key.endsWith(`${SEPARATOR}columns`));
 /* The connection a key of a connection, schema, folder or table belongs to. */
 export const connectionOfKey = (key: string): string => {
     const rest = key.slice(2);
@@ -34,6 +50,7 @@ export const connectionOfKey = (key: string): string => {
     return end === -1 ? rest : rest.slice(0, end);
 };
 export const columnKey = (ref: TableRef, column: string): string => `${tableKey(ref)}${SEPARATOR}${column}`;
+const entryKey = (ref: TableRef, part: TablePart, index: number): string => `${partKey(ref, part)}${SEPARATOR}${index}`;
 
 export const loadKey = (target: LoadTarget): string => {
     if (target.schema === undefined) {
@@ -102,6 +119,30 @@ export interface ColumnRow extends RowBase {
     readonly foreignKey: boolean;
 }
 
+/* One of the folders a table opens into, which exists only when it holds something. */
+export interface PartRow extends RowBase {
+    readonly kind: 'part';
+    readonly ref: TableRef;
+    readonly part: TablePart;
+    readonly expanded: boolean;
+    readonly count: number;
+}
+
+/* What a folder of a table holds besides its columns. */
+export type TableEntry =
+    | { readonly type: 'key'; readonly name: string | null; readonly columns: readonly string[]; readonly primary: boolean }
+    | { readonly type: 'foreignKey'; readonly foreignKey: ForeignKeyInfo }
+    | { readonly type: 'index'; readonly index: IndexInfo }
+    | { readonly type: 'check'; readonly check: CheckInfo }
+    | { readonly type: 'trigger'; readonly trigger: TriggerInfo };
+
+export interface EntryRow extends RowBase {
+    readonly kind: 'entry';
+    /* The table the entry belongs to. */
+    readonly ref: TableRef;
+    readonly entry: TableEntry;
+}
+
 export interface LoadingRow extends RowBase {
     readonly kind: 'loading';
 }
@@ -118,15 +159,21 @@ export interface EmptyRow extends RowBase {
     readonly of: 'schemas' | 'tables' | 'columns';
 }
 
-export type TreeRow = ConnectionRow | SchemaRow | FolderRow | TableRow | ColumnRow | LoadingRow | ErrorRow | EmptyRow;
+export type TreeRow = ConnectionRow | SchemaRow | FolderRow | TableRow | PartRow | ColumnRow | EntryRow | LoadingRow | ErrorRow | EmptyRow;
 
-export type ExpandableRow = ConnectionRow | SchemaRow | FolderRow | TableRow;
+export type ExpandableRow = ConnectionRow | SchemaRow | FolderRow | TableRow | PartRow;
 
 export const isExpandable = (row: TreeRow): row is ExpandableRow =>
-    row.kind === 'connection' || row.kind === 'schema' || row.kind === 'folder' || row.kind === 'table';
+    row.kind === 'connection' || row.kind === 'schema' || row.kind === 'folder' || row.kind === 'table' || row.kind === 'part';
 
 /* The table a row stands for, when it stands for one. */
-export const tableOf = (row: TreeRow): TableRef | null => (row.kind === 'table' || row.kind === 'column' ? row.ref : null);
+export const tableOf = (row: TreeRow): TableRef | null => (row.kind === 'table' || row.kind === 'column' || row.kind === 'entry' ? row.ref : null);
+
+/* The table activating a row opens: its own, or for a foreign key the table it references. */
+export const openedTableOf = (row: TreeRow): TableRef | null =>
+    row.kind === 'entry' && row.entry.type === 'foreignKey'
+        ? { connectionId: row.ref.connectionId, schema: row.entry.foreignKey.referencedSchema, table: row.entry.foreignKey.referencedTable }
+        : tableOf(row);
 
 /* What picking a row selects: its connection, its schema, or its table (a column stands for its table). Status rows select nothing. */
 export const selectionOf = (row: TreeRow): ExplorerSelection | null => {
@@ -137,7 +184,9 @@ export const selectionOf = (row: TreeRow): ExplorerSelection | null => {
         case 'folder':
             return { connectionId: row.connection.id, schema: row.schema };
         case 'table':
+        case 'part':
         case 'column':
+        case 'entry':
             return { connectionId: row.ref.connectionId, schema: row.ref.schema, table: row.ref.table };
         default:
             return null;
@@ -207,6 +256,23 @@ const statusDraft = (row: StatusRow, level: number, parent: string, focusable: b
 
 const matches = (name: string, query: string): boolean => name.toLowerCase().includes(query);
 
+/* What each folder of a table besides its columns holds: the primary key and the unique keys, the foreign keys, the other indexes, the checks and the triggers. */
+export const tableEntries = (structure: TableStructure): Readonly<Record<Exclude<TablePart, 'columns'>, readonly TableEntry[]>> => {
+    const primaryIndex = structure.indexes.find((index) => index.primary);
+    const primary: TableEntry[] =
+        structure.primaryKey.length === 0 ? [] : [{ type: 'key', name: primaryIndex?.name ?? null, columns: structure.primaryKey, primary: true }];
+    const unique = structure.indexes
+        .filter((index) => index.unique && !index.primary)
+        .map((index): TableEntry => ({ type: 'key', name: index.name, columns: index.columns, primary: false }));
+    return {
+        keys: [...primary, ...unique],
+        foreignKeys: structure.foreignKeys.map((foreignKey) => ({ type: 'foreignKey', foreignKey })),
+        indexes: structure.indexes.filter((index) => !index.primary).map((index) => ({ type: 'index', index })),
+        checks: (structure.checks ?? []).map((check) => ({ type: 'check', check })),
+        triggers: (structure.triggers ?? []).map((trigger) => ({ type: 'trigger', trigger }))
+    };
+};
+
 /*
  * The rows a tree shows, top to bottom. With a filter only the loaded tables that match stay, under
  * their folder, schema and connection, which then count as open whatever the person left them at.
@@ -215,22 +281,10 @@ export const flattenTree = (input: TreeInput): TreeRow[] => {
     const query = input.filter.trim().toLowerCase();
     const filtering = query !== '';
 
-    const columnDrafts = (ref: TableRef, level: number, parent: string): Draft[] => {
-        const load = input.structures(ref.connectionId, ref.schema, ref.table);
-        if (load.status !== 'ready') {
-            const row: StatusRow =
-                load.status === 'error'
-                    ? { kind: 'error', message: load.message, retry: { connectionId: ref.connectionId, schema: ref.schema, table: ref.table } }
-                    : { kind: 'loading' };
-            return [statusDraft(row, level, parent, load.status === 'error')];
-        }
-        const { columns, primaryKey, foreignKeys } = load.value;
-        if (columns.length === 0) {
-            return [statusDraft({ kind: 'empty', of: 'columns' }, level, parent, true)];
-        }
-        const primary = new Set(primaryKey);
-        const foreign = new Set(foreignKeys.flatMap((foreignKey) => foreignKey.columns));
-        return columns.map((column): Draft => ({
+    const columnRows = (ref: TableRef, structure: TableStructure, level: number, parent: string): Draft[] => {
+        const primary = new Set(structure.primaryKey);
+        const foreign = new Set(structure.foreignKeys.flatMap((foreignKey) => foreignKey.columns));
+        return structure.columns.map((column): Draft => ({
             make: (place) => ({
                 kind: 'column',
                 key: columnKey(ref, column.name),
@@ -247,12 +301,62 @@ export const flattenTree = (input: TreeInput): TreeRow[] => {
         }));
     };
 
+    /* The folders a table opens into, each only when it holds something. A view has only its columns, straight under it. */
+    const tableChildren = (ref: TableRef, kind: TableKind, level: number, parent: string): Draft[] => {
+        const load = input.structures(ref.connectionId, ref.schema, ref.table);
+        if (load.status !== 'ready') {
+            const row: StatusRow =
+                load.status === 'error'
+                    ? { kind: 'error', message: load.message, retry: { connectionId: ref.connectionId, schema: ref.schema, table: ref.table } }
+                    : { kind: 'loading' };
+            return [statusDraft(row, level, parent, load.status === 'error')];
+        }
+        const structure = load.value;
+        if (structure.columns.length === 0) {
+            return [statusDraft({ kind: 'empty', of: 'columns' }, level, parent, true)];
+        }
+        if (kind === 'view') {
+            return columnRows(ref, structure, level, parent);
+        }
+        const entries = tableEntries(structure);
+        return PARTS.flatMap((part): Draft[] => {
+            const count = part === 'columns' ? structure.columns.length : entries[part].length;
+            if (count === 0) {
+                return [];
+            }
+            const key = partKey(ref, part);
+            const open = startsOpen(key) ? !input.collapsed.has(key) : input.expanded.has(key);
+            const below = (): Draft[] =>
+                part === 'columns'
+                    ? columnRows(ref, structure, level + 1, key)
+                    : entries[part].map((entry, index): Draft => ({
+                          make: (place) => ({
+                              kind: 'entry',
+                              key: entryKey(ref, part, index),
+                              level: level + 1,
+                              parent: key,
+                              focusable: true,
+                              ref,
+                              entry,
+                              ...place
+                          }),
+                          below: []
+                      }));
+            return [
+                {
+                    make: (place) => ({ kind: 'part', key, level, parent, focusable: true, ref, part, expanded: open, count, ...place }),
+                    below: open ? settle(below()) : []
+                }
+            ];
+        });
+    };
+
     const tableDraft = (ref: TableRef, table: TableInfo, level: number, parent: string): Draft => {
         const key = tableKey(ref);
         const open = input.expanded.has(key);
         return {
             make: (place) => ({ kind: 'table', key, level, parent, focusable: true, ref, table, expanded: open, ...place }),
-            below: open ? settle(columnDrafts(ref, level + 1, key)) : []
+            below: open ? settle(tableChildren(ref, table.kind, level + 1, key)) : []
         };
     };
 

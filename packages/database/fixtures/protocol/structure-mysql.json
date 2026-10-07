@@ -1,0 +1,23 @@
+{
+  "request": { "id": "r4", "method": "structure", "params": { "session": "s2", "schema": "shop", "table": "orders" } },
+  "response": {
+    "id": "r4",
+    "ok": true,
+    "result": {
+      "schema": "shop",
+      "name": "orders",
+      "kind": "table",
+      "columns": [
+        { "name": "id", "type": "bigint(20)", "kind": "integer", "nullable": false, "defaultValue": null, "autoIncrement": true, "generated": false, "comment": null },
+        { "name": "total", "type": "decimal(10,2)", "kind": "decimal", "nullable": false, "defaultValue": "0.00", "autoIncrement": false, "generated": false, "comment": null }
+      ],
+      "primaryKey": ["id"],
+      "rowKey": ["id"],
+      "indexes": [{ "name": "PRIMARY", "columns": ["id"], "unique": true, "primary": true }],
+      "foreignKeys": [],
+      "checks": [{ "name": "orders_total", "expression": "`total` >= 0" }],
+      "triggers": [{ "name": "orders_audit", "timing": "BEFORE", "event": "DELETE" }],
+      "ddl": "CREATE TABLE `orders` (\n  `id` bigint(20) NOT NULL AUTO_INCREMENT,\n  `total` decimal(10,2) NOT NULL DEFAULT 0.00,\n  PRIMARY KEY (`id`),\n  CONSTRAINT `orders_total` CHECK (`total` >= 0)\n)"
+    }
+  }
+}
