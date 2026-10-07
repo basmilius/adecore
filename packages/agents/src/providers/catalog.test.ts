@@ -13,6 +13,8 @@ describe('ModelCatalog', () => {
         expect(models.filter((model) => model.isDefault).map((model) => model.slug)).toEqual(['claude-sonnet-5-5']);
         expect(models.find((model) => model.slug === 'claude-fable-5-1')?.options.map((option) => option.id)).toEqual(['effort', 'contextWindow']);
         expect(models.find((model) => model.slug === 'claude-haiku-4-5')?.options[0]).toMatchObject({ type: 'boolean', defaultValue: true });
+        expect(models.find((model) => model.slug === 'claude-haiku-5-5')?.options.map((option) => option.id)).toEqual(['effort', 'contextWindow']);
+        expect(models.find((model) => model.slug === 'claude-haiku-4-5')?.legacy).toBe(true);
     });
 
     test('fast mode is an option of the models that offer it, off by default', () => {
