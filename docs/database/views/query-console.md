@@ -60,6 +60,12 @@ Each console runs on a [channel](/database/api/client#createdatabaseclient) of i
 
 `schema` is where the statements run: the helper switches to it before the first statement, and it stays selected for the session. On MySQL the toolbar has a schema picker, and a new `schema` prop resets it. Leave `schema` out to stay in the schema the connection started in. SQLite uses `main`.
 
+With `onSchemaChange` the schema is the app's: the picker shows `schema`, and picking another calls `onSchemaChange` and changes nothing until the app passes the new `schema`. Use it when the app keeps the schema with something of its own, such as a file the console runs.
+
+```tsx
+<QueryConsole connection={connection} schema={schema} onSchemaChange={setSchema} className="h-full" />
+```
+
 ## History
 
 The History button opens the runs of the connection beside the editor: the SQL, the time, whether it worked and the rows it read or changed. Click a run to put its SQL in the editor, double click to run it again, search by words, or Clear history. A run of the same SQL as the last one replaces it, and the list keeps 200. With `storage` on the [provider](/database/guide/getting-started#databaseprovider) it survives a remount.
@@ -120,6 +126,7 @@ function SqlCodeEditor({ ref, value, onValueChange, run, label, autoFocus }: Que
 | -------------------- | ------------------------------------------------ | ------- | -------------------------------------------------------------------------- |
 | `connection`         | `Connection`                                     |         | Required. The connection to run on.                                        |
 | `schema`             | `string`                                         |         | The schema the statements run in.                                          |
+| `onSchemaChange`     | `(schema: string) => void`                       |         | Makes the schema the app's; the picker asks through it.                    |
 | `value`              | `string`                                         |         | The SQL, when the app keeps it, such as in a tab that survives a reload.   |
 | `defaultValue`       | `string`                                         | `''`    | Where the text starts without `value`.                                     |
 | `onValueChange`      | `(sql: string) => void`                          |         | The text changed.                                                          |

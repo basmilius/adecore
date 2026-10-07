@@ -26,8 +26,10 @@ import { useConsoleHistory } from './useConsoleHistory.ts';
 
 export interface QueryConsoleProps {
     connection: Connection;
-    /* The schema the statements run in. */
+    /* The schema the statements run in. Without `onSchemaChange` the picker starts from it, and a new one resets the pick. */
     schema?: string;
+    /* Makes the schema the app's: the picker shows `schema` and asks for another through this. */
+    onSchemaChange?(schema: string): void;
     /* The SQL, when the app keeps it (a tab that survives a reload). Without it the console keeps the text itself, starting from `defaultValue`. */
     value?: string;
     defaultValue?: string;
@@ -106,6 +108,7 @@ function AppEditor({ render, ...editor }: QueryConsoleEditorProps & { render(edi
 export function QueryConsole({
     connection,
     schema,
+    onSchemaChange,
     value,
     defaultValue = '',
     onValueChange,
@@ -165,7 +168,7 @@ export function QueryConsole({
     const sql = value ?? own;
     const blank = sql.trim() === '';
     const busy = run.status === 'running' || settling;
-    const activeSchema = pickedSchema ?? schema;
+    const activeSchema = onSchemaChange === undefined ? (pickedSchema ?? schema) : schema;
 
     if (seededSchema !== schema) {
         setSeededSchema(schema);
@@ -413,7 +416,12 @@ export function QueryConsole({
                         {ran !== null && run.status !== 'idle' && <span className="min-w-0 truncate text-xs text-text-muted">{ranText(ran, t)}</span>}
                         <div className="ml-auto flex items-center gap-2">
                             {schemas.length > 0 && (
-                                <SchemaPicker schemas={schemas} value={activeSchema ?? null} disabled={busy} onValueChange={setPickedSchema} />
+                                <SchemaPicker
+                                    schemas={schemas}
+                                    value={activeSchema ?? null}
+                                    disabled={busy}
+                                    onValueChange={onSchemaChange ?? setPickedSchema}
+                                />
                             )}
                             <Button
                                 size="sm"

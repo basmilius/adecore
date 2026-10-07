@@ -13,12 +13,14 @@ import {
     done,
     find,
     findAll,
+    focus,
     memoryStorage,
     mount,
     press,
     recordTransport,
     select,
-    type
+    type,
+    waitFor
 } from '../testing/dom/harness.tsx';
 import { fakeDatabaseTransport } from '../testing/index.ts';
 import type { QueryConsoleEditorProps } from './editor-slot.ts';
@@ -331,5 +333,58 @@ describe.skipIf(typeof document === 'undefined')('a QueryConsole with the editor
     test('hands every edit to onValueChange', async () => {
         await type(own(), 'SELECT 9');
         expect(sql).toBe('SELECT 9');
+    });
+});
+
+describe.skipIf(typeof document === 'undefined')('the schema of a QueryConsole on MySQL', () => {
+    const server: Connection = { id: 'two', name: 'Shop server', config: { engine: 'mysql', host: 'shop.test', user: 'app' } };
+    const twoSchemas = { schemas: { shop: shopDatabase.schemas.main!, archive: shopDatabase.schemas.main! } };
+    let recorded: RecordedTransport;
+    let mounted: Mounted;
+    let client: ReturnType<typeof clientOver>;
+
+    beforeEach(() => {
+        recorded = recordTransport(fakeDatabaseTransport({ databases: { 'shop.test': twoSchemas } }));
+        recorded.onExecute((sql) => [done(sql, 0)]);
+        client = clientOver(recorded.transport);
+    });
+
+    afterEach(async () => {
+        await mounted.unmount();
+        await client.dispose();
+    });
+
+    const schemasOfRuns = (): (string | undefined)[] =>
+        recorded.requests.flatMap((request) => (request.method === 'execute' ? [(request.params as { schema?: string }).schema] : []));
+
+    const pick = async (schema: string): Promise<void> => {
+        await waitFor(() => expect(findAll('button[aria-label=Schema]')).toHaveLength(1));
+        await click(find('button[aria-label=Schema]'));
+        // With the keys: in this DOM a click on an option right after the list opened picks nothing.
+        const option = byText('[role=option]', schema);
+        await focus(option);
+        await press(option, 'Enter');
+    };
+
+    test('keeps the schema a person picks itself without onSchemaChange', async () => {
+        mounted = await mount(<QueryConsole connection={server} schema="shop" defaultValue="SELECT 1" />, { client });
+        await pick('archive');
+        await click(byText('button', 'Run'));
+        expect(schemasOfRuns()).toEqual(['archive']);
+    });
+
+    test('with onSchemaChange asks for the schema and runs in the one the app gives', async () => {
+        const asked: string[] = [];
+        mounted = await mount(<QueryConsole connection={server} schema="shop" onSchemaChange={(schema) => asked.push(schema)} defaultValue="SELECT 1" />, {
+            client
+        });
+        await pick('archive');
+        expect(asked).toEqual(['archive']);
+        await click(byText('button', 'Run'));
+        expect(schemasOfRuns()).toEqual(['shop']);
+
+        await mounted.rerender(<QueryConsole connection={server} schema="archive" onSchemaChange={(schema) => asked.push(schema)} defaultValue="SELECT 1" />);
+        await click(byText('button', 'Run'));
+        expect(schemasOfRuns()).toEqual(['shop', 'archive']);
     });
 });
