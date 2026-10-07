@@ -401,10 +401,8 @@
         "schema": "Schema",
         "schemaPlaceholder": "Schema",
         "transaction": {
-            "mode": "Transaction mode",
-            "auto": "Auto",
-            "manual": "Manual",
-            "hint": "Auto commits every run. Manual keeps a transaction open until you commit or roll back.",
+            "autoCommit": "Auto-commit",
+            "hint": "On, every run commits. Off, a transaction stays open until you commit or roll back.",
             "open": "Transaction open",
             "commit": "Commit",
             "rollback": "Roll back",

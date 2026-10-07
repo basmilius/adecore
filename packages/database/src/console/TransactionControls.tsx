@@ -1,7 +1,7 @@
 import type { Ref } from 'react';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
-import { Button, Pill, Segmented, Tooltip } from '@adecore/ui';
+import { Button, Pill, Switch, Tooltip } from '@adecore/ui';
 
 export type TransactionMode = 'auto' | 'manual';
 
@@ -18,23 +18,20 @@ export interface TransactionControlsProps {
     ref?: Ref<HTMLDivElement>;
 }
 
-/* Auto or manual commits, and while a transaction is open, the way to end it. */
+/* Auto-commit on or off, and while a transaction is open, the way to end it. */
 export function TransactionControls({ mode, onModeChange, open, busy, onCommit, onRollback, className, ref }: TransactionControlsProps) {
     const { t } = useTranslation('database');
     return (
         <div ref={ref} className={clsx('flex items-center gap-2', className)}>
             <Tooltip label={t('console.transaction.hint')}>
-                <div className="flex">
-                    <Segmented
-                        value={mode}
-                        onValueChange={onModeChange}
+                <div className="flex items-center gap-2 text-xs text-text">
+                    <Switch
+                        checked={mode === 'auto'}
+                        label={t('console.transaction.autoCommit')}
                         disabled={busy}
-                        label={t('console.transaction.mode')}
-                        options={[
-                            { id: 'auto', label: t('console.transaction.auto') },
-                            { id: 'manual', label: t('console.transaction.manual') }
-                        ]}
+                        onCheckedChange={(auto) => onModeChange(auto ? 'auto' : 'manual')}
                     />
+                    <span>{t('console.transaction.autoCommit')}</span>
                 </div>
             </Tooltip>
             {open && (

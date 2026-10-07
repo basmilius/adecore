@@ -149,9 +149,9 @@ describe.skipIf(typeof document === 'undefined')('QueryConsole in a DOM', () => 
         expect(parseHistory(storage.entries.get(historyKey('one')) ?? null)[0]).toMatchObject({ ok: false });
     });
 
-    test('in manual mode begins a transaction before the first run, once, and shows how to end it', async () => {
+    test('with auto-commit off begins a transaction before the first run, once, and shows how to end it', async () => {
         recorded.respond('execute', ({ sql }) => ({ results: [done(sql)], inTransaction: true }));
-        await click(byText('[role=radio]', 'Manual'));
+        await click(find('[role=switch][aria-label=Auto-commit]'));
 
         await type(editor(), 'INSERT INTO customers (name) VALUES (1)');
         await press(editor(), 'Enter', MOD);
@@ -188,7 +188,7 @@ describe.skipIf(typeof document === 'undefined')('QueryConsole in a DOM', () => 
         expect(recorded.of('close')).toHaveLength(1);
     });
 
-    test('in auto mode sends no begin', async () => {
+    test('with auto-commit on sends no begin', async () => {
         await type(editor(), 'SELECT 1');
         await press(editor(), 'Enter', MOD);
         expect(recorded.of('transaction')).toEqual([]);

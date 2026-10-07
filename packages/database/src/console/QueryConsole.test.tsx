@@ -62,8 +62,10 @@ describe('QueryConsole toolbar', () => {
         const markup = render(<QueryConsole connection={connection} defaultValue="SELECT 1" />);
         expect(markup).toMatch(/<button[^>]*>.*Run<\/button>/);
         expect(markup).toContain('Run all');
-        expect(markup).toMatch(/role="radio" aria-checked="true"[^>]*>Auto/);
-        expect(markup).toMatch(/role="radio" aria-checked="false"[^>]*>Manual/);
+        expect(markup).toMatch(
+            /role="switch"[^>]*aria-checked="true"[^>]*aria-label="Auto-commit"|aria-checked="true"[^>]*role="switch"[^>]*aria-label="Auto-commit"/
+        );
+        expect(markup).toContain('>Auto-commit</span>');
         expect(markup).not.toContain('Transaction open');
         expect(markup).not.toContain('aria-label="Schema"');
     });
@@ -79,7 +81,7 @@ describe('QueryConsole toolbar', () => {
         const markup = render(<QueryConsole defaultValue="SELECT 1" toolbarEnd={<button type="button">Run on a connection</button>} />);
         expect(markup).toContain('aria-label="SQL"');
         expect(markup).toContain('>Run on a connection</button>');
-        for (const word of ['Run all', 'History', 'Auto', 'aria-label="Schema"']) {
+        for (const word of ['Run all', 'History', 'Auto-commit', 'aria-label="Schema"']) {
             expect(markup).not.toContain(word);
         }
     });
@@ -129,7 +131,7 @@ describe('TransactionControls', () => {
 
     test('shows the open transaction with the buttons that end it', () => {
         const markup = controls();
-        expect(markup).toMatch(/aria-checked="true"[^>]*>Manual/);
+        expect(markup).toMatch(/aria-checked="false"[^>]*aria-label="Auto-commit"|aria-label="Auto-commit"[^>]*aria-checked="false"/);
         expect(markup).toContain('Transaction open');
         expect(markup).toContain('Commit');
         expect(markup).toContain('Roll back');

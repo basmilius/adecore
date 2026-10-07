@@ -50,9 +50,9 @@ A result of a statement that starts with `SELECT` or `WITH` and has more than 50
 
 ## Transactions
 
-The Auto and Manual switch sets how a run ends. Auto commits every run. Manual begins a transaction on the next run and keeps it open until Commit or Roll back. An open transaction shows a pill in the toolbar, and switching back to Auto while one is open asks whether to commit or roll back.
+The Auto-commit switch sets how a run ends, and its tooltip says so. On, every run commits. Off, the next run begins a transaction and it stays open until Commit or Roll back. An open transaction shows a pill in the toolbar with Commit and Roll back, and turning Auto-commit on while one is open asks whether to commit or roll back.
 
-The pill follows the connection, not the switch: `execute` reports whether a transaction is open, so a `BEGIN` typed in Auto shows the pill and a `COMMIT` clears it.
+The pill follows the connection, not the switch: `execute` reports whether a transaction is open, so a `BEGIN` typed with Auto-commit on shows the pill and a `COMMIT` clears it.
 
 Each console runs on a [channel](/database/api/client#createdatabaseclient) of its own, which it closes when it unmounts. While a console holds a transaction open, a table view or the designer on the same connection still commits at once, and neither sees the console's uncommitted changes. Two consoles do not share a transaction either.
 
@@ -122,7 +122,7 @@ function SqlCodeEditor({ ref, value, onValueChange, run, label, autoFocus }: Que
 
 ## Your own content in the bar
 
-`toolbarEnd` draws the app's own content in the group at the end of the bar, before the schema picker and History, such as a picker of the connection the console runs on. Run, Run all and the transaction mode stay at the start of the bar.
+`toolbarEnd` draws the app's own content in the group at the end of the bar, before the schema picker and History, such as a picker of the connection the console runs on. Run, Run all and Auto-commit stay at the start of the bar.
 
 Without `connection` the console draws its editor and a bar with only `toolbarEnd`, at the same height, and runs nothing: no Run, no schema, no history and no results. An app can offer to pick a connection there, and once it passes one the full bar appears. The editor stays mounted across the change, so an editor of the app keeps its state.
 

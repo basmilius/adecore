@@ -401,10 +401,8 @@
         "schema": "Schema",
         "schemaPlaceholder": "Schema",
         "transaction": {
-            "mode": "Transactiemodus",
-            "auto": "Automatisch",
-            "manual": "Handmatig",
-            "hint": "Automatisch legt elke uitvoering vast. Handmatig houdt een transactie open tot je vastlegt of terugdraait.",
+            "autoCommit": "Automatisch vastleggen",
+            "hint": "Aan legt elke uitvoering vast. Uit houdt een transactie open tot je vastlegt of terugdraait.",
             "open": "Transactie open",
             "commit": "Vastleggen",
             "rollback": "Terugdraaien",
