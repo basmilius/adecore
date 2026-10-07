@@ -66,6 +66,8 @@ export function TabsRoot({ value, defaultValue = 0, onValueChange, ...props }: T
 export type TabsListProps = Omit<ComponentProps<typeof BaseTabs.List>, 'className'> & {
     /* On the strip, which runs the width of the pane; padding here insets the tabs from its edges. */
     className?: string;
+    /* Drawn before the tabs, such as what they are the views of. It keeps its own width, like `end`. */
+    start?: ReactNode;
     /* Drawn after the tabs, such as a button that adds one. It keeps its own width: the tabs fit in what is left. */
     end?: ReactNode;
 };
@@ -78,11 +80,12 @@ const sameIndices = (left: readonly number[] | null, right: readonly number[]): 
  * in a row nobody sees, so the strip knows what fits before it draws. The tabs are the direct children,
  * since the menu repeats what a tab holds.
  */
-export function TabsList({ className, children, end, ...props }: TabsListProps) {
+export function TabsList({ className, children, start, end, ...props }: TabsListProps) {
     const { t } = useTranslation('ui');
     const { value, select } = useContext(SelectionContext);
     const strip = useRef<HTMLDivElement>(null);
     const measure = useRef<HTMLDivElement>(null);
+    const head = useRef<HTMLDivElement>(null);
     const tail = useRef<HTMLDivElement>(null);
     // Null until the first measure, which runs before the first paint.
     const [shown, setShown] = useState<number[] | null>(null);
@@ -100,7 +103,7 @@ export function TabsList({ className, children, end, ...props }: TabsListProps) 
         const fit = (): void => {
             const style = getComputedStyle(host);
             const gap = parseFloat(style.columnGap) || 0;
-            const taken = tail.current === null ? 0 : tail.current.getBoundingClientRect().width + gap;
+            const taken = [head.current, tail.current].reduce((sum, part) => (part === null ? sum : sum + part.getBoundingClientRect().width + gap), 0);
             const room = host.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) - taken;
             const cells = [...row.children].map((cell) => cell.getBoundingClientRect().width);
             const more = cells.pop() ?? 0;
@@ -111,8 +114,10 @@ export function TabsList({ className, children, end, ...props }: TabsListProps) 
         const observer = new ResizeObserver(fit);
         observer.observe(host);
         observer.observe(row);
-        if (tail.current !== null) {
-            observer.observe(tail.current);
+        for (const part of [head.current, tail.current]) {
+            if (part !== null) {
+                observer.observe(part);
+            }
         }
         return () => observer.disconnect();
     });
@@ -122,6 +127,11 @@ export function TabsList({ className, children, end, ...props }: TabsListProps) 
 
     return (
         <div ref={strip} className={clsx('relative flex items-center gap-4 border-b border-border', className)}>
+            {start !== undefined && start !== null && (
+                <div ref={head} className="flex shrink-0 items-center gap-1">
+                    {start}
+                </div>
+            )}
             <BaseTabs.List className="flex min-w-0 items-end gap-4" {...props}>
                 {visible}
             </BaseTabs.List>

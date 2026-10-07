@@ -528,6 +528,18 @@ describe('tabs', () => {
         expect(markup).toContain('tabindex="-1"');
         expect(markup).toContain('>after</span>');
     });
+
+    test('draw what comes before the tabs ahead of the list', () => {
+        const markup = render(
+            <Tabs.Root value="one">
+                <Tabs.List aria-label="Views" start={<span>before</span>}>
+                    <Tabs.Tab value="one">One</Tabs.Tab>
+                </Tabs.List>
+            </Tabs.Root>
+        );
+        expect(markup.indexOf('>before</span>')).toBeGreaterThan(-1);
+        expect(markup.indexOf('>before</span>')).toBeLessThan(markup.indexOf('role="tablist"'));
+    });
 });
 
 describe('a stepper', () => {

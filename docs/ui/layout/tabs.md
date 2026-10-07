@@ -25,7 +25,7 @@ import { Tabs } from '@adecore/ui';
 | Part | What it is |
 | --- | --- |
 | `Tabs.Root` | Holds the picked tab: `value` and `onValueChange(value)`, or `defaultValue` (`0` when left out). |
-| `Tabs.List` | The strip, with a border along its bottom and a menu for the tabs that do not fit. Name it with `aria-label`. `end` holds actions after the tabs. |
+| `Tabs.List` | The strip, with a border along its bottom and a menu for the tabs that do not fit. Name it with `aria-label`. `start` holds what comes before the tabs, `end` actions after them. |
 | `Tabs.Tab` | One tab, with its `value`. `disabled` keeps it out of reach. `onClose` makes it closable. |
 | `Tabs.Count` | The number after a label, as a [`Pill`](/ui/actions/pill), written the way the region writes numbers. Nothing at zero. |
 | `Tabs.Panel` | The view of one tab, shown while that tab is picked. |
@@ -46,7 +46,7 @@ The strip measures its tabs before the first paint, so nothing jumps. It reads w
 
 `onClose` on `Tabs.Tab` draws a close button in the tab and calls `onClose` on a middle click and on Delete or Backspace while the tab has focus. It only asks: you remove the tab from the list you render, and pick the next one when it was the picked tab. The close button stays out of the tab order, so a closable tab is still one stop for the arrow keys. A tab in the "More" menu has no close button.
 
-`end` on `Tabs.List` holds actions after the tabs, such as a button that adds one. It keeps its own width, and the tabs fit in what is left.
+`end` on `Tabs.List` holds actions after the tabs, such as a button that adds one. It keeps its own width, and the tabs fit in what is left. `start` does the same before the tabs, for what they are the views of, such as where a table is.
 
 <Demo src="layout/tabs-closable" />
 
