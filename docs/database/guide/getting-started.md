@@ -281,6 +281,20 @@ The views keep JSON under these keys, and ignore a value they do not recognize:
 
 Only the drawing changes. Editing, copying, filters made from a cell, export and everything sent to the server keep the server's text. Row numbers, counts and the sums of a selection are the view's own numbers, so they follow the region either way.
 
+### Keys the views take
+
+A view that acts on a key marks it with `preventDefault()` and lets it bubble on, so the page still sees every key. Shortcuts of the app that listen on the window should skip a key whose `defaultPrevented` is set: Cmd+Shift+Enter runs every statement of a console, and the same key must not also do what the app binds it to elsewhere.
+
+```ts
+window.addEventListener('keydown', (event) => {
+    if (event.defaultPrevented) {
+        return;
+    }
+
+    runAppShortcut(event);
+});
+```
+
 ## Tailwind
 
 The views are styled with Tailwind classes. Tell Tailwind to scan the package next to `@adecore/ui`, with a path relative to the CSS file:
