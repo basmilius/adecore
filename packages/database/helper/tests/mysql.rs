@@ -1,4 +1,7 @@
 //! Runs only when `ADECORE_TEST_MYSQL_URL` (`mysql://user:pass@host:port`) points at a MySQL or MariaDB server.
+//!
+//! Each test makes a database of its own and drops it again. A URL that names a database (`.../adecore_test`) keeps the
+//! tests in that one: they take turns, and each empties it before and after, so name one that holds nothing else.
 
 mod common;
 
@@ -12,22 +15,29 @@ struct Target {
     port: u16,
     user: String,
     password: String,
+    /// The one database the tests may use, when the URL names one.
+    database: Option<String>,
 }
 
 fn target() -> Option<Target> {
     let url = std::env::var("ADECORE_TEST_MYSQL_URL").ok()?;
     let rest = url.strip_prefix("mysql://").expect("the URL starts with mysql://");
-    let (credentials, address) = rest.rsplit_once('@').expect("the URL has credentials");
+    let (credentials, location) = rest.rsplit_once('@').expect("the URL has credentials");
+    let (address, database) = location.split_once('/').unwrap_or((location, ""));
     let (user, password) = credentials.split_once(':').unwrap_or((credentials, ""));
     let (host, port) = address.split_once(':').unwrap_or((address, "3306"));
 
     Some(Target {
         host: host.to_string(),
-        port: port.trim_end_matches('/').parse().unwrap(),
+        port: port.parse().unwrap(),
         user: user.to_string(),
         password: password.to_string(),
+        database: Some(database).filter(|name| !name.is_empty()).map(str::to_string),
     })
 }
+
+/// Lets one test at a time into a database the URL names.
+static SHARED_DATABASE: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
 impl Target {
     fn config(&self, extra: Value) -> Value {
@@ -43,6 +53,36 @@ struct Sandbox {
     session: String,
     schema: String,
     target: Target,
+    turn: Option<tokio::sync::MutexGuard<'static, ()>>,
+}
+
+/// Drops every table and view of a database, so the next test starts from nothing.
+async fn empty_database(client: &mut Client, session: &str, schema: &str) {
+    let quoted = schema.replace('`', "``");
+    let listed = client
+        .ok(
+            "execute",
+            json!({ "session": session, "sql": "SELECT TABLE_NAME, TABLE_TYPE FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE()", "schema": schema }),
+        )
+        .await;
+    let drops: Vec<String> = listed["results"][0]["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|row| {
+            let name = row[0].as_str().unwrap().replace('`', "``");
+            let kind = if row[1] == "VIEW" { "VIEW" } else { "TABLE" };
+            format!("DROP {kind} IF EXISTS `{quoted}`.`{name}`")
+        })
+        .collect();
+
+    if drops.is_empty() {
+        return;
+    }
+
+    let sql = format!("SET FOREIGN_KEY_CHECKS = 0; {}; SET FOREIGN_KEY_CHECKS = 1", drops.join("; "));
+    let result = client.ok("execute", json!({ "session": session, "sql": sql })).await;
+    assert!(result["results"].as_array().unwrap().iter().all(|item| item["kind"] == "done"), "{result}");
 }
 
 impl Sandbox {
@@ -50,17 +90,28 @@ impl Sandbox {
         let target = target()?;
         let mut client = Client::new();
         let session = client.open(target.config(json!({}))).await;
-        let schema = format!("adecore_t_{name}");
 
-        let setup = format!("DROP DATABASE IF EXISTS `{schema}`; CREATE DATABASE `{schema}` DEFAULT CHARACTER SET utf8mb4");
-        let result = client.ok("execute", json!({ "session": session, "sql": setup })).await;
-        assert!(result["results"].as_array().unwrap().iter().all(|item| item["kind"] == "done"), "{result}");
+        let (schema, turn) = match &target.database {
+            Some(database) => {
+                let turn = SHARED_DATABASE.lock().await;
+                empty_database(&mut client, &session, database).await;
+                (database.clone(), Some(turn))
+            }
+            None => {
+                let schema = format!("adecore_t_{name}");
+                let setup = format!("DROP DATABASE IF EXISTS `{schema}`; CREATE DATABASE `{schema}` DEFAULT CHARACTER SET utf8mb4");
+                let result = client.ok("execute", json!({ "session": session, "sql": setup })).await;
+                assert!(result["results"].as_array().unwrap().iter().all(|item| item["kind"] == "done"), "{result}");
+                (schema, None)
+            }
+        };
 
         Some(Sandbox {
             client,
             session,
             schema,
             target,
+            turn,
         })
     }
 
@@ -94,8 +145,12 @@ impl Sandbox {
     }
 
     async fn finish(mut self) {
-        let sql = format!("DROP DATABASE IF EXISTS `{}`", self.schema);
-        self.client.ok("execute", json!({ "session": self.session, "sql": sql })).await;
+        if self.turn.is_some() {
+            empty_database(&mut self.client, &self.session, &self.schema).await;
+        } else {
+            let sql = format!("DROP DATABASE IF EXISTS `{}`", self.schema);
+            self.client.ok("execute", json!({ "session": self.session, "sql": sql })).await;
+        }
         self.client.ok("close", json!({ "session": self.session })).await;
     }
 }
@@ -689,6 +744,7 @@ async fn cancels_a_running_query() {
     let Some(mut sandbox) = Sandbox::new("cancel").await else {
         return;
     };
+    sandbox.script("CREATE TABLE slow (id INT); INSERT INTO slow VALUES (1)").await;
 
     let id = sandbox.client.next_id();
     let line = json!({ "id": id, "method": "execute", "params": { "session": sandbox.session, "sql": "SELECT SLEEP(30)" } }).to_string();
@@ -711,7 +767,7 @@ async fn cancels_a_running_query() {
     assert_eq!(next["result"]["results"][0]["rows"], json!([[42]]), "the session keeps working: {next}");
 
     let rows_id = sandbox.client.next_id();
-    let rows_line = json!({ "id": rows_id, "method": "rows", "params": { "session": sandbox.session, "schema": "mysql", "table": "help_topic", "where": "SLEEP(5) = 0", "offset": 0, "limit": 5 } }).to_string();
+    let rows_line = json!({ "id": rows_id, "method": "rows", "params": { "session": sandbox.session, "schema": sandbox.schema, "table": "slow", "where": "SLEEP(5) = 0", "offset": 0, "limit": 5 } }).to_string();
     let slow_rows = tokio::spawn(sandbox.client.dispatcher.submit(&rows_line));
     tokio::time::sleep(Duration::from_millis(500)).await;
     sandbox.client.ok("cancel", json!({ "request": rows_id })).await;

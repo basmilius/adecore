@@ -15,7 +15,7 @@ cargo clippy --all-targets -- -D warnings
 
 `Cargo.lock` is committed; build scripts pass `--locked`.
 
-The MySQL tests return early unless `ADECORE_TEST_MYSQL_URL` is set, in the form `mysql://user:pass@host:port`. The user needs the right to create and drop schemas named `adecore_t_*`. To run them against throwaway servers:
+The MySQL tests return early unless `ADECORE_TEST_MYSQL_URL` is set, in the form `mysql://user:pass@host:port`. The user needs the right to create and drop schemas named `adecore_t_*`. On a server that holds other databases, name one made for the tests instead (`mysql://user:pass@host:port/adecore_test`): the tests then stay in that database, take turns, and drop every table and view in it before and after each test. To run them against throwaway servers:
 
 ```sh
 docker run --rm -d --name adecore-test-mariadb -e MARIADB_ROOT_PASSWORD=test -e MARIADB_USER=app -e MARIADB_PASSWORD=apppw -e MARIADB_DATABASE=appdb -p 33061:3306 mariadb:11

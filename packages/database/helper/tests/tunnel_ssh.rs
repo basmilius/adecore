@@ -35,16 +35,12 @@ cat >&3
 fn mysql_target() -> Option<(String, u16, String, String)> {
     let url = std::env::var("ADECORE_TEST_MYSQL_URL").ok()?;
     let rest = url.strip_prefix("mysql://")?;
-    let (credentials, address) = rest.rsplit_once('@')?;
+    let (credentials, location) = rest.rsplit_once('@')?;
+    let address = location.split('/').next()?;
     let (user, password) = credentials.split_once(':').unwrap_or((credentials, ""));
     let (host, port) = address.split_once(':').unwrap_or((address, "3306"));
 
-    Some((
-        host.to_string(),
-        port.trim_end_matches('/').parse().ok()?,
-        user.to_string(),
-        password.to_string(),
-    ))
+    Some((host.to_string(), port.parse().ok()?, user.to_string(), password.to_string()))
 }
 
 fn ssh_config(host: &str, port: u16, user: &str, password: &str, tunnel: Value) -> Value {
