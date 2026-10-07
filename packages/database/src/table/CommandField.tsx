@@ -2,7 +2,7 @@ import { useId, useImperativeHandle, useMemo, useRef, useState, type KeyboardEve
 import clsx from 'clsx';
 import { ArrowDown, ArrowDownWideNarrow, ArrowRightToLine, ArrowUp, Code, Filter, Search, X, type LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Icon, IconButton, Kbd, KEY_SHORTCUTS, Menu, shortcut } from '@adecore/ui';
+import { Icon, IconButton, Kbd, KEY_SHORTCUTS, Keys, Menu, shortcut } from '@adecore/ui';
 import type { Engine } from '../protocol/index.ts';
 import {
     addChip,
@@ -194,7 +194,7 @@ export function CommandField({ chips, columns, engine, onChipsChange, onJumpToCo
                 onFocus={() => setFocused(true)}
                 onBlur={handleBlur}
             />
-            <Kbd shortcut={FOCUS_SHORTCUT} variant="inline" className="shrink-0" />
+            <Keys shortcut={FOCUS_SHORTCUT} size="sm" className="shrink-0" />
             {open && (
                 <div
                     id={listId}

@@ -183,8 +183,10 @@ describe('TableToolbar', () => {
         expect(markup).not.toContain('ORDER BY');
     });
 
-    test('shows the key cap that focuses the command field', () => {
-        expect(render(<TableToolbar {...toolbarProps} />)).toMatch(/<kbd[^>]*>(?:⌘F|Ctrl\+F)<\/kbd>/);
+    test('shows the key that focuses the command field as one small cap per key', () => {
+        const caps = [...render(<TableToolbar {...toolbarProps} />).matchAll(/<kbd class="([^"]*)">([^<]*)<\/kbd>/g)];
+        expect(caps.map((cap) => cap[2])).toSatisfy((keys: string[]) => keys.join(' ') === '⌘ F' || keys.join(' ') === 'Ctrl F');
+        expect(caps.every((cap) => cap[1]!.includes('h-5'))).toBe(true);
     });
 
     test('draws a filter as a chip with its condition and a sort as an arrow and its column', () => {

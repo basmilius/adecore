@@ -18,6 +18,8 @@ In a menu row (`variant="menu"`, the default) the `.menu-item kbd` rule dresses 
 
 A settings page that lists shortcuts prints them key by key, so a pointer gesture can stand beside them. `then="drag"` adds one more cap after the keys. `KeyCap` is one cap with a heavier bottom edge.
 
+`size="sm"` draws caps of 20 pixels, which fit inside a small field: the key that focuses a search field, at its end.
+
 ## Props
 
 | Component | Prop | Type | Default | |
@@ -27,6 +29,8 @@ A settings page that lists shortcuts prints them key by key, so a pointer gestur
 | | `variant` | `'menu' \| 'inline'` | `'menu'` | |
 | `Keys` | `shortcut` | `Shortcut` | | Required. |
 | | `then` | `string` | | The gesture the keys go with, as one more cap. |
+| | `size` | `'md' \| 'sm'` | `'md'` | |
 | `KeyCap` | `children` | `ReactNode` | | Required. |
+| | `size` | `'md' \| 'sm'` | `'md'` | |
 
 All three take `className` and `ref`. `KbdProps`, `KeysProps` and `KeyCapProps` are exported types.
