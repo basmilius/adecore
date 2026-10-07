@@ -43,8 +43,6 @@ export interface GridHeaderCellProps {
     multipleSorts: boolean;
     hasSorts: boolean;
     pinned: boolean;
-    /* Where a pinned header sticks, counted from the left edge of the scroll box. */
-    stickyLeft: number;
     /* The pinned column the others scroll under, which carries the stronger edge. */
     lastPinned: boolean;
     last: boolean;
@@ -132,7 +130,6 @@ export function GridHeaderCell({
     multipleSorts,
     hasSorts,
     pinned,
-    stickyLeft,
     lastPinned,
     last,
     hasHidden,
@@ -191,12 +188,13 @@ export function GridHeaderCell({
                 data-selected={selected ? '' : undefined}
                 className={clsx(
                     'group/header flex h-full shrink-0 cursor-default text-xs font-medium select-none',
-                    pinned ? 'sticky z-10' : 'relative',
+                    'relative',
+                    pinned && 'bg-clip-border',
                     selected ? 'bg-accent text-accent-text' : [pinned && 'bg-surface', sort === null ? 'text-text-muted' : 'text-text'],
                     last ? 'border-r-0' : 'border-r',
                     pinned && lastPinned ? 'border-border-strong' : 'border-border-soft'
                 )}
-                style={{ width, left: pinned ? stickyLeft : undefined }}
+                style={{ width }}
                 onPointerDownCapture={() => {
                     resized.current = false;
                 }}

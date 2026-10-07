@@ -31,7 +31,6 @@ const props: GridHeaderCellProps = {
     multipleSorts: false,
     hasSorts: false,
     pinned: false,
-    stickyLeft: 0,
     lastPinned: false,
     last: false,
     hasHidden: false,

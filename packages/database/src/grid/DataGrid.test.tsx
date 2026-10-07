@@ -152,7 +152,7 @@ describe('DataGrid', () => {
     });
 
     test('pins no column until a person does', () => {
-        expect(render(<DataGrid label="Users" columns={columns} rows={rows} />)).not.toContain('sticky z-5');
+        expect(render(<DataGrid label="Users" columns={columns} rows={rows} />)).not.toMatch(/role="gridcell"[^>]*class="[^"]*bg-clip-border/);
     });
 
     test('says why there are no rows under the header', () => {

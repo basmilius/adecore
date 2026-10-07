@@ -53,6 +53,13 @@ import type { ColumnRequest, FocusedCell, GridColumn, GridMenuContext, GridRow }
 import { useNumberNotation } from '../client-context.ts';
 import { usePopupPress } from '../use-popup-press.ts';
 
+/*
+ * The gutter and the pinned columns stick as one block, so the edge of one can never drift from the next, at any
+ * zoom. Each part paints its background under its own line as well: the line is an alpha, and what scrolls beneath
+ * the block would otherwise show through it.
+ */
+const PINNED_GROUP = 'sticky left-0 z-10 flex shrink-0';
+
 export interface DataGridProps {
     columns: readonly GridColumn[];
     rows: readonly GridRow[];
@@ -654,6 +661,77 @@ export function DataGrid({
         const row = rows[index]!;
         const selected = selection.has(row.key);
         const tint = row.state === undefined ? (selected ? 'bg-accent-soft/40' : '') : ROW_STATE[row.state];
+        const cells = order.map((columnIndex, position) => {
+            const column = columns[columnIndex]!;
+            const cell = row.cells[columnIndex] ?? null;
+            const view = cellView(cell, column.kind, notation);
+            const cellPosition = { row: index, column: columnIndex };
+            const isFocused = focusCell !== null && focusCell.row === index && focusCell.column === columnIndex;
+            const ranged = pickedSet.has(columnIndex) || (columnBlock === null && rectContains(rect, index, position));
+            const edited = row.edited?.has(columnIndex) === true;
+            const isEditing = editing !== null && editing.row === index && editing.column === columnIndex;
+            const pinned = position < pinnedShown;
+            const enumType = enumTypes[columnIndex] ?? null;
+            return (
+                <div
+                    key={columnIndex}
+                    id={cellId(index, columnIndex)}
+                    role="gridcell"
+                    aria-colindex={position + 2}
+                    aria-selected={ranged}
+                    data-focused={isFocused ? '' : undefined}
+                    data-ranged={ranged ? '' : undefined}
+                    className={clsx(
+                        CODE_TEXT,
+                        'flex h-full shrink-0 items-center overflow-hidden px-3 whitespace-nowrap outline-0 select-none data-[focused]:outline-1 data-[focused]:-outline-offset-1 data-[focused]:outline-border-strong group-focus-within/grid:data-[focused]:outline-accent',
+                        position === order.length - 1 ? 'border-r-0' : 'border-r',
+                        view.align === 'end' ? 'justify-end tabular-nums' : 'justify-start',
+                        pinned
+                            ? [
+                                  'relative bg-clip-border',
+                                  position === pinnedShown - 1 ? 'border-border-strong' : 'border-border-soft',
+                                  ranged ? 'bg-accent-soft' : ['bg-surface', tint === '' && 'group-hover/row:bg-surface-hover']
+                              ]
+                            : ['relative border-border-soft', ranged ? 'bg-accent-soft' : edited && 'bg-accent/10']
+                    )}
+                    style={{ width: shownWidths[position] }}
+                    onPointerDown={(event) => pressCell(event, cellPosition, isEditing)}
+                    onPointerEnter={() => dragTo(cellPosition)}
+                    onDoubleClick={() => void beginEdit(cellPosition)}
+                    onContextMenu={() => openCellMenu(cellPosition)}
+                >
+                    {pinned && !ranged && <span aria-hidden className={clsx('pointer-events-none absolute inset-0', tint, edited && 'bg-accent/10')} />}
+                    {isEditing && editing.loading && <Spinner size={12} label={t('grid.loadingValue')} />}
+                    {isEditing && !editing.loading && enumType !== null && (
+                        <EnumPicker
+                            autoOpen
+                            type={enumType}
+                            value={typeof cell === 'string' ? cell : null}
+                            nullable={column.nullable !== false}
+                            label={column.name}
+                            onDone={finishPick}
+                        />
+                    )}
+                    {isEditing && !editing.loading && enumType === null && (
+                        <CellEditor
+                            value={editing.draft}
+                            label={column.name}
+                            onValueChange={(draft) => setEditing({ ...editing, draft })}
+                            onCommit={(move) => finishEdit(true, move)}
+                            onCancel={() => finishEdit(false)}
+                        />
+                    )}
+                    {!isEditing && (
+                        <>
+                            <span className={clsx('min-w-0 truncate', TONE[view.tone], row.state === 'deleted' && 'line-through')}>{view.text}</span>
+                            {view.suffix !== undefined && <span className="ml-2 shrink-0 text-text-faint">{view.suffix}</span>}
+                        </>
+                    )}
+                </div>
+            );
+        });
+        const pinnedCells = cells.slice(0, pinnedShown);
+        const otherCells = cells.slice(pinnedShown);
         return (
             <div
                 key={row.key}
@@ -663,95 +741,55 @@ export function DataGrid({
                 className={clsx('group/row absolute inset-x-0 flex border-b border-border-soft', tint, tint === '' && 'hover:bg-surface-hover')}
                 style={{ top: index * ROW_HEIGHT, height: ROW_HEIGHT }}
             >
-                <div
-                    role="rowheader"
-                    data-selected={selected ? '' : undefined}
-                    className={clsx(
-                        'sticky left-0 z-10 flex shrink-0 cursor-default items-center justify-end border-r border-border bg-surface pr-2 pl-1 font-mono text-xs text-text-faint tabular-nums select-none data-[selected]:bg-accent-soft data-[selected]:text-text',
-                        row.state === 'inserted' && 'text-positive'
-                    )}
-                    style={{ width: gutter }}
-                    onClick={(event: MouseEvent) => {
-                        if (!pressedInPopup()) {
-                            selectRowAt(index, { shiftKey: event.shiftKey, mod: isModHeld(event, isApplePlatform()) });
-                        }
-                    }}
-                    onContextMenu={() => openRowMenu(index)}
-                >
-                    {row.number === null ? '+' : formatNumber(row.number)}
+                <div className={PINNED_GROUP}>
+                    <div
+                        role="rowheader"
+                        data-selected={selected ? '' : undefined}
+                        className={clsx(
+                            'flex shrink-0 cursor-default items-center justify-end border-r border-border bg-surface bg-clip-border pr-2 pl-1 font-mono text-xs text-text-faint tabular-nums select-none data-[selected]:bg-accent-soft data-[selected]:text-text',
+                            row.state === 'inserted' && 'text-positive'
+                        )}
+                        style={{ width: gutter }}
+                        onClick={(event: MouseEvent) => {
+                            if (!pressedInPopup()) {
+                                selectRowAt(index, { shiftKey: event.shiftKey, mod: isModHeld(event, isApplePlatform()) });
+                            }
+                        }}
+                        onContextMenu={() => openRowMenu(index)}
+                    >
+                        {row.number === null ? '+' : formatNumber(row.number)}
+                    </div>
+                    {pinnedCells}
                 </div>
-                {order.map((columnIndex, position) => {
-                    const column = columns[columnIndex]!;
-                    const cell = row.cells[columnIndex] ?? null;
-                    const view = cellView(cell, column.kind, notation);
-                    const cellPosition = { row: index, column: columnIndex };
-                    const isFocused = focusCell !== null && focusCell.row === index && focusCell.column === columnIndex;
-                    const ranged = pickedSet.has(columnIndex) || (columnBlock === null && rectContains(rect, index, position));
-                    const edited = row.edited?.has(columnIndex) === true;
-                    const isEditing = editing !== null && editing.row === index && editing.column === columnIndex;
-                    const pinned = position < pinnedShown;
-                    const enumType = enumTypes[columnIndex] ?? null;
-                    return (
-                        <div
-                            key={columnIndex}
-                            id={cellId(index, columnIndex)}
-                            role="gridcell"
-                            aria-colindex={position + 2}
-                            aria-selected={ranged}
-                            data-focused={isFocused ? '' : undefined}
-                            data-ranged={ranged ? '' : undefined}
-                            className={clsx(
-                                CODE_TEXT,
-                                'flex h-full shrink-0 items-center overflow-hidden px-3 whitespace-nowrap outline-0 select-none data-[focused]:outline-1 data-[focused]:-outline-offset-1 data-[focused]:outline-border-strong group-focus-within/grid:data-[focused]:outline-accent',
-                                position === order.length - 1 ? 'border-r-0' : 'border-r',
-                                view.align === 'end' ? 'justify-end tabular-nums' : 'justify-start',
-                                pinned
-                                    ? [
-                                          'sticky z-5',
-                                          position === pinnedShown - 1 ? 'border-border-strong' : 'border-border-soft',
-                                          ranged ? 'bg-accent-soft' : ['bg-surface', tint === '' && 'group-hover/row:bg-surface-hover']
-                                      ]
-                                    : ['relative border-border-soft', ranged ? 'bg-accent-soft' : edited && 'bg-accent/10']
-                            )}
-                            style={{ width: shownWidths[position], left: pinned ? gutter + (offsets[position] ?? 0) : undefined }}
-                            onPointerDown={(event) => pressCell(event, cellPosition, isEditing)}
-                            onPointerEnter={() => dragTo(cellPosition)}
-                            onDoubleClick={() => void beginEdit(cellPosition)}
-                            onContextMenu={() => openCellMenu(cellPosition)}
-                        >
-                            {pinned && !ranged && <span aria-hidden className={clsx('pointer-events-none absolute inset-0', tint, edited && 'bg-accent/10')} />}
-                            {isEditing && editing.loading && <Spinner size={12} label={t('grid.loadingValue')} />}
-                            {isEditing && !editing.loading && enumType !== null && (
-                                <EnumPicker
-                                    autoOpen
-                                    type={enumType}
-                                    value={typeof cell === 'string' ? cell : null}
-                                    nullable={column.nullable !== false}
-                                    label={column.name}
-                                    onDone={finishPick}
-                                />
-                            )}
-                            {isEditing && !editing.loading && enumType === null && (
-                                <CellEditor
-                                    value={editing.draft}
-                                    label={column.name}
-                                    onValueChange={(draft) => setEditing({ ...editing, draft })}
-                                    onCommit={(move) => finishEdit(true, move)}
-                                    onCancel={() => finishEdit(false)}
-                                />
-                            )}
-                            {!isEditing && (
-                                <>
-                                    <span className={clsx('min-w-0 truncate', TONE[view.tone], row.state === 'deleted' && 'line-through')}>{view.text}</span>
-                                    {view.suffix !== undefined && <span className="ml-2 shrink-0 text-text-faint">{view.suffix}</span>}
-                                </>
-                            )}
-                        </div>
-                    );
-                })}
+                {otherCells}
             </div>
         );
     };
+
+    const headerCells = order.map((columnIndex, position) => {
+        const column = columns[columnIndex]!;
+        return (
+            <GridHeaderCell
+                key={columnIndex}
+                column={column}
+                index={columnIndex}
+                position={position}
+                width={shownWidths[position]!}
+                sortable={sortable}
+                selected={pickedSet.has(columnIndex)}
+                id={headerId(columnIndex)}
+                sort={sortable ? sortStateOf(sortList, column.name) : null}
+                multipleSorts={sortList.length > 1}
+                hasSorts={sortList.length > 0}
+                pinned={position < pinnedShown}
+                lastPinned={position === pinnedShown - 1}
+                last={position === order.length - 1}
+                hasHidden={current.view.hidden.size > 0}
+                canHide={order.length > 1}
+                actions={headerActions}
+            />
+        );
+    });
 
     const menuRow = menuTarget === null ? undefined : rows[menuTarget.row];
     const menuCell: CellPosition | null = menuTarget === null || menuTarget.column === null ? null : { row: menuTarget.row, column: menuTarget.column };
@@ -784,32 +822,11 @@ export function DataGrid({
         >
             <div className="relative min-w-full" style={{ width: totalWidth }}>
                 <div role="row" aria-rowindex={1} className="sticky top-0 z-20 flex w-full border-b border-border bg-surface" style={{ height: HEADER_HEIGHT }}>
-                    <div className="sticky left-0 z-10 shrink-0 border-r border-border bg-surface" style={{ width: gutter }} />
-                    {order.map((columnIndex, position) => {
-                        const column = columns[columnIndex]!;
-                        return (
-                            <GridHeaderCell
-                                key={columnIndex}
-                                column={column}
-                                index={columnIndex}
-                                position={position}
-                                width={shownWidths[position]!}
-                                sortable={sortable}
-                                selected={pickedSet.has(columnIndex)}
-                                id={headerId(columnIndex)}
-                                sort={sortable ? sortStateOf(sortList, column.name) : null}
-                                multipleSorts={sortList.length > 1}
-                                hasSorts={sortList.length > 0}
-                                pinned={position < pinnedShown}
-                                stickyLeft={gutter + (offsets[position] ?? 0)}
-                                lastPinned={position === pinnedShown - 1}
-                                last={position === order.length - 1}
-                                hasHidden={current.view.hidden.size > 0}
-                                canHide={order.length > 1}
-                                actions={headerActions}
-                            />
-                        );
-                    })}
+                    <div className={PINNED_GROUP}>
+                        <div className="shrink-0 border-r border-border bg-surface bg-clip-border" style={{ width: gutter }} />
+                        {headerCells.slice(0, pinnedShown)}
+                    </div>
+                    {headerCells.slice(pinnedShown)}
                 </div>
                 <ContextMenu.Root>
                     <ContextMenu.Trigger role="rowgroup" className="relative" style={{ height: rows.length * ROW_HEIGHT }}>
