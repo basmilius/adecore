@@ -3,6 +3,7 @@ import './test-setup.ts';
 import { describe, expect, test } from 'bun:test';
 import type { GitBlameCommit } from './host-types.ts';
 import { UNCOMMITTED, authorsText, authorshipOf, mapBlame, shortName } from './code-authors.ts';
+import dutchWords from './locales/nl.json';
 
 const commit = (author: string, at: number, summary = 'Change'): GitBlameCommit => ({
     hash: `${author}${at}`.padEnd(40, '0'),
@@ -106,5 +107,11 @@ describe('the words of a row', () => {
 
     test('collapse the space in a name', () => {
         expect(shortName('  Bas   Milius ')).toBe('Bas Milius');
+    });
+
+    test('read new code from the supplied language instance', async () => {
+        const words = i18next.createInstance();
+        await words.init({ lng: 'nl', resources: { nl: { editor: dutchWords } } });
+        expect(authorsText({ ...one, authors: [], modified: true }, words)).toBe('nieuw *');
     });
 });
