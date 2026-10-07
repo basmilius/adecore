@@ -654,6 +654,20 @@
     .adecore-tree[data-overflow="scroll"] .adecore-tree-label {
         overflow: visible;
     }
+    /* The bar keeps to the bottom of the tree however few rows there are: a column whose rows keep their
+       height, and the bar after them pushed down. Its own room is the space under the last row, so the
+       bar sits as far from the bottom edge mid-scroll as at the end. */
+    .adecore-tree[data-overflow="scroll"] {
+        display: flex;
+        flex-direction: column;
+    }
+    .adecore-tree[data-overflow="scroll"] > * {
+        flex-shrink: 0;
+    }
+    .adecore-tree[data-overflow="scroll"] > .adecore-tree-shift {
+        margin-top: auto;
+        height: 8px;
+    }
     .adecore-file-tree {
         position: relative;
         min-height: 0;

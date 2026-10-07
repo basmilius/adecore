@@ -287,7 +287,7 @@ export function DatabaseExplorer({ connections, value, defaultValue = null, onVa
             ) : rows.length === 0 ? (
                 <EmptyState icon={Search}>{t('explorer.noMatches', { query: filter.trim() })}</EmptyState>
             ) : (
-                <Tree.Root aria-label={t('explorer.label')} overflow="scroll" className="min-h-0 grow overflow-y-auto py-2" onKeyDown={onKeyDown}>
+                <Tree.Root aria-label={t('explorer.label')} overflow="scroll" className="min-h-0 grow overflow-y-auto pt-2" onKeyDown={onKeyDown}>
                     {rows.map(renderRow)}
                 </Tree.Root>
             )}

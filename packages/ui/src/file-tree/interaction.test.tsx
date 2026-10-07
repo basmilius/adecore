@@ -179,6 +179,43 @@ describe.skipIf(typeof document === 'undefined')('file tree interaction', () => 
         expect(shift()).toBe('60px');
     });
 
+    test('keeps the bar of a tree that scrolls sideways at its bottom edge, below rows that keep their height', async () => {
+        // The rules of the theme for trees, without its layers, which the DOM of the tests does not read.
+        const theme = await Bun.file(new URL('../theme.css', import.meta.url)).text();
+        const rules = [...theme.matchAll(/(\.adecore-tree[^{}@]*)\{([^{}]*)\}/g)].map((match) => `${match[1]}{${match[2]}}`).join('\n');
+        const style = document.createElement('style');
+        style.textContent = rules;
+        document.head.append(style);
+        try {
+            await mount(
+                <>
+                    <Tree.Root overflow="scroll" aria-label="Scrolls">
+                        <Tree.Row>
+                            <Tree.Label>one</Tree.Label>
+                        </Tree.Row>
+                    </Tree.Root>
+                    <Tree.Root aria-label="Truncates">
+                        <Tree.Row>
+                            <Tree.Label>one</Tree.Label>
+                        </Tree.Row>
+                    </Tree.Root>
+                </>
+            );
+            const scrolling = container.querySelector<HTMLElement>('[aria-label=Scrolls]')!;
+            const bar = scrolling.lastElementChild as HTMLElement;
+            expect(bar.className).toBe('adecore-tree-shift');
+            expect(getComputedStyle(scrolling).display).toBe('flex');
+            expect(getComputedStyle(scrolling).flexDirection).toBe('column');
+            expect(getComputedStyle(bar).marginTop).toBe('auto');
+            expect(getComputedStyle(bar).position).toBe('sticky');
+            expect(getComputedStyle(scrolling.querySelector('[role=treeitem]')!).flexShrink).toBe('0');
+            const truncating = container.querySelector<HTMLElement>('[aria-label=Truncates]')!;
+            expect(getComputedStyle(truncating).display).not.toBe('flex');
+        } finally {
+            style.remove();
+        }
+    });
+
     test('cuts a row off at the end by default, without a bar', async () => {
         await mount(
             <Tree.Root aria-label="Objects">
