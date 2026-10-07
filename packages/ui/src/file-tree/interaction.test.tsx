@@ -141,6 +141,57 @@ describe.skipIf(typeof document === 'undefined')('file tree interaction', () => 
         expect(changes).toBe(1);
     });
 
+    test('slides the rows of a tree that scrolls sideways, as far as its widest row reaches', async () => {
+        await mount(
+            <Tree.Root overflow="scroll" aria-label="Objects">
+                <Tree.Row>
+                    <Tree.Label>a_very_long_name_of_a_column</Tree.Label>
+                    <span>VARCHAR(255)</span>
+                </Tree.Row>
+            </Tree.Root>
+        );
+        const tree = container.querySelector<HTMLElement>('[role=tree]')!;
+        const row = container.querySelector<HTMLElement>('[role=treeitem]')!;
+        expect(tree.dataset.overflow).toBe('scroll');
+        expect(tree.querySelector('.adecore-tree-shift')).not.toBeNull();
+        const box = (left: number, right: number): DOMRect => ({
+            left,
+            right,
+            width: right - left,
+            top: 0,
+            bottom: 25,
+            height: 25,
+            x: left,
+            y: 0,
+            toJSON: () => ({})
+        });
+        row.getBoundingClientRect = () => box(0, 100);
+        (row.children[0] as HTMLElement).getBoundingClientRect = () => box(4, 120);
+        (row.children[1] as HTMLElement).getBoundingClientRect = () => box(126, 160);
+        await change(() => row.append(document.createElement('i')));
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        const shift = (): string => tree.style.getPropertyValue('--adecore-tree-shift');
+        await change(() => tree.dispatchEvent(new WheelEvent('wheel', { deltaX: 30, bubbles: true, cancelable: true })));
+        expect(shift()).toBe('30px');
+        await change(() => tree.dispatchEvent(new WheelEvent('wheel', { deltaX: 500, bubbles: true, cancelable: true })));
+        expect(shift()).toBe('60px');
+        await change(() => tree.dispatchEvent(new WheelEvent('wheel', { deltaY: 80, bubbles: true, cancelable: true })));
+        expect(shift()).toBe('60px');
+    });
+
+    test('cuts a row off at the end by default, without a bar', async () => {
+        await mount(
+            <Tree.Root aria-label="Objects">
+                <Tree.Row>
+                    <Tree.Label>name</Tree.Label>
+                </Tree.Row>
+            </Tree.Root>
+        );
+        const tree = container.querySelector<HTMLElement>('[role=tree]')!;
+        expect(tree.dataset.overflow).toBe('truncate');
+        expect(tree.querySelector('.adecore-tree-shift')).toBeNull();
+    });
+
     test('follows keyboard focus after the engine handles the arrow and activates Enter once', async () => {
         const activated: string[] = [];
         await mount(<Harness onActivate={(path) => activated.push(path)} />);

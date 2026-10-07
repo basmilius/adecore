@@ -7,7 +7,7 @@ import type { ColumnKeys } from './column-keys.ts';
  * The key of a column, yellow on a primary key and blue on a foreign key, the same in the tree and the
  * grid. A column that is both shows the primary key, since that is what names its row; the tooltip says both.
  */
-export function KeyIcon({ primaryKey, foreignKey, size }: ColumnKeys & { size: 12 | 16 }) {
+export function KeyIcon({ primaryKey, foreignKey, size }: ColumnKeys & { size: 12 | 14 }) {
     if (!primaryKey && !foreignKey) {
         return null;
     }

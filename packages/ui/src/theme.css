@@ -635,6 +635,25 @@
     .adecore-tree-decoration {
         font-variant-numeric: tabular-nums;
     }
+    /* A tree whose rows slide sideways: every part of a row keeps its width and moves with the shift. */
+    .adecore-tree[data-overflow="scroll"] .adecore-tree-row {
+        overflow: clip;
+    }
+    .adecore-tree[data-overflow="scroll"] .adecore-tree-row > * {
+        flex-shrink: 0;
+    }
+    .adecore-tree[data-overflow="scroll"] .adecore-tree-row::after {
+        content: "";
+        flex: none;
+        order: -100;
+        margin-inline: calc(var(--adecore-tree-shift, 0px) * -1) calc(var(--tree-row-gap) * -1);
+    }
+    .adecore-tree[data-overflow="scroll"] .adecore-tree-guide {
+        translate: calc(var(--adecore-tree-shift, 0px) * -1) 0;
+    }
+    .adecore-tree[data-overflow="scroll"] .adecore-tree-label {
+        overflow: visible;
+    }
     .adecore-file-tree {
         position: relative;
         min-height: 0;

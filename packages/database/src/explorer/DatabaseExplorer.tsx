@@ -284,7 +284,7 @@ export function DatabaseExplorer({ connections, value, defaultValue = null, onVa
             ) : rows.length === 0 ? (
                 <EmptyState icon={Search}>{t('explorer.noMatches', { query: filter.trim() })}</EmptyState>
             ) : (
-                <Tree.Root aria-label={t('explorer.label')} className="min-h-0 grow overflow-y-auto py-2" onKeyDown={onKeyDown}>
+                <Tree.Root aria-label={t('explorer.label')} overflow="scroll" className="min-h-0 grow overflow-y-auto py-2" onKeyDown={onKeyDown}>
                     {rows.map(renderRow)}
                 </Tree.Root>
             )}
@@ -309,7 +309,7 @@ function RowContent({ row, onToggle }: { row: TreeRow; onToggle?: () => void }) 
                             </span>
                         </Tooltip>
                     )}
-                    {row.version !== null && <span className="min-w-0 shrink-[2] truncate text-text-faint">{row.version}</span>}
+                    {row.version !== null && <span className="text-text-faint">{row.version}</span>}
                     {row.schemaCount !== null && <SchemaCount shown={row.schemaCount.shown} total={row.schemaCount.total} />}
                 </>
             );
@@ -344,7 +344,7 @@ function RowContent({ row, onToggle }: { row: TreeRow; onToggle?: () => void }) 
                     <Tree.ChevronSlot />
                     <ColumnIcon primaryKey={row.primaryKey} foreignKey={row.foreignKey} />
                     <Tree.Label>{row.column.name}</Tree.Label>
-                    {row.column.type !== '' && <span className="min-w-0 shrink-[2] truncate text-text-faint">{row.column.type}</span>}
+                    {row.column.type !== '' && <span className="text-text-faint">{row.column.type}</span>}
                 </>
             );
         case 'loading':
@@ -379,15 +379,22 @@ function SchemaCount({ shown, total }: { shown: number; total: number }) {
     );
 }
 
+/* A step smaller than the icons of the rows above, in the same 16px slot, so the names stay in line. */
+const ENTRY_ICON_SLOT = 'inline-flex size-4 shrink-0 items-center justify-center';
+
 function ColumnIcon(keys: ColumnKeys) {
     const { t } = useTranslation('database');
     if (!keys.primaryKey && !keys.foreignKey) {
-        return <Icon icon={Columns2} size={16} className="shrink-0 text-text-faint" />;
+        return (
+            <span className={ENTRY_ICON_SLOT}>
+                <Icon icon={Columns2} size={14} className="text-text-faint" />
+            </span>
+        );
     }
     return (
         <Tooltip label={t(keyLabelOf(keys))}>
-            <span className="inline-flex shrink-0">
-                <KeyIcon {...keys} size={16} />
+            <span className={ENTRY_ICON_SLOT}>
+                <KeyIcon {...keys} size={14} />
             </span>
         </Tooltip>
     );

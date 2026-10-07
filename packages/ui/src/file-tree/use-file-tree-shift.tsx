@@ -1,12 +1,9 @@
-import { useEffect, useState, type ReactElement } from 'react';
+import { useMemo, type ReactElement } from 'react';
 import type { FileTree } from '@pierre/trees';
-import { clampShift, maxShift, SHIFT_PROPERTY, shiftNeed, shiftThumb, sidewaysDelta } from './shift.ts';
+import { useTreeShift, type TreeShiftSource } from '../tree/use-tree-shift.tsx';
+import { shiftNeed } from './shift.ts';
 
 const ROWS = '[data-type="item"]:not([data-item-parked="true"])';
-
-const HIDE_AFTER = 900;
-
-const NEAR_BOTTOM = 16;
 
 function boxesOf(element: Element): Element[] {
     return element.getClientRects().length > 0 ? [element] : [...element.children].flatMap((child) => boxesOf(child));
@@ -44,126 +41,15 @@ function needOf(row: HTMLElement, shift: number, gap: number, range: Range): num
     return shiftNeed(range.getBoundingClientRect().right, limitOf(row, content, gap), shift);
 }
 
+/* The file tree draws its rows in a shadow root, and only the name slides: its decorations sit over the row. */
 export function useFileTreeShift(model: FileTree, resetKey?: string): { attach(node: HTMLElement | null): void; bar: ReactElement } {
-    const [frame, setFrame] = useState<HTMLElement | null>(null);
-    const [track, setTrack] = useState<HTMLDivElement | null>(null);
-    const [thumb, setThumb] = useState<HTMLDivElement | null>(null);
-
-    useEffect(() => {
-        if (frame === null || track === null || thumb === null) {
-            return;
-        }
-        const range = document.createRange();
-        let root: ShadowRoot | null = null;
-        let exact = 0;
-        let drawn = 0;
-        let max = 0;
-        let pending = 0;
-        let hideTimer = 0;
-        let scrolling = false;
-        let near = false;
-
-        const draw = (): void => {
-            const shift = Math.round(exact);
-            if (shift !== drawn) {
-                drawn = shift;
-                frame.style.setProperty(SHIFT_PROPERTY, `${shift}px`);
-            }
-            const { left, width } = shiftThumb(shift, max, track.clientWidth, frame.clientWidth);
-            thumb.style.left = `${left}px`;
-            thumb.style.width = `${width}px`;
-            track.toggleAttribute('data-visible', max > 0 && (scrolling || near));
-        };
-
-        const measure = (): void => {
-            pending = 0;
-            if (root === null) {
-                root = model.getFileTreeContainer()?.shadowRoot ?? null;
-                if (root === null) {
-                    return;
-                }
-                rows.observe(root, { childList: true, subtree: true, characterData: true });
-            }
-            const drawnRows = [...root.querySelectorAll<HTMLElement>(ROWS)];
-            const gap = drawnRows.length === 0 ? 0 : Number.parseFloat(getComputedStyle(drawnRows[0]!).columnGap) || 0;
-            max = maxShift(drawnRows.map((row) => needOf(row, drawn, gap, range)).filter((need) => need !== null));
-            exact = clampShift(exact, max);
-            draw();
-        };
-
-        const schedule = (): void => {
-            if (pending === 0) {
-                pending = requestAnimationFrame(measure);
-            }
-        };
-
-        const rows = new MutationObserver(schedule);
-        const mounts = new MutationObserver(schedule);
-        mounts.observe(frame, { childList: true, subtree: true });
-        const sizes = new ResizeObserver(schedule);
-        sizes.observe(frame);
-
-        const onWheel = (event: WheelEvent): void => {
-            const delta = sidewaysDelta(event, frame.clientWidth);
-            if (delta === 0 || max === 0) {
-                return;
-            }
-            scrolling = true;
-            window.clearTimeout(hideTimer);
-            hideTimer = window.setTimeout(() => {
-                scrolling = false;
-                draw();
-            }, HIDE_AFTER);
-            const next = clampShift(exact + delta, max);
-            if (next !== exact) {
-                event.preventDefault();
-                exact = next;
-            }
-            draw();
-        };
-
-        const onPointerMove = (event: PointerEvent): void => {
-            const bottom = track.getBoundingClientRect().bottom;
-            const isNear = event.clientY >= bottom - NEAR_BOTTOM;
-            if (isNear !== near) {
-                near = isNear;
-                draw();
-            }
-        };
-
-        const onPointerLeave = (): void => {
-            if (near) {
-                near = false;
-                draw();
-            }
-        };
-
-        frame.addEventListener('wheel', onWheel, { passive: false });
-        frame.addEventListener('pointermove', onPointerMove);
-        frame.addEventListener('pointerleave', onPointerLeave);
-        schedule();
-
-        return () => {
-            frame.removeEventListener('wheel', onWheel);
-            frame.removeEventListener('pointermove', onPointerMove);
-            frame.removeEventListener('pointerleave', onPointerLeave);
-            rows.disconnect();
-            mounts.disconnect();
-            sizes.disconnect();
-            cancelAnimationFrame(pending);
-            window.clearTimeout(hideTimer);
-            frame.style.removeProperty(SHIFT_PROPERTY);
-            track.removeAttribute('data-visible');
-        };
-    }, [frame, track, thumb, model, resetKey]);
-
-    const bar = (
-        <div aria-hidden className="adecore-tree-shift">
-            <div ref={setTrack} className="adecore-tree-shift-track">
-                <div ref={setThumb} className="adecore-tree-shift-thumb" />
-            </div>
-        </div>
+    const source = useMemo(
+        (): TreeShiftSource => ({
+            root: () => model.getFileTreeContainer()?.shadowRoot ?? null,
+            rows: (root) => [...root.querySelectorAll<HTMLElement>(ROWS)],
+            need: needOf
+        }),
+        [model]
     );
-
-    return { attach: setFrame, bar };
+    return useTreeShift(source, resetKey);
 }

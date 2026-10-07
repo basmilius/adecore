@@ -1,27 +1,43 @@
-import type { MouseEvent, KeyboardEvent, PointerEvent } from 'react';
+import { useCallback, type MouseEvent, type KeyboardEvent, type PointerEvent } from 'react';
 import clsx from 'clsx';
 import { useRender } from '@base-ui-components/react/use-render';
 import { ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Checkbox as UICheckbox, type CheckboxProps } from '../Checkbox.tsx';
 import { Icon } from '../Icon.tsx';
+import { mergeRefs } from '../merge-refs.ts';
 import { treeRowStyle } from './style.ts';
+import { TREE_ROWS, useTreeShift } from './use-tree-shift.tsx';
 
-export type TreeRootProps = useRender.ComponentProps<'div'>;
+export type TreeRootProps = useRender.ComponentProps<'div'> & {
+    /* What a row wider than the tree does: cut its name off at the end, or keep the row whole and let every row slide sideways together, as a file tree does. */
+    overflow?: 'truncate' | 'scroll';
+};
 
-export function TreeRoot({ render, className, ref, children, ...props }: TreeRootProps) {
+export function TreeRoot({ overflow = 'truncate', render, className, ref, children, ...props }: TreeRootProps) {
+    const { attach, bar } = useTreeShift(TREE_ROWS);
+    const scrolls = overflow === 'scroll';
+    const rootRef = useCallback(
+        (node: HTMLDivElement | null) => {
+            attach(scrolls ? node : null);
+            mergeRefs<HTMLDivElement>(ref)(node);
+        },
+        [scrolls, ref, attach]
+    );
     return useRender({
         render,
-        ref,
+        ref: rootRef,
         defaultTagName: 'div',
         props: {
             role: 'tree',
             ...props,
+            'data-overflow': overflow,
             className: clsx('adecore-tree', className),
             children: (
                 <>
                     <style>{treeRowStyle('.adecore-tree-row')}</style>
                     {children}
+                    {scrolls && bar}
                 </>
             )
         }

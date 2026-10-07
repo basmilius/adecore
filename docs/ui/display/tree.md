@@ -12,7 +12,7 @@ import { Tree } from '@adecore/ui';
 
 | Part | What it is |
 | --- | --- |
-| `Tree.Root` | The container, with `role="tree"`. Name it with `aria-label` or `aria-labelledby`. |
+| `Tree.Root` | The container, with `role="tree"`. Name it with `aria-label` or `aria-labelledby`. `overflow` says what a row wider than the tree does. |
 | `Tree.Row` | One `role="treeitem"`, 25 pixels tall, with its `level`, `selected` state, indentation guides and the accent outline under the keyboard. |
 | `Tree.Chevron` | The button that opens or closes a branch without selecting its row. |
 | `Tree.ChevronSlot` | The empty space of a chevron, so a leaf lines up with the branches beside it. |
@@ -22,6 +22,10 @@ import { Tree } from '@adecore/ui';
 | `Tree.Checkbox` | A [`Checkbox`](/ui/inputs/checkbox) inside a `Tree.Control`, with real mixed and disabled states. |
 
 Every part takes `className`, `ref` and Base UI's `render` prop, except `Tree.Checkbox`. Keep a row that holds controls a `<div>`: a row rendered as a button would nest other buttons inside it.
+
+## Rows wider than the tree
+
+By default a row keeps its width and `Tree.Label` cuts the name off at the end. With `overflow="scroll"` on `Tree.Root` a row keeps everything it holds whole, and every row slides sideways together when a person scrolls sideways over the tree, the way a [`FileTree`](/ui/display/file-tree) does. The rows keep their background and the vertical scroll stays where it is; a thin bar shows how far the rows moved while a person scrolls or nears the bottom edge. Give the tree a height and `overflow-y-auto` so the bar sits at its bottom.
 
 `level` starts at 1, and each level indents 16 pixels and draws a guide for every ancestor. `joinedStart` and `joinedEnd` square the corners between adjacent selected rows; compute them from the visible rows. They change the look only.
 
