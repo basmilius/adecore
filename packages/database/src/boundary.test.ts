@@ -77,10 +77,12 @@ describe('the public API', () => {
             'TableDesigner',
             'TableView',
             'addDatabaseResources',
+            'configProblems',
             'connectionFromContainer',
             'containerTitle',
             'createDatabaseClient',
             'isMysqlContainer',
+            'isValidConfig',
             'useDatabaseClient',
             'withContainer'
         ]);

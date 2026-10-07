@@ -82,8 +82,10 @@ const mysqlProblems = (config: MysqlConnectionConfig): ConfigProblems => {
     return problems;
 };
 
+/* What is wrong with a config, field by field: the codes the form shows. Empty for a config with nothing to fix. */
 export const configProblems = (config: ConnectionConfig): ConfigProblems => (config.engine === 'sqlite' ? sqliteProblems(config) : mysqlProblems(config));
 
+/* Whether a connection can be saved, rather than a draft a person is still filling in. */
 export const isValidConfig = (config: ConnectionConfig): boolean => Object.keys(configProblems(config)).length === 0;
 
 const lastSegment = (path: string): string => {

@@ -23,6 +23,32 @@ It is a [`MasterDetail`](/ui/settings/master-detail), so it fills the height it 
 - Delete asks first, closes the connection's sessions and selects a neighbor. It does not touch the database.
 - Without `selected` the manager keeps the selection itself, starting at the first connection. Pass `selected` and `onSelectedChange` to control it, for example to open the manager on one connection.
 
+## Drafts
+
+The manager hands over every edit as it happens, so its list can hold a connection a person is still filling in: a new SQLite connection without a path, or a MySQL connection whose host was cleared to type another. `isValidConfig(config)` tells a connection the app can save from such a draft. Keep showing the draft, and save the last version that was whole:
+
+```tsx
+import { isValidConfig, type Connection } from '@adecore/database';
+
+function onValueChange(next: readonly Connection[]): void {
+    setConnections(next);
+    save(next.flatMap((connection) => (isValidConfig(connection.config) ? [connection] : saved.filter((old) => old.id === connection.id))));
+}
+```
+
+`configProblems(config)` says what is wrong, as a `ConfigProblems` object with a `ConfigProblem` code per field. It is empty for a connection with nothing to fix, and the form shows the same codes as sentences.
+
+| Field           | Codes                            |
+| --------------- | -------------------------------- |
+| `path`          | `path-required`, `path-relative` |
+| `host`          | `host-required`                  |
+| `port`          | `port-range`                     |
+| `socket`        | `socket-required`                |
+| `sshHost`       | `ssh-host-required`              |
+| `sshPort`       | `ssh-port-range`                 |
+| `container`     | `container-required`             |
+| `containerPort` | `container-port-range`           |
+
 ## ConnectionForm
 
 The form on its own, for an app that wants it elsewhere, such as in a dialog. It edits one `Connection` and sends the whole connection on every edit.

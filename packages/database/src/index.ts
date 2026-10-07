@@ -23,6 +23,7 @@ export {
 export type { DatabaseAction, DatabaseFiles, DatabaseStorage, ExplorerSelection } from './actions.ts';
 
 export { ConnectionForm, type ConnectionFormProps } from './connections/ConnectionForm.tsx';
+export { configProblems, isValidConfig, type ConfigProblem, type ConfigProblems } from './connections/connection-config.ts';
 export { ConnectionManager, type ConnectionManagerProps } from './connections/ConnectionManager.tsx';
 export { connectionFromContainer, containerTitle, isMysqlContainer, withContainer } from './connections/docker.ts';
 export { DatabaseExplorer, type DatabaseExplorerProps } from './explorer/DatabaseExplorer.tsx';
