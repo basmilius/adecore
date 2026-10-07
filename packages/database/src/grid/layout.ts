@@ -7,7 +7,8 @@ export const MAX_COLUMN_WIDTH = 320;
 export const MAX_RESIZED_WIDTH = 1200;
 /* How wide fitting a column to its content may make it. */
 export const MAX_FIT_WIDTH = 640;
-export const OVERSCAN_ROWS = 6;
+/* The window of drawn rows moves in blocks of this many rows, so a scroll within a block draws nothing. */
+export const ROW_BLOCK = 16;
 /* Two presses on a resize handle this close are a double click. */
 export const DOUBLE_CLICK_MS = 350;
 /* What a viewport is taken to be until it is measured, so a first paint already holds rows. */
@@ -29,14 +30,23 @@ export interface VisibleRange {
     readonly end: number;
 }
 
-/* The rows that touch a viewport of `height` pixels starting `top` pixels into the rows, plus `overscan` rows on both sides. */
-export const visibleRange = (top: number, height: number, rowHeight: number, count: number, overscan: number): VisibleRange => {
+/* The block the top of the viewport is in, for a viewport `top` pixels into the rows. */
+export const scrollBlock = (top: number): number => Math.floor(Math.max(0, top) / (ROW_BLOCK * ROW_HEIGHT));
+
+/*
+ * The rows to draw while the top of a viewport `height` pixels tall is in `block`: those in view and a
+ * viewport more on each side, rounded out to whole blocks. A fast scroll finds its next rows drawn, and
+ * the window moves, and the grid draws, once per block instead of once per row.
+ */
+export const drawnRange = (block: number, height: number, count: number): VisibleRange => {
     if (count <= 0 || height <= 0) {
         return { start: 0, end: 0 };
     }
-    const first = Math.floor(Math.max(0, top) / rowHeight);
-    const last = Math.ceil(Math.max(0, top + height) / rowHeight);
-    return { start: Math.max(0, Math.min(first, count) - overscan), end: Math.min(count, last + overscan) };
+    const page = Math.ceil(height / ROW_HEIGHT);
+    const top = Math.max(0, block) * ROW_BLOCK;
+    const start = Math.max(0, Math.floor((top - page) / ROW_BLOCK) * ROW_BLOCK);
+    const end = Math.min(count, Math.ceil((top + ROW_BLOCK + 2 * page) / ROW_BLOCK) * ROW_BLOCK);
+    return { start: Math.min(start, end), end };
 };
 
 /*

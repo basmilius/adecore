@@ -103,8 +103,9 @@ describe('DataGrid', () => {
         const many: GridRow[] = Array.from({ length: 10_000 }, (_, index) => ({ key: `row:${index}`, number: index + 1, cells: [index, 'x', null] }));
         const markup = render(<DataGrid label="Users" columns={columns} rows={many} />);
         const drawn = markup.match(/role="row"/g)!.length;
-        expect(drawn).toBeGreaterThan(10);
-        expect(drawn).toBeLessThan(60);
+        // The rows in view, a viewport more below them, and the header row.
+        expect(drawn).toBeGreaterThan(40);
+        expect(drawn).toBeLessThan(100);
         expect(markup).toContain('aria-rowcount="10001"');
         expect(markup).toContain('height:280000px');
     });

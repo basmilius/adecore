@@ -11,28 +11,36 @@ import {
     MAX_COLUMN_WIDTH,
     MIN_COLUMN_WIDTH,
     scrollToReveal,
-    visibleRange
+    drawnRange,
+    ROW_BLOCK,
+    ROW_HEIGHT,
+    scrollBlock
 } from './layout.ts';
 
-describe('visibleRange', () => {
-    test('draws the rows in view plus the overscan on both sides', () => {
-        expect(visibleRange(280, 280, 28, 1000, 2)).toEqual({ start: 8, end: 22 });
+describe('drawnRange', () => {
+    test('draws the rows in view and a viewport more on each side, in whole blocks', () => {
+        const page = Math.ceil(600 / ROW_HEIGHT);
+        const range = drawnRange(10, 600, 10_000);
+        expect(range.start % ROW_BLOCK).toBe(0);
+        expect(range.end % ROW_BLOCK).toBe(0);
+        expect(range.start).toBeLessThanOrEqual(10 * ROW_BLOCK - page);
+        expect(range.end).toBeGreaterThanOrEqual(11 * ROW_BLOCK + 2 * page);
     });
 
-    test('stops at the first and the last row', () => {
-        expect(visibleRange(-100, 140, 28, 1000, 3)).toEqual({ start: 0, end: 5 });
-        expect(visibleRange(27_900, 600, 28, 1000, 3)).toEqual({ start: 993, end: 1000 });
+    test('stays the same while the top moves within a block, and moves by blocks', () => {
+        const first = scrollBlock(5 * ROW_BLOCK * ROW_HEIGHT);
+        for (let row = 0; row < ROW_BLOCK; row++) {
+            expect(scrollBlock((5 * ROW_BLOCK + row) * ROW_HEIGHT)).toBe(first);
+        }
+        expect(scrollBlock(6 * ROW_BLOCK * ROW_HEIGHT)).toBe(first + 1);
+        expect(scrollBlock(-40)).toBe(0);
     });
 
-    test('draws nothing without rows or without a viewport', () => {
-        expect(visibleRange(0, 600, 28, 0, 3)).toEqual({ start: 0, end: 0 });
-        expect(visibleRange(0, 0, 28, 100, 3)).toEqual({ start: 0, end: 0 });
-    });
-
-    test('keeps a window past the end empty of rows that do not exist', () => {
-        const range = visibleRange(50_000, 600, 28, 10, 2);
-        expect(range.end).toBe(10);
-        expect(range.start).toBeLessThanOrEqual(range.end);
+    test('keeps to the rows there are', () => {
+        expect(drawnRange(0, 600, 10)).toEqual({ start: 0, end: 10 });
+        expect(drawnRange(500, 600, 10)).toEqual({ start: 10, end: 10 });
+        expect(drawnRange(0, 600, 0)).toEqual({ start: 0, end: 0 });
+        expect(drawnRange(0, 0, 100)).toEqual({ start: 0, end: 0 });
     });
 });
 

@@ -14,14 +14,12 @@ import {
 import clsx from 'clsx';
 import { Ban, Copy, RotateCcw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { ContextMenu, copyText, EDIT_SHORTCUTS, Icon, isApplePlatform, isModHeld, Kbd, Spinner, useContentSize } from '@adecore/ui';
-import { formatNumber } from '@adecore/ui/format';
-import { CODE_TEXT } from '../code-text.ts';
+import { ContextMenu, copyText, EDIT_SHORTCUTS, Icon, isApplePlatform, isModHeld, Kbd, useContentSize } from '@adecore/ui';
 import type { EditValue, Value } from '../protocol/index.ts';
 import type { SqlTarget } from '../sql.ts';
 import type { RangeBlock } from './aggregates.ts';
 import { fullRect, rectBetween, rectContains } from './cell-range.ts';
-import { CellEditor, type EditMove } from './CellEditor.tsx';
+import type { EditMove } from './CellEditor.tsx';
 import { captureLayout, restoreLayout, sameLayout, type GridLayout } from './column-layout.ts';
 import { NO_COLUMN_SELECTION, selectColumn, shownSelection, type ColumnSelection } from './column-selection.ts';
 import { displayOrder, hideColumn, pinnedCount, showAllColumns, togglePin, type ColumnView } from './column-view.ts';
@@ -30,8 +28,9 @@ import { CopyAsMenu } from './CopyAsMenu.tsx';
 import { cellView, copyTextOf, isPreview, type CellView, type NumberNotation } from './display.ts';
 import { draftOf, parseDraft } from './edit-value.ts';
 import { parseEnumType } from './enum-type.ts';
-import { EnumPicker } from './EnumPicker.tsx';
 import { GridHeaderCell, type HeaderActions } from './GridHeaderCell.tsx';
+import { cellIdOf } from './cell-id.ts';
+import { GridRowView, PINNED_GROUP, type CellEdit, type RowActions, type RowLook } from './GridRowView.tsx';
 import {
     clampColumnWidth,
     columnOffsets,
@@ -40,11 +39,11 @@ import {
     FALLBACK_VIEWPORT_HEIGHT,
     growWidths,
     gutterWidth,
+    drawnRange,
     HEADER_HEIGHT,
-    OVERSCAN_ROWS,
     ROW_HEIGHT,
-    scrollToReveal,
-    visibleRange
+    scrollBlock,
+    scrollToReveal
 } from './layout.ts';
 import { moveFocus, type CellPosition, type NavigationKey } from './navigation.ts';
 import { selectRow } from './row-selection.ts';
@@ -52,13 +51,7 @@ import { sortOnly, sortStateOf, type GridSort } from './sort.ts';
 import type { ColumnRequest, FocusedCell, GridColumn, GridMenuContext, GridRow } from './types.ts';
 import { useNumberNotation } from '../client-context.ts';
 import { usePopupPress } from '../use-popup-press.ts';
-
-/*
- * The gutter and the pinned columns stick as one block, so the edge of one can never drift from the next, at any
- * zoom. Each part paints its background under its own line as well: the line is an alpha, and what scrolls beneath
- * the block would otherwise show through it.
- */
-const PINNED_GROUP = 'sticky left-0 z-10 flex shrink-0';
+import { useStableCallback } from '../use-stable-callback.ts';
 
 export interface DataGridProps {
     columns: readonly GridColumn[];
@@ -109,12 +102,6 @@ export interface DataGridProps {
     ref?: Ref<HTMLDivElement>;
 }
 
-interface Editing extends CellPosition {
-    draft: string;
-    initial: string;
-    loading: boolean;
-}
-
 interface MenuTarget {
     readonly row: number;
     /* `null` for the row number. */
@@ -146,17 +133,6 @@ const estimateWidths = (columns: readonly GridColumn[], rows: readonly GridRow[]
             column.primaryKey === true
         )
     );
-
-const TONE: Record<CellView['tone'], string> = {
-    value: '',
-    null: 'text-text-faint',
-    default: 'text-text-faint italic'
-};
-
-const ROW_STATE = {
-    inserted: 'bg-positive/10',
-    deleted: 'bg-status-error/10 text-text-faint'
-} as const;
 
 /*
  * The table of the table view and of the console. Only the rows in view are drawn, at a fixed
@@ -206,12 +182,12 @@ export function DataGrid({
     const reportRange = useRef(onRangeChange);
     const reportLayout = useRef(onLayoutChange);
     const [measure, size] = useContentSize();
-    const [scrollTop, setScrollTop] = useState(0);
+    const [scrolledBlock, setScrolledBlock] = useState(0);
     const [focused, setFocused] = useState<CellPosition | null>(null);
     const [rangeAnchor, setRangeAnchor] = useState<CellPosition | null>(null);
     const [columnSelection, setColumnSelection] = useState<ColumnSelection>(NO_COLUMN_SELECTION);
     const [menuTarget, setMenuTarget] = useState<MenuTarget | null>(null);
-    const [editing, setEditing] = useState<Editing | null>(null);
+    const [editing, setEditing] = useState<CellEdit | null>(null);
     const [ownSelection, setOwnSelection] = useState<ReadonlySet<string>>(NO_KEYS);
     const [layout, setLayout] = useState<Layout>(() => ({
         signature: signatureOf(columns),
@@ -237,17 +213,21 @@ export function DataGrid({
         setLayout(current);
     }
 
-    const order = displayOrder(columns.length, current.view);
+    // Kept by identity while nothing about the columns changes, since every drawn row compares them.
+    const order = useMemo(() => displayOrder(columns.length, current.view), [columns.length, current.view]);
     const pinnedShown = pinnedCount(columns.length, current.view);
-    const displayOf = new Map(order.map((index, position) => [index, position]));
-    const widths = columns.map((_, index) => current.resized[index] ?? current.estimated[index] ?? clampColumnWidth(0));
-    const shownWidths = order.map((index) => widths[index]!);
+    const displayOf = useMemo(() => new Map(order.map((index, position) => [index, position])), [order]);
+    const widths = useMemo(
+        () => columns.map((_, index) => current.resized[index] ?? current.estimated[index] ?? clampColumnWidth(0)),
+        [columns, current.resized, current.estimated]
+    );
+    const shownWidths = useMemo(() => order.map((index) => widths[index]!), [order, widths]);
     const offsets = columnOffsets(shownWidths);
     const gutter = gutterWidth(rows.length);
     const totalWidth = gutter + shownWidths.reduce((sum, width) => sum + width, 0);
     const pinnedWidth = shownWidths.slice(0, pinnedShown).reduce((sum, width) => sum + width, 0);
     const viewportHeight = size.height > 0 ? size.height : FALLBACK_VIEWPORT_HEIGHT;
-    const range = visibleRange(scrollTop - HEADER_HEIGHT, viewportHeight, ROW_HEIGHT, rows.length, OVERSCAN_ROWS);
+    const range = drawnRange(scrolledBlock, viewportHeight, rows.length);
     const selection = selectedKeys ?? ownSelection;
     const isShown = (position: CellPosition | null): position is CellPosition =>
         position !== null && position.row < rows.length && displayOf.has(position.column);
@@ -261,8 +241,8 @@ export function DataGrid({
     const sortList = sorts ?? NO_SORTS;
     const focusedRowKey = focusCell === null ? null : (rows[focusCell.row]?.key ?? null);
     const focusedColumn = focusCell?.column ?? -1;
-    const pickedColumns = shownSelection(columnSelection, order);
-    const pickedSet = new Set(pickedColumns);
+    const pickedColumns = useMemo(() => shownSelection(columnSelection, order), [columnSelection, order]);
+    const pickedSet = useMemo(() => new Set(pickedColumns), [pickedColumns]);
     const columnBlock: RangeBlock | null = pickedColumns.length > 0 && rows.length > 0 ? { top: 0, bottom: rows.length - 1, columns: pickedColumns } : null;
     const cellBlock: RangeBlock | null = rect === null ? null : { top: rect.top, bottom: rect.bottom, columns: order.slice(rect.left, rect.right + 1) };
     const block = columnBlock ?? cellBlock;
@@ -345,7 +325,7 @@ export function DataGrid({
         [measure, ref]
     );
 
-    const cellId = (row: number, column: number): string => `${gridId}-${row}-${column}`;
+    const cellId = (row: number, column: number): string => cellIdOf(gridId, row, column);
 
     const canEdit = (position: CellPosition): boolean => {
         const row = rows[position.row];
@@ -657,112 +637,65 @@ export function DataGrid({
         onTogglePin: (index) => changeView((view) => togglePin(view, index))
     };
 
+    const look = useMemo(
+        (): RowLook => ({
+            gridId,
+            columns,
+            order,
+            widths: shownWidths,
+            pinnedShown,
+            gutter,
+            notation,
+            enumTypes,
+            picked: pickedSet,
+            loadingLabel: t('grid.loadingValue')
+        }),
+        [gridId, columns, order, shownWidths, pinnedShown, gutter, notation, enumTypes, pickedSet, t]
+    );
+
+    const stablePressCell = useStableCallback(pressCell);
+    const stableDragTo = useStableCallback(dragTo);
+    const stableBeginEdit = useStableCallback((position: CellPosition) => void beginEdit(position));
+    const stableOpenCellMenu = useStableCallback(openCellMenu);
+    const stablePressRowNumber = useStableCallback((index: number, event: MouseEvent) => {
+        if (!pressedInPopup()) {
+            selectRowAt(index, { shiftKey: event.shiftKey, mod: isModHeld(event, isApplePlatform()) });
+        }
+    });
+    const stableOpenRowMenu = useStableCallback(openRowMenu);
+    const stableFinishPick = useStableCallback(finishPick);
+    const stableFinishEdit = useStableCallback(finishEdit);
+    const rowActions = useMemo(
+        (): RowActions => ({
+            pressCell: stablePressCell,
+            dragTo: stableDragTo,
+            beginEdit: stableBeginEdit,
+            openCellMenu: stableOpenCellMenu,
+            pressRowNumber: stablePressRowNumber,
+            openRowMenu: stableOpenRowMenu,
+            finishPick: stableFinishPick,
+            finishEdit: stableFinishEdit,
+            changeDraft: (draft) => setEditing((now) => (now === null ? now : { ...now, draft }))
+        }),
+        [stablePressCell, stableDragTo, stableBeginEdit, stableOpenCellMenu, stablePressRowNumber, stableOpenRowMenu, stableFinishPick, stableFinishEdit]
+    );
+
     const renderRow = (index: number): ReactNode => {
         const row = rows[index]!;
-        const selected = selection.has(row.key);
-        const tint = row.state === undefined ? (selected ? 'bg-accent-soft/40' : '') : ROW_STATE[row.state];
-        const cells = order.map((columnIndex, position) => {
-            const column = columns[columnIndex]!;
-            const cell = row.cells[columnIndex] ?? null;
-            const view = cellView(cell, column.kind, notation);
-            const cellPosition = { row: index, column: columnIndex };
-            const isFocused = focusCell !== null && focusCell.row === index && focusCell.column === columnIndex;
-            const ranged = pickedSet.has(columnIndex) || (columnBlock === null && rectContains(rect, index, position));
-            const edited = row.edited?.has(columnIndex) === true;
-            const isEditing = editing !== null && editing.row === index && editing.column === columnIndex;
-            const pinned = position < pinnedShown;
-            const enumType = enumTypes[columnIndex] ?? null;
-            return (
-                <div
-                    key={columnIndex}
-                    id={cellId(index, columnIndex)}
-                    role="gridcell"
-                    aria-colindex={position + 2}
-                    aria-selected={ranged}
-                    data-focused={isFocused ? '' : undefined}
-                    data-ranged={ranged ? '' : undefined}
-                    className={clsx(
-                        CODE_TEXT,
-                        'flex h-full shrink-0 items-center overflow-hidden px-3 whitespace-nowrap outline-0 select-none data-[focused]:outline-1 data-[focused]:-outline-offset-1 data-[focused]:outline-border-strong group-focus-within/grid:data-[focused]:outline-accent',
-                        position === order.length - 1 ? 'border-r-0' : 'border-r',
-                        view.align === 'end' ? 'justify-end tabular-nums' : 'justify-start',
-                        pinned
-                            ? [
-                                  'relative bg-clip-border',
-                                  position === pinnedShown - 1 ? 'border-border-strong' : 'border-border-soft',
-                                  ranged ? 'bg-accent-soft' : ['bg-surface', tint === '' && 'group-hover/row:bg-surface-hover']
-                              ]
-                            : ['relative border-border-soft', ranged ? 'bg-accent-soft' : edited && 'bg-accent/10']
-                    )}
-                    style={{ width: shownWidths[position] }}
-                    onPointerDown={(event) => pressCell(event, cellPosition, isEditing)}
-                    onPointerEnter={() => dragTo(cellPosition)}
-                    onDoubleClick={() => void beginEdit(cellPosition)}
-                    onContextMenu={() => openCellMenu(cellPosition)}
-                >
-                    {pinned && !ranged && <span aria-hidden className={clsx('pointer-events-none absolute inset-0', tint, edited && 'bg-accent/10')} />}
-                    {isEditing && editing.loading && <Spinner size={12} label={t('grid.loadingValue')} />}
-                    {isEditing && !editing.loading && enumType !== null && (
-                        <EnumPicker
-                            autoOpen
-                            type={enumType}
-                            value={typeof cell === 'string' ? cell : null}
-                            nullable={column.nullable !== false}
-                            label={column.name}
-                            onDone={finishPick}
-                        />
-                    )}
-                    {isEditing && !editing.loading && enumType === null && (
-                        <CellEditor
-                            value={editing.draft}
-                            label={column.name}
-                            onValueChange={(draft) => setEditing({ ...editing, draft })}
-                            onCommit={(move) => finishEdit(true, move)}
-                            onCancel={() => finishEdit(false)}
-                        />
-                    )}
-                    {!isEditing && (
-                        <>
-                            <span className={clsx('min-w-0 truncate', TONE[view.tone], row.state === 'deleted' && 'line-through')}>{view.text}</span>
-                            {view.suffix !== undefined && <span className="ml-2 shrink-0 text-text-faint">{view.suffix}</span>}
-                        </>
-                    )}
-                </div>
-            );
-        });
-        const pinnedCells = cells.slice(0, pinnedShown);
-        const otherCells = cells.slice(pinnedShown);
+        const inRect = columnBlock === null && rect !== null && index >= rect.top && index <= rect.bottom;
         return (
-            <div
+            <GridRowView
                 key={row.key}
-                role="row"
-                aria-rowindex={index + 2}
-                aria-selected={selected}
-                className={clsx('group/row absolute inset-x-0 flex border-b border-border-soft', tint, tint === '' && 'hover:bg-surface-hover')}
-                style={{ top: index * ROW_HEIGHT, height: ROW_HEIGHT }}
-            >
-                <div className={PINNED_GROUP}>
-                    <div
-                        role="rowheader"
-                        data-selected={selected ? '' : undefined}
-                        className={clsx(
-                            'flex shrink-0 cursor-default items-center justify-end border-r border-border bg-surface bg-clip-border pr-2 pl-1 font-mono text-xs text-text-faint tabular-nums select-none data-[selected]:bg-accent-soft data-[selected]:text-text',
-                            row.state === 'inserted' && 'text-positive'
-                        )}
-                        style={{ width: gutter }}
-                        onClick={(event: MouseEvent) => {
-                            if (!pressedInPopup()) {
-                                selectRowAt(index, { shiftKey: event.shiftKey, mod: isModHeld(event, isApplePlatform()) });
-                            }
-                        }}
-                        onContextMenu={() => openRowMenu(index)}
-                    >
-                        {row.number === null ? '+' : formatNumber(row.number)}
-                    </div>
-                    {pinnedCells}
-                </div>
-                {otherCells}
-            </div>
+                row={row}
+                index={index}
+                selected={selection.has(row.key)}
+                focusedColumn={focusCell !== null && focusCell.row === index ? focusCell.column : -1}
+                rangeStart={inRect ? rect.left : -1}
+                rangeEnd={inRect ? rect.right : -1}
+                editing={editing !== null && editing.row === index ? editing : null}
+                look={look}
+                actions={rowActions}
+            />
         );
     };
 
@@ -818,7 +751,7 @@ export function DataGrid({
             tabIndex={0}
             className={clsx('group/grid relative min-h-0 flex-1 overflow-auto bg-surface text-text outline-none', className)}
             onKeyDown={handleKeyDown}
-            onScroll={(event) => setScrollTop(Math.floor(event.currentTarget.scrollTop / ROW_HEIGHT) * ROW_HEIGHT)}
+            onScroll={(event) => setScrolledBlock(scrollBlock(event.currentTarget.scrollTop - HEADER_HEIGHT))}
         >
             <div className="relative min-w-full" style={{ width: totalWidth }}>
                 <div role="row" aria-rowindex={1} className="sticky top-0 z-20 flex w-full border-b border-border bg-surface" style={{ height: HEADER_HEIGHT }}>
