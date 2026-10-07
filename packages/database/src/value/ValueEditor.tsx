@@ -2,7 +2,20 @@ import { useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
 import clsx from 'clsx';
 import { Copy, Ellipsis, WrapText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Button, copyText, FormError, IconButton, isApplePlatform, KEY_SHORTCUTS, matchesShortcut, Menu, Segmented, TextArea, Tooltip } from '@adecore/ui';
+import {
+    Button,
+    ButtonGroup,
+    copyText,
+    FormError,
+    IconButton,
+    isApplePlatform,
+    KEY_SHORTCUTS,
+    matchesShortcut,
+    Menu,
+    Segmented,
+    TextArea,
+    Tooltip
+} from '@adecore/ui';
 import { formatBytes, formatNumber } from '@adecore/ui/format';
 import { CODE_TEXT } from '../code-text.ts';
 import type { GridColumn } from '../grid/types.ts';
@@ -151,12 +164,12 @@ export function ValueEditor({ column, value, editable, onCommit }: ValueEditorPr
                         options={views.map((id) => ({ id, label: t(`value.view.${id}`) }))}
                     />
                 )}
-                <div className="ml-auto flex items-center gap-1">
+                <ButtonGroup className="ml-auto">
                     {WRAPPING_VIEWS.has(view) && (
                         <IconButton icon={WrapText} size="sm" label={t('value.wrap')} aria-pressed={wrap} active={wrap} onClick={() => setWrap(!wrap)} />
                     )}
                     <IconButton icon={Copy} size="sm" label={t('value.copy')} onClick={copy} />
-                </div>
+                </ButtonGroup>
             </div>
             <div className="flex min-h-0 flex-1 flex-col gap-2 px-2 pb-2">{body()}</div>
             {shownProblem !== null && <FormError className="shrink-0 px-3 pb-2 text-xs">{problemText(shownProblem)}</FormError>}

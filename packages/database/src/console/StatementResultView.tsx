@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, CircleAlert, Download, PanelRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Banner, IconButton, Menu, Spinner } from '@adecore/ui';
+import { Banner, ButtonGroup, IconButton, Menu, Spinner } from '@adecore/ui';
 import { formatDecimal, formatNumber } from '@adecore/ui/format';
 import { DataGrid } from '../grid/DataGrid.tsx';
 import { previewValueOf } from '../grid/focused-value.ts';
@@ -148,27 +148,29 @@ export function StatementResultView({
                             />
                         </>
                     )}
-                    {onExport !== undefined && (
-                        <Menu.Root>
-                            <IconButton icon={Download} size="sm" label={t('console.export')} disabled={exporting} render={<Menu.Trigger />} />
-                            <Menu.Popup>
-                                {EXPORT_FORMATS.map((format) => (
-                                    <Menu.Item key={format} onClick={() => onExport(format)}>
-                                        {t('console.exportAs', { format: format.toUpperCase() })}
-                                    </Menu.Item>
-                                ))}
-                            </Menu.Popup>
-                        </Menu.Root>
-                    )}
-                    {onValuePanelOpenChange !== undefined && (
-                        <IconButton
-                            icon={PanelRight}
-                            size="sm"
-                            label={t('console.valuePanel')}
-                            aria-pressed={valuePanelOpen}
-                            onClick={() => onValuePanelOpenChange(!valuePanelOpen)}
-                        />
-                    )}
+                    <ButtonGroup>
+                        {onExport !== undefined && (
+                            <Menu.Root>
+                                <IconButton icon={Download} size="sm" label={t('console.export')} disabled={exporting} render={<Menu.Trigger />} />
+                                <Menu.Popup>
+                                    {EXPORT_FORMATS.map((format) => (
+                                        <Menu.Item key={format} onClick={() => onExport(format)}>
+                                            {t('console.exportAs', { format: format.toUpperCase() })}
+                                        </Menu.Item>
+                                    ))}
+                                </Menu.Popup>
+                            </Menu.Root>
+                        )}
+                        {onValuePanelOpenChange !== undefined && (
+                            <IconButton
+                                icon={PanelRight}
+                                size="sm"
+                                label={t('console.valuePanel')}
+                                aria-pressed={valuePanelOpen}
+                                onClick={() => onValuePanelOpenChange(!valuePanelOpen)}
+                            />
+                        )}
+                    </ButtonGroup>
                 </span>
             </footer>
         </>

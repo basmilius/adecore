@@ -2,7 +2,7 @@ import { useId } from 'react';
 import clsx from 'clsx';
 import { ArrowDown, ArrowUp, KeyRound, Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Button, Checkbox, EmptyState, Icon, IconButton, Input, Pill } from '@adecore/ui';
+import { Button, ButtonGroup, Checkbox, EmptyState, Icon, IconButton, Input, Pill } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
 import { typeSuggestionsOf } from '../ddl/index.ts';
 import type { EditorProps } from './editor-props.ts';
@@ -72,7 +72,7 @@ export function ColumnsEditor({ draft, dialect, disabled, onChange, className, r
                                 return (
                                     <tr key={column.key}>
                                         <td className={clsx(TD, 'whitespace-nowrap')}>
-                                            <span className="flex">
+                                            <ButtonGroup>
                                                 <IconButton
                                                     icon={ArrowUp}
                                                     size="xs"
@@ -87,7 +87,7 @@ export function ColumnsEditor({ draft, dialect, disabled, onChange, className, r
                                                     disabled={disabled || at === draft.columns.length - 1}
                                                     onClick={() => onChange(moveColumn(draft, column.key, 1))}
                                                 />
-                                            </span>
+                                            </ButtonGroup>
                                         </td>
                                         <td className={clsx(TD, 'min-w-40')}>
                                             <Input

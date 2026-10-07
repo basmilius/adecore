@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type Ref } fr
 import clsx from 'clsx';
 import { ArrowUpRight, Ban, ChevronDown, ChevronUp, Copy, Maximize2, Minimize2, RotateCcw, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { ContextMenu, copyText, EDIT_SHORTCUTS, Icon, IconButton, Input, isApplePlatform, isModHeld, Kbd, shortcut, Spinner } from '@adecore/ui';
+import { ButtonGroup, ContextMenu, copyText, EDIT_SHORTCUTS, Icon, IconButton, Input, isApplePlatform, isModHeld, Kbd, shortcut, Spinner } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
 import { useNumberNotation } from '../client-context.ts';
 import { CODE_TEXT } from '../code-text.ts';
@@ -194,22 +194,24 @@ export function RecordView({
     return (
         <div ref={ref} className={clsx('flex min-h-0 min-w-0 flex-1 flex-col bg-surface', className)}>
             <div className="flex h-10 shrink-0 items-center gap-1 border-b border-border px-2">
-                <IconButton
-                    icon={ChevronUp}
-                    size="sm"
-                    label={t('table.record.previous')}
-                    kbd={PREVIOUS_ROW}
-                    disabled={row === undefined || index <= 0}
-                    onClick={() => moveRow(index - 1)}
-                />
-                <IconButton
-                    icon={ChevronDown}
-                    size="sm"
-                    label={t('table.record.next')}
-                    kbd={NEXT_ROW}
-                    disabled={row === undefined || index >= rows.length - 1}
-                    onClick={() => moveRow(index + 1)}
-                />
+                <ButtonGroup>
+                    <IconButton
+                        icon={ChevronUp}
+                        size="sm"
+                        label={t('table.record.previous')}
+                        kbd={PREVIOUS_ROW}
+                        disabled={row === undefined || index <= 0}
+                        onClick={() => moveRow(index - 1)}
+                    />
+                    <IconButton
+                        icon={ChevronDown}
+                        size="sm"
+                        label={t('table.record.next')}
+                        kbd={NEXT_ROW}
+                        disabled={row === undefined || index >= rows.length - 1}
+                        onClick={() => moveRow(index + 1)}
+                    />
+                </ButtonGroup>
                 {row !== undefined && (
                     <span className="flex min-w-0 items-baseline gap-2 px-1">
                         <span className="truncate text-sm font-medium text-text tabular-nums">
@@ -254,7 +256,7 @@ export function RecordView({
                                     <span className="flex min-w-0 items-center gap-2">
                                         <span className={clsx(CODE_TEXT, 'min-w-0 truncate text-text')}>{column.name}</span>
                                         {column.type !== '' && <span className="min-w-0 truncate text-xs text-text-faint">{column.type}</span>}
-                                        <span className="ml-auto flex shrink-0 items-center gap-0.5">
+                                        <ButtonGroup className="ml-auto shrink-0">
                                             {followable && (
                                                 <IconButton
                                                     icon={ArrowUpRight}
@@ -272,7 +274,7 @@ export function RecordView({
                                                     onClick={() => toggleOpened(position)}
                                                 />
                                             )}
-                                        </span>
+                                        </ButtonGroup>
                                     </span>
                                     {expanded ? (
                                         <WholeValue

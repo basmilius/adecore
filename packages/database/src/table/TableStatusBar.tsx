@@ -2,7 +2,7 @@ import type { Ref } from 'react';
 import clsx from 'clsx';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Button, IconButton, Spinner, Tooltip } from '@adecore/ui';
+import { Button, ButtonGroup, IconButton, Spinner, Tooltip } from '@adecore/ui';
 import { formatDecimal, formatNumber, formatRounded } from '@adecore/ui/format';
 import { useNumberNotation } from '../client-context.ts';
 import type { Aggregates } from '../grid/aggregates.ts';
@@ -49,10 +49,10 @@ export function TableStatusBar({ elapsedMs, bounds, counting, selection, onCount
                         </>
                     ))}
             </span>
-            <span className="flex items-center">
+            <ButtonGroup>
                 <IconButton icon={ChevronLeft} size="sm" label={t('table.previousPage')} disabled={!bounds.hasPrevious} onClick={onPrevious} />
                 <IconButton icon={ChevronRight} size="sm" label={t('table.nextPage')} disabled={!bounds.hasNext} onClick={onNext} />
-            </span>
+            </ButtonGroup>
             <Tooltip label={t('table.queryTime')}>
                 <span className="text-text-faint tabular-nums">{t('table.elapsed', { value: formatDecimal(elapsedMs) })}</span>
             </Tooltip>

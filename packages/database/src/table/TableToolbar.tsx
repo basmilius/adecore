@@ -16,7 +16,7 @@ import {
     Undo2
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Button, Icon, IconButton, Menu } from '@adecore/ui';
+import { Button, ButtonGroup, Icon, IconButton, Menu } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
 import type { Engine, FileFormat } from '../protocol/index.ts';
 import { CommandField } from './CommandField.tsx';
@@ -121,99 +121,101 @@ export function TableToolbar({
                     </Button>
                 </>
             )}
-            <IconButton icon={RefreshCw} size="sm" label={t('table.refresh')} busy={refreshing} onClick={onRefresh} />
-            <IconButton
-                icon={Plus}
-                size="sm"
-                label={t('table.addRow')}
-                tooltip={tooltipOf(t('table.addRow'))}
-                aria-disabled={readOnly || undefined}
-                onClick={() => !readOnly && onAddRow()}
-            />
-            {onToggleRecordView !== undefined && (
+            <ButtonGroup>
+                <IconButton icon={RefreshCw} size="sm" label={t('table.refresh')} busy={refreshing} onClick={onRefresh} />
                 <IconButton
-                    icon={PanelRight}
+                    icon={Plus}
                     size="sm"
-                    label={t('table.recordView')}
-                    aria-pressed={recordViewOpen}
-                    active={recordViewOpen}
-                    onClick={onToggleRecordView}
+                    label={t('table.addRow')}
+                    tooltip={tooltipOf(t('table.addRow'))}
+                    aria-disabled={readOnly || undefined}
+                    onClick={() => !readOnly && onAddRow()}
                 />
-            )}
-            <Menu.Root>
-                <IconButton icon={Ellipsis} size="sm" label={t('table.more')} render={<Menu.Trigger />} />
-                <Menu.Popup align="end">
-                    <Menu.SubmenuRoot>
-                        <Menu.SubmenuTrigger>
-                            <Icon icon={Rows3} size={14} />
-                            {t('table.pageSize')}
-                        </Menu.SubmenuTrigger>
-                        <Menu.Popup>
-                            <Menu.RadioGroup value={String(pageSize)} onValueChange={(value) => onPageSizeChange(Number(value))}>
-                                {PAGE_SIZES.map((size) => (
-                                    <Menu.RadioItem key={size} value={String(size)}>
-                                        {t('table.perPage', { size: formatNumber(size) })}
-                                    </Menu.RadioItem>
-                                ))}
-                            </Menu.RadioGroup>
-                        </Menu.Popup>
-                    </Menu.SubmenuRoot>
-                    <Menu.Item disabled={!bounds.hasPrevious} onClick={onFirstPage}>
-                        <Icon icon={ChevronsLeft} size={14} />
-                        {t('table.firstPage')}
-                    </Menu.Item>
-                    <Menu.Item disabled={!bounds.hasNext} onClick={onLastPage}>
-                        <Icon icon={ChevronsRight} size={14} />
-                        {t('table.lastPage')}
-                        {!bounds.exact && <Menu.Hint>{t('table.lastPageCounts')}</Menu.Hint>}
-                    </Menu.Item>
-                    <Menu.Separator />
-                    {onToggleRecordView !== undefined && (
-                        <Menu.CheckboxItem checked={recordViewOpen} onCheckedChange={onToggleRecordView}>
-                            <Icon icon={TableProperties} size={14} />
-                            {t('table.recordView')}
-                        </Menu.CheckboxItem>
-                    )}
-                    <Menu.Separator />
-                    {readOnly && <Menu.Label>{readOnlyReason}</Menu.Label>}
-                    <Menu.Item disabled={readOnly || !hasSelection} onClick={onCloneRows}>
-                        <Icon icon={CopyPlus} size={14} />
-                        {t('table.cloneRows')}
-                    </Menu.Item>
-                    <Menu.Item disabled={!canRevertSelection} onClick={onRevertRows}>
-                        <Icon icon={Undo2} size={14} />
-                        {t('table.revertRows')}
-                    </Menu.Item>
-                    <Menu.Item disabled={readOnly || !hasSelection} onClick={onDeleteRows}>
-                        <Icon icon={Trash2} size={14} />
-                        {t('table.deleteRows')}
-                    </Menu.Item>
-                    {transfer !== undefined && (
-                        <>
-                            <Menu.Separator />
-                            <Menu.SubmenuRoot>
-                                <Menu.SubmenuTrigger disabled={transfer.busy}>
-                                    <Icon icon={Download} size={14} />
-                                    {t('table.export.label')}
-                                </Menu.SubmenuTrigger>
-                                <Menu.Popup>
-                                    {EXPORT_FORMATS.map((format) => (
-                                        <Menu.Item key={format} onClick={() => transfer.onExport(format)}>
-                                            {t('table.export.as', { format: format.toUpperCase() })}
-                                        </Menu.Item>
+                {onToggleRecordView !== undefined && (
+                    <IconButton
+                        icon={PanelRight}
+                        size="sm"
+                        label={t('table.recordView')}
+                        aria-pressed={recordViewOpen}
+                        active={recordViewOpen}
+                        onClick={onToggleRecordView}
+                    />
+                )}
+                <Menu.Root>
+                    <IconButton icon={Ellipsis} size="sm" label={t('table.more')} render={<Menu.Trigger />} />
+                    <Menu.Popup align="end">
+                        <Menu.SubmenuRoot>
+                            <Menu.SubmenuTrigger>
+                                <Icon icon={Rows3} size={14} />
+                                {t('table.pageSize')}
+                            </Menu.SubmenuTrigger>
+                            <Menu.Popup>
+                                <Menu.RadioGroup value={String(pageSize)} onValueChange={(value) => onPageSizeChange(Number(value))}>
+                                    {PAGE_SIZES.map((size) => (
+                                        <Menu.RadioItem key={size} value={String(size)}>
+                                            {t('table.perPage', { size: formatNumber(size) })}
+                                        </Menu.RadioItem>
                                     ))}
-                                </Menu.Popup>
-                            </Menu.SubmenuRoot>
-                            {transfer.onImport !== undefined && (
-                                <Menu.Item onClick={transfer.onImport}>
-                                    <Icon icon={FileInput} size={14} />
-                                    {t('table.import.menu')}
-                                </Menu.Item>
-                            )}
-                        </>
-                    )}
-                </Menu.Popup>
-            </Menu.Root>
+                                </Menu.RadioGroup>
+                            </Menu.Popup>
+                        </Menu.SubmenuRoot>
+                        <Menu.Item disabled={!bounds.hasPrevious} onClick={onFirstPage}>
+                            <Icon icon={ChevronsLeft} size={14} />
+                            {t('table.firstPage')}
+                        </Menu.Item>
+                        <Menu.Item disabled={!bounds.hasNext} onClick={onLastPage}>
+                            <Icon icon={ChevronsRight} size={14} />
+                            {t('table.lastPage')}
+                            {!bounds.exact && <Menu.Hint>{t('table.lastPageCounts')}</Menu.Hint>}
+                        </Menu.Item>
+                        <Menu.Separator />
+                        {onToggleRecordView !== undefined && (
+                            <Menu.CheckboxItem checked={recordViewOpen} onCheckedChange={onToggleRecordView}>
+                                <Icon icon={TableProperties} size={14} />
+                                {t('table.recordView')}
+                            </Menu.CheckboxItem>
+                        )}
+                        <Menu.Separator />
+                        {readOnly && <Menu.Label>{readOnlyReason}</Menu.Label>}
+                        <Menu.Item disabled={readOnly || !hasSelection} onClick={onCloneRows}>
+                            <Icon icon={CopyPlus} size={14} />
+                            {t('table.cloneRows')}
+                        </Menu.Item>
+                        <Menu.Item disabled={!canRevertSelection} onClick={onRevertRows}>
+                            <Icon icon={Undo2} size={14} />
+                            {t('table.revertRows')}
+                        </Menu.Item>
+                        <Menu.Item disabled={readOnly || !hasSelection} onClick={onDeleteRows}>
+                            <Icon icon={Trash2} size={14} />
+                            {t('table.deleteRows')}
+                        </Menu.Item>
+                        {transfer !== undefined && (
+                            <>
+                                <Menu.Separator />
+                                <Menu.SubmenuRoot>
+                                    <Menu.SubmenuTrigger disabled={transfer.busy}>
+                                        <Icon icon={Download} size={14} />
+                                        {t('table.export.label')}
+                                    </Menu.SubmenuTrigger>
+                                    <Menu.Popup>
+                                        {EXPORT_FORMATS.map((format) => (
+                                            <Menu.Item key={format} onClick={() => transfer.onExport(format)}>
+                                                {t('table.export.as', { format: format.toUpperCase() })}
+                                            </Menu.Item>
+                                        ))}
+                                    </Menu.Popup>
+                                </Menu.SubmenuRoot>
+                                {transfer.onImport !== undefined && (
+                                    <Menu.Item onClick={transfer.onImport}>
+                                        <Icon icon={FileInput} size={14} />
+                                        {t('table.import.menu')}
+                                    </Menu.Item>
+                                )}
+                            </>
+                        )}
+                    </Menu.Popup>
+                </Menu.Root>
+            </ButtonGroup>
         </div>
     );
 }
