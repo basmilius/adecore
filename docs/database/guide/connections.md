@@ -90,6 +90,41 @@ Without `authorizeDiscovery`, `discover` fails with `forbidden`. Without Docker,
 
 The demo starts in Docker mode. Its in-memory host lists two containers: one that publishes its port and one that does not.
 
+### Offering containers yourself
+
+An app that offers containers in a place of its own, such as a list of the running databases with an add button beside each, builds its connections the way the manager does:
+
+```tsx
+import { useEffect, useState } from 'react';
+import { Plus } from 'lucide-react';
+import { IconButton, ListRow } from '@adecore/ui';
+import { connectionFromContainer, containerTitle, isMysqlContainer, useDatabaseClient, type Connection } from '@adecore/database';
+import type { DockerContainer } from '@adecore/database/protocol';
+
+function RunningDatabases({ onAdd }: { onAdd(connection: Connection): void }) {
+    const client = useDatabaseClient();
+    const [containers, setContainers] = useState<readonly DockerContainer[]>([]);
+
+    useEffect(() => {
+        client.discover('docker').then(setContainers, () => setContainers([]));
+    }, [client]);
+
+    return containers.filter(isMysqlContainer).map((container) => (
+        <ListRow key={container.id}>
+            {containerTitle(container)}
+            <IconButton icon={Plus} label="Add" onClick={() => onAdd(connectionFromContainer(crypto.randomUUID(), container))} />
+        </ListRow>
+    ));
+}
+```
+
+| Function                                 |                                                                                                                                                                        |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `isMysqlContainer(container)`            | Whether a MySQL or MariaDB connection can point at the container: every one `discover` found except a file engine, which no container serves.                          |
+| `containerTitle(container)`              | What names the container to a person: its Compose `project/service`, else its own name.                                                                                |
+| `connectionFromContainer(id, container)` | A new `Connection` with that id, named by `containerTitle`, in Docker mode on the container's MySQL port (or the first port it lists), with its suggested credentials. |
+| `withContainer(config, container)`       | Points an existing MySQL config at the container. The user, the password and the database come from the container only where the config has none.                      |
+
 ## Which modes to offer
 
 The form shows all four modes for MySQL and MariaDB. An app that offers fewer refuses the others in the backend with `authorize`, which sees the whole config, tunnel included. See [Security](/database/guide/security#restricting-connections).

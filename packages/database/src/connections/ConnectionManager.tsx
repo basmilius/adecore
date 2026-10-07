@@ -8,7 +8,7 @@ import type { Connection } from '../client/types.ts';
 import type { ConnectionConfig, DockerContainer, Engine, ServerInfo } from '../protocol/index.ts';
 import { defaultConfig, isValidConfig, targetOf } from './connection-config.ts';
 import { ConnectionForm } from './ConnectionForm.tsx';
-import { composeNameOf, connectionFromContainer, isMysqlContainer } from './docker.ts';
+import { connectionFromContainer, containerTitle, isMysqlContainer } from './docker.ts';
 import { useDockerContainers } from './use-docker-containers.ts';
 import { ENGINE_ICONS } from './engine-icons.ts';
 import { EngineIcon } from './EngineIcon.tsx';
@@ -175,7 +175,7 @@ function DockerMenuItems({ onPick }: { onPick(container: DockerContainer): void 
     return containers.map((container) => (
         <Menu.Item key={container.id} onClick={() => onPick(container)}>
             <span className="flex min-w-0 flex-col">
-                <span className="truncate">{composeNameOf(container) ?? container.name}</span>
+                <span className="truncate">{containerTitle(container)}</span>
                 <span className="truncate text-xs text-text-faint">{container.image}</span>
             </span>
         </Menu.Item>
