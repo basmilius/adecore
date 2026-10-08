@@ -559,6 +559,11 @@
             "types": "./dist/chat/ui/rows/MessageRows.d.ts",
             "default": "./dist/chat/ui/rows/MessageRows.js"
         },
+        "./chat/ui/rows/RowContainer": {
+            "source": "./src/chat/ui/rows/RowContainer.tsx",
+            "types": "./dist/chat/ui/rows/RowContainer.d.ts",
+            "default": "./dist/chat/ui/rows/RowContainer.js"
+        },
         "./chat/ui/rows/Rows": {
             "source": "./src/chat/ui/rows/Rows.tsx",
             "types": "./dist/chat/ui/rows/Rows.d.ts",

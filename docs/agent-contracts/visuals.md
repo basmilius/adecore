@@ -10,7 +10,7 @@ A visual belongs to its chat. It goes when the chat is deleted or cleared, a per
 
 ## The record
 
-`ChatVisualSchema` is `{ id, title, at, maxHeight, heights?, size, turnId? }`, `ChatVisual` its type and `ChatVisualsSchema` a list of them.
+`ChatVisualSchema` is `{ id, title, at, maxHeight, layout?, heights?, size, turnId? }`, `ChatVisual` its type and `ChatVisualsSchema` a list of them.
 
 | Field       |                                                                                                                 |
 | ----------- | --------------------------------------------------------------------------------------------------------------- |
@@ -18,6 +18,7 @@ A visual belongs to its chat. It goes when the chat is deleted or cleared, a per
 | `title`     | What the page shows, in a few words.                                                                            |
 | `at`        | When it was published, in milliseconds on the host's clock, the one an item's `createdAt` uses. It places the visual among the items. |
 | `maxHeight` | The height limit for clients without a synchronized viewport, in CSS pixels.                                                                  |
+| `layout`    | `inline` follows the reply column (default); `wide` uses the available chat pane width. |
 | `heights`   | `[width, height]` pairs in CSS pixels, ascending by width (`VisualHeightSchema`, `VisualHeight`). Absent when nobody measured the page. |
 | `size`      | Bytes of the stored page.                                                                                       |
 | `turnId`    | The turn that published it, when one was running.                                                               |
@@ -25,6 +26,8 @@ A visual belongs to its chat. It goes when the chat is deleted or cleared, a per
 `VISUAL_LIMITS` holds what a host accepts at publish: a title of at most 200 characters, a height from 80 to 2000 CSS pixels (2000 when the agent names none), a stored page of at most 16 MiB and at most 24 measured heights. The schema checks shapes only, so a host that widens a limit never makes an older client refuse a whole attach. `VISUAL_MEASURE_WIDTHS` are the frame widths a host may measure a page at, ascending from 320 to 1200.
 
 `visualFrameHeight(visual, width)` answers the height of a frame that wide from the measurements: the taller of the two at the nearest measured widths on either side, since a breakpoint between them can make the page as tall as either. It caps that at `maxHeight`, keeps it within the limits in whole pixels, and answers `undefined` when there are no heights. A frame then follows the size the page reports.
+
+`ChatVisual.layout` is optional: `inline` (the default, including older records) follows the reply column; `wide` lets the host use the available chat pane width. A host still chooses the dimensions and margins. `VisualLayoutSchema` validates these two modes and `VisualLayout` is their type.
 
 ## On the wire
 

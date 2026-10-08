@@ -18,7 +18,9 @@ const rows = withTimedRows(threadRows, timedRowsOf(cards, visuals, heldFrom));
 
 ## The row
 
-`VisualRow` draws one visual inside an `ErrorBoundary`. Over the page's top right corner sit an expand button and a menu with Remove, shown while the pointer or the focus is on the visual and always on a touch screen. A click in the page never reaches the thread's context menu, so these are the visual's only controls.
+`VisualRow` draws one visual inside an `ErrorBoundary`. By default its row stays in the 768px reply column. A visual with `layout: "wide"` uses the chat pane width, centered with margins that clear the scrubber. The timeline constrains each ordinary row separately, so text keeps its width. Narrow panes constrain both layouts to the available space; the iframe receives that actual width and reports its new content height without reloading the page. Over the page's top right corner sit an expand button and a menu with Remove, shown while the pointer or the focus is on the visual and always on a touch screen. A click in the page never reaches the thread's context menu, so these are the visual's only controls.
+
+`RowContainer` positions and measures each timeline row. Its `RowContainerProps` provide the current and previous rows, index, vertical position, measurement ref and children. It includes turn spacing in the measurement and chooses the reply or wide column. The timeline uses `STRIP_CLEARANCE_PX`, the scrubber width with its surrounding space, to keep wide pages clear of navigation.
 
 `VisualDialogs` draws the large view, a dialog titled with the visual's title and a second frame of the page that fills it, and the question before a removal. The timeline draws it once per thread rather than in the row, since a row that scrolls out of view unmounts. `useVisualDialog` holds which visual of the window has either open. A removal deletes the page for good through `chat.removeVisual`.
 
@@ -33,9 +35,11 @@ const rows = withTimedRows(threadRows, timedRowsOf(cards, visuals, heldFrom));
 - It opens a link the page asks for only while the frame has the focus and a person's activation is live, through the host's `openLink`, and answers the request either way. A page that takes the focus by script can still open a link; the check stops links opened as a page loads.
 - When the frame loaded and the host page said nothing within a few seconds, or the page cannot be read, the frame says it could not load the visual, in the same box.
 
-The row starts at the last content height reported for the same width, then the host's full measurements, then a modest default. `initialVisualContentHeight` and `rememberVisualHeight` retain that height across virtualized row mounts. `initialVisualHeight` and `clampVisualHeight` retain the capped behavior for older hosts.
+The row starts at the last content height reported for the same width, then the host's full measurements, then a modest default. `initialVisualContentHeight` and `rememberVisualHeight` retain that height across virtualized row mounts. `visualContentHeight` rounds a reported height and bounds it between 80 and 10,000,000 CSS pixels to stay within browser layout coordinates. `initialVisualHeight` and `clampVisualHeight` retain the capped behavior for older hosts.
 
-Visual rows use `top` for their virtualized position: translating an ancestor would shift the sticky frame after the browser resolved its position.
+`rowPosition(kind, top)` uses `top` for visual rows and a vertical transform for other rows: translating an ancestor would shift the sticky frame after the browser resolved its position.
+
+`visualViewportGeometry(contentHeight, availableHeight, top)` returns a `VisualViewportGeometry` with the bounded frame height and its content offset, clamped at both ends of the page.
 
 `VisualViewportController` synchronizes the iframe without React updates on scroll. The chat scroll position is authoritative; the frame receives an absolute content offset. Wheel, navigation keys and touch gestures over the document request timeline movement, while scrollable controls inside a mockup retain native scrolling. Focus and fragment navigation inside the document also update the timeline. The host installs this runtime after loading the stored page, so older visuals participate without being rewritten. The frame's sandbox stays opaque.
 

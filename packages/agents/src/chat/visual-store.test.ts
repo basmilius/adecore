@@ -84,6 +84,20 @@ describe('VisualStore', () => {
         expect(told).toEqual([{ chatId: 'chat 1', visuals: [visual] }]);
     });
 
+    test('keeps the chosen layout after a restart and a chat copy', async () => {
+        for (const layout of ['inline', 'wide'] as const) {
+            const visual = await store.publish('chat-1', { title: layout, html: PAGE, layout });
+            expect(visual.layout).toBe(layout);
+        }
+        const restarted = new VisualStore(home, attachments);
+        expect((await restarted.list('chat-1')).map((visual) => visual.layout)).toEqual(['inline', 'wide']);
+        await restarted.copyChat('chat-1', 'fork');
+        expect((await new VisualStore(home, attachments).list('fork')).map((visual) => visual.layout)).toEqual(['inline', 'wide']);
+        await expect(store.publish('chat-1', { title: 'Bad layout', html: PAGE, layout: 'fullscreen' as 'wide' })).rejects.toMatchObject({
+            code: 'visual-invalid'
+        });
+    });
+
     test('serves a page as an attachment of its chat, as text/html', async () => {
         const visual = await store.publish('chat-1', { title: 'Revenue', html: PAGE });
         expect(store.attachment('chat-1', visual.id)).toEqual({

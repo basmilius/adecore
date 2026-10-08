@@ -1,7 +1,16 @@
 import { randomBytes } from 'node:crypto';
 import { mkdir, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
-import { ChatVisualsSchema, injectVisualBootstrap, VISUAL_LIMITS, type ChatAttachment, type ChatVisual, type VisualHeight } from '@adecore/agent-contracts';
+import {
+    ChatVisualsSchema,
+    injectVisualBootstrap,
+    VISUAL_LIMITS,
+    VisualLayoutSchema,
+    type ChatAttachment,
+    type ChatVisual,
+    type VisualHeight,
+    type VisualLayout
+} from '@adecore/agent-contracts';
 import { z } from 'zod';
 import { isNotFound, writeAtomic } from '../fs.ts';
 import { KeyedSerializer } from '../serializer.ts';
@@ -27,6 +36,7 @@ export interface VisualInput {
     html: string;
     // CSS pixels; absent, the largest a frame may be.
     maxHeight?: number;
+    layout?: VisualLayout;
     // `[width, height]` in CSS pixels, from a host that measured the page before publishing it.
     heights?: ReadonlyArray<readonly [number, number]>;
     turnId?: string;
@@ -54,7 +64,13 @@ function isSize(value: unknown): value is number {
 }
 
 /* The input as it is kept, or a refusal that tells the agent what to change. */
-function checked(input: VisualInput): { title: string; html: string; maxHeight: number; heights: VisualHeight[] | undefined } {
+function checked(input: VisualInput): {
+    title: string;
+    html: string;
+    maxHeight: number;
+    layout: VisualLayout | undefined;
+    heights: VisualHeight[] | undefined;
+} {
     const title = typeof input.title === 'string' ? input.title.trim() : '';
     if (title === '') {
         refuse('visual-invalid', 'A visual needs a title; give it a short one that says what the page shows');
@@ -72,6 +88,9 @@ function checked(input: VisualInput): { title: string; html: string; maxHeight: 
             `The maximum height must be from ${VISUAL_LIMITS.minHeight} to ${VISUAL_LIMITS.maxHeight} CSS pixels; leave it out for ${VISUAL_LIMITS.maxHeight}`
         );
     }
+    if (input.layout !== undefined && !VisualLayoutSchema.safeParse(input.layout).success) {
+        refuse('visual-invalid', 'The layout must be inline or wide; leave it out for the reply column');
+    }
     const heights = input.heights ?? [];
     if (
         !Array.isArray(heights) ||
@@ -83,7 +102,7 @@ function checked(input: VisualInput): { title: string; html: string; maxHeight: 
     // One measurement per width, the last one given, ascending as `visualFrameHeight` reads them.
     const byWidth = new Map(heights.map((pair): [number, number] => [Math.max(1, Math.round(pair[0])), Math.ceil(pair[1])]));
     const sorted = [...byWidth].sort((a, b) => a[0] - b[0]);
-    return { title, html: input.html, maxHeight: Math.round(maxHeight), heights: sorted.length === 0 ? undefined : sorted };
+    return { title, html: input.html, maxHeight: Math.round(maxHeight), layout: input.layout, heights: sorted.length === 0 ? undefined : sorted };
 }
 
 function tooLarge(bytes: number): never {
@@ -157,7 +176,7 @@ export class VisualStore {
 
     /* Stores a page with its bootstrap and adds it to the chat at the host's current time. */
     async publish(chatId: string, input: VisualInput): Promise<ChatVisual> {
-        const { title, html, maxHeight, heights } = checked(input);
+        const { title, html, maxHeight, layout, heights } = checked(input);
         // Before the bootstrap is added, so a page far too large is never copied first.
         if (Buffer.byteLength(html, 'utf8') > VISUAL_LIMITS.bytes) {
             tooLarge(Buffer.byteLength(html, 'utf8'));
@@ -174,6 +193,7 @@ export class VisualStore {
                 title,
                 at: this.now(),
                 maxHeight,
+                ...(layout === undefined ? {} : { layout }),
                 ...(heights === undefined ? {} : { heights }),
                 size: page.byteLength,
                 ...(turnId === undefined ? {} : { turnId })

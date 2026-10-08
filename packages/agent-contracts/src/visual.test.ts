@@ -43,6 +43,14 @@ describe('ChatVisualSchema and the wire', () => {
         expect(AGENT_EVENT_SCHEMAS['chat.visuals']).toBe(ChatVisualsEventSchema);
     });
 
+    test('accepts opt-in layouts without adding a field to older visuals', () => {
+        expect(ChatVisualSchema.parse(visual)).not.toHaveProperty('layout');
+        for (const layout of ['inline', 'wide'] as const) {
+            expect(ChatVisualsEventSchema.parse({ chatId: 'chat-1', visuals: [{ ...visual, layout }] }).visuals[0]?.layout).toBe(layout);
+        }
+        expect(ChatVisualSchema.safeParse({ ...visual, layout: 'fullscreen' }).success).toBe(false);
+    });
+
     test('checks shapes, not limits, so a host that widens one keeps older clients reading', () => {
         expect(ChatVisualSchema.safeParse({ ...visual, title: 't'.repeat(VISUAL_LIMITS.title + 1), maxHeight: 4000 }).success).toBe(true);
         expect(ChatVisualSchema.safeParse({ ...visual, title: '' }).success).toBe(false);
@@ -212,7 +220,8 @@ describe('the theme', () => {
 
     test('the guides for an agent name the limit, the widths and every variable', () => {
         expect(VISUAL_PAGE_RULES).toContain('16 MiB');
-        expect(VISUAL_LAYOUT_GUIDE).toContain('1200px');
+        expect(VISUAL_LAYOUT_GUIDE).toContain('768px');
+        expect(VISUAL_LAYOUT_GUIDE).toContain('wide layout');
         for (const name of VISUAL_THEME_VARIABLES) {
             expect(VISUAL_THEME_GUIDE).toContain(name);
         }

@@ -8,7 +8,7 @@ import { useVisualDialog } from '../../visuals';
 import { VisualFrame } from '../VisualFrame';
 
 /*
- * A page an agent published, borderless on the thread's ground and as wide as the reply. Its few
+ * A page an agent published, borderless on the thread's ground, with its width set by the row. Its few
  * controls float over the page's top corner while the pointer or the focus is on it, and always on a
  * touch screen, which has no hover. A click inside the page never reaches the thread's menu, so they
  * sit here.

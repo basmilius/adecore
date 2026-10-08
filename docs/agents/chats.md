@@ -26,7 +26,7 @@ Stopping a turn settles the requests it left open, so no approval stays pending 
 
 ## Visuals
 
-A [visual](/agent-contracts/visuals) is a page an agent publishes in a chat. Agents publish through a command of your app, which calls `host.chats.publishVisual(chatId, { title, html, maxHeight?, heights?, turnId? })` and gets the `ChatVisual` back. The chat may be one nobody loaded; a visual published while a turn runs belongs to that turn unless the input names another. `listVisuals(chatId)` answers a chat's visuals in the order they were published, and `chat.removeVisual` takes one away.
+A [visual](/agent-contracts/visuals) is a page an agent publishes in a chat. Agents publish through a command of your app, which calls `host.chats.publishVisual(chatId, { title, html, maxHeight?, layout?, heights?, turnId? })` and gets the `ChatVisual` back. The chat may be one nobody loaded; a visual published while a turn runs belongs to that turn unless the input names another. `listVisuals(chatId)` answers a chat's visuals in the order they were published, and `chat.removeVisual` takes one away.
 
 `VisualStore` keeps them: the list in `chats/<id>.visuals.json`, each page as `<id>.html` in the chat's attachment folder, so `host.chats.attachment(chatId, visualId)` finds a page the way it finds an attached file, with the mime type `text/html`. Publishing puts the bootstrap of `injectVisualBootstrap` in the page and checks `VISUAL_LIMITS`; a page that breaks one is refused with `visual-invalid` or `visual-too-large`, with a message that tells the agent what to change. Every change goes to the clients attached to the chat as `chat.visuals`, and `chat.attach` answers the list too.
 

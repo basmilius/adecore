@@ -1,20 +1,23 @@
 import { expect, test } from 'bun:test';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { VISUAL_HOST_PAGE, injectVisualBootstrap } from '@adecore/agent-contracts/visual';
 
 test('a sandboxed visual follows the timeline while its own controls retain their scroll', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'adecore-visual-viewport-'));
+    const theme = await readFile(join(import.meta.dir, '../theme.css'), 'utf8');
     const fixture =
-        injectVisualBootstrap(`<!doctype html><style>body{margin:0}#content{height:6000px;position:relative}#nested{position:absolute;top:180px;left:20px;width:180px;height:140px;overflow:auto}#target{position:absolute;top:3200px}#editable{position:absolute;top:80px;left:20px}a{position:absolute;top:30px;left:20px}</style>
+        injectVisualBootstrap(`<!doctype html><style>body{margin:0}#content{height:6000px;position:relative}#nested{position:absolute;top:180px;left:20px;width:180px;height:140px;overflow:auto}#target{position:absolute;top:3200px}#editable{position:absolute;top:80px;left:20px}a{position:absolute;top:30px;left:20px}@media(max-width:700px){body.responsive #content{height:7200px}}</style>
         <div id="content"><a href="#target">Jump</a><input id="editable" value="Keep typing"><div id="nested"><div style="height:600px">Scrollable mockup</div></div><button id="target">Deep target</button></div>
         <script>window.addEventListener('message', function(event) {
             if(event.source !== parent || event.data?.kind !== 'test-state') return;
+            if(event.data.responsive !== undefined) document.body.classList.toggle('responsive', event.data.responsive);
+            if(event.data.value) document.getElementById('editable').value = event.data.value;
             if(event.data.height) document.getElementById('content').style.height = event.data.height + 'px';
             if(event.data.short) { document.getElementById('content').innerHTML = ''; document.getElementById('content').style.height = '240px'; }
             if(event.data.nestedEnd) document.getElementById('nested').scrollTop = 600;
-            parent.postMessage({kind:'test-state', top:scrollY, height:innerHeight, nested:document.getElementById('nested')?.scrollTop ?? 0, contentHeight:document.documentElement.scrollHeight, overflow:getComputedStyle(document.documentElement).overflowY}, '*');
+            parent.postMessage({kind:'test-state', top:scrollY, height:innerHeight, width:innerWidth, value:document.getElementById('editable')?.value, nested:document.getElementById('nested')?.scrollTop ?? 0, contentHeight:document.documentElement.scrollHeight, overflow:getComputedStyle(document.documentElement).overflowY}, '*');
         });</script>`);
     const entry = join(directory, 'entry.ts');
     await writeFile(
@@ -25,14 +28,32 @@ test('a sandboxed visual follows the timeline while its own controls retain thei
         import { setChatHost } from ${JSON.stringify(join(import.meta.dir, '../host.ts'))};
         import { ChatScopeContext } from ${JSON.stringify(join(import.meta.dir, '../scope.ts'))};
         import { VisualFrame } from ${JSON.stringify(join(import.meta.dir, 'ui/VisualFrame.tsx'))};
-        import { rowPosition } from ${JSON.stringify(join(import.meta.dir, 'ui/rows/row-rhythm.ts'))};
+        import { RowContainer } from ${JSON.stringify(join(import.meta.dir, 'ui/rows/RowContainer.tsx'))};
+        import { threadPaddingLeft, STRIP_CLEARANCE_PX } from ${JSON.stringify(join(import.meta.dir, 'logic/scrubber.ts'))};
         const scroller = document.getElementById('scroller');
         setChatHost({
             visuals: { frameUrl: location.origin + '/visual', openLink: () => {} },
             attachments: { read: async () => new Blob([${JSON.stringify(fixture)}]), useUrl: () => ({url:null}) }
         });
         const app = createRoot(document.getElementById('mount'));
-        const render = (fill = false) => app.render(createElement(ChatScopeContext.Provider, {value:{id:'test'}}, createElement('div', {'data-index':1, style:fill?{position:'absolute',top:200,height:500,width:'100%'}:{position:'absolute',top:0,width:'100%',...rowPosition('visual',200)}}, createElement(VisualFrame, {chatId:'test', visual:{id:'page', title:'Chart', at:0, maxHeight:2000, size:1}, fill, key:fill?'expanded':'inline'}))));
+        let layout;
+        const render = (fill = false) => {
+            const visual = {id:'page', title:'Chart', at:0, maxHeight:2000, size:1, layout};
+            const frame = createElement(VisualFrame, {chatId:'test', visual, fill, key:fill?'expanded':'inline'});
+            app.render(createElement(ChatScopeContext.Provider, {value:{id:'test'}},
+                createElement(RowContainer, {row:{kind:'assistant',id:'text',text:'Before'},previous:null,index:0,top:0}, createElement('p', {id:'text'}, 'Before the visual')),
+                fill ? createElement('div', {'data-index':1,style:{position:'absolute',top:200,height:500,width:'100%'}}, frame)
+                    : createElement(RowContainer, {row:{kind:'visual',id:'page',visual},previous:null,index:1,top:200}, frame)
+            ));
+        };
+        window.setLayout = next => { layout = next; render(); };
+        window.resizePane = (width, strip = false) => {
+            scroller.style.width = width + 'px';
+            const thread = document.getElementById('thread');
+            const padding = threadPaddingLeft(width, strip);
+            thread.style.paddingLeft = padding + 'px';
+            thread.style.setProperty('--chat-wide-inset', (2 * (strip ? STRIP_CLEARANCE_PX : padding) - padding) + 'px');
+        };
         render();
         window.expanded = false;
         window.frameReady = false;
@@ -53,7 +74,7 @@ test('a sandboxed visual follows the timeline while its own controls retain thei
             const receive = event => {
                 if(event.source !== frame.contentWindow || event.data?.kind !== 'test-state') return;
                 window.removeEventListener('message',receive);
-                resolve({...event.data, scroll:scroller.scrollTop, boxHeight:box.offsetHeight, frameHeight:frame.offsetHeight, frameTop:frame.getBoundingClientRect().top});
+                resolve({...event.data, scroll:scroller.scrollTop, boxHeight:box.offsetHeight, frameHeight:frame.offsetHeight, frameTop:frame.getBoundingClientRect().top, frameLeft:frame.getBoundingClientRect().left, frameWidth:frame.offsetWidth, textWidth:document.getElementById("text").offsetWidth, textLeft:document.getElementById("text").getBoundingClientRect().left, scrollWidth:scroller.scrollWidth, paneWidth:scroller.clientWidth});
             };
             window.addEventListener('message',receive);
             frame.contentWindow.postMessage({kind:'test-state',...command},'*');
@@ -82,8 +103,8 @@ test('a sandboxed visual follows the timeline while its own controls retain thei
                 return new Response(script, { headers: { 'Content-Type': 'text/javascript' } });
             }
             return new Response(
-                `<!doctype html><style>body{margin:0;padding:30px}#scroller{width:640px;height:600px;overflow:auto;overflow-anchor:none}.pointer-events-none{pointer-events:none}.relative{position:relative}.sticky{position:sticky}.top-0{top:0}.w-full{width:100%}.size-full{width:100%;height:100%}.absolute{position:absolute}.inset-0{inset:0}iframe{display:block;width:100%;height:100%;border:0}.message{height:200px}</style>
-                <div style="position:relative;width:640px"><div id="scroller" class="chat-scroll"><div id="mount" style="position:relative;height:6400px"></div></div><div id="composer" style="position:absolute;bottom:0;width:100%;height:100px;background:rgba(255,255,255,.8)"></div></div><script type="module" src="/entry.js"></script>`,
+                `<!doctype html><style>${theme}</style><style>*{box-sizing:border-box}body{margin:0;padding:30px}#thread{padding-inline:16px}.inset-x-0{left:0;right:0}.mx-auto{margin-inline:auto}#scroller{width:640px;height:600px;overflow:auto;overflow-anchor:none}.pointer-events-none{pointer-events:none}.relative{position:relative}.sticky{position:sticky}.top-0{top:0}.w-full{width:100%}.size-full{width:100%;height:100%}.absolute{position:absolute}.inset-0{inset:0}iframe{display:block;width:100%;height:100%;border:0}.message{height:200px}</style>
+                <div style="position:relative;width:640px"><div id="scroller" class="chat-scroll chat-column"><div id="thread"><div id="mount" style="position:relative;height:6400px"></div></div></div><div id="composer" style="position:absolute;bottom:0;width:100%;height:100px;background:rgba(255,255,255,.8)"></div></div><script type="module" src="/entry.js"></script>`,
                 { headers: { 'Content-Type': 'text/html' } }
             );
         }
@@ -150,8 +171,8 @@ test('a sandboxed visual follows the timeline while its own controls retain thei
         await view.cdp('Input.dispatchKeyEvent', { type: 'keyDown', key: 'End', code: 'End', windowsVirtualKeyCode: 35 });
         await view.cdp('Input.dispatchKeyEvent', { type: 'keyUp', key: 'End', code: 'End', windowsVirtualKeyCode: 35 });
         expect((await view.evaluate<{ scroll: number }>('sample()')).scroll).toBe(200);
-        await view.cdp('Input.dispatchMouseEvent', { type: 'mousePressed', x: 60, y: 70, button: 'left', clickCount: 1 });
-        await view.cdp('Input.dispatchMouseEvent', { type: 'mouseReleased', x: 60, y: 70, button: 'left', clickCount: 1 });
+        await view.cdp('Input.dispatchMouseEvent', { type: 'mousePressed', x: 75, y: 70, button: 'left', clickCount: 1 });
+        await view.cdp('Input.dispatchMouseEvent', { type: 'mouseReleased', x: 75, y: 70, button: 'left', clickCount: 1 });
         await waitFor('(async()=> (await sample()).scroll >= 3300)()');
         await view.cdp('Input.dispatchKeyEvent', { type: 'keyDown', key: 'PageDown', code: 'PageDown', windowsVirtualKeyCode: 34 });
         await view.cdp('Input.dispatchKeyEvent', { type: 'keyUp', key: 'PageDown', code: 'PageDown', windowsVirtualKeyCode: 34 });
@@ -164,6 +185,40 @@ test('a sandboxed visual follows the timeline while its own controls retain thei
         await waitFor('(async()=> (await sample()).scroll > 200)()');
         await view.cdp('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
         await view.cdp('Emulation.setTouchEmulationEnabled', { enabled: false });
+        await view.resize(1400, 720);
+        await view.evaluate("(()=> {move(1700); resizePane(1280); return sample({value:'Retained',responsive:true});})()");
+        await waitFor('(async()=> {const s=await sample();return s.frameWidth===768 && s.boxHeight===6000 && s.top===1500;})()');
+        const inline = await view.evaluate<{ frameLeft: number; textLeft: number }>('sample()');
+        expect(inline.frameLeft).toBe(inline.textLeft);
+        await view.evaluate("setLayout('wide')");
+        await waitFor('(async()=> (await sample()).frameWidth===1216)()');
+        await view.evaluate('resizePane(1280,true)');
+        await waitFor('(async()=> (await sample()).frameWidth===1120)()');
+        const wide = await view.evaluate<{ frameLeft: number; textWidth: number; value: string; scroll: number }>('sample()');
+        expect(wide.frameLeft).toBe(110);
+        expect(wide.textWidth).toBe(768);
+        expect(wide.value).toBe('Retained');
+        expect(wide.scroll).toBe(1700);
+        await view.evaluate('resizePane(680)');
+        await waitFor('(async()=> {const s=await sample();return s.frameWidth===616 && s.boxHeight===7200;})()');
+        await view.evaluate('resizePane(360,true)');
+        await waitFor('(async()=> (await sample()).frameWidth===224)()');
+        const narrow = await view.evaluate<{
+            frameWidth: number;
+            textWidth: number;
+            scrollWidth: number;
+            paneWidth: number;
+            scroll: number;
+            top: number;
+            value: string;
+        }>('sample()');
+        expect(narrow.frameWidth).toBeLessThan(narrow.textWidth);
+        expect(narrow.scrollWidth).toBe(narrow.paneWidth);
+        expect(narrow.scroll).toBe(1700);
+        expect(narrow.top).toBe(1500);
+        expect(narrow.value).toBe('Retained');
+        await view.evaluate("(()=> {resizePane(640); setLayout('inline'); return sample({responsive:false});})()");
+        await waitFor('(async()=> (await sample()).boxHeight===6000)()');
         await view.evaluate('sample({height:8200})');
         await waitFor('(async()=> (await sample()).boxHeight === 8200)()');
         await view.evaluate('move(200)');

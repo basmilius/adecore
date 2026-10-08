@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { type CSSProperties, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import clsx from 'clsx';
@@ -27,6 +27,7 @@ import {
     messagesInView,
     stepMessage,
     threadPaddingLeft,
+    STRIP_CLEARANCE_PX,
     tickOfRow,
     ticksOf,
     ticksWithHits
@@ -39,12 +40,13 @@ import { MessageActions } from './MessageActions';
 import { Scrubber, type CardChat } from './Scrubber';
 import { TimelineMenuPopup } from './TimelineMenu';
 import { VisualDialogs } from './VisualDialogs';
-import { FOLLOW_THRESHOLD_PX, replyHeader, rowPosition, rowRhythm } from './rows/row-rhythm';
+import { FOLLOW_THRESHOLD_PX, replyHeader } from './rows/row-rhythm';
 import { QuoteButton } from './QuoteButton';
 import { QuoteTakerContext, type QuoteTaker } from './quote-selection';
 import { useToggleSet } from './useToggleSet';
 import { WelcomeGreeting } from './Welcome';
 import { Row } from './rows/Rows';
+import { RowContainer } from './rows/RowContainer';
 import { ReplyHeader } from './rows/MessageRows';
 import { useChatRow, useChats } from '../../state/chats';
 import { chatHost } from '../../host';
@@ -530,7 +532,12 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
                             <ContextMenu.Trigger
                                 ref={threadRef}
                                 className={clsx('chat-thread flex flex-col px-4 pt-4', !welcome && 'grow')}
-                                style={{ paddingLeft }}
+                                style={
+                                    {
+                                        paddingLeft,
+                                        '--chat-wide-inset': `${2 * (showsScrubber ? STRIP_CLEARANCE_PX : paddingLeft) - paddingLeft}px`
+                                    } as CSSProperties
+                                }
                                 inert={overlay ? true : undefined}
                                 onContextMenu={(e) =>
                                     setTarget(readTimelineTarget(e.target as HTMLElement, threadRef.current, withCurrentText(rows, fullItems())))
@@ -541,25 +548,19 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
                                 ) : empty ? (
                                     <EmptyThread chatId={chatId} />
                                 ) : (
-                                    <div className="chat-column-content relative w-full shrink-0" style={{ height: virtualizer.getTotalSize() }}>
+                                    <div className="relative w-full shrink-0" style={{ height: virtualizer.getTotalSize() }}>
                                         {virtualizer.getVirtualItems().map((virtualRow) => {
                                             const row = rows[virtualRow.index]!;
-                                            // Put turn gaps inside the measured row so the virtualizer includes them.
-                                            const question = row.kind === 'user';
                                             const previous = virtualRow.index > 0 ? rows[virtualRow.index - 1]! : null;
                                             const header = replyHeader(row, previous);
                                             return (
-                                                <div
+                                                <RowContainer
                                                     key={row.id}
-                                                    data-index={virtualRow.index}
-                                                    data-item-id={row.id}
+                                                    row={row}
+                                                    previous={previous}
+                                                    index={virtualRow.index}
+                                                    top={virtualRow.start}
                                                     ref={virtualizer.measureElement}
-                                                    className={clsx(
-                                                        'absolute left-0 top-0 w-full',
-                                                        rowRhythm(row, previous),
-                                                        question && virtualRow.index > 0 && 'pt-(--chat-turn-gap)'
-                                                    )}
-                                                    style={rowPosition(row.kind, virtualRow.start)}
                                                 >
                                                     {flash !== null && flash.key === keyOf(chatId) && flash.rowId === row.id && (
                                                         <span
@@ -568,7 +569,11 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
                                                             aria-hidden
                                                         />
                                                     )}
-                                                    {header !== null && <ReplyHeader chatId={chatId} at={header.at} />}
+                                                    {header !== null && (
+                                                        <div className="chat-column-content w-full">
+                                                            <ReplyHeader chatId={chatId} at={header.at} />
+                                                        </div>
+                                                    )}
                                                     <FindRevealContext.Provider value={chatFind.reveal}>
                                                         <MarkableRow row={row} chatId={chatId} bookmark={marks.get(row.id) ?? null}>
                                                             <Row
@@ -582,7 +587,7 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
                                                             />
                                                         </MarkableRow>
                                                     </FindRevealContext.Provider>
-                                                </div>
+                                                </RowContainer>
                                             );
                                         })}
                                     </div>

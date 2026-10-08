@@ -36,7 +36,7 @@ const THREAD_PADDING_PX = 16;
 export const STRIP_WIDTH_PX = 24;
 /* The strip's distance from the view's left edge, and the air it keeps between itself and the thread's text. */
 export const STRIP_INSET_PX = 8;
-const STRIP_CLEARANCE_PX = STRIP_INSET_PX + STRIP_WIDTH_PX + STRIP_INSET_PX;
+export const STRIP_CLEARANCE_PX = STRIP_INSET_PX + STRIP_WIDTH_PX + STRIP_INSET_PX;
 
 const WIDTH_HOVERED_PX = 16;
 const WIDTH_NEAR_PERSON_PX = 12;
