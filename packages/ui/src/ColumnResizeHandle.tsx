@@ -1,4 +1,4 @@
-import type { PointerEvent as ReactPointerEvent, Ref } from 'react';
+import type { CSSProperties, PointerEvent as ReactPointerEvent, Ref } from 'react';
 import clsx from 'clsx';
 import type { ColumnEdge } from './useColumnResize.ts';
 
@@ -7,6 +7,7 @@ export interface ColumnResizeHandleProps {
     from: ColumnEdge;
     onPointerDown(event: ReactPointerEvent<HTMLElement>): void;
     className?: string;
+    style?: CSSProperties;
     ref?: Ref<HTMLDivElement>;
 }
 
@@ -18,6 +19,6 @@ const PLACEMENT: Record<ColumnEdge, string> = {
 };
 
 /* An invisible strip over the free edge of a column, so the column needs `relative` and draws its own border. */
-export function ColumnResizeHandle({ from, onPointerDown, className, ref }: ColumnResizeHandleProps) {
-    return <div ref={ref} className={clsx('absolute z-10', PLACEMENT[from], className)} onPointerDown={onPointerDown} />;
+export function ColumnResizeHandle({ from, onPointerDown, className, style, ref }: ColumnResizeHandleProps) {
+    return <div ref={ref} className={clsx('absolute z-10', PLACEMENT[from], className)} style={style} onPointerDown={onPointerDown} />;
 }

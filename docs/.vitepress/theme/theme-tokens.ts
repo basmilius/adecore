@@ -78,7 +78,7 @@ const declarationsOf = (body: string): [string, string][] =>
 
 const GROUPS: [string, RegExp][] = [
     ['ground', /^(bg|surface.*)$/],
-    ['border', /^border/],
+    ['border', /^(border.*|separator)$/],
     ['text', /^text/],
     ['accent', /^(accent.*|selection)$/],
     ['status', /^(status-.*|positive.*)$/],

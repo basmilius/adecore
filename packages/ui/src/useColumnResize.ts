@@ -28,20 +28,6 @@ export const clampColumnSize = (options: Pick<ColumnResizeOptions, 'min' | 'max'
 /* Where the pointer sits on the axis this edge belongs to. */
 const along = (from: ColumnEdge, event: { clientX: number; clientY: number }): number => (from === 'left' || from === 'right' ? event.clientX : event.clientY);
 
-/* The edge the column is pinned to, in page coordinates, or the window's own when there is no box yet. */
-const anchorOf = (from: ColumnEdge, rect: DOMRect | undefined): number => {
-    switch (from) {
-        case 'left':
-            return rect?.left ?? 0;
-        case 'right':
-            return rect?.right ?? window.innerWidth;
-        case 'top':
-            return rect?.top ?? 0;
-        case 'bottom':
-            return rect?.bottom ?? window.innerHeight;
-    }
-};
-
 /*
  * One resizable column or row: a handle that drags the size its owner keeps. The handle takes the
  * pointer capture, so the drag survives leaving the few pixels it is wide, and `[data-resizing]` on
@@ -52,23 +38,31 @@ export const useColumnResize = (ref: RefObject<HTMLElement | null>, options: Col
         event.preventDefault();
         const handle = event.currentTarget;
         const column = ref.current;
-        const anchor = anchorOf(options.from, column?.getBoundingClientRect());
+        const rect = column?.getBoundingClientRect();
+        const size = (options.from === 'left' || options.from === 'right' ? rect?.width : rect?.height) ?? options.size;
+        const start = along(options.from, event);
         /* The far edge grows as the pointer comes towards it; the near edge grows as it goes away. */
         const growsTowardsAnchor = options.from === 'right' || options.from === 'bottom';
         column?.setAttribute('data-resizing', 'true');
         const onMove = (move: PointerEvent): void => {
-            const reach = along(options.from, move);
-            options.onSize(clampColumnSize(options, growsTowardsAnchor ? anchor - reach : reach - anchor));
+            const delta = along(options.from, move) - start;
+            options.onSize(clampColumnSize(options, size + (growsTowardsAnchor ? -delta : delta)));
         };
         const onUp = (): void => {
             handle.removeEventListener('pointermove', onMove);
             handle.removeEventListener('pointerup', onUp);
-            handle.releasePointerCapture(event.pointerId);
+            handle.removeEventListener('pointercancel', onUp);
+            handle.removeEventListener('lostpointercapture', onUp);
+            if (handle.hasPointerCapture(event.pointerId)) {
+                handle.releasePointerCapture(event.pointerId);
+            }
             column?.removeAttribute('data-resizing');
         };
         handle.setPointerCapture(event.pointerId);
         handle.addEventListener('pointermove', onMove);
         handle.addEventListener('pointerup', onUp);
+        handle.addEventListener('pointercancel', onUp);
+        handle.addEventListener('lostpointercapture', onUp);
     };
 
     return { startResize };

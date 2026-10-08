@@ -16,6 +16,8 @@ Alpha over whatever is behind, never a gray of their own (see [Principles](/ui/g
 
 <TokenTable group="border" />
 
+`--separator` is opaque and fills the space between separated panels. A layout that needs its borders to match those gaps can opt into `--border: var(--separator)` in both theme scopes. The default border tokens keep their alpha values.
+
 ## Text
 
 <TokenTable group="text" />

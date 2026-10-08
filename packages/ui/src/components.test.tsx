@@ -601,12 +601,21 @@ describe('the provider', () => {
 });
 
 describe('a sliding column', () => {
-    const renderColumn = (open: boolean, instant: boolean): string =>
+    const renderColumn = (open: boolean, instant: boolean, gap = 0): string =>
         render(
-            <SlidingColumn open={open} instant={instant} width={380} bounds={{ min: 320, max: () => 800 }} onWidthChange={() => {}}>
+            <SlidingColumn open={open} instant={instant} gap={gap} width={380} bounds={{ min: 320, max: () => 800 }} onWidthChange={() => {}}>
                 Panel
             </SlidingColumn>
         );
+
+    test('reserves the gap only while open and keeps it outside the stored surface width', () => {
+        const open = renderColumn(true, true, 8);
+        expect(open).toContain('width:388px');
+        expect(open).toContain('width:380px;margin-left:8px');
+        expect(open).not.toContain('border-l border-border');
+        expect(renderColumn(false, true, 8)).toContain('width:0');
+        expect(renderColumn(true, true)).toContain('border-l border-border');
+    });
 
     test('lands without the motion while its width is being restored', () => {
         expect(renderColumn(true, true)).toContain('data-instant=""');

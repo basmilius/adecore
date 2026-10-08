@@ -26,6 +26,8 @@
        own clips its background to the padding box (see `@layer base`), or the border would blend
        with that surface and never with the ground behind it. */
     --border: rgb(0 0 0 / 0.11);
+    /* Opaque, so a gap has the same color on every surface. */
+    --separator: oklch(0.922 0.003 286.347);
     --border-strong: rgb(0 0 0 / 0.2);
     /* A hairline that stays out of the way: on a sunken field a full `--border` draws a box. */
     --border-soft: rgb(0 0 0 / 0.06);
@@ -94,6 +96,7 @@
     --surface-active: #28282e;
     /* White at a low alpha, which is what gives a dark surface its lifted edge. */
     --border: rgb(255 255 255 / 0.07);
+    --separator: oklch(0.236 0.006 285.956);
     --border-strong: rgb(255 255 255 / 0.13);
     --border-soft: rgb(255 255 255 / 0.03);
     --text: #ececf1;
@@ -205,6 +208,7 @@
     --color-surface-hover: var(--surface-hover);
     --color-surface-active: var(--surface-active);
     --color-border: var(--border);
+    --color-separator: var(--separator);
     --color-border-strong: var(--border-strong);
     --color-border-soft: var(--border-soft);
     --color-text: var(--text);
@@ -567,6 +571,17 @@
 
     /* A `SlidingColumn` opening and closing. A drag or a width restored on load lands at once. */
     .sliding-column { transition: width 200ms cubic-bezier(0, 0, 0.2, 1); }
+    .sliding-column[data-gap] { background: var(--separator); }
+    .sliding-column-resize { touch-action: none; }
+    .sliding-column[data-gap] .sliding-column-resize::after {
+        content: '';
+        position: absolute;
+        inset-block: 0;
+        left: calc(50% - 1px);
+        width: 2px;
+    }
+    .sliding-column[data-gap] .sliding-column-resize:hover::after,
+    .sliding-column[data-gap][data-resizing] .sliding-column-resize::after { background: var(--accent); }
     .sliding-column[data-resizing],
     .sliding-column[data-instant] { transition: none; }
 }

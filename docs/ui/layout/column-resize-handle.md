@@ -17,6 +17,7 @@ import { ColumnResizeHandle, useColumnResize } from '@adecore/ui';
 | `from` | `ColumnEdge` | | Required. `'left' \| 'right' \| 'top' \| 'bottom'` |
 | `onPointerDown` | `(event: PointerEvent) => void` | | Required. `startResize` from the hook. |
 | `className` | `string` | | |
+| `style` | `CSSProperties` | | Inline dimensions or placement, such as a wider gap. |
 | `ref` | `Ref<HTMLDivElement>` | | |
 
 `ColumnResizeHandleProps` is an exported type.

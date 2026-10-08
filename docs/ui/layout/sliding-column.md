@@ -14,6 +14,10 @@ You keep the width. `onWidthChange` hands you every size during a drag, a whole 
 
 `instant` lands the width without the motion, for a column whose place is restored as the page loads. Only what a person does afterwards should animate.
 
+## Space between panels
+
+Set `gap={8}` to replace the left border with eight pixels of space in `--separator`. The resize handle fills that space. `width`, `bounds`, and `onWidthChange` describe the surface alone; the open column occupies `width + gap` pixels. A closed column still takes no space. Leaving `gap` at zero preserves the border and existing layout.
+
 ## A column with shortcuts
 
 `body` hands the column the keyboard, for a panel with shortcuts of its own. The inner column becomes focusable by script (`tabIndex={-1}`), so opening something in it can move focus there without a click first, and its `onKeyDown` hears the keys while focus is inside.
@@ -24,6 +28,7 @@ You keep the width. `onWidthChange` hands you every size during a drag, a whole 
 | --- | --- | --- | --- |
 | `open` | `boolean` | | Required. |
 | `width` | `number` | | Required. In pixels, already clamped. |
+| `gap` | `number` | `0` | Space before the surface, in whole pixels. |
 | `bounds` | `{ min: number; max(): number }` | | Required. `max` is read at drag time, so a window resize between two drags counts. |
 | `onWidthChange` | `(width: number) => void` | | Required. |
 | `instant` | `boolean` | `false` | |
