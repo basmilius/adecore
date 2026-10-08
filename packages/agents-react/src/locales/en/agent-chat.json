@@ -307,7 +307,9 @@
       "description": "A turn is running. Stop it and clear the thread?",
       "confirm": "Stop and clear"
     },
-    "waitingBelow": "Waiting for your answer below"
+    "waitingBelow": "Waiting for your answer below",
+    "steerButton": "Send to the running agent. Hold Option or Alt to queue after this turn.",
+    "queueWithSteerButton": "Queue after this turn. Hold Option or Alt to send to the running agent."
   },
   "activity": {
     "subagents_one": "{{count}} sub-agent",

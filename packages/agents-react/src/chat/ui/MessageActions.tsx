@@ -9,19 +9,18 @@ import { markdownOf, messageTextOf } from '../logic/timeline-copy';
 import { chatHost } from '../../host';
 import { useChatScope } from '../../scope';
 import { useChatRow, useChats } from '../../state/chats';
-import { ButtonGroup, copyText, IconButton } from '@adecore/ui';
+import { ButtonGroup, copyText, IconButton, Tooltip } from '@adecore/ui';
+import { formatClock, formatDateTime, useFormatLocale } from '@adecore/ui/format';
 
 const COPIED_MS = 1500;
+const TIMESTAMP_FORMAT: Intl.DateTimeFormatOptions = { dateStyle: 'full', timeStyle: 'medium' };
 
 type MessageRow = Extract<TimelineRow, { kind: 'user' | 'assistant' }>;
 
-/*
- * Bookmark, fork and copy under a message, shown while the pointer or the focus is on a
- * `group/message`. The row always takes its height, so the virtualizer never measures it again on a
- * hover. Like the strip's card, it leaves out an action the message cannot take right now.
- */
+/* Hidden actions keep their height, so hovering never forces the virtualizer to remeasure. */
 export function MessageActions({ chatId, row }: { chatId: string; row: MessageRow }) {
     const { t } = useTranslation('agent-chat');
+    useFormatLocale();
     const scope = useChatScope();
     const { fork } = chatHost();
     const turnId = row.item.turnId;
@@ -61,8 +60,8 @@ export function MessageActions({ chatId, row }: { chatId: string; row: MessageRo
             role="toolbar"
             aria-label={t('timeline.actions.label')}
             className={clsx(
-                'flex h-7 items-center opacity-0 transition-opacity group-has-focus-visible/message:opacity-100 group-hover/message:opacity-100',
-                row.kind === 'user' ? '-mr-1.5 mt-1.5 justify-end' : '-ml-1.5'
+                'flex h-7 items-center gap-2 opacity-0 transition-opacity group-has-focus-visible/message:opacity-100 group-hover/message:opacity-100',
+                row.kind === 'user' && 'mt-1.5 justify-end'
             )}
         >
             {!streaming && (
@@ -83,6 +82,14 @@ export function MessageActions({ chatId, row }: { chatId: string; row: MessageRo
                     )}
                 </ButtonGroup>
             )}
+            <Tooltip label={formatDateTime(row.item.createdAt, TIMESTAMP_FORMAT)}>
+                <time
+                    dateTime={new Date(row.item.createdAt).toISOString()}
+                    className={clsx('shrink-0 text-xs text-text-faint tabular-nums select-none', row.kind === 'assistant' && 'order-first')}
+                >
+                    {formatClock(row.item.createdAt)}
+                </time>
+            </Tooltip>
         </div>
     );
 }

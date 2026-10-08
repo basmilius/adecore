@@ -98,6 +98,7 @@ export interface LimitResumeHooks {
 const TITLE_RECHECK_MS = 10_000;
 
 export interface ChatSendExtras {
+    delivery?: 'steer' | 'queue';
     mentions?: string[];
     skills?: string[];
     chats?: string[];
@@ -175,6 +176,7 @@ export class ChatSession {
     private readonly orphans = new Set<string>();
     private pendingPreambles: readonly string[];
     private submission: { turnId: string; input: TurnInput } | null = null;
+    private readonly steering = new Set<string>();
 
     constructor(options: ChatSessionOptions) {
         this.options = options;
@@ -249,9 +251,7 @@ export class ChatSession {
     }
 
     /*
-     * A message while a turn runs joins the queue instead of being refused; the host sends it when
-     * that turn settles. One queue for both providers: Claude's steer and Codex's own queue have
-     * different semantics, and one rule is easier to reason about than a rule per CLI.
+     * Internal follow-ups wait for a new turn. User input goes through `sendInput`, which can steer native work.
      */
     send(text: string, extras: ChatSendExtras = {}): { queued: boolean; turnId: string } {
         const turnId = newId('turn');
@@ -279,11 +279,76 @@ export class ChatSession {
         return { queued: false, turnId };
     }
 
+    sendInput(text: string, extras: ChatSendExtras = {}): Promise<{ queued: boolean; turnId: string }> {
+        return this.submitInput(text, extras);
+    }
+
+    private async submitInput(text: string, extras: ChatSendExtras): Promise<{ queued: boolean; turnId: string }> {
+        const backend = this.backend;
+        const turnId = this.info.activeTurnId;
+        if (
+            extras.delivery !== 'steer' ||
+            this.info.queuePaused ||
+            text.startsWith('/') ||
+            !this.busy ||
+            !turnId ||
+            !backend?.steerTurn ||
+            this.pendingStart ||
+            this.replacementWaits()
+        ) {
+            return this.send(text, extras);
+        }
+        const queued = this.send(text, extras);
+        const message = this.queue.find((entry) => entry.turnId === queued.turnId);
+        if (!message) {
+            return queued;
+        }
+        this.steering.add(message.id);
+        try {
+            const references = this.options.references?.(extras.chats) ?? { ids: extras.chats ?? [], note: null };
+            const accepted = await backend.steerTurn({
+                promptId: message.id,
+                text,
+                preamble: references.note,
+                attachments: extras.attachments ?? [],
+                mentions: extras.mentions ?? [],
+                skills: extras.skills ?? []
+            });
+            if (!accepted) {
+                return queued;
+            }
+            this.emit([
+                this.thread.upsert({
+                    id: `user-${message.id}`,
+                    kind: 'user',
+                    createdAt: message.createdAt,
+                    turnId,
+                    text,
+                    mentions: extras.mentions,
+                    skills: extras.skills,
+                    chats: references.ids,
+                    attachments: extras.attachments
+                }),
+                this.thread.patchInfo({ queue: this.queue.filter((entry) => entry.id !== message.id) })
+            ]);
+            this.options.persist();
+            return { queued: false, turnId };
+        } catch (error) {
+            // A lost acknowledgement does not prove rejection. Keep the message for an explicit retry.
+            this.pauseQueue(true);
+            this.options.persist();
+            throw error;
+        } finally {
+            this.steering.delete(message.id);
+            this.drainQueue();
+        }
+    }
+
     /* Drops a queued message and hands it back; null when nothing waits under that id, as once it went out. */
     unqueue(messageId: string): ChatQueuedMessage | null {
         const queue = this.queue;
         const message = queue.find((entry) => entry.id === messageId);
-        if (!message) {
+        if (!message || this.steering.has(message.id)) {
             return null;
         }
         this.setQueue(queue.filter((entry) => entry.id !== messageId));
@@ -294,7 +359,7 @@ export class ChatSession {
     sendNow(messageId: string): boolean {
         const queue = this.queue;
         const message = queue.find((entry) => entry.id === messageId);
-        if (!message) {
+        if (!message || this.steering.has(message.id)) {
             return false;
         }
         this.setQueue([message, ...queue.filter((entry) => entry.id !== messageId)]);
@@ -323,6 +388,7 @@ export class ChatSession {
         const explicit = asked || this.sendAfterReplacement;
         if (
             !next ||
+            this.steering.size > 0 ||
             this.busy ||
             (!explicit && (this.info.queuePaused || (limited !== null && (limited.limit.kind === 'usage' || this.info.resumeAt !== undefined))))
         ) {

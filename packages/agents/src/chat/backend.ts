@@ -175,6 +175,8 @@ export interface ChatBackend {
     // Starts the process if it has not started; resolves once the CLI can take a turn.
     start(): Promise<void>;
     sendTurn(input: TurnInput): void;
+    // Resolves after native acceptance; false means the turn ended before the input could join it.
+    steerTurn?(input: TurnInput): Promise<boolean>;
     compact(): void;
     interrupt(): void;
     // False when nothing waits under that id, so the caller can answer the client with an error.

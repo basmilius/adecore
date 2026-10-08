@@ -368,23 +368,25 @@ export function deriveTimelineRows(items: ChatItem[], options: TimelineOptions):
         }
         const turnId = chunk.turnId;
         const turn = chunk.items.find((item): item is ChatTurnItem => item.kind === 'turn');
-        const user = chunk.items.filter((item) => item.kind === 'user');
-        const rest = chunk.items.filter((item) => item.kind !== 'user' && item.kind !== 'turn');
+        const conversation = chunk.items.filter((item) => item.kind !== 'turn');
         if (turn?.origin === 'agent') {
             // The agent started this one itself, so there is no message of the person to show above it.
             rows.push({ kind: 'turn-start', id: `start-${turnId}`, turn, label: agentTurnLabel(turn) });
         }
-        rows.push(...rowsForItems(user, options, children));
         const active = turnId === options.activeTurnId || turn?.state === 'running';
-        const work = rowsForItems(rest, options, children);
         if (!turn || active) {
-            rows.push(...work);
+            rows.push(...rowsForItems(conversation, options, children));
             if (active) {
                 rows.push({ kind: 'working', id: `working-${turnId}`, startedAt: turn?.createdAt ?? Date.now() });
             }
             continue;
         }
-        // The closing answer stays visible; everything before it folds behind the label.
+        // Steering splits the conversation inside a turn. Earlier responses keep their place above it.
+        const lastUser = conversation.findLastIndex((item) => item.kind === 'user');
+        rows.push(...rowsForItems(conversation.slice(0, lastUser + 1), options, children));
+        const rest = conversation.slice(lastUser + 1);
+        const work = rowsForItems(rest, options, children);
+        // The closing answer stays visible; the work after the last input folds behind the label.
         const finalAssistant = lastAssistantRow(work);
         const before = finalAssistant ? work.slice(0, work.indexOf(finalAssistant)) : work;
         // A workflow runs on past the turn that launched it, so its row stays in sight until it ends.
@@ -407,7 +409,7 @@ export function deriveTimelineRows(items: ChatItem[], options: TimelineOptions):
             }
         }
         rows.push(...standing);
-        const changed = changedFilesRow(turn, rest);
+        const changed = changedFilesRow(turn, conversation);
         if (changed) {
             rows.push(changed);
         }

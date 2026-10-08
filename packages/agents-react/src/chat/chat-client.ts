@@ -28,6 +28,7 @@ interface ChatOpenOptions {
 }
 
 export interface ChatSendExtras {
+    delivery?: 'steer' | 'queue';
     /* Paths picked with `@`; they also sit in the text, this is what the timeline highlights. */
     mentions?: string[];
     /* Skills picked with `$`; they also sit in the text, this is what the timeline chips. */

@@ -17,6 +17,17 @@ export const SUGGESTED_TITLE_LIMIT = 80;
 // Written by a model, so a node shows it as plain text and nothing reads it as an instruction.
 export const SuggestedTitleSchema = z.string().min(1).max(SUGGESTED_TITLE_LIMIT);
 
+export const AgentRequestSchema = z.object({
+    id: z.string().min(1),
+    source: z.string(),
+    kind: z.enum(['approval', 'question']),
+    toolName: z.string(),
+    title: z.string().nullable(),
+    text: z.string(),
+    createdAt: z.number()
+});
+export type AgentRequest = z.infer<typeof AgentRequestSchema>;
+
 export const AgentInfoSchema = z.object({
     kind: AgentKindSchema,
     // The CLI's own session id, what `--resume` takes.
@@ -25,6 +36,7 @@ export const AgentInfoSchema = z.object({
     // The name the CLI wrote down for the session; Claude Code and the Codex TUI write one.
     suggestedTitle: SuggestedTitleSchema.optional(),
     status: AgentStatusSchema,
+    requests: z.array(AgentRequestSchema).optional(),
     // False once the daemon came back after a restart: the CLI is gone but its session can be resumed.
     live: z.boolean(),
     updatedAt: z.number()

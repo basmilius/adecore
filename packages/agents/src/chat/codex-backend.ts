@@ -126,7 +126,7 @@ export class CodexBackend implements ChatBackend {
         }
     }
 
-    sendTurn(input: TurnInput): void {
+    private turnInput(input: TurnInput): unknown[] {
         const images = input.attachments.filter((attachment) => attachmentImageMime(attachment) !== null);
         if (images.length > 0 && this.imageInputSupported === false) {
             throw new Error(`${this.launch.modelName} does not support image input. Choose a model that accepts images.`);
@@ -151,6 +151,11 @@ export class CodexBackend implements ChatBackend {
         if (note !== '') {
             parts.push(`\n\n${note}`);
         }
+        return [...textInput(parts.join('')), ...images.map((attachment) => ({ type: 'localImage', path: attachment.path }))];
+    }
+
+    sendTurn(input: TurnInput): void {
+        const nativeInput = this.turnInput(input);
         const effort = this.launch.selection.options.effort;
         const tier = codexServiceTier(this.launch.selection);
         this.turnUnnamed = true;
@@ -159,13 +164,31 @@ export class CodexBackend implements ChatBackend {
             'turn/start',
             {
                 threadId: this.threadId,
-                input: [...textInput(parts.join('')), ...images.map((attachment) => ({ type: 'localImage', path: attachment.path }))],
+                input: nativeInput,
                 model: this.launch.selection.model,
                 ...(typeof effort === 'string' ? { effort } : {}),
                 ...(tier === null ? {} : { serviceTier: tier })
             },
             () => this.acceptPrompt(input.promptId)
         );
+    }
+
+    async steerTurn(input: TurnInput): Promise<boolean> {
+        const transport = this.transport;
+        const turnId = this.protocol.turnId;
+        if (!transport || !turnId || this.turnUnnamed) {
+            return false;
+        }
+        try {
+            await transport.request('turn/steer', { threadId: this.threadId, expectedTurnId: turnId, input: this.turnInput(input) });
+            return true;
+        } catch (error) {
+            const rejected = error instanceof Error && error.name === 'CodexRpcError';
+            if (rejected && /no active turn|not.*active|turn.*mismatch|expected.*turn|method not found/i.test(error.message)) {
+                return false;
+            }
+            throw error;
+        }
     }
 
     private acceptPrompt(promptId: string | undefined): void {
@@ -308,9 +331,9 @@ export class CodexBackend implements ChatBackend {
         return true;
     }
 
-    /* Codex asks its async question once and waits; forgetting it locally is all a dismissal is. */
     dismissRequest(requestId: string): boolean {
-        return this.protocol.dismissQuestion(requestId);
+        const answer = this.protocol.dismissQuestionAnswer(requestId);
+        return answer?.kind === 'respond' ? this.respond(requestId, answer.rpcId, answer.result) : this.protocol.dismissQuestion(requestId);
     }
 
     declineRequest(requestId: string, _message: string): boolean {

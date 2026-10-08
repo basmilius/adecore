@@ -166,6 +166,8 @@ function splitPath(path: string): { name: string; dir: string } {
 // Keep the editor mounted while a pending request takes over, so its selection and draft survive.
 export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabled, readOnly = false, providerFixed, onSend, onRetarget }: ComposerProps) {
     const { t } = useTranslation('agent-chat');
+    const sendDelivery = chatHost().useSendDelivery();
+    const canSteer = info.provider === 'claude' || info.provider === 'codex';
     const [draft, setDraft] = useState<ChatDraft>(() => readDraft(chatId));
     const [historyIndex, setHistoryIndex] = useState<number | null>(null);
     const [menuIndex, setMenuIndex] = useState(0);
@@ -602,7 +604,8 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
         setDraft((current) => ({ ...current, attachments: current.attachments.filter((_, i) => i !== index) }));
     };
 
-    const submit = (): void => {
+    const submit = (alternate = false): void => {
+        const delivery = canSteer && (alternate ? sendDelivery === 'queue' : sendDelivery === 'steer') ? 'steer' : 'queue';
         const trimmed = text.trim();
         if (isEmptyDraft(draft) || !writable || guard.tooLong) {
             return;
@@ -633,6 +636,7 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
             return;
         }
         onSend(withQuote(quote, trimmed), {
+            delivery,
             mentions: presentMentions(trimmed, draft.mentions),
             skills: presentSkills(trimmed, draft.skills),
             chats: draft.chats,
@@ -871,7 +875,7 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
                 view.dispatch({ changes: { from: line.from, to: line.to }, selection: { anchor: line.from }, userEvent: 'delete' });
                 return true;
             }
-            submit();
+            submit(e.altKey);
             return true;
         }
         const { from, to } = view.state.selection.main;
@@ -1295,13 +1299,26 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
                                     </button>
                                 </Tooltip>
                             )}
-                            {/* While a turn runs the same button queues the message instead of sending it. */}
                             {(!busy || !isEmptyDraft(draft)) && (
-                                <Tooltip label={busy ? t('composer.queueButton') : t('composer.send')} kbd={KEY_SHORTCUTS.modEnter} name>
+                                <Tooltip
+                                    label={
+                                        busy
+                                            ? t(
+                                                  canSteer
+                                                      ? sendDelivery === 'steer'
+                                                          ? 'composer.steerButton'
+                                                          : 'composer.queueWithSteerButton'
+                                                      : 'composer.queueButton'
+                                              )
+                                            : t('composer.send')
+                                    }
+                                    kbd={KEY_SHORTCUTS.modEnter}
+                                    name
+                                >
                                     <button
                                         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-accent-text hover:brightness-90 disabled:opacity-50 disabled:hover:brightness-100"
                                         disabled={isEmptyDraft(draft) || !writable || guard.tooLong}
-                                        onClick={submit}
+                                        onClick={(event) => submit(event.altKey)}
                                     >
                                         <Icon icon={ArrowUp} size={16} />
                                     </button>

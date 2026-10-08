@@ -21,6 +21,7 @@ A patch replaces top-level fields only: to change one function of `code`, `promp
 | `fileLinks`                        | Paths in a reply stay text                         | `target(text, cwd)` finds a `FileRef` in text, `open(cwd, ref)` opens it.                              |
 | `code`                             | Light, `github-light` and `github-dark`            | `useMode()` follows the app's light or dark, `useThemes()` names the Shiki themes, `custom` registers your own. |
 | `useStreaming()`                   | `words`                                            | How a reply appears while it streams: `words`, `blocks` or `whole`.                                    |
+| `useSendDelivery()` | `queue` | How Send handles running work: `queue` after the turn, or `steer` at the next native input boundary. Option or Alt selects the other behavior. |
 | `useTimelineFind(options)`         | No find in a thread                                | Find in a thread: you get the rows and refs, you hand back a `TimelineFind` with the bar to draw.      |
 | `dictation`                        | `PlainTextarea`, no dictation button               | A `Textarea` for written answers, and an editor extension plus a control for the composer.             |
 | `prompts`                          | No prompts of your own                             | Approvals or questions of your own beside a chat's. See [Prompts](/agents-react/chat/prompts#prompts-of-your-own). |

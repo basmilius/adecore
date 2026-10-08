@@ -876,3 +876,62 @@ test('Stop declines a child request and its runtime closing withdraws another', 
     expect(protocol.handle({ method: 'thread/closed', params: { threadId: 'child' } })).toEqual([{ type: 'request.withdrawn', requestId: '1-2' }]);
     expect(protocol.approvalDecision('1-2', 'allow')).toBeNull();
 });
+
+describe('Codex 0.162 requests', () => {
+    test('a nonblocking RPC question stays optional and answers over its RPC id', () => {
+        const protocol = new CodexProtocol(1);
+        const events = protocol.handle({
+            method: 'item/tool/requestUserInput',
+            id: 42,
+            params: {
+                ...ids,
+                itemId: 'question',
+                isBlocking: false,
+                questions: [{ id: 'pick', header: 'Color', question: 'Which color?', options: null }]
+            }
+        });
+        expect(events).toMatchObject([{ type: 'question.requested', requestId: '1-42', async: true }]);
+        expect(protocol.questionAnswer('1-42', { pick: 'Blue' })).toEqual({ kind: 'respond', rpcId: 42, result: { answers: { pick: { answers: ['Blue'] } } } });
+    });
+
+    test('a permission grant is shown and denial grants nothing', () => {
+        const protocol = new CodexProtocol(1);
+        const permissions = { fileSystem: { write: ['/tmp/export'] }, network: { enabled: true } };
+        const events = protocol.handle({
+            method: 'item/permissions/requestApproval',
+            id: 43,
+            params: {
+                ...ids,
+                itemId: 'permissions',
+                environmentId: 'local',
+                cwd: '/tmp',
+                reason: 'Export the report',
+                permissions
+            }
+        });
+        expect(events).toMatchObject([{ type: 'approval.requested', requestId: '1-43', toolName: 'RequestPermissions', input: { permissions } }]);
+        expect(protocol.approvalDecision('1-43', 'deny')).toEqual({ rpcId: 43, result: { permissions: {}, scope: 'turn' } });
+    });
+});
+
+test.each(['allow', 'allow-always'] as const)('Codex permissions %s grant only the requested permissions', (decision) => {
+    const protocol = new CodexProtocol(1);
+    const permissions = { fileSystem: { write: ['/tmp/export'] } };
+    protocol.handle({ method: 'item/permissions/requestApproval', id: 45, params: { ...ids, itemId: 'grant', cwd: '/tmp', permissions } });
+    expect(protocol.approvalDecision('1-45', decision)).toEqual({
+        rpcId: 45,
+        result: { permissions, scope: decision === 'allow-always' ? 'session' : 'turn' }
+    });
+    expect(protocol.approvalDecision('1-45', 'allow')).toBeNull();
+});
+
+test('dismissing a nonblocking Codex RPC question replies with empty answers', () => {
+    const protocol = new CodexProtocol(1);
+    protocol.handle({
+        method: 'item/tool/requestUserInput',
+        id: 46,
+        params: { ...ids, itemId: 'question', isBlocking: false, questions: [{ id: 'pick', question: 'Which?', options: null }] }
+    });
+    expect(protocol.dismissQuestionAnswer('1-46')).toEqual({ kind: 'respond', rpcId: 46, result: { answers: {} } });
+    expect(protocol.dismissQuestionAnswer('1-46')).toBeNull();
+});

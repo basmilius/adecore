@@ -307,7 +307,9 @@
       "description": "Er loopt een turn. Die stoppen en de thread wissen?",
       "confirm": "Stoppen en wissen"
     },
-    "waitingBelow": "Wacht hieronder op je antwoord"
+    "waitingBelow": "Wacht hieronder op je antwoord",
+    "steerButton": "Stuur naar de werkende agent. Houd Option of Alt ingedrukt om te wachten tot deze beurt klaar is.",
+    "queueWithSteerButton": "Wacht tot deze beurt klaar is. Houd Option of Alt ingedrukt om naar de werkende agent te sturen."
   },
   "activity": {
     "subagents_one": "{{count}} sub-agent",

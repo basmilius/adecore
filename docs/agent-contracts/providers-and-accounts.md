@@ -79,7 +79,8 @@ An account of a CLI is one config folder of it, handed to the CLI through the va
 
 A CLI can also run in a terminal, where the host reads its hooks. These contracts are for that, and live outside the agent tables:
 
-- `AgentInfo` is the session a terminal runs: its `kind`, `agentSessionId`, `transcriptPath`, `status`, and `live`, which is false once the host restarted and the session can only be resumed. `SessionStatusEvent` carries it per terminal session.
+- `AgentRequestSchema` and its `AgentRequest` type carry readable terminal hook requests: `id`, `source`, `kind` (`approval` or `question`), `toolName`, nullable `title`, `text` and `createdAt`. They report what was requested; the terminal still owns its answer.
+- `AgentInfo` may include these in `requests`. It is the session a terminal runs: its `kind`, `agentSessionId`, `transcriptPath`, `status`, and `live`, which is false once the host restarted and the session can only be resumed. `SessionStatusEvent` carries it per terminal session.
 - `AgentResumePayload` names a session to resume.
 - `ApprovalRequest` is a permission the agent in a terminal waits on, with the `choices` to offer (`allow`, `remember` or `deny`) and an `expiresAt`. The CLI asks in its own prompt at the same time, so whoever answers first wins. `SessionApprovalsEvent` carries a session's whole pending list. `ApprovalAnswerPayload` names the choice, and `ApprovalAnswerResult.accepted` is false when the request had already settled.
 - `ApprovalPreferencePayload` says whether one client wants these requests at all. A client that never sends it gets them.

@@ -61,3 +61,5 @@ Codex has no policy that matches every mode of Claude Code exactly; this is the 
 ## A provider of your own
 
 A `ChatProvider` is data plus a backend: its `kind`, `name`, `catalog`, `capabilities`, `command`, `resumeCommand`, `home` for accounts, `detect`, the arguments for a first prompt and for a one-shot prompt, and `createBackend(launch, host)`. The `ChatBackend` owns the process, speaks the CLI's protocol, and reports what happens as `BackendEvent`s through `host.onEvent`; the session turns those into thread items. See [`chat/backend`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/backend.ts) for the whole interface, and the built-ins for two that work.
+
+An optional `ChatBackend.steerTurn(input)` appends user input to native work without interrupting it. Resolve `true` only after native acceptance, `false` only for a known refusal because there is no active turn, and reject for uncertain transport failures. Codex uses `turn/steer` with `expectedTurnId`; Claude writes stream-json input and waits for its replayed user UUID.

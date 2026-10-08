@@ -38,6 +38,23 @@ describe('isBlock', () => {
 });
 
 describe('deriveTimelineRows', () => {
+    test('steering stays after the earlier response while running and after settling', () => {
+        const conversation: ChatItem[] = [
+            { id: 't1', kind: 'turn', createdAt: 1, turnId: 't1', state: 'running', endedAt: null, costUsd: 0 },
+            { id: 'u1', kind: 'user', createdAt: 1, turnId: 't1', text: 'Write about this project' },
+            { id: 'a1', kind: 'assistant', createdAt: 2, turnId: 't1', text: 'I will read the project first.', streaming: false },
+            tool('r1', 'Read', { file_path: 'a.ts' }),
+            { id: 'u2', kind: 'user', createdAt: 3, turnId: 't1', text: 'Use the other project instead' },
+            tool('r2', 'Read', { file_path: '../other/a.ts' }),
+            { id: 'a2', kind: 'assistant', createdAt: 4, turnId: 't1', text: 'Here is the result.', streaming: false }
+        ];
+        const active = deriveTimelineRows(conversation, { ...options, activeTurnId: 't1' });
+        expect(active.filter((row) => row.kind === 'user' || row.kind === 'assistant').map((row) => row.id)).toEqual(['u1', 'a1', 'u2', 'a2']);
+        const settled = deriveTimelineRows([{ ...conversation[0]!, state: 'done', endedAt: 5 } as ChatTurnItem, ...conversation.slice(1)], options);
+        expect(settled.filter((row) => row.kind === 'user' || row.kind === 'assistant').map((row) => row.id)).toEqual(['u1', 'a1', 'u2', 'a2']);
+        expect(new Set(settled.map((row) => row.id)).size).toBe(settled.length);
+    });
+
     test('a settled turn folds its work behind a label and keeps the final answer and changed files', () => {
         const rows = deriveTimelineRows(thread, options);
         expect(rows.map((row) => row.kind)).toEqual(['user', 'turn-fold', 'changed-files', 'assistant']);

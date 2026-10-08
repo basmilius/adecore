@@ -789,10 +789,14 @@ export const ChatAttachResultSchema = z.object({
 });
 export type ChatAttachResult = z.infer<typeof ChatAttachResultSchema>;
 
+export const ChatDeliverySchema = z.enum(['steer', 'queue']);
+export type ChatDelivery = z.infer<typeof ChatDeliverySchema>;
+
 export const ChatSendPayloadSchema = z
     .object({
         chatId: ChatIdSchema,
         text: z.string(),
+        delivery: ChatDeliverySchema.optional(),
         mentions: z.array(z.string().min(1)).max(64).optional(),
         skills: z.array(z.string().min(1)).max(16).optional(),
         chats: z.array(ChatIdSchema).max(16).optional(),

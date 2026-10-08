@@ -64,7 +64,7 @@ What a client sends is an upload, `{ name, mime, data }`, with `data` as base64 
 | `mentions`                             | At most 64                            |
 | `skills`, `chats`                      | At most 16 each                       |
 
-The limits count decoded bytes. Base64 for 10 MiB leaves room for the prompt and the envelope inside a 16 MiB frame, but the port enforces no frame size: the transport has to. `ChatSendPayloadSchema` asks for text that is not blank or at least one attachment, and sets no length on the text.
+The limits count decoded bytes. Base64 for 10 MiB leaves room for the prompt and the envelope inside a 16 MiB frame, but the port enforces no frame size: the transport has to. `ChatSendPayloadSchema` asks for text that is not blank or at least one attachment, and sets no length on the text. Its optional `delivery` uses `ChatDeliverySchema` (`"steer"` or `"queue"`). `ChatDelivery` is the corresponding type. Absent delivery queues during running work. Steering returns the active turn id; queueing reserves a new one.
 
 `attachmentBytes(data)` is the decoded size of base64. `attachmentImageMime({ name, mime })` answers `image/png`, `image/jpeg`, `image/webp` or `image/gif`, or `null`. It trusts the declared type, and looks at the extension only when the type is empty or a generic binary one, so a declared PDF stays a PDF whatever its name. It never reads the bytes.
 

@@ -60,7 +60,12 @@ export function chatHandlers(chats: ChatCore, providers: ProviderRegistry): { [T
             return {};
         },
         'chat.send': (payload) =>
-            chats.send(payload.chatId, payload.text, { mentions: payload.mentions, skills: payload.skills, chats: payload.chats }, payload.attachments),
+            chats.send(
+                payload.chatId,
+                payload.text,
+                { delivery: payload.delivery, mentions: payload.mentions, skills: payload.skills, chats: payload.chats },
+                payload.attachments
+            ),
         'chat.unqueue': (payload) => ({ message: chats.unqueue(payload.chatId, payload.messageId) }),
         'chat.sendNow': (payload) => {
             chats.sendNow(payload.chatId, payload.messageId);

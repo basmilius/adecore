@@ -185,3 +185,84 @@ test('Codex acknowledges its submitted prompt and rejects an undelivered approva
     expect(backend.running).toBe(true);
     await fake.exit();
 });
+
+test('Claude acknowledges steering on replay without replacing the original prompt', async () => {
+    const frames: Array<Record<string, unknown>> = [];
+    const fake = pipe(() => ({
+        onLine: (line) => {
+            frames.push(JSON.parse(line));
+        }
+    }));
+    const events: BackendEvent[] = [];
+    const backend = new ClaudeBackend(
+        { ...launch, spawn: fake.spawn },
+        {
+            onEvent: (event) => {
+                events.push(event);
+            }
+        }
+    );
+    await backend.start();
+    backend.sendTurn({ promptId: 'original', text: 'start', preamble: null, attachments: [], mentions: [], skills: [] });
+    let accepted = false;
+    const sending = backend
+        .steerTurn({ promptId: 'steer', text: 'change direction', preamble: null, attachments: [], mentions: [], skills: [] })
+        .then((value) => {
+            accepted = value;
+        });
+    await flush();
+    expect(accepted).toBe(false);
+    expect(frames.filter((frame) => frame.type === 'user').map((frame) => frame.uuid)).toEqual(['original', 'steer']);
+    fake.out({ type: 'user', uuid: 'steer', parent_tool_use_id: null, message: { role: 'user', content: [] } });
+    await sending;
+    expect(accepted).toBe(true);
+    fake.out({ type: 'result', subtype: 'success', user_message_uuids: ['original', 'steer'], total_cost_usd: 0 });
+    await flush();
+    expect(events.filter((event) => event.type === 'turn.done')).toMatchObject([{ promptId: 'original', state: 'done' }]);
+    expect(await backend.steerTurn({ text: 'too late', preamble: null, attachments: [], mentions: [], skills: [] })).toBe(false);
+    await fake.exit();
+});
+
+test('Claude rejects an unacknowledged steer when its transport dies', async () => {
+    const fake = pipe();
+    const backend = new ClaudeBackend({ ...launch, spawn: fake.spawn }, { onEvent: () => undefined });
+    await backend.start();
+    backend.sendTurn({ text: 'start', preamble: null, attachments: [], mentions: [], skills: [] });
+    const sending = backend.steerTurn({ text: 'change direction', preamble: null, attachments: [], mentions: [], skills: [] });
+    let reason = '';
+    void sending.catch((error: Error) => {
+        reason = error.message;
+    });
+    await flush();
+    await fake.exit();
+    await flush();
+    expect(backend.running).toBe(false);
+    expect(reason).toContain('Claude exited before acknowledging');
+});
+
+test('Codex sends native steering with the exact active turn id', async () => {
+    const frames: Array<{ method: string; params: Record<string, unknown> }> = [];
+    const fake = inProcess((io) => {
+        const program = fakeCodexWith({})(io);
+        return {
+            onLine: (line) => {
+                const frame = JSON.parse(line);
+                if (frame.method) {
+                    frames.push(frame);
+                }
+                program.onLine(line);
+            }
+        };
+    });
+    const backend = new CodexBackend({ ...launch, selection: codexProvider.catalog.normalize(undefined), spawn: fake.spawn }, { onEvent: () => undefined });
+    await backend.start();
+    backend.sendTurn({ text: 'slow', preamble: null, attachments: [], mentions: [], skills: [] });
+    await flush();
+    expect(await backend.steerTurn({ text: 'change direction', preamble: 'Read notes.md', attachments: [], mentions: ['notes.md'], skills: [] })).toBe(true);
+    const steer = frames.find((frame) => frame.method === 'turn/steer')!;
+    expect(steer.params.expectedTurnId).toBeString();
+    expect(steer.params.input).toMatchObject([{ type: 'text', text: 'Read notes.md\n\nchange direction' }]);
+    backend.interrupt();
+    await flush();
+    await backend.dispose();
+});

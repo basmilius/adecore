@@ -700,7 +700,7 @@ export class ChatCore {
             throw new ChatError('invalid-attachments', checked.error.issues[0]!.message);
         }
         const attachments = await Promise.all(uploads.map((upload) => this.attachments.save(chatId, upload)));
-        return session.send(text, { ...extras, ...(attachments.length > 0 ? { attachments } : {}) });
+        return session.sendInput(text, { ...extras, ...(attachments.length > 0 ? { attachments } : {}) });
     }
 
     /* The file behind an attachment id: what this chat's thread or queue says it is, or a visual's page. */

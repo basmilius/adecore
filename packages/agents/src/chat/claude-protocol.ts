@@ -147,7 +147,14 @@ export class ClaudeProtocol {
     private apiError: string | null = null;
     private readonly refusedWindows = new Map<string, number | null>();
 
+    private readonly steerIds = new Set<string>();
+
+    beginSteer(promptId: string): void {
+        this.steerIds.add(promptId);
+    }
+
     beginPrompt(promptId: string): void {
+        this.steerIds.clear();
         this.promptId = promptId;
         this.apiError = null;
         this.refusedWindows.clear();
@@ -575,7 +582,12 @@ export class ClaudeProtocol {
     private handleResult(frame: Frame, events: BackendEvent[]): void {
         const echoed = Array.isArray(frame.user_message_uuids) ? frame.user_message_uuids.filter((value): value is string => typeof value === 'string') : [];
         const origin = str(frame.origin) ?? (isRecord(frame.origin) ? str(frame.origin.kind) : null);
-        if (this.promptId !== null && (echoed.length > 0 ? !echoed.includes(this.promptId) : origin !== null && origin !== 'human' && origin !== 'user')) {
+        if (
+            this.promptId !== null &&
+            (echoed.length > 0
+                ? !echoed.includes(this.promptId) && !echoed.some((id) => this.steerIds.has(id))
+                : origin !== null && origin !== 'human' && origin !== 'user')
+        ) {
             if (typeof frame.total_cost_usd === 'number') {
                 events.push({ type: 'usage', costUsd: num(frame.total_cost_usd) });
             }
@@ -586,6 +598,9 @@ export class ClaudeProtocol {
         }
         const promptId = this.promptId !== null && echoed.includes(this.promptId) ? this.promptId : null;
         this.promptId = null;
+        for (const id of echoed) {
+            this.steerIds.delete(id);
+        }
         const failed = frame.is_error === true || (typeof frame.subtype === 'string' && frame.subtype.startsWith('error'));
         const errors = Array.isArray(frame.errors) ? frame.errors.filter((error): error is string => typeof error === 'string') : [];
         const lastUuid = this.lastUuid;

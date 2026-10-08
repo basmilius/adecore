@@ -138,7 +138,8 @@ type RequestOwner = { threadId: string | null; turnId: string | null };
 type Pending = RequestOwner &
     (
         | { type: 'approval'; rpcId: CodexRpcId; kind: 'command' | 'fileChange'; amendment: string[] | null; decisions: string[] }
-        | { type: 'question'; rpcId: CodexRpcId | null; questionIds: string[] }
+        | { type: 'question'; rpcId: CodexRpcId | null; questionIds: string[]; async?: boolean }
+        | { type: 'permissions'; rpcId: CodexRpcId; permissions: Frame }
         | { type: 'elicitation'; rpcId: CodexRpcId; persist: ElicitationPersist | null }
     );
 
@@ -361,6 +362,13 @@ export class CodexProtocol {
     /* The reply that settles an approval, or null when nothing waits under that id. */
     approvalDecision(requestId: string, decision: ApprovalDecision): { rpcId: CodexRpcId; result: unknown } | null {
         const pending = this.pending.get(requestId);
+        if (pending?.type === 'permissions') {
+            this.pending.delete(requestId);
+            return {
+                rpcId: pending.rpcId,
+                result: { permissions: decision === 'deny' ? {} : pending.permissions, scope: decision === 'allow-always' ? 'session' : 'turn' }
+            };
+        }
         if (pending?.type === 'elicitation') {
             this.pending.delete(requestId);
             return { rpcId: pending.rpcId, result: elicitationAnswer(decision, pending.persist) };
@@ -392,6 +400,11 @@ export class CodexProtocol {
             }
         }
         return { kind: 'respond', rpcId: pending.rpcId, result: { answers: byId } };
+    }
+
+    dismissQuestionAnswer(requestId: string): CodexAnswer | null {
+        const pending = this.pending.get(requestId);
+        return pending?.type === 'question' && pending.async === true && pending.rpcId !== null ? this.questionAnswer(requestId, {}) : null;
     }
 
     /* Drops an asynchronous question the person walked away from; a blocking one has to be answered. */
@@ -485,8 +498,39 @@ export class CodexProtocol {
             if (questions.length === 0) {
                 return;
             }
-            this.pending.set(requestId, { ...this.owner(params), type: 'question', rpcId, questionIds: questions.map((question) => question.id) });
-            events.push({ type: 'question.requested', requestId, questions, ...(this.isChildRequest(params) ? { background: true } : {}) });
+            this.pending.set(requestId, {
+                ...this.owner(params),
+                type: 'question',
+                rpcId,
+                questionIds: questions.map((question) => question.id),
+                async: params.isBlocking === false
+            });
+            events.push({
+                type: 'question.requested',
+                requestId,
+                questions,
+                ...(params.isBlocking === false ? { async: true } : {}),
+                ...(this.isChildRequest(params) ? { background: true } : {})
+            });
+            return;
+        }
+        if (method === 'item/permissions/requestApproval') {
+            if (!isRecord(params.permissions)) {
+                return;
+            }
+            const permissions = params.permissions;
+            this.pending.set(requestId, { ...this.owner(params), type: 'permissions', rpcId, permissions });
+            events.push({
+                type: 'approval.requested',
+                requestId,
+                ref: str(params.itemId),
+                toolName: 'RequestPermissions',
+                input: { cwd: params.cwd, permissions },
+                description: this.requestDescription(params, str(params.reason)),
+                canAllowAlways: true,
+                allowAlways: { label: 'Allow for this session', description: 'Grant these permissions for the rest of this session.' },
+                ...(this.isChildRequest(params) ? { background: true } : {})
+            });
             return;
         }
         if (method === 'mcpServer/elicitation/request') {

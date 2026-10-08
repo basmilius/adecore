@@ -210,6 +210,8 @@ export interface ChatHost {
     };
     /* How a reply appears while it streams: a word, a block or the whole of it at a time. */
     useStreaming(): 'words' | 'blocks' | 'whole';
+    /* How Send handles a running turn; Option or Alt selects the other behavior. */
+    useSendDelivery(): 'queue' | 'steer';
     /* Paths in an answer as links; null leaves them text. */
     fileLinks: {
         /* The reference a piece of text names, where the folder it counts from lets it be opened. */
@@ -296,6 +298,7 @@ const DEFAULT_HOST: ChatHost = {
     ReadImage: null,
     code: { useMode: () => 'light', useThemes: () => ({ light: 'github-light', dark: 'github-dark' }), custom: [] },
     useStreaming: () => 'words',
+    useSendDelivery: () => 'queue',
     fileLinks: null,
     useTimelineFind: () => NO_FIND,
     dictation: { Textarea: PlainTextarea, composer: null },

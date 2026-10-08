@@ -1368,3 +1368,148 @@ describe('ids across a restart of the host', () => {
         await second.session.dispose();
     });
 });
+
+describe('input during an active turn', () => {
+    test('explicit steering reaches the backend without interrupting or opening another turn', async () => {
+        const run = rig();
+        const steered: TurnInput[] = [];
+        run.backend.steerTurn = async (input) => {
+            steered.push(input);
+            return true;
+        };
+        run.session.send('original');
+        await flush();
+        const turnId = run.session.info.activeTurnId!;
+        expect(await run.session.sendInput('change direction', { delivery: 'steer' })).toEqual({ queued: false, turnId });
+        expect(steered.map((input) => input.text)).toEqual(['change direction']);
+        expect(run.session.info.queue).toEqual([]);
+        expect(run.session.thread.list().filter((item) => item.kind === 'turn')).toHaveLength(1);
+        expect(
+            run.session.thread
+                .list()
+                .filter((item) => item.kind === 'user')
+                .map((item) => item.text)
+        ).toEqual(['original', 'change direction']);
+        await run.session.dispose();
+    });
+
+    test('default input waits for completion even with a steering backend', async () => {
+        const run = rig();
+        let steers = 0;
+        run.backend.steerTurn = async () => {
+            steers += 1;
+            return true;
+        };
+        run.session.send('original');
+        await flush();
+        expect(await run.session.sendInput('next task')).toMatchObject({ queued: true });
+        expect(steers).toBe(0);
+        run.event({ type: 'turn.done', state: 'done', costUsd: 0 });
+        await flush();
+        expect(run.sent.map((input) => input.text)).toEqual(['original', 'next task']);
+        await run.session.dispose();
+    });
+});
+
+test('a steer accepted across turn completion is recorded once in the original turn', async () => {
+    const run = rig();
+    const acceptance = Promise.withResolvers<boolean>();
+    run.backend.steerTurn = () => acceptance.promise;
+    run.session.send('original');
+    await flush();
+    const original = run.session.info.activeTurnId!;
+    const sending = run.session.sendInput('followup', { delivery: 'steer', mentions: ['notes.md'] });
+    await flush();
+    const held = run.session.info.queue![0]!;
+    expect(run.session.unqueue(held.id)).toBeNull();
+    expect(run.session.sendNow(held.id)).toBe(false);
+    run.event({ type: 'turn.done', state: 'done', costUsd: 0 });
+    await flush();
+    expect(run.sent.map((input) => input.text)).toEqual(['original']);
+    acceptance.resolve(true);
+    expect(await sending).toEqual({ queued: false, turnId: original });
+    expect(run.session.info.queue).toEqual([]);
+    expect(run.session.thread.list().filter((item) => item.kind === 'user' && item.text === 'followup')).toMatchObject([
+        { turnId: original, mentions: ['notes.md'] }
+    ]);
+    expect(run.sent.map((input) => input.text)).toEqual(['original']);
+    await run.session.dispose();
+});
+
+test('a steer refused at completion falls back to exactly one new turn', async () => {
+    const run = rig();
+    const acceptance = Promise.withResolvers<boolean>();
+    run.backend.steerTurn = () => acceptance.promise;
+    run.session.send('original');
+    await flush();
+    const sending = run.session.sendInput('followup', { delivery: 'steer' });
+    await flush();
+    run.event({ type: 'turn.done', state: 'done', costUsd: 0 });
+    acceptance.resolve(false);
+    await sending;
+    await flush();
+    expect(run.sent.map((input) => input.text)).toEqual(['original', 'followup']);
+    expect(run.session.info.queue).toEqual([]);
+    await run.session.dispose();
+});
+
+test('a lost steering acknowledgement retains the message and pauses automatic replay', async () => {
+    const run = rig();
+    run.backend.steerTurn = async () => {
+        throw new Error('lost connection');
+    };
+    run.session.send('original');
+    await flush();
+    await expect(run.session.sendInput('followup', { delivery: 'steer' })).rejects.toThrow('lost connection');
+    run.event({ type: 'turn.done', state: 'done', costUsd: 0 });
+    await flush();
+    expect(run.session.info.queue?.map((message) => message.text)).toEqual(['followup']);
+    expect(run.session.info.queuePaused).toBe(true);
+    expect(run.sent.map((input) => input.text)).toEqual(['original']);
+    await run.session.dispose();
+});
+
+test('multiple followups enter the native queue before either is acknowledged', async () => {
+    const run = rig();
+    const acceptance = Promise.withResolvers<boolean>();
+    const texts: string[] = [];
+    run.backend.steerTurn = (input) => {
+        texts.push(input.text);
+        return acceptance.promise;
+    };
+    run.session.send('original');
+    await flush();
+    const first = run.session.sendInput('one', { delivery: 'steer' });
+    const second = run.session.sendInput('two', { delivery: 'steer' });
+    await flush();
+    expect(texts).toEqual(['one', 'two']);
+    expect(run.session.info.queue?.map((entry) => entry.text)).toEqual(['one', 'two']);
+    acceptance.resolve(true);
+    await Promise.all([first, second]);
+    expect(
+        run.session.thread
+            .list()
+            .filter((item) => item.kind === 'user')
+            .map((item) => item.text)
+    ).toEqual(['original', 'one', 'two']);
+    await run.session.dispose();
+});
+
+test('an end-of-turn message cannot start while another steer still awaits acceptance', async () => {
+    const run = rig();
+    const acceptance = Promise.withResolvers<boolean>();
+    run.backend.steerTurn = () => acceptance.promise;
+    run.session.send('original');
+    await flush();
+    await run.session.sendInput('next task', { delivery: 'queue' });
+    const sending = run.session.sendInput('correction', { delivery: 'steer' });
+    await flush();
+    run.event({ type: 'turn.done', state: 'done', costUsd: 0 });
+    await flush();
+    expect(run.sent.map((input) => input.text)).toEqual(['original']);
+    acceptance.resolve(true);
+    await sending;
+    await flush();
+    expect(run.sent.map((input) => input.text)).toEqual(['original', 'next task']);
+    await run.session.dispose();
+});

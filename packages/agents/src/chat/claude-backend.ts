@@ -27,6 +27,8 @@ export class ClaudeBackend implements ChatBackend {
     private stdinClosed = false;
     // The person asked to stop; the result frame that follows closes the turn as aborted.
     private interrupted = false;
+    private readonly steers = new Map<string, { resolve(accepted: boolean): void; reject(reason: Error): void }>();
+    private active = false;
 
     constructor(launch: BackendLaunch, host: BackendHost, options: ClaudeBackendOptions = {}) {
         this.launch = launch;
@@ -72,8 +74,27 @@ export class ClaudeBackend implements ChatBackend {
         // The prefix is what the CLI must see first (ultrathink), then the note about the links, then what was typed.
         const prefix = `${promptPrefix(this.launch.selection)}${input.preamble === null ? '' : `${input.preamble}\n\n`}`;
         const promptId = input.promptId ?? randomUUID();
+        this.active = true;
         this.protocol.beginPrompt(promptId);
         this.write(buildUserMessage({ text: input.text, attachments: input.attachments, prefix, skills: input.skills, promptId }));
+    }
+
+    steerTurn(input: TurnInput): Promise<boolean> {
+        if (!this.child || !this.active || this.stdinClosed) {
+            return Promise.resolve(false);
+        }
+        const promptId = input.promptId ?? randomUUID();
+        return new Promise((resolve, reject) => {
+            this.steers.set(promptId, { resolve, reject });
+            this.protocol.beginSteer(promptId);
+            try {
+                const prefix = `${promptPrefix(this.launch.selection)}${input.preamble === null ? '' : `${input.preamble}\n\n`}`;
+                this.write(buildUserMessage({ text: input.text, attachments: input.attachments, prefix, skills: input.skills, promptId }));
+            } catch (error) {
+                this.steers.delete(promptId);
+                reject(error instanceof Error ? error : new Error(errorText(error)));
+            }
+        });
     }
 
     /* Claude Code folds its context through a slash command, so the session sends it as a turn. */
@@ -120,6 +141,7 @@ export class ClaudeBackend implements ChatBackend {
     }
 
     dispose(): Promise<void> {
+        this.rejectSteers('Claude stopped before acknowledging your message');
         const child = this.child;
         this.child = null;
         return child?.end() ?? Promise.resolve();
@@ -165,7 +187,15 @@ export class ClaudeBackend implements ChatBackend {
         } catch {
             return;
         }
+        const echoed = typeof frame === 'object' && frame !== null ? (frame as Record<string, unknown>) : null;
+        if (echoed?.type === 'user' && typeof echoed.uuid === 'string' && echoed.parent_tool_use_id == null) {
+            this.steers.get(echoed.uuid)?.resolve(true);
+            this.steers.delete(echoed.uuid);
+        }
         for (const event of this.protocol.handle(frame)) {
+            if (event.type === 'turn.done') {
+                this.active = false;
+            }
             if (event.type === 'turn.done' && this.interrupted) {
                 this.interrupted = false;
                 this.host.onEvent({ ...event, state: 'aborted' });
@@ -183,7 +213,16 @@ export class ClaudeBackend implements ChatBackend {
         }
     }
 
+    private rejectSteers(reason: string): void {
+        this.active = false;
+        for (const pending of this.steers.values()) {
+            pending.reject(new Error(reason));
+        }
+        this.steers.clear();
+    }
+
     private failed(error: unknown): void {
+        this.rejectSteers(`Claude transport failed: ${errorText(error)}`);
         this.protocol.forgetPending();
         try {
             this.host.onEvent({ type: 'failed', message: `Claude transport failed: ${errorText(error)}`, processAlive: this.running });
@@ -229,6 +268,7 @@ export class ClaudeBackend implements ChatBackend {
             return;
         }
         this.child = null;
+        this.rejectSteers('Claude exited before acknowledging your message');
         this.protocol.forgetPending();
         this.host.onEvent({ type: 'exit', exitCode, ...(stderr === null ? {} : { stderr }) });
     }
