@@ -1,6 +1,7 @@
 import type { ChatItem } from '@adecore/agent-contracts';
 import type { TimelineRow } from './timeline';
 import { selectionWithin } from '@adecore/ui';
+import type { FileRef } from '../../host';
 
 /* What the right-click landed on, read once when the menu opens. */
 export interface TimelineTarget {
@@ -13,6 +14,8 @@ export interface TimelineTarget {
     path: string | null;
     /* The line that file reference named, where it named one. */
     line: number | null;
+    /* Captured at menu opening, before the rendering scope or cwd can change. */
+    file?: { ref: FileRef; cwd: string | null; scopeId: string | null } | null;
 }
 
 export const EMPTY_TARGET: TimelineTarget = { selection: '', row: null, code: null, path: null, line: null };
@@ -41,12 +44,34 @@ export function withCurrentText(rows: TimelineRow[], items: Record<string, ChatI
 export function readTimelineTarget(element: HTMLElement, scroller: HTMLElement | null, rows: TimelineRow[]): TimelineTarget {
     const id = element.closest<HTMLElement>('[data-item-id]')?.dataset.itemId;
     const file = element.closest<HTMLElement>('[data-file-path]');
-    const line = Number(file?.dataset.fileLine);
+    const line = positiveInteger(file?.dataset.fileLine);
+    const column = positiveInteger(file?.dataset.fileColumn);
+    const endLine = positiveInteger(file?.dataset.fileEndLine);
+    const path = file?.dataset.filePath ?? null;
     return {
         selection: selectionWithin(scroller),
         row: rows.find((row) => row.id === id) ?? null,
         code: element.closest('pre')?.textContent ?? null,
-        path: file?.dataset.filePath ?? null,
-        line: Number.isFinite(line) && line > 0 ? line : null
+        path,
+        line,
+        file:
+            path === null
+                ? null
+                : {
+                      ref: {
+                          path,
+                          ...(line === null ? {} : { line }),
+                          ...(column === null ? {} : { column }),
+                          ...(line === null || endLine === null || endLine < line ? {} : { endLine }),
+                          directory: file?.dataset.fileDirectory === 'true'
+                      },
+                      cwd: file?.closest<HTMLElement>('[data-file-cwd]')?.dataset.fileCwd || null,
+                      scopeId: file?.closest<HTMLElement>('[data-file-scope-id]')?.dataset.fileScopeId || null
+                  }
     };
+}
+
+function positiveInteger(value: string | undefined): number | null {
+    const number = Number(value);
+    return Number.isSafeInteger(number) && number > 0 ? number : null;
 }

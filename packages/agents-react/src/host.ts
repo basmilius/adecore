@@ -56,8 +56,20 @@ export interface FileRef {
     path: string;
     /* One-based, when the reference named a line. */
     line?: number;
+    column?: number;
+    endLine?: number;
     /* A trailing separator is the only thing that says a reference means a directory. */
     directory: boolean;
+}
+
+export interface ShellCodeBlockContext {
+    scopeId: string;
+    chatId: string;
+    itemId: string;
+    language: 'sh' | 'bash' | 'zsh';
+    code: string;
+    /* A closed fence in a main reply that has stopped streaming. */
+    complete: boolean;
 }
 
 /* Where another chat stands and how to get there; a null title is a chat that is gone. */
@@ -213,9 +225,11 @@ export interface ChatHost {
     /* Paths in an answer as links; null leaves them text. */
     fileLinks: {
         /* The reference a piece of text names, where the folder it counts from lets it be opened. */
-        target(text: string, cwd: string | null): FileRef | null;
-        open(cwd: string | null, ref: FileRef): void;
+        target(text: string, cwd: string | null, scopeId?: string | null): FileRef | null;
+        open(cwd: string | null, ref: FileRef, scopeId?: string | null): void;
     } | null;
+    /* Renders beside a top-level shell fence in a main reply. Rendering must not execute an action. */
+    renderShellCodeBlock?: (context: ShellCodeBlockContext) => ReactNode;
     /* Find in a thread; without one the thread has no find. */
     useTimelineFind(options: TimelineFindOptions): TimelineFind;
     dictation: {
