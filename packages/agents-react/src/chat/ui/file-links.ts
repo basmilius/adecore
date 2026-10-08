@@ -1,5 +1,6 @@
 import { createContext, useContext, useMemo } from 'react';
 import { chatHost, type FileRef } from '../../host';
+import { ChatScopeContext } from '../../scope';
 
 /*
  * The folder a relative reference in rendered text counts from: a chat's own cwd, which is a
@@ -12,13 +13,18 @@ export function useFileLinkCwd(): string | null {
     return useContext(FileLinkContext);
 }
 
+export function useFileLinkScopeId(): string | null {
+    return useContext(ChatScopeContext)?.id ?? null;
+}
+
 /* The reference a piece of text names, only where this spot on screen could open it. */
 export function useFileLinkTarget(text: string): FileRef | null {
     const cwd = useFileLinkCwd();
-    return useMemo(() => chatHost().fileLinks?.target(text, cwd) ?? null, [text, cwd]);
+    const scopeId = useFileLinkScopeId();
+    return useMemo(() => chatHost().fileLinks?.target(text, cwd, scopeId) ?? null, [text, cwd, scopeId]);
 }
 
 /* A reference followed, the way the app opens a file or a folder. */
-export function openFileLink(cwd: string | null, ref: FileRef): void {
-    chatHost().fileLinks?.open(cwd, ref);
+export function openFileLink(cwd: string | null, ref: FileRef, scopeId: string | null = null): void {
+    chatHost().fileLinks?.open(cwd, ref, scopeId);
 }

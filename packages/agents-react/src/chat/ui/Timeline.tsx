@@ -498,7 +498,7 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
         // A file an answer names is relative to the folder this chat runs in, which is a worktree as
         // often as it is the project itself.
         <FileLinkContext.Provider value={info?.cwd ?? null}>
-            <div ref={frameRef} className="relative flex min-h-0 grow flex-col">
+            <div ref={frameRef} className="relative flex min-h-0 grow flex-col" data-file-cwd={info?.cwd ?? ''} data-file-scope-id={scope.id}>
                 {searching && chatFind.bar}
                 <ContextMenu.Root>
                     <div
