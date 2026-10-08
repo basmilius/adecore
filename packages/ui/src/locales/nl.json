@@ -64,5 +64,15 @@
         "label": "Bestanden",
         "expand": "Uitvouwen",
         "collapse": "Invouwen"
+    },
+    "workspace": {
+        "tabs": "Open views",
+        "unsaved": "Niet-opgeslagen wijzigingen",
+        "closeTab": "Sluit {{name}}",
+        "resize": "Panelen vergroten of verkleinen",
+        "pane": "Paneel",
+        "movePane": "Paneel verplaatsen",
+        "maximize": "Paneel maximaliseren",
+        "restore": "Panelen herstellen"
     }
 }

@@ -122,3 +122,22 @@ export type {
     TreeControlProps,
     TreeCheckboxProps
 } from './tree/parts.tsx';
+
+export { Workspace, type WorkspaceProps } from './workspace/Workspace.tsx';
+export type { WorkspaceLayout } from './workspace/context.ts';
+export { DocumentTab, TabStrip, type DocumentTabProps, type TabStripProps, type TabStripItem } from './workspace/TabStrip.tsx';
+export { SplitView, type SplitViewProps, type SplitViewInfo, type SplitViewBounds, type SplitDropTarget, type SplitDrag } from './workspace/SplitView.tsx';
+export {
+    createSplitLayout,
+    normalizeSplitLayout,
+    updateSplitLayout,
+    splitPanes,
+    type SplitAxis,
+    type SplitSide,
+    type SplitPane,
+    type SplitBranch,
+    type SplitNode,
+    type SplitLayout,
+    type SplitCommand
+} from './workspace/model.ts';
+export type { SplitRect, SplitEdges, SplitMinimum } from './workspace/geometry.ts';

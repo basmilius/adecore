@@ -81,3 +81,7 @@ Nothing else is public. No module does work on import, so a bundler keeps only w
 ## License
 
 FSL-1.1-MIT, see [LICENSE](./LICENSE).
+
+## Workspaces
+
+`Workspace`, `SplitView` and `TabStrip` provide standard or roomy layouts, nested resizable panels and open document tabs. Views stay mounted when they move between panels. Applications own document state, close approval and persistence. See the [workspace guide](https://adecore.dev/ui/layout/workspace) for the controlled layout model and demos.

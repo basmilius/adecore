@@ -64,5 +64,15 @@
         "label": "Files",
         "expand": "Expand",
         "collapse": "Collapse"
+    },
+    "workspace": {
+        "tabs": "Open views",
+        "unsaved": "Unsaved changes",
+        "closeTab": "Close {{name}}",
+        "resize": "Resize panels",
+        "pane": "Panel",
+        "movePane": "Move panel",
+        "maximize": "Maximize panel",
+        "restore": "Restore panels"
     }
 }

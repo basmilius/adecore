@@ -80,6 +80,9 @@ const desktopUi: DefaultTheme.SidebarItem[] = [
     ]),
     group('Layout', [
         ['Tabs', '/ui/layout/tabs'],
+        ['TabStrip', '/ui/layout/tab-strip'],
+        ['SplitView', '/ui/layout/split-view'],
+        ['Workspace', '/ui/layout/workspace'],
         ['SlidingColumn', '/ui/layout/sliding-column'],
         ['ColumnResizeHandle', '/ui/layout/column-resize-handle'],
         ['DockShell', '/ui/layout/dock-shell'],
