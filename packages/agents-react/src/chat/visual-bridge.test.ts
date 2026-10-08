@@ -1,6 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 import {
     VISUAL_LIMITS,
+    VISUAL_BRIDGE_METHODS,
+    visualViewportMessage,
+    visualScrollMessage,
     visualHostContextMessage,
     visualOpenLinkRequest,
     visualOpenLinkResult,
@@ -118,6 +121,33 @@ describe('VisualBridge', () => {
         frame.fromFrame(visualSizeChangedMessage({ width: 600, height: 4000 }));
         frame.fromFrame(visualSizeChangedMessage({ width: 600, height: 10 }));
         expect(frame.heights).toEqual([301, 900, VISUAL_LIMITS.minHeight]);
+    });
+
+    test('a windowed visual reports its full height and synchronizes only after the runtime is ready', async () => {
+        const requests: unknown[] = [];
+        let ready = false;
+        const page = setup({
+            onViewportReady: () => {
+                ready = true;
+            },
+            onScroll: (request) => requests.push(request)
+        });
+        page.bridge.setViewport({ top: 1200, height: 700 });
+        page.fromFrame(visualScrollMessage({ by: 40 }));
+        await flush();
+        page.fromFrame(visualProxyReadyMessage());
+        expect(page.messages()).toHaveLength(2);
+        page.fromFrame(visualSizeChangedMessage({ width: 600, height: 6200 }));
+        expect(page.heights).toEqual([6200]);
+        page.fromFrame({ jsonrpc: '2.0', method: VISUAL_BRIDGE_METHODS.viewportReady });
+        expect(ready).toBe(true);
+        expect(page.messages().at(-1)).toEqual(visualViewportMessage({ top: 1200, height: 700 }));
+        page.fromFrame(visualScrollMessage({ by: 40 }));
+        page.bridge.receive({ source: {}, data: visualScrollMessage({ by: 400 }) });
+        expect(requests).toEqual([{ by: 40 }]);
+        page.bridge.setViewport(null);
+        page.fromFrame(visualScrollMessage({ edge: 'end' }));
+        expect(requests).toHaveLength(1);
     });
 
     test('says the appearance the page is drawn in from its first size, and again with every theme after that', async () => {

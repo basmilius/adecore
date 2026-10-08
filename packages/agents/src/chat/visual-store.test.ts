@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { VISUAL_LIMITS, type ChatVisual } from '@adecore/agent-contracts';
@@ -29,6 +29,41 @@ afterEach(async () => {
 });
 
 describe('VisualStore', () => {
+    test('keeps editable sources and previews beside the chat, separately from published attachments', async () => {
+        const source = await store.writeSource('chat/1', 'chart.html', PAGE);
+        expect(source).toBe(join(home, 'chats', 'chat%2F1.visuals', 'chart.html'));
+        expect((await stat(store.workspacePath('chat/1'))).mode & 0o777).toBe(0o700);
+        expect((await stat(source)).mode & 0o777).toBe(0o600);
+        expect(await readFile(source, 'utf8')).toBe(PAGE);
+        await store.writeSource('chat/1', 'chart.html', '<p>Updated</p>');
+        const png = new Uint8Array([137, 80, 78, 71]);
+        const preview = await store.writePreview('chat/1', png);
+        const otherPreview = await store.writePreview('chat/1', png);
+        expect(preview).not.toBe(otherPreview);
+        expect(await readFile(preview)).toEqual(Buffer.from(png));
+        expect(await store.list('chat/1')).toEqual([]);
+        expect(told).toEqual([]);
+        expect(await new ChatStore(home, { attachments }).list()).toEqual([]);
+        const published = await store.publish('chat/1', { title: 'Chart', html: PAGE });
+        await store.copyChat('chat/1', 'fork');
+        const otherSource = await store.writeSource('chat-2', 'chart.html', '<p>Other chat</p>');
+        await store.removeChat('chat/1');
+        expect(await Bun.file(source).exists()).toBe(false);
+        expect(await Bun.file(preview).exists()).toBe(false);
+        expect(await Bun.file(store.pagePath('fork', published.id)).exists()).toBe(true);
+        await expect(stat(store.workspacePath('chat/1'))).rejects.toMatchObject({ code: 'ENOENT' });
+        expect(await readFile(otherSource, 'utf8')).toBe('<p>Other chat</p>');
+    });
+
+    test('refuses source paths and invalid pages without writing outside the chat', async () => {
+        for (const name of ['../other.html', '/tmp/page.html', 'nested/page.html', 'nested\\page.html', '.html', 'page.js']) {
+            await expect(store.writeSource('chat-1', name, PAGE)).rejects.toMatchObject({ code: 'visual-invalid' });
+        }
+        await expect(store.writeSource('chat-1', 'page.html', ' ')).rejects.toMatchObject({ code: 'visual-invalid' });
+        await expect(store.writeSource('chat-1', 'page.html', 'x'.repeat(VISUAL_LIMITS.bytes + 1))).rejects.toMatchObject({ code: 'visual-too-large' });
+        expect(await readdir(home)).toEqual([]);
+    });
+
     test('publishes a page with its bootstrap in the attachment folder and keeps it in the list', async () => {
         const visual = await store.publish('chat 1', { title: '  Revenue  ', html: PAGE, turnId: 'turn-1' });
         expect(visual).toEqual({

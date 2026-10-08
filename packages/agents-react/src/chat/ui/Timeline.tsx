@@ -39,7 +39,7 @@ import { MessageActions } from './MessageActions';
 import { Scrubber, type CardChat } from './Scrubber';
 import { TimelineMenuPopup } from './TimelineMenu';
 import { VisualDialogs } from './VisualDialogs';
-import { FOLLOW_THRESHOLD_PX, replyHeader, rowRhythm } from './rows/row-rhythm';
+import { FOLLOW_THRESHOLD_PX, replyHeader, rowPosition, rowRhythm } from './rows/row-rhythm';
 import { QuoteButton } from './QuoteButton';
 import { QuoteTakerContext, type QuoteTaker } from './quote-selection';
 import { useToggleSet } from './useToggleSet';
@@ -559,7 +559,7 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
                                                         rowRhythm(row, previous),
                                                         question && virtualRow.index > 0 && 'pt-(--chat-turn-gap)'
                                                     )}
-                                                    style={{ transform: `translateY(${virtualRow.start}px)` }}
+                                                    style={rowPosition(row.kind, virtualRow.start)}
                                                 >
                                                     {flash !== null && flash.key === keyOf(chatId) && flash.rowId === row.id && (
                                                         <span

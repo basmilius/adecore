@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { VISUAL_LIMITS, type ChatVisual } from '@adecore/agent-contracts/visual';
-import { clampVisualHeight, initialVisualHeight, rememberVisualHeight } from './visual-height';
+import { initialVisualContentHeight, visualContentHeight, clampVisualHeight, initialVisualHeight, rememberVisualHeight } from './visual-height';
 
 // The cache lives as long as the module, so every test draws visuals of its own.
 function visual(id: string, fields: Partial<ChatVisual> = {}): ChatVisual {
@@ -55,5 +55,14 @@ describe('the height of a visual frame', () => {
         expect(clampVisualHeight({ maxHeight: 900 }, 4000)).toBe(900);
         expect(clampVisualHeight({ maxHeight: 5000 }, 4000)).toBe(VISUAL_LIMITS.maxHeight);
         expect(clampVisualHeight({ maxHeight: 900 }, 0)).toBe(VISUAL_LIMITS.minHeight);
+    });
+});
+
+describe('the reserved height of a windowed visual', () => {
+    test('uses full publish measurements even when an old record sets a small frame maximum', () => {
+        expect(initialVisualContentHeight(visual('windowed', { maxHeight: 120, heights: [[640, 6200]] }), 640)).toBe(6200);
+        expect(visualContentHeight(6200.2)).toBe(6201);
+        expect(visualContentHeight(0)).toBe(VISUAL_LIMITS.minHeight);
+        expect(visualContentHeight(Number.MAX_VALUE)).toBe(10_000_000);
     });
 });

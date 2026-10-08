@@ -50,3 +50,9 @@ A CLI is ended by closing its input, then, after three seconds, SIGTERM to its p
 A host that goes down during a turn freezes it before it writes the thread, so the turn does not read as failed. When the chat loads again, the turn is ended as aborted with a note written by `notResumedNote`, unless `onInterruptedRun` answers `true`: then the host owes a resume and calls `recoverInterrupted()` and `resumeRun(chatId, turnId, attempt)` when it is ready. A turn is taken up on at most two processes. `endedAt`, `unownedReason` and `resumeWords` let a host say when a chat was stopped on purpose and how the resume is worded.
 
 A turn that hit the plan's usage limit or an overloaded model ends as an `error` turn with a `limit`. Taking it up again when the limit lifts needs `limitResume` on the core; `AgentHost` installs none. `resumeAtReset` on a chat turns it off for that chat. Moving the chat to another account is a person's choice, never automatic.
+
+## Visual working files
+
+`VisualStore.writeSource(chatId, name, html)` saves unmodified HTML in `<home>/chats/<encodedChatId>.visuals/`, separate from the published attachment. The filename must end in `.html` and cannot contain a directory; source pages have the same byte limit as published visuals. Writing the same name replaces the source without changing the published page. `writePreview(chatId, png)` writes a preview with a unique filename in that folder.
+
+`workspacePath(chatId)` returns the folder; `prepareWorkspace(chatId)` creates it with private permissions. `removeChat` removes sources and previews along with the chat's published visuals. Forks copy the published pages selected by the caller, leaving source files and previews in their original chat.

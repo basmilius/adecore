@@ -867,12 +867,23 @@
             "source": "./src/storage.ts",
             "types": "./dist/storage.d.ts",
             "default": "./dist/storage.js"
+        },
+        "./chat/logic/visual-viewport": {
+            "source": "./src/chat/logic/visual-viewport.ts",
+            "types": "./dist/chat/logic/visual-viewport.d.ts",
+            "default": "./dist/chat/logic/visual-viewport.js"
+        },
+        "./chat/visual-viewport": {
+            "source": "./src/chat/visual-viewport.ts",
+            "types": "./dist/chat/visual-viewport.d.ts",
+            "default": "./dist/chat/visual-viewport.js"
         }
     },
     "scripts": {
         "typecheck": "tsc --noEmit",
         "build": "bun scripts/build.ts",
-        "test": "bun --conditions=source test"
+        "test": "bun --conditions=source test",
+        "test:visuals": "bun --config=integration.bunfig.toml --conditions=source test ./src/chat/visual-viewport.integration.test.ts"
     },
     "dependencies": {
         "@codemirror/commands": "^6.11.1",

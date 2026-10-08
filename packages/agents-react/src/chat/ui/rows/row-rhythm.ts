@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import clsx from 'clsx';
 import { isBlock, type TimelineRow } from '../../logic/timeline';
 
@@ -34,4 +35,9 @@ export function replyHeader(row: TimelineRow, previous: TimelineRow | null): { a
         return { at: previous.turn.createdAt };
     }
     return null;
+}
+
+// A transform also shifts a descendant's sticky position after it was resolved against the scrollport.
+export function rowPosition(kind: TimelineRow['kind'], top: number): CSSProperties {
+    return kind === 'visual' ? { top } : { transform: `translateY(${top}px)` };
 }

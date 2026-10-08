@@ -22,6 +22,9 @@ import {
     visualProxyReadyMessage,
     visualResourceReadyMessage,
     visualSizeChangedMessage,
+    visualScrollMessage,
+    visualViewportMessage,
+    VISUAL_BRIDGE_METHODS,
     visualThemeFragment,
     type VisualTheme
 } from './visual.ts';
@@ -91,6 +94,14 @@ describe('the bridge', () => {
     const theme: VisualTheme = { appearance: 'light', variables: { '--background': '#fff' } };
 
     test('every message a builder makes reads back as itself', () => {
+        expect(parseVisualMessage(visualViewportMessage({ top: 4200, height: 700 }))).toEqual({
+            method: VISUAL_BRIDGE_METHODS.viewportChanged,
+            viewport: { top: 4200, height: 700 }
+        });
+        expect(parseVisualMessage(visualViewportMessage(null))).toEqual({ method: VISUAL_BRIDGE_METHODS.viewportChanged, viewport: null });
+        for (const request of [{ by: -55 }, { to: 3200 }, { edge: 'end' as const }]) {
+            expect(parseVisualMessage(visualScrollMessage(request))).toEqual({ method: VISUAL_BRIDGE_METHODS.scrollRequest, request });
+        }
         expect(parseVisualMessage(visualProxyReadyMessage())).toEqual({ method: 'ui/notifications/sandbox-proxy-ready' });
         expect(parseVisualMessage(visualResourceReadyMessage('<p>hi</p>'))).toEqual({ method: 'ui/notifications/sandbox-resource-ready', html: '<p>hi</p>' });
         expect(parseVisualMessage(visualHostContextMessage(theme))).toEqual({ method: 'ui/notifications/host-context-changed', theme });
@@ -135,6 +146,17 @@ describe('the bridge', () => {
             method: 'ui/notifications/host-context-changed',
             theme: { appearance: 'dark', variables: {} }
         });
+    });
+
+    test('refuses malformed viewport and scroll messages', () => {
+        for (const params of [{ top: -1, height: 400 }, { top: 0, height: 0 }, { top: Infinity, height: 400 }, null]) {
+            if (params !== null) {
+                expect(parseVisualMessage({ jsonrpc: '2.0', method: VISUAL_BRIDGE_METHODS.viewportChanged, params })).toBeUndefined();
+            }
+        }
+        for (const params of [{ by: NaN }, { to: -1 }, { by: '20' }, { edge: 'elsewhere' }]) {
+            expect(parseVisualMessage({ jsonrpc: '2.0', method: VISUAL_BRIDGE_METHODS.scrollRequest, params })).toBeUndefined();
+        }
     });
 
     test('opens only http and https links, and only on a request with an id', () => {
@@ -495,14 +517,17 @@ function host(options: { framed?: boolean } = {}) {
     };
     window.parent = options.framed === false ? window : parent;
     const written: string[] = [];
+    const installed: string[] = [];
     const document = {
         open: () => written.push('open'),
         write: (html: string) => written.push(`write ${html}`),
-        close: () => written.push('close')
+        close: () => written.push('close'),
+        createElement: () => ({ textContent: '' }),
+        head: { appendChild: (script: { textContent: string }) => installed.push(script.textContent) }
     };
     new Function('window', 'document', source)(window, document);
     const send = (data: unknown, source: unknown = parent): void => listeners.forEach((listener) => listener({ source, data }));
-    return { posted, listeners, written, send };
+    return { posted, listeners, written, installed, send };
 }
 
 describe('the sandbox host page', () => {
@@ -528,6 +553,8 @@ describe('the sandbox host page', () => {
         page.send(visualResourceReadyMessage('<p>one</p>'));
         page.send(visualResourceReadyMessage('<p>two</p>'));
         expect(page.written).toEqual(['open', 'write <p>one</p>', 'close']);
+        expect(page.installed).toHaveLength(1);
+        expect(page.installed[0]).toContain(VISUAL_BRIDGE_METHODS.viewportReady);
     });
 
     test('ignores a page from anyone but its parent, and every other message', () => {

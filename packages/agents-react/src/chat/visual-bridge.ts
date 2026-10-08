@@ -4,11 +4,14 @@ import {
     visualHostContextMessage,
     visualOpenLinkResult,
     visualResourceReadyMessage,
+    visualViewportMessage,
     type ChatVisual,
     type VisualAppearance,
+    type VisualScrollRequest,
+    type VisualViewport,
     type VisualTheme
 } from '@adecore/agent-contracts/visual';
-import { clampVisualHeight } from './logic/visual-height';
+import { clampVisualHeight, visualContentHeight } from './logic/visual-height';
 
 /*
  * How long a frame that finished loading may stay silent before it counts as failed. The sandbox host
@@ -34,6 +37,8 @@ export interface VisualBridgeOptions {
     mayOpenLink(): boolean;
     openLink(url: string): void;
     onHeight(height: number): void;
+    onViewportReady?(): void;
+    onScroll?(request: VisualScrollRequest): void;
     /* The appearance the page is drawn in, from the first size it reports and after every theme it gets since. */
     onAppearance(appearance: VisualAppearance): void;
     /* The page could not be read, or the frame's address answered with something other than the sandbox host page. */
@@ -65,6 +70,8 @@ export class VisualBridge {
     private sent: VisualTheme | null = null;
     /* Whether the page reported a size since it was sent, which says it runs and is drawn. */
     private live = false;
+    private viewportReady = false;
+    private viewport: VisualViewport | null = null;
     private disposed = false;
     private cancelSilence: () => void = () => undefined;
 
@@ -98,6 +105,7 @@ export class VisualBridge {
                 this.waiting = true;
                 this.sent = null;
                 this.live = false;
+                this.viewportReady = false;
                 this.cancelSilence();
                 this.sendPage();
                 return;
@@ -109,7 +117,22 @@ export class VisualBridge {
                     this.live = true;
                     this.options.onAppearance(this.sent.appearance);
                 }
-                this.options.onHeight(clampVisualHeight(this.options.visual, message.height));
+                this.options.onHeight(
+                    this.options.onViewportReady ? visualContentHeight(message.height) : clampVisualHeight(this.options.visual, message.height)
+                );
+                return;
+            case VISUAL_BRIDGE_METHODS.viewportReady:
+                if (this.sent === null) {
+                    return;
+                }
+                this.viewportReady = true;
+                this.options.onViewportReady?.();
+                this.setViewport(this.viewport);
+                return;
+            case VISUAL_BRIDGE_METHODS.scrollRequest:
+                if (this.sent !== null && this.viewportReady && this.viewport !== null) {
+                    this.options.onScroll?.(message.request);
+                }
                 return;
             case VISUAL_BRIDGE_METHODS.openLink:
                 if (this.sent === null) {
@@ -122,6 +145,13 @@ export class VisualBridge {
                 return;
             default:
                 return;
+        }
+    }
+
+    setViewport(viewport: VisualViewport | null): void {
+        this.viewport = viewport;
+        if (!this.disposed && this.sent !== null && this.viewportReady) {
+            this.options.frame()?.postMessage(visualViewportMessage(viewport), '*');
         }
     }
 

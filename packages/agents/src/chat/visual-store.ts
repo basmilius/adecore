@@ -127,6 +127,34 @@ export class VisualStore {
         return this.writes.run(chatId, () => this.readFile(chatId));
     }
 
+    workspacePath(chatId: string): string {
+        return join(this.dir, `${encodeURIComponent(chatId)}.visuals`);
+    }
+
+    async prepareWorkspace(chatId: string): Promise<string> {
+        const path = this.workspacePath(chatId);
+        await mkdir(path, { recursive: true, mode: 0o700 });
+        return path;
+    }
+
+    // Only a filename is accepted; an agent cannot make the host write outside its own chat.
+    async writeSource(chatId: string, name: string, html: string): Promise<string> {
+        if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,119}\.html$/.test(name)) {
+            refuse('visual-invalid', 'Use an HTML filename such as chart.html, with letters, numbers, dots, hyphens or underscores and no directory');
+        }
+        if (html.trim() === '') {
+            refuse('visual-invalid', 'The page is empty; pass one self-contained HTML document');
+        }
+        if (Buffer.byteLength(html, 'utf8') > VISUAL_LIMITS.bytes) {
+            tooLarge(Buffer.byteLength(html, 'utf8'));
+        }
+        return this.writeWorkspaceFile(chatId, name, html);
+    }
+
+    writePreview(chatId: string, png: Uint8Array): Promise<string> {
+        return this.writeWorkspaceFile(chatId, `preview-${randomBytes(8).toString('hex')}.png`, png);
+    }
+
     /* Stores a page with its bootstrap and adds it to the chat at the host's current time. */
     async publish(chatId: string, input: VisualInput): Promise<ChatVisual> {
         const { title, html, maxHeight, heights } = checked(input);
@@ -184,6 +212,7 @@ export class VisualStore {
         return this.writes.run(chatId, async () => {
             const visuals = await this.readFile(chatId).catch(() => null);
             await rm(join(this.dir, visualFileName(chatId)), { force: true });
+            await rm(this.workspacePath(chatId), { recursive: true, force: true });
             await Promise.all((visuals ?? []).map((visual) => rm(this.pagePath(chatId, visual.id), { force: true })));
             this.known.delete(chatId);
             if (visuals === null || visuals.length > 0) {
@@ -236,6 +265,14 @@ export class VisualStore {
 
     pagePath(chatId: string, visualId: string): string {
         return join(this.attachments.folderOf(chatId), `${visualId}.html`);
+    }
+
+    private writeWorkspaceFile(chatId: string, name: string, content: string | Uint8Array): Promise<string> {
+        return this.writes.run(chatId, async () => {
+            const path = join(await this.prepareWorkspace(chatId), name);
+            await writeAtomic(path, content);
+            return path;
+        });
     }
 
     private tell(chatId: string, visuals: ChatVisual[]): void {

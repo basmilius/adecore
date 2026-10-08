@@ -1,6 +1,6 @@
 # Visuals
 
-A visual is a self-contained HTML page an agent publishes in a chat: a chart, a table, a diagram, a collage of images, a mockup. A client shows it in the thread above the agent's reply, in a sandboxed frame on an opaque origin, drawn in the app's theme. The page talks to the app over a small JSON-RPC 2.0 bridge on `postMessage`, whose method names follow the MCP Apps extension, so the same frame can later show an app a server ships.
+A visual is a self-contained HTML page an agent publishes in a chat: a chart, a table, a diagram, a collage of images, a mockup. A client shows it in the thread above the agent's reply, in a sandboxed frame on an opaque origin, drawn in the app's theme. The page talks to the app over a small JSON-RPC 2.0 bridge on `postMessage`, whose base methods follow the MCP Apps extension, so the same frame can later show an app a server ships.
 
 ```ts
 import { ChatVisualSchema, injectVisualBootstrap, parseVisualMessage, visualFrameHeight } from '@adecore/agent-contracts/visual';
@@ -17,7 +17,7 @@ A visual belongs to its chat. It goes when the chat is deleted or cleared, a per
 | `id`        | Also the attachment id of the stored page, so a client reads its bytes the way it reads any attachment.        |
 | `title`     | What the page shows, in a few words.                                                                            |
 | `at`        | When it was published, in milliseconds on the host's clock, the one an item's `createdAt` uses. It places the visual among the items. |
-| `maxHeight` | The tallest the frame may grow, in CSS pixels.                                                                  |
+| `maxHeight` | The height limit for clients without a synchronized viewport, in CSS pixels.                                                                  |
 | `heights`   | `[width, height]` pairs in CSS pixels, ascending by width (`VisualHeightSchema`, `VisualHeight`). Absent when nobody measured the page. |
 | `size`      | Bytes of the stored page.                                                                                       |
 | `turnId`    | The turn that published it, when one was running.                                                               |
@@ -39,7 +39,7 @@ Nothing about visuals is a chat item, so a client that validates `chat.attach` a
 
 ## The bridge
 
-`VISUAL_BRIDGE_METHODS` names the five messages. The frame loads a small sandbox host page the app serves ([`VISUAL_HOST_PAGE`](#serving-a-page)); that page writes the visual's document into itself with `document.open`, `write` and `close`.
+`VISUAL_BRIDGE_METHODS` names the base messages and the viewport extensions. The frame loads a small sandbox host page the app serves ([`VISUAL_HOST_PAGE`](#serving-a-page)); that page writes the visual's document into itself with `document.open`, `write` and `close`.
 
 | Method                                   | From, to                    | Builder                         |
 | ---------------------------------------- | --------------------------- | ------------------------------- |
@@ -48,6 +48,9 @@ Nothing about visuals is a chat item, so a client that validates `chat.attach` a
 | `ui/notifications/host-context-changed`  | App to page                  | `visualHostContextMessage(theme)` |
 | `ui/notifications/size-changed`          | Page to app                  | `visualSizeChangedMessage({ width, height })` |
 | `ui/open-link`                           | Page to app, a request       | `visualOpenLinkRequest(id, url)` |
+| `adecore/visual/viewport-ready` | Host runtime to app | Sent after the runtime is installed |
+| `adecore/visual/viewport-changed` | App to host runtime | `visualViewportMessage(viewport)` |
+| `adecore/visual/scroll-request` | Host runtime to app | `visualScrollMessage(request)` |
 
 The app answers an open-link request with `visualOpenLinkResult(id)`, an empty result, whether it opened the link or not. `parseVisualMessage(data)` reads anything that arrives on `message` and answers a `VisualMessage`, a union on `method`, or `undefined` for anything else. It ignores fields it does not know, takes a size without a width, and takes a link only when it is an absolute http or https URL on a request with an id (`VisualRequestId`).
 
@@ -63,6 +66,10 @@ window.addEventListener('message', (event) => {
     }
 });
 ```
+
+`VisualViewport` is `{ top, height }` in CSS pixels. A non-null viewport makes the runtime follow the supplied document offset and route document scroll gestures to its parent; `null` restores native document scrolling. `VisualScrollRequest` carries `{ by }`, `{ to }`, or `{ edge: 'start' | 'end' }`. A host must validate `event.source`, accept requests only while viewport mode is active, and ignore requests from offscreen rows. These extensions are not MCP Apps methods.
+
+The host page installs the viewport runtime after writing the stored document. This also works with an older stored bootstrap. A host that sends no viewport keeps the document's native scrolling.
 
 ## The theme
 

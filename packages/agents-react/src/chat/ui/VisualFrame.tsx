@@ -5,8 +5,9 @@ import { visualThemeFragment, type ChatVisual, type VisualAppearance, type Visua
 import { Spinner, useMeasuredWidth } from '@adecore/ui';
 import { chatHost } from '../../host';
 import { useChatScope } from '../../scope';
-import { initialVisualHeight, rememberVisualHeight } from '../logic/visual-height';
+import { initialVisualContentHeight, rememberVisualHeight } from '../logic/visual-height';
 import { VisualBridge } from '../visual-bridge';
+import { VisualViewportController } from '../visual-viewport';
 import { useVisualTheme } from './visual-theme';
 
 export interface VisualFrameProps {
@@ -39,6 +40,9 @@ export function VisualFrame({ chatId, visual, fill = false, className }: VisualF
     const boxRef = useRef<HTMLDivElement | null>(null);
     const frameRef = useRef<HTMLIFrameElement>(null);
     const bridgeRef = useRef<VisualBridge | null>(null);
+    const viewportRef = useRef<HTMLDivElement | null>(null);
+    const controllerRef = useRef<VisualViewportController | null>(null);
+    const [viewportReady, setViewportReady] = useState(false);
     const [measure, width] = useMeasuredWidth();
     const setBox = useCallback(
         (node: HTMLDivElement | null) => {
@@ -58,7 +62,7 @@ export function VisualFrame({ chatId, visual, fill = false, className }: VisualF
     if (opening === null && frameUrl !== null && theme !== null && width > 0) {
         setOpening({ src: frameUrl + visualThemeFragment(theme), theme });
     }
-    const height = fill || width === 0 ? undefined : (reported ?? initialVisualHeight(visual, width));
+    const height = fill || width === 0 ? undefined : (reported ?? initialVisualContentHeight(visual, width));
 
     useLayoutEffect(() => {
         widthRef.current = width;
@@ -85,6 +89,12 @@ export function VisualFrame({ chatId, visual, fill = false, className }: VisualF
                 setReported(next);
                 rememberVisualHeight(visual.id, widthRef.current, next);
             },
+            ...(!fill
+                ? {
+                      onViewportReady: () => setViewportReady(true),
+                      onScroll: (request) => controllerRef.current?.scroll(request)
+                  }
+                : {}),
             onAppearance: setDrawn,
             onFailure: () => setFailed(true)
         });
@@ -99,6 +109,24 @@ export function VisualFrame({ chatId, visual, fill = false, className }: VisualF
         };
     }, [opening, scope.id, chatId, visual.id, visual.maxHeight, fill]);
 
+    useLayoutEffect(() => {
+        const box = boxRef.current;
+        const viewport = viewportRef.current;
+        const bridge = bridgeRef.current;
+        const scroller = box?.closest<HTMLElement>('.chat-scroll');
+        if (fill || !viewportReady || !box || !viewport || !bridge || !scroller) {
+            return;
+        }
+        const controller = new VisualViewportController(box, viewport, scroller, bridge);
+        controllerRef.current = controller;
+        return () => {
+            controller.dispose();
+            controllerRef.current = null;
+        };
+    }, [fill, viewportReady, opening, scope.id, chatId, visual.id, visual.maxHeight]);
+
+    useLayoutEffect(() => controllerRef.current?.refresh(), [height, width]);
+
     useEffect(() => {
         if (theme !== null) {
             bridgeRef.current?.setTheme(theme);
@@ -107,30 +135,32 @@ export function VisualFrame({ chatId, visual, fill = false, className }: VisualF
 
     return (
         <div ref={setBox} className={clsx(fill ? 'absolute inset-0' : 'relative w-full', className)} style={{ height }}>
-            {opening !== null && (
-                <iframe
-                    ref={frameRef}
-                    src={opening.src}
-                    title={visual.title}
-                    loading="lazy"
-                    sandbox="allow-scripts allow-forms"
-                    className={clsx('block size-full border-0', failed && 'invisible')}
-                    // A frame whose color scheme differs from its document's paints an opaque ground behind it.
-                    style={{ colorScheme: drawn ?? 'normal' }}
-                    onLoad={() => bridgeRef.current?.loaded()}
-                />
-            )}
-            {failed ? (
-                <p className="absolute inset-0 grid place-items-center px-4 text-center text-xs text-text-muted">
-                    {t('visuals.failed', { title: visual.title })}
-                </p>
-            ) : (
-                drawn === null && (
-                    <span className="chat-visual-wait pointer-events-none absolute inset-0 grid place-items-center text-text-faint">
-                        <Spinner size={16} label={t('visuals.loading', { title: visual.title })} />
-                    </span>
-                )
-            )}
+            <div ref={viewportRef} className={fill ? 'absolute inset-0' : 'sticky top-0 w-full'} style={fill ? undefined : { height: '100%' }}>
+                {opening !== null && (
+                    <iframe
+                        ref={frameRef}
+                        src={opening.src}
+                        title={visual.title}
+                        loading="lazy"
+                        sandbox="allow-scripts allow-forms"
+                        className={clsx('block size-full border-0', failed && 'invisible')}
+                        // A frame whose color scheme differs from its document's paints an opaque ground behind it.
+                        style={{ colorScheme: drawn ?? 'normal' }}
+                        onLoad={() => bridgeRef.current?.loaded()}
+                    />
+                )}
+                {failed ? (
+                    <p className="absolute inset-0 grid place-items-center px-4 text-center text-xs text-text-muted">
+                        {t('visuals.failed', { title: visual.title })}
+                    </p>
+                ) : (
+                    drawn === null && (
+                        <span className="chat-visual-wait pointer-events-none absolute inset-0 grid place-items-center text-text-faint">
+                            <Spinner size={16} label={t('visuals.loading', { title: visual.title })} />
+                        </span>
+                    )
+                )}
+            </div>
         </div>
     );
 }

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { visualViewportScript } from './visual-viewport.ts';
 
 /*
  * What a host accepts when an agent publishes a visual. The schemas below check shapes only, so a
@@ -84,7 +85,11 @@ export const VISUAL_BRIDGE_METHODS = {
     // From the page to the app: the size of its document.
     sizeChanged: 'ui/notifications/size-changed',
     // From the page to the app, as a request: a link to open outside the frame.
-    openLink: 'ui/open-link'
+    openLink: 'ui/open-link',
+    // Host extensions, independent of the bootstrap stored with a page.
+    viewportReady: 'adecore/visual/viewport-ready',
+    viewportChanged: 'adecore/visual/viewport-changed',
+    scrollRequest: 'adecore/visual/scroll-request'
 } as const;
 
 export type VisualAppearance = 'light' | 'dark';
@@ -97,13 +102,31 @@ export interface VisualTheme {
 
 export type VisualRequestId = string | number;
 
+export interface VisualViewport {
+    top: number;
+    height: number;
+}
+
+export type VisualScrollRequest = { by: number } | { to: number } | { edge: 'start' | 'end' };
+
+export function visualViewportMessage(viewport: VisualViewport | null) {
+    return { jsonrpc: '2.0', method: VISUAL_BRIDGE_METHODS.viewportChanged, params: viewport } as const;
+}
+
+export function visualScrollMessage(request: VisualScrollRequest) {
+    return { jsonrpc: '2.0', method: VISUAL_BRIDGE_METHODS.scrollRequest, params: request } as const;
+}
+
 // A message of the bridge as one side reads it from the other.
 export type VisualMessage =
     | { method: typeof VISUAL_BRIDGE_METHODS.sandboxProxyReady }
     | { method: typeof VISUAL_BRIDGE_METHODS.sandboxResourceReady; html: string }
     | { method: typeof VISUAL_BRIDGE_METHODS.hostContextChanged; theme: VisualTheme }
     | { method: typeof VISUAL_BRIDGE_METHODS.sizeChanged; width?: number; height: number }
-    | { method: typeof VISUAL_BRIDGE_METHODS.openLink; id: VisualRequestId; url: string };
+    | { method: typeof VISUAL_BRIDGE_METHODS.openLink; id: VisualRequestId; url: string }
+    | { method: typeof VISUAL_BRIDGE_METHODS.viewportReady }
+    | { method: typeof VISUAL_BRIDGE_METHODS.viewportChanged; viewport: VisualViewport | null }
+    | { method: typeof VISUAL_BRIDGE_METHODS.scrollRequest; request: VisualScrollRequest };
 
 export function visualProxyReadyMessage() {
     return { jsonrpc: '2.0', method: VISUAL_BRIDGE_METHODS.sandboxProxyReady } as const;
@@ -185,6 +208,26 @@ export function parseVisualMessage(data: unknown): VisualMessage | undefined {
                 return undefined;
             }
             return width === undefined ? { method: data.method, height } : { method: data.method, width, height };
+        }
+        case VISUAL_BRIDGE_METHODS.viewportReady:
+            return { method: data.method };
+        case VISUAL_BRIDGE_METHODS.viewportChanged: {
+            if (data.params === null) {
+                return { method: data.method, viewport: null };
+            }
+            const top = sizeOf(params.top);
+            const height = sizeOf(params.height);
+            return top !== undefined && height !== undefined && height > 0 ? { method: data.method, viewport: { top, height } } : undefined;
+        }
+        case VISUAL_BRIDGE_METHODS.scrollRequest: {
+            if (typeof params.by === 'number' && Number.isFinite(params.by)) {
+                return { method: data.method, request: { by: Math.max(-100_000, Math.min(params.by, 100_000)) } };
+            }
+            const top = sizeOf(params.to);
+            if (top !== undefined) {
+                return { method: data.method, request: { to: top } };
+            }
+            return params.edge === 'start' || params.edge === 'end' ? { method: data.method, request: { edge: params.edge } } : undefined;
         }
         case VISUAL_BRIDGE_METHODS.openLink: {
             const url = webUrl(params.url);
@@ -678,6 +721,9 @@ window.addEventListener('message', function (event) {
     document.open();
     document.write(params.html);
     document.close();
+    var viewport = document.createElement('script');
+    viewport.textContent = ${inlineJson(visualViewportScript(VISUAL_BRIDGE_METHODS))};
+    document.head.appendChild(viewport);
 });
 window.parent.postMessage({ jsonrpc: '2.0', method: methods.ready }, '*');
 })();`;

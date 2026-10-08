@@ -29,13 +29,21 @@ const rows = withTimedRows(threadRows, timedRowsOf(cards, visuals, heldFrom));
 `VisualBridge` does the talking, over the frame's window (`VisualFrameWindow`), with `VisualBridgeOptions` for what it reads and reports. It answers only the frame's own window:
 
 - When the sandbox host page says it listens, it sends the page, read through the host's `attachments.read` and decoded as UTF-8, and the theme of now right after it.
-- It follows every size the page reports, held to the visual's `maxHeight` and the limits; taller pages scroll inside the frame.
+- Inline rows reserve the full reported content height. A sticky frame stays within the full chat scrollport height, including the content behind a translucent composer, and follows the timeline position through `setViewport`. The stored `maxHeight` remains a compatibility limit for clients without this viewport mode.
 - It opens a link the page asks for only while the frame has the focus and a person's activation is live, through the host's `openLink`, and answers the request either way. A page that takes the focus by script can still open a link; the check stops links opened as a page loads.
 - When the frame loaded and the host page said nothing within a few seconds, or the page cannot be read, the frame says it could not load the visual, in the same box.
 
-The height starts from what a frame of that visual reported at the same width before, which a remounted row needs, then from the host's measurements, then from a modest default. `initialVisualHeight(visual, width)`, `rememberVisualHeight(visualId, width, height)` and `clampVisualHeight(visual, height)` are those steps. The box holds its height while the page loads and when it fails, so nothing under it moves.
+The row starts at the last content height reported for the same width, then the host's full measurements, then a modest default. `initialVisualContentHeight` and `rememberVisualHeight` retain that height across virtualized row mounts. `initialVisualHeight` and `clampVisualHeight` retain the capped behavior for older hosts.
+
+Visual rows use `top` for their virtualized position: translating an ancestor would shift the sticky frame after the browser resolved its position.
+
+`VisualViewportController` synchronizes the iframe without React updates on scroll. The chat scroll position is authoritative; the frame receives an absolute content offset. Wheel, navigation keys and touch gestures over the document request timeline movement, while scrollable controls inside a mockup retain native scrolling. Focus and fragment navigation inside the document also update the timeline. The host installs this runtime after loading the stored page, so older visuals participate without being rewritten. The frame's sandbox stays opaque.
+
+A `fill` frame in the expanded dialog keeps its native document scrolling. Outside a chat scrollport, an inline frame takes its full content height. A bounded viewport does not unload DOM, chart data or animation work inside the visual; expensive pages still need their own lazy rendering.
 
 Until the page runs, the frame's `color-scheme` is that of the host page, which declares none, and from then on the page's appearance: a frame whose color scheme differs from its document's paints an opaque ground behind it.
+
+Run `bun run --cwd packages/agents-react test:visuals` to check the real React frame and sandbox in headless Chrome, including timeline scrolling, nested mockup scrolling, keys, touch, changing heights and the expanded view. This integration test requires a local Chrome installation.
 
 ## The theme
 
