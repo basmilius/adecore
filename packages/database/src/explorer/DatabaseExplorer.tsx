@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode, type Ref } from 'react';
+import { useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent, type ReactNode, type Ref } from 'react';
 import clsx from 'clsx';
 import { CircleAlert, Columns2, Database, Eye, Folder, KeyRound, ListOrdered, Lock, Search, ShieldCheck, Table, Zap, type LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -6,7 +6,8 @@ import { Button, ContextMenu, EmptyState, Icon, Input, Spinner, Tooltip, Tree } 
 import { formatNumber } from '@adecore/ui/format';
 import type { ExplorerSelection } from '../actions.ts';
 import { useDatabaseAction, useDatabaseClient } from '../client-context.ts';
-import type { Connection } from '../client/types.ts';
+import type { Connection, TableRef } from '../client/types.ts';
+import type { TableKind } from '../protocol/index.ts';
 import { EngineIcon } from '../connections/EngineIcon.tsx';
 import { keyLabelOf, type ColumnKeys } from '../column-keys.ts';
 import { KeyIcon } from '../KeyIcon.tsx';
@@ -44,6 +45,9 @@ export interface DatabaseExplorerProps {
     value?: ExplorerSelection | null;
     defaultValue?: ExplorerSelection | null;
     onValueChange?(selection: ExplorerSelection | null): void;
+    /* Providing a handler makes table and view rows draggable; the app writes its own payload. */
+    onTableDragStart?(ref: TableRef, event: DragEvent<HTMLElement>, kind: TableKind): void;
+    onTableDragEnd?(event: DragEvent<HTMLElement>): void;
     showSystemSchemas?: boolean;
     /* Opens a table on a click too, with `preview: true`; a double click or Enter then sends `preview: false`. */
     openOnClick?: boolean;
@@ -63,6 +67,8 @@ export function DatabaseExplorer({
     value,
     defaultValue = null,
     onValueChange,
+    onTableDragStart,
+    onTableDragEnd,
     showSystemSchemas = false,
     openOnClick = false,
     folders,
@@ -275,6 +281,12 @@ export function DatabaseExplorer({
                     rowElements.current.set(row.key, element);
                 }
             },
+            draggable: row.kind === 'table' && onTableDragStart !== undefined,
+            onDragStart:
+                row.kind === 'table' && onTableDragStart !== undefined
+                    ? (event: DragEvent<HTMLElement>) => onTableDragStart(row.ref, event, row.table.kind)
+                    : undefined,
+            onDragEnd: row.kind === 'table' && onTableDragStart !== undefined ? onTableDragEnd : undefined,
             onClick: (event: MouseEvent) => click(row, event.detail),
             onDoubleClick: tableOf(row) === null && row.kind !== 'appItem' ? undefined : () => open(row),
             onFocus: () => {

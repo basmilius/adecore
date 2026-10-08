@@ -59,6 +59,39 @@ describe.skipIf(typeof document === 'undefined')('DatabaseExplorer in a DOM', ()
         await client.dispose();
     });
 
+    test('table dragging is opt-in and hands the app the reference, kind and native transfer', async () => {
+        await openTables();
+        expect(row('orders').getAttribute('draggable')).not.toBe('true');
+        await mounted.unmount();
+        const data = new Map<string, string>();
+        let ended = false;
+        mounted = await mount(
+            <DatabaseExplorer
+                connections={[connection]}
+                onTableDragStart={(ref, event, kind) => event.dataTransfer.setData('table', JSON.stringify({ ref, kind }))}
+                onTableDragEnd={() => {
+                    ended = true;
+                }}
+            />,
+            { client, actions }
+        );
+        await openTables();
+        expect(row('orders').getAttribute('draggable')).toBe('true');
+        expect(row('Shop').getAttribute('draggable')).not.toBe('true');
+        expect(row('Tables').getAttribute('draggable')).not.toBe('true');
+        const event = new Event('dragstart', { bubbles: true, cancelable: true });
+        Object.defineProperty(event, 'dataTransfer', { value: { setData: (key: string, value: string) => data.set(key, value) } });
+        await perform(() => {
+            row('orders').dispatchEvent(event);
+        });
+        expect(JSON.parse(data.get('table')!)).toEqual({ ref: { connectionId: 'one', schema: 'main', table: 'orders' }, kind: 'table' });
+        expect(actions).toEqual([]);
+        await perform(() => {
+            row('orders').dispatchEvent(new Event('dragend', { bubbles: true }));
+        });
+        expect(ended).toBe(true);
+    });
+
     test('asks the server for nothing until a node opens, then loads each level as it opens', async () => {
         expect(labels()).toEqual(['Shop']);
         expect(recorded.requests).toEqual([]);
