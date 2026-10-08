@@ -16,6 +16,22 @@ The child is the trigger. It keeps its own props and handlers, and Base UI merge
 
 A label stays on one line up to 288 pixels and wraps past that, avoiding one word alone on the last line. Long paths and other unbroken labels break within that width.
 
+## Content without a DOM trigger
+
+For a link drawn inside a terminal or canvas, pass `open`, `onOpenChange` and an `anchor` with
+`getBoundingClientRect()`. Omit `children` so the tooltip adds no focusable or clickable element
+over the content. The popup then ignores pointer input. Its host decides when a link is hovered
+and keeps the anchor in viewport coordinates.
+
+```tsx
+<Tooltip
+    open={hovered !== null}
+    onOpenChange={(open) => { if (!open) { setHovered(null); } }}
+    anchor={hovered ? { getBoundingClientRect: () => new DOMRect(hovered.x, hovered.y, 0, 0) } : null}
+    label="Cmd+click to open"
+/>
+```
+
 ## TooltipProvider
 
 Tooltips share one delay, 150 milliseconds to open and none to close, so moving along a row of buttons feels instant after the first. `TooltipProvider` holds that delay. [`UIProvider`](/ui/utilities/ui-provider) mounts it, so you only need it on its own without `UIProvider`.
@@ -29,7 +45,10 @@ The tooltip slides to the next button instead of blinking out and in, and scales
 | Prop | Type | Default | |
 | --- | --- | --- | --- |
 | `label` | `ReactNode` | | Required. |
-| `children` | `ReactElement` | | Required. The trigger. |
+| `children` | `ReactElement` | | The trigger. Omit for a controlled virtual anchor. |
+| `open` | `boolean` | | Controls visibility. |
+| `onOpenChange` | `(open: boolean) => void` | | Receives dismissals and trigger changes. |
+| `anchor` | `TooltipPositioner.Props['anchor']` | | An element, ref or virtual rectangle. |
 | `kbd` | `Shortcut \| string` | | Printed after the label. |
 | `side` | `TooltipSide` | `'top'` | `'top' \| 'bottom' \| 'left' \| 'right'` |
 | `sideOffset` | `number` | `6` | |

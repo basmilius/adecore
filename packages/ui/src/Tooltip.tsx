@@ -1,4 +1,4 @@
-import { useCallback, type ReactElement, type ReactNode } from 'react';
+import { useCallback, type ComponentProps, type ReactElement, type ReactNode } from 'react';
 import { Tooltip as BaseTooltip } from '@base-ui-components/react/tooltip';
 import { Kbd } from './Kbd.tsx';
 import type { Shortcut } from './shortcut.ts';
@@ -17,6 +17,10 @@ export function TooltipProvider({ children }: { children: ReactNode }) {
 
 export interface TooltipProps {
     label: ReactNode;
+    open?: boolean;
+    onOpenChange?(open: boolean): void;
+    /* A virtual anchor positions a controlled hint over canvas content without adding an input target. */
+    anchor?: ComponentProps<typeof BaseTooltip.Positioner>['anchor'];
     /* A shortcut, or a short phrase about a key that is not one ("Shift skips the cache"). */
     kbd?: Shortcut | string;
     side?: TooltipSide;
@@ -27,11 +31,11 @@ export interface TooltipProps {
     /* Keeps the hint closed, for a trigger that only needs one some of the time. */
     disabled?: boolean;
     /* The trigger element. Its own children and handlers are kept; Base UI merges the tooltip props in. */
-    children: ReactElement<Record<string, unknown>>;
+    children?: ReactElement<Record<string, unknown>>;
 }
 
 /* A hint on hover and on keyboard focus. Every hint in an app is one of these, never a `title`. */
-export function Tooltip({ label, kbd, side = 'top', sideOffset = 6, name = false, disabled = false, children }: TooltipProps) {
+export function Tooltip({ label, open, onOpenChange, anchor, kbd, side = 'top', sideOffset = 6, name = false, disabled = false, children }: TooltipProps) {
     // Held Cmd (Ctrl off macOS) prints this shortcut under the trigger (`ShortcutHints`).
     const hintRef = useCallback(
         (element: HTMLElement | null) => {
@@ -44,11 +48,11 @@ export function Tooltip({ label, kbd, side = 'top', sideOffset = 6, name = false
     );
 
     return (
-        <BaseTooltip.Root disabled={disabled}>
-            <BaseTooltip.Trigger ref={hintRef} render={children} aria-label={name && typeof label === 'string' ? label : undefined} />
+        <BaseTooltip.Root disabled={disabled} open={open} onOpenChange={onOpenChange} disableHoverablePopup={children === undefined}>
+            {children && <BaseTooltip.Trigger ref={hintRef} render={children} aria-label={name && typeof label === 'string' ? label : undefined} />}
             <BaseTooltip.Portal>
-                <BaseTooltip.Positioner side={side} sideOffset={sideOffset} className="tooltip-positioner">
-                    <BaseTooltip.Popup className="tooltip-popup">
+                <BaseTooltip.Positioner anchor={anchor} side={side} sideOffset={sideOffset} className="tooltip-positioner">
+                    <BaseTooltip.Popup role="tooltip" className="tooltip-popup">
                         <BaseTooltip.Viewport className="max-w-72 px-[9px] py-[5px] text-pretty">
                             <span className="wrap-anywhere">{label}</span>
                             {/* The viewport wraps its children in a div of its own, so the 8px

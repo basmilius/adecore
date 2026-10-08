@@ -53,7 +53,9 @@ The colors come from the `--term-*` tokens in `terminal.css`: a background, a fo
 
 ## Links
 
-A URL in the output is a link. Without `onOpenLink` it opens in a new window; a desktop app passes the function that opens it in the browser. Whether the prop is set is read at mount.
+HTTP and HTTPS URLs in output and OSC 8 hyperlinks use the same handler. Without `onOpenLink`, a primary click opens the complete URL in a new window with `noopener,noreferrer`. Selection drags and other mouse buttons do not open links. A desktop app passes its browser-opening function.
+
+`onOpenLink(uri, event)` receives the complete target and the mouse event, so a host can require Cmd or Ctrl without changing text selection. `onLinkHover(uri, bounds)` receives that same target and a `TerminalLinkBounds` rectangle in viewport pixels, or two `null` values on leave. The rectangle covers the link segment on the hovered terminal row, including canvas zoom and scrollback. A host can center a tooltip above or below that row without following the pointer horizontally. A wrapped link retains its complete target on every segment. Handlers follow prop changes and belong to their own terminal instance. Non-web schemes are never passed to either open route.
 
 ## WebGL
 
@@ -79,7 +81,8 @@ A terminal on a canvas that zooms with a CSS transform measures the pointer agai
 | --- | --- | --- |
 | `onData` | `(data: string) => void` | What the person types or pastes. |
 | `onResize` | `(cols: number, rows: number) => void` | A new grid after a resize or a font change. |
-| `onOpenLink` | `(uri: string) => void` | Where a link goes. A new window by default. |
+| `onOpenLink` | `(uri: string, event: MouseEvent) => void` | Where a web link goes. A new window by default. |
+| `onLinkHover` | `(uri: string \| null, bounds: TerminalLinkBounds \| null) => void` | The target under the pointer, or `null` on leave. |
 | `fontSize` | `number` | `13` by default. |
 | `lineHeight` | `number` | `1` by default. |
 | `readOnly` | `boolean` | Shows output only. |
@@ -104,4 +107,4 @@ A terminal on a canvas that zooms with a CSS transform measures the pointer agai
 | `visibleText()` | The rows on screen as text. |
 | `followGrid(size)` | Draws the grid another client set. |
 
-`TerminalViewProps`, `TerminalViewHandle` and `TerminalSize` are exported types.
+`TerminalViewProps`, `TerminalViewHandle`, `TerminalSize` and `TerminalLinkBounds` are exported types. `TerminalLinkBounds` contains `x`, `y`, `width` and `height` in viewport pixels.

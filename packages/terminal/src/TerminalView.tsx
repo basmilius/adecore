@@ -1,9 +1,9 @@
 import { useEffect, useImperativeHandle, useRef, type Ref } from 'react';
 import clsx from 'clsx';
 import { FitAddon } from '@xterm/addon-fit';
-import { WebLinksAddon } from '@xterm/addon-web-links';
 import { Terminal } from '@xterm/xterm';
 import { readTerminalFont, readTerminalTheme } from './theme.ts';
+import { bindTerminalLinks, type TerminalLinkBounds } from './links.ts';
 import { webglBudget } from './webgl-budget.ts';
 import { fitToHost, followAncestorScale } from './xterm-internals.ts';
 
@@ -46,7 +46,9 @@ export interface TerminalViewProps {
        Not called for the grid at mount: `size()` has that one. */
     onResize?(cols: number, rows: number): void;
     /* Where a link in the output goes. Without it, a new window opens on the link. */
-    onOpenLink?(uri: string): void;
+    onOpenLink?(uri: string, event: MouseEvent): void;
+    /* The complete target and its segment on the hovered row in viewport pixels; both null on leave. */
+    onLinkHover?(uri: string | null, bounds: TerminalLinkBounds | null): void;
     fontSize?: number;
     lineHeight?: number;
     readOnly?: boolean;
@@ -80,6 +82,7 @@ export function TerminalView({
     onData,
     onResize,
     onOpenLink,
+    onLinkHover,
     fontSize = 13,
     lineHeight = 1,
     readOnly = false,
@@ -92,10 +95,10 @@ export function TerminalView({
     const hostRef = useRef<HTMLDivElement>(null);
     const live = useRef<Live | null>(null);
     // Filled with the first props, so the mount reads them before the effect below brings them up to date.
-    const latest = useRef({ onData, onResize, onOpenLink, fontSize, lineHeight, scaledByAncestor });
+    const latest = useRef({ onData, onResize, onOpenLink, onLinkHover, fontSize, lineHeight, scaledByAncestor });
 
     useEffect(() => {
-        latest.current = { onData, onResize, onOpenLink, fontSize, lineHeight, scaledByAncestor };
+        latest.current = { onData, onResize, onOpenLink, onLinkHover, fontSize, lineHeight, scaledByAncestor };
     });
 
     useImperativeHandle(
@@ -167,8 +170,8 @@ export function TerminalView({
         });
         const fit = new FitAddon();
         term.loadAddon(fit);
-        term.loadAddon(new WebLinksAddon(latest.current.onOpenLink ? (_event, uri) => latest.current.onOpenLink?.(uri) : undefined));
         term.open(host);
+        const disposeLinks = bindTerminalLinks(term, () => latest.current);
         if (initial.scaledByAncestor) {
             followAncestorScale(term);
         }
@@ -268,6 +271,7 @@ export function TerminalView({
             data.dispose();
             // The context goes back before the terminal is gone, so the next one can take it.
             current.setWebgl(false);
+            disposeLinks();
             term.dispose();
             live.current = null;
         };
