@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from 'react';
+import { flushSync } from 'react-dom';
 import type { FileTree, FileTreeVisibleRow } from '@pierre/trees';
 import { pathOfRow, visibleRows } from './helpers.ts';
 import { FILE_TREE_CSS } from './style.ts';
@@ -153,7 +154,8 @@ export function useFileTreeSlots(model: FileTree, frame: HTMLElement | null, lab
                 .join('|');
             if (snapshot !== key) {
                 snapshot = key;
-                setSlots(next);
+                // Recycled rows must paint with their new portal contents in the same frame.
+                flushSync(() => setSlots(next));
             }
             position();
         };
