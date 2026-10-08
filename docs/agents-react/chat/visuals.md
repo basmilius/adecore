@@ -41,7 +41,7 @@ The row starts at the last content height reported for the same width, then the 
 
 `visualViewportGeometry(contentHeight, availableHeight, top)` returns a `VisualViewportGeometry` with the bounded frame height and its content offset, clamped at both ends of the page.
 
-`VisualViewportController` synchronizes the iframe without React updates on scroll. The chat scroll position is authoritative; the frame receives an absolute content offset. Wheel, navigation keys and touch gestures over the document request timeline movement, while scrollable controls inside a mockup retain native scrolling. Focus and fragment navigation inside the document also update the timeline. The host installs this runtime after loading the stored page, so older visuals participate without being rewritten. The frame's sandbox stays opaque.
+`VisualViewportController` synchronizes the iframe without React updates on scroll. The chat scroll position is authoritative; the frame receives an absolute content offset. Wheel, navigation keys and touch gestures over the document request timeline movement, while scrollable controls inside a mockup retain native scrolling. Horizontal overflow stays scrollable inside the visual, independently of the timeline. Focus and fragment navigation inside the document also update the timeline. The host installs this runtime after loading the stored page, so older visuals participate without being rewritten. The frame's sandbox stays opaque.
 
 A `fill` frame in the expanded dialog keeps its native document scrolling. Outside a chat scrollport, an inline frame takes its full content height. A bounded viewport does not unload DOM, chart data or animation work inside the visual; expensive pages still need their own lazy rendering.
 

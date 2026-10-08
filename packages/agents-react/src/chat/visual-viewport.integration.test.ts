@@ -14,10 +14,12 @@ test('a sandboxed visual follows the timeline while its own controls retain thei
             if(event.source !== parent || event.data?.kind !== 'test-state') return;
             if(event.data.responsive !== undefined) document.body.classList.toggle('responsive', event.data.responsive);
             if(event.data.value) document.getElementById('editable').value = event.data.value;
+            if(event.data.contentWidth !== undefined) document.getElementById('content').style.width = event.data.contentWidth ? event.data.contentWidth + 'px' : '';
+            if(event.data.left !== undefined) window.scrollTo({left:event.data.left,top:window.scrollY,behavior:'instant'});
             if(event.data.height) document.getElementById('content').style.height = event.data.height + 'px';
             if(event.data.short) { document.getElementById('content').innerHTML = ''; document.getElementById('content').style.height = '240px'; }
             if(event.data.nestedEnd) document.getElementById('nested').scrollTop = 600;
-            parent.postMessage({kind:'test-state', top:scrollY, height:innerHeight, width:innerWidth, value:document.getElementById('editable')?.value, nested:document.getElementById('nested')?.scrollTop ?? 0, contentHeight:document.documentElement.scrollHeight, overflow:getComputedStyle(document.documentElement).overflowY}, '*');
+            parent.postMessage({kind:'test-state', top:scrollY, left:scrollX, height:innerHeight, width:innerWidth, value:document.getElementById('editable')?.value, nested:document.getElementById('nested')?.scrollTop ?? 0, contentHeight:document.documentElement.scrollHeight, overflow:getComputedStyle(document.documentElement).overflowY, overflowX:getComputedStyle(document.documentElement).overflowX, documentWidth:document.documentElement.scrollWidth, clientWidth:document.documentElement.clientWidth, contentWidth:document.getElementById('content').offsetWidth}, '*');
         });</script>`);
     const entry = join(directory, 'entry.ts');
     await writeFile(
@@ -130,8 +132,8 @@ test('a sandboxed visual follows the timeline while its own controls retain thei
         }
         throw new Error(`Condition did not settle: ${expression}\n${errors.join('\n')}\n${JSON.stringify(await view.evaluate('sample()'))}`);
     };
-    const wheel = async (x: number, y: number, deltaY: number): Promise<void> => {
-        await view.cdp('Input.dispatchMouseEvent', { type: 'mouseWheel', x, y, deltaX: 0, deltaY });
+    const wheel = async (x: number, y: number, deltaY: number, deltaX = 0, modifiers = 0): Promise<void> => {
+        await view.cdp('Input.dispatchMouseEvent', { type: 'mouseWheel', x, y, deltaX, deltaY, modifiers });
     };
     try {
         await view.navigate(`http://127.0.0.1:${server.port}`);
@@ -154,8 +156,29 @@ test('a sandboxed visual follows the timeline while its own controls retain thei
         await waitFor('(async()=> (await sample()).top === 0)()');
         expect(await view.evaluate<number>('document.querySelector("iframe").getBoundingClientRect().bottom')).toBe(630);
         expect(await view.evaluate<string>('document.elementFromPoint(400,580).id')).toBe('composer');
+        await view.evaluate('sample({contentWidth:1800})');
+        await wheel(400, 450, 0, 120);
+        await waitFor('(async()=> (await sample()).left >= 120)()');
+        const horizontal = await view.evaluate<{ left: number; scroll: number; top: number }>('sample()');
+        expect(horizontal.scroll).toBe(200);
+        expect(horizontal.top).toBe(0);
         await wheel(400, 450, 120);
         await waitFor('(async()=> (await sample()).scroll >= 320)()');
+        expect((await view.evaluate<{ left: number }>('sample()')).left).toBe(horizontal.left);
+        await view.evaluate('move(200)');
+        await waitFor('(async()=> (await sample()).top === 0)()');
+        await wheel(400, 450, 0, 120, 8);
+        await waitFor(`(async()=> (await sample()).left > ${horizontal.left})()`);
+        expect((await view.evaluate<{ scroll: number }>('sample()')).scroll).toBe(200);
+        await view.evaluate('sample({left:0})');
+        await view.cdp('Emulation.setTouchEmulationEnabled', { enabled: true });
+        await view.cdp('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 400, y: 440 }] });
+        await view.cdp('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 280, y: 440 }] });
+        await waitFor('(async()=> (await sample()).left > 0)()');
+        expect((await view.evaluate<{ scroll: number }>('sample()')).scroll).toBe(200);
+        await view.cdp('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
+        await view.cdp('Emulation.setTouchEmulationEnabled', { enabled: false });
+        await view.evaluate('sample({contentWidth:0,left:0})');
         await view.evaluate('move(200)');
         await waitFor('(async()=> (await sample()).top === 0)()');
         await wheel(100, 260, 80);

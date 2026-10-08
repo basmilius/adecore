@@ -30,7 +30,7 @@ window.addEventListener('message', function (event) {
     }
     if (!next || !Number.isFinite(next.top) || next.top < 0 || !Number.isFinite(next.height) || next.height <= 0) { return; }
     if (viewport === null) {
-        style.textContent = 'html{overflow:hidden!important;scroll-behavior:auto!important;overflow-anchor:none!important}';
+        style.textContent = 'html{overflow-x:auto!important;overflow-y:hidden!important;scroll-behavior:auto!important;overflow-anchor:none!important}';
     }
     viewport = next;
     apply(next.top);
