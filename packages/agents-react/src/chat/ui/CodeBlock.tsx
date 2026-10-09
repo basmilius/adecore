@@ -1,5 +1,8 @@
-import { Fragment, memo, useContext, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { Fragment, memo, useContext, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import clsx from 'clsx';
+import { useTranslation } from 'react-i18next';
+import { Check, Copy } from 'lucide-react';
+import { ButtonGroup, IconButton } from '@adecore/ui';
 import type { BundledLanguage, BundledTheme, createHighlighter, ThemeRegistration } from 'shiki/bundle/web';
 import { IncrementalLines, type CodeToken, type Tokenize } from './code-lines';
 import { CodeStreamingContext } from './code-streaming';
@@ -10,6 +13,7 @@ type Highlighter = Awaited<ReturnType<typeof createHighlighter>>;
 type GrammarState = ReturnType<Highlighter['getLastGrammarState']>;
 // A plain language needs no grammar; shiki draws it in the theme's own foreground.
 const PLAIN = 'text';
+const COPIED_MS = 1500;
 
 let highlighter: Highlighter | null = null;
 let highlighterLoad: Promise<Highlighter> | null = null;
@@ -123,9 +127,12 @@ const CodeLine = memo(function CodeLine({ tokens }: { tokens: CodeToken[] }) {
  * fence that is still open is tokenized as it grows, and the same component carries on once it
  * closes, so closing it does not draw it again.
  */
-export function CodeBlock({ code, lang }: { code: string; lang: string }) {
+export function CodeBlock({ code, lang, actions }: { code: string; lang: string; actions?: ReactNode }) {
+    const { t } = useTranslation('agent-chat');
     const theme = useCodeTheme();
     const streaming = useContext(CodeStreamingContext);
+    const [copyState, setCopyState] = useState<'idle' | 'copying' | 'copied' | 'failed'>('idle');
+    const copying = useRef(false);
     // What loaded last, so a block whose theme changes draws again once the new one is in.
     const [loaded, setLoaded] = useState<string | null>(null);
     const tokenizer = tokenizerFor(lang, theme);
@@ -133,6 +140,31 @@ export function CodeBlock({ code, lang }: { code: string; lang: string }) {
     const [waited] = useState(tokenizer === null);
     const lines = useMemo(() => (tokenizer ? new IncrementalLines(tokenizer.tokenize) : null), [tokenizer]);
     const tokens = useMemo(() => lines?.update(code, !streaming) ?? null, [lines, code, streaming]);
+
+    useEffect(() => {
+        if (copyState !== 'copied') {
+            return;
+        }
+        const timer = setTimeout(() => setCopyState('idle'), COPIED_MS);
+        return () => clearTimeout(timer);
+    }, [copyState]);
+
+    async function copy(): Promise<void> {
+        if (copying.current) {
+            return;
+        }
+        copying.current = true;
+        setCopyState('copying');
+        try {
+            // The best-effort clipboard helper cannot distinguish a refusal from success.
+            await navigator.clipboard.writeText(code);
+            setCopyState('copied');
+        } catch {
+            setCopyState('failed');
+        } finally {
+            copying.current = false;
+        }
+    }
 
     useEffect(() => {
         if (tokenizer !== null) {
@@ -147,29 +179,46 @@ export function CodeBlock({ code, lang }: { code: string; lang: string }) {
         };
     }, [lang, theme, tokenizer]);
 
-    if (tokenizer === null || tokens === null) {
-        const failed = loaded === 'failed';
-        return (
-            <div className={clsx('chat-code', !failed && 'invisible')} aria-hidden={failed ? undefined : true}>
-                <pre>
-                    <code>{code}</code>
-                </pre>
-            </div>
-        );
-    }
+    const pending = (tokenizer === null || tokens === null) && loaded !== 'failed';
     return (
-        <div className={clsx('chat-code', waited && WHOLE_FADE_CLASS)}>
-            <pre style={{ color: tokenizer.fg }}>
+        <div className="chat-code" data-copy-state={copyState}>
+            <pre
+                className={clsx(pending && 'invisible', !pending && tokens !== null && waited && WHOLE_FADE_CLASS)}
+                aria-hidden={pending || undefined}
+                style={{ color: tokenizer?.fg }}
+            >
                 <code>
-                    {tokens.map((line, index) => (
-                        // Lines only ever grow at the end, so the place of a line is a stable key.
-                        <Fragment key={index}>
-                            <CodeLine tokens={line} />
-                            {index < tokens.length - 1 && '\n'}
-                        </Fragment>
-                    ))}
+                    {tokens === null
+                        ? code
+                        : tokens.map((line, index) => (
+                              // Lines only ever grow at the end, so the place of a line is a stable key.
+                              <Fragment key={index}>
+                                  <CodeLine tokens={line} />
+                                  {index < tokens.length - 1 && '\n'}
+                              </Fragment>
+                          ))}
                 </code>
             </pre>
+            <ButtonGroup className="chat-code-actions" role="group" aria-label={t('code.actions')}>
+                <IconButton
+                    icon={copyState === 'copied' ? Check : Copy}
+                    size="sm"
+                    label={copyState === 'copied' ? t('timeline.actions.copied') : t('timeline.menu.copyCode')}
+                    busy={copyState === 'copying'}
+                    aria-busy={copyState === 'copying'}
+                    aria-disabled={copyState === 'copying'}
+                    onClick={() => void copy()}
+                />
+                {actions}
+            </ButtonGroup>
+            <span className="sr-only" role="status">
+                {copyState === 'copied' ? t('timeline.actions.copied') : ''}
+            </span>
+            {copyState === 'failed' && (
+                <p className="chat-code-error" role="alert">
+                    {t('code.copyFailed')}
+                </p>
+            )}
         </div>
     );
 }

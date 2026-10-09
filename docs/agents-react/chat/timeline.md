@@ -39,6 +39,12 @@ const open = trail.at(-1);
 <Timeline chatId={chatId} composer={composer} overlay={open && <SubagentTimeline key={open.toolUseId} chatId={chatId} toolUseId={open.toolUseId} />} />;
 ```
 
+## File references
+
+File references preserve the full `FileRef`: `path`, optional one-based `line` and `column`, optional inclusive `endLine`, and `directory`. The host receives the rendering scope as the optional third argument of `fileLinks.target(text, cwd, scopeId)` and `fileLinks.open(cwd, ref, scopeId)`. Existing two-argument implementations keep working. A standalone Markdown render outside `ChatScopeContext` supplies `null`; the host decides whether that origin can open a file.
+
+Markdown file links serialize their location, scope and cwd for `readTimelineTarget`. The timeline menu captures those values when it opens, so switching scope or cwd before activating it keeps the original destination. Mention chips and changed-file rows inherit the timeline's origin; subagent conversations use their scope and their own cwd. `useFileLinkScopeId()` and `useFileLinkCwd()` read that origin for custom renderers, and `openFileLink(cwd, ref, scopeId)` passes it to the host. A custom `TimelineTarget` that supplies only legacy `path` and `line` retains its prior behavior; only targets from `readTimelineTarget` carry the snapshot.
+
 ## Streaming
 
 `useStreaming()` on the host picks how a reply appears: a word at a time with a fade (`words`), a Markdown block at a time (`blocks`), or all at once when it is done (`whole`). A code fence that is still open is highlighted line by line as it grows. Only the row of the growing reply redraws for a word; see [reading the stores](/agents-react/guide/chat-client#reading-the-stores).

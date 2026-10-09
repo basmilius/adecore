@@ -456,5 +456,9 @@
       "failed": "mislukt",
       "cancelled": "geannuleerd"
     }
+  },
+  "code": {
+    "actions": "Codeacties",
+    "copyFailed": "De code kon niet worden gekopieerd. Probeer het opnieuw."
   }
 }

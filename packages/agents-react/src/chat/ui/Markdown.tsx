@@ -1,7 +1,7 @@
-import { memo, useMemo, type ReactNode } from 'react';
+import { createContext, memo, useContext, useMemo, type ReactNode } from 'react';
 import clsx from 'clsx';
 import { Zap } from 'lucide-react';
-import ReactMarkdown, { type Components, type Options } from 'react-markdown';
+import ReactMarkdown, { type Components, type ExtraProps, type Options } from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
 import { CHIP_IN_MESSAGE, MENTION_TONE, SKILL_TONE } from './chips';
@@ -11,9 +11,54 @@ import { splitMarkdownBlocks } from './markdown-blocks';
 import { rehypeChips, type ChipOptions } from './rehype-chips';
 import { rehypeFadeWords } from './rehype-fade';
 import { remarkHtmlAsText } from './remark-html-as-text';
-import type { FileRef } from '../../host';
-import { openFileLink, useFileLinkCwd, useFileLinkTarget } from './file-links';
+import { chatHost, type FileRef, type ShellCodeBlockContext } from '../../host';
+import { openFileLink, useFileLinkCwd, useFileLinkScopeId, useFileLinkTarget } from './file-links';
 import { FileIcon, Icon } from '@adecore/ui';
+
+type ShellCodeBlockReply = Pick<ShellCodeBlockContext, 'scopeId' | 'chatId' | 'itemId'> & { streaming: boolean };
+
+const ShellCodeBlockReplyContext = createContext<ShellCodeBlockReply | null>(null);
+const BlockCodeContext = createContext(false);
+
+interface MarkdownNode {
+    type: string;
+    children?: MarkdownNode[];
+    position?: { start: { offset?: number }; end: { offset?: number } };
+    data?: { hProperties?: Record<string, unknown> };
+}
+
+/* Only root children qualify; Markdown's parser decides whether a fence belongs to a list or quote. */
+function remarkShellCodeBlocks() {
+    return (tree: MarkdownNode, file: { value: unknown }) => {
+        for (const node of tree.children ?? []) {
+            if (node.type !== 'code') {
+                continue;
+            }
+            const start = node.position?.start.offset;
+            const end = node.position?.end.offset;
+            if (start === undefined || end === undefined) {
+                continue;
+            }
+            const raw = String(file.value).slice(start, end);
+            const opening = /^ {0,3}(`{3,}|~{3,})[ \t]*(sh|bash|zsh)[ \t]*\r?\n/.exec(raw);
+            if (opening === null) {
+                continue;
+            }
+            const body = raw.slice(opening[0].length);
+            const closing = /(?:^|\r?\n) {0,3}(`{3,}|~{3,})[ \t]*$/.exec(body);
+            const closed = closing !== null && closing[1]![0] === opening[1]![0] && closing[1]!.length >= opening[1]!.length;
+            node.data = {
+                ...node.data,
+                hProperties: {
+                    ...node.data?.hProperties,
+                    'data-shell-language': opening[2],
+                    'data-shell-code': closed ? body.slice(0, closing.index) : body,
+                    'data-shell-closed': closed
+                }
+            };
+        }
+    };
+}
 
 function languageOf(className: string | undefined): string {
     return /language-([\w-]+)/.exec(className ?? '')?.[1] ?? 'text';
@@ -29,6 +74,7 @@ const INLINE_CODE = 'rounded-sm bg-surface-sunken px-1 py-px font-mono text-code
  */
 function FileLink({ target, className, children }: { target: FileRef; className?: string; children: ReactNode }) {
     const cwd = useFileLinkCwd();
+    const scopeId = useFileLinkScopeId();
     return (
         // `select-text` because a thread is copied as often as it is clicked, and a button is not
         // selectable on its own.
@@ -37,7 +83,12 @@ function FileLink({ target, className, children }: { target: FileRef; className?
             className={clsx('cursor-pointer select-text', className)}
             data-file-path={target.path}
             data-file-line={target.line}
-            onClick={() => openFileLink(cwd, target)}
+            data-file-column={target.column}
+            data-file-end-line={target.endLine}
+            data-file-directory={target.directory}
+            data-file-cwd={cwd ?? ''}
+            data-file-scope-id={scopeId ?? ''}
+            onClick={() => openFileLink(cwd, target, scopeId)}
         >
             {children}
         </button>
@@ -85,18 +136,20 @@ function MarkdownLink({ href, children }: { href?: string; children?: ReactNode 
     );
 }
 
+function MarkdownCode({ className, children, plain = false }: { className?: string; children?: ReactNode; plain?: boolean }) {
+    const block = useContext(BlockCodeContext);
+    const text = String(children ?? '');
+    if (block) {
+        return <CodeBlock code={text.replace(/\n$/, '')} lang={languageOf(className)} />;
+    }
+    return plain ? <code className={INLINE_CODE}>{text}</code> : <InlineCode text={text} />;
+}
+
 const components = {
     pre({ children }: { children?: ReactNode }) {
-        return <>{children}</>;
+        return <BlockCodeContext.Provider value={true}>{children}</BlockCodeContext.Provider>;
     },
-    code({ className, children }: { className?: string; children?: ReactNode }) {
-        const text = String(children ?? '');
-        // Fenced blocks end with a newline and carry a language; anything else is inline.
-        if (className?.startsWith('language-') || text.includes('\n')) {
-            return <CodeBlock code={text.replace(/\n$/, '')} lang={languageOf(className)} />;
-        }
-        return <InlineCode text={text} />;
-    },
+    code: MarkdownCode,
     a({ href, children }: { href?: string; children?: ReactNode }) {
         return <MarkdownLink href={href}>{children}</MarkdownLink>;
     },
@@ -114,11 +167,11 @@ const components = {
 const plainComponents = {
     ...components,
     code({ className, children }: { className?: string; children?: ReactNode }) {
-        const text = String(children ?? '');
-        if (className?.startsWith('language-') || text.includes('\n')) {
-            return <CodeBlock code={text.replace(/\n$/, '')} lang={languageOf(className)} />;
-        }
-        return <code className={INLINE_CODE}>{text}</code>;
+        return (
+            <MarkdownCode className={className} plain>
+                {children}
+            </MarkdownCode>
+        );
     },
     a({ href, children }: { href?: string; children?: ReactNode }) {
         return (
@@ -142,6 +195,7 @@ function replyHeading(level: 1 | 2 | 3 | 4 | 5 | 6) {
 
 const replyComponents = {
     ...components,
+    code: ReplyCode,
     h1: replyHeading(1),
     h2: replyHeading(2),
     h3: replyHeading(3),
@@ -149,6 +203,36 @@ const replyComponents = {
     h5: replyHeading(5),
     h6: replyHeading(6)
 };
+
+function ReplyCode({ className, children, node }: { className?: string; children?: ReactNode } & ExtraProps) {
+    const reply = useContext(ShellCodeBlockReplyContext);
+    const block = useContext(BlockCodeContext);
+    const properties = node?.properties;
+    const language = properties?.['data-shell-language'];
+    const code = properties?.['data-shell-code'];
+    const context: ShellCodeBlockContext | null =
+        reply !== null && (language === 'sh' || language === 'bash' || language === 'zsh') && typeof code === 'string'
+            ? {
+                  scopeId: reply.scopeId,
+                  chatId: reply.chatId,
+                  itemId: reply.itemId,
+                  language,
+                  code,
+                  complete: !reply.streaming && properties?.['data-shell-closed'] === true
+              }
+            : null;
+    const text = String(children ?? '');
+    if (block) {
+        return (
+            <CodeBlock
+                code={text.replace(/\n$/, '')}
+                lang={languageOf(className)}
+                actions={context !== null ? chatHost().renderShellCodeBlock?.(context) : undefined}
+            />
+        );
+    }
+    return <InlineCode text={text} />;
+}
 
 /* A picked file or skill in a sent message. The glyph stands in for the sigil the text still carries. */
 function Chip({ kind, value }: { kind: string; value: string }) {
@@ -162,7 +246,7 @@ function Chip({ kind, value }: { kind: string; value: string }) {
     }
     return (
         // The path is what the thread's menu opens in the preview from here.
-        <span className={clsx(CHIP_IN_MESSAGE, MENTION_TONE)} data-file-path={value}>
+        <span className={clsx(CHIP_IN_MESSAGE, MENTION_TONE)} data-file-path={value} data-file-directory={/[\\/]$/.test(value)}>
             <FileIcon path={value} size={14} />
             <span className="truncate">{value}</span>
         </span>
@@ -181,6 +265,7 @@ const messageComponents = {
 
 // Module constants, so a render never hands react-markdown a fresh array and makes it parse again.
 const PLUGINS = [remarkGfm];
+const REPLY_PLUGINS = [remarkGfm, remarkShellCodeBlocks];
 const PLUGINS_WITH_BREAKS = [remarkGfm, remarkBreaks];
 const MESSAGE_PLUGINS = [remarkGfm, remarkHtmlAsText, remarkBreaks];
 const FADE_PLUGINS = [rehypeFadeWords];
@@ -188,14 +273,16 @@ const NO_PLUGINS: typeof FADE_PLUGINS = [];
 
 /* One block of a reply. It renders no element of its own, so prose still sees the paragraphs as
    direct children and keeps its first and last margins. */
-const ReplyBlock = memo(function ReplyBlock({ text, fade, open }: { text: string; fade: boolean; open: boolean }) {
+const ReplyBlock = memo(function ReplyBlock({ text, fade, open, reply }: { text: string; fade: boolean; open: boolean; reply?: ShellCodeBlockReply }) {
     return (
         // A context rather than a second set of components. A component that changed would mount the
         // code block again the moment its fence closes, and it would lose the lines it already has.
         <CodeStreamingContext.Provider value={open}>
-            <ReactMarkdown remarkPlugins={PLUGINS} rehypePlugins={fade ? FADE_PLUGINS : NO_PLUGINS} components={replyComponents}>
-                {text}
-            </ReactMarkdown>
+            <ShellCodeBlockReplyContext.Provider value={reply ?? null}>
+                <ReactMarkdown remarkPlugins={REPLY_PLUGINS} rehypePlugins={fade ? FADE_PLUGINS : NO_PLUGINS} components={replyComponents}>
+                    {text}
+                </ReactMarkdown>
+            </ShellCodeBlockReplyContext.Provider>
         </CodeStreamingContext.Provider>
     );
 });
@@ -206,13 +293,23 @@ const ReplyBlock = memo(function ReplyBlock({ text, fade, open }: { text: string
  * line at a time as it grows. `arriving` fades in each block as it is added instead, for a reply
  * that is shown a block at a time.
  */
-export const ReplyMarkdown = memo(function ReplyMarkdown({ text, streaming, arriving = false }: { text: string; streaming: boolean; arriving?: boolean }) {
+export const ReplyMarkdown = memo(function ReplyMarkdown({
+    text,
+    streaming,
+    arriving = false,
+    reply
+}: {
+    text: string;
+    streaming: boolean;
+    arriving?: boolean;
+    reply?: ShellCodeBlockReply;
+}) {
     const blocks = useMemo(() => splitMarkdownBlocks(text), [text]);
     return (
         <div className="chat-markdown prose prose-sm max-w-none text-sm" data-arriving={arriving || undefined}>
             {blocks.map((block, index) => (
                 // Blocks only ever grow at the end, so the place of a block is a stable key.
-                <ReplyBlock key={index} text={block.text} fade={streaming} open={streaming && block.openFence} />
+                <ReplyBlock key={index} text={block.text} fade={streaming} open={streaming && block.openFence} reply={reply} />
             ))}
         </div>
     );

@@ -18,7 +18,7 @@ A patch replaces top-level fields only: to change one function of `code`, `promp
 | `searchFiles(scopeId, cwd, query, limit)` | No `@` file picker                          | Relative paths under `cwd` for the composer's picker.                                                  |
 | `attachments`                      | No previews; reading rejects                       | `useUrl` for a URL to an attached file's bytes, `read` for the bytes as a `Blob`.                      |
 | `ReadImage`                        | Nothing under a tool that read an image            | A component that draws the image at `path`.                                                            |
-| `fileLinks`                        | Paths in a reply stay text                         | `target(text, cwd)` finds a `FileRef` in text, `open(cwd, ref)` opens it.                              |
+| `fileLinks`                        | Paths in a reply stay text                         | `target(text, cwd, scopeId)` finds a `FileRef`; `open(cwd, ref, scopeId)` opens it on its rendering scope.                              |
 | `code`                             | Light, `github-light` and `github-dark`            | `useMode()` follows the app's light or dark, `useThemes()` names the Shiki themes, `custom` registers your own. |
 | `useStreaming()`                   | `words`                                            | How a reply appears while it streams: `words`, `blocks` or `whole`.                                    |
 | `useSendDelivery()` | `queue` | How Send handles running work: `queue` after the turn, or `steer` at the next native input boundary. Option or Alt selects the other behavior. |
@@ -72,6 +72,18 @@ setChatHost({ actions });
 ```
 
 ## Slots and cards
+
+`renderShellCodeBlock` is optional. It returns a React node in the top-right action group of each top-level `sh`, `bash` or `zsh` fence in a main assistant reply, beside Copy, including when syntax highlighting fails. Return a compact control such as an `IconButton`; dialogs can use their usual portal. The callback signature and optional behavior are unchanged. Its typed `ShellCodeBlockContext` contains `scopeId`, `chatId`, `itemId`, `language`, exact `code` and `complete`. The code preserves the source body's whitespace and line endings; opening and closing fence lines and their separating line breaks are excluded.
+
+`complete` requires both a closed fence and a main reply that stopped streaming. A closed block displayed early in `blocks` mode still has `complete: false`. The callback is not called for file Markdown, user messages, thinking, tool output, reports, nested or quoted fences, or subagent conversations. Hosts may return `null` until complete. Rendering must only create controls; an action runs from the person's event handler. The host must validate the source and destination again when acting.
+
+```tsx
+setChatHost({
+    renderShellCodeBlock: (context) => context.complete
+        ? <button onClick={() => previewCommand(context)}>Preview command</button>
+        : null
+});
+```
 
 `ComposerSlot` gets `{ scopeId, chatId, disabled, insert }`; `insert(text)` puts text at the caret, a space apart from its neighbors, and focuses the editor. `SubagentSlot` gets `{ chatId, items }` and is drawn only when there are subagents. A thread card has an `id` unique in the chat, an `at` on the clock of the items' `createdAt`, and a `render()` that runs only while the card is on screen. Return the same array from `useThreadCards` while nothing changed: a new array lays out every row again.
 

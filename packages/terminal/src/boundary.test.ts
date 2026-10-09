@@ -26,6 +26,6 @@ describe('the boundary of the package', () => {
 
 describe('the public API', () => {
     test('the package exports these names', async () => {
-        expect(Object.keys(await import('./index.ts')).sort()).toEqual(['TerminalView', 'webglTerminals']);
+        expect(Object.keys(await import('./index.ts')).sort()).toEqual(['TerminalView', 'linkLineBounds', 'webglTerminals']);
     });
 });

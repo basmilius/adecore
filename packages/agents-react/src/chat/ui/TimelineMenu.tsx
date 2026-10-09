@@ -8,7 +8,7 @@ import type { TimelineTarget } from '../logic/timeline-target';
 import { chatHost } from '../../host';
 import { useChatScope } from '../../scope';
 import { useChatRow } from '../../state/chats';
-import { openFileLink, useFileLinkCwd } from './file-links';
+import { openFileLink, useFileLinkCwd, useFileLinkScopeId } from './file-links';
 import { ContextMenu, copyText, DisabledReason, EDIT_SHORTCUTS, Icon, Kbd, selectAllWithin } from '@adecore/ui';
 
 /*
@@ -34,10 +34,13 @@ export function TimelineMenuPopup({
     const markable = chatId !== null && (target.row?.kind === 'user' || target.row?.kind === 'assistant') ? target.row.id : null;
     // A thread outside a chat (a sub-agent's transcript) has no cwd of its own; the app answers for it then.
     const cwd = useFileLinkCwd();
+    const scopeId = useFileLinkScopeId();
     const { fork, fileLinks } = chatHost();
     const openInPreview = (): void => {
-        if (target.path !== null) {
-            openFileLink(cwd, { path: target.path, ...(target.line === null ? {} : { line: target.line }), directory: false });
+        if (target.file != null) {
+            openFileLink(target.file.cwd, target.file.ref, target.file.scopeId);
+        } else if (target.path !== null) {
+            openFileLink(cwd, { path: target.path, ...(target.line === null ? {} : { line: target.line }), directory: false }, scopeId);
         }
     };
     return (

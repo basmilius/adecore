@@ -1,4 +1,4 @@
-import { useContext, useState, type ReactNode } from 'react';
+import { useContext, useMemo, useState, type ReactNode } from 'react';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { Bot, Brain, Check, ChevronDown, CircleAlert, File, Info, MessageCircleQuestionMark, TriangleAlert, X } from 'lucide-react';
@@ -188,6 +188,12 @@ function Writing() {
  */
 export function AssistantRow({ chatId, item: derived }: { chatId: string; item: ChatAssistantItem }) {
     const item = useCurrentItem(chatId, derived);
+    const scope = useChatScope();
+    const context = useContext(ReplyContext);
+    const reply = useMemo(
+        () => (context === null && !item.parentToolUseId ? { scopeId: scope.id, chatId, itemId: item.id, streaming: item.streaming } : undefined),
+        [context, item.parentToolUseId, scope.id, chatId, item.id, item.streaming]
+    );
     const mode = chatHost().useStreaming();
     const [sawWriting] = useState(item.streaming);
     const live = mode === 'words' && item.streaming;
@@ -200,7 +206,7 @@ export function AssistantRow({ chatId, item: derived }: { chatId: string; item: 
                 <ReplyHeading chatId={chatId} />
                 {settled !== '' && (
                     <div data-find-field="text" data-quote-answer className="contents">
-                        <ReplyMarkdown text={settled} streaming={false} arriving={sawWriting} />
+                        <ReplyMarkdown text={settled} streaming={false} arriving={sawWriting} reply={reply} />
                     </div>
                 )}
                 {item.streaming && <Writing />}
@@ -219,7 +225,7 @@ export function AssistantRow({ chatId, item: derived }: { chatId: string; item: 
         <div data-find-item={item.id} className={clsx('-mx-1 px-1 pb-2', mode === 'whole' && sawWriting && WHOLE_FADE_CLASS)}>
             <ReplyHeading chatId={chatId} />
             <div data-find-field="text" data-quote-answer className="contents">
-                <ReplyMarkdown text={reveal.text} streaming={reveal.active} />
+                <ReplyMarkdown text={reveal.text} streaming={reveal.active} reply={reply} />
             </div>
             {live && item.text === '' && <span className="inline-block h-3.5 w-1.5 animate-pulse rounded-sm bg-text-faint align-middle" />}
         </div>

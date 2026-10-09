@@ -193,9 +193,26 @@
 .chat-markdown :is(th, td) { border: 1px solid var(--tw-prose-td-borders); padding: 4px 8px; text-align: left; }
 
 /* A code block is shiki's own `<pre>`, which brings a background of its own to override. */
-.chat-code { border-radius: 8px; border: 1px solid var(--border); background: var(--chat-code-bg); overflow: auto; }
-.chat-code pre { margin: 0; padding: round(0.625rem, 1px) round(0.75rem, 1px); background: transparent !important; font-family: var(--font-mono); font-size: var(--text-code); line-height: var(--text-code--line-height); }
+.chat-code { position: relative; min-height: 38px; border-radius: 8px; border: 1px solid var(--border); background: var(--chat-code-bg); overflow: hidden; }
+.chat-code pre { margin: 0; padding: round(0.625rem, 1px) round(0.75rem, 1px); overflow: auto; user-select: text; background: transparent !important; font-family: var(--font-mono); font-size: var(--text-code); line-height: var(--text-code--line-height); }
 .chat-code code { font-family: inherit; }
+.chat-code-actions { position: absolute; top: 4px; right: 4px; border-radius: 6px; background: var(--surface-raised); color: var(--text-muted); box-shadow: 0 0 0 1px var(--border); }
+.chat-code-error { margin: 0; padding: 0 12px 10px; color: var(--status-error); font-size: var(--text-sm); }
+@media (hover: hover) and (pointer: fine) {
+    .chat-code-actions { opacity: 0; pointer-events: none; }
+    .chat-code:hover .chat-code-actions, .chat-code:focus-within .chat-code-actions,
+    .chat-code[data-copy-state="failed"] .chat-code-actions, .chat-code-actions:has([aria-busy="true"]) { opacity: 1; pointer-events: auto; }
+}
+@media (pointer: coarse) {
+    .chat-code { min-height: 54px; }
+    .chat-code-actions { padding: 8px; gap: 17px; }
+    .chat-code-actions .icon-btn { position: relative; }
+    .chat-code-actions .icon-btn::after { content: ''; position: absolute; inset: -8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .chat-code-actions .icon-btn { transition: none; }
+    .chat-code-actions .icon-btn:active { scale: 1; }
+}
 
 /* The chat composer is a CodeMirror editor, whose base theme lands in an unlayered style tag at
    mount. These rules stay unlayered too, and carry one class more than the theme's selectors. */

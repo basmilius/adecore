@@ -117,6 +117,8 @@ export function SubagentTimeline({ chatId, toolUseId }: { chatId: string; toolUs
                     <ReplyContext.Provider value={state.context ?? { provider: state.source === 'codex-thread' ? 'codex' : 'claude' }}>
                         <div
                             ref={scrollRef}
+                            data-file-cwd={state.context?.cwd ?? cwd ?? ''}
+                            data-file-scope-id={scope.id}
                             className="chat-thread relative min-h-0 grow overflow-auto px-4 pt-4 pb-3"
                             // The thread keeps its reader in place itself when a page goes in above.
                             style={{ overflowAnchor: 'none' }}

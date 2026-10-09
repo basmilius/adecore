@@ -57,6 +57,8 @@ HTTP and HTTPS URLs in output and OSC 8 hyperlinks use the same handler. Without
 
 `onOpenLink(uri, event)` receives the complete target and the mouse event, so a host can require Cmd or Ctrl without changing text selection. `onLinkHover(uri, bounds)` receives that same target and a `TerminalLinkBounds` rectangle in viewport pixels, or two `null` values on leave. The rectangle covers the link segment on the hovered terminal row, including canvas zoom and scrollback. A host can center a tooltip above or below that row without following the pointer horizontally. A wrapped link retains its complete target on every segment. Handlers follow prop changes and belong to their own terminal instance. Non-web schemes are never passed to either open route.
 
+`linkLineBounds(range, grid, screen, pointerY)` applies the same geometry to custom xterm link providers. Pass the one-based buffer range, `{ cols, rows, viewportY }`, the `.xterm-screen` bounding rectangle and the mouse event's `clientY`. It returns the hovered row segment in viewport pixels, or `null` for a screen without dimensions.
+
 ## WebGL
 
 `webgl` draws with WebGL instead of the DOM, which is faster on a busy screen. A browser keeps about 16 contexts per page and silently drops the oldest, so every terminal with `webgl` shares one budget of ten: the focused one first, then the ones written to most recently. A terminal that loses its context falls back to the DOM and asks again on its next `focus()`. `webglTerminals()` lists the terminals that hold one, highest ranked first.
