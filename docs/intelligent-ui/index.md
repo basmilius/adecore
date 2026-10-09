@@ -23,13 +23,13 @@ for (const block of blocks) {
 
 The parser recovers at the next tag or line after malformed input. Open tags remain incomplete. A streamed quoted prop exposes the text already received. CodeBlock contents are literal, including angle brackets and braces. Unknown components retain their own fallback; unknown props produce `refused_prop` and are dropped. A budget failure replaces the whole compiled block with a bounded fallback and one diagnosis.
 
-`UiNode` keeps static `props` separate from `expressions` and local-variable `bindings`. Its `type` is a string so an unfamiliar component can fall back without rejecting neighboring content. The `UiBlock` and `UiNode` interfaces are not yet a chat wire protocol. Their Zod wire schemas and the optional assistant field will be added with daemon integration.
+`UiNode` keeps static `props` separate from `expressions` and local-variable `bindings`. Its `type` is a string so an unfamiliar component can fall back without rejecting neighboring content. `UiNodeSchema`, `UiBlockSchema`, `UiBlocksSchema` and `UiDiagnosticSchema` describe the wire envelope. Component names, props and expressions stay open, so a future catalog can be retained and shown as fallback. The optional assistant field and daemon integration still await the package's first publication setup.
 
 `parseUiSyntax` exposes the intermediate `UiSyntax` and `UiSyntaxNode` for compiler tooling. `UiDiagnostic` carries a code, message, source range and optional node ID. `uiDiagnostic` turns a caught failure into that shape.
 
 ## Catalog
 
-`UI_CATALOG` contains each component's schema, description, group and applicable parent, child or binding rule. `UI_GROUPS` contains the instructions shared by each group. `isUiComponent` recognizes a catalog name; `uiCatalogText` lists names, props and descriptions for tooling. It is the full reference, not the compact session instruction.
+`UI_CATALOG` contains each component's schema, description, group and applicable parent, child or binding rule. `UI_GROUPS` contains the instructions shared by each group. `isUiComponent` recognizes a catalog name; `uiCatalogText` lists names, props and descriptions for tooling. `uiCompactCatalog` derives the short prop list from those schemas, `uiSessionNote` adds the language instructions, and `uiReferenceText` combines full descriptions with group rules. `uiFallbackText` replaces UI fences with their compiled fallback while retaining surrounding prose.
 
 `UiComponentName` is the key union. `UiProps<Name>` is inferred from that component's schema. `UiToneSchema` and `UiTone` provide neutral, info, success, warning and danger. `UI_CATALOG_VERSION` identifies this catalog.
 

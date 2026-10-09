@@ -5,6 +5,8 @@ import { compileUi, compileUiBlock } from './compiler.ts';
 import { UI_CATALOG, uiCatalogText } from './catalog.ts';
 import { copyUiValue, evaluateUiExpression, parseUiExpression } from './expression.ts';
 import { evaluateUiBlock, UiState } from './runtime.ts';
+import { UiBlockSchema, UiNodeSchema } from './protocol.ts';
+import { uiCompactCatalog, uiFallbackText, uiReferenceText, uiSessionNote } from './text.ts';
 
 function expression(source: string, variables = {}): unknown {
     return evaluateUiExpression(parseUiExpression(source, new UiBudget({ milliseconds: 5000 })), variables, new UiBudget({ milliseconds: 5000 }));
@@ -115,6 +117,14 @@ describe('streaming compiler', () => {
                 }
             }
         }
+    });
+
+    test('preserves spaces between expressions, tags and inline links', () => {
+        const compiled = block('$count = 3\n<Summary>Found {$count} <Tag>new</Tag></Summary><File path="a.ts"/> <File path="b.ts"/>');
+        const evaluated = evaluateUiBlock(compiled);
+        expect(evaluated.nodes[0].children.map((node) => (node.type === '$text' ? node.props.text : node.children[0].props.text)).join('')).toBe('Found 3 new');
+        expect(evaluated.nodes[2].props.text).toBe(' ');
+        expect(block('<Summary>One</Summary>\n\n<Summary>Two</Summary>').nodes).toHaveLength(2);
     });
 
     test('finds multiple fences and preserves surrounding text offsets', () => {
@@ -236,5 +246,35 @@ describe('local state and evaluation', () => {
         expect(exhausted.nodes[0].error).toBe('budget_exceeded');
         const future = evaluateUiBlock({ ...compiled, catalogVersion: 999 });
         expect(future.nodes[0].error).toBe('unknown_catalog');
+    });
+});
+
+describe('open wire and agent text', () => {
+    test('accepts future component names, props, expression kinds and catalog versions', () => {
+        const compiled = block('<Summary>Current</Summary>');
+        const node = {
+            ...compiled.nodes[0],
+            type: 'FutureWidget',
+            props: { newMode: 'future', payload: [null, { nested: 42 }] },
+            expressions: { value: { kind: 'future', extension: true } }
+        };
+        expect(UiNodeSchema.safeParse(node).success).toBe(true);
+        const wire = JSON.parse(JSON.stringify({ ...compiled, catalogVersion: 999, nodes: [node] }));
+        const parsed = UiBlockSchema.parse(wire);
+        expect(parsed.nodes[0].props).toEqual(node.props);
+        const evaluated = evaluateUiBlock(parsed);
+        expect(evaluated.nodes[0].error).toBe('unknown_catalog');
+        expect(evaluated.nodes[0].fallback).toBe('Current\n');
+        expect(() => z.toJSONSchema(UiBlockSchema)).not.toThrow();
+    });
+
+    test('reads the fallback between prose and lists the catalog from its schemas', () => {
+        const text = 'Before\n```ruimte-ui\n<Summary>Readable</Summary>\n```\nAfter';
+        expect(uiFallbackText(text, compileUi(text, { id: 'item', final: true }))).toBe('Before\nReadable\nAfter');
+        expect(uiFallbackText(text, [{ ...block('<Summary>Invalid range</Summary>'), start: 200, end: 210 }])).toBe(text);
+        expect(uiCompactCatalog()).toContain('Slider(value,min,max,step?,unit?)');
+        expect(uiReferenceText()).toContain('Image accepts a chat attachment');
+        expect(uiSessionNote()).toContain('@Filter(list,row,predicate)');
+        expect(uiSessionNote().length).toBeLessThan(2400);
     });
 });

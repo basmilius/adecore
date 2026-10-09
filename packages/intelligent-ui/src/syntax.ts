@@ -79,7 +79,7 @@ class UiParser {
                         this.budget.step();
                     }
                     const value = this.source.slice(start, this.position);
-                    if (value.trim()) {
+                    if (value.trim() || !/[\r\n]/.test(value)) {
                         const node = this.node('$text', start);
                         node.text = value;
                         this.append(node);

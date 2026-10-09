@@ -213,6 +213,7 @@ export const sidebar: DefaultTheme.SidebarMulti = {
             ['Limits', '/agents-react/chat/limits'],
             ['Chat parts', '/agents-react/chat/parts'],
             ['Attachments and mentions', '/agents-react/chat/attachments'],
+            ['Intelligent UI', '/agents-react/chat/intelligent-ui'],
             ['Visuals', '/agents-react/chat/visuals']
         ]),
         group('Providers', [

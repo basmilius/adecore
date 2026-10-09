@@ -14,3 +14,5 @@ export { copyUiValue, evaluateUiExpression, parseUiExpression, type UiExpression
 export { parseUiSyntax, uiDiagnostic, type UiDiagnostic, type UiSyntax, type UiSyntaxNode } from './syntax.ts';
 export { UI_FENCE_LANGUAGE, compileUi, compileUiBlock, type UiBlock, type UiCompileOptions, type UiNode, type UiQuery } from './compiler.ts';
 export { evaluateUiBlock, UiState, type UiBinding, type UiEvaluation, type UiViewNode } from './runtime.ts';
+export { UiNodeSchema, UiDiagnosticSchema, UiBlockSchema, UiBlocksSchema } from './protocol.ts';
+export { uiCompactCatalog, uiSessionNote, uiReferenceText, uiFallbackText } from './text.ts';
