@@ -61,14 +61,16 @@ export class ChatUiQueries {
     }
 
     observe(session: ChatSession, item: ChatAssistantItem, final: boolean): void {
-        if (!uiMayReferenceHost(item.text) && !item.ui?.some((block) => Object.keys(block.queries).length)) {
+        const key = `${session.id}:${item.id}`;
+        // Once a capture started, every delta of a streaming reply would scan its whole text again for nothing.
+        const captured = this.captures.has(key) || item.uiQueries?.authorChatId === session.id;
+        if (!captured && !uiMayReferenceHost(item.text) && !item.ui?.some((block) => Object.keys(block.queries).length)) {
             return;
         }
         const capture = this.access(session, item);
         if (!final || !item.ui?.length) {
             return;
         }
-        const key = `${session.id}:${item.id}`;
         if (this.freezing.has(key)) {
             return;
         }

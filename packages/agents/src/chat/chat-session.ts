@@ -18,7 +18,7 @@ import type {
     RuntimeMode
 } from '@adecore/agent-contracts';
 import { GeneratedImageInputSchema, notResumedNote } from '@adecore/agent-contracts';
-import { resolveUiChoice, UI_FENCE_LANGUAGE, UiFailure, uiHasFence } from '@adecore/intelligent-ui';
+import { resolveUiChoice, UI_FENCE_LANGUAGE, UiFailure, uiHasFence, uiMayReferenceHost } from '@adecore/intelligent-ui';
 import type { UiCompileOptions } from '@adecore/intelligent-ui/compiler';
 import { UiStream, type UiStreamPreview } from '@adecore/intelligent-ui/stream';
 import type { ChatProvider } from '../providers/provider.ts';
@@ -113,6 +113,8 @@ export interface LimitResumeHooks {
 
 // Claude Code names a session about six seconds after its first prompt, and a first turn can run for minutes.
 const TITLE_RECHECK_MS = 10_000;
+// Longer than any fence line or the name of a tag a scan looks for, so a match never falls between two deltas.
+const UI_SCAN_OVERLAP = 64;
 
 export interface ChatSendExtras {
     uiChoice?: ChatUiChoiceOrigin;
@@ -198,6 +200,10 @@ export class ChatSession {
     private readonly uiStreams = new Map<string, UiStream>();
     private readonly uiCompiled = new Map<string, UiStreamPreview>();
     private readonly capturedUiAccess: Map<string, unknown>;
+    // How much of a streaming reply's text the fence and host scans already covered, so a delta scans only its tail.
+    private readonly uiScanned = new Map<string, number>();
+    private readonly uiReferencing = new Set<string>();
+    private readonly uiAttachments = new Map<string | null, string | undefined>();
     private readonly uiFenceLanguage: string;
 
     constructor(options: ChatSessionOptions) {
@@ -1912,13 +1918,21 @@ export class ChatSession {
             if (event.type === 'reset') {
                 this.clearUi();
             }
+            if (event.type === 'item' && event.item.kind === 'tool') {
+                this.uiAttachments.delete(event.item.turnId);
+            }
             const item = event.type === 'item' ? event.item : event.type === 'delta' ? this.thread.get(event.itemId) : null;
             if (item?.kind !== 'assistant' || item.parentToolUseId) {
                 this.options.emit(event);
                 continue;
             }
+            const tail = this.unscannedUiText(item, event.type === 'item');
+            if (uiMayReferenceHost(tail)) {
+                this.uiReferencing.add(item.id);
+            }
             let stream = this.uiStreams.get(item.id);
-            if (!stream && !uiHasFence(item.text, this.uiFenceLanguage)) {
+            if (!stream && !uiHasFence(tail, this.uiFenceLanguage)) {
+                this.forgetUiScan(item);
                 this.options.emit(event);
                 continue;
             }
@@ -1935,7 +1949,10 @@ export class ChatSession {
                 });
                 this.uiStreams.set(item.id, stream);
             }
-            this.options.ui?.observe(item, false);
+            if (this.uiReferencing.has(item.id)) {
+                this.options.ui?.observe(item, false);
+            }
+            this.forgetUiScan(item);
             const latestAttachment = this.latestUiAttachment(item.turnId);
             if (event.type === 'item' && !item.streaming) {
                 const ui = stream
@@ -1966,7 +1983,39 @@ export class ChatSession {
         }
     }
 
+    /*
+     * The text a scan has not covered yet, from the start of the line the last scan ended in, since a fence
+     * is one line; a long line is cut short, behind a character no fence or tag can follow.
+     */
+    private unscannedUiText(item: ChatAssistantItem, whole: boolean): string {
+        const scanned = whole ? 0 : (this.uiScanned.get(item.id) ?? 0);
+        this.uiScanned.set(item.id, item.text.length);
+        if (scanned === 0 || scanned > item.text.length) {
+            return item.text;
+        }
+        const line = item.text.lastIndexOf('\n', scanned - 1) + 1;
+        const from = Math.max(line, scanned - UI_SCAN_OVERLAP);
+        return from === line ? item.text.slice(from) : `\0${item.text.slice(from)}`;
+    }
+
+    private forgetUiScan(item: ChatAssistantItem): void {
+        if (!item.streaming) {
+            this.uiScanned.delete(item.id);
+            this.uiReferencing.delete(item.id);
+        }
+    }
+
+    /* Looked up once per turn, and again only after one of its tool calls changed. */
     private latestUiAttachment(turnId: string | null): string | undefined {
+        if (this.uiAttachments.has(turnId)) {
+            return this.uiAttachments.get(turnId);
+        }
+        const attachment = this.findUiAttachment(turnId);
+        this.uiAttachments.set(turnId, attachment);
+        return attachment;
+    }
+
+    private findUiAttachment(turnId: string | null): string | undefined {
         for (const item of this.thread.list().toReversed()) {
             if (item.kind !== 'tool' || item.turnId !== turnId || item.name !== 'ImageGeneration' || item.state !== 'done') {
                 continue;
@@ -1985,6 +2034,9 @@ export class ChatSession {
         }
         this.uiStreams.clear();
         this.uiCompiled.clear();
+        this.uiScanned.clear();
+        this.uiReferencing.clear();
+        this.uiAttachments.clear();
     }
 
     /* Said on the info as well as by the rows, since a client with the thread closed sees only the info. */

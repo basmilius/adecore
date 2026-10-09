@@ -1581,6 +1581,35 @@ test('compiler diagnostics are retained for the next real prompt', async () => {
     await run.session.dispose();
 });
 
+test('a fence and a host reference split across deltas are found by scanning only the tail', async () => {
+    const observed: boolean[] = [];
+    const events: ChatEvent[] = [];
+    const run = rig({ emit: (event) => events.push(event), ui: { schemas: {}, observe: (_item, final) => observed.push(final) } });
+    await run.session.send('Show results');
+    await flush();
+    run.event({ type: 'text.delta', ref: 'answer', text: `${'word '.repeat(40)}see <Fi` });
+    run.event({ type: 'text.delta', ref: 'answer', text: 'le path="a.md"/> then\n``' });
+    expect(observed).toEqual([]);
+    run.event({ type: 'text.delta', ref: 'answer', text: '`ui\n<Summary>Start' });
+    expect(observed).toEqual([false]);
+    expect(events.some((event) => event.type === 'delta' && event.ui !== undefined)).toBe(true);
+    await run.session.dispose();
+});
+
+test('an image generated while a UI reply streams is the latest one when the reply completes', async () => {
+    const run = rig();
+    await run.session.send('Draw it');
+    await flush();
+    run.event({ type: 'text.delta', ref: 'answer', text: '```ui\n<Summary>Drawing' });
+    const attachment = { id: 'image', name: 'image.png', mime: 'image/png', size: 1, path: '/tmp/image.png' };
+    run.event({ type: 'tool.started', ref: 'draw', name: 'ImageGeneration', input: { attachment }, parentRef: null });
+    run.event({ type: 'tool.done', ref: 'draw', output: null, state: 'done' });
+    run.event({ type: 'text.done', ref: 'answer', text: '```ui\n<Summary>Drawn</Summary>\n<Image generated="latest"/>\n```', parentRef: null });
+    const answer = run.session.thread.list().find((item) => item.kind === 'assistant');
+    expect(answer?.kind === 'assistant' ? answer.ui?.[0]?.nodes[1]?.props.attachment : undefined).toBe('image');
+    await run.session.dispose();
+});
+
 test('a host fence language replaces the default one', async () => {
     const run = rig({ uiFenceLanguage: 'legacy-ui' });
     await run.session.send('Show results');
