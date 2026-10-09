@@ -5,6 +5,7 @@ import {
     memo,
     useContext,
     useEffect,
+    useMemo,
     useRef,
     useState,
     useSyncExternalStore,
@@ -376,7 +377,7 @@ function UiBlockBody({
     const key = JSON.stringify([context.scopeId, context.chatId, context.itemId, block.id]);
     const [state] = useState(() => localState(key, block, answered));
     state.sync(block);
-    useSyncExternalStore(
+    const stateRevision = useSyncExternalStore(
         (listener) => state.subscribe(listener),
         () => state.snapshot(),
         () => state.snapshot()
@@ -404,7 +405,22 @@ function UiBlockBody({
         navigation?.chatId === context.chatId && flash?.itemId === context.itemId && flash.blockId === block.id && flash.revision === block.revision;
     const queries = useUiQueries(block, state, context, element, frozen);
     const links = useUiLinks(block, state, context, queries.reads, frozen);
-    const evaluation = evaluateUiBlock(block, state);
+    // The state changes in place, so its revision is what tells this evaluation it went stale.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+    const evaluation = useMemo(() => evaluateUiBlock(block, state), [block, state, stateRevision]);
+    const texts = useMemo(() => writtenTexts(block.nodes), [block]);
+    const sources = useMemo(() => sourceTargets(evaluation.nodes), [evaluation]);
+    const citations = useMemo(
+        () => ({
+            sources,
+            reveal: element
+                ? (source: CitationTarget) => {
+                      void revealUiSource(element, source.id, source.ancestors);
+                  }
+                : undefined
+        }),
+        [sources, element]
+    );
     const liveValue = useUiLiveValues(block, evaluation.nodes, queries.currentReadings);
     const sendChoice = chatHost().intelligentUi?.sendChoice;
     const rendering: UiRenderContext = {
@@ -468,17 +484,8 @@ function UiBlockBody({
                 {unknown || failed ? (
                     <ReplyMarkdown text={block.fallback} streaming={false} />
                 ) : (
-                    <CitationContext
-                        value={{
-                            sources: sourceTargets(evaluation.nodes),
-                            reveal: element
-                                ? (source) => {
-                                      void revealUiSource(element, source.id, source.ancestors);
-                                  }
-                                : undefined
-                        }}
-                    >
-                        <UiNodes nodes={evaluation.nodes} parent={BLOCK} texts={writtenTexts(block.nodes)} context={rendering} />
+                    <CitationContext value={citations}>
+                        <UiNodes nodes={evaluation.nodes} parent={BLOCK} texts={texts} context={rendering} />
                     </CitationContext>
                 )}
             </UiBlockFrame>

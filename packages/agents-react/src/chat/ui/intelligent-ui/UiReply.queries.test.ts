@@ -186,6 +186,43 @@ test.skipIf(typeof document === 'undefined')('a changed input reads once it rest
     }
 });
 
+test.skipIf(typeof document === 'undefined')('a changed input checks again only the links it moved, once it rested', async () => {
+    const previous = chatHost().intelligentUi;
+    const asked: string[] = [];
+    setChatHost({
+        intelligentUi: {
+            link: async (_scope, payload) => {
+                asked.push(payload.nodeId);
+                return { state: 'chip', target: { type: 'File', path: 'readme.md' } };
+            },
+            openLink: () => {},
+            sendChoice: async () => 'sent'
+        }
+    });
+    const text = '```ui\n$flag = false\n<File path="readme.md"/><Switch value={$flag}>Flag</Switch>\n```';
+    const { compileUi } = await import('@adecore/intelligent-ui');
+    const blocks = compileUi(text, { id: 'links-dom', final: true }).map((block) => ({ ...block, revision: 'revision' }));
+    const element = document.createElement('div');
+    document.body.append(element);
+    const root = createRoot(element);
+    try {
+        const rest = (milliseconds: number) => act(async () => void (await new Promise((resolve) => setTimeout(resolve, milliseconds))));
+        await act(async () =>
+            root.render(createElement(UiReply, { text, blocks, context: { scopeId: 'links-test', chatId: 'chat', itemId: 'item', phase: 'final' } }))
+        );
+        await rest(10);
+        expect(asked).toHaveLength(1);
+        const toggle = element.querySelector<HTMLElement>('[role="switch"]')!;
+        await act(async () => toggle.click());
+        await rest(400);
+        expect(asked).toHaveLength(1);
+    } finally {
+        await act(async () => root.unmount());
+        element.remove();
+        setChatHost({ intelligentUi: previous });
+    }
+});
+
 test.skipIf(typeof document === 'undefined')('a citation reveals and focuses its Source without opening its URL', async () => {
     const scroll = HTMLElement.prototype.scrollIntoView;
     const previous = chatHost().intelligentUi;
