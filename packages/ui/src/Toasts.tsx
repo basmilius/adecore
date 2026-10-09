@@ -82,7 +82,7 @@ function ToastCard<T extends Toast>({ toast, footer, onDismiss }: { toast: T; fo
                 )}
             </span>
             <div className="flex min-w-0 grow flex-col gap-1">
-                <span className="text-sm text-text">{toast.title}</span>
+                <span className="text-sm break-words text-text">{toast.title}</span>
                 {/* Wraps rather than clips: the line under the title is the one that says what went
                    wrong, and a reason cut off at the card's edge is no reason at all. */}
                 {toast.description !== undefined && toast.description !== '' && (
