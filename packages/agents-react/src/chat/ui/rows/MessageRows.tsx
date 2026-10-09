@@ -248,7 +248,7 @@ export function AssistantRow({ chatId, item: derived }: { chatId: string; item: 
                         answers={item.uiAnswers}
                         queries={item.uiQueries}
                         reply={reply}
-                        context={{ scopeId: scope.id, chatId, itemId: item.id, phase: item.streaming ? 'streaming' : 'final', answer: null }}
+                        context={{ scopeId: scope.id, chatId, itemId: item.id, phase: item.streaming ? 'streaming' : 'final' }}
                     />
                 </div>
             </div>

@@ -39,7 +39,7 @@ function documentVisible(): boolean {
 export function useUiQueries(
     block: UiBlock,
     state: UiState,
-    context: UiRenderContext,
+    context: Pick<UiRenderContext, 'scopeId' | 'chatId' | 'itemId' | 'phase'>,
     element: HTMLDivElement | null,
     frozen?: ChatUiQueryState['blocks'][string]
 ) {

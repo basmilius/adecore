@@ -52,7 +52,7 @@ test.skipIf(typeof document === 'undefined')('changing a query input closes its 
                 createElement(UiReply, {
                     text,
                     blocks: [block],
-                    context: { scopeId: 'query-test', chatId: 'chat', itemId: 'item', phase: 'final', answer: null }
+                    context: { scopeId: 'query-test', chatId: 'chat', itemId: 'item', phase: 'final' }
                 })
             )
         );
@@ -110,8 +110,7 @@ async function mountQueryBlock(scopeId: string, query: NonNullable<NonNullable<R
     const element = document.createElement('div');
     document.body.append(element);
     const root = createRoot(element);
-    const draw = () =>
-        root.render(createElement(UiReply, { text, blocks: [block], context: { scopeId, chatId: 'chat', itemId: 'item', phase: 'final', answer: null } }));
+    const draw = () => root.render(createElement(UiReply, { text, blocks: [block], context: { scopeId, chatId: 'chat', itemId: 'item', phase: 'final' } }));
     await act(async () => draw());
     return {
         element,
@@ -192,6 +191,7 @@ test.skipIf(typeof document === 'undefined')('a citation reveals and focuses its
     const previous = chatHost().intelligentUi;
     HTMLElement.prototype.scrollIntoView = () => {};
     const urls: string[] = [];
+    setChatHost({ intelligentUi: { openUrl: (_scope, url) => urls.push(url), sendChoice: async () => 'sent' } });
     const text =
         '```ui\n<Callout tone="info">Read [1].</Callout><Sections><Section title="References"><Tabs><Tab title="Other"><Summary>Other</Summary></Tab><Tab title="Links"><Sources><Source title="Docs" url="https://adecore.dev"/></Sources></Tab></Tabs></Section></Sections>\n```';
     const { compileUi } = await import('@adecore/intelligent-ui');
@@ -205,7 +205,7 @@ test.skipIf(typeof document === 'undefined')('a citation reveals and focuses its
                 createElement(UiReply, {
                     text,
                     blocks,
-                    context: { scopeId: 'citation-test', chatId: 'chat', itemId: 'item', phase: 'final', answer: null, openUrl: (url) => urls.push(url) }
+                    context: { scopeId: 'citation-test', chatId: 'chat', itemId: 'item', phase: 'final' }
                 })
             )
         );

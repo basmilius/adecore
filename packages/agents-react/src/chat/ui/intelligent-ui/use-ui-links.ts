@@ -13,7 +13,7 @@ interface LinkState {
 export function useUiLinks(
     block: UiBlock,
     state: UiState,
-    context: UiRenderContext,
+    context: Pick<UiRenderContext, 'scopeId' | 'chatId' | 'itemId' | 'phase'>,
     reads: Readonly<Record<string, string>>,
     frozen?: ChatUiQueryState['blocks'][string]
 ) {
@@ -116,8 +116,8 @@ export function useUiLinks(
             });
     };
     return {
-        link: link ? resolution : context.link,
-        openLink: link && host?.openLink ? open : context.openLink,
-        openUrl: host?.openUrl ? (url: string) => host.openUrl!(context.scopeId, url) : context.openUrl
+        link: link ? resolution : undefined,
+        openLink: link && host?.openLink ? open : undefined,
+        openUrl: host?.openUrl ? (url: string) => host.openUrl!(context.scopeId, url) : undefined
     };
 }

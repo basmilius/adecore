@@ -175,8 +175,6 @@ function sourceTargets(nodes: readonly UiViewNode[]): Map<number, CitationTarget
 
 const PROSE_PLUGINS = [remarkInlineProse, remarkCitations];
 const PROSE_ELEMENTS = ['p', 'br', 'strong', 'em', 'code', 'a', 'span'];
-// Raw HTML never parses here, so the only spans are the words the fade wraps.
-const FADING_PROSE_ELEMENTS = [...PROSE_ELEMENTS, 'span'];
 const FADE_PLUGINS = [rehypeFadeWords];
 const NO_PLUGINS: typeof FADE_PLUGINS = [];
 
@@ -223,7 +221,7 @@ const UiProse = memo(function UiProse({ text, fade, openUrl }: { text: string; f
             <ReactMarkdown
                 remarkPlugins={PROSE_PLUGINS}
                 rehypePlugins={fade ? FADE_PLUGINS : NO_PLUGINS}
-                allowedElements={fade ? FADING_PROSE_ELEMENTS : PROSE_ELEMENTS}
+                allowedElements={PROSE_ELEMENTS}
                 unwrapDisallowed
                 components={PROSE_COMPONENTS}
             >
@@ -360,6 +358,9 @@ function UiNodeBody({
     );
 }
 
+/* What names a block and whether it still streams; the rest of its render context the block works out itself. */
+type UiBlockIdentity = Pick<UiRenderContext, 'scopeId' | 'chatId' | 'itemId' | 'blockId' | 'phase'>;
+
 function UiBlockBody({
     block,
     context,
@@ -367,7 +368,7 @@ function UiBlockBody({
     frozen
 }: {
     block: UiBlock;
-    context: UiRenderContext;
+    context: UiBlockIdentity;
     answered?: ChatUiAnswer;
     frozen?: ChatUiQueryState['blocks'][string];
 }): ReactNode {
@@ -395,7 +396,7 @@ function UiBlockBody({
             ? { choiceId: answered.choiceId, state: answered.queued ? ('queued' as const) : ('sent' as const) }
             : optimistic?.revision === block.revision
               ? optimistic
-              : context.answer;
+              : null;
     const [element, setElement] = useState<HTMLDivElement | null>(null);
     const navigation = useContext(UiReplyNavigationContext);
     const flash = navigation?.flash;
@@ -411,8 +412,8 @@ function UiBlockBody({
         ...links,
         answer,
         failedChoiceId,
-        live: queries.live ?? context.live,
-        liveValue: liveValue ?? context.liveValue,
+        live: queries.live,
+        liveValue,
         onChoose:
             !queries.ready || queries.reading
                 ? undefined
@@ -448,7 +449,7 @@ function UiBlockBody({
                                 pending.current = false;
                             });
                     }
-                  : context.onChoose
+                  : undefined
     };
     const unknown = block.catalogVersion !== UI_CATALOG_VERSION;
     const failed = !unknown && !block.nodes.length && block.diagnostics.length > 0;
@@ -496,7 +497,7 @@ export function UiReply({
 }: {
     text: string;
     blocks: readonly UiBlock[];
-    context: Omit<UiRenderContext, 'blockId'>;
+    context: Omit<UiBlockIdentity, 'blockId'>;
     answers?: Readonly<Record<string, ChatUiAnswer>>;
     queries?: ChatUiQueryState;
     reply?: ComponentProps<typeof ReplyMarkdown>['reply'];
@@ -511,13 +512,12 @@ export function UiReply({
                         </Fragment>
                     )
                 ) : (
-                    <ErrorBoundary key={part.block.id} label="UI block" resetKeys={[context.scopeId, context.chatId, context.itemId, part.block.id]}>
+                    <ErrorBoundary key={JSON.stringify([context.scopeId, context.chatId, context.itemId, part.block.id])} label="UI block">
                         <UiBlockBody
-                            key={JSON.stringify([context.scopeId, context.chatId, context.itemId, part.block.id])}
                             block={part.block}
                             frozen={queries?.blocks[part.block.id]}
                             answered={answers?.[part.block.id]}
-                            context={{ ...context, blockId: part.block.id }}
+                            context={{ scopeId: context.scopeId, chatId: context.chatId, itemId: context.itemId, phase: context.phase, blockId: part.block.id }}
                         />
                     </ErrorBoundary>
                 )
