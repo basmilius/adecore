@@ -54,7 +54,7 @@ export function SourcesRenderer({ node, children }: UiRendererProps<UiProps<'Sou
         <SourceNumbers value={numbers}>
             <section aria-label={t('blocks.sources')} className="flex flex-col">
                 <span className="px-2 pb-1 text-xs font-medium text-text-muted">{t('blocks.sources')}</span>
-                <ol className="flex flex-col">{children}</ol>
+                <ol className="chat-ui-nodes flex flex-col">{children}</ol>
             </section>
         </SourceNumbers>
     );

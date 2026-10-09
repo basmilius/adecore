@@ -15,11 +15,19 @@ export function uiChildrenOf<Name extends UiComponentName>(node: UiViewNode, typ
     return node.children.filter((child) => child.type === type && child.error === undefined) as UiViewNode<UiProps<Name>>[];
 }
 
+/* A Summary draws its text as inline Markdown, so the name it gives its block leaves out the code ticks, the strong marks and the address of a link. */
+function withoutMarks(text: string): string {
+    return text
+        .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+        .replace(/\*\*|`/g, '')
+        .trim();
+}
+
 /* The Summary that heads a block, which is its first node; a Summary further down is a subheading. */
 export function uiBlockHead(nodes: readonly UiViewNode[]): { id: string; label: string } | null {
     const first = nodes[0];
     if (first === undefined || first.type !== 'Summary' || first.error !== undefined) {
         return null;
     }
-    return { id: first.id, label: uiNodeLabel(first) };
+    return { id: first.id, label: withoutMarks(uiNodeLabel(first)) };
 }

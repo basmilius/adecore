@@ -16,7 +16,7 @@ export function ChoicesRenderer({ children, context }: UiRendererProps<UiProps<'
     const { t } = useTranslation('agent-chat');
     const [streamed] = useState(context.phase === 'streaming');
     return (
-        <div role="group" aria-label={t('blocks.choices')} className="flex flex-col gap-1.5">
+        <div role="group" aria-label={t('blocks.choices')} className="chat-ui-nodes flex flex-col gap-1.5">
             {children}
             <span className="sr-only" role="status">
                 {streamed && context.phase === 'final' ? t('blocks.choice.ready') : ''}

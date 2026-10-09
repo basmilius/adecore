@@ -32,3 +32,60 @@ test('renders compiled nodes in the actual reply composition and falls back for 
     const future = [{ ...blocks[0], catalogVersion: 999, fallback: 'Future fallback' }];
     expect(renderToStaticMarkup(createElement(UiReply, { text, blocks: future, context }))).toContain('Future fallback');
 });
+
+function drawn(source: string, extra: Partial<typeof context> & { openUrl?: (url: string) => void } = {}): string {
+    const text = '```ruimte-ui\n' + source + '\n```';
+    const blocks = compileUi(text, { id: 'item', final: true });
+    return renderToStaticMarkup(createElement(UiReply, { text, blocks, context: { ...context, ...extra } }));
+}
+
+test('draws written prose as inline Markdown and keeps the space beside a tag', () => {
+    const markup = drawn('<Callout tone="info">Use **bold**, *this* and `code` <Tag>new</Tag> now</Callout>');
+    expect(markup).toContain('Use <strong>bold</strong>, <em>this</em> and <code');
+    expect(markup).toMatch(/>code<\/code> <span/);
+    expect(markup).toMatch(/<\/span> now/);
+});
+
+test('leaves code, control labels and the value of an expression as written', () => {
+    const markup = drawn(
+        '$name = "**data**"\n<Summary>{$name} **prose**</Summary><CodeBlock>a **b**</CodeBlock><Choices><Choice>Fix **all**</Choice></Choices>'
+    );
+    expect(markup).toContain('**data** <strong>prose</strong>');
+    expect(markup).toContain('Fix **all**');
+    expect(markup).not.toContain('<strong>b</strong>');
+    expect(markup).not.toContain('<strong>all</strong>');
+});
+
+test('keeps headings, lists, images and raw addresses out of prose', () => {
+    const markup = drawn('<Summary># Not a heading ![x](https://example.com/x.png) - no list [site](https://example.com) [bad](javascript:alert(1))</Summary>');
+    expect(markup).toContain('# Not a heading');
+    expect(markup).not.toContain('<h1');
+    expect(markup).not.toContain('<img');
+    expect(markup).not.toContain('<ul');
+    expect(markup).not.toContain('<a');
+    expect(markup).not.toContain('javascript:');
+    expect(markup).toContain('site');
+    const linked = drawn('<Summary>See [site](https://example.com) and [bad](javascript:alert(1))</Summary>', { openUrl: () => undefined });
+    expect(linked.match(/<button[^>]*>site<\/button>/g)).toHaveLength(1);
+    expect(linked).toContain('and bad');
+});
+
+test('joins a run of text and inline nodes into one padded paragraph between the cards of the block', () => {
+    const markup = drawn('Before <Tag>t</Tag> after\n<Steps><Step state="done">One</Step></Steps>\n  ');
+    expect(markup).toMatch(/<div class="px-2 text-xs text-text">Before <span[^>]*>.*<\/span> after\s*<\/div><ol class="chat-ui-nodes/);
+});
+
+test('sets prose and cards a block gap apart and draws no part for the newline between two fences', () => {
+    const text = 'Intro\n```ruimte-ui\n<Summary>One</Summary>\n```\n```ruimte-ui\n<Summary>Two</Summary>\n```\n';
+    const blocks = compileUi(text, { id: 'item', final: true });
+    const markup = renderToStaticMarkup(createElement(UiReply, { text, blocks, context }));
+    expect(markup.startsWith('<div class="flex flex-col gap-(--chat-block-gap)">')).toBe(true);
+    expect(markup.match(/chat-markdown/g)).toHaveLength(1);
+});
+
+test('finds written prose inside a repetition and keeps a repeated value as data', () => {
+    const markup = drawn(
+        '$rows = [{name: "**a**"}]\n<EntityList><Each items={$rows} as="row"><Entry label="Name">{row.name} is **ready**</Entry></Each></EntityList>'
+    );
+    expect(markup).toContain('**a** is <strong>ready</strong>');
+});

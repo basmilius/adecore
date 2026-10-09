@@ -1,6 +1,7 @@
-import { Component, Fragment, useSyncExternalStore, type ComponentProps, type ReactNode } from 'react';
+import { Component, createContext, Fragment, memo, useContext, useSyncExternalStore, type ComponentProps, type ReactNode } from 'react';
+import ReactMarkdown, { type Components } from 'react-markdown';
 import { useTranslation } from 'react-i18next';
-import { evaluateUiBlock, isUiComponent, UI_CATALOG_VERSION, UiState, type UiBlock, type UiViewNode } from '@adecore/intelligent-ui';
+import { evaluateUiBlock, isUiComponent, UI_CATALOG_VERSION, UiState, type UiBlock, type UiNode, type UiViewNode } from '@adecore/intelligent-ui';
 import { ErrorBoundary } from '@adecore/ui';
 import { ReplyMarkdown } from '../Markdown';
 import { UI_RENDERERS } from './registry';
@@ -10,6 +11,180 @@ import { UiFallbackPart } from './UiFallbackPart';
 import { uiReplyParts } from './reply-parts';
 
 const localStates = new Map<string, UiState>();
+
+/* The block itself, as the parent of its top-level nodes. */
+const BLOCK = '$block';
+
+/*
+ * Parents whose text is read as written: code, a short tag, and the labels of controls, whose
+ * accessible name and sent text are that same string.
+ */
+const LITERAL_PARENTS = new Set(['CodeBlock', 'Tag', 'Choice', 'Item', 'Switch', 'Slider', 'Segmented', 'Option', 'Column']);
+
+/* Parents that stack their children, where a run of text and inline nodes is one paragraph. */
+const PARAGRAPHS: Readonly<Record<string, string>> = {
+    [BLOCK]: 'px-2 text-xs text-text',
+    Tab: 'px-2 text-xs text-text',
+    Section: 'text-xs text-text-muted'
+};
+
+const LINKS = new Set(['File', 'Diff', 'Commit', 'Node']);
+
+/* Constructs that would start a block or load an image stay text; without GFM a table never forms. */
+const BLOCK_CONSTRUCTS = [
+    'blockQuote',
+    'codeFenced',
+    'codeIndented',
+    'definition',
+    'headingAtx',
+    'htmlFlow',
+    'htmlText',
+    'labelStartImage',
+    'list',
+    'setextUnderline',
+    'thematicBreak'
+];
+
+interface ProseTree {
+    type: string;
+    children?: ProseTree[];
+}
+
+/* Prose between the tags of a block is inline: only emphasis, code and links are Markdown, and a blank line is a line break. */
+function remarkInlineProse(this: { data(): object }) {
+    // The field remark-parse reads its syntax extensions from, as remark-gfm adds its own.
+    const data = this.data() as { micromarkExtensions?: unknown[] };
+    data.micromarkExtensions = [...(data.micromarkExtensions ?? []), { disable: { null: BLOCK_CONSTRUCTS } }];
+    return (tree: ProseTree) => {
+        tree.children = [
+            {
+                type: 'paragraph',
+                children: (tree.children ?? []).flatMap((paragraph, index) => [...(index > 0 ? [{ type: 'break' }] : []), ...(paragraph.children ?? [])])
+            }
+        ];
+    };
+}
+
+const PROSE_PLUGINS = [remarkInlineProse];
+const PROSE_ELEMENTS = ['p', 'br', 'strong', 'em', 'code', 'a'];
+
+const ProseUrlContext = createContext<((url: string) => void) | undefined>(undefined);
+
+/* Through the host only, like a Source: the address is the model's, so nothing here navigates by itself. */
+function ProseLink({ href, children }: { href?: string; children?: ReactNode }) {
+    const openUrl = useContext(ProseUrlContext);
+    if (openUrl === undefined || href === undefined || !/^https?:\/\//i.test(href)) {
+        return children;
+    }
+    return (
+        <button type="button" className="cursor-pointer text-accent underline underline-offset-2 select-text" onClick={() => openUrl(href)}>
+            {children}
+        </button>
+    );
+}
+
+const PROSE_COMPONENTS: Components = {
+    p: ({ children }) => children,
+    code: ({ children }) => <code className="rounded-sm bg-surface-sunken px-1 py-px font-mono text-code">{children}</code>,
+    a: ({ href, children }) => <ProseLink href={href}>{children}</ProseLink>
+};
+
+/*
+ * Text an agent wrote in a block, as inline Markdown without raw HTML. Markdown trims a paragraph,
+ * so the whitespace at either end stays text: it is the space between a word and the tag beside it.
+ */
+const UiProse = memo(function UiProse({ text, openUrl }: { text: string; openUrl?: (url: string) => void }) {
+    const [, lead = '', body = '', trail = ''] = /^(\s*)([\s\S]*?)(\s*)$/.exec(text) ?? [];
+    if (body === '') {
+        return text;
+    }
+    return (
+        <ProseUrlContext value={openUrl}>
+            {lead}
+            <ReactMarkdown remarkPlugins={PROSE_PLUGINS} allowedElements={PROSE_ELEMENTS} unwrapDisallowed components={PROSE_COMPONENTS}>
+                {body}
+            </ReactMarkdown>
+            {trail}
+        </ProseUrlContext>
+    );
+});
+
+/* Which text nodes of a block the agent wrote out, by id; the value of an expression is data and stays as it is. */
+function writtenTexts(nodes: readonly UiNode[], into = new Map<string, boolean>()): Map<string, boolean> {
+    for (const node of nodes) {
+        if (node.type === '$text') {
+            into.set(node.id, node.expressions.text === undefined);
+        }
+        writtenTexts(node.children, into);
+    }
+    return into;
+}
+
+/* A repetition suffixes the id of the node it repeats with `:<index>`, so the written node is found by taking those off. */
+function isWritten(texts: ReadonlyMap<string, boolean>, id: string): boolean {
+    let candidate = id;
+    while (!texts.has(candidate)) {
+        const cut = candidate.lastIndexOf(':');
+        if (cut === -1) {
+            return false;
+        }
+        candidate = candidate.slice(0, cut);
+    }
+    return texts.get(candidate) === true;
+}
+
+function isInline(node: UiViewNode): boolean {
+    if (node.type === '$text') {
+        return true;
+    }
+    return node.error === undefined && (node.type === 'Tag' || (LINKS.has(node.type) && node.children.length === 0));
+}
+
+function isBlank(node: UiViewNode): boolean {
+    return node.type === '$text' && String(node.props.text ?? '').trim() === '';
+}
+
+interface UiNodesProps {
+    nodes: readonly UiViewNode[];
+    parent: string;
+    texts: ReadonlyMap<string, boolean>;
+    context: UiRenderContext;
+}
+
+/* The children of one parent, each in its own boundary. Where the parent stacks them, a run of text and inline nodes becomes a paragraph. */
+function UiNodes({ nodes, parent, texts, context }: UiNodesProps): ReactNode {
+    const drawn = (node: UiViewNode) => (
+        <UiNodeBoundary key={node.id} node={node}>
+            <UiNodeBody node={node} parent={parent} texts={texts} context={context} />
+        </UiNodeBoundary>
+    );
+    const paragraph = PARAGRAPHS[parent];
+    if (paragraph === undefined) {
+        return nodes.map(drawn);
+    }
+    const output: ReactNode[] = [];
+    let run: UiViewNode[] = [];
+    const close = () => {
+        if (run.some((node) => !isBlank(node))) {
+            output.push(
+                <div key={`run:${run[0]!.id}`} className={paragraph}>
+                    {run.map(drawn)}
+                </div>
+            );
+        }
+        run = [];
+    };
+    for (const node of nodes) {
+        if (isInline(node)) {
+            run.push(node);
+            continue;
+        }
+        close();
+        output.push(drawn(node));
+    }
+    close();
+    return output;
+}
 
 interface UiNodeBoundaryProps {
     node: UiViewNode;
@@ -37,9 +212,20 @@ class UiNodeBoundary extends Component<UiNodeBoundaryProps, UiNodeBoundaryState>
     }
 }
 
-function UiNodeBody({ node, context }: { node: UiViewNode; context: UiRenderContext }): ReactNode {
+function UiNodeBody({
+    node,
+    parent,
+    texts,
+    context
+}: {
+    node: UiViewNode;
+    parent: string;
+    texts: ReadonlyMap<string, boolean>;
+    context: UiRenderContext;
+}): ReactNode {
     if (node.type === '$text') {
-        return String(node.props.text ?? '');
+        const text = String(node.props.text ?? '');
+        return LITERAL_PARENTS.has(parent) || !isWritten(texts, node.id) ? text : <UiProse text={text} openUrl={context.openUrl} />;
     }
     if (node.error !== undefined) {
         return <UiFallbackPart fallback={node.fallback} problem={{ kind: 'failed' }} />;
@@ -53,11 +239,7 @@ function UiNodeBody({ node, context }: { node: UiViewNode; context: UiRenderCont
     }
     return (
         <Renderer node={node} context={context}>
-            {node.children.map((child) => (
-                <UiNodeBoundary key={child.id} node={child}>
-                    <UiNodeBody node={child} context={context} />
-                </UiNodeBoundary>
-            ))}
+            <UiNodes nodes={node.children} parent={node.type} texts={texts} context={context} />
         </Renderer>
     );
 }
@@ -85,16 +267,13 @@ function UiBlockBody({ block, context }: { block: UiBlock; context: UiRenderCont
             {unknown || failed ? (
                 <ReplyMarkdown text={block.fallback} streaming={false} />
             ) : (
-                evaluation.nodes.map((node) => (
-                    <UiNodeBoundary key={node.id} node={node}>
-                        <UiNodeBody node={node} context={context} />
-                    </UiNodeBoundary>
-                ))
+                <UiNodes nodes={evaluation.nodes} parent={BLOCK} texts={writtenTexts(block.nodes)} context={context} />
             )}
         </UiBlockFrame>
     );
 }
 
+/* Prose and cards a block gap apart, as the rows of a turn are; text that is only the newline between two fences draws nothing. */
 export function UiReply({
     text,
     blocks,
@@ -106,15 +285,21 @@ export function UiReply({
     context: Omit<UiRenderContext, 'blockId'>;
     reply?: ComponentProps<typeof ReplyMarkdown>['reply'];
 }): ReactNode {
-    return uiReplyParts(text, blocks, context.phase === 'streaming').map((part, index) =>
-        part.kind === 'text' ? (
-            <Fragment key={`text:${index}`}>
-                <ReplyMarkdown text={part.text} streaming={context.phase === 'streaming'} reply={reply} />
-            </Fragment>
-        ) : (
-            <ErrorBoundary key={part.block.id} label="UI block" resetKeys={[context.scopeId, context.chatId, context.itemId, part.block.id]}>
-                <UiBlockBody block={part.block} context={{ ...context, blockId: part.block.id }} />
-            </ErrorBoundary>
-        )
+    return (
+        <div className="flex flex-col gap-(--chat-block-gap)">
+            {uiReplyParts(text, blocks, context.phase === 'streaming').map((part, index) =>
+                part.kind === 'text' ? (
+                    part.text.trim() !== '' && (
+                        <Fragment key={`text:${index}`}>
+                            <ReplyMarkdown text={part.text} streaming={context.phase === 'streaming'} reply={reply} />
+                        </Fragment>
+                    )
+                ) : (
+                    <ErrorBoundary key={part.block.id} label="UI block" resetKeys={[context.scopeId, context.chatId, context.itemId, part.block.id]}>
+                        <UiBlockBody block={part.block} context={{ ...context, blockId: part.block.id }} />
+                    </ErrorBoundary>
+                )
+            )}
+        </div>
     );
 }

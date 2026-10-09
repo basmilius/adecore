@@ -36,7 +36,7 @@ export function ChecklistRenderer({ node, children }: UiRendererProps<UiProps<'C
     };
     return (
         <ChecklistContext value={{ values, enabled: binding !== null, toggle }}>
-            <div className={clsx('flex flex-col', !node.complete && PENDING)}>{children}</div>
+            <div className={clsx('chat-ui-nodes flex flex-col', !node.complete && PENDING)}>{children}</div>
         </ChecklistContext>
     );
 }

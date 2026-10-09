@@ -36,7 +36,7 @@ export function TabsRenderer({ node, children, context }: UiRendererProps<UiProp
 
 export function TabRenderer({ node, children }: UiRendererProps<UiProps<'Tab'>>) {
     return (
-        <Tabs.Panel value={node.id} className="flex flex-col gap-3">
+        <Tabs.Panel value={node.id} className="chat-ui-nodes flex flex-col gap-3">
             {children}
         </Tabs.Panel>
     );
@@ -46,7 +46,7 @@ export function SectionsRenderer({ node, children, context }: UiRendererProps<Ui
     const [touched, setTouched] = useBlockLocal(context, node.id, () => false);
     return (
         <SectionsContext value={{ touched, touch: () => setTouched(true) }}>
-            <div className="flex flex-col divide-y divide-border-soft">{children}</div>
+            <div className="chat-ui-nodes flex flex-col divide-y divide-border-soft">{children}</div>
         </SectionsContext>
     );
 }
@@ -75,7 +75,7 @@ export function SectionRenderer({ node, children, context }: UiRendererProps<UiP
                 />
                 <span className="min-w-0 truncate">{node.props.title}</span>
             </button>
-            <div id={contentId} hidden={!open} className="flex flex-col gap-3 pt-1 pr-2 pb-2 pl-7.5">
+            <div id={contentId} hidden={!open} className="chat-ui-nodes flex flex-col gap-3 pt-1 pr-2 pb-2 pl-7.5">
                 {children}
             </div>
         </section>

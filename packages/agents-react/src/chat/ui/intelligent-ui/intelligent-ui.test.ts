@@ -73,6 +73,11 @@ describe('node text', () => {
         expect(uiBlockHead(nodes)).toEqual({ id: nodes[0]!.id, label: 'Found 3 open new issues' });
         expect(uiBlockHead(nodes.slice(1, 1))).toBeNull();
     });
+
+    test('names a block by the words of its Summary, without the marks of its Markdown', () => {
+        const { nodes } = evaluate('<Summary>Release `0.14.0` is **halfway**, see [notes](https://example.com)</Summary>');
+        expect(uiBlockHead(nodes)?.label).toBe('Release 0.14.0 is halfway, see notes');
+    });
 });
 
 describe('the frame of a block', () => {

@@ -95,7 +95,7 @@ export function ProgressRenderer({ node, children, context }: UiRendererProps<Ui
 }
 
 export function StepsRenderer({ children }: UiRendererProps<UiProps<'Steps'>>) {
-    return <ol className="flex flex-col px-2">{children}</ol>;
+    return <ol className="chat-ui-nodes flex flex-col px-2">{children}</ol>;
 }
 
 /* A running step spins only while the block is live; in a quiet block it is a still dot. */

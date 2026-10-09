@@ -24,7 +24,7 @@ function withUnit(text: string, unit: string | undefined): string {
 }
 
 export function StatsRenderer({ children }: UiRendererProps<UiProps<'Stats'>>) {
-    return <div className="grid grid-cols-[repeat(auto-fit,minmax(128px,1fr))] gap-2">{children}</div>;
+    return <div className="chat-ui-nodes grid grid-cols-[repeat(auto-fit,minmax(128px,1fr))] gap-2">{children}</div>;
 }
 
 /* The arrow and the number say which way a value went; only a tone says whether that is good. */
@@ -54,7 +54,7 @@ export function StatRenderer({ node }: UiRendererProps<UiProps<'Stat'>>) {
 
 export function EntityListRenderer({ node, children }: UiRendererProps<UiProps<'EntityList'>>) {
     return (
-        <KeyValueList.Root divided={uiChildrenOf(node, 'Entry').length >= DIVIDED_FROM} className="px-2">
+        <KeyValueList.Root divided={uiChildrenOf(node, 'Entry').length >= DIVIDED_FROM} className="chat-ui-nodes px-2">
             {children}
         </KeyValueList.Root>
     );

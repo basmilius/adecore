@@ -16,24 +16,44 @@ export interface UiBlockFrameProps extends UiBlockFooterProps {
     className?: string;
 }
 
-/* The tallest the card has been, while `active`: a streaming block grows and never shrinks until its last compile. */
+const RELEASE_MS = 200;
+
+/*
+ * The tallest the card has been, while `active`: a streaming block grows and never shrinks until its
+ * last compile. Then the card eases down to its own height, or drops there for a person who asked
+ * for less motion.
+ */
 function useRisingFloor(active: boolean): [RefObject<HTMLDivElement | null>, number] {
     const ref = useRef<HTMLDivElement>(null);
+    const held = useRef(0);
     const [floor, setFloor] = useState(0);
     useLayoutEffect(() => {
         const element = ref.current;
-        if (!active || element === null) {
+        if (element === null) {
             return;
         }
-        const observer = new ResizeObserver(() => {
-            const height = Math.ceil(element.getBoundingClientRect().height);
-            setFloor((current) => Math.max(current, height));
-        });
-        observer.observe(element);
-        return () => {
-            observer.disconnect();
-            setFloor(0);
-        };
+        if (active) {
+            const observer = new ResizeObserver(() => {
+                const height = Math.ceil(element.getBoundingClientRect().height);
+                held.current = Math.max(held.current, height);
+                setFloor(held.current);
+            });
+            observer.observe(element);
+            return () => {
+                observer.disconnect();
+                setFloor(0);
+            };
+        }
+        // The final render already let go of the floor, so the card measures its own height here.
+        const from = held.current;
+        const to = element.getBoundingClientRect().height;
+        held.current = 0;
+        const reduced = element.ownerDocument.defaultView?.matchMedia('(prefers-reduced-motion: reduce)').matches === true;
+        if (from - to < 1 || reduced) {
+            return;
+        }
+        const release = element.animate([{ minHeight: `${from}px` }, { minHeight: `${to}px` }], { duration: RELEASE_MS, easing: 'ease-out' });
+        return () => release.cancel();
     }, [active]);
     return [ref, floor];
 }
@@ -41,8 +61,8 @@ function useRisingFloor(active: boolean): [RefObject<HTMLDivElement | null>, num
 /*
  * The card of one block, with its footer. Named by its Summary and busy while it streams, but never
  * live: reading out every compile would be noise. A node fades in as it arrives, without a stagger,
- * and for a person who asked for less motion it only fades. Until the first node a skeleton holds the
- * place of the head.
+ * and for a person who asked for less motion it only fades; a node inside another only fades
+ * (`chat-ui-nodes`). Until the first node a skeleton holds the place of the head.
  */
 export function UiBlockFrame({ nodes, phase, children, className, ...footer }: UiBlockFrameProps) {
     const { t } = useTranslation('agent-chat');

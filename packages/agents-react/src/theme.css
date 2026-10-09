@@ -134,6 +134,12 @@
         @starting-style { opacity: 0; }
     }
     @keyframes chat-fade { from { opacity: 0; } to { opacity: 1; } }
+    /* A node of an intelligent UI block that lands inside another, such as a step or a row: 160ms like
+       the card's own children, but only a fade, so a parent arriving with its children rises once. */
+    .chat-ui-nodes > * {
+        transition: opacity 160ms ease-out;
+        @starting-style { opacity: 0; }
+    }
     /* A visual still on its way says so only once it takes long enough to be noticed. */
     .chat-visual-wait { animation: chat-fade 200ms ease-out 600ms both; }
 
