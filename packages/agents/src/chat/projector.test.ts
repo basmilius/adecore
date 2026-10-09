@@ -964,3 +964,18 @@ test('a live transport failure withdraws requests without declaring its backgrou
     expect(thread.pending()).toEqual([]);
     expect(thread.info).toMatchObject({ activeTurnId: null, status: 'error' });
 });
+
+test('provider completion preserves captured UI access and metadata replay', () => {
+    const { thread, project } = setup();
+    const initial = project({ type: 'text.delta', ref: 'answer', text: 'draft' });
+    const uiQueries = { authorChatId: 'c', access: { original: 'read' }, blocks: {} };
+    const patch: ChatEvent = { type: 'delta', itemId: '1:answer', text: '', uiQueries };
+    thread.apply(patch);
+    const final = project({ type: 'text.done', ref: 'answer', text: 'final', parentRef: null });
+    expect(thread.get('1:answer')).toMatchObject({ text: 'final', uiQueries });
+    const restored = new ChatThread(info);
+    for (const event of [...initial, patch, ...final]) {
+        restored.apply(event);
+    }
+    expect(restored.get('1:answer')).toMatchObject({ text: 'final', uiQueries });
+});

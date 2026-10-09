@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import type {
     ChatAttachment,
+    ChatAssistantItem,
     ChatCheckpointDiff,
     ChatEvent,
     ChatInfo,
@@ -12,11 +13,13 @@ import type {
     ChatUiAnswer,
     ChatUiChoiceOrigin,
     ChatUiChoicePayload,
+    ChatUiQueryState,
     ModelSelection,
     RuntimeMode
 } from '@adecore/agent-contracts';
 import { GeneratedImageInputSchema, notResumedNote } from '@adecore/agent-contracts';
 import { resolveUiChoice, UiFailure } from '@adecore/intelligent-ui';
+import type { UiCompileOptions } from '@adecore/intelligent-ui/compiler';
 import { UiStream, type UiStreamPreview } from '@adecore/intelligent-ui/stream';
 import type { ChatProvider } from '../providers/provider.ts';
 import type { LimitsUpdate } from '../usage/limits/normalize.ts';
@@ -73,6 +76,10 @@ export interface ChatSessionOptions {
     references?: ChatReferences;
     // Trees per turn, so a settled turn can show what the working tree holds against its start.
     checkpoints?: TurnCheckpoints;
+    ui?: {
+        schemas: UiCompileOptions['querySchemas'];
+        observe(item: ChatAssistantItem, final: boolean): void;
+    };
     emit(event: ChatEvent): void;
     /* What a turn said about the plan it runs on. It belongs to the machine, so it leaves the chat. */
     onLimits?(update: LimitsUpdate): void;
@@ -307,7 +314,17 @@ export class ChatSession {
         return { queued: false, turnId };
     }
 
-    choose(payload: ChatUiChoicePayload): { queued: boolean; turnId: string } {
+    updateUiQueries(itemId: string, uiQueries: ChatUiQueryState): void {
+        const item = this.thread.get(itemId);
+        if (this.frozen || item?.kind !== 'assistant' || item.parentToolUseId) {
+            return;
+        }
+        this.thread.upsert({ ...item, uiQueries });
+        this.options.emit({ type: 'delta', itemId, text: '', uiQueries });
+        this.options.persistSoon();
+    }
+
+    choose(payload: ChatUiChoicePayload, queries: Readonly<Record<string, unknown>> = {}): { queued: boolean; turnId: string } {
         const item = this.thread.get(payload.itemId);
         const block =
             item?.kind === 'assistant' && !item.streaming && !item.parentToolUseId ? item.ui?.find((block) => block.id === payload.blockId) : undefined;
@@ -339,7 +356,7 @@ export class ChatSession {
         }
         let selected;
         try {
-            selected = resolveUiChoice(block, payload.choiceId, payload.values);
+            selected = resolveUiChoice(block, payload.choiceId, payload.values, queries);
         } catch (error) {
             throw new ChatError(
                 error instanceof UiFailure ? error.code : 'refused-choice',
@@ -1881,6 +1898,7 @@ export class ChatSession {
             }
             if (!stream) {
                 stream = new UiStream({
+                    querySchemas: this.options.ui?.schemas,
                     id: item.id,
                     clock: this.options.clock ?? systemClock,
                     emit: (preview) => {
@@ -1890,6 +1908,7 @@ export class ChatSession {
                 });
                 this.uiStreams.set(item.id, stream);
             }
+            this.options.ui?.observe(item, false);
             const latestAttachment = this.latestUiAttachment(item.turnId);
             if (event.type === 'item' && !item.streaming) {
                 const ui = stream
@@ -1908,8 +1927,11 @@ export class ChatSession {
                         this.pendingPreambles = [...this.pendingPreambles, repair];
                     }
                 }
-                event = this.thread.upsert({ ...item, ui });
+                const current = this.thread.get(item.id);
+                const completed = { ...item, ui, ...(current?.kind === 'assistant' && current.uiQueries ? { uiQueries: current.uiQueries } : {}) };
+                event = this.thread.upsert(completed);
                 this.options.emit(event);
+                this.options.ui?.observe(completed, true);
             } else {
                 this.options.emit(event);
                 stream.update(item.text, latestAttachment);

@@ -27,6 +27,11 @@
             "types": "./dist/index.d.ts",
             "default": "./dist/index.js"
         },
+        "./query": {
+            "source": "./src/query.ts",
+            "types": "./dist/query.d.ts",
+            "default": "./dist/query.js"
+        },
         "./catalog": {
             "source": "./src/catalog.ts",
             "types": "./dist/catalog.d.ts",

@@ -1,6 +1,8 @@
 import { CodedError } from '../coded-error.ts';
 
 export type ChatErrorCode =
+    | 'refused-query'
+    | 'stale-ui-query'
     | 'history-expired'
     | 'chat-not-found'
     // A record on disk this version cannot read, which is never written over.

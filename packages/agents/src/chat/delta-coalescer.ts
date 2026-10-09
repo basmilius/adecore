@@ -21,7 +21,7 @@ export class DeltaCoalescer {
     }
 
     push(event: ChatEvent): void {
-        if (event.type !== 'delta') {
+        if (event.type !== 'delta' || event.uiQueries !== undefined) {
             this.flush();
             this.send(event);
             return;

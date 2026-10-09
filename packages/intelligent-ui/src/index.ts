@@ -34,6 +34,7 @@ export {
     type UiEvaluation,
     type UiViewNode
 } from './runtime.ts';
+export { uiQueryArguments, uiQueryFallback } from './query.ts';
 export { UiNodeSchema, UiDiagnosticSchema, UiBlockSchema, UiBlocksSchema } from './protocol.ts';
 export { uiCompactCatalog, uiSessionNote, uiReferenceText, uiFallbackText } from './text.ts';
 export { UI_STREAM_INTERVAL_MS, UiStream, type UiStreamClock, type UiStreamOptions, type UiStreamPreview } from './stream.ts';

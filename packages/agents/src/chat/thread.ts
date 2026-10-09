@@ -93,6 +93,12 @@ export class ChatThread {
                 break;
             case 'delta':
                 this.appendText(event.itemId, event.text);
+                if (event.uiQueries) {
+                    const item = this.items.get(event.itemId);
+                    if (item?.kind === 'assistant') {
+                        this.items.set(item.id, { ...item, uiQueries: event.uiQueries });
+                    }
+                }
                 break;
             case 'info':
                 this.info = event.info;

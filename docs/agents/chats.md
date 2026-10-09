@@ -56,3 +56,11 @@ A turn that hit the plan's usage limit or an overloaded model ends as an `error`
 `VisualStore.writeSource(chatId, name, html)` saves unmodified HTML in `<home>/chats/<encodedChatId>.visuals/`, separate from the published attachment. The filename must end in `.html` and cannot contain a directory; source pages have the same byte limit as published visuals. Writing the same name replaces the source without changing the published page. `writePreview(chatId, png)` writes a preview with a unique filename in that folder.
 
 `workspacePath(chatId)` returns the folder; `prepareWorkspace(chatId)` creates it with private permissions. `removeChat` removes sources and previews along with the chat's published visuals. Forks copy the published pages selected by the caller, leaving source files and previews in their original chat.
+
+## Live UI sources
+
+`ChatCoreOptions.intelligentUi` accepts a `ChatUiHost` from `@adecore/agents/chat/ui-queries`. The host captures the writing chat's access and registers a fixed list of `ChatUiSource` entries: argument and result schemas, `authorize`, and an abortable read. Authorization checks both captured and current rights, including before cache hits. The read receives the captured access too.
+
+`ChatUiQueries` compiles against those schemas, freezes the first results and text fallback in metadata, and serves `ui.query` only to clients attached to that chat. It validates stored block identity and input bindings, allows eight queries per block, two concurrent reads per chat and sixteen across the host, bounds result bytes and retained values, and limits each query to one refresh per ten seconds. A timeout aborts the source after eight seconds. A timed-out source keeps its concurrency slot until its actual work stops. No background refresh is scheduled by the daemon.
+
+A fork captures its own chat's rights. Missing or incomplete saved access refuses a read after restart. `ChatCore.choose` supplies only issued query values to the interpreter; the client's read ids do not grant access.

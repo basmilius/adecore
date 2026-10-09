@@ -24,13 +24,14 @@ import {
     type UiViewNode
 } from '@adecore/intelligent-ui';
 import { ErrorBoundary } from '@adecore/ui';
-import type { ChatUiAnswer } from '@adecore/agent-contracts';
+import type { ChatUiAnswer, ChatUiQueryState } from '@adecore/agent-contracts';
 import { chatHost } from '../../../host';
 import { ReplyMarkdown } from '../Markdown';
 import { UI_RENDERERS } from './registry';
 import type { UiRenderContext, UiRenderer } from './render-context';
 import { UiBlockFrame } from './UiBlockFrame';
 import { UiFallbackPart } from './UiFallbackPart';
+import { useUiQueries } from './use-ui-queries';
 import { uiReplyParts } from './reply-parts';
 
 const localStates = new Map<string, UiState>();
@@ -254,7 +255,17 @@ function UiNodeBody({
     );
 }
 
-function UiBlockBody({ block, context, answered }: { block: UiBlock; context: UiRenderContext; answered?: ChatUiAnswer }): ReactNode {
+function UiBlockBody({
+    block,
+    context,
+    answered,
+    frozen
+}: {
+    block: UiBlock;
+    context: UiRenderContext;
+    answered?: ChatUiAnswer;
+    frozen?: ChatUiQueryState['blocks'][string];
+}): ReactNode {
     const { t } = useTranslation('agent-chat');
     const key = JSON.stringify([context.scopeId, context.chatId, context.itemId, block.id]);
     let state = localStates.get(key);
@@ -289,15 +300,18 @@ function UiBlockBody({ block, context, answered }: { block: UiBlock; context: Ui
             : optimistic?.revision === block.revision
               ? optimistic
               : context.answer;
+    const [element, setElement] = useState<HTMLDivElement | null>(null);
+    const queries = useUiQueries(block, state, context, element, frozen);
     const sendChoice = chatHost().intelligentUi?.sendChoice;
     const rendering: UiRenderContext = {
         ...context,
         answer,
         failedChoiceId,
+        live: queries.live,
         onChoose:
             sendChoice && block.revision && block.complete && context.phase === 'final'
                 ? (choiceId) => {
-                      if (pending.current || answer) {
+                      if (pending.current || answer || queries.reading) {
                           return;
                       }
                       pending.current = true;
@@ -310,6 +324,7 @@ function UiBlockBody({ block, context, answered }: { block: UiBlock; context: Ui
                           blockId: block.id,
                           revision,
                           choiceId,
+                          reads: queries.reads,
                           values: uiInputValues(block, state)
                       })
                           .then((state) => setOptimistic({ revision, choiceId, state }))
@@ -328,19 +343,22 @@ function UiBlockBody({ block, context, answered }: { block: UiBlock; context: Ui
     const failed = !unknown && !block.nodes.length && block.diagnostics.length > 0;
     const shownAsText = unknown ? t('blocks.unreadable') : failed ? block.diagnostics[0].message : undefined;
     return (
-        <UiBlockFrame
-            nodes={evaluation.nodes}
-            phase={context.phase}
-            fixes={[...block.diagnostics, ...evaluation.diagnostics]}
-            shownAsText={shownAsText}
-            answered={answered}
-        >
-            {unknown || failed ? (
-                <ReplyMarkdown text={block.fallback} streaming={false} />
-            ) : (
-                <UiNodes nodes={evaluation.nodes} parent={BLOCK} texts={writtenTexts(block.nodes)} context={rendering} />
-            )}
-        </UiBlockFrame>
+        <div ref={setElement}>
+            <UiBlockFrame
+                live={queries.live}
+                nodes={evaluation.nodes}
+                phase={context.phase}
+                fixes={[...block.diagnostics, ...evaluation.diagnostics]}
+                shownAsText={shownAsText}
+                answered={answered}
+            >
+                {unknown || failed ? (
+                    <ReplyMarkdown text={block.fallback} streaming={false} />
+                ) : (
+                    <UiNodes nodes={evaluation.nodes} parent={BLOCK} texts={writtenTexts(block.nodes)} context={rendering} />
+                )}
+            </UiBlockFrame>
+        </div>
     );
 }
 
@@ -350,12 +368,14 @@ export function UiReply({
     blocks,
     context,
     answers,
+    queries,
     reply
 }: {
     text: string;
     blocks: readonly UiBlock[];
     context: Omit<UiRenderContext, 'blockId'>;
     answers?: Readonly<Record<string, ChatUiAnswer>>;
+    queries?: ChatUiQueryState;
     reply?: ComponentProps<typeof ReplyMarkdown>['reply'];
 }): ReactNode {
     return (
@@ -369,7 +389,12 @@ export function UiReply({
                     )
                 ) : (
                     <ErrorBoundary key={part.block.id} label="UI block" resetKeys={[context.scopeId, context.chatId, context.itemId, part.block.id]}>
-                        <UiBlockBody block={part.block} answered={answers?.[part.block.id]} context={{ ...context, blockId: part.block.id }} />
+                        <UiBlockBody
+                            block={part.block}
+                            frozen={queries?.blocks[part.block.id]}
+                            answered={answers?.[part.block.id]}
+                            context={{ ...context, blockId: part.block.id }}
+                        />
                     </ErrorBoundary>
                 )
             )}

@@ -124,3 +124,9 @@ A streaming preview uses an existing `delta` event with empty `text`, optional `
 `ChatUiChoicePayloadSchema` and `ChatUiChoicePayload` are the `chat.uiChoice` request: chat, assistant item, block, revision and choice IDs, plus optional local input `values`. Its result is `ChatSendResult`. Labels and message context never come from the client. The visible context becomes the message body; the label accompanies the provider prompt as a preamble. The daemon assigns the completed block revision and validates the choice against that stored block.
 
 `ChatUiChoiceOriginSchema` / `ChatUiChoiceOrigin` preserve the source identity, label, source time, whether it names an older reply, submitted values and send time on a user item or queued message. The assistant's optional `uiAnswers` map contains `ChatUiAnswerSchema` / `ChatUiAnswer` records with the reserved turn ID and whether the message queued. Retrying the same answered choice returns that turn; another choice in that block is refused. Queue draining keeps the origin and marks the answer sent. Older decoders omit these optional fields.
+
+## Live UI query records
+
+`ChatUiQueryPayloadSchema` and `ChatUiQueryPayload` describe `ui.query`: chat, item, block, revision and the stored query name, with optional local input values. The client cannot supply a source, SQL or fixed arguments.
+
+`ChatUiQueryReadingSchema` and `ChatUiQueryReading` carry a fresh value and opaque read id, or a failed or refused reading with its reason and time. `ChatUiQueryStateSchema` and `ChatUiQueryState` keep the writer's captured access and the first reading of each block, with its frozen text fallback, on an assistant item. A delta may update this metadata without repeating the compiled tree. A choice can name the read ids it displayed; the daemon supplies those issued values after checking access again.

@@ -306,11 +306,35 @@ export const ChatUserItemSchema = z.object({
     uiChoice: ChatUiChoiceOriginSchema.optional()
 });
 
+export const ChatUiQueryReadingSchema = z.object({
+    state: z.enum(['fresh', 'failed', 'refused']),
+    value: z.unknown().optional(),
+    readId: z.string().optional(),
+    readAt: z.number().nonnegative(),
+    reason: z.string().optional()
+});
+export type ChatUiQueryReading = z.infer<typeof ChatUiQueryReadingSchema>;
+
+export const ChatUiQueryStateSchema = z.object({
+    authorChatId: z.string(),
+    access: z.unknown(),
+    blocks: z.record(
+        z.string(),
+        z.object({
+            revision: z.string(),
+            readings: z.record(z.string(), ChatUiQueryReadingSchema),
+            fallback: z.string()
+        })
+    )
+});
+export type ChatUiQueryState = z.infer<typeof ChatUiQueryStateSchema>;
+
 export const ChatAssistantItemSchema = z.object({
     ...base,
     kind: z.literal('assistant'),
     ui: UiBlocksSchema.optional(),
     uiAnswers: z.record(z.string(), ChatUiAnswerSchema).optional(),
+    uiQueries: ChatUiQueryStateSchema.optional(),
     phase: z.string().optional(),
     text: z.string(),
     streaming: z.boolean(),
@@ -616,6 +640,7 @@ export const ChatEventSchema = z.discriminatedUnion('type', [
         itemId: z.string(),
         text: z.string(),
         ui: UiBlocksSchema.optional(),
+        uiQueries: ChatUiQueryStateSchema.optional(),
         textLength: z.number().int().nonnegative().optional()
     }),
     z.object({ type: z.literal('info'), info: ChatInfoSchema }),
@@ -848,9 +873,20 @@ export const ChatUiChoicePayloadSchema = z.object({
     blockId: z.string().min(1).max(256),
     revision: z.string().min(1).max(128),
     choiceId: z.string().min(1).max(256),
+    reads: z.record(z.string().max(128), z.string().max(128)).optional(),
     values: z.record(z.string().max(128), z.unknown()).optional()
 });
 export type ChatUiChoicePayload = z.infer<typeof ChatUiChoicePayloadSchema>;
+
+export const ChatUiQueryPayloadSchema = z.object({
+    chatId: ChatIdSchema,
+    itemId: z.string().min(1).max(256),
+    blockId: z.string().min(1).max(256),
+    revision: z.string().min(1).max(128),
+    query: z.string().min(1).max(128),
+    values: z.record(z.string().max(128), z.unknown()).optional()
+});
+export type ChatUiQueryPayload = z.infer<typeof ChatUiQueryPayloadSchema>;
 
 export const ChatQueuePayloadSchema = z.object({
     chatId: ChatIdSchema,

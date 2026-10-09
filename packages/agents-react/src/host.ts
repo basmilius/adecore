@@ -2,7 +2,16 @@ import type { ComponentProps, ComponentType, ReactNode, RefObject } from 'react'
 import type { Extension } from '@codemirror/state';
 import type { EditorView } from '@codemirror/view';
 import type { ThemeRegistration } from 'shiki';
-import type { AgentKind, ChatCheckpointDiff, ChatConfigurePayload, ChatItem, ChatSubagentItem, ChatUiChoicePayload } from '@adecore/agent-contracts';
+import type {
+    AgentKind,
+    ChatCheckpointDiff,
+    ChatConfigurePayload,
+    ChatItem,
+    ChatSubagentItem,
+    ChatUiChoicePayload,
+    ChatUiQueryPayload,
+    ChatUiQueryReading
+} from '@adecore/agent-contracts';
 import { isApplePlatform } from '@adecore/ui';
 import type { TimelineRow } from './chat/logic/timeline';
 import type { FindReveal } from './chat/ui/find-reveal';
@@ -190,6 +199,8 @@ export interface ReplyAuthor {
 export interface ChatHost {
     storage?: ChatStorageOptions;
     intelligentUi?: {
+        subscribe?(scopeId: string, chatId: string, changed: () => void): () => void;
+        query?(scopeId: string, payload: ChatUiQueryPayload): Promise<ChatUiQueryReading>;
         sendChoice(scopeId: string, payload: ChatUiChoicePayload): Promise<'sent' | 'queued'>;
     };
     /* The colors an account may wear in the order a picker offers them, the few it shows first, and their names. */

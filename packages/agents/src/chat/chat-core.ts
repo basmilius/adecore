@@ -17,6 +17,7 @@ import {
     type ChatItem,
     type ChatQueuedMessage,
     type ChatUiChoicePayload,
+    type ChatUiQueryPayload,
     type ChatSkill,
     type ChatSubagentPayload,
     type ChatSubagentResult,
@@ -25,6 +26,7 @@ import {
     type ModelSelection,
     type RuntimeMode
 } from '@adecore/agent-contracts';
+import { ChatUiQueries, type ChatUiHost } from './ui-queries.ts';
 import { ClientSinks } from '../client-sinks.ts';
 import { errorText } from '../error-text.ts';
 import type { AgentEvent, AgentSink } from '../events.ts';
@@ -98,6 +100,7 @@ const DEFAULT_RESUME_WORDS: ResumeWords = {
 };
 
 export interface ChatCoreOptions {
+    intelligentUi?: ChatUiHost;
     providers: ProviderRegistry;
     // Where the threads are kept; without it a chat lives as long as the process.
     store?: ChatStore;
@@ -170,6 +173,7 @@ export class ChatCore {
     /* Where Claude Code keeps the projects of its default account on this machine; empty when it has none. */
     readonly claudeProjectsDir: string;
     readonly composerPreferences = new ComposerPreferences();
+    private readonly uiQueries: ChatUiQueries | null;
     private readonly checkpoints: TurnCheckpoints | null;
     private readonly instructions: string | null;
     private readonly skillIndex: SkillIndex;
@@ -196,6 +200,7 @@ export class ChatCore {
     private readonly limitResume: ChatCoreOptions['limitResume'] | null;
 
     constructor(options: ChatCoreOptions) {
+        this.uiQueries = options.intelligentUi ? new ChatUiQueries(options.intelligentUi) : null;
         this.providers = options.providers;
         this.store = options.store ?? null;
         this.bookmarks = options.bookmarks ?? null;
@@ -392,6 +397,7 @@ export class ChatCore {
         const references = this.referencesFor(payload.chatId);
         const session = new ChatSession({
             info,
+            ...(this.uiQueries ? { ui: { schemas: this.uiQueries.schemas, observe: (item, final) => this.uiQueries!.observe(session, item, final) } } : {}),
             items: stored?.items ?? [],
             preambles: stored?.preambles ?? [],
             provider,
@@ -711,8 +717,20 @@ export class ChatCore {
         return session.sendInput(text, { ...extras, ...(attachments.length > 0 ? { attachments } : {}) });
     }
 
+    async queryUi(payload: ChatUiQueryPayload, clientId: string) {
+        if (!this.attached.get(payload.chatId)?.has(clientId)) {
+            throw new ChatError('refused-query', 'Attach to the chat before reading its UI queries.');
+        }
+        if (!this.uiQueries) {
+            throw new ChatError('refused-query', 'This host does not provide UI query sources.');
+        }
+        return this.uiQueries.query(this.require(payload.chatId), payload);
+    }
+
     async choose(payload: ChatUiChoicePayload): Promise<{ queued: boolean; turnId: string }> {
-        const result = this.require(payload.chatId).choose(payload);
+        const session = this.require(payload.chatId);
+        const queries = await this.uiQueries?.choiceValues(session, payload);
+        const result = session.choose(payload, queries);
         await this.persisted(payload.chatId);
         return result;
     }
@@ -829,6 +847,7 @@ export class ChatCore {
         const writing = this.writes.get(chatId);
         const ended = session.dispose();
         this.subagents.releaseChat(chatId);
+        this.uiQueries?.forget(chatId);
         this.coalescers.get(chatId)?.dispose();
         this.coalescers.delete(chatId);
         this.logs.get(chatId)?.close();

@@ -23,6 +23,7 @@ export interface UiNode {
 export interface UiQuery {
     source: string;
     args: Record<string, UiValue>;
+    expression?: UiExpression;
 }
 
 export interface UiBlock {
@@ -218,14 +219,29 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
     try {
         const syntax = parseUiSyntax(source, options.id, options.final, budget);
         block.diagnostics = syntax.diagnostics;
-        for (const [name, expression] of Object.entries(syntax.declarations)) {
+        for (const [name, expression] of Object.entries(syntax.declarations).sort(
+            ([, a], [, b]) => Number(a.kind === 'call' && a.name === 'Query') - Number(b.kind === 'call' && b.name === 'Query')
+        )) {
             try {
                 if (expression.kind === 'call' && expression.name === 'Query') {
-                    if (expression.args.length !== 2 || !expression.args.every(isConstant)) {
-                        throw new UiFailure('invalid_query', '@Query needs a literal source and literal argument record.');
+                    if (expression.args.length !== 2 || !isConstant(expression.args[0]) || expression.args[1].kind !== 'object') {
+                        throw new UiFailure('invalid_query', '@Query needs a literal source and an argument record.');
                     }
                     const querySource = evaluateUiExpression(expression.args[0], {}, budget);
-                    const args = evaluateUiExpression(expression.args[1], {}, budget);
+                    const argument = expression.args[1];
+                    const references = (part: unknown): void => {
+                        if (!part || typeof part !== 'object') {
+                            return;
+                        }
+                        if ('kind' in part && part.kind === 'reference' && 'name' in part && !Object.hasOwn(block.defaults, String(part.name))) {
+                            throw new UiFailure('invalid_query', 'Query arguments may reference only declared local state.');
+                        }
+                        for (const value of Object.values(part)) {
+                            references(value);
+                        }
+                    };
+                    references(argument);
+                    const args = evaluateUiExpression(argument, block.defaults, budget);
                     if (typeof querySource !== 'string' || !args || Array.isArray(args) || typeof args !== 'object') {
                         throw new UiFailure('invalid_query', 'Invalid query source or argument record.');
                     }
@@ -236,7 +252,10 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
                     if (!checked.success) {
                         throw new UiFailure('invalid_query', 'Query arguments do not match the host schema.');
                     }
-                    block.queries[name] = { source: querySource, args };
+                    if (Object.keys(block.queries).length >= 8) {
+                        throw new UiFailure('budget_exceeded', 'A block may declare at most eight queries.');
+                    }
+                    block.queries[name] = { source: querySource, args, ...(!isConstant(argument) ? { expression: argument } : {}) };
                 } else {
                     if (!isConstant(expression)) {
                         throw new UiFailure('invalid_default', 'State defaults must be literal JSON values.');

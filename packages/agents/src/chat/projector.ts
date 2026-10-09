@@ -206,6 +206,7 @@ export class ThreadProjector {
                         createdAt: existing?.createdAt ?? this.now(),
                         turnId: existing?.turnId ?? info.activeTurnId,
                         text: event.text,
+                        ...(existing?.kind === 'assistant' ? { uiAnswers: existing.uiAnswers, uiQueries: existing.uiQueries } : {}),
                         ...(event.phase === undefined
                             ? existing?.kind === 'assistant' && existing.phase !== undefined
                                 ? { phase: existing.phase }

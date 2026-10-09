@@ -988,6 +988,11 @@
             "types": "./dist/chat/visual-viewport.d.ts",
             "default": "./dist/chat/visual-viewport.js"
         },
+        "./chat/ui/intelligent-ui/use-ui-queries": {
+            "source": "./src/chat/ui/intelligent-ui/use-ui-queries.ts",
+            "types": "./dist/chat/ui/intelligent-ui/use-ui-queries.d.ts",
+            "default": "./dist/chat/ui/intelligent-ui/use-ui-queries.js"
+        },
         "./chat/ui/intelligent-ui/UiReply": {
             "source": "./src/chat/ui/intelligent-ui/UiReply.tsx",
             "types": "./dist/chat/ui/intelligent-ui/UiReply.d.ts",

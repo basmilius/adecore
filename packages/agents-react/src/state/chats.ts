@@ -159,6 +159,9 @@ export function applyEvent(state: ChatState, event: ChatEvent): ChatState {
         }
         case 'delta': {
             const item = state.items[event.itemId];
+            if (event.uiQueries && item?.kind === 'assistant') {
+                return { ...state, items: { ...state.items, [event.itemId]: { ...item, uiQueries: event.uiQueries } } };
+            }
             if (event.ui !== undefined && event.text === '') {
                 if (item?.kind === 'assistant' && item.streaming && event.textLength === item.text.length) {
                     return { ...state, items: { ...state.items, [event.itemId]: { ...item, ui: event.ui } } };

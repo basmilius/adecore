@@ -270,12 +270,20 @@ export function uiInputValues(block: UiBlock, state: UiState): Record<string, Ui
 }
 
 /* The host supplies its stored block; client data can change only declared input bindings. */
-export function resolveUiChoice(block: UiBlock, choiceId: string, input: Readonly<Record<string, unknown>> = {}): UiChoiceSelection {
+export function resolveUiChoice(
+    block: UiBlock,
+    choiceId: string,
+    input: Readonly<Record<string, unknown>> = {},
+    queries: Readonly<Record<string, unknown>> = {}
+): UiChoiceSelection {
     if (!block.complete || block.catalogVersion !== UI_CATALOG_VERSION) {
         throw new UiFailure('refused_choice', 'Only a completed supported block can send a choice.');
     }
     const values = copyUiValue(input, new UiBudget()) as Record<string, UiValue>;
     const state = new UiState(block);
+    for (const [name, value] of Object.entries(queries)) {
+        state.setQuery(name, value, block);
+    }
     const allowed = uiInputValues(block, state);
     const changed = new Set<string>();
     for (const [name, value] of Object.entries(values)) {

@@ -37,7 +37,7 @@ export const UiBlockSchema: z.ZodType<UiBlock> = z.object({
     end: position,
     complete: z.boolean(),
     defaults: values,
-    queries: z.record(z.string(), z.object({ source: z.string(), args: values })),
+    queries: z.record(z.string(), z.object({ source: z.string(), args: values, expression: z.unknown().optional() })),
     nodes: z.array(UiNodeSchema),
     diagnostics: z.array(UiDiagnosticSchema),
     fallback: z.string()
