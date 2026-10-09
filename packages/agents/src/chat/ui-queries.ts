@@ -1,7 +1,17 @@
 import { randomUUID } from 'node:crypto';
 import type { z } from 'zod';
-import type { ChatAssistantItem, ChatInfo, ChatUiChoicePayload, ChatUiQueryPayload, ChatUiQueryReading, ChatUiQueryState } from '@adecore/agent-contracts';
+import type {
+    ChatUiLinkPayload,
+    ChatUiLinkReading,
+    ChatAssistantItem,
+    ChatInfo,
+    ChatUiChoicePayload,
+    ChatUiQueryPayload,
+    ChatUiQueryReading,
+    ChatUiQueryState
+} from '@adecore/agent-contracts';
 import { copyUiValue, UiBudget, type UiValue } from '@adecore/intelligent-ui';
+import { UiLinkResolutionSchema, uiLinkTargets, type UiLinkTarget } from '@adecore/intelligent-ui/links';
 import { uiQueryArguments, uiQueryFallback } from '@adecore/intelligent-ui/query';
 import type { UiBlock } from '@adecore/intelligent-ui/compiler';
 import type { ChatSession } from './chat-session.ts';
@@ -17,6 +27,7 @@ export interface ChatUiSource {
 export interface ChatUiHost {
     capture(info: ChatInfo): Promise<unknown>;
     sources: Readonly<Record<string, ChatUiSource>>;
+    link?(info: ChatInfo, access: unknown, target: UiLinkTarget): Promise<ChatUiLinkReading>;
 }
 
 interface CachedReading {
@@ -49,11 +60,11 @@ export class ChatUiQueries {
     }
 
     observe(session: ChatSession, item: ChatAssistantItem, final: boolean): void {
-        if (!item.text.includes('@Query') && !item.ui?.some((block) => Object.keys(block.queries).length)) {
+        if (!item.text.includes('@Query') && !/<(?:File|Diff|Commit|Node)\b/.test(item.text) && !item.ui?.some((block) => Object.keys(block.queries).length)) {
             return;
         }
         const capture = this.access(session, item);
-        if (!final || !item.ui?.some((block) => Object.keys(block.queries).length)) {
+        if (!final || !item.ui?.length) {
             return;
         }
         const key = `${session.id}:${item.id}`;
@@ -86,6 +97,18 @@ export class ChatUiQueries {
                             values[name] = reading.value;
                         }
                     }
+                    const links: Record<string, ChatUiLinkReading> = Object.create(null);
+                    if (this.host.link) {
+                        const targets = uiLinkTargets(block, {}, values);
+                        const access = await this.access(session, current);
+                        for (const [id, target] of Object.entries(targets).slice(0, 64)) {
+                            try {
+                                links[id] = this.linkReading(await this.host.link(session.info, access.access, target));
+                            } catch (error) {
+                                links[id] = { state: 'plain', reason: this.reason(error) };
+                            }
+                        }
+                    }
                     const latest = session.thread.get(item.id);
                     if (latest?.kind !== 'assistant' || !latest.uiQueries || latest.ui?.find((entry) => entry.id === block.id)?.revision !== block.revision) {
                         return;
@@ -100,7 +123,8 @@ export class ChatUiQueries {
                     const frozen = {
                         revision: block.revision!,
                         readings,
-                        fallback: `${uiQueryFallback(block, values).slice(0, 8192)}\nSources: ${names}${failures ? `\n${failures}` : ''}`
+                        links,
+                        fallback: `${uiQueryFallback(block, values).slice(0, 8192)}${names ? `\nSources: ${names}` : ''}${failures ? `\n${failures}` : ''}`
                     };
                     const blocks = { ...latest.uiQueries.blocks, [block.id]: frozen };
                     if (Buffer.byteLength(JSON.stringify(blocks)) > MAX_SNAPSHOT_BYTES) {
@@ -110,7 +134,11 @@ export class ChatUiQueries {
                                 { state: 'failed', readAt: Date.now(), reason: 'The frozen query values are too large.' }
                             ])
                         );
+                        frozen.links = Object.fromEntries(Object.keys(links).map((id) => [id, { state: 'plain', reason: 'This link must be checked again.' }]));
                         frozen.fallback = `${block.fallback.slice(0, 2048)}\nSources: ${names}\nThe frozen query values are too large.`;
+                    }
+                    if (Buffer.byteLength(JSON.stringify(blocks)) > MAX_SNAPSHOT_BYTES) {
+                        delete blocks[block.id];
                     }
                     session.updateUiQueries(item.id, { ...latest.uiQueries, blocks });
                 }
@@ -133,7 +161,11 @@ export class ChatUiQueries {
         const captured = this.host
             .capture(session.info)
             .then((access) => {
-                const state: ChatUiQueryState = { authorChatId: session.id, access: copyUiValue(access, new UiBudget()), blocks: {} };
+                const captured = copyUiValue(access, new UiBudget());
+                if (Buffer.byteLength(JSON.stringify(captured)) > 32 * 1024) {
+                    throw new Error('The UI access snapshot is too large.');
+                }
+                const state: ChatUiQueryState = { authorChatId: session.id, access: captured, blocks: {} };
                 session.updateUiQueries(item.id, state);
                 return state;
             })
@@ -143,13 +175,21 @@ export class ChatUiQueries {
         return captured;
     }
 
-    private stored(session: ChatSession, payload: ChatUiQueryPayload): { item: ChatAssistantItem; block: UiBlock; source: ChatUiSource } {
+    private storedBlock(
+        session: ChatSession,
+        payload: Pick<ChatUiQueryPayload, 'itemId' | 'blockId' | 'revision'>
+    ): { item: ChatAssistantItem; block: UiBlock } {
         const item = session.thread.get(payload.itemId);
         const block =
             item?.kind === 'assistant' && !item.streaming && !item.parentToolUseId ? item.ui?.find((entry) => entry.id === payload.blockId) : undefined;
         if (item?.kind !== 'assistant' || !block?.complete || block.revision !== payload.revision) {
             throw new ChatError('stale-ui-block', 'This completed UI block is no longer available.');
         }
+        return { item, block };
+    }
+
+    private stored(session: ChatSession, payload: ChatUiQueryPayload): { item: ChatAssistantItem; block: UiBlock; source: ChatUiSource } {
+        const { item, block } = this.storedBlock(session, payload);
         if (!Object.hasOwn(block.queries, payload.query) || Object.keys(block.queries).length > MAX_QUERIES) {
             throw new ChatError('refused-query', 'This block does not declare an allowed query.');
         }
@@ -242,10 +282,10 @@ export class ChatUiQueries {
         return read;
     }
 
-    async choiceValues(session: ChatSession, payload: ChatUiChoicePayload): Promise<Record<string, unknown>> {
+    async choiceValues(session: ChatSession, payload: ChatUiChoicePayload | ChatUiLinkPayload): Promise<Record<string, unknown>> {
         const item = session.thread.get(payload.itemId);
         const block = item?.kind === 'assistant' ? item.ui?.find((entry) => entry.id === payload.blockId) : undefined;
-        if (!block || item?.kind !== 'assistant' || item.uiAnswers?.[block.id]?.revision === payload.revision) {
+        if (!block || item?.kind !== 'assistant' || ('choiceId' in payload && item.uiAnswers?.[block.id]?.revision === payload.revision)) {
             return {};
         }
         const values: Record<string, unknown> = Object.create(null);
@@ -274,12 +314,44 @@ export class ChatUiQueries {
         return values;
     }
 
+    async link(session: ChatSession, payload: ChatUiLinkPayload): Promise<ChatUiLinkReading> {
+        try {
+            if (!this.host.link) {
+                throw new ChatError('refused-query', 'This host does not provide UI links.');
+            }
+            const { item, block } = this.storedBlock(session, payload);
+            if (!item.uiQueries) {
+                throw new ChatError('refused-query', 'The writer’s original access is unavailable.');
+            }
+            const access = await this.access(session, item);
+            if (access.access === null) {
+                throw new ChatError('refused-query', 'The writer’s original access is unavailable.');
+            }
+            const queries = await this.choiceValues(session, payload);
+            const target = uiLinkTargets(block, payload.values, queries)[payload.nodeId];
+            if (!target) {
+                throw new ChatError('refused-query', 'This visible node is not a supported link.');
+            }
+            return this.linkReading(await this.host.link(session.info, access.access, target));
+        } catch (error) {
+            return { state: 'plain', reason: this.reason(error) };
+        }
+    }
+
     forget(chatId: string): void {
         for (const [id, cached] of this.cache) {
             if (cached.chatId === chatId) {
                 this.cache.delete(id);
             }
         }
+    }
+
+    private linkReading(value: unknown): ChatUiLinkReading {
+        const reading = UiLinkResolutionSchema.parse(copyUiValue(value, new UiBudget()));
+        if (reading.state === 'chip' && !reading.target) {
+            throw new Error('The host did not resolve a link target.');
+        }
+        return reading;
     }
 
     private reason(error: unknown): string {

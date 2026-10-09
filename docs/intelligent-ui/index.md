@@ -79,3 +79,7 @@ The tests compile ten hand-written examples and every character prefix, then exe
 ## Choice validation
 
 `uiInputValues(block, state)` copies only declared state attached to supported input bindings. `resolveUiChoice(block, choiceId, input?, queries?)` evaluates a stored completed block with those values and returns a `UiChoiceSelection`: its label, visible context and validated input values. It refuses unknown state, type changes, values outside visible controls, hidden or disabled choices, unsupported catalogs and unfinished blocks. A choice without context sends its label. Query values cannot be supplied through this input map. The host checks block ownership and revision before calling it and records the send itself.
+
+## Stored link targets
+
+`uiValidatedState` checks submitted values against declared, visible input controls before host queries or links use them. `uiLinkTargets` evaluates a completed supported block and lists only its visible File, Diff, Commit and Node targets by evaluated node id. `UiLinkTargetSchema` and `UiLinkTarget` define those targets; `UiLinkResolutionSchema` and `UiLinkResolution` describe an authorized chip or plain text, with an optional canonical target and host navigation metadata. The client does not decide whether a path belongs to a project.

@@ -1,12 +1,8 @@
 import { createContext, type ReactNode } from 'react';
 import type { UiComponentName, UiProps, UiViewNode } from '@adecore/intelligent-ui';
 
-/* A resource a link component names, by the component's own name. The host checks it again before it acts. */
-export type UiLinkTarget =
-    | { type: 'File'; path: string; line?: number }
-    | { type: 'Diff'; path: string }
-    | { type: 'Commit'; sha: string }
-    | { type: 'Node'; id: string };
+export type { UiLinkTarget } from '@adecore/intelligent-ui/links';
+import type { UiLinkTarget } from '@adecore/intelligent-ui/links';
 
 /* How the host lets a link be drawn: a chip it can open, or plain text it cannot. */
 export interface UiLink {

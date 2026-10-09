@@ -1,3 +1,4 @@
+import { UiLinkResolutionSchema } from '@adecore/intelligent-ui/links';
 import { z } from 'zod';
 import { UiBlocksSchema } from '@adecore/intelligent-ui/protocol';
 import { AgentKindSchema, AgentStatusSchema, SuggestedTitleSchema } from './agent.ts';
@@ -315,6 +316,9 @@ export const ChatUiQueryReadingSchema = z.object({
 });
 export type ChatUiQueryReading = z.infer<typeof ChatUiQueryReadingSchema>;
 
+export const ChatUiLinkReadingSchema = UiLinkResolutionSchema;
+export type ChatUiLinkReading = z.infer<typeof ChatUiLinkReadingSchema>;
+
 export const ChatUiQueryStateSchema = z.object({
     authorChatId: z.string(),
     access: z.unknown(),
@@ -323,7 +327,8 @@ export const ChatUiQueryStateSchema = z.object({
         z.object({
             revision: z.string(),
             readings: z.record(z.string(), ChatUiQueryReadingSchema),
-            fallback: z.string()
+            fallback: z.string(),
+            links: z.record(z.string(), ChatUiLinkReadingSchema).optional()
         })
     )
 });
@@ -887,6 +892,9 @@ export const ChatUiQueryPayloadSchema = z.object({
     values: z.record(z.string().max(128), z.unknown()).optional()
 });
 export type ChatUiQueryPayload = z.infer<typeof ChatUiQueryPayloadSchema>;
+
+export const ChatUiLinkPayloadSchema = ChatUiChoicePayloadSchema.omit({ choiceId: true }).extend({ nodeId: z.string().min(1).max(256) });
+export type ChatUiLinkPayload = z.infer<typeof ChatUiLinkPayloadSchema>;
 
 export const ChatQueuePayloadSchema = z.object({
     chatId: ChatIdSchema,

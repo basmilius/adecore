@@ -181,3 +181,26 @@ test('a frozen read id survives cache loss and schema defaults after restart', a
     }
     expect(r.events).toHaveLength(count);
 });
+
+test('opening a stored link resolves its node again and refuses stale or invented nodes', async () => {
+    const r = rig();
+    let allowed = true;
+    const queries = new ChatUiQueries({
+        capture: async () => ({ readable: true }),
+        sources: {},
+        link: async (_info, _access, target) => {
+            if (!allowed) {
+                throw new Error('Removed');
+            }
+            return { state: 'chip', target };
+        }
+    });
+    const block = { ...compileUiBlock('<File path="readme.md"/>', { id: 'block', final: true }), revision: 'rev' };
+    r.session.thread.upsert({ ...r.item, ui: [block] });
+    const payload = { ...r.payload, nodeId: block.nodes[0]!.id };
+    expect(await queries.link(r.session, payload)).toMatchObject({ state: 'chip', target: { type: 'File', path: 'readme.md' } });
+    allowed = false;
+    expect(await queries.link(r.session, payload)).toMatchObject({ state: 'plain', reason: 'Removed' });
+    expect((await queries.link(r.session, { ...payload, nodeId: 'other' })).state).toBe('plain');
+    expect((await queries.link(r.session, { ...payload, revision: 'old' })).state).toBe('plain');
+});

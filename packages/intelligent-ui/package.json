@@ -27,6 +27,11 @@
             "types": "./dist/index.d.ts",
             "default": "./dist/index.js"
         },
+        "./links": {
+            "source": "./src/links.ts",
+            "types": "./dist/links.d.ts",
+            "default": "./dist/links.js"
+        },
         "./query": {
             "source": "./src/query.ts",
             "types": "./dist/query.d.ts",

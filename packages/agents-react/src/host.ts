@@ -10,7 +10,9 @@ import type {
     ChatSubagentItem,
     ChatUiChoicePayload,
     ChatUiQueryPayload,
-    ChatUiQueryReading
+    ChatUiQueryReading,
+    ChatUiLinkPayload,
+    ChatUiLinkReading
 } from '@adecore/agent-contracts';
 import { isApplePlatform } from '@adecore/ui';
 import type { TimelineRow } from './chat/logic/timeline';
@@ -200,6 +202,9 @@ export interface ChatHost {
     storage?: ChatStorageOptions;
     intelligentUi?: {
         subscribe?(scopeId: string, chatId: string, changed: () => void): () => void;
+        link?(scopeId: string, payload: ChatUiLinkPayload): Promise<ChatUiLinkReading>;
+        openLink?(scopeId: string, reading: ChatUiLinkReading): void;
+        openUrl?(scopeId: string, url: string): void;
         query?(scopeId: string, payload: ChatUiQueryPayload): Promise<ChatUiQueryReading>;
         sendChoice(scopeId: string, payload: ChatUiChoicePayload): Promise<'sent' | 'queued'>;
     };

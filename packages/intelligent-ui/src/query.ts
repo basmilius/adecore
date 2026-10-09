@@ -1,3 +1,4 @@
+import { UI_CATALOG_VERSION } from './catalog.ts';
 import { UiBudget, UiFailure } from './budget.ts';
 import type { UiBlock, UiNode } from './compiler.ts';
 import { copyUiValue, evaluateUiExpression, type UiValue } from './expression.ts';
@@ -16,12 +17,15 @@ function findBinding(nodes: readonly UiNode[], id: string, prop: string): string
     return undefined;
 }
 
-export function uiQueryArguments(block: UiBlock, name: string, input: Readonly<Record<string, unknown>> = {}): Record<string, UiValue> {
-    if (!block.complete || !Object.hasOwn(block.queries, name)) {
-        throw new UiFailure('invalid_query', 'This completed block does not declare that query.');
+export function uiValidatedState(block: UiBlock, input: Readonly<Record<string, unknown>> = {}, queries: Readonly<Record<string, unknown>> = {}): UiState {
+    if (!block.complete || block.catalogVersion !== UI_CATALOG_VERSION) {
+        throw new UiFailure('invalid_block', 'Only completed supported blocks can resolve input.');
     }
     const values = copyUiValue(input, new UiBudget()) as Record<string, UiValue>;
     const state = new UiState(block);
+    for (const [name, value] of Object.entries(queries)) {
+        state.setQuery(name, value, block);
+    }
     const allowed = uiInputValues(block, state);
     for (const [key, value] of Object.entries(values)) {
         if (!Object.hasOwn(allowed, key)) {
@@ -64,6 +68,14 @@ export function uiQueryArguments(block: UiBlock, name: string, input: Readonly<R
             throw new UiFailure('invalid_value', 'An input value is outside the visible control’s allowed values.');
         }
     }
+    return state;
+}
+
+export function uiQueryArguments(block: UiBlock, name: string, input: Readonly<Record<string, unknown>> = {}): Record<string, UiValue> {
+    if (!Object.hasOwn(block.queries, name)) {
+        throw new UiFailure('invalid_query', 'This block does not declare that query.');
+    }
+    const state = uiValidatedState(block, input);
     const query = block.queries[name];
     return query.expression
         ? (evaluateUiExpression(query.expression, state.scope(), new UiBudget()) as Record<string, UiValue>)

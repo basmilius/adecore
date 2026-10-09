@@ -18,6 +18,7 @@ import {
     type ChatQueuedMessage,
     type ChatUiChoicePayload,
     type ChatUiQueryPayload,
+    type ChatUiLinkPayload,
     type ChatSkill,
     type ChatSubagentPayload,
     type ChatSubagentResult,
@@ -715,6 +716,13 @@ export class ChatCore {
         }
         const attachments = await Promise.all(uploads.map((upload) => this.attachments.save(chatId, upload)));
         return session.sendInput(text, { ...extras, ...(attachments.length > 0 ? { attachments } : {}) });
+    }
+
+    async linkUi(payload: ChatUiLinkPayload, clientId: string) {
+        if (!this.attached.get(payload.chatId)?.has(clientId) || !this.uiQueries) {
+            throw new ChatError('refused-query', 'Attach to the chat before resolving its UI links.');
+        }
+        return this.uiQueries.link(this.require(payload.chatId), payload);
     }
 
     async queryUi(payload: ChatUiQueryPayload, clientId: string) {

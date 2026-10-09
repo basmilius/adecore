@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ChatUiQueryReading, ChatUiQueryState } from '@adecore/agent-contracts';
-import { uiInputValues, type UiBlock, type UiState } from '@adecore/intelligent-ui';
+import { uiInputValues, UI_CATALOG_VERSION, type UiBlock, type UiState } from '@adecore/intelligent-ui';
 import { chatHost } from '../../../host';
 import type { UiLiveStatus, UiRenderContext } from './render-context';
 
@@ -33,7 +33,14 @@ export function useUiQueries(
         }
     }, [frozen, block, state]);
     useEffect(() => {
-        if (!query || !block.complete || !block.revision || !Object.keys(block.queries).length || context.phase !== 'final') {
+        if (
+            !query ||
+            !block.complete ||
+            block.catalogVersion !== UI_CATALOG_VERSION ||
+            !block.revision ||
+            !Object.keys(block.queries).length ||
+            context.phase !== 'final'
+        ) {
             return;
         }
         let stopped = false;

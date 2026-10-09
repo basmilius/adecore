@@ -31,6 +31,7 @@ import { UI_RENDERERS } from './registry';
 import type { UiRenderContext, UiRenderer } from './render-context';
 import { UiBlockFrame } from './UiBlockFrame';
 import { UiFallbackPart } from './UiFallbackPart';
+import { useUiLinks } from './use-ui-links';
 import { useUiQueries } from './use-ui-queries';
 import { uiReplyParts } from './reply-parts';
 
@@ -302,9 +303,11 @@ function UiBlockBody({
               : context.answer;
     const [element, setElement] = useState<HTMLDivElement | null>(null);
     const queries = useUiQueries(block, state, context, element, frozen);
+    const links = useUiLinks(block, state, context, queries.reads, frozen);
     const sendChoice = chatHost().intelligentUi?.sendChoice;
     const rendering: UiRenderContext = {
         ...context,
+        ...links,
         answer,
         failedChoiceId,
         live: queries.live,
