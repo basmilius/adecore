@@ -7,8 +7,7 @@ import type {
     ChatInfo,
     ChatUiChoicePayload,
     ChatUiQueryPayload,
-    ChatUiQueryReading,
-    ChatUiQueryState
+    ChatUiQueryReading
 } from '@adecore/agent-contracts';
 import { copyUiValue, UI_HOST_LIMITS, UiBudget, uiMayReferenceHost, type UiValue } from '@adecore/intelligent-ui';
 import { UiLinkResolutionSchema, uiLinkTargets, type UiLinkTarget } from '@adecore/intelligent-ui/links';
@@ -42,7 +41,7 @@ const READ_TIMEOUT_MS = 8_000;
 
 export class ChatUiQueries {
     readonly schemas: Record<string, z.ZodType>;
-    private readonly captures = new Map<string, Promise<ChatUiQueryState>>();
+    private readonly captures = new Map<string, Promise<unknown>>();
     private readonly freezing = new Set<string>();
     private readonly cache = new Map<string, CachedReading>();
     private readonly reading = new Map<string, Promise<ChatUiQueryReading>>();
@@ -101,7 +100,7 @@ export class ChatUiQueries {
                         const access = await this.access(session, current);
                         for (const [id, target] of Object.entries(targets).slice(0, UI_HOST_LIMITS.links)) {
                             try {
-                                links[id] = this.linkReading(await this.host.link(session.info, access.access, target));
+                                links[id] = this.linkReading(await this.host.link(session.info, access, target));
                             } catch (error) {
                                 links[id] = { state: 'plain', reason: this.reason(error) };
                             }
@@ -145,17 +144,19 @@ export class ChatUiQueries {
             .finally(() => this.freezing.delete(key));
     }
 
-    private access(session: ChatSession, item: ChatAssistantItem): Promise<ChatUiQueryState> {
+    /* The writer's access for a reply, captured once; null where it was denied or is unavailable. */
+    private access(session: ChatSession, item: ChatAssistantItem): Promise<unknown> {
         const key = `${session.id}:${item.id}`;
         const existing = this.captures.get(key);
         if (existing) {
             return existing;
         }
         if (item.uiQueries?.authorChatId === session.id) {
-            return Promise.resolve(item.uiQueries);
+            return Promise.resolve(session.uiAccess(item.id) ?? null);
         }
         // A pending capture is persisted as denied, so a restart cannot widen the writer's rights.
-        session.updateUiQueries(item.id, { authorChatId: session.id, access: null, blocks: {} });
+        session.setUiAccess(item.id, null);
+        session.updateUiQueries(item.id, { authorChatId: session.id, blocks: {} });
         const captured = this.host
             .capture(session.info)
             .then((access) => {
@@ -163,11 +164,10 @@ export class ChatUiQueries {
                 if (Buffer.byteLength(JSON.stringify(captured)) > 32 * 1024) {
                     throw new Error('The UI access snapshot is too large.');
                 }
-                const state: ChatUiQueryState = { authorChatId: session.id, access: captured, blocks: {} };
-                session.updateUiQueries(item.id, state);
-                return state;
+                session.setUiAccess(item.id, captured);
+                return captured as unknown;
             })
-            .catch(() => ({ authorChatId: session.id, access: null, blocks: {} }))
+            .catch(() => null)
             .finally(() => this.captures.delete(key));
         this.captures.set(key, captured);
         return captured;
@@ -208,11 +208,10 @@ export class ChatUiQueries {
             ({ source, block, item } = this.stored(session, payload));
             args = uiQueryArguments(block, payload.query, payload.values);
             args = source.args.parse(args) as Record<string, UiValue>;
-            const access = await this.access(session, item);
-            if (access.access === null) {
+            authorAccess = await this.access(session, item);
+            if (authorAccess === null) {
                 throw new ChatError('refused-query', 'The writer’s original access is unavailable.');
             }
-            authorAccess = access.access;
             await source.authorize(session.info, authorAccess, args);
         } catch (error) {
             return { state: 'refused', readAt: Date.now(), reason: this.reason(error) };
@@ -292,7 +291,7 @@ export class ChatUiQueries {
             const { source } = this.stored(session, identity);
             const args = source.args.parse(uiQueryArguments(block, name, payload.values)) as Record<string, UiValue>;
             const access = await this.access(session, item);
-            await source.authorize(session.info, access.access, args);
+            await source.authorize(session.info, access, args);
             const key = JSON.stringify([session.id, item.id, block.id, block.revision, name, args]);
             const readId = payload.reads![name];
             const cached = this.cache.get(readId);
@@ -322,7 +321,7 @@ export class ChatUiQueries {
                 throw new ChatError('refused-query', 'The writer’s original access is unavailable.');
             }
             const access = await this.access(session, item);
-            if (access.access === null) {
+            if (access === null) {
                 throw new ChatError('refused-query', 'The writer’s original access is unavailable.');
             }
             const queries = await this.choiceValues(session, payload);
@@ -330,7 +329,7 @@ export class ChatUiQueries {
             if (!target) {
                 throw new ChatError('refused-query', 'This visible node is not a supported link.');
             }
-            return this.linkReading(await this.host.link(session.info, access.access, target));
+            return this.linkReading(await this.host.link(session.info, access, target));
         } catch (error) {
             return { state: 'plain', reason: this.reason(error) };
         }

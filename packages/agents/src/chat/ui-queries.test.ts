@@ -47,7 +47,7 @@ function rig() {
         turnId: 'turn',
         streaming: false,
         ui: [block],
-        uiQueries: { authorChatId: 'chat', access: { readable: true }, blocks: {} }
+        uiQueries: { authorChatId: 'chat', blocks: {} }
     };
     const info: ChatInfo = {
         chatId: 'chat',
@@ -68,6 +68,7 @@ function rig() {
     const session = new ChatSession({
         info,
         items: [item],
+        uiAccess: { reply: { readable: true } },
         provider: claudeProvider,
         command: ['unused'],
         env: () => ({}),
@@ -120,13 +121,13 @@ describe('stored UI queries', () => {
     });
     test('a denied capture survives restart without capturing wider rights', async () => {
         const r = rig();
-        r.session.thread.upsert({ ...r.item, uiQueries: { authorChatId: 'chat', access: null, blocks: {} } });
+        r.session.setUiAccess('reply', null);
         expect((await r.queries.query(r.session, r.payload)).state).toBe('refused');
         expect(r.counts().captures).toBe(0);
     });
     test('a fork captures the current chat’s rights', async () => {
         const r = rig();
-        r.session.thread.upsert({ ...r.item, uiQueries: { authorChatId: 'original', access: { readable: true }, blocks: {} } });
+        r.session.thread.upsert({ ...r.item, uiQueries: { authorChatId: 'original', blocks: {} } });
         r.revoke();
         expect((await r.queries.query(r.session, r.payload)).state).toBe('refused');
         expect(r.counts().captures).toBe(1);

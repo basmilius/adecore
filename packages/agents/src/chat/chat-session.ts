@@ -60,6 +60,8 @@ export interface ChatSessionOptions {
     items?: ChatItem[];
     // Said once, in front of the next real prompt, and kept in the record until then (a fork's note for its agent).
     preambles?: string[];
+    // The access a UI host captured per reply, from the record; never on the wire.
+    uiAccess?: Readonly<Record<string, unknown>>;
     provider: ChatProvider;
     // The executable and leading arguments; a test points this at a fake CLI.
     command: string[];
@@ -195,12 +197,14 @@ export class ChatSession {
     private readonly steering = new Set<string>();
     private readonly uiStreams = new Map<string, UiStream>();
     private readonly uiCompiled = new Map<string, UiStreamPreview>();
+    private readonly capturedUiAccess: Map<string, unknown>;
     private readonly uiFenceLanguage: string;
 
     constructor(options: ChatSessionOptions) {
         this.options = options;
         this.uiFenceLanguage = options.uiFenceLanguage ?? UI_FENCE_LANGUAGE;
         this.pendingPreambles = options.preambles ?? [];
+        this.capturedUiAccess = new Map(Object.entries(options.uiAccess ?? {}));
         this.thread = new ChatThread(options.info, options.items);
         this.projector = new ThreadProjector(this.thread, { providerName: options.provider.name });
     }
@@ -316,6 +320,24 @@ export class ChatSession {
         }
         this.dispatch(text, extras, turnId);
         return { queued: false, turnId };
+    }
+
+    /* What a UI host captured for a reply; null where the capture was denied or is still out, undefined where none started. */
+    uiAccess(itemId: string): unknown {
+        return this.capturedUiAccess.get(itemId);
+    }
+
+    setUiAccess(itemId: string, access: unknown): void {
+        if (this.frozen) {
+            return;
+        }
+        this.capturedUiAccess.set(itemId, access);
+        this.options.persistSoon();
+    }
+
+    /* The captured access of the replies still in the thread, for the record. */
+    get uiAccessRecord(): Record<string, unknown> {
+        return Object.fromEntries([...this.capturedUiAccess].filter(([itemId]) => this.thread.get(itemId) !== undefined));
     }
 
     updateUiQueries(itemId: string, uiQueries: ChatUiQueryState): void {

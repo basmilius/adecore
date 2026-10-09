@@ -191,7 +191,7 @@ export class ChatCore {
     // How big each record was the last time it went to disk, and the writes waiting for a big one.
     private readonly sizes = new Map<string, number>();
     private readonly waiting = new Map<string, ReturnType<typeof setTimeout>>();
-    // What the last record held that no event carries (preambles, the host's extras), as its JSON.
+    // What the last record held that no event carries (preambles, the host's extras, captured UI access), as its JSON.
     private readonly unlogged = new Map<string, string>();
     // The write in flight per chat, so the next one queues behind it instead of racing it.
     private readonly writes = new Map<string, Promise<void>>();
@@ -406,6 +406,7 @@ export class ChatCore {
             ...(this.uiQueries ? { ui: { schemas: this.uiQueries.schemas, observe: (item, final) => this.uiQueries!.observe(session, item, final) } } : {}),
             items: stored?.items ?? [],
             preambles: stored?.preambles ?? [],
+            uiAccess: stored?.uiAccess ?? {},
             provider,
             command: this.commands[kind] ?? provider.command,
             ...(this.spawn ? { spawn: this.spawn } : {}),
@@ -1027,7 +1028,15 @@ export class ChatCore {
             const log = this.logs.get(chatId);
             // Not folded here: an older write still in flight may land after this one, and the log is what covers for it.
             try {
-                this.store.writeSync(chatId, info, items, { seq: log?.seq ?? 0, resetSeq: log?.resetSeq ?? 0 }, session.preambles, this.recordExtras(chatId));
+                this.store.writeSync(
+                    chatId,
+                    info,
+                    items,
+                    { seq: log?.seq ?? 0, resetSeq: log?.resetSeq ?? 0 },
+                    session.preambles,
+                    this.recordExtras(chatId),
+                    session.uiAccessRecord
+                );
             } catch (e) {
                 console.error(`Chat record for ${chatId} failed:`, errorText(e));
             }
@@ -1186,7 +1195,8 @@ export class ChatCore {
             // A delta held back is already in the thread, so it gets its seq before the snapshot says where it ends.
             this.coalescers.get(chatId)?.flush();
             const extras = this.recordExtras(chatId);
-            const unlogged = JSON.stringify([session.preambles, extras]);
+            const uiAccess = session.uiAccessRecord;
+            const unlogged = JSON.stringify([session.preambles, extras, uiAccess]);
             const folds = fold || log.size > COMPACT_ABOVE_BYTES || !log.onDisk;
             // The log already holds every change to the thread, so the whole record is rewritten only to fold
             // the log, on a chat's first write, or for what no event carries.
@@ -1195,7 +1205,7 @@ export class ChatCore {
             }
             const { info, items } = session.thread.snapshot();
             const at = { seq: log.seq, resetSeq: log.resetSeq };
-            this.sizes.set(chatId, await this.store.write(chatId, info, items, at, session.preambles, extras));
+            this.sizes.set(chatId, await this.store.write(chatId, info, items, at, session.preambles, extras, uiAccess));
             this.unlogged.set(chatId, unlogged);
             // A chat killed while the write was out has no log left to fold.
             if (this.logs.get(chatId) === log && folds) {

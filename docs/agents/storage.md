@@ -6,7 +6,7 @@ Everything a host keeps lives in its data folder. Give each host a folder of its
 
 | Path in the data folder                            |                                                                                   |
 | -------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `chats/<id>.json`                                  | A chat's record: `{ info, items, seq?, resetSeq?, preambles? }` and the host's own extras. |
+| `chats/<id>.json`                                  | A chat's record: `{ info, items, seq?, resetSeq?, preambles?, uiAccess? }` and the host's own extras. |
 | `chats/<id>.log`                                   | Its events since the record, one JSON line each: `{ seq, at, event }`.            |
 | `chats/<id>.bookmarks.json`                        | Its bookmarks.                                                                    |
 | `chats/<id>.visuals.json`                          | Its [visuals](/agents/chats#visuals), as `{ version: 1, visuals }`.               |

@@ -20,10 +20,12 @@ const RecordSchema = z.looseObject({
     seq: z.number().int().nonnegative().optional(),
     resetSeq: z.number().int().nonnegative().optional(),
     // Never on the wire: what goes in front of the next real prompt, once (a fork's note for its agent).
-    preambles: z.array(z.string()).optional()
+    preambles: z.array(z.string()).optional(),
+    // Never on the wire: the access a UI host captured for each reply that reads it, by item id.
+    uiAccess: z.record(z.string(), z.unknown()).optional()
 });
 
-const OWN_KEYS = new Set(['info', 'items', 'seq', 'resetSeq', 'preambles']);
+const OWN_KEYS = new Set(['info', 'items', 'seq', 'resetSeq', 'preambles', 'uiAccess']);
 
 /* What a host keeps in a chat's record beside the thread; it never reaches the wire. */
 export type ChatRecordExtras = Record<string, unknown>;
@@ -39,6 +41,7 @@ export interface ChatRecord {
     seq: number;
     resetSeq: number;
     preambles: string[];
+    uiAccess: Record<string, unknown>;
     extras: ChatRecordExtras;
     // The log as it is on disk, for the lines an attach with `since` may still be answered from.
     lines: ChatLogLine[];
@@ -54,8 +57,37 @@ function logName(chatId: string): string {
     return `${encodeURIComponent(chatId)}.log`;
 }
 
-function recordBody(info: ChatInfo, items: ChatItem[], at: ChatSeq, preambles: readonly string[], extras: ChatRecordExtras): string {
-    return JSON.stringify({ info, items, ...at, ...(preambles.length === 0 ? {} : { preambles }), ...withoutOwnKeys(extras) });
+function recordBody(
+    info: ChatInfo,
+    items: ChatItem[],
+    at: ChatSeq,
+    preambles: readonly string[],
+    extras: ChatRecordExtras,
+    uiAccess: Readonly<Record<string, unknown>>
+): string {
+    return JSON.stringify({
+        info,
+        items,
+        ...at,
+        ...(preambles.length === 0 ? {} : { preambles }),
+        ...(Object.keys(uiAccess).length === 0 ? {} : { uiAccess }),
+        ...withoutOwnKeys(extras)
+    });
+}
+
+/* A record from before `uiAccess` kept the access inside each reply's `uiQueries`, which the item schema now drops. */
+function liftUiAccess(record: unknown): unknown {
+    if (typeof record !== 'object' || record === null || 'uiAccess' in record || !Array.isArray((record as { items?: unknown }).items)) {
+        return record;
+    }
+    const uiAccess: Record<string, unknown> = {};
+    for (const item of (record as { items: unknown[] }).items) {
+        const queries = (item as { uiQueries?: unknown } | null)?.uiQueries;
+        if (typeof queries === 'object' && queries !== null && 'access' in queries) {
+            uiAccess[String((item as { id: unknown }).id)] = queries.access;
+        }
+    }
+    return Object.keys(uiAccess).length === 0 ? record : { ...record, uiAccess };
 }
 
 function withoutOwnKeys(extras: ChatRecordExtras): ChatRecordExtras {
@@ -127,9 +159,10 @@ export class ChatStore {
         items: ChatItem[],
         at: ChatSeq = { seq: 0, resetSeq: 0 },
         preambles: readonly string[] = [],
-        extras: ChatRecordExtras = {}
+        extras: ChatRecordExtras = {},
+        uiAccess: Readonly<Record<string, unknown>> = {}
     ): Promise<number> {
-        const body = recordBody(info, items, at, preambles, extras);
+        const body = recordBody(info, items, at, preambles, extras, uiAccess);
         await mkdir(this.dir, { recursive: true, mode: 0o700 });
         await writeAtomic(join(this.dir, recordFileName(chatId)), body);
         return body.length;
@@ -145,10 +178,11 @@ export class ChatStore {
         items: ChatItem[],
         at: ChatSeq = { seq: 0, resetSeq: 0 },
         preambles: readonly string[] = [],
-        extras: ChatRecordExtras = {}
+        extras: ChatRecordExtras = {},
+        uiAccess: Readonly<Record<string, unknown>> = {}
     ): void {
         mkdirSync(this.dir, { recursive: true, mode: 0o700 });
-        writeAtomicSync(join(this.dir, recordFileName(chatId)), recordBody(info, items, at, preambles, extras));
+        writeAtomicSync(join(this.dir, recordFileName(chatId)), recordBody(info, items, at, preambles, extras, uiAccess));
     }
 
     /* Null for a chat with nothing on disk to make it of, and for one whose record does not parse (see `unreadable`). */
@@ -174,7 +208,15 @@ export class ChatStore {
                 resetSeq = line.seq;
             }
         }
-        return { ...thread.snapshot(), seq, resetSeq, preambles: snapshot.preambles ?? [], extras: extrasOf(snapshot), lines };
+        return {
+            ...thread.snapshot(),
+            seq,
+            resetSeq,
+            preambles: snapshot.preambles ?? [],
+            uiAccess: snapshot.uiAccess ?? {},
+            extras: extrasOf(snapshot),
+            lines
+        };
     }
 
     /*
@@ -204,7 +246,7 @@ export class ChatStore {
                 await writeAtomic(join(this.dir, recordFileName(chatId)), JSON.stringify(migrated));
             }
         }
-        const parsed = RecordSchema.safeParse(record);
+        const parsed = RecordSchema.safeParse(liftUiAccess(record));
         return parsed.success ? parsed.data : UNREADABLE;
     }
 
@@ -260,5 +302,5 @@ function fromLogAlone(lines: ChatLogLine[]): ChatRecord | null {
             resetSeq = line.seq;
         }
     }
-    return { ...thread.snapshot(), seq: 0, resetSeq, preambles: [], extras: {}, lines };
+    return { ...thread.snapshot(), seq: 0, resetSeq, preambles: [], uiAccess: {}, extras: {}, lines };
 }

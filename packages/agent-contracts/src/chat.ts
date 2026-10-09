@@ -319,9 +319,9 @@ export type ChatUiQueryReading = z.infer<typeof ChatUiQueryReadingSchema>;
 export const ChatUiLinkReadingSchema = UiLinkResolutionSchema;
 export type ChatUiLinkReading = z.infer<typeof ChatUiLinkReadingSchema>;
 
+// The writer's captured access stays on the daemon; a record from before that still parses and drops it.
 export const ChatUiQueryStateSchema = z.object({
     authorChatId: z.string(),
-    access: z.unknown(),
     blocks: z.record(
         z.string(),
         z.object({

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { appendFile, mkdtemp, rm } from 'node:fs/promises';
+import { appendFile, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { ChatEvent, ChatInfo, ChatItem } from '@adecore/agent-contracts';
@@ -54,6 +54,18 @@ function logEvents(events: ChatEvent[], from = 0): ChatLog {
 }
 
 describe('ChatStore', () => {
+    test('lifts the UI access a record from before kept inside a reply out of the thread', async () => {
+        await store.write('chat', info(), [{ id: 'reply', kind: 'assistant', createdAt: 1, turnId: null, text: 'done', streaming: false }]);
+        const path = join(store.dir, 'chat.json');
+        const record = JSON.parse(await readFile(path, 'utf8'));
+        record.items[0].uiQueries = { authorChatId: 'chat', access: { root: '/old' }, blocks: {} };
+        await writeFile(path, JSON.stringify(record));
+        const read = await store.read('chat');
+        expect(read?.uiAccess).toEqual({ reply: { root: '/old' } });
+        expect(read?.items[0]).toMatchObject({ uiQueries: { authorChatId: 'chat', blocks: {} } });
+        expect(JSON.stringify(read?.items)).not.toContain('/old');
+    });
+
     test('plays the log over the snapshot from the seq the snapshot holds', async () => {
         const log = logEvents([
             { type: 'item', item: user('u1', 'hi') },

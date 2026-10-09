@@ -11,6 +11,41 @@ import { AttachmentStore } from './attachment-store.ts';
 import { claudeProvider } from '../providers/claude-provider.ts';
 import { ProviderRegistry } from '../providers/registry.ts';
 import { parseLog } from './chat-log.ts';
+import { z } from 'zod';
+import type { ChatUiHost } from './ui-queries.ts';
+
+/* A Claude provider whose backend does nothing but hand its host to `onHost`. */
+function fakeProviders(onHost: (host: BackendHost) => void): ProviderRegistry {
+    return new ProviderRegistry({
+        detect: async () => ({ installed: true, version: 'test' }),
+        providers: [
+            {
+                ...claudeProvider,
+                createBackend: (_launch, backendHost) => {
+                    onHost(backendHost);
+                    return {
+                        running: true,
+                        pid: null,
+                        start: async () => undefined,
+                        sendTurn: () => undefined,
+                        compact: () => undefined,
+                        interrupt: () => undefined,
+                        respondApproval: () => false,
+                        respondQuestion: () => false,
+                        stop: () => undefined,
+                        dispose: async () => undefined
+                    };
+                }
+            }
+        ]
+    });
+}
+
+async function settle(): Promise<void> {
+    for (let i = 0; i < 40; i++) {
+        await new Promise((resolve) => setImmediate(resolve));
+    }
+}
 
 test('UI previews reach attached clients without a log sequence or observer side effects and reconnect without logging', async () => {
     const home = await mkdtemp(join(tmpdir(), 'adecore-ui-log-'));
@@ -20,28 +55,8 @@ test('UI previews reach attached clients without a log sequence or observer side
     const manager = new ChatCore({
         attachments,
         store,
-        providers: new ProviderRegistry({
-            detect: async () => ({ installed: true, version: 'test' }),
-            providers: [
-                {
-                    ...claudeProvider,
-                    createBackend: (_launch, backendHost) => {
-                        host = backendHost;
-                        return {
-                            running: true,
-                            pid: null,
-                            start: async () => undefined,
-                            sendTurn: () => undefined,
-                            compact: () => undefined,
-                            interrupt: () => undefined,
-                            respondApproval: () => false,
-                            respondQuestion: () => false,
-                            stop: () => undefined,
-                            dispose: async () => undefined
-                        };
-                    }
-                }
-            ]
+        providers: fakeProviders((backendHost) => {
+            host = backendHost;
         })
     });
     const clients: ChatEventEnvelope[] = [];
@@ -112,6 +127,82 @@ test('UI previews reach attached clients without a log sequence or observer side
         for (const info of manager.list()) {
             await manager.get(info.chatId)?.dispose();
         }
+        await rm(home, { recursive: true, force: true });
+    }
+});
+
+test('the writer’s captured UI access stays in the record and never reaches a client', async () => {
+    const home = await mkdtemp(join(tmpdir(), 'adecore-ui-access-'));
+    const secret = '/private/writer-root';
+    let host: BackendHost | undefined;
+    const intelligentUi: ChatUiHost = {
+        capture: async () => ({ root: secret }),
+        sources: {
+            status: {
+                args: z.object({}).strict(),
+                result: z.object({ count: z.number() }).strict(),
+                authorize: async (_info, access) => {
+                    if ((access as { root?: string } | null)?.root !== secret) {
+                        throw new Error('No access');
+                    }
+                },
+                read: async () => ({ count: 3 })
+            }
+        }
+    };
+    const attachments = new AttachmentStore(home);
+    const store = new ChatStore(home, { attachments });
+    const open = () =>
+        new ChatCore({
+            attachments,
+            store,
+            intelligentUi,
+            providers: fakeProviders((backendHost) => {
+                host = backendHost;
+            })
+        });
+    const manager = open();
+    const sent: unknown[] = [];
+    manager.subscribe('client', (event) => sent.push(event));
+    let reopened: ChatCore | undefined;
+    try {
+        await manager.create({ chatId: 'chat', cwd: home });
+        manager.attach('chat', 'client');
+        await manager.send('chat', 'Show the count');
+        await settle();
+        host!.onEvent({
+            type: 'text.done',
+            ref: 'answer',
+            text: '```ui\n$data = @Query("status", {})\n<Stats><Stat label="Count" value={$data.count}/></Stats>\n```',
+            parentRef: null
+        });
+        await settle();
+        const assistant = manager
+            .get('chat')!
+            .thread.list()
+            .find((item) => item.kind === 'assistant');
+        if (assistant?.kind !== 'assistant' || !assistant.ui?.[0]?.revision) {
+            throw new Error('Missing completed UI block');
+        }
+        expect(assistant.uiQueries?.blocks[assistant.ui[0].id]?.readings.$data?.state).toBe('fresh');
+        const payload = { chatId: 'chat', itemId: assistant.id, blockId: assistant.ui[0].id, revision: assistant.ui[0].revision, query: '$data' };
+        const seen = JSON.stringify([
+            sent,
+            manager.attach('chat', 'fresh'),
+            manager.attach('chat', 'paged', 1),
+            manager.attach('chat', 'resumed', undefined, 0),
+            await readFile(store.logPath('chat'), 'utf8')
+        ]);
+        expect(seen).not.toContain(secret);
+        await manager.shutdown();
+        expect((await store.read('chat'))?.uiAccess).toEqual({ [assistant.id]: { root: secret } });
+        reopened = open();
+        await reopened.create({ chatId: 'chat', cwd: home });
+        reopened.attach('chat', 'client');
+        expect((await reopened.queryUi(payload, 'client')).state).toBe('fresh');
+    } finally {
+        await manager.shutdown();
+        await reopened?.shutdown();
         await rm(home, { recursive: true, force: true });
     }
 });

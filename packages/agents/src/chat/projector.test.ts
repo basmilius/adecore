@@ -965,10 +965,10 @@ test('a live transport failure withdraws requests without declaring its backgrou
     expect(thread.info).toMatchObject({ activeTurnId: null, status: 'error' });
 });
 
-test('provider completion preserves captured UI access and metadata replay', () => {
+test('provider completion preserves UI query metadata and its replay', () => {
     const { thread, project } = setup();
     const initial = project({ type: 'text.delta', ref: 'answer', text: 'draft' });
-    const uiQueries = { authorChatId: 'c', access: { original: 'read' }, blocks: {} };
+    const uiQueries = { authorChatId: 'c', blocks: {} };
     const patch: ChatEvent = { type: 'delta', itemId: '1:answer', text: '', uiQueries };
     thread.apply(patch);
     const final = project({ type: 'text.done', ref: 'answer', text: 'final', parentRef: null });
