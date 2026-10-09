@@ -32,6 +32,7 @@ Four entries are `null`. `Show` and `Each` are resolved by the evaluation before
 | `openLink(target)` | Opens a chip. Without it a chip is drawn but does nothing.                                                 |
 | `openUrl(url)`   | Opens a source. Without it a source is a row that cannot be opened.                                          |
 | `onChoose(nodeId)` | Called with the id of a Choice a person picked. Without it every choice stays closed.                     |
+| `choiceReason`   | Why the choices are closed without `onChoose`; `uiLiveChoiceReason(t, live)` gives it for a live block that still reads or failed. |
 
 `UiLinkTarget` names a resource by the component that names it: `{ type: 'File', path, line? }`, `{ type: 'Diff', path }`, `{ type: 'Commit', sha }` or `{ type: 'Node', id }`. The host checks a target again when it acts, and it answers `plain` until it has checked it, so a link reads as text while a block streams and fades into a chip once the host knows.
 

@@ -61,6 +61,8 @@ export interface UiRenderContext {
     openLink?(target: UiLinkTarget): void;
     openUrl?(url: string): void;
     onChoose?(nodeId: string): void;
+    /* Why the choices are closed while `onChoose` is absent, such as live data still being read; without it they say they are not available. */
+    choiceReason?: string | null;
     /* Table cells use the evaluated rows index and column key. */
     liveValue?(nodeId: string, prop: string, path?: readonly [row: number, key: string]): UiLiveValue | undefined;
 }

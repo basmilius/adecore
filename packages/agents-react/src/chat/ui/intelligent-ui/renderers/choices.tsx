@@ -41,7 +41,11 @@ export function ChoiceRenderer({ node, children, context }: UiRendererProps<UiPr
     const failed = answer === null && context.failedChoiceId === node.id;
     const closed = waiting || unavailable || answer !== null;
     const slow = useLater(chosen && answer.state === 'sending', SPINNER_AFTER_MS);
-    const reason = waiting ? t('blocks.choice.waiting') : answer === null && unavailable ? t('blocks.choice.unavailable') : null;
+    const reason = waiting
+        ? t('blocks.choice.waiting')
+        : answer === null && unavailable
+          ? ((disabled === true ? null : context.choiceReason) ?? t('blocks.choice.unavailable'))
+          : null;
     const described = detail !== undefined && detail !== '';
 
     const row = (

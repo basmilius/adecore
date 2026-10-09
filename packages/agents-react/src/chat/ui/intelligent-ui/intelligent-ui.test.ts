@@ -6,7 +6,7 @@ import { chatHost, setChatHost } from '../../../host';
 import { UiPageMemory } from './block-local';
 import { uiChartData, niceCeiling, UI_CHART_SERIES } from './chart-data';
 import i18next from 'i18next';
-import { uiBlockHead, uiNodeLabel, uiNodeText, uiReasonText, uiWithUnit } from './node-text';
+import { uiBlockHead, uiLiveChoiceReason, uiNodeLabel, uiNodeText, uiReasonText, uiWithUnit } from './node-text';
 import { UI_RENDERERS } from './registry';
 import type { UiRenderContext, UiRenderer, UiRendererProps } from './render-context';
 import { UiSourceCitation } from './renderers/content';
@@ -134,6 +134,17 @@ test('a unit stands apart from its number everywhere, except a percent sign', ()
     const html = markup('$wait = 5\n<Slider value={$wait} min={1} max={10} unit="ms">Wait</Slider>');
     expect(html).toContain('>5\u00a0ms</span>');
     expect(html).toContain('aria-valuetext="5\u00a0ms"');
+});
+
+test('closed choices of a live block say whether data is still read or why a reading failed', () => {
+    const t = i18next.getFixedT('en', 'agent-chat');
+    const sources = ['status'];
+    expect(uiLiveChoiceReason(t, { state: 'fresh', sources, readAt: 1 })).toBeNull();
+    expect(uiLiveChoiceReason(t, { state: 'reading', sources, readAt: null })).toBe('Available once the live data is read');
+    expect(uiLiveChoiceReason(t, { state: 'refused', sources, readAt: null, code: 'access-unavailable', reason: 'x' })).toBe(
+        'The access of the chat that wrote this is no longer available.'
+    );
+    expect(uiLiveChoiceReason(t, { state: 'failed', sources, readAt: null, source: 'status' })).toBe('Could not read status');
 });
 
 test('page memory forgets the value used longest ago past its limit', () => {

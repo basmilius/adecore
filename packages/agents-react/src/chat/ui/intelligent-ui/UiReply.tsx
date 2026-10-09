@@ -38,7 +38,7 @@ import { UiFallbackPart } from './UiFallbackPart';
 import { useUiLinks } from './use-ui-links';
 import { useUiQueries, useUiLiveValues } from './use-ui-queries';
 import { UiSourceCitation } from './renderers/content';
-import { uiChildrenOf, revealUiSource } from './node-text';
+import { uiChildrenOf, revealUiSource, uiLiveChoiceReason } from './node-text';
 import { uiReplyParts } from './reply-parts';
 
 const localStates = new UiPageMemory<UiState>(64);
@@ -430,6 +430,7 @@ function UiBlockBody({
         failedChoiceId,
         live: queries.live,
         liveValue,
+        choiceReason: uiLiveChoiceReason(t, queries.live),
         onChoose:
             !queries.ready || queries.reading
                 ? undefined

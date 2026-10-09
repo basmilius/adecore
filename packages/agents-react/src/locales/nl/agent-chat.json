@@ -516,6 +516,7 @@
     "choices": "Keuzes",
     "choice": {
       "waiting": "Beschikbaar zodra het antwoord klaar is",
+      "reading": "Beschikbaar zodra de live gegevens gelezen zijn",
       "unavailable": "Niet beschikbaar",
       "sent": "Verstuurd",
       "queued": "In de wachtrij",

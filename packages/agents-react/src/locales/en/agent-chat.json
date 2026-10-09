@@ -516,6 +516,7 @@
     "choices": "Choices",
     "choice": {
       "waiting": "Available when the reply is done",
+      "reading": "Available once the live data is read",
       "unavailable": "Not available",
       "sent": "Sent",
       "queued": "Queued",

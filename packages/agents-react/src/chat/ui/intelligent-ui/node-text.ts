@@ -1,5 +1,6 @@
 import type { TFunction } from 'i18next';
 import type { UiComponentName, UiProps, UiViewNode } from '@adecore/intelligent-ui';
+import type { UiLiveStatus } from './render-context';
 
 /* The text a node holds, every `$text` below it joined as written, such as the code of a CodeBlock. */
 export function uiNodeText(node: UiViewNode): string {
@@ -91,4 +92,16 @@ export function uiWithUnit(text: string, unit: string | undefined): string {
         return text;
     }
     return unit === '%' ? `${text}${unit}` : `${text}\u00a0${unit}`;
+}
+
+/* Why the choices of a live block are closed: its data is still being read, or the reason a reading failed. Null while nothing live holds them. */
+export function uiLiveChoiceReason(t: TFunction<'agent-chat'>, live: UiLiveStatus | null | undefined): string | null {
+    if (live === null || live === undefined || live.state === 'fresh') {
+        return null;
+    }
+    if (live.state === 'reading') {
+        return t('blocks.choice.reading');
+    }
+    const source = live.source ?? live.sources[0] ?? '';
+    return uiReasonText(t, live.code, live.reason) ?? t(live.state === 'failed' ? 'blocks.live.failed' : 'blocks.live.refused', { source });
 }
