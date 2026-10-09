@@ -31,6 +31,7 @@ const desktopUi: DefaultTheme.SidebarItem[] = [
         ['Checkbox', '/ui/inputs/checkbox'],
         ['Segmented', '/ui/inputs/segmented'],
         ['Stepper', '/ui/inputs/stepper'],
+        ['Slider', '/ui/inputs/slider'],
         ['ChoiceCards', '/ui/inputs/choice-cards'],
         ['IconPicker', '/ui/inputs/icon-picker'],
         ['ColorSwatch', '/ui/inputs/color-swatch'],

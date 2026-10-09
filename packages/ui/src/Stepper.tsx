@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { ButtonGroup } from './ButtonGroup.tsx';
 import { formatFixed } from './format/number.ts';
 import { IconButton } from './IconButton.tsx';
+import { placesOf } from './step-places.ts';
 
 export interface StepperProps {
     value: number;
@@ -20,8 +21,6 @@ export interface StepperProps {
     className?: string;
     ref?: Ref<HTMLDivElement>;
 }
-
-const placesOf = (step: number): number => String(step).split('.')[1]?.length ?? 0;
 
 /* A number between minus and plus, in one sunken group so the three read as a single control. */
 export function Stepper({ value, onValueChange, min, max, step, decimals = placesOf(step), unit, label, className, ref }: StepperProps) {
