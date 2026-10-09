@@ -1,0 +1,75 @@
+{
+    "name": "@adecore/intelligent-ui",
+    "version": "0.0.0",
+    "description": "A streaming UI catalog, compiler and bounded expression interpreter without a framework or DOM.",
+    "license": "FSL-1.1-MIT",
+    "author": "Bas Milius",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/basmilius/adecore.git",
+        "directory": "packages/intelligent-ui"
+    },
+    "bugs": {
+        "url": "https://github.com/basmilius/adecore/issues"
+    },
+    "homepage": "https://adecore.dev/intelligent-ui/",
+    "type": "module",
+    "sideEffects": false,
+    "files": [
+        "dist",
+        "src",
+        "!src/**/*.test.ts",
+        "!src/fixtures"
+    ],
+    "exports": {
+        ".": {
+            "source": "./src/index.ts",
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        },
+        "./catalog": {
+            "source": "./src/catalog.ts",
+            "types": "./dist/catalog.d.ts",
+            "default": "./dist/catalog.js"
+        },
+        "./budget": {
+            "source": "./src/budget.ts",
+            "types": "./dist/budget.d.ts",
+            "default": "./dist/budget.js"
+        },
+        "./expression": {
+            "source": "./src/expression.ts",
+            "types": "./dist/expression.d.ts",
+            "default": "./dist/expression.js"
+        },
+        "./syntax": {
+            "source": "./src/syntax.ts",
+            "types": "./dist/syntax.d.ts",
+            "default": "./dist/syntax.js"
+        },
+        "./compiler": {
+            "source": "./src/compiler.ts",
+            "types": "./dist/compiler.d.ts",
+            "default": "./dist/compiler.js"
+        },
+        "./runtime": {
+            "source": "./src/runtime.ts",
+            "types": "./dist/runtime.d.ts",
+            "default": "./dist/runtime.js"
+        }
+    },
+    "scripts": {
+        "build": "bun scripts/build.ts",
+        "typecheck": "tsc --noEmit",
+        "test": "bun test --conditions=source"
+    },
+    "devDependencies": {
+        "@types/bun": "^1.4.2",
+        "@types/node": "^24.13.6",
+        "typescript": "^7.0.2"
+    },
+    "dependencies": {
+        "zod": "^4.6.5"
+    },
+    "private": true
+}
