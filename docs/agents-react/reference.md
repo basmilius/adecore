@@ -140,8 +140,7 @@ The renderers of [Intelligent UI](/agents-react/chat/intelligent-ui) blocks.
 
 | Module | Exports |
 | --- | --- |
-| [`chat/ui/intelligent-ui/UiBlockFooter`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/intelligent-ui/UiBlockFooter.tsx) | `UiBlockFix`, `UiBlockFooterProps`, `UiBlockFooter` |
-| [`chat/ui/intelligent-ui/UiBlockFrame`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/intelligent-ui/UiBlockFrame.tsx) | `UiBlockFrameProps`, `UiBlockFrame` |
+| [`chat/ui/intelligent-ui/UiBlockFrame`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/intelligent-ui/UiBlockFrame.tsx) | `UiBlockFix`, `UiBlockFooterProps`, `UiBlockFrameProps`, `UiBlockFrame` |
 | [`chat/ui/intelligent-ui/UiFallbackPart`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/intelligent-ui/UiFallbackPart.tsx) | `UiFallbackProblem`, `UiFallbackPart` |
 | [`chat/ui/intelligent-ui/block-local`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/intelligent-ui/block-local.ts) | `UiPageMemory`, `useBlockLocal` |
 | [`chat/ui/intelligent-ui/chart-data`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/intelligent-ui/chart-data.ts) | `UI_CHART_SERIES`, `UI_CHART_ROWS`, `UiChartSeries`, `UiChartData`, `uiChartData`, `niceCeiling` |

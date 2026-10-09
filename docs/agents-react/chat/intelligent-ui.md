@@ -46,7 +46,7 @@ Four entries are `null`. `Show` and `Each` are resolved by the evaluation before
 
 `UiHeadContext` is how a Summary knows it heads the block: the frame provides the id of the first node when it is a Summary, which `uiBlockHead(nodes)` finds, together with its text. A later Summary is a subheading without an icon. Outside a frame every Summary heads.
 
-`UiBlockFooter` is the line under the card, drawn only when there is something to say, in this order: the live status, the answer (`answered`, a label and a time), the repairs (`fixes`, a list of `UiBlockFix` with a `code` and a `message`, folded) and `shownAsText` with the reason a whole block is drawn as its text. `UiBlockFooterProps` lists them.
+The footer is the line under the card, part of the frame and drawn only when there is something to say, in this order: the live status, the answer (`answered`, a label and a time), the repairs (`fixes`, a list of `UiBlockFix` with a `code` and a `message`, folded) and `shownAsText` with the reason a whole block is drawn as its text. `UiBlockFooterProps` lists them. Its hairline runs the full width of the card, over the frame's padding, so it is drawn only by the frame.
 
 `UiFallbackPart` draws one part as the markdown it stands for, with a quiet line above it. `UiFallbackProblem` says which line: `{ kind: 'unknown', component }` for a component this version cannot draw, `{ kind: 'failed' }` for one it could not draw. A table or a chart without usable data draws its own fallback this way.
 

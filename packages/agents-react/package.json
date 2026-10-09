@@ -519,11 +519,6 @@
             "types": "./dist/chat/ui/icons.d.ts",
             "default": "./dist/chat/ui/icons.js"
         },
-        "./chat/ui/intelligent-ui/UiBlockFooter": {
-            "source": "./src/chat/ui/intelligent-ui/UiBlockFooter.tsx",
-            "types": "./dist/chat/ui/intelligent-ui/UiBlockFooter.d.ts",
-            "default": "./dist/chat/ui/intelligent-ui/UiBlockFooter.js"
-        },
         "./chat/ui/intelligent-ui/UiBlockFrame": {
             "source": "./src/chat/ui/intelligent-ui/UiBlockFrame.tsx",
             "types": "./dist/chat/ui/intelligent-ui/UiBlockFrame.d.ts",
