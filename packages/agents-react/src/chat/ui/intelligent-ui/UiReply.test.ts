@@ -167,3 +167,9 @@ test('numbers in written prose resolve to Sources without changing code, express
     expect(html).toContain('Pick [1]');
     expect(html).not.toContain('href="https://adecore.dev"');
 });
+
+test('a primary choice comes first in the document, not only on screen', () => {
+    const markup = drawn('<Choices><Choice>Leave it</Choice><Choice primary={true}>Fix it</Choice></Choices>');
+    expect(markup.indexOf('Fix it')).toBeLessThan(markup.indexOf('Leave it'));
+    expect(markup).not.toContain('order-first');
+});

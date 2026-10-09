@@ -105,3 +105,12 @@ export function uiLiveChoiceReason(t: TFunction<'agent-chat'>, live: UiLiveStatu
     const source = live.source ?? live.sources[0] ?? '';
     return uiReasonText(t, live.code, live.reason) ?? t(live.state === 'failed' ? 'blocks.live.failed' : 'blocks.live.refused', { source });
 }
+
+/* The host of an address without its `www.`, which is how a source or a link in prose says where it goes. */
+export function uiUrlDomain(url: string): string {
+    try {
+        return new URL(url).hostname.replace(/^www\./, '');
+    } catch {
+        return url;
+    }
+}

@@ -84,7 +84,7 @@ export function ChoiceRenderer({ node, children, context }: UiRendererProps<UiPr
     );
 
     return (
-        <div className={clsx('flex flex-col gap-1', primary === true && 'order-first')}>
+        <div className="flex flex-col gap-1">
             {reason !== null ? (
                 <DisabledReason reason={reason}>{row}</DisabledReason>
             ) : described && detail.length > LONG_CONTEXT ? (

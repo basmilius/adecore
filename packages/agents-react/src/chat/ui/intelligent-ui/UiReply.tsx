@@ -24,7 +24,7 @@ import {
     type UiNode,
     type UiViewNode
 } from '@adecore/intelligent-ui';
-import { ErrorBoundary } from '@adecore/ui';
+import { ErrorBoundary, Tooltip } from '@adecore/ui';
 import type { ChatUiAnswer, ChatUiQueryState } from '@adecore/agent-contracts';
 import { chatHost } from '../../../host';
 import { UiReplyNavigationContext } from '../reply-context';
@@ -38,7 +38,7 @@ import { UiFallbackPart } from './UiFallbackPart';
 import { useUiLinks } from './use-ui-links';
 import { useUiQueries, useUiLiveValues } from './use-ui-queries';
 import { UiSourceCitation } from './renderers/content';
-import { uiChildrenOf, revealUiSource, uiLiveChoiceReason } from './node-text';
+import { uiChildrenOf, revealUiSource, uiLiveChoiceReason, uiUrlDomain } from './node-text';
 import { uiReplyParts } from './reply-parts';
 
 const localStates = new UiPageMemory<UiState>(64);
@@ -188,9 +188,11 @@ function ProseLink({ href, children }: { href?: string; children?: ReactNode }) 
         return children;
     }
     return (
-        <button type="button" className="cursor-pointer text-accent underline underline-offset-2 select-text" onClick={() => openUrl(href)}>
-            {children}
-        </button>
+        <Tooltip label={uiUrlDomain(href)}>
+            <button type="button" className="cursor-pointer text-accent underline underline-offset-2 select-text" onClick={() => openUrl(href)}>
+                {children}
+            </button>
+        </Tooltip>
     );
 }
 
@@ -270,6 +272,10 @@ function UiNodes({ nodes, parent, texts, context }: UiNodesProps): ReactNode {
         </UiNodeBoundary>
     );
     const paragraph = PARAGRAPHS[parent];
+    if (parent === 'Choices') {
+        // A primary choice stands first in the order a keyboard and a screen reader meet it too, not only on screen.
+        return [...nodes].sort((a, b) => Number(b.props.primary === true) - Number(a.props.primary === true)).map(drawn);
+    }
     if (paragraph === undefined) {
         return nodes.map(drawn);
     }

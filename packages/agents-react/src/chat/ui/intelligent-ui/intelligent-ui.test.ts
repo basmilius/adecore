@@ -6,7 +6,7 @@ import { chatHost, setChatHost } from '../../../host';
 import { UiPageMemory } from './block-local';
 import { uiChartData, niceCeiling, UI_CHART_SERIES } from './chart-data';
 import i18next from 'i18next';
-import { uiBlockHead, uiLiveChoiceReason, uiNodeLabel, uiNodeText, uiReasonText, uiWithUnit } from './node-text';
+import { uiBlockHead, uiLiveChoiceReason, uiNodeLabel, uiNodeText, uiReasonText, uiUrlDomain, uiWithUnit } from './node-text';
 import { UI_RENDERERS } from './registry';
 import type { UiRenderContext, UiRenderer, UiRendererProps } from './render-context';
 import { UiSourceCitation } from './renderers/content';
@@ -147,6 +147,17 @@ test('closed choices of a live block say whether data is still read or why a rea
     expect(uiLiveChoiceReason(t, { state: 'failed', sources, readAt: null, source: 'status' })).toBe('Could not read status');
 });
 
+test('a checklist, a list of sources and a table each have a name', () => {
+    expect(markup('$picked = []\n<Checklist value={$picked}><Item value="a">A</Item></Checklist>')).toContain('role="group" aria-label="Checklist"');
+    const sources = markup('<Sources><Source title="Docs" url="https://www.adecore.dev/guide"/></Sources>');
+    const heading = /<span id="([^"]+)"[^>]*>Sources<\/span>/.exec(sources)?.[1];
+    expect(heading).toBeDefined();
+    expect(sources).toContain(`aria-labelledby="${heading}"`);
+    expect(sources).not.toContain('aria-label="Sources"');
+    expect(markup('<Table rows={[{name: "Core", size: 3}]}/>')).toContain('aria-label="Table of name, size"');
+    expect(uiUrlDomain('https://www.adecore.dev/guide')).toBe('adecore.dev');
+});
+
 test('page memory forgets the value used longest ago past its limit', () => {
     const memory = new UiPageMemory<number>(2);
     memory.set('a', 1);
@@ -162,7 +173,6 @@ describe('choices', () => {
         expect(html).toContain('Fix these findings: links, preload');
         expect(html).toMatch(/aria-disabled="true" aria-describedby="[^"]+"/);
         expect(html).toContain('opacity-60');
-        expect(html).toContain('order-first');
     });
 
     test('open once the block is done and a host can send them', () => {

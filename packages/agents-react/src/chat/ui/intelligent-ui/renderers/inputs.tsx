@@ -1,4 +1,4 @@
-import { createContext, useContext, type MouseEvent } from 'react';
+import { createContext, useContext, type MouseEvent, type ReactNode } from 'react';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import type { UiBinding, UiProps, UiViewNode } from '@adecore/intelligent-ui';
@@ -28,6 +28,16 @@ function bindingOf<Value>(node: UiViewNode<{ value: Value }>, context: UiRenderC
 /* An input whose node has not closed yet stands at 60% and takes no pointer. */
 const PENDING = 'pointer-events-none opacity-60';
 
+/* The rows of a checklist as one named group. */
+function ChecklistGroup({ pending, children }: { pending: boolean; children: ReactNode }) {
+    const { t } = useTranslation('agent-chat');
+    return (
+        <div role="group" aria-label={t('blocks.checklist')} className={clsx('chat-ui-nodes flex flex-col', pending && PENDING)}>
+            {children}
+        </div>
+    );
+}
+
 export function ChecklistRenderer({ node, children, context }: UiRendererProps<UiProps<'Checklist'>>) {
     const binding = bindingOf(node, context);
     const values = binding?.value ?? node.props.value;
@@ -36,7 +46,7 @@ export function ChecklistRenderer({ node, children, context }: UiRendererProps<U
     };
     return (
         <ChecklistContext value={{ values, enabled: binding !== null, toggle }}>
-            <div className={clsx('chat-ui-nodes flex flex-col', !node.complete && PENDING)}>{children}</div>
+            <ChecklistGroup pending={!node.complete}>{children}</ChecklistGroup>
         </ChecklistContext>
     );
 }

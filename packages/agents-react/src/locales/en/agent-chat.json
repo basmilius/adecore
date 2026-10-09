@@ -498,6 +498,7 @@
       "from": "from {{previous}}"
     },
     "table": {
+      "label": "Table of {{columns}}",
       "showAll": "Show all {{total}} rows"
     },
     "chart": {
@@ -514,6 +515,7 @@
     "outsideProject": "Outside the project, shown as text",
     "options": "Options",
     "choices": "Choices",
+    "checklist": "Checklist",
     "choice": {
       "waiting": "Available when the reply is done",
       "reading": "Available once the live data is read",

@@ -498,6 +498,7 @@
       "from": "vanaf {{previous}}"
     },
     "table": {
+      "label": "Tabel van {{columns}}",
       "showAll": "Alle {{total}} rijen tonen"
     },
     "chart": {
@@ -514,6 +515,7 @@
     "outsideProject": "Buiten het project, als tekst getoond",
     "options": "Opties",
     "choices": "Keuzes",
+    "checklist": "Checklijst",
     "choice": {
       "waiting": "Beschikbaar zodra het antwoord klaar is",
       "reading": "Beschikbaar zodra de live gegevens gelezen zijn",

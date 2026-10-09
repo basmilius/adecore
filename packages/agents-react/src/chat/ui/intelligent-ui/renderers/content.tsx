@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { UiProps } from '@adecore/intelligent-ui';
 import { PreviewCard } from '@adecore/ui';
@@ -8,7 +8,7 @@ import { chatHost } from '../../../../host';
 import { CodeBlock } from '../../CodeBlock';
 import { CodeStreamingContext } from '../../code-streaming';
 import { ImageThumb } from '../../ImageView';
-import { uiChildrenOf, uiNodeLabel, uiNodeText } from '../node-text';
+import { uiChildrenOf, uiNodeLabel, uiNodeText, uiUrlDomain } from '../node-text';
 import type { UiRendererProps } from '../render-context';
 
 // The number of every source by its node id, which the list counts in its own order.
@@ -52,23 +52,18 @@ export function ImageRenderer({ node, children, context }: UiRendererProps<UiPro
 
 export function SourcesRenderer({ node, children }: UiRendererProps<UiProps<'Sources'>>) {
     const { t } = useTranslation('agent-chat');
+    const headingId = useId();
     const numbers = new Map(uiChildrenOf(node, 'Source').map((source, index) => [source.id, index + 1]));
     return (
         <SourceNumbers value={numbers}>
-            <section aria-label={t('blocks.sources')} className="flex flex-col">
-                <span className="px-2 pb-1 text-xs font-medium text-text-muted">{t('blocks.sources')}</span>
+            <section aria-labelledby={headingId} className="flex flex-col">
+                <span id={headingId} className="px-2 pb-1 text-xs font-medium text-text-muted">
+                    {t('blocks.sources')}
+                </span>
                 <ol className="chat-ui-nodes flex flex-col">{children}</ol>
             </section>
         </SourceNumbers>
     );
-}
-
-function domainOf(url: string): string {
-    try {
-        return new URL(url).hostname.replace(/^www\./, '');
-    } catch {
-        return url;
-    }
 }
 
 export interface UiSourceCitationProps {
@@ -106,7 +101,7 @@ export function UiSourceCitation({ number, title, url, onReveal, className }: Ui
             </PreviewCard.Trigger>
             <PreviewCard.Popup side="top" align="center" sideOffset={4} className="flex max-w-72 flex-col px-2.5 py-1.5 text-xs">
                 <span className="line-clamp-2 text-text">{title}</span>
-                <span className="truncate text-text-faint">{domainOf(url)}</span>
+                <span className="truncate text-text-faint">{uiUrlDomain(url)}</span>
             </PreviewCard.Popup>
         </PreviewCard.Root>
     );
@@ -124,7 +119,7 @@ export function SourceRenderer({ node, context }: UiRendererProps<UiProps<'Sourc
         <>
             <span className="w-5 shrink-0 text-right text-text-faint tabular-nums">{number}</span>
             <span className="min-w-0 truncate text-text">{title}</span>
-            <span className="shrink-0 text-text-faint">{domainOf(url)}</span>
+            <span className="shrink-0 text-text-faint">{uiUrlDomain(url)}</span>
         </>
     );
     return (

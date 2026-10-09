@@ -130,7 +130,10 @@ export function TableRenderer({ node, context }: UiRendererProps<UiProps<'Table'
     return (
         <div className="flex flex-col items-start gap-1.5">
             <div className="max-h-80 w-full overflow-auto rounded-md border border-border-soft">
-                <table className="w-full border-collapse text-xs tabular-nums">
+                <table
+                    aria-label={t('blocks.table.label', { columns: columns.map((column) => column.title).join(', ') })}
+                    className="w-full border-collapse text-xs tabular-nums"
+                >
                     <thead className="sticky top-0 z-1 bg-surface-hover">
                         <tr>
                             {columns.map((column) => (

@@ -66,11 +66,11 @@ Links. `UiLinkChip` draws a target as the chip a mention has in a message, or as
 
 Inputs change only local state, through `node.bindings.value.onValueChange`, and only once their own node closed; before that they stand at 60% and take no pointer. A node without a binding is read only and stays disabled. A checklist row is the label as a whole, while a link inside it keeps its own click.
 
-Choices. A Choice is a row with its label and, under it, the context the agent receives, fully read through `aria-describedby`. It is closed while the reply streams, once the block is answered, when the agent disabled it and without `onChoose`, and stays focusable so the reason is heard. The chosen row says Sent or Queued; a send that takes over 300ms shows a spinner, which `useLater` times. When a streamed block opens its choices a screen reader hears it once. A primary choice stands first.
+Choices. A Choice is a row with its label and, under it, the context the agent receives, fully read through `aria-describedby`. It is closed while the reply streams, once the block is answered, when the agent disabled it and without `onChoose`, and stays focusable so the reason is heard. The chosen row says Sent or Queued; a send that takes over 300ms shows a spinner, which `useLater` times. When a streamed block opens its choices a screen reader hears it once. A primary choice stands first, in the document as well as on screen.
 
 ## Tones and words
 
-`UI_TONE_ICONS`, `UI_TONE_TEXT`, `UI_TONE_SURFACE` and `UI_TONE_PILL` map the five tones to an icon, a text color, a surface and a pill. Every tone has its own icon, so color is never the only signal. `uiNodeText(node)` joins the text under a node as written, `uiNodeLabel(node)` puts it on one line for a name a control needs, `uiChildrenOf(node, type)` lists the valid children of one kind, and `uiWithUnit(text, unit)` writes a number with its unit, a space apart except for a percent sign, the same in a stat, a table, a chart and a slider.
+`UI_TONE_ICONS`, `UI_TONE_TEXT`, `UI_TONE_SURFACE` and `UI_TONE_PILL` map the five tones to an icon, a text color, a surface and a pill. Every tone has its own icon, so color is never the only signal. `uiNodeText(node)` joins the text under a node as written, `uiNodeLabel(node)` puts it on one line for a name a control needs, `uiChildrenOf(node, type)` lists the valid children of one kind, `uiUrlDomain(url)` gives the host a source or a link in prose names in its tooltip, and `uiWithUnit(text, unit)` writes a number with its unit, a space apart except for a percent sign, the same in a stat, a table, a chart and a slider.
 
 The words are in the `agent-chat` namespace under `blocks`, in English and Dutch. What the agent writes is never translated.
 
