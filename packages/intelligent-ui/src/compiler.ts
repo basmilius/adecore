@@ -1,5 +1,6 @@
 import { safeKey, UiBudget, UiFailure, type UiLimits } from './budget.ts';
 import { isUiComponent, UI_CATALOG, UI_CATALOG_VERSION } from './catalog.ts';
+import { uiNodeFallback, uiPlainText } from './fallback.ts';
 import { evaluateUiExpression, type UiExpression, type UiValue } from './expression.ts';
 import { parseUiSyntax, uiDiagnostic, type UiDiagnostic, type UiSyntaxNode } from './syntax.ts';
 import { type z } from 'zod';
@@ -69,10 +70,6 @@ function isConstant(expression: UiExpression): boolean {
     }
 }
 
-function plain(value: UiValue): string {
-    return value === null ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value);
-}
-
 export function compileUiBlock(source: string, options: UiCompileOptions): UiBlock {
     const budget = new UiBudget(options.limits, options.now);
     const block: UiBlock = {
@@ -112,7 +109,7 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
                 if (syntax.expression) {
                     node.expressions.text = syntax.expression;
                     try {
-                        node.fallback = plain(evaluateUiExpression(syntax.expression, block.defaults, budget));
+                        node.fallback = uiPlainText(evaluateUiExpression(syntax.expression, block.defaults, budget));
                     } catch (error) {
                         if (error instanceof UiFailure && error.code === 'budget_exceeded') {
                             throw error;
@@ -196,26 +193,7 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
         }
         const effectiveParent = syntax.type === 'Show' || syntax.type === 'Each' ? parent : syntax.type;
         node.children = syntax.children.map((child) => compile(child, effectiveParent));
-        const children = node.children.map((child) => child.fallback).join('');
-        const label = fallbackProps.label ?? fallbackProps.title;
-        const value = fallbackProps.value;
-        const target = fallbackProps.path ?? fallbackProps.sha ?? (syntax.type === 'Node' ? fallbackProps.id : undefined);
-        if (syntax.type === 'Stat') {
-            node.fallback = `${plain(label ?? '')}: ${plain(value ?? '')}${fallbackProps.unit ? ` ${plain(fallbackProps.unit)}` : ''}\n`;
-        } else if (syntax.type === 'Source') {
-            node.fallback = `${plain(label ?? '')}: ${plain(fallbackProps.url ?? '')}\n`;
-        } else if (syntax.type === 'Table') {
-            node.fallback = `${plain(fallbackProps.rows ?? [])}\n`;
-        } else if (syntax.type === 'Chart') {
-            node.fallback = `${plain(fallbackProps.data ?? [])}\n`;
-        } else if (syntax.type === 'Image') {
-            node.fallback = `[Image: ${plain(fallbackProps.alt ?? fallbackProps.attachment ?? fallbackProps.generated ?? 'unavailable')}]${children}\n`;
-        } else {
-            node.fallback = `${label !== undefined ? `${plain(label)}: ` : ''}${target !== undefined ? `${plain(target)} ` : ''}${children}${fallbackProps.context ? `\n${plain(fallbackProps.context)}` : ''}`;
-            if (syntax.type !== 'Tag' && !node.fallback.endsWith('\n')) {
-                node.fallback += '\n';
-            }
-        }
+        node.fallback = uiNodeFallback(syntax.type, fallbackProps, node.children.map((child) => child.fallback).join(''));
         if (!node.fallback.trim()) {
             node.fallback = source.slice(syntax.start, Math.min(syntax.end, syntax.start + 1024));
         }

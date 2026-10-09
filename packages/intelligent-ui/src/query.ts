@@ -1,6 +1,7 @@
 import { UI_CATALOG_VERSION } from './catalog.ts';
 import { UiBudget, UiFailure } from './budget.ts';
 import type { UiBlock, UiNode } from './compiler.ts';
+import { uiNodeFallback } from './fallback.ts';
 import { copyUiValue, evaluateUiExpression, type UiValue } from './expression.ts';
 import { evaluateUiBlock, uiInputValues, UiState, type UiViewNode } from './runtime.ts';
 
@@ -87,35 +88,7 @@ export function uiQueryFallback(block: UiBlock, queries: Readonly<Record<string,
     for (const [name, value] of Object.entries(queries)) {
         state.setQuery(name, value, block);
     }
-    const plain = (value: unknown) => (value == null ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value));
     const text = (nodes: readonly UiViewNode[]): string =>
-        nodes
-            .map((node) => {
-                if (node.error) {
-                    return node.fallback;
-                }
-                if (node.type === '$text') {
-                    return plain(node.props.text);
-                }
-                const props = node.props;
-                const children = text(node.children);
-                if (node.type === 'Stat') {
-                    return `${plain(props.label)}: ${plain(props.value)}${props.unit ? ` ${plain(props.unit)}` : ''}\n`;
-                }
-                if (node.type === 'Table') {
-                    return `${plain(props.rows)}\n`;
-                }
-                if (node.type === 'Chart') {
-                    return `${plain(props.data)}\n`;
-                }
-                if (node.type === 'Source') {
-                    return `${plain(props.label)}: ${plain(props.url)}\n`;
-                }
-                if (node.type === 'Image') {
-                    return node.fallback;
-                }
-                return `${(props.label ?? props.title) ? `${plain(props.label ?? props.title)}: ` : ''}${plain(props.path ?? props.sha ?? (node.type === 'Node' ? props.id : null))}${children}${props.context ? `\n${plain(props.context)}` : ''}${node.type === 'Tag' ? '' : '\n'}`;
-            })
-            .join('');
+        nodes.map((node) => (node.error ? node.fallback : uiNodeFallback(node.type, node.props, text(node.children)))).join('');
     return text(evaluateUiBlock(block, state).nodes).trim() || block.fallback;
 }

@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import { z } from 'zod';
 import { compileUiBlock } from './compiler.ts';
-import { uiQueryArguments } from './query.ts';
+import { uiQueryArguments, uiQueryFallback } from './query.ts';
 
 const schemas = { rows: z.object({ limit: z.number().int().min(1).max(10), repo: z.string() }).strict() };
 
@@ -25,4 +25,13 @@ test('a query cannot change its source or depend on another query result', () =>
     });
     expect(block.queries).toEqual({});
     expect(block.diagnostics.map((entry) => entry.code)).toEqual(['invalid_query', 'invalid_query']);
+});
+
+test('the query fallback reads every node the way the compiled fallback does', () => {
+    const block = compileUiBlock(
+        '$rows = @Query("rows", {limit: 2, repo: "."})\n<Stats><Stat label="Rows" value={$rows.count}/></Stats><Sources><Source title="Docs" url="https://adecore.dev"/></Sources><File path="src/a.ts">Entry</File>',
+        { id: 'b', final: true, querySchemas: schemas }
+    );
+    expect(block.diagnostics).toEqual([]);
+    expect(uiQueryFallback(block, { $rows: { count: 4 } })).toBe('Rows: 4\nDocs: https://adecore.dev\nsrc/a.ts Entry');
 });
