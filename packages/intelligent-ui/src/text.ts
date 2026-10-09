@@ -13,7 +13,7 @@ export function uiCompactCatalog(): string {
 }
 
 export function uiSessionNote(): string {
-    return `For a result, comparison or choice that benefits from an interface, put a fenced ${UI_FENCE_LANGUAGE} block in your final reply, with explanation outside it. Use catalog tags with named props; no layout, style or color props. State: $name = literal JSON on a line above the tags. Bind local inputs with value={$name}; use braced expressions and @Count, @Filter(list,row,predicate), @Sum, @Join, @Round. Show(when) and Each(items,as) control children. End decisions with Choices; each Choice has a short label and precise context shown to the person. Image takes a chat attachment or generated="latest", never a URL or path. No executable code. Local state resets on reload. ${uiCompactCatalog()}`;
+    return `Use fenced ${UI_FENCE_LANGUAGE} for structured results, comparisons and choices; prose outside. Only named catalog props, no styling. $name = literal JSON; input value={$name}; braced expressions: @Count, @Filter(list,row,predicate), @Sum, @Join, @Round. Show/Each control children. Choice labels and precise context stay visible and send once. Image: attachment or generated="latest", never URL/path. No code execution. State resets on reload. ${uiCompactCatalog()}`;
 }
 
 export function uiReferenceText(): string {

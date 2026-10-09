@@ -71,6 +71,8 @@ There is no JavaScript execution, general function call, assignment, network acc
 
 ## Budgets and acceptance
 
+`UI_REPLY_LIMITS` caps one reply at 16 compiled blocks, 256 KiB of UI source, 2,048 compiled nodes and 60 ms of cumulative compilation. Further fences remain text; the first refusal carries a budget diagnosis. Reply refusals are not cached, so removing an earlier block can make a later block render again.
+
 `UI_LIMITS` bounds characters, nesting, nodes, diagnoses, steps, iterations, string length and elapsed time. `UiLimits` describes overrides. `UiBudget` counts work inside helpers as well as ordinary evaluation. `UiFailure` carries a machine-readable refusal code; `safeKey` applies the forbidden-field rule.
 
 The tests compile ten hand-written examples and every character prefix, then exercise malformed syntax, prototype/accessor attacks, helper budgets, output expansion, query replacement and state reset. Recorded Claude/Codex responses, daemon event-loop/log measurements and iPhone JavaScriptCore parity remain acceptance work. The shared React reply composition now renders blocks in linked consumers; Live queries and native rendering are still being integrated. Shared chat hosts now validate and send choices.

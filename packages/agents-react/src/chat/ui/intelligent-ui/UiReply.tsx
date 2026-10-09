@@ -36,6 +36,25 @@ import { useUiQueries } from './use-ui-queries';
 import { uiReplyParts } from './reply-parts';
 
 const localStates = new Map<string, UiState>();
+const LOCAL_STATE_LIMIT = 64;
+
+function localState(key: string, block: UiBlock, answered?: ChatUiAnswer): UiState {
+    let state = localStates.get(key);
+    localStates.delete(key);
+    if (!state) {
+        state = new UiState(block);
+        if (answered && answered.revision === block.revision) {
+            for (const [name, value] of Object.entries(answered.values ?? {})) {
+                state.set(name, value);
+            }
+        }
+    }
+    localStates.set(key, state);
+    if (localStates.size > LOCAL_STATE_LIMIT) {
+        localStates.delete(localStates.keys().next().value!);
+    }
+    return state;
+}
 
 /* The block itself, as the parent of its top-level nodes. */
 const BLOCK = '$block';
@@ -269,16 +288,7 @@ function UiBlockBody({
 }): ReactNode {
     const { t } = useTranslation('agent-chat');
     const key = JSON.stringify([context.scopeId, context.chatId, context.itemId, block.id]);
-    let state = localStates.get(key);
-    if (!state) {
-        state = new UiState(block);
-        if (answered && answered.revision === block.revision) {
-            for (const [name, value] of Object.entries(answered.values ?? {})) {
-                state.set(name, value);
-            }
-        }
-        localStates.set(key, state);
-    }
+    const [state] = useState(() => localState(key, block, answered));
     state.sync(block);
     useSyncExternalStore(
         (listener) => state.subscribe(listener),
@@ -310,7 +320,7 @@ function UiBlockBody({
         ...links,
         answer,
         failedChoiceId,
-        live: queries.live,
+        live: queries.live ?? context.live,
         onChoose:
             sendChoice && block.revision && block.complete && context.phase === 'final'
                 ? (choiceId) => {

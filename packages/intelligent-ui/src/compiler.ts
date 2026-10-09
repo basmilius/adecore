@@ -6,6 +6,8 @@ import { type z } from 'zod';
 
 export const UI_FENCE_LANGUAGE = 'ruimte-ui';
 
+export const UI_REPLY_LIMITS = { blocks: 16, characters: 262144, nodes: 2048, milliseconds: 60 } as const;
+
 export interface UiNode {
     id: string;
     type: string;
@@ -309,9 +311,48 @@ export class UiCompiler {
         const next = new Map<number, CachedUiBlock>();
         let fence: { marker: string; length: number; start: number; codeStart: number; ui: boolean } | null = null;
         let position = 0;
+        let characters = 0;
+        let nodes = 0;
+        let exhausted = false;
+        const now = this.options.now ?? Date.now;
+        const started = now();
+        const nodeCount = (items: readonly UiNode[]): number => items.reduce((count, node) => count + 1 + nodeCount(node.children), 0);
+        const rejected = (start: number, codeStart: number, codeEnd: number, end: number, complete: boolean): UiBlock => ({
+            id: `${this.options.id}:ui:${start}`,
+            catalogVersion: UI_CATALOG_VERSION,
+            start,
+            end,
+            complete,
+            defaults: {},
+            queries: {},
+            nodes: [],
+            fallback: text.slice(codeStart, Math.min(codeEnd, codeStart + 4096)),
+            diagnostics: [uiDiagnostic(new UiFailure('budget_exceeded', 'This reply exceeded its UI budget; remaining fences stay text.'), start, end)]
+        });
         const append = (start: number, codeStart: number, codeEnd: number, end: number, closed: boolean) => {
-            const source = text.slice(codeStart, codeEnd);
+            if (exhausted) {
+                return;
+            }
+            if (blocks.length >= UI_REPLY_LIMITS.blocks) {
+                const last = blocks.at(-1)!;
+                blocks[blocks.length - 1] = {
+                    ...last,
+                    diagnostics: [
+                        ...last.diagnostics.slice(0, 19),
+                        uiDiagnostic(new UiFailure('budget_exceeded', 'Further UI fences stay text because this reply has too many blocks.'), start, end)
+                    ]
+                };
+                exhausted = true;
+                return;
+            }
             const complete = closed || update.final === true;
+            characters += codeEnd - codeStart;
+            if (characters > UI_REPLY_LIMITS.characters || now() - started > UI_REPLY_LIMITS.milliseconds) {
+                blocks.push(rejected(start, codeStart, codeEnd, end, complete));
+                exhausted = true;
+                return;
+            }
+            const source = text.slice(codeStart, codeEnd);
             const cached = this.cache.get(start);
             const unchanged =
                 !update.final &&
@@ -327,6 +368,12 @@ export class UiCompiler {
                       id: `${this.options.id}:ui:${start}`,
                       final: complete
                   });
+            nodes += nodeCount(block.nodes);
+            if (nodes > UI_REPLY_LIMITS.nodes) {
+                blocks.push(rejected(start, codeStart, codeEnd, end, complete));
+                exhausted = true;
+                return;
+            }
             block.start = start;
             block.end = end;
             blocks.push(block);

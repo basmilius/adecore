@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { UiCompiler, compileUi } from './compiler.ts';
+import { UI_REPLY_LIMITS, UiCompiler, compileUi } from './compiler.ts';
 import { UiStream, type UiStreamClock, type UiStreamPreview } from './stream.ts';
 
 function manualClock(): UiStreamClock & { advance(ms: number): void; pending(): number } {
@@ -116,4 +116,44 @@ test('dispose cancels pending work and prevents late previews', () => {
     stream.update(reply('Late'));
     expect(clock.pending()).toBe(0);
     expect(previews).toHaveLength(1);
+});
+
+test('reply block quotas keep later fences as text and never retain an unbounded cache', () => {
+    const compiler = new UiCompiler({ id: 'item', now: () => 0 });
+    const text = Array.from({ length: 100 }, (_, index) => reply(String(index))).join('\n');
+    const blocks = compiler.compile(text);
+    expect(blocks).toHaveLength(UI_REPLY_LIMITS.blocks);
+    expect(blocks.at(-1)!.diagnostics.map((diagnostic) => diagnostic.code)).toContain('budget_exceeded');
+    expect(text.slice(blocks.at(-1)!.end)).toContain('<Summary>99</Summary>');
+    const shorter = compiler.compile(reply('0'));
+    expect(shorter).toHaveLength(1);
+    expect(shorter[0].diagnostics).toEqual([]);
+});
+
+test('reply node quotas include cached blocks and refusals can recover after an edit', () => {
+    const compiler = new UiCompiler({ id: 'item', now: () => 0 });
+    const source = '<Tag>a</Tag>'.repeat(240);
+    const fence = '```ruimte-ui\n' + source + '\n```\n';
+    const text = fence.repeat(5);
+    const first = compiler.compile(text);
+    const second = compiler.compile(text);
+    expect(first).toHaveLength(5);
+    expect(first[0].nodes).toHaveLength(240);
+    expect(first.at(-1)!.nodes).toEqual([]);
+    expect(first.at(-1)!.diagnostics[0].code).toBe('budget_exceeded');
+    expect(second[0]).toBe(first[0]);
+    expect(second.at(-1)!.diagnostics[0].code).toBe('budget_exceeded');
+    const recovered = compiler.compile(fence);
+    expect(recovered[0].diagnostics).toEqual([]);
+    expect(recovered[0].nodes).toHaveLength(240);
+});
+
+test('reply character quotas stop at one bounded refusal without dropping surrounding prose', () => {
+    const compiler = new UiCompiler({ id: 'item', now: () => 0 });
+    const fence = '```ruimte-ui\n' + ' '.repeat(65520) + '\n```\n';
+    const blocks = compiler.compile(fence.repeat(8) + 'After');
+    expect(blocks).toHaveLength(5);
+    expect(blocks.at(-1)!.fallback.length).toBeLessThanOrEqual(4096);
+    expect(blocks.at(-1)!.diagnostics[0].code).toBe('budget_exceeded');
+    expect(blocks.at(-1)!.end).toBeLessThan((fence.repeat(8) + 'After').length);
 });

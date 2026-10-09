@@ -14,6 +14,7 @@ export { copyUiValue, evaluateUiExpression, parseUiExpression, type UiExpression
 export { parseUiSyntax, uiDiagnostic, type UiDiagnostic, type UiSyntax, type UiSyntaxNode } from './syntax.ts';
 export {
     UI_FENCE_LANGUAGE,
+    UI_REPLY_LIMITS,
     UiCompiler,
     compileUi,
     compileUiBlock,
