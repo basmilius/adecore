@@ -38,12 +38,16 @@ interface CachedReading {
 const MAX_QUERY_BYTES = 64 * 1024;
 const MAX_SNAPSHOT_BYTES = 128 * 1024;
 const READ_TIMEOUT_MS = 8_000;
+// A changed input reads at once, but a query never reads more often than this across its inputs.
+const INPUT_READ_MS = 250;
 
 export class ChatUiQueries {
     readonly schemas: Record<string, z.ZodType>;
     private readonly captures = new Map<string, Promise<unknown>>();
     private readonly freezing = new Set<string>();
     private readonly cache = new Map<string, CachedReading>();
+    // The read id of the newest reading per cache key, which a remount or a second client is answered with.
+    private readonly latest = new Map<string, string>();
     private readonly reading = new Map<string, Promise<ChatUiQueryReading>>();
     private readonly attempts = new Map<string, number>();
     private readonly active = new Map<string, number>();
@@ -217,7 +221,7 @@ export class ChatUiQueries {
             return { state: 'refused', readAt: Date.now(), reason: this.reason(error) };
         }
         const key = JSON.stringify([session.id, item.id, block.id, block.revision, payload.query, args]);
-        const cached = [...this.cache.values()].find((entry) => entry.key === key);
+        const cached = this.cache.get(this.latest.get(key) ?? '');
         if (cached && Date.now() - cached.reading.readAt < UI_HOST_LIMITS.refreshMilliseconds) {
             return cached.reading;
         }
@@ -226,14 +230,19 @@ export class ChatUiQueries {
             return pending;
         }
         const identity = JSON.stringify([session.id, item.id, block.id, block.revision, payload.query]);
-        if (Date.now() - (this.attempts.get(identity) ?? 0) < UI_HOST_LIMITS.refreshMilliseconds) {
-            return { state: 'failed', readAt: Date.now(), reason: 'This query may refresh once every ten seconds.' };
+        const now = Date.now();
+        if (
+            now - (this.attempts.get(key) ?? -Infinity) < UI_HOST_LIMITS.refreshMilliseconds ||
+            now - (this.attempts.get(identity) ?? -Infinity) < INPUT_READ_MS
+        ) {
+            return { state: 'failed', readAt: now, reason: 'This query may refresh once every ten seconds.' };
         }
         if ((this.active.get(session.id) ?? 0) >= 2 || this.totalActive >= 16) {
-            return { state: 'failed', readAt: Date.now(), reason: 'Too many UI queries are being read.' };
+            return { state: 'failed', readAt: now, reason: 'Too many UI queries are being read.' };
         }
-        this.attempts.set(identity, Date.now());
-        while (this.attempts.size > 128) {
+        this.attempts.set(key, now);
+        this.attempts.set(identity, now);
+        while (this.attempts.size > 256) {
             this.attempts.delete(this.attempts.keys().next().value!);
         }
         this.active.set(session.id, (this.active.get(session.id) ?? 0) + 1);
@@ -253,8 +262,9 @@ export class ChatUiQueries {
                 }
                 const reading: ChatUiQueryReading = { state: 'fresh', value, readId: randomUUID(), readAt: Date.now() };
                 this.cache.set(reading.readId!, { key, chatId: session.id, reading });
+                this.latest.set(key, reading.readId!);
                 while (this.cache.size > 128) {
-                    this.cache.delete(this.cache.keys().next().value!);
+                    this.evict(this.cache.keys().next().value!);
                 }
                 return reading;
             })
@@ -279,30 +289,39 @@ export class ChatUiQueries {
         return read;
     }
 
+    /* The issued value of every query the block declares, each checked against the read id the person saw. */
     async choiceValues(session: ChatSession, payload: ChatUiChoicePayload | ChatUiLinkPayload): Promise<Record<string, unknown>> {
         const item = session.thread.get(payload.itemId);
         const block = item?.kind === 'assistant' ? item.ui?.find((entry) => entry.id === payload.blockId) : undefined;
         if (!block || item?.kind !== 'assistant' || ('choiceId' in payload && item.uiAnswers?.[block.id]?.revision === payload.revision)) {
             return {};
         }
+        const names = Object.keys(block.queries);
         const values: Record<string, unknown> = Object.create(null);
-        for (const name of Object.keys(payload.reads ?? {})) {
-            const identity = { ...payload, query: name };
-            const { source } = this.stored(session, identity);
+        if (names.length === 0) {
+            return values;
+        }
+        const access = await this.access(session, item);
+        if (access === null) {
+            throw new ChatError('refused-query', 'The writer’s original access is unavailable.');
+        }
+        for (const name of names) {
+            const { source } = this.stored(session, { ...payload, query: name });
             const args = source.args.parse(uiQueryArguments(block, name, payload.values)) as Record<string, UiValue>;
-            const access = await this.access(session, item);
             await source.authorize(session.info, access, args);
+            const readId = payload.reads !== undefined && Object.hasOwn(payload.reads, name) ? payload.reads[name] : undefined;
             const key = JSON.stringify([session.id, item.id, block.id, block.revision, name, args]);
-            const readId = payload.reads![name];
-            const cached = this.cache.get(readId);
+            const cached = readId === undefined ? undefined : this.cache.get(readId);
             const frozen = item.uiQueries?.blocks[block.id];
             const snapshot = frozen?.revision === block.revision ? frozen?.readings[name] : undefined;
             const reading =
-                cached?.key === key
-                    ? cached.reading
-                    : snapshot?.readId === readId && JSON.stringify(args) === JSON.stringify(source.args.parse(uiQueryArguments(block, name)))
-                      ? snapshot
-                      : undefined;
+                readId === undefined
+                    ? undefined
+                    : cached?.key === key
+                      ? cached.reading
+                      : snapshot?.readId === readId && JSON.stringify(args) === JSON.stringify(source.args.parse(uiQueryArguments(block, name)))
+                        ? snapshot
+                        : undefined;
             if (!reading || reading.state !== 'fresh') {
                 throw new ChatError('stale-ui-query', 'Refresh this query before sending its choice.');
             }
@@ -338,8 +357,16 @@ export class ChatUiQueries {
     forget(chatId: string): void {
         for (const [id, cached] of this.cache) {
             if (cached.chatId === chatId) {
-                this.cache.delete(id);
+                this.evict(id);
             }
+        }
+    }
+
+    private evict(readId: string): void {
+        const cached = this.cache.get(readId);
+        this.cache.delete(readId);
+        if (cached && this.latest.get(cached.key) === readId) {
+            this.latest.delete(cached.key);
         }
     }
 

@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { afterEach, describe, expect, setSystemTime, test } from 'bun:test';
 import { z } from 'zod';
 import type { ChatAssistantItem, ChatEvent, ChatInfo } from '@adecore/agent-contracts';
 import { compileUiBlock, resolveUiChoice } from '@adecore/intelligent-ui';
@@ -204,4 +204,55 @@ test('opening a stored link resolves its node again and refuses stale or invente
     expect(await queries.link(r.session, payload)).toMatchObject({ state: 'plain', reason: 'Removed' });
     expect((await queries.link(r.session, { ...payload, nodeId: 'other' })).state).toBe('plain');
     expect((await queries.link(r.session, { ...payload, revision: 'old' })).state).toBe('plain');
+});
+
+describe('reading again', () => {
+    afterEach(() => {
+        setSystemTime();
+    });
+
+    test('a remount is answered with the newest reading, not the oldest', async () => {
+        const r = rig();
+        setSystemTime(new Date(0));
+        await r.queries.query(r.session, r.payload);
+        setSystemTime(new Date(11_000));
+        r.setValue({ count: 8 });
+        const newer = await r.queries.query(r.session, r.payload);
+        expect(newer).toMatchObject({ state: 'fresh', value: { count: 8 } });
+        setSystemTime(new Date(12_000));
+        expect(await r.queries.query(r.session, r.payload)).toEqual(newer);
+        expect(r.counts().reads).toBe(2);
+    });
+
+    test('a changed input reads at once, and the same input waits for the refresh interval', async () => {
+        const r = rig();
+        const block = {
+            ...compileUiBlock('$rows = @Query("status", {repo: ".", limit: $limit})\n$limit = 3\n<Slider min={1} max={10} value={$limit}>Rows</Slider>', {
+                id: 'block',
+                final: true,
+                querySchemas: { status: r.queries.schemas.status! }
+            }),
+            revision: 'rev'
+        };
+        r.session.thread.upsert({ ...r.item, ui: [block] });
+        const payload = { ...r.payload, query: '$rows' };
+        setSystemTime(new Date(0));
+        expect((await r.queries.query(r.session, payload)).state).toBe('fresh');
+        setSystemTime(new Date(400));
+        expect((await r.queries.query(r.session, { ...payload, values: { $limit: 5 } })).state).toBe('fresh');
+        setSystemTime(new Date(500));
+        expect((await r.queries.query(r.session, { ...payload, values: { $limit: 6 } })).state).toBe('failed');
+        expect(r.counts().reads).toBe(2);
+    });
+});
+
+test('a choice needs a fresh read of every query its block declares', async () => {
+    const r = rig();
+    const choice = r.block.nodes[1]!.children[0]!;
+    const payload = { ...r.payload, choiceId: choice.id };
+    await expect(r.queries.choiceValues(r.session, payload)).rejects.toThrow('Refresh');
+    await expect(r.queries.choiceValues(r.session, { ...payload, reads: {} })).rejects.toThrow('Refresh');
+    const reading = await r.queries.query(r.session, r.payload);
+    r.session.setUiAccess('reply', null);
+    await expect(r.queries.choiceValues(r.session, { ...payload, reads: { $data: reading.readId! } })).rejects.toThrow('original access');
 });
