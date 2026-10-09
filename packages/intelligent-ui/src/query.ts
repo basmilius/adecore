@@ -1,22 +1,10 @@
 import { UI_CATALOG_VERSION } from './catalog.ts';
 import { UiBudget, UiFailure } from './budget.ts';
-import type { UiBlock, UiNode } from './compiler.ts';
+import type { UiBlock } from './compiler.ts';
+import { uiVisibleInputs } from './inputs.ts';
 import { uiNodeFallback } from './fallback.ts';
 import { copyUiValue, evaluateUiExpression, sameUiValue, type UiValue } from './expression.ts';
 import { evaluateUiBlock, uiInputValues, UiState, type UiViewNode } from './runtime.ts';
-
-function findBinding(nodes: readonly UiNode[], id: string, prop: string): string | undefined {
-    for (const node of nodes) {
-        if (node.id === id) {
-            return node.bindings[prop];
-        }
-        const found = findBinding(node.children, id, prop);
-        if (found) {
-            return found;
-        }
-    }
-    return undefined;
-}
 
 export function uiValidatedState(block: UiBlock, input: Readonly<Record<string, unknown>> = {}, queries: Readonly<Record<string, unknown>> = {}): UiState {
     if (!block.complete || block.catalogVersion !== UI_CATALOG_VERSION) {
@@ -34,36 +22,11 @@ export function uiValidatedState(block: UiBlock, input: Readonly<Record<string, 
         }
         state.set(key, value);
     }
-    const visible = new Set<string>();
-    const visit = (nodes: readonly UiViewNode[]) => {
-        for (const node of nodes) {
-            if (node.error || !node.complete) {
-                continue;
-            }
-            let valid = true;
-            if (node.type === 'Segmented') {
-                valid = node.children.some((option) => option.type === 'Option' && !option.error && option.props.value === node.props.value);
-            }
-            if (node.type === 'Checklist') {
-                const options = node.children.filter((item) => item.type === 'Item' && !item.error).map((item) => item.props.value);
-                valid = (node.props.value as unknown[]).every((value) => options.includes(value));
-            }
-            if (valid) {
-                for (const [key, binding] of Object.entries(node.bindings)) {
-                    const original = findBinding(block.nodes, node.sourceId ?? node.id, key);
-                    if (original && binding) {
-                        visible.add(original);
-                    }
-                }
-            }
-            visit(node.children);
-        }
-    };
     const evaluated = evaluateUiBlock(block, state);
     if (evaluated.diagnostics.some((diagnostic) => diagnostic.code === 'budget_exceeded')) {
         throw new UiFailure('budget_exceeded', 'The query inputs exceeded their evaluation budget.');
     }
-    visit(evaluated.nodes);
+    const visible = uiVisibleInputs(block, evaluated.nodes);
     for (const [key, value] of Object.entries(values)) {
         if (!sameUiValue(value, allowed[key]) && !visible.has(key)) {
             throw new UiFailure('invalid_value', 'An input value is outside the visible control’s allowed values.');

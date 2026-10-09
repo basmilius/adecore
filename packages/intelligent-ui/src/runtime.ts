@@ -2,6 +2,7 @@ import { copyUiValue, evaluateUiExpression, sameUiValue, type UiExpression, type
 import { UiBudget, UiFailure, type UiLimits } from './budget.ts';
 import { isUiComponent, UI_CATALOG, UI_CATALOG_VERSION } from './catalog.ts';
 import { type UiBlock, type UiNode } from './compiler.ts';
+import { uiCompiledNodes, uiVisibleInputs } from './inputs.ts';
 import { uiDiagnostic, type UiDiagnostic } from './syntax.ts';
 
 export interface UiBinding<Value> {
@@ -299,16 +300,8 @@ export function resolveUiChoice(
     if (evaluated.diagnostics.some((diagnostic) => diagnostic.code === 'budget_exceeded')) {
         throw new UiFailure('budget_exceeded', 'The choice exceeded its evaluation budget.');
     }
-    const validInputs = new Set<string>();
     let choice: UiViewNode | undefined;
-    const written = new Map<string, UiNode>();
-    const remember = (nodes: readonly UiNode[]) => {
-        for (const node of nodes) {
-            written.set(node.id, node);
-            remember(node.children);
-        }
-    };
-    remember(block.nodes);
+    const written = uiCompiledNodes(block.nodes);
     const visit = (nodes: readonly UiViewNode[], parent?: string) => {
         for (const node of nodes) {
             const source = written.get(node.sourceId ?? node.id);
@@ -318,18 +311,6 @@ export function resolveUiChoice(
             if (node.error || !node.complete) {
                 continue;
             }
-            let valid = true;
-            if (node.type === 'Segmented') {
-                valid = node.children.some((option) => option.type === 'Option' && !option.error && option.props.value === node.props.value);
-            } else if (node.type === 'Checklist') {
-                const options = node.children.filter((item) => item.type === 'Item' && !item.error).map((item) => item.props.value);
-                valid = (node.props.value as unknown[]).every((value) => options.includes(value));
-            }
-            if (valid && source) {
-                for (const prop of Object.keys(node.bindings)) {
-                    validInputs.add(source.bindings[prop]);
-                }
-            }
             if (node.id === choiceId && node.type === 'Choice' && parent === 'Choices' && node.props.disabled !== true) {
                 choice = node;
             }
@@ -337,6 +318,7 @@ export function resolveUiChoice(
         }
     };
     visit(evaluated.nodes);
+    const validInputs = uiVisibleInputs(block, evaluated.nodes);
     if ([...changed].some((name) => !validInputs.has(name))) {
         throw new UiFailure('invalid_value', 'An input value is outside the visible control’s allowed values.');
     }
