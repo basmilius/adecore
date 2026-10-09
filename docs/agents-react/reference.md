@@ -71,6 +71,7 @@ Many props and options are not exported types. Derive them where you need one, a
 | [`chat/logic/timeline-copy`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/logic/timeline-copy.ts) | `stripMarkdown`, `messageTextOf`, `markdownOf` |
 | [`chat/logic/timeline-target`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/logic/timeline-target.ts) | `TimelineTarget`, `EMPTY_TARGET`, `withCurrentText`, `readTimelineTarget` |
 | [`chat/logic/timeline`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/logic/timeline.ts) | `SubagentBranch`, `TimelineRow`, `isBlock`, `summarizeGroup`, `summarizeTurn`, `agentTurnLabel`, `turnLabel`, `findSubagentBranch`, `deriveTimelineRows` |
+| [`chat/logic/generated-image`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/logic/generated-image.ts) | `IMAGE_GENERATION_TOOL`, `GeneratedImageFailure`, `GeneratedImageView`, `isImageGeneration`, `generatedImageView`, `attachmentAspect` |
 | [`chat/logic/tool-catalog`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/logic/tool-catalog.ts) | `ToolEntry`, `TOOL_CATALOG`, `toolEntry` |
 | [`chat/logic/tools`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/logic/tools.ts) | `FileChange`, `toolSummary`, `readImagePath`, `fileChanges`, `isFileChange`, `unifiedChanges`, `approvalChanges`, `hasFileChanges`, `toolStartedAt`, `liveOutput` |
 | [`chat/logic/visual-height`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/logic/visual-height.ts) | `clampVisualHeight`, `initialVisualHeight`, `rememberVisualHeight` |
@@ -93,7 +94,7 @@ Many props and options are not exported types. Derive them where you need one, a
 | [`chat/ui/DiffPool`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/DiffPool.tsx) | `DiffPool` (default) |
 | [`chat/ui/EditDiff`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/EditDiff.tsx) | `EditDiff` (default) |
 | [`chat/ui/FadingWords`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/FadingWords.tsx) | `FadingWords` |
-| [`chat/ui/ImageView`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/ImageView.tsx) | `ImageThumb` |
+| [`chat/ui/ImageView`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/ImageView.tsx) | `ImageThumbProps`, `ImageThumb` |
 | [`chat/ui/LimitState`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/LimitState.tsx) | `LimitDock`, `LimitPill` |
 | [`chat/ui/Markdown`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/Markdown.tsx) | `ReplyMarkdown`, `MessageMarkdown`, `Markdown` |
 | [`chat/ui/MessageActions`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/MessageActions.tsx) | `MessageActions` |
@@ -147,6 +148,7 @@ Many props and options are not exported types. Derive them where you need one, a
 | Module | Exports |
 | --- | --- |
 | [`chat/ui/rows/ForksRow`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/rows/ForksRow.tsx) | `ForksRow` |
+| [`chat/ui/rows/GeneratedImageRow`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/rows/GeneratedImageRow.tsx) | `GeneratedImageRow` |
 | [`chat/ui/rows/MessageRows`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/rows/MessageRows.tsx) | `UserRow`, `ReportRow`, `ReplyHeader`, `AssistantRow`, `ThinkingRow`, `NoteRow`, `AgentTurnRow`, `CompactionRow`, `ApprovalHistoryRow`, `QuestionHistoryRow` |
 | [`chat/ui/rows/Rows`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/rows/Rows.tsx) | `RowProps`, `Row` |
 | [`chat/ui/rows/SubagentRow`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/rows/SubagentRow.tsx) | `SubagentRow`, `SubagentBranchRow` |

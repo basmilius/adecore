@@ -117,6 +117,11 @@
     }
     @keyframes chat-shine { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 
+    /* What shows through a transparent image: a checkerboard of two grounds, so its edges read in both themes. */
+    .chat-checkerboard {
+        background: repeating-conic-gradient(var(--surface-sunken) 0 25%, var(--surface-raised) 0 50%) 0 0 / 16px 16px;
+    }
+
     /* A word of a reply that just arrived. The duration is REVEAL_FADE_MS in chat/ui/reveal.ts, which
        keeps the spans until it is over; ease-in-out, because ease-out jumps up and then trails. */
     .chat-fade { animation: chat-fade 300ms ease-in-out both; }

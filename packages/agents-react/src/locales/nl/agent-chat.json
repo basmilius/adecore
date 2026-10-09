@@ -435,6 +435,26 @@
     "zoomOut": "Uitzoomen",
     "reset": "Herstellen"
   },
+  "generatedImage": {
+    "label": "Gegenereerde afbeelding",
+    "generating": "Afbeelding wordt gemaakt",
+    "failed": "Afbeelding maken mislukt",
+    "empty": "De afbeelding kwam leeg terug",
+    "notImage": "Het resultaat is geen afbeelding",
+    "tooLarge": "De afbeelding is groter dan {{size}}",
+    "dimensions": "{{width}} × {{height}}",
+    "transparent": "transparant",
+    "actions": "Acties voor de afbeelding",
+    "more": "Meer acties",
+    "prompt": "Prompt",
+    "copyPrompt": "Prompt kopiëren",
+    "open": "Openen",
+    "openLarge": "Groot openen",
+    "save": "Opslaan in project…",
+    "saved": "Opgeslagen",
+    "savedTo": "Opgeslagen in <file>{{path}}</file>",
+    "renderFailed": "Deze afbeelding kon niet worden getoond"
+  },
   "account": {
     "pill": "{{provider}}-account {{account}}"
   },

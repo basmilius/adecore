@@ -591,3 +591,59 @@ export function usageLimits(): UsageLimitsSnapshot {
         ]
     };
 }
+
+/* A drawn landscape and a sticker without a ground, as data URLs, under the ids the generated image tools name. */
+export function generatedImageUrls(): Record<string, string> {
+    const landscape =
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 768"><defs><linearGradient id="sky" x2="0" y2="1"><stop offset="0" stop-color="#f6d7a7"/><stop offset="1" stop-color="#9cc4d8"/></linearGradient></defs><rect width="1024" height="768" fill="url(#sky)"/><circle cx="740" cy="250" r="90" fill="#fbe9b7"/><path d="M0 560 Q260 420 520 540 T1024 500 V768 H0Z" fill="#6f9a7b"/><path d="M0 640 Q300 560 620 650 T1024 620 V768 H0Z" fill="#4e7a62"/></svg>';
+    const sticker =
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><circle cx="256" cy="256" r="200" fill="#e87ba4"/><circle cx="196" cy="216" r="28" fill="#2b2b2b"/><circle cx="316" cy="216" r="28" fill="#2b2b2b"/><path d="M176 316 Q256 386 336 316" stroke="#2b2b2b" stroke-width="24" fill="none" stroke-linecap="round"/></svg>';
+    const url = (svg: string): string => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+    return { 'image-landscape': url(landscape), 'image-sticker': url(sticker) };
+}
+
+/* An image generation in each of the states its row draws. */
+export function generatedImageTools(): Record<'generating' | 'ready' | 'transparent' | 'missing' | 'failed' | 'tooLarge', ChatToolItem> {
+    const tool = (id: string, patch: Partial<ChatToolItem>): ChatToolItem => ({
+        id,
+        kind: 'tool',
+        createdAt: NOW - MINUTE,
+        turnId: 'turn-image',
+        toolUseId: id,
+        name: 'ImageGeneration',
+        input: {},
+        output: null,
+        state: 'done',
+        parentToolUseId: null,
+        ...patch
+    });
+    const attachment = (id: string, name: string, size: number, width: number, height: number) => ({
+        id,
+        name,
+        mime: 'image/png',
+        size,
+        path: `/home/sam/.agents/attachments/${id}.png`,
+        width,
+        height
+    });
+    return {
+        generating: tool('image-generating', { state: 'running', createdAt: NOW - 8_000 }),
+        ready: tool('image-ready', {
+            input: {
+                attachment: attachment('image-landscape', 'hills-at-dusk.png', 1_260_000, 1024, 768),
+                revisedPrompt:
+                    'Soft rolling hills at dusk in watercolor, a pale moon over a warm sky, two layers of green fields in the foreground, muted evening colors.'
+            }
+        }),
+        transparent: tool('image-transparent', {
+            input: {
+                attachment: attachment('image-sticker', 'smiling-sticker.png', 184_000, 512, 512),
+                revisedPrompt: 'A round pink sticker with a smiling face, flat colors, on a transparent background.',
+                transparentBackground: true
+            }
+        }),
+        missing: tool('image-missing', { input: { attachment: attachment('image-gone', 'station-mascot.png', 940_000, 1024, 1024) } }),
+        failed: tool('image-failed', { state: 'error', output: 'content_policy: the request was refused' }),
+        tooLarge: tool('image-large', { input: { attachment: attachment('image-huge', 'poster.png', 14_000_000, 4096, 4096) } })
+    };
+}

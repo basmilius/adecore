@@ -9,6 +9,8 @@ import { Icon, useNow } from '@adecore/ui';
 import { useOpenForFind } from '../find-reveal';
 import { Markdown } from '../Markdown';
 import { TaskRow } from './TaskRow';
+import { isImageGeneration } from '../../logic/generated-image';
+import { GeneratedImageRow } from './GeneratedImageRow';
 import { RunningFor, ToggleLine, WorkLiveRow, WorkRow } from './WorkRows';
 import { entryTimeOf, statusWordOf, taskIdOf } from '../../subagent-list';
 import { useSubagentSupport } from '../../subagent-support';
@@ -27,6 +29,9 @@ const CHILDREN_MAX_PX = 320;
  */
 function ChildRow({ chatId, item }: { chatId: string; item: ChatItem }) {
     if (item.kind === 'tool') {
+        if (isImageGeneration(item)) {
+            return <GeneratedImageRow chatId={chatId} tool={item} />;
+        }
         return item.state === 'running' ? <WorkLiveRow chatId={chatId} tool={item} /> : <WorkRow tool={item} />;
     }
     if (item.kind === 'assistant') {

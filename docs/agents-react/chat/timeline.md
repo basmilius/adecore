@@ -59,4 +59,14 @@ The thread has no find of its own. The host's `useTimelineFind(options)` gets th
 
 <Demo src="agents/rows" />
 
+`WorkRow` takes an optional `icon`, `label` and `failed` for a row that names a call in its own words; without them the line shows the tool's name and fails with the call.
+
+### Generated images
+
+A tool call named `ImageGeneration` (`IMAGE_GENERATION_TOOL`) is drawn by `GeneratedImageRow({ chatId, tool })` in `chat/ui/rows/GeneratedImageRow`, in the thread and in a sub-agent's work alike. It does not fold: a line with the size and the dimensions of the image, the thumbnail at most 360 pixels wide at the ratio the attachment names, and under it the revised prompt on one line that opens to the whole text. The thumbnail opens large in the lightbox. Open and Save to project come from the host's [`attachments`](/agents-react/chat/attachments#stored-files) and are left out when the host has none. A transparent image stands on a checkerboard. Bytes the host no longer has leave a quiet square with the reason on a tooltip, and disable Open and Save.
+
+A failure is a failed tool line with the reason as its detail: the provider's words, or a check of what came back (empty, not an image, larger than the attachment limit). `generatedImageView(tool)` answers which of `generating`, `failed` and `ready` a call is in, and `attachmentAspect(attachment)` its width over height.
+
+<Demo src="agents/generated-image" />
+
 The menus and markers are exported too: `TimelineMenuPopup` (the right click menu), `MessageActions`, `BookmarkMarker`, `BookmarkSubmenu`, `BookmarkMenuItems`, `QuoteButton` and `Scrubber`. Prefer the whole `Timeline` unless your app owns the grouping and the scrolling.

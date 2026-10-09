@@ -129,6 +129,11 @@
             "types": "./dist/chat/logic/fork.d.ts",
             "default": "./dist/chat/logic/fork.js"
         },
+        "./chat/logic/generated-image": {
+            "source": "./src/chat/logic/generated-image.ts",
+            "types": "./dist/chat/logic/generated-image.d.ts",
+            "default": "./dist/chat/logic/generated-image.js"
+        },
         "./chat/logic/handback": {
             "source": "./src/chat/logic/handback.ts",
             "types": "./dist/chat/logic/handback.d.ts",
@@ -553,6 +558,11 @@
             "source": "./src/chat/ui/rows/ForksRow.tsx",
             "types": "./dist/chat/ui/rows/ForksRow.d.ts",
             "default": "./dist/chat/ui/rows/ForksRow.js"
+        },
+        "./chat/ui/rows/GeneratedImageRow": {
+            "source": "./src/chat/ui/rows/GeneratedImageRow.tsx",
+            "types": "./dist/chat/ui/rows/GeneratedImageRow.d.ts",
+            "default": "./dist/chat/ui/rows/GeneratedImageRow.js"
         },
         "./chat/ui/rows/MessageRows": {
             "source": "./src/chat/ui/rows/MessageRows.tsx",

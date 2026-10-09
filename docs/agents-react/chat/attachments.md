@@ -34,6 +34,13 @@ setChatHost({
 
 `backend` and `useObjectUrl` stand for your app's own; the hook keeps a `ResourceUrl` in state while the bytes load.
 
+Two optional functions let a person take a [generated image](/agents-react/chat/timeline#generated-images) out of the chat. Each gets the scope, the chat, the attachment and a suggested file name, and is never given a path from the chat item.
+
+- `open(scopeId, chatId, attachmentId, suggestedName)` opens the file outside the chat, such as in the system's own app, or as a download in a browser.
+- `saveToProject(scopeId, chatId, attachmentId, suggestedName)` shows your own dialog to save a copy in the folder the chat works for. It resolves with the saved path, which the row shows as a file link, or with `null` when the person cancels. The dialog shows a failure itself; a rejection leaves the row as it was.
+
+Leave either out and its button is not drawn.
+
 ## Mentions
 
 A path picked with `@` sits in the text and in `mentions`; a skill picked with `$` in the text and in `skills`. `findMentionQuery`, `findSkillQuery`, `insertMention`, `insertSkill`, `presentMentions` and `tokenizeChips` are the parsing and inserting the composer does.

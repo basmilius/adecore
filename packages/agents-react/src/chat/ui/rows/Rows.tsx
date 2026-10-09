@@ -4,7 +4,9 @@ import type { ThreadCard } from '../../../host';
 import type { TimelineRow } from '../../logic/timeline';
 import type { SubagentStep } from '../../subagent-view';
 import { AgentTurnRow, ApprovalHistoryRow, AssistantRow, CompactionRow, NoteRow, QuestionHistoryRow, ReportRow, ThinkingRow, UserRow } from './MessageRows';
+import { isImageGeneration } from '../../logic/generated-image';
 import { ForksRow } from './ForksRow';
+import { GeneratedImageRow } from './GeneratedImageRow';
 import { SubagentBranchRow } from './SubagentRow';
 import { VisualRow } from './VisualRow';
 import { WorkflowRow } from './WorkflowRow';
@@ -51,9 +53,9 @@ export function Row({ row, chatId, toggleGroup, toggleTurn, toggleSubagent, open
         case 'thinking':
             return <ThinkingRow chatId={chatId} item={row.item} />;
         case 'work':
-            return <WorkRow tool={row.tool} />;
+            return isImageGeneration(row.tool) ? <GeneratedImageRow chatId={chatId} tool={row.tool} /> : <WorkRow tool={row.tool} />;
         case 'work-live':
-            return <WorkLiveRow chatId={chatId} tool={row.tool} />;
+            return isImageGeneration(row.tool) ? <GeneratedImageRow chatId={chatId} tool={row.tool} /> : <WorkLiveRow chatId={chatId} tool={row.tool} />;
         case 'workflow':
             return <WorkflowRow chatId={chatId} tool={row.tool} workflow={row.workflow} onOpenAgent={openConversation} />;
         case 'work-group':

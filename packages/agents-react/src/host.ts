@@ -209,6 +209,13 @@ export interface ChatHost {
     attachments: {
         useUrl(scopeId: string, chatId: string, attachmentId: string): ResourceUrl;
         read(scopeId: string, chatId: string, attachmentId: string): Promise<Blob>;
+        /* Opens the file outside the chat, such as in the system's own app or as a download named `suggestedName`; left out, a generated image offers no Open. */
+        open?(scopeId: string, chatId: string, attachmentId: string, suggestedName: string): void;
+        /*
+         * Saves a copy into the folder the chat works for, through the host's own dialog, which also shows a failure.
+         * Resolves with the path as a file link opens it, or null when the person cancels; left out, a generated image offers no Save.
+         */
+        saveToProject?(scopeId: string, chatId: string, attachmentId: string, suggestedName: string): Promise<string | null>;
     };
     /* The image a tool read, drawn under its row; null draws none. */
     ReadImage: ComponentType<{ path: string }> | null;

@@ -114,8 +114,23 @@ function ToolBody({ tool }: { tool: ChatToolItem }) {
 }
 
 /* One settled tool call: a line, and its input and output behind it. An image the call looked at
-   is drawn under the line, because a picture says more about that read than its path does. */
-export function WorkRow({ tool, nested, detail }: { tool: ChatToolItem; nested?: boolean; detail?: string }) {
+   is drawn under the line, because a picture says more about that read than its path does.
+   `icon`, `label` and `failed` let a row that knows the call better name it in its own words. */
+export function WorkRow({
+    tool,
+    nested,
+    detail,
+    icon,
+    label,
+    failed
+}: {
+    tool: ChatToolItem;
+    nested?: boolean;
+    detail?: string;
+    icon?: React.ReactNode;
+    label?: string;
+    failed?: boolean;
+}) {
     const [open, setOpen] = useState(false);
     const image = tool.state === 'done' ? readImagePath(tool.name, tool.input) : null;
     const { ReadImage } = chatHost();
@@ -123,12 +138,12 @@ export function WorkRow({ tool, nested, detail }: { tool: ChatToolItem; nested?:
     return (
         <div data-find-item={tool.id} className={nested ? 'ml-6' : undefined}>
             <ToggleLine
-                icon={toolIcon(tool.name)}
-                label={tool.name}
+                icon={icon ?? toolIcon(tool.name)}
+                label={label ?? tool.name}
                 detail={detail ?? toolSummary(tool.name, tool.input)}
                 open={open}
                 onToggle={() => setOpen((o) => !o)}
-                failed={tool.state === 'error'}
+                failed={failed ?? tool.state === 'error'}
             />
             {image !== null && ReadImage !== null && <ReadImage path={image} />}
             {open && <ToolBody tool={tool} />}

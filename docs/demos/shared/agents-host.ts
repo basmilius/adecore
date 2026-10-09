@@ -19,6 +19,7 @@ import {
     commandApproval,
     FILES,
     FORK_TITLES,
+    generatedImageUrls,
     initialAccounts,
     NOW,
     PROVIDERS,
@@ -70,6 +71,12 @@ const REFERABLE = [
 
 const ACCENT_NAMES: Record<string, string> = { blue: 'Blue', violet: 'Violet', rose: 'Rose', amber: 'Amber', green: 'Green', teal: 'Teal' };
 
+const IMAGE_URLS = generatedImageUrls();
+
+/* An attachment the demos keep a picture for; `image-gone` stands for one the host lost. */
+const attachmentUrl = (attachmentId: string) =>
+    attachmentId === 'image-gone' ? { url: null, failure: 'The host keeps no file under this id.' } : { url: IMAGE_URLS[attachmentId] ?? null, failure: null };
+
 /* A path in an answer, such as `src/http.ts:14`, as a link; the demos open nothing. */
 const PATH = /^(?<path>[\w.-]+(?:\/[\w.-]+)*\.\w+)(?::(?<line>\d+))?$/;
 
@@ -79,6 +86,22 @@ setChatHost({
     accents: { all: ACCENTS, featured: ['blue', 'violet', 'rose', 'amber'], label: (id) => ACCENT_NAMES[id] ?? id, current: () => 'blue' },
     searchFiles: async (_scopeId, _cwd, query, limit) => FILES.filter((path) => path.toLowerCase().includes(query.toLowerCase())).slice(0, limit),
     useReferableChats: () => REFERABLE,
+    attachments: {
+        useUrl: (_scopeId, _chatId, attachmentId) => attachmentUrl(attachmentId),
+        read: async (_scopeId, _chatId, attachmentId) => {
+            const { url } = attachmentUrl(attachmentId);
+            if (url === null) {
+                throw new Error('The host keeps no file under this id.');
+            }
+            return (await fetch(url)).blob();
+        },
+        open: () => undefined,
+        // As if the person picked a folder in the host's dialog.
+        saveToProject: async (_scopeId, _chatId, _attachmentId, suggestedName) => {
+            await wait(400);
+            return `assets/${suggestedName}`;
+        }
+    },
     code: { useMode: useThemeMode, useThemes: () => ({ light: 'github-light', dark: 'github-dark' }), custom: [] },
     fileLinks: {
         target: (text): FileRef | null => {

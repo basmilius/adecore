@@ -435,6 +435,26 @@
     "zoomOut": "Zoom out",
     "reset": "Reset"
   },
+  "generatedImage": {
+    "label": "Generated image",
+    "generating": "Generating image",
+    "failed": "Image generation failed",
+    "empty": "The image came back empty",
+    "notImage": "The result is not an image",
+    "tooLarge": "The image is larger than {{size}}",
+    "dimensions": "{{width}} × {{height}}",
+    "transparent": "transparent",
+    "actions": "Image actions",
+    "more": "More actions",
+    "prompt": "Prompt",
+    "copyPrompt": "Copy prompt",
+    "open": "Open",
+    "openLarge": "Open large",
+    "save": "Save to project…",
+    "saved": "Saved",
+    "savedTo": "Saved to <file>{{path}}</file>",
+    "renderFailed": "This image failed to render"
+  },
   "account": {
     "pill": "{{provider}} account {{account}}"
   },
