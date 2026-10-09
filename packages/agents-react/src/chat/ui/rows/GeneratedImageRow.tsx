@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { TFunction } from 'i18next';
 import clsx from 'clsx';
 import { Trans, useTranslation } from 'react-i18next';
-import { Check, ChevronRight, Copy, Ellipsis, ExternalLink, FolderDown, ImageIcon, Maximize2 } from 'lucide-react';
+import { Check, Copy, Ellipsis, ExternalLink, FolderDown, ImageIcon, Maximize2 } from 'lucide-react';
 import type { ChatAttachment, ChatToolItem } from '@adecore/agent-contracts';
 import { Button, ButtonGroup, copyText, ErrorBoundary, FileIcon, Icon, IconButton, Menu, Surface } from '@adecore/ui';
 import { chatHost } from '../../../host';
@@ -18,7 +18,6 @@ import { ROW_GUTTER } from '../icons';
 import { RunningFor, WorkRow } from './WorkRows';
 
 const SAVED_FLASH_MS = 2000;
-const COPIED_FLASH_MS = 1500;
 
 // Where each image went, so a row the thread unmounts while scrolling still says so when it comes back.
 const savedPaths = new Map<string, string>();
@@ -96,11 +95,9 @@ function ReadyImage({ chatId, attachment, prompt, transparent }: { chatId: strin
     const source = attachments.useUrl(scopeId, chatId, attachment.id);
     const savedKey = `${scopeId}\n${chatId}\n${attachment.id}`;
     const [lightbox, setLightbox] = useState(false);
-    const [promptOpen, setPromptOpen] = useState(false);
     const [saving, setSaving] = useState(false);
     const [savedPath, setSavedPath] = useState(() => savedPaths.get(savedKey) ?? null);
     const [savedFlash, flashSaved] = useFlash(SAVED_FLASH_MS);
-    const [copied, flashCopied] = useFlash(COPIED_FLASH_MS);
     const missing = source.failure !== null;
     const aspect = attachmentAspect(attachment);
     const { open, saveToProject } = attachments;
@@ -136,13 +133,6 @@ function ReadyImage({ chatId, attachment, prompt, transparent }: { chatId: strin
                   }
               };
 
-    const copyPrompt = (): void => {
-        if (prompt !== null) {
-            copyText(prompt);
-            flashCopied();
-        }
-    };
-
     const lightboxActions = (
         <>
             {openFile !== undefined && <IconButton icon={ExternalLink} size="sm" label={t('generatedImage.open')} onClick={openFile} />}
@@ -153,7 +143,7 @@ function ReadyImage({ chatId, attachment, prompt, transparent }: { chatId: strin
     return (
         <div>
             <HeadLine label={t('generatedImage.label')} detail={detail} />
-            <div className="ml-6 flex max-w-90 flex-col gap-1.5">
+            <div className="flex max-w-90 flex-col gap-1.5">
                 <div
                     className={clsx(
                         'group/image relative',
@@ -182,7 +172,7 @@ function ReadyImage({ chatId, attachment, prompt, transparent }: { chatId: strin
                                     <Menu.Root>
                                         <IconButton icon={Ellipsis} size="sm" label={t('generatedImage.more')} render={<Menu.Trigger />} />
                                         <Menu.Popup align="end">
-                                            <Menu.Item onClick={copyPrompt}>
+                                            <Menu.Item onClick={() => copyText(prompt)}>
                                                 <Icon icon={Copy} size={14} /> {t('generatedImage.copyPrompt')}
                                             </Menu.Item>
                                         </Menu.Popup>
@@ -192,41 +182,24 @@ function ReadyImage({ chatId, attachment, prompt, transparent }: { chatId: strin
                         </Surface>
                     )}
                 </div>
-                <div className="flex h-7 min-w-0 items-center gap-1.5">
-                    {prompt !== null && (
-                        <button
-                            type="button"
-                            className="-ml-1 flex h-7 min-w-0 flex-1 items-center gap-1.5 rounded-md px-1 text-left text-xs text-text-muted hover:bg-surface-hover"
-                            aria-expanded={promptOpen}
-                            onClick={() => setPromptOpen((value) => !value)}
-                        >
-                            <Icon icon={ChevronRight} size={12} className={clsx('shrink-0 text-text-faint transition-transform', promptOpen && 'rotate-90')} />
-                            <span className="shrink-0">{t('generatedImage.prompt')}</span>
-                            {!promptOpen && <span className="min-w-0 truncate text-text-faint">{prompt}</span>}
-                        </button>
-                    )}
-                    <span className={prompt === null ? 'grow' : undefined} />
-                    {openFile !== undefined && (
-                        <Button size="xs" variant="secondary" disabled={missing} onClick={openFile}>
-                            {t('generatedImage.open')}
-                        </Button>
-                    )}
-                    {save !== undefined && (
-                        <Button size="xs" variant="secondary" disabled={missing || saving || savedFlash} onClick={() => void save()}>
-                            {savedFlash ? (
-                                <>
-                                    <Icon icon={Check} size={12} /> {t('generatedImage.saved')}
-                                </>
-                            ) : (
-                                t('generatedImage.save')
-                            )}
-                        </Button>
-                    )}
-                </div>
-                {prompt !== null && promptOpen && (
-                    <div className="flex items-start gap-1.5">
-                        <p className="min-w-0 flex-1 text-xs whitespace-pre-wrap text-text-muted select-text">{prompt}</p>
-                        <IconButton icon={copied ? Check : Copy} size="sm" label={t('generatedImage.copyPrompt')} onClick={copyPrompt} />
+                {(openFile !== undefined || save !== undefined) && (
+                    <div className="flex items-center gap-1.5">
+                        {openFile !== undefined && (
+                            <Button size="xs" variant="secondary" disabled={missing} onClick={openFile}>
+                                {t('generatedImage.open')}
+                            </Button>
+                        )}
+                        {save !== undefined && (
+                            <Button size="xs" variant="secondary" disabled={missing || saving || savedFlash} onClick={() => void save()}>
+                                {savedFlash ? (
+                                    <>
+                                        <Icon icon={Check} size={12} /> {t('generatedImage.saved')}
+                                    </>
+                                ) : (
+                                    t('generatedImage.save')
+                                )}
+                            </Button>
+                        )}
                     </div>
                 )}
                 {savedPath !== null && !savedFlash && (
