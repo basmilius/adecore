@@ -32,8 +32,17 @@ import {
     ticksOf,
     ticksWithHits
 } from '../logic/scrubber';
-import { EMPTY_TARGET, readTimelineTarget, withCurrentText, type TimelineTarget } from '../logic/timeline-target';
+import {
+    EMPTY_TARGET,
+    readTimelineTarget,
+    revealUiReplyBlock,
+    uiReplyJump,
+    withCurrentText,
+    type TimelineTarget,
+    type UiReplyTarget
+} from '../logic/timeline-target';
 import { forkRefusal } from '../logic/fork';
+import { UiReplyNavigationContext } from './reply-context';
 import { FindRevealContext } from './find-reveal';
 import { BookmarkMarker } from './BookmarkMarker';
 import { MessageActions } from './MessageActions';
@@ -207,10 +216,26 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
     const marks = useMemo(() => bookmarkRows(rows, bookmarks ?? [], items ?? {}), [rows, bookmarks, items]);
     const ticks = useMemo(() => ticksOf(rows, marks), [rows, marks]);
     // A message a jump is on its way to; it may first have to open the turn its reply folded into.
-    const [seeking, setSeeking] = useState<string | null>(null);
+    const [seeking, setSeeking] = useState<{ itemId: string; block?: UiReplyTarget; key: string } | null>(null);
+    const [landing, setLanding] = useState<{ target: UiReplyTarget; key: string } | null>(null);
     // A turn a jump is on its way to, which waits for the page its messages are on to come in.
     const [revealing, setRevealing] = useState<{ turnId: string; target: TurnTarget } | null>(null);
     const flash = useTimelineFlash((s) => s.target);
+    const revealBlock = useCallback(
+        (block: UiReplyTarget) => {
+            setLanding(null);
+            setSeeking({ itemId: block.itemId, block, key: keyOf(chatId) });
+        },
+        [keyOf, chatId]
+    );
+    const uiNavigation = useMemo(
+        () => ({
+            chatId,
+            reveal: revealBlock,
+            flash: flash?.key === keyOf(chatId) && flash.block ? { itemId: flash.rowId, ...flash.block, nonce: flash.nonce } : null
+        }),
+        [revealBlock, flash, keyOf, chatId]
+    );
 
     // Whether the thread's text clears the strip depends on the width of the view, which only the thread's own frame tells.
     useEffect(() => {
@@ -389,7 +414,8 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
             return;
         }
         if (tick.bookmark !== null) {
-            setSeeking(tick.bookmark.itemId);
+            setLanding(null);
+            setSeeking({ itemId: tick.bookmark.itemId, key: keyOf(chatId) });
             return;
         }
         followRef.current = false;
@@ -400,14 +426,34 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
         if (seeking === null) {
             return;
         }
-        const index = rows.findIndex((row) => row.id === seeking);
+        if (seeking.key !== keyOf(chatId)) {
+            setSeeking(null);
+            return;
+        }
+        if (seeking.block) {
+            const jump = uiReplyJump(seeking.block, rows, items, turns.ids, cursor !== null);
+            if (jump.kind === 'earlier') {
+                loadEarlier();
+            } else if (jump.kind === 'turn') {
+                turns.add(jump.turnId);
+            } else {
+                setSeeking(null);
+                if (jump.kind === 'row') {
+                    followRef.current = false;
+                    virtualizer.scrollToIndex(jump.index, { align: 'start' });
+                    setLanding({ target: seeking.block, key: seeking.key });
+                }
+            }
+            return;
+        }
+        const index = rows.findIndex((row) => row.id === seeking.itemId);
         if (index !== -1) {
             setSeeking(null);
             followRef.current = false;
             virtualizer.scrollToIndex(index, { align: 'start' });
             return;
         }
-        const item = items?.[seeking];
+        const item = items?.[seeking.itemId];
         if (item === undefined && cursor !== null) {
             loadEarlier();
             return;
@@ -418,8 +464,36 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
             return;
         }
         setSeeking(null);
-    }, [seeking, rows, items, turns, virtualizer, cursor, loadEarlier]);
-    useEffect(() => registerItemJumper(keyOf(chatId), setSeeking), [keyOf, chatId]);
+    }, [seeking, rows, items, turns, virtualizer, cursor, loadEarlier, keyOf, chatId]);
+    useEffect(
+        () =>
+            registerItemJumper(keyOf(chatId), (itemId) => {
+                setLanding(null);
+                setSeeking({ itemId, key: keyOf(chatId) });
+            }),
+        [keyOf, chatId]
+    );
+    useLayoutEffect(() => {
+        if (!landing || landing.key !== keyOf(chatId)) {
+            return;
+        }
+        let frame = 0;
+        let attempts = 0;
+        const reveal = () => {
+            const scroller = scrollRef.current;
+            if (scroller && revealUiReplyBlock(scroller, landing.target)) {
+                useTimelineFlash.getState().flash(keyOf(chatId), landing.target.itemId, false, landing.target);
+                setLanding(null);
+            } else if (++attempts < 30) {
+                // Virtual rows mount after scrollToIndex updates the visible range.
+                frame = requestAnimationFrame(reveal);
+            } else {
+                setLanding(null);
+            }
+        };
+        frame = requestAnimationFrame(reveal);
+        return () => cancelAnimationFrame(frame);
+    }, [landing, keyOf, chatId]);
 
     useLayoutEffect(() => {
         if (revealing === null) {
@@ -562,7 +636,7 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
                                                     top={virtualRow.start}
                                                     ref={virtualizer.measureElement}
                                                 >
-                                                    {flash !== null && flash.key === keyOf(chatId) && flash.rowId === row.id && (
+                                                    {flash !== null && flash.key === keyOf(chatId) && flash.rowId === row.id && !flash.block && (
                                                         <span
                                                             key={flash.nonce}
                                                             className="chat-flash pointer-events-none absolute inset-0 rounded-lg"
@@ -574,19 +648,21 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
                                                             <ReplyHeader chatId={chatId} at={header.at} />
                                                         </div>
                                                     )}
-                                                    <FindRevealContext.Provider value={chatFind.reveal}>
-                                                        <MarkableRow row={row} chatId={chatId} bookmark={marks.get(row.id) ?? null}>
-                                                            <Row
-                                                                row={row}
-                                                                chatId={chatId}
-                                                                toggleGroup={groups.toggle}
-                                                                toggleTurn={turns.toggle}
-                                                                toggleSubagent={subagents.toggle}
-                                                                openSubagent={openSubagent}
-                                                                openConversation={openConversation}
-                                                            />
-                                                        </MarkableRow>
-                                                    </FindRevealContext.Provider>
+                                                    <UiReplyNavigationContext.Provider value={uiNavigation}>
+                                                        <FindRevealContext.Provider value={chatFind.reveal}>
+                                                            <MarkableRow row={row} chatId={chatId} bookmark={marks.get(row.id) ?? null}>
+                                                                <Row
+                                                                    row={row}
+                                                                    chatId={chatId}
+                                                                    toggleGroup={groups.toggle}
+                                                                    toggleTurn={turns.toggle}
+                                                                    toggleSubagent={subagents.toggle}
+                                                                    openSubagent={openSubagent}
+                                                                    openConversation={openConversation}
+                                                                />
+                                                            </MarkableRow>
+                                                        </FindRevealContext.Provider>
+                                                    </UiReplyNavigationContext.Provider>
                                                 </RowContainer>
                                             );
                                         })}

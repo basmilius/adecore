@@ -28,7 +28,7 @@ import { Icon, Tooltip, useTickingText } from '@adecore/ui';
 import { toolSummary } from '../../logic/tools';
 import { ROW_GUTTER } from '../icons';
 import { useOpenForFind } from '../find-reveal';
-import { ReplyContext } from '../reply-context';
+import { ReplyContext, UiReplyNavigationContext } from '../reply-context';
 import { UiReply } from '../intelligent-ui/UiReply';
 
 // A long prompt folds so the answer stays in view; the reader can open it.
@@ -108,7 +108,7 @@ export function UserRow({ chatId, item }: { chatId: string; item: ChatUserItem }
                     ))}
                 </div>
             )}
-            {item.uiChoice !== undefined && <ChoiceLine choice={item.uiChoice} />}
+            {item.uiChoice !== undefined && <ChoiceLine chatId={chatId} choice={item.uiChoice} />}
             {item.text !== '' && (
                 <div className="relative max-w-[80%] rounded-2xl bg-surface-active px-3.5 py-2.5 text-sm wrap-anywhere text-text select-text">
                     <div data-find-field="text" className={clsx(long && !open && FOLD)}>
@@ -130,17 +130,27 @@ export function UserRow({ chatId, item }: { chatId: string; item: ChatUserItem }
  * The choice a message answers. The label stays out of the message, which holds exactly what the agent
  * read, and out of a copied selection; a screen reader hears it between the heading and the message.
  */
-function ChoiceLine({ choice }: { choice: ChatUiChoiceOrigin }) {
+function ChoiceLine({ chatId, choice }: { chatId: string; choice: ChatUiChoiceOrigin }) {
     const { t } = useTranslation('agent-chat');
+    const inherited = useContext(UiReplyNavigationContext);
+    const navigation = inherited?.chatId === chatId ? inherited : null;
+    const Tag = navigation ? 'button' : 'div';
     return (
-        <div className="mb-1 flex max-w-[80%] items-start gap-1.5 px-1 text-xs text-text-muted select-none">
+        <Tag
+            type={navigation ? 'button' : undefined}
+            onClick={navigation ? () => navigation.reveal(choice) : undefined}
+            className={clsx(
+                'mb-1 flex max-w-[80%] items-start gap-1.5 px-1 text-left text-xs text-text-muted select-none',
+                navigation && 'rounded-md hover:text-text focus-visible:outline-2 focus-visible:outline-accent'
+            )}
+        >
             <Icon icon={Reply} size={12} className="mt-1 shrink-0" />
             <span className="min-w-0 wrap-anywhere">
                 {choice.older
                     ? t('blocks.choseOlder', { label: choice.label, time: formatMoment(choice.sourceAt) })
                     : t('blocks.chose', { label: choice.label })}
             </span>
-        </div>
+        </Tag>
     );
 }
 

@@ -26,6 +26,7 @@ import {
 import { ErrorBoundary } from '@adecore/ui';
 import type { ChatUiAnswer, ChatUiQueryState } from '@adecore/agent-contracts';
 import { chatHost } from '../../../host';
+import { UiReplyNavigationContext } from '../reply-context';
 import { ReplyMarkdown } from '../Markdown';
 import { UI_RENDERERS } from './registry';
 import type { UiRenderContext, UiRenderer } from './render-context';
@@ -312,6 +313,10 @@ function UiBlockBody({
               ? optimistic
               : context.answer;
     const [element, setElement] = useState<HTMLDivElement | null>(null);
+    const navigation = useContext(UiReplyNavigationContext);
+    const flash = navigation?.flash;
+    const flashing =
+        navigation?.chatId === context.chatId && flash?.itemId === context.itemId && flash.blockId === block.id && flash.revision === block.revision;
     const queries = useUiQueries(block, state, context, element, frozen);
     const links = useUiLinks(block, state, context, queries.reads, frozen);
     const sendChoice = chatHost().intelligentUi?.sendChoice;
@@ -356,7 +361,8 @@ function UiBlockBody({
     const failed = !unknown && !block.nodes.length && block.diagnostics.length > 0;
     const shownAsText = unknown ? t('blocks.unreadable') : failed ? block.diagnostics[0].message : undefined;
     return (
-        <div ref={setElement}>
+        <div ref={setElement} className="relative" data-ui-block={block.id} data-ui-revision={block.revision} tabIndex={-1}>
+            {flashing && <span key={flash.nonce} className="chat-flash pointer-events-none absolute inset-0 rounded-lg" aria-hidden />}
             <UiBlockFrame
                 live={queries.live}
                 nodes={evaluation.nodes}

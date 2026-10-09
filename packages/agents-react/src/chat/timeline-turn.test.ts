@@ -39,3 +39,10 @@ describe('the row a jump lit up', () => {
         expect(useTimelineFlash.getState().target!.nonce).toBeGreaterThan(first.nonce);
     });
 });
+
+test('a block flash retains the revision and an ordinary row jump clears its block target', () => {
+    useTimelineFlash.getState().flash('scope:chat', 'answer', false, { blockId: 'one', revision: 'r1' });
+    expect(useTimelineFlash.getState().target).toMatchObject({ key: 'scope:chat', rowId: 'answer', block: { blockId: 'one', revision: 'r1' } });
+    useTimelineFlash.getState().flash('scope:other', 'answer', false);
+    expect(useTimelineFlash.getState().target!.block).toBeUndefined();
+});

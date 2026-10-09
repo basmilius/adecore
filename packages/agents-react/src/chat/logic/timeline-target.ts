@@ -1,4 +1,4 @@
-import type { ChatItem } from '@adecore/agent-contracts';
+import type { ChatItem, ChatUiChoiceOrigin } from '@adecore/agent-contracts';
 import type { TimelineRow } from './timeline';
 import { selectionWithin } from '@adecore/ui';
 import type { FileRef } from '../../host';
@@ -74,4 +74,44 @@ export function readTimelineTarget(element: HTMLElement, scroller: HTMLElement |
 function positiveInteger(value: string | undefined): number | null {
     const number = Number(value);
     return Number.isSafeInteger(number) && number > 0 ? number : null;
+}
+
+export type UiReplyTarget = Pick<ChatUiChoiceOrigin, 'itemId' | 'blockId' | 'revision'>;
+export type UiReplyJump = { kind: 'missing' | 'earlier' } | { kind: 'turn'; turnId: string } | { kind: 'row'; index: number };
+
+export function uiReplyJump(
+    target: UiReplyTarget,
+    rows: readonly TimelineRow[],
+    items: Record<string, ChatItem> | undefined,
+    expandedTurns: ReadonlySet<string>,
+    hasEarlier: boolean
+): UiReplyJump {
+    const item = items?.[target.itemId];
+    if (!item) {
+        return { kind: hasEarlier ? 'earlier' : 'missing' };
+    }
+    if (item.kind !== 'assistant' || !item.ui?.some((block) => block.id === target.blockId && block.revision === target.revision)) {
+        return { kind: 'missing' };
+    }
+    const index = rows.findIndex((row) => row.kind === 'assistant' && row.id === target.itemId);
+    if (index !== -1) {
+        return { kind: 'row', index };
+    }
+    return item.turnId && !expandedTurns.has(item.turnId) ? { kind: 'turn', turnId: item.turnId } : { kind: 'missing' };
+}
+
+export function revealUiReplyBlock(scroller: HTMLElement, target: UiReplyTarget): boolean {
+    // Compare attributes instead of interpolating provider ids into CSS selectors.
+    const row = Array.from(scroller.querySelectorAll<HTMLElement>('[data-item-id]')).find((element) => element.dataset.itemId === target.itemId);
+    const block =
+        row &&
+        Array.from(row.querySelectorAll<HTMLElement>('[data-ui-block]')).find(
+            (element) => element.dataset.uiBlock === target.blockId && element.dataset.uiRevision === target.revision
+        );
+    if (!block) {
+        return false;
+    }
+    scroller.scrollTop += block.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+    block.focus({ preventScroll: true });
+    return true;
 }

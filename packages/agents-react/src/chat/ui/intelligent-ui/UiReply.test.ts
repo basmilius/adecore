@@ -2,6 +2,8 @@ import { expect, test } from 'bun:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { compileUi } from '@adecore/intelligent-ui';
+import { parseHTML } from 'linkedom';
+import { UiReplyNavigationContext } from '../reply-context';
 import { UiReply } from './UiReply';
 import { uiReplyParts } from './reply-parts';
 
@@ -115,4 +117,24 @@ test('an answered block restores its selected input and closes every choice and 
     expect(markup).toContain('aria-disabled="true"');
     expect(markup).toContain('disabled');
     expect(markup).toMatch(/Answered|blocks\.answered/);
+});
+
+test('a jump highlights only its original block revision and leaves both blocks focusable', () => {
+    const text = '```ruimte-ui\n<Summary>One</Summary>\n```\n```ruimte-ui\n<Summary>Two</Summary>\n```';
+    const blocks = compileUi(text, { id: 'item', final: true });
+    const render = (revision: string) =>
+        parseHTML(
+            renderToStaticMarkup(
+                createElement(
+                    UiReplyNavigationContext.Provider,
+                    { value: { chatId: 'chat', reveal: () => {}, flash: { itemId: 'item', blockId: blocks[1]!.id, revision, nonce: 1 } } },
+                    createElement(UiReply, { text, blocks, context })
+                )
+            )
+        ).document;
+    const document = render(blocks[1]!.revision!);
+    expect(document.querySelectorAll('[data-ui-block][tabindex="-1"]').length).toBe(2);
+    expect(document.querySelectorAll('.chat-flash').length).toBe(1);
+    expect(document.querySelector('.chat-flash')!.parentElement!.dataset.uiBlock).toBe(blocks[1]!.id);
+    expect(render('stale').querySelector('.chat-flash')).toBeNull();
 });

@@ -78,3 +78,6 @@ The words are in the `agent-chat` namespace under `blocks`, in English and Dutch
 `useUiLinks` supplies `UiRenderContext.link` from initial resolutions and the host's `intelligentUi.link` request. It reads only visible supported targets, refreshes when inputs or query readings change, and rechecks the stored node on every click before calling `intelligentUi.openLink`. `intelligentUi.openUrl` opens HTTP and HTTPS sources without preloading them. A host that leaves out these callbacks keeps links as text.
 
 Local input state is retained for the 64 most recently mounted blocks. Mounted blocks keep their own state even after leaving that cache; reopening an evicted block starts with its defaults or saved answer.
+
+
+A choice heading in `Timeline` jumps to its original item, block and revision. It loads earlier pages and opens a folded turn before scrolling to and focusing the block. Only that block flashes; a missing or changed revision receives no jump. `UiReplyNavigationContext` supplies this navigation to `UserRow` and `UiReply`. Standalone rows keep a plain heading when the context is absent.

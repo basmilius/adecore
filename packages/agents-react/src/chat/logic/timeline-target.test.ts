@@ -6,7 +6,8 @@ import { chatHost, setChatHost, type ChatHost, type FileRef } from '../../host';
 import { ChatScopeContext, type ChatScope } from '../../scope';
 import { FileLinkContext, openFileLink } from '../ui/file-links';
 import { Markdown, MessageMarkdown } from '../ui/Markdown';
-import { readTimelineTarget, withCurrentText } from './timeline-target';
+import { readTimelineTarget, revealUiReplyBlock, uiReplyJump, withCurrentText } from './timeline-target';
+import { compileUi } from '@adecore/intelligent-ui';
 import type { TimelineRow } from './timeline';
 
 const original = chatHost();
@@ -124,4 +125,55 @@ test('ordinary timeline targets retain row lookup and current-text copy behavior
     expect(target.code).toBe('printf copy');
     expect(target.file).toBeNull();
     expect(withCurrentText([row], { answer: { ...item, text: 'After' } })).toEqual([{ ...row, item: { ...item, text: 'After' } }]);
+});
+
+test('a choice jump loads history, opens its turn and accepts only its original block revision', () => {
+    const text = '```ruimte-ui\n<Summary>Original</Summary>\n```';
+    const item = {
+        id: 'answer',
+        kind: 'assistant' as const,
+        turnId: 'turn',
+        createdAt: 0,
+        text,
+        streaming: false,
+        ui: compileUi(text, { id: 'answer', final: true })
+    };
+    const block = item.ui[0]!;
+    const target = { itemId: item.id, blockId: block.id, revision: block.revision! };
+    const row: TimelineRow = { id: item.id, kind: 'assistant', item };
+    expect(uiReplyJump(target, [], {}, new Set(), true)).toEqual({ kind: 'earlier' });
+    expect(uiReplyJump(target, [], {}, new Set(), false)).toEqual({ kind: 'missing' });
+    expect(uiReplyJump(target, [], { answer: item }, new Set(), true)).toEqual({ kind: 'turn', turnId: 'turn' });
+    expect(uiReplyJump(target, [row], { answer: item }, new Set(['turn']), true)).toEqual({ kind: 'row', index: 0 });
+    expect(uiReplyJump({ ...target, revision: 'stale' }, [row], { answer: item }, new Set(), true)).toEqual({ kind: 'missing' });
+    expect(uiReplyJump({ ...target, blockId: 'different' }, [row], { answer: item }, new Set(), true)).toEqual({ kind: 'missing' });
+    expect(uiReplyJump(target, [], { answer: item }, new Set(['turn']), true)).toEqual({ kind: 'missing' });
+    expect(uiReplyJump(target, [row], { answer: { id: 'answer', kind: 'user', turnId: null, createdAt: 0, text } }, new Set(), true)).toEqual({
+        kind: 'missing'
+    });
+});
+
+test('a block landing scrolls and focuses only its exact row, block and revision', () => {
+    const { document } = parseHTML(
+        '<main><div data-item-id="other"><div data-ui-block="block" data-ui-revision="r1"></div></div><div data-item-id="answer"><div data-ui-block="other" data-ui-revision="r1"></div><div data-ui-block="block" data-ui-revision="r1"></div></div></main>'
+    );
+    const scroller = document.querySelector('main')!;
+    const block = scroller.lastElementChild!.lastElementChild as HTMLElement;
+    // IDs can contain selector punctuation from a provider.
+    scroller.lastElementChild!.setAttribute('data-item-id', 'answer"]');
+    block.setAttribute('data-ui-block', 'block"]');
+    const target = { itemId: 'answer"]', blockId: 'block"]', revision: 'r1' };
+    let focus: unknown = null;
+    block.focus = (options) => {
+        focus = options;
+    };
+    scroller.getBoundingClientRect = () => ({ top: 50 }) as DOMRect;
+    block.getBoundingClientRect = () => ({ top: 180 }) as DOMRect;
+    scroller.scrollTop = 300;
+    expect(revealUiReplyBlock(scroller, { ...target, revision: 'stale' })).toBe(false);
+    expect(scroller.scrollTop).toBe(300);
+    expect(focus).toBeNull();
+    expect(revealUiReplyBlock(scroller, target)).toBe(true);
+    expect(scroller.scrollTop).toBe(430);
+    expect(focus).toEqual({ preventScroll: true });
 });

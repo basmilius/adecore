@@ -10,7 +10,7 @@ import { ChatScopeContext, type ChatScope } from '../../../scope';
 import { useChats } from '../../../state/chats';
 import { useProvidersStore } from '../../../state/providers';
 import { AssistantRow, ReplyHeader, UserRow } from './MessageRows';
-import { ReplyContext } from '../reply-context';
+import { ReplyContext, UiReplyNavigationContext } from '../reply-context';
 
 const scope: ChatScope = {
     id: 'reply-heading-test',
@@ -139,14 +139,26 @@ describe('the line over a message that answers a choice', () => {
         at: sourceAt + 60_000
     };
     const message: ChatUserItem = { id: 'message', kind: 'user', turnId: null, createdAt: 0, text: 'Fix the blocking findings in links.ts:148' };
-    const renderUser = (item: ChatUserItem) =>
+    const renderUser = (item: ChatUserItem, navigation: React.ContextType<typeof UiReplyNavigationContext> = null) =>
         renderToStaticMarkup(
             createElement(
                 I18nextProvider,
                 { i18n },
-                createElement(ChatScopeContext.Provider, { value: scope }, createElement(UserRow, { chatId: 'parent', item }))
+                createElement(
+                    ChatScopeContext.Provider,
+                    { value: scope },
+                    createElement(UiReplyNavigationContext.Provider, { value: navigation }, createElement(UserRow, { chatId: 'parent', item }))
+                )
             )
         );
+
+    test('navigation makes the choice heading a keyboard accessible button', () => {
+        const html = renderUser({ ...message, uiChoice: choice }, { chatId: 'parent', reveal: () => {}, flash: null });
+        expect(html).toMatch(/<button[^>]*type="button"[^>]*>.*Chose “Fix both”<\/span><\/button>/);
+        expect(renderUser({ ...message, uiChoice: choice })).not.toMatch(/<button[^>]*>.*Chose/);
+        expect(html).toContain(message.text);
+        expect(renderUser({ ...message, uiChoice: choice }, { chatId: 'other', reveal: () => {}, flash: null })).not.toMatch(/<button[^>]*>.*Chose/);
+    });
 
     test('a typed message has no line', () => {
         expect(renderUser(message)).not.toContain('Chose');
