@@ -11,6 +11,8 @@ export interface UiLink {
     label?: string;
     /* Why a plain link is not a chip, in its tooltip. */
     reason?: string;
+    /* The stable code of that reason, which a client words itself where it knows it. */
+    code?: string;
 }
 
 /* The Choice that answered a block. `sending` already reads as sent, so a second click does nothing. */
@@ -30,6 +32,8 @@ export interface UiLiveStatus {
     source?: string;
     /* Why a reading failed, in its tooltip. */
     reason?: string;
+    /* The stable code of that reason, which a client words itself where it knows it. */
+    code?: string;
 }
 
 /* Live history is separate from the comparison the agent supplies in Stat.previous. */

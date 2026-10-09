@@ -4,7 +4,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { compileUiBlock, evaluateUiBlock, UI_CATALOG, UiState, type UiComponentName, type UiViewNode } from '@adecore/intelligent-ui';
 import { chatHost, setChatHost } from '../../../host';
 import { uiChartData, niceCeiling, UI_CHART_SERIES } from './chart-data';
-import { uiBlockHead, uiNodeLabel, uiNodeText } from './node-text';
+import i18next from 'i18next';
+import { uiBlockHead, uiNodeLabel, uiNodeText, uiReasonText } from './node-text';
 import { UI_RENDERERS } from './registry';
 import type { UiRenderContext, UiRenderer, UiRendererProps } from './render-context';
 import { UiSourceCitation } from './renderers/content';
@@ -118,6 +119,13 @@ describe('the frame of a block', () => {
         expect(html).toContain('unknown_prop');
         expect(html).toContain('aria-expanded="false"');
     });
+});
+
+test('a known reason code is worded here, and an unknown one reads as the reason the machine gave', () => {
+    const t = i18next.getFixedT('en', 'agent-chat');
+    expect(uiReasonText(t, 'refresh-limit', 'This query may refresh once every ten seconds.')).toBe('This source reads at most once every ten seconds.');
+    expect(uiReasonText(t, 'newer-code', 'A reason from a newer machine.')).toBe('A reason from a newer machine.');
+    expect(uiReasonText(t, undefined, 'Plain')).toBe('Plain');
 });
 
 describe('choices', () => {

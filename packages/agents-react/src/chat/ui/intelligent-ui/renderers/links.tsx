@@ -5,6 +5,7 @@ import { FileDiff, GitCommitHorizontal, SquareDashed } from 'lucide-react';
 import type { UiProps } from '@adecore/intelligent-ui';
 import { FileIcon, Icon, Tooltip } from '@adecore/ui';
 import { CHIP_IN_MESSAGE, MENTION_TONE } from '../../chips';
+import { uiReasonText } from '../node-text';
 import type { UiLink, UiLinkTarget, UiRenderContext, UiRendererProps } from '../render-context';
 
 const PLAIN: UiLink = { state: 'plain' };
@@ -82,7 +83,7 @@ export function UiLinkChip({ target, context }: { target: UiLinkTarget; context:
     const { t } = useTranslation('agent-chat');
     const link = context.link?.(target) ?? PLAIN;
     if (link.state === 'plain') {
-        const reason = link.reason ?? (context.link === undefined ? null : t('blocks.outsideProject'));
+        const reason = uiReasonText(t, link.code, link.reason) ?? (context.link === undefined ? null : t('blocks.outsideProject'));
         // Focusable only with a reason, so a keyboard reaches the tooltip.
         const text = (
             <span tabIndex={reason === null ? undefined : 0} className="font-mono text-code break-all text-text-muted">

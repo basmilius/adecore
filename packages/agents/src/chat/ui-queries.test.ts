@@ -122,7 +122,7 @@ describe('stored UI queries', () => {
     test('a denied capture survives restart without capturing wider rights', async () => {
         const r = rig();
         r.session.setUiAccess('reply', null);
-        expect((await r.queries.query(r.session, r.payload)).state).toBe('refused');
+        expect(await r.queries.query(r.session, r.payload)).toMatchObject({ state: 'refused', code: 'access-unavailable' });
         expect(r.counts().captures).toBe(0);
     });
     test('a fork captures the current chat’s rights', async () => {
@@ -241,7 +241,7 @@ describe('reading again', () => {
         setSystemTime(new Date(400));
         expect((await r.queries.query(r.session, { ...payload, values: { $limit: 5 } })).state).toBe('fresh');
         setSystemTime(new Date(500));
-        expect((await r.queries.query(r.session, { ...payload, values: { $limit: 6 } })).state).toBe('failed');
+        expect(await r.queries.query(r.session, { ...payload, values: { $limit: 6 } })).toMatchObject({ state: 'failed', code: 'refresh-limit' });
         expect(r.counts().reads).toBe(2);
     });
 });

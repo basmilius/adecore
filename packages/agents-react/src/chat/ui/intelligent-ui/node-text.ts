@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next';
 import type { UiComponentName, UiProps, UiViewNode } from '@adecore/intelligent-ui';
 
 /* The text a node holds, every `$text` below it joined as written, such as the code of a CodeBlock. */
@@ -56,4 +57,27 @@ export async function revealUiSource(root: ParentNode, nodeId: string, ancestors
     const reduced = row.ownerDocument.defaultView?.matchMedia('(prefers-reduced-motion: reduce)').matches === true;
     row.scrollIntoView({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' });
     return true;
+}
+
+/* The reason codes this version says in its own words; any other code reads as the reason the machine gave. */
+const UI_REASON_CODES = new Set([
+    'access-unavailable',
+    'block-stale',
+    'busy',
+    'link-unchecked',
+    'link-unsupported',
+    'links-unsupported',
+    'query-undeclared',
+    'refresh-limit',
+    'result-too-large',
+    'snapshot-too-large',
+    'source-unregistered',
+    'stale-read',
+    'timed-out',
+    'unreadable'
+]);
+
+/* Why a reading failed or a link stayed plain, in the person's language where the code is known. */
+export function uiReasonText(t: TFunction<'agent-chat'>, code: string | undefined, reason: string | undefined): string | undefined {
+    return code !== undefined && UI_REASON_CODES.has(code) ? t(`blocks.live.reasons.${code}`) : reason;
 }

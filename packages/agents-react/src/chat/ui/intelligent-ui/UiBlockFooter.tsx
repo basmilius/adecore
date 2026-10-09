@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Lock, Radio, TriangleAlert, Wrench } from 'lucide-react';
 import { Icon, Spinner, Tooltip, useTickingText } from '@adecore/ui';
 import { formatAgo, formatMoment } from '@adecore/ui/format';
+import { uiReasonText } from './node-text';
 import type { UiLiveStatus } from './render-context';
 import { useLater } from './use-later';
 
@@ -53,12 +54,8 @@ function LivePart({ live }: { live: UiLiveStatus }) {
             : live.state === 'refused'
               ? t('blocks.live.refused', { source })
               : t('blocks.live.label');
-    const hint =
-        live.state === 'failed' && live.reason !== undefined
-            ? live.reason
-            : live.sources.length > 0
-              ? t('blocks.live.sources', { sources: live.sources.join(', ') })
-              : null;
+    const reason = live.state === 'failed' || live.state === 'refused' ? uiReasonText(t, live.code, live.reason) : undefined;
+    const hint = reason !== undefined ? reason : live.sources.length > 0 ? t('blocks.live.sources', { sources: live.sources.join(', ') }) : null;
     const body = (
         <span tabIndex={hint === null ? undefined : 0} className="flex items-center gap-1.5">
             {icon}

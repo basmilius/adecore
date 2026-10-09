@@ -307,11 +307,14 @@ export const ChatUserItemSchema = z.object({
     uiChoice: ChatUiChoiceOriginSchema.optional()
 });
 
+// `state` is a frozen set: native clients validate these payloads whole, so a new state would fail them.
 export const ChatUiQueryReadingSchema = z.object({
     state: z.enum(['fresh', 'failed', 'refused']),
     value: z.unknown().optional(),
     readId: z.string().optional(),
     readAt: z.number().nonnegative(),
+    // A code that names the reason across versions, for a client that says it in its own words; open, so a new one fails nobody.
+    code: z.string().optional(),
     reason: z.string().optional()
 });
 export type ChatUiQueryReading = z.infer<typeof ChatUiQueryReadingSchema>;

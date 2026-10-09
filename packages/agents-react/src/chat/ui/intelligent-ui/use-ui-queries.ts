@@ -137,7 +137,7 @@ export function useUiQueries(
                         ...previous,
                         [name]: {
                             identity,
-                            reading: { state: 'failed', readAt: Date.now(), reason: error instanceof Error ? error.message : 'This query could not be read.' },
+                            reading: { state: 'failed', readAt: Date.now(), code: 'unreadable', reason: error instanceof Error ? error.message : undefined },
                             successful: previous[name]?.identity === identity ? previous[name].successful : undefined
                         }
                     }));
@@ -200,7 +200,8 @@ export function useUiQueries(
                   .filter((reading) => reading.state === 'fresh')
                   .reduce<number | null>((at, value) => (at === null ? value.readAt : Math.min(at, value.readAt)), null),
               source: failed ? block.queries[failed[0]]?.source : undefined,
-              reason: failed?.[1].reason
+              reason: failed?.[1].reason,
+              code: failed?.[1].code
           }
         : undefined;
     return { live, reads: reads ?? {}, reading, ready, readsFor, currentReadings };

@@ -11,6 +11,7 @@ export const UiLinkTargetSchema = z.discriminatedUnion('type', [
 ]);
 export type UiLinkTarget = z.infer<typeof UiLinkTargetSchema>;
 
+// `state` is a frozen set: native clients validate these payloads whole, so a new state would fail them.
 export const UiLinkResolutionSchema = z.object({
     state: z.enum(['chip', 'plain']),
     target: UiLinkTargetSchema.optional(),
@@ -21,6 +22,8 @@ export const UiLinkResolutionSchema = z.object({
     conflicted: z.boolean().optional(),
     relativePath: z.string().optional(),
     label: z.string().optional(),
+    // A code that names the reason across versions; open, so a new one fails nobody.
+    code: z.string().optional(),
     reason: z.string().optional()
 });
 export type UiLinkResolution = z.infer<typeof UiLinkResolutionSchema>;

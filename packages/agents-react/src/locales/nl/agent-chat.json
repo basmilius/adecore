@@ -540,7 +540,23 @@
       "sources": "Leest {{sources}}",
       "failed": "{{source}} lezen lukte niet",
       "refused": "Geen toegang tot {{source}}",
-      "notRead": "Niet gelezen"
+      "notRead": "Niet gelezen",
+      "reasons": {
+        "access-unavailable": "De toegang van de chat die dit schreef is niet meer beschikbaar.",
+        "block-stale": "Dit blok is veranderd sinds het getekend werd.",
+        "busy": "Er lezen nu te veel live blokken tegelijk.",
+        "link-unchecked": "Deze link moet opnieuw gecontroleerd worden.",
+        "link-unsupported": "Dit is geen link die de machine kan openen.",
+        "links-unsupported": "De machine opent geen links uit blokken.",
+        "query-undeclared": "Dit blok leest die bron niet.",
+        "refresh-limit": "Deze bron leest hooguit eens per tien seconden.",
+        "result-too-large": "Wat de bron teruggaf is te groot.",
+        "snapshot-too-large": "De eerste metingen waren te groot om te bewaren.",
+        "source-unregistered": "De machine kent deze bron niet.",
+        "stale-read": "Lees de bron opnieuw voordat je kiest.",
+        "timed-out": "De bron deed er te lang over om te antwoorden.",
+        "unreadable": "De bron kon niet gelezen worden."
+      }
     }
   }
 }

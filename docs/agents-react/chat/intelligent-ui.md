@@ -28,14 +28,16 @@ Four entries are `null`. `Show` and `Each` are resolved by the evaluation before
 | ---------------- | ------------------------------------------------------------------------------------------------------------ |
 | `failedChoiceId` | The Choice whose last send failed. The block is open again and that row says it could not send.             |
 | `live`           | A `UiLiveStatus` while the block reads live data. A running step spins only while the block streams or is live. |
-| `link(target)`   | Answers a `UiLink`: `state` as `chip` or `plain`, with the host's `label` and, for plain text, a `reason`.  |
+| `link(target)`   | Answers a `UiLink`: `state` as `chip` or `plain`, with the host's `label` and, for plain text, a `reason` and its `code`. |
 | `openLink(target)` | Opens a chip. Without it a chip is drawn but does nothing.                                                 |
 | `openUrl(url)`   | Opens a source. Without it a source is a row that cannot be opened.                                          |
 | `onChoose(nodeId)` | Called with the id of a Choice a person picked. Without it every choice stays closed.                     |
 
 `UiLinkTarget` names a resource by the component that names it: `{ type: 'File', path, line? }`, `{ type: 'Diff', path }`, `{ type: 'Commit', sha }` or `{ type: 'Node', id }`. The host checks a target again when it acts, and it answers `plain` until it has checked it, so a link reads as text while a block streams and fades into a chip once the host knows.
 
-`UiLiveStatus` holds `state` (`fresh`, `reading`, `failed` or `refused`), the `sources` it reads, `readAt` in milliseconds since the epoch or null, and for a failure the `source` and the `reason`.
+`UiLiveStatus` holds `state` (`fresh`, `reading`, `failed` or `refused`), the `sources` it reads, `readAt` in milliseconds since the epoch or null, and for a failure the `source`, the `reason` and its `code`.
+
+`uiReasonText(t, code, reason)` words a known reason code in the person's language and falls back to the reason the daemon sent, so a code a newer daemon adds still reads as text. The footer and a plain link use it for their tooltips.
 
 ## The frame
 

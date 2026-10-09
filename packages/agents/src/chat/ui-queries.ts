@@ -35,6 +35,19 @@ interface CachedReading {
     reading: ChatUiQueryReading;
 }
 
+/*
+ * A failure a client can say in its own words: `reason` is a code that stays the same across versions,
+ * the message is the fallback for a client that does not know the code.
+ */
+class UiQueryError extends ChatError<string> {
+    readonly reason: string;
+
+    constructor(code: string, reason: string, message: string) {
+        super(code, message);
+        this.reason = reason;
+    }
+}
+
 const MAX_QUERY_BYTES = 64 * 1024;
 const MAX_SNAPSHOT_BYTES = 128 * 1024;
 const READ_TIMEOUT_MS = 8_000;
@@ -108,7 +121,7 @@ export class ChatUiQueries {
                             try {
                                 links[id] = this.linkReading(await this.host.link(session.info, access, target));
                             } catch (error) {
-                                links[id] = { state: 'plain', reason: this.reason(error) };
+                                links[id] = { state: 'plain', ...this.failure(error) };
                             }
                         }
                     }
@@ -134,10 +147,12 @@ export class ChatUiQueries {
                         frozen.readings = Object.fromEntries(
                             Object.keys(readings).map((name) => [
                                 name,
-                                { state: 'failed', readAt: Date.now(), reason: 'The frozen query values are too large.' }
+                                { state: 'failed', readAt: Date.now(), code: 'snapshot-too-large', reason: 'The frozen query values are too large.' }
                             ])
                         );
-                        frozen.links = Object.fromEntries(Object.keys(links).map((id) => [id, { state: 'plain', reason: 'This link must be checked again.' }]));
+                        frozen.links = Object.fromEntries(
+                            Object.keys(links).map((id) => [id, { state: 'plain', code: 'link-unchecked', reason: 'This link must be checked again.' }])
+                        );
                         frozen.fallback = `${block.fallback.slice(0, 2048)}\nSources: ${names}\nThe frozen query values are too large.`;
                     }
                     if (Buffer.byteLength(JSON.stringify(blocks)) > MAX_SNAPSHOT_BYTES) {
@@ -187,7 +202,7 @@ export class ChatUiQueries {
         const block =
             item?.kind === 'assistant' && !item.streaming && !item.parentToolUseId ? item.ui?.find((entry) => entry.id === payload.blockId) : undefined;
         if (item?.kind !== 'assistant' || !block?.complete || block.revision !== payload.revision) {
-            throw new ChatError('stale-ui-block', 'This completed UI block is no longer available.');
+            throw new UiQueryError('stale-ui-block', 'block-stale', 'This completed UI block is no longer available.');
         }
         return { item, block };
     }
@@ -195,11 +210,11 @@ export class ChatUiQueries {
     private stored(session: ChatSession, payload: ChatUiQueryPayload): { item: ChatAssistantItem; block: UiBlock; source: ChatUiSource } {
         const { item, block } = this.storedBlock(session, payload);
         if (!Object.hasOwn(block.queries, payload.query) || Object.keys(block.queries).length > UI_HOST_LIMITS.queries) {
-            throw new ChatError('refused-query', 'This block does not declare an allowed query.');
+            throw new UiQueryError('refused-query', 'query-undeclared', 'This block does not declare an allowed query.');
         }
         const name = block.queries[payload.query].source;
         if (!Object.hasOwn(this.host.sources, name)) {
-            throw new ChatError('refused-query', 'This query source is not registered.');
+            throw new UiQueryError('refused-query', 'source-unregistered', 'This query source is not registered.');
         }
         return { item, block, source: this.host.sources[name] };
     }
@@ -216,11 +231,11 @@ export class ChatUiQueries {
             args = source.args.parse(args) as Record<string, UiValue>;
             authorAccess = await this.access(session, item);
             if (authorAccess === null) {
-                throw new ChatError('refused-query', 'The writer’s original access is unavailable.');
+                throw new UiQueryError('refused-query', 'access-unavailable', 'The writer’s original access is unavailable.');
             }
             await source.authorize(session.info, authorAccess, args);
         } catch (error) {
-            return { state: 'refused', readAt: Date.now(), reason: this.reason(error) };
+            return { state: 'refused', readAt: Date.now(), ...this.failure(error) };
         }
         const key = JSON.stringify([session.id, item.id, block.id, block.revision, payload.query, args]);
         const cached = this.cache.get(this.latest.get(key) ?? '');
@@ -237,10 +252,10 @@ export class ChatUiQueries {
             now - (this.attempts.get(key) ?? -Infinity) < UI_HOST_LIMITS.refreshMilliseconds ||
             now - (this.attempts.get(identity) ?? -Infinity) < INPUT_READ_MS
         ) {
-            return { state: 'failed', readAt: now, reason: 'This query may refresh once every ten seconds.' };
+            return { state: 'failed', readAt: now, code: 'refresh-limit', reason: 'This query may refresh once every ten seconds.' };
         }
         if ((this.active.get(session.id) ?? 0) >= 2 || this.totalActive >= 16) {
-            return { state: 'failed', readAt: now, reason: 'Too many UI queries are being read.' };
+            return { state: 'failed', readAt: now, code: 'busy', reason: 'Too many UI queries are being read.' };
         }
         this.attempts.set(key, now);
         this.attempts.set(identity, now);
@@ -255,12 +270,16 @@ export class ChatUiQueries {
         timeout.unref?.();
         const read = Promise.race([
             work,
-            new Promise<never>((_, reject) => controller.signal.addEventListener('abort', () => reject(new Error('The UI query timed out.')), { once: true }))
+            new Promise<never>((_, reject) =>
+                controller.signal.addEventListener('abort', () => reject(new UiQueryError('refused-query', 'timed-out', 'The UI query timed out.')), {
+                    once: true
+                })
+            )
         ])
             .then((result): ChatUiQueryReading => {
                 const value = copyUiValue(source.result.parse(result), new UiBudget());
                 if (Buffer.byteLength(JSON.stringify(value)) > MAX_QUERY_BYTES) {
-                    throw new Error('The UI query result is too large.');
+                    throw new UiQueryError('refused-query', 'result-too-large', 'The UI query result is too large.');
                 }
                 const reading: ChatUiQueryReading = { state: 'fresh', value, readId: randomUUID(), readAt: Date.now() };
                 this.cache.set(reading.readId!, { key, chatId: session.id, reading });
@@ -270,7 +289,7 @@ export class ChatUiQueries {
                 }
                 return reading;
             })
-            .catch((error): ChatUiQueryReading => ({ state: 'failed', readAt: Date.now(), reason: this.reason(error) }))
+            .catch((error): ChatUiQueryReading => ({ state: 'failed', readAt: Date.now(), ...this.failure(error) }))
             .finally(() => {
                 clearTimeout(timeout);
                 this.reading.delete(key);
@@ -305,7 +324,7 @@ export class ChatUiQueries {
         }
         const access = await this.access(session, item);
         if (access === null) {
-            throw new ChatError('refused-query', 'The writer’s original access is unavailable.');
+            throw new UiQueryError('refused-query', 'access-unavailable', 'The writer’s original access is unavailable.');
         }
         for (const name of names) {
             const { source } = this.stored(session, { ...payload, query: name });
@@ -325,7 +344,7 @@ export class ChatUiQueries {
                         ? snapshot
                         : undefined;
             if (!reading || reading.state !== 'fresh') {
-                throw new ChatError('stale-ui-query', 'Refresh this query before sending its choice.');
+                throw new UiQueryError('stale-ui-query', 'stale-read', 'Refresh this query before sending its choice.');
             }
             values[name] = reading.value;
         }
@@ -335,24 +354,24 @@ export class ChatUiQueries {
     async link(session: ChatSession, payload: ChatUiLinkPayload): Promise<ChatUiLinkReading> {
         try {
             if (!this.host.link) {
-                throw new ChatError('refused-query', 'This host does not provide UI links.');
+                throw new UiQueryError('refused-query', 'links-unsupported', 'This host does not provide UI links.');
             }
             const { item, block } = this.storedBlock(session, payload);
             if (!item.uiQueries) {
-                throw new ChatError('refused-query', 'The writer’s original access is unavailable.');
+                throw new UiQueryError('refused-query', 'access-unavailable', 'The writer’s original access is unavailable.');
             }
             const access = await this.access(session, item);
             if (access === null) {
-                throw new ChatError('refused-query', 'The writer’s original access is unavailable.');
+                throw new UiQueryError('refused-query', 'access-unavailable', 'The writer’s original access is unavailable.');
             }
             const queries = await this.choiceValues(session, payload);
             const target = uiLinkTargets(block, payload.values, queries)[payload.nodeId];
             if (!target) {
-                throw new ChatError('refused-query', 'This visible node is not a supported link.');
+                throw new UiQueryError('refused-query', 'link-unsupported', 'This visible node is not a supported link.');
             }
             return this.linkReading(await this.host.link(session.info, access, target));
         } catch (error) {
-            return { state: 'plain', reason: this.reason(error) };
+            return { state: 'plain', ...this.failure(error) };
         }
     }
 
@@ -380,7 +399,8 @@ export class ChatUiQueries {
         return reading;
     }
 
-    private reason(error: unknown): string {
-        return (error instanceof Error ? error.message : 'This query could not be read.').slice(0, 240);
+    private failure(error: unknown): { reason: string; code?: string } {
+        const reason = (error instanceof Error ? error.message : 'This query could not be read.').slice(0, 240);
+        return error instanceof UiQueryError ? { reason, code: error.reason } : { reason };
     }
 }
