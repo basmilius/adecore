@@ -479,5 +479,67 @@
   "code": {
     "actions": "Codeacties",
     "copyFailed": "De code kon niet worden gekopieerd. Probeer het opnieuw."
+  },
+  "blocks": {
+    "label": "Interactief blok",
+    "progress": {
+      "label": "Voortgang",
+      "of": "{{value}} van {{max}}"
+    },
+    "step": {
+      "done": "Klaar",
+      "running": "Bezig",
+      "pending": "Wacht",
+      "failed": "Mislukt",
+      "skipped": "Overgeslagen"
+    },
+    "stat": {
+      "change": "{{change}} vanaf {{previous}}",
+      "from": "vanaf {{previous}}"
+    },
+    "table": {
+      "showAll": "Alle {{total}} rijen tonen"
+    },
+    "chart": {
+      "values": "Waarden",
+      "summary": "{{count}} waarden, hoogste {{label}} met {{value}}",
+      "summarySeries": "{{count}} categorieën, hoogste {{series}} bij {{label}} met {{value}}"
+    },
+    "image": {
+      "label": "Afbeelding",
+      "unavailable": "De afbeelding is niet beschikbaar"
+    },
+    "sources": "Bronnen",
+    "outsideProject": "Buiten het project, als tekst getoond",
+    "options": "Opties",
+    "choices": "Keuzes",
+    "choice": {
+      "waiting": "Beschikbaar zodra het antwoord klaar is",
+      "unavailable": "Niet beschikbaar",
+      "sent": "Verstuurd",
+      "queued": "In de wachtrij",
+      "failed": "Versturen lukte niet. Probeer het opnieuw.",
+      "ready": "De keuzes staan klaar"
+    },
+    "answered": "Beantwoord met “{{label}}”",
+    "chose": "Gekozen: “{{label}}”",
+    "choseOlder": "Gekozen: “{{label}}”, bij het antwoord van {{time}}",
+    "sendContext": "Versturen",
+    "copyText": "Tekst kopiëren",
+    "fixes_one": "{{count}} correctie",
+    "fixes_other": "{{count}} correcties",
+    "shownAsText": "Als tekst getoond",
+    "unknownComponent": "Deze versie kan {{component}} niet tekenen",
+    "renderFailed": "Dit deel kon niet getekend worden",
+    "tooLarge": "Het blok is te groot om te tekenen",
+    "unreadable": "Het blok kon niet gelezen worden",
+    "live": {
+      "label": "Live",
+      "read": "gelezen {{time}}",
+      "sources": "Leest {{sources}}",
+      "failed": "{{source}} lezen lukte niet",
+      "refused": "Geen toegang tot {{source}}",
+      "notRead": "Niet gelezen"
+    }
   }
 }

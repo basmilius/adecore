@@ -479,5 +479,67 @@
   "code": {
     "actions": "Code actions",
     "copyFailed": "Could not copy the code. Try again."
+  },
+  "blocks": {
+    "label": "Interactive block",
+    "progress": {
+      "label": "Progress",
+      "of": "{{value}} of {{max}}"
+    },
+    "step": {
+      "done": "Done",
+      "running": "Running",
+      "pending": "Waiting",
+      "failed": "Failed",
+      "skipped": "Skipped"
+    },
+    "stat": {
+      "change": "{{change}} from {{previous}}",
+      "from": "from {{previous}}"
+    },
+    "table": {
+      "showAll": "Show all {{total}} rows"
+    },
+    "chart": {
+      "values": "Values",
+      "summary": "{{count}} values, highest {{label}} at {{value}}",
+      "summarySeries": "{{count}} categories, highest {{series}} for {{label}} at {{value}}"
+    },
+    "image": {
+      "label": "Image",
+      "unavailable": "The image is not available"
+    },
+    "sources": "Sources",
+    "outsideProject": "Outside the project, shown as text",
+    "options": "Options",
+    "choices": "Choices",
+    "choice": {
+      "waiting": "Available when the reply is done",
+      "unavailable": "Not available",
+      "sent": "Sent",
+      "queued": "Queued",
+      "failed": "Could not send. Try again.",
+      "ready": "Choices are ready"
+    },
+    "answered": "Answered with “{{label}}”",
+    "chose": "Chose “{{label}}”",
+    "choseOlder": "Chose “{{label}}” on the reply of {{time}}",
+    "sendContext": "Send",
+    "copyText": "Copy text",
+    "fixes_one": "{{count}} fix",
+    "fixes_other": "{{count}} fixes",
+    "shownAsText": "Shown as text",
+    "unknownComponent": "This version cannot draw {{component}}",
+    "renderFailed": "Could not draw this part",
+    "tooLarge": "The block is too large to draw",
+    "unreadable": "The block could not be read",
+    "live": {
+      "label": "Live",
+      "read": "read {{time}}",
+      "sources": "Reads {{sources}}",
+      "failed": "Could not read {{source}}",
+      "refused": "Not allowed to read {{source}}",
+      "notRead": "Not read"
+    }
   }
 }

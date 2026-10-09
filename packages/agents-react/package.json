@@ -519,6 +519,101 @@
             "types": "./dist/chat/ui/icons.d.ts",
             "default": "./dist/chat/ui/icons.js"
         },
+        "./chat/ui/intelligent-ui/UiBlockFooter": {
+            "source": "./src/chat/ui/intelligent-ui/UiBlockFooter.tsx",
+            "types": "./dist/chat/ui/intelligent-ui/UiBlockFooter.d.ts",
+            "default": "./dist/chat/ui/intelligent-ui/UiBlockFooter.js"
+        },
+        "./chat/ui/intelligent-ui/UiBlockFrame": {
+            "source": "./src/chat/ui/intelligent-ui/UiBlockFrame.tsx",
+            "types": "./dist/chat/ui/intelligent-ui/UiBlockFrame.d.ts",
+            "default": "./dist/chat/ui/intelligent-ui/UiBlockFrame.js"
+        },
+        "./chat/ui/intelligent-ui/UiFallbackPart": {
+            "source": "./src/chat/ui/intelligent-ui/UiFallbackPart.tsx",
+            "types": "./dist/chat/ui/intelligent-ui/UiFallbackPart.d.ts",
+            "default": "./dist/chat/ui/intelligent-ui/UiFallbackPart.js"
+        },
+        "./chat/ui/intelligent-ui/block-local": {
+            "source": "./src/chat/ui/intelligent-ui/block-local.ts",
+            "types": "./dist/chat/ui/intelligent-ui/block-local.d.ts",
+            "default": "./dist/chat/ui/intelligent-ui/block-local.js"
+        },
+        "./chat/ui/intelligent-ui/chart-data": {
+            "source": "./src/chat/ui/intelligent-ui/chart-data.ts",
+            "types": "./dist/chat/ui/intelligent-ui/chart-data.d.ts",
+            "default": "./dist/chat/ui/intelligent-ui/chart-data.js"
+        },
+        "./chat/ui/intelligent-ui/node-text": {
+            "source": "./src/chat/ui/intelligent-ui/node-text.ts",
+            "types": "./dist/chat/ui/intelligent-ui/node-text.d.ts",
+            "default": "./dist/chat/ui/intelligent-ui/node-text.js"
+        },
+        "./chat/ui/intelligent-ui/registry": {
+            "source": "./src/chat/ui/intelligent-ui/registry.ts",
+            "types": "./dist/chat/ui/intelligent-ui/registry.d.ts",
+            "default": "./dist/chat/ui/intelligent-ui/registry.js"
+        },
+        "./chat/ui/intelligent-ui/render-context": {
+            "source": "./src/chat/ui/intelligent-ui/render-context.ts",
+            "types": "./dist/chat/ui/intelligent-ui/render-context.d.ts",
+            "default": "./dist/chat/ui/intelligent-ui/render-context.js"
+        },
+        "./chat/ui/intelligent-ui/renderers/chart": {
+            "source": "./src/chat/ui/intelligent-ui/renderers/chart.tsx",
+            "types": "./dist/chat/ui/intelligent-ui/renderers/chart.d.ts",
+            "default": "./dist/chat/ui/intelligent-ui/renderers/chart.js"
+        },
+        "./chat/ui/intelligent-ui/renderers/choices": {
+            "source": "./src/chat/ui/intelligent-ui/renderers/choices.tsx",
+            "types": "./dist/chat/ui/intelligent-ui/renderers/choices.d.ts",
+            "default": "./dist/chat/ui/intelligent-ui/renderers/choices.js"
+        },
+        "./chat/ui/intelligent-ui/renderers/content": {
+            "source": "./src/chat/ui/intelligent-ui/renderers/content.tsx",
+            "types": "./dist/chat/ui/intelligent-ui/renderers/content.d.ts",
+            "default": "./dist/chat/ui/intelligent-ui/renderers/content.js"
+        },
+        "./chat/ui/intelligent-ui/renderers/data": {
+            "source": "./src/chat/ui/intelligent-ui/renderers/data.tsx",
+            "types": "./dist/chat/ui/intelligent-ui/renderers/data.d.ts",
+            "default": "./dist/chat/ui/intelligent-ui/renderers/data.js"
+        },
+        "./chat/ui/intelligent-ui/renderers/inputs": {
+            "source": "./src/chat/ui/intelligent-ui/renderers/inputs.tsx",
+            "types": "./dist/chat/ui/intelligent-ui/renderers/inputs.d.ts",
+            "default": "./dist/chat/ui/intelligent-ui/renderers/inputs.js"
+        },
+        "./chat/ui/intelligent-ui/renderers/links": {
+            "source": "./src/chat/ui/intelligent-ui/renderers/links.tsx",
+            "types": "./dist/chat/ui/intelligent-ui/renderers/links.d.ts",
+            "default": "./dist/chat/ui/intelligent-ui/renderers/links.js"
+        },
+        "./chat/ui/intelligent-ui/renderers/structure": {
+            "source": "./src/chat/ui/intelligent-ui/renderers/structure.tsx",
+            "types": "./dist/chat/ui/intelligent-ui/renderers/structure.d.ts",
+            "default": "./dist/chat/ui/intelligent-ui/renderers/structure.js"
+        },
+        "./chat/ui/intelligent-ui/renderers/text": {
+            "source": "./src/chat/ui/intelligent-ui/renderers/text.tsx",
+            "types": "./dist/chat/ui/intelligent-ui/renderers/text.d.ts",
+            "default": "./dist/chat/ui/intelligent-ui/renderers/text.js"
+        },
+        "./chat/ui/intelligent-ui/table-data": {
+            "source": "./src/chat/ui/intelligent-ui/table-data.ts",
+            "types": "./dist/chat/ui/intelligent-ui/table-data.d.ts",
+            "default": "./dist/chat/ui/intelligent-ui/table-data.js"
+        },
+        "./chat/ui/intelligent-ui/tones": {
+            "source": "./src/chat/ui/intelligent-ui/tones.ts",
+            "types": "./dist/chat/ui/intelligent-ui/tones.d.ts",
+            "default": "./dist/chat/ui/intelligent-ui/tones.js"
+        },
+        "./chat/ui/intelligent-ui/use-later": {
+            "source": "./src/chat/ui/intelligent-ui/use-later.ts",
+            "types": "./dist/chat/ui/intelligent-ui/use-later.d.ts",
+            "default": "./dist/chat/ui/intelligent-ui/use-later.js"
+        },
         "./chat/ui/markdown-blocks": {
             "source": "./src/chat/ui/markdown-blocks.ts",
             "types": "./dist/chat/ui/markdown-blocks.d.ts",

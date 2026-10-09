@@ -1,0 +1,297 @@
+import { afterEach, describe, expect, test } from 'bun:test';
+import { createElement, Fragment, type ComponentType, type ReactElement, type ReactNode } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { compileUiBlock, evaluateUiBlock, UI_CATALOG, UiState, type UiComponentName, type UiViewNode } from '@adecore/intelligent-ui';
+import { chatHost, setChatHost } from '../../../host';
+import { uiChartData, niceCeiling, UI_CHART_SERIES } from './chart-data';
+import { uiBlockHead, uiNodeLabel, uiNodeText } from './node-text';
+import { UI_RENDERERS } from './registry';
+import type { UiRenderContext, UiRenderer, UiRendererProps } from './render-context';
+import { ChecklistRenderer } from './renderers/inputs';
+import { uiTableCell, uiTableColumns } from './table-data';
+import { UiBlockFrame, type UiBlockFrameProps } from './UiBlockFrame';
+
+/* A component whose children go in as the children of `createElement`, as JSX would pass them. */
+type Drawable<Props> = ComponentType<Omit<Props, 'children'>>;
+
+const Frame = UiBlockFrame as Drawable<UiBlockFrameProps>;
+
+const CONTEXT: UiRenderContext = { scopeId: 'scope', chatId: 'chat', itemId: 'item', blockId: 'block', phase: 'final', answer: null };
+
+function compiled(source: string, final = true) {
+    return compileUiBlock(source, { id: 'chat:item:block', final, limits: { milliseconds: 5000 } });
+}
+
+function evaluate(source: string, final = true): { nodes: UiViewNode[]; state: UiState } {
+    const block = compiled(source, final);
+    const state = new UiState(block);
+    return { nodes: evaluateUiBlock(block, state, { milliseconds: 5000 }).nodes, state };
+}
+
+/* The smallest tree a runtime would draw, for these tests only: text as text, every other node through the registry. */
+function drawn(nodes: readonly UiViewNode[], context: UiRenderContext): ReactNode {
+    return nodes.map((node) => {
+        if (node.type === '$text') {
+            return createElement(Fragment, { key: node.id }, String(node.props.text));
+        }
+        const renderer = UI_RENDERERS[node.type as UiComponentName] as UiRenderer<unknown> | null;
+        if (renderer === null) {
+            return null;
+        }
+        return createElement(renderer as Drawable<UiRendererProps<unknown>>, { key: node.id, node, context }, drawn(node.children, context));
+    });
+}
+
+function markup(source: string, context: Partial<UiRenderContext> = {}, final = true): string {
+    const full = { ...CONTEXT, ...context };
+    const { nodes } = evaluate(source, final);
+    return renderToStaticMarkup(createElement(Frame, { nodes, phase: full.phase }, drawn(nodes, full)));
+}
+
+const REVIEW =
+    '$selected = ["links", "preload"]\n<Summary tone="danger" badge="2 blocking">2 of 2 findings selected</Summary>' +
+    '<Checklist value={$selected}><Item value="links"><File path="src/links.ts" line="148">Cuts a path</File></Item><Item value="preload">Bridge</Item></Checklist>' +
+    '<Choices><Choice context={"Fix these findings: " + @Join($selected, ", ")} primary={true}>Fix {@Count($selected)}</Choice><Choice>Leave it</Choice></Choices>';
+
+describe('the registry of intelligent UI renderers', () => {
+    test('accounts for every catalog name, and only those', () => {
+        expect(Object.keys(UI_RENDERERS).sort()).toEqual(Object.keys(UI_CATALOG).sort());
+        expect(Object.keys(UI_RENDERERS)).toHaveLength(35);
+        const empty = Object.entries(UI_RENDERERS)
+            .filter(([, renderer]) => renderer === null)
+            .map(([name]) => name)
+            .sort();
+        expect(empty).toEqual(['Column', 'Each', 'Option', 'Show']);
+    });
+});
+
+describe('node text', () => {
+    test('joins the text below a node and reads the head of a block', () => {
+        const { nodes } = evaluate('$n = 3\n<Summary>Found {$n}   open <Tag>new</Tag> issues</Summary><Summary>Second</Summary>');
+        expect(uiNodeText(nodes[0]!)).toContain('Found 3');
+        expect(uiNodeLabel(nodes[0]!)).toBe('Found 3 open new issues');
+        expect(uiBlockHead(nodes)).toEqual({ id: nodes[0]!.id, label: 'Found 3 open new issues' });
+        expect(uiBlockHead(nodes.slice(1, 1))).toBeNull();
+    });
+});
+
+describe('the frame of a block', () => {
+    test('names the block by its Summary, gives only the head an icon, and says nothing in an empty footer', () => {
+        const html = markup('<Summary tone="danger">Head</Summary><Summary tone="success">Sub</Summary>');
+        expect(html).toContain('role="group" aria-label="Head"');
+        expect(html).toContain('lucide-octagon-alert');
+        expect(html).not.toContain('lucide-circle-check');
+        expect(html).not.toContain('border-t');
+        expect(html).not.toContain('aria-busy');
+    });
+
+    test('holds a skeleton while the fence has no node yet, and is busy while it streams', () => {
+        const html = renderToStaticMarkup(createElement(Frame, { nodes: [], phase: 'streaming' }));
+        expect(html).toContain('aria-busy="true"');
+        expect(html).toContain('animate-pulse');
+        expect(html).toContain('aria-label="Interactive block"');
+    });
+
+    test('writes the footer in its order', () => {
+        const html = renderToStaticMarkup(
+            createElement(Frame, {
+                nodes: [],
+                phase: 'final',
+                live: { state: 'fresh', sources: ['launch.status'], readAt: null },
+                answered: { label: 'Fix 2', at: Date.UTC(2026, 9, 9, 12, 7) },
+                fixes: [
+                    { code: 'unknown_prop', message: 'Stat: dropped tone="huge"' },
+                    { code: 'refused_prop', message: 'Image: dropped url' }
+                ],
+                shownAsText: 'The block is too large to draw'
+            })
+        );
+        const order = ['Live', 'Not read', 'Answered with “Fix 2”', '2 fixes', 'Shown as text', 'The block is too large to draw'];
+        expect(order.map((words) => html.indexOf(words))).toEqual([...order.map((words) => html.indexOf(words))].sort((a, b) => a - b));
+        expect(order.every((words) => html.includes(words))).toBe(true);
+        expect(html).toContain('unknown_prop');
+        expect(html).toContain('aria-expanded="false"');
+    });
+});
+
+describe('choices', () => {
+    test('show their context below the label and stay closed while the reply streams', () => {
+        const html = markup(REVIEW, { phase: 'streaming', onChoose: () => undefined });
+        expect(html).toContain('Fix these findings: links, preload');
+        expect(html).toMatch(/aria-disabled="true" aria-describedby="[^"]+"/);
+        expect(html).toContain('opacity-60');
+        expect(html).toContain('order-first');
+    });
+
+    test('open once the block is done and a host can send them', () => {
+        const open = markup(REVIEW, { onChoose: () => undefined });
+        expect(open).not.toContain('aria-disabled');
+        expect(markup(REVIEW)).toContain('aria-disabled="true"');
+    });
+
+    test('mark the chosen row and close the others', () => {
+        const { nodes } = evaluate(REVIEW);
+        const choiceId = nodes.find((node) => node.type === 'Choices')!.children.find((node) => node.type === 'Choice')!.id;
+        const sent = markup(REVIEW, { onChoose: () => undefined, answer: { choiceId, state: 'sent' } });
+        expect(sent).toContain('Sent');
+        expect(sent).toContain('bg-accent-soft');
+        expect(sent).toContain('opacity-50');
+        expect(markup(REVIEW, { onChoose: () => undefined, answer: { choiceId, state: 'queued' } })).toContain('Queued');
+        const failed = markup(REVIEW, { onChoose: () => undefined, failedChoiceId: choiceId });
+        expect(failed).toContain('role="alert"');
+        expect(failed).toContain('Could not send. Try again.');
+    });
+});
+
+describe('local inputs', () => {
+    test('change their state only through the binding, once their node closed', () => {
+        const { nodes, state } = evaluate(REVIEW);
+        const list = nodes.find((node) => node.type === 'Checklist') as UiViewNode<{ value: (string | number | boolean | null)[] }>;
+        const element = ChecklistRenderer({ node: list, children: null, context: CONTEXT }) as ReactElement<{ value: { toggle(value: unknown): void } }>;
+        element.props.value.toggle('links');
+        expect(state.scope().$selected).toEqual(['preload']);
+    });
+
+    test('are disabled without a binding or before their node closed', () => {
+        const readOnly = { ...evaluate('<Switch value={true}>Show nits</Switch>').nodes[0]!, bindings: {} };
+        const html = renderToStaticMarkup(
+            createElement(UI_RENDERERS.Switch! as Drawable<UiRendererProps<{ value: boolean }>>, { node: readOnly as never, context: CONTEXT }, 'Show nits')
+        );
+        expect(html).toContain('data-disabled');
+        const partial = markup('$count = 4\n<Slider value={$count} min={1} max={16}>Agents', {}, false);
+        expect(partial).toContain('pointer-events-none opacity-60');
+    });
+
+    test('label a slider and a segmented control with their text', () => {
+        const html = markup(
+            '$count = 8\n$mode = "all"\n<Slider value={$count} min={1} max={16}>Parallel agents</Slider><Segmented value={$mode}><Option value="all">All</Option><Option value="failed">Failing</Option></Segmented>'
+        );
+        expect(html).toContain('Parallel agents');
+        expect(html).toContain('aria-checked="true"');
+        expect(html).toContain('Failing');
+    });
+});
+
+describe('text and status', () => {
+    test('progress reads its value against its max, or as a percentage', () => {
+        expect(markup('<Progress value={312} max={500}>Indexing files</Progress>')).toContain('312 of 500');
+        expect(markup('<Progress value={46}>Share</Progress>')).toContain('46%');
+    });
+
+    test('a running step spins only while the block is live', () => {
+        const source = '<Steps><Step state="running">Build</Step><Step state="done" detail="42 s">Lint</Step></Steps>';
+        expect(markup(source)).toContain('lucide-circle-dot');
+        expect(markup(source, { phase: 'streaming' }, false)).not.toContain('lucide-circle-dot');
+        expect(markup(source)).toContain('42 s');
+    });
+
+    test('a stat says how it changed without coloring it unless it has a tone', () => {
+        const html = markup('<Stats><Stat label="Cold start" value={1.42} previous={1.9} unit="s"/></Stats>');
+        expect(html).toContain('25% from 1.9 s');
+        expect(html).toContain('text-text-faint');
+        expect(markup('<Stats><Stat label="Tests" value={3} previous={0} tone="danger"/></Stats>')).toContain('text-status-error');
+    });
+});
+
+describe('tables', () => {
+    test('take columns from their Column children and protect values of the wrong kind', () => {
+        const { nodes } = evaluate(
+            '<Table rows={[{name: "Core", size: 32}, {name: "Client", size: "n/a"}]}><Column key="name"/><Column key="size" as="number" unit="ms"/><Column key="missing"/></Table>'
+        );
+        const columns = uiTableColumns(nodes[0] as never);
+        expect(columns.map((column) => column.key)).toEqual(['name', 'size']);
+        expect(uiTableCell('n/a', columns[1]!)).toEqual({ kind: 'text', text: 'n/a' });
+        expect(uiTableCell(undefined, columns[1]!)).toEqual({ kind: 'empty' });
+        expect(uiTableCell('12', columns[1]!)).toEqual({ kind: 'number', as: 'number', value: 12 });
+    });
+
+    test('show fifty rows until a person asks for all of them', () => {
+        const rows = Array.from({ length: 60 }, (_, index) => `{n: ${index}}`).join(', ');
+        const html = markup(`<Table rows={[${rows}]}/>`);
+        expect(html.match(/<tr/g)).toHaveLength(51);
+        expect(html).toContain('Show all 60 rows');
+    });
+
+    test('draw their text when no column is usable', () => {
+        expect(markup('<Table rows={[{a: 1}]}><Column key="b"/></Table>')).toContain('Could not draw this part');
+    });
+});
+
+describe('charts', () => {
+    test('keep up to six numeric series and leave gaps for values that are no number', () => {
+        const data: Record<string, string | number | boolean | null>[] = [
+            { label: 'Mon', a: 1, b: 'x', c: 2, d: 3, e: 4, f: 5, g: 6, h: 7 },
+            { label: 'Tue', a: null, c: 1 }
+        ];
+        const chart = uiChartData(data, 'bar')!;
+        expect(chart.series.map((series) => series.key)).toEqual(['a', 'c', 'd', 'e', 'f', 'g']);
+        expect(chart.series).toHaveLength(UI_CHART_SERIES);
+        expect(chart.series[0]!.values).toEqual([1, null]);
+        expect(uiChartData([{ label: 'x', value: 'none' }], 'bar')).toBeNull();
+        expect(
+            uiChartData(
+                [
+                    { label: 'x', a: 2 },
+                    { label: 'y', a: 3, b: 4 }
+                ],
+                'stacked'
+            )!.max
+        ).toBe(7);
+        expect([niceCeiling(41), niceCeiling(0.9), niceCeiling(212)]).toEqual([50, 1, 250]);
+    });
+
+    test('draw only once their node closed, and describe themselves', () => {
+        const source = '<Chart kind="bar" data={[{label: "Core", passed: 32, failed: 1}]}/>';
+        const partial = markup(source.slice(0, -2), { phase: 'streaming' }, false);
+        expect(partial).not.toContain('role="img"');
+        const html = markup(source);
+        expect(html).toContain('role="img"');
+        expect(html).toContain('highest passed for Core at 32');
+        expect(html).toContain('<caption>Values</caption>');
+        expect(markup('<Chart kind="line" data={[{label: "x", value: "none"}]}/>')).toContain('Could not draw this part');
+    });
+});
+
+describe('links', () => {
+    test('stay plain text without a host, and become chips the host opens', () => {
+        const source = '<File path="src/terminal/links.ts" line="148"/>';
+        expect(markup(source)).toContain('src/terminal/links.ts:148');
+        expect(markup(source)).not.toContain('<button');
+        const chip = markup(source, { link: () => ({ state: 'chip' }), openLink: () => undefined });
+        expect(chip).toContain('<button');
+        expect(chip).toContain('links.ts');
+        const plain = markup('<File path="~/.codex/config.toml"/>', { link: () => ({ state: 'plain' }) });
+        expect(plain).toContain('tabindex="0"');
+        expect(markup('<Commit sha="47946f746"/>')).toContain('47946f7');
+    });
+});
+
+describe('content', () => {
+    const before = chatHost().attachments;
+    afterEach(() => setChatHost({ attachments: before }));
+
+    test('an image reads only an attachment of the chat', () => {
+        expect(markup('<Image generated="latest" alt="A rabbit"/>')).not.toContain('<img');
+        setChatHost({ attachments: { ...before, useUrl: (_scope, _chat, id) => ({ url: `blob:${id}`, failure: null }) } });
+        const html = markup('<Image attachment="rabbit" alt="A rabbit">The rabbit</Image>');
+        expect(html).toContain('src="blob:rabbit"');
+        expect(html).toContain('<figcaption');
+    });
+
+    test('sources are numbered and open through the host only', () => {
+        const source = '<Sources><Source title="Docs" url="https://www.adecore.dev/ui"/><Source title="Guide" url="https://example.com"/></Sources>';
+        const html = markup(source);
+        expect(html).toContain('adecore.dev');
+        expect(html).not.toContain('<button');
+        expect(html).not.toContain('href');
+        expect(markup(source, { openUrl: () => undefined })).toContain('<button');
+    });
+
+    test('structure draws a tab strip and open sections', () => {
+        const html = markup(
+            '<Tabs><Tab title="First">One</Tab><Tab title="Second">Two</Tab></Tabs><Sections><Section title="Details">Text</Section></Sections>'
+        );
+        expect(html).toContain('First');
+        expect(html).toContain('aria-expanded="true"');
+    });
+});

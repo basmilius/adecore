@@ -1,0 +1,121 @@
+import { createContext, useContext, type MouseEvent } from 'react';
+import clsx from 'clsx';
+import { useTranslation } from 'react-i18next';
+import type { UiBinding, UiProps, UiViewNode } from '@adecore/intelligent-ui';
+import { Checkbox, Segmented, Slider, Switch } from '@adecore/ui';
+import { uiChildrenOf, uiNodeLabel } from '../node-text';
+import type { UiRendererProps } from '../render-context';
+
+type Scalar = UiProps<'Item'>['value'];
+
+interface ChecklistState {
+    values: readonly Scalar[];
+    enabled: boolean;
+    toggle(value: Scalar): void;
+}
+
+const ChecklistContext = createContext<ChecklistState>({ values: [], enabled: false, toggle: () => undefined });
+
+/*
+ * The binding of an input, or null for a read-only node. An input works once its own node closed and
+ * only through its binding, so the value never leaves the block until a Choice carries it.
+ */
+function bindingOf<Value>(node: UiViewNode<{ value: Value }>): UiBinding<Value> | null {
+    const binding = node.bindings.value as UiBinding<Value> | undefined;
+    return binding === undefined || !node.complete ? null : binding;
+}
+
+/* An input whose node has not closed yet stands at 60% and takes no pointer. */
+const PENDING = 'pointer-events-none opacity-60';
+
+export function ChecklistRenderer({ node, children }: UiRendererProps<UiProps<'Checklist'>>) {
+    const binding = bindingOf(node);
+    const values = binding?.value ?? node.props.value;
+    const toggle = (value: Scalar): void => {
+        binding?.onValueChange(values.includes(value) ? values.filter((entry) => entry !== value) : [...values, value]);
+    };
+    return (
+        <ChecklistContext value={{ values, enabled: binding !== null, toggle }}>
+            <div className={clsx('flex flex-col', !node.complete && PENDING)}>{children}</div>
+        </ChecklistContext>
+    );
+}
+
+/* The whole row is the label; a link inside it keeps its own click and checks nothing. */
+export function ItemRenderer({ node, children }: UiRendererProps<UiProps<'Item'>>) {
+    const list = useContext(ChecklistContext);
+    const { value } = node.props;
+    const toggleRow = (event: MouseEvent<HTMLDivElement>): void => {
+        if (list.enabled && !(event.target as Element).closest('button, a')) {
+            list.toggle(value);
+        }
+    };
+    return (
+        <div
+            className={clsx('flex min-h-8 items-center gap-2 rounded-md px-2 text-sm text-text', list.enabled && 'hover:bg-surface-hover')}
+            onClick={toggleRow}
+        >
+            <Checkbox checked={list.values.includes(value)} onCheckedChange={() => list.toggle(value)} label={uiNodeLabel(node)} disabled={!list.enabled} />
+            <div className="min-w-0 grow">{children}</div>
+        </div>
+    );
+}
+
+export function SwitchRenderer({ node, children }: UiRendererProps<UiProps<'Switch'>>) {
+    const binding = bindingOf(node);
+    return (
+        <div className={clsx('flex min-h-7 items-center justify-between gap-3 px-2 text-sm', !node.complete && PENDING)}>
+            <span className="min-w-0 text-text">{children}</span>
+            <Switch
+                checked={binding?.value ?? node.props.value}
+                onCheckedChange={(next) => binding?.onValueChange(next)}
+                label={uiNodeLabel(node)}
+                disabled={binding === null}
+            />
+        </div>
+    );
+}
+
+/* Its children are the label, read as text: the slider writes its own label line. */
+export function SliderRenderer({ node }: UiRendererProps<UiProps<'Slider'>>) {
+    const binding = bindingOf(node);
+    const { value, min, max, step, unit } = node.props;
+    return (
+        <Slider
+            value={binding?.value ?? value}
+            onValueChange={(next) => binding?.onValueChange(next)}
+            min={min}
+            max={max}
+            step={step}
+            unit={unit}
+            label={uiNodeLabel(node)}
+            disabled={binding === null}
+            className={clsx('px-2', !node.complete && PENDING)}
+        />
+    );
+}
+
+/* Left aligned, never the full width. Each Option is a segment by its place, since a value may be any scalar. */
+export function SegmentedRenderer({ node }: UiRendererProps<UiProps<'Segmented'>>) {
+    const { t } = useTranslation('agent-chat');
+    const binding = bindingOf(node);
+    const current = binding?.value ?? node.props.value;
+    const options = uiChildrenOf(node, 'Option').map((option, index) => ({ id: String(index), label: uiNodeLabel(option), value: option.props.value }));
+    const picked = options.find((option) => option.value === current)?.id ?? '';
+    return (
+        <div className={clsx('px-2', !node.complete && PENDING)}>
+            <Segmented
+                value={picked}
+                options={options}
+                label={t('blocks.options')}
+                disabled={binding === null}
+                onValueChange={(id) => {
+                    const option = options[Number(id)];
+                    if (option !== undefined) {
+                        binding?.onValueChange(option.value);
+                    }
+                }}
+            />
+        </div>
+    );
+}

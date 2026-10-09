@@ -134,6 +134,32 @@ Many props and options are not exported types. Derive them where you need one, a
 | [`chat/ui/useToggleSet`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/useToggleSet.ts) | `ToggleSet`, `useToggleSet` |
 | [`chat/ui/visual-theme`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/visual-theme.ts) | `VisualTokens`, `visualThemeOf`, `backgroundBehind`, `useVisualTheme` |
 
+## Intelligent UI
+
+The renderers of [Intelligent UI](/agents-react/chat/intelligent-ui) blocks.
+
+| Module | Exports |
+| --- | --- |
+| [`chat/ui/intelligent-ui/UiBlockFooter`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/intelligent-ui/UiBlockFooter.tsx) | `UiBlockFix`, `UiBlockFooterProps`, `UiBlockFooter` |
+| [`chat/ui/intelligent-ui/UiBlockFrame`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/intelligent-ui/UiBlockFrame.tsx) | `UiBlockFrameProps`, `UiBlockFrame` |
+| [`chat/ui/intelligent-ui/UiFallbackPart`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/intelligent-ui/UiFallbackPart.tsx) | `UiFallbackProblem`, `UiFallbackPart` |
+| [`chat/ui/intelligent-ui/block-local`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/intelligent-ui/block-local.ts) | `useBlockLocal` |
+| [`chat/ui/intelligent-ui/chart-data`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/intelligent-ui/chart-data.ts) | `UI_CHART_SERIES`, `UI_CHART_ROWS`, `UiChartSeries`, `UiChartData`, `uiChartData`, `niceCeiling` |
+| [`chat/ui/intelligent-ui/node-text`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/intelligent-ui/node-text.ts) | `uiNodeText`, `uiNodeLabel`, `uiChildrenOf`, `uiBlockHead` |
+| [`chat/ui/intelligent-ui/registry`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/intelligent-ui/registry.ts) | `UI_RENDERERS` |
+| [`chat/ui/intelligent-ui/render-context`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/intelligent-ui/render-context.ts) | `UiLinkTarget`, `UiLink`, `UiAnswer`, `UiLiveStatus`, `UiRenderContext`, `UiRendererProps`, `UiRenderer`, `UiRenderers`, `UiHeadContext` |
+| [`chat/ui/intelligent-ui/renderers/chart`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/intelligent-ui/renderers/chart.tsx) | `ChartRenderer` |
+| [`chat/ui/intelligent-ui/renderers/choices`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/intelligent-ui/renderers/choices.tsx) | `ChoicesRenderer`, `ChoiceRenderer` |
+| [`chat/ui/intelligent-ui/renderers/content`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/intelligent-ui/renderers/content.tsx) | `CodeBlockRenderer`, `ImageRenderer`, `SourcesRenderer`, `SourceRenderer` |
+| [`chat/ui/intelligent-ui/renderers/data`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/intelligent-ui/renderers/data.tsx) | `StatsRenderer`, `StatRenderer`, `EntityListRenderer`, `EntryRenderer`, `TableRenderer` |
+| [`chat/ui/intelligent-ui/renderers/inputs`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/intelligent-ui/renderers/inputs.tsx) | `ChecklistRenderer`, `ItemRenderer`, `SwitchRenderer`, `SliderRenderer`, `SegmentedRenderer` |
+| [`chat/ui/intelligent-ui/renderers/links`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/intelligent-ui/renderers/links.tsx) | `UiLinkChip`, `FileRenderer`, `DiffRenderer`, `CommitRenderer`, `NodeRenderer` |
+| [`chat/ui/intelligent-ui/renderers/structure`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/intelligent-ui/renderers/structure.tsx) | `TabsRenderer`, `TabRenderer`, `SectionsRenderer`, `SectionRenderer` |
+| [`chat/ui/intelligent-ui/renderers/text`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/intelligent-ui/renderers/text.tsx) | `SummaryRenderer`, `CalloutRenderer`, `TagRenderer`, `ProgressRenderer`, `StepsRenderer`, `StepRenderer` |
+| [`chat/ui/intelligent-ui/table-data`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/intelligent-ui/table-data.ts) | `UiColumnKind`, `UiTableColumn`, `UiTableCell`, `UI_TABLE_ROWS`, `isNumericColumn`, `uiTableColumns`, `uiTableCell` |
+| [`chat/ui/intelligent-ui/tones`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/intelligent-ui/tones.ts) | `UI_TONE_ICONS`, `UI_TONE_TEXT`, `UI_TONE_SURFACE`, `UI_TONE_PILL` |
+| [`chat/ui/intelligent-ui/use-later`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/intelligent-ui/use-later.ts) | `useLater` |
+
 ## Composer editor
 
 | Module | Exports |
