@@ -3,7 +3,7 @@ import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import type { UiBinding, UiProps, UiViewNode } from '@adecore/intelligent-ui';
 import { Button, Checkbox, Segmented, Slider, Switch } from '@adecore/ui';
-import { uiChildrenOf, uiNodeLabel } from '../node-text';
+import { uiChildrenOf, uiNodeLabel, uiWithUnit } from '../node-text';
 import type { UiRenderContext, UiRendererProps } from '../render-context';
 
 type Scalar = UiProps<'Item'>['value'];
@@ -87,7 +87,8 @@ export function SliderRenderer({ node, context }: UiRendererProps<UiProps<'Slide
             min={min}
             max={max}
             step={step}
-            unit={unit}
+            // The slider prints its unit right after the number, so the space a unit stands apart with comes from here.
+            unit={uiWithUnit('', unit)}
             label={uiNodeLabel(node)}
             disabled={binding === null}
             className={clsx('px-2', !node.complete && PENDING)}

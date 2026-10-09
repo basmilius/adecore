@@ -6,7 +6,7 @@ import { chatHost, setChatHost } from '../../../host';
 import { UiPageMemory } from './block-local';
 import { uiChartData, niceCeiling, UI_CHART_SERIES } from './chart-data';
 import i18next from 'i18next';
-import { uiBlockHead, uiNodeLabel, uiNodeText, uiReasonText } from './node-text';
+import { uiBlockHead, uiNodeLabel, uiNodeText, uiReasonText, uiWithUnit } from './node-text';
 import { UI_RENDERERS } from './registry';
 import type { UiRenderContext, UiRenderer, UiRendererProps } from './render-context';
 import { UiSourceCitation } from './renderers/content';
@@ -127,6 +127,13 @@ test('a known reason code is worded here, and an unknown one reads as the reason
     expect(uiReasonText(t, 'refresh-limit', 'This query may refresh once every ten seconds.')).toBe('This source reads at most once every ten seconds.');
     expect(uiReasonText(t, 'newer-code', 'A reason from a newer machine.')).toBe('A reason from a newer machine.');
     expect(uiReasonText(t, undefined, 'Plain')).toBe('Plain');
+});
+
+test('a unit stands apart from its number everywhere, except a percent sign', () => {
+    expect([uiWithUnit('5', 'ms'), uiWithUnit('5', '%'), uiWithUnit('5', undefined)]).toEqual(['5\u00a0ms', '5%', '5']);
+    const html = markup('$wait = 5\n<Slider value={$wait} min={1} max={10} unit="ms">Wait</Slider>');
+    expect(html).toContain('>5\u00a0ms</span>');
+    expect(html).toContain('aria-valuetext="5\u00a0ms"');
 });
 
 test('page memory forgets the value used longest ago past its limit', () => {

@@ -69,7 +69,7 @@ Choices. A Choice is a row with its label and, under it, the context the agent r
 
 ## Tones and words
 
-`UI_TONE_ICONS`, `UI_TONE_TEXT`, `UI_TONE_SURFACE` and `UI_TONE_PILL` map the five tones to an icon, a text color, a surface and a pill. Every tone has its own icon, so color is never the only signal. `uiNodeText(node)` joins the text under a node as written, `uiNodeLabel(node)` puts it on one line for a name a control needs, and `uiChildrenOf(node, type)` lists the valid children of one kind.
+`UI_TONE_ICONS`, `UI_TONE_TEXT`, `UI_TONE_SURFACE` and `UI_TONE_PILL` map the five tones to an icon, a text color, a surface and a pill. Every tone has its own icon, so color is never the only signal. `uiNodeText(node)` joins the text under a node as written, `uiNodeLabel(node)` puts it on one line for a name a control needs, `uiChildrenOf(node, type)` lists the valid children of one kind, and `uiWithUnit(text, unit)` writes a number with its unit, a space apart except for a percent sign, the same in a stat, a table, a chart and a slider.
 
 The words are in the `agent-chat` namespace under `blocks`, in English and Dutch. What the agent writes is never translated.
 

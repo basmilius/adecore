@@ -6,6 +6,7 @@ import type { UiProps } from '@adecore/intelligent-ui';
 import { SegmentBar, useMeasuredWidth } from '@adecore/ui';
 import { formatRounded } from '@adecore/ui/format';
 import { niceCeiling, UI_CHART_ROWS, uiChartData, type UiChartData } from '../chart-data';
+import { uiWithUnit } from '../node-text';
 import type { UiRendererProps } from '../render-context';
 import { UiFallbackPart } from '../UiFallbackPart';
 
@@ -28,11 +29,7 @@ function seriesColor(index: number): string {
 }
 
 function valueText(value: number | null, unit: string | undefined): string {
-    if (value === null) {
-        return '';
-    }
-    const text = formatRounded(value, 2);
-    return unit === undefined || unit === '' ? text : unit === '%' ? `${text}%` : `${text} ${unit}`;
+    return value === null ? '' : uiWithUnit(formatRounded(value, 2), unit);
 }
 
 /* The height a chart will take, which its place holds while the node streams. */

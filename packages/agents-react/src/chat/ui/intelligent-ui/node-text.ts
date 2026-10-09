@@ -81,3 +81,14 @@ const UI_REASON_CODES = new Set([
 export function uiReasonText(t: TFunction<'agent-chat'>, code: string | undefined, reason: string | undefined): string | undefined {
     return code !== undefined && UI_REASON_CODES.has(code) ? t(`blocks.live.reasons.${code}`) : reason;
 }
+
+/*
+ * A number with its unit, where a percent sign hugs the number and every other unit stands apart
+ * from it, by a space that never lets the two wrap apart.
+ */
+export function uiWithUnit(text: string, unit: string | undefined): string {
+    if (unit === undefined || unit === '') {
+        return text;
+    }
+    return unit === '%' ? `${text}${unit}` : `${text}\u00a0${unit}`;
+}

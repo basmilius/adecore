@@ -5,7 +5,7 @@ import type { UiProps } from '@adecore/intelligent-ui';
 import { Button, Icon, KeyValueList, Pill } from '@adecore/ui';
 import { formatBytes, formatDuration, formatMoment, formatNumber, formatPercent, formatRounded } from '@adecore/ui/format';
 import { useBlockLocal } from '../block-local';
-import { uiChildrenOf } from '../node-text';
+import { uiChildrenOf, uiWithUnit } from '../node-text';
 import type { UiLiveValue, UiRendererProps } from '../render-context';
 import { isNumericColumn, UI_TABLE_ROWS, uiTableCell, uiTableColumns, type UiTableCell, type UiTableColumn } from '../table-data';
 import { UI_TONE_TEXT } from '../tones';
@@ -13,14 +13,6 @@ import { UiFallbackPart } from '../UiFallbackPart';
 
 /* EntityList draws a hairline between its rows from this many on. */
 const DIVIDED_FROM = 7;
-
-/* A number with its unit, where a percent sign hugs the number and every other unit stands apart from it. */
-function withUnit(text: string, unit: string | undefined): string {
-    if (unit === undefined || unit === '') {
-        return text;
-    }
-    return unit === '%' ? `${text}${unit}` : `${text} ${unit}`;
-}
 
 /*
  * A number that live readings keep up to date. Keyed by its text, so a value that changed mounts
@@ -46,15 +38,15 @@ export function StatRenderer({ node, context }: UiRendererProps<UiProps<'Stat'>>
     const live = context.liveValue?.(node.id, 'value');
     const change = previous === undefined ? null : value - previous;
     const arrow = change === null || change === 0 ? ArrowRight : change > 0 ? ArrowUp : ArrowDown;
-    const from = previous === undefined ? '' : withUnit(formatRounded(previous, 2), unit);
+    const from = previous === undefined ? '' : uiWithUnit(formatRounded(previous, 2), unit);
     // A change from zero has no percentage.
     const percent = change === null || previous === undefined || previous === 0 ? null : formatPercent(Math.abs((change / previous) * 100));
     return (
         <div className="flex min-w-0 flex-col gap-0.5 rounded-md bg-surface-hover px-2 py-1.5">
             <span className="truncate text-xs text-text-muted">{label}</span>
             <LiveFigure
-                text={withUnit(formatRounded(value, 2), unit)}
-                previous={typeof live?.previous === 'number' ? withUnit(formatRounded(live.previous, 2), unit) : undefined}
+                text={uiWithUnit(formatRounded(value, 2), unit)}
+                previous={typeof live?.previous === 'number' ? uiWithUnit(formatRounded(live.previous, 2), unit) : undefined}
                 live={live}
                 className="text-lg font-semibold tabular-nums"
             />
@@ -88,7 +80,7 @@ export function EntryRenderer({ node, children }: UiRendererProps<UiProps<'Entry
 }
 
 function numberText(cell: Extract<UiTableCell, { kind: 'number' }>, unit: string | undefined): string {
-    return cell.as === 'bytes' ? formatBytes(cell.value) : cell.as === 'duration' ? formatDuration(cell.value) : withUnit(formatRounded(cell.value, 2), unit);
+    return cell.as === 'bytes' ? formatBytes(cell.value) : cell.as === 'duration' ? formatDuration(cell.value) : uiWithUnit(formatRounded(cell.value, 2), unit);
 }
 
 function Cell({ value, column, live }: { value: unknown; column: UiTableColumn; live?: UiLiveValue }) {
