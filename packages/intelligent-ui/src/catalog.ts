@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { uiPropList } from './prop-list.ts';
 
 export const UI_CATALOG_VERSION = 1;
 export const UiToneSchema = z.enum(['neutral', 'info', 'success', 'warning', 'danger']);
@@ -144,12 +145,6 @@ export function isUiComponent(name: string): name is UiComponentName {
 
 export function uiCatalogText(): string {
     return Object.entries(UI_CATALOG)
-        .map(([name, entry]) => {
-            const shape = entry.schema.shape;
-            const props = Object.entries(shape)
-                .map(([key, schema]) => `${key}${schema.isOptional() ? '?' : ''}`)
-                .join(', ');
-            return `${name}(${props}): ${entry.description}`;
-        })
+        .map(([name, entry]) => `${name}(${uiPropList(entry).join(', ')}): ${entry.description}`)
         .join('\n');
 }

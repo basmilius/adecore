@@ -1,12 +1,11 @@
 import { UI_CATALOG, UI_GROUPS } from './catalog.ts';
+import { uiPropList } from './prop-list.ts';
 import { UI_FENCE_LANGUAGE, type UiBlock } from './compiler.ts';
 
 export function uiCompactCatalog(): string {
     return Object.entries(UI_CATALOG)
         .map(([name, entry]) => {
-            const props = Object.entries(entry.schema.shape)
-                .map(([key, schema]) => `${key}${schema.isOptional() ? '?' : ''}`)
-                .join(',');
+            const props = uiPropList(entry).join(',');
             return `${name}${props ? `: ${props}` : ''}`;
         })
         .join(' · ');
@@ -43,9 +42,7 @@ export function uiReferenceText({ fenceLanguage = UI_FENCE_LANGUAGE }: UiTextOpt
             const components = Object.entries(UI_CATALOG)
                 .filter(([, entry]) => entry.group === group)
                 .map(([name, entry]) => {
-                    const props = Object.entries(entry.schema.shape)
-                        .map(([key, schema]) => `${key}${schema.isOptional() ? '?' : ''}`)
-                        .join(', ');
+                    const props = uiPropList(entry).join(', ');
                     return `${name}: ${entry.description}${props ? ` Props: ${props}.` : ''}`;
                 });
             return [definition.description, definition.rules, ...components].join('\n');
