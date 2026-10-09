@@ -2,7 +2,7 @@
 
 A streaming compiler and bounded expression interpreter for UI blocks in agent replies. The catalog defines props once with Zod. Renderers consume evaluated props and input bindings; they do not evaluate model text.
 
-This package is private while its first publication is being prepared. Chat wire integration, daemon scheduling, host actions, query authorization and platform renderers are separate work. These APIs do not authorize a query or an action.
+Chat wire integration and scheduling are provided by `@adecore/agents`; React renderers are provided by `@adecore/agents-react`. Hosts supply actions, query authorization and platform renderers. The compiler and interpreter do not authorize a query or an action.
 
 ```ts
 import { compileUi, evaluateUiBlock, UiState } from '@adecore/intelligent-ui';
