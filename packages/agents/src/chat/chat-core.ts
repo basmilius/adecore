@@ -741,7 +741,10 @@ export class ChatCore {
         return this.uiQueries.query(this.require(payload.chatId), payload);
     }
 
-    async choose(payload: ChatUiChoicePayload): Promise<{ queued: boolean; turnId: string }> {
+    async choose(payload: ChatUiChoicePayload, clientId: string): Promise<{ queued: boolean; turnId: string }> {
+        if (!this.attached.get(payload.chatId)?.has(clientId)) {
+            throw new ChatError('refused-query', 'Attach to the chat before answering its UI.');
+        }
         const session = this.require(payload.chatId);
         const queries = await this.uiQueries?.choiceValues(session, payload);
         const result = session.choose(payload, queries);

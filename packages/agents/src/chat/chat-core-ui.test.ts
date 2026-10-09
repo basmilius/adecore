@@ -113,7 +113,8 @@ test('UI previews reach attached clients without a log sequence or observer side
         expect(block.revision).toMatch(/^[a-f0-9]{64}$/);
         const choice = evaluateUiBlock(block).nodes.find((node) => node.type === 'Choices')!.children[0];
         const payload = { chatId: 'chat', itemId: assistant.id, blockId: block.id, revision: block.revision!, choiceId: choice.id };
-        const [first, repeated] = await Promise.all([manager.choose(payload), manager.choose(payload)]);
+        await expect(manager.choose(payload, 'stranger')).rejects.toThrow('Attach');
+        const [first, repeated] = await Promise.all([manager.choose(payload, 'client'), manager.choose(payload, 'client')]);
         expect(repeated).toEqual(first);
         expect(first.queued).toBe(true);
         const stored = await store.read('chat');
