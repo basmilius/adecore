@@ -6,11 +6,10 @@ import { Button, Icon, KeyValueList, Pill } from '@adecore/ui';
 import { formatBytes, formatDuration, formatMoment, formatNumber, formatPercent, formatRounded } from '@adecore/ui/format';
 import { useBlockLocal } from '../block-local';
 import { uiChildrenOf } from '../node-text';
-import type { UiLiveValue, UiRenderContext, UiRendererProps } from '../render-context';
+import type { UiLiveValue, UiRendererProps } from '../render-context';
 import { isNumericColumn, UI_TABLE_ROWS, uiTableCell, uiTableColumns, type UiTableCell, type UiTableColumn } from '../table-data';
 import { UI_TONE_TEXT } from '../tones';
 import { UiFallbackPart } from '../UiFallbackPart';
-import { UiLinkChip } from './links';
 
 /* EntityList draws a hairline between its rows from this many on. */
 const DIVIDED_FROM = 7;
@@ -92,7 +91,7 @@ function numberText(cell: Extract<UiTableCell, { kind: 'number' }>, unit: string
     return cell.as === 'bytes' ? formatBytes(cell.value) : cell.as === 'duration' ? formatDuration(cell.value) : withUnit(formatRounded(cell.value, 2), unit);
 }
 
-function Cell({ value, column, live, context }: { value: unknown; column: UiTableColumn; live?: UiLiveValue; context: UiRenderContext }) {
+function Cell({ value, column, live }: { value: unknown; column: UiTableColumn; live?: UiLiveValue }) {
     const cell = uiTableCell(value, column);
     switch (cell.kind) {
         case 'empty':
@@ -112,7 +111,8 @@ function Cell({ value, column, live, context }: { value: unknown; column: UiTabl
         case 'date':
             return <time dateTime={new Date(cell.at).toISOString()}>{formatMoment(cell.at)}</time>;
         case 'file':
-            return <UiLinkChip target={{ type: 'File', path: cell.path }} context={context} />;
+            // A cell is no link target the host checked, so its path stays text.
+            return <span className="font-mono text-code break-all">{cell.path}</span>;
         case 'tag':
             return (
                 <Pill shape="tag" size="sm">
@@ -168,7 +168,6 @@ export function TableRenderer({ node, context }: UiRendererProps<UiProps<'Table'
                                             value={row[column.key]}
                                             column={column}
                                             live={isNumericColumn(column) ? context.liveValue?.(node.id, 'rows', [index, column.key]) : undefined}
-                                            context={context}
                                         />
                                     </td>
                                 ))}

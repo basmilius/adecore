@@ -279,6 +279,12 @@ describe('tables', () => {
     test('draw their text when no column is usable', () => {
         expect(markup('<Table rows={[{a: 1}]}><Column key="b"/></Table>')).toContain('Could not draw this part');
     });
+
+    test('a file cell is its path as text, never a link nobody checked', () => {
+        const html = markup('<Table rows={[{path: "src/a.ts"}]}><Column key="path" as="file"/></Table>', { link: () => ({ state: 'plain' }) });
+        expect(html).toContain('<span class="font-mono text-code break-all">src/a.ts</span>');
+        expect(html).not.toContain('tabindex');
+    });
 });
 
 describe('charts', () => {
