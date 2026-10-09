@@ -60,17 +60,17 @@
         "@adecore/editor": "workspace:*",
         "@adecore/lsp": "workspace:*",
         "@adecore/merge": "workspace:*",
-        "zustand": "^5.0.15",
         "lucide-react": "^1.47.0",
         "react-markdown": "^10.1.0",
+        "remark-breaks": "^4.0.0",
         "remark-gfm": "^4.0.1",
-        "remark-breaks": "^4.0.0"
+        "zustand": "^5.0.15"
     },
     "peerDependencies": {
         "@adecore/ui": "workspace:*",
+        "i18next": "^26.4.2",
         "react": "^19.3.0",
         "react-dom": "^19.3.0",
-        "i18next": "^26.4.2",
         "react-i18next": "^17.0.15"
     },
     "devDependencies": {

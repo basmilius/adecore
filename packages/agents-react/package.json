@@ -996,6 +996,7 @@
         "test:visuals": "bun --config=integration.bunfig.toml --conditions=source test ./src/chat/visual-viewport.integration.test.ts"
     },
     "dependencies": {
+        "@adecore/agent-contracts": "workspace:*",
         "@codemirror/commands": "^6.11.1",
         "@codemirror/language": "^6.12.4",
         "@codemirror/state": "^6.7.6",
@@ -1004,7 +1005,6 @@
         "@lezer/highlight": "^1.2.3",
         "@lezer/markdown": "^1.7.2",
         "@pierre/diffs": "^1.4.3",
-        "@adecore/agent-contracts": "workspace:*",
         "@tanstack/react-virtual": "^3.14.13",
         "clsx": "^2.1.1",
         "lucide-react": "^1.47.0",
@@ -1024,17 +1024,17 @@
         "react-i18next": "^17.0.15"
     },
     "devDependencies": {
+        "@adecore/intelligent-ui": "workspace:*",
         "@adecore/ui": "workspace:*",
-        "i18next": "^26.4.2",
-        "react": "^19.3.0",
-        "react-dom": "^19.3.0",
-        "react-i18next": "^17.0.15",
         "@types/bun": "^1.4.2",
         "@types/react": "^19.3.0",
         "@types/react-dom": "^19.3.0",
+        "i18next": "^26.4.2",
         "linkedom": "^0.18.13",
-        "typescript": "^7.0.2",
-        "@adecore/intelligent-ui": "workspace:*"
+        "react": "^19.3.0",
+        "react-dom": "^19.3.0",
+        "react-i18next": "^17.0.15",
+        "typescript": "^7.0.2"
     },
     "license": "FSL-1.1-MIT",
     "author": "Bas Milius",

@@ -40,13 +40,13 @@
     },
     "dependencies": {
         "@adecore/editor-core": "workspace:*",
-        "shiki": "^4.4.3",
-        "linkedom": "^0.18.13"
+        "linkedom": "^0.18.13",
+        "shiki": "^4.4.3"
     },
     "devDependencies": {
         "@types/bun": "^1.4.2",
-        "typescript": "^7.0.2",
-        "@types/node": "^24.13.6"
+        "@types/node": "^24.13.6",
+        "typescript": "^7.0.2"
     },
     "license": "FSL-1.1-MIT",
     "author": "Bas Milius",

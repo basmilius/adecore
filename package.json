@@ -23,13 +23,13 @@
   },
   "devDependencies": {
     "@types/bun": "^1.4.2",
+    "@types/node": "^24.13.6",
+    "i18next": "^26.4.2",
     "oxfmt": "^0.70.0",
     "oxlint": "^1.85.0",
-    "typescript": "^7.0.2",
-    "@types/node": "^24.13.6",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
-    "i18next": "^26.4.2",
-    "react-i18next": "^17.0.15"
+    "react-i18next": "^17.0.15",
+    "typescript": "^7.0.2"
   }
 }
