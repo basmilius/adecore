@@ -18,8 +18,14 @@ const TONES = {
 
 /* The corners of a button, so a pill reads as a small label of the same family and not as a badge. A tag, at the end of a line of prose, is tighter and heavier. */
 const SHAPES = {
-    pill: 'rounded-md px-2 py-0.5',
-    tag: 'rounded-md px-1.5 py-0.5 font-medium'
+    pill: 'rounded-md',
+    tag: 'rounded-md font-medium'
+};
+
+/* The text stays at the theme's smallest size, so `sm` gives up padding: 20px tall instead of 24. */
+const PADDING = {
+    pill: { md: 'px-2 py-0.5', sm: 'px-1.5' },
+    tag: { md: 'px-1.5 py-0.5', sm: 'px-1' }
 };
 
 export interface PillProps {
@@ -27,6 +33,7 @@ export interface PillProps {
     children: ReactNode;
     tone?: keyof typeof TONES;
     shape?: keyof typeof SHAPES;
+    size?: 'md' | 'sm';
     /* A branch name or a count reads better in the monospace face. */
     mono?: boolean;
     /* With a handler the pill is a button; without one it is a label. */
@@ -39,9 +46,9 @@ export interface PillProps {
 }
 
 /* The small rounded label in a header, a sidebar row or a settings line: a count, a branch, a status. */
-export function Pill({ icon, children, tone = 'muted', shape = 'pill', mono = false, onClick, pressed, disabled, className, ref }: PillProps) {
+export function Pill({ icon, children, tone = 'muted', shape = 'pill', size = 'md', mono = false, onClick, pressed, disabled, className, ref }: PillProps) {
     // Never broken inside itself: in a row that wraps, a pill that does not fit moves to the next line whole.
-    const shared = clsx('inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-2xs', SHAPES[shape], TONES[tone], mono && 'font-mono', className);
+    const shared = clsx('inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-2xs', SHAPES[shape], PADDING[shape][size], TONES[tone], mono && 'font-mono', className);
     if (!onClick) {
         return (
             <span ref={ref} className={shared}>

@@ -18,6 +18,15 @@ export default function PillDemo() {
                 <Pill tone="accent">New</Pill>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+                <Pill size="sm">12 files</Pill>
+                <Pill size="sm" tone="accent">
+                    New
+                </Pill>
+                <Pill size="sm" shape="tag" tone="accent">
+                    Beta
+                </Pill>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
                 <Pill mono icon={<Icon icon={GitBranch} size={12} />}>
                     feature/export
                 </Pill>
