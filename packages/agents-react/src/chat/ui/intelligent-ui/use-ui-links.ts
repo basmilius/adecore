@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ChatUiLinkReading, ChatUiQueryState } from '@adecore/agent-contracts';
 import { uiLinkTargets, type UiLinkTarget } from '@adecore/intelligent-ui/links';
-import { uiInputValues, type UiBlock, UiState } from '@adecore/intelligent-ui';
+import { uiInputValues, UI_HOST_LIMITS, type UiBlock, UiState } from '@adecore/intelligent-ui';
 import { chatHost } from '../../../host';
 import type { UiRenderContext } from './render-context';
 
@@ -42,7 +42,7 @@ export function useUiLinks(
         }
         let stopped = false;
         const validate = async () => {
-            for (const [nodeId, target] of Object.entries(JSON.parse(signature) as Record<string, UiLinkTarget>).slice(0, 64)) {
+            for (const [nodeId, target] of Object.entries(JSON.parse(signature) as Record<string, UiLinkTarget>).slice(0, UI_HOST_LIMITS.links)) {
                 try {
                     const reading = await link(context.scopeId, {
                         chatId: context.chatId,

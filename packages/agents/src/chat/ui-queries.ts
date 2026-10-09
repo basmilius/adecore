@@ -10,7 +10,7 @@ import type {
     ChatUiQueryReading,
     ChatUiQueryState
 } from '@adecore/agent-contracts';
-import { copyUiValue, UiBudget, type UiValue } from '@adecore/intelligent-ui';
+import { copyUiValue, UI_HOST_LIMITS, UiBudget, uiMayReferenceHost, type UiValue } from '@adecore/intelligent-ui';
 import { UiLinkResolutionSchema, uiLinkTargets, type UiLinkTarget } from '@adecore/intelligent-ui/links';
 import { uiQueryArguments, uiQueryFallback } from '@adecore/intelligent-ui/query';
 import type { UiBlock } from '@adecore/intelligent-ui/compiler';
@@ -38,8 +38,6 @@ interface CachedReading {
 
 const MAX_QUERY_BYTES = 64 * 1024;
 const MAX_SNAPSHOT_BYTES = 128 * 1024;
-const MAX_QUERIES = 8;
-const REFRESH_MS = 10_000;
 const READ_TIMEOUT_MS = 8_000;
 
 export class ChatUiQueries {
@@ -60,7 +58,7 @@ export class ChatUiQueries {
     }
 
     observe(session: ChatSession, item: ChatAssistantItem, final: boolean): void {
-        if (!item.text.includes('@Query') && !/<(?:File|Diff|Commit|Node)\b/.test(item.text) && !item.ui?.some((block) => Object.keys(block.queries).length)) {
+        if (!uiMayReferenceHost(item.text) && !item.ui?.some((block) => Object.keys(block.queries).length)) {
             return;
         }
         const capture = this.access(session, item);
@@ -84,7 +82,7 @@ export class ChatUiQueries {
                     }
                     const readings: Record<string, ChatUiQueryReading> = Object.create(null);
                     const values: Record<string, unknown> = Object.create(null);
-                    for (const name of Object.keys(block.queries).slice(0, MAX_QUERIES)) {
+                    for (const name of Object.keys(block.queries).slice(0, UI_HOST_LIMITS.queries)) {
                         const reading = await this.query(session, {
                             chatId: session.id,
                             itemId: item.id,
@@ -101,7 +99,7 @@ export class ChatUiQueries {
                     if (this.host.link) {
                         const targets = uiLinkTargets(block, {}, values);
                         const access = await this.access(session, current);
-                        for (const [id, target] of Object.entries(targets).slice(0, 64)) {
+                        for (const [id, target] of Object.entries(targets).slice(0, UI_HOST_LIMITS.links)) {
                             try {
                                 links[id] = this.linkReading(await this.host.link(session.info, access.access, target));
                             } catch (error) {
@@ -190,7 +188,7 @@ export class ChatUiQueries {
 
     private stored(session: ChatSession, payload: ChatUiQueryPayload): { item: ChatAssistantItem; block: UiBlock; source: ChatUiSource } {
         const { item, block } = this.storedBlock(session, payload);
-        if (!Object.hasOwn(block.queries, payload.query) || Object.keys(block.queries).length > MAX_QUERIES) {
+        if (!Object.hasOwn(block.queries, payload.query) || Object.keys(block.queries).length > UI_HOST_LIMITS.queries) {
             throw new ChatError('refused-query', 'This block does not declare an allowed query.');
         }
         const name = block.queries[payload.query].source;
@@ -221,7 +219,7 @@ export class ChatUiQueries {
         }
         const key = JSON.stringify([session.id, item.id, block.id, block.revision, payload.query, args]);
         const cached = [...this.cache.values()].find((entry) => entry.key === key);
-        if (cached && Date.now() - cached.reading.readAt < REFRESH_MS) {
+        if (cached && Date.now() - cached.reading.readAt < UI_HOST_LIMITS.refreshMilliseconds) {
             return cached.reading;
         }
         const pending = this.reading.get(key);
@@ -229,7 +227,7 @@ export class ChatUiQueries {
             return pending;
         }
         const identity = JSON.stringify([session.id, item.id, block.id, block.revision, payload.query]);
-        if (Date.now() - (this.attempts.get(identity) ?? 0) < REFRESH_MS) {
+        if (Date.now() - (this.attempts.get(identity) ?? 0) < UI_HOST_LIMITS.refreshMilliseconds) {
             return { state: 'failed', readAt: Date.now(), reason: 'This query may refresh once every ten seconds.' };
         }
         if ((this.active.get(session.id) ?? 0) >= 2 || this.totalActive >= 16) {

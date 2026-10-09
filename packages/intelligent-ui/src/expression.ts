@@ -243,6 +243,23 @@ export function parseUiExpression(source: string, budget = new UiBudget()): UiEx
     return new ExpressionParser(source, budget).parse();
 }
 
+/* Deep equality of two values, regardless of the order their record keys were written in. */
+export function sameUiValue(first: UiValue, second: UiValue): boolean {
+    if (first === second) {
+        return true;
+    }
+    if (first === null || second === null || typeof first !== 'object' || typeof second !== 'object' || Array.isArray(first) !== Array.isArray(second)) {
+        return false;
+    }
+    if (Array.isArray(first) && Array.isArray(second)) {
+        return first.length === second.length && first.every((item, i) => sameUiValue(item, second[i]));
+    }
+    const left = first as Record<string, UiValue>;
+    const right = second as Record<string, UiValue>;
+    const keys = Object.keys(left);
+    return keys.length === Object.keys(right).length && keys.every((key) => Object.hasOwn(right, key) && sameUiValue(left[key], right[key]));
+}
+
 export function copyUiValue(value: unknown, budget = new UiBudget(), depth = 0): UiValue {
     budget.depth(depth);
     if (value === null || typeof value === 'boolean') {

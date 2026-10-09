@@ -1,4 +1,4 @@
-import { safeKey, UiBudget, UiFailure, type UiLimits } from './budget.ts';
+import { safeKey, UI_LIMITS, UiBudget, UiFailure, type UiLimits } from './budget.ts';
 import { isUiComponent, UI_CATALOG, UI_CATALOG_VERSION } from './catalog.ts';
 import { uiNodeFallback, uiPlainText } from './fallback.ts';
 import { evaluateUiExpression, type UiExpression, type UiValue } from './expression.ts';
@@ -9,6 +9,20 @@ import { type z } from 'zod';
 export const UI_FENCE_LANGUAGE = 'ui';
 
 export const UI_REPLY_LIMITS = { blocks: 16, characters: 262144, nodes: 2048, milliseconds: 60 } as const;
+
+// What a host reads for one block: its queries, its link targets and how often a visible block reads again.
+export const UI_HOST_LIMITS = { queries: 8, links: 64, refreshMilliseconds: 10_000 } as const;
+
+/* A cheap test for whether `text` may declare a query or name a link target, before anything is read for it. */
+export function uiMayReferenceHost(text: string): boolean {
+    if (text.includes('@Query')) {
+        return true;
+    }
+    const links = Object.entries(UI_CATALOG)
+        .filter(([, entry]) => entry.group === 'links')
+        .map(([name]) => name);
+    return new RegExp(`<(?:${links.join('|')})\\b`).test(text);
+}
 
 export interface UiNode {
     id: string;
@@ -89,8 +103,8 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
             block.diagnostics.push(uiDiagnostic(error, start, end, nodeId));
         }
     };
-    const compile = (syntax: UiSyntaxNode, parent?: string): UiNode => {
-        budget.depth(0);
+    const compile = (syntax: UiSyntaxNode, depth: number, parent?: string): UiNode => {
+        budget.depth(depth);
         const node: UiNode = {
             id: syntax.id,
             type: syntax.type,
@@ -192,7 +206,7 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
             diagnose(error, syntax.start, syntax.end, syntax.id);
         }
         const effectiveParent = syntax.type === 'Show' || syntax.type === 'Each' ? parent : syntax.type;
-        node.children = syntax.children.map((child) => compile(child, effectiveParent));
+        node.children = syntax.children.map((child) => compile(child, depth + 1, effectiveParent));
         node.fallback = uiNodeFallback(syntax.type, fallbackProps, node.children.map((child) => child.fallback).join(''));
         if (!node.fallback.trim()) {
             node.fallback = source.slice(syntax.start, Math.min(syntax.end, syntax.start + 1024));
@@ -235,8 +249,8 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
                     if (!checked.success) {
                         throw new UiFailure('invalid_query', 'Query arguments do not match the host schema.');
                     }
-                    if (Object.keys(block.queries).length >= 8) {
-                        throw new UiFailure('budget_exceeded', 'A block may declare at most eight queries.');
+                    if (Object.keys(block.queries).length >= UI_HOST_LIMITS.queries) {
+                        throw new UiFailure('budget_exceeded', `A block may declare at most ${UI_HOST_LIMITS.queries} queries.`);
                     }
                     block.queries[name] = { source: querySource, args, ...(!isConstant(argument) ? { expression: argument } : {}) };
                 } else {
@@ -252,7 +266,7 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
                 diagnose(error, 0, source.length);
             }
         }
-        block.nodes = syntax.nodes.map((node) => compile(node));
+        block.nodes = syntax.nodes.map((node) => compile(node, 0));
         block.fallback = block.nodes
             .map((node) => node.fallback)
             .join('')
@@ -297,6 +311,7 @@ export class UiCompiler {
         let exhausted = false;
         const now = this.options.now ?? Date.now;
         const language = this.options.fenceLanguage ?? UI_FENCE_LANGUAGE;
+        const diagnostics = this.options.limits?.diagnostics ?? UI_LIMITS.diagnostics;
         const started = now();
         const nodeCount = (items: readonly UiNode[]): number => items.reduce((count, node) => count + 1 + nodeCount(node.children), 0);
         const rejected = (start: number, codeStart: number, codeEnd: number, end: number, complete: boolean): UiBlock => ({
@@ -320,7 +335,7 @@ export class UiCompiler {
                 blocks[blocks.length - 1] = {
                     ...last,
                     diagnostics: [
-                        ...last.diagnostics.slice(0, 19),
+                        ...last.diagnostics.slice(0, diagnostics - 1),
                         uiDiagnostic(new UiFailure('budget_exceeded', 'Further UI fences stay text because this reply has too many blocks.'), start, end)
                     ]
                 };

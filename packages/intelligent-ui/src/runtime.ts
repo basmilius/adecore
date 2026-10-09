@@ -1,4 +1,4 @@
-import { copyUiValue, evaluateUiExpression, type UiExpression, type UiValue } from './expression.ts';
+import { copyUiValue, evaluateUiExpression, sameUiValue, type UiExpression, type UiValue } from './expression.ts';
 import { UiBudget, UiFailure, type UiLimits } from './budget.ts';
 import { isUiComponent, UI_CATALOG, UI_CATALOG_VERSION } from './catalog.ts';
 import { type UiBlock, type UiNode } from './compiler.ts';
@@ -46,7 +46,7 @@ export class UiState {
             this.queries = Object.create(null);
         }
         for (const [name, value] of Object.entries(defaults)) {
-            if (this.id !== block.id || !Object.hasOwn(this.defaults, name) || JSON.stringify(this.defaults[name]) !== JSON.stringify(value)) {
+            if (this.id !== block.id || !Object.hasOwn(this.defaults, name) || !sameUiValue(this.defaults[name], value)) {
                 this.values[name] = value;
             }
         }
@@ -290,7 +290,7 @@ export function resolveUiChoice(
         if (!Object.hasOwn(allowed, name)) {
             throw new UiFailure('refused_binding', 'Only declared input bindings can be submitted.');
         }
-        if (JSON.stringify(value) !== JSON.stringify(allowed[name])) {
+        if (!sameUiValue(value, allowed[name])) {
             state.set(name, value);
             changed.add(name);
         }

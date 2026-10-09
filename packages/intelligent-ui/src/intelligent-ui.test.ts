@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 import { z } from 'zod';
 import { UiBudget } from './budget.ts';
-import { compileUi, compileUiBlock, uiHasFence } from './compiler.ts';
+import { compileUi, compileUiBlock, uiHasFence, uiMayReferenceHost } from './compiler.ts';
 import { UI_CATALOG, uiCatalogText } from './catalog.ts';
-import { copyUiValue, evaluateUiExpression, parseUiExpression } from './expression.ts';
+import { copyUiValue, evaluateUiExpression, parseUiExpression, sameUiValue } from './expression.ts';
 import { evaluateUiBlock, UiState } from './runtime.ts';
 import { UiBlockSchema, UiNodeSchema } from './protocol.ts';
 import { uiCompactCatalog, uiFallbackText, uiReferenceText, uiSessionNote } from './text.ts';
@@ -17,6 +17,14 @@ function block(source: string, final = true) {
 }
 
 describe('bounded expressions', () => {
+    test('compares values without regard to the order of their keys', () => {
+        expect(sameUiValue({ a: 1, b: [1, { c: null }] }, { b: [1, { c: null }], a: 1 })).toBe(true);
+        expect(sameUiValue({ a: 1 }, { a: 1, b: 2 })).toBe(false);
+        expect(sameUiValue([1, 2], [2, 1])).toBe(false);
+        expect(sameUiValue([], {})).toBe(false);
+        expect(sameUiValue(null, {})).toBe(false);
+    });
+
     test('arithmetic, strings, own fields and short circuiting', () => {
         expect(expression('1 + 2 * 3')).toBe(7);
         expect(expression('"Fix " + @Count($selected)', { $selected: ['one', 'two'] })).toBe('Fix 2');
@@ -139,6 +147,13 @@ describe('streaming compiler', () => {
         const partial = compileUi('```ui\n<Summary>Still writing', { id: 'item' });
         expect(partial[0].complete).toBe(false);
         expect(partial[0].nodes[0].complete).toBe(false);
+    });
+
+    test('tells a reply that may reach the host from one that cannot', () => {
+        expect(uiMayReferenceHost('<Summary>Plain</Summary>')).toBe(false);
+        expect(uiMayReferenceHost('$rows = @Query("rows", {})')).toBe(true);
+        expect(uiMayReferenceHost('<Diff path="a.ts"/>')).toBe(true);
+        expect(uiMayReferenceHost('<Nodes/>')).toBe(false);
     });
 
     test('reads only the fence language the host names', () => {

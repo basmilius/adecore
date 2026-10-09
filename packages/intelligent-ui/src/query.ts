@@ -2,7 +2,7 @@ import { UI_CATALOG_VERSION } from './catalog.ts';
 import { UiBudget, UiFailure } from './budget.ts';
 import type { UiBlock, UiNode } from './compiler.ts';
 import { uiNodeFallback } from './fallback.ts';
-import { copyUiValue, evaluateUiExpression, type UiValue } from './expression.ts';
+import { copyUiValue, evaluateUiExpression, sameUiValue, type UiValue } from './expression.ts';
 import { evaluateUiBlock, uiInputValues, UiState, type UiViewNode } from './runtime.ts';
 
 function findBinding(nodes: readonly UiNode[], id: string, prop: string): string | undefined {
@@ -65,7 +65,7 @@ export function uiValidatedState(block: UiBlock, input: Readonly<Record<string, 
     }
     visit(evaluated.nodes);
     for (const [key, value] of Object.entries(values)) {
-        if (JSON.stringify(value) !== JSON.stringify(allowed[key]) && !visible.has(key)) {
+        if (!sameUiValue(value, allowed[key]) && !visible.has(key)) {
             throw new UiFailure('invalid_value', 'An input value is outside the visible control’s allowed values.');
         }
     }

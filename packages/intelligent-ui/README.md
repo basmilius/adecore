@@ -57,7 +57,7 @@ Image accepts exactly one of `attachment` and `generated="latest"`, plus an opti
 | `@Join` | scalar list and optional separator |
 | `@Round` | number and optional precision from zero to six |
 
-There is no JavaScript execution, general function call, assignment, network access or inherited field access. `__proto__`, `constructor` and `prototype` are refused. `copyUiValue` validates and copies JSON input without invoking accessors; class instances, nonfinite numbers, sparse arrays and cycles are refused.
+There is no JavaScript execution, general function call, assignment, network access or inherited field access. `__proto__`, `constructor` and `prototype` are refused. `sameUiValue(first, second)` compares two values deeply, regardless of key order. `copyUiValue` validates and copies JSON input without invoking accessors; class instances, nonfinite numbers, sparse arrays and cycles are refused.
 
 `UiState` belongs to one chat/item/block identity. `sync(block)` preserves edits when a declaration's default is unchanged, resets changed defaults, removes disappeared variables and clears changed query data. A reload creates a new state from defaults. `scope()` returns a safe copy. `set(name, value)` changes a declared local variable without changing its type. `run(ast)` accepts only `@Set($name, expression)`, `@Reset($name)` and `@Reset()`. `snapshot()` and `subscribe(listener)` let a renderer observe input edits.
 
@@ -67,6 +67,6 @@ There is no JavaScript execution, general function call, assignment, network acc
 
 ## Budgets and acceptance
 
-`UI_LIMITS` bounds characters, nesting, nodes, diagnoses, steps, iterations, string length and elapsed time. `UiLimits` describes overrides. `UiBudget` counts work inside helpers as well as ordinary evaluation. `UiFailure` carries a machine-readable refusal code; `safeKey` applies the forbidden-field rule.
+`UI_HOST_LIMITS` holds what a host reads for one block: at most `queries` (8) queries, `links` (64) link targets, and a visible block read again at most every `refreshMilliseconds` (10,000). `uiMayReferenceHost(text)` is a cheap test for whether a reply may declare a query or name a link target. `UI_LIMITS` bounds characters, nesting, nodes, diagnoses, steps, iterations, string length and elapsed time. `UiLimits` describes overrides. `UiBudget` counts work inside helpers as well as ordinary evaluation. `UiFailure` carries a machine-readable refusal code; `safeKey` applies the forbidden-field rule.
 
 The tests compile ten hand-written examples and every character prefix, then exercise malformed syntax, prototype/accessor attacks, helper budgets, output expansion, query replacement and state reset. Recorded Claude/Codex responses, daemon event-loop/log measurements and iPhone JavaScriptCore parity remain acceptance work. The package does not yet render replies in an application.

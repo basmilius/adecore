@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ChatUiQueryReading, ChatUiQueryState } from '@adecore/agent-contracts';
-import { uiInputValues, UI_CATALOG_VERSION, UiState, type UiBlock, type UiViewNode, type UiNode } from '@adecore/intelligent-ui';
+import { uiInputValues, UI_CATALOG_VERSION, UI_HOST_LIMITS, UiState, type UiBlock, type UiViewNode, type UiNode } from '@adecore/intelligent-ui';
 import { chatHost } from '../../../host';
 import type { UiLiveValue, UiLiveStatus, UiRenderContext } from './render-context';
 
@@ -85,7 +85,7 @@ export function useUiQueries(
             if (stopped || !visible || !documentVisible() || busy) {
                 return;
             }
-            const wait = lastReadAt.current.identity === identity ? 10_000 - (Date.now() - lastReadAt.current.at) : 0;
+            const wait = lastReadAt.current.identity === identity ? UI_HOST_LIMITS.refreshMilliseconds - (Date.now() - lastReadAt.current.at) : 0;
             if (wait > 0) {
                 if (timer === null) {
                     if (!visible || !documentVisible()) {
@@ -101,7 +101,7 @@ export function useUiQueries(
             busy = true;
             lastReadAt.current = { identity, at: Date.now() };
             setBusyInput(inputKey);
-            for (const name of Object.keys(block.queries).slice(0, 8)) {
+            for (const name of Object.keys(block.queries).slice(0, UI_HOST_LIMITS.queries)) {
                 if (!visible || !documentVisible()) {
                     break;
                 }
@@ -151,7 +151,7 @@ export function useUiQueries(
             timer = setTimeout(() => {
                 timer = null;
                 void refresh();
-            }, 10_000);
+            }, UI_HOST_LIMITS.refreshMilliseconds);
         };
         const observer =
             typeof IntersectionObserver === 'undefined'
