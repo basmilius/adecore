@@ -497,11 +497,16 @@ export class ChatCore {
         const log = this.logs.get(chatId)!;
         const events = since === undefined ? null : log.after(since);
         if (events !== null) {
-            return { info: session.info, items: [], events, seq: log.seq };
+            return { info: session.info, items: [], events: [...events, ...session.uiPreviews], seq: log.seq };
         }
-        return historyLimit === undefined
-            ? { ...session.thread.snapshot(), seq: log.seq }
-            : { info: session.info, ...session.thread.history(historyLimit), pending: session.thread.pending(), seq: log.seq };
+        const page = historyLimit === undefined ? session.thread.snapshot() : session.thread.history(historyLimit);
+        return {
+            ...page,
+            info: session.info,
+            items: session.previewItems(page.items),
+            ...(historyLimit === undefined ? {} : { pending: session.previewItems(session.thread.pending()) }),
+            seq: log.seq
+        };
     }
 
     /*
@@ -1166,6 +1171,14 @@ export class ChatCore {
     }
 
     private emit(chatId: string, event: ChatEvent): void {
+        if (event.type === 'delta' && event.ui !== undefined) {
+            // Previews follow all pending text but have no log position or observer side effects.
+            this.coalescers.get(chatId)?.flush();
+            for (const clientId of this.attached.get(chatId) ?? []) {
+                this.sinks.to(clientId, { event: 'chat.event', payload: { chatId, event } });
+            }
+            return;
+        }
         this.activity.set(chatId, Date.now());
         let coalescer = this.coalescers.get(chatId);
         if (!coalescer) {

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { UiBlocksSchema } from '@adecore/intelligent-ui/protocol';
 import { AgentKindSchema, AgentStatusSchema, SuggestedTitleSchema } from './agent.ts';
 import { WorktreeSchema } from './worktree.ts';
 import { ModelSelectionSchema, RuntimeModeSchema } from './model.ts';
@@ -287,6 +288,7 @@ export const ChatUserItemSchema = z.object({
 export const ChatAssistantItemSchema = z.object({
     ...base,
     kind: z.literal('assistant'),
+    ui: UiBlocksSchema.optional(),
     phase: z.string().optional(),
     text: z.string(),
     streaming: z.boolean(),
@@ -587,7 +589,13 @@ export type ChatCompactionItem = z.infer<typeof ChatCompactionItemSchema>;
 // Events apply after the `chat.attach` snapshot; item ids make upserts and streamed deltas replayable.
 export const ChatEventSchema = z.discriminatedUnion('type', [
     z.object({ type: z.literal('item'), item: ChatItemSchema, historyIndex: z.number().int().nonnegative().optional() }),
-    z.object({ type: z.literal('delta'), itemId: z.string(), text: z.string() }),
+    z.object({
+        type: z.literal('delta'),
+        itemId: z.string(),
+        text: z.string(),
+        ui: UiBlocksSchema.optional(),
+        textLength: z.number().int().nonnegative().optional()
+    }),
     z.object({ type: z.literal('info'), info: ChatInfoSchema }),
     z.object({ type: z.literal('reset'), info: ChatInfoSchema, items: z.array(ChatItemSchema) })
 ]);

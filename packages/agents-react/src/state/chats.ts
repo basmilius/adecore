@@ -159,6 +159,12 @@ export function applyEvent(state: ChatState, event: ChatEvent): ChatState {
         }
         case 'delta': {
             const item = state.items[event.itemId];
+            if (event.ui !== undefined && event.text === '') {
+                if (item?.kind === 'assistant' && item.streaming && event.textLength === item.text.length) {
+                    return { ...state, items: { ...state.items, [event.itemId]: { ...item, ui: event.ui } } };
+                }
+                return state;
+            }
             if (item?.kind === 'assistant' || item?.kind === 'thinking') {
                 const grown = { ...item, text: item.text + event.text };
                 // The first text is structure after all, since an empty reply that is not streaming has no row.

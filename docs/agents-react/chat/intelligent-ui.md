@@ -2,7 +2,7 @@
 
 An agent can answer with a block of components from the catalog of [`@adecore/intelligent-ui`](/intelligent-ui/): a summary, a table, a checklist, choices. That package compiles and evaluates the block; the renderers here draw the evaluated nodes. They are presentational. A renderer never sees an expression, a `$variable` or a query, never sends a message and never reads a path or an address the model wrote. What a block may do outside itself goes through callbacks the host passes in, and a renderer without them draws the quiet version.
 
-The runtime that walks the tree, binds the inputs, keeps the last tree that worked and mounts a block in the thread is not part of these modules. It picks a renderer from `UI_RENDERERS`, wraps every node in an error boundary and hands over the children it already rendered. The demo below draws a fixed tree the same way.
+`UiReply` interleaves compiled blocks with surrounding Markdown in the assistant row. It evaluates nodes, keeps local input state by scope/chat/item/block for the life of the page, wraps each node in its own error boundary and supplies rendered children through `UI_RENDERERS`. `uiReplyParts` returns `UiReplyPart` text/block entries, validates text ranges and omits the growing raw tail of an unfinished block. Unknown catalog versions show their Markdown fallback. Host choices and live queries still need their adapters. The demo below draws a fixed tree the same way.
 
 <Demo src="agents/intelligent-ui" />
 

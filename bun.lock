@@ -100,6 +100,7 @@
       "name": "@adecore/agent-contracts",
       "version": "0.0.0",
       "dependencies": {
+        "@adecore/intelligent-ui": "workspace:*",
         "zod": "^4.6.5",
       },
       "devDependencies": {
@@ -112,6 +113,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@adecore/agent-contracts": "workspace:*",
+        "@adecore/intelligent-ui": "workspace:*",
         "zod": "^4.6.5",
       },
       "devDependencies": {
@@ -125,6 +127,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@adecore/agent-contracts": "workspace:*",
+        "@adecore/intelligent-ui": "workspace:*",
         "@codemirror/commands": "^6.11.1",
         "@codemirror/language": "^6.12.4",
         "@codemirror/state": "^6.7.6",
@@ -145,7 +148,6 @@
         "zustand": "^5.0.15",
       },
       "devDependencies": {
-        "@adecore/intelligent-ui": "workspace:*",
         "@adecore/ui": "workspace:*",
         "@types/bun": "^1.4.2",
         "@types/react": "^19.3.0",

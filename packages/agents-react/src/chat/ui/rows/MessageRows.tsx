@@ -21,6 +21,7 @@ import { toolSummary } from '../../logic/tools';
 import { ROW_GUTTER } from '../icons';
 import { useOpenForFind } from '../find-reveal';
 import { ReplyContext } from '../reply-context';
+import { UiReply } from '../intelligent-ui/UiReply';
 
 // A long prompt folds so the answer stays in view; the reader can open it.
 const USER_FOLD_LINES = 8;
@@ -198,6 +199,22 @@ export function AssistantRow({ chatId, item: derived }: { chatId: string; item: 
     const [sawWriting] = useState(item.streaming);
     const live = mode === 'words' && item.streaming;
     const reveal = useRevealedText(item.text, live);
+
+    if (item.ui?.length && !item.parentToolUseId && !(mode === 'whole' && item.streaming)) {
+        return (
+            <div data-find-item={item.id} className="-mx-1 px-1 pb-2">
+                <ReplyHeading chatId={chatId} />
+                <div data-find-field="text" data-quote-answer className="contents">
+                    <UiReply
+                        text={item.text}
+                        blocks={item.ui}
+                        reply={reply}
+                        context={{ scopeId: scope.id, chatId, itemId: item.id, phase: item.streaming ? 'streaming' : 'final', answer: null }}
+                    />
+                </div>
+            </div>
+        );
+    }
 
     if (mode === 'blocks') {
         const settled = item.streaming ? settledBlocksText(item.text) : item.text;

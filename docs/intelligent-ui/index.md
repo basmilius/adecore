@@ -2,7 +2,7 @@
 
 A streaming compiler and bounded expression interpreter for UI blocks in agent replies. The catalog defines props once with Zod. Renderers consume evaluated props and input bindings; they do not evaluate model text.
 
-This package is private while its first publication is being prepared. Chat wire integration, daemon scheduling, host actions, query authorization and platform renderers are separate work. These APIs do not authorize a query or an action.
+The first package version and its Trusted Publisher are configured. Shared chat sessions compile UI blocks and transport previews without logging them. Host actions, query authorization and native platform renderers remain separate work. These APIs do not authorize a query or an action.
 
 ```ts
 import { compileUi, evaluateUiBlock, UiState } from '@adecore/intelligent-ui';
@@ -21,9 +21,13 @@ for (const block of blocks) {
 
 `UiCompileOptions.id` identifies the assistant item or block. Supply the same ID on each recompile. Node IDs include the start of their tag, so appending text preserves them. `final` reports unfinished syntax when the authoritative response arrives. `latestAttachment` resolves `Image generated="latest"` to an attachment. `limits` overrides the work budget; `now` supplies a clock for deterministic tests.
 
+`UiCompiler` retains unchanged fences between compilations. A changed fence or generated attachment is recompiled; a final update always recompiles the authoritative text, including an unfinished last fence. `UiCompilerOptions` holds the stable configuration and `UiCompileUpdate` supplies `final` and `latestAttachment`. `clear()` releases cached blocks.
+
+`UiStream` wraps that compiler with `UI_STREAM_INTERVAL_MS` (250 ms). Its first update compiles immediately; continuous updates compile the newest text on the fixed throttle. `UiStreamOptions` supplies an injected `UiStreamClock` and an `emit(UiStreamPreview)` callback with `blocks` and `textLength`. `finish(text, latestAttachment?)` cancels pending previews and returns the final blocks immediately. `dispose()` cancels timers and releases cached text. These callbacks carry previews only; the host owns their transport and writes only the result of `finish` to its log.
+
 The parser recovers at the next tag or line after malformed input. Open tags remain incomplete. A streamed quoted prop exposes the text already received. CodeBlock contents are literal, including angle brackets and braces. Unknown components retain their own fallback; unknown props produce `refused_prop` and are dropped. A budget failure replaces the whole compiled block with a bounded fallback and one diagnosis.
 
-`UiNode` keeps static `props` separate from `expressions` and local-variable `bindings`. Its `type` is a string so an unfamiliar component can fall back without rejecting neighboring content. `UiNodeSchema`, `UiBlockSchema`, `UiBlocksSchema` and `UiDiagnosticSchema` describe the wire envelope. Component names, props and expressions stay open, so a future catalog can be retained and shown as fallback. The optional assistant field and daemon integration still await the package's first publication setup.
+`UiNode` keeps static `props` separate from `expressions` and local-variable `bindings`. Its `type` is a string so an unfamiliar component can fall back without rejecting neighboring content. `UiNodeSchema`, `UiBlockSchema`, `UiBlocksSchema` and `UiDiagnosticSchema` describe the wire envelope. Component names, props and expressions stay open, so a future catalog can be retained and shown as fallback. Chat contracts carry the blocks on the optional `assistant.ui` field. Preview deltas carry `ui` and `textLength` without a log sequence. Sessions retain previews outside the canonical thread, attach them to current snapshots and replay responses, and store only the authoritative final tree. Compiler diagnostics wait in the durable preamble for the next real prompt.
 
 `parseUiSyntax` exposes the intermediate `UiSyntax` and `UiSyntaxNode` for compiler tooling. `UiDiagnostic` carries a code, message, source range and optional node ID. `uiDiagnostic` turns a caught failure into that shape.
 
@@ -69,4 +73,4 @@ There is no JavaScript execution, general function call, assignment, network acc
 
 `UI_LIMITS` bounds characters, nesting, nodes, diagnoses, steps, iterations, string length and elapsed time. `UiLimits` describes overrides. `UiBudget` counts work inside helpers as well as ordinary evaluation. `UiFailure` carries a machine-readable refusal code; `safeKey` applies the forbidden-field rule.
 
-The tests compile ten hand-written examples and every character prefix, then exercise malformed syntax, prototype/accessor attacks, helper budgets, output expansion, query replacement and state reset. Recorded Claude/Codex responses, daemon event-loop/log measurements and iPhone JavaScriptCore parity remain acceptance work. The package does not yet render replies in an application.
+The tests compile ten hand-written examples and every character prefix, then exercise malformed syntax, prototype/accessor attacks, helper budgets, output expansion, query replacement and state reset. Recorded Claude/Codex responses, daemon event-loop/log measurements and iPhone JavaScriptCore parity remain acceptance work. The shared React reply composition now renders blocks in linked consumers; host choices, live queries and native rendering are still being integrated.

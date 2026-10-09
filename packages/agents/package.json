@@ -21,6 +21,7 @@
     },
     "dependencies": {
         "@adecore/agent-contracts": "workspace:*",
+        "@adecore/intelligent-ui": "workspace:*",
         "zod": "^4.6.5"
     },
     "devDependencies": {

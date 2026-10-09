@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { compileUi } from '@adecore/intelligent-ui';
 import type { ChatInfo, ChatItem } from '@adecore/agent-contracts';
 import { applyEvent, chatSink, prependPage, useChats, waitingRequestsOf, type ChatState } from './chats';
 
@@ -280,4 +281,19 @@ describe('a thread held from its newest page', () => {
         const state = held();
         expect(prependPage(state, 'g:9', { items: [user('u1', 'first')], history: { start: 0, cursor: null } })).toBe(state);
     });
+});
+
+test('a UI preview updates only the matching streaming text without changing timeline structure', () => {
+    const text = '```ruimte-ui\n<Summary>Ready</Summary>\n```';
+    const reply: ChatItem = { id: 'r', kind: 'assistant', createdAt: 0, turnId: null, text, streaming: true };
+    const state: ChatState = { info: info(), items: { r: reply }, structure: { r: reply }, order: ['r'] };
+    const ui = compileUi(text, { id: 'r' });
+    const event = { type: 'delta' as const, itemId: 'r', text: '', textLength: text.length, ui };
+    const preview = applyEvent(state, event);
+    expect(preview.items.r).toEqual({ ...reply, ui });
+    expect(preview.structure).toBe(state.structure);
+    expect(preview.order).toBe(state.order);
+    expect(applyEvent(state, { ...event, textLength: text.length - 1 })).toBe(state);
+    const final = applyEvent(preview, { type: 'item', item: { ...reply, ui, streaming: false } });
+    expect(applyEvent(final, event)).toBe(final);
 });

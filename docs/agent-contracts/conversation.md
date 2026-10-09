@@ -110,3 +110,10 @@ keeps its error in the tool output and has no attachment. Image bytes never ente
 item. Attachment metadata may include pixel `width` and `height`. Assistant items may
 include the provider's `phase`, such as `commentary` or `final_answer`. Both fields are
 optional so existing records remain readable.
+
+
+## Intelligent UI
+
+An assistant item may carry `ui`, an array of open UI block envelopes from `@adecore/intelligent-ui/protocol`. Node types are strings, props and expression payloads are records, and each block carries its catalog version, stable ID, source range, diagnostics and Markdown fallback. Unknown component names and catalog versions do not invalidate the surrounding history.
+
+A streaming preview uses an existing `delta` event with empty `text`, optional `ui` and `textLength`. It has no envelope `seq`, is not written to the chat log and is sent only to clients attached to that chat. A client applies it only to the matching length of a still-streaming assistant item. Older clients ignore these optional fields. The final assistant item carries the authoritative tree once and replays with the rest of the thread.

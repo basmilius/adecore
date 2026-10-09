@@ -267,36 +267,81 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
     return block;
 }
 
-export function compileUi(text: string, options: UiCompileOptions): UiBlock[] {
-    const blocks: UiBlock[] = [];
-    let fence: { marker: string; length: number; start: number; codeStart: number; ui: boolean } | null = null;
-    let position = 0;
-    for (const line of text.split(/(?<=\n)/)) {
-        const opening = /^ {0,3}(`{3,}|~{3,})([^\r\n]*)/.exec(line);
-        if (!fence && opening) {
-            fence = {
-                marker: opening[1][0],
-                length: opening[1].length,
-                start: position,
-                codeStart: position + line.length,
-                ui: opening[2].trim() === UI_FENCE_LANGUAGE
-            };
-        } else if (fence && opening && opening[1][0] === fence.marker && opening[1].length >= fence.length && !opening[2].trim()) {
-            if (fence.ui) {
-                const block = compileUiBlock(text.slice(fence.codeStart, position), { ...options, id: `${options.id}:ui:${fence.start}`, final: true });
-                block.start = fence.start;
-                block.end = position + line.length;
-                blocks.push(block);
+export type UiCompilerOptions = Omit<UiCompileOptions, 'final' | 'latestAttachment'>;
+export type UiCompileUpdate = Pick<UiCompileOptions, 'final' | 'latestAttachment'>;
+
+interface CachedUiBlock {
+    source: string;
+    block: UiBlock;
+    latestAttachment?: string;
+}
+
+export class UiCompiler {
+    private readonly options: UiCompilerOptions;
+    private cache = new Map<number, CachedUiBlock>();
+
+    constructor(options: UiCompilerOptions) {
+        this.options = options;
+    }
+
+    compile(text: string, update: UiCompileUpdate = {}): UiBlock[] {
+        const blocks: UiBlock[] = [];
+        const next = new Map<number, CachedUiBlock>();
+        let fence: { marker: string; length: number; start: number; codeStart: number; ui: boolean } | null = null;
+        let position = 0;
+        const append = (start: number, codeStart: number, codeEnd: number, end: number, closed: boolean) => {
+            const source = text.slice(codeStart, codeEnd);
+            const complete = closed || update.final === true;
+            const cached = this.cache.get(start);
+            const unchanged =
+                !update.final &&
+                cached?.source === source &&
+                cached.block.end === end &&
+                cached.block.complete === complete &&
+                cached.latestAttachment === update.latestAttachment;
+            const block = unchanged
+                ? cached.block
+                : compileUiBlock(source, {
+                      ...this.options,
+                      ...update,
+                      id: `${this.options.id}:ui:${start}`,
+                      final: complete
+                  });
+            block.start = start;
+            block.end = end;
+            blocks.push(block);
+            next.set(start, { source, block, latestAttachment: update.latestAttachment });
+        };
+        for (const line of text.split(/(?<=\n)/)) {
+            const opening = /^ {0,3}(`{3,}|~{3,})([^\r\n]*)/.exec(line);
+            if (!fence && opening) {
+                fence = {
+                    marker: opening[1][0],
+                    length: opening[1].length,
+                    start: position,
+                    codeStart: position + line.length,
+                    ui: opening[2].trim() === UI_FENCE_LANGUAGE
+                };
+            } else if (fence && opening && opening[1][0] === fence.marker && opening[1].length >= fence.length && !opening[2].trim()) {
+                if (fence.ui) {
+                    append(fence.start, fence.codeStart, position, position + line.length, true);
+                }
+                fence = null;
             }
-            fence = null;
+            position += line.length;
         }
-        position += line.length;
+        if (fence?.ui) {
+            append(fence.start, fence.codeStart, text.length, text.length, false);
+        }
+        this.cache = next;
+        return blocks;
     }
-    if (fence?.ui) {
-        const block = compileUiBlock(text.slice(fence.codeStart), { ...options, id: `${options.id}:ui:${fence.start}` });
-        block.start = fence.start;
-        block.end = text.length;
-        blocks.push(block);
+
+    clear(): void {
+        this.cache.clear();
     }
-    return blocks;
+}
+
+export function compileUi(text: string, options: UiCompileOptions): UiBlock[] {
+    return new UiCompiler(options).compile(text, options);
 }

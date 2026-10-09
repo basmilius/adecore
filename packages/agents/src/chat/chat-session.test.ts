@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { ChatInfo, ChatItem } from '@adecore/agent-contracts';
+import type { ChatEvent, ChatInfo, ChatItem } from '@adecore/agent-contracts';
 import { ManualClock } from '../outbox/manual-clock.ts';
 import { claudeProvider } from '../providers/claude-provider.ts';
 import { codexProvider } from '../providers/codex-provider.ts';
@@ -1511,5 +1511,71 @@ test('an end-of-turn message cannot start while another steer still awaits accep
     await sending;
     await flush();
     expect(run.sent.map((input) => input.text)).toEqual(['original', 'next task']);
+    await run.session.dispose();
+});
+
+describe('streamed intelligent UI', () => {
+    test('previews are transient and final text replaces the compiled tree once', async () => {
+        const clock = new ManualClock();
+        const events: ChatEvent[] = [];
+        const run = rig({ clock, emit: (event) => events.push(event) });
+        await run.session.send('Show results');
+        await flush();
+        const streamed = 'Before\n```ruimte-ui\n<Summary>Streaming';
+        run.event({ type: 'text.delta', ref: 'answer', text: streamed });
+        const item = run.session.thread.list().find((row) => row.kind === 'assistant');
+        expect(item?.kind).toBe('assistant');
+        if (item?.kind !== 'assistant') {
+            throw new Error('Missing assistant');
+        }
+        expect(item.ui).toBeUndefined();
+        expect(run.session.uiPreviews).toHaveLength(1);
+        expect(run.session.previewItems([item])[0]).toHaveProperty('ui');
+        clock.advance(50);
+        run.event({ type: 'text.delta', ref: 'answer', text: ' pending' });
+        expect(run.session.uiPreviews).toHaveLength(0);
+        clock.advance(200);
+        const previews = events.filter((event) => event.type === 'delta' && event.ui !== undefined);
+        expect(previews).toHaveLength(2);
+        expect(run.session.thread.get(item.id)).not.toHaveProperty('ui');
+        const authoritative = 'Before\n```ruimte-ui\n<Summary>Corrected</Summary>\n```\nAfter';
+        run.event({ type: 'text.done', ref: 'answer', text: authoritative, parentRef: null });
+        const final = run.session.thread.get(item.id);
+        expect(final?.kind === 'assistant' && final.ui?.[0].fallback).toContain('Corrected');
+        expect(run.session.uiPreviews).toEqual([]);
+        const finalEvents = events.filter((event) => event.type === 'item' && event.item.kind === 'assistant' && event.item.ui !== undefined);
+        expect(finalEvents).toHaveLength(1);
+        clock.advance(1000);
+        expect(events.filter((event) => event.type === 'delta' && event.ui !== undefined)).toHaveLength(2);
+        await run.session.dispose();
+    });
+
+    test('freeze cancels a pending compilation', async () => {
+        const clock = new ManualClock();
+        const events: ChatEvent[] = [];
+        const run = rig({ clock, emit: (event) => events.push(event) });
+        await run.session.send('Show results');
+        await flush();
+        run.event({ type: 'text.delta', ref: 'answer', text: '```ruimte-ui\n<Summary>Start' });
+        run.event({ type: 'text.delta', ref: 'answer', text: ' pending' });
+        run.session.freeze();
+        const count = events.length;
+        clock.advance(1000);
+        expect(events).toHaveLength(count);
+        expect(run.session.uiPreviews).toEqual([]);
+        await run.session.dispose();
+    });
+});
+
+test('compiler diagnostics are retained for the next real prompt', async () => {
+    const run = rig();
+    await run.session.send('Show results');
+    await flush();
+    run.event({ type: 'text.done', ref: 'answer', text: '```ruimte-ui\n<Summary tone="huge">Result</Summary>\n```', parentRef: null });
+    expect(run.session.preambles.join(' ')).toContain('Your last ruimte-ui block');
+    run.event({ type: 'turn.done', state: 'done', costUsd: 0 });
+    await run.session.send('Fix it');
+    await flush();
+    expect(run.sent.at(-1)?.preamble).toContain('Your last ruimte-ui block');
     await run.session.dispose();
 });

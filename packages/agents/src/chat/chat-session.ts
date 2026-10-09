@@ -12,7 +12,8 @@ import type {
     ModelSelection,
     RuntimeMode
 } from '@adecore/agent-contracts';
-import { notResumedNote } from '@adecore/agent-contracts';
+import { GeneratedImageInputSchema, notResumedNote } from '@adecore/agent-contracts';
+import { UiStream, type UiStreamPreview } from '@adecore/intelligent-ui/stream';
 import type { ChatProvider } from '../providers/provider.ts';
 import type { LimitsUpdate } from '../usage/limits/normalize.ts';
 import type { BackendEvent, BackendLaunch, ChatBackend, TurnInput } from './backend.ts';
@@ -178,12 +179,32 @@ export class ChatSession {
     private pendingPreambles: readonly string[];
     private submission: { turnId: string; input: TurnInput } | null = null;
     private readonly steering = new Set<string>();
+    private readonly uiStreams = new Map<string, UiStream>();
+    private readonly uiCompiled = new Map<string, UiStreamPreview>();
 
     constructor(options: ChatSessionOptions) {
         this.options = options;
         this.pendingPreambles = options.preambles ?? [];
         this.thread = new ChatThread(options.info, options.items);
         this.projector = new ThreadProjector(this.thread, { providerName: options.provider.name });
+    }
+
+    get uiPreviews(): ChatEvent[] {
+        const events: ChatEvent[] = [];
+        for (const [itemId, preview] of this.uiCompiled) {
+            const item = this.thread.get(itemId);
+            if (item?.kind === 'assistant' && item.streaming && item.text.length === preview.textLength) {
+                events.push({ type: 'delta', itemId, text: '', ui: preview.blocks, textLength: preview.textLength });
+            }
+        }
+        return events;
+    }
+
+    previewItems(items: ChatItem[]): ChatItem[] {
+        return items.map((item) => {
+            const preview = this.uiCompiled.get(item.id);
+            return item.kind === 'assistant' && preview?.textLength === item.text.length ? { ...item, ui: preview.blocks } : item;
+        });
     }
 
     get id(): string {
@@ -996,6 +1017,7 @@ export class ChatSession {
 
     /* Ends the process and stops listening to it, as the host goes down; the thread stays as it is. */
     freeze(): void {
+        this.clearUi();
         this.clearStartWarning();
         this.clearWorkflowWarnings();
         this.frozen = true;
@@ -1004,6 +1026,7 @@ export class ChatSession {
 
     /* Ends the CLI and everything it started; settles once it exited or was sent the SIGKILL. */
     dispose(): Promise<void> {
+        this.clearUi();
         this.clearStartWarning();
         this.clearWorkflowWarnings();
         if (this.titleTimer !== null) {
@@ -1746,9 +1769,75 @@ export class ChatSession {
 
     private emit(events: ChatEvent[]): void {
         const delegating = this.delegatingChange(events);
-        for (const event of delegating === null ? events : [...events, delegating]) {
-            this.options.emit(event);
+        for (let event of delegating === null ? events : [...events, delegating]) {
+            if (event.type === 'reset') {
+                this.clearUi();
+            }
+            const item = event.type === 'item' ? event.item : event.type === 'delta' ? this.thread.get(event.itemId) : null;
+            if (item?.kind !== 'assistant' || item.parentToolUseId) {
+                this.options.emit(event);
+                continue;
+            }
+            let stream = this.uiStreams.get(item.id);
+            if (!stream && !item.text.includes('ruimte-ui')) {
+                this.options.emit(event);
+                continue;
+            }
+            if (!stream) {
+                stream = new UiStream({
+                    id: item.id,
+                    clock: this.options.clock ?? systemClock,
+                    emit: (preview) => {
+                        this.uiCompiled.set(item.id, preview);
+                        this.options.emit({ type: 'delta', itemId: item.id, text: '', ui: preview.blocks, textLength: preview.textLength });
+                    }
+                });
+                this.uiStreams.set(item.id, stream);
+            }
+            const latestAttachment = this.latestUiAttachment(item.turnId);
+            if (event.type === 'item' && !item.streaming) {
+                const ui = stream.finish(item.text, latestAttachment);
+                this.uiStreams.delete(item.id);
+                this.uiCompiled.delete(item.id);
+                const diagnostics = [...new Set(ui.flatMap((block) => block.diagnostics.map((diagnostic) => diagnostic.message)))].slice(0, 6);
+                if (diagnostics.length > 0) {
+                    const repair =
+                        `Your last ruimte-ui block had these diagnostics: ${diagnostics.join(' ')} Use the catalog's supported props and components.`.slice(
+                            0,
+                            1200
+                        );
+                    if (!this.pendingPreambles.includes(repair)) {
+                        this.pendingPreambles = [...this.pendingPreambles, repair];
+                    }
+                }
+                event = this.thread.upsert({ ...item, ui });
+                this.options.emit(event);
+            } else {
+                this.options.emit(event);
+                stream.update(item.text, latestAttachment);
+            }
         }
+    }
+
+    private latestUiAttachment(turnId: string | null): string | undefined {
+        for (const item of this.thread.list().toReversed()) {
+            if (item.kind !== 'tool' || item.turnId !== turnId || item.name !== 'ImageGeneration' || item.state !== 'done') {
+                continue;
+            }
+            const input = GeneratedImageInputSchema.safeParse(item.input);
+            if (input.success && input.data.attachment?.mime.startsWith('image/')) {
+                return input.data.attachment.id;
+            }
+        }
+        return undefined;
+    }
+
+    private clearUi(): void {
+        for (const stream of this.uiStreams.values()) {
+            stream.dispose();
+        }
+        this.uiStreams.clear();
+        this.uiCompiled.clear();
     }
 
     /* Said on the info as well as by the rows, since a client with the thread closed sees only the info. */
