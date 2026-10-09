@@ -3,12 +3,13 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createInstance } from 'i18next';
 import { I18nextProvider } from 'react-i18next';
-import type { ChatInfo, ProviderCapabilities } from '@adecore/agent-contracts';
+import type { ChatInfo, ChatUserItem, ProviderCapabilities } from '@adecore/agent-contracts';
+import { formatMoment } from '@adecore/ui/format';
 import { chatHost, setChatHost } from '../../../host';
 import { ChatScopeContext, type ChatScope } from '../../../scope';
 import { useChats } from '../../../state/chats';
 import { useProvidersStore } from '../../../state/providers';
-import { AssistantRow, ReplyHeader } from './MessageRows';
+import { AssistantRow, ReplyHeader, UserRow } from './MessageRows';
 import { ReplyContext } from '../reply-context';
 
 const scope: ChatScope = {
@@ -20,7 +21,17 @@ const scope: ChatScope = {
 };
 const authorBefore = chatHost().useReplyAuthor;
 const i18n = createInstance();
-await i18n.init({ lng: 'en', resources: { en: { 'agent-chat': { rows: { reply: { agent: 'Agent' } } } } } });
+await i18n.init({
+    lng: 'en',
+    resources: {
+        en: {
+            'agent-chat': {
+                rows: { reply: { agent: 'Agent' }, user: { heading: 'You' } },
+                blocks: { chose: 'Chose “{{label}}”', choseOlder: 'Chose “{{label}}” on the reply of {{time}}' }
+            }
+        }
+    }
+});
 const item = { id: 'answer', kind: 'assistant' as const, turnId: null, createdAt: 0, text: '', streaming: false };
 const capabilities: ProviderCapabilities = {
     chat: true,
@@ -112,5 +123,45 @@ describe('reply identity in a child conversation', () => {
         const child = render({ provider: 'claude' });
         expect(child).toContain('>Claude Code</h3>');
         expect(child).not.toContain('Parent author');
+    });
+});
+
+describe('the line over a message that answers a choice', () => {
+    const sourceAt = Date.UTC(2026, 9, 9, 11, 52);
+    const choice = {
+        itemId: 'answer',
+        blockId: 'review',
+        revision: 'r1',
+        choiceId: 'fix-both',
+        label: 'Fix both',
+        sourceAt,
+        older: false,
+        at: sourceAt + 60_000
+    };
+    const message: ChatUserItem = { id: 'message', kind: 'user', turnId: null, createdAt: 0, text: 'Fix the blocking findings in links.ts:148' };
+    const renderUser = (item: ChatUserItem) =>
+        renderToStaticMarkup(
+            createElement(
+                I18nextProvider,
+                { i18n },
+                createElement(ChatScopeContext.Provider, { value: scope }, createElement(UserRow, { chatId: 'parent', item }))
+            )
+        );
+
+    test('a typed message has no line', () => {
+        expect(renderUser(message)).not.toContain('Chose');
+    });
+
+    test('names the label between the heading and the message, and leaves the message as sent', () => {
+        const html = renderUser({ ...message, uiChoice: choice });
+        const line = html.indexOf('Chose “Fix both”');
+        expect(line).toBeGreaterThan(html.indexOf('>You</h3>'));
+        expect(line).toBeLessThan(html.indexOf('Fix the blocking findings'));
+        expect(html).not.toContain('on the reply of');
+        expect(html).not.toMatch(/Fix the blocking findings[^<]*Fix both/);
+    });
+
+    test('a choice on an older reply says when that reply was written', () => {
+        expect(renderUser({ ...message, uiChoice: { ...choice, older: true } })).toContain(`Chose “Fix both” on the reply of ${formatMoment(sourceAt)}`);
     });
 });

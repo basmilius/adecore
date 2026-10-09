@@ -1,8 +1,16 @@
 import { useContext, useMemo, useState, type ReactNode } from 'react';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
-import { Bot, Brain, Check, ChevronDown, CircleAlert, File, Info, MessageCircleQuestionMark, TriangleAlert, X } from 'lucide-react';
-import type { ChatApprovalItem, ChatAttachment, ChatAssistantItem, ChatQuestionItem, ChatThinkingItem, ChatUserItem } from '@adecore/agent-contracts';
+import { Bot, Brain, Check, ChevronDown, CircleAlert, File, Info, MessageCircleQuestionMark, Reply, TriangleAlert, X } from 'lucide-react';
+import type {
+    ChatApprovalItem,
+    ChatAttachment,
+    ChatAssistantItem,
+    ChatQuestionItem,
+    ChatThinkingItem,
+    ChatUiChoiceOrigin,
+    ChatUserItem
+} from '@adecore/agent-contracts';
 import { fileBadge, formatBytes, isImageAttachment } from '../../attachments';
 import { useChatRow, useCurrentItem } from '../../../state/chats';
 import { chatHost } from '../../../host';
@@ -15,7 +23,7 @@ import { FadingWords } from '../FadingWords';
 import { settledBlocksText } from '../markdown-blocks';
 import { WHOLE_FADE_CLASS } from '../rehype-fade';
 import { useRevealedText } from '../reveal';
-import { formatAgo, formatElapsedShort, formatTokens } from '@adecore/ui/format';
+import { formatAgo, formatElapsedShort, formatMoment, formatTokens } from '@adecore/ui/format';
 import { Icon, Tooltip, useTickingText } from '@adecore/ui';
 import { toolSummary } from '../../logic/tools';
 import { ROW_GUTTER } from '../icons';
@@ -100,6 +108,7 @@ export function UserRow({ chatId, item }: { chatId: string; item: ChatUserItem }
                     ))}
                 </div>
             )}
+            {item.uiChoice !== undefined && <ChoiceLine choice={item.uiChoice} />}
             {item.text !== '' && (
                 <div className="relative max-w-[80%] rounded-2xl bg-surface-active px-3.5 py-2.5 text-sm wrap-anywhere text-text select-text">
                     <div data-find-field="text" className={clsx(long && !open && FOLD)}>
@@ -113,6 +122,24 @@ export function UserRow({ chatId, item }: { chatId: string; item: ChatUserItem }
                     )}
                 </div>
             )}
+        </div>
+    );
+}
+
+/*
+ * The choice a message answers. The label stays out of the message, which holds exactly what the agent
+ * read, and out of a copied selection; a screen reader hears it between the heading and the message.
+ */
+function ChoiceLine({ choice }: { choice: ChatUiChoiceOrigin }) {
+    const { t } = useTranslation('agent-chat');
+    return (
+        <div className="mb-1 flex max-w-[80%] items-start gap-1.5 px-1 text-xs text-text-muted select-none">
+            <Icon icon={Reply} size={12} className="mt-1 shrink-0" />
+            <span className="min-w-0 wrap-anywhere">
+                {choice.older
+                    ? t('blocks.choseOlder', { label: choice.label, time: formatMoment(choice.sourceAt) })
+                    : t('blocks.chose', { label: choice.label })}
+            </span>
         </div>
     );
 }
