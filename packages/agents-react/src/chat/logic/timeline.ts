@@ -16,6 +16,7 @@ import type {
 import { abortedByMachine } from '@adecore/agent-contracts';
 import type { ThreadCard } from '../../host';
 import { formatElapsedShort } from '@adecore/ui/format';
+import { isImageGeneration } from './generated-image';
 import { handbackReportOf } from './handback';
 import { toolEntry } from './tool-catalog';
 import { hasFileChanges, isFileChange } from './tools';
@@ -77,7 +78,7 @@ interface TimelineOptions {
 const BLOCK_KINDS = new Set<TimelineRow['kind']>(['assistant', 'report', 'thinking', 'changed-files', 'compaction', 'app-card', 'visual']);
 
 export function isBlock(row: TimelineRow): boolean {
-    return BLOCK_KINDS.has(row.kind);
+    return BLOCK_KINDS.has(row.kind) || isImageRow(row);
 }
 
 /* "Read 4 files", "Ran 2 commands", or "12 tool calls" when the run mixes kinds. */
@@ -245,6 +246,10 @@ function flushTools(buffer: ChatToolItem[], rows: TimelineRow[], options: Timeli
     }
 }
 
+function isImageRow(row: TimelineRow): boolean {
+    return (row.kind === 'work' || row.kind === 'work-live') && isImageGeneration(row.tool);
+}
+
 /* Rows for a run of items, in order, with tool runs folded and a subagent's work under its own row. */
 function rowsForItems(items: ChatItem[], options: TimelineOptions, children: Map<string, ChatItem[]>): TimelineRow[] {
     const rows: TimelineRow[] = [];
@@ -257,6 +262,11 @@ function rowsForItems(items: ChatItem[], options: TimelineOptions, children: Map
         if (item.kind === 'tool' && item.workflow !== undefined) {
             flushTools(tools, rows, options);
             rows.push({ kind: 'workflow', id: item.id, tool: item, workflow: item.workflow });
+            continue;
+        }
+        if (item.kind === 'tool' && isImageGeneration(item)) {
+            flushTools(tools, rows, options);
+            rows.push({ kind: item.state === 'running' ? 'work-live' : 'work', id: item.id, tool: item });
             continue;
         }
         if (item.kind === 'tool' && report === null) {
@@ -328,7 +338,7 @@ function lastAssistantRow(rows: TimelineRow[]): TimelineRow | null {
         if (row.kind === 'assistant') {
             return row;
         }
-        if (row.kind !== 'note') {
+        if (row.kind !== 'note' && !isImageRow(row)) {
             return null;
         }
     }
@@ -389,12 +399,14 @@ export function deriveTimelineRows(items: ChatItem[], options: TimelineOptions):
         // The closing answer stays visible; the work after the last input folds behind the label.
         const finalAssistant = lastAssistantRow(work);
         const before = finalAssistant ? work.slice(0, work.indexOf(finalAssistant)) : work;
-        // A workflow runs on past the turn that launched it, so its row stays in sight until it ends.
-        const standing = before.filter((row) => row.kind === 'workflow' && row.tool.state === 'running');
+        // Images remain a turn's visible result, and a workflow may still be running after its turn ends.
+        const standing = before.filter((row) => isImageRow(row) || (row.kind === 'workflow' && row.tool.state === 'running'));
         const folded = before.filter((row) => !standing.includes(row));
         const expanded = options.expandedTurns.has(turnId);
         if (folded.length > 0) {
-            const tools = rest.filter((item): item is ChatToolItem => item.kind === 'tool' && parentOf(item) === null && handbackReportOf(item) === null);
+            const tools = rest.filter(
+                (item): item is ChatToolItem => item.kind === 'tool' && parentOf(item) === null && handbackReportOf(item) === null && !isImageGeneration(item)
+            );
             rows.push({
                 kind: 'turn-fold',
                 id: `fold-${turnId}`,
@@ -404,17 +416,14 @@ export function deriveTimelineRows(items: ChatItem[], options: TimelineOptions):
                 hiddenCount: folded.length,
                 expanded
             });
-            if (expanded) {
-                rows.push(...folded);
-            }
         }
-        rows.push(...standing);
+        rows.push(...(expanded ? before : standing));
         const changed = changedFilesRow(turn, conversation);
         if (changed) {
             rows.push(changed);
         }
         if (finalAssistant) {
-            rows.push(finalAssistant);
+            rows.push(...work.slice(work.indexOf(finalAssistant)));
         }
         if (options.forkedTurns?.has(turnId) === true) {
             rows.push({ kind: 'forks', id: `forks-${turnId}`, turnId });

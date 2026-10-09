@@ -38,6 +38,40 @@ describe('isBlock', () => {
 });
 
 describe('deriveTimelineRows', () => {
+    test.each(['running', 'done', 'error'] as const)('a %s image stays outside a settled turn fold', (state) => {
+        const items: ChatItem[] = [
+            thread[0]!,
+            thread[1]!,
+            tool('r1', 'Read', {}),
+            tool('image', 'ImageGeneration', {}, state),
+            tool('r2', 'Read', {}),
+            thread[5]!
+        ];
+        const collapsed = deriveTimelineRows(items, options);
+        expect(collapsed.map((row) => row.id)).toEqual(['u1', 'fold-t1', 'image', 'a1']);
+        expect(collapsed[1]).toMatchObject({ hiddenCount: 2, work: ['Read 2 files'] });
+        expect(isBlock(collapsed[2]!)).toBe(true);
+        const expanded = deriveTimelineRows(items, { ...options, expandedTurns: new Set(['t1']) });
+        expect(expanded.map((row) => row.id)).toEqual(['u1', 'fold-t1', 'r1', 'image', 'r2', 'a1']);
+    });
+
+    test('a generated image interrupts tool grouping during a live turn', () => {
+        const items: ChatItem[] = [thread[0]!, thread[1]!, tool('r1', 'Read', {}), tool('image', 'ImageGeneration', {}), tool('r2', 'Read', {})];
+        const rows = deriveTimelineRows(items, { ...options, activeTurnId: 't1' });
+        expect(rows.map((row) => row.id)).toEqual(['u1', 'r1', 'image', 'r2', 'working-t1']);
+        expect(rows.map((row) => row.kind)).toEqual(['user', 'work', 'work', 'work', 'working']);
+    });
+
+    test('a completed generation without assistant text needs no work fold', () => {
+        const rows = deriveTimelineRows([thread[0]!, thread[1]!, tool('image', 'ImageGeneration', {})], options);
+        expect(rows.map((row) => row.id)).toEqual(['u1', 'image']);
+    });
+
+    test('an image that settles after the closing answer keeps both visible', () => {
+        const rows = deriveTimelineRows([thread[0]!, thread[1]!, tool('r1', 'Read', {}), thread[5]!, tool('image', 'ImageGeneration', {})], options);
+        expect(rows.map((row) => row.id)).toEqual(['u1', 'fold-t1', 'a1', 'image']);
+    });
+
     test('steering stays after the earlier response while running and after settling', () => {
         const conversation: ChatItem[] = [
             { id: 't1', kind: 'turn', createdAt: 1, turnId: 't1', state: 'running', endedAt: null, costUsd: 0 },
