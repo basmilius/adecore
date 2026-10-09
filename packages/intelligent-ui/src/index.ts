@@ -24,7 +24,16 @@ export {
     type UiNode,
     type UiQuery
 } from './compiler.ts';
-export { evaluateUiBlock, UiState, type UiBinding, type UiEvaluation, type UiViewNode } from './runtime.ts';
+export {
+    evaluateUiBlock,
+    UiState,
+    uiInputValues,
+    resolveUiChoice,
+    type UiChoiceSelection,
+    type UiBinding,
+    type UiEvaluation,
+    type UiViewNode
+} from './runtime.ts';
 export { UiNodeSchema, UiDiagnosticSchema, UiBlockSchema, UiBlocksSchema } from './protocol.ts';
 export { uiCompactCatalog, uiSessionNote, uiReferenceText, uiFallbackText } from './text.ts';
 export { UI_STREAM_INTERVAL_MS, UiStream, type UiStreamClock, type UiStreamOptions, type UiStreamPreview } from './stream.ts';

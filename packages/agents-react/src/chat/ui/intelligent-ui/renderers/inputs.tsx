@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { UiBinding, UiProps, UiViewNode } from '@adecore/intelligent-ui';
 import { Checkbox, Segmented, Slider, Switch } from '@adecore/ui';
 import { uiChildrenOf, uiNodeLabel } from '../node-text';
-import type { UiRendererProps } from '../render-context';
+import type { UiRenderContext, UiRendererProps } from '../render-context';
 
 type Scalar = UiProps<'Item'>['value'];
 
@@ -20,16 +20,16 @@ const ChecklistContext = createContext<ChecklistState>({ values: [], enabled: fa
  * The binding of an input, or null for a read-only node. An input works once its own node closed and
  * only through its binding, so the value never leaves the block until a Choice carries it.
  */
-function bindingOf<Value>(node: UiViewNode<{ value: Value }>): UiBinding<Value> | null {
+function bindingOf<Value>(node: UiViewNode<{ value: Value }>, context: UiRenderContext): UiBinding<Value> | null {
     const binding = node.bindings.value as UiBinding<Value> | undefined;
-    return binding === undefined || !node.complete ? null : binding;
+    return binding === undefined || !node.complete || context.answer !== null ? null : binding;
 }
 
 /* An input whose node has not closed yet stands at 60% and takes no pointer. */
 const PENDING = 'pointer-events-none opacity-60';
 
-export function ChecklistRenderer({ node, children }: UiRendererProps<UiProps<'Checklist'>>) {
-    const binding = bindingOf(node);
+export function ChecklistRenderer({ node, children, context }: UiRendererProps<UiProps<'Checklist'>>) {
+    const binding = bindingOf(node, context);
     const values = binding?.value ?? node.props.value;
     const toggle = (value: Scalar): void => {
         binding?.onValueChange(values.includes(value) ? values.filter((entry) => entry !== value) : [...values, value]);
@@ -61,8 +61,8 @@ export function ItemRenderer({ node, children }: UiRendererProps<UiProps<'Item'>
     );
 }
 
-export function SwitchRenderer({ node, children }: UiRendererProps<UiProps<'Switch'>>) {
-    const binding = bindingOf(node);
+export function SwitchRenderer({ node, children, context }: UiRendererProps<UiProps<'Switch'>>) {
+    const binding = bindingOf(node, context);
     return (
         <div className={clsx('flex min-h-7 items-center justify-between gap-3 px-2 text-sm', !node.complete && PENDING)}>
             <span className="min-w-0 text-text">{children}</span>
@@ -77,8 +77,8 @@ export function SwitchRenderer({ node, children }: UiRendererProps<UiProps<'Swit
 }
 
 /* Its children are the label, read as text: the slider writes its own label line. */
-export function SliderRenderer({ node }: UiRendererProps<UiProps<'Slider'>>) {
-    const binding = bindingOf(node);
+export function SliderRenderer({ node, context }: UiRendererProps<UiProps<'Slider'>>) {
+    const binding = bindingOf(node, context);
     const { value, min, max, step, unit } = node.props;
     return (
         <Slider
@@ -96,9 +96,9 @@ export function SliderRenderer({ node }: UiRendererProps<UiProps<'Slider'>>) {
 }
 
 /* Left aligned, never the full width. Each Option is a segment by its place, since a value may be any scalar. */
-export function SegmentedRenderer({ node }: UiRendererProps<UiProps<'Segmented'>>) {
+export function SegmentedRenderer({ node, context }: UiRendererProps<UiProps<'Segmented'>>) {
     const { t } = useTranslation('agent-chat');
-    const binding = bindingOf(node);
+    const binding = bindingOf(node, context);
     const current = binding?.value ?? node.props.value;
     const options = uiChildrenOf(node, 'Option').map((option, index) => ({ id: String(index), label: uiNodeLabel(option), value: option.props.value }));
     const picked = options.find((option) => option.value === current)?.id ?? '';

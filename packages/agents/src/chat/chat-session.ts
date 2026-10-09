@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import type {
     ChatAttachment,
     ChatCheckpointDiff,
@@ -9,10 +9,14 @@ import type {
     ChatSkill,
     ChatSubagentItem,
     ChatTurnItem,
+    ChatUiAnswer,
+    ChatUiChoiceOrigin,
+    ChatUiChoicePayload,
     ModelSelection,
     RuntimeMode
 } from '@adecore/agent-contracts';
 import { GeneratedImageInputSchema, notResumedNote } from '@adecore/agent-contracts';
+import { resolveUiChoice, UiFailure } from '@adecore/intelligent-ui';
 import { UiStream, type UiStreamPreview } from '@adecore/intelligent-ui/stream';
 import type { ChatProvider } from '../providers/provider.ts';
 import type { LimitsUpdate } from '../usage/limits/normalize.ts';
@@ -100,6 +104,7 @@ export interface LimitResumeHooks {
 const TITLE_RECHECK_MS = 10_000;
 
 export interface ChatSendExtras {
+    uiChoice?: ChatUiChoiceOrigin;
     delivery?: 'steer' | 'queue';
     mentions?: string[];
     skills?: string[];
@@ -287,6 +292,7 @@ export class ChatSession {
                 turnId,
                 text,
                 createdAt: Date.now(),
+                ...(extras.uiChoice ? { uiChoice: extras.uiChoice } : {}),
                 ...(extras.mentions?.length ? { mentions: extras.mentions } : {}),
                 ...(extras.skills?.length ? { skills: extras.skills } : {}),
                 ...(extras.chats?.length ? { chats: extras.chats } : {}),
@@ -299,6 +305,73 @@ export class ChatSession {
         }
         this.dispatch(text, extras, turnId);
         return { queued: false, turnId };
+    }
+
+    choose(payload: ChatUiChoicePayload): { queued: boolean; turnId: string } {
+        const item = this.thread.get(payload.itemId);
+        const block =
+            item?.kind === 'assistant' && !item.streaming && !item.parentToolUseId ? item.ui?.find((block) => block.id === payload.blockId) : undefined;
+        if (item?.kind !== 'assistant' || !block?.revision || block.revision !== payload.revision) {
+            throw new ChatError('stale-ui-block', 'This completed UI block is no longer available at the requested revision');
+        }
+        const sameBlock = (origin: ChatUiChoiceOrigin | undefined) =>
+            origin?.itemId === item.id && origin.blockId === block.id && origin.revision === block.revision;
+        let previous = item.uiAnswers?.[block.id];
+        if (previous?.revision !== block.revision) {
+            previous = undefined;
+        }
+        // The message is logged first: a crash before its answer marker must not send it a second time.
+        if (!previous) {
+            const sent = this.thread.list().find((entry) => entry.kind === 'user' && sameBlock(entry.uiChoice));
+            const queued = this.queue.find((entry) => sameBlock(entry.uiChoice));
+            const origin = sent?.kind === 'user' ? sent.uiChoice : queued?.uiChoice;
+            const turnId = sent?.turnId ?? queued?.turnId;
+            if (origin && turnId) {
+                previous = { ...origin, turnId, queued: !sent };
+                this.recordUiAnswer(previous);
+            }
+        }
+        if (previous) {
+            if (previous.choiceId !== payload.choiceId) {
+                throw new ChatError('ui-already-answered', 'This UI block was already answered');
+            }
+            return { queued: previous.queued, turnId: previous.turnId };
+        }
+        let selected;
+        try {
+            selected = resolveUiChoice(block, payload.choiceId, payload.values);
+        } catch (error) {
+            throw new ChatError(
+                error instanceof UiFailure ? error.code : 'refused-choice',
+                error instanceof Error ? error.message : 'This choice could not be read'
+            );
+        }
+        const origin: ChatUiChoiceOrigin = {
+            itemId: item.id,
+            blockId: block.id,
+            revision: block.revision,
+            choiceId: payload.choiceId,
+            label: selected.label,
+            sourceAt: item.createdAt,
+            older: this.thread.list().findLast((entry) => entry.kind === 'assistant' && !entry.parentToolUseId)?.id !== item.id,
+            values: selected.values,
+            at: Date.now()
+        };
+        const result = this.send(selected.context, { uiChoice: origin });
+        this.recordUiAnswer({ ...origin, ...result });
+        return result;
+    }
+
+    private recordUiAnswer(answer: ChatUiAnswer): void {
+        const item = this.thread.get(answer.itemId);
+        if (item?.kind !== 'assistant') {
+            return;
+        }
+        if (JSON.stringify(item.uiAnswers?.[answer.blockId]) === JSON.stringify(answer)) {
+            return;
+        }
+        this.options.emit(this.thread.upsert({ ...item, uiAnswers: { ...item.uiAnswers, [answer.blockId]: answer } }));
+        this.options.persist();
     }
 
     sendInput(text: string, extras: ChatSendExtras = {}): Promise<{ queued: boolean; turnId: string }> {
@@ -437,7 +510,11 @@ export class ChatSession {
         this.sendAfterReplacement = false;
         this.pauseQueue(false);
         this.setQueue(rest);
-        this.dispatch(next.text, { mentions: next.mentions, skills: next.skills, chats: next.chats, attachments: next.attachments }, next.turnId);
+        this.dispatch(
+            next.text,
+            { mentions: next.mentions, skills: next.skills, chats: next.chats, attachments: next.attachments, uiChoice: next.uiChoice },
+            next.turnId
+        );
     }
 
     private dispatch(text: string, extras: ChatSendExtras, requestedTurnId?: string): void {
@@ -447,7 +524,10 @@ export class ChatSession {
         // A slash command must stay the first thing the CLI reads, as `contextNote` keeps it.
         const references = text.startsWith('/') || !this.options.references ? { ids: [], note: null } : this.options.references(extras.chats);
         const turnId = this.openTurn(text, note, { ...extras, chats: references.ids }, requestedTurnId);
-        const said = [preamble, references.note].filter((part): part is string => part !== null);
+        const choiceNote = extras.uiChoice
+            ? `The person chose ${JSON.stringify(extras.uiChoice.label)} from your UI reply. Their message is the visible context of that choice.`
+            : null;
+        const said = [preamble, references.note, choiceNote].filter((part): part is string => part !== null);
         const input = {
             text,
             preamble: said.length === 0 ? null : said.join('\n\n'),
@@ -1184,10 +1264,26 @@ export class ChatSession {
             const skills = extras.skills?.length ? extras.skills : undefined;
             const chats = extras.chats?.length ? extras.chats : undefined;
             const attachments = extras.attachments?.length ? extras.attachments : undefined;
-            events.push(this.thread.upsert({ id: newId('user'), kind: 'user', createdAt: now, turnId, text, mentions, skills, chats, attachments }));
+            events.push(
+                this.thread.upsert({
+                    id: newId('user'),
+                    kind: 'user',
+                    createdAt: now,
+                    turnId,
+                    text,
+                    mentions,
+                    skills,
+                    chats,
+                    attachments,
+                    ...(extras.uiChoice ? { uiChoice: extras.uiChoice } : {})
+                })
+            );
         }
         events.push(this.thread.patchInfo({ status: this.thread.statusFor(turnId), activeTurnId: turnId }));
         this.emit(events);
+        if (extras.uiChoice) {
+            this.recordUiAnswer({ ...extras.uiChoice, turnId, queued: false });
+        }
         // On disk before the CLI answers, so a host that goes down mid-turn still shows the question.
         this.options.persist();
         return turnId;
@@ -1796,7 +1892,9 @@ export class ChatSession {
             }
             const latestAttachment = this.latestUiAttachment(item.turnId);
             if (event.type === 'item' && !item.streaming) {
-                const ui = stream.finish(item.text, latestAttachment);
+                const ui = stream
+                    .finish(item.text, latestAttachment)
+                    .map((block) => ({ ...block, revision: createHash('sha256').update(JSON.stringify(block)).digest('hex') }));
                 this.uiStreams.delete(item.id);
                 this.uiCompiled.delete(item.id);
                 const diagnostics = [...new Set(ui.flatMap((block) => block.diagnostics.map((diagnostic) => diagnostic.message)))].slice(0, 6);

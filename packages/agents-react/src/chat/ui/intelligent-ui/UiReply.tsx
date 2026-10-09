@@ -1,8 +1,31 @@
-import { Component, createContext, Fragment, memo, useContext, useSyncExternalStore, type ComponentProps, type ReactNode } from 'react';
+import {
+    Component,
+    createContext,
+    Fragment,
+    memo,
+    useContext,
+    useEffect,
+    useRef,
+    useState,
+    useSyncExternalStore,
+    type ComponentProps,
+    type ReactNode
+} from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import { useTranslation } from 'react-i18next';
-import { evaluateUiBlock, isUiComponent, UI_CATALOG_VERSION, UiState, type UiBlock, type UiNode, type UiViewNode } from '@adecore/intelligent-ui';
+import {
+    evaluateUiBlock,
+    uiInputValues,
+    isUiComponent,
+    UI_CATALOG_VERSION,
+    UiState,
+    type UiBlock,
+    type UiNode,
+    type UiViewNode
+} from '@adecore/intelligent-ui';
 import { ErrorBoundary } from '@adecore/ui';
+import type { ChatUiAnswer } from '@adecore/agent-contracts';
+import { chatHost } from '../../../host';
 import { ReplyMarkdown } from '../Markdown';
 import { UI_RENDERERS } from './registry';
 import type { UiRenderContext, UiRenderer } from './render-context';
@@ -120,19 +143,6 @@ function writtenTexts(nodes: readonly UiNode[], into = new Map<string, boolean>(
     return into;
 }
 
-/* A repetition suffixes the id of the node it repeats with `:<index>`, so the written node is found by taking those off. */
-function isWritten(texts: ReadonlyMap<string, boolean>, id: string): boolean {
-    let candidate = id;
-    while (!texts.has(candidate)) {
-        const cut = candidate.lastIndexOf(':');
-        if (cut === -1) {
-            return false;
-        }
-        candidate = candidate.slice(0, cut);
-    }
-    return texts.get(candidate) === true;
-}
-
 function isInline(node: UiViewNode): boolean {
     if (node.type === '$text') {
         return true;
@@ -225,7 +235,7 @@ function UiNodeBody({
 }): ReactNode {
     if (node.type === '$text') {
         const text = String(node.props.text ?? '');
-        return LITERAL_PARENTS.has(parent) || !isWritten(texts, node.id) ? text : <UiProse text={text} openUrl={context.openUrl} />;
+        return LITERAL_PARENTS.has(parent) || texts.get(node.sourceId ?? node.id) !== true ? text : <UiProse text={text} openUrl={context.openUrl} />;
     }
     if (node.error !== undefined) {
         return <UiFallbackPart fallback={node.fallback} problem={{ kind: 'failed' }} />;
@@ -244,12 +254,17 @@ function UiNodeBody({
     );
 }
 
-function UiBlockBody({ block, context }: { block: UiBlock; context: UiRenderContext }): ReactNode {
+function UiBlockBody({ block, context, answered }: { block: UiBlock; context: UiRenderContext; answered?: ChatUiAnswer }): ReactNode {
     const { t } = useTranslation('agent-chat');
     const key = JSON.stringify([context.scopeId, context.chatId, context.itemId, block.id]);
     let state = localStates.get(key);
     if (!state) {
         state = new UiState(block);
+        if (answered && answered.revision === block.revision) {
+            for (const [name, value] of Object.entries(answered.values ?? {})) {
+                state.set(name, value);
+            }
+        }
         localStates.set(key, state);
     }
     state.sync(block);
@@ -258,16 +273,72 @@ function UiBlockBody({ block, context }: { block: UiBlock; context: UiRenderCont
         () => state.snapshot(),
         () => state.snapshot()
     );
+    const [optimistic, setOptimistic] = useState<{ revision: string; choiceId: string; state: 'sending' | 'sent' | 'queued' } | null>(null);
+    const [failedChoiceId, setFailedChoiceId] = useState<string | null>(null);
+    const pending = useRef(false);
+    useEffect(() => {
+        if (answered && answered.revision === block.revision && answered.values) {
+            for (const [name, value] of Object.entries(answered.values)) {
+                state.set(name, value);
+            }
+        }
+    }, [state, answered, block.revision]);
+    const answer =
+        answered && answered.revision === block.revision
+            ? { choiceId: answered.choiceId, state: answered.queued ? ('queued' as const) : ('sent' as const) }
+            : optimistic?.revision === block.revision
+              ? optimistic
+              : context.answer;
+    const sendChoice = chatHost().intelligentUi?.sendChoice;
+    const rendering: UiRenderContext = {
+        ...context,
+        answer,
+        failedChoiceId,
+        onChoose:
+            sendChoice && block.revision && block.complete && context.phase === 'final'
+                ? (choiceId) => {
+                      if (pending.current || answer) {
+                          return;
+                      }
+                      pending.current = true;
+                      setFailedChoiceId(null);
+                      const revision = block.revision!;
+                      setOptimistic({ revision, choiceId, state: 'sending' });
+                      void sendChoice(context.scopeId, {
+                          chatId: context.chatId,
+                          itemId: context.itemId,
+                          blockId: block.id,
+                          revision,
+                          choiceId,
+                          values: uiInputValues(block, state)
+                      })
+                          .then((state) => setOptimistic({ revision, choiceId, state }))
+                          .catch(() => {
+                              setOptimistic(null);
+                              setFailedChoiceId(choiceId);
+                          })
+                          .finally(() => {
+                              pending.current = false;
+                          });
+                  }
+                : context.onChoose
+    };
     const evaluation = evaluateUiBlock(block, state);
     const unknown = block.catalogVersion !== UI_CATALOG_VERSION;
     const failed = !unknown && !block.nodes.length && block.diagnostics.length > 0;
     const shownAsText = unknown ? t('blocks.unreadable') : failed ? block.diagnostics[0].message : undefined;
     return (
-        <UiBlockFrame nodes={evaluation.nodes} phase={context.phase} fixes={[...block.diagnostics, ...evaluation.diagnostics]} shownAsText={shownAsText}>
+        <UiBlockFrame
+            nodes={evaluation.nodes}
+            phase={context.phase}
+            fixes={[...block.diagnostics, ...evaluation.diagnostics]}
+            shownAsText={shownAsText}
+            answered={answered}
+        >
             {unknown || failed ? (
                 <ReplyMarkdown text={block.fallback} streaming={false} />
             ) : (
-                <UiNodes nodes={evaluation.nodes} parent={BLOCK} texts={writtenTexts(block.nodes)} context={context} />
+                <UiNodes nodes={evaluation.nodes} parent={BLOCK} texts={writtenTexts(block.nodes)} context={rendering} />
             )}
         </UiBlockFrame>
     );
@@ -278,11 +349,13 @@ export function UiReply({
     text,
     blocks,
     context,
+    answers,
     reply
 }: {
     text: string;
     blocks: readonly UiBlock[];
     context: Omit<UiRenderContext, 'blockId'>;
+    answers?: Readonly<Record<string, ChatUiAnswer>>;
     reply?: ComponentProps<typeof ReplyMarkdown>['reply'];
 }): ReactNode {
     return (
@@ -296,7 +369,7 @@ export function UiReply({
                     )
                 ) : (
                     <ErrorBoundary key={part.block.id} label="UI block" resetKeys={[context.scopeId, context.chatId, context.itemId, part.block.id]}>
-                        <UiBlockBody block={part.block} context={{ ...context, blockId: part.block.id }} />
+                        <UiBlockBody block={part.block} answered={answers?.[part.block.id]} context={{ ...context, blockId: part.block.id }} />
                     </ErrorBoundary>
                 )
             )}

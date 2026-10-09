@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { evaluateUiBlock } from '@adecore/intelligent-ui';
 import type { ChatEventEnvelope } from '@adecore/agent-contracts';
 import type { BackendHost } from './backend.ts';
 import { ChatCore } from './chat-core.ts';
@@ -79,13 +80,33 @@ test('UI previews reach attached clients without a log sequence or observer side
         expect(replay.events?.some((event) => event.type === 'delta' && event.ui !== undefined)).toBe(true);
         const lines = parseLog(await readFile(store.logPath('chat'), 'utf8'));
         expect(lines.some((line) => line.event.type === 'delta' && line.event.ui !== undefined)).toBe(false);
-        const authoritative = '```ruimte-ui\n<Summary>Final</Summary>\n```';
+        const authoritative = '```ruimte-ui\n<Summary>Final</Summary><Choices><Choice context="Run checks">Check</Choice></Choices>\n```';
         host.onEvent({ type: 'text.done', ref: 'answer', text: authoritative, parentRef: null });
         const finalLines = parseLog(await readFile(store.logPath('chat'), 'utf8'));
         expect(
             finalLines.filter((line) => line.event.type === 'item' && line.event.item.kind === 'assistant' && line.event.item.ui !== undefined)
         ).toHaveLength(1);
         expect(finalLines.some((line) => line.event.type === 'delta' && line.event.ui !== undefined)).toBe(false);
+        const assistant = manager
+            .get('chat')!
+            .thread.list()
+            .find((item) => item.kind === 'assistant')!;
+        if (assistant.kind !== 'assistant' || !assistant.ui?.[0]) {
+            throw new Error('Missing completed UI block');
+        }
+        const block = assistant.ui[0];
+        expect(block.revision).toMatch(/^[a-f0-9]{64}$/);
+        const choice = evaluateUiBlock(block).nodes.find((node) => node.type === 'Choices')!.children[0];
+        const payload = { chatId: 'chat', itemId: assistant.id, blockId: block.id, revision: block.revision!, choiceId: choice.id };
+        const [first, repeated] = await Promise.all([manager.choose(payload), manager.choose(payload)]);
+        expect(repeated).toEqual(first);
+        expect(first.queued).toBe(true);
+        const stored = await store.read('chat');
+        expect(stored?.info.queue).toHaveLength(1);
+        expect(stored?.info.queue?.[0]).toMatchObject({ text: 'Run checks', uiChoice: { label: 'Check', revision: block.revision } });
+        expect(stored?.items.find((item) => item.id === assistant.id)).toMatchObject({
+            uiAnswers: { [block.id]: { choiceId: choice.id, turnId: first.turnId, queued: true } }
+        });
     } finally {
         await manager.shutdown();
         for (const info of manager.list()) {

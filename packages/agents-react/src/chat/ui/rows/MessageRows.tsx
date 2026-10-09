@@ -208,6 +208,7 @@ export function AssistantRow({ chatId, item: derived }: { chatId: string; item: 
                     <UiReply
                         text={item.text}
                         blocks={item.ui}
+                        answers={item.uiAnswers}
                         reply={reply}
                         context={{ scopeId: scope.id, chatId, itemId: item.id, phase: item.streaming ? 'streaming' : 'final', answer: null }}
                     />

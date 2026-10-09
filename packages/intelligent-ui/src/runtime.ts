@@ -11,6 +11,7 @@ export interface UiBinding<Value> {
 
 export interface UiViewNode<Props = Record<string, unknown>> {
     id: string;
+    sourceId?: string;
     type: string;
     props: Props;
     bindings: Readonly<Record<string, UiBinding<unknown>>>;
@@ -149,6 +150,7 @@ export function evaluateUiBlock(block: UiBlock, state = new UiState(block), limi
     const visit = (node: UiNode, variables: Readonly<Record<string, UiValue>>, depth: number, suffix = ''): UiViewNode[] => {
         const view: UiViewNode = {
             id: `${node.id}${suffix}`,
+            sourceId: node.id,
             type: node.type,
             props: {},
             bindings: {},
@@ -239,4 +241,113 @@ export function evaluateUiBlock(block: UiBlock, state = new UiState(block), limi
         result.diagnostics = [uiDiagnostic(error, block.start, block.end)];
     }
     return result;
+}
+
+export interface UiChoiceSelection {
+    label: string;
+    context: string;
+    values: Record<string, UiValue>;
+}
+
+export function uiInputValues(block: UiBlock, state: UiState): Record<string, UiValue> {
+    const scope = state.scope();
+    const values: Record<string, UiValue> = Object.create(null);
+    const visit = (nodes: readonly UiNode[]) => {
+        for (const node of nodes) {
+            if (isUiComponent(node.type) && !node.error && node.complete) {
+                const entry = UI_CATALOG[node.type];
+                for (const [prop, name] of Object.entries(node.bindings)) {
+                    if ('binding' in entry && entry.binding === prop && Object.hasOwn(block.defaults, name) && !Object.hasOwn(block.queries, name)) {
+                        values[name] = scope[name];
+                    }
+                }
+            }
+            visit(node.children);
+        }
+    };
+    visit(block.nodes);
+    return values;
+}
+
+/* The host supplies its stored block; client data can change only declared input bindings. */
+export function resolveUiChoice(block: UiBlock, choiceId: string, input: Readonly<Record<string, unknown>> = {}): UiChoiceSelection {
+    if (!block.complete || block.catalogVersion !== UI_CATALOG_VERSION) {
+        throw new UiFailure('refused_choice', 'Only a completed supported block can send a choice.');
+    }
+    const values = copyUiValue(input, new UiBudget()) as Record<string, UiValue>;
+    const state = new UiState(block);
+    const allowed = uiInputValues(block, state);
+    const changed = new Set<string>();
+    for (const [name, value] of Object.entries(values)) {
+        if (!Object.hasOwn(allowed, name)) {
+            throw new UiFailure('refused_binding', 'Only declared input bindings can be submitted.');
+        }
+        if (JSON.stringify(value) !== JSON.stringify(allowed[name])) {
+            state.set(name, value);
+            changed.add(name);
+        }
+    }
+    const evaluated = evaluateUiBlock(block, state);
+    if (evaluated.diagnostics.some((diagnostic) => diagnostic.code === 'budget_exceeded')) {
+        throw new UiFailure('budget_exceeded', 'The choice exceeded its evaluation budget.');
+    }
+    const validInputs = new Set<string>();
+    let choice: UiViewNode | undefined;
+    const written = new Map<string, UiNode>();
+    const remember = (nodes: readonly UiNode[]) => {
+        for (const node of nodes) {
+            written.set(node.id, node);
+            remember(node.children);
+        }
+    };
+    remember(block.nodes);
+    const visit = (nodes: readonly UiViewNode[], parent?: string) => {
+        for (const node of nodes) {
+            const source = written.get(node.sourceId ?? node.id);
+            if (node.error && source && Object.values(source.bindings).some((name) => changed.has(name))) {
+                throw new UiFailure('invalid_value', 'An input value does not match its control.');
+            }
+            if (node.error || !node.complete) {
+                continue;
+            }
+            let valid = true;
+            if (node.type === 'Segmented') {
+                valid = node.children.some((option) => option.type === 'Option' && !option.error && option.props.value === node.props.value);
+            } else if (node.type === 'Checklist') {
+                const options = node.children.filter((item) => item.type === 'Item' && !item.error).map((item) => item.props.value);
+                valid = (node.props.value as unknown[]).every((value) => options.includes(value));
+            }
+            if (valid && source) {
+                for (const prop of Object.keys(node.bindings)) {
+                    validInputs.add(source.bindings[prop]);
+                }
+            }
+            if (node.id === choiceId && node.type === 'Choice' && parent === 'Choices' && node.props.disabled !== true) {
+                choice = node;
+            }
+            visit(node.children, node.type);
+        }
+    };
+    visit(evaluated.nodes);
+    if ([...changed].some((name) => !validInputs.has(name))) {
+        throw new UiFailure('invalid_value', 'An input value is outside the visible control’s allowed values.');
+    }
+    if (!choice) {
+        throw new UiFailure('refused_choice', 'This choice is not available in the current block.');
+    }
+    const text = (nodes: readonly UiViewNode[]): string =>
+        nodes.map((node) => (node.type === '$text' ? String(node.props.text ?? '') : text(node.children))).join('');
+    const hasError = (nodes: readonly UiViewNode[]): boolean => nodes.some((node) => node.error !== undefined || hasError(node.children));
+    if (hasError(choice.children)) {
+        throw new UiFailure('refused_choice', 'The choice label could not be fully read.');
+    }
+    const label = text(choice.children).replace(/\s+/g, ' ').trim();
+    if (!label) {
+        throw new UiFailure('refused_choice', 'A choice needs a visible label.');
+    }
+    return {
+        label,
+        values: uiInputValues(block, state),
+        context: typeof choice.props.context === 'string' && choice.props.context.trim() ? choice.props.context : label
+    };
 }

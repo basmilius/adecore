@@ -16,6 +16,7 @@ import {
     type ChatInfo,
     type ChatItem,
     type ChatQueuedMessage,
+    type ChatUiChoicePayload,
     type ChatSkill,
     type ChatSubagentPayload,
     type ChatSubagentResult,
@@ -708,6 +709,12 @@ export class ChatCore {
         }
         const attachments = await Promise.all(uploads.map((upload) => this.attachments.save(chatId, upload)));
         return session.sendInput(text, { ...extras, ...(attachments.length > 0 ? { attachments } : {}) });
+    }
+
+    async choose(payload: ChatUiChoicePayload): Promise<{ queued: boolean; turnId: string }> {
+        const result = this.require(payload.chatId).choose(payload);
+        await this.persisted(payload.chatId);
+        return result;
     }
 
     /* The file behind an attachment id: what this chat's thread or queue says it is, or a visual's page. */

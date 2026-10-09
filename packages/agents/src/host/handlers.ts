@@ -66,6 +66,7 @@ export function chatHandlers(chats: ChatCore, providers: ProviderRegistry): { [T
                 { delivery: payload.delivery, mentions: payload.mentions, skills: payload.skills, chats: payload.chats },
                 payload.attachments
             ),
+        'chat.uiChoice': (payload) => chats.choose(payload),
         'chat.unqueue': (payload) => ({ message: chats.unqueue(payload.chatId, payload.messageId) }),
         'chat.sendNow': (payload) => {
             chats.sendNow(payload.chatId, payload.messageId);

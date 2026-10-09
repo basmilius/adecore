@@ -102,6 +102,25 @@ export const ChatAttachmentSchema = z.object({
 });
 export type ChatAttachment = z.infer<typeof ChatAttachmentSchema>;
 
+export const ChatUiChoiceOriginSchema = z.object({
+    itemId: z.string().min(1),
+    blockId: z.string().min(1),
+    revision: z.string().min(1),
+    choiceId: z.string().min(1),
+    label: z.string().min(1),
+    sourceAt: z.number().nonnegative(),
+    older: z.boolean(),
+    values: z.record(z.string(), z.unknown()).optional(),
+    at: z.number().nonnegative()
+});
+export type ChatUiChoiceOrigin = z.infer<typeof ChatUiChoiceOriginSchema>;
+
+export const ChatUiAnswerSchema = ChatUiChoiceOriginSchema.extend({
+    queued: z.boolean(),
+    turnId: z.string().min(1)
+});
+export type ChatUiAnswer = z.infer<typeof ChatUiAnswerSchema>;
+
 // A message typed while a turn was running; the daemon sends it when that turn settles.
 export const ChatQueuedMessageSchema = z.object({
     id: z.string().min(1),
@@ -112,7 +131,8 @@ export const ChatQueuedMessageSchema = z.object({
     skills: z.array(z.string()).optional(),
     chats: z.array(z.string()).optional(),
     attachments: z.array(ChatAttachmentSchema).optional(),
-    createdAt: z.number()
+    createdAt: z.number(),
+    uiChoice: ChatUiChoiceOriginSchema.optional()
 });
 export type ChatQueuedMessage = z.infer<typeof ChatQueuedMessageSchema>;
 
@@ -282,13 +302,15 @@ export const ChatUserItemSchema = z.object({
     skills: z.array(z.string()).optional(),
     // Chats of the same project the person picked with `@`. Only their ids travel; the agent reads them itself.
     chats: z.array(z.string()).optional(),
-    attachments: z.array(ChatAttachmentSchema).optional()
+    attachments: z.array(ChatAttachmentSchema).optional(),
+    uiChoice: ChatUiChoiceOriginSchema.optional()
 });
 
 export const ChatAssistantItemSchema = z.object({
     ...base,
     kind: z.literal('assistant'),
     ui: UiBlocksSchema.optional(),
+    uiAnswers: z.record(z.string(), ChatUiAnswerSchema).optional(),
     phase: z.string().optional(),
     text: z.string(),
     streaming: z.boolean(),
@@ -819,6 +841,16 @@ export type ChatSendPayload = z.infer<typeof ChatSendPayloadSchema>;
 // Daemons before completion follow-ups omit `turnId`; keeping it optional lets newer clients finish the send.
 export const ChatSendResultSchema = z.object({ queued: z.boolean(), turnId: z.string().min(1).optional() });
 export type ChatSendResult = z.infer<typeof ChatSendResultSchema>;
+
+export const ChatUiChoicePayloadSchema = z.object({
+    chatId: ChatIdSchema,
+    itemId: z.string().min(1).max(256),
+    blockId: z.string().min(1).max(256),
+    revision: z.string().min(1).max(128),
+    choiceId: z.string().min(1).max(256),
+    values: z.record(z.string().max(128), z.unknown()).optional()
+});
+export type ChatUiChoicePayload = z.infer<typeof ChatUiChoicePayloadSchema>;
 
 export const ChatQueuePayloadSchema = z.object({
     chatId: ChatIdSchema,

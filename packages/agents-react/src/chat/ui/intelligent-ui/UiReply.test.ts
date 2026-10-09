@@ -89,3 +89,30 @@ test('finds written prose inside a repetition and keeps a repeated value as data
     );
     expect(markup).toContain('**a** is <strong>ready</strong>');
 });
+
+test('an answered block restores its selected input and closes every choice and input', () => {
+    const text =
+        '```ruimte-ui\n$count = 2\n<Slider value={$count} min={1} max={5}>Count</Slider><Choices><Choice context={"Build " + $count}>Build</Choice></Choices>\n```';
+    const blocks = compileUi(text, { id: 'answered-item', final: true }).map((block) => ({ ...block, revision: 'revision' }));
+    const choice = blocks[0].nodes.find((node) => node.type === 'Choices')!.children[0];
+    const answer = {
+        itemId: 'answered-item',
+        blockId: blocks[0].id,
+        revision: 'revision',
+        choiceId: choice.id,
+        label: 'Build',
+        at: 1000,
+        sourceAt: 500,
+        older: false,
+        values: { $count: 4 },
+        queued: true,
+        turnId: 'turn'
+    };
+    const markup = renderToStaticMarkup(
+        createElement(UiReply, { text, blocks, context: { ...context, itemId: 'answered-item' }, answers: { [blocks[0].id]: answer } })
+    );
+    expect(markup).toContain('Build 4');
+    expect(markup).toContain('aria-disabled="true"');
+    expect(markup).toContain('disabled');
+    expect(markup).toMatch(/Answered|blocks\.answered/);
+});

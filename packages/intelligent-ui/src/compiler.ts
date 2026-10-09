@@ -28,6 +28,7 @@ export interface UiQuery {
 export interface UiBlock {
     id: string;
     catalogVersion: number;
+    revision?: string;
     start: number;
     end: number;
     complete: boolean;

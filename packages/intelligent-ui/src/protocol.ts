@@ -32,6 +32,7 @@ export const UiDiagnosticSchema = z.object({
 export const UiBlockSchema: z.ZodType<UiBlock> = z.object({
     id: z.string(),
     catalogVersion: position,
+    revision: z.string().min(1).optional(),
     start: position,
     end: position,
     complete: z.boolean(),

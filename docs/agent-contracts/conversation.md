@@ -117,3 +117,10 @@ optional so existing records remain readable.
 An assistant item may carry `ui`, an array of open UI block envelopes from `@adecore/intelligent-ui/protocol`. Node types are strings, props and expression payloads are records, and each block carries its catalog version, stable ID, source range, diagnostics and Markdown fallback. Unknown component names and catalog versions do not invalidate the surrounding history.
 
 A streaming preview uses an existing `delta` event with empty `text`, optional `ui` and `textLength`. It has no envelope `seq`, is not written to the chat log and is sent only to clients attached to that chat. A client applies it only to the matching length of a still-streaming assistant item. Older clients ignore these optional fields. The final assistant item carries the authoritative tree once and replays with the rest of the thread.
+
+
+## Choices in UI replies
+
+`ChatUiChoicePayloadSchema` and `ChatUiChoicePayload` are the `chat.uiChoice` request: chat, assistant item, block, revision and choice IDs, plus optional local input `values`. Its result is `ChatSendResult`. Labels and message context never come from the client. The visible context becomes the message body; the label accompanies the provider prompt as a preamble. The daemon assigns the completed block revision and validates the choice against that stored block.
+
+`ChatUiChoiceOriginSchema` / `ChatUiChoiceOrigin` preserve the source identity, label, source time, whether it names an older reply, submitted values and send time on a user item or queued message. The assistant's optional `uiAnswers` map contains `ChatUiAnswerSchema` / `ChatUiAnswer` records with the reserved turn ID and whether the message queued. Retrying the same answered choice returns that turn; another choice in that block is refused. Queue draining keeps the origin and marks the answer sent. Older decoders omit these optional fields.

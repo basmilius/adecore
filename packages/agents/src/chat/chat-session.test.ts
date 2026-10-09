@@ -5,6 +5,7 @@ import { claudeProvider } from '../providers/claude-provider.ts';
 import { codexProvider } from '../providers/codex-provider.ts';
 import type { BackendEvent, BackendHost, BackendLaunch, ChatBackend, TurnInput } from './backend.ts';
 import { ChatSession, type ChatSessionOptions } from './chat-session.ts';
+import { compileUiBlock, evaluateUiBlock } from '@adecore/intelligent-ui';
 import { ClaudeProtocol } from './claude-protocol.ts';
 
 function info(): ChatInfo {
@@ -1578,4 +1579,78 @@ test('compiler diagnostics are retained for the next real prompt', async () => {
     await flush();
     expect(run.sent.at(-1)?.preamble).toContain('Your last ruimte-ui block');
     await run.session.dispose();
+});
+
+function choiceReply() {
+    const text = `<Choices><Choice context="Run the selected checks">Check</Choice><Choice context="Inspect code">Inspect</Choice></Choices>`;
+    const block = { ...compileUiBlock(text, { id: 'block', final: true }), revision: 'stored-revision' };
+    const choices = evaluateUiBlock(block).nodes[0].children;
+    const item: ChatItem = { id: 'answer', kind: 'assistant', createdAt: 5, turnId: null, streaming: false, text, ui: [block] };
+    const payload = { chatId: 'child', itemId: 'answer', blockId: 'block', revision: block.revision, choiceId: choices[0].id };
+    return { item, payload, other: choices[1].id };
+}
+
+describe('choices from saved UI blocks', () => {
+    test('the stored context is sent once and its label remains separate metadata', async () => {
+        const { item, payload, other } = choiceReply();
+        const run = rig({ items: [item] });
+        const result = run.session.choose(payload);
+        expect(run.session.choose(payload)).toEqual(result);
+        expect(() => run.session.choose({ ...payload, choiceId: other })).toThrow();
+        await flush();
+        expect(run.sent.map((input) => input.text)).toEqual(['Run the selected checks']);
+        expect(run.sent[0].preamble).toContain('The person chose "Check"');
+        const user = run.session.thread.list().find((entry) => entry.kind === 'user');
+        expect(user).toMatchObject({ text: 'Run the selected checks', uiChoice: { label: 'Check', itemId: 'answer', sourceAt: 5, older: false } });
+        expect(run.session.thread.get('answer')).toMatchObject({ uiAnswers: { block: { choiceId: payload.choiceId, queued: false, turnId: result.turnId } } });
+        await run.session.dispose();
+    });
+
+    test('a busy chat queues a choice and preserves its origin when that queue drains', async () => {
+        const { item, payload } = choiceReply();
+        const run = rig({ items: [item] });
+        run.session.send('original');
+        await flush();
+        const result = run.session.choose(payload);
+        expect(result.queued).toBe(true);
+        expect(run.session.choose(payload)).toEqual(result);
+        expect(run.session.info.queue).toHaveLength(1);
+        expect(run.session.info.queue![0]).toMatchObject({ text: 'Run the selected checks', uiChoice: { label: 'Check' } });
+        run.event({ type: 'turn.done', state: 'done', costUsd: 0 });
+        await flush();
+        expect(run.sent.map((input) => input.text)).toEqual(['original', 'Run the selected checks']);
+        expect(run.session.thread.list().find((entry) => entry.kind === 'user' && entry.uiChoice)).toMatchObject({
+            turnId: result.turnId,
+            uiChoice: { label: 'Check' }
+        });
+        expect(run.session.choose(payload)).toEqual({ queued: false, turnId: result.turnId });
+        await run.session.dispose();
+    });
+
+    test('stale, streaming and subagent blocks cannot submit', async () => {
+        const { item, payload } = choiceReply();
+        for (const edited of [{ ...item, streaming: true }, { ...item, parentToolUseId: 'agent' }, item]) {
+            const run = rig({ items: [edited] });
+            expect(() => run.session.choose({ ...payload, revision: 'stale' })).toThrow();
+            if (edited !== item) {
+                expect(() => run.session.choose(payload)).toThrow();
+            }
+            expect(run.session.thread.list().some((entry) => entry.kind === 'user')).toBe(false);
+            await run.session.dispose();
+        }
+    });
+
+    test('replay deduplicates a sent choice even if its answer marker was not logged', async () => {
+        const { item, payload } = choiceReply();
+        const run = rig({ items: [item] });
+        const result = run.session.choose(payload);
+        const items = run.session.thread.list().map((entry) => (entry.kind === 'assistant' ? { ...entry, uiAnswers: undefined } : entry));
+        const restored = rig({ items, info: { ...run.session.info, status: 'idle', activeTurnId: null, running: false } });
+        expect(restored.session.choose(payload)).toEqual(result);
+        await flush();
+        expect(restored.sent).toHaveLength(0);
+        expect(restored.session.thread.list().filter((entry) => entry.kind === 'user')).toHaveLength(1);
+        await run.session.dispose();
+        await restored.session.dispose();
+    });
 });
