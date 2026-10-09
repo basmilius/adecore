@@ -529,6 +529,11 @@
             "types": "./dist/chat/ui/intelligent-ui/UiFallbackPart.d.ts",
             "default": "./dist/chat/ui/intelligent-ui/UiFallbackPart.js"
         },
+        "./chat/ui/intelligent-ui/UiReply": {
+            "source": "./src/chat/ui/intelligent-ui/UiReply.tsx",
+            "types": "./dist/chat/ui/intelligent-ui/UiReply.d.ts",
+            "default": "./dist/chat/ui/intelligent-ui/UiReply.js"
+        },
         "./chat/ui/intelligent-ui/block-local": {
             "source": "./src/chat/ui/intelligent-ui/block-local.ts",
             "types": "./dist/chat/ui/intelligent-ui/block-local.d.ts",
@@ -594,6 +599,11 @@
             "types": "./dist/chat/ui/intelligent-ui/renderers/text.d.ts",
             "default": "./dist/chat/ui/intelligent-ui/renderers/text.js"
         },
+        "./chat/ui/intelligent-ui/reply-parts": {
+            "source": "./src/chat/ui/intelligent-ui/reply-parts.ts",
+            "types": "./dist/chat/ui/intelligent-ui/reply-parts.d.ts",
+            "default": "./dist/chat/ui/intelligent-ui/reply-parts.js"
+        },
         "./chat/ui/intelligent-ui/table-data": {
             "source": "./src/chat/ui/intelligent-ui/table-data.ts",
             "types": "./dist/chat/ui/intelligent-ui/table-data.d.ts",
@@ -608,6 +618,16 @@
             "source": "./src/chat/ui/intelligent-ui/use-later.ts",
             "types": "./dist/chat/ui/intelligent-ui/use-later.d.ts",
             "default": "./dist/chat/ui/intelligent-ui/use-later.js"
+        },
+        "./chat/ui/intelligent-ui/use-ui-links": {
+            "source": "./src/chat/ui/intelligent-ui/use-ui-links.ts",
+            "types": "./dist/chat/ui/intelligent-ui/use-ui-links.d.ts",
+            "default": "./dist/chat/ui/intelligent-ui/use-ui-links.js"
+        },
+        "./chat/ui/intelligent-ui/use-ui-queries": {
+            "source": "./src/chat/ui/intelligent-ui/use-ui-queries.ts",
+            "types": "./dist/chat/ui/intelligent-ui/use-ui-queries.d.ts",
+            "default": "./dist/chat/ui/intelligent-ui/use-ui-queries.js"
         },
         "./chat/ui/markdown-blocks": {
             "source": "./src/chat/ui/markdown-blocks.ts",
@@ -982,26 +1002,6 @@
             "source": "./src/chat/visual-viewport.ts",
             "types": "./dist/chat/visual-viewport.d.ts",
             "default": "./dist/chat/visual-viewport.js"
-        },
-        "./chat/ui/intelligent-ui/use-ui-links": {
-            "source": "./src/chat/ui/intelligent-ui/use-ui-links.ts",
-            "types": "./dist/chat/ui/intelligent-ui/use-ui-links.d.ts",
-            "default": "./dist/chat/ui/intelligent-ui/use-ui-links.js"
-        },
-        "./chat/ui/intelligent-ui/use-ui-queries": {
-            "source": "./src/chat/ui/intelligent-ui/use-ui-queries.ts",
-            "types": "./dist/chat/ui/intelligent-ui/use-ui-queries.d.ts",
-            "default": "./dist/chat/ui/intelligent-ui/use-ui-queries.js"
-        },
-        "./chat/ui/intelligent-ui/UiReply": {
-            "source": "./src/chat/ui/intelligent-ui/UiReply.tsx",
-            "types": "./dist/chat/ui/intelligent-ui/UiReply.d.ts",
-            "default": "./dist/chat/ui/intelligent-ui/UiReply.js"
-        },
-        "./chat/ui/intelligent-ui/reply-parts": {
-            "source": "./src/chat/ui/intelligent-ui/reply-parts.ts",
-            "types": "./dist/chat/ui/intelligent-ui/reply-parts.d.ts",
-            "default": "./dist/chat/ui/intelligent-ui/reply-parts.js"
         }
     },
     "scripts": {
