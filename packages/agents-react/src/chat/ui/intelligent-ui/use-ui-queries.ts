@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ChatUiQueryReading, ChatUiQueryState } from '@adecore/agent-contracts';
 import { uiInputValues, UI_CATALOG_VERSION, UI_HOST_LIMITS, UiState, type UiBlock, type UiViewNode, type UiNode } from '@adecore/intelligent-ui';
 import { chatHost } from '../../../host';
@@ -8,6 +8,28 @@ interface LocalReading {
     identity: string;
     reading: ChatUiQueryReading;
     successful?: { inputs: string; reading: ChatUiQueryReading };
+}
+
+const NO_READINGS: ChatUiQueryState['blocks'][string]['readings'] = {};
+// A changed input reads once it has rested this long, so dragging a slider reads its last value only.
+const INPUT_SETTLE_MS = 300;
+
+/* The reading that holds for these inputs: this view's own read of them, or the frozen first one for the inputs the block starts with. */
+function successfulReading(
+    local: LocalReading | undefined,
+    initial: ChatUiQueryReading | undefined,
+    identity: string,
+    signature: string,
+    defaultInputs: string
+): ChatUiQueryReading | undefined {
+    if (local?.identity === identity && local.successful?.inputs === signature) {
+        return local.successful.reading;
+    }
+    return signature === defaultInputs && initial?.state === 'fresh' ? initial : undefined;
+}
+
+function settleDeadline(): number {
+    return Date.now() + INPUT_SETTLE_MS;
 }
 
 function documentVisible(): boolean {
@@ -23,21 +45,16 @@ export function useUiQueries(
 ) {
     const [readings, setReadings] = useState<Record<string, LocalReading>>({});
     const [busyInput, setBusyInput] = useState<string | null>(null);
-    const lastReadAt = useRef({ identity: '', at: 0 });
+    const lastRead = useRef({ inputKey: '', at: 0 });
     const names = Object.keys(block.queries);
     const inputs = JSON.stringify(uiInputValues(block, state));
     const identity = JSON.stringify([context.scopeId, context.chatId, context.itemId, block.id, block.revision]);
     const inputKey = JSON.stringify([identity, inputs]);
     const reading = busyInput === inputKey;
-    const defaultInputs = JSON.stringify(uiInputValues(block, new UiState(block)));
-    const initial = frozen && frozen.revision === block.revision ? frozen.readings : {};
-    const successfulFor = (name: string, signature: string): ChatUiQueryReading | undefined => {
-        const local = readings[name];
-        if (local?.identity === identity && local.successful?.inputs === signature) {
-            return local.successful.reading;
-        }
-        return signature === defaultInputs && initial[name]?.state === 'fresh' ? initial[name] : undefined;
-    };
+    const defaultInputs = useMemo(() => JSON.stringify(uiInputValues(block, new UiState(block))), [block]);
+    const initial = frozen && frozen.revision === block.revision ? frozen.readings : NO_READINGS;
+    const successfulFor = (name: string, signature: string): ChatUiQueryReading | undefined =>
+        successfulReading(readings[name], initial[name], identity, signature, defaultInputs);
     const readsFor = (values: Readonly<Record<string, unknown>>): Record<string, string> | null => {
         const signature = JSON.stringify(values);
         const reads: Record<string, string> = {};
@@ -57,13 +74,13 @@ export function useUiQueries(
     const subscribe = chatHost().intelligentUi?.subscribe;
     useEffect(() => {
         const scope = state.scope();
-        for (const name of names) {
-            const successful = successfulFor(name, inputs);
+        for (const name of Object.keys(block.queries)) {
+            const successful = successfulReading(readings[name], initial[name], identity, inputs, defaultInputs);
             if (successful && JSON.stringify(scope[name]) !== JSON.stringify(successful.value)) {
                 state.setQuery(name, successful.value, block);
             }
         }
-    });
+    }, [state, block, readings, identity, inputs, defaultInputs, initial]);
     useEffect(() => {
         if (
             !query ||
@@ -81,11 +98,17 @@ export function useUiQueries(
         let busy = false;
 
         let timer: ReturnType<typeof setTimeout> | null = null;
+        // The first read of this block reads at once; a changed input waits until it rests.
+        const changed = lastRead.current.inputKey !== '' && lastRead.current.inputKey !== inputKey;
+        const settledAt = changed ? settleDeadline() : 0;
         const refresh = async () => {
             if (stopped || !visible || !documentVisible() || busy) {
                 return;
             }
-            const wait = lastReadAt.current.identity === identity ? UI_HOST_LIMITS.refreshMilliseconds - (Date.now() - lastReadAt.current.at) : 0;
+            const wait = Math.max(
+                settledAt - Date.now(),
+                lastRead.current.inputKey === inputKey ? UI_HOST_LIMITS.refreshMilliseconds - (Date.now() - lastRead.current.at) : 0
+            );
             if (wait > 0) {
                 if (timer === null) {
                     if (!visible || !documentVisible()) {
@@ -99,7 +122,7 @@ export function useUiQueries(
                 return;
             }
             busy = true;
-            lastReadAt.current = { identity, at: Date.now() };
+            lastRead.current = { inputKey, at: Date.now() };
             setBusyInput(inputKey);
             for (const name of Object.keys(block.queries).slice(0, UI_HOST_LIMITS.queries)) {
                 if (!visible || !documentVisible()) {
@@ -176,6 +199,8 @@ export function useUiQueries(
         void refresh();
         return () => {
             stopped = true;
+            // A read cut short by this cleanup never reaches its own reset, which would leave the choices closed.
+            setBusyInput((current) => (current === inputKey ? null : current));
             observer?.disconnect();
             unsubscribe?.();
             document.removeEventListener('visibilitychange', focus);

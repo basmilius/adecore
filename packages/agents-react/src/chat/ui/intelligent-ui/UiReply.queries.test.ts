@@ -88,6 +88,105 @@ test.skipIf(typeof document === 'undefined')('changing a query input closes its 
     }
 });
 
+/* A block with one query on a Switch and one Choice, mounted with `query` as the host's reader. */
+async function mountQueryBlock(scopeId: string, query: NonNullable<NonNullable<ReturnType<typeof chatHost>['intelligentUi']>['query']>) {
+    const source =
+        '$flag = false\n$data = @Query("status", {flag: $flag})\n<Stats><Stat label="Count" value={$data.count}/></Stats><Switch value={$flag}>Flag</Switch><Choices><Choice>Choose</Choice></Choices>';
+    const text = '```ui\n' + source + '\n```';
+    const block = compileUiBlock(source, { id: `${scopeId}-block`, final: true, querySchemas: { status: z.object({ flag: z.boolean() }) } });
+    block.revision = 'revision';
+    block.start = 0;
+    block.end = text.length;
+    let refresh = () => {};
+    const host = (read: typeof query) => ({
+        query: read,
+        subscribe: (_scope: string, _chat: string, listener: () => void) => {
+            refresh = listener;
+            return () => {};
+        },
+        sendChoice: async () => 'sent' as const
+    });
+    setChatHost({ intelligentUi: host(query) });
+    const element = document.createElement('div');
+    document.body.append(element);
+    const root = createRoot(element);
+    const draw = () =>
+        root.render(createElement(UiReply, { text, blocks: [block], context: { scopeId, chatId: 'chat', itemId: 'item', phase: 'final', answer: null } }));
+    await act(async () => draw());
+    return {
+        element,
+        choose: () => [...element.querySelectorAll('button')].find((button) => button.textContent?.trim() === 'Choose')!,
+        refresh: () => refresh(),
+        /* Hands the view a new reader, which runs the query effect's cleanup and starts it again. */
+        swap: async (read: typeof query) => {
+            setChatHost({ intelligentUi: host(read) });
+            await act(async () => draw());
+        },
+        unmount: async () => {
+            await act(async () => root.unmount());
+            element.remove();
+        }
+    };
+}
+
+test.skipIf(typeof document === 'undefined')('a read its cleanup cut short leaves the choices open on the reading before it', async () => {
+    const observer = globalThis.IntersectionObserver;
+    Object.defineProperty(globalThis, 'IntersectionObserver', { configurable: true, writable: true, value: undefined });
+    const previous = chatHost().intelligentUi;
+    const originalNow = Date.now;
+    let now = originalNow();
+    Date.now = () => now;
+    let count = 0;
+    const view = await mountQueryBlock('cleanup-test', async () => {
+        count++;
+        if (count === 2) {
+            return new Promise(() => {});
+        }
+        return { state: 'fresh', value: { count }, readId: `reading-${count}`, readAt: Date.now() };
+    });
+    try {
+        expect(view.choose().getAttribute('aria-disabled')).not.toBe('true');
+        now += 10_001;
+        await act(async () => view.refresh());
+        expect(view.choose().getAttribute('aria-disabled')).toBe('true');
+        await view.swap(async () => ({ state: 'fresh', value: { count: 9 }, readId: 'reading-9', readAt: Date.now() }));
+        expect(view.choose().getAttribute('aria-disabled')).not.toBe('true');
+    } finally {
+        await view.unmount();
+        Date.now = originalNow;
+        setChatHost({ intelligentUi: previous });
+        Object.defineProperty(globalThis, 'IntersectionObserver', { configurable: true, writable: true, value: observer });
+    }
+});
+
+test.skipIf(typeof document === 'undefined')('a changed input reads once it rested, not after the refresh interval', async () => {
+    const observer = globalThis.IntersectionObserver;
+    Object.defineProperty(globalThis, 'IntersectionObserver', { configurable: true, writable: true, value: undefined });
+    const previous = chatHost().intelligentUi;
+    const reads: unknown[] = [];
+    const view = await mountQueryBlock('settle-test', async (_scope, payload) => {
+        reads.push(payload.values);
+        return { state: 'fresh', value: { count: reads.length }, readId: `reading-${reads.length}`, readAt: Date.now() };
+    });
+    try {
+        const toggle = view.element.querySelector<HTMLElement>('[role="switch"]')!;
+        await act(async () => toggle.click());
+        await act(async () => toggle.click());
+        await act(async () => toggle.click());
+        expect(reads).toEqual([{ $flag: false }]);
+        expect(view.choose().getAttribute('aria-disabled')).toBe('true');
+        await act(async () => {
+            await new Promise((resolve) => setTimeout(resolve, 400));
+        });
+        expect(reads).toEqual([{ $flag: false }, { $flag: true }]);
+        expect(view.choose().getAttribute('aria-disabled')).not.toBe('true');
+    } finally {
+        await view.unmount();
+        setChatHost({ intelligentUi: previous });
+        Object.defineProperty(globalThis, 'IntersectionObserver', { configurable: true, writable: true, value: observer });
+    }
+});
+
 test.skipIf(typeof document === 'undefined')('a citation reveals and focuses its Source without opening its URL', async () => {
     const scroll = HTMLElement.prototype.scrollIntoView;
     const previous = chatHost().intelligentUi;
