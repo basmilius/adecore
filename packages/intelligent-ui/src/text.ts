@@ -7,17 +7,28 @@ export function uiCompactCatalog(): string {
             const props = Object.entries(entry.schema.shape)
                 .map(([key, schema]) => `${key}${schema.isOptional() ? '?' : ''}`)
                 .join(',');
-            return `${name}(${props})`;
+            return `${name}${props ? `: ${props}` : ''}`;
         })
         .join(' · ');
 }
 
+const UI_SYNTAX = `Write XML-like component tags inside a fenced ${UI_FENCE_LANGUAGE} block. Put text between opening and closing tags; empty components end with />. Quote string props; put numbers, booleans and expressions in braces.`;
+const UI_EXAMPLE = [
+    '```' + UI_FENCE_LANGUAGE,
+    '$enabled = false',
+    '<Summary badge="Draft">Release overview</Summary>',
+    '<Stats><Stat label="Tests" value={42}/></Stats>',
+    '<Switch value={$enabled}>Notify me</Switch>',
+    '<Choices><Choice context="Review the release overview">Continue</Choice></Choices>',
+    '```'
+].join('\n');
+
 export function uiSessionNote(): string {
-    return `Use fenced ${UI_FENCE_LANGUAGE} for structured results, comparisons and choices; prose outside. Only named catalog props, no styling. $name = literal JSON; input value={$name}; braced expressions: @Count, @Filter(list,row,predicate), @Sum, @Join, @Round. Show/Each control children. Choice labels and precise context stay visible and send once. Image: attachment or generated="latest", never URL/path. No code execution. State resets on reload. ${uiCompactCatalog()}`;
+    return `${UI_SYNTAX} Prose outside. Only named catalog props, no styling. $name = literal JSON; input value={$name}; braced expressions: @Count, @Filter(list,row,predicate), @Sum, @Join, @Round. Show/Each control children. Choice labels and precise context stay visible and send once. Image: attachment or generated="latest", never URL/path. No code execution. State resets on reload. Catalog (? means optional props): ${uiCompactCatalog()}\nExample:\n${UI_EXAMPLE}\n`;
 }
 
 export function uiReferenceText(): string {
-    return Object.entries(UI_GROUPS)
+    const groups = Object.entries(UI_GROUPS)
         .map(([group, definition]) => {
             const components = Object.entries(UI_CATALOG)
                 .filter(([, entry]) => entry.group === group)
@@ -25,11 +36,12 @@ export function uiReferenceText(): string {
                     const props = Object.entries(entry.schema.shape)
                         .map(([key, schema]) => `${key}${schema.isOptional() ? '?' : ''}`)
                         .join(', ');
-                    return `${name}(${props}): ${entry.description}`;
+                    return `${name}: ${entry.description}${props ? ` Props: ${props}.` : ''}`;
                 });
             return [definition.description, definition.rules, ...components].join('\n');
         })
         .join('\n\n');
+    return `${UI_SYNTAX}\nExample:\n${UI_EXAMPLE}\n\n${groups}`;
 }
 
 export function uiFallbackText(text: string, blocks: readonly UiBlock[]): string {

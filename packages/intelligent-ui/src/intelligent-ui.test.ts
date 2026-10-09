@@ -250,6 +250,21 @@ describe('local state and evaluation', () => {
 });
 
 describe('open wire and agent text', () => {
+    test('agent instructions demonstrate real fenced components and local bindings', () => {
+        for (const instruction of [uiSessionNote(), uiReferenceText()]) {
+            const example = /```ruimte-ui\n([\s\S]*?)\n```/.exec(instruction)?.[0];
+            expect(example).toBeDefined();
+            const compiled = compileUi(example!, { id: 'instruction-example', final: true });
+            expect(compiled).toHaveLength(1);
+            expect(compiled[0].diagnostics).toEqual([]);
+            expect(compiled[0].nodes.some((node) => node.type === 'Summary')).toBe(true);
+            const view = evaluateUiBlock(compiled[0]);
+            const toggle = view.nodes.find((node) => node.type === 'Switch');
+            expect(toggle?.bindings.value.value).toBe(false);
+            expect(instruction).not.toContain('Summary(');
+        }
+    });
+
     test('accepts future component names, props, expression kinds and catalog versions', () => {
         const compiled = block('<Summary>Current</Summary>');
         const node = {
@@ -272,7 +287,7 @@ describe('open wire and agent text', () => {
         const text = 'Before\n```ruimte-ui\n<Summary>Readable</Summary>\n```\nAfter';
         expect(uiFallbackText(text, compileUi(text, { id: 'item', final: true }))).toBe('Before\nReadable\nAfter');
         expect(uiFallbackText(text, [{ ...block('<Summary>Invalid range</Summary>'), start: 200, end: 210 }])).toBe(text);
-        expect(uiCompactCatalog()).toContain('Slider(value,min,max,step?,unit?)');
+        expect(uiCompactCatalog()).toContain('Slider: value,min,max,step?,unit?');
         expect(uiReferenceText()).toContain('Image accepts a chat attachment');
         expect(uiSessionNote()).toContain('@Filter(list,row,predicate)');
         expect(uiSessionNote().length).toBeLessThan(2400);

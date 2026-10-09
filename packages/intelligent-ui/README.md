@@ -29,7 +29,7 @@ The parser recovers at the next tag or line after malformed input. Open tags rem
 
 ## Catalog
 
-`UI_CATALOG` contains each component's schema, description, group and applicable parent, child or binding rule. `UI_GROUPS` contains the instructions shared by each group. `isUiComponent` recognizes a catalog name; `uiCatalogText` lists names, props and descriptions for tooling. `uiCompactCatalog` derives the short prop list from those schemas, `uiSessionNote` adds the language instructions, and `uiReferenceText` combines full descriptions with group rules. `uiFallbackText` replaces UI fences with their compiled fallback while retaining surrounding prose.
+`UI_CATALOG` contains each component's schema, description, group and applicable parent, child or binding rule. `UI_GROUPS` contains the instructions shared by each group. `isUiComponent` recognizes a catalog name; `uiCatalogText` lists names, props and descriptions for tooling. `uiCompactCatalog` derives the short prop list from those schemas, `uiSessionNote` adds explicit tag syntax and a fenced example checked by the compiler, and `uiReferenceText` combines full descriptions with group rules. `uiFallbackText` replaces UI fences with their compiled fallback while retaining surrounding prose.
 
 `UiComponentName` is the key union. `UiProps<Name>` is inferred from that component's schema. `UiToneSchema` and `UiTone` provide neutral, info, success, warning and danger. `UI_CATALOG_VERSION` identifies this catalog.
 
