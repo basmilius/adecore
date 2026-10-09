@@ -145,6 +145,7 @@
         "zustand": "^5.0.15",
       },
       "devDependencies": {
+        "@adecore/intelligent-ui": "workspace:*",
         "@adecore/ui": "workspace:*",
         "@types/bun": "^1.4.2",
         "@types/react": "^19.3.0",
