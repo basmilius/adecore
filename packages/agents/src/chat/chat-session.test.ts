@@ -1522,7 +1522,7 @@ describe('streamed intelligent UI', () => {
         const run = rig({ clock, emit: (event) => events.push(event) });
         await run.session.send('Show results');
         await flush();
-        const streamed = 'Before\n```ruimte-ui\n<Summary>Streaming';
+        const streamed = 'Before\n```ui\n<Summary>Streaming';
         run.event({ type: 'text.delta', ref: 'answer', text: streamed });
         const item = run.session.thread.list().find((row) => row.kind === 'assistant');
         expect(item?.kind).toBe('assistant');
@@ -1539,7 +1539,7 @@ describe('streamed intelligent UI', () => {
         const previews = events.filter((event) => event.type === 'delta' && event.ui !== undefined);
         expect(previews).toHaveLength(2);
         expect(run.session.thread.get(item.id)).not.toHaveProperty('ui');
-        const authoritative = 'Before\n```ruimte-ui\n<Summary>Corrected</Summary>\n```\nAfter';
+        const authoritative = 'Before\n```ui\n<Summary>Corrected</Summary>\n```\nAfter';
         run.event({ type: 'text.done', ref: 'answer', text: authoritative, parentRef: null });
         const final = run.session.thread.get(item.id);
         expect(final?.kind === 'assistant' && final.ui?.[0].fallback).toContain('Corrected');
@@ -1557,7 +1557,7 @@ describe('streamed intelligent UI', () => {
         const run = rig({ clock, emit: (event) => events.push(event) });
         await run.session.send('Show results');
         await flush();
-        run.event({ type: 'text.delta', ref: 'answer', text: '```ruimte-ui\n<Summary>Start' });
+        run.event({ type: 'text.delta', ref: 'answer', text: '```ui\n<Summary>Start' });
         run.event({ type: 'text.delta', ref: 'answer', text: ' pending' });
         run.session.freeze();
         const count = events.length;
@@ -1572,12 +1572,22 @@ test('compiler diagnostics are retained for the next real prompt', async () => {
     const run = rig();
     await run.session.send('Show results');
     await flush();
-    run.event({ type: 'text.done', ref: 'answer', text: '```ruimte-ui\n<Summary tone="huge">Result</Summary>\n```', parentRef: null });
-    expect(run.session.preambles.join(' ')).toContain('Your last ruimte-ui block');
+    run.event({ type: 'text.done', ref: 'answer', text: '```ui\n<Summary tone="huge">Result</Summary>\n```', parentRef: null });
+    expect(run.session.preambles.join(' ')).toContain('Your last ui block');
     run.event({ type: 'turn.done', state: 'done', costUsd: 0 });
     await run.session.send('Fix it');
     await flush();
-    expect(run.sent.at(-1)?.preamble).toContain('Your last ruimte-ui block');
+    expect(run.sent.at(-1)?.preamble).toContain('Your last ui block');
+    await run.session.dispose();
+});
+
+test('a host fence language replaces the default one', async () => {
+    const run = rig({ uiFenceLanguage: 'legacy-ui' });
+    await run.session.send('Show results');
+    await flush();
+    run.event({ type: 'text.done', ref: 'answer', text: '```ui\n<Summary>Plain</Summary>\n```\n```legacy-ui\n<Summary>Named</Summary>\n```', parentRef: null });
+    const answer = run.session.thread.list().find((item) => item.kind === 'assistant');
+    expect(answer?.kind === 'assistant' ? answer.ui?.map((block) => block.fallback) : undefined).toEqual(['Named']);
     await run.session.dispose();
 });
 

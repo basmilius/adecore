@@ -284,7 +284,7 @@ describe('a thread held from its newest page', () => {
 });
 
 test('a UI preview updates only the matching streaming text without changing timeline structure', () => {
-    const text = '```ruimte-ui\n<Summary>Ready</Summary>\n```';
+    const text = '```ui\n<Summary>Ready</Summary>\n```';
     const reply: ChatItem = { id: 'r', kind: 'assistant', createdAt: 0, turnId: null, text, streaming: true };
     const state: ChatState = { info: info(), items: { r: reply }, structure: { r: reply }, order: ['r'] };
     const ui = compileUi(text, { id: 'r' });

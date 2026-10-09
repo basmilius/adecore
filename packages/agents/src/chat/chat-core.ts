@@ -102,6 +102,8 @@ const DEFAULT_RESUME_WORDS: ResumeWords = {
 
 export interface ChatCoreOptions {
     intelligentUi?: ChatUiHost;
+    // The info string that marks a UI fence in a reply, for a host that keeps a name of its own.
+    uiFenceLanguage?: string;
     providers: ProviderRegistry;
     // Where the threads are kept; without it a chat lives as long as the process.
     store?: ChatStore;
@@ -175,6 +177,7 @@ export class ChatCore {
     readonly claudeProjectsDir: string;
     readonly composerPreferences = new ComposerPreferences();
     private readonly uiQueries: ChatUiQueries | null;
+    private readonly uiFenceLanguage: string | undefined;
     private readonly checkpoints: TurnCheckpoints | null;
     private readonly instructions: string | null;
     private readonly skillIndex: SkillIndex;
@@ -202,6 +205,7 @@ export class ChatCore {
 
     constructor(options: ChatCoreOptions) {
         this.uiQueries = options.intelligentUi ? new ChatUiQueries(options.intelligentUi) : null;
+        this.uiFenceLanguage = options.uiFenceLanguage;
         this.providers = options.providers;
         this.store = options.store ?? null;
         this.bookmarks = options.bookmarks ?? null;
@@ -398,6 +402,7 @@ export class ChatCore {
         const references = this.referencesFor(payload.chatId);
         const session = new ChatSession({
             info,
+            ...(this.uiFenceLanguage ? { uiFenceLanguage: this.uiFenceLanguage } : {}),
             ...(this.uiQueries ? { ui: { schemas: this.uiQueries.schemas, observe: (item, final) => this.uiQueries!.observe(session, item, final) } } : {}),
             items: stored?.items ?? [],
             preambles: stored?.preambles ?? [],

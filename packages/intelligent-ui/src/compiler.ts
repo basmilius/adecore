@@ -4,7 +4,8 @@ import { evaluateUiExpression, type UiExpression, type UiValue } from './express
 import { parseUiSyntax, uiDiagnostic, type UiDiagnostic, type UiSyntaxNode } from './syntax.ts';
 import { type z } from 'zod';
 
-export const UI_FENCE_LANGUAGE = 'ruimte-ui';
+// The info string a fence carries when the host names none of its own.
+export const UI_FENCE_LANGUAGE = 'ui';
 
 export const UI_REPLY_LIMITS = { blocks: 16, characters: 262144, nodes: 2048, milliseconds: 60 } as const;
 
@@ -48,6 +49,8 @@ export interface UiCompileOptions {
     limits?: Partial<UiLimits>;
     latestAttachment?: string;
     querySchemas?: Readonly<Record<string, z.ZodType>>;
+    // The info string that marks a UI fence; `UI_FENCE_LANGUAGE` without one.
+    fenceLanguage?: string;
     now?: () => number;
 }
 
@@ -315,6 +318,7 @@ export class UiCompiler {
         let nodes = 0;
         let exhausted = false;
         const now = this.options.now ?? Date.now;
+        const language = this.options.fenceLanguage ?? UI_FENCE_LANGUAGE;
         const started = now();
         const nodeCount = (items: readonly UiNode[]): number => items.reduce((count, node) => count + 1 + nodeCount(node.children), 0);
         const rejected = (start: number, codeStart: number, codeEnd: number, end: number, complete: boolean): UiBlock => ({
@@ -390,7 +394,7 @@ export class UiCompiler {
                     length: opening[1].length,
                     start: position,
                     codeStart: position + line.length,
-                    ui: opening[2].trim() === UI_FENCE_LANGUAGE
+                    ui: opening[2].trim() === language
                 };
             } else if (fence && opening && opening[1][0] === fence.marker && opening[1].length >= fence.length && !opening[2].trim()) {
                 if (fence.ui) {
@@ -410,6 +414,12 @@ export class UiCompiler {
     clear(): void {
         this.cache.clear();
     }
+}
+
+/* A cheap test for whether `text` opens a UI fence at all, before a compiler is worth creating. */
+export function uiHasFence(text: string, fenceLanguage: string = UI_FENCE_LANGUAGE): boolean {
+    const language = fenceLanguage.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`^ {0,3}(?:\`{3,}|~{3,})[ \\t]*${language}[ \\t]*\\r?$`, 'm').test(text);
 }
 
 export function compileUi(text: string, options: UiCompileOptions): UiBlock[] {

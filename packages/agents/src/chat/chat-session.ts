@@ -18,7 +18,7 @@ import type {
     RuntimeMode
 } from '@adecore/agent-contracts';
 import { GeneratedImageInputSchema, notResumedNote } from '@adecore/agent-contracts';
-import { resolveUiChoice, UiFailure } from '@adecore/intelligent-ui';
+import { resolveUiChoice, UI_FENCE_LANGUAGE, UiFailure, uiHasFence } from '@adecore/intelligent-ui';
 import type { UiCompileOptions } from '@adecore/intelligent-ui/compiler';
 import { UiStream, type UiStreamPreview } from '@adecore/intelligent-ui/stream';
 import type { ChatProvider } from '../providers/provider.ts';
@@ -76,6 +76,8 @@ export interface ChatSessionOptions {
     references?: ChatReferences;
     // Trees per turn, so a settled turn can show what the working tree holds against its start.
     checkpoints?: TurnCheckpoints;
+    // The info string of the host's UI fences; `UI_FENCE_LANGUAGE` without one.
+    uiFenceLanguage?: string;
     ui?: {
         schemas: UiCompileOptions['querySchemas'];
         observe(item: ChatAssistantItem, final: boolean): void;
@@ -193,9 +195,11 @@ export class ChatSession {
     private readonly steering = new Set<string>();
     private readonly uiStreams = new Map<string, UiStream>();
     private readonly uiCompiled = new Map<string, UiStreamPreview>();
+    private readonly uiFenceLanguage: string;
 
     constructor(options: ChatSessionOptions) {
         this.options = options;
+        this.uiFenceLanguage = options.uiFenceLanguage ?? UI_FENCE_LANGUAGE;
         this.pendingPreambles = options.preambles ?? [];
         this.thread = new ChatThread(options.info, options.items);
         this.projector = new ThreadProjector(this.thread, { providerName: options.provider.name });
@@ -1892,13 +1896,14 @@ export class ChatSession {
                 continue;
             }
             let stream = this.uiStreams.get(item.id);
-            if (!stream && !item.text.includes('ruimte-ui')) {
+            if (!stream && !uiHasFence(item.text, this.uiFenceLanguage)) {
                 this.options.emit(event);
                 continue;
             }
             if (!stream) {
                 stream = new UiStream({
                     querySchemas: this.options.ui?.schemas,
+                    fenceLanguage: this.uiFenceLanguage,
                     id: item.id,
                     clock: this.options.clock ?? systemClock,
                     emit: (preview) => {
@@ -1919,7 +1924,7 @@ export class ChatSession {
                 const diagnostics = [...new Set(ui.flatMap((block) => block.diagnostics.map((diagnostic) => diagnostic.message)))].slice(0, 6);
                 if (diagnostics.length > 0) {
                     const repair =
-                        `Your last ruimte-ui block had these diagnostics: ${diagnostics.join(' ')} Use the catalog's supported props and components.`.slice(
+                        `Your last ${this.uiFenceLanguage} block had these diagnostics: ${diagnostics.join(' ')} Use the catalog's supported props and components.`.slice(
                             0,
                             1200
                         );

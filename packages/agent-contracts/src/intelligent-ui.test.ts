@@ -4,7 +4,7 @@ import { compileUi } from '@adecore/intelligent-ui';
 import { ChatAssistantItemSchema, ChatEventSchema } from './chat.ts';
 
 test('future UI components stay open on the chat wire and legacy decoders retain the reply', () => {
-    const text = '```ruimte-ui\n<Summary>Readable</Summary>\n```';
+    const text = '```ui\n<Summary>Readable</Summary>\n```';
     const block = compileUi(text, { id: 'reply', final: true })[0];
     const future = {
         ...block,

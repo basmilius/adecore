@@ -17,7 +17,7 @@ for (const block of blocks) {
 
 ## Compilation
 
-`compileUi(text, options)` finds blocks marked with `UI_FENCE_LANGUAGE` among Markdown, including unfinished fences. It ignores UI fences nested inside another code fence. Each `UiBlock` has its own ID, text range, catalog version, declarations, nodes, diagnostics and Markdown fallback. `compileUiBlock(source, options)` compiles one fence's contents.
+`compileUi(text, options)` finds blocks marked with `UiCompileOptions.fenceLanguage`, or `UI_FENCE_LANGUAGE` (`ui`) without one, among Markdown, including unfinished fences. It ignores UI fences nested inside another code fence. Each `UiBlock` has its own ID, text range, catalog version, declarations, nodes, diagnostics and Markdown fallback. `compileUiBlock(source, options)` compiles one fence's contents. `uiHasFence(text, fenceLanguage?)` is a cheap test for an opening fence before a compiler is worth creating.
 
 `UiCompileOptions.id` identifies the assistant item or block. Supply the same ID on each recompile. Node IDs include the start of their tag, so appending text preserves them. `final` reports unfinished syntax when the authoritative response arrives. `latestAttachment` resolves `Image generated="latest"` to an attachment. `limits` overrides the work budget; `now` supplies a clock for deterministic tests.
 
@@ -29,7 +29,7 @@ The parser recovers at the next tag or line after malformed input. Open tags rem
 
 ## Catalog
 
-`UI_CATALOG` contains each component's schema, description, group and applicable parent, child or binding rule. `UI_GROUPS` contains the instructions shared by each group. `isUiComponent` recognizes a catalog name; `uiCatalogText` lists names, props and descriptions for tooling. `uiCompactCatalog` derives the short prop list from those schemas, `uiSessionNote` adds explicit tag syntax and a fenced example checked by the compiler, and `uiReferenceText` combines full descriptions with group rules. `uiFallbackText` replaces UI fences with their compiled fallback while retaining surrounding prose.
+`UI_CATALOG` contains each component's schema, description, group and applicable parent, child or binding rule. `UI_GROUPS` contains the instructions shared by each group. `isUiComponent` recognizes a catalog name; `uiCatalogText` lists names, props and descriptions for tooling. `uiCompactCatalog` derives the short prop list from those schemas, `uiSessionNote` adds explicit tag syntax and a fenced example checked by the compiler, and `uiReferenceText` combines full descriptions with group rules. Both take `UiTextOptions` with the same `fenceLanguage` as the compiler. `uiFallbackText` replaces UI fences with their compiled fallback while retaining surrounding prose.
 
 `UiComponentName` is the key union. `UiProps<Name>` is inferred from that component's schema. `UiToneSchema` and `UiTone` provide neutral, info, success, warning and danger. `UI_CATALOG_VERSION` identifies this catalog.
 

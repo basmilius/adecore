@@ -131,9 +131,9 @@ async function stream(text: string) {
     }
 }
 
-const fence = '```ruimte-ui\n<Summary>Done</Summary>\n```\n';
+const fence = '```ui\n<Summary>Done</Summary>\n```\n';
 const typical =
-    'Before\n```ruimte-ui\n<Summary>Build results</Summary><Stats>' +
+    'Before\n```ui\n<Summary>Build results</Summary><Stats>' +
     Array.from({ length: 100 }, (_, index) => `<Stat label="Check ${index}" value={${index}}/>`).join('') +
     '</Stats>\n```\nAfter';
 console.log(

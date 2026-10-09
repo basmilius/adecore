@@ -18,7 +18,7 @@ test.skipIf(typeof document === 'undefined')('changing a query input closes its 
     const reads: unknown[] = [];
     const source =
         '$flag = false\n$data = @Query("status", {flag: $flag})\n<Stats><Stat label="Count" value={$data.count}/></Stats><Switch value={$flag}>Flag</Switch><Choices><Choice>Choose</Choice></Choices>';
-    const text = '```ruimte-ui\n' + source + '\n```';
+    const text = '```ui\n' + source + '\n```';
     const block = compileUiBlock(source, { id: 'query-choice-test', final: true, querySchemas: { status: z.object({ flag: z.boolean() }) } });
     expect(block.diagnostics).toEqual([]);
     block.revision = 'revision';
@@ -94,7 +94,7 @@ test.skipIf(typeof document === 'undefined')('a citation reveals and focuses its
     HTMLElement.prototype.scrollIntoView = () => {};
     const urls: string[] = [];
     const text =
-        '```ruimte-ui\n<Callout tone="info">Read [1].</Callout><Sections><Section title="References"><Tabs><Tab title="Other"><Summary>Other</Summary></Tab><Tab title="Links"><Sources><Source title="Docs" url="https://adecore.dev"/></Sources></Tab></Tabs></Section></Sections>\n```';
+        '```ui\n<Callout tone="info">Read [1].</Callout><Sections><Section title="References"><Tabs><Tab title="Other"><Summary>Other</Summary></Tab><Tab title="Links"><Sources><Source title="Docs" url="https://adecore.dev"/></Sources></Tab></Tabs></Section></Sections>\n```';
     const { compileUi } = await import('@adecore/intelligent-ui');
     const blocks = compileUi(text, { id: 'source-dom', final: true });
     const element = document.createElement('div');

@@ -10,7 +10,7 @@ import { uiReplyParts } from './reply-parts';
 const context = { scopeId: 'scope', chatId: 'chat', itemId: 'item', phase: 'final' as const, answer: null };
 
 test('interleaves prose and several blocks while rejecting overlapping or invalid ranges', () => {
-    const text = 'Before\n```ruimte-ui\n<Summary>One</Summary>\n```\nMiddle\n```ruimte-ui\n<Summary>Two</Summary>\n```\nAfter';
+    const text = 'Before\n```ui\n<Summary>One</Summary>\n```\nMiddle\n```ui\n<Summary>Two</Summary>\n```\nAfter';
     const blocks = compileUi(text, { id: 'item', final: true });
     const parts = uiReplyParts(text, [blocks[1], blocks[0], { ...blocks[0], start: -1 }, { ...blocks[1], end: text.length + 1 }]);
     expect(parts.map((part) => part.kind)).toEqual(['text', 'ui', 'text', 'ui', 'text']);
@@ -18,19 +18,19 @@ test('interleaves prose and several blocks while rejecting overlapping or invali
 });
 
 test('a growing unfinished block does not echo its uncompiled raw tail as prose', () => {
-    const text = 'Before\n```ruimte-ui\n<Summary>Open';
+    const text = 'Before\n```ui\n<Summary>Open';
     const blocks = compileUi(text, { id: 'item' });
     const parts = uiReplyParts(text + ' grows', blocks, true);
     expect(parts.map((part) => part.kind)).toEqual(['text', 'ui']);
 });
 
 test('renders compiled nodes in the actual reply composition and falls back for a future catalog', () => {
-    const text = '```ruimte-ui\n<Summary>Result</Summary><Stats><Stat label="Passed" value={3} /></Stats>\n```';
+    const text = '```ui\n<Summary>Result</Summary><Stats><Stat label="Passed" value={3} /></Stats>\n```';
     const blocks = compileUi(text, { id: 'item', final: true });
     const markup = renderToStaticMarkup(createElement(UiReply, { text, blocks, context }));
     expect(markup).toContain('Result');
     expect(markup).toContain('Passed');
-    expect(markup).not.toContain('ruimte-ui');
+    expect(markup).not.toContain('```');
     const future = [{ ...blocks[0], catalogVersion: 999, fallback: 'Future fallback' }];
     expect(renderToStaticMarkup(createElement(UiReply, { text, blocks: future, context }))).toContain('Future fallback');
 });
@@ -39,7 +39,7 @@ function drawn(
     source: string,
     extra: Partial<Omit<typeof context, 'phase'>> & { phase?: 'streaming' | 'final'; openUrl?: (url: string) => void } = {}
 ): string {
-    const text = '```ruimte-ui\n' + source + '\n```';
+    const text = '```ui\n' + source + '\n```';
     const blocks = compileUi(text, { id: 'item', final: true });
     return renderToStaticMarkup(createElement(UiReply, { text, blocks, context: { ...context, ...extra } }));
 }
@@ -95,7 +95,7 @@ test('joins a run of text and inline nodes into one padded paragraph between the
 });
 
 test('sets prose and cards a block gap apart and draws no part for the newline between two fences', () => {
-    const text = 'Intro\n```ruimte-ui\n<Summary>One</Summary>\n```\n```ruimte-ui\n<Summary>Two</Summary>\n```\n';
+    const text = 'Intro\n```ui\n<Summary>One</Summary>\n```\n```ui\n<Summary>Two</Summary>\n```\n';
     const blocks = compileUi(text, { id: 'item', final: true });
     const markup = renderToStaticMarkup(createElement(UiReply, { text, blocks, context }));
     expect(markup.startsWith('<div class="flex flex-col gap-(--chat-block-gap)">')).toBe(true);
@@ -111,7 +111,7 @@ test('finds written prose inside a repetition and keeps a repeated value as data
 
 test('an answered block restores its selected input and closes every choice and input', () => {
     const text =
-        '```ruimte-ui\n$count = 2\n<Slider value={$count} min={1} max={5}>Count</Slider><Choices><Choice context={"Build " + $count}>Build</Choice></Choices>\n```';
+        '```ui\n$count = 2\n<Slider value={$count} min={1} max={5}>Count</Slider><Choices><Choice context={"Build " + $count}>Build</Choice></Choices>\n```';
     const blocks = compileUi(text, { id: 'answered-item', final: true }).map((block) => ({ ...block, revision: 'revision' }));
     const choice = blocks[0].nodes.find((node) => node.type === 'Choices')!.children[0];
     const answer = {
@@ -137,7 +137,7 @@ test('an answered block restores its selected input and closes every choice and 
 });
 
 test('a jump highlights only its original block revision and leaves both blocks focusable', () => {
-    const text = '```ruimte-ui\n<Summary>One</Summary>\n```\n```ruimte-ui\n<Summary>Two</Summary>\n```';
+    const text = '```ui\n<Summary>One</Summary>\n```\n```ui\n<Summary>Two</Summary>\n```';
     const blocks = compileUi(text, { id: 'item', final: true });
     const render = (revision: string) =>
         parseHTML(

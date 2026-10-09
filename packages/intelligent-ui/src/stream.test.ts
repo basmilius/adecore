@@ -34,13 +34,13 @@ function manualClock(): UiStreamClock & { advance(ms: number): void; pending(): 
 }
 
 function reply(label: string): string {
-    return `Before\n\`\`\`ruimte-ui\n<Summary>${label}</Summary>\n\`\`\`\nAfter`;
+    return `Before\n\`\`\`ui\n<Summary>${label}</Summary>\n\`\`\`\nAfter`;
 }
 
 test('reuses unchanged fences while compiling the growing block and authoritative final text', () => {
     const compiler = new UiCompiler({ id: 'item' });
     const first = compiler.compile(reply('First'));
-    const secondText = reply('First') + '\n```ruimte-ui\n<Summary>Second';
+    const secondText = reply('First') + '\n```ui\n<Summary>Second';
     const second = compiler.compile(secondText);
     expect(second[0]).toBe(first[0]);
     expect(second[1].complete).toBe(false);
@@ -57,7 +57,7 @@ test('reuses unchanged fences while compiling the growing block and authoritativ
 
 test('a changed generated attachment invalidates the cached image binding', () => {
     const compiler = new UiCompiler({ id: 'item' });
-    const source = '```ruimte-ui\n<Image generated="latest" />\n```';
+    const source = '```ui\n<Image generated="latest" />\n```';
     const first = compiler.compile(source, { latestAttachment: 'first' });
     const second = compiler.compile(source, { latestAttachment: 'second' });
     expect(second[0]).not.toBe(first[0]);
@@ -66,7 +66,7 @@ test('a changed generated attachment invalidates the cached image binding', () =
 });
 
 test('final compilation diagnoses an unfinished fence even without a closing marker', () => {
-    const source = '```ruimte-ui\n<Summary>Open';
+    const source = '```ui\n<Summary>Open';
     expect(compileUi(source, { id: 'item' })[0].diagnostics).toEqual([]);
     expect(compileUi(source, { id: 'item', final: true })[0].diagnostics.map((item) => item.code)).toContain('unclosed_tag');
 });
@@ -133,7 +133,7 @@ test('reply block quotas keep later fences as text and never retain an unbounded
 test('reply node quotas include cached blocks and refusals can recover after an edit', () => {
     const compiler = new UiCompiler({ id: 'item', now: () => 0 });
     const source = '<Tag>a</Tag>'.repeat(240);
-    const fence = '```ruimte-ui\n' + source + '\n```\n';
+    const fence = '```ui\n' + source + '\n```\n';
     const text = fence.repeat(5);
     const first = compiler.compile(text);
     const second = compiler.compile(text);
@@ -150,7 +150,7 @@ test('reply node quotas include cached blocks and refusals can recover after an 
 
 test('reply character quotas stop at one bounded refusal without dropping surrounding prose', () => {
     const compiler = new UiCompiler({ id: 'item', now: () => 0 });
-    const fence = '```ruimte-ui\n' + ' '.repeat(65520) + '\n```\n';
+    const fence = '```ui\n' + ' '.repeat(65520) + '\n```\n';
     const blocks = compiler.compile(fence.repeat(8) + 'After');
     expect(blocks).toHaveLength(5);
     expect(blocks.at(-1)!.fallback.length).toBeLessThanOrEqual(4096);
@@ -160,8 +160,8 @@ test('reply character quotas stop at one bounded refusal without dropping surrou
 
 test('fence scanning keeps UTF-16 ranges, CRLF lines and an unterminated final line', () => {
     const compiler = new UiCompiler({ id: 'item', now: () => 0 });
-    const prefix = '🐇 Before\r\n```ts\r\n```ruimte-ui\r\n<Summary>Ignored</Summary>\r\n```\r\n';
-    const source = '  ~~~~ruimte-ui\r\n<Summary>Visible</Summary>\r\n  ~~~~';
+    const prefix = '🐇 Before\r\n```ts\r\n```ui\r\n<Summary>Ignored</Summary>\r\n```\r\n';
+    const source = '  ~~~~ui\r\n<Summary>Visible</Summary>\r\n  ~~~~';
     const blocks = compiler.compile(prefix + source, { final: true });
     expect(blocks).toHaveLength(1);
     expect(blocks[0].start).toBe(prefix.length);
@@ -175,7 +175,7 @@ test('an exhausted reply stops scanning later fences and preserves its bounded r
     const compiler = new UiCompiler({ id: 'item', now: () => 0 });
     const prefix = Array.from({ length: UI_REPLY_LIMITS.blocks + 1 }, (_, index) => reply(String(index))).join('\n');
     const before = compiler.compile(prefix);
-    const after = compiler.compile(prefix + '\n' + '```ruimte-ui\n<Summary>Unscanned</Summary>\n```\n'.repeat(10000));
+    const after = compiler.compile(prefix + '\n' + '```ui\n<Summary>Unscanned</Summary>\n```\n'.repeat(10000));
     expect(after).toEqual(before);
     expect(after.at(-1)!.diagnostics.at(-1)!.code).toBe('budget_exceeded');
 });

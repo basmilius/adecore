@@ -67,7 +67,7 @@ test('UI previews reach attached clients without a log sequence or observer side
         if (!host) {
             throw new Error('Missing backend host');
         }
-        const text = '```ruimte-ui\n<Summary>Streaming';
+        const text = '```ui\n<Summary>Streaming';
         host.onEvent({ type: 'text.delta', ref: 'answer', text });
         const preview = clients.find((payload) => payload.event.type === 'delta' && payload.event.ui !== undefined);
         expect(preview).toBeDefined();
@@ -80,7 +80,7 @@ test('UI previews reach attached clients without a log sequence or observer side
         expect(replay.events?.some((event) => event.type === 'delta' && event.ui !== undefined)).toBe(true);
         const lines = parseLog(await readFile(store.logPath('chat'), 'utf8'));
         expect(lines.some((line) => line.event.type === 'delta' && line.event.ui !== undefined)).toBe(false);
-        const authoritative = '```ruimte-ui\n<Summary>Final</Summary><Choices><Choice context="Run checks">Check</Choice></Choices>\n```';
+        const authoritative = '```ui\n<Summary>Final</Summary><Choices><Choice context="Run checks">Check</Choice></Choices>\n```';
         host.onEvent({ type: 'text.done', ref: 'answer', text: authoritative, parentRef: null });
         const finalLines = parseLog(await readFile(store.logPath('chat'), 'utf8'));
         expect(

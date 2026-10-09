@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { z } from 'zod';
 import { UiBudget } from './budget.ts';
-import { compileUi, compileUiBlock } from './compiler.ts';
+import { compileUi, compileUiBlock, uiHasFence } from './compiler.ts';
 import { UI_CATALOG, uiCatalogText } from './catalog.ts';
 import { copyUiValue, evaluateUiExpression, parseUiExpression } from './expression.ts';
 import { evaluateUiBlock, UiState } from './runtime.ts';
@@ -128,17 +128,28 @@ describe('streaming compiler', () => {
     });
 
     test('finds multiple fences and preserves surrounding text offsets', () => {
-        const source = 'Before\n```ruimte-ui\n<Summary>One</Summary>\n```\nBetween\n~~~ruimte-ui\n<Tag>Two</Tag>\n~~~\nAfter';
+        const source = 'Before\n```ui\n<Summary>One</Summary>\n```\nBetween\n~~~ui\n<Tag>Two</Tag>\n~~~\nAfter';
         const compiled = compileUi(source, { id: 'item', final: true });
         expect(compiled).toHaveLength(2);
-        expect(source.slice(compiled[0].start, compiled[0].end)).toStartWith('```ruimte-ui');
+        expect(source.slice(compiled[0].start, compiled[0].end)).toStartWith('```ui');
         expect(compiled[0].fallback).toBe('One');
         expect(compiled[1].fallback).toBe('Two');
-        const otherFence = '````md\n```ruimte-ui\n<Summary>Hidden</Summary>\n```\n````';
+        const otherFence = '````md\n```ui\n<Summary>Hidden</Summary>\n```\n````';
         expect(compileUi(otherFence, { id: 'item' })).toEqual([]);
-        const partial = compileUi('```ruimte-ui\n<Summary>Still writing', { id: 'item' });
+        const partial = compileUi('```ui\n<Summary>Still writing', { id: 'item' });
         expect(partial[0].complete).toBe(false);
         expect(partial[0].nodes[0].complete).toBe(false);
+    });
+
+    test('reads only the fence language the host names', () => {
+        const source = '```ui\n<Summary>Default</Summary>\n```\n```legacy-ui\n<Summary>Named</Summary>\n```';
+        expect(compileUi(source, { id: 'item', final: true }).map((compiled) => compiled.fallback)).toEqual(['Default']);
+        expect(compileUi(source, { id: 'item', final: true, fenceLanguage: 'legacy-ui' }).map((compiled) => compiled.fallback)).toEqual(['Named']);
+        expect(uiHasFence('Text\n  ~~~ legacy-ui \r\n<Tag>Open')).toBe(false);
+        expect(uiHasFence('Text\n  ~~~ legacy-ui \r\n<Tag>Open', 'legacy-ui')).toBe(true);
+        expect(uiHasFence('```\nui')).toBe(false);
+        expect(uiSessionNote({ fenceLanguage: 'legacy-ui' })).toContain('```legacy-ui\n');
+        expect(uiReferenceText({ fenceLanguage: 'legacy-ui' })).toContain('fenced legacy-ui block');
     });
 
     test('isolates unknown tags, refused props and invalid groups', () => {
@@ -252,7 +263,7 @@ describe('local state and evaluation', () => {
 describe('open wire and agent text', () => {
     test('agent instructions demonstrate real fenced components and local bindings', () => {
         for (const instruction of [uiSessionNote(), uiReferenceText()]) {
-            const example = /```ruimte-ui\n([\s\S]*?)\n```/.exec(instruction)?.[0];
+            const example = /```ui\n([\s\S]*?)\n```/.exec(instruction)?.[0];
             expect(example).toBeDefined();
             const compiled = compileUi(example!, { id: 'instruction-example', final: true });
             expect(compiled).toHaveLength(1);
@@ -284,7 +295,7 @@ describe('open wire and agent text', () => {
     });
 
     test('reads the fallback between prose and lists the catalog from its schemas', () => {
-        const text = 'Before\n```ruimte-ui\n<Summary>Readable</Summary>\n```\nAfter';
+        const text = 'Before\n```ui\n<Summary>Readable</Summary>\n```\nAfter';
         expect(uiFallbackText(text, compileUi(text, { id: 'item', final: true }))).toBe('Before\nReadable\nAfter');
         expect(uiFallbackText(text, [{ ...block('<Summary>Invalid range</Summary>'), start: 200, end: 210 }])).toBe(text);
         expect(uiCompactCatalog()).toContain('Slider: value,min,max,step?,unit?');

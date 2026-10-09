@@ -18,6 +18,7 @@ export {
     UiCompiler,
     compileUi,
     compileUiBlock,
+    uiHasFence,
     type UiCompilerOptions,
     type UiCompileUpdate,
     type UiBlock,
@@ -37,7 +38,7 @@ export {
 } from './runtime.ts';
 export { uiValidatedState, uiQueryArguments, uiQueryFallback } from './query.ts';
 export { UiNodeSchema, UiDiagnosticSchema, UiBlockSchema, UiBlocksSchema } from './protocol.ts';
-export { uiCompactCatalog, uiSessionNote, uiReferenceText, uiFallbackText } from './text.ts';
+export { uiCompactCatalog, uiSessionNote, uiReferenceText, uiFallbackText, type UiTextOptions } from './text.ts';
 export { UI_STREAM_INTERVAL_MS, UiStream, type UiStreamClock, type UiStreamOptions, type UiStreamPreview } from './stream.ts';
 
 export { UiLinkTargetSchema, UiLinkResolutionSchema, uiLinkTargets, type UiLinkTarget, type UiLinkResolution } from './links.ts';

@@ -128,7 +128,7 @@ test('ordinary timeline targets retain row lookup and current-text copy behavior
 });
 
 test('a choice jump loads history, opens its turn and accepts only its original block revision', () => {
-    const text = '```ruimte-ui\n<Summary>Original</Summary>\n```';
+    const text = '```ui\n<Summary>Original</Summary>\n```';
     const item = {
         id: 'answer',
         kind: 'assistant' as const,
