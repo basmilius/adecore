@@ -48,6 +48,7 @@ export class CodexBackend implements ChatBackend {
     readonly acknowledgesTurns = true;
     private promptId: string | null = null;
     private readonly launch: BackendLaunch;
+    private imageWrites: Promise<void> | null = null;
     private readonly host: BackendHost;
     private readonly protocol: CodexProtocol;
     private readonly client: CodexClientInfo;
@@ -351,7 +352,7 @@ export class CodexBackend implements ChatBackend {
     dispose(): Promise<void> {
         const transport = this.transport;
         this.transport = null;
-        return transport?.dispose() ?? Promise.resolve();
+        return Promise.all([transport?.dispose(), this.imageWrites]).then(() => undefined);
     }
 
     /* A request whose failure the person has to hear about, since it is the turn that cannot go on. */
@@ -415,6 +416,54 @@ export class CodexBackend implements ChatBackend {
             this.interruptOwed = false;
             this.promptId = null;
         }
+        if (event.type === 'image.generated' || this.imageWrites !== null) {
+            const pending = (this.imageWrites ?? Promise.resolve()).then(async () => {
+                if (event.type === 'image.generated') {
+                    await this.storeImage(event);
+                } else {
+                    this.host.onEvent(event);
+                }
+            });
+            this.imageWrites = pending;
+            void pending
+                .finally(() => {
+                    if (this.imageWrites === pending) {
+                        this.imageWrites = null;
+                    }
+                })
+                .catch(() => undefined);
+            return;
+        }
         this.host.onEvent(event);
+    }
+
+    private async storeImage(event: Extract<BackendEvent, { type: 'image.generated' }>): Promise<void> {
+        const input = { revisedPrompt: event.revisedPrompt, transparentBackground: event.transparentBackground };
+        let attachment;
+        try {
+            if (!this.launch.saveGeneratedImage) {
+                throw new Error('This machine cannot save generated images');
+            }
+            attachment = await this.launch.saveGeneratedImage(event.ref, event.upload);
+        } catch (error) {
+            this.host.onEvent({ type: 'tool.started', ref: event.ref, name: 'ImageGeneration', input, parentRef: null });
+            this.host.onEvent({ type: 'tool.done', ref: event.ref, output: errorText(error), state: 'error' });
+            return;
+        }
+        this.host.onEvent({
+            type: 'tool.started',
+            ref: event.ref,
+            name: 'ImageGeneration',
+            input: {
+                ...input,
+                attachment: {
+                    ...attachment,
+                    ...(event.width === undefined ? {} : { width: event.width }),
+                    ...(event.height === undefined ? {} : { height: event.height })
+                }
+            },
+            parentRef: null
+        });
+        this.host.onEvent({ type: 'tool.done', ref: event.ref, output: null, state: 'done' });
     }
 }

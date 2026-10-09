@@ -61,3 +61,22 @@ The count ends at 2. `Serializer.run` runs work one at a time, even after one fa
 - `WatchSeams` is file watching you can swap: `SYSTEM_WATCH` uses `fs.watch`, recursive only where the platform supports it (`supportsRecursive`). `settled(seams, ms, run)` runs once after a burst of changes, and `PerClientWatches` keeps a watch per client and path.
 - `cleanTitle` and `readLines` read titles from a transcript; `readLines` stops at the last whole line, so a line still being written is read later.
 - `CodedError` is an error with a `code`, `errorText` and `describeError` write an error for a log, and `setErrorStacks` turns stack traces on or off for the whole package.
+
+## Generated image attachments
+
+The Codex adapter consumes image bytes through `generatedImage(data, prompt)`
+(`@adecore/agents/chat/generated-image`). It rejects empty, malformed, non-image and
+oversized results, detects PNG, JPEG, GIF or WebP from their bytes, and reads their
+pixel dimensions. It never reads the provider's saved path. An `imageView` item records
+its path as tool input without reading it.
+
+`AttachmentStore.saveGenerated(chatId, ref, upload)` derives the attachment id from
+the provider item id and publishes complete bytes without replacing an existing
+image. Repeated completion frames reuse the file. A replay with different bytes
+under the same id fails. The backend waits for storage before forwarding subsequent
+events, including completion of the turn. `ChatCore.attachment` finds generated images
+in the chat's tool items as well as files in user messages and the queue.
+
+`AttachmentStore.copy(chatId, attachment)` gives a fork its own file while preserving
+the id and image dimensions. The host copies attachment metadata into the fork's
+record so deleting the source chat cannot remove the fork's images.

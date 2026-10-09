@@ -1,3 +1,4 @@
+import { generatedImage } from './generated-image.ts';
 import type { ChatFileChange, ChatQuestion, ChatTurnLimit, UsageWindow } from '@adecore/agent-contracts';
 import { readCodexLimits } from '../usage/limits/normalize.ts';
 import { codexRuntimeMode } from '../providers/codex.ts';
@@ -632,7 +633,7 @@ export class CodexProtocol {
                     events.push({ type: 'question.requested', requestId: ref, questions, async: true });
                     return;
                 }
-                this.text(ref, str(item.text) ?? '', completed, events);
+                this.text(ref, str(item.text) ?? '', completed, events, str(item.phase) ?? undefined);
                 return;
             }
             case 'plan':
@@ -705,6 +706,33 @@ export class CodexProtocol {
             case 'dynamicToolCall':
                 this.tool(ref, str(item.tool) ?? 'tool', item.arguments ?? {}, completed, textOf(item.contentItems), item.success !== false, events);
                 return;
+            case 'imageGeneration': {
+                const revisedPrompt = str(item.revisedPrompt) ?? undefined;
+                const transparentBackground = typeof item.transparentBackground === 'boolean' ? item.transparentBackground : undefined;
+                const input = {
+                    ...(revisedPrompt === undefined ? {} : { revisedPrompt }),
+                    ...(transparentBackground === undefined ? {} : { transparentBackground })
+                };
+                if (!completed) {
+                    this.tool(ref, 'ImageGeneration', input, false, '', true, events);
+                    return;
+                }
+                try {
+                    if (item.failure || item.status !== 'completed') {
+                        throw new Error(
+                            isRecord(item.failure) ? (str(item.failure.message) ?? 'Image generation failed') : (str(item.failure) ?? 'Image generation failed')
+                        );
+                    }
+                    const image = generatedImage(str(item.result) ?? '', revisedPrompt);
+                    events.push({ type: 'image.generated', ref, ...image, ...input });
+                } catch (error) {
+                    this.tool(ref, 'ImageGeneration', input, true, error instanceof Error ? error.message : 'Image generation failed', false, events);
+                }
+                return;
+            }
+            case 'imageView':
+                this.tool(ref, 'ImageView', { path: str(item.path) ?? '' }, completed, '', true, events);
+                return;
             case 'webSearch': {
                 const action = isRecord(item.action) ? item.action : {};
                 this.tool(ref, 'WebSearch', { query: str(item.query) ?? str(action.query) ?? '' }, completed, '', true, events);
@@ -775,8 +803,8 @@ export class CodexProtocol {
         return null;
     }
 
-    private text(ref: string, text: string, completed: boolean, events: BackendEvent[]): void {
-        events.push(completed ? { type: 'text.done', ref, text } : { type: 'text.delta', ref, text });
+    private text(ref: string, text: string, completed: boolean, events: BackendEvent[], phase?: string): void {
+        events.push({ type: completed ? 'text.done' : 'text.delta', ref, text, ...(phase === undefined ? {} : { phase }) });
     }
 
     /*

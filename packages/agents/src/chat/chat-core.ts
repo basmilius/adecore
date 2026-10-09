@@ -2,6 +2,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import {
     ChatAttachmentUploadsSchema,
+    generatedImageAttachment,
     type AgentKind,
     type ChatAttachment,
     type ChatAttachResult,
@@ -400,6 +401,7 @@ export class ChatCore {
                 this.accounts?.launched?.(kind, chatAccount);
                 return env;
             },
+            saveGeneratedImage: (ref, upload) => this.attachments.saveGenerated(payload.chatId, ref, upload),
             instructions: () => this.instructionsFor(payload.chatId),
             resumeNote: () => this.resumeNoteFor(payload.chatId),
             folders: () => this.foldersFor(payload.chatId),
@@ -710,7 +712,8 @@ export class ChatCore {
             return null;
         }
         for (const item of session.thread.list()) {
-            const found = item.kind === 'user' ? item.attachments?.find((attachment) => attachment.id === id) : undefined;
+            const generated = generatedImageAttachment(item);
+            const found = item.kind === 'user' ? item.attachments?.find((attachment) => attachment.id === id) : generated?.id === id ? generated : null;
             if (found) {
                 return found;
             }
@@ -759,7 +762,7 @@ export class ChatCore {
             throw new ChatError('chat-busy', `Chat ${chatId} is still working on the previous message`);
         }
         await this.clearing(chatId);
-        session.clear(force);
+        const ended = session.clear(force);
         // Before the record is written, so what it takes along from the record is gone from the write as well.
         const cleared = this.cleared(chatId);
         // A debounced write still waiting holds the old thread and must not land after the empty one.
@@ -767,7 +770,7 @@ export class ChatCore {
         // Folded right away: every line before the reset describes a thread that is gone.
         await Promise.all([
             this.persistNow(chatId, true),
-            this.attachments.removeAll(chatId),
+            ended.then(() => this.attachments.removeAll(chatId)),
             this.bookmarks?.removeChat(chatId),
             this.visuals?.removeChat(chatId),
             cleared
@@ -812,7 +815,7 @@ export class ChatCore {
         const session = this.require(chatId);
         // A write already out would put the record back after the delete.
         const writing = this.writes.get(chatId);
-        void session.dispose();
+        const ended = session.dispose();
         this.subagents.releaseChat(chatId);
         this.coalescers.get(chatId)?.dispose();
         this.coalescers.delete(chatId);
@@ -829,6 +832,7 @@ export class ChatCore {
         const snapshot = session.thread.snapshot();
         this.forgotten(chatId);
         await writing;
+        await ended;
         await Promise.all([
             this.store?.delete(chatId),
             this.attachments.removeAll(chatId),

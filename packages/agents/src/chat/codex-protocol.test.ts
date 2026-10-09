@@ -162,7 +162,7 @@ describe('CodexProtocol', () => {
         expect(protocol.handle({ method: 'turn/completed', params: { ...child, turn: { id: 'child-turn', status: 'completed' } } })).toEqual([]);
         expect(protocol.turnId).toBe('main-turn');
         expect(protocol.handle({ method: 'item/completed', params: { threadId: 'main', turnId: 'main-turn', item: message('msg_main', 'done') } })).toEqual([
-            { type: 'text.done', ref: 'msg_main', text: 'done' }
+            { type: 'text.done', ref: 'msg_main', text: 'done', phase: 'final_answer' }
         ]);
     });
 
@@ -205,13 +205,13 @@ describe('CodexProtocol', () => {
     test('an agent message opens on item/started, streams deltas and settles on item/completed', () => {
         const protocol = new CodexProtocol(1);
         expect(protocol.handle({ method: 'item/started', params: { ...ids, item: message('msg_1', '') } })).toEqual([
-            { type: 'text.delta', ref: 'msg_1', text: '' }
+            { type: 'text.delta', ref: 'msg_1', text: '', phase: 'final_answer' }
         ]);
         expect(protocol.handle({ method: 'item/agentMessage/delta', params: { ...ids, itemId: 'msg_1', delta: 'po' } })).toEqual([
             { type: 'text.delta', ref: 'msg_1', text: 'po' }
         ]);
         expect(protocol.handle({ method: 'item/completed', params: { ...ids, item: message('msg_1', 'pong') } })).toEqual([
-            { type: 'text.done', ref: 'msg_1', text: 'pong' }
+            { type: 'text.done', ref: 'msg_1', text: 'pong', phase: 'final_answer' }
         ]);
     });
 
@@ -934,4 +934,48 @@ test('dismissing a nonblocking Codex RPC question replies with empty answers', (
     });
     expect(protocol.dismissQuestionAnswer('1-46')).toEqual({ kind: 'respond', rpcId: 46, result: { answers: {} } });
     expect(protocol.dismissQuestionAnswer('1-46')).toBeNull();
+});
+
+describe('Codex generated images', () => {
+    const image = {
+        type: 'imageGeneration',
+        id: 'generated-1',
+        status: 'completed',
+        result: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=',
+        revisedPrompt: 'A rabbit',
+        transparentBackground: true
+    };
+
+    test('a completed image reaches the attachment writer instead of disappearing', () => {
+        const events = new CodexProtocol(1).handle({ method: 'item/completed', params: { ...ids, item: image } });
+        expect(events).toContainEqual(expect.objectContaining({ type: 'image.generated', ref: image.id }));
+    });
+
+    test.each([
+        { result: '' },
+        { result: 'not base64' },
+        { result: Buffer.from('not an image').toString('base64') },
+        { result: Buffer.alloc(10 * 1024 * 1024 + 1).toString('base64') },
+        { failure: { message: 'Image generation failed' } },
+        { status: 'failed' }
+    ])('invalid image is a visible error without carrying bytes', (patch) => {
+        const events = new CodexProtocol(1).handle({ method: 'item/completed', params: { ...ids, item: { ...image, ...patch } } });
+        expect(events).toContainEqual(expect.objectContaining({ type: 'tool.started', name: 'ImageGeneration' }));
+        expect(events).toContainEqual(expect.objectContaining({ type: 'tool.done', state: 'error' }));
+        expect(events.some((event) => event.type === 'image.generated')).toBe(false);
+        expect(JSON.stringify(events)).not.toContain(image.result);
+    });
+
+    test('viewing an image exposes the path without reading it', () => {
+        const events = new CodexProtocol(1).handle({
+            method: 'item/completed',
+            params: { ...ids, item: { type: 'imageView', id: 'view-1', path: '/private/rabbit.png' } }
+        });
+        expect(events).toContainEqual(expect.objectContaining({ type: 'tool.started', name: 'ImageView', input: { path: '/private/rabbit.png' } }));
+    });
+
+    test('assistant phases survive projection', () => {
+        const events = new CodexProtocol(1).handle({ method: 'item/completed', params: { ...ids, item: message('answer', 'Hello', { phase: 'commentary' }) } });
+        expect(events).toContainEqual({ type: 'text.done', ref: 'answer', text: 'Hello', phase: 'commentary' });
+    });
 });

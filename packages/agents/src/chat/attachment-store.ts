@@ -1,5 +1,5 @@
-import { randomBytes } from 'node:crypto';
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { createHash, randomBytes } from 'node:crypto';
+import { link, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 import { attachmentImageMime, type ChatAttachment, type ChatAttachmentUpload } from '@adecore/agent-contracts';
 
@@ -55,6 +55,42 @@ export class AttachmentStore {
         const path = join(folder, `${id}.${extensionFor(upload.name, mime)}`);
         await writeFile(path, bytes, { mode: 0o600 });
         return { id, name: upload.name, mime, size: bytes.byteLength, path };
+    }
+
+    async saveGenerated(chatId: string, ref: string, upload: ChatAttachmentUpload): Promise<ChatAttachment> {
+        const id = createHash('sha256').update(`codex-image:${ref}`).digest('hex');
+        const bytes = Buffer.from(upload.data, 'base64');
+        const folder = this.folderOf(chatId);
+        await mkdir(folder, { recursive: true, mode: 0o700 });
+        const path = join(folder, `${id}.${extensionFor('', upload.mime)}`);
+        const temporary = join(folder, `.${id}-${randomBytes(8).toString('hex')}.tmp`);
+        try {
+            await writeFile(temporary, bytes, { mode: 0o600, flag: 'wx' });
+            try {
+                // Publish complete bytes without replacing an image another replay has already saved.
+                await link(temporary, path);
+            } catch (error) {
+                if ((error as NodeJS.ErrnoException).code !== 'EEXIST') {
+                    throw error;
+                }
+                const previous = await readFile(path);
+                if (!previous.equals(bytes)) {
+                    throw new Error('The generated image id already belongs to another image');
+                }
+            }
+        } finally {
+            await rm(temporary, { force: true });
+        }
+        return { id, name: upload.name, mime: upload.mime, size: bytes.byteLength, path };
+    }
+
+    async copy(chatId: string, attachment: ChatAttachment): Promise<ChatAttachment> {
+        const bytes = await readFile(attachment.path);
+        const folder = this.folderOf(chatId);
+        await mkdir(folder, { recursive: true, mode: 0o700 });
+        const path = join(folder, `${createHash('sha256').update(attachment.id).digest('hex')}.${extensionFor(attachment.name, attachment.mime)}`);
+        await writeFile(path, bytes, { mode: 0o600 });
+        return { ...attachment, path };
     }
 
     /* Everything a chat attached; used when the chat itself is deleted. */

@@ -100,3 +100,13 @@ A turn's `checkpointDiff` lists the files the working tree changed against the t
 ## Limits
 
 A usage limit or an overloaded model is not a turn state: it is an `error` turn with `limit: { kind: 'usage' | 'overload', resetsAt? }`. `resetsAt` is absent when the CLI named no time. `ChatInfo.limit` repeats it for the header until the next turn opens.
+
+## Generated images
+
+A tool named `ImageGeneration` stores a `GeneratedImageInput`: an optional attachment,
+revised prompt and transparency flag. `GeneratedImageInputSchema` validates that metadata;
+`generatedImageAttachment(item)` returns its attachment or `null`. A failed generation
+keeps its error in the tool output and has no attachment. Image bytes never enter a chat
+item. Attachment metadata may include pixel `width` and `height`. Assistant items may
+include the provider's `phase`, such as `commentary` or `final_answer`. Both fields are
+optional so existing records remain readable.

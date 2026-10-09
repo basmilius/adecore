@@ -95,7 +95,9 @@ export const ChatAttachmentSchema = z.object({
     mime: z.string(),
     size: z.number().int().nonnegative(),
     // Absolute, on the machine the daemon runs on.
-    path: z.string()
+    path: z.string(),
+    width: z.number().int().positive().optional(),
+    height: z.number().int().positive().optional()
 });
 export type ChatAttachment = z.infer<typeof ChatAttachmentSchema>;
 
@@ -285,6 +287,7 @@ export const ChatUserItemSchema = z.object({
 export const ChatAssistantItemSchema = z.object({
     ...base,
     kind: z.literal('assistant'),
+    phase: z.string().optional(),
     text: z.string(),
     streaming: z.boolean(),
     // Set for text a subagent wrote, with the id of the Agent call that spawned it.
@@ -940,3 +943,18 @@ export const ChatListResultSchema = z.object({
     chats: z.array(ChatInfoSchema)
 });
 export type ChatListResult = z.infer<typeof ChatListResultSchema>;
+
+export const GeneratedImageInputSchema = z.object({
+    attachment: ChatAttachmentSchema.optional(),
+    revisedPrompt: z.string().optional(),
+    transparentBackground: z.boolean().optional()
+});
+export type GeneratedImageInput = z.infer<typeof GeneratedImageInputSchema>;
+
+export function generatedImageAttachment(item: ChatItem): ChatAttachment | null {
+    if (item.kind !== 'tool' || item.name !== 'ImageGeneration') {
+        return null;
+    }
+    const parsed = GeneratedImageInputSchema.safeParse(item.input);
+    return parsed.success ? (parsed.data.attachment ?? null) : null;
+}

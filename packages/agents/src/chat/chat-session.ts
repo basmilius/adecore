@@ -58,6 +58,7 @@ export interface ChatSessionOptions {
     /* The environment of the CLI under the chat's account, asked at every start; throws for an account that cannot start. */
     env(account: string | undefined): Record<string, string>;
     spawn?: SpawnChatProcess;
+    saveGeneratedImage?: BackendLaunch['saveGeneratedImage'];
     // What the agent is told at the start of every process, and what of it a resumed thread hears again; see `BackendLaunch`.
     instructions?(): string | null;
     resumeNote?(): string | null;
@@ -544,14 +545,14 @@ export class ChatSession {
 
     /*
      * Starts the chat over: the CLI goes, and the next send starts one without a session to resume.
-     * A turn in the way is refused unless forced, and a forced clear does not wait for it to end,
-     * since the turn disappears with the thread anyway. Writing the empty thread is the caller's.
+     * The thread resets at once; the returned promise lets the host wait for pending attachment
+     * writes before removing their files. Writing the empty thread is the caller's.
      */
-    clear(force: boolean): void {
+    clear(force: boolean): Promise<void> {
         if (this.busy && !force) {
             throw new ChatError('chat-busy', `Chat ${this.id} is still working on the previous message`);
         }
-        void this.dispose();
+        const ended = this.dispose();
         this.generation = nextGeneration();
         this.projector.reset();
         // The fresh CLI hears what the host tells it at launch, as it would on a first turn.
@@ -590,6 +591,7 @@ export class ChatSession {
                 }
             })
         ]);
+        return ended;
     }
 
     /*
@@ -1392,6 +1394,7 @@ export class ChatSession {
             runtimeMode: info.runtimeMode,
             resume: info.agentSessionId,
             generation,
+            saveGeneratedImage: this.options.saveGeneratedImage,
             instructions: this.options.instructions?.() ?? null,
             resumeNote: this.options.resumeNote?.() ?? null,
             ...(folders.length > 0 ? { folders } : {}),

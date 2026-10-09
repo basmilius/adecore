@@ -187,7 +187,7 @@ export class ThreadProjector {
                 break;
             case 'text.delta':
                 this.closeThinking(events);
-                this.appendText(this.itemId(generation, event.ref), event.text, events);
+                this.appendText(this.itemId(generation, event.ref), event.text, events, event.phase);
                 break;
             case 'text.done': {
                 if (event.parentRef) {
@@ -206,6 +206,11 @@ export class ThreadProjector {
                         createdAt: existing?.createdAt ?? this.now(),
                         turnId: existing?.turnId ?? info.activeTurnId,
                         text: event.text,
+                        ...(event.phase === undefined
+                            ? existing?.kind === 'assistant' && existing.phase !== undefined
+                                ? { phase: existing.phase }
+                                : {}
+                            : { phase: event.phase }),
                         streaming: false
                     })
                 );
@@ -507,7 +512,7 @@ export class ThreadProjector {
         }
     }
 
-    private appendText(id: string, text: string, events: ChatEvent[]): void {
+    private appendText(id: string, text: string, events: ChatEvent[], phase?: string): void {
         const existing = this.thread.get(id);
         if (!existing) {
             events.push(
@@ -517,6 +522,7 @@ export class ThreadProjector {
                     createdAt: this.now(),
                     turnId: this.thread.info.activeTurnId,
                     text,
+                    ...(phase === undefined ? {} : { phase }),
                     streaming: true
                 })
             );

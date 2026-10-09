@@ -1,5 +1,6 @@
 import type {
     ChatAttachment,
+    ChatAttachmentUpload,
     ChatFileChange,
     ChatQuestion,
     ChatSkill,
@@ -42,6 +43,7 @@ export interface BackendLaunch {
     folders?: readonly string[];
     // How the CLI is started; a test runs a fake in the same process, everything else spawns it.
     spawn?: SpawnChatProcess;
+    saveGeneratedImage?(ref: string, upload: ChatAttachmentUpload): Promise<ChatAttachment>;
 }
 
 export interface TurnInput {
@@ -78,9 +80,19 @@ export type BackendEvent =
     // The CLI renamed its thread, for a protocol that says so.
     | { type: 'title'; title: string }
     | { type: 'permissions'; permissionMode: string; effectiveRuntimeMode?: RuntimeMode }
-    | { type: 'text.delta'; ref: string; text: string }
+    | { type: 'text.delta'; ref: string; text: string; phase?: string }
     // `parentRef` is set for text a subagent wrote; it belongs to that agent's row, not to the thread.
-    | { type: 'text.done'; ref: string; text: string; parentRef?: string | null }
+    | { type: 'text.done'; ref: string; text: string; parentRef?: string | null; phase?: string }
+    // Bytes are consumed by the backend before anything reaches the thread or its log.
+    | {
+          type: 'image.generated';
+          ref: string;
+          upload: ChatAttachmentUpload;
+          width?: number;
+          height?: number;
+          revisedPrompt?: string;
+          transparentBackground?: boolean;
+      }
     // What the model thought before it answered; consecutive blocks become one thinking item.
     | { type: 'thinking.delta'; ref: string; text: string }
     | { type: 'thinking.done'; ref: string; text: string }

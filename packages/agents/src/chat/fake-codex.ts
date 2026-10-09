@@ -197,6 +197,40 @@ export function fakeCodexWith(options: FakeCodexOptions): FakeCli {
                 turnCompleted('failed', "You've hit your usage limit.", 'usageLimitExceeded');
                 return;
             }
+            if (text.startsWith('image:')) {
+                const scenario = text.slice(6);
+                const entry = item('imageGeneration', {
+                    status: 'inProgress',
+                    result: '',
+                    savedPath: '/never-read-generated-image.png',
+                    revisedPrompt: 'A rabbit',
+                    transparentBackground: true
+                });
+                started(entry);
+                const result =
+                    scenario === 'empty'
+                        ? ''
+                        : scenario === 'invalid'
+                          ? 'not base64'
+                          : scenario === 'not-image'
+                            ? Buffer.from('text').toString('base64')
+                            : scenario === 'too-large'
+                              ? Buffer.alloc(10 * 1024 * 1024 + 1).toString('base64')
+                              : 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=';
+                const done = {
+                    ...entry,
+                    status: scenario === 'failed' ? 'failed' : 'completed',
+                    result,
+                    ...(scenario === 'failed' ? { failure: { message: 'Image generation failed' } } : {})
+                };
+                completed(done);
+                if (scenario === 'replay') {
+                    completed(done);
+                }
+                agentMessage('Here is the generated image.');
+                turnCompleted('completed');
+                return;
+            }
             if (text === 'slow') {
                 slow = true;
                 started(item('agentMessage', { text: '', phase: 'final_answer', memoryCitation: null, delivery: null, questions: null }));

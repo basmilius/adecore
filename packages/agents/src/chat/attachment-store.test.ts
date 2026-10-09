@@ -119,3 +119,28 @@ describe('migrateInlineAttachments', () => {
         expect(await migrateInlineAttachments('old', null, store)).toBeNull();
     });
 });
+
+describe('Generated image persistence', () => {
+    test('concurrent replays publish one complete file and keep a stable id', async () => {
+        const original = upload('rabbit.png', 'image/png');
+        const [first, second] = await Promise.all([store.saveGenerated('images', 'codex-id', original), store.saveGenerated('images', 'codex-id', original)]);
+        expect(first).toEqual(second);
+        expect(await readFile(first.path)).toEqual(Buffer.from(original.data, 'base64'));
+        const { readdir } = await import('node:fs/promises');
+        expect(await readdir(store.folderOf('images'))).toEqual([basename(first.path)]);
+        expect(await store.saveGenerated('images', 'codex-id', original)).toEqual(first);
+        await expect(store.saveGenerated('images', 'codex-id', { ...original, data: Buffer.from('other bytes').toString('base64') })).rejects.toThrow(
+            'already belongs'
+        );
+        expect(await readFile(first.path)).toEqual(Buffer.from(original.data, 'base64'));
+    });
+
+    test('a copied attachment survives deletion of its original chat', async () => {
+        const source = await store.saveGenerated('source', 'image-id', upload('rabbit.png', 'image/png'));
+        const copied = await store.copy('fork', { ...source, width: 10, height: 20 });
+        expect(copied).toMatchObject({ id: source.id, width: 10, height: 20 });
+        expect(dirname(copied.path)).toBe(store.folderOf('fork'));
+        await store.removeAll('source');
+        expect(await readFile(copied.path)).toEqual(Buffer.from(upload('rabbit.png', 'image/png').data, 'base64'));
+    });
+});
