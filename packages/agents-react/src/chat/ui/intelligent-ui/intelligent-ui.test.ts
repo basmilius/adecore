@@ -3,6 +3,7 @@ import { createElement, Fragment, type ComponentType, type ReactElement, type Re
 import { renderToStaticMarkup } from 'react-dom/server';
 import { compileUiBlock, evaluateUiBlock, UI_CATALOG, UiState, type UiComponentName, type UiViewNode } from '@adecore/intelligent-ui';
 import { chatHost, setChatHost } from '../../../host';
+import { UiPageMemory } from './block-local';
 import { uiChartData, niceCeiling, UI_CHART_SERIES } from './chart-data';
 import i18next from 'i18next';
 import { uiBlockHead, uiNodeLabel, uiNodeText, uiReasonText } from './node-text';
@@ -126,6 +127,15 @@ test('a known reason code is worded here, and an unknown one reads as the reason
     expect(uiReasonText(t, 'refresh-limit', 'This query may refresh once every ten seconds.')).toBe('This source reads at most once every ten seconds.');
     expect(uiReasonText(t, 'newer-code', 'A reason from a newer machine.')).toBe('A reason from a newer machine.');
     expect(uiReasonText(t, undefined, 'Plain')).toBe('Plain');
+});
+
+test('page memory forgets the value used longest ago past its limit', () => {
+    const memory = new UiPageMemory<number>(2);
+    memory.set('a', 1);
+    memory.set('b', 2);
+    expect(memory.get('a')).toBe(1);
+    memory.set('c', 3);
+    expect([memory.has('a'), memory.has('b'), memory.has('c'), memory.size]).toEqual([true, false, true, 2]);
 });
 
 describe('choices', () => {

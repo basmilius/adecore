@@ -31,6 +31,7 @@ import { ReplyMarkdown } from '../Markdown';
 import { rehypeFadeWords } from '../rehype-fade';
 import { UI_RENDERERS } from './registry';
 import type { UiRenderContext, UiRenderer } from './render-context';
+import { UiPageMemory } from './block-local';
 import { UiBlockFrame } from './UiBlockFrame';
 import { UiFallbackPart } from './UiFallbackPart';
 import { useUiLinks } from './use-ui-links';
@@ -39,12 +40,10 @@ import { UiSourceCitation } from './renderers/content';
 import { uiChildrenOf, revealUiSource } from './node-text';
 import { uiReplyParts } from './reply-parts';
 
-const localStates = new Map<string, UiState>();
-const LOCAL_STATE_LIMIT = 64;
+const localStates = new UiPageMemory<UiState>(64);
 
 function localState(key: string, block: UiBlock, answered?: ChatUiAnswer): UiState {
     let state = localStates.get(key);
-    localStates.delete(key);
     if (!state) {
         state = new UiState(block);
         if (answered && answered.revision === block.revision) {
@@ -52,10 +51,7 @@ function localState(key: string, block: UiBlock, answered?: ChatUiAnswer): UiSta
                 state.set(name, value);
             }
         }
-    }
-    localStates.set(key, state);
-    if (localStates.size > LOCAL_STATE_LIMIT) {
-        localStates.delete(localStates.keys().next().value!);
+        localStates.set(key, state);
     }
     return state;
 }
