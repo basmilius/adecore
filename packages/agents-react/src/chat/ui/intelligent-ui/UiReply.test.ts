@@ -35,7 +35,10 @@ test('renders compiled nodes in the actual reply composition and falls back for 
     expect(renderToStaticMarkup(createElement(UiReply, { text, blocks: future, context }))).toContain('Future fallback');
 });
 
-function drawn(source: string, extra: Partial<typeof context> & { openUrl?: (url: string) => void } = {}): string {
+function drawn(
+    source: string,
+    extra: Partial<Omit<typeof context, 'phase'>> & { phase?: 'streaming' | 'final'; openUrl?: (url: string) => void } = {}
+): string {
     const text = '```ruimte-ui\n' + source + '\n```';
     const blocks = compileUi(text, { id: 'item', final: true });
     return renderToStaticMarkup(createElement(UiReply, { text, blocks, context: { ...context, ...extra } }));
@@ -46,6 +49,20 @@ test('draws written prose as inline Markdown and keeps the space beside a tag', 
     expect(markup).toContain('Use <strong>bold</strong>, <em>this</em> and <code');
     expect(markup).toMatch(/>code<\/code> <span/);
     expect(markup).toMatch(/<\/span> now/);
+});
+
+test('fades each written word in while the block streams and keeps its Markdown, whitespace and literal text', () => {
+    const source = '$name = "**data**"\n<Callout tone="info">Use **bold** and `a b` <Tag>new tag</Tag> {$name} now</Callout>';
+    const streaming = drawn(source, { phase: 'streaming' });
+    expect(streaming).toContain('<span class="chat-fade">Use</span> <strong><span class="chat-fade">bold</span></strong>');
+    expect(streaming).toMatch(/<code[^>]*>a b<\/code>/);
+    expect(streaming).toMatch(/<\/code> <span/);
+    expect(streaming).toContain('>new tag<');
+    expect(streaming).toContain('**data**');
+    expect(streaming).toContain('<span class="chat-fade">now</span>');
+    const final = drawn(source);
+    expect(final).not.toContain('chat-fade');
+    expect(final).toContain('Use <strong>bold</strong> and <code');
 });
 
 test('leaves code, control labels and the value of an expression as written', () => {
@@ -137,4 +154,15 @@ test('a jump highlights only its original block revision and leaves both blocks 
     expect(document.querySelectorAll('.chat-flash').length).toBe(1);
     expect(document.querySelector('.chat-flash')!.parentElement!.dataset.uiBlock).toBe(blocks[1]!.id);
     expect(render('stale').querySelector('.chat-flash')).toBeNull();
+});
+
+test('numbers in written prose resolve to Sources without changing code, expressions or control labels', () => {
+    const html = drawn(
+        '$text = "[1]"\n<Callout tone="info">See **[1]** and `[1]` and [9]. {$text}</Callout><Choices><Choice>Pick [1]</Choice></Choices><Sources><Source title="Docs" url="https://adecore.dev"/></Sources>'
+    );
+    expect(html).toContain('inline-flex h-4 min-w-4.5');
+    expect(html).toMatch(/<code[^>]*>\[1\]<\/code>/);
+    expect(html).toContain('[9]');
+    expect(html).toContain('Pick [1]');
+    expect(html).not.toContain('href="https://adecore.dev"');
 });

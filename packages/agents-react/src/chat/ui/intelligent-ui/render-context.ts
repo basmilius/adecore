@@ -32,6 +32,13 @@ export interface UiLiveStatus {
     reason?: string;
 }
 
+/* Live history is separate from the comparison the agent supplies in Stat.previous. */
+export interface UiLiveValue {
+    previous?: unknown;
+    changed: boolean;
+    stale: boolean;
+}
+
 /*
  * What every renderer of a block knows besides its node. The callbacks are the host's: left out, a link
  * stays plain text, a source cannot be opened and a choice stays closed.
@@ -50,6 +57,8 @@ export interface UiRenderContext {
     openLink?(target: UiLinkTarget): void;
     openUrl?(url: string): void;
     onChoose?(nodeId: string): void;
+    /* Table cells use the evaluated rows index and column key. */
+    liveValue?(nodeId: string, prop: string, path?: readonly [row: number, key: string]): UiLiveValue | undefined;
 }
 
 export interface UiRendererProps<Props> {

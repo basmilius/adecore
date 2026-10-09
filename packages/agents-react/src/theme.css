@@ -140,6 +140,14 @@
         transition: opacity 160ms ease-out;
         @starting-style { opacity: 0; }
     }
+    /* A value a live reading changed lights up in the accent once and settles back in 800ms. */
+    .chat-ui-changed { animation: chat-ui-changed 800ms ease-out; }
+    @keyframes chat-ui-changed { from { color: var(--accent); } }
+    @media (prefers-reduced-motion: reduce) {
+        .chat-ui-changed { animation: none; }
+    }
+    /* A source row a citation revealed. The row only takes focus from code, since its own button takes a click. */
+    .chat-ui-source:focus { animation: chat-flash 1600ms ease-out both; }
     /* A visual still on its way says so only once it takes long enough to be noticed. */
     .chat-visual-wait { animation: chat-fade 200ms ease-out 600ms both; }
 

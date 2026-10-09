@@ -81,3 +81,13 @@ Local input state is retained for the 64 most recently mounted blocks. Mounted b
 
 
 A choice heading in `Timeline` jumps to its original item, block and revision. It loads earlier pages and opens a folded turn before scrolling to and focusing the block. Only that block flashes; a missing or changed revision receives no jump. `UiReplyNavigationContext` supplies this navigation to `UserRow` and `UiReply`. Standalone rows keep a plain heading when the context is absent.
+
+
+Written prose supports source references such as `[1]`. A reference uses the numbering of the block's single Sources list, opens any enclosing tab or section, and focuses its Source row. It loads no URL; opening the row invokes the host. Code, expressions and control labels remain literal. Multiple Sources lists keep prose references as text because their numbers overlap.
+
+Live numeric renderers receive `context.liveValue(nodeId, prop, path?)`; table cells use `rows` and `[rowIndex, columnKey]`. This history is separate from an agent's `Stat.previous` comparison. Failed readings preserve the last value in muted text. Changed values briefly use the accent, respecting reduced motion. Written streaming prose uses the thread's word fade.
+
+Choices wait for read tickets matching their current input values. Changing an input disables choices until the visible block reads fresh data; a failed refresh preserves the last successful reading for the same inputs.
+
+
+`UiSourceCitation` and `UiSourceCitationProps` provide the citation face; `revealUiSource(root, nodeId, ancestors?)` opens its containers, scrolls and focuses the row. `UiLiveValue` describes previous, changed and stale numeric values. The reply derives it with `useUiLiveValues`; custom renderers consume the optional callback on `UiRenderContext`.

@@ -1,8 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ChatUiQueryReading, ChatUiQueryState } from '@adecore/agent-contracts';
-import { uiInputValues, UI_CATALOG_VERSION, type UiBlock, type UiState } from '@adecore/intelligent-ui';
+import { uiInputValues, UI_CATALOG_VERSION, UiState, type UiBlock, type UiViewNode, type UiNode } from '@adecore/intelligent-ui';
 import { chatHost } from '../../../host';
-import type { UiLiveStatus, UiRenderContext } from './render-context';
+import type { UiLiveValue, UiLiveStatus, UiRenderContext } from './render-context';
+
+interface LocalReading {
+    identity: string;
+    reading: ChatUiQueryReading;
+    successful?: { inputs: string; reading: ChatUiQueryReading };
+}
 
 function documentVisible(): boolean {
     return document.visibilityState !== 'hidden';
@@ -15,26 +21,53 @@ export function useUiQueries(
     element: HTMLDivElement | null,
     frozen?: ChatUiQueryState['blocks'][string]
 ) {
-    const [readings, setReadings] = useState<Record<string, ChatUiQueryReading>>({});
-    const [reading, setReading] = useState(false);
-    const lastReadAt = useRef(0);
+    const [readings, setReadings] = useState<Record<string, LocalReading>>({});
+    const [busyInput, setBusyInput] = useState<string | null>(null);
+    const lastReadAt = useRef({ identity: '', at: 0 });
     const names = Object.keys(block.queries);
     const inputs = JSON.stringify(uiInputValues(block, state));
+    const identity = JSON.stringify([context.scopeId, context.chatId, context.itemId, block.id, block.revision]);
+    const inputKey = JSON.stringify([identity, inputs]);
+    const reading = busyInput === inputKey;
+    const defaultInputs = JSON.stringify(uiInputValues(block, new UiState(block)));
+    const initial = frozen && frozen.revision === block.revision ? frozen.readings : {};
+    const successfulFor = (name: string, signature: string): ChatUiQueryReading | undefined => {
+        const local = readings[name];
+        if (local?.identity === identity && local.successful?.inputs === signature) {
+            return local.successful.reading;
+        }
+        return signature === defaultInputs && initial[name]?.state === 'fresh' ? initial[name] : undefined;
+    };
+    const readsFor = (values: Readonly<Record<string, unknown>>): Record<string, string> | null => {
+        const signature = JSON.stringify(values);
+        const reads: Record<string, string> = {};
+        for (const name of names) {
+            const local = readings[name];
+            const successful = successfulFor(name, signature);
+            if (!successful?.readId || (local?.identity === identity && local.reading.state === 'refused')) {
+                return null;
+            }
+            reads[name] = successful.readId;
+        }
+        return reads;
+    };
+    const reads = readsFor(JSON.parse(inputs));
+    const ready = reads !== null;
     const query = chatHost().intelligentUi?.query;
     const subscribe = chatHost().intelligentUi?.subscribe;
     useEffect(() => {
-        if (!frozen || frozen.revision !== block.revision) {
-            return;
-        }
-        for (const [name, reading] of Object.entries(frozen.readings)) {
-            if (reading.state === 'fresh' && Object.hasOwn(block.queries, name)) {
-                state.setQuery(name, reading.value, block);
+        const scope = state.scope();
+        for (const name of names) {
+            const successful = successfulFor(name, inputs);
+            if (successful && JSON.stringify(scope[name]) !== JSON.stringify(successful.value)) {
+                state.setQuery(name, successful.value, block);
             }
         }
-    }, [frozen, block, state]);
+    });
     useEffect(() => {
         if (
             !query ||
+            !element ||
             !block.complete ||
             block.catalogVersion !== UI_CATALOG_VERSION ||
             !block.revision ||
@@ -52,7 +85,7 @@ export function useUiQueries(
             if (stopped || !visible || !documentVisible() || busy) {
                 return;
             }
-            const wait = 10_000 - (Date.now() - lastReadAt.current);
+            const wait = lastReadAt.current.identity === identity ? 10_000 - (Date.now() - lastReadAt.current.at) : 0;
             if (wait > 0) {
                 if (timer === null) {
                     if (!visible || !documentVisible()) {
@@ -66,8 +99,8 @@ export function useUiQueries(
                 return;
             }
             busy = true;
-            lastReadAt.current = Date.now();
-            setReading(true);
+            lastReadAt.current = { identity, at: Date.now() };
+            setBusyInput(inputKey);
             for (const name of Object.keys(block.queries).slice(0, 8)) {
                 if (!visible || !documentVisible()) {
                     break;
@@ -87,14 +120,26 @@ export function useUiQueries(
                     if (reading.state === 'fresh') {
                         state.setQuery(name, reading.value, block);
                     }
-                    setReadings((previous) => ({ ...previous, [name]: reading }));
+                    setReadings((previous) => ({
+                        ...previous,
+                        [name]: {
+                            identity,
+                            reading,
+                            successful:
+                                reading.state === 'fresh' ? { inputs, reading } : previous[name]?.identity === identity ? previous[name].successful : undefined
+                        }
+                    }));
                 } catch (error) {
                     if (stopped) {
                         return;
                     }
                     setReadings((previous) => ({
                         ...previous,
-                        [name]: { state: 'failed', readAt: Date.now(), reason: error instanceof Error ? error.message : 'This query could not be read.' }
+                        [name]: {
+                            identity,
+                            reading: { state: 'failed', readAt: Date.now(), reason: error instanceof Error ? error.message : 'This query could not be read.' },
+                            successful: previous[name]?.identity === identity ? previous[name].successful : undefined
+                        }
                     }));
                 }
             }
@@ -102,7 +147,7 @@ export function useUiQueries(
             if (stopped) {
                 return;
             }
-            setReading(false);
+            setBusyInput(null);
             timer = setTimeout(() => {
                 timer = null;
                 void refresh();
@@ -138,12 +183,18 @@ export function useUiQueries(
                 clearTimeout(timer);
             }
         };
-    }, [block, state, context.scopeId, context.chatId, context.itemId, context.phase, inputs, query, subscribe, element]);
-    const currentReadings = { ...(frozen?.revision === block.revision ? frozen?.readings : {}), ...readings };
+    }, [block, state, context.scopeId, context.chatId, context.itemId, context.phase, inputs, query, subscribe, element, identity, inputKey]);
+    const currentReadings = Object.fromEntries(
+        names.flatMap((name) => {
+            const local = readings[name];
+            const reading = local?.identity === identity ? local.reading : initial[name];
+            return reading ? [[name, reading]] : [];
+        })
+    );
     const failed = Object.entries(currentReadings).find(([, value]) => value.state !== 'fresh');
     const live: UiLiveStatus | undefined = names.length
         ? {
-              state: reading ? 'reading' : (failed?.[1].state ?? 'fresh'),
+              state: reading || (!ready && !failed) ? 'reading' : (failed?.[1].state ?? 'fresh'),
               sources: names.map((name) => block.queries[name].source),
               readAt: Object.values(currentReadings)
                   .filter((reading) => reading.state === 'fresh')
@@ -152,10 +203,80 @@ export function useUiQueries(
               reason: failed?.[1].reason
           }
         : undefined;
-    const reads = Object.fromEntries(
-        Object.entries(currentReadings)
-            .filter(([, reading]) => reading.state === 'fresh' && reading.readId)
-            .map(([name, reading]) => [name, reading.readId!])
+    return { live, reads: reads ?? {}, reading, ready, readsFor, currentReadings };
+}
+
+export function useUiLiveValues(block: UiBlock, nodes: readonly UiViewNode[], readings: Readonly<Record<string, ChatUiQueryReading>>) {
+    const [committed, setCommitted] = useState<{ token: string; values: Map<string, Record<string, unknown>>; previous: Map<string, Record<string, unknown>> }>(
+        {
+            token: '',
+            values: new Map(),
+            previous: new Map()
+        }
     );
-    return { live, reads, reading };
+    const dependencies = new Map<string, Set<string>>();
+    const names = new Set(Object.keys(block.queries));
+    const references = (value: unknown, into: Set<string>) => {
+        if (!value || typeof value !== 'object') {
+            return;
+        }
+        const expression = value as Record<string, unknown>;
+        if (expression.kind === 'reference' && names.has(String(expression.name))) {
+            into.add(String(expression.name));
+        }
+        for (const child of Object.values(expression)) {
+            if (Array.isArray(child)) {
+                child.forEach((item) => references(item, into));
+            } else if (typeof child === 'object') {
+                references(child, into);
+            }
+        }
+    };
+    const written = (nodes: readonly UiNode[], inherited = new Set<string>()) => {
+        for (const node of nodes) {
+            const related = new Set(inherited);
+            references(node.expressions, related);
+            dependencies.set(node.id, related);
+            written(node.children, node.type === 'Each' ? related : inherited);
+        }
+    };
+    written(block.nodes);
+    const values = new Map<string, Record<string, unknown>>();
+    const sources = new Map<string, Set<string>>();
+    const collect = (nodes: readonly UiViewNode[]) => {
+        for (const node of nodes) {
+            const related = dependencies.get(node.sourceId ?? node.id);
+            if (related?.size && !node.error) {
+                values.set(node.id, node.props);
+                sources.set(node.id, related);
+            }
+            collect(node.children);
+        }
+    };
+    collect(nodes);
+    const token = JSON.stringify([block.revision, Object.entries(readings).map(([name, reading]) => [name, reading.state, reading.readId, reading.readAt])]);
+    const previous = committed.token === token ? committed.previous : committed.values;
+    if (committed.token !== token) {
+        setCommitted({ token, values, previous });
+    }
+    if (!names.size) {
+        return undefined;
+    }
+    return (id: string, prop: string, path?: readonly [number, string]): UiLiveValue | undefined => {
+        const related = sources.get(id);
+        if (!related) {
+            return undefined;
+        }
+        const get = (props?: Record<string, unknown>): unknown => {
+            const value = props?.[prop];
+            return path && Array.isArray(value) ? value[path[0]]?.[path[1]] : value;
+        };
+        const before = get(previous.get(id));
+        const value = get(values.get(id));
+        return {
+            previous: before,
+            changed: before !== undefined && JSON.stringify(before) !== JSON.stringify(value),
+            stale: [...related].some((name) => readings[name]?.state === 'failed' || readings[name]?.state === 'refused')
+        };
+    };
 }

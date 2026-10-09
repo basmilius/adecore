@@ -1,6 +1,9 @@
+import clsx from 'clsx';
 import { createContext, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { UiProps } from '@adecore/intelligent-ui';
+import { PreviewCard } from '@adecore/ui';
+import { formatNumber } from '@adecore/ui/format';
 import { chatHost } from '../../../../host';
 import { CodeBlock } from '../../CodeBlock';
 import { CodeStreamingContext } from '../../code-streaming';
@@ -68,7 +71,51 @@ function domainOf(url: string): string {
     }
 }
 
-/* Opens through the host and loads nothing before, not even an icon. */
+export interface UiSourceCitationProps {
+    /* The number of the Source, as its row in the list counts it. */
+    number: number;
+    title: string;
+    url: string;
+    /* Shows the Source row the number stands for. Without it the number is no button. */
+    onReveal?: () => void;
+    className?: string;
+}
+
+/*
+ * A source number in running text. Resting on it or focusing it shows the title and the domain, and
+ * a tap reveals the row in the list of sources; only that row opens the address, so nothing loads
+ * before a person asks for it.
+ */
+export function UiSourceCitation({ number, title, url, onReveal, className }: UiSourceCitationProps) {
+    const { t } = useTranslation('agent-chat');
+    return (
+        <PreviewCard.Root>
+            <PreviewCard.Trigger
+                delay={300}
+                closeDelay={150}
+                render={onReveal === undefined ? <span /> : <button type="button" />}
+                aria-label={onReveal === undefined ? undefined : t('blocks.citation', { number: formatNumber(number), title })}
+                className={clsx(
+                    'inline-flex h-4 min-w-4.5 items-center justify-center rounded-sm bg-text/7 px-1 align-[1px] text-2xs leading-4 text-text-muted tabular-nums',
+                    onReveal !== undefined && 'cursor-pointer hover:bg-text/12 hover:text-text',
+                    className
+                )}
+                onClick={onReveal}
+            >
+                {formatNumber(number)}
+            </PreviewCard.Trigger>
+            <PreviewCard.Popup side="top" align="center" sideOffset={4} className="flex max-w-72 flex-col px-2.5 py-1.5 text-xs">
+                <span className="line-clamp-2 text-text">{title}</span>
+                <span className="truncate text-text-faint">{domainOf(url)}</span>
+            </PreviewCard.Popup>
+        </PreviewCard.Root>
+    );
+}
+
+/*
+ * Opens through the host and loads nothing before, not even an icon. The row itself takes focus
+ * when a citation reveals it, apart from the button that opens it.
+ */
 export function SourceRenderer({ node, context }: UiRendererProps<UiProps<'Source'>>) {
     const number = useContext(SourceNumbers).get(node.id);
     const { title, url } = node.props;
@@ -81,7 +128,7 @@ export function SourceRenderer({ node, context }: UiRendererProps<UiProps<'Sourc
         </>
     );
     return (
-        <li>
+        <li data-ui-source={node.id} tabIndex={-1} className="chat-ui-source scroll-my-2 rounded-md">
             {openUrl === undefined ? (
                 <span className="flex h-8 items-center gap-2 px-2 text-xs">{face}</span>
             ) : (

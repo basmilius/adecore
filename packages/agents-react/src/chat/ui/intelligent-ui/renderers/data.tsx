@@ -6,8 +6,8 @@ import { Button, Icon, KeyValueList, Pill } from '@adecore/ui';
 import { formatBytes, formatDuration, formatMoment, formatNumber, formatPercent, formatRounded } from '@adecore/ui/format';
 import { useBlockLocal } from '../block-local';
 import { uiChildrenOf } from '../node-text';
-import type { UiRenderContext, UiRendererProps } from '../render-context';
-import { isNumericColumn, UI_TABLE_ROWS, uiTableCell, uiTableColumns, type UiTableColumn } from '../table-data';
+import type { UiLiveValue, UiRenderContext, UiRendererProps } from '../render-context';
+import { isNumericColumn, UI_TABLE_ROWS, uiTableCell, uiTableColumns, type UiTableCell, type UiTableColumn } from '../table-data';
 import { UI_TONE_TEXT } from '../tones';
 import { UiFallbackPart } from '../UiFallbackPart';
 import { UiLinkChip } from './links';
@@ -23,14 +23,28 @@ function withUnit(text: string, unit: string | undefined): string {
     return unit === '%' ? `${text}${unit}` : `${text} ${unit}`;
 }
 
+/*
+ * A number that live readings keep up to date. Keyed by its text, so a value that changed mounts
+ * again and lights up once, even when it changes again before the last light settled.
+ */
+function LiveFigure({ text, previous, live, className }: { text: string; previous?: string; live?: UiLiveValue; className?: string }) {
+    const lit = live !== undefined && live.changed && !live.stale && previous !== text;
+    return (
+        <span key={text} className={clsx(live?.stale ? 'text-text-muted' : 'text-text', lit && 'chat-ui-changed', className)}>
+            {text}
+        </span>
+    );
+}
+
 export function StatsRenderer({ children }: UiRendererProps<UiProps<'Stats'>>) {
     return <div className="chat-ui-nodes grid grid-cols-[repeat(auto-fit,minmax(128px,1fr))] gap-2">{children}</div>;
 }
 
 /* The arrow and the number say which way a value went; only a tone says whether that is good. */
-export function StatRenderer({ node }: UiRendererProps<UiProps<'Stat'>>) {
+export function StatRenderer({ node, context }: UiRendererProps<UiProps<'Stat'>>) {
     const { t } = useTranslation('agent-chat');
     const { label, value, previous, unit, tone } = node.props;
+    const live = context.liveValue?.(node.id, 'value');
     const change = previous === undefined ? null : value - previous;
     const arrow = change === null || change === 0 ? ArrowRight : change > 0 ? ArrowUp : ArrowDown;
     const from = previous === undefined ? '' : withUnit(formatRounded(previous, 2), unit);
@@ -39,7 +53,12 @@ export function StatRenderer({ node }: UiRendererProps<UiProps<'Stat'>>) {
     return (
         <div className="flex min-w-0 flex-col gap-0.5 rounded-md bg-surface-hover px-2 py-1.5">
             <span className="truncate text-xs text-text-muted">{label}</span>
-            <span className="text-lg font-semibold text-text tabular-nums">{withUnit(formatRounded(value, 2), unit)}</span>
+            <LiveFigure
+                text={withUnit(formatRounded(value, 2), unit)}
+                previous={typeof live?.previous === 'number' ? withUnit(formatRounded(live.previous, 2), unit) : undefined}
+                live={live}
+                className="text-lg font-semibold tabular-nums"
+            />
             {change !== null && (
                 <span className={clsx('flex items-center gap-1 text-xs tabular-nums', tone === undefined ? 'text-text-faint' : UI_TONE_TEXT[tone])}>
                     <Icon icon={arrow} size={12} className="shrink-0" />
@@ -69,23 +88,27 @@ export function EntryRenderer({ node, children }: UiRendererProps<UiProps<'Entry
     );
 }
 
-function Cell({ value, column, context }: { value: unknown; column: UiTableColumn; context: UiRenderContext }) {
+function numberText(cell: Extract<UiTableCell, { kind: 'number' }>, unit: string | undefined): string {
+    return cell.as === 'bytes' ? formatBytes(cell.value) : cell.as === 'duration' ? formatDuration(cell.value) : withUnit(formatRounded(cell.value, 2), unit);
+}
+
+function Cell({ value, column, live, context }: { value: unknown; column: UiTableColumn; live?: UiLiveValue; context: UiRenderContext }) {
     const cell = uiTableCell(value, column);
     switch (cell.kind) {
         case 'empty':
             return null;
         case 'text':
             return <>{cell.text}</>;
-        case 'number':
+        case 'number': {
+            const before = live?.previous === undefined ? undefined : uiTableCell(live.previous, column);
             return (
-                <>
-                    {cell.as === 'bytes'
-                        ? formatBytes(cell.value)
-                        : cell.as === 'duration'
-                          ? formatDuration(cell.value)
-                          : withUnit(formatRounded(cell.value, 2), column.unit)}
-                </>
+                <LiveFigure
+                    text={numberText(cell, column.unit)}
+                    previous={before?.kind === 'number' ? numberText(before, column.unit) : undefined}
+                    live={live}
+                />
             );
+        }
         case 'date':
             return <time dateTime={new Date(cell.at).toISOString()}>{formatMoment(cell.at)}</time>;
         case 'file':
@@ -141,7 +164,12 @@ export function TableRenderer({ node, context }: UiRendererProps<UiProps<'Table'
                                         key={column.key}
                                         className={clsx('h-8 px-2 text-text', isNumericColumn(column) ? 'text-right whitespace-nowrap' : 'text-left')}
                                     >
-                                        <Cell value={row[column.key]} column={column} context={context} />
+                                        <Cell
+                                            value={row[column.key]}
+                                            column={column}
+                                            live={isNumericColumn(column) ? context.liveValue?.(node.id, 'rows', [index, column.key]) : undefined}
+                                            context={context}
+                                        />
                                     </td>
                                 ))}
                             </tr>

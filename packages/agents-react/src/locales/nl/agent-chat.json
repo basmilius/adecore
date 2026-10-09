@@ -510,6 +510,7 @@
       "unavailable": "De afbeelding is niet beschikbaar"
     },
     "sources": "Bronnen",
+    "citation": "Bron {{number}}: {{title}}",
     "outsideProject": "Buiten het project, als tekst getoond",
     "options": "Opties",
     "choices": "Keuzes",

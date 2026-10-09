@@ -24,7 +24,7 @@ export function TabsRenderer({ node, children, context }: UiRendererProps<UiProp
         <Tabs.Root value={value} onValueChange={(next) => setPicked(String(next))} className="flex flex-col gap-3">
             <Tabs.List className="px-2">
                 {tabs.map((tab) => (
-                    <Tabs.Tab key={tab.id} value={tab.id}>
+                    <Tabs.Tab key={tab.id} value={tab.id} data-ui-reveal={tab.id}>
                         {tab.props.title}
                     </Tabs.Tab>
                 ))}
@@ -60,6 +60,7 @@ export function SectionRenderer({ node, children, context }: UiRendererProps<UiP
         <section>
             <button
                 type="button"
+                data-ui-reveal={node.id}
                 aria-expanded={open}
                 aria-controls={contentId}
                 className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-sm font-medium text-text hover:bg-surface-hover"

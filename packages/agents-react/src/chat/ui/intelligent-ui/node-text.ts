@@ -31,3 +31,29 @@ export function uiBlockHead(nodes: readonly UiViewNode[]): { id: string; label: 
     }
     return { id: first.id, label: withoutMarks(uiNodeLabel(first)) };
 }
+
+/*
+ * Scrolls the Source row of `nodeId` under `root` into view and focuses it, which lights the row once.
+ * Opens enclosing tabs and sections first; false when the source is absent.
+ */
+export async function revealUiSource(root: ParentNode, nodeId: string, ancestors: readonly string[] = []): Promise<boolean> {
+    for (const id of ancestors) {
+        const control = [...root.querySelectorAll<HTMLButtonElement>('[data-ui-reveal]')].find((element) => element.dataset.uiReveal === id);
+        if (control && (control.getAttribute('aria-expanded') === 'false' || control.getAttribute('aria-selected') === 'false')) {
+            control.click();
+            await new Promise<void>((resolve) => setTimeout(resolve, 0));
+        }
+    }
+    const row = [...root.querySelectorAll<HTMLElement>('[data-ui-source]')].find((element) => element.dataset.uiSource === nodeId);
+    if (row === undefined) {
+        return false;
+    }
+    // The light runs when focus arrives, so a row that already has it lets go first.
+    if (row.ownerDocument.activeElement === row) {
+        row.blur();
+    }
+    row.focus({ preventScroll: true });
+    const reduced = row.ownerDocument.defaultView?.matchMedia('(prefers-reduced-motion: reduce)').matches === true;
+    row.scrollIntoView({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' });
+    return true;
+}

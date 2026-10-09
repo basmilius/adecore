@@ -28,12 +28,15 @@ import type { ChatUiAnswer, ChatUiQueryState } from '@adecore/agent-contracts';
 import { chatHost } from '../../../host';
 import { UiReplyNavigationContext } from '../reply-context';
 import { ReplyMarkdown } from '../Markdown';
+import { rehypeFadeWords } from '../rehype-fade';
 import { UI_RENDERERS } from './registry';
 import type { UiRenderContext, UiRenderer } from './render-context';
 import { UiBlockFrame } from './UiBlockFrame';
 import { UiFallbackPart } from './UiFallbackPart';
 import { useUiLinks } from './use-ui-links';
-import { useUiQueries } from './use-ui-queries';
+import { useUiQueries, useUiLiveValues } from './use-ui-queries';
+import { UiSourceCitation } from './renderers/content';
+import { uiChildrenOf, revealUiSource } from './node-text';
 import { uiReplyParts } from './reply-parts';
 
 const localStates = new Map<string, UiState>();
@@ -93,6 +96,8 @@ const BLOCK_CONSTRUCTS = [
 interface ProseTree {
     type: string;
     children?: ProseTree[];
+    value?: string;
+    data?: unknown;
 }
 
 /* Prose between the tags of a block is inline: only emphasis, code and links are Markdown, and a blank line is a line break. */
@@ -110,8 +115,74 @@ function remarkInlineProse(this: { data(): object }) {
     };
 }
 
-const PROSE_PLUGINS = [remarkInlineProse];
-const PROSE_ELEMENTS = ['p', 'br', 'strong', 'em', 'code', 'a'];
+function remarkCitations() {
+    return (tree: ProseTree) => {
+        const visit = (parent: ProseTree) => {
+            if (['link', 'inlineCode', 'code'].includes(parent.type)) {
+                return;
+            }
+            parent.children = parent.children?.flatMap((child) => {
+                if (child.type !== 'text' || !child.value) {
+                    visit(child);
+                    return [child];
+                }
+                const parts: ProseTree[] = [];
+                let start = 0;
+                for (const match of child.value.matchAll(/\[(\d{1,3})\]/g)) {
+                    parts.push({ type: 'text', value: child.value.slice(start, match.index) });
+                    parts.push({
+                        type: 'citation',
+                        data: { hName: 'span', hProperties: { 'data-ui-citation': match[1] } },
+                        children: [{ type: 'text', value: match[0] }]
+                    });
+                    start = match.index + match[0].length;
+                }
+                parts.push({ type: 'text', value: child.value.slice(start) });
+                return parts;
+            });
+        };
+        visit(tree);
+    };
+}
+
+interface CitationTarget {
+    id: string;
+    title: string;
+    url: string;
+    ancestors: string[];
+}
+const CitationContext = createContext<{ sources: ReadonlyMap<number, CitationTarget>; reveal?: (source: CitationTarget) => void }>({ sources: new Map() });
+
+function ProseCitation({ number, children }: { number: number; children?: ReactNode }) {
+    const { sources, reveal } = useContext(CitationContext);
+    const source = sources.get(number);
+    return source ? <UiSourceCitation number={number} title={source.title} url={source.url} onReveal={reveal ? () => reveal(source) : undefined} /> : children;
+}
+
+function sourceTargets(nodes: readonly UiViewNode[]): Map<number, CitationTarget> {
+    const lists: CitationTarget[][] = [];
+    const visit = (nodes: readonly UiViewNode[], ancestors: string[] = []) => {
+        for (const node of nodes) {
+            const path = ['Tab', 'Section'].includes(node.type) ? [...ancestors, node.id] : ancestors;
+            if (node.type === 'Sources') {
+                lists.push(
+                    uiChildrenOf(node, 'Source').map((source) => ({ id: source.id, title: source.props.title, url: source.props.url, ancestors: path }))
+                );
+            }
+            visit(node.children, path);
+        }
+    };
+    visit(nodes);
+    // Numbers restart in each Sources list, so multiple lists have no unambiguous prose target.
+    return new Map(lists.length === 1 ? lists[0].map((source, index) => [index + 1, source]) : []);
+}
+
+const PROSE_PLUGINS = [remarkInlineProse, remarkCitations];
+const PROSE_ELEMENTS = ['p', 'br', 'strong', 'em', 'code', 'a', 'span'];
+// Raw HTML never parses here, so the only spans are the words the fade wraps.
+const FADING_PROSE_ELEMENTS = [...PROSE_ELEMENTS, 'span'];
+const FADE_PLUGINS = [rehypeFadeWords];
+const NO_PLUGINS: typeof FADE_PLUGINS = [];
 
 const ProseUrlContext = createContext<((url: string) => void) | undefined>(undefined);
 
@@ -131,14 +202,21 @@ function ProseLink({ href, children }: { href?: string; children?: ReactNode }) 
 const PROSE_COMPONENTS: Components = {
     p: ({ children }) => children,
     code: ({ children }) => <code className="rounded-sm bg-surface-sunken px-1 py-px font-mono text-code">{children}</code>,
-    a: ({ href, children }) => <ProseLink href={href}>{children}</ProseLink>
+    a: ({ href, children }) => <ProseLink href={href}>{children}</ProseLink>,
+    span: ({ node, children, className }) =>
+        node?.properties['data-ui-citation'] !== undefined ? (
+            <ProseCitation number={Number(node.properties['data-ui-citation'])}>{children}</ProseCitation>
+        ) : (
+            <span className={className}>{children}</span>
+        )
 };
 
 /*
  * Text an agent wrote in a block, as inline Markdown without raw HTML. Markdown trims a paragraph,
  * so the whitespace at either end stays text: it is the space between a word and the tag beside it.
+ * While the block streams every new word fades in, as in the prose of the reply around it.
  */
-const UiProse = memo(function UiProse({ text, openUrl }: { text: string; openUrl?: (url: string) => void }) {
+const UiProse = memo(function UiProse({ text, fade, openUrl }: { text: string; fade: boolean; openUrl?: (url: string) => void }) {
     const [, lead = '', body = '', trail = ''] = /^(\s*)([\s\S]*?)(\s*)$/.exec(text) ?? [];
     if (body === '') {
         return text;
@@ -146,7 +224,13 @@ const UiProse = memo(function UiProse({ text, openUrl }: { text: string; openUrl
     return (
         <ProseUrlContext value={openUrl}>
             {lead}
-            <ReactMarkdown remarkPlugins={PROSE_PLUGINS} allowedElements={PROSE_ELEMENTS} unwrapDisallowed components={PROSE_COMPONENTS}>
+            <ReactMarkdown
+                remarkPlugins={PROSE_PLUGINS}
+                rehypePlugins={fade ? FADE_PLUGINS : NO_PLUGINS}
+                allowedElements={fade ? FADING_PROSE_ELEMENTS : PROSE_ELEMENTS}
+                unwrapDisallowed
+                components={PROSE_COMPONENTS}
+            >
                 {body}
             </ReactMarkdown>
             {trail}
@@ -257,7 +341,11 @@ function UiNodeBody({
 }): ReactNode {
     if (node.type === '$text') {
         const text = String(node.props.text ?? '');
-        return LITERAL_PARENTS.has(parent) || texts.get(node.sourceId ?? node.id) !== true ? text : <UiProse text={text} openUrl={context.openUrl} />;
+        return LITERAL_PARENTS.has(parent) || texts.get(node.sourceId ?? node.id) !== true ? (
+            text
+        ) : (
+            <UiProse text={text} fade={context.phase === 'streaming'} openUrl={context.openUrl} />
+        );
     }
     if (node.error !== undefined) {
         return <UiFallbackPart fallback={node.fallback} problem={{ kind: 'failed' }} />;
@@ -319,6 +407,8 @@ function UiBlockBody({
         navigation?.chatId === context.chatId && flash?.itemId === context.itemId && flash.blockId === block.id && flash.revision === block.revision;
     const queries = useUiQueries(block, state, context, element, frozen);
     const links = useUiLinks(block, state, context, queries.reads, frozen);
+    const evaluation = evaluateUiBlock(block, state);
+    const liveValue = useUiLiveValues(block, evaluation.nodes, queries.currentReadings);
     const sendChoice = chatHost().intelligentUi?.sendChoice;
     const rendering: UiRenderContext = {
         ...context,
@@ -326,37 +416,44 @@ function UiBlockBody({
         answer,
         failedChoiceId,
         live: queries.live ?? context.live,
+        liveValue: liveValue ?? context.liveValue,
         onChoose:
-            sendChoice && block.revision && block.complete && context.phase === 'final'
-                ? (choiceId) => {
-                      if (pending.current || answer || queries.reading) {
-                          return;
-                      }
-                      pending.current = true;
-                      setFailedChoiceId(null);
-                      const revision = block.revision!;
-                      setOptimistic({ revision, choiceId, state: 'sending' });
-                      void sendChoice(context.scopeId, {
-                          chatId: context.chatId,
-                          itemId: context.itemId,
-                          blockId: block.id,
-                          revision,
-                          choiceId,
-                          reads: queries.reads,
-                          values: uiInputValues(block, state)
-                      })
-                          .then((state) => setOptimistic({ revision, choiceId, state }))
-                          .catch(() => {
-                              setOptimistic(null);
-                              setFailedChoiceId(choiceId);
-                          })
-                          .finally(() => {
-                              pending.current = false;
-                          });
-                  }
-                : context.onChoose
+            !queries.ready || queries.reading
+                ? undefined
+                : sendChoice && block.revision && block.complete && context.phase === 'final'
+                  ? (choiceId) => {
+                        if (pending.current || answer || queries.reading) {
+                            return;
+                        }
+                        const values = uiInputValues(block, state);
+                        const reads = queries.readsFor(values);
+                        if (reads === null) {
+                            return;
+                        }
+                        pending.current = true;
+                        setFailedChoiceId(null);
+                        const revision = block.revision!;
+                        setOptimistic({ revision, choiceId, state: 'sending' });
+                        void sendChoice(context.scopeId, {
+                            chatId: context.chatId,
+                            itemId: context.itemId,
+                            blockId: block.id,
+                            revision,
+                            choiceId,
+                            reads,
+                            values
+                        })
+                            .then((state) => setOptimistic({ revision, choiceId, state }))
+                            .catch(() => {
+                                setOptimistic(null);
+                                setFailedChoiceId(choiceId);
+                            })
+                            .finally(() => {
+                                pending.current = false;
+                            });
+                    }
+                  : context.onChoose
     };
-    const evaluation = evaluateUiBlock(block, state);
     const unknown = block.catalogVersion !== UI_CATALOG_VERSION;
     const failed = !unknown && !block.nodes.length && block.diagnostics.length > 0;
     const shownAsText = unknown ? t('blocks.unreadable') : failed ? block.diagnostics[0].message : undefined;
@@ -374,7 +471,18 @@ function UiBlockBody({
                 {unknown || failed ? (
                     <ReplyMarkdown text={block.fallback} streaming={false} />
                 ) : (
-                    <UiNodes nodes={evaluation.nodes} parent={BLOCK} texts={writtenTexts(block.nodes)} context={rendering} />
+                    <CitationContext
+                        value={{
+                            sources: sourceTargets(evaluation.nodes),
+                            reveal: element
+                                ? (source) => {
+                                      void revealUiSource(element, source.id, source.ancestors);
+                                  }
+                                : undefined
+                        }}
+                    >
+                        <UiNodes nodes={evaluation.nodes} parent={BLOCK} texts={writtenTexts(block.nodes)} context={rendering} />
+                    </CitationContext>
                 )}
             </UiBlockFrame>
         </div>
@@ -409,6 +517,7 @@ export function UiReply({
                 ) : (
                     <ErrorBoundary key={part.block.id} label="UI block" resetKeys={[context.scopeId, context.chatId, context.itemId, part.block.id]}>
                         <UiBlockBody
+                            key={JSON.stringify([context.scopeId, context.chatId, context.itemId, part.block.id])}
                             block={part.block}
                             frozen={queries?.blocks[part.block.id]}
                             answered={answers?.[part.block.id]}

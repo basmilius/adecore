@@ -510,6 +510,7 @@
       "unavailable": "The image is not available"
     },
     "sources": "Sources",
+    "citation": "Source {{number}}: {{title}}",
     "outsideProject": "Outside the project, shown as text",
     "options": "Options",
     "choices": "Choices",

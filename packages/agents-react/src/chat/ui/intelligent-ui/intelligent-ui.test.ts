@@ -7,6 +7,7 @@ import { uiChartData, niceCeiling, UI_CHART_SERIES } from './chart-data';
 import { uiBlockHead, uiNodeLabel, uiNodeText } from './node-text';
 import { UI_RENDERERS } from './registry';
 import type { UiRenderContext, UiRenderer, UiRendererProps } from './render-context';
+import { UiSourceCitation } from './renderers/content';
 import { ChecklistRenderer } from './renderers/inputs';
 import { uiTableCell, uiTableColumns } from './table-data';
 import { UiBlockFrame, type UiBlockFrameProps } from './UiBlockFrame';
@@ -196,6 +197,25 @@ describe('text and status', () => {
         expect(html).toContain('text-text-faint');
         expect(markup('<Stats><Stat label="Tests" value={3} previous={0} tone="danger"/></Stats>')).toContain('text-status-error');
     });
+
+    test('a live stat lights up once it changed, stays muted when stale and keeps the comparison the agent wrote', () => {
+        const source = '<Stats><Stat label="Changed files" value={4} previous={2}/></Stats>';
+        const asked: [string, string][] = [];
+        const changed = markup(source, {
+            liveValue: (nodeId, prop) => {
+                asked.push([nodeId, prop]);
+                return { previous: 3, changed: true, stale: false };
+            }
+        });
+        expect(asked.map(([, prop]) => prop)).toEqual(['value']);
+        expect(changed).toMatch(/<span class="text-text chat-ui-changed text-lg font-semibold tabular-nums">4<\/span>/);
+        expect(changed).toContain('100% from 2');
+        expect(markup(source, { liveValue: () => ({ previous: 4.001, changed: true, stale: false }) })).not.toContain('chat-ui-changed');
+        const stale = markup(source, { liveValue: () => ({ changed: true, stale: true }) });
+        expect(stale).toContain('text-text-muted text-lg');
+        expect(stale).not.toContain('chat-ui-changed');
+        expect(markup(source)).not.toContain('chat-ui-changed');
+    });
 });
 
 describe('tables', () => {
@@ -215,6 +235,25 @@ describe('tables', () => {
         const html = markup(`<Table rows={[${rows}]}/>`);
         expect(html.match(/<tr/g)).toHaveLength(51);
         expect(html).toContain('Show all 60 rows');
+    });
+
+    test('ask for the live state of numeric cells only, by row and key', () => {
+        const asked: unknown[] = [];
+        const html = markup(
+            '<Table rows={[{name: "Core", size: 32}, {name: "Client", size: 40}]}><Column key="name"/><Column key="size" as="number"/></Table>',
+            {
+                liveValue: (_nodeId, prop, path) => {
+                    asked.push([prop, path]);
+                    return path?.[0] === 1 ? { previous: 38, changed: true, stale: false } : { changed: false, stale: true };
+                }
+            }
+        );
+        expect(asked).toEqual([
+            ['rows', [0, 'size']],
+            ['rows', [1, 'size']]
+        ]);
+        expect(html).toContain('<span class="text-text-muted">32</span>');
+        expect(html).toContain('<span class="text-text chat-ui-changed">40</span>');
     });
 
     test('draw their text when no column is usable', () => {
@@ -290,6 +329,20 @@ describe('content', () => {
         expect(html).not.toContain('<button');
         expect(html).not.toContain('href');
         expect(markup(source, { openUrl: () => undefined })).toContain('<button');
+        expect(html.match(/<li data-ui-source="[^"]+" tabindex="-1"/g)).toHaveLength(2);
+    });
+
+    test('a citation is a number that loads nothing, and a button only when it can reveal its source', () => {
+        const props = { number: 1, title: 'Docs', url: 'https://www.adecore.dev/ui' };
+        const quiet = renderToStaticMarkup(createElement(UiSourceCitation, props));
+        expect(quiet).toContain('>1</span>');
+        expect(quiet).not.toContain('<button');
+        expect(quiet).not.toContain('href');
+        expect(quiet).not.toContain('adecore.dev');
+        const button = renderToStaticMarkup(createElement(UiSourceCitation, { ...props, onReveal: () => undefined }));
+        expect(button).toContain('<button type="button"');
+        expect(button).toContain('aria-label="Source 1: Docs"');
+        expect(button).not.toContain('href');
     });
 
     test('structure draws a tab strip and open sections', () => {
