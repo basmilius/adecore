@@ -160,7 +160,11 @@ export function applyEvent(state: ChatState, event: ChatEvent): ChatState {
         case 'delta': {
             const item = state.items[event.itemId];
             if (event.uiQueries && item?.kind === 'assistant') {
-                return { ...state, items: { ...state.items, [event.itemId]: { ...item, uiQueries: event.uiQueries } } };
+                // The text first, as the daemon's thread applies it, then the metadata on what it grew into.
+                const { uiQueries, ...text } = event;
+                const grown = event.text === '' ? state : applyEvent(state, text);
+                const reply = grown.items[event.itemId] ?? item;
+                return { ...grown, items: { ...grown.items, [event.itemId]: { ...reply, uiQueries } as ChatItem } };
             }
             if (event.ui !== undefined && event.text === '') {
                 if (item?.kind === 'assistant' && item.streaming && event.textLength === item.text.length) {

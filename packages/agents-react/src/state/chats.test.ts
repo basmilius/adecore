@@ -36,6 +36,16 @@ describe('applyEvent', () => {
         expect(next.items.t).toEqual({ ...thinking, text: 'Let me think' });
     });
 
+    test('a delta with query metadata grows the text before it patches the reply, as the daemon does', () => {
+        const reply: ChatItem = { id: 'r', kind: 'assistant', createdAt: 0, turnId: null, text: 'Hello', streaming: true };
+        const state: ChatState = { info: info(), items: { r: reply }, structure: { r: reply }, order: ['r'] };
+        const uiQueries = { authorChatId: 'chat-1', blocks: {} };
+
+        const next = applyEvent(state, { type: 'delta', itemId: 'r', text: ' there', uiQueries });
+
+        expect(next.items.r).toEqual({ ...reply, text: 'Hello there', uiQueries });
+    });
+
     test('a delta on a reply with text leaves the structure the rows are derived from as it was', () => {
         const reply: ChatItem = { id: 'r', kind: 'assistant', createdAt: 0, turnId: null, text: 'Hello', streaming: true };
         const state: ChatState = { info: info(), items: { r: reply }, structure: { r: reply }, order: ['r'] };
