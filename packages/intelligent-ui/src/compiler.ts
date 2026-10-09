@@ -379,7 +379,10 @@ export class UiCompiler {
             blocks.push(block);
             next.set(start, { source, block, latestAttachment: update.latestAttachment });
         };
-        for (const line of text.split(/(?<=\n)/)) {
+        while (position < text.length && !exhausted) {
+            const newline = text.indexOf('\n', position);
+            const end = newline === -1 ? text.length : newline + 1;
+            const line = text.slice(position, end);
             const opening = /^ {0,3}(`{3,}|~{3,})([^\r\n]*)/.exec(line);
             if (!fence && opening) {
                 fence = {
@@ -395,7 +398,7 @@ export class UiCompiler {
                 }
                 fence = null;
             }
-            position += line.length;
+            position = end;
         }
         if (fence?.ui) {
             append(fence.start, fence.codeStart, text.length, text.length, false);

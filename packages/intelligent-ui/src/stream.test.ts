@@ -157,3 +157,25 @@ test('reply character quotas stop at one bounded refusal without dropping surrou
     expect(blocks.at(-1)!.diagnostics[0].code).toBe('budget_exceeded');
     expect(blocks.at(-1)!.end).toBeLessThan((fence.repeat(8) + 'After').length);
 });
+
+test('fence scanning keeps UTF-16 ranges, CRLF lines and an unterminated final line', () => {
+    const compiler = new UiCompiler({ id: 'item', now: () => 0 });
+    const prefix = '🐇 Before\r\n```ts\r\n```ruimte-ui\r\n<Summary>Ignored</Summary>\r\n```\r\n';
+    const source = '  ~~~~ruimte-ui\r\n<Summary>Visible</Summary>\r\n  ~~~~';
+    const blocks = compiler.compile(prefix + source, { final: true });
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0].start).toBe(prefix.length);
+    expect(blocks[0].end).toBe(prefix.length + source.length);
+    expect(blocks[0].fallback).toContain('Visible');
+    expect(blocks[0].fallback).not.toContain('Ignored');
+    expect(compiler.compile('')).toEqual([]);
+});
+
+test('an exhausted reply stops scanning later fences and preserves its bounded refusal', () => {
+    const compiler = new UiCompiler({ id: 'item', now: () => 0 });
+    const prefix = Array.from({ length: UI_REPLY_LIMITS.blocks + 1 }, (_, index) => reply(String(index))).join('\n');
+    const before = compiler.compile(prefix);
+    const after = compiler.compile(prefix + '\n' + '```ruimte-ui\n<Summary>Unscanned</Summary>\n```\n'.repeat(10000));
+    expect(after).toEqual(before);
+    expect(after.at(-1)!.diagnostics.at(-1)!.code).toBe('budget_exceeded');
+});
