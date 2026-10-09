@@ -210,7 +210,7 @@ function VerticalChart({ chart, kind, unit, width }: { chart: UiChartData; kind:
                                 />
                                 {chart.labels.length <= DOTS_UP_TO &&
                                     series.values.map((value, index) =>
-                                        value === null ? null : <circle key={index} cx={center(index)} cy={y(value)} r={2.5} fill="currentColor" />
+                                        value === null ? null : <circle key={index} cx={center(index)} cy={y(value)} r={3} fill="currentColor" />
                                     )}
                             </g>
                         ))}
@@ -235,7 +235,8 @@ function VerticalChart({ chart, kind, unit, width }: { chart: UiChartData; kind:
 
 /* A row of 24px per category, its label beside the bars. */
 function HorizontalChart({ chart, unit }: { chart: UiChartData; unit: string | undefined }) {
-    const high = niceCeiling(chart.max);
+    // Bars grow right from zero only, so a chart of only negative values has no length to share and keeps a unit scale.
+    const high = niceCeiling(chart.max) || 1;
     const single = chart.series.length === 1;
     return (
         <div aria-hidden className="flex flex-col">

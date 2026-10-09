@@ -330,6 +330,12 @@ describe('charts', () => {
         expect(html).toContain('<caption>Values</caption>');
         expect(markup('<Chart kind="line" data={[{label: "x", value: "none"}]}/>')).toContain('Could not draw this part');
     });
+
+    test('a horizontal chart of only negative values draws no bar instead of a width that is not a number', () => {
+        const html = markup('<Chart kind="hbar" data={[{label: "Core", value: -3}, {label: "Client", value: -1}]}/>');
+        expect(html).not.toContain('NaN');
+        expect(html).toContain('width:0%');
+    });
 });
 
 describe('links', () => {
