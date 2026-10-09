@@ -8,7 +8,7 @@ import { uiBlockHead, uiNodeLabel, uiNodeText } from './node-text';
 import { UI_RENDERERS } from './registry';
 import type { UiRenderContext, UiRenderer, UiRendererProps } from './render-context';
 import { UiSourceCitation } from './renderers/content';
-import { ChecklistRenderer } from './renderers/inputs';
+import { ButtonRenderer, ChecklistRenderer } from './renderers/inputs';
 import { uiTableCell, uiTableColumns } from './table-data';
 import { UiBlockFrame, type UiBlockFrameProps } from './UiBlockFrame';
 
@@ -57,7 +57,7 @@ const REVIEW =
 describe('the registry of intelligent UI renderers', () => {
     test('accounts for every catalog name, and only those', () => {
         expect(Object.keys(UI_RENDERERS).sort()).toEqual(Object.keys(UI_CATALOG).sort());
-        expect(Object.keys(UI_RENDERERS)).toHaveLength(35);
+        expect(Object.keys(UI_RENDERERS)).toHaveLength(36);
         const empty = Object.entries(UI_RENDERERS)
             .filter(([, renderer]) => renderer === null)
             .map(([name]) => name)
@@ -166,6 +166,18 @@ describe('local inputs', () => {
         expect(html).toContain('data-disabled');
         const partial = markup('$count = 4\n<Slider value={$count} min={1} max={16}>Agents', {}, false);
         expect(partial).toContain('pointer-events-none opacity-60');
+    });
+
+    test('a button runs its action and closes once the block is answered', () => {
+        const { nodes, state } = evaluate('$mode = "all"\n<Button action={@Set($mode, "failed")}>Failed only</Button>');
+        const element = ButtonRenderer({ node: nodes[0] as never, children: 'Failed only', context: CONTEXT }) as ReactElement<{
+            children: ReactElement<{ onClick(): void }>;
+        }>;
+        element.props.children.props.onClick();
+        expect(state.scope().$mode).toBe('failed');
+        const html = markup('$mode = "all"\n<Button action={@Reset()}>Reset</Button>', { answer: { choiceId: 'other', state: 'sent' } });
+        expect(html).toContain('Reset');
+        expect(html).toContain('disabled');
     });
 
     test('label a slider and a segmented control with their text', () => {

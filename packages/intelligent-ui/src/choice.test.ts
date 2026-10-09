@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import { compileUiBlock } from './compiler.ts';
+import { uiValidatedState } from './query.ts';
 import { evaluateUiBlock, resolveUiChoice, UiState, uiInputValues } from './runtime.ts';
 
 const source = `$count = 2
@@ -87,4 +88,26 @@ test('every visible control bound to a changed value must accept it', () => {
 test('a partly unreadable choice label cannot send a different label', () => {
     const { block, choice } = fixture('<Choices><Choice context="Run checks">Check {$missing}</Choice></Choices>');
     expect(() => resolveUiChoice(block, choice)).toThrow();
+});
+
+test('a value a visible Button sets can be sent, and no other value of its variable', () => {
+    const { block, choice } = fixture(`$mode = "all"
+$hidden = "none"
+<Button action={@Set($mode, "failed")}>Failed only</Button><Button action={@Reset()}>Reset</Button>
+<Show when={false}><Button action={@Set($hidden, "shown")}>Hidden</Button></Show><Button action={@Set($hidden, "off")} disabled={true}>Off</Button>
+<Choices><Choice context={"Show " + $mode}>Show</Choice></Choices>`);
+    const state = new UiState(block);
+    const pressed = evaluateUiBlock(block, state).nodes[0];
+    pressed.onAction!();
+    expect(uiInputValues(block, state)).toEqual({ $mode: 'failed', $hidden: 'none' });
+    expect(resolveUiChoice(block, choice, uiInputValues(block, state))).toEqual({
+        label: 'Show',
+        context: 'Show failed',
+        values: { $mode: 'failed', $hidden: 'none' }
+    });
+    expect(uiValidatedState(block, { $mode: 'failed' }).scope().$mode).toBe('failed');
+    for (const values of [{ $mode: 'injected' }, { $hidden: 'shown' }, { $hidden: 'off' }]) {
+        expect(() => resolveUiChoice(block, choice, values)).toThrow();
+        expect(() => uiValidatedState(block, values)).toThrow();
+    }
 });

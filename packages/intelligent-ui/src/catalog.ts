@@ -22,7 +22,10 @@ export const UI_GROUPS = {
         rules: 'Image accepts a chat attachment or generated="latest", never a URL or a local path.'
     },
     links: { description: 'Refer to a host-owned resource.', rules: 'Targets are checked by the host. No arbitrary navigation or file reads.' },
-    inputs: { description: 'Change local block state.', rules: 'Bind value={$name}. State stays local until a Choice sends visible context.' },
+    inputs: {
+        description: 'Change local block state.',
+        rules: 'Bind value={$name}. A Button sets a literal with action={@Set($name, value)} or restores a default with {@Reset($name)} or {@Reset()}. State stays local until a Choice sends visible context.'
+    },
     choices: {
         description: 'Ask the person to pick a next step.',
         rules: 'Give a short label and precise visible context. A Choice sends once after streaming ends.'
@@ -121,6 +124,12 @@ export const UI_CATALOG = {
     },
     Segmented: { group: 'inputs', description: 'Choose one local value.', schema: z.strictObject({ value: scalar }), children: ['Option'], binding: 'value' },
     Option: { group: 'inputs', description: 'One local alternative.', schema: z.strictObject({ value: scalar }), parent: 'Segmented' },
+    Button: {
+        group: 'inputs',
+        description: 'Run one local state action when pressed; children are the label.',
+        schema: z.strictObject({ disabled: z.boolean().optional() }),
+        action: 'action'
+    },
     Show: { group: 'inputs', description: 'Show children when the condition is true.', schema: z.strictObject({ when: z.boolean() }) },
     Each: {
         group: 'inputs',

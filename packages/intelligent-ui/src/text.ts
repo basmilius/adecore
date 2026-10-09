@@ -33,7 +33,7 @@ function uiExample(language: string): string {
 }
 
 export function uiSessionNote({ fenceLanguage = UI_FENCE_LANGUAGE }: UiTextOptions = {}): string {
-    return `${uiSyntax(fenceLanguage)} Prose outside. Only named catalog props, no styling. $name = literal JSON; input value={$name}; braced expressions: @Count, @Filter(list,row,predicate), @Sum, @Join, @Round. Show/Each control children. Choice labels and precise context stay visible and send once. Image: attachment or generated="latest", never URL/path. No code execution. State resets on reload. Catalog (? means optional props): ${uiCompactCatalog()}\nExample:\n${uiExample(fenceLanguage)}\n`;
+    return `${uiSyntax(fenceLanguage)} Prose outside. Only named catalog props, no styling. $name = literal JSON; input value={$name}; Button action={@Set($name, literal)}, {@Reset($name)} or {@Reset()} changes local state only; braced expressions: @Count, @Filter(list,row,predicate), @Sum, @Join, @Round. Show/Each control children. Choice labels and precise context stay visible and send once. Image: attachment or generated="latest", never URL/path. No code execution. State resets on reload. Catalog (? means optional props): ${uiCompactCatalog()}\nExample:\n${uiExample(fenceLanguage)}\n`;
 }
 
 export function uiReferenceText({ fenceLanguage = UI_FENCE_LANGUAGE }: UiTextOptions = {}): string {

@@ -26,7 +26,7 @@ export function uiValidatedState(block: UiBlock, input: Readonly<Record<string, 
     if (evaluated.diagnostics.some((diagnostic) => diagnostic.code === 'budget_exceeded')) {
         throw new UiFailure('budget_exceeded', 'The query inputs exceeded their evaluation budget.');
     }
-    const visible = uiVisibleInputs(block, evaluated.nodes);
+    const visible = uiVisibleInputs(block, evaluated.nodes, state.scope());
     for (const [key, value] of Object.entries(values)) {
         if (!sameUiValue(value, allowed[key]) && !visible.has(key)) {
             throw new UiFailure('invalid_value', 'An input value is outside the visible control’s allowed values.');

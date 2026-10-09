@@ -2,7 +2,7 @@ import { createContext, useContext, type MouseEvent } from 'react';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import type { UiBinding, UiProps, UiViewNode } from '@adecore/intelligent-ui';
-import { Checkbox, Segmented, Slider, Switch } from '@adecore/ui';
+import { Button, Checkbox, Segmented, Slider, Switch } from '@adecore/ui';
 import { uiChildrenOf, uiNodeLabel } from '../node-text';
 import type { UiRenderContext, UiRendererProps } from '../render-context';
 
@@ -116,6 +116,18 @@ export function SegmentedRenderer({ node, context }: UiRendererProps<UiProps<'Se
                     }
                 }}
             />
+        </div>
+    );
+}
+
+/* Runs its local action once its own node closed; like an input, it closes once the block is answered. */
+export function ButtonRenderer({ node, children, context }: UiRendererProps<UiProps<'Button'>>) {
+    const enabled = node.onAction !== undefined && node.complete && context.answer === null && node.props.disabled !== true;
+    return (
+        <div className={clsx('px-2', !node.complete && PENDING)}>
+            <Button variant="secondary" size="sm" disabled={!enabled} onClick={() => node.onAction?.()}>
+                {children}
+            </Button>
         </div>
     );
 }

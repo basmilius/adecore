@@ -94,7 +94,7 @@ const EXAMPLES = [
     '<Chart kind="bar" data={[{label: "Core", passed: 32, failed: 1}]}/>',
     '<Tabs><Tab title="First">One</Tab><Tab title="Second">Two</Tab></Tabs><Sections><Section title="Details">Text</Section></Sections>',
     '<CodeBlock language="ts">const markup = "<b>{text}</b>";</CodeBlock><Sources><Source title="Docs" url="https://adecore.dev/"/></Sources>',
-    '$count = 4\n$mode = "all"\n<Slider value={$count} min={1} max={16}/><Segmented value={$mode}><Option value="all">All</Option><Option value="failed">Failed</Option></Segmented>',
+    '$count = 4\n$mode = "all"\n<Slider value={$count} min={1} max={16}/><Segmented value={$mode}><Option value="all">All</Option><Option value="failed">Failed</Option></Segmented><Button action={@Set($mode, "failed")}>Failed only</Button><Button action={@Reset()} disabled={$mode == "all"}>Reset</Button>',
     '$rows = [{name: "Core"}, {name: "Client"}]\n<EntityList><Each items={$rows} as="row"><Entry label={row.name}>Ready</Entry></Each></EntityList>',
     '<Image generated="latest" alt="A rabbit"/><Steps><Step state="done">Built</Step><Step state="pending">Review</Step></Steps>'
 ];
@@ -109,8 +109,9 @@ describe('streaming compiler', () => {
             expect(evaluated.nodes.length).toBeGreaterThan(0);
             expect(compiled.fallback).not.toBe('');
         }
-        expect(Object.keys(UI_CATALOG)).toHaveLength(35);
+        expect(Object.keys(UI_CATALOG)).toHaveLength(36);
         expect(uiCatalogText()).toContain('Image(attachment?, generated?, alt?)');
+        expect(uiCatalogText()).toContain('Button(action, disabled?)');
     });
 
     test('every prefix is bounded and retains stable nodes after their tag arrives', () => {
@@ -256,6 +257,46 @@ describe('local state and evaluation', () => {
         state.sync({ ...compiled, id: 'other-block' });
         expect(state.scope().$count).toBe(4);
         expect(() => state.set('$count', 'four')).toThrow();
+    });
+
+    test('a Button keeps its action unevaluated and runs it only on local state', () => {
+        const compiled = block(
+            '$mode = "all"\n$tab = 1\n<Button action={@Set($mode, "failed")}>Failed</Button><Button action={@Reset($mode)}>All</Button><Summary>{$mode}</Summary>'
+        );
+        expect(compiled.diagnostics).toEqual([]);
+        expect(compiled.nodes[0].expressions.action).toEqual(parseUiExpression('@Set($mode, "failed")'));
+        expect(compiled.nodes[0].fallback).toBe('Failed\n');
+        const state = new UiState(compiled);
+        const [set, reset] = evaluateUiBlock(compiled, state).nodes;
+        expect(set.props).toEqual({});
+        set.onAction!();
+        expect(state.scope().$mode).toBe('failed');
+        expect(evaluateUiBlock(compiled, state).nodes[2].children[0].props.text).toBe('failed');
+        reset.onAction!();
+        expect(state.scope().$mode).toBe('all');
+        const pending = block('$mode = "all"\n<Button action={@Set($mode, "failed")}>Failed', false);
+        const pendingState = new UiState(pending);
+        evaluateUiBlock(pending, pendingState).nodes[0].onAction!();
+        expect(pendingState.scope().$mode).toBe('all');
+        const disabled = block('$mode = "all"\n<Button action={@Set($mode, "failed")} disabled={true}>Failed</Button>');
+        const disabledState = new UiState(disabled);
+        evaluateUiBlock(disabled, disabledState).nodes[0].onAction!();
+        expect(disabledState.scope().$mode).toBe('all');
+    });
+
+    test('a Button refuses an action on a query, an undeclared variable or a computed value', () => {
+        const schemas = { tasks: z.strictObject({ limit: z.number() }) };
+        const compile = (source: string) => compileUiBlock(source, { id: 'block', final: true, querySchemas: schemas });
+        const refused = (source: string) => compile(source).nodes.at(-1)!.error;
+        expect(refused('$tasks = @Query("tasks", {limit: 1})\n<Button action={@Set($tasks, [])}>Clear</Button>')).toBe('refused_binding');
+        expect(refused('<Button action={@Set($missing, 1)}>Set</Button>')).toBe('refused_binding');
+        expect(refused('$count = 1\n<Button action={@Set($count, $count + 1)}>More</Button>')).toBe('refused_action');
+        expect(refused('$count = 1\n<Button action={@Count($count)}>Count</Button>')).toBe('refused_action');
+        expect(refused('$count = 1\n<Button>Nothing</Button>')).toBe('invalid_props');
+        expect(refused('$count = 1\n<Button action="@Reset()">Text</Button>')).toBe('refused_action');
+        const tampered = compile('$count = 1\n<Button action={@Reset()}>Reset</Button>');
+        tampered.nodes[0].expressions.action = parseUiExpression('@Set($other, 1)');
+        expect(evaluateUiBlock(tampered).nodes[0].error).toBe('refused_binding');
     });
 
     test('resolves Show and Each and bounds repeated output before allocation', () => {

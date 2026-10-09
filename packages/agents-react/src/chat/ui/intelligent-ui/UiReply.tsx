@@ -67,7 +67,7 @@ const BLOCK = '$block';
  * Parents whose text is read as written: code, a short tag, and the labels of controls, whose
  * accessible name and sent text are that same string.
  */
-const LITERAL_PARENTS = new Set(['CodeBlock', 'Tag', 'Choice', 'Item', 'Switch', 'Slider', 'Segmented', 'Option', 'Column']);
+const LITERAL_PARENTS = new Set(['CodeBlock', 'Tag', 'Choice', 'Item', 'Switch', 'Slider', 'Segmented', 'Option', 'Button', 'Column']);
 
 /* Parents that stack their children, where a run of text and inline nodes is one paragraph. */
 const PARAGRAPHS: Readonly<Record<string, string>> = {

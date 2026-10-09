@@ -1,5 +1,6 @@
 import { safeKey, UI_LIMITS, UiBudget, UiFailure, type UiLimits } from './budget.ts';
 import { isUiComponent, UI_CATALOG, UI_CATALOG_VERSION } from './catalog.ts';
+import { uiActionProp, uiActionTarget, uiLocalState } from './actions.ts';
 import { uiNodeFallback, uiPlainText } from './fallback.ts';
 import { evaluateUiExpression, type UiExpression, type UiValue } from './expression.ts';
 import { parseUiSyntax, uiDiagnostic, type UiDiagnostic, type UiSyntaxNode } from './syntax.ts';
@@ -103,6 +104,14 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
             block.diagnostics.push(uiDiagnostic(error, start, end, nodeId));
         }
     };
+    // A pressed action must set the same value whatever state it is pressed in, so a choice can check it.
+    const checkedAction = (action: UiExpression): UiExpression => {
+        uiActionTarget(action, uiLocalState(block));
+        if (action.kind === 'call' && action.name === 'Set' && !isConstant(action.args[1])) {
+            throw new UiFailure('refused_action', '@Set in an action takes a literal value.');
+        }
+        return action;
+    };
     const compile = (syntax: UiSyntaxNode, depth: number, parent?: string): UiNode => {
         budget.depth(depth);
         const node: UiNode = {
@@ -153,8 +162,13 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
                     throw new UiFailure('invalid_child', `${syntax.type} is not a child of ${parent}.`);
                 }
             }
+            const actionProp = uiActionProp(syntax.type);
             for (const [key, expression] of Object.entries(syntax.props)) {
                 safeKey(key);
+                if (key === actionProp) {
+                    node.expressions[key] = checkedAction(expression);
+                    continue;
+                }
                 if (!Object.hasOwn(entry.schema.shape, key)) {
                     diagnose(new UiFailure('refused_prop', `${syntax.type} does not accept ${key}.`), syntax.start, syntax.end, syntax.id);
                     continue;
@@ -163,13 +177,7 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
                     node.props[key] = evaluateUiExpression(expression, {}, budget);
                 } else {
                     node.expressions[key] = expression;
-                    if (
-                        'binding' in entry &&
-                        entry.binding === key &&
-                        expression.kind === 'reference' &&
-                        Object.hasOwn(block.defaults, expression.name) &&
-                        !Object.hasOwn(block.queries, expression.name)
-                    ) {
+                    if ('binding' in entry && entry.binding === key && expression.kind === 'reference' && uiLocalState(block)(expression.name)) {
                         node.bindings[key] = expression.name;
                     }
                 }
@@ -178,10 +186,16 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
                 delete node.props.generated;
                 node.props.attachment = options.latestAttachment;
             }
+            if (actionProp !== undefined && syntax.complete && !node.expressions[actionProp]) {
+                throw new UiFailure('invalid_props', `${syntax.type} needs ${actionProp}.`);
+            }
             const evaluated: Record<string, UiValue> = { ...node.props };
             fallbackProps = evaluated;
             let unresolved = false;
             for (const [key, expression] of Object.entries(node.expressions)) {
+                if (key === actionProp) {
+                    continue;
+                }
                 try {
                     evaluated[key] = evaluateUiExpression(expression, block.defaults, budget);
                 } catch (error) {

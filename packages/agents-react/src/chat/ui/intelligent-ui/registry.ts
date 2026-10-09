@@ -3,7 +3,7 @@ import { ChartRenderer } from './renderers/chart';
 import { ChoiceRenderer, ChoicesRenderer } from './renderers/choices';
 import { CodeBlockRenderer, ImageRenderer, SourceRenderer, SourcesRenderer } from './renderers/content';
 import { EntityListRenderer, EntryRenderer, StatRenderer, StatsRenderer, TableRenderer } from './renderers/data';
-import { ChecklistRenderer, ItemRenderer, SegmentedRenderer, SliderRenderer, SwitchRenderer } from './renderers/inputs';
+import { ButtonRenderer, ChecklistRenderer, ItemRenderer, SegmentedRenderer, SliderRenderer, SwitchRenderer } from './renderers/inputs';
 import { CommitRenderer, DiffRenderer, FileRenderer, NodeRenderer } from './renderers/links';
 import { SectionRenderer, SectionsRenderer, TabRenderer, TabsRenderer } from './renderers/structure';
 import { CalloutRenderer, ProgressRenderer, StepRenderer, StepsRenderer, SummaryRenderer, TagRenderer } from './renderers/text';
@@ -45,6 +45,7 @@ export const UI_RENDERERS: UiRenderers = {
     Slider: SliderRenderer,
     Segmented: SegmentedRenderer,
     Option: null,
+    Button: ButtonRenderer,
     Show: null,
     Each: null,
     Choices: ChoicesRenderer,

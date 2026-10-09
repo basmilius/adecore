@@ -44,7 +44,7 @@ The parser recovers at the next tag or line after malformed input. Open tags rem
 | Structure | Tabs / Tab, Sections / Section |
 | Content | CodeBlock, Image, Sources / Source |
 | Host links | File, Diff, Commit, Node |
-| Local inputs | Checklist / Item, Switch, Slider, Segmented / Option, Show, Each |
+| Local inputs | Checklist / Item, Switch, Slider, Segmented / Option, Button, Show, Each |
 | Choices | Choices / Choice |
 
 Image accepts exactly one of `attachment` and `generated="latest"`, plus an optional alt and caption. It never takes a URL or a filesystem path. Charts use rows with a label and numeric series; their renderer will validate usable series before drawing. A Column names a field and optionally its title, unit and presentation.
@@ -64,6 +64,8 @@ Image accepts exactly one of `attachment` and `generated="latest"`, plus an opti
 There is no JavaScript execution, general function call, assignment, network access or inherited field access. `__proto__`, `constructor` and `prototype` are refused. `sameUiValue(first, second)` compares two values deeply, regardless of key order. `copyUiValue` validates and copies JSON input without invoking accessors; class instances, nonfinite numbers, sparse arrays and cycles are refused.
 
 `UiState` belongs to one chat/item/block identity. `sync(block)` preserves edits when a declaration's default is unchanged, resets changed defaults, removes disappeared variables and clears changed query data. A reload creates a new state from defaults. `scope()` returns a safe copy. `set(name, value)` changes a declared local variable without changing its type. `run(ast)` accepts only `@Set($name, expression)`, `@Reset($name)` and `@Reset()`. `snapshot()` and `subscribe(listener)` let a renderer observe input edits.
+
+A Button holds one action in `action`: `@Set($name, literal)`, `@Reset($name)` or `@Reset()` on declared local state, never a query. The compiler keeps it unevaluated and refuses any other action or a computed value. Its view node's `onAction()` runs it through `run` once the node is complete and not disabled. An action changes local state only. A choice or query argument accepts a variable's value when it is the default, a visible control holds it, or a visible enabled Button sets exactly that value.
 
 `evaluateUiBlock(block, state?, limits?)` returns `UiEvaluation`, including `UiViewNode` objects and per-element diagnostics. View nodes contain validated evaluated props, children and `UiBinding` callbacks. Their optional `sourceId` identifies the compiled node before Each adds an iteration suffix. A binding changes state only after its input node is complete and the new prop passes its schema. Show and Each are resolved before rendering. Repetition reserves iterations before allocating children. Unknown catalog versions and invalid elements retain their fallback.
 

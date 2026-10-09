@@ -2,6 +2,7 @@ import { copyUiValue, evaluateUiExpression, sameUiValue, type UiExpression, type
 import { UiBudget, UiFailure, type UiLimits } from './budget.ts';
 import { isUiComponent, UI_CATALOG, UI_CATALOG_VERSION } from './catalog.ts';
 import { type UiBlock, type UiNode } from './compiler.ts';
+import { uiActionProp, uiActionTarget, uiLocalState } from './actions.ts';
 import { uiCompiledNodes, uiVisibleInputs } from './inputs.ts';
 import { uiDiagnostic, type UiDiagnostic } from './syntax.ts';
 
@@ -20,6 +21,8 @@ export interface UiViewNode<Props = Record<string, unknown>> {
     complete: boolean;
     fallback: string;
     error?: string;
+    // Runs the node's state action; present only on a component that has one.
+    onAction?(): void;
 }
 
 export interface UiEvaluation {
@@ -104,24 +107,14 @@ export class UiState {
     }
 
     run(action: UiExpression): void {
-        if (action.kind !== 'call' || !['Set', 'Reset'].includes(action.name)) {
-            throw new UiFailure('refused_action', 'Expected @Set or @Reset.');
-        }
-        if (action.name === 'Reset' && action.args.length === 0) {
+        const target = uiActionTarget(action, (name) => Object.hasOwn(this.defaults, name));
+        if (target === null) {
             this.values = copyUiValue(this.defaults) as Record<string, UiValue>;
             this.changed();
-            return;
-        }
-        const reference = action.args[0];
-        if (!reference || reference.kind !== 'reference' || !Object.hasOwn(this.defaults, reference.name)) {
-            throw new UiFailure('refused_binding', 'The action needs a local state variable.');
-        }
-        if (action.name === 'Set' && action.args.length === 2) {
-            this.set(reference.name, evaluateUiExpression(action.args[1], this.scope()));
-        } else if (action.name === 'Reset' && action.args.length === 1) {
-            this.set(reference.name, this.defaults[reference.name]);
+        } else if (action.kind === 'call' && action.name === 'Set') {
+            this.set(target, evaluateUiExpression(action.args[1], this.scope()));
         } else {
-            throw new UiFailure('refused_action', 'Invalid state action arguments.');
+            this.set(target, this.defaults[target]);
         }
     }
 
@@ -166,8 +159,11 @@ export function evaluateUiBlock(block: UiBlock, state = new UiState(block), limi
                 throw new UiFailure(node.error ?? 'unknown_catalog', 'This part uses an unsupported UI definition.');
             }
             const props: Record<string, UiValue> = copyUiValue(node.props, budget) as Record<string, UiValue>;
+            const actionProp = uiActionProp(node.type);
             for (const [key, expression] of Object.entries(node.expressions)) {
-                props[key] = evaluateUiExpression(expression, variables, budget);
+                if (key !== actionProp) {
+                    props[key] = evaluateUiExpression(expression, variables, budget);
+                }
             }
             if (node.type === '$text') {
                 if (typeof props.text !== 'string' && typeof props.text !== 'number' && typeof props.text !== 'boolean' && props.text !== null) {
@@ -206,7 +202,7 @@ export function evaluateUiBlock(block: UiBlock, state = new UiState(block), limi
             }
             const bindings: Record<string, UiBinding<unknown>> = Object.create(null);
             for (const [key, name] of Object.entries(node.bindings)) {
-                if (!('binding' in entry) || entry.binding !== key || !Object.hasOwn(block.defaults, name) || Object.hasOwn(block.queries, name)) {
+                if (!('binding' in entry) || entry.binding !== key || !uiLocalState(block)(name)) {
                     throw new UiFailure('refused_binding', 'The binding must target declared local input state.');
                 }
                 bindings[key] = {
@@ -223,6 +219,23 @@ export function evaluateUiBlock(block: UiBlock, state = new UiState(block), limi
                 };
             }
             view.bindings = bindings;
+            const action = actionProp === undefined ? undefined : node.expressions[actionProp];
+            if (action) {
+                uiActionTarget(action, uiLocalState(block));
+                view.onAction = () => {
+                    if (!node.complete || props.disabled === true) {
+                        return;
+                    }
+                    try {
+                        state.run(action);
+                    } catch (error) {
+                        // An action that cannot apply to the current state leaves it as it was.
+                        if (!(error instanceof UiFailure)) {
+                            throw error;
+                        }
+                    }
+                };
+            }
             view.children = children(node.children, variables, depth + 1, suffix);
             return [view];
         } catch (error) {
@@ -253,14 +266,27 @@ export interface UiChoiceSelection {
 export function uiInputValues(block: UiBlock, state: UiState): Record<string, UiValue> {
     const scope = state.scope();
     const values: Record<string, UiValue> = Object.create(null);
+    const local = uiLocalState(block);
+    const actionTarget = (action: UiExpression): string | null => {
+        try {
+            return uiActionTarget(action, local);
+        } catch {
+            return null;
+        }
+    };
     const visit = (nodes: readonly UiNode[]) => {
         for (const node of nodes) {
             if (isUiComponent(node.type) && !node.error && node.complete) {
                 const entry = UI_CATALOG[node.type];
                 for (const [prop, name] of Object.entries(node.bindings)) {
-                    if ('binding' in entry && entry.binding === prop && Object.hasOwn(block.defaults, name) && !Object.hasOwn(block.queries, name)) {
+                    if ('binding' in entry && entry.binding === prop && local(name)) {
                         values[name] = scope[name];
                     }
+                }
+                const actionProp = uiActionProp(node.type);
+                const target = actionProp && node.expressions[actionProp] ? actionTarget(node.expressions[actionProp]) : null;
+                if (target !== null) {
+                    values[target] = scope[target];
                 }
             }
             visit(node.children);
@@ -270,7 +296,7 @@ export function uiInputValues(block: UiBlock, state: UiState): Record<string, Ui
     return values;
 }
 
-/* The host supplies its stored block; client data can change only declared input bindings. */
+/* The host supplies its stored block; client data can change only declared inputs and Button targets. */
 export function resolveUiChoice(
     block: UiBlock,
     choiceId: string,
@@ -318,7 +344,7 @@ export function resolveUiChoice(
         }
     };
     visit(evaluated.nodes);
-    const validInputs = uiVisibleInputs(block, evaluated.nodes);
+    const validInputs = uiVisibleInputs(block, evaluated.nodes, state.scope());
     if ([...changed].some((name) => !validInputs.has(name))) {
         throw new UiFailure('invalid_value', 'An input value is outside the visible control’s allowed values.');
     }
