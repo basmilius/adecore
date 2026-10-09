@@ -759,6 +759,8 @@ export type ChatSubagentSource = z.infer<typeof ChatSubagentSourceSchema>;
 export const ChatSubagentResultSchema = z.object({
     items: z.array(ChatItemSchema),
     history: ChatSubagentPageSchema,
+    // A request still waiting must remain answerable after it leaves the newest page.
+    pending: z.array(z.union([ChatApprovalItemSchema, ChatQuestionItemSchema])).optional(),
     source: ChatSubagentSourceSchema,
     context: z.object({ provider: AgentKindSchema, cwd: z.string(), chatId: ChatIdSchema.optional() }).optional(),
     // Whether the subagent is still writing, so a client knows to keep reading.

@@ -1,5 +1,5 @@
 import i18next from 'i18next';
-import type { ChatItem, ChatSubagentResult } from '@adecore/agent-contracts';
+import type { ChatApprovalItem, ChatItem, ChatQuestionItem, ChatSubagentResult } from '@adecore/agent-contracts';
 import { errorCode, isConnectionError, type ChatTransport } from '../transport';
 
 // What the panel opens on: the newest end of the conversation, which is where an agent that works is.
@@ -8,6 +8,7 @@ export const SUBAGENT_PAGE = 60;
 export interface SubagentConversationState {
     status: 'loading' | 'ready' | 'failed';
     items: ChatItem[];
+    pending: Array<ChatApprovalItem | ChatQuestionItem>;
     source: ChatSubagentResult['source'] | null;
     context: NonNullable<ChatSubagentResult['context']> | null;
     /* Where the page before the oldest item on screen starts; null once the start is there. */
@@ -23,6 +24,7 @@ export interface SubagentConversationState {
 export const INITIAL_CONVERSATION: SubagentConversationState = {
     status: 'loading',
     items: [],
+    pending: [],
     source: null,
     context: null,
     cursor: null,
@@ -57,6 +59,13 @@ export function mergeNewest(
         }
     }
     return { items, cursor: current.length === 0 ? pageCursor : currentCursor };
+}
+
+function pendingOf(items: readonly ChatItem[]): Array<ChatApprovalItem | ChatQuestionItem> {
+    return items.filter(
+        (item): item is ChatApprovalItem | ChatQuestionItem =>
+            (item.kind === 'approval' && item.decision === 'pending') || (item.kind === 'question' && item.state === 'pending')
+    );
 }
 
 function messageOf(error: unknown): string {
@@ -131,7 +140,8 @@ export class SubagentConversation {
             this.set({ loadingEarlier: true });
             try {
                 const page = await this.ask({ cursor, limit: SUBAGENT_PAGE });
-                this.set({ items: [...page.items, ...this.state.items], cursor: page.history.cursor, live: page.live, loadingEarlier: false });
+                const items = [...page.items, ...this.state.items];
+                this.set({ items, pending: page.pending ?? pendingOf(items), cursor: page.history.cursor, live: page.live, loadingEarlier: false });
             } catch (error) {
                 if (errorCode(error) === 'history-expired') {
                     // The record was written again under this panel; what it holds now is the only truth.
@@ -167,6 +177,7 @@ export class SubagentConversation {
             this.set({
                 status: 'ready',
                 items: merged.items,
+                pending: page.pending ?? pendingOf(merged.items),
                 cursor: merged.cursor,
                 live: page.live,
                 source: page.source,

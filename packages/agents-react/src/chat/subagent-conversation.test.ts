@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { AgentEventType, AgentRequestType, ChatItem, ChatSubagentPayload, ChatSubagentResult } from '@adecore/agent-contracts';
+import type { AgentEventType, AgentRequestType, ChatApprovalItem, ChatItem, ChatSubagentPayload, ChatSubagentResult } from '@adecore/agent-contracts';
 import { ChatTransportError, type ChatEventMap, type ChatRequestMap, type ChatTransport, type ChatTransportStatus } from '../transport';
 import { mergeNewest, SubagentConversation, type SubagentConversationState } from './subagent-conversation';
 
@@ -14,6 +14,7 @@ class FakeMachine implements ChatTransport {
     readonly asked: ChatSubagentPayload[] = [];
     fail: ChatTransportError | null = null;
     context: ChatSubagentResult['context'];
+    pending: ChatSubagentResult['pending'];
     // Refuses only the next request, the way a record that was just rewritten refuses one cursor.
     failNext: ChatTransportError | null = null;
     private readonly handlers = new Map<string, Set<(payload: unknown) => void>>();
@@ -36,6 +37,7 @@ class FakeMachine implements ChatTransport {
             items: this.conversation.slice(start, end),
             history: { start, cursor: start > 0 ? String(start) : null },
             source: 'claude-transcript',
+            ...(this.pending === undefined ? {} : { pending: this.pending }),
             ...(this.context ? { context: this.context } : {}),
             live: true
         };
@@ -88,6 +90,33 @@ describe('mergeNewest', () => {
 });
 
 describe('SubagentConversation', () => {
+    test('keeps a pending request outside the newest page and retires it when the host says it was answered', async () => {
+        const approval: ChatApprovalItem = {
+            id: 'approval',
+            kind: 'approval',
+            createdAt: 0,
+            turnId: null,
+            requestId: 'request',
+            toolUseId: null,
+            toolName: 'Bash',
+            input: { command: 'ls' },
+            description: null,
+            canAllowAlways: false,
+            decision: 'pending'
+        };
+        const machine = new FakeMachine();
+        machine.conversation = [approval, ...Array.from({ length: 70 }, (_, i) => note(`n${i}`))];
+        machine.pending = [approval];
+        const { conversation } = await open(machine);
+        expect(conversation.current.items).not.toContain(approval);
+        expect(conversation.current.pending).toEqual([approval]);
+        await conversation.loadEarlier();
+        expect(conversation.current.pending).toEqual([approval]);
+        machine.pending = [];
+        await conversation.refresh();
+        expect(conversation.current.pending).toEqual([]);
+        conversation.dispose();
+    });
     test('keeps the child context through pagination and replaces it on a new read', async () => {
         const machine = new FakeMachine();
         machine.conversation = Array.from({ length: 70 }, (_, i) => note(`n${i}`));

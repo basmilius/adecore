@@ -13,7 +13,7 @@ import { SubagentBreadcrumb, SubagentTitleCrumb } from '@adecore/agents-react/ch
 
 Which conversation a chat shows is its trail: the steps down from the main agent, empty while the main agent is on screen. A subagent row's open button, or an entry of the subagent flyout over the composer, sets it. `useSubagentTrail(chatId)` answers `{ trail, show }`; draw a `SubagentTimeline` for the last step as the [timeline's](/agents-react/chat/timeline#props) overlay. The trail lives for the page only.
 
-`SubagentTimeline({ chatId, toolUseId })` reads the conversation with `chat.subagent`, 60 items at a time, and keeps reading while the host says it grows. It is read only; the composer under it stays for the chat's own prompts. A subagent the subagent opened goes one step further down.
+`SubagentTimeline({ chatId, toolUseId })` reads the conversation with `chat.subagent`, 60 items at a time, and keeps reading while the host says it grows. Messages are read only. When the host supplies the delegated chat's `context.chatId`, its pending approvals and questions appear in the existing prompt card and answer that child, only after the person acts. `pending` keeps requests visible even outside the newest history page; older hosts fall back to requests in the pages already read. The composer underneath still handles the main chat's prompts. A subagent the subagent opened goes one step further down.
 
 `SubagentInfo({ chatId, toolUseId })` is the header over it: state, time, model and what it spent, and the task it was given behind a fold.
 
