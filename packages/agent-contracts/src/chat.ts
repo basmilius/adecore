@@ -37,13 +37,16 @@ export const CHAT_ATTACHMENT_MAX_BYTES = CHAT_ATTACHMENTS_MAX_BYTES;
 export const CHAT_ATTACHMENTS_MAX_COUNT = 8;
 const MAX_BASE64_LENGTH = Math.ceil(CHAT_ATTACHMENT_MAX_BYTES / 3) * 4;
 
+function paddingOf(data: string): number {
+    return data.endsWith('==') ? 2 : data.endsWith('=') ? 1 : 0;
+}
+
 export function attachmentBytes(data: string): number {
-    return Math.floor((data.length * 3) / 4) - (data.endsWith('==') ? 2 : data.endsWith('=') ? 1 : 0);
+    return Math.floor((data.length * 3) / 4) - paddingOf(data);
 }
 
 function isBase64(data: string): boolean {
-    const padding = data.endsWith('==') ? 2 : data.endsWith('=') ? 1 : 0;
-    return data.length % 4 === 0 && !/[^A-Za-z0-9+/]/.test(data.slice(0, data.length - padding));
+    return data.length % 4 === 0 && !/[^A-Za-z0-9+/]/.test(data.slice(0, data.length - paddingOf(data)));
 }
 
 const IMAGE_MIME_BY_EXTENSION = new Map([
@@ -487,6 +490,7 @@ export const ChatSubagentItemSchema = z.object({
     // Where the CLI keeps this subagent's own conversation; set once the daemon found it.
     native: z.object({ agentId: z.string().optional(), threadId: z.string().optional() }).optional(),
     // Who opened it: the CLI with its own tool, or a verb with `--task` that made a node; absent is `native`.
+    // The second value keeps its legacy spelling, since stored threads carry it.
     origin: z.enum(['native', 'ruimte']).optional(),
     // The node a `--task` opened, whose own conversation this row stands for.
     childId: z.string().optional(),
@@ -613,7 +617,7 @@ export const ChatCompactionItemSchema = z.object({
 
 /*
  * Never a new member here, and never a new value in an enum a chat or a push already carries: the
- * iPhone app validates `chat.attach` and `chat.history` whole, so one item it does not know rejects
+ * native client validates `chat.attach` and `chat.history` whole, so one item it does not know rejects
  * the entire conversation. Add optional fields instead.
  */
 export const ChatItemSchema = z.discriminatedUnion('kind', [
