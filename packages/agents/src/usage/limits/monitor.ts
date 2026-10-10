@@ -1,12 +1,12 @@
 import type { UsageLimitsProvider, UsageLimitsSnapshot, UsageProvider } from '@adecore/agent-contracts';
-import { definedEnv } from '../../providers/accounts/launch.ts';
-import type { ProviderRegistry } from '../../providers/registry.ts';
-import type { AgentEvent, AgentSink } from '../../events.ts';
-import { mergeWindows, type LimitsUpdate } from './normalize.ts';
 import type { CodexClientInfo } from '../../chat/codex-transport.ts';
-import { probeClaude, probeCodex, type ProbeResult } from './probe.ts';
 import { ClientSinks } from '../../client-sinks.ts';
 import { errorText } from '../../error-text.ts';
+import type { AgentEvent, AgentSink } from '../../events.ts';
+import { definedEnv } from '../../providers/accounts/launch.ts';
+import type { ProviderRegistry } from '../../providers/registry.ts';
+import { mergeWindows, type LimitsUpdate } from './normalize.ts';
+import { probeClaude, probeCodex, type ProbeResult } from './probe.ts';
 
 /* Often enough that a bar is never far behind, rarely enough that two CLIs are not started all day. */
 const PROBE_INTERVAL_MS = 5 * 60_000;

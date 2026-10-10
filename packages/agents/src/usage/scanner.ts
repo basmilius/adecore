@@ -1,13 +1,13 @@
 import { mkdir, open, readFile, readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { UsageRoot } from '@adecore/agent-contracts';
+import { errorText } from '../error-text.ts';
 import { isNotFound, writeAtomic } from '../fs.ts';
 import { decodeIndex, encodeIndex, type IndexedFile, type UsageIndex } from './index-file.ts';
 import { foldByKey, type UsageRecord } from './record.ts';
 import { claudeMightCarryUsage, parseClaudeLine } from './readers/claude.ts';
 import { cloneCodexState, codexMightCarryUsage, createCodexState, parseCodexLine, type CodexParserState } from './readers/codex.ts';
 import { usageRoots, type UsageRootPath } from './roots.ts';
-import { errorText } from '../error-text.ts';
 
 /* What a file holds from `from` to its end, as it is at the read. */
 async function readFrom(path: string, from: number): Promise<string> {
@@ -69,11 +69,11 @@ async function listJsonl(dir: string, out: string[] = []): Promise<string[]> {
  * read again next time. The Codex state is snapshotted before that tail for the same reason.
  */
 function parseChunk(text: string, provider: 'claude' | 'codex', from: number, state: CodexParserState | null): ParsedFile {
-    let records: UsageRecord[] = [];
     const end = text.lastIndexOf('\n');
     const whole = end === -1 ? '' : text.slice(0, end);
     const tail = text.slice(end + 1);
-    const read = (chunk: string, codex: CodexParserState | null): void => {
+    const read = (chunk: string, codex: CodexParserState | null): UsageRecord[] => {
+        const records: UsageRecord[] = [];
         for (const raw of chunk.split('\n')) {
             const line = raw.endsWith('\r') ? raw.slice(0, -1) : raw;
             if (line === '') {
@@ -95,14 +95,12 @@ function parseChunk(text: string, provider: 'claude' | 'codex', from: number, st
                 }
             }
         }
+        return records;
     };
     const codex = provider === 'codex' ? (state ?? createCodexState()) : null;
-    read(whole, codex);
+    const counted = read(whole, codex);
     const committed = codex === null ? null : cloneCodexState(codex);
-    const counted = records;
-    records = [];
-    read(tail, codex);
-    return { records: counted, tail: records, offset: from + (end === -1 ? 0 : Buffer.byteLength(whole, 'utf8') + 1), codex: committed };
+    return { records: counted, tail: read(tail, codex), offset: from + (end === -1 ? 0 : Buffer.byteLength(whole, 'utf8') + 1), codex: committed };
 }
 
 export interface UsageScannerOptions {
@@ -139,8 +137,8 @@ function withAccount(records: UsageRecord[], accountOf: AccountOf): UsageRecord[
 }
 
 /*
- * Read appended transcript bytes incrementally, but restart after rewrites or truncation. Preserve
- * totals for deleted transcripts because their usage still happened.
+ * Reads only what a transcript appended since the last scan, and starts a file over once it was
+ * rewritten or cut. A deleted transcript keeps its totals, since its usage still happened.
  */
 export class UsageScanner {
     private readonly home: string;

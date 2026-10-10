@@ -1,21 +1,21 @@
 import type { UsageAccount, UsageSummaryPayload, UsageSummaryResult } from '@adecore/agent-contracts';
+import { ClientSinks } from '../client-sinks.ts';
+import { errorText } from '../error-text.ts';
 import type { AgentEvent, AgentSink } from '../events.ts';
 import { accountOfRecord, aggregate } from './aggregate.ts';
 import { ExchangeRates } from './exchange.ts';
 import { PriceBook } from './pricing.ts';
 import type { KnownProject } from './projects.ts';
 import type { UsageRecord } from './record.ts';
-import { UsageScanner, type ScanReport, type UsageScannerOptions } from './scanner.ts';
 import type { UsageRootPath } from './roots.ts';
-import { errorText } from '../error-text.ts';
-import { ClientSinks } from '../client-sinks.ts';
+import { UsageScanner, type ScanReport, type UsageScannerOptions } from './scanner.ts';
 
 /* A scan this fresh answers the question the page is asking, so nothing is opened for it. */
 const SCAN_TTL_MS = 60_000;
 
 export interface UsageServiceOptions {
     home: string;
-    /* Off with `--no-price-fetch`: the bundled table then prices everything and no rate is asked for. */
+    /* Off, the bundled table prices everything and no rate is asked for. */
     allowPriceFetch?: boolean;
     /* The projects the host knows, so a folder can wear the name it has in the app. */
     knownProjects(): Promise<KnownProject[]>;
@@ -151,11 +151,7 @@ export class UsageService {
         }
         this.report = report;
         if (report.changedFiles > 0) {
-            this.emit({ event: 'usage.changed', payload: { scannedAt: report.at } });
+            this.sinks.emit({ event: 'usage.changed', payload: { scannedAt: report.at } });
         }
-    }
-
-    private emit(event: AgentEvent): void {
-        this.sinks.emit(event);
     }
 }

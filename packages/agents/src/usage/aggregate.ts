@@ -9,7 +9,7 @@ import type {
     UsageSummaryPayload,
     UsageTotals
 } from '@adecore/agent-contracts';
-import { cacheSavingsOf, costOf, type PriceBook } from './pricing.ts';
+import { cacheSavingsOf, costOf, type ModelPrice, type PriceBook, type PriceLookup } from './pricing.ts';
 import { ProjectResolver, type KnownProject } from './projects.ts';
 import type { UsageRecord } from './record.ts';
 
@@ -80,6 +80,75 @@ interface ProjectAccumulator {
     costUsd: number;
 }
 
+interface ModelRow extends ModelAccumulator {
+    /* The basis of the first record of a model prices the whole row: a model has one price. */
+    basis: UsagePriceBasis;
+    pricedAs: string | null;
+}
+
+function foldBucket(
+    buckets: Map<string, BucketAccumulator>,
+    slot: string,
+    record: UsageRecord,
+    account: string | null,
+    price: ModelPrice | null,
+    cost: number
+): void {
+    const key = `${slot}\0${record.provider}\0${record.model}\0${account ?? ''}`;
+    let bucket = buckets.get(key);
+    if (bucket === undefined) {
+        bucket = {
+            slot,
+            provider: record.provider,
+            model: record.model,
+            account,
+            totals: emptyTotals(),
+            costUsd: 0,
+            priced: false,
+            cacheSavingsUsd: 0,
+            sessions: new Set()
+        };
+        buckets.set(key, bucket);
+    }
+    bucket.totals = addTotals(bucket.totals, record.totals);
+    bucket.costUsd += cost;
+    bucket.priced ||= price !== null;
+    bucket.cacheSavingsUsd += price === null ? 0 : cacheSavingsOf(record.totals, price);
+    if (record.sessionId !== '') {
+        bucket.sessions.add(record.sessionId);
+    }
+}
+
+function foldModel(models: Map<string, ModelRow>, record: UsageRecord, account: string | null, lookup: PriceLookup, cost: number): void {
+    const key = `${record.provider}\0${record.model}\0${account ?? ''}`;
+    let model = models.get(key);
+    if (model === undefined) {
+        model = {
+            provider: record.provider,
+            model: record.model,
+            account,
+            totals: emptyTotals(),
+            costUsd: 0,
+            priced: false,
+            basis: lookup.basis,
+            pricedAs: lookup.pricedAs
+        };
+        models.set(key, model);
+    }
+    model.totals = addTotals(model.totals, record.totals);
+    model.costUsd += cost;
+    model.priced ||= lookup.price !== null;
+}
+
+function foldProject(project: ProjectAccumulator, record: UsageRecord, cost: number): void {
+    project.totals = addTotals(project.totals, record.totals);
+    project.costUsd += cost;
+    const share = project.byProvider.get(record.provider) ?? { costUsd: 0, tokens: 0 };
+    share.costUsd += cost;
+    share.tokens += totalTokensOf(record.totals);
+    project.byProvider.set(record.provider, share);
+}
+
 /* The account a record was made under, the default one under its CLI's kind. */
 export function accountOfRecord(record: UsageRecord): string {
     return record.account ?? record.provider;
@@ -98,9 +167,7 @@ export async function aggregate(
 ): Promise<Aggregation> {
     const format = slotFormatter(payload.timeZone, payload.resolution);
     const buckets = new Map<string, BucketAccumulator>();
-    const models = new Map<string, ModelAccumulator>();
-    /* The basis of the first record of a model prices the whole row: a model has one price. */
-    const modelBasis = new Map<string, { basis: UsagePriceBasis; pricedAs: string | null }>();
+    const models = new Map<string, ModelRow>();
     const projects = new Map<string, ProjectAccumulator>();
     const sessions = new Set<string>();
     const resolver = new ProjectResolver(known);
@@ -118,44 +185,13 @@ export async function aggregate(
         if (day < payload.from || day > payload.to) {
             continue;
         }
-        const { price, basis, pricedAs } = prices.look(record.model);
-        const cost = price === null ? 0 : costOf(record.totals, price);
-
-        const bucketKey = `${slot}\0${record.provider}\0${record.model}\0${account ?? ''}`;
-        let bucket = buckets.get(bucketKey);
-        if (bucket === undefined) {
-            bucket = {
-                slot,
-                provider: record.provider,
-                model: record.model,
-                account,
-                totals: emptyTotals(),
-                costUsd: 0,
-                priced: false,
-                cacheSavingsUsd: 0,
-                sessions: new Set()
-            };
-            buckets.set(bucketKey, bucket);
-        }
-        bucket.totals = addTotals(bucket.totals, record.totals);
-        bucket.costUsd += cost;
-        bucket.priced ||= price !== null;
-        bucket.cacheSavingsUsd += price === null ? 0 : cacheSavingsOf(record.totals, price);
+        const lookup = prices.look(record.model);
+        const cost = lookup.price === null ? 0 : costOf(record.totals, lookup.price);
+        foldBucket(buckets, slot, record, account, lookup.price, cost);
+        foldModel(models, record, account, lookup, cost);
         if (record.sessionId !== '') {
-            bucket.sessions.add(record.sessionId);
             sessions.add(`${record.provider}\0${record.sessionId}`);
         }
-
-        const modelKey = `${record.provider}\0${record.model}\0${account ?? ''}`;
-        let model = models.get(modelKey);
-        if (model === undefined) {
-            model = { provider: record.provider, model: record.model, account, totals: emptyTotals(), costUsd: 0, priced: false };
-            models.set(modelKey, model);
-            modelBasis.set(modelKey, { basis, pricedAs });
-        }
-        model.totals = addTotals(model.totals, record.totals);
-        model.costUsd += cost;
-        model.priced ||= price !== null;
 
         let folder = folders.get(record.cwd);
         if (folder === undefined) {
@@ -166,13 +202,7 @@ export async function aggregate(
                 projects.set(folder, { folder, name: resolved.name, projectId: resolved.projectId, byProvider: new Map(), totals: emptyTotals(), costUsd: 0 });
             }
         }
-        const project = projects.get(folder)!;
-        project.totals = addTotals(project.totals, record.totals);
-        project.costUsd += cost;
-        const share = project.byProvider.get(record.provider) ?? { costUsd: 0, tokens: 0 };
-        share.costUsd += cost;
-        share.tokens += totalTokensOf(record.totals);
-        project.byProvider.set(record.provider, share);
+        foldProject(projects.get(folder)!, record, cost);
     }
 
     return {
@@ -194,15 +224,15 @@ export async function aggregate(
                     a.model.localeCompare(b.model) ||
                     (a.account ?? '').localeCompare(b.account ?? '')
             ),
-        models: [...models.entries()]
-            .map(([key, model]) => ({
+        models: [...models.values()]
+            .map((model) => ({
                 provider: model.provider,
                 model: model.model,
                 ...(model.account === null ? {} : { account: model.account }),
                 totals: model.totals,
                 costUsd: model.priced ? model.costUsd : null,
-                priceBasis: modelBasis.get(key)?.basis ?? 'unknown',
-                pricedAs: modelBasis.get(key)?.pricedAs ?? null
+                priceBasis: model.basis,
+                pricedAs: model.pricedAs
             }))
             .sort((a, b) => (b.costUsd ?? -1) - (a.costUsd ?? -1)),
         projects: [...projects.values()]
