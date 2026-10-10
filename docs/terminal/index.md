@@ -53,11 +53,11 @@ The colors come from the `--term-*` tokens in `terminal.css`: a background, a fo
 
 ## Links
 
-HTTP and HTTPS URLs in output and OSC 8 hyperlinks use the same handler. Without `onOpenLink`, a primary click opens the complete URL in a new window with `noopener,noreferrer`. Selection drags and other mouse buttons do not open links. A desktop app passes its browser-opening function.
+HTTP and HTTPS URLs in the output and OSC 8 hyperlinks share one handler. Without `onOpenLink`, a primary click opens the whole URL in a new window with `noopener,noreferrer`. A selection drag or another mouse button opens nothing. A desktop app passes the function that opens its browser.
 
-`onOpenLink(uri, event)` receives the complete target and the mouse event, so a host can require Cmd or Ctrl without changing text selection. `onLinkHover(uri, bounds)` receives that same target and a `TerminalLinkBounds` rectangle in viewport pixels, or two `null` values on leave. The rectangle covers the link segment on the hovered terminal row, including canvas zoom and scrollback. A host can center a tooltip above or below that row without following the pointer horizontally. A wrapped link retains its complete target on every segment. Handlers follow prop changes and belong to their own terminal instance. Non-web schemes are never passed to either open route.
+`onOpenLink(uri, event)` gets the whole target and the mouse event, so a host can ask for Cmd or Ctrl and selecting text still works. `onLinkHover(uri, bounds)` gets the same target and a `TerminalLinkBounds` rectangle in viewport pixels, or two `null` values when the pointer leaves. The rectangle covers the part of the link on the hovered row, with canvas zoom and scrollback taken into account, so a host can center a tooltip above or below that row instead of following the pointer. Every row of a wrapped link carries the whole target. The handlers follow prop changes, and each terminal has its own. A link with a scheme other than HTTP or HTTPS reaches neither.
 
-`linkLineBounds(range, grid, screen, pointerY)` applies the same geometry to custom xterm link providers. Pass the one-based buffer range, `{ cols, rows, viewportY }`, the `.xterm-screen` bounding rectangle and the mouse event's `clientY`. It returns the hovered row segment in viewport pixels, or `null` for a screen without dimensions.
+`linkLineBounds(range, grid, screen, pointerY)` does the same measuring for an xterm link provider of the app's own. Pass the one-based buffer range, `{ cols, rows, viewportY }`, the `.xterm-screen` bounding rectangle and the mouse event's `clientY`. It returns the hovered row segment in viewport pixels, or `null` for a screen without dimensions.
 
 ## WebGL
 
