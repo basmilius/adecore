@@ -66,8 +66,8 @@ function optionsOf(element: DrawingElement): Options {
 
 // Rough has no rounded-rectangle primitive.
 function roundedRectPath(w: number, h: number, radius: number): string {
-    const r = Math.min(radius, w / 2, h / 2);
-    return `M ${r} 0 L ${w - r} 0 Q ${w} 0 ${w} ${r} L ${w} ${h - r} Q ${w} ${h} ${w - r} ${h} L ${r} ${h} Q 0 ${h} 0 ${h - r} L 0 ${r} Q 0 0 ${r} 0 Z`;
+    const corner = Math.min(radius, w / 2, h / 2);
+    return `M ${corner} 0 L ${w - corner} 0 Q ${w} 0 ${w} ${corner} L ${w} ${h - corner} Q ${w} ${h} ${w - corner} ${h} L ${corner} ${h} Q 0 ${h} 0 ${h - corner} L 0 ${corner} Q 0 0 ${corner} 0 Z`;
 }
 
 export function outlineToPath(outline: readonly (readonly number[])[]): string {
@@ -105,10 +105,10 @@ export function pathsOfElement(element: DrawingElement): ElementPath[] {
     }
     // A note is a sheet of paper, not a drawn shape: no wobble, and an edge of its own paper color.
     if (element.kind === 'note') {
-        const d = roundedRectPath(element.w, element.h, NOTE_RADIUS);
+        const sheet = roundedRectPath(element.w, element.h, NOTE_RADIUS);
         return [
-            { d, role: 'fill', strokeWidth: 0, dash: null },
-            { d, role: 'stroke', strokeWidth: element.strokeWidth, dash: null }
+            { d: sheet, role: 'fill', strokeWidth: 0, dash: null },
+            { d: sheet, role: 'stroke', strokeWidth: element.strokeWidth, dash: null }
         ];
     }
     const options = optionsOf(element);
@@ -144,7 +144,7 @@ export function pathsOfElement(element: DrawingElement): ElementPath[] {
     })();
     const paths: ElementPath[] = generator.toPaths(drawable).map((path) => ({
         d: path.d,
-        role: path.fill === FILL ? 'fill' : path.stroke === FILL ? 'fill' : 'stroke',
+        role: path.fill === FILL || path.stroke === FILL ? 'fill' : 'stroke',
         strokeWidth: path.strokeWidth,
         dash: path.stroke === STROKE ? dash : null
     }));

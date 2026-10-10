@@ -1,6 +1,6 @@
 import type { DrawingColor, DrawingElement, DrawingFont } from './protocol.ts';
 import { boundsOfElements, type Rect } from './geometry.ts';
-import { pathsOfElement } from './paths.ts';
+import { pathsOfElement, type ElementPath } from './paths.ts';
 import { DEFAULT_FONT_STACKS, LINE_HEIGHT, approximateMeasure, fontOf, linesOf, writingFrameOf, type MeasureLine, type WrittenElement } from './text.ts';
 
 export interface SvgOptions {
@@ -93,31 +93,31 @@ function textSvg(element: WrittenElement, options: SvgOptions): string {
     return `<text font-family="${escapeXml(family)}" font-size="${element.size}" fill="${options.palette[element.stroke]}" text-anchor="${anchor}">${lines}</text>`;
 }
 
-function elementSvg(element: DrawingElement, options: SvgOptions): string {
+function pathSvg(path: ElementPath, element: DrawingElement, options: SvgOptions): string {
     const note = element.kind === 'note';
-    const paper = options.paper ?? DEFAULT_PAPER;
-    const edge = options.edge ?? DEFAULT_EDGE;
+    if (path.role === 'stroke') {
+        const dash = path.dash ? ` stroke-dasharray="${path.dash.join(' ')}"` : '';
+        const line = note ? (options.edge ?? DEFAULT_EDGE)[element.fillColor ?? element.stroke] : options.palette[element.stroke];
+        return `<path d="${path.d}" fill="none" stroke="${line}" stroke-width="${path.strokeWidth}" stroke-linecap="round"${dash}/>`;
+    }
+    // A note is filled with its paper, which is a palette of pale sheets of its own.
+    const fill = note ? (options.paper ?? DEFAULT_PAPER) : options.palette;
+    const color = path.role === 'ink' ? options.palette[element.stroke] : fill[element.fillColor ?? element.stroke];
+    // A hachure fill is a bundle of lines, so it arrives as a stroke with its own width.
+    return path.strokeWidth > 0 && path.role === 'fill' && element.fill === 'hachure'
+        ? `<path d="${path.d}" fill="none" stroke="${color}" stroke-width="${path.strokeWidth}"/>`
+        : `<path d="${path.d}" fill="${color}" stroke="none"/>`;
+}
+
+function elementSvg(element: DrawingElement, options: SvgOptions): string {
     const body =
         element.kind === 'text'
             ? textSvg(element, options)
             : pathsOfElement(element)
-                  .map((path) => {
-                      const dash = path.dash ? ` stroke-dasharray="${path.dash.join(' ')}"` : '';
-                      if (path.role === 'stroke') {
-                          const line = note ? edge[element.fillColor ?? element.stroke] : options.palette[element.stroke];
-                          return `<path d="${path.d}" fill="none" stroke="${line}" stroke-width="${path.strokeWidth}" stroke-linecap="round"${dash}/>`;
-                      }
-                      // A note is filled with its paper, which is a palette of pale sheets of its own.
-                      const fill = note ? paper : options.palette;
-                      const color = path.role === 'ink' ? options.palette[element.stroke] : fill[element.fillColor ?? element.stroke];
-                      // A hachure fill is a bundle of lines, so it arrives as a stroke with its own width.
-                      return path.strokeWidth > 0 && path.role === 'fill' && element.fill === 'hachure'
-                          ? `<path d="${path.d}" fill="none" stroke="${color}" stroke-width="${path.strokeWidth}"/>`
-                          : `<path d="${path.d}" fill="${color}" stroke="none"/>`;
-                  })
+                  .map((path) => pathSvg(path, element, options))
                   .join('');
     // The paper is drawn first and the note's own words go on top of it.
-    const written = note ? textSvg(element, options) : '';
+    const written = element.kind === 'note' ? textSvg(element, options) : '';
     return `<g transform="${transformOf(element)}">${body}${written}</g>`;
 }
 

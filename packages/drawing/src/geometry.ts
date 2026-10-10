@@ -85,8 +85,8 @@ export function distanceToSegment(point: Point, a: Point, b: Point): number {
     if (length === 0) {
         return Math.hypot(point.x - a.x, point.y - a.y);
     }
-    const t = Math.max(0, Math.min(1, ((point.x - a.x) * dx + (point.y - a.y) * dy) / length));
-    return Math.hypot(point.x - (a.x + t * dx), point.y - (a.y + t * dy));
+    const along = Math.max(0, Math.min(1, ((point.x - a.x) * dx + (point.y - a.y) * dy) / length));
+    return Math.hypot(point.x - (a.x + along * dx), point.y - (a.y + along * dy));
 }
 
 export function absolutePoints(element: DrawingElement): Point[] {
@@ -111,10 +111,10 @@ function cornersOfDiamond(rect: Rect): Point[] {
 
 function insidePolygon(point: Point, polygon: readonly Point[]): boolean {
     let inside = false;
-    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-        const a = polygon[i]!;
-        const b = polygon[j]!;
-        if (a.y > point.y !== b.y > point.y && point.x < ((b.x - a.x) * (point.y - a.y)) / (b.y - a.y) + a.x) {
+    for (let i = 0, previous = polygon.length - 1; i < polygon.length; previous = i++) {
+        const corner = polygon[i]!;
+        const before = polygon[previous]!;
+        if (corner.y > point.y !== before.y > point.y && point.x < ((before.x - corner.x) * (point.y - corner.y)) / (before.y - corner.y) + corner.x) {
             inside = !inside;
         }
     }

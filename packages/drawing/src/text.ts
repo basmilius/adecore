@@ -32,10 +32,7 @@ export function textLines(text: string): string[] {
 
 export type MeasureLine = (line: string) => number;
 
-/*
- * A measure for where no font exists, such as the daemon writing an SVG for an agent: a glyph is
- * a little over half its size wide, which is what most faces come to on average.
- */
+/* A measure for where no font exists, such as on a server: most faces average a glyph a little over half its size wide. */
 export function approximateMeasure(size: number, font: DrawingFont | undefined): MeasureLine {
     const glyph = fontOf(font) === 'mono' ? 0.6 : 0.55;
     return (line) => line.length * size * glyph;

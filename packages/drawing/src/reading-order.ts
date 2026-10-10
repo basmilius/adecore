@@ -48,7 +48,7 @@ function labelAt(point: Point, elements: readonly DrawingElement[], arrowId: str
 
 /*
  * A drawing as lines an agent can read: the texts top to bottom and left to right, then every
- * arrow as the two things it connects. A diagram becomes a list without anyone looking at it.
+ * arrow as the two things it connects.
  */
 export function readingOrder(elements: readonly DrawingElement[]): string[] {
     // A row is measured from its top text, so a staircase of texts cannot chain into one long line.
