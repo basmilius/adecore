@@ -3,6 +3,7 @@ import { reportsOnBackgroundWork } from '../chat/background-work.ts';
 import type { ChatCore } from '../chat/chat-core.ts';
 import { chatOpener, loadChat } from '../chat/wake-chat.ts';
 import { errorText } from '../error-text.ts';
+import { chatNoticeTargets } from '../messages/deliver-notice.ts';
 import type { OutboxHandlers } from '../outbox/outbox-worker.ts';
 import { backgroundLimitHandler, backgroundLimits } from './background-limit.ts';
 import { giveTaskHandler } from './give-task.ts';
@@ -85,6 +86,7 @@ export function wireTasks(deps: TaskWiringDeps): TaskWiring {
     const enqueue = (projectId: string, target: string, work: TaskWork, notBefore?: number): Promise<void> =>
         outbox.enqueue(projectId, target, work, notBefore);
     const limit = backgroundLimits(outbox);
+    const owesGiveTask = (taskId: string): boolean => outbox.list().some((entry) => isGiveTask(entry) && entry.payload.taskId === taskId);
     const coordinator = new TaskCoordinator({
         tasks: deps.tasks,
         now,
@@ -92,7 +94,7 @@ export function wireTasks(deps: TaskWiringDeps): TaskWiring {
         placed: (nodeId) => deps.placed(nodeId),
         loading: (chatId) => chats.isLoading(chatId),
         // Until the turn that carries a task ran, no turn of the child is its answer.
-        owedTurn: (taskId) => outbox.list().some((entry) => isGiveTask(entry) && entry.payload.taskId === taskId),
+        owedTurn: owesGiveTask,
         oweWake: (task) => oweWake({ enqueue }, task),
         alert: (nodeId, title, body) => deps.alert(nodeId, title, body),
         ...(deps.retryAt ? { retryAt: deps.retryAt } : {}),
@@ -131,43 +133,40 @@ export function wireTasks(deps: TaskWiringDeps): TaskWiring {
     });
 
     const chatFor = chatOpener({ chats, placed: deps.placed });
+    const targets = chatNoticeTargets(chats);
+
+    /* Owes again what an earlier run left of an open task, and lets its child's last turn settle it. */
+    const recoverOpen = async (task: Task): Promise<void> => {
+        if (task.requiresTaskTurn === true && deps.placed(task.childId) && !owesGiveTask(task.id)) {
+            await enqueue(task.projectId, task.childId, { kind: 'give-task', payload: { taskId: task.id } });
+        }
+        const stored = await chats.storedBackground(task.childId);
+        const storedWork = stored.items.length > 0 || stored.commands.length > 0;
+        if (!deps.placed(task.childId) || (task.background === undefined && task.requiresTaskTurn !== true && !storedWork)) {
+            return;
+        }
+        if (task.background === undefined && stored.turnId !== null && storedWork) {
+            await deps.tasks.holdBackground(task.id, {
+                turnId: stored.turnId,
+                itemIds: stored.items.map((item) => item.id),
+                commands: stored.commands
+            });
+        }
+        const chat = await loadChat({ chats, placed: deps.placed }, task.childId);
+        if (chat && chat.info.activeTurnId === null) {
+            const last = chat.thread.list().findLast((item) => item.kind === 'turn');
+            if (last?.kind === 'turn') {
+                coordinator.chatEvent({ event: 'chat.event', payload: { chatId: task.childId, event: { type: 'item', item: last } } });
+            }
+        }
+    };
 
     return {
         coordinator,
         recover: async () => {
             for (const task of deps.tasks.all()) {
-                if (task.status === 'open' && task.requiresTaskTurn === true && deps.placed(task.childId)) {
-                    if (!outbox.list().some((entry) => isGiveTask(entry) && entry.payload.taskId === task.id)) {
-                        await enqueue(task.projectId, task.childId, { kind: 'give-task', payload: { taskId: task.id } });
-                    }
-                }
-                const storedBackground = task.status === 'open' ? await chats.storedBackground(task.childId) : { turnId: null, items: [], commands: [] };
-                if (
-                    task.status === 'open' &&
-                    deps.placed(task.childId) &&
-                    (task.background !== undefined ||
-                        task.requiresTaskTurn === true ||
-                        storedBackground.items.length > 0 ||
-                        storedBackground.commands.length > 0)
-                ) {
-                    if (
-                        task.background === undefined &&
-                        storedBackground.turnId !== null &&
-                        (storedBackground.items.length > 0 || storedBackground.commands.length > 0)
-                    ) {
-                        await deps.tasks.holdBackground(task.id, {
-                            turnId: storedBackground.turnId,
-                            itemIds: storedBackground.items.map((item) => item.id),
-                            commands: storedBackground.commands
-                        });
-                    }
-                    const chat = await loadChat({ chats, placed: deps.placed }, task.childId);
-                    if (chat && chat.info.activeTurnId === null) {
-                        const last = chat.thread.list().findLast((item) => item.kind === 'turn');
-                        if (last?.kind === 'turn') {
-                            coordinator.chatEvent({ event: 'chat.event', payload: { chatId: task.childId, event: { type: 'item', item: last } } });
-                        }
-                    }
+                if (task.status === 'open') {
+                    await recoverOpen(task);
                 }
             }
             await coordinator.settled();
@@ -190,14 +189,7 @@ export function wireTasks(deps: TaskWiringDeps): TaskWiring {
                 await enqueue(task.projectId, task.childId, { kind: 'give-task', payload: { taskId: task.id } });
                 return task;
             },
-            chatState: async (nodeId) => {
-                const session = chats.get(nodeId);
-                if (session) {
-                    return session.info.activeTurnId === null ? 'idle' : 'running';
-                }
-                // A chat nobody has loaded is idle: the turn opens on the thread the host reads back from disk.
-                return (await chats.hasStored(nodeId)) ? 'idle' : 'none';
-            },
+            chatState: (nodeId) => targets.chat(nodeId),
             done: (childId, text) => coordinator.done(childId, text),
             involving: (nodeId) => deps.tasks.involving(nodeId)
         },

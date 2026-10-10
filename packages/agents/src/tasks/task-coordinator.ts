@@ -116,7 +116,6 @@ export class TaskCoordinator {
         await this.deps.tasks.settled();
     }
 
-    /* For `chats.observe()`. */
     chatEvent(event: AgentEvent): void {
         if (this.stopped || event.event !== 'chat.event') {
             return;
@@ -255,37 +254,7 @@ export class TaskCoordinator {
                 return;
             }
             if (after === 'gone') {
-                if (task.background.itemIds.length === 0 && this.deps.limit.owed(task.id)) {
-                    return;
-                }
-                const lost = task.background.itemIds.filter((id) => {
-                    const item = items.find((item) => item.id === id);
-                    return !item || (item.kind === 'subagent' ? item.status !== 'done' : item.kind !== 'tool' || item.state !== 'done');
-                });
-                if (lost.length > 0 || task.background.commands.length > 0) {
-                    this.settle(task, 'failed', {
-                        text: `The agent ended before its background work completed: ${[
-                            ...lost.map((id) => {
-                                const row = items.find((item) => item.id === id);
-                                return row?.kind === 'subagent' ? row.description || row.toolUseId : row?.kind === 'tool' ? row.name : id;
-                            }),
-                            ...task.background.commands
-                        ].join(', ')}. This work will not send a result.`,
-                        source: 'exit',
-                        at: this.deps.now()
-                    });
-                } else {
-                    const reports = task.background.itemIds.flatMap((id) => {
-                        const row = items.find((item) => item.id === id);
-                        const report = row?.kind === 'subagent' ? row.result : row?.kind === 'tool' ? row.output : null;
-                        return report ? [report] : [];
-                    });
-                    this.settle(task, 'done', {
-                        text: reports.join('\n\n') || resultOfTurn(turn, items, this.deps.now()).result.text,
-                        source: 'turn',
-                        at: this.deps.now()
-                    });
-                }
+                this.settleGone(task, task.background, turn, items);
                 return;
             }
         } else if (turn.state === 'done' && this.deps.limit.owed(task.id) && this.deps.afterBackgroundWork(chatId) === 'gone') {
@@ -294,6 +263,39 @@ export class TaskCoordinator {
         }
         const { status, result } = resultOfTurn(turn, items, this.deps.now());
         this.settle(task, status, result);
+    }
+
+    /* The child's process went after its turn was held for background work; what that work left decides the task. */
+    private settleGone(task: Task, background: NonNullable<Task['background']>, turn: ChatTurnItem, items: readonly ChatItem[]): void {
+        if (background.itemIds.length === 0 && this.deps.limit.owed(task.id)) {
+            return;
+        }
+        const lost = background.itemIds.filter((id) => {
+            const item = items.find((item) => item.id === id);
+            return !item || (item.kind === 'subagent' ? item.status !== 'done' : item.kind !== 'tool' || item.state !== 'done');
+        });
+        if (lost.length > 0 || background.commands.length > 0) {
+            const names = lost.map((id) => {
+                const row = items.find((item) => item.id === id);
+                return row?.kind === 'subagent' ? row.description || row.toolUseId : row?.kind === 'tool' ? row.name : id;
+            });
+            this.settle(task, 'failed', {
+                text: `The agent ended before its background work completed: ${[...names, ...background.commands].join(', ')}. This work will not send a result.`,
+                source: 'exit',
+                at: this.deps.now()
+            });
+            return;
+        }
+        const reports = background.itemIds.flatMap((id) => {
+            const row = items.find((item) => item.id === id);
+            const report = row?.kind === 'subagent' ? row.result : row?.kind === 'tool' ? row.output : null;
+            return report ? [report] : [];
+        });
+        this.settle(task, 'done', {
+            text: reports.join('\n\n') || resultOfTurn(turn, items, this.deps.now()).result.text,
+            source: 'turn',
+            at: this.deps.now()
+        });
     }
 
     /*
@@ -354,7 +356,7 @@ export class TaskCoordinator {
         if (!task || items === null || this.delegating(chatId)) {
             return;
         }
-        const last = [...items].reverse().find((item): item is ChatTurnItem => item.kind === 'turn');
+        const last = items.findLast((item): item is ChatTurnItem => item.kind === 'turn');
         if (last && last.state !== 'running' && last.createdAt >= task.createdAt) {
             this.turnEnded(chatId, last);
         }

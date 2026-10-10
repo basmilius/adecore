@@ -82,7 +82,6 @@ export class WaitingObserver {
         this.stopped = true;
     }
 
-    /* For `chats.observe()`. */
     chatEvent(event: AgentEvent): void {
         if (this.stopped || event.event !== 'chat.event') {
             return;
@@ -108,15 +107,19 @@ export class WaitingObserver {
     }
 }
 
+function oneLine(text: string): string {
+    return text.replace(/\s+/g, ' ').trim();
+}
+
 function quoted(text: string): string {
-    return JSON.stringify(text.replace(/\s+/g, ' ').trim());
+    return JSON.stringify(oneLine(text));
 }
 
 /* The one line a note shows before "Show more": a question longer than that is read in the node. */
 const NOTE_QUESTION_LENGTH = 200;
 
 function quotedShort(text: string): string {
-    const line = text.replace(/\s+/g, ' ').trim();
+    const line = oneLine(text);
     return JSON.stringify(line.length > NOTE_QUESTION_LENGTH ? `${clipText(line, NOTE_QUESTION_LENGTH - 1)}…` : line);
 }
 

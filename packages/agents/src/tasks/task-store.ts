@@ -108,7 +108,7 @@ export class TaskStore {
     }
 
     /*
-     * Ends an open task with its result; false when it was not open any more, which is how the first of
+     * Ends an open task with its result; null when it was not open any more, which is how the first of
      * `done`, the end of a turn and an exit wins. A cancelled task wakes nobody.
      */
     async settle(id: string, status: 'done' | 'failed' | 'cancelled', result: TaskResult | null, now: number): Promise<Task | null> {

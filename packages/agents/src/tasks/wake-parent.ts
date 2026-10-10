@@ -1,4 +1,4 @@
-import type { Task } from '@adecore/agent-contracts';
+import type { ChatItem, Task } from '@adecore/agent-contracts';
 import type { WakeChat } from '../chat/wake-chat.ts';
 import type { OutboxOutcome } from '../outbox/outbox-worker.ts';
 import type { TaskStore } from './task-store.ts';
@@ -56,6 +56,24 @@ export function wakeNote(tasks: readonly Task[]): string {
     return `Woken by ${tasks.length} finished ${tasks.length === 1 ? 'task' : 'tasks'}`;
 }
 
+/* An unacknowledged attempt waits for a person's next turn, rather than retrying on every chat event. */
+function deliveryBlocked(items: readonly ChatItem[], tasks: readonly Task[]): boolean {
+    return items.some(
+        (item, index) =>
+            item.kind === 'turn' &&
+            item.deliveryPending &&
+            item.taskIds?.some((id) => tasks.some((task) => task.id === id)) &&
+            (item.state === 'running' || !items.slice(index + 1).some((later) => later.kind === 'turn' && later.origin !== 'agent'))
+    );
+}
+
+function deliveryPending(items: readonly ChatItem[], tasks: readonly Task[]): boolean {
+    return tasks.some((task) => {
+        const turn = items.findLast((item) => item.kind === 'turn' && item.taskIds?.includes(task.id));
+        return turn?.kind === 'turn' && turn.deliveryPending;
+    });
+}
+
 export interface WakeParentDeps {
     tasks: Pick<TaskStore, 'pendingWake' | 'readyWake' | 'openBatches' | 'markWoken' | 'dropWake'>;
     /* The chat as it is now, loading it from disk when nobody has; null for a chat that has no thread any more. */
@@ -96,15 +114,7 @@ export function wakeParentHandler(deps: WakeParentDeps) {
         if (tasks.length === 0) {
             return held();
         }
-        // An unacknowledged attempt waits for a person's next turn, rather than retrying on every chat event.
-        const blocked = items.some(
-            (item, index) =>
-                item.kind === 'turn' &&
-                item.deliveryPending &&
-                item.taskIds?.some((id) => tasks.some((task) => task.id === id)) &&
-                (item.state === 'running' || !items.slice(index + 1).some((later) => later.kind === 'turn' && later.origin !== 'agent'))
-        );
-        if (blocked) {
+        if (deliveryBlocked(items, tasks)) {
             return 'wait';
         }
         const teamsOut = deps.tasks.openBatches(parentId).length;
@@ -119,12 +129,7 @@ export function wakeParentHandler(deps: WakeParentDeps) {
             return 'wait';
         }
         await chat.persist?.();
-        if (
-            tasks.some((task) => {
-                const turn = chat.items().findLast((item) => item.kind === 'turn' && item.taskIds?.includes(task.id));
-                return turn?.kind === 'turn' && turn.deliveryPending;
-            })
-        ) {
+        if (deliveryPending(chat.items(), tasks)) {
             return 'wait';
         }
         await deps.tasks.markWoken(tasks.map((task) => task.id));

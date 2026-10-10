@@ -3,8 +3,8 @@ import type { OutboxEntryOf, OutboxWorkShape } from '../outbox/outbox.ts';
 
 export const BackgroundLimitWorkSchema = z.object({
     kind: z.literal('background-limit'),
-    // The target is the child; the task its background commands hold open, and what they were when the limit started, for a child whose process went since.
-    // `restarted` marks an entry an earlier run of the host owed, whose commands went down with it.
+    // The target is the child. `commands` are what held its task open when the limit started, for a child whose
+    // process went since; `restarted` marks an entry an earlier run of the host owed, whose commands went down with it.
     payload: z.object({ taskId: z.string().min(1), commands: z.array(z.string()), restarted: z.literal(true).optional() })
 });
 
