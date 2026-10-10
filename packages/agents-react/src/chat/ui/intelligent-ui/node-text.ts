@@ -68,12 +68,15 @@ const UI_REASON_CODES = new Set([
     'link-unchecked',
     'link-unsupported',
     'links-unsupported',
+    'no-unique-match',
+    'outside-project',
     'query-undeclared',
     'refresh-limit',
     'result-too-large',
     'snapshot-too-large',
     'source-unregistered',
     'stale-read',
+    'target-unavailable',
     'timed-out',
     'unreadable'
 ]);

@@ -548,12 +548,15 @@
         "link-unchecked": "Deze link moet opnieuw gecontroleerd worden.",
         "link-unsupported": "Dit is geen link die de machine kan openen.",
         "links-unsupported": "De machine opent geen links uit blokken.",
+        "no-unique-match": "De bron vond voor die naam niet precies één overeenkomst.",
+        "outside-project": "Dit valt buiten het project waarin de agent dit schreef.",
         "query-undeclared": "Dit blok leest die bron niet.",
         "refresh-limit": "Deze bron leest hooguit eens per tien seconden.",
         "result-too-large": "Wat de bron teruggaf is te groot.",
         "snapshot-too-large": "De eerste metingen waren te groot om te bewaren.",
         "source-unregistered": "De machine kent deze bron niet.",
         "stale-read": "Lees de bron opnieuw voordat je kiest.",
+        "target-unavailable": "Waar dit naar verwijst is niet meer beschikbaar.",
         "timed-out": "De bron deed er te lang over om te antwoorden.",
         "unreadable": "De bron kon niet gelezen worden."
       }

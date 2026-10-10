@@ -125,6 +125,7 @@ describe('the frame of a block', () => {
 test('a known reason code is worded here, and an unknown one reads as the reason the machine gave', () => {
     const t = i18next.getFixedT('en', 'agent-chat');
     expect(uiReasonText(t, 'refresh-limit', 'This query may refresh once every ten seconds.')).toBe('This source reads at most once every ten seconds.');
+    expect(uiReasonText(t, 'outside-project', 'This file is outside the project.')).toBe('This is outside the project the agent wrote this in.');
     expect(uiReasonText(t, 'newer-code', 'A reason from a newer machine.')).toBe('A reason from a newer machine.');
     expect(uiReasonText(t, undefined, 'Plain')).toBe('Plain');
 });
