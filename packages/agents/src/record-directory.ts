@@ -121,7 +121,6 @@ export class RecordDirectory<T> {
         return rm(this.pathOf(id), { force: true });
     }
 
-    /* Drops every record the predicate says is gone. */
     async prune(drop: (record: T) => boolean): Promise<void> {
         for (const record of this.all()) {
             if (drop(record)) {

@@ -7,10 +7,8 @@ import { RecordDirectory } from '../record-directory.ts';
 export const MAX_NOTICES = 10;
 
 /*
- * A message nobody picked up in this long is dropped rather than delivered. It is news about work
- * happening now ("the build is green"), and a model reading it six hours late would act on
- * something that has moved on. The cap alone would not do it: one message in a queue of one waits
- * for ever.
+ * A message is news about work happening now ("the build is green"), and a model reading it six hours
+ * late would act on something that moved on. The cap alone would leave a queue of one waiting forever.
  */
 export const NOTICE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
 
@@ -131,7 +129,7 @@ export class NoticeStore {
         return this.now() - notice.createdAt < NOTICE_MAX_AGE_MS;
     }
 
-    /* The queue of one node, emptied here and on disk both; an empty one leaves no file behind. */
+    /* In memory and on disk both; an empty queue leaves no file behind. */
     private async persist(targetId: string, queue: Notice[]): Promise<void> {
         if (queue.length === 0) {
             await this.queues.remove(targetId);

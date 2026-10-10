@@ -24,8 +24,8 @@ function isAgentRequest(type: string): type is AgentRequestType {
 
 /*
  * The chats of an app that has no daemon: it answers the agent requests over any `FramePort` and
- * sends the agent events back on it, frames checked on arrival. One port is one client. Closing the host writes every thread and ends every CLI; a chat
- * goes on at the next start through its CLI's own session.
+ * sends the agent events back on it, frames checked on arrival. One port is one client. A chat
+ * closed with the host goes on at the next start through its CLI's own session.
  */
 export class AgentHost<Core extends ChatCore = ChatCore> {
     readonly chats: Core;

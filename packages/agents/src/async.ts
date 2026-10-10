@@ -1,9 +1,6 @@
-/* The two waits the host does: a pause it can be woken from, and a deadline on somebody else's promise. */
-
 /*
- * Resolves after `ms`, or at once when the signal is raised. An abort ends the wait rather than
- * failing it: every caller here is a loop that checks the signal itself on the next turn, and a
- * rejection would only be caught and thrown away.
+ * Resolves after `ms`, or at once when the signal is raised. An abort resolves instead of rejecting:
+ * every caller is a loop that checks the signal itself on its next turn.
  */
 export function wait(ms: number, signal?: AbortSignal): Promise<void> {
     return new Promise((resolve) => {
@@ -19,10 +16,7 @@ export function wait(ms: number, signal?: AbortSignal): Promise<void> {
     });
 }
 
-/*
- * The promise, or `message` when it takes longer than `ms`. The timer is cleared either way, so a
- * call that answers at once does not hold the process for the rest of its deadline.
- */
+/* The timer is cleared either way, so a call that answers at once does not hold the process until its deadline. */
 export function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
     return new Promise((resolve, reject) => {
         const timer = setTimeout(() => reject(new Error(message)), ms);

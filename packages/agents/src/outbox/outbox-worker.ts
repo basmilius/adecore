@@ -115,6 +115,9 @@ export class OutboxWorker<Work extends OutboxWorkShape> {
         const now = this.clock.now();
         const busy = new Set(this.running);
         let nextDue: number | null = null;
+        const dueAt = (at: number): void => {
+            nextDue = nextDue === null ? at : Math.min(nextDue, at);
+        };
         for (const entry of this.store.list()) {
             // A waiting entry holds no lane. The resume of a chat must not queue behind a wake that waits for it.
             if (busy.has(entry.target) || this.waiting.has(entry.id)) {
@@ -122,7 +125,7 @@ export class OutboxWorker<Work extends OutboxWorkShape> {
             }
             // Nor does work due at a later time, which nothing owed before it has to wait for.
             if (entry.attempts === 0 && entry.notBefore > now) {
-                nextDue = nextDue === null ? entry.notBefore : Math.min(nextDue, entry.notBefore);
+                dueAt(entry.notBefore);
                 continue;
             }
             const lanes = this.store.lanesOf(entry);
@@ -135,7 +138,7 @@ export class OutboxWorker<Work extends OutboxWorkShape> {
                 continue;
             }
             if (entry.notBefore > now) {
-                nextDue = nextDue === null ? entry.notBefore : Math.min(nextDue, entry.notBefore);
+                dueAt(entry.notBefore);
                 continue;
             }
             void this.run(entry);

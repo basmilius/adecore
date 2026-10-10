@@ -33,11 +33,10 @@ export interface ChatDelivery {
 }
 
 /*
- * Whether the turn a chat is running was itself opened by a message. This is the whole of the stop:
- * two agents that read each other would otherwise wake each other for as long as they kept writing,
- * and nothing about that started with a person. It rides on the turn, so it survives a restart.
+ * Whether the turn a chat is running was itself opened by a message, which stops two agents that
+ * read each other from waking each other forever. It rides on the turn, so it survives a restart.
  * Between turns the last one counts, since work it left running (a background subagent) may still
- * write, and a turn the CLI opened by itself goes on with the step of the turn before it.
+ * write, and a turn the CLI opened by itself takes the step of the turn before it.
  */
 export function turnFromMessage(items: readonly ChatItem[], activeTurnId: string | null): boolean {
     const from = activeTurnId === null ? items.findLastIndex((item) => item.kind === 'turn') : items.findIndex((item) => item.id === activeTurnId);
@@ -76,10 +75,9 @@ export function chatNoticeTargets(chats: Pick<ChatCore, 'get' | 'hasStored'>): C
 
 /*
  * One message on its way to a chat, and whether the chat owes a turn on it. A chat between turns gets
- * one, the way a settled task gives one: a person watching two agents cannot tell a message from an
- * assignment, and a message nobody starts a turn for sits there until someone happens to prompt that
- * chat. One step deep, so the turn a message opened wakes nobody with a message of its own. A node the
- * host runs something else in, such as a terminal, is the host's to deliver to before this.
+ * one, as for a settled task, or the message sits there until someone happens to prompt that chat.
+ * One step deep: the turn a message opened wakes nobody with a message of its own. A node that runs
+ * something else, such as a terminal, is the host's to deliver to before this.
  */
 export async function deliverToChat(store: Pick<NoticeStore, 'put'>, targets: ChatNoticeTargets, notice: Omit<Notice, 'createdAt'>): Promise<ChatDelivery> {
     const waiting = await store.put(notice);
@@ -105,10 +103,8 @@ export interface NoticeChat {
 }
 
 /*
- * What a chat has to show a person, in its thread, the moment a message lands and not when the model
- * gets round to it: without this a message left for a busy node is a file on disk and nothing else.
- * An id no chat holds shows nothing and marks nothing, so the chat that opens on that id later still
- * has all of it.
+ * Shows a person the message in the chat's thread the moment it lands, not when the model gets round
+ * to it. An id no chat holds shows and marks nothing, so a chat that opens on it later still has all of it.
  */
 export async function showNotices(store: Pick<NoticeStore, 'show'>, chat: NoticeChat, words: Pick<MessageWords, 'shown'>, targetId: string): Promise<void> {
     if (!(await chat.has(targetId))) {

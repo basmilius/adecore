@@ -30,8 +30,8 @@ function openedByAgent(entry: Lineage): boolean {
 }
 
 /*
- * Lineage lives in `lineage` under the host's data folder, outside the agent-writable project, so agents
- * cannot reset their own depth. Persisting it also prevents a restart of the host from resetting recursion limits.
+ * Lives under the host's data folder, outside the agent-writable project, so an agent cannot reset its
+ * own depth; on disk, so a restart of the host does not reset it either.
  */
 export class AgentLineageStore {
     readonly dir: string;
@@ -140,7 +140,6 @@ export class AgentLineageStore {
         return entry?.relation === 'fork' ? entry.openedBy : null;
     }
 
-    /* The forks made from a chat. */
     forksOf(nodeId: string): string[] {
         return [...this.opened.all()].filter((entry) => entry.relation === 'fork' && entry.openedBy === nodeId).map((entry) => entry.nodeId);
     }

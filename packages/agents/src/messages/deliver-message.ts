@@ -24,13 +24,11 @@ export interface DeliverMessageDeps {
 }
 
 /*
- * Opens the turn a message earns a chat. The messages themselves are not carried here: they wait in
- * the notice store and the turn's preamble takes them (`NoticeNotes`), the same channel a person's
- * own prompt reads them through, so one message is heard once whichever of the two opens the turn.
+ * Opens the turn a message earns a chat. The messages wait in the notice store and the turn's preamble
+ * takes them (`NoticeNotes`), as a person's own prompt does, so a message is heard once either way.
  *
- * One attempt, never `wait`. A chat that turned out to be in a turn reads the message in front of its
- * next one, which is what a message to a busy chat has always done; holding the entry instead would
- * make the host start turns nobody asked for long after the news was worth anything.
+ * One attempt, never `wait`: a chat already in a turn reads the message in front of its next one, and
+ * holding the entry would start turns nobody asked for long after the news mattered.
  */
 export function deliverMessageHandler(deps: DeliverMessageDeps) {
     return async (entry: DeliverMessageEntry): Promise<OutboxOutcome> => {
@@ -46,11 +44,8 @@ export function deliverMessageHandler(deps: DeliverMessageDeps) {
         if (chat === null) {
             return;
         }
-        /*
-         * No note of its own, and the preamble stays off the thread. A person read the message as it
-         * landed (`showNotices`), so anything the turn adds about it only says the same thing again;
-         * the label on the turn already names who it came from.
-         */
+        // No note and no preamble on the thread: a person read the message as it landed (`showNotices`),
+        // and the label on the turn names who it came from.
         chat.wake({
             text: deps.words.prompt(waiting.length),
             label: deps.words.label(waiting),

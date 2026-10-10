@@ -116,7 +116,6 @@ export function chatHandlers(chats: ChatCore, providers: ProviderRegistry): { [T
     };
 }
 
-/* The accounts are the person's settings of this host. */
 export function accountHandlers(accounts: ProviderAccountsService): { [T in AccountRequestType]: AgentHandler<T> } {
     return {
         'accounts.list': () => accounts.snapshot(),

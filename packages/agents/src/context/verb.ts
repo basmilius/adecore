@@ -382,11 +382,7 @@ export function requiredField(needs: string): z.ZodString {
     return z.string({ error: needs }).min(1, needs);
 }
 
-/*
- * What a refusal lists, or one line saying the set is empty. A refusal that promises the groups of a
- * canvas and then prints nothing reads as a daemon that lost them, where the truth is that there are
- * none, which is a different thing to do something about.
- */
+/* A refusal that promises a list and prints nothing reads as a host that lost it, where there is none. */
 export function orNote(lines: string[], note: string): string[] {
     return lines.length === 0 ? [`note\t${note}`] : lines;
 }

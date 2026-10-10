@@ -5,7 +5,6 @@ import { dirname, join, parse } from 'node:path';
 import type { AgentKind, ChatSkill, ChatSkillSource } from '@adecore/agent-contracts';
 import { isNotFound } from './fs.ts';
 
-// One folder full of skill folders, and what the CLI calls the skills it finds there.
 export interface SkillRoot {
     dir: string;
     source: ChatSkillSource;

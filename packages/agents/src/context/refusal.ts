@@ -1,8 +1,7 @@
 /*
  * How every no reads: `refused`, the code a script branches on and the sentence a model reads, and
- * under it a line per thing the actor can do instead. One row per line, and a line is a row of
- * tab-separated fields of its own, so only a newline is taken out of it: that would split the row in
- * two, and everything under the first row is read as advice.
+ * under it a line per thing the actor can do instead. A line keeps its tabs but loses its newlines,
+ * since everything under the first row is read as advice.
  */
 
 /* A field that goes into a tab-separated line; a tab or a newline in a title would split the row. */
@@ -24,10 +23,7 @@ export function refusalBody(code: string, message: string, lines: readonly strin
     return [`refused\t${first}`, ...rest].join('\n');
 }
 
-/*
- * The same without the word that names it, for a host that adds the prefix in its CLI:
- * The context CLI puts the prefix on, so a CLI of an older build still prints one refusal.
- */
+/* Without the `refused` prefix, for a host whose CLI adds it, so a CLI of an older build still prints one refusal. */
 export function refusalRows(code: string, message: string, lines: readonly string[] = []): string {
     return rows(code, message, lines).join('\n');
 }
