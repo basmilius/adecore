@@ -8,6 +8,7 @@ import {
     useState,
     type CSSProperties,
     type DragEvent,
+    type FocusEvent,
     type KeyboardEvent,
     type ReactNode
 } from 'react';
@@ -89,6 +90,12 @@ interface Measurement {
 }
 const ZERO: Measurement = { width: 0, height: 0, left: 0, top: 0, scaleX: 1, scaleY: 1 };
 const MINIMUM: SplitMinimum = { width: 120, height: 80 };
+
+/* The pane's section or header under `container`, found by its data attribute rather than a selector, so no id needs escaping. */
+function paneElement(container: ParentNode | null | undefined, attribute: 'splitPane' | 'splitHeader', paneId: string): HTMLElement | undefined {
+    const selector = attribute === 'splitPane' ? '[data-split-pane]' : '[data-split-header]';
+    return Array.from(container?.querySelectorAll<HTMLElement>(selector) ?? []).find((element) => element.dataset[attribute] === paneId);
+}
 
 function Divider({
     divider,
@@ -227,7 +234,7 @@ export function SplitView({
             (!previous.isConnected || previous.closest('[hidden]')) &&
             (!active || active === element.ownerDocument.body || active === previous)
         ) {
-            const pane = Array.from(element.querySelectorAll<HTMLElement>('[data-split-pane]')).find((item) => item.dataset.splitPane === value.focused);
+            const pane = paneElement(element, 'splitPane', value.focused);
             const target = pane?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]') ?? pane;
             target?.focus({ preventScroll: true });
         }
@@ -312,6 +319,14 @@ export function SplitView({
         .sort((left, right) => (left.viewId < right.viewId ? -1 : left.viewId > right.viewId ? 1 : 0));
     const visible = new Map(geometry.panes.map((pane) => [pane.pane.id, pane]));
     const radius = (rect: SplitRect): string => paneRadius(rect, measurement.width, measurement.height, edges, layout === 'roomy' ? 8 : 0);
+    // A header squares off the top corners of the body under it.
+    const bodyRadius = (rect: SplitRect, header: number): string => {
+        const corners = radius(rect).split(' ');
+        if (header > 0) {
+            corners[0] = corners[1] = '0px';
+        }
+        return corners.join(' ');
+    };
     const bounds: SplitViewBounds[] = panes.flatMap((pane) => {
         const rect = visible.get(pane.id);
         const header = Math.min(barHeight, rect?.height ?? 0);
@@ -323,11 +338,8 @@ export function SplitView({
                   height: Math.max(0, rect.height - header) * measurement.scaleY
               }
             : { x: 0, y: 0, width: 0, height: 0 };
-        const corners = rect ? radius(rect).split(' ') : ['0px', '0px', '0px', '0px'];
-        if (header > 0) {
-            corners[0] = corners[1] = '0px';
-        }
-        return pane.views.map((viewId) => ({ viewId, paneId: pane.id, active: !!rect && pane.active === viewId, rect: body, borderRadius: corners.join(' ') }));
+        const borderRadius = rect ? bodyRadius(rect, header) : '0px 0px 0px 0px';
+        return pane.views.map((viewId) => ({ viewId, paneId: pane.id, active: !!rect && pane.active === viewId, rect: body, borderRadius }));
     });
     const boundsKey = JSON.stringify(bounds);
     const reportedBounds = useRef('');
@@ -379,9 +391,7 @@ export function SplitView({
             return null;
         }
         const header = Math.min(barHeight, rect.height);
-        const strip = Array.from(root.current?.querySelectorAll<HTMLElement>('[data-split-header]') ?? []).find(
-            (element) => element.dataset.splitHeader === rect.pane.id
-        );
+        const strip = paneElement(root.current, 'splitHeader', rect.pane.id);
         const tabRects = Array.from(strip?.querySelectorAll('[data-document-tab]') ?? [], (element) => element.getBoundingClientRect());
         const inHeader = y < rect.y + header;
         const side = inHeader ? undefined : (splitSideAt(rect, x, y) ?? 'center');
@@ -446,9 +456,7 @@ export function SplitView({
         const next = options[0];
         if (next) {
             dispatch({ type: 'focus', paneId: next.pane.id });
-            const element = Array.from(root.current?.querySelectorAll<HTMLElement>('[data-split-pane]') ?? []).find(
-                (pane) => pane.dataset.splitPane === next.pane.id
-            );
+            const element = paneElement(root.current, 'splitPane', next.pane.id);
             element?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')?.focus();
             if (!showTabs) {
                 element?.focus();
@@ -465,7 +473,7 @@ export function SplitView({
             style,
             'data-layout': layout,
             'data-dragging': dragging || undefined,
-            onFocusCapture: (event: React.FocusEvent<HTMLDivElement>) => {
+            onFocusCapture: (event: FocusEvent<HTMLDivElement>) => {
                 props.onFocusCapture?.(event);
                 lastFocus.current = event.target;
             },
@@ -591,17 +599,13 @@ export function SplitView({
                         const rect = visible.get(pane.id);
                         const active = !!rect && pane.active === viewId;
                         const header = Math.min(barHeight, rect?.height ?? 0);
-                        const corners = rect ? radius(rect).split(' ') : [];
-                        if (header > 0) {
-                            corners[0] = corners[1] = '0px';
-                        }
                         const position: CSSProperties = rect
                             ? {
                                   left: rect.x,
                                   top: rect.y + header,
                                   width: rect.width,
                                   height: Math.max(0, rect.height - header),
-                                  borderRadius: corners.join(' ')
+                                  borderRadius: bodyRadius(rect, header)
                               }
                             : {};
                         return (
@@ -637,7 +641,7 @@ export function SplitView({
                                               type: 'equalizeAxis',
                                               axis: divider.axis,
                                               length: divider.axis === 'horizontal' ? measurement.width : measurement.height,
-                                              gap: layout === 'roomy' ? 8 : 1
+                                              gap
                                           }
                                         : { type: 'equalize', splitId: divider.splitId, index: divider.index }
                                 )

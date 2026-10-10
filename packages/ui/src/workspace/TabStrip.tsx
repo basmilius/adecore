@@ -21,6 +21,22 @@ import { IconButton, type IconButtonProps } from '../IconButton.tsx';
 import { Tooltip } from '../Tooltip.tsx';
 import { tabGapAt } from './geometry.ts';
 
+/* Where an arrow, Home or End moves the selection from `index`, wrapping at either end; null for any other key. */
+function tabIndexForKey(key: string, index: number, count: number): number | null {
+    switch (key) {
+        case 'ArrowRight':
+            return (index + 1) % count;
+        case 'ArrowLeft':
+            return (index + count - 1) % count;
+        case 'Home':
+            return 0;
+        case 'End':
+            return count - 1;
+        default:
+            return null;
+    }
+}
+
 export interface TabStripItem {
     id: string;
     label: string;
@@ -213,6 +229,7 @@ export function DocumentTab({ item, onClose, closeShortcut, onDoubleClick, onDra
     const { items, value, onValueChange } = context;
     const index = items.findIndex((candidate) => candidate.id === item.id);
     const close = (): void => context.close(item.id, onClose);
+    const closable = item.closable !== false && (onClose ?? context.onClose) !== undefined;
     return useRender({
         render,
         ref,
@@ -247,21 +264,12 @@ export function DocumentTab({ item, onClose, closeShortcut, onDoubleClick, onDra
                             }}
                             onDragEnd={onDragEnd ?? context.onDragEnd}
                             onKeyDown={(event) => {
-                                const next =
-                                    event.key === 'ArrowRight'
-                                        ? (index + 1) % items.length
-                                        : event.key === 'ArrowLeft'
-                                          ? (index + items.length - 1) % items.length
-                                          : event.key === 'Home'
-                                            ? 0
-                                            : event.key === 'End'
-                                              ? items.length - 1
-                                              : null;
+                                const next = tabIndexForKey(event.key, index, items.length);
                                 if (next !== null) {
                                     event.preventDefault();
                                     onValueChange(items[next]!.id);
                                     context.focus(next);
-                                } else if (event.key === 'Delete' && item.closable !== false && (onClose || context.onClose)) {
+                                } else if (event.key === 'Delete' && closable) {
                                     event.preventDefault();
                                     close();
                                 }
@@ -279,7 +287,7 @@ export function DocumentTab({ item, onClose, closeShortcut, onDoubleClick, onDra
                         </button>
                     </Tooltip>
                     {item.pinned && <Icon icon={Pin} size={12} className="shrink-0 text-text-muted" />}
-                    {item.closable !== false && (onClose || context.onClose) && (
+                    {closable && (
                         <IconButton
                             icon={X}
                             size="2xs"

@@ -238,6 +238,139 @@ function equalizeAxis(root: SplitNode, axis: SplitAxis, length: number, gap: num
     return distribute(root, length);
 }
 
+type CommandOf<Type extends SplitCommand['type']> = Extract<SplitCommand, { type: Type }>;
+
+function addPane(layout: SplitLayout, panes: SplitPane[], pane: SplitPane | undefined, command: CommandOf<'split'>): SplitLayout {
+    if (!pane || findSplitNode(layout.root, command.newPane.id) || findSplitNode(layout.root, command.splitId) || command.newPane.id === command.splitId) {
+        return layout;
+    }
+    const allViews = new Set(panes.flatMap((item) => item.views));
+    if (command.newPane.views.some((view) => allViews.has(view)) || new Set(command.newPane.views).size !== command.newPane.views.length) {
+        return layout;
+    }
+    const added = {
+        ...command.newPane,
+        active: command.newPane.views.includes(command.newPane.active ?? '') ? command.newPane.active : (command.newPane.views[0] ?? null)
+    };
+    return finish(
+        { ...layout, maximized: null },
+        replace(layout.root, pane.id, () => beside(pane, added, command.side, command.splitId)),
+        added.id
+    );
+}
+
+function swapPanes(layout: SplitLayout, panes: SplitPane[], command: CommandOf<'swap'>): SplitLayout {
+    const source = panes.find((item) => item.id === command.sourceId);
+    const target = panes.find((item) => item.id === command.targetId);
+    if (!source || !target || source === target || source.views.length === 0 || (command.viewId !== undefined && !source.views.includes(command.viewId))) {
+        return layout;
+    }
+    if (command.viewId === undefined || source.views.length === 1) {
+        const exchange = (node: SplitNode): SplitNode => {
+            if (node.id === source.id) {
+                return target;
+            }
+            if (node.id === target.id) {
+                return source;
+            }
+            return node.type === 'pane' ? node : { ...node, children: node.children.map(exchange) };
+        };
+        return finish({ ...layout, maximized: null }, exchange(layout.root), source.id);
+    }
+    const moving = command.viewId;
+    const displaced = target.active;
+    const sourceNext =
+        displaced === null
+            ? without(source, [moving])
+            : {
+                  ...source,
+                  views: source.views.map((view) => (view === moving ? displaced : view)),
+                  active: source.active === moving ? displaced : source.active
+              };
+    const targetNext = {
+        ...target,
+        views: displaced === null ? [moving] : target.views.map((view) => (view === displaced ? moving : view)),
+        active: moving
+    };
+    const root = replace(layout.root, source.id, () => sourceNext)!;
+    return finish(
+        { ...layout, maximized: null },
+        replace(root, target.id, () => targetNext),
+        target.id
+    );
+}
+
+function moveViews(layout: SplitLayout, panes: SplitPane[], command: CommandOf<'move'>): SplitLayout {
+    const source = panes.find((item) => item.id === command.sourceId);
+    const target = panes.find((item) => item.id === command.targetId);
+    if (!source || !target || (command.viewId !== undefined && !source.views.includes(command.viewId))) {
+        return layout;
+    }
+    const moving = command.viewId === undefined ? source.views : [command.viewId];
+    if (!moving.length || (source === target && (command.viewId === undefined || (command.side !== undefined && source.views.length === 1)))) {
+        return layout;
+    }
+    let added: SplitPane | undefined;
+    if (command.side) {
+        const id = command.viewId === undefined ? source.id : command.newPaneId;
+        if (
+            !id ||
+            !command.splitId ||
+            id === command.splitId ||
+            findSplitNode(layout.root, command.splitId) ||
+            (findSplitNode(layout.root, id) && !(id === source.id && command.viewId === undefined))
+        ) {
+            return layout;
+        }
+        added = { type: 'pane', id, views: moving, active: command.viewId ?? source.active };
+    }
+    const remaining = without(source, moving);
+    const root = replace(layout.root, source.id, () => (remaining.views.length || source === target ? remaining : null));
+    if (!root) {
+        return layout;
+    }
+    const next = replace(root, target.id, (node) => {
+        if (node.type !== 'pane') {
+            return node;
+        }
+        if (added && command.side && command.splitId) {
+            return beside(node, added, command.side, command.splitId);
+        }
+        const gap = Math.max(0, Math.min(target.views.length, command.index ?? target.views.length));
+        const lifted = source === target ? target.views.slice(0, gap).filter((view) => moving.includes(view)).length : 0;
+        const views = [...node.views];
+        views.splice(gap - lifted, 0, ...moving);
+        return { ...node, views, active: command.viewId ?? source.active ?? views[0] ?? null };
+    });
+    return finish({ ...layout, maximized: null }, next, added?.id ?? target.id);
+}
+
+function resizeBranch(layout: SplitLayout, command: CommandOf<'resize' | 'equalize'>): SplitLayout {
+    const node = findSplitNode(layout.root, command.splitId);
+    if (!node || node.type !== 'split') {
+        return layout;
+    }
+    let sizes = [...node.sizes];
+    if (command.type === 'resize') {
+        if (command.sizes.length !== node.children.length || command.sizes.some((size) => !Number.isFinite(size) || size <= 0)) {
+            return layout;
+        }
+        sizes = shares(command.sizes, node.children.length);
+    } else if (command.index === undefined) {
+        sizes = node.children.map(() => 1 / node.children.length);
+    } else {
+        const index = command.index;
+        if (index < 0 || index >= sizes.length - 1) {
+            return layout;
+        }
+        sizes[index] = sizes[index + 1] = (sizes[index]! + sizes[index + 1]!) / 2;
+    }
+    return finish(
+        layout,
+        replace(layout.root, node.id, () => ({ ...node, sizes }))
+    );
+}
+
 /** Invalid or stale commands are no-ops. IDs for new nodes come from the caller. */
 export function updateSplitLayout(layout: SplitLayout, command: SplitCommand): SplitLayout {
     const panes = splitPanes(layout.root);
@@ -289,119 +422,12 @@ export function updateSplitLayout(layout: SplitLayout, command: SplitCommand): S
                 pane.id
             );
         }
-        case 'split': {
-            if (
-                !pane ||
-                findSplitNode(layout.root, command.newPane.id) ||
-                findSplitNode(layout.root, command.splitId) ||
-                command.newPane.id === command.splitId
-            ) {
-                return layout;
-            }
-            const allViews = new Set(panes.flatMap((item) => item.views));
-            if (command.newPane.views.some((view) => allViews.has(view)) || new Set(command.newPane.views).size !== command.newPane.views.length) {
-                return layout;
-            }
-            const added = {
-                ...command.newPane,
-                active: command.newPane.views.includes(command.newPane.active ?? '') ? command.newPane.active : (command.newPane.views[0] ?? null)
-            };
-            return finish(
-                { ...layout, maximized: null },
-                replace(layout.root, pane.id, () => beside(pane, added, command.side, command.splitId)),
-                added.id
-            );
-        }
-        case 'swap': {
-            const source = panes.find((item) => item.id === command.sourceId);
-            const target = panes.find((item) => item.id === command.targetId);
-            if (
-                !source ||
-                !target ||
-                source === target ||
-                source.views.length === 0 ||
-                (command.viewId !== undefined && !source.views.includes(command.viewId))
-            ) {
-                return layout;
-            }
-            if (command.viewId === undefined || source.views.length === 1) {
-                const exchange = (node: SplitNode): SplitNode => {
-                    if (node.id === source.id) {
-                        return target;
-                    }
-                    if (node.id === target.id) {
-                        return source;
-                    }
-                    return node.type === 'pane' ? node : { ...node, children: node.children.map(exchange) };
-                };
-                return finish({ ...layout, maximized: null }, exchange(layout.root), source.id);
-            }
-            const moving = command.viewId;
-            const displaced = target.active;
-            const sourceNext =
-                displaced === null
-                    ? without(source, [moving])
-                    : {
-                          ...source,
-                          views: source.views.map((view) => (view === moving ? displaced : view)),
-                          active: source.active === moving ? displaced : source.active
-                      };
-            const targetNext = {
-                ...target,
-                views: displaced === null ? [moving] : target.views.map((view) => (view === displaced ? moving : view)),
-                active: moving
-            };
-            const root = replace(layout.root, source.id, () => sourceNext)!;
-            return finish(
-                { ...layout, maximized: null },
-                replace(root, target.id, () => targetNext),
-                target.id
-            );
-        }
-        case 'move': {
-            const source = panes.find((item) => item.id === command.sourceId);
-            const target = panes.find((item) => item.id === command.targetId);
-            if (!source || !target || (command.viewId !== undefined && !source.views.includes(command.viewId))) {
-                return layout;
-            }
-            const moving = command.viewId === undefined ? source.views : [command.viewId];
-            if (!moving.length || (source === target && (command.viewId === undefined || (command.side !== undefined && source.views.length === 1)))) {
-                return layout;
-            }
-            let added: SplitPane | undefined;
-            if (command.side) {
-                const id = command.viewId === undefined ? source.id : command.newPaneId;
-                if (
-                    !id ||
-                    !command.splitId ||
-                    id === command.splitId ||
-                    findSplitNode(layout.root, command.splitId) ||
-                    (findSplitNode(layout.root, id) && !(id === source.id && command.viewId === undefined))
-                ) {
-                    return layout;
-                }
-                added = { type: 'pane', id, views: moving, active: command.viewId ?? source.active };
-            }
-            const remaining = without(source, moving);
-            const root = replace(layout.root, source.id, () => (remaining.views.length || source === target ? remaining : null));
-            if (!root) {
-                return layout;
-            }
-            const next = replace(root, target.id, (node) => {
-                if (node.type !== 'pane') {
-                    return node;
-                }
-                if (added && command.side && command.splitId) {
-                    return beside(node, added, command.side, command.splitId);
-                }
-                const gap = Math.max(0, Math.min(target.views.length, command.index ?? target.views.length));
-                const lifted = source === target ? target.views.slice(0, gap).filter((view) => moving.includes(view)).length : 0;
-                const views = [...node.views];
-                views.splice(gap - lifted, 0, ...moving);
-                return { ...node, views, active: command.viewId ?? source.active ?? views[0] ?? null };
-            });
-            return finish({ ...layout, maximized: null }, next, added?.id ?? target.id);
-        }
+        case 'split':
+            return addPane(layout, panes, pane, command);
+        case 'swap':
+            return swapPanes(layout, panes, command);
+        case 'move':
+            return moveViews(layout, panes, command);
         case 'equalizeAxis': {
             const length = command.length ?? 1;
             const gap = command.gap ?? 0;
@@ -411,30 +437,7 @@ export function updateSplitLayout(layout: SplitLayout, command: SplitCommand): S
             return finish(layout, equalizeAxis(layout.root, command.axis, length, gap));
         }
         case 'resize':
-        case 'equalize': {
-            const node = findSplitNode(layout.root, command.splitId);
-            if (!node || node.type !== 'split') {
-                return layout;
-            }
-            let sizes = [...node.sizes];
-            if (command.type === 'resize') {
-                if (command.sizes.length !== node.children.length || command.sizes.some((size) => !Number.isFinite(size) || size <= 0)) {
-                    return layout;
-                }
-                sizes = shares(command.sizes, node.children.length);
-            } else if (command.index === undefined) {
-                sizes = node.children.map(() => 1 / node.children.length);
-            } else {
-                const index = command.index;
-                if (index < 0 || index >= sizes.length - 1) {
-                    return layout;
-                }
-                sizes[index] = sizes[index + 1] = (sizes[index]! + sizes[index + 1]!) / 2;
-            }
-            return finish(
-                layout,
-                replace(layout.root, node.id, () => ({ ...node, sizes }))
-            );
-        }
+        case 'equalize':
+            return resizeBranch(layout, command);
     }
 }
