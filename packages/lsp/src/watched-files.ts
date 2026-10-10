@@ -5,6 +5,8 @@ import { fileUriToPath } from './uris.ts';
 /* A change of a file as the protocol numbers it: created, changed, deleted. */
 export type FileChangeType = 1 | 2 | 3;
 
+const EVERY_CHANGE = 7;
+
 /* Folders whose files a server hears about only when a pattern of its own names the folder. */
 const SPARING_FOLDERS = ['node_modules', 'vendor', '.git'];
 
@@ -13,7 +15,7 @@ function relativeTo(root: string, path: string): string | null {
     return path.startsWith(prefix) ? path.slice(prefix.length) : null;
 }
 
-/* A pattern with the folder it is relative to, or null for a relative pattern whose base is no folder of this machine. `base` is undefined for a string pattern. */
+/* A pattern with the folder it is relative to, or null for a relative pattern whose base is no folder of this machine. */
 function patternOf(watcher: FileSystemWatcher): { base: string | undefined; pattern: string } | null {
     const { globPattern } = watcher;
     if (typeof globPattern === 'string') {
@@ -32,7 +34,7 @@ export function watchesFile(watchers: readonly FileSystemWatcher[], root: string
     const inProject = relativeTo(root, path);
     const segments = (inProject ?? path).split('/');
     return watchers.some((watcher) => {
-        if (((watcher.kind ?? 7) & (1 << (type - 1))) === 0) {
+        if (((watcher.kind ?? EVERY_CHANGE) & (1 << (type - 1))) === 0) {
             return false;
         }
         const parts = patternOf(watcher);

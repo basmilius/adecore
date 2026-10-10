@@ -1,11 +1,8 @@
+import { asError } from './as-error.ts';
 import type { Disposable, LspTransport, RpcMessage } from './protocol.ts';
 
 const DEFAULT_MAX_MESSAGE_BYTES = 32 * 1024 * 1024;
 const MAX_HEADER_BYTES = 8192;
-
-function asError(error: unknown): Error {
-    return error instanceof Error ? error : new Error(String(error));
-}
 
 /*
  * The listeners of a transport. A message that arrives before anyone listens is held and handed to
@@ -18,7 +15,7 @@ class TransportEvents {
     private backlog: unknown[] = [];
     private error?: Error;
 
-    onMessage = (listener: (message: unknown) => void): Disposable => {
+    onMessage(listener: (message: unknown) => void): Disposable {
         this.messages.add(listener);
         for (const message of this.backlog.splice(0)) {
             listener(message);
@@ -28,9 +25,9 @@ class TransportEvents {
                 this.messages.delete(listener);
             }
         };
-    };
+    }
 
-    onClose = (listener: (error?: Error) => void): Disposable => {
+    onClose(listener: (error?: Error) => void): Disposable {
         this.closes.add(listener);
         if (this.closed) {
             listener(this.error);
@@ -40,7 +37,7 @@ class TransportEvents {
                 this.closes.delete(listener);
             }
         };
-    };
+    }
 
     receive(message: unknown): void {
         if (this.closed) {
@@ -83,9 +80,12 @@ function concat(chunks: readonly Uint8Array[], size: number): Uint8Array {
     return joined;
 }
 
+const CR = 13;
+const LF = 10;
+
 function indexOfHeaderEnd(bytes: Uint8Array): number {
     for (let i = 0; i + 3 < bytes.length; i++) {
-        if (bytes[i] === 13 && bytes[i + 1] === 10 && bytes[i + 2] === 13 && bytes[i + 3] === 10) {
+        if (bytes[i] === CR && bytes[i + 1] === LF && bytes[i + 2] === CR && bytes[i + 3] === LF) {
             return i;
         }
     }
@@ -178,8 +178,8 @@ export function createStreamTransport(stream: ByteStream, options: { maxMessageB
     });
     stream.onClose((error) => events.finish(error));
     return {
-        onMessage: events.onMessage,
-        onClose: events.onClose,
+        onMessage: (listener) => events.onMessage(listener),
+        onClose: (listener) => events.onClose(listener),
         async send(message) {
             if (events.closed) {
                 throw new Error('LSP stream is closed');
@@ -198,8 +198,8 @@ export function createMemoryTransportPair(): [LspTransport, LspTransport] {
     const left = new TransportEvents();
     const right = new TransportEvents();
     const end = (inbox: TransportEvents, outbox: TransportEvents): LspTransport => ({
-        onMessage: inbox.onMessage,
-        onClose: inbox.onClose,
+        onMessage: (listener) => inbox.onMessage(listener),
+        onClose: (listener) => inbox.onClose(listener),
         send(message) {
             if (inbox.closed || outbox.closed) {
                 throw new Error('LSP transport is closed');
@@ -271,8 +271,8 @@ export async function connectWebSocket(url: string, options: WebSocketTransportO
         options.signal?.addEventListener('abort', abort, { once: true });
     });
     return {
-        onMessage: events.onMessage,
-        onClose: events.onClose,
+        onMessage: (listener) => events.onMessage(listener),
+        onClose: (listener) => events.onClose(listener),
         send(message) {
             if (events.closed || socket.readyState !== 1) {
                 throw new Error('LSP WebSocket is closed');

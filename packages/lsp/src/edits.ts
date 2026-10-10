@@ -15,6 +15,9 @@ export interface PlannedDocumentEdit {
     created?: true;
 }
 
+const CR = 13;
+const LF = 10;
+
 /* A line ends at `\n`, `\r\n` or a lone `\r`, which is how the protocol counts lines. */
 export function offsetAt(text: string, position: Position): number {
     if (!Number.isInteger(position.line) || !Number.isInteger(position.character) || position.line < 0 || position.character < 0) {
@@ -24,12 +27,12 @@ export function offsetAt(text: string, position: Position): number {
     let offset = 0;
     while (line < position.line && offset < text.length) {
         const char = text.charCodeAt(offset++);
-        if (char === 13) {
-            if (text.charCodeAt(offset) === 10) {
+        if (char === CR) {
+            if (text.charCodeAt(offset) === LF) {
                 offset++;
             }
             line++;
-        } else if (char === 10) {
+        } else if (char === LF) {
             line++;
         }
     }
@@ -55,14 +58,14 @@ export function positionAt(text: string, offset: number): Position {
     let i = 0;
     while (i < offset) {
         const code = text.charCodeAt(i);
-        if (code === 13 && text.charCodeAt(i + 1) === 10) {
+        if (code === CR && text.charCodeAt(i + 1) === LF) {
             if (i + 2 > offset) {
                 break;
             }
             i += 2;
             line++;
             lineStart = i;
-        } else if (code === 13 || code === 10) {
+        } else if (code === CR || code === LF) {
             i++;
             line++;
             lineStart = i;

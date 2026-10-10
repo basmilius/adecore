@@ -11,7 +11,6 @@ import type {
     DocumentItem,
     FileEvent,
     FileOperationFilter,
-    FileRename,
     FileSystemWatcher,
     InitializeResult,
     LspTransport,
@@ -107,6 +106,26 @@ function matches(options: ProviderOptions, document?: Pick<DocumentItem, 'uri' |
             (!filter.scheme || filter.scheme === url.protocol.slice(0, -1)) &&
             (!filter.pattern || globMatch(decodeURIComponent(url.pathname), filter.pattern))
     );
+}
+
+/* Whether provider options cover a method that a provider only offers on top of its feature. */
+function offersMethod(method: string, options: ProviderOptions): boolean {
+    if (method.endsWith('/resolve')) {
+        return options.resolveProvider === true;
+    }
+    if (method === 'textDocument/prepareRename') {
+        return options.prepareProvider === true;
+    }
+    if (method === 'textDocument/semanticTokens/full/delta') {
+        return typeof options.full === 'object' && options.full.delta === true;
+    }
+    if (method === 'textDocument/semanticTokens/full') {
+        return !!options.full;
+    }
+    if (method === 'textDocument/semanticTokens/range') {
+        return !!options.range;
+    }
+    return true;
 }
 
 /* One conversation with one language server: the handshake, what it can do, and the documents open in it. */
@@ -265,24 +284,7 @@ export class LspSession {
         } else if (provider && typeof provider === 'object' && matches(provider as ProviderOptions, document)) {
             candidates.push(provider as ProviderOptions);
         }
-        return candidates.find((options) => {
-            if (method.endsWith('/resolve')) {
-                return options.resolveProvider === true;
-            }
-            if (method === 'textDocument/prepareRename') {
-                return options.prepareProvider === true;
-            }
-            if (method === 'textDocument/semanticTokens/full/delta') {
-                return typeof options.full === 'object' && options.full.delta === true;
-            }
-            if (method === 'textDocument/semanticTokens/full') {
-                return !!options.full;
-            }
-            if (method === 'textDocument/semanticTokens/range') {
-                return !!options.range;
-            }
-            return true;
-        });
+        return candidates.find((options) => offersMethod(method, options));
     }
 
     supports(method: string, document?: Pick<DocumentItem, 'uri' | 'languageId'>): boolean {
@@ -382,7 +384,7 @@ export class LspSession {
 
     /* Tells the server which of these files moved, those its filters take. */
     async didRenameFiles(files: readonly RenamedFile[]): Promise<void> {
-        const taken: FileRename[] = renamesTaken(this.fileOperationFilters('didRename'), files);
+        const taken = renamesTaken(this.fileOperationFilters('didRename'), files);
         if (taken.length > 0 && this.phase === 'ready') {
             await this.notify('workspace/didRenameFiles', { files: taken });
         }
@@ -453,19 +455,18 @@ export class LspSession {
     }
 
     private emitDiagnostics(params: PublishDiagnosticsParams): void {
-        for (const listener of this.diagnosticListeners) {
-            try {
-                listener(params);
-            } catch (error) {
-                this.connection.reportError(error);
-            }
-        }
+        this.emit(this.diagnosticListeners, params);
     }
 
     private emitCapabilities(): void {
-        for (const listener of this.capabilityListeners) {
+        this.emit(this.capabilityListeners, undefined);
+    }
+
+    /* A listener that throws is reported and does not keep the others from hearing it. */
+    private emit<T>(listeners: ReadonlySet<(value: T) => void>, value: T): void {
+        for (const listener of listeners) {
             try {
-                listener();
+                listener(value);
             } catch (error) {
                 this.connection.reportError(error);
             }

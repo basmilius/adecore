@@ -1,3 +1,4 @@
+import { asError } from './as-error.ts';
 import type { Disposable, LspTransport, RequestId, RequestOptions, RpcMessage, RpcRequest } from './protocol.ts';
 
 /* The JSON-RPC and LSP codes this package answers with. */
@@ -42,8 +43,8 @@ interface PendingRequest {
     cleanup(): void;
 }
 
-function asError(error: unknown): Error {
-    return error instanceof Error ? error : new Error(String(error));
+function cancelledError(): LspError {
+    return new LspError('Request cancelled', ErrorCodes.RequestCancelled);
 }
 
 /* JSON-RPC 2.0 over an `LspTransport`: correlation, cancellation, and the requests a server sends back. */
@@ -82,7 +83,7 @@ export class JsonRpcConnection {
             return Promise.reject(new LspError('LSP connection is closed'));
         }
         if (options.signal?.aborted) {
-            return Promise.reject(new LspError('Request cancelled', ErrorCodes.RequestCancelled));
+            return Promise.reject(cancelledError());
         }
         const id = ++this.nextId;
         return new Promise<T>((resolve, reject) => {
@@ -94,7 +95,7 @@ export class JsonRpcConnection {
                 this.settle(id, undefined, error);
                 void this.notify('$/cancelRequest', { id }).catch((failure) => this.reportError(failure));
             };
-            const abort = (): void => cancel(new LspError('Request cancelled', ErrorCodes.RequestCancelled));
+            const abort = (): void => cancel(cancelledError());
             this.pending.set(id, {
                 resolve: (value) => resolve(value as T),
                 reject,
@@ -131,17 +132,13 @@ export class JsonRpcConnection {
     }
 
     onNotification(method: string, listener: NotificationHandler): Disposable {
-        let listeners = this.notifications.get(method);
-        if (!listeners) {
-            listeners = new Set();
-            this.notifications.set(method, listeners);
-        }
-        const registered = listeners;
-        registered.add(listener);
+        const listeners = this.notifications.get(method) ?? new Set<NotificationHandler>();
+        this.notifications.set(method, listeners);
+        listeners.add(listener);
         return {
             dispose: () => {
-                registered.delete(listener);
-                if (registered.size === 0) {
+                listeners.delete(listener);
+                if (listeners.size === 0) {
                     this.notifications.delete(method);
                 }
             }
@@ -264,7 +261,7 @@ export class JsonRpcConnection {
             }
             const result = await handler(message.params, controller.signal);
             if (controller.signal.aborted) {
-                throw new LspError('Request cancelled', ErrorCodes.RequestCancelled);
+                throw cancelledError();
             }
             await this.send({ jsonrpc: '2.0', id: message.id, result: result ?? null });
         } catch (error) {
