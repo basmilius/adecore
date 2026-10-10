@@ -1,6 +1,6 @@
 # ProjectSwitcher
 
-A project name in a toolbar that opens a menu of projects, recent projects and actions per project. The app supplies the lists and handles each pick; the component keeps no project state and opens nothing itself.
+A project name in a toolbar that opens a menu of projects, recent projects and the actions of each. The app hands it the lists and handles each pick; the component keeps no project state and opens nothing itself.
 
 ```tsx
 import { ProjectSwitcher } from '@adecore/ui';
@@ -10,7 +10,7 @@ import { ProjectSwitcher } from '@adecore/ui';
 
 ## Projects
 
-Each `ProjectSwitcherItem` has an `id`, unique within its list, and a `name`. The lists are drawn in the order supplied, unfiltered.
+Each `ProjectSwitcherItem` has an `id`, unique within its list, and a `name`. The lists are drawn as given, in order and unfiltered.
 
 | Item field | What it draws |
 | --- | --- |

@@ -16,7 +16,7 @@ You keep the width. `onWidthChange` hands you every size during a drag, a whole 
 
 ## Space between panels
 
-Set `gap={8}` to replace the left border with eight pixels of space in `--separator`. The resize handle fills that space. `width`, `bounds`, and `onWidthChange` describe the surface alone; the open column occupies `width + gap` pixels. A closed column still takes no space. Leaving `gap` at zero preserves the border and existing layout.
+`gap={8}` swaps the left border for 8 pixels of space in the `--separator` color, and the resize handle fills that space. `width`, `bounds` and `onWidthChange` measure the surface alone, so an open column takes `width + gap` pixels. A closed column still takes none. At the default of `0` the border stays.
 
 ## A column with shortcuts
 

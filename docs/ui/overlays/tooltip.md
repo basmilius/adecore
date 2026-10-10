@@ -18,10 +18,7 @@ A label stays on one line up to 288 pixels and wraps past that, avoiding one wor
 
 ## Content without a DOM trigger
 
-For a link drawn inside a terminal or canvas, pass `open`, `onOpenChange` and an `anchor` with
-`getBoundingClientRect()`. Omit `children` so the tooltip adds no focusable or clickable element
-over the content. The popup then ignores pointer input. Its host decides when a link is hovered
-and keeps the anchor in viewport coordinates.
+For a link drawn inside a terminal or a canvas, pass `open`, `onOpenChange` and an `anchor` with `getBoundingClientRect()`. Leave out `children`, so the tooltip puts nothing over the content that takes focus or a click, and the popup ignores the pointer. The host decides when a link is hovered and keeps the anchor in viewport coordinates.
 
 ```tsx
 <Tooltip

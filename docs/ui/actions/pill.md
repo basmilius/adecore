@@ -10,7 +10,7 @@ import { Pill } from '@adecore/ui';
 
 The tone says what the label means. `muted` is the default, and `raised` lifts a label off a sunken header so it reads as a control. `idle`, `needsYou` and `error` use the status colors, `accent` the app's accent. A `tag` is tighter and heavier than a `pill`, for the end of a line of prose. A `size` of `sm` trims the padding for a pill in a dense row, such as a sidebar line; the text stays at the `2xs` size, the smallest the theme sets. `mono` suits a branch name or a count read character by character.
 
-Every ground is an alpha of the tone's color over whatever the pill stands on, so the same pill reads on a sidebar row, a header and a card. The text is the theme's `2xs` size, and a pill never wraps inside itself: in a row that wraps it moves to the next line whole.
+Every ground is an alpha of the tone's color over whatever the pill stands on, so the same pill reads on a sidebar row, a header and a card. A pill never wraps inside itself; in a row that wraps, it moves to the next line whole.
 
 ## Props
 

@@ -25,6 +25,7 @@ This repository holds the packages that desktop apps for working with agents sha
 | [Agent contracts](/agent-contracts/) (`@adecore/agent-contracts`) | Schemas and port contracts for agent chats, provider accounts, models and usage |
 | [Agents](/agents/) (`@adecore/agents`) | Chat hosts for Node and Bun over provider CLIs, with accounts, usage and task coordination |
 | [Agent views](/agents-react/) (`@adecore/agents-react`) | React views for agent chats: threads, the composer, approvals, provider accounts and usage |
+| [Intelligent UI](/intelligent-ui/) (`@adecore/intelligent-ui`) | The component catalog, compiler and bounded interpreter for blocks of UI in an agent's reply |
 
 ### Editor
 

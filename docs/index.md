@@ -32,6 +32,7 @@ hero:
 - [Agent contracts](/agent-contracts/): the schemas and ports that agent hosts and views share.
 - [Agents](/agents/): chat hosts for Node and Bun over provider CLIs, with accounts, usage and task coordination.
 - [Agent views](/agents-react/): React views for agent chats, from the thread and the composer to approvals, accounts and usage.
+- [Intelligent UI](/intelligent-ui/): a block of components an agent answers with instead of prose, compiled while the reply streams and evaluated within fixed limits.
 
 ## Editor
 

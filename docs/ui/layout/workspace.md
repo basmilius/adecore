@@ -4,19 +4,19 @@ aside: false
 
 # Workspace
 
-`Workspace` arranges a toolbar, optional side regions and content. `SplitView` supplies nested, resizable panels with document tabs. Use either on its own, or compose them as below. Existing navigation `Tabs` are independent.
+`Workspace` lays out a toolbar, side regions and the content between them. `SplitView` fills the content with nested, resizable panels that hold document tabs. Each works on its own, or they go together as below. The navigation [`Tabs`](/ui/layout/tabs) are separate from both.
 
 <Demo src="layout/workspace" fill />
 
-Use the controls to compare standard and roomy spacing in light or dark appearance, open the side regions and add nested splits. Edit a document before moving its tab to see its contents stay with it. The appearance control applies only to this demo.
+The buttons compare the standard and the roomy layout in both appearances, open the side regions and add splits. Type in a document, then move its tab: the text goes with it. The appearance button changes only this demo.
 
 ## Layout and appearance
 
-`WorkspaceProps` accepts `layout`, `toolbar`, `sidebar`, `sidePanel`, `sidebarWidth`, `sidePanelWidth` and `children`, along with `className`, `ref`, `render` and the native div props. Omit a region, or pass `false` or `null`, to close it. Side regions are fixed-width surfaces; applications can supply their own resize controls. The default widths are 248 and 320 pixels. Set a region's width to `'auto'` when its contents already manage sizing, separators and animation, such as one or more `SlidingColumn` components. Auto-sized regions render their contents directly into the flex layout. Use `sidebarOpen` or `sidePanelOpen` to tell the workspace when those contents are closed; they stay mounted while toolbar corners and flush edges follow the open state.
+`WorkspaceProps` takes `layout`, `toolbar`, `sidebar`, `sidePanel`, `sidebarWidth`, `sidePanelWidth` and `children`, plus `className`, `ref`, `render` and the props of a `<div>`. A region you leave out, or pass as `false` or `null`, is closed. A side region has a fixed width, 248 pixels for the sidebar and 320 for the side panel; an app that wants it resizable brings its own handle. A width of `'auto'` is for contents that size, separate and animate themselves, such as one or more `SlidingColumn`s: the workspace puts them straight into its flex row. Those stay mounted when they close, so tell the workspace with `sidebarOpen` or `sidePanelOpen`, and the toolbar corners and the flush edges follow.
 
-`WorkspaceLayout` is `'standard' | 'roomy'`. Standard is the default: adjacent surfaces have 1px separators, without extra spacing or rounded corners. Roomy uses 8px gaps and 8px corners. A corner touching any flush outer edge stays square. The toolbar gets space below it and rounds its bottom corners only beside open side regions. Both layouts use the opaque `--separator` token, and borders inside the workspace follow it. The mode does not select light or dark appearance.
+`WorkspaceLayout` is `'standard' | 'roomy'`. Standard, the default, puts a 1 pixel separator between neighboring surfaces, with no gap and no rounded corners. Roomy puts 8 pixel gaps between them and rounds their corners by 8. A corner that touches a flush outer edge stays square. The toolbar gets a gap under it, and rounds its bottom corners only beside an open side region. Both layouts draw with the opaque `--separator` token, and the borders inside the workspace follow it. The layout does not pick light or dark.
 
-Give the container a height. Both components fill their container and can appear several times on one page. Their drag state and IDs are isolated.
+Give the container a height; both components fill it. A page can hold several of them, each with its own drag state and ids.
 
 ## Controlled state
 
@@ -39,63 +39,63 @@ function EditorWorkspace() {
 }
 ```
 
-`SplitLayout` contains `root`, `focused` and `maximized`. A `SplitNode` is either a `SplitPane` or a `SplitBranch`:
+A `SplitLayout` holds `root`, `focused` and `maximized`. A `SplitNode` is a `SplitPane` or a `SplitBranch`:
 
-- A pane has `type: 'pane'`, a stable `id`, ordered `views` and an `active` view ID or `null`.
-- A branch has `type: 'split'`, a stable `id`, an `axis`, `children` and positive `sizes` that sum to one. `SplitAxis` is `'horizontal' | 'vertical'`. Horizontal places children beside each other; vertical stacks them.
-- `focused` and `maximized` contain pane IDs. `maximized` is `null` when all panes are visible.
+- A pane has `type: 'pane'`, a stable `id`, its `views` in order and the id of its `active` view, or `null`.
+- A branch has `type: 'split'`, a stable `id`, an `axis`, its `children` and their `sizes`, positive shares that add up to one. `SplitAxis` is `'horizontal' | 'vertical'`: horizontal puts the children side by side, vertical stacks them.
+- `focused` and `maximized` are pane ids. `maximized` is `null` while every pane shows.
 
-Every node ID is unique within a layout. Every view ID occurs in at most one pane. An application that opens the same document twice gives its two view instances different IDs. Views can contain any content; the layout stores no document payloads.
+Every node id is unique within a layout, and a view id sits in one pane at most. An app that opens the same document twice gives the two views different ids. A view can hold anything; the layout stores ids, never a document.
 
-`createSplitLayout(views?, paneId?)` creates one pane. `normalizeSplitLayout(unknown)` repairs persisted data, deduplicates IDs, removes invalid branches, repairs selection, normalizes sizes and merges consecutive branches on the same axis. Call it when loading data, not on every render. The application owns serialization, versioning, storage and migration from older formats. `splitPanes(root)` lists panes in layout order.
+`createSplitLayout(views?, paneId?)` makes a layout of one pane. `normalizeSplitLayout(unknown)` repairs a stored layout: it removes duplicate ids and broken branches, repairs the focus and the maximized pane, normalizes the sizes, and merges two branches in a row along the same axis. Call it when you load a layout, not on every render. Storing, versioning and migrating a layout from an older format are the app's. `splitPanes(root)` lists the panes in layout order.
 
 ## Commands
 
-`updateSplitLayout(value, command)` returns the next state without changing its input. `SplitCommand` is a discriminated union. Invalid targets and stale commands return the original state.
+`updateSplitLayout(value, command)` returns the next layout and leaves its input alone. `SplitCommand` is a discriminated union. A command whose target does not exist, or no longer exists, returns the layout it was given.
 
-| Command | Fields and behavior |
+| Command | Fields and what it does |
 | --- | --- |
-| `activate` | `paneId`, `viewId`: activates the view and focuses the pane. |
-| `focus` | `paneId`: changes focused pane without changing its active view. |
-| `maximize` | `paneId` or `null`: maximizes or restores, keeping all views mounted. |
-| `insert` | `paneId`, `viewId`, optional `index`: inserts a new view or moves an existing one. |
-| `split` | `paneId`, `side`, `newPane`, `splitId`: adds a new pane next to the target at any depth. |
-| `move` | `sourceId`, `targetId`, optional `viewId`, `side`, `index`, `newPaneId`, `splitId`: moves one tab or, without `viewId`, the whole pane. An edge drop needs a fresh `splitId`; moving one tab to an edge also needs a fresh `newPaneId`. |
-| `swap` | `sourceId`, `targetId`, optional `viewId`: exchanges whole panes, or one tab with the target active tab. A lone source tab moves its whole pane. |
-| `close` | `viewId`: closes a view and removes its pane if empty, unless it is the last pane. |
-| `closePane` | `paneId`: closes the whole group. The last pane becomes empty. |
-| `resize` | `splitId`, `sizes`: updates positive shares. |
-| `equalize` | `splitId`, optional `index`: balances the neighboring children at a divider, or all children when the index is omitted. |
-| `equalizeAxis` | `axis`, optional `length` and `gap`: distributes tracks across the entire layout in one direction, including nested splits. |
+| `activate` | `paneId`, `viewId`: shows the view and focuses its pane. |
+| `focus` | `paneId`: focuses the pane and keeps its active view. |
+| `maximize` | `paneId`, or `null` to restore. Every view stays mounted. |
+| `insert` | `paneId`, `viewId`, optional `index`: adds a new view, or moves one that is open elsewhere. |
+| `split` | `paneId`, `side`, `newPane`, `splitId`: adds a pane beside the target, at any depth. |
+| `move` | `sourceId`, `targetId`, optional `viewId`, `side`, `index`, `newPaneId`, `splitId`: moves one tab, or the whole pane without `viewId`. A drop on an edge needs a new `splitId`, and a single tab dropped on an edge also a new `newPaneId`. |
+| `swap` | `sourceId`, `targetId`, optional `viewId`: trades two whole panes, or one tab with the target's active tab. A tab that is alone in its pane takes the pane with it. |
+| `close` | `viewId`: closes the view, and its pane when that is left empty, unless it is the last pane. |
+| `closePane` | `paneId`: closes the whole group. The last pane is left empty instead. |
+| `resize` | `splitId`, `sizes`: sets new positive shares. |
+| `equalize` | `splitId`, optional `index`: balances the two children beside a divider, or every child without `index`. |
+| `equalizeAxis` | `axis`, optional `length` and `gap`: spreads the tracks of the whole layout evenly in one direction, nested splits included. |
 
-`SplitSide` is `'left' | 'right' | 'top' | 'bottom'`. A `move` without a side groups tabs. Use `swap` for a center drop: whole panes exchange positions while split proportions stay put; a tab taken from a group exchanges places with the active target tab. No view is discarded. The optional insertion index denotes a gap in the **original** tab order; the reducer accounts for the source being lifted out. Moving a whole pane to an edge preserves its pane ID. Redundant branches collapse after moves and closes. Consecutive splits on the same axis share one branch, so their dividers resize neighboring panes. Splitting in the other direction creates a nested branch. Merging a branch preserves pane IDs and relative shares; its redundant branch ID is retired. The supplied `splitId` is used only when a new branch is needed.
+`SplitSide` is `'left' | 'right' | 'top' | 'bottom'`. A `move` without a side adds the tab to the target's group. A drop in the middle is a `swap`: two whole panes trade places and the splits keep their proportions, and a tab taken out of a group trades places with the target's active tab. No view is ever dropped. The `index` of an insertion is a gap in the tab order **before** the move; the reducer accounts for the tab it lifts out. A whole pane moved to an edge keeps its id. A branch a move or a close leaves redundant collapses. Two splits in a row along the same axis share one branch, so a divider resizes the panes on either side of it, and a split along the other axis makes a nested branch. A merge keeps the pane ids and their relative shares and retires the id of the branch it removed. The `splitId` you pass is used only when a new branch is needed.
 
-`equalizeAxis` counts the tracks across nested splits. A panel above three columns spans all three, while a panel beside them occupies one track. The other direction keeps its existing sizes. `SplitView` supplies the current axis length and separator gap in pixels so spanning panels include their internal gaps. Without these measurements, the command uses proportional shares (`length: 1`, `gap: 0`). Minimum pane sizes still apply.
+`equalizeAxis` counts the tracks across nested splits. A panel above three columns spans all three, and a panel beside them takes one. The other direction keeps its sizes. `SplitView` passes the length along the axis and the gap between panels in pixels, so a panel that spans several tracks counts the gaps inside it too. Without them the command spreads shares (`length: 1`, `gap: 0`). The minimum sizes of the panes still hold.
 
-`onValueChange(next, command)` reports both the proposed state and its cause. The application can reject a change or apply its own layout limits. The core has no fixed limit on the number of rows, columns or nesting levels.
+`onValueChange(next, command)` hands over the proposed layout and the command that made it. The app may refuse it or hold it to limits of its own. The layout itself has no limit on rows, columns or depth.
 
-## Rendering and view lifetime
+## Rendering and the life of a view
 
-`SplitViewProps` requires `value`, `onValueChange` and `renderView`. `renderView(id, info)` receives `SplitViewInfo` with `paneId` and `active`. `getTab(id)` supplies document metadata. `renderPaneHeader(pane)` replaces the default tab strip and controls; `showTabs={false}` removes the default header. `headerHeight` defaults to 36 pixels.
+`SplitViewProps` requires `value`, `onValueChange` and `renderView`. `renderView(id, info)` receives a `SplitViewInfo` with the `paneId` and whether the view is `active`. `getTab(id)` returns what a tab shows of a document. `renderPaneHeader(pane)` replaces the tab strip and the controls above a pane, and `showTabs={false}` leaves that header out. `headerHeight` is 36 pixels unless you set it.
 
-All view hosts remain siblings in a stable order under one parent. Moves update their position, without reparenting them. Inactive tabs and panels hidden by maximization remain mounted, hidden and inert. Closing a view removes it. Keep the rendered component type stable and do not key it by pane ID if its local state must survive moving.
+The view hosts are siblings under one parent, always in the same order. A move changes where they show, never their parent. A tab that is not active and a panel hidden behind a maximized one stay mounted, hidden and inert. Only closing a view unmounts it. For a view to keep its own state through a move, keep the type of the component it renders the same and do not key it by pane id.
 
-`onViewBoundsChange(bounds)` receives `SplitViewBounds` entries with a `viewId`, `paneId`, `active`, viewport `rect` and CSS `borderRadius`. Native surfaces can stay in their own stable layer and follow these bounds. `SplitRect` contains `x`, `y`, `width` and `height`. Hide a native surface when `active` is false and apply the reported clipping. Unmounting the SplitView reports an empty bounds list. The host remains responsible for creating and disposing native surfaces.
+`onViewBoundsChange(bounds)` receives a `SplitViewBounds` per view, with its `viewId`, `paneId`, `active`, its `rect` in the viewport and its CSS `borderRadius`. A native surface can live in a stable layer of its own and follow those bounds. A `SplitRect` holds `x`, `y`, `width` and `height`. Hide a native surface while `active` is false, and clip it as reported. When the `SplitView` unmounts it reports an empty list. Creating and disposing the native surfaces stays with the app.
 
-`minimumSize` is a `SplitMinimum` (`width`, `height`) or a function of the pane. Defaults are 120 by 80 pixels, including the header. Nested minimums contribute to their ancestors. If a window is smaller than all minimums, panes shrink proportionally rather than overflow. Stored shares remain unchanged until a user resizes. `minimumResizeShare` optionally limits a dragged pane to a fraction of the neighbors being resized; it defaults to zero. For example, `0.15` keeps at least 15% of that span in each pane, subject to available space and pixel minimums.
+`minimumSize` is a `SplitMinimum` (`width`, `height`) or a function of the pane, 120 by 80 pixels by default, header included. A nested pane's minimum counts toward its ancestors. In a window smaller than all minimums together, the panes shrink in proportion instead of overflowing, and the stored shares stay as they were until a person resizes. `minimumResizeShare` keeps a dragged divider from squeezing a pane below a share of the span of the panes it resizes, 0 by default: `0.15` leaves each pane at least 15% of that span, as far as the room and the pixel minimums allow.
 
-A standalone SplitView can set `layout` and `flushEdges`. `SplitEdges` marks which outer edges touch the window: `top`, `right`, `bottom`, `left`. All are flush by default. When composed inside Workspace, the appropriate edges and layout are inherited.
+A `SplitView` on its own takes `layout` and `flushEdges`. `SplitEdges` says which outer edges touch the window: `top`, `right`, `bottom` and `left`, all of them by default. Inside a `Workspace` it takes both from the workspace.
 
-## Dragging, closing and keyboard access
+## Dragging, closing and the keyboard
 
-The built-in drag interactions reorder tabs, move tabs between panes, move whole groups using the grip, and split near a pane edge. Dropping on the tab strip groups tabs; dropping in the middle of the content replaces what is shown there by swapping it with the source. The displaced pane or active view moves back to the source position, so it remains open. An outline previews the resulting tab and pane.
+Dragging reorders tabs, moves a tab to another pane, moves a whole group by its grip, and splits a pane when dropped near its edge. A drop on the tab strip adds the tab to that group. A drop in the middle of a pane swaps what it shows with the source, so the pane or view it pushes out moves to where the source was and stays open. An outline shows the tab and the pane the drop will make.
 
-`canDrop(drag, target)` can reject internal moves. `SplitDrag` identifies the source pane and optional view; `SplitDropTarget` identifies the target pane, optional side and original tab gap. `side: 'center'` denotes a replacement drop in the body; an omitted side denotes the tab strip. External drops can apply an application-specific replacement policy. `onViewDragStart(id, event)` can write application-specific drag payloads. Other workspace instances do not claim this internal drag automatically.
+`canDrop(drag, target)` can refuse a move inside the workspace. A `SplitDrag` names the source pane and, for one tab, the view. A `SplitDropTarget` names the target pane, the side and the gap in the tab order before the move. `side: 'center'` is a drop in the middle of a pane, and no side is a drop on the tab strip. What a drop from outside replaces is up to the app. `onViewDragStart(id, event)` can write a payload of the app's own. Another workspace on the page does not take these drags by itself.
 
-External payloads belong to the application. Supply both `canDropExternal(event, target)` and `onExternalDrop(target, event)`. The former recognizes supported payload types during dragover; the latter reads their data and updates the controlled state. A child that calls `preventDefault()` on its drop owns that drop, so a text editor or composer can consume files itself.
+What comes from outside is the app's to read. Pass both `canDropExternal(event, target)` and `onExternalDrop(target, event)`: the first recognizes the payload types the app accepts while the drag passes over, the second reads the data and changes the layout. A child that calls `preventDefault()` on a drop keeps it, so an editor or a composer can take a file itself.
 
-Tabs close immediately by default. Supply `onClose(id)` to request confirmation, save changes or close an application resource. With this callback, the component does not remove the tab; update the state after approval. `onTabDoubleClick` and `onTabContextMenu` likewise let the application implement pinning and menus.
+A tab closes at once unless you pass `onClose(id)`. With it, the tab stays until you change the layout yourself, after a confirmation, a save, or closing what the tab stood for. `onTabDoubleClick` and `onTabContextMenu` are where an app pins a tab or opens its menu.
 
-Tab arrows, Home and End change the active tab; Delete requests a close. Alt + arrow keys focus an adjacent pane from a panel header or the panel itself; keys inside an editor remain with that editor. Focusable resize separators support arrow keys, Shift for larger steps, Home/End for limits and Enter for equal distribution. Dragging within 8px of an even split snaps the two neighboring panes to equal sizes. Double-click balances those neighbors immediately. Alt mirrors the divider when a matching divider exists; Alt + Enter or Alt + double-click distributes the chosen direction across the entire layout, including ancestors and nested splits. For example, triggering it between two small panels can also resize larger panels beside their ancestors. Heights stay unchanged when distributing widths, and widths stay unchanged when distributing heights. Resize feedback is the same 2px accent line in standard and roomy layouts. Pointer cancellation and lost capture end the resize.
+On a tab, the arrow keys, Home and End switch to another tab, and Delete asks to close it. Alt and an arrow key focus the neighboring pane from a pane's header or from the pane itself; inside an editor the keys stay with the editor. A divider takes the focus: its arrow keys resize, with Shift in larger steps, Home and End go to its limits, and Enter balances the panes beside it. A divider dragged within 8 pixels of the middle snaps there, and a double-click balances the two panes at once. Alt mirrors the resize on the matching divider, where there is one. Alt and Enter, or Alt and a double-click, spread the chosen direction evenly over the whole layout, ancestors and nested splits included, so balancing two small panels can also resize a larger panel beside their ancestors. Spreading widths leaves the heights alone, and the other way around. Both layouts show a resize as the same 2 pixel accent line. A cancelled pointer or a lost capture ends the resize.
 
-Floating windows, pop-outs and cross-window drag coordination are outside this module.
+Floating windows, pop-outs and dragging between windows are not part of this module.
