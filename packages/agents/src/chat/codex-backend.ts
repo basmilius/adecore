@@ -1,11 +1,11 @@
 import { accessSync, constants } from 'node:fs';
 import { attachmentImageMime, type ChatSkill } from '@adecore/agent-contracts';
+import { errorText } from '../error-text.ts';
 import { codexServiceTier, codexThreadOptions } from '../providers/codex.ts';
 import type { ApprovalDecision, BackendEvent, BackendHost, BackendLaunch, ChatBackend, TurnInput } from './backend.ts';
 import { CodexProtocol } from './codex-protocol.ts';
-import { attachmentNote } from './input.ts';
 import { CodexTransport, DEFAULT_CODEX_CLIENT, type CodexClientInfo, type CodexFrame } from './codex-transport.ts';
-import { errorText } from '../error-text.ts';
+import { attachmentNote } from './input.ts';
 
 function textInput(text: string) {
     return [{ type: 'text', text, text_elements: [] }];
@@ -46,18 +46,15 @@ export interface CodexBackendOptions {
  */
 export class CodexBackend implements ChatBackend {
     readonly acknowledgesTurns = true;
-    private promptId: string | null = null;
     private readonly launch: BackendLaunch;
-    private imageWrites: Promise<void> | null = null;
     private readonly host: BackendHost;
     private readonly protocol: CodexProtocol;
     private readonly client: CodexClientInfo;
+    private promptId: string | null = null;
+    private imageWrites: Promise<void> | null = null;
     private transport: CodexTransport | null = null;
     private threadId = '';
-    /*
-     * Codex 0.154 ignores developer instructions on `thread/resume` (measured), so a thread started
-     * before anything was linked would never hear of its links; the first prompt of a resumed process says so instead.
-     */
+    // Codex 0.154 ignores developer instructions on `thread/resume` (measured), so the first prompt of a resumed process carries them.
     private contextPending: string | null = null;
     private imageInputSupported: boolean | null = null;
     /* A turn asked for that Codex has not named yet; `turn/interrupt` needs that name. */

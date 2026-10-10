@@ -27,7 +27,6 @@ import {
     type ModelSelection,
     type RuntimeMode
 } from '@adecore/agent-contracts';
-import { ChatUiQueries, type ChatUiHost } from './ui-queries.ts';
 import { ClientSinks } from '../client-sinks.ts';
 import { errorText } from '../error-text.ts';
 import type { AgentEvent, AgentSink } from '../events.ts';
@@ -38,6 +37,7 @@ import { SkillIndex } from '../skills.ts';
 import type { LimitsUpdate } from '../usage/limits/normalize.ts';
 import { usageRoots } from '../usage/roots.ts';
 import type { AttachmentStore } from './attachment-store.ts';
+import { commandLabel, isBackgroundWork, runsInBackground, type BackgroundWork } from './background-work.ts';
 import type { BookmarkStore } from './bookmark-store.ts';
 import { ChatLog, COMPACT_ABOVE_BYTES } from './chat-log.ts';
 import type { SpawnChatProcess } from './chat-process.ts';
@@ -57,10 +57,10 @@ import type { CodexProcessSpec } from './codex-thread.ts';
 import type { CodexClientInfo } from './codex-transport.ts';
 import { ComposerPreferences } from './composer-preferences.ts';
 import { DeltaCoalescer } from './delta-coalescer.ts';
-import { readableAssistantText } from './readable-text.ts';
 import { ChatError } from './errors.ts';
-import { commandLabel, isBackgroundWork, runsInBackground, type BackgroundWork } from './background-work.ts';
+import { readableAssistantText } from './readable-text.ts';
 import { SubagentReader, type SubagentReaderOptions } from './subagent-reader.ts';
+import { ChatUiQueries, type ChatUiHost } from './ui-queries.ts';
 import type { VisualInput, VisualStore } from './visual-store.ts';
 
 /* A turn that was running when the host went down, and the attempt that would take it up again. */
@@ -72,12 +72,12 @@ export interface InterruptedRun {
 
 type BookmarkableItem = Extract<ChatItem, { kind: 'user' | 'assistant' }>;
 
-/* A message a person or the agent wrote in the chat's own thread; a subagent's words belong to its row. */
 function withoutHidden(info: ChatInfo): ChatInfo {
     const { hidden: _hidden, ...rest } = info;
     return rest;
 }
 
+/* A message a person or the agent wrote in the chat's own thread; a subagent's words belong to its row. */
 function isBookmarkable(item: ChatItem): item is BookmarkableItem {
     return item.kind === 'user' || (item.kind === 'assistant' && (item.parentToolUseId ?? null) === null);
 }

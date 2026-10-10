@@ -1,5 +1,5 @@
-import { errorText } from '../error-text.ts';
 import { randomUUID } from 'node:crypto';
+import { errorText } from '../error-text.ts';
 import { claudeArgs, claudeEnv, promptPrefix } from '../providers/claude.ts';
 import type { ApprovalDecision, BackendHost, BackendLaunch, ChatBackend, TurnInput } from './backend.ts';
 import { ChatChild } from './chat-process.ts';
@@ -71,12 +71,10 @@ export class ClaudeBackend implements ChatBackend {
     }
 
     sendTurn(input: TurnInput): void {
-        // The prefix is what the CLI must see first (ultrathink), then the note about the links, then what was typed.
-        const prefix = `${promptPrefix(this.launch.selection)}${input.preamble === null ? '' : `${input.preamble}\n\n`}`;
         const promptId = input.promptId ?? randomUUID();
         this.active = true;
         this.protocol.beginPrompt(promptId);
-        this.write(buildUserMessage({ text: input.text, attachments: input.attachments, prefix, skills: input.skills, promptId }));
+        this.write(this.userMessage(input, promptId));
     }
 
     steerTurn(input: TurnInput): Promise<boolean> {
@@ -88,8 +86,7 @@ export class ClaudeBackend implements ChatBackend {
             this.steers.set(promptId, { resolve, reject });
             this.protocol.beginSteer(promptId);
             try {
-                const prefix = `${promptPrefix(this.launch.selection)}${input.preamble === null ? '' : `${input.preamble}\n\n`}`;
-                this.write(buildUserMessage({ text: input.text, attachments: input.attachments, prefix, skills: input.skills, promptId }));
+                this.write(this.userMessage(input, promptId));
             } catch (error) {
                 this.steers.delete(promptId);
                 reject(error instanceof Error ? error : new Error(errorText(error)));
@@ -145,6 +142,12 @@ export class ClaudeBackend implements ChatBackend {
         const child = this.child;
         this.child = null;
         return child?.end() ?? Promise.resolve();
+    }
+
+    private userMessage(input: TurnInput, promptId: string): Record<string, unknown> {
+        // What the CLI must see first (ultrathink), then the preamble, then what was typed.
+        const prefix = `${promptPrefix(this.launch.selection)}${input.preamble === null ? '' : `${input.preamble}\n\n`}`;
+        return buildUserMessage({ text: input.text, attachments: input.attachments, prefix, skills: input.skills, promptId });
     }
 
     private async readLines(child: ChatChild): Promise<void> {

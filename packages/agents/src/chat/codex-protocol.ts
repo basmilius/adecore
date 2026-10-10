@@ -172,7 +172,7 @@ function elicitationInput(meta: Frame): Frame {
     return input;
 }
 
-// Every spent window must reset; one unknown reset keeps resuming a person's choice.
+// The latest reset of every spent window; one without a known reset leaves resuming to a person.
 function spentUntil(windows: readonly UsageWindow[]): number | null {
     const spent = windows.filter((window) => window.used >= 1);
     if (spent.length === 0 || spent.some((window) => window.resetsAt === null)) {
