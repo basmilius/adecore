@@ -1,5 +1,6 @@
 import type { EditorContentChange, EditorMarker, EditorMarkerSeverity, EditorPosition, EditorRange } from '@adecore/editor';
 import type { Diagnostic } from '@adecore/lsp';
+import type { ProblemCounts } from './diagnostics.ts';
 
 /* A diagnostic and the language server process that reported it. */
 export interface Problem {
@@ -8,6 +9,7 @@ export interface Problem {
 }
 
 const SEVERITIES: Record<number, EditorMarkerSeverity> = { 1: 'error', 2: 'warning', 3: 'info', 4: 'hint' };
+const HINT = 4;
 const UNNECESSARY = 1;
 const DEPRECATED = 2;
 /* The scroll track's tip is a line or two, so a long message is cut where it stops being a tip. */
@@ -26,6 +28,12 @@ export function markerOf(diagnostic: Diagnostic): EditorMarker {
         deprecated: diagnostic.tags?.includes(DEPRECATED) === true,
         message: diagnostic.message.length > TICK_MESSAGE_LENGTH ? `${diagnostic.message.slice(0, TICK_MESSAGE_LENGTH)}…` : diagnostic.message
     };
+}
+
+/* A diagnostic that names no severity counts as an error. */
+export function problemCountsOf(diagnostics: readonly Diagnostic[]): ProblemCounts {
+    const count = (severity: number): number => diagnostics.filter((diagnostic) => (diagnostic.severity ?? 1) === severity).length;
+    return { error: count(1), warning: count(2), info: count(3) };
 }
 
 export function comparePositions(left: EditorPosition, right: EditorPosition): number {
@@ -74,14 +82,14 @@ export function rangeHolds(range: EditorRange, position: EditorPosition): boolea
 export function problemsAt(problems: readonly Problem[], position: EditorPosition): Problem[] {
     const rank = (problem: Problem): number => problem.diagnostic.severity ?? 1;
     return problems
-        .filter((problem) => (problem.diagnostic.severity ?? 1) < 4 && rangeHolds(problem.diagnostic.range, position))
+        .filter((problem) => (problem.diagnostic.severity ?? 1) < HINT && rangeHolds(problem.diagnostic.range, position))
         .sort((left, right) => rank(left) - rank(right));
 }
 
 /* The start of the first problem after the position, or the last one before it when `direction` is back; it wraps round the document. */
 export function neighborProblem(problems: readonly Problem[], from: EditorPosition, direction: 1 | -1): Problem | null {
     const candidates = problems
-        .filter((problem) => (problem.diagnostic.severity ?? 1) < 4)
+        .filter((problem) => (problem.diagnostic.severity ?? 1) < HINT)
         .sort((left, right) => comparePositions(left.diagnostic.range.start, right.diagnostic.range.start));
     if (candidates.length === 0) {
         return null;

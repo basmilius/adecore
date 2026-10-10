@@ -3,9 +3,9 @@ import type { Location, SymbolInformation, WorkspaceSymbol, WorkspaceSymbolResul
 /* The classes a name in a signature has: a pointer and an underline on hover, and the accent only then, so the signature stays calm. */
 export const SYMBOL_LINK_CLASS = 'cursor-pointer hover:text-accent hover:underline';
 
-/* A name that reads as a type: it starts with a capital and has a lowercase letter, which leaves `DEFAULT_WEIGHTS` and `T` alone. */
 const TYPE_NAME = /^[A-Z][A-Za-z0-9_]*$/;
 
+/* A name that starts with a capital and has a lowercase letter, which leaves `DEFAULT_WEIGHTS` and `T` alone. */
 export function isTypeName(name: string): boolean {
     return TYPE_NAME.test(name) && /[a-z]/.test(name);
 }
@@ -27,7 +27,7 @@ export function declaredNameOf(code: string): string | null {
     return DECLARES.exec(code)?.[1] ?? null;
 }
 
-/* What a workspace symbol is that a type name can mean. */
+/* The symbol kinds a type name can mean: module, namespace, class, enum, interface, struct and type parameter. */
 const TYPE_KINDS = new Set([2, 3, 5, 10, 11, 23, 26]);
 
 interface Found {

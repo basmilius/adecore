@@ -1,9 +1,9 @@
 import type { i18n } from 'i18next';
 import { diffLines, splitLines } from '@adecore/merge';
-import type { GitBlameCommit, GitBlameResult } from './host-types.ts';
 import { formatNumber } from '@adecore/ui/format';
+import type { GitBlameCommit, GitBlameResult } from './host-types.ts';
 
-/* What a line of the text in the editor is: the index of the commit that wrote it, or this for a line no commit holds yet. */
+/* A line no commit holds yet; every other line maps to the index of the commit that wrote it. */
 export const UNCOMMITTED = -1;
 
 /*

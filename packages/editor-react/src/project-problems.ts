@@ -1,6 +1,5 @@
-import type { Diagnostic } from '@adecore/lsp';
-import type { LanguageService } from '@adecore/lsp';
-import { comparePositions, severityOf } from './diagnostics-model.ts';
+import type { Diagnostic, LanguageService } from '@adecore/lsp';
+import { comparePositions, problemCountsOf, severityOf } from './diagnostics-model.ts';
 import type { ProblemCounts } from './diagnostics.ts';
 
 /* One problem of a file and the server that reported it. */
@@ -81,7 +80,5 @@ export class ProjectProblems {
 }
 
 export function countsOf(files: readonly ProblemFile[]): ProblemCounts {
-    const rows = files.flatMap((file) => file.rows);
-    const count = (severity: number): number => rows.filter((row) => (row.diagnostic.severity ?? 1) === severity).length;
-    return { error: count(1), warning: count(2), info: count(3) };
+    return problemCountsOf(files.flatMap((file) => file.rows.map((row) => row.diagnostic)));
 }

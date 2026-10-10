@@ -7,10 +7,8 @@ const METHOD = 'textDocument/semanticTokens/full';
 const PAUSE_MS = 200;
 
 /*
- * Colors the editor draws from what the language servers know, over what the grammar made of the text:
- * a class is a class and a call is a call where the grammar could only guess. It asks after a pause in
- * typing and when a server says its offer changed, and keeps drawing the last answer, which follows its
- * text through edits, in between, so the colors never blink out while the next one is on its way.
+ * Colors from what the language servers know, over the grammar's guess. It asks after a pause in typing
+ * and when a server's offer changed, and keeps drawing the last answer meanwhile so the colors never blink out.
  */
 export class SemanticTokensFeature {
     private readonly refresher: Refresher;

@@ -1,5 +1,4 @@
 import { KEYMAP, type Keymap } from '@adecore/editor/keymap';
-import { shortcutsOf } from './shortcut-keys.ts';
 import type { Editor, EditorPosition } from '@adecore/editor';
 import type { Location } from '@adecore/lsp';
 import { CodeActionsFeature } from './code-actions.ts';
@@ -17,6 +16,7 @@ import { PeekFeature } from './peek.ts';
 import { PickFeature } from './pick.ts';
 import { SymbolPickerFeature } from './symbol-picker.ts';
 import { RenameFeature } from './rename.ts';
+import { shortcutsOf } from './shortcut-keys.ts';
 import { createPopupStore } from './popups.ts';
 import { realTimers, type Timers } from './timers.ts';
 import { InlayHintsFeature } from './inlay-hints.ts';
@@ -93,16 +93,6 @@ export class EditorLanguage {
         new FoldingFeature(this, (listener) => this.symbols.onResult(listener), timers);
         this.placeOpenedCaret(editor.getCaret());
         this.onDispose(editor.onCaret((position) => this.placeOpenedCaret(position)));
-    }
-
-    /* A file opened from another one lands on the line; this puts the caret on the column the jump meant. */
-    private placeOpenedCaret(position: EditorPosition): void {
-        const column = this.project.takeCaret(this.uri, position.line);
-        if (column !== null && column.character !== position.character) {
-            this.editor.setCaret(column);
-            return;
-        }
-        this.project.noteCaret({ uri: this.uri, position });
     }
 
     get uri(): string {
@@ -185,5 +175,15 @@ export class EditorLanguage {
             dispose();
         }
         this.document.release();
+    }
+
+    /* A file opened from another one lands on the line; this puts the caret on the column the jump meant. */
+    private placeOpenedCaret(position: EditorPosition): void {
+        const column = this.project.takeCaret(this.uri, position.line);
+        if (column !== null && column.character !== position.character) {
+            this.editor.setCaret(column);
+            return;
+        }
+        this.project.noteCaret({ uri: this.uri, position });
     }
 }

@@ -5,6 +5,7 @@ import { NavigationHistory, type Place } from './navigation-history.ts';
 import { ProjectProblems } from './project-problems.ts';
 import { applyWorkspaceEdit, type ProjectFiles } from './workspace-edit.ts';
 import type { LanguageHost } from './host-types.ts';
+import { relativeTo } from './paths.ts';
 
 export interface LanguageDocumentHandle {
     readonly uri: string;
@@ -13,16 +14,16 @@ export interface LanguageDocumentHandle {
     release(): void;
 }
 
+/* Sends one editor's edits to the document, holding them until the document is open. */
 class DocumentSync {
     readonly ready: Promise<void>;
+    readonly editor: Editor;
+    private readonly service: LanguageService;
+    private readonly uri: string;
+    private readonly stop: () => void;
     private pending: ContentChange[] = [];
     private opened = false;
     private disposed = false;
-    private readonly stop: () => void;
-
-    private readonly service: LanguageService;
-    private readonly uri: string;
-    readonly editor: Editor;
 
     constructor(service: LanguageService, uri: string, languageId: string, editor: Editor) {
         this.service = service;
@@ -39,6 +40,16 @@ class DocumentSync {
         this.ready.catch(() => undefined);
     }
 
+    get text(): string {
+        return this.editor.getText();
+    }
+
+    dispose(): void {
+        this.disposed = true;
+        this.pending = [];
+        this.stop();
+    }
+
     private changed(changes: readonly ContentChange[]): void {
         this.pending.push(...changes);
         if (this.opened) {
@@ -53,16 +64,6 @@ class DocumentSync {
         const changes = this.pending;
         this.pending = [];
         void this.service.changeDocument(this.uri, changes).catch(() => undefined);
-    }
-
-    dispose(): void {
-        this.disposed = true;
-        this.pending = [];
-        this.stop();
-    }
-
-    get text(): string {
-        return this.editor.getText();
     }
 }
 
@@ -103,7 +104,7 @@ export class ProjectLanguage {
             return this.host.pathOfUri(uri);
         }
         const path = fileUriToPath(uri);
-        return path !== null && this.folder !== '' && path.startsWith(`${this.folder}/`) ? path.slice(this.folder.length + 1) : path;
+        return path !== null && this.folder !== '' ? relativeTo(path, this.folder) : path;
     }
 
     /* Makes an edit of a language server: an open document takes it as one undo step and any other file gets an unsaved draft. */

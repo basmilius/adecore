@@ -3,9 +3,8 @@ import type { EditorLanguage } from './editor-language.ts';
 export type ClipboardAction = 'cut' | 'copy' | 'paste';
 
 /*
- * The editor's context menu. The editor only says where it was asked for; the menu is drawn by the page
- * (`EditorContextMenu`) from what the language servers support at the caret, and the refactors it lists
- * are asked for while it opens, so it never waits for them.
+ * The editor only says where its context menu was asked for; `EditorContextMenu` draws it from what the
+ * servers support at the caret. The refactors are asked for while it opens, so it never waits for them.
  */
 export class ContextMenuFeature {
     private readonly language: EditorLanguage;
@@ -14,7 +13,7 @@ export class ContextMenuFeature {
     constructor(language: EditorLanguage) {
         this.language = language;
         const off = language.editor.onContextMenu((menu) => {
-            // A right click outside the selection moves the caret there first, as every code editor does, so the menu is about what was clicked.
+            // A right click outside the selection moves the caret first, so the menu is about what was clicked.
             if (!menu.inSelection) {
                 language.editor.setCaret(menu.position);
             }
@@ -33,7 +32,7 @@ export class ContextMenuFeature {
         }
     }
 
-    /* Cut, copy and paste go through the browser's own commands on the editor's input, which is what keeps the clipboard and the undo history one thing. */
+    /* The browser's own commands on the editor's input, which keep the clipboard and the undo history one thing. */
     clipboard(action: ClipboardAction): void {
         const { editor } = this.language;
         editor.focus();

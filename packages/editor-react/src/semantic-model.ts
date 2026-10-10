@@ -2,12 +2,10 @@ import type { EditorSemanticToken } from '@adecore/editor';
 import type { SemanticTokens, SemanticTokensLegend } from '@adecore/lsp';
 
 /*
- * The TextMate scopes a classification stands for, so the editor's theme colors it the way its own
- * grammar colors the same thing. Null where the grammar already did better: a keyword, a string, a
- * local variable. A function being called, a method, a static member and a declaration are scopes of
- * their own, as the platform's color scheme tells them apart. `scoped` says the server marks what is
- * local to a function, so a variable it leaves unmarked lives at the top of a file or comes from a
- * library, which the scheme draws as a global.
+ * The TextMate scopes a classification stands for, so the theme colors it as its grammar would; null where
+ * the grammar already did better (a keyword, a string, a local variable). Calls, methods, statics and
+ * declarations get scopes of their own, as the color scheme tells them apart. `scoped` says the server
+ * marks what is local to a function, so a variable it leaves unmarked is drawn as a global.
  */
 export function scopesOf(type: string, modifiers: ReadonlySet<string>, scoped = false): string[] | null {
     switch (type) {

@@ -4,7 +4,6 @@ export interface ReviewMember {
     hide(runIds: readonly string[]): void;
     /* Restores runs after a refused operation. */
     show(runIds: readonly string[]): void;
-    /* Refreshes runs after an operation. */
     refresh(): void;
 }
 
@@ -24,20 +23,21 @@ export class ReviewGroup {
     }
 
     hide(runIds: readonly string[]): void {
-        for (const member of [...this.members]) {
-            member.hide(runIds);
-        }
+        this.each((member) => member.hide(runIds));
     }
 
     show(runIds: readonly string[]): void {
-        for (const member of [...this.members]) {
-            member.show(runIds);
-        }
+        this.each((member) => member.show(runIds));
     }
 
     refresh(): void {
+        this.each((member) => member.refresh());
+    }
+
+    /* Over a copy, since a member may leave while it hears. */
+    private each(action: (member: ReviewMember) => void): void {
         for (const member of [...this.members]) {
-            member.refresh();
+            action(member);
         }
     }
 }
@@ -46,13 +46,9 @@ const groups = new Map<string, { group: ReviewGroup; holders: number }>();
 
 /* The host supplies a shared file key; the group is released with its last editor. */
 export function joinReviewGroup(key: string): { group: ReviewGroup; leave(): void } {
-    let entry = groups.get(key);
-    if (entry === undefined) {
-        entry = { group: new ReviewGroup(), holders: 0 };
-        groups.set(key, entry);
-    }
-    entry.holders++;
-    const held = entry;
+    const held = groups.get(key) ?? { group: new ReviewGroup(), holders: 0 };
+    groups.set(key, held);
+    held.holders++;
     let left = false;
     return {
         group: held.group,

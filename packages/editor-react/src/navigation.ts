@@ -1,4 +1,4 @@
-import { StaleResultError, fileUriToPath, type Location, type LocationLink, type NavigationResult, type Range } from '@adecore/lsp';
+import { StaleResultError, fileUriToPath, type LanguageService, type Location, type LocationLink, type NavigationResult, type Range } from '@adecore/lsp';
 import type { EditorPosition } from '@adecore/editor';
 import { basenameOf } from './paths.ts';
 import type { EditorLanguage } from './editor-language.ts';
@@ -13,6 +13,13 @@ const METHODS: Record<NavigationKind, string> = {
     declaration: 'textDocument/declaration',
     typeDefinition: 'textDocument/typeDefinition',
     implementation: 'textDocument/implementation'
+};
+
+const REQUESTS: Record<NavigationKind, (service: LanguageService, uri: string, position: EditorPosition) => Promise<NavigationResult>> = {
+    definition: (service, uri, position) => service.definition(uri, position),
+    declaration: (service, uri, position) => service.declaration(uri, position),
+    typeDefinition: (service, uri, position) => service.typeDefinition(uri, position),
+    implementation: (service, uri, position) => service.implementation(uri, position)
 };
 
 const SHORTCUT_KINDS: readonly [NavigationKind, 'goToDefinition' | 'goToTypeDefinition' | 'goToImplementation'][] = [
@@ -96,14 +103,7 @@ export class NavigationFeature {
         }
         let result: NavigationResult;
         try {
-            const { service } = project;
-            result = await (kind === 'definition'
-                ? service.definition(uri, position)
-                : kind === 'declaration'
-                  ? service.declaration(uri, position)
-                  : kind === 'typeDefinition'
-                    ? service.typeDefinition(uri, position)
-                    : service.implementation(uri, position));
+            result = await REQUESTS[kind](project.service, uri, position);
         } catch (error) {
             if (!(error instanceof StaleResultError)) {
                 this.tell(this.say('failed', { message: error instanceof Error ? error.message : String(error) }));

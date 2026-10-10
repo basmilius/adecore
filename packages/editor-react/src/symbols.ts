@@ -1,5 +1,5 @@
 import type { EditorBlock } from '@adecore/editor';
-import type { DocumentSymbol, DocumentSymbolResult, SymbolInformation } from '@adecore/lsp';
+import type { DocumentSymbol, DocumentSymbolResult, Range, SymbolInformation } from '@adecore/lsp';
 import type { EditorLanguage } from './editor-language.ts';
 import { Refresher } from './refresher.ts';
 import { realTimers, type Timers } from './timers.ts';
@@ -23,42 +23,43 @@ const KINDS: Record<number, string> = {
     23: 'struct'
 };
 
-function isHierarchical(symbols: readonly (DocumentSymbol | SymbolInformation)[]): symbols is DocumentSymbol[] {
-    return symbols.length > 0 && 'range' in symbols[0]!;
+export interface SymbolSpan {
+    readonly name: string;
+    readonly kind: number;
+    readonly range: Range;
 }
 
-function blockOf(name: string, kind: number, startLine: number, endLine: number): EditorBlock | null {
+function walk(symbols: readonly DocumentSymbol[], spans: SymbolSpan[]): void {
+    for (const symbol of symbols) {
+        spans.push({ name: symbol.name, kind: symbol.kind, range: symbol.range });
+        walk(symbol.children ?? [], spans);
+    }
+}
+
+/* Every symbol of an answer, a parent before its children, whether the server sent a tree or a flat list. */
+export function symbolSpansOf(result: DocumentSymbolResult): SymbolSpan[] {
+    const spans: SymbolSpan[] = [];
+    if (result === null || result.length === 0) {
+        return spans;
+    }
+    if ('range' in result[0]!) {
+        walk(result as DocumentSymbol[], spans);
+        return spans;
+    }
+    return (result as SymbolInformation[]).map((symbol) => ({ name: symbol.name, kind: symbol.kind, range: symbol.location.range }));
+}
+
+function blockOf({ name, kind, range }: SymbolSpan): EditorBlock | null {
     const label = KINDS[kind];
     // A one-line symbol has no body to pin, and a property or an enum member is part of the block around it.
-    return label === undefined || endLine <= startLine ? null : { startLine: startLine + 1, endLine: endLine + 1, name, kind: label };
-}
-
-function walk(symbols: readonly DocumentSymbol[], blocks: EditorBlock[]): void {
-    for (const symbol of symbols) {
-        const block = blockOf(symbol.name, symbol.kind, symbol.range.start.line, symbol.range.end.line);
-        if (block !== null) {
-            blocks.push(block);
-        }
-        walk(symbol.children ?? [], blocks);
-    }
+    return label === undefined || range.end.line <= range.start.line
+        ? null
+        : { startLine: range.start.line + 1, endLine: range.end.line + 1, name, kind: label };
 }
 
 /* The multi-line symbols of a file as blocks, outermost first, in one-based lines. */
 export function blocksOf(result: DocumentSymbolResult): EditorBlock[] {
-    const blocks: EditorBlock[] = [];
-    if (result === null || result.length === 0) {
-        return blocks;
-    }
-    if (isHierarchical(result)) {
-        walk(result, blocks);
-    } else {
-        for (const symbol of result as SymbolInformation[]) {
-            const block = blockOf(symbol.name, symbol.kind, symbol.location.range.start.line, symbol.location.range.end.line);
-            if (block !== null) {
-                blocks.push(block);
-            }
-        }
-    }
+    const blocks = symbolSpansOf(result).flatMap((span) => blockOf(span) ?? []);
     return blocks.sort((left, right) => left.startLine - right.startLine || right.endLine - left.endLine);
 }
 

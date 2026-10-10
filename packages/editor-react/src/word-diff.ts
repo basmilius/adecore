@@ -4,10 +4,8 @@ import { diffLines } from '@adecore/merge';
 const TOKEN = /\w+|\s+|[^\w\s]/g;
 
 /*
- * The character ranges of each removed line that the added lines changed, `[start, end)` per line, for
- * the stronger tint on the words a change replaced. Lines are only compared when as many were added as
- * removed, since then each removed line has the line it became; any other change has no such pairing
- * and draws no words.
+ * The `[start, end)` ranges of each removed line that the added lines replaced. Lines pair up only when as
+ * many were added as removed; any other change has no pairing and marks no words.
  */
 export function replacedWords(removed: readonly string[], added: readonly string[]): Array<Array<[number, number]>> {
     return removed.map((line, index) => (removed.length === added.length ? replacedRanges(line, added[index]!) : []));

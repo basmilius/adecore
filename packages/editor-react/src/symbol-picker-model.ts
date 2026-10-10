@@ -40,6 +40,8 @@ export function groupOfKind(kind: number): SymbolGroup {
     return GROUP_OF_KIND[kind] ?? 'other';
 }
 
+const ENUM_MEMBER = 22;
+
 const LETTERS: Record<SymbolGroup, string> = {
     namespaces: 'N',
     classes: 'C',
@@ -55,20 +57,26 @@ const LETTERS: Record<SymbolGroup, string> = {
 
 /* The letter in the badge in front of a symbol. */
 export function letterOfKind(kind: number): string {
-    return kind === 22 ? 'e' : LETTERS[groupOfKind(kind)];
+    return kind === ENUM_MEMBER ? 'e' : LETTERS[groupOfKind(kind)];
 }
 
 export type SymbolTone = 'callable' | 'value' | 'type' | 'other';
 
+const TONES: Record<SymbolGroup, SymbolTone> = {
+    namespaces: 'other',
+    classes: 'type',
+    interfaces: 'type',
+    enums: 'type',
+    functions: 'callable',
+    methods: 'callable',
+    properties: 'value',
+    variables: 'value',
+    constants: 'value',
+    other: 'other'
+};
+
 export function toneOfKind(kind: number): SymbolTone {
-    const group = groupOfKind(kind);
-    return group === 'functions' || group === 'methods'
-        ? 'callable'
-        : group === 'classes' || group === 'interfaces' || group === 'enums'
-          ? 'type'
-          : group === 'properties' || group === 'variables' || group === 'constants'
-            ? 'value'
-            : 'other';
+    return TONES[groupOfKind(kind)];
 }
 
 /* One symbol of a file as a row of the picker. */

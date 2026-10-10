@@ -2,12 +2,11 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { AtSign, Hash } from 'lucide-react';
-import { Icon } from '@adecore/ui';
-import { formatShortcut } from '@adecore/ui';
-import { formatNumber } from '@adecore/ui/format';
-import { basenameOf } from './paths.ts';
 import { fileUriToPath } from '@adecore/lsp';
+import { formatShortcut, Icon } from '@adecore/ui';
+import { formatNumber } from '@adecore/ui/format';
 import type { EditorLanguage } from './editor-language.ts';
+import { basenameOf } from './paths.ts';
 import type { SymbolsView } from './popups.ts';
 import {
     filterEntries,

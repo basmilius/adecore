@@ -34,9 +34,8 @@ export function covers(asked: EditorRange, visible: EditorRange): boolean {
 }
 
 /*
- * Types and parameter names the servers infer, drawn in the text as soft pills. They are asked for the
- * lines in view and a margin around them after a pause in typing or scrolling; until the answer comes the
- * last ones stay where their text went, so nothing blinks while typing. Scrolling asks again only once the
+ * Types and parameter names the servers infer, asked for the lines in view and a margin around them. The
+ * last ones stay until the answer comes, so nothing blinks while typing; scrolling asks again only once the
  * view leaves the lines that were asked for.
  */
 export class InlayHintsFeature {

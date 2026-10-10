@@ -1,4 +1,4 @@
-/* The highlighter ids `fs.read` answers with, by the id LSP names the same language. */
+/* Highlighter ids mapped to the LSP id of the same language. */
 const LSP_IDS: Record<string, string> = {
     typescript: 'typescript',
     tsx: 'typescriptreact',

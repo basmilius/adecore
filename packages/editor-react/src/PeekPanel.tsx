@@ -1,4 +1,3 @@
-import { useEditorRendering } from './rendering-context.ts';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
@@ -6,13 +5,14 @@ import { ChevronDown, ChevronRight, X } from 'lucide-react';
 import { fileUriToPath } from '@adecore/lsp';
 import { FileIcon, IconButton, Tooltip } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
-import { basenameOf } from './paths.ts';
+import { basenameOf, relativeTo } from './paths.ts';
 import type { EditorLanguage } from './editor-language.ts';
 import { shikiLanguageOfPath } from './language-ids.ts';
 import { PathText } from './PathText.tsx';
 import { PEEK_HEIGHT } from './peek.ts';
 import { distinguishingFolders, visualColumnOf, type NameRange, type PeekPlace } from './peek-model.ts';
 import type { PeekView } from './popups.ts';
+import { useEditorRendering } from './rendering-context.ts';
 
 const TAB_SIZE = 4;
 const CODE =
@@ -28,10 +28,7 @@ function Preview({ view }: { view: PeekView }) {
     const key = preview === null ? '' : `${theme}\0${path}\0${preview.text}`;
 
     useEffect(() => {
-        if (preview === null) {
-            return;
-        }
-        if (highlight === undefined) {
+        if (preview === null || highlight === undefined) {
             return;
         }
         let alive = true;
@@ -96,10 +93,6 @@ function Preview({ view }: { view: PeekView }) {
 function columnsOf(line: string, name: NameRange): NameRange {
     const start = visualColumnOf(line, name.start, TAB_SIZE);
     return { start, end: visualColumnOf(line, name.end, TAB_SIZE) };
-}
-
-function relativeTo(path: string, folder: string): string {
-    return path.startsWith(`${folder}/`) ? path.slice(folder.length + 1) : path;
 }
 
 function folderOf(path: string): string {

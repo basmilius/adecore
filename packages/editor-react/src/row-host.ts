@@ -8,14 +8,16 @@ export interface HostedRow {
     height: number;
 }
 
-/*
- * The rows of one owner in an editor, and the elements the editor draws them in, so React can portal
- * into them. The editor makes an element again whenever its row scrolls back into view, which is why a
- * row's content never keeps state of its own.
- */
-export class RowHost {
-    private readonly editor: Editor;
-    private readonly owner: string;
+export interface HostedAction {
+    id: string;
+    /* Zero-based. */
+    line: number;
+}
+
+/* The elements an editor made for one owner's entries, and a version React reads them by. */
+abstract class ContainerHost {
+    protected readonly editor: Editor;
+    protected readonly owner: string;
     private readonly containers = new Map<string, HTMLElement>();
     private readonly listeners = new Set<() => void>();
     private version = 0;
@@ -39,18 +41,49 @@ export class RowHost {
         return this.containers.get(id);
     }
 
-    /* Sets the owner's rows; the same rows again are left alone, so an editor does not measure them twice. */
-    set(rows: readonly HostedRow[]): void {
-        const signature = rows.map((row) => `${row.id}@${row.line}${row.placement}`).join('|');
+    /* False for the same entries again, so an editor does not measure them twice; otherwise drops the elements of entries that left. */
+    protected replace(signature: string, ids: readonly string[]): boolean {
         if (signature === this.signature) {
-            return;
+            return false;
         }
         this.signature = signature;
-        const kept = new Set(rows.map((row) => row.id));
+        const kept = new Set(ids);
         for (const id of [...this.containers.keys()]) {
             if (!kept.has(id)) {
                 this.containers.delete(id);
             }
+        }
+        return true;
+    }
+
+    protected mounted(id: string, container: HTMLElement): void {
+        this.containers.set(id, container);
+        this.bump();
+    }
+
+    protected bump(): void {
+        this.version++;
+        for (const listener of [...this.listeners]) {
+            listener();
+        }
+    }
+}
+
+/*
+ * The rows of one owner in an editor, and the elements the editor draws them in, so React can portal
+ * into them. The editor makes an element again whenever its row scrolls back into view, which is why a
+ * row's content never keeps state of its own.
+ */
+export class RowHost extends ContainerHost {
+    set(rows: readonly HostedRow[]): void {
+        const signature = rows.map((row) => `${row.id}@${row.line}${row.placement}`).join('|');
+        if (
+            !this.replace(
+                signature,
+                rows.map((row) => row.id)
+            )
+        ) {
+            return;
         }
         this.editor.setWidgets(
             rows.map((row) => ({
@@ -68,24 +101,6 @@ export class RowHost {
     clear(): void {
         this.set([]);
     }
-
-    private mounted(id: string, container: HTMLElement): void {
-        this.containers.set(id, container);
-        this.bump();
-    }
-
-    private bump(): void {
-        this.version++;
-        for (const listener of [...this.listeners]) {
-            listener();
-        }
-    }
-}
-
-export interface HostedAction {
-    id: string;
-    /* Zero-based. */
-    line: number;
 }
 
 /*
@@ -93,52 +108,22 @@ export interface HostedAction {
  * them. An element lives as long as its action does, unlike a row's, so what React draws into it keeps
  * its state.
  */
-export class LineActionHost {
-    private readonly editor: Editor;
-    private readonly owner: string;
-    private readonly containers = new Map<string, HTMLElement>();
-    private readonly listeners = new Set<() => void>();
-    private version = 0;
-    private signature = '';
-
-    constructor(editor: Editor, owner: string) {
-        this.editor = editor;
-        this.owner = owner;
-    }
-
-    getVersion = (): number => this.version;
-
-    subscribe = (listener: () => void): (() => void) => {
-        this.listeners.add(listener);
-        return () => {
-            this.listeners.delete(listener);
-        };
-    };
-
-    container(id: string): HTMLElement | undefined {
-        return this.containers.get(id);
-    }
-
+export class LineActionHost extends ContainerHost {
     set(actions: readonly HostedAction[]): void {
         const signature = actions.map((action) => `${action.id}@${action.line}`).join('|');
-        if (signature === this.signature) {
+        if (
+            !this.replace(
+                signature,
+                actions.map((action) => action.id)
+            )
+        ) {
             return;
-        }
-        this.signature = signature;
-        const kept = new Set(actions.map((action) => action.id));
-        for (const id of [...this.containers.keys()]) {
-            if (!kept.has(id)) {
-                this.containers.delete(id);
-            }
         }
         this.editor.setLineActions(
             actions.map((action) => ({
                 id: action.id,
                 line: action.line,
-                render: (container: HTMLElement) => {
-                    this.containers.set(action.id, container);
-                    this.bump();
-                }
+                render: (container: HTMLElement) => this.mounted(action.id, container)
             })),
             this.owner
         );
@@ -147,12 +132,5 @@ export class LineActionHost {
 
     clear(): void {
         this.set([]);
-    }
-
-    private bump(): void {
-        this.version++;
-        for (const listener of [...this.listeners]) {
-            listener();
-        }
     }
 }

@@ -1,5 +1,6 @@
 import {
     applyContentChanges,
+    ErrorCodes,
     LspError,
     StaleResultError,
     type LanguageService,
@@ -69,7 +70,7 @@ export class FakeLanguageService implements LanguageService {
     async changeDocument(uri: string, changes: readonly ContentChange[]): Promise<void> {
         const held = this.documents.get(uri);
         if (held === undefined) {
-            throw new LspError('Document is not open', -32002);
+            throw new LspError('Document is not open', ErrorCodes.ServerNotInitialized);
         }
         held.text = applyContentChanges(held.text, changes);
         held.version++;
@@ -113,7 +114,7 @@ export class FakeLanguageService implements LanguageService {
 
     private async request<Result>(method: string, uri: string, params: unknown, options: LanguageRequestOptions = {}): Promise<Result> {
         if (!this.supports(method, uri)) {
-            throw new LspError(`${method} is unavailable`, -32601);
+            throw new LspError(`${method} is unavailable`, ErrorCodes.MethodNotFound);
         }
         options.signal?.throwIfAborted();
         const version = this.documents.get(uri)?.version;
@@ -126,6 +127,7 @@ export class FakeLanguageService implements LanguageService {
         }
         return result as Result;
     }
+
     completion(uri: string, position: Position, context?: CompletionContext, options: LanguageRequestOptions = {}): Promise<CompletionResult> {
         return this.request<CompletionResult>('textDocument/completion', uri, { position, context }, options);
     }

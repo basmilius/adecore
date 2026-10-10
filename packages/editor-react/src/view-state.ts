@@ -1,7 +1,9 @@
 import type { EditorFolds, FoldRole } from '@adecore/editor';
+
 export interface RevealLineRequest {
     readonly line: number;
 }
+
 function endpointKey(namespace: string, path: string): string {
     return `${namespace}:${path}`;
 }

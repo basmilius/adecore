@@ -1,7 +1,8 @@
 import type { EditorFoldHints, EditorFoldRangeHint, EditorFoldSymbol } from '@adecore/editor';
-import type { DocumentSymbol, DocumentSymbolResult, FoldingRange, SymbolInformation } from '@adecore/lsp';
+import type { DocumentSymbolResult, FoldingRange } from '@adecore/lsp';
 import type { EditorLanguage } from './editor-language.ts';
 import { Refresher } from './refresher.ts';
+import { symbolSpansOf } from './symbols.ts';
 import { realTimers, type Timers } from './timers.ts';
 
 const METHOD = 'textDocument/foldingRange';
@@ -22,33 +23,12 @@ const BODIES: Readonly<Record<number, EditorFoldSymbol['body']>> = {
     23: 'class'
 };
 
-function walk(symbols: readonly DocumentSymbol[], found: EditorFoldSymbol[]): void {
-    for (const symbol of symbols) {
-        const body = BODIES[symbol.kind];
-        if (body !== undefined && symbol.range.end.line > symbol.range.start.line) {
-            found.push({ range: symbol.range, body });
-        }
-        walk(symbol.children ?? [], found);
-    }
-}
-
 /* The symbols that have a body of more than one line, as what the editor folds them by. */
 export function foldSymbolsOf(result: DocumentSymbolResult): EditorFoldSymbol[] {
-    const found: EditorFoldSymbol[] = [];
-    if (result === null || result.length === 0) {
-        return found;
-    }
-    if ('range' in result[0]!) {
-        walk(result as DocumentSymbol[], found);
-        return found;
-    }
-    for (const symbol of result as SymbolInformation[]) {
-        const body = BODIES[symbol.kind];
-        if (body !== undefined && symbol.location.range.end.line > symbol.location.range.start.line) {
-            found.push({ range: symbol.location.range, body });
-        }
-    }
-    return found;
+    return symbolSpansOf(result).flatMap(({ kind, range }) => {
+        const body = BODIES[kind];
+        return body !== undefined && range.end.line > range.start.line ? [{ range, body }] : [];
+    });
 }
 
 /* The ranges a server folds that span more than one line, with where a range starts and ends within its lines when it says. */

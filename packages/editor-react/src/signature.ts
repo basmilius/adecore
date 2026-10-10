@@ -67,7 +67,7 @@ export class SignatureFeature {
         this.ask({ triggerKind: 2, triggerCharacter: '(', isRetrigger: false });
     }
 
-    /* Shows the next overload, or the one before, while the card is up and has more than one; false when it has not, which leaves the arrow to the caret. */
+    /* Shows the next or previous overload; false when the card has fewer than two, which leaves the arrow to the caret. */
     private cycle(step: 1 | -1): boolean {
         const { help } = this;
         if (help === null || help.signatures.length < 2 || !this.isOpen) {

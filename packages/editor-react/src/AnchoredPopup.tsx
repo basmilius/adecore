@@ -14,9 +14,8 @@ export interface AnchoredPopupProps {
 }
 
 /*
- * A card next to a character of the editor, in a layer of the page itself: a canvas puts a scale on its
- * nodes, and a card inside one would be drawn at that scale and cut off by the node's edge. It is
- * placed from the character's screen rectangle, so it is right at any zoom, and it never leaves the window.
+ * A card next to a character of the editor, portaled to the page: inside a scaled canvas node it would be
+ * drawn at that scale and clipped by the node. Placed from the character's screen rectangle, so it holds at any zoom.
  */
 export function AnchoredPopup({ rect, className, children, placement, onPointerEnter, onPointerLeave }: AnchoredPopupProps) {
     const element = useRef<HTMLDivElement>(null);

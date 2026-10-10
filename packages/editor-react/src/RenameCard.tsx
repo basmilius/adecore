@@ -6,7 +6,7 @@ import { fileUriToPath } from '@adecore/lsp';
 import type { EditorRect } from '@adecore/editor';
 import { Button, Icon } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
-import { basenameOf } from './paths.ts';
+import { basenameOf, relativeTo } from './paths.ts';
 import { AnchoredPopup } from './AnchoredPopup.tsx';
 import type { EditorLanguage } from './editor-language.ts';
 import type { RenameView } from './popups.ts';
@@ -91,7 +91,7 @@ function Preview({ language, view }: { language: EditorLanguage; view: RenameVie
             <div className="max-h-[320px] overflow-y-auto">
                 {view.files.map((file) => {
                     const path = fileUriToPath(file.uri);
-                    const shown = path === null ? file.uri : path.startsWith(`${folder}/`) ? path.slice(folder.length + 1) : path;
+                    const shown = path === null ? file.uri : relativeTo(path, folder);
                     return (
                         <div key={file.uri} className="border-b border-border last:border-b-0">
                             <div className="flex items-center gap-2 px-3 py-1.5 text-xs">

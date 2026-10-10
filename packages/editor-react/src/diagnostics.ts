@@ -1,8 +1,8 @@
 import type { Diagnostic } from '@adecore/lsp';
-import type { EditorContentChange, EditorPosition } from '@adecore/editor';
+import type { EditorContentChange, EditorPosition, EditorReveal } from '@adecore/editor';
 import type { EditorLanguage } from './editor-language.ts';
 import { isShortcut } from './shortcut-keys.ts';
-import { comparePositions, markerOf, neighborProblem, problemsAt, shiftRange, type Problem } from './diagnostics-model.ts';
+import { comparePositions, markerOf, neighborProblem, problemCountsOf, problemsAt, shiftRange, type Problem } from './diagnostics-model.ts';
 
 export interface ProblemCounts {
     readonly error: number;
@@ -54,8 +54,7 @@ export class DiagnosticsFeature {
     }
 
     counts(): ProblemCounts {
-        const count = (severity: number): number => this.list.filter((problem) => (problem.diagnostic.severity ?? 1) === severity).length;
-        return { error: count(1), warning: count(2), info: count(3) };
+        return problemCountsOf(this.list.map((problem) => problem.diagnostic));
     }
 
     at(position: EditorPosition): Problem[] {
@@ -64,27 +63,23 @@ export class DiagnosticsFeature {
 
     /* Puts the caret on the next problem, or the one before; false when there is none. */
     step(direction: 1 | -1): boolean {
-        const { editor } = this.language;
-        const target = neighborProblem(this.list, editor.getCaret(), direction);
+        const caret = this.language.editor.getCaret();
+        const target = neighborProblem(this.list, caret, direction);
         if (target === null) {
             return false;
         }
-        editor.setCaret(target.diagnostic.range.start, comparePositions(target.diagnostic.range.start, editor.getCaret()) > 0 ? 'centerDown' : 'centerUp');
-        editor.focus();
-        this.language.hover.showProblemsAt(editor.getCaret());
+        const { start } = target.diagnostic.range;
+        this.reveal(start, comparePositions(start, caret) > 0 ? 'centerDown' : 'centerUp');
         return true;
     }
 
     /* Puts the caret on the first problem of the file. */
     goToFirst(): boolean {
-        const { editor } = this.language;
         const target = neighborProblem(this.list, { line: -1, character: 0 }, 1);
         if (target === null) {
             return false;
         }
-        editor.setCaret(target.diagnostic.range.start, 'center');
-        editor.focus();
-        this.language.hover.showProblemsAt(editor.getCaret());
+        this.reveal(target.diagnostic.range.start, 'center');
         return true;
     }
 
@@ -93,6 +88,13 @@ export class DiagnosticsFeature {
         return () => {
             this.listeners.delete(listener);
         };
+    }
+
+    private reveal(position: EditorPosition, reveal: EditorReveal): void {
+        const { editor } = this.language;
+        editor.setCaret(position, reveal);
+        editor.focus();
+        this.language.hover.showProblemsAt(editor.getCaret());
     }
 
     private shift(changes: readonly EditorContentChange[]): void {

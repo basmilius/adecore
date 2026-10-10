@@ -1,10 +1,9 @@
-import { StaleResultError } from '@adecore/lsp';
+import { ErrorCodes, StaleResultError } from '@adecore/lsp';
 import { realTimers, type Timers } from './timers.ts';
 
 /*
- * Asks again for something a document's text decides, such as its colors or its hints: after a pause
- * in typing, when a server says what it offers changed, and never twice at once. A newer ask aborts the
- * one before it, and an answer for a text that has moved on is dropped, since another ask is on its way.
+ * Asks again for something a document's text decides, such as its colors or hints, never twice at once.
+ * A newer ask aborts the one before it, and an answer for a text that moved on is dropped.
  */
 export class Refresher {
     private timer: unknown;
@@ -49,8 +48,15 @@ export class Refresher {
     }
 }
 
-/* The failures of a server that is not up, does not offer the feature or was asked to stop, which are not worth a line in the console. */
+const QUIET_CODES: ReadonlySet<number> = new Set([
+    ErrorCodes.ServerNotInitialized,
+    ErrorCodes.MethodNotFound,
+    ErrorCodes.RequestCancelled,
+    ErrorCodes.ContentModified
+]);
+
+/* A server that is not up, does not offer the feature or was asked to stop is not worth a line in the console. */
 function isQuiet(error: unknown): boolean {
     const code = (error as { code?: number } | null)?.code;
-    return code === -32002 || code === -32601 || code === -32800 || code === -32801;
+    return code !== undefined && QUIET_CODES.has(code);
 }

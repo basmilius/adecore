@@ -1,4 +1,5 @@
 import type { EditorLanguage } from './editor-language.ts';
+import type { Place } from './navigation-history.ts';
 import { isShortcut } from './shortcut-keys.ts';
 
 /* Back, Forward and the list of recent locations over the history the whole project shares. */
@@ -27,21 +28,11 @@ export class HistoryFeature {
 
     /* Returns to where the caret was before the last jump; false when there is no such place. */
     back(): boolean {
-        const place = this.language.project.history.back(this.language.place);
-        if (place === null) {
-            return false;
-        }
-        this.language.visit(place);
-        return true;
+        return this.visit(this.language.project.history.back(this.language.place));
     }
 
     forward(): boolean {
-        const place = this.language.project.history.forward(this.language.place);
-        if (place === null) {
-            return false;
-        }
-        this.language.visit(place);
-        return true;
+        return this.visit(this.language.project.history.forward(this.language.place));
     }
 
     /* Lists the places of the history under the caret; choosing one jumps there like any other jump. */
@@ -52,5 +43,13 @@ export class HistoryFeature {
             this.language.editor.getCaret(),
             this.language.project.i18n.t('editor:language.history.recent')
         );
+    }
+
+    private visit(place: Place | null): boolean {
+        if (place === null) {
+            return false;
+        }
+        this.language.visit(place);
+        return true;
     }
 }
