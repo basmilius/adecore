@@ -25,12 +25,7 @@ export type DraftProblem = { readonly kind: 'json'; readonly reason: string } | 
 export type Conversion = { readonly ok: true; readonly value: EditValue } | { readonly ok: false; readonly problem: DraftProblem };
 
 /* The text a value is edited as: a binary value as its hex, everything else as it is written. */
-const textOf = (value: Exclude<Value, null>): string => {
-    if (typeof value === 'object') {
-        return value.hex;
-    }
-    return String(value);
-};
+const textOf = (value: Exclude<Value, null>): string => (typeof value === 'object' ? value.hex : String(value));
 
 export const sourceOf = (column: Pick<GridColumn, 'name' | 'type' | 'kind'>, value: Value): Source => {
     const binary = column.kind === 'binary' || (value !== null && typeof value === 'object');

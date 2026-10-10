@@ -49,11 +49,11 @@ export const prettyJson = (text: string): string | null => {
             continue;
         }
         if (char === '{' || char === '[') {
-            const empty = nextToken(i + 1) === (char === '{' ? '}' : ']');
+            const close = char === '{' ? '}' : ']';
             output += char;
-            if (empty) {
-                output += char === '{' ? '}' : ']';
-                i = text.indexOf(char === '{' ? '}' : ']', i + 1) + 1;
+            if (nextToken(i + 1) === close) {
+                output += close;
+                i = text.indexOf(close, i + 1) + 1;
                 continue;
             }
             depth++;

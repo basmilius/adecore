@@ -36,7 +36,6 @@ interface Answer {
 
 const TH = 'sticky top-0 h-7 bg-surface px-3 text-left text-xs font-medium whitespace-nowrap text-text-faint';
 const TD = 'h-7 border-t border-border-soft px-3 text-xs whitespace-nowrap text-text select-text';
-const MONO = CODE_TEXT;
 
 /* The columns, indexes, foreign keys and DDL of one table or view. */
 export function StructureView({ connection, schema, table, toolbarStart, className, ref }: StructureViewProps) {
@@ -44,7 +43,7 @@ export function StructureView({ connection, schema, table, toolbarStart, classNa
     const client = useDatabaseClient();
     const [answer, setAnswer] = useState<Answer | null>(null);
     const [attempt, setAttempt] = useState(0);
-    // A schema change reloads without leaving the structure on screen: the answer keeps its place until the new one arrives.
+    // A schema change reloads in place: the old answer stays on screen until the new one arrives.
     const [reloads, setReloads] = useState(0);
     const answered = answer !== null && answer.connection === connection && answer.schema === schema && answer.table === table && answer.attempt === attempt;
     const load: Load = answered ? answer.load : { status: 'loading' };
@@ -194,11 +193,11 @@ function ColumnRow({ column, primary, foreign }: { column: ColumnInfo; primary: 
                     {column.name}
                 </span>
             </td>
-            <td className={clsx(TD, MONO)}>{column.type}</td>
+            <td className={clsx(TD, CODE_TEXT)}>{column.type}</td>
             <td className={clsx(TD, 'text-text-muted')}>
                 <YesNo value={column.nullable} />
             </td>
-            <td className={clsx(TD, MONO)}>{column.defaultValue}</td>
+            <td className={clsx(TD, CODE_TEXT)}>{column.defaultValue}</td>
             <td className={TD}>
                 <span className="flex gap-1">
                     {column.autoIncrement && <Pill>{t('structure.autoIncrement')}</Pill>}
@@ -220,7 +219,7 @@ function IndexesTable({ indexes }: { indexes: readonly IndexInfo[] }) {
             {indexes.map((index) => (
                 <tr key={index.name}>
                     <td className={TD}>{index.name}</td>
-                    <td className={clsx(TD, MONO)}>{index.columns.join(', ')}</td>
+                    <td className={clsx(TD, CODE_TEXT)}>{index.columns.join(', ')}</td>
                     <td className={TD}>
                         <span className="flex gap-1">
                             {index.primary && <Pill tone="accent">{t('structure.primary')}</Pill>}
@@ -252,8 +251,8 @@ function ForeignKeysTable({ foreignKeys }: { foreignKeys: readonly ForeignKeyInf
             {foreignKeys.map((key, i) => (
                 <tr key={key.name ?? i}>
                     <td className={TD}>{key.name}</td>
-                    <td className={clsx(TD, MONO)}>{key.columns.join(', ')}</td>
-                    <td className={clsx(TD, MONO)}>{referenceOf(key)}</td>
+                    <td className={clsx(TD, CODE_TEXT)}>{key.columns.join(', ')}</td>
+                    <td className={clsx(TD, CODE_TEXT)}>{referenceOf(key)}</td>
                     <td className={clsx(TD, 'text-text-muted')}>{action(key.onUpdate)}</td>
                     <td className={clsx(TD, 'text-text-muted')}>{action(key.onDelete)}</td>
                 </tr>
@@ -273,7 +272,7 @@ function Ddl({ ddl }: { ddl: string | null }) {
                 <Icon icon={Copy} size={12} />
                 {t('structure.copy')}
             </Button>
-            <pre className={clsx(MONO, 'overflow-auto p-3 pr-24 whitespace-pre text-text select-text')}>{ddl}</pre>
+            <pre className={clsx(CODE_TEXT, 'overflow-auto p-3 pr-24 whitespace-pre text-text select-text')}>{ddl}</pre>
         </div>
     );
 }

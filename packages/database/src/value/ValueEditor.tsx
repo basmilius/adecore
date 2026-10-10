@@ -96,7 +96,7 @@ export function ValueEditor({ column, value, editable, onCommit }: ValueEditorPr
         } else if (rendered !== null && rendered.kind === 'text') {
             copyText(rendered.text);
         } else {
-            copyText(draft.mode === 'value' ? draft.text : draft.mode === 'null' ? 'NULL' : 'DEFAULT');
+            copyText(placeholder ?? draft.text);
         }
     };
 
