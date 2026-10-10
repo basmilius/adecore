@@ -7,12 +7,14 @@ import { AgentDemo } from '../shared/agents.tsx';
 import { DEMO_CHAT } from '../shared/agents-host.ts';
 
 /* The demo chat after its last turn ran into the plan's limit, which lifts in two hours. */
-const limitedChat = () => ({
-    [DEMO_CHAT]: {
-        info: chatInfo(DEMO_CHAT, { status: 'error', limit: { kind: 'usage' as const, resetsAt: NOW + 2 * 3_600_000 }, resumeAt: NOW + 2 * 3_600_000 }),
-        items: chatItems()
-    }
-});
+function limitedChat() {
+    return {
+        [DEMO_CHAT]: {
+            info: chatInfo(DEMO_CHAT, { status: 'error', limit: { kind: 'usage' as const, resetsAt: NOW + 2 * 3_600_000 }, resumeAt: NOW + 2 * 3_600_000 }),
+            items: chatItems()
+        }
+    };
+}
 
 function Docks() {
     const info = useChatRow(DEMO_CHAT, (row) => row?.info);

@@ -8,12 +8,12 @@ const LANGUAGES = [
     { value: 'nl', label: 'Nederlands' }
 ];
 
-const regionLabel = (region: string, language: string): string => {
+function regionLabel(region: string, language: string): string {
     if (region === FORMAT_LANGUAGE) {
         return 'Follow the language';
     }
     return region === FORMAT_SYSTEM ? 'Follow the system' : regionName(region, language);
-};
+}
 
 /* The two settings the formatters read, as an app's settings would offer them. */
 export function PreferencesBar() {

@@ -3,7 +3,7 @@ import { DatabaseProvider, type DatabaseAction, type DatabaseStorage } from '@ad
 import { createShopClient } from './shop.ts';
 
 /* Where an app would keep console history, column widths and open tabs; here it lasts until the page reloads. */
-const createStorage = (): DatabaseStorage => {
+function createStorage(): DatabaseStorage {
     const values = new Map<string, string>();
 
     return {
@@ -16,7 +16,7 @@ const createStorage = (): DatabaseStorage => {
             }
         }
     };
-};
+}
 
 /* What an app puts around the views once. A demo gets its own database, so an edit in one never shows in another. */
 export function ShopDatabase({ onAction, children }: { onAction?(action: DatabaseAction): void; children: ReactNode }) {

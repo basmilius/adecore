@@ -426,7 +426,7 @@ export function commandApproval(turnId: string): ChatApprovalItem {
     };
 }
 
-/* A spread that looks like a few weeks of work: busier on weekdays, Codex now and then. */
+/* A weight between 0 and 1 that stays the same for a slot, so every load draws the same weeks of work. */
 function seeded(slot: string, salt: number): number {
     let hash = salt;
     for (const char of slot) {

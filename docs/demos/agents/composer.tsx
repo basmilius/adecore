@@ -9,9 +9,11 @@ import { AgentDemo } from '../shared/agents.tsx';
 const CHAT = 'chat-new';
 
 /* A chat nobody wrote in yet, so the model picker still offers both CLIs. */
-const newChat = () => ({
-    [CHAT]: { info: chatInfo(CHAT, { agentSessionId: null, usage: { contextTokens: 0, contextWindow: 200_000, costUsd: 0, turns: 0 } }), items: [] }
-});
+function newChat() {
+    return {
+        [CHAT]: { info: chatInfo(CHAT, { agentSessionId: null, usage: { contextTokens: 0, contextWindow: 200_000, costUsd: 0, turns: 0 } }), items: [] }
+    };
+}
 
 function Sending() {
     const scope = useChatScope();

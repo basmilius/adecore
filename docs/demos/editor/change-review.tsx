@@ -70,5 +70,10 @@ export default function ChangeReviewDemo() {
     );
 }
 
-const noSubscription = (): (() => void) => () => {};
-const zero = (): number => 0;
+function noSubscription(): () => void {
+    return () => {};
+}
+
+function zero(): number {
+    return 0;
+}

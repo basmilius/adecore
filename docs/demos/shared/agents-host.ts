@@ -49,11 +49,18 @@ for (const [language, namespaces] of Object.entries(WORDS)) {
 }
 i18n.on('languageChanged', (language) => void globalI18next.changeLanguage(language));
 
-const subscribeTheme = (changed: () => void): (() => void) => {
+/* The chats a host starts with, by id. */
+export type DemoChats = Record<string, { info: ChatInfo; items: ChatItem[] }>;
+
+function wait(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function subscribeTheme(changed: () => void): () => void {
     const observer = new MutationObserver(changed);
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     return () => observer.disconnect();
-};
+}
 
 /* The page's light or dark, which the code blocks and diffs follow. */
 function useThemeMode(): 'light' | 'dark' {
@@ -73,9 +80,12 @@ const ACCENT_NAMES: Record<string, string> = { blue: 'Blue', violet: 'Violet', r
 
 const IMAGE_URLS = generatedImageUrls();
 
+const NO_FILE = 'The host keeps no file under this id.';
+
 /* An attachment the demos keep a picture for; `image-gone` stands for one the host lost. */
-const attachmentUrl = (attachmentId: string) =>
-    attachmentId === 'image-gone' ? { url: null, failure: 'The host keeps no file under this id.' } : { url: IMAGE_URLS[attachmentId] ?? null, failure: null };
+function attachmentUrl(attachmentId: string): { url: string | null; failure: string | null } {
+    return attachmentId === 'image-gone' ? { url: null, failure: NO_FILE } : { url: IMAGE_URLS[attachmentId] ?? null, failure: null };
+}
 
 /* A path in an answer, such as `src/http.ts:14`, as a link; the demos open nothing. */
 const PATH = /^(?<path>[\w.-]+(?:\/[\w.-]+)*\.\w+)(?::(?<line>\d+))?$/;
@@ -91,7 +101,7 @@ setChatHost({
         read: async (_scopeId, _chatId, attachmentId) => {
             const { url } = attachmentUrl(attachmentId);
             if (url === null) {
-                throw new Error('The host keeps no file under this id.');
+                throw new Error(NO_FILE);
             }
             return (await fetch(url)).blob();
         },
@@ -124,8 +134,6 @@ interface Chat {
     bookmarks: ChatBookmark[];
 }
 
-const wait = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
-
 const REPLIES = [
     'Here is how I would go about it.\n\n1. Read the files that `fetchJson` is called from.\n2. Wrap each call that has no `try` yet.\n3. Run `bun test` to check nothing else changed.\n\nSay the word and I start.',
     'That works. The sensors keep their last reading when a request fails, so the station only has to log the error and try again on the next tick.',
@@ -145,7 +153,7 @@ export class FakeAgentHost implements ChatTransport {
     private turns = 0;
     private replies = 0;
 
-    constructor(chats: Record<string, { info: ChatInfo; items: ChatItem[] }>) {
+    constructor(chats: DemoChats) {
         for (const [chatId, chat] of Object.entries(chats)) {
             this.chats.set(chatId, { ...chat, bookmarks: [] });
         }
@@ -245,6 +253,12 @@ export class FakeAgentHost implements ChatTransport {
         this.apply(chatId, { type: 'item', item: { ...turn, state, endedAt: Date.now(), costUsd: 0.02 } });
         const { usage } = this.chat(chatId).info;
         this.setInfo(chatId, { activeTurnId: null, status: 'idle', usage: { ...usage, turns: usage.turns + 1, costUsd: usage.costUsd + 0.02 } });
+    }
+
+    private setBookmarks(chatId: string, bookmarks: ChatBookmark[]): { bookmarks: ChatBookmark[] } {
+        this.chat(chatId).bookmarks = bookmarks;
+        this.emit('chat.bookmarks', { chatId, bookmarks });
+        return { bookmarks };
     }
 
     private changeAccounts(next: ProviderAccounts): ProviderAccounts {
@@ -353,29 +367,26 @@ export class FakeAgentHost implements ChatTransport {
             const chat = this.chat(payload.chatId);
             const item = chat.items.find((entry) => entry.id === payload.itemId);
             const excerpt = item !== undefined && 'text' in item ? item.text.slice(0, 160) : '';
-            if (!chat.bookmarks.some((bookmark) => bookmark.itemId === payload.itemId)) {
-                chat.bookmarks = [
-                    ...chat.bookmarks,
-                    { itemId: payload.itemId, excerpt, createdAt: Date.now(), ...(payload.name ? { name: payload.name } : {}) }
-                ];
+            if (chat.bookmarks.some((bookmark) => bookmark.itemId === payload.itemId)) {
+                return this.setBookmarks(payload.chatId, chat.bookmarks);
             }
-            this.emit('chat.bookmarks', { chatId: payload.chatId, bookmarks: chat.bookmarks });
-            return { bookmarks: chat.bookmarks };
+            return this.setBookmarks(payload.chatId, [
+                ...chat.bookmarks,
+                { itemId: payload.itemId, excerpt, createdAt: Date.now(), ...(payload.name ? { name: payload.name } : {}) }
+            ]);
         },
-        'chat.renameBookmark': (payload) => {
-            const chat = this.chat(payload.chatId);
-            chat.bookmarks = chat.bookmarks.map((bookmark) =>
-                bookmark.itemId === payload.itemId ? { ...bookmark, name: payload.name || undefined } : bookmark
-            );
-            this.emit('chat.bookmarks', { chatId: payload.chatId, bookmarks: chat.bookmarks });
-            return { bookmarks: chat.bookmarks };
-        },
-        'chat.removeBookmark': (payload) => {
-            const chat = this.chat(payload.chatId);
-            chat.bookmarks = chat.bookmarks.filter((bookmark) => bookmark.itemId !== payload.itemId);
-            this.emit('chat.bookmarks', { chatId: payload.chatId, bookmarks: chat.bookmarks });
-            return { bookmarks: chat.bookmarks };
-        },
+        'chat.renameBookmark': (payload) =>
+            this.setBookmarks(
+                payload.chatId,
+                this.chat(payload.chatId).bookmarks.map((bookmark) =>
+                    bookmark.itemId === payload.itemId ? { ...bookmark, name: payload.name || undefined } : bookmark
+                )
+            ),
+        'chat.removeBookmark': (payload) =>
+            this.setBookmarks(
+                payload.chatId,
+                this.chat(payload.chatId).bookmarks.filter((bookmark) => bookmark.itemId !== payload.itemId)
+            ),
         'skills.list': () => ({ skills: SKILLS }),
         'accounts.list': () => this.accounts,
         'accounts.refresh': () => this.accounts,
@@ -410,7 +421,7 @@ export class FakeAgentHost implements ChatTransport {
 export const DEMO_CHAT = 'chat-demo';
 
 /* The chats that went on from the first turn of the demo chat, which the thread offers under that turn. */
-export function forkChats(): Record<string, { info: ChatInfo; items: ChatItem[] }> {
+export function forkChats(): DemoChats {
     return Object.fromEntries(
         Object.keys(FORK_TITLES).map((chatId, index) => [
             chatId,
@@ -420,6 +431,6 @@ export function forkChats(): Record<string, { info: ChatInfo; items: ChatItem[] 
 }
 
 /* The chat every demo opens on, two turns into a conversation about a weather station. */
-export function demoChats(): Record<string, { info: ChatInfo; items: ChatItem[] }> {
+export function demoChats(): DemoChats {
     return { [DEMO_CHAT]: { info: chatInfo(DEMO_CHAT), items: chatItems() } };
 }

@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import type { ChatApprovalItem, ChatQuestionItem } from '@adecore/agent-contracts';
-import type { PendingPrompt } from '@adecore/agents-react/prompts/logic/prompts';
+import { orderPrompts, type PendingPrompt } from '@adecore/agents-react/prompts/logic/prompts';
 import { isBlockingSubject, promptCreatedAt, promptIdOf, type PromptSubject } from '@adecore/agents-react/prompts/logic/subjects';
-import { orderPrompts } from '@adecore/agents-react/prompts/logic/prompts';
 import { usePromptSession } from '@adecore/agents-react/prompts/logic/usePromptSession';
 import { PromptView } from '@adecore/agents-react/prompts/ui/PromptView';
 import { Button } from '@adecore/ui';
@@ -46,8 +45,9 @@ const question: ChatQuestionItem = {
     state: 'pending'
 };
 
-const pick = (waiting: readonly PromptSubject[], id: string | null): PromptSubject | null =>
-    waiting.find((subject) => promptIdOf(subject) === id) ?? orderPrompts(waiting, isBlockingSubject, promptCreatedAt)[0] ?? null;
+function pick(waiting: readonly PromptSubject[], id: string | null): PromptSubject | null {
+    return waiting.find((subject) => promptIdOf(subject) === id) ?? orderPrompts(waiting, isBlockingSubject, promptCreatedAt)[0] ?? null;
+}
 
 export default function PromptsDemo() {
     const [pending, setPending] = useState<PendingPrompt[]>([approval, question]);

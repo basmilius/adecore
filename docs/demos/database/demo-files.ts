@@ -16,18 +16,22 @@ export const DEMO_FILES: DatabaseFiles = {
     open: async () => CUSTOMERS_PATH
 };
 
-const linesOf = (header: boolean): readonly (readonly string[])[] => (header ? CUSTOMERS.slice(1) : CUSTOMERS);
+function linesOf(header: boolean): readonly (readonly string[])[] {
+    return header ? CUSTOMERS.slice(1) : CUSTOMERS;
+}
 
-const sample = async (_path: string, _format: 'csv' | 'tsv', header: boolean) => ({
-    columns: header ? CUSTOMERS[0]! : CUSTOMERS[0]!.map((_name, i) => `column${i + 1}`),
-    rows: linesOf(header)
-});
+async function sample(_path: string, _format: 'csv' | 'tsv', header: boolean) {
+    return {
+        columns: header ? CUSTOMERS[0]! : CUSTOMERS[0]!.map((_name, i) => `column${i + 1}`),
+        rows: linesOf(header)
+    };
+}
 
 /*
  * The in-memory fake has no files, so this answers the file methods in the page instead: an export writes
  * nothing and reports the rows a real one would write, and an import inserts the lines above with `apply`.
  */
-const withFiles = (session: DatabaseSession): DatabaseSession => {
+function withFiles(session: DatabaseSession): DatabaseSession {
     const exportRows = async (request: ExportRequest, options?: RequestOptions) => {
         const source = request.source;
         const rows =
@@ -48,10 +52,10 @@ const withFiles = (session: DatabaseSession): DatabaseSession => {
     return new Proxy(session, {
         get: (target, key) => (key === 'export' ? exportRows : key === 'import' ? importRows : Reflect.get(target, key))
     });
-};
+}
 
 /* A client whose sessions take files, for the demos of export and import. */
-export const withDemoFiles = (client: DatabaseClient): DatabaseClient => {
+export function withDemoFiles(client: DatabaseClient): DatabaseClient {
     const wrapped = new WeakMap<DatabaseSession, DatabaseSession>();
 
     return {
@@ -67,4 +71,4 @@ export const withDemoFiles = (client: DatabaseClient): DatabaseClient => {
             return found;
         }
     };
-};
+}

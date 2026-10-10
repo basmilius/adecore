@@ -13,15 +13,17 @@ import type { StatusWord } from '@adecore/agents-react/agents/status-look';
 const WORDS: StatusWord[] = ['running', 'paused', 'done', 'failed', 'cancelled'];
 
 /* The demo chat with a helper agent behind it and a test watcher running in the background, under a second account. */
-const busyChat = () => ({
-    [DEMO_CHAT]: {
-        info: chatInfo(DEMO_CHAT, {
-            account: 'claude-work',
-            background: [{ id: 'shell-1', kind: 'shell' as const, description: 'Watch the tests', command: 'bun test --watch', startedAt: NOW - 120_000 }]
-        }),
-        items: chatItems()
-    }
-});
+function busyChat() {
+    return {
+        [DEMO_CHAT]: {
+            info: chatInfo(DEMO_CHAT, {
+                account: 'claude-work',
+                background: [{ id: 'shell-1', kind: 'shell' as const, description: 'Watch the tests', command: 'bun test --watch', startedAt: NOW - 120_000 }]
+            }),
+            items: chatItems()
+        }
+    };
+}
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
     return (

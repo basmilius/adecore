@@ -117,8 +117,8 @@ export default function WorkspaceDemo() {
             </div>
             <p className="text-xs text-text-muted">
                 Drag a tab or the panel grip. Drop near an edge to split, on the tab strip to group tabs, or in the middle to swap. Drag dividers, double-click
-                to balance, or use their arrow keys. Dividers snap near the middle. Alt mirrors a resize; Alt + double-click evenly distributes the chosen
-                direction across the entire layout.
+                to balance, or use their arrow keys. Dividers snap near the middle. Alt mirrors a resize; Alt + double-click spreads the chosen direction evenly
+                over the whole layout.
             </p>
         </div>
     );

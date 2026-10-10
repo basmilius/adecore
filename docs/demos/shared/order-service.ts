@@ -9,9 +9,19 @@ import { DEMO_URI, FORMAT_SOURCE } from './editor.ts';
 
 const FORMAT_URI = 'file:///shop/src/format.ts';
 
-const textOf = (service: FakeLanguageService, uri: string): string => (uri === FORMAT_URI ? FORMAT_SOURCE : (service.documents.get(uri)?.text ?? ''));
+const WHOLE_FILE = { first: 0, last: Number.MAX_SAFE_INTEGER };
 
-const range = (line: number, from: number, to: number): Range => ({ start: { line, character: from }, end: { line, character: to } });
+function textOf(service: FakeLanguageService, uri: string): string {
+    return uri === FORMAT_URI ? FORMAT_SOURCE : (service.documents.get(uri)?.text ?? '');
+}
+
+function range(line: number, from: number, to: number): Range {
+    return { start: { line, character: from }, end: { line, character: to } };
+}
+
+function position(call: LanguageCall): Position {
+    return (call.params as { position: Position }).position;
+}
 
 /* The word under a position, with where it starts and ends on its line. */
 function wordAt(text: string, position: Position): { word: string; from: number; to: number } | null {
@@ -25,7 +35,7 @@ function wordAt(text: string, position: Position): { word: string; from: number;
 }
 
 /* Every whole-word use of `word` in a text, optionally only between two lines. */
-function usesOf(text: string, word: string, uri: string, first = 0, last = Number.MAX_SAFE_INTEGER): Location[] {
+function usesOf(text: string, word: string, uri: string, first = WHOLE_FILE.first, last = WHOLE_FILE.last): Location[] {
     return text
         .split('\n')
         .flatMap((line, index) =>
@@ -59,10 +69,8 @@ function functionsOf(text: string): DocumentSymbol[] {
 /* The function a line is in, so a local name is renamed and lit only there. */
 function scopeOf(text: string, line: number): { first: number; last: number } {
     const symbol = functionsOf(text).find((candidate) => candidate.range.start.line <= line && line <= candidate.range.end.line);
-    return symbol === undefined ? { first: 0, last: Number.MAX_SAFE_INTEGER } : { first: symbol.range.start.line, last: symbol.range.end.line };
+    return symbol === undefined ? WHOLE_FILE : { first: symbol.range.start.line, last: symbol.range.end.line };
 }
-
-const position = (call: LanguageCall): Position => (call.params as { position: Position }).position;
 
 const DOCS: Record<string, string> = {
     orderTotal: '```ts\nfunction orderTotal(lines: OrderLine[]): number\n```\nThe total of every line of an order.',
@@ -156,7 +164,7 @@ export function respondNavigation(service: FakeLanguageService): void {
         if (found === null) {
             return null;
         }
-        const scope = DOCS[found.word]?.includes('function') === true ? { first: 0, last: Number.MAX_SAFE_INTEGER } : scopeOf(text, position(call).line);
+        const scope = DOCS[found.word]?.includes('function') === true ? WHOLE_FILE : scopeOf(text, position(call).line);
         const all = usesOf(text, found.word, call.uri, scope.first, scope.last);
         const uses = found.word === 'formatNumber' ? [...all, ...usesOf(FORMAT_SOURCE, found.word, FORMAT_URI)] : all;
         const { context } = call.params as { context: { includeDeclaration?: boolean } };
@@ -205,7 +213,11 @@ export function respondRename(service: FakeLanguageService): void {
     );
 }
 
-const MISSING_TYPE: Diagnostic = { range: range(3, 34, 43), severity: 1, code: 2304, source: 'ts', message: "Cannot find name 'OrderLine'." };
+function missingType(at: Range): Diagnostic {
+    return { range: at, severity: 1, code: 2304, source: 'ts', message: "Cannot find name 'OrderLine'." };
+}
+
+const MISSING_TYPE = missingType(range(3, 34, 43));
 
 /* Reports the missing type as soon as the document is open, as a server does after its first check. */
 export function reportProblems(service: FakeLanguageService): void {
@@ -214,7 +226,7 @@ export function reportProblems(service: FakeLanguageService): void {
             service.report({
                 uri: call.uri,
                 source: 'ts',
-                diagnostics: [MISSING_TYPE, { range: range(11, 35, 44), severity: 1, code: 2304, source: 'ts', message: "Cannot find name 'OrderLine'." }]
+                diagnostics: [MISSING_TYPE, missingType(range(11, 35, 44))]
             })
         );
     });

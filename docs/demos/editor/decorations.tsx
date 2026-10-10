@@ -5,7 +5,9 @@ import { SAMPLE, useEditor } from '../shared/editor.ts';
 
 const OPTIONS = { text: SAMPLE, language: 'typescript', theme: 'demo' } as const;
 
-const range = (line: number, from: number, to: number) => ({ start: { line, character: from }, end: { line, character: to } });
+function range(line: number, from: number, to: number) {
+    return { start: { line, character: from }, end: { line, character: to } };
+}
 
 /* What a language server and a version control system would hand the editor, set once by hand. */
 function decorate(editor: Editor): void {

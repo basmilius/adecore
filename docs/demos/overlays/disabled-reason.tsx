@@ -1,7 +1,9 @@
 import { Ellipsis } from 'lucide-react';
 import { DisabledReason, IconButton, Menu } from '@adecore/ui';
 
-const pushReason = (): string | null => 'Nothing to push: the branch has no commits the remote lacks.';
+function pushReason(): string | null {
+    return 'Nothing to push: the branch has no commits the remote lacks.';
+}
 
 export default function DisabledReasonDemo() {
     return (

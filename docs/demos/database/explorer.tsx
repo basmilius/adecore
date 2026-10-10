@@ -4,7 +4,7 @@ import { ShopDatabase } from '../shared/database.tsx';
 import { SHOP_CONNECTIONS } from '../shared/shop.ts';
 
 /* What the app was asked to do, in words. */
-const describe = (action: DatabaseAction): string => {
+function describe(action: DatabaseAction): string {
     switch (action.kind) {
         case 'open-table':
             return `Open ${action.ref.schema}.${action.ref.table} as ${action.view}.`;
@@ -17,7 +17,7 @@ const describe = (action: DatabaseAction): string => {
         case 'manage-connection':
             return `Edit the connection ${action.connectionId}.`;
     }
-};
+}
 
 export default function ExplorerDemo() {
     const [selection, setSelection] = useState<ExplorerSelection | null>(null);

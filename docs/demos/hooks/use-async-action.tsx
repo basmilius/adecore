@@ -1,6 +1,8 @@
 import { Button, FormError, useAsyncAction } from '@adecore/ui';
 
-const wait = (ms: number): Promise<void> => new Promise((resolve) => window.setTimeout(resolve, ms));
+function wait(ms: number): Promise<void> {
+    return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
 
 let attempts = 0;
 

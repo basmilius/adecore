@@ -2,7 +2,9 @@ import { Button, Toasts, createToastStore } from '@adecore/ui';
 
 const toasts = createToastStore();
 
-const wait = (ms: number): Promise<void> => new Promise((resolve) => window.setTimeout(resolve, ms));
+function wait(ms: number): Promise<void> {
+    return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
 
 async function push(): Promise<void> {
     const id = toasts.getState().show({ kind: 'progress', title: 'Pushing to origin' });

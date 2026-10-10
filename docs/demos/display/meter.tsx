@@ -6,7 +6,9 @@ const TOP = -4;
 const TARGET = -14;
 
 // A loudness that swells and dips, as a song under the playhead would.
-const loudnessAt = (seconds: number, speed: number): number => -20 + 7 * Math.sin(seconds * speed) + 3 * Math.sin(seconds * speed * 3.7);
+function loudnessAt(seconds: number, speed: number): number {
+    return -20 + 7 * Math.sin(seconds * speed) + 3 * Math.sin(seconds * speed * 3.7);
+}
 
 export default function MeterDemo() {
     const now = useNow(100);

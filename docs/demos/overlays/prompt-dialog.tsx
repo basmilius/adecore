@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { GitBranch } from 'lucide-react';
 import { Button, PromptDialog } from '@adecore/ui';
 
-const wait = (ms: number): Promise<void> => new Promise((resolve) => window.setTimeout(resolve, ms));
+function wait(ms: number): Promise<void> {
+    return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
 
 export default function PromptDialogDemo() {
     const [open, setOpen] = useState(false);

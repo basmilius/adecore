@@ -9,11 +9,12 @@ export const THEME_PALETTE: Record<DrawingColor, string> = {
     accent: 'var(--accent)'
 };
 
-const mixed = (share: number): Record<DrawingColor, string> =>
-    Object.fromEntries(DRAWING_COLORS.map((color) => [color, `color-mix(in srgb, ${THEME_PALETTE[color]} ${share}%, var(--surface))`])) as Record<
+function mixed(share: number): Record<DrawingColor, string> {
+    return Object.fromEntries(DRAWING_COLORS.map((color) => [color, `color-mix(in srgb, ${THEME_PALETTE[color]} ${share}%, var(--surface))`])) as Record<
         DrawingColor,
         string
     >;
+}
 
 export const THEME_PAPER = mixed(18);
 export const THEME_EDGE = mixed(40);
