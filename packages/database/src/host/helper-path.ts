@@ -2,14 +2,6 @@ import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, sep } from 'node:path';
 
-/*
- * Finds the prebuilt helper that npm installed for this machine, in the `@adecore/database-<platform>-<arch>`
- * package, or null when there is none: an unsupported platform, or an install with optional dependencies off.
- *
- * A binary cannot run from inside an Electron archive. The path is mapped from `app.asar` to
- * `app.asar.unpacked`, so the app must unpack the packages (electron-builder: `asarUnpack` with
- * `node_modules/@adecore/database-*` followed by `/**`).
- */
 export interface HelperPathOptions {
     /* `process.platform` when left out. */
     readonly platform?: string;
@@ -20,6 +12,14 @@ export interface HelperPathOptions {
     readonly exists?: (path: string) => boolean;
 }
 
+/*
+ * Finds the prebuilt helper that npm installed for this machine, in the `@adecore/database-<platform>-<arch>`
+ * package, or null when there is none: an unsupported platform, or an install with optional dependencies off.
+ *
+ * A binary cannot run from inside an Electron archive. The path is mapped from `app.asar` to
+ * `app.asar.unpacked`, so the app must unpack the packages (electron-builder: `asarUnpack` with
+ * `node_modules/@adecore/database-*` followed by `/**`).
+ */
 export const helperPath = ({
     platform = process.platform,
     arch = process.arch,

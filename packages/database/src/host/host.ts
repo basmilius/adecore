@@ -7,7 +7,6 @@ const DEFAULT_READY_TIMEOUT_MS = 10000;
 /* How long a release or a dispose waits for a helper to answer its `close` requests. */
 const CLOSE_GRACE_MS = 2000;
 
-/* A failure with the code the caller gets. */
 class Failure extends Error {
     readonly code: DatabaseErrorCode;
 
@@ -40,6 +39,15 @@ interface Entry {
 const failure = (id: string, code: DatabaseErrorCode, message: string): DatabaseResponse => ({ id, ok: false, error: { code, message } });
 
 const messageOf = (error: unknown): string => (error instanceof Error ? error.message : String(error));
+
+/* `undefined` for a line that is not JSON. */
+const parseLine = (line: string): unknown => {
+    try {
+        return JSON.parse(line);
+    } catch {
+        return undefined;
+    }
+};
 
 const isDict = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
 
@@ -115,14 +123,7 @@ export const createDatabaseHost = (options: DatabaseHostOptions): DatabaseHost =
     };
 
     const onHandshake = (run: Run, line: string): void => {
-        let message: unknown;
-
-        try {
-            message = JSON.parse(line);
-        } catch {
-            abort(run, 'The helper did not start with a ready line.');
-            return;
-        }
+        const message = parseLine(line);
 
         if (!isDict(message) || message.event !== 'ready') {
             abort(run, 'The helper did not start with a ready line.');
@@ -140,13 +141,7 @@ export const createDatabaseHost = (options: DatabaseHostOptions): DatabaseHost =
     };
 
     const onResponse = (run: Run, line: string): void => {
-        let message: unknown;
-
-        try {
-            message = JSON.parse(line);
-        } catch {
-            return;
-        }
+        const message = parseLine(line);
 
         if (!isDict(message) || typeof message.id !== 'string') {
             return;

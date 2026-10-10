@@ -24,6 +24,8 @@ const fail = (message: string): never => {
 
 const isDict = (value: unknown): value is Dict => typeof value === 'object' && value !== null && !Array.isArray(value);
 
+const isRequestId = (value: unknown): value is string => typeof value === 'string' && value.length > 0 && value.length <= MAX_ID_LENGTH;
+
 /* Rejects a key nobody asked for, so a typo cannot pass for an option the helper ignores. */
 const shape = (value: unknown, label: string, required: readonly string[], optional: readonly string[] = []): Dict => {
     if (!isDict(value)) {
@@ -45,13 +47,13 @@ const shape = (value: unknown, label: string, required: readonly string[], optio
     return value;
 };
 
-const text = (value: unknown, label: string): void => {
+const filledText = (value: unknown, label: string): void => {
     if (typeof value !== 'string' || value.length === 0) {
         fail(`"${label}" must be a non-empty string.`);
     }
 };
 
-const plainText = (value: unknown, label: string): void => {
+const anyText = (value: unknown, label: string): void => {
     if (typeof value !== 'string') {
         fail(`"${label}" must be a string.`);
     }
@@ -76,7 +78,7 @@ const oneOf = (allowed: readonly string[]) => (value: unknown, label: string) =>
 };
 
 const absolutePath = (value: unknown, label: string): void => {
-    text(value, label);
+    filledText(value, label);
 
     if (!ABSOLUTE_PATH.test(value as string)) {
         fail(`"${label}" must be an absolute path.`);
@@ -148,18 +150,18 @@ const tunnel = (input: unknown, label: string): void => {
 
     if (input.kind === 'ssh') {
         const config = shape(input, label, ['kind', 'host'], ['port', 'user', 'identityFile']);
-        text(config.host, `${label}.host`);
+        filledText(config.host, `${label}.host`);
         optional(config, 'port', label, port);
-        optional(config, 'user', label, text);
-        optional(config, 'identityFile', label, text);
+        optional(config, 'user', label, filledText);
+        optional(config, 'identityFile', label, filledText);
         return;
     }
 
     if (input.kind === 'docker') {
         const config = shape(input, label, ['kind', 'container'], ['port', 'context']);
-        text(config.container, `${label}.container`);
+        filledText(config.container, `${label}.container`);
         optional(config, 'port', label, port);
-        optional(config, 'context', label, text);
+        optional(config, 'context', label, filledText);
         return;
     }
 
@@ -186,12 +188,12 @@ const connection = (input: unknown, label: string): void => {
 
         // A Docker tunnel finds the server by its container, so the host is left empty.
         const viaDocker = isDict(config.tunnel) && config.tunnel.kind === 'docker';
-        (viaDocker ? plainText : text)(config.host, `${label}.host`);
-        text(config.user, `${label}.user`);
+        (viaDocker ? anyText : filledText)(config.host, `${label}.host`);
+        filledText(config.user, `${label}.user`);
         optional(config, 'port', label, port);
-        optional(config, 'socket', label, text);
-        optional(config, 'password', label, plainText);
-        optional(config, 'database', label, plainText);
+        optional(config, 'socket', label, filledText);
+        optional(config, 'password', label, anyText);
+        optional(config, 'database', label, anyText);
         optional(config, 'tls', label, oneOf(TLS_MODES));
         optional(config, 'readOnly', label, flag);
         return;
@@ -229,17 +231,17 @@ const exportSource = (input: unknown, label: string): void => {
 
     if (input.kind === 'table') {
         const source = shape(input, label, ['kind', 'schema', 'table'], ['where', 'orderBy']);
-        text(source.schema, `${label}.schema`);
-        text(source.table, `${label}.table`);
-        optional(source, 'where', label, plainText);
-        optional(source, 'orderBy', label, plainText);
+        filledText(source.schema, `${label}.schema`);
+        filledText(source.table, `${label}.table`);
+        optional(source, 'where', label, anyText);
+        optional(source, 'orderBy', label, anyText);
         return;
     }
 
     if (input.kind === 'query') {
         const source = shape(input, label, ['kind', 'sql'], ['schema']);
-        text(source.sql, `${label}.sql`);
-        optional(source, 'schema', label, text);
+        filledText(source.sql, `${label}.sql`);
+        optional(source, 'schema', label, filledText);
         return;
     }
 
@@ -249,9 +251,9 @@ const exportSource = (input: unknown, label: string): void => {
 const cellLimit = (params: Dict): void => optional(params, 'cellLimit', 'params', (limit, name) => integer(limit, name, 1, MAX_CELL_LIMIT));
 
 const table = (params: Dict): void => {
-    text(params.session, 'params.session');
-    text(params.schema, 'params.schema');
-    text(params.table, 'params.table');
+    filledText(params.session, 'params.session');
+    filledText(params.schema, 'params.schema');
+    filledText(params.table, 'params.table');
 };
 
 const TARGET = ['session', 'schema', 'table'];
@@ -259,19 +261,19 @@ const TARGET = ['session', 'schema', 'table'];
 const PARAMS: { readonly [M in DatabaseMethod]: (input: unknown) => void } = {
     open: (input) => connection(shape(input, 'params', ['connection']).connection, 'params.connection'),
     test: (input) => connection(shape(input, 'params', ['connection']).connection, 'params.connection'),
-    close: (input) => text(shape(input, 'params', ['session']).session, 'params.session'),
-    schemas: (input) => text(shape(input, 'params', ['session']).session, 'params.session'),
+    close: (input) => filledText(shape(input, 'params', ['session']).session, 'params.session'),
+    schemas: (input) => filledText(shape(input, 'params', ['session']).session, 'params.session'),
     tables: (input) => {
         const params = shape(input, 'params', ['session', 'schema']);
-        text(params.session, 'params.session');
-        text(params.schema, 'params.schema');
+        filledText(params.session, 'params.session');
+        filledText(params.schema, 'params.schema');
     },
     structure: (input) => table(shape(input, 'params', TARGET)),
     rows: (input) => {
         const params = shape(input, 'params', [...TARGET, 'offset', 'limit'], ['where', 'orderBy', 'cellLimit']);
         table(params);
-        optional(params, 'where', 'params', plainText);
-        optional(params, 'orderBy', 'params', plainText);
+        optional(params, 'where', 'params', anyText);
+        optional(params, 'orderBy', 'params', anyText);
         integer(params.offset, 'params.offset', 0, Number.MAX_SAFE_INTEGER);
         integer(params.limit, 'params.limit', 1, MAX_LIMIT);
         cellLimit(params);
@@ -279,13 +281,13 @@ const PARAMS: { readonly [M in DatabaseMethod]: (input: unknown) => void } = {
     count: (input) => {
         const params = shape(input, 'params', TARGET, ['where']);
         table(params);
-        optional(params, 'where', 'params', plainText);
+        optional(params, 'where', 'params', anyText);
     },
     cell: (input) => {
         const params = shape(input, 'params', [...TARGET, 'key', 'column']);
         table(params);
         values(params.key, 'params.key', value, true);
-        text(params.column, 'params.column');
+        filledText(params.column, 'params.column');
     },
     apply: (input) => {
         const params = shape(input, 'params', [...TARGET, 'changes']);
@@ -300,34 +302,34 @@ const PARAMS: { readonly [M in DatabaseMethod]: (input: unknown) => void } = {
     },
     execute: (input) => {
         const params = shape(input, 'params', ['session', 'sql'], ['schema', 'limit', 'cellLimit']);
-        text(params.session, 'params.session');
-        text(params.sql, 'params.sql');
-        optional(params, 'schema', 'params', text);
+        filledText(params.session, 'params.session');
+        filledText(params.sql, 'params.sql');
+        optional(params, 'schema', 'params', filledText);
         optional(params, 'limit', 'params', (limit, name) => integer(limit, name, 1, MAX_LIMIT));
         cellLimit(params);
     },
     page: (input) => {
         const params = shape(input, 'params', ['session', 'sql', 'offset', 'limit'], ['schema', 'cellLimit']);
-        text(params.session, 'params.session');
-        text(params.sql, 'params.sql');
-        optional(params, 'schema', 'params', text);
+        filledText(params.session, 'params.session');
+        filledText(params.sql, 'params.sql');
+        optional(params, 'schema', 'params', filledText);
         integer(params.offset, 'params.offset', 0, Number.MAX_SAFE_INTEGER);
         integer(params.limit, 'params.limit', 1, MAX_LIMIT);
         cellLimit(params);
     },
     transaction: (input) => {
         const params = shape(input, 'params', ['session', 'action']);
-        text(params.session, 'params.session');
+        filledText(params.session, 'params.session');
         oneOf(TRANSACTION_ACTIONS)(params.action, 'params.action');
     },
     export: (input) => {
         const params = shape(input, 'params', ['session', 'source', 'format', 'path'], ['header', 'tableName']);
-        text(params.session, 'params.session');
+        filledText(params.session, 'params.session');
         exportSource(params.source, 'params.source');
         oneOf(EXPORT_FORMATS)(params.format, 'params.format');
         absolutePath(params.path, 'params.path');
         optional(params, 'header', 'params', flag);
-        optional(params, 'tableName', 'params', text);
+        optional(params, 'tableName', 'params', filledText);
     },
     sample: (input) => {
         const params = shape(input, 'params', ['path', 'format', 'header'], ['limit']);
@@ -350,19 +352,19 @@ const PARAMS: { readonly [M in DatabaseMethod]: (input: unknown) => void } = {
 
         params.columns.forEach((column, i) => {
             if (column !== null) {
-                text(column, `params.columns[${i}]`);
+                filledText(column, `params.columns[${i}]`);
             }
         });
     },
     discover: (input) => {
         const params = shape(input, 'params', ['kind'], ['context']);
         oneOf(['docker'])(params.kind, 'params.kind');
-        optional(params, 'context', 'params', text);
+        optional(params, 'context', 'params', filledText);
     },
     cancel: (input) => {
         const params = shape(input, 'params', ['request']);
 
-        if (typeof params.request !== 'string' || params.request.length === 0 || params.request.length > MAX_ID_LENGTH) {
+        if (!isRequestId(params.request)) {
             fail(`"params.request" must be a string of 1 to ${MAX_ID_LENGTH} characters.`);
         }
     }
@@ -370,7 +372,7 @@ const PARAMS: { readonly [M in DatabaseMethod]: (input: unknown) => void } = {
 
 /* Checks the whole request before anything reaches the helper, which then never has to defend itself against a page. */
 export const parseRequest = (input: unknown): ParsedRequest => {
-    const id = isDict(input) && typeof input.id === 'string' && input.id.length > 0 && input.id.length <= MAX_ID_LENGTH ? input.id : '';
+    const id = isDict(input) && isRequestId(input.id) ? input.id : '';
 
     try {
         const envelope = shape(input, 'request', ['id', 'method', 'params']);
