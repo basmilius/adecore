@@ -43,6 +43,8 @@ interface FieldsProps<Config> {
     touch(field: string): void;
 }
 
+type Browse = ConnectionFormProps['onBrowse'];
+
 /* A text field that is empty means "not set" for the optional fields of a config. */
 const optionalText = (text: string): string | undefined => (text === '' ? undefined : text);
 
@@ -113,13 +115,7 @@ function useProblem(problem: ConfigProblem | undefined, field: string, touched: 
     return t(`connections.form.problems.${problem}`);
 }
 
-function SqliteFields({
-    config,
-    onConfigChange,
-    touched,
-    touch,
-    onBrowse
-}: FieldsProps<SqliteConnectionConfig> & { onBrowse: ConnectionFormProps['onBrowse'] }) {
+function SqliteFields({ config, onConfigChange, touched, touch, onBrowse }: FieldsProps<SqliteConnectionConfig> & { onBrowse: Browse }) {
     const { t } = useTranslation('database');
     const browsing = useAsyncAction();
     const problem = configProblems(config).path;
@@ -144,22 +140,15 @@ function SqliteFields({
                 orientation="horizontal"
                 group={onBrowse !== undefined}
             >
-                <div className="flex items-center gap-2">
-                    <Input
-                        mono
-                        value={config.path}
-                        placeholder="/path/to/database.sqlite"
-                        spellCheck={false}
-                        aria-label={onBrowse === undefined ? undefined : t('connections.form.path')}
-                        onBlur={() => touch('path')}
-                        onChange={(e) => onConfigChange({ ...config, path: e.target.value })}
-                    />
-                    {onBrowse !== undefined && (
-                        <Button variant="secondary" disabled={browsing.busy} onClick={() => void browse()}>
-                            {t('connections.form.browse')}
-                        </Button>
-                    )}
-                </div>
+                <PathInput
+                    value={config.path}
+                    placeholder="/path/to/database.sqlite"
+                    label={t('connections.form.path')}
+                    busy={browsing.busy}
+                    onBlur={() => touch('path')}
+                    onValueChange={(path) => onConfigChange({ ...config, path })}
+                    onBrowse={onBrowse === undefined ? undefined : () => void browse()}
+                />
             </Field>
             <Field label={t('connections.form.create')} hint={t('connections.form.createHint')} orientation="horizontal" group>
                 <Switch
@@ -169,6 +158,46 @@ function SqliteFields({
                 />
             </Field>
         </>
+    );
+}
+
+/* A path typed by hand, with a Browse button beside it when the app has a file dialog. */
+function PathInput({
+    value,
+    placeholder,
+    label,
+    busy,
+    onBlur,
+    onValueChange,
+    onBrowse
+}: {
+    value: string;
+    placeholder: string;
+    label: string;
+    busy: boolean;
+    onBlur?: () => void;
+    onValueChange(path: string): void;
+    onBrowse: (() => void) | undefined;
+}) {
+    const { t } = useTranslation('database');
+
+    return (
+        <div className="flex items-center gap-2">
+            <Input
+                mono
+                value={value}
+                placeholder={placeholder}
+                spellCheck={false}
+                aria-label={onBrowse === undefined ? undefined : label}
+                onBlur={onBlur}
+                onChange={(e) => onValueChange(e.target.value)}
+            />
+            {onBrowse !== undefined && (
+                <Button variant="secondary" disabled={busy} onClick={onBrowse}>
+                    {t('connections.form.browse')}
+                </Button>
+            )}
+        </div>
     );
 }
 
@@ -205,7 +234,7 @@ function PortField({
     );
 }
 
-function MysqlFields({ config, onConfigChange, touched, touch, onBrowse }: FieldsProps<MysqlConnectionConfig> & { onBrowse: ConnectionFormProps['onBrowse'] }) {
+function MysqlFields({ config, onConfigChange, touched, touch, onBrowse }: FieldsProps<MysqlConnectionConfig> & { onBrowse: Browse }) {
     const { t } = useTranslation('database');
     const mode = modeOf(config);
     const tunnel = config.tunnel;
@@ -316,14 +345,7 @@ function SocketField({ config, onConfigChange, touched, touch }: FieldsProps<Mys
     );
 }
 
-function SshFields({
-    config,
-    tunnel,
-    onConfigChange,
-    touched,
-    touch,
-    onBrowse
-}: FieldsProps<MysqlConnectionConfig> & { tunnel: SshTunnel; onBrowse: ConnectionFormProps['onBrowse'] }) {
+function SshFields({ config, tunnel, onConfigChange, touched, touch, onBrowse }: FieldsProps<MysqlConnectionConfig> & { tunnel: SshTunnel; onBrowse: Browse }) {
     const { t } = useTranslation('database');
     const browsing = useAsyncAction();
     const problems = configProblems(config);
@@ -369,21 +391,14 @@ function SshFields({
                 orientation="horizontal"
                 group={onBrowse !== undefined}
             >
-                <div className="flex items-center gap-2">
-                    <Input
-                        mono
-                        value={tunnel.identityFile ?? ''}
-                        placeholder="~/.ssh/id_ed25519"
-                        spellCheck={false}
-                        aria-label={onBrowse === undefined ? undefined : t('connections.form.ssh.identityFile')}
-                        onChange={(e) => update({ identityFile: optionalText(e.target.value) })}
-                    />
-                    {onBrowse !== undefined && (
-                        <Button variant="secondary" disabled={browsing.busy} onClick={() => void browse()}>
-                            {t('connections.form.browse')}
-                        </Button>
-                    )}
-                </div>
+                <PathInput
+                    value={tunnel.identityFile ?? ''}
+                    placeholder="~/.ssh/id_ed25519"
+                    label={t('connections.form.ssh.identityFile')}
+                    busy={browsing.busy}
+                    onValueChange={(identityFile) => update({ identityFile: optionalText(identityFile) })}
+                    onBrowse={onBrowse === undefined ? undefined : () => void browse()}
+                />
             </Field>
             <ServerFields config={config} onConfigChange={onConfigChange} touched={touched} touch={touch} />
         </>

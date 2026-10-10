@@ -60,16 +60,17 @@ export function ConnectionManager({ value, onValueChange, selected, onSelectedCh
         onSelectedChange?.(id);
     };
 
-    const add = (engine: Engine): void => {
-        const connection: Connection = { id: crypto.randomUUID(), name: t('connections.newName'), config: defaultConfig(engine) };
+    const append = (connection: Connection): void => {
         onValueChange([...value, connection]);
         select(connection.id);
     };
 
+    const add = (engine: Engine): void => {
+        append({ id: crypto.randomUUID(), name: t('connections.newName'), config: defaultConfig(engine) });
+    };
+
     const addFromContainer = (container: DockerContainer): void => {
-        const connection = connectionFromContainer(crypto.randomUUID(), container);
-        onValueChange([...value, connection]);
-        select(connection.id);
+        append(connectionFromContainer(crypto.randomUUID(), container));
     };
 
     const change = (next: Connection): void => {
