@@ -8,6 +8,7 @@ import { useRender } from '@base-ui-components/react/use-render';
 import { withClass } from '../class-name.ts';
 import { Icon } from '../Icon.tsx';
 import { Tooltip } from '../Tooltip.tsx';
+import { splitPlacement, type PlacementKey } from '../placement.ts';
 import { renderPositioner } from '../popup-layer.ts';
 
 /* Where a popup opens from decides where it goes when a call site says nothing. */
@@ -17,10 +18,7 @@ const MenuKindContext = createContext<MenuKind>('menu');
 
 type PositionerProps = ComponentProps<typeof BaseMenu.Positioner>;
 
-type Placement = Pick<
-    PositionerProps,
-    'side' | 'align' | 'sideOffset' | 'alignOffset' | 'collisionPadding' | 'collisionBoundary' | 'collisionAvoidance' | 'anchor' | 'sticky' | 'positionMethod'
->;
+type Placement = Pick<PositionerProps, PlacementKey>;
 
 /*
  * A menu hangs under its trigger, lined up with its start, unless there is no room. A context menu
@@ -78,38 +76,21 @@ export type MenuPopupProps = ComponentProps<typeof BaseMenu.Popup> & Placement;
  * decided once. The popup scrolls inside the room the window leaves it; `className` adds a minimum
  * width or a layout of its own, such as a grid of swatches.
  */
-export function MenuPopup({
-    side,
-    align,
-    sideOffset,
-    alignOffset,
-    collisionPadding,
-    collisionBoundary,
-    collisionAvoidance,
-    anchor,
-    sticky,
-    positionMethod,
-    className,
-    ...props
-}: MenuPopupProps) {
+export function MenuPopup({ className, ...props }: MenuPopupProps) {
     const defaults = PLACEMENT[useContext(MenuKindContext)];
+    const [placement, popupProps] = splitPlacement(props);
     return (
         <BaseMenu.Portal>
             <BaseMenu.Positioner
                 className="popup-positioner"
                 render={renderPositioner}
-                side={side ?? defaults.side}
-                align={align ?? defaults.align}
-                sideOffset={sideOffset ?? defaults.sideOffset}
-                alignOffset={alignOffset ?? defaults.alignOffset}
-                collisionPadding={collisionPadding}
-                collisionBoundary={collisionBoundary}
-                collisionAvoidance={collisionAvoidance}
-                anchor={anchor}
-                sticky={sticky}
-                positionMethod={positionMethod}
+                {...placement}
+                side={placement.side ?? defaults.side}
+                align={placement.align ?? defaults.align}
+                sideOffset={placement.sideOffset ?? defaults.sideOffset}
+                alignOffset={placement.alignOffset ?? defaults.alignOffset}
             >
-                <BaseMenu.Popup className={withClass('menu-popup', className)} {...props} />
+                <BaseMenu.Popup className={withClass('menu-popup', className)} {...popupProps} />
             </BaseMenu.Positioner>
         </BaseMenu.Portal>
     );

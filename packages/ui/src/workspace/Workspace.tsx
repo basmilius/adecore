@@ -15,6 +15,8 @@ export interface WorkspaceProps extends useRender.ComponentProps<'div'> {
     sidePanelOpen?: boolean;
 }
 
+const isPresent = (node: ReactNode): boolean => node !== undefined && node !== null && node !== false;
+
 export function Workspace({
     layout = 'standard',
     toolbar,
@@ -31,11 +33,11 @@ export function Workspace({
     style,
     ...props
 }: WorkspaceProps) {
-    const hasSidebar = sidebar !== undefined && sidebar !== null && sidebar !== false;
-    const hasPanel = sidePanel !== undefined && sidePanel !== null && sidePanel !== false;
+    const hasSidebar = isPresent(sidebar);
+    const hasPanel = isPresent(sidePanel);
     const leftOpen = hasSidebar && (sidebarOpen ?? true);
     const rightOpen = hasPanel && (sidePanelOpen ?? true);
-    const hasToolbar = toolbar !== undefined && toolbar !== null && toolbar !== false;
+    const hasToolbar = isPresent(toolbar);
     const element = useRender({
         render,
         ref,

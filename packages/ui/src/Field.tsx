@@ -9,6 +9,8 @@ const ERROR = 'text-xs text-status-error';
 // Beside the control the label reads at the size of what is typed, on the middle of the control's first line however tall it grows.
 const LABEL_BESIDE = 'flex h-8 items-center self-start text-sm text-text-muted';
 
+const isShown = (line: ReactNode): boolean => line !== undefined && line !== null && line !== '';
+
 export type FieldHintProps = useRender.ComponentProps<'p'>;
 
 /* The line under a field that says what goes in it. */
@@ -80,8 +82,8 @@ export function Field({ label, hint, error, group = false, orientation = 'vertic
     const horizontal = orientation === 'horizontal';
     const id = useId();
     const hasLabel = label !== undefined;
-    const hasHint = hint !== undefined && hint !== null && hint !== '';
-    const hasError = error !== undefined && error !== null && error !== '';
+    const hasHint = isShown(hint);
+    const hasError = isShown(error);
     const describedBy = [hasHint ? `${id}-hint` : null, hasError ? `${id}-error` : null].filter((part) => part !== null).join(' ') || undefined;
     return (
         <div

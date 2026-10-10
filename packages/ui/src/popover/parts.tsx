@@ -2,6 +2,7 @@ import type { ComponentProps } from 'react';
 import { Popover as BasePopover } from '@base-ui-components/react/popover';
 import { PreviewCard as BasePreviewCard } from '@base-ui-components/react/preview-card';
 import { withClass } from '../class-name.ts';
+import { splitPlacement, type PlacementKey } from '../placement.ts';
 import { renderPositioner } from '../popup-layer.ts';
 
 /*
@@ -16,10 +17,7 @@ const POPUP_VARIANT = {
 
 export type PopupVariant = keyof typeof POPUP_VARIANT;
 
-type Placement = Pick<
-    ComponentProps<typeof BasePopover.Positioner>,
-    'side' | 'align' | 'sideOffset' | 'alignOffset' | 'collisionPadding' | 'collisionBoundary' | 'collisionAvoidance' | 'anchor' | 'sticky' | 'positionMethod'
->;
+type Placement = Pick<ComponentProps<typeof BasePopover.Positioner>, PlacementKey>;
 
 export const PopoverRoot = BasePopover.Root;
 
@@ -37,38 +35,12 @@ export type PopoverPopupProps = ComponentProps<typeof BasePopover.Popup> &
     };
 
 /* The portal, the positioner and the popup of a popover: under its trigger and lined up with its start unless it says otherwise. */
-export function PopoverPopup({
-    variant = 'menu',
-    side = 'bottom',
-    align = 'start',
-    sideOffset = 8,
-    alignOffset,
-    collisionPadding,
-    collisionBoundary,
-    collisionAvoidance,
-    anchor,
-    sticky,
-    positionMethod,
-    className,
-    ...props
-}: PopoverPopupProps) {
+export function PopoverPopup({ variant = 'menu', side = 'bottom', align = 'start', sideOffset = 8, className, ...props }: PopoverPopupProps) {
+    const [placement, popupProps] = splitPlacement(props);
     return (
         <BasePopover.Portal>
-            <BasePopover.Positioner
-                className="popup-positioner"
-                render={renderPositioner}
-                side={side}
-                align={align}
-                sideOffset={sideOffset}
-                alignOffset={alignOffset}
-                collisionPadding={collisionPadding}
-                collisionBoundary={collisionBoundary}
-                collisionAvoidance={collisionAvoidance}
-                anchor={anchor}
-                sticky={sticky}
-                positionMethod={positionMethod}
-            >
-                <BasePopover.Popup className={withClass(POPUP_VARIANT[variant], className)} {...props} />
+            <BasePopover.Positioner className="popup-positioner" render={renderPositioner} {...placement} side={side} align={align} sideOffset={sideOffset}>
+                <BasePopover.Popup className={withClass(POPUP_VARIANT[variant], className)} {...popupProps} />
             </BasePopover.Positioner>
         </BasePopover.Portal>
     );
@@ -84,37 +56,12 @@ export type PreviewCardPopupProps = ComponentProps<typeof BasePreviewCard.Popup>
     };
 
 /* A card that opens while the pointer rests on its trigger, drawn like a popover. */
-export function PreviewCardPopup({
-    variant = 'menu',
-    side = 'bottom',
-    align = 'start',
-    sideOffset = 8,
-    alignOffset,
-    collisionPadding,
-    collisionBoundary,
-    collisionAvoidance,
-    anchor,
-    sticky,
-    positionMethod,
-    className,
-    ...props
-}: PreviewCardPopupProps) {
+export function PreviewCardPopup({ variant = 'menu', side = 'bottom', align = 'start', sideOffset = 8, className, ...props }: PreviewCardPopupProps) {
+    const [placement, popupProps] = splitPlacement(props);
     return (
         <BasePreviewCard.Portal>
-            <BasePreviewCard.Positioner
-                className="z-(--z-popup)"
-                side={side}
-                align={align}
-                sideOffset={sideOffset}
-                alignOffset={alignOffset}
-                collisionPadding={collisionPadding}
-                collisionBoundary={collisionBoundary}
-                collisionAvoidance={collisionAvoidance}
-                anchor={anchor}
-                sticky={sticky}
-                positionMethod={positionMethod}
-            >
-                <BasePreviewCard.Popup className={withClass(POPUP_VARIANT[variant], className)} {...props} />
+            <BasePreviewCard.Positioner className="z-(--z-popup)" {...placement} side={side} align={align} sideOffset={sideOffset}>
+                <BasePreviewCard.Popup className={withClass(POPUP_VARIANT[variant], className)} {...popupProps} />
             </BasePreviewCard.Positioner>
         </BasePreviewCard.Portal>
     );

@@ -1,7 +1,7 @@
 import type { ComponentProps } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import clsx from 'clsx';
-import { useFieldControl } from './field-context.ts';
+import { fieldControlProps, useFieldControl } from './field-context.ts';
 import { Icon } from './Icon.tsx';
 
 export interface InputProps extends Omit<ComponentProps<'input'>, 'size'> {
@@ -17,12 +17,7 @@ export interface InputProps extends Omit<ComponentProps<'input'>, 'size'> {
 export function Input({ size = 'md', mono = false, icon, className, id, ...props }: InputProps) {
     const field = useFieldControl();
     const small = size === 'sm';
-    const control = {
-        id: id ?? field?.id,
-        'aria-describedby': field?.describedBy,
-        'aria-invalid': field?.invalid || undefined,
-        ...props
-    };
+    const control = { ...fieldControlProps(field, id), ...props };
 
     if (icon === undefined) {
         return <input {...control} className={clsx('field', small && 'field-sm', mono && 'font-mono text-code', className)} />;
@@ -62,9 +57,7 @@ export function TextArea({ size = 'md', resize = 'none', mono = false, className
     const field = useFieldControl();
     return (
         <textarea
-            id={id ?? field?.id}
-            aria-describedby={field?.describedBy}
-            aria-invalid={field?.invalid || undefined}
+            {...fieldControlProps(field, id)}
             {...props}
             className={clsx(
                 'field h-auto min-h-16 py-1.5',
