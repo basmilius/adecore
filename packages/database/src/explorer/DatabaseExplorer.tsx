@@ -11,6 +11,7 @@ import type { TableKind } from '../protocol/index.ts';
 import { EngineIcon } from '../connections/EngineIcon.tsx';
 import { keyLabelOf, type ColumnKeys } from '../column-keys.ts';
 import { KeyIcon } from '../KeyIcon.tsx';
+import { usePopupPress } from '../use-popup-press.ts';
 import type { ExplorerFolder } from './folders.ts';
 import { RowMenu } from './RowMenu.tsx';
 import { TableDialog, type TableRequest } from './TableDialog.tsx';
@@ -31,12 +32,10 @@ import {
     tableOf,
     type EntryRow,
     type ErrorRow,
-    type LoadTarget,
     type ExpandableRow,
     type TreeRow
 } from './tree.ts';
 import { useExplorerLoads } from './use-explorer-loads.ts';
-import { usePopupPress } from '../use-popup-press.ts';
 import { useStoredExpansion } from './use-stored-expansion.ts';
 
 export interface DatabaseExplorerProps {
@@ -228,10 +227,6 @@ export function DatabaseExplorer({
         }
     };
 
-    const refresh = (target: LoadTarget): void => {
-        loads.reset(target);
-    };
-
     const disconnect = (connection: Connection): void => {
         void client.disconnect(connection.id).catch(() => undefined);
         loads.reset({ connectionId: connection.id });
@@ -259,9 +254,10 @@ export function DatabaseExplorer({
             row.kind === 'appItem' ? (
                 (row.item.menu ?? null)
             ) : connection !== undefined && hasMenu(row) ? (
-                <RowMenu row={row} connection={connection} onRefresh={refresh} onDisconnect={disconnect} onRequest={setRequest} />
+                <RowMenu row={row} connection={connection} onRefresh={loads.reset} onDisconnect={disconnect} onRequest={setRequest} />
             ) : null;
         const selectedRow = isSelected(row);
+        const draggable = row.kind === 'table' && onTableDragStart !== undefined;
         const props = {
             level: row.level,
             selected: selectedRow,
@@ -281,12 +277,9 @@ export function DatabaseExplorer({
                     rowElements.current.set(row.key, element);
                 }
             },
-            draggable: row.kind === 'table' && onTableDragStart !== undefined,
-            onDragStart:
-                row.kind === 'table' && onTableDragStart !== undefined
-                    ? (event: DragEvent<HTMLElement>) => onTableDragStart(row.ref, event, row.table.kind)
-                    : undefined,
-            onDragEnd: row.kind === 'table' && onTableDragStart !== undefined ? onTableDragEnd : undefined,
+            draggable,
+            onDragStart: draggable ? (event: DragEvent<HTMLElement>) => onTableDragStart(row.ref, event, row.table.kind) : undefined,
+            onDragEnd: draggable ? onTableDragEnd : undefined,
             onClick: (event: MouseEvent) => click(row, event.detail),
             onDoubleClick: tableOf(row) === null && row.kind !== 'appItem' ? undefined : () => open(row),
             onFocus: () => {
@@ -374,12 +367,9 @@ function RowContent({ row, onToggle }: { row: TreeRow; onToggle?: () => void }) 
             );
         case 'folder':
             return (
-                <>
-                    <Tree.Chevron expanded={row.expanded} onExpandedChange={onToggle} />
-                    <Icon icon={Folder} size={16} className="shrink-0 text-text-muted" />
-                    <Tree.Label>{t(row.group === 'view' ? 'explorer.views' : 'explorer.tables')}</Tree.Label>
-                    <span className="shrink-0 text-text-faint tabular-nums">{formatNumber(row.count)}</span>
-                </>
+                <FolderContent expanded={row.expanded} count={row.count} onToggle={onToggle}>
+                    {t(row.group === 'view' ? 'explorer.views' : 'explorer.tables')}
+                </FolderContent>
             );
         case 'table':
             return (
@@ -391,21 +381,15 @@ function RowContent({ row, onToggle }: { row: TreeRow; onToggle?: () => void }) 
             );
         case 'part':
             return (
-                <>
-                    <Tree.Chevron expanded={row.expanded} onExpandedChange={onToggle} />
-                    <Icon icon={Folder} size={16} className="shrink-0 text-text-muted" />
-                    <Tree.Label>{t(`explorer.parts.${row.part}`)}</Tree.Label>
-                    <span className="shrink-0 text-text-faint tabular-nums">{formatNumber(row.count)}</span>
-                </>
+                <FolderContent expanded={row.expanded} count={row.count} onToggle={onToggle}>
+                    {t(`explorer.parts.${row.part}`)}
+                </FolderContent>
             );
         case 'appFolder':
             return (
-                <>
-                    <Tree.Chevron expanded={row.expanded} onExpandedChange={onToggle} />
-                    <Icon icon={Folder} size={16} className="shrink-0 text-text-muted" />
-                    <Tree.Label>{row.folder.label}</Tree.Label>
-                    <span className="shrink-0 text-text-faint tabular-nums">{formatNumber(row.count)}</span>
-                </>
+                <FolderContent expanded={row.expanded} count={row.count} onToggle={onToggle}>
+                    {row.folder.label}
+                </FolderContent>
             );
         case 'appItem':
             return (
@@ -444,6 +428,17 @@ function RowContent({ row, onToggle }: { row: TreeRow; onToggle?: () => void }) 
                 </>
             );
     }
+}
+
+function FolderContent({ expanded, count, onToggle, children }: { expanded: boolean; count: number; onToggle?: () => void; children: ReactNode }) {
+    return (
+        <>
+            <Tree.Chevron expanded={expanded} onExpandedChange={onToggle} />
+            <Icon icon={Folder} size={16} className="shrink-0 text-text-muted" />
+            <Tree.Label>{children}</Tree.Label>
+            <span className="shrink-0 text-text-faint tabular-nums">{formatNumber(count)}</span>
+        </>
+    );
 }
 
 const EMPTY_WORDS = { schemas: 'explorer.noSchemas', tables: 'explorer.noTables', columns: 'explorer.noColumns' } as const;

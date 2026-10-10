@@ -32,7 +32,7 @@ export function TableDialog({ request, onClose, onDone }: TableDialogProps) {
         const dialect = dialectOf(await session.server());
         const { results } = await session.execute(statementOf(dialect, change, ref, kind, to));
         const failed = results.find((result) => result.kind === 'error');
-        if (failed !== undefined && failed.kind === 'error') {
+        if (failed?.kind === 'error') {
             throw new Error(failed.error.message);
         }
         // The client tells its listeners after a `RENAME`, a `DROP` and a `TRUNCATE`, but not after a SQLite emptying, which is a `DELETE FROM`.

@@ -230,14 +230,7 @@ export const selectionOf = (row: TreeRow): ExplorerSelection | null => {
 };
 
 /* The key of the row a selection points at: its table, else its schema, else its connection. */
-export const selectionKey = (selection: ExplorerSelection): string => {
-    if (selection.schema === undefined) {
-        return connectionKey(selection.connectionId);
-    }
-    return selection.table === undefined
-        ? schemaKey(selection.connectionId, selection.schema)
-        : tableKey({ connectionId: selection.connectionId, schema: selection.schema, table: selection.table });
-};
+export const selectionKey = (selection: ExplorerSelection): string => loadKey(selection);
 
 /* Whether a row has a menu: the rows of a connection, a schema, a table or a column, an item the app gave one, and none of the rows that only report. */
 export const hasMenu = (row: TreeRow): boolean =>
@@ -297,6 +290,10 @@ const statusDraft = (row: StatusRow, level: number, parent: string, focusable: b
     below: []
 });
 
+/* The row of a load that is not ready: its error, which can be retried and so takes the focus, or that it is loading. */
+const pendingDraft = (load: Exclude<Load<unknown>, { status: 'ready' }>, retry: LoadTarget, level: number, parent: string): Draft =>
+    statusDraft(load.status === 'error' ? { kind: 'error', message: load.message, retry } : { kind: 'loading' }, level, parent, load.status === 'error');
+
 const matches = (name: string, query: string): boolean => name.toLowerCase().includes(query);
 
 /* What each folder of a table besides its columns holds: the primary key and the unique keys, the foreign keys, the other indexes, the checks and the triggers. */
@@ -348,11 +345,7 @@ export const flattenTree = (input: TreeInput): TreeRow[] => {
     const tableChildren = (ref: TableRef, kind: TableKind, level: number, parent: string): Draft[] => {
         const load = input.structures(ref.connectionId, ref.schema, ref.table);
         if (load.status !== 'ready') {
-            const row: StatusRow =
-                load.status === 'error'
-                    ? { kind: 'error', message: load.message, retry: { connectionId: ref.connectionId, schema: ref.schema, table: ref.table } }
-                    : { kind: 'loading' };
-            return [statusDraft(row, level, parent, load.status === 'error')];
+            return [pendingDraft(load, { connectionId: ref.connectionId, schema: ref.schema, table: ref.table }, level, parent)];
         }
         const structure = load.value;
         if (structure.columns.length === 0) {
@@ -443,9 +436,7 @@ export const flattenTree = (input: TreeInput): TreeRow[] => {
         if (filtering) {
             return { drafts: [], tables: 0 };
         }
-        const row: StatusRow =
-            load.status === 'error' ? { kind: 'error', message: load.message, retry: { connectionId: connection.id, schema } } : { kind: 'loading' };
-        return { drafts: [statusDraft(row, level, parent, load.status === 'error')], tables: 0 };
+        return { drafts: [pendingDraft(load, { connectionId: connection.id, schema }, level, parent)], tables: 0 };
     };
 
     const schemaDraft = (connection: Connection, schema: string, parent: string): Draft | null => {
@@ -523,9 +514,7 @@ export const flattenTree = (input: TreeInput): TreeRow[] => {
                 children = visible.flatMap((entry) => schemaDraft(connection, entry.name, key) ?? []);
             }
         } else if (open && !filtering) {
-            const row: StatusRow =
-                load.status === 'error' ? { kind: 'error', message: load.message, retry: { connectionId: connection.id } } : { kind: 'loading' };
-            children = [statusDraft(row, 2, key, load.status === 'error')];
+            children = [pendingDraft(load, { connectionId: connection.id }, 2, key)];
         }
         // Behind a status row too: what the app keeps of a connection does not wait on its server.
         children = [...children, ...(open ? appFolders : [])];
