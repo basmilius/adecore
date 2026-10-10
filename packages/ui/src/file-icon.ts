@@ -3,11 +3,10 @@ import { SETI_BY_FILE_EXTENSION, SETI_BY_FILE_NAME, SETI_BY_FILE_NAME_CONTAINS, 
 
 const SPRITE_ELEMENT_ID = 'adecore-ui-file-icon-sprite';
 
-/* The glyphs are Seti's (`seti-icons.ts`), which knows far more file types than the sets the tree
-   ships with. The tree only colors its own sets, so every symbol carries its hue in its id and the
-   sprite brings the rules that color it. A tree takes all of it as configuration where everything
-   drawn beside it calls `fileIconFor`, so a tab, a picker row and a tree row never disagree about
-   what a file is. Hand this to the tree. */
+/* Hand this to the tree. The glyphs are Seti's (`seti-icons.ts`), which knows far more file types than
+   the tree's own sets. The tree colors only those, so every symbol carries its hue in its id and the
+   sprite brings the rules that color it. Everything drawn beside a tree calls `fileIconFor`, so a tab,
+   a picker row and a tree row never disagree about what a file is. */
 export const FILE_TREE_ICONS: FileTreeIconConfig = {
     set: 'none',
     spriteSheet: SETI_SPRITE_SHEET,
@@ -27,11 +26,10 @@ const resolveIcon: ReturnType<typeof createFileTreeIconResolver>['resolveIcon'] 
 
 /*
  * The id of the `<symbol>` the set gives a file, in the sprite `mountFileIconSprite` puts in the
- * document. The path may be absolute or relative. Only the last segment decides, first by exact
- * name (`package.json`, `.gitignore`), then by a part of the name (`Dockerfile.dev`), then by the
- * longest extension that matches (`spec.ts` before `ts`). Anything the set does not know falls back
- * to its generic file icon, and so does a directory. The tree marks a folder with the chevron that
- * turns as it opens, not with a glyph of its own.
+ * document. Only the last segment of the path decides, first by exact name (`package.json`), then by
+ * a part of the name (`Dockerfile.dev`), then by the longest extension that matches (`spec.ts` before
+ * `ts`). Anything else falls back to the generic file icon, a directory included: the tree marks a
+ * folder with its chevron, not a glyph.
  */
 export const fileIconFor = (path: string): string => resolveIcon('file-tree-icon-file', path).name;
 

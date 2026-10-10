@@ -277,7 +277,7 @@ export function SettingsDialog({
                         </div>
                     </div>
                     {/* The header sits outside the panels: inside one it remounts on every section
-                            change, which throws the keyboard's focus away mid-arrow-key. */}
+                        change, which throws the keyboard's focus away mid-arrow-key. */}
                     <div className="relative flex min-h-0 min-w-0 grow flex-col">
                         <div
                             className={clsx('flex min-w-0 items-start gap-4 px-8 pt-5.5 pb-4.5 max-[960px]:px-4', floating && 'absolute inset-x-0 top-0 z-10')}

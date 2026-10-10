@@ -37,7 +37,13 @@ const NAMED_KEYS = new Set(['Enter', 'Escape', 'Backspace', 'Delete', 'Tab', 'Sp
 
 const FUNCTION_KEY = /^F([1-9]|1[0-2])$/;
 
-const MODIFIER_WORDS = ['Mod', 'Ctrl', 'Meta', 'Alt', 'Shift'] as const;
+const MODIFIER_FIELDS: Readonly<Record<string, 'mod' | 'ctrl' | 'meta' | 'alt' | 'shift'>> = {
+    Mod: 'mod',
+    Ctrl: 'ctrl',
+    Meta: 'meta',
+    Alt: 'alt',
+    Shift: 'shift'
+};
 
 const isKey = (word: string): boolean =>
     /^[A-Za-z0-9]$/.test(word) || word in PUNCTUATION_CODES || CHARACTER_KEYS.has(word) || NAMED_KEYS.has(word) || FUNCTION_KEY.test(word);
@@ -51,9 +57,8 @@ export const shortcut = (text: string): Shortcut => {
     const words = text === '+' ? ['+'] : text.endsWith('++') ? [...text.slice(0, -2).split('+'), '+'] : text.split('+');
     const result: Shortcut = { mod: false, ctrl: false, meta: false, alt: false, shift: false, key: '' };
     for (const word of words) {
-        const modifier = MODIFIER_WORDS.find((candidate) => candidate === word);
-        if (modifier) {
-            result[modifier === 'Mod' ? 'mod' : modifier === 'Ctrl' ? 'ctrl' : modifier === 'Meta' ? 'meta' : modifier === 'Alt' ? 'alt' : 'shift'] = true;
+        if (Object.hasOwn(MODIFIER_FIELDS, word)) {
+            result[MODIFIER_FIELDS[word]!] = true;
             continue;
         }
         if (!isKey(word)) {

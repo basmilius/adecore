@@ -91,19 +91,12 @@ export function SegmentBar({ parts, range, size = 'md', onSelect, label, classNa
                         {part.label}
                     </span>
                 );
+                const look = { className: fill, style: { backgroundColor: part.color }, 'aria-current': part.current ? true : undefined };
                 const body =
                     onSelect === undefined ? (
-                        <span className={fill} style={{ backgroundColor: part.color }} aria-current={part.current ? true : undefined}>
-                            {text}
-                        </span>
+                        <span {...look}>{text}</span>
                     ) : (
-                        <button
-                            type="button"
-                            className={fill}
-                            style={{ backgroundColor: part.color }}
-                            aria-current={part.current ? true : undefined}
-                            onClick={() => onSelect(index)}
-                        >
+                        <button type="button" {...look} onClick={() => onSelect(index)}>
                             {text}
                         </button>
                     );

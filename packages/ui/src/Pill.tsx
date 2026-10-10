@@ -48,7 +48,14 @@ export interface PillProps {
 /* The small rounded label in a header, a sidebar row or a settings line: a count, a branch, a status. */
 export function Pill({ icon, children, tone = 'muted', shape = 'pill', size = 'md', mono = false, onClick, pressed, disabled, className, ref }: PillProps) {
     // Never broken inside itself: in a row that wraps, a pill that does not fit moves to the next line whole.
-    const shared = clsx('inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-2xs', SHAPES[shape], PADDING[shape][size], TONES[tone], mono && 'font-mono', className);
+    const shared = clsx(
+        'inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-2xs',
+        SHAPES[shape],
+        PADDING[shape][size],
+        TONES[tone],
+        mono && 'font-mono',
+        className
+    );
     if (!onClick) {
         return (
             <span ref={ref} className={shared}>

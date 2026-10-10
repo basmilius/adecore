@@ -6,7 +6,6 @@ import { Icon } from './Icon.tsx';
 import type { Shortcut } from './shortcut.ts';
 import { Spinner } from './Spinner.tsx';
 import { Tooltip, type TooltipSide } from './Tooltip.tsx';
-
 import { ICON_BUTTON_CLASS, ICON_BUTTON_ICON_SIZE, type IconButtonSize } from './icon-button-size.ts';
 
 export type { IconButtonSize };

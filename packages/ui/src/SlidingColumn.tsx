@@ -41,7 +41,7 @@ export interface SlidingColumnProps {
  * drag handle.
  */
 export function SlidingColumn({ open, width, gap = 0, bounds, onWidthChange, instant = false, body, className, ref, children }: SlidingColumnProps) {
-    /* Closed and done animating. Until then the contents stay mounted, so a close plays out. */
+    /* Closed and done animating. */
     const [settled, setSettled] = useState(!open);
     /* A width that lands without a transition fires no `transitionend`, so the motion it would have
        ended is over in the same commit that starts it. */
