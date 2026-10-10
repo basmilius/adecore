@@ -63,6 +63,7 @@ export class ChatClient {
     private readonly mounted = new MountedRegistry<Mounted>();
     private readonly unsubscribe: Array<() => void> = [];
     private readonly earlier = new Map<string, Promise<void>>();
+    private readonly inspections = new Map<string, Promise<ChatAttachResult>>();
     private preferences: ChatPreferencesPayload | null = null;
 
     constructor(transport: ChatTransport, sink: ChatSink, providers: ProviderSink | null = null) {
@@ -88,8 +89,6 @@ export class ChatClient {
             void this.loadStatuses();
         }
     }
-
-    private readonly inspections = new Map<string, Promise<ChatAttachResult>>();
 
     inspect(chatId: string): Promise<ChatAttachResult> {
         const pending = this.inspections.get(chatId);
@@ -347,7 +346,7 @@ export class ChatClient {
             this.sendPreferences();
             void this.loadProviders();
             void this.loadStatuses();
-            void this.mounted.reattachAll((chatId) => this.attach(chatId).then(() => undefined));
+            void this.mounted.reattachAll((chatId) => this.attach(chatId));
             return;
         }
         this.mounted.detachAll();

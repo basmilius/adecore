@@ -194,6 +194,15 @@ export function applyEvent(state: ChatState, event: ChatEvent): ChatState {
     }
 }
 
+/* Fields of a held chat that are not part of its thread; a chat this client does not hold stays as it is. */
+function withFields(store: ChatsStore, key: string, fields: Pick<ChatState, 'bookmarks' | 'visuals'>): Partial<ChatsStore> {
+    const current = store.byKey[key];
+    if (!current) {
+        return {};
+    }
+    return { byKey: { ...store.byKey, [key]: { ...current, ...fields } } };
+}
+
 export const useChats = create<ChatsStore>((set) => ({
     byKey: {},
     statusByKey: {},
@@ -247,22 +256,10 @@ export const useChats = create<ChatsStore>((set) => ({
         });
     },
     bookmarks(key, bookmarks) {
-        set((s) => {
-            const current = s.byKey[key];
-            if (!current) {
-                return {};
-            }
-            return { byKey: { ...s.byKey, [key]: { ...current, bookmarks } } };
-        });
+        set((s) => withFields(s, key, { bookmarks }));
     },
     visuals(key, visuals) {
-        set((s) => {
-            const current = s.byKey[key];
-            if (!current) {
-                return {};
-            }
-            return { byKey: { ...s.byKey, [key]: { ...current, visuals } } };
-        });
+        set((s) => withFields(s, key, { visuals }));
     },
     forget(key) {
         set((s) => {

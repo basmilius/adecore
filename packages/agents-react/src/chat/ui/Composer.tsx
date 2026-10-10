@@ -98,8 +98,7 @@ const PROMPT_HISTORY = 50;
 // Commands the composer handles itself; the CLI's own ones are sent through as text.
 const LOCAL_COMMANDS = ['model', 'compact', 'clear'];
 
-/* Files and paths dropped on the card become attachments and chips there. CodeMirror would paste a
-   file's text, or the drag's own text, at the drop point on top of that. */
+/* The card turns dropped files and paths into attachments and chips; CodeMirror would also paste their text at the drop point. */
 const LEAVE_DROPS_TO_THE_CARD = EditorView.domEventHandlers({
     drop: (event) => event.dataTransfer !== null && (event.dataTransfer.types.includes('Files') || carriesMentions(event.dataTransfer.types))
 });
@@ -158,6 +157,20 @@ function hintedPlaceholder(lead: string, joiner: string, hints: ReadonlyArray<{ 
     return root;
 }
 
+function sendLabelKey(busy: boolean, canSteer: boolean, delivery: 'queue' | 'steer'): string {
+    if (!busy) {
+        return 'composer.send';
+    }
+    if (!canSteer) {
+        return 'composer.queueButton';
+    }
+    return delivery === 'steer' ? 'composer.steerButton' : 'composer.queueWithSteerButton';
+}
+
+function sameQuery(left: MentionQuery | null, right: MentionQuery | null): boolean {
+    return left?.start === right?.start && left?.query === right?.query;
+}
+
 function splitPath(path: string): { name: string; dir: string } {
     const slash = path.lastIndexOf('/');
     return slash < 0 ? { name: path, dir: '' } : { name: path.slice(slash + 1), dir: path.slice(0, slash) };
@@ -196,7 +209,6 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
     const providers = useProviders((s) => s.providers);
     const { approvals, questions } = usePendingRequests(chatId);
     const order = useChatRow(chatId, (row) => row?.order);
-    // The structure, which a delta leaves alone. The prompts and the requests are items of their own.
     const items = useChatRow(chatId, (row) => row?.structure);
     const chats = chatHost().useReferableChats();
     const placeholderLead = chatHost().useComposerPlaceholder(scope.id, chatId);
@@ -208,7 +220,7 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
     const capabilities = provider?.capabilities;
     const compaction = capabilities?.compaction;
     const dismissedTurnId = useResumeCompactionDismissal(chatId);
-    /* The cheap half of the offer, so a chat that can never make one keeps no timer. */
+    // The cheap half of the offer, so a chat that can never make one keeps no timer.
     const couldOfferCompaction = compaction !== undefined && compaction !== 'none' && info.usage.contextTokens >= RESUME_COMPACTION_TOKENS;
     const now = useNow(60_000, couldOfferCompaction);
     const compactionOffer = !couldOfferCompaction
@@ -284,11 +296,11 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
         }
         let stale = false;
         const search = (): void => {
-            const search = chatHost().searchFiles;
-            if (search === null) {
+            const searchFiles = chatHost().searchFiles;
+            if (searchFiles === null) {
                 return;
             }
-            search(scope.id, info.cwd, mention.query, MENTION_RESULTS)
+            searchFiles(scope.id, info.cwd, mention.query, MENTION_RESULTS)
                 .then((files) => {
                     if (!stale) {
                         setSearched({ query: mention.query, files });
@@ -394,15 +406,28 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
         inputRef.current?.focus();
     };
 
-    const configure = (patch: { selection?: ModelSelection; runtimeMode?: RuntimeMode; account?: string }): void => {
+    const showError = (error: unknown): void => {
+        setNotice(error instanceof Error ? error.message : String(error));
+    };
+
+    /* One configuration at a time; a second pick while one is on its way is dropped. */
+    const runConfiguration = (work: () => Promise<void>): void => {
         if (configuring.current) {
             return;
         }
         configuring.current = true;
         setConfigurationPending(true);
-        void actions
-            .configure(chatId, patch)
-            .then(() => {
+        void work()
+            .catch(showError)
+            .finally(() => {
+                configuring.current = false;
+                setConfigurationPending(false);
+            });
+    };
+
+    const configure = (patch: { selection?: ModelSelection; runtimeMode?: RuntimeMode; account?: string }): void => {
+        runConfiguration(() =>
+            actions.configure(chatId, patch).then(() => {
                 if (patch.selection) {
                     rememberChatSelection(info.provider, patch.selection);
                 }
@@ -413,11 +438,7 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
                     rememberChatAccount(scope.id, info.provider, patch.account);
                 }
             })
-            .catch((error: unknown) => setNotice(error instanceof Error ? error.message : String(error)))
-            .finally(() => {
-                configuring.current = false;
-                setConfigurationPending(false);
-            });
+        );
     };
 
     const chooseAccount = (account: string): void => configure({ account });
@@ -426,18 +447,7 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
     const chooseModel = (provider: AgentKind, slug: string): void => {
         const selection: ModelSelection = { model: slug, options: {} };
         if (provider !== info.provider) {
-            if (configuring.current) {
-                return;
-            }
-            configuring.current = true;
-            setConfigurationPending(true);
-            void onRetarget(provider, selection)
-                .then(() => rememberChatSelection(provider, selection))
-                .catch((error: unknown) => setNotice(error instanceof Error ? error.message : String(error)))
-                .finally(() => {
-                    configuring.current = false;
-                    setConfigurationPending(false);
-                });
+            runConfiguration(() => onRetarget(provider, selection).then(() => rememberChatSelection(provider, selection)));
             return;
         }
         configure({ selection });
@@ -445,14 +455,10 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
 
     const stop = (shiftKey: boolean): void => {
         if (composerStopOf(shiftKey) === 'turn') {
-            void actions.stopTurn(chatId, false).catch((error: unknown) => setNotice(error instanceof Error ? error.message : String(error)));
+            void actions.stopTurn(chatId, false).catch(showError);
             return;
         }
-        chatHost().confirm.stopSubagents(
-            scope.id,
-            chatId,
-            () => void actions.stopTurn(chatId, true).catch((error: unknown) => setNotice(error instanceof Error ? error.message : String(error)))
-        );
+        chatHost().confirm.stopSubagents(scope.id, chatId, () => void actions.stopTurn(chatId, true).catch(showError));
     };
 
     /* The host decides whether a turn is in the way; only its refusal asks the person first. */
@@ -493,18 +499,16 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
         }
     };
 
-    const same = (a: MentionQuery | null, b: MentionQuery | null): boolean => a?.start === b?.start && a?.query === b?.query;
-
     /* Which picker the caret opens: `@` for a file, `$` for a skill, or neither. In code a sigil is just text. */
     const trackTriggers = (value: string, selection: TextRange, state: EditorState): void => {
         const empty = selection.from === selection.to;
         const tree = empty ? (ensureSyntaxTree(state, selection.from, 50) ?? syntaxTree(state)) : null;
         const caret = tree !== null && !inCode(tree, value, selection.from) ? selection.from : null;
         const skill = caret === null ? null : findSkillQuery(value, caret);
-        setSkillQuery((current) => (same(current, skill) ? current : skill));
+        setSkillQuery((current) => (sameQuery(current, skill) ? current : skill));
         // A CLI that does not expand `@path` gets the text as it is, so the picker stays out of the way.
         const next = caret === null || capabilities?.mentions === false ? null : findMentionQuery(value, caret);
-        setMention((current) => (same(current, next) ? current : next));
+        setMention((current) => (sameQuery(current, next) ? current : next));
     };
 
     // The inserted text reaches the editor with the render it causes, so the caret waits a frame for it.
@@ -558,8 +562,7 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
         moveCaret(result.caret);
     };
 
-    /* Paths dragged in from a list of files. There is no mention query to insert into, so they land
-       at the end of the prompt and join the draft's mentions, which is what `chat.send` carries. */
+    /* Paths dragged in from a list of files. With no mention query to insert into, they land at the end of the prompt. */
     const addMentions = (paths: string[]): void => {
         const fresh = paths.filter((path) => path !== '');
         if (fresh.length === 0 || capabilities?.mentions === false) {
@@ -752,6 +755,19 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
         return true;
     };
 
+    /* The arrows walk an open picker round; true when the key was one of them. */
+    const moveInMenu = (key: string, count: number): boolean => {
+        if (key === 'ArrowDown') {
+            setMenuIndex((i) => (i + 1) % count);
+            return true;
+        }
+        if (key === 'ArrowUp') {
+            setMenuIndex((i) => (i - 1 + count) % count);
+            return true;
+        }
+        return false;
+    };
+
     /* Runs before the editor's own keymap; true means the key is handled and its default prevented. */
     const onKeyDown = (e: KeyboardEvent, view: EditorView): boolean => {
         // Shift with the paste shortcut pastes a large text inline after all; any other key forgets it.
@@ -766,8 +782,7 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
             setText('', [], []);
             return true;
         }
-        // The composer keeps the keyboard while you type, but the shortcuts that move between views,
-        // panels and the palette stay the app's, untouched: Mod+Shift+Enter would otherwise send as well.
+        // The app's own shortcuts stay the app's while you type: Mod+Shift+Enter would otherwise send as well.
         if (chatHost().isAppShortcut(e)) {
             return false;
         }
@@ -785,12 +800,7 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
             return true;
         }
         if (commandMenuOpen) {
-            if (e.key === 'ArrowDown') {
-                setMenuIndex((i) => (i + 1) % commands.length);
-                return true;
-            }
-            if (e.key === 'ArrowUp') {
-                setMenuIndex((i) => (i - 1 + commands.length) % commands.length);
+            if (moveInMenu(e.key, commands.length)) {
                 return true;
             }
             if (e.key === 'Tab') {
@@ -804,12 +814,7 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
             }
         }
         if (skillMenuOpen) {
-            if (e.key === 'ArrowDown') {
-                setMenuIndex((i) => (i + 1) % skillMatches.length);
-                return true;
-            }
-            if (e.key === 'ArrowUp') {
-                setMenuIndex((i) => (i - 1 + skillMatches.length) % skillMatches.length);
+            if (moveInMenu(e.key, skillMatches.length)) {
                 return true;
             }
             if (e.key === 'Tab' || e.key === 'Enter') {
@@ -818,12 +823,7 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
             }
         }
         if (mentionMenuOpen && mentionCount > 0) {
-            if (e.key === 'ArrowDown') {
-                setMenuIndex((i) => (i + 1) % mentionCount);
-                return true;
-            }
-            if (e.key === 'ArrowUp') {
-                setMenuIndex((i) => (i - 1 + mentionCount) % mentionCount);
+            if (moveInMenu(e.key, mentionCount)) {
                 return true;
             }
             if (e.key === 'Tab' || e.key === 'Enter') {
@@ -946,9 +946,8 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
 
     return (
         <div className="chat-composer-content pointer-events-none relative z-10 w-full">
-            {/* Only while there is something below the fold. It sits over the composer rather than
-                in the thread, because the composer is the one thing whose height it always clears. */}
-            {/* A read-only composer sits under something that stands in the thread's place, whose end is not this one. */}
+            {/* Over the composer rather than in the thread, since the composer's height is the one it always clears.
+                A read-only composer sits under something that stands in the thread's place, whose end is not this one. */}
             {!atEnd && !readOnly && (
                 <div className="absolute inset-x-0 bottom-full mb-2 flex justify-center">
                     <Tooltip label={t('composer.jumpToEnd')} name>
@@ -969,8 +968,7 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
                         ? 'border-accent bg-[color-mix(in_srgb,var(--accent-soft)_60%,var(--surface-raised))]'
                         : 'border-border bg-[color-mix(in_srgb,var(--surface-raised)_92%,transparent)]'
                 )}
-                /* The whole card takes a dropped file as a mention, so a layout around it that takes drops
-                   of its own leaves it alone. */
+                /* The whole card takes a dropped file, so a layout around it that takes drops of its own leaves it alone. */
                 data-takes-drop="all"
                 onDragOver={(e) => {
                     if (writable && (e.dataTransfer.types.includes('Files') || carriesMentions(e.dataTransfer.types))) {
@@ -1300,21 +1298,7 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
                                 </Tooltip>
                             )}
                             {(!busy || !isEmptyDraft(draft)) && (
-                                <Tooltip
-                                    label={
-                                        busy
-                                            ? t(
-                                                  canSteer
-                                                      ? sendDelivery === 'steer'
-                                                          ? 'composer.steerButton'
-                                                          : 'composer.queueWithSteerButton'
-                                                      : 'composer.queueButton'
-                                              )
-                                            : t('composer.send')
-                                    }
-                                    kbd={KEY_SHORTCUTS.modEnter}
-                                    name
-                                >
+                                <Tooltip label={t(sendLabelKey(busy, canSteer, sendDelivery))} kbd={KEY_SHORTCUTS.modEnter} name>
                                     <button
                                         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-accent-text hover:brightness-90 disabled:opacity-50 disabled:hover:brightness-100"
                                         disabled={isEmptyDraft(draft) || !writable || guard.tooLong}

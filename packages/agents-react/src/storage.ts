@@ -88,25 +88,25 @@ export function createChatStore<T>(initial: StateCreator<T>, hydrate: (store: St
         hydrate(store);
     };
     hydrators.push(hydrateOnce);
-    const useStore = ((...args: Parameters<typeof store>) => {
+    const ready = (): void => {
         hydrateChatStorage();
         hydrateOnce();
+    };
+    const useStore = ((...args: Parameters<typeof store>) => {
+        ready();
         return store(...args);
     }) as typeof store;
     Object.assign(useStore, store);
     useStore.getState = () => {
-        hydrateChatStorage();
-        hydrateOnce();
+        ready();
         return store.getState();
     };
     useStore.subscribe = (...args) => {
-        hydrateChatStorage();
-        hydrateOnce();
+        ready();
         return store.subscribe(...args);
     };
     useStore.setState = ((...args: Parameters<typeof store.setState>) => {
-        hydrateChatStorage();
-        hydrateOnce();
+        ready();
         store.setState(...args);
     }) as typeof store.setState;
     return useStore;

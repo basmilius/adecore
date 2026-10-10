@@ -110,15 +110,11 @@ export function portTransport(port: FramePort): PortTransport {
             return promise;
         },
         on<E extends AgentEventType>(event: E, handler: (payload: ChatEventMap[E]) => void): () => void {
-            let handlers = eventHandlers.get(event);
-            if (!handlers) {
-                handlers = new Set();
-                eventHandlers.set(event, handlers);
-            }
-            const set = handlers;
-            set.add(handler);
+            const handlers = eventHandlers.get(event) ?? new Set();
+            eventHandlers.set(event, handlers);
+            handlers.add(handler);
             return () => {
-                set.delete(handler);
+                handlers.delete(handler);
             };
         },
         subscribeStatus(handler: (status: ChatTransportStatus) => void): () => void {

@@ -51,14 +51,6 @@ function parsePreferences(raw: string | null): Preferences {
 
 const storage = persistedJson(storageKey, parsePreferences, DEFAULTS, () => chatStorageLegacyKeys('usage'));
 
-function readPreferences(): Preferences {
-    return storage.read();
-}
-
-function persist(preferences: Preferences): void {
-    storage.write(preferences);
-}
-
 /* The three stored choices out of the store, so a setter writes the other two back unchanged. */
 function chosen(state: Preferences): Preferences {
     return { period: state.period, metric: state.metric, currency: state.currency };
@@ -116,10 +108,8 @@ const EMPTY: UsageRow = { asked: null, summary: null, loading: false, failed: fa
 interface UsageStore extends Preferences {
     byScope: Record<string, UsageRow>;
     /*
-     * The host the usage page is showing, by scope id, or null for the one its surroundings are on.
-     * Deliberately not in `Preferences`, so it is not written to storage: a remembered host outlives
-     * this client's knowledge of it, and the numbers worth opening on are those of the host you work
-     * on. It does survive closing the page, which is what makes browsing two hosts bearable.
+     * The host the usage page shows, by scope id, or null for the one around it. Not stored: a
+     * remembered host outlives this client's knowledge of it. It does survive closing the page.
      */
     chosen: string | null;
     /* Which host's numbers the page shows; null hands it back to the one around it. */
@@ -137,49 +127,53 @@ interface UsageStore extends Preferences {
 
 /* Reads the period, metric and currency again, once another window of the same origin wrote them. */
 export function reloadUsagePreferences(): void {
-    useUsageStore.setState(readPreferences());
+    useUsageStore.setState(storage.read());
 }
 
 export const useUsageStore = createChatStore<UsageStore>(
-    (set, get) => ({
-        ...DEFAULTS,
-        byScope: {},
-        chosen: null,
-        choose(scopeId) {
-            set({ chosen: scopeId });
-        },
-        setPeriod(period) {
-            persist({ ...chosen(get()), period });
-            set({ period });
-        },
-        setMetric(metric) {
-            persist({ ...chosen(get()), metric });
-            set({ metric });
-        },
-        setCurrency(currency) {
-            persist({ ...chosen(get()), currency });
-            set({ currency });
-        },
-        setLoading(scopeId, loading) {
-            set({ byScope: { ...get().byScope, [scopeId]: { ...(get().byScope[scopeId] ?? EMPTY), loading } } });
-        },
-        receive(scopeId, asked, summary) {
-            set({
-                byScope: { ...get().byScope, [scopeId]: { ...(get().byScope[scopeId] ?? EMPTY), asked, summary, loading: false, failed: false } }
-            });
-        },
-        fail(scopeId) {
-            set({ byScope: { ...get().byScope, [scopeId]: { ...(get().byScope[scopeId] ?? EMPTY), loading: false, failed: true } } });
-        },
-        setLimits(scopeId, limits) {
-            set({ byScope: { ...get().byScope, [scopeId]: { ...(get().byScope[scopeId] ?? EMPTY), limits } } });
-        },
-        forget(scopeId) {
-            const { [scopeId]: _gone, ...rest } = get().byScope;
-            set({ byScope: rest });
-        }
-    }),
-    (store) => store.setState(readPreferences())
+    (set, get) => {
+        const choosePreference = (change: Partial<Preferences>): void => {
+            storage.write({ ...chosen(get()), ...change });
+            set(change);
+        };
+        const patchRow = (scopeId: string, change: Partial<UsageRow>): void => {
+            set({ byScope: { ...get().byScope, [scopeId]: { ...(get().byScope[scopeId] ?? EMPTY), ...change } } });
+        };
+        return {
+            ...DEFAULTS,
+            byScope: {},
+            chosen: null,
+            choose(scopeId) {
+                set({ chosen: scopeId });
+            },
+            setPeriod(period) {
+                choosePreference({ period });
+            },
+            setMetric(metric) {
+                choosePreference({ metric });
+            },
+            setCurrency(currency) {
+                choosePreference({ currency });
+            },
+            setLoading(scopeId, loading) {
+                patchRow(scopeId, { loading });
+            },
+            receive(scopeId, asked, summary) {
+                patchRow(scopeId, { asked, summary, loading: false, failed: false });
+            },
+            fail(scopeId) {
+                patchRow(scopeId, { loading: false, failed: true });
+            },
+            setLimits(scopeId, limits) {
+                patchRow(scopeId, { limits });
+            },
+            forget(scopeId) {
+                const { [scopeId]: _gone, ...rest } = get().byScope;
+                set({ byScope: rest });
+            }
+        };
+    },
+    (store) => store.setState(storage.read())
 );
 
 /*

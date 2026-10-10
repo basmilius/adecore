@@ -88,16 +88,19 @@ export function summarizeGroup(tools: ChatToolItem[]): string {
     if (only !== null && toolEntry(only)?.grouped === true) {
         return i18next.t(`agent-chat:group.tools.${only}`, { count: tools.length });
     }
-    /* A run that only touches files says so once, whether it took one tool or three, and counts the
-       files rather than the calls: three edits to one file are one file edited. */
+    // Counts the files rather than the calls: three edits to one file are one file edited.
     if (tools.every((tool) => isFileChange(tool.name))) {
-        const paths = new Set(tools.map((tool) => (tool.input as { file_path?: string })?.file_path ?? tool.id));
+        const paths = new Set(tools.map(editedPath));
         return i18next.t('agent-chat:group.edited', { count: paths.size });
     }
     if (only !== null) {
         return i18next.t('agent-chat:group.calls', { name: only, count: tools.length });
     }
     return i18next.t('agent-chat:group.toolCalls', { count: tools.length });
+}
+
+function editedPath(tool: ChatToolItem): string {
+    return (tool.input as { file_path?: string })?.file_path ?? tool.id;
 }
 
 /*
@@ -112,7 +115,7 @@ export function summarizeTurn(tools: readonly ChatToolItem[]): string[] {
     let other = 0;
     for (const tool of tools) {
         if (isFileChange(tool.name)) {
-            edited.add((tool.input as { file_path?: string })?.file_path ?? tool.id);
+            edited.add(editedPath(tool));
             counts.set('agent-chat:group.edited', edited.size);
         } else if (toolEntry(tool.name)?.grouped === true) {
             const key = `agent-chat:group.tools.${tool.name}`;
@@ -345,12 +348,14 @@ function lastAssistantRow(rows: TimelineRow[]): TimelineRow | null {
     return null;
 }
 
-/* The whole thread as rows; items without a turn (older records) are shown as they are. */
-export function deriveTimelineRows(items: ChatItem[], options: TimelineOptions): TimelineRow[] {
-    const rows: TimelineRow[] = [];
-    const children = groupChildren(items);
-    // Items are grouped by turn, in order of first appearance; runs of turnless items keep their place.
-    const chunks: Array<{ turnId: string | null; items: ChatItem[] }> = [];
+interface TurnChunk {
+    turnId: string | null;
+    items: ChatItem[];
+}
+
+/* Items grouped by turn, in order of first appearance; runs of turnless items keep their place. */
+function chunksByTurn(items: ChatItem[]): TurnChunk[] {
+    const chunks: TurnChunk[] = [];
     const byTurn = new Map<string, ChatItem[]>();
     for (const item of items) {
         if (item.turnId === null) {
@@ -370,8 +375,14 @@ export function deriveTimelineRows(items: ChatItem[], options: TimelineOptions):
         }
         bucket.push(item);
     }
+    return chunks;
+}
 
-    for (const chunk of chunks) {
+/* The whole thread as rows; items without a turn (older records) are shown as they are. */
+export function deriveTimelineRows(items: ChatItem[], options: TimelineOptions): TimelineRow[] {
+    const rows: TimelineRow[] = [];
+    const children = groupChildren(items);
+    for (const chunk of chunksByTurn(items)) {
         if (chunk.turnId === null) {
             rows.push(...rowsForItems(chunk.items, options, children));
             continue;

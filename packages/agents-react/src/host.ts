@@ -134,7 +134,7 @@ export interface TimelineFind {
 /* The dictation control beside the composer's editor; it takes its text from the editor itself. */
 export interface ComposerDictationProps {
     targetRef: RefObject<HTMLElement | null>;
-    /* Where the button goes, in the composer's row of round controls. */
+    /* In the composer's row of round controls. */
     buttonContainer: HTMLElement | null | undefined;
     disabled: boolean;
     editor(): EditorView | null;
@@ -239,7 +239,6 @@ export interface ChatHost {
     /* The image a tool read, drawn under its row; null draws none. */
     ReadImage: ComponentType<{ path: string }> | null;
     code: {
-        /* Whether the app is light or dark right now. */
         useMode(): 'light' | 'dark';
         /* The Shiki theme ids code is drawn in, one per mode. */
         useThemes(): { light: string; dark: string };
@@ -300,7 +299,6 @@ export interface ChatHost {
     };
     /* Offers a fork of the chat after one of its turns; null offers none. */
     fork: ((chatId: string, turnId: string) => void) | null;
-    /* Opens the app's settings on a section: `providers`, or `agents`. */
     openSettings(section: 'providers' | 'agents'): void;
     /* Whether the host lets a chat go on by itself once a limit it stopped on lifts. */
     useResumeAtReset(scopeId: string): boolean;

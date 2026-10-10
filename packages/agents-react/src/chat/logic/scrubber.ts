@@ -127,19 +127,10 @@ export function tickOfRow(ticks: readonly ScrubberTick[], rowIndex: number): num
     if (ticks.length === 0) {
         return null;
     }
-    let low = 0;
-    let high = ticks.length - 1;
-    let found = 0;
-    while (low <= high) {
-        const middle = (low + high) >> 1;
-        if (ticks[middle]!.rowIndex <= rowIndex) {
-            found = middle;
-            low = middle + 1;
-        } else {
-            high = middle - 1;
-        }
-    }
-    return found;
+    return Math.max(
+        0,
+        lastIndexAtOrBelow(ticks.length, (index) => ticks[index]!.rowIndex, rowIndex)
+    );
 }
 
 /* Per tick, whether any of the rows has a find hit in its stretch. */
@@ -199,14 +190,14 @@ export function tickWidth(kind: TickKind, distanceFromPointer: number | null): n
     return kind === 'wake' ? WIDTH_WAKE_PX : WIDTH_PERSON_PX;
 }
 
-/* The last index whose start lies at or above a line, or -1. The starts only grow. */
-function lastAtOrAbove(starts: readonly number[], line: number): number {
+/* The last index whose value is at most `limit`, or -1. The values only grow. */
+function lastIndexAtOrBelow(length: number, valueAt: (index: number) => number, limit: number): number {
     let low = 0;
-    let high = starts.length - 1;
+    let high = length - 1;
     let found = -1;
     while (low <= high) {
         const middle = (low + high) >> 1;
-        if (starts[middle]! <= line) {
+        if (valueAt(middle) <= limit) {
             found = middle;
             low = middle + 1;
         } else {
@@ -214,6 +205,11 @@ function lastAtOrAbove(starts: readonly number[], line: number): number {
         }
     }
     return found;
+}
+
+/* The last index whose start lies at or above a line, or -1. */
+function lastAtOrAbove(starts: readonly number[], line: number): number {
+    return lastIndexAtOrBelow(starts.length, (index) => starts[index]!, line);
 }
 
 export interface ReadingPosition {
