@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type Ref } from 'react';
 import clsx from 'clsx';
-import { PencilRuler, Settings2, SquareTerminal, Table, TableProperties } from 'lucide-react';
+import { PencilRuler, Settings2, SquareTerminal, Table, TableProperties, type LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
     Button,
@@ -26,6 +26,7 @@ import type { Connection } from '../client/types.ts';
 import { ConnectionManager } from '../connections/ConnectionManager.tsx';
 import { QueryConsole } from '../console/QueryConsole.tsx';
 import { DatabaseExplorer } from '../explorer/DatabaseExplorer.tsx';
+import { useStableCallback } from '../use-stable-callback.ts';
 import { DesignerTab } from './DesignerTab.tsx';
 import { TableTab } from './TableTab.tsx';
 import {
@@ -44,7 +45,6 @@ import {
     STORAGE_KEY,
     type WorkbenchTab
 } from './tabs.ts';
-import { useStableCallback } from '../use-stable-callback.ts';
 
 export interface DatabaseWorkbenchProps {
     connections: readonly Connection[];
@@ -56,6 +56,13 @@ export interface DatabaseWorkbenchProps {
 
 const DEFAULT_WIDTH = 280;
 const MIN_WIDTH = 200;
+const CLOSE_TAB = shortcut('Mod+W');
+
+const TAB_ICON: Record<WorkbenchTab['kind'], LucideIcon> = {
+    table: Table,
+    console: SquareTerminal,
+    designer: PencilRuler
+};
 
 /*
  * The whole database view in one piece: the explorer beside closable tabs for the tables, consoles and
@@ -83,8 +90,9 @@ export function DatabaseWorkbench({ connections, onConnectionsChange, className,
     if (pruned !== state) {
         setState(pruned);
     }
-    if ([...dirty].some((id) => !state.tabs.some((tab) => tab.id === id))) {
-        setDirty(new Set([...dirty].filter((id) => state.tabs.some((tab) => tab.id === id))));
+    const isOpen = (id: string): boolean => state.tabs.some((tab) => tab.id === id);
+    if (![...dirty].every(isOpen)) {
+        setDirty(new Set([...dirty].filter(isOpen)));
     }
     const tabs = state.tabs.filter((tab) => known.has(connectionIdOf(tab)));
     const active = tabs.find((tab) => tab.id === state.activeId) ?? tabs.at(-1) ?? null;
@@ -146,7 +154,7 @@ export function DatabaseWorkbench({ connections, onConnectionsChange, className,
             active !== null &&
             e.currentTarget.contains(e.target as Node) &&
             !e.nativeEvent.isComposing &&
-            matchesShortcut(shortcut('Mod+W'), e.nativeEvent, isApplePlatform())
+            matchesShortcut(CLOSE_TAB, e.nativeEvent, isApplePlatform())
         ) {
             e.preventDefault();
             requestClose(active.id);
@@ -277,7 +285,7 @@ export function DatabaseWorkbench({ connections, onConnectionsChange, className,
                     >
                         {tabs.map((tab) => (
                             <Tabs.Tab key={tab.id} value={tab.id} onClose={() => requestClose(tab.id)}>
-                                <Icon icon={tab.kind === 'table' ? Table : tab.kind === 'console' ? SquareTerminal : PencilRuler} size={14} />
+                                <Icon icon={TAB_ICON[tab.kind]} size={14} />
                                 {titleOf(tab)}
                             </Tabs.Tab>
                         ))}

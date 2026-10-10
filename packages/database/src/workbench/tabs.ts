@@ -25,6 +25,9 @@ export const connectionIdOf = (tab: WorkbenchTab): string => (tab.kind === 'tabl
 
 const tableTabId = (ref: TableRef): string => `table:${ref.connectionId}\u0000${ref.schema}\u0000${ref.table}`;
 
+const isDesignerOf = (tab: WorkbenchTab, connectionId: string, schema: string, table: string): boolean =>
+    tab.kind === 'designer' && tab.connectionId === connectionId && tab.schema === schema && tab.table === table;
+
 const add = (state: WorkbenchState, tab: WorkbenchTab): WorkbenchState => ({ ...state, tabs: [...state.tabs, tab], activeId: tab.id });
 
 const update = (state: WorkbenchState, id: string, change: (tab: WorkbenchTab) => WorkbenchTab): WorkbenchState => {
@@ -64,10 +67,7 @@ export const openConsole = (state: WorkbenchState, connectionId: string, schema?
 
 /* A table is designed in one tab; a new table gets a tab each time. */
 export const openDesigner = (state: WorkbenchState, connectionId: string, schema: string, table?: string): WorkbenchState => {
-    const existing =
-        table === undefined
-            ? undefined
-            : state.tabs.find((tab) => tab.kind === 'designer' && tab.connectionId === connectionId && tab.schema === schema && tab.table === table);
+    const existing = table === undefined ? undefined : state.tabs.find((tab) => isDesignerOf(tab, connectionId, schema, table));
     if (existing !== undefined) {
         return focusTab(state, existing.id);
     }
@@ -87,10 +87,7 @@ export const setDesignerTable = (state: WorkbenchState, id: string, table: strin
     if (subject?.kind !== 'designer' || subject.table === table) {
         return state;
     }
-    const tabs = state.tabs.filter(
-        (tab) =>
-            tab.id === id || !(tab.kind === 'designer' && tab.connectionId === subject.connectionId && tab.schema === subject.schema && tab.table === table)
-    );
+    const tabs = state.tabs.filter((tab) => tab.id === id || !isDesignerOf(tab, subject.connectionId, subject.schema, table));
     return update({ ...state, tabs }, id, (tab) => (tab.kind === 'designer' ? { ...tab, table } : tab));
 };
 

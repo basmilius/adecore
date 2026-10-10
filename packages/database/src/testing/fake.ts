@@ -119,14 +119,18 @@ const toTables = (database: FakeDatabase): Map<string, Map<string, Table>> =>
         ])
     );
 
-const findTable = (session: Session, schema: string, name: string): Table => {
+const findSchema = (session: Session, schema: string): Map<string, Table> => {
     const tables = session.schemas.get(schema);
 
     if (tables === undefined) {
         throw new FakeError('query-failed', `Unknown database '${schema}'`, '42000');
     }
 
-    const table = tables.get(name);
+    return tables;
+};
+
+const findTable = (session: Session, schema: string, name: string): Table => {
+    const table = findSchema(session, schema).get(name);
 
     if (table === undefined) {
         throw new FakeError('query-failed', `Table '${schema}.${name}' doesn't exist`, '42S02');
@@ -334,10 +338,7 @@ const selectSchema = (session: Session, schema: string | undefined): void => {
         return;
     }
 
-    if (!session.schemas.has(schema)) {
-        throw new FakeError('query-failed', `Unknown database '${schema}'`, '42000');
-    }
-
+    findSchema(session, schema);
     session.schema = schema;
 };
 
@@ -402,12 +403,7 @@ export const fakeDatabaseTransport = (options: FakeDatabaseTransportOptions): Da
             schemas: [...sessionOf(session).schemas.keys()].map((name) => ({ name, system: SYSTEM_SCHEMAS.includes(name) }))
         }),
         tables: ({ session, schema }) => {
-            const tables = sessionOf(session).schemas.get(schema);
-
-            if (tables === undefined) {
-                throw new FakeError('query-failed', `Unknown database '${schema}'`, '42000');
-            }
-
+            const tables = findSchema(sessionOf(session), schema);
             return { tables: [...tables].map(([name, table]) => ({ name, kind: table.kind, rowEstimate: table.rows.length, comment: null })) };
         },
         structure: ({ session, schema, table: name }) => {
