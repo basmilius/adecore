@@ -5,6 +5,50 @@ import { dirname, join } from 'node:path';
 import { packedEntrypoints } from './packed-artifacts.ts';
 import { dependencyOrder, discoverPackages, repositoryRoot } from './workspaces.ts';
 
+/* What a consumer runs against each packed package that is selected, in this order. */
+const SMOKE_CHECKS: Record<string, string> = {
+    '@adecore/service': `const service = await import('@adecore/service');
+const spec = { label: 'com.example.worker', description: 'Example worker', program: process.execPath, args: [], environment: {}, workingDirectory: process.cwd(), logFile: '/tmp/example.log' };
+assert.match(service.systemdUnit(spec), /Description=Example worker/);
+assert.equal(service.definitionRunsProgram(service.launchAgentPlist(spec), spec.program), true);`,
+    '@adecore/agents': `const { runProcess } = await import('@adecore/agents/run-process');
+const child = await runProcess([process.execPath, '-e', 'process.stdout.write("packed backend")']);
+assert.equal(child.exitCode, 0); assert.equal(child.stdout, 'packed backend');
+const { Serializer } = await import('@adecore/agents/serializer'); assert.equal(typeof Serializer, 'function');`,
+    '@adecore/agent-contracts': "await import('@adecore/agent-contracts');",
+    '@adecore/merge': `const packedMerge = await import('@adecore/merge');
+const changes = packedMerge.diffLines(['before'], ['after']);
+assert.equal(changes.length, 1);
+assert.equal(packedMerge.joinLines(['after'], packedMerge.shapeOf('before\\n')), 'after\\n');`,
+    '@adecore/drawing': `const packedDrawing = await import('@adecore/drawing');
+const { DrawingDocumentSchema } = await import('@adecore/drawing/protocol');
+const drawing = DrawingDocumentSchema.parse({ version: 1, rev: 0, elements: [
+    { kind: 'rect', id: 'box', x: 0, y: 0, w: 160, h: 96, stroke: 'ink', strokeWidth: 2, seed: 7 },
+    { kind: 'freehand', id: 'stroke', x: 0, y: 0, w: 10, h: 10, stroke: 'ink', strokeWidth: 2, seed: 1, points: [[0, 0, 0.5], [10, 10]] }
+] });
+assert.match(packedDrawing.toSvg(drawing.elements, { palette: packedDrawing.DEFAULT_PALETTE }), /<svg/);
+assert.ok(packedDrawing.pathsOfElement(drawing.elements[0]).length > 0);
+assert.ok(packedDrawing.freehandOutline(drawing.elements[1]).length > 0);`,
+    '@adecore/diagram': `const packedDiagram = await import('@adecore/diagram');
+const { DiagramDocumentSchema } = await import('@adecore/diagram/protocol');
+const diagram = DiagramDocumentSchema.parse({ version: 1, rev: 0, meta: { title: 'Packed graph', direction: 'right' }, nodes: [{ id: 'one', label: 'First' }, { id: 'two', label: 'Second' }], edges: [{ from: 'one', to: 'two' }], groups: [] });
+const layout = packedDiagram.layoutOf(diagram);
+assert.match(packedDiagram.toSvg(diagram, { layout }), /First/);
+assert.ok(packedDiagram.readingOrder(diagram).includes('Second'));`,
+    '@adecore/plan': `const packedPlan = await import('@adecore/plan');
+const { PlanSchema } = await import('@adecore/plan/protocol');
+const draft = packedPlan.parsePlanMarkdown('# Delivery\\n\\n- [ ] Verify packed exports\\n');
+assert.equal(draft.ok, true);
+const created = packedPlan.createPlan(draft.draft, { id: 'delivery', now: '2026-01-01T00:00:00.000Z', mintId: () => 'verify' });
+assert.equal(created.ok, true);
+assert.deepEqual(PlanSchema.parse(created.plan), created.plan);
+const updated = packedPlan.applyPlanOps(created.plan, [{ op: 'set', ids: ['verify'], state: 'done' }], { actor: 'person', now: '2026-01-01T00:01:00.000Z' });
+assert.equal(updated.ok, true);
+assert.match(packedPlan.planToMarkdown(updated.plan), /\\[x\\]/);`,
+    '@adecore/ui': `const React = await import('react'); const { renderToStaticMarkup } = await import('react-dom/server');
+const ui = await import('@adecore/ui'); assert.match(renderToStaticMarkup(React.createElement(ui.Button, null, 'Packed button')), /Packed button/);`
+};
+
 const directory = mkdtempSync(join(tmpdir(), 'adecore-pack-'));
 const packages = dependencyOrder(discoverPackages());
 const only = process.argv.slice(2);
@@ -78,63 +122,12 @@ try {
     run('node', ['--conditions=source', 'resolve.mjs']);
 
     const available = new Set(selected.map((pkg) => pkg.manifest.name));
-    const checks = ["import assert from 'node:assert/strict';"];
-    if (available.has('@adecore/service')) {
-        checks.push(`const service = await import('@adecore/service');
-const spec = { label: 'com.example.worker', description: 'Example worker', program: process.execPath, args: [], environment: {}, workingDirectory: process.cwd(), logFile: '/tmp/example.log' };
-assert.match(service.systemdUnit(spec), /Description=Example worker/);
-assert.equal(service.definitionRunsProgram(service.launchAgentPlist(spec), spec.program), true);`);
-    }
-    if (available.has('@adecore/agents')) {
-        checks.push(`const { runProcess } = await import('@adecore/agents/run-process');
-const child = await runProcess([process.execPath, '-e', 'process.stdout.write("packed backend")']);
-assert.equal(child.exitCode, 0); assert.equal(child.stdout, 'packed backend');
-const { Serializer } = await import('@adecore/agents/serializer'); assert.equal(typeof Serializer, 'function');`);
-    }
-    if (available.has('@adecore/agent-contracts')) {
-        checks.push("await import('@adecore/agent-contracts');");
-    }
-    if (available.has('@adecore/merge')) {
-        checks.push(`const packedMerge = await import('@adecore/merge');
-const changes = packedMerge.diffLines(['before'], ['after']);
-assert.equal(changes.length, 1);
-assert.equal(packedMerge.joinLines(['after'], packedMerge.shapeOf('before\\n')), 'after\\n');`);
-    }
-    if (available.has('@adecore/drawing')) {
-        checks.push(`const packedDrawing = await import('@adecore/drawing');
-const { DrawingDocumentSchema } = await import('@adecore/drawing/protocol');
-const drawing = DrawingDocumentSchema.parse({ version: 1, rev: 0, elements: [
-    { kind: 'rect', id: 'box', x: 0, y: 0, w: 160, h: 96, stroke: 'ink', strokeWidth: 2, seed: 7 },
-    { kind: 'freehand', id: 'stroke', x: 0, y: 0, w: 10, h: 10, stroke: 'ink', strokeWidth: 2, seed: 1, points: [[0, 0, 0.5], [10, 10]] }
-] });
-assert.match(packedDrawing.toSvg(drawing.elements, { palette: packedDrawing.DEFAULT_PALETTE }), /<svg/);
-assert.ok(packedDrawing.pathsOfElement(drawing.elements[0]).length > 0);
-assert.ok(packedDrawing.freehandOutline(drawing.elements[1]).length > 0);`);
-    }
-    if (available.has('@adecore/diagram')) {
-        checks.push(`const packedDiagram = await import('@adecore/diagram');
-const { DiagramDocumentSchema } = await import('@adecore/diagram/protocol');
-const diagram = DiagramDocumentSchema.parse({ version: 1, rev: 0, meta: { title: 'Packed graph', direction: 'right' }, nodes: [{ id: 'one', label: 'First' }, { id: 'two', label: 'Second' }], edges: [{ from: 'one', to: 'two' }], groups: [] });
-const layout = packedDiagram.layoutOf(diagram);
-assert.match(packedDiagram.toSvg(diagram, { layout }), /First/);
-assert.ok(packedDiagram.readingOrder(diagram).includes('Second'));`);
-    }
-    if (available.has('@adecore/plan')) {
-        checks.push(`const packedPlan = await import('@adecore/plan');
-const { PlanSchema } = await import('@adecore/plan/protocol');
-const draft = packedPlan.parsePlanMarkdown('# Delivery\\n\\n- [ ] Verify packed exports\\n');
-assert.equal(draft.ok, true);
-const created = packedPlan.createPlan(draft.draft, { id: 'delivery', now: '2026-01-01T00:00:00.000Z', mintId: () => 'verify' });
-assert.equal(created.ok, true);
-assert.deepEqual(PlanSchema.parse(created.plan), created.plan);
-const updated = packedPlan.applyPlanOps(created.plan, [{ op: 'set', ids: ['verify'], state: 'done' }], { actor: 'person', now: '2026-01-01T00:01:00.000Z' });
-assert.equal(updated.ok, true);
-assert.match(packedPlan.planToMarkdown(updated.plan), /\\[x\\]/);`);
-    }
-    if (available.has('@adecore/ui')) {
-        checks.push(`const React = await import('react'); const { renderToStaticMarkup } = await import('react-dom/server');
-const ui = await import('@adecore/ui'); assert.match(renderToStaticMarkup(React.createElement(ui.Button, null, 'Packed button')), /Packed button/);`);
-    }
+    const checks = [
+        "import assert from 'node:assert/strict';",
+        ...Object.entries(SMOKE_CHECKS)
+            .filter(([name]) => available.has(name))
+            .map(([, check]) => check)
+    ];
     writeFileSync(join(directory, 'smoke.mjs'), checks.join('\n'));
     run('node', ['smoke.mjs']);
     run(process.execPath, ['smoke.mjs']);
