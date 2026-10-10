@@ -49,25 +49,25 @@ const host = createDatabaseHost({
 let mainWindow: BrowserWindow | null = null;
 let demoReady: Promise<string> | null = null;
 
-const isPageUrl = (url: string): boolean => {
+function isPageUrl(url: string): boolean {
     try {
         const parsed = new URL(url);
         return parsed.protocol === 'file:' && fileURLToPath(parsed) === pagePath;
     } catch {
         return false;
     }
-};
+}
 
 /* The page carries the whole bridge, so only the top frame of the app's window, still on the app's own file, may use it. */
-const assertOwnPage = (event: IpcMainInvokeEvent): void => {
+function assertOwnPage(event: IpcMainInvokeEvent): void {
     const frame = event.senderFrame;
 
     if (mainWindow === null || event.sender !== mainWindow.webContents || frame === null || frame.parent !== null || !isPageUrl(frame.url)) {
         throw new Error('Request from an untrusted sender.');
     }
-};
+}
 
-const demoDatabase = (): Promise<string> => {
+function demoDatabase(): Promise<string> {
     demoReady ??= (async () => {
         const path = join(app.getPath('userData'), 'demo.sqlite');
         await ensureDemoDatabase(host, path);
@@ -78,9 +78,9 @@ const demoDatabase = (): Promise<string> => {
     });
 
     return demoReady;
-};
+}
 
-const registerChannels = (): void => {
+function registerChannels(): void {
     ipcMain.handle(CHANNELS.request, (event, request: unknown) => {
         assertOwnPage(event);
         return host.handle(request, `window:${event.sender.id}`);
@@ -132,9 +132,9 @@ const registerChannels = (): void => {
         assertOwnPage(event);
         return demoDatabase();
     });
-};
+}
 
-const createWindow = (): void => {
+function createWindow(): void {
     const window = new BrowserWindow({
         width: 1280,
         height: 800,
@@ -166,7 +166,7 @@ const createWindow = (): void => {
     });
 
     void window.loadFile(pagePath);
-};
+}
 
 let disposed = false;
 
@@ -185,13 +185,14 @@ app.on('window-all-closed', () => {
 });
 
 /* The default menu closes the window on Cmd+W before the page hears it, and the workbench uses that key to close a tab. */
-const buildMenu = (): Menu =>
-    Menu.buildFromTemplate([
+function buildMenu(): Menu {
+    return Menu.buildFromTemplate([
         process.platform === 'darwin' ? { role: 'appMenu' } : { label: 'File', submenu: [{ role: 'quit' }] },
         { role: 'editMenu' },
         { role: 'viewMenu' },
         { label: 'Window', submenu: [{ role: 'minimize' }, { role: 'zoom' }] }
     ]);
+}
 
 void app.whenReady().then(() => {
     if (!existsSync(helperPath)) {

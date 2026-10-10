@@ -6,7 +6,7 @@ import { SEED_SQL } from './seed.ts';
 
 const SEED_OWNER = 'demo-seed';
 
-const call = async <M extends DatabaseMethod>(host: DatabaseHost, method: M, params: DatabaseParams<M>): Promise<DatabaseResult<M>> => {
+async function call<M extends DatabaseMethod>(host: DatabaseHost, method: M, params: DatabaseParams<M>): Promise<DatabaseResult<M>> {
     const request = { id: randomUUID(), method, params } as DatabaseRequest<M>;
     const response = await host.handle(request, SEED_OWNER);
 
@@ -15,16 +15,17 @@ const call = async <M extends DatabaseMethod>(host: DatabaseHost, method: M, par
     }
 
     return response.result as DatabaseResult<M>;
-};
+}
 
-const exists = (path: string): Promise<boolean> =>
-    access(path).then(
+function exists(path: string): Promise<boolean> {
+    return access(path).then(
         () => true,
         () => false
     );
+}
 
 /* Creates the demo database through the host itself, so the app needs no SQLite library of its own. */
-export const ensureDemoDatabase = async (host: DatabaseHost, path: string): Promise<void> => {
+export async function ensureDemoDatabase(host: DatabaseHost, path: string): Promise<void> {
     if (await exists(path)) {
         return;
     }
@@ -47,4 +48,4 @@ export const ensureDemoDatabase = async (host: DatabaseHost, path: string): Prom
         await rm(path, { force: true });
         throw e;
     }
-};
+}

@@ -3,17 +3,17 @@ import type { Connection } from '@adecore/database';
 
 const STORAGE_KEY = 'database-example:connections';
 
-const read = (): readonly Connection[] | null => {
+function read(): readonly Connection[] | null {
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
         return raw === null ? null : (JSON.parse(raw) as Connection[]);
     } catch {
         return null;
     }
-};
+}
 
 /* The saved connections. A first start has none stored, and gets the demo database. */
-export const useConnections = (): readonly [readonly Connection[], (next: readonly Connection[]) => void] => {
+export function useConnections(): readonly [readonly Connection[], (next: readonly Connection[]) => void] {
     const [connections, setConnections] = useState<readonly Connection[]>(() => read() ?? []);
 
     const save = (next: readonly Connection[]): void => {
@@ -33,4 +33,4 @@ export const useConnections = (): readonly [readonly Connection[], (next: readon
     }, []);
 
     return [connections, save];
-};
+}

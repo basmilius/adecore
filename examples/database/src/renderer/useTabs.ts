@@ -23,7 +23,7 @@ interface Workspace {
 
 export const CONNECTIONS_TAB = 'connections';
 
-export const connectionIdOf = (tab: WorkTab): string | null => {
+export function connectionIdOf(tab: WorkTab): string | null {
     switch (tab.kind) {
         case 'table':
             return tab.ref.connectionId;
@@ -33,12 +33,14 @@ export const connectionIdOf = (tab: WorkTab): string | null => {
         case 'connections':
             return null;
     }
-};
+}
 
-const tableTabId = (ref: TableRef): string => `table:${ref.connectionId}\u0000${ref.schema}\u0000${ref.table}`;
+function tableTabId(ref: TableRef): string {
+    return `table:${ref.connectionId}\u0000${ref.schema}\u0000${ref.table}`;
+}
 
 /* The open tabs and the one in front. Opening something that is already open brings its tab forward. */
-export const useTabs = () => {
+export function useTabs() {
     const [workspace, setWorkspace] = useState<Workspace>({ tabs: [], activeId: null });
     const serial = useRef(0);
     const consoles = useRef(0);
@@ -118,4 +120,4 @@ export const useTabs = () => {
         setView,
         keepConnections
     };
-};
+}

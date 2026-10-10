@@ -22,7 +22,7 @@ export interface WorkspaceProps {
     onOpenConnections(): void;
 }
 
-const iconOf = (tab: WorkTab): LucideIcon => {
+function iconOf(tab: WorkTab): LucideIcon {
     switch (tab.kind) {
         case 'table':
             return Table;
@@ -33,7 +33,7 @@ const iconOf = (tab: WorkTab): LucideIcon => {
         case 'connections':
             return Cable;
     }
-};
+}
 
 /* The tab strip with its actions, and the view of every open tab. */
 export function Workspace({

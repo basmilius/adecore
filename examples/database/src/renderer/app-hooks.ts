@@ -26,7 +26,7 @@ export type Layout = 'workbench' | 'pane';
 const LAYOUT_KEY = 'database-example:layout';
 
 /* Which of the two layouts the window shows, kept for the next start. */
-export const useLayout = (): readonly [Layout, (next: Layout) => void] => {
+export function useLayout(): readonly [Layout, (next: Layout) => void] {
     const [layout, setLayout] = useState<Layout>(() => (localStorage.getItem(LAYOUT_KEY) === 'pane' ? 'pane' : 'workbench'));
 
     const change = (next: Layout): void => {
@@ -35,7 +35,7 @@ export const useLayout = (): readonly [Layout, (next: Layout) => void] => {
     };
 
     return [layout, change];
-};
+}
 
 const REGION_KEY = 'database-example:region';
 const NOTATION_KEY = 'database-example:notation';
@@ -44,12 +44,16 @@ const listeners = new Set<() => void>();
 let region = formatRegionFrom(localStorage.getItem(REGION_KEY));
 let notation: NumberNotation = localStorage.getItem(NOTATION_KEY) === 'region' ? 'region' : 'database';
 
-const subscribe = (onChange: () => void): (() => void) => {
+function subscribe(onChange: () => void): () => void {
     listeners.add(onChange);
     return () => {
         listeners.delete(onChange);
     };
-};
+}
+
+function notify(): void {
+    listeners.forEach((listener) => listener());
+}
 
 /* What the formatters of `@adecore/ui` read: the language of the interface and the region the person picked. */
 export const formatSource: FormatSource = {
@@ -59,27 +63,27 @@ export const formatSource: FormatSource = {
 };
 
 /* The region the numbers, dates and durations are written in, kept for the next start. */
-export const useRegion = (): readonly [string, (next: string) => void] => {
+export function useRegion(): readonly [string, (next: string) => void] {
     const current = useSyncExternalStore(subscribe, () => region);
 
     const change = (next: string): void => {
         region = next;
         localStorage.setItem(REGION_KEY, next);
-        listeners.forEach((listener) => listener());
+        notify();
     };
 
     return [current, change];
-};
+}
 
 /* Whether the cells show numbers as the database wrote them or in the region's notation, kept for the next start. */
-export const useNumberNotation = (): readonly [NumberNotation, (next: NumberNotation) => void] => {
+export function useNumberNotation(): readonly [NumberNotation, (next: NumberNotation) => void] {
     const current = useSyncExternalStore(subscribe, () => notation);
 
     const change = (next: NumberNotation): void => {
         notation = next;
         localStorage.setItem(NOTATION_KEY, next);
-        listeners.forEach((listener) => listener());
+        notify();
     };
 
     return [current, change];
-};
+}
