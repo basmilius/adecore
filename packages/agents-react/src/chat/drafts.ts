@@ -28,14 +28,6 @@ const storage = persistedJson<Record<string, DraftRecord>>(
     () => chatStorageLegacyKeys('drafts')
 );
 
-function readAll(): Record<string, DraftRecord> {
-    return storage.read();
-}
-
-function store(drafts: Record<string, DraftRecord>): boolean {
-    return storage.write(drafts);
-}
-
 export function isEmptyDraft(draft: ChatDraft): boolean {
     return draft.text.trim() === '' && draft.attachments.length === 0 && draft.quote === '';
 }
@@ -46,7 +38,7 @@ export function isEmptyDraft(draft: ChatDraft): boolean {
  */
 export const useDrafts = createChatStore<{ ids: string[] }>(
     () => ({ ids: [] }),
-    (store) => store.setState({ ids: Object.keys(readAll()) })
+    (store) => store.setState({ ids: Object.keys(storage.read()) })
 );
 
 export function useHasDraft(chatId: string): boolean {
@@ -63,7 +55,7 @@ function trackDraft(chatId: string, held: boolean): void {
 
 /* An unsent prompt per chat node, kept across reloads so a half-written message is never lost. */
 export function readDraft(chatId: string): ChatDraft {
-    const record = readAll()[chatId];
+    const record = storage.read()[chatId];
     return record
         ? {
               text: record.text,
@@ -77,11 +69,11 @@ export function readDraft(chatId: string): ChatDraft {
 }
 
 export function writeDraft(chatId: string, draft: ChatDraft): void {
-    const drafts = readAll();
+    const drafts = storage.read();
     trackDraft(chatId, !isEmptyDraft(draft));
     if (isEmptyDraft(draft)) {
         delete drafts[chatId];
-        store(drafts);
+        storage.write(drafts);
         return;
     }
     drafts[chatId] = {
@@ -92,12 +84,12 @@ export function writeDraft(chatId: string, draft: ChatDraft): void {
         attachments: draft.attachments,
         quote: draft.quote
     };
-    if (store(drafts)) {
+    if (storage.write(drafts)) {
         return;
     }
     // A file can outgrow the storage quota; the text is the part worth keeping then.
     drafts[chatId] = { text: draft.text, mentions: draft.mentions, skills: draft.skills, chats: draft.chats, quote: draft.quote };
-    store(drafts);
+    storage.write(drafts);
 }
 
 /* Text handed to a draft from outside the composer goes under what was already typed, never over it. */

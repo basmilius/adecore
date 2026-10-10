@@ -27,20 +27,21 @@ export function limitView(info: Pick<ChatInfo, 'limit' | 'resumeAt' | 'activeTur
             detail: resumes === null ? i18next.t('agent-chat:limit.overload.sendAgain') : i18next.t('agent-chat:limit.overload.retries', { time: resumes })
         };
     }
-    const resets = limit.resetsAt === undefined ? null : formatMoment(limit.resetsAt, now);
-    return {
-        pill:
-            resumes !== null
-                ? i18next.t('agent-chat:limit.usage.pillResumes', { time: resumes })
-                : resets !== null
-                  ? i18next.t('agent-chat:limit.usage.pillUntil', { time: resets })
-                  : i18next.t('agent-chat:limit.usage.pill'),
-        title: i18next.t('agent-chat:limit.usage.title'),
-        detail:
-            resumes !== null
-                ? i18next.t('agent-chat:limit.usage.resumes', { time: resumes })
-                : resets !== null
-                  ? i18next.t('agent-chat:limit.usage.resets', { time: resets })
-                  : null
-    };
+    const title = i18next.t('agent-chat:limit.usage.title');
+    if (resumes !== null) {
+        return {
+            pill: i18next.t('agent-chat:limit.usage.pillResumes', { time: resumes }),
+            title,
+            detail: i18next.t('agent-chat:limit.usage.resumes', { time: resumes })
+        };
+    }
+    if (limit.resetsAt !== undefined) {
+        const resets = formatMoment(limit.resetsAt, now);
+        return {
+            pill: i18next.t('agent-chat:limit.usage.pillUntil', { time: resets }),
+            title,
+            detail: i18next.t('agent-chat:limit.usage.resets', { time: resets })
+        };
+    }
+    return { pill: i18next.t('agent-chat:limit.usage.pill'), title, detail: null };
 }

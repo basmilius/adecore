@@ -94,9 +94,7 @@ export function stashedFrom(draft: ChatDraft, id: string, now: number): StashedP
 
 const storage = persistedJson<StashedPrompt[]>(storageKey, parseStash, [], () => chatStorageLegacyKeys('stash'));
 
-/*
- * Prompts put aside for later can move to another chat, so the shelf is shared across chats.
- */
+/* Prompts put aside for later can move to another chat, so the shelf is shared across chats. */
 export const useStash = createChatStore<{ prompts: StashedPrompt[] }>(
     () => ({ prompts: [] }),
     (store) => store.setState({ prompts: storage.read() })

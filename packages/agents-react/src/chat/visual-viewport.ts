@@ -2,7 +2,7 @@ import type { VisualScrollRequest } from '@adecore/agent-contracts/visual';
 import { visualViewportGeometry } from './logic/visual-viewport';
 import type { VisualBridge } from './visual-bridge';
 
-/** Keeps one small frame in a full-height timeline row, without rendering React on scroll. */
+/* Keeps one small frame in a full-height timeline row, without rendering React on scroll. */
 export class VisualViewportController {
     private readonly box: HTMLElement;
     private readonly viewport: HTMLElement;
@@ -40,11 +40,7 @@ export class VisualViewportController {
         if (this.disposed) {
             return;
         }
-        const outer = this.scroller.getBoundingClientRect();
-        const box = this.box.getBoundingClientRect();
-        // A chat on a canvas can be scaled; messages inside its frame use unscaled CSS pixels.
-        const scale = outer.height / this.scroller.offsetHeight || 1;
-        const top = (box.top - outer.top) / scale - this.scroller.clientTop;
+        const top = this.offsetInScroller(this.scroller.getBoundingClientRect(), this.box.getBoundingClientRect());
         const available = this.scroller.clientHeight;
         const geometry = visualViewportGeometry(this.box.offsetHeight, available, top);
         this.viewport.style.height = `${geometry.height}px`;
@@ -67,8 +63,7 @@ export class VisualViewportController {
             return;
         }
         this.pendingDelta = 0;
-        const scale = outer.height / this.scroller.offsetHeight || 1;
-        const start = this.scroller.scrollTop + (box.top - outer.top) / scale - this.scroller.clientTop;
+        const start = this.scroller.scrollTop + this.offsetInScroller(outer, box);
         const top = 'to' in request ? start + request.to : request.edge === 'start' ? 0 : this.scroller.scrollHeight;
         this.scroller.scrollTo({ top, behavior: 'instant' });
         this.refresh();
@@ -81,6 +76,13 @@ export class VisualViewportController {
         this.attributes.disconnect();
         this.scroller.removeEventListener('scroll', this.onScroll);
         this.bridge.setViewport(null);
+    }
+
+    /* The box's top below the scroller's visible top, in the scroller's own pixels. */
+    private offsetInScroller(outer: DOMRect, box: DOMRect): number {
+        // A chat on a canvas can be scaled; messages inside its frame use unscaled CSS pixels.
+        const scale = outer.height / this.scroller.offsetHeight || 1;
+        return (box.top - outer.top) / scale - this.scroller.clientTop;
     }
 
     private schedule(): void {

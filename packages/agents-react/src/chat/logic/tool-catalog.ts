@@ -6,8 +6,10 @@ export interface ToolEntry {
     icon: LucideIcon;
     /* The input keys that hold the one line saying what the call is about, best first. */
     summary: readonly string[];
-    /* Whether a run of calls of this name reads as a sentence of its own (`agent-chat:group.tools.<name>`).
-       One that changes files without a sentence falls to `agent-chat:group.edited`, which counts files rather than calls. */
+    /*
+     * Whether a run of calls of this name reads as a sentence of its own (`agent-chat:group.tools.<name>`).
+     * One that changes files without a sentence falls to `agent-chat:group.edited`, which counts files.
+     */
     grouped: boolean;
     /* Whether the call writes to a file, which is what a mixed run of calls is named after. */
     changesFiles: boolean;
@@ -27,10 +29,9 @@ function entry(icon: LucideIcon, summary: readonly string[], rest: Partial<ToolE
 }
 
 /*
- * The icon, the summary line, the group sentence and the file-changing flag of every tool the thread
- * has a word for, in one table, because they used to sit in four and a name added to one of them was
- * missing from the rest. A name that is not here still draws, reads and groups; it falls back to the
- * wrench and to the first string of its input.
+ * Every tool the thread has a word for, in one table so a new name is never missing from a lookup. A
+ * name that is not here still draws, reads and groups; it falls back to the wrench and to the first
+ * string of its input.
  */
 export const TOOL_CATALOG: Record<string, ToolEntry> = {
     Read: entry(Eye, ['file_path'], { readsImage: true }),

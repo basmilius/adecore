@@ -10,6 +10,10 @@ type Scroller = {
 
 const scrollers = new Map<string, Scroller>();
 
+/* The timeline owns following; the composer subscribes here to show its jump-to-end button. */
+const ends = new Map<string, boolean>();
+const listeners = new Set<() => void>();
+
 /* The timeline hands its scroller over so the composer, which never sees it, can page through it. */
 export function registerTimeline(
     chatId: string,
@@ -28,10 +32,6 @@ export function registerTimeline(
         }
     };
 }
-
-/* The timeline owns following; the composer subscribes here to show its jump-to-end button. */
-const ends = new Map<string, boolean>();
-const listeners = new Set<() => void>();
 
 export function setTimelineAtEnd(chatId: string, atEnd: boolean): void {
     if (ends.get(chatId) === atEnd) {
@@ -97,72 +97,63 @@ export function stepTimelineMessage(key: string, direction: -1 | 1): boolean {
 }
 
 /*
- * A jump to one message of a chat, asked from outside its thread (the chat's menu). A thread that is
- * not on screen yet gets it when it registers, since the menu may have to show the chat first.
- * Keyed with the scope's `keyOf`, like the steppers.
+ * Jumps asked from outside a thread (the chat's menu, a card that names a turn), keyed with the
+ * scope's `keyOf` like the steppers. A thread that is not on screen yet gets its jump when it
+ * registers, since the asker may have to show the chat first.
  */
-const jumpers = new Map<string, (itemId: string) => void>();
-const waitingJumps = new Map<string, string>();
-
-export function registerItemJumper(key: string, jump: (itemId: string) => void): () => void {
-    jumpers.set(key, jump);
-    const waiting = waitingJumps.get(key);
-    if (waiting !== undefined) {
-        waitingJumps.delete(key);
-        jump(waiting);
-    }
-    return () => {
-        if (jumpers.get(key) === jump) {
-            jumpers.delete(key);
+function waitingJumps<T>(): { register(key: string, jump: (target: T) => void): () => void; jump(key: string, target: T): boolean } {
+    const jumpers = new Map<string, (target: T) => void>();
+    const waiting = new Map<string, T>();
+    return {
+        register(key, jump) {
+            jumpers.set(key, jump);
+            if (waiting.has(key)) {
+                const target = waiting.get(key)!;
+                waiting.delete(key);
+                jump(target);
+            }
+            return () => {
+                if (jumpers.get(key) === jump) {
+                    jumpers.delete(key);
+                }
+            };
+        },
+        jump(key, target) {
+            const jump = jumpers.get(key);
+            if (jump === undefined) {
+                waiting.set(key, target);
+                return false;
+            }
+            jump(target);
+            return true;
         }
     };
+}
+
+const itemJumps = waitingJumps<string>();
+
+export function registerItemJumper(key: string, jump: (itemId: string) => void): () => void {
+    return itemJumps.register(key, jump);
 }
 
 /* False when that chat has no thread on screen; the jump then waits for the next one that registers. */
 export function jumpToTimelineItem(key: string, itemId: string): boolean {
-    const jump = jumpers.get(key);
-    if (jump === undefined) {
-        waitingJumps.set(key, itemId);
-        return false;
-    }
-    jump(itemId);
-    return true;
+    return itemJumps.jump(key, itemId);
 }
 
-/*
- * A jump to the turn of a chat, for a card that says which turn wrote something: the message that opened
- * it, or the files it changed. Kept like the jump to an item, so a chat that is not on screen yet gets it
- * when its thread registers.
- */
+/* Which part of a turn a jump lands on: the message that opened it, or the files it changed. */
 export type TurnTarget = 'prompt' | 'changes';
 
 type TurnJump = (turnId: string, target: TurnTarget) => void;
-const turnJumpers = new Map<string, TurnJump>();
-const waitingTurnJumps = new Map<string, { turnId: string; target: TurnTarget }>();
+const turnJumps = waitingJumps<{ turnId: string; target: TurnTarget }>();
 
 export function registerTurnJumper(key: string, jump: TurnJump): () => void {
-    turnJumpers.set(key, jump);
-    const waiting = waitingTurnJumps.get(key);
-    if (waiting !== undefined) {
-        waitingTurnJumps.delete(key);
-        jump(waiting.turnId, waiting.target);
-    }
-    return () => {
-        if (turnJumpers.get(key) === jump) {
-            turnJumpers.delete(key);
-        }
-    };
+    return turnJumps.register(key, ({ turnId, target }) => jump(turnId, target));
 }
 
 /* False when that chat has no thread on screen; the jump then waits for the next one that registers. */
 export function jumpToTimelineTurn(key: string, turnId: string, target: TurnTarget): boolean {
-    const jump = turnJumpers.get(key);
-    if (jump === undefined) {
-        waitingTurnJumps.set(key, { turnId, target });
-        return false;
-    }
-    jump(turnId, target);
-    return true;
+    return turnJumps.jump(key, { turnId, target });
 }
 
 /* How near the top, in screens, the page before is asked for, so it is there before a reader reaches the edge. */

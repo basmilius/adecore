@@ -16,19 +16,10 @@ export interface ResumeCompactionOffer {
 }
 
 function lastTurn(items: readonly ChatItem[]): Extract<ChatItem, { kind: 'turn' }> | null {
-    for (let i = items.length - 1; i >= 0; i--) {
-        const item = items[i]!;
-        if (item.kind === 'turn') {
-            return item;
-        }
-    }
-    return null;
+    return items.findLast((item): item is Extract<ChatItem, { kind: 'turn' }> => item.kind === 'turn') ?? null;
 }
 
-/*
- * Whether to offer compacting before the next message. The caller passes `now`, so this stays pure
- * and the test needs no clock.
- */
+/* Whether to offer compacting before the next message. */
 export function resumeCompactionOffer({
     info,
     compaction,

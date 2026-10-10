@@ -45,10 +45,9 @@ function dataUrlOf(blob: Blob): Promise<string> {
 }
 
 /*
- * A still of the middle of an image, decoded once. The composer used to draw the full data URL in a
- * 56 px box, which a browser decodes again for every paint, so a tall screenshot made typing stutter.
- * An animated image gives its first frame. Whatever cannot be decoded this way (an SVG, a browser
- * without `OffscreenCanvas`) falls back to the image itself, which is what it was before.
+ * A still of the middle of an image, decoded once: a browser decodes a full data URL again on every
+ * paint, so a tall screenshot made typing stutter. An animated image gives its first frame; what
+ * cannot be decoded this way (an SVG, a browser without `OffscreenCanvas`) falls back to the image.
  */
 async function makeThumbnail(upload: ChatAttachmentUpload): Promise<string> {
     try {

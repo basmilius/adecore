@@ -164,7 +164,7 @@ function styleOf(state: AnsiState): CSSProperties {
     return style;
 }
 
-export function parseAnsi(text: string, options: { limit?: number; tailLines?: number } = {}): { tokens: AnsiToken[]; omitted: number } {
+function styledTokens(text: string): AnsiToken[] {
     const tokens: AnsiToken[] = [];
     let state: AnsiState = {};
     let position = 0;
@@ -180,7 +180,11 @@ export function parseAnsi(text: string, options: { limit?: number; tailLines?: n
     if (position < text.length) {
         tokens.push({ content: text.slice(position), style: styleOf(state) });
     }
+    return tokens;
+}
 
+export function parseAnsi(text: string, options: { limit?: number; tailLines?: number } = {}): { tokens: AnsiToken[]; omitted: number } {
+    const tokens = styledTokens(text);
     const plain = tokens.map((token) => token.content).join('');
     let start = 0;
     let end = plain.length;

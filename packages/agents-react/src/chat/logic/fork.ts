@@ -172,20 +172,19 @@ export function forkPayload(input: {
     worktree?: ForkWorktreeChoice | null;
     cli?: { original: ForkCliChoice; chosen: ForkCliChoice };
 }): ChatForkPayload {
+    const { cli, worktree } = input;
+    const provider = cli !== undefined && cli.chosen.provider !== cli.original.provider ? cli.chosen.provider : null;
+    const selection = cli !== undefined && (provider !== null || cli.chosen.selection.model !== cli.original.selection.model) ? cli.chosen.selection : null;
+    const account = cli?.chosen.account !== undefined && (provider !== null || cli.chosen.account !== cli.original.account) ? cli.chosen.account : null;
     return {
         chatId: input.chatId,
         turnId: input.turnId,
         title: input.title,
         ...(input.shape === 'view' ? { asView: true } : {}),
-        ...(input.cli && input.cli.chosen.provider !== input.cli.original.provider ? { provider: input.cli.chosen.provider } : {}),
-        ...(input.cli && (input.cli.chosen.provider !== input.cli.original.provider || input.cli.chosen.selection.model !== input.cli.original.selection.model)
-            ? { selection: input.cli.chosen.selection }
-            : {}),
-        ...(input.cli?.chosen.account !== undefined &&
-        (input.cli.chosen.provider !== input.cli.original.provider || input.cli.chosen.account !== input.cli.original.account)
-            ? { account: input.cli.chosen.account }
-            : {}),
-        ...(input.worktree ? { worktree: { branch: input.worktree.branch }, ...(input.worktree.filesAfterTurn ? { filesAfterTurn: true } : {}) } : {})
+        ...(provider === null ? {} : { provider }),
+        ...(selection === null ? {} : { selection }),
+        ...(account === null ? {} : { account }),
+        ...(worktree ? { worktree: { branch: worktree.branch }, ...(worktree.filesAfterTurn ? { filesAfterTurn: true } : {}) } : {})
     };
 }
 

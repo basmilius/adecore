@@ -1,5 +1,7 @@
-/* What a file dragged out of an app's own list of files carries: the paths, space separated, relative
-   to the folder. The composer takes it next to the image files it already accepts. */
+/*
+ * What a file dragged out of an app's own list of files carries: the paths, space separated, relative
+ * to the folder. The composer takes it next to the image files it already accepts.
+ */
 export const MENTION_DRAG_TYPE = 'application/x-adecore-mention';
 export const LEGACY_MENTION_DRAG_TYPE = 'application/x-ruimte-mention';
 export const MENTION_DRAG_TYPES = [MENTION_DRAG_TYPE, LEGACY_MENTION_DRAG_TYPE] as const;
@@ -145,10 +147,7 @@ export function presentSkills(text: string, chosen: string[]): string[] {
     return present(text, '$', chosen);
 }
 
-/*
- * The characters a segment stands for, sigil included. Joined, the segments spell the text they
- * were cut from.
- */
+/* The characters a segment stands for, sigil included; joined, the segments spell the text they were cut from. */
 export function chipText(segment: ChipSegment): string {
     if (segment.kind === 'mention') {
         return `@${segment.path}`;
