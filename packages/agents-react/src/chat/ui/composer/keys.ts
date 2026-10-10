@@ -60,25 +60,35 @@ export function enterAction(keys: EnterKeys, { inOpenFence, list, column }: Ente
     return list.empty ? 'leave-list' : 'continue-list';
 }
 
-/* Whether `pos` sits inside a fenced code block that has an opening fence and no closing one yet. */
-export function inOpenFence(tree: Tree, pos: number): boolean {
+/* The innermost fenced code block around `pos`, if any. */
+function enclosingFence(tree: Tree, pos: number): SyntaxNode | null {
     for (let node: SyntaxNode | null = tree.resolveInner(pos, -1); node !== null; node = node.parent) {
         if (node.name === 'FencedCode') {
-            return pos > node.from && node.getChildren('CodeMark').length < 2;
+            return node;
         }
     }
-    return false;
+    return null;
+}
+
+/* A fence nobody has closed yet has its opening mark only. */
+function isOpenFence(fence: SyntaxNode): boolean {
+    return fence.getChildren('CodeMark').length < 2;
+}
+
+/* Whether `pos` sits inside a fenced code block that has an opening fence and no closing one yet. */
+export function inOpenFence(tree: Tree, pos: number): boolean {
+    const fence = enclosingFence(tree, pos);
+    return fence !== null && pos > fence.from && isOpenFence(fence);
 }
 
 /* Whether `pos` sits in the body of a fenced code block, open or closed: below its opening line and before its end. */
 export function inFenceBody(tree: Tree, text: string, pos: number): boolean {
-    for (let node: SyntaxNode | null = tree.resolveInner(pos, -1); node !== null; node = node.parent) {
-        if (node.name === 'FencedCode') {
-            const openingEnd = text.indexOf('\n', node.from);
-            return openingEnd !== -1 && pos > openingEnd && (pos < node.to || node.getChildren('CodeMark').length < 2);
-        }
+    const fence = enclosingFence(tree, pos);
+    if (fence === null) {
+        return false;
     }
-    return false;
+    const openingEnd = text.indexOf('\n', fence.from);
+    return openingEnd !== -1 && pos > openingEnd && (pos < fence.to || isOpenFence(fence));
 }
 
 /* The spaces Tab inserts at `column`, up to the next stop of four, the way a code editor lines up. */
@@ -97,7 +107,7 @@ export function inCode(tree: Tree, text: string, pos: number): boolean {
     let blockFrom: number | null = null;
     for (let node: SyntaxNode | null = tree.resolveInner(pos, -1); node !== null; node = node.parent) {
         if (node.name === 'FencedCode') {
-            return pos > node.from && (pos < node.to || node.getChildren('CodeMark').length < 2);
+            return pos > node.from && (pos < node.to || isOpenFence(node));
         }
         if (node.name === 'InlineCode' && pos > node.from && pos < node.to) {
             return true;

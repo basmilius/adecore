@@ -3,10 +3,8 @@ import i18next from 'i18next';
 import { Dialog } from '@adecore/ui';
 
 /*
- * The frame of the usage page: larger than the settings, since the chart and the breakdown need the
- * width. What goes in it (`UsagePage`, in an `ErrorBoundary` of the app's) mounts only while it is
- * open, so nothing is scanned behind a closed dialog. It is a dialog and not a view, since none of it
- * belongs to one project.
+ * The frame of the usage page, wider than the settings for the chart and the breakdown. What goes in
+ * it mounts only while it is open, so nothing is scanned behind a closed dialog.
  */
 export function UsageDialog({ open, onOpenChange, children }: { open: boolean; onOpenChange(open: boolean): void; children: ReactNode }) {
     return (

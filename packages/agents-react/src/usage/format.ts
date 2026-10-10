@@ -5,8 +5,7 @@ export { formatClock } from '@adecore/ui/format';
 /* Dollars are what a price table is in; euros are what the page can be set to. */
 export type UsageCurrency = 'USD' | 'EUR';
 
-/* Every number on this page is read in the region of the machine looking at it, as a bank statement
-   would be: `$5,480.96` in the US, `$ 5.480,96` in the Netherlands. The labels stay English. */
+/* Read in the region of the machine looking at it: `$5,480.96` in the US, `$ 5.480,96` in the Netherlands. */
 export function formatCount(value: number): string {
     return formatNumber(value);
 }
@@ -33,8 +32,10 @@ export const PROVIDER_LABELS: Record<UsageProvider, string> = { claude: 'Claude 
 
 export const PROVIDER_COLORS: Record<UsageProvider, string> = { claude: 'var(--chart-claude)', codex: 'var(--chart-codex)' };
 
-/* A slot is `2026-09-10` or `2026-09-10T14`, already in the viewer's own zone, so it is read as
-   plain wall clock and never handed to a parser that would shift it back. */
+/*
+ * A slot is `2026-09-10` or `2026-09-10T14`, already in the viewer's own zone, so it is read as plain
+ * wall clock and never handed to a parser that would shift it back.
+ */
 function dateOfSlot(slot: string): Date {
     return new Date(Number(slot.slice(0, 4)), Number(slot.slice(5, 7)) - 1, Number(slot.slice(8, 10)));
 }
@@ -63,8 +64,7 @@ export function formatDate(at: number): string {
     return formatDay(at);
 }
 
-/* A path under a row that already carries the name: enough of the tail to tell two checkouts of the
-   same repository apart, without the home directory nobody needs to read again. */
+/* Enough of a path's tail to tell two checkouts of the same repository apart, under a row that already carries the name. */
 export function shortPath(path: string): string {
     const parts = path.split('/').filter(Boolean);
     return parts.length <= 3 ? path : `…/${parts.slice(-3).join('/')}`;

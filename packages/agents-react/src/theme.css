@@ -76,8 +76,6 @@
 }
 
 @layer components {
-    /* ---------------------------------------------------------------- Chat */
-
     /* Text in a chat is there to be read and copied, so the thread selects even though the app does
        not. Its chrome stays out of it: a drag on a fold header or a chip would select the row.
        The pretty wrap from `body` would be recomputed on the growing paragraph every frame a reply
@@ -160,18 +158,12 @@
 }
 
 /*
- * Markdown, outside every layer on purpose. The typography plugin registers `.prose` as a utility,
- * and a later layer beats an earlier one whatever the specificity, so a rule that has to outrank
- * prose cannot live in `components`. Unlayered styles win over every layer, which is the one
- * place the app's tokens and scale are sure to land on top of the plugin's.
- */
-/*
- * Markdown anywhere in the app: the chat timeline, a note node and the file preview all render
- * the same `Markdown` component, which carries `prose prose-sm max-w-none text-sm` next to this
- * class. Prose brings the rhythm; everything here is what the app decides instead of the plugin.
- * The semantic tokens flip with the theme on their own, so the prose variables read from them
- * and `prose-invert` is a second source of truth the app does not need. The size comes from the
- * `text-sm` utility, which a node, a view and the file preview each move.
+ * Markdown, outside every layer on purpose: the typography plugin registers `.prose` as a utility,
+ * and only unlayered styles are sure to land on top of it.
+ *
+ * Every `Markdown` carries `prose prose-sm max-w-none text-sm` next to this class. Prose brings the
+ * rhythm; everything here is what the app decides instead. The semantic tokens flip with the theme on
+ * their own, so the prose variables read from them and `prose-invert` is not needed.
  */
 .prose.chat-markdown {
     --tw-prose-body: var(--text);

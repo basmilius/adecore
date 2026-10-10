@@ -16,13 +16,11 @@ import { deriveDays } from './summary';
 
 type Breakdown = 'models' | 'projects' | 'day';
 
-/* The row of every table, the same height and the same hover as a commit row in the git panel. */
 const ROW = 'flex h-8 items-center gap-2 rounded-md px-2 text-xs hover:bg-surface-hover';
 
 const HEAD = 'flex h-6 items-center gap-2 px-2 text-xs text-text-faint';
 
-/* A row is padded so its hover has room around the text, and the table pulls that padding back off
-   again. The first column then starts on the same line as every other section of the page. */
+/* The table pulls the padding that gives a row's hover room back off, so its first column lines up with the page. */
 const TABLE = '-mx-2 flex flex-col';
 
 const TABS: readonly Breakdown[] = ['models', 'projects', 'day'];
@@ -102,8 +100,7 @@ function ProjectRow({ project, top, money }: { project: UsageProject; top: numbe
     // The usage on screen is one host's, so the look of a project is that host's too.
     const look = chatHost().useProjectLook(useChatScope().id, project.projectId);
     return (
-        /* The mark sits on the title rather than between the two lines, so a column of icons lines
-           up with the names beside it and not with the paths under them. */
+        /* The mark sits on the title rather than between the two lines, so the icons line up with the names. */
         <div className={`${ROW} h-auto items-start py-1.5`}>
             <span className="mt-px flex">
                 {look?.mark ?? (

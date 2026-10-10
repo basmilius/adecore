@@ -10,8 +10,7 @@ import { ProviderLogo } from '../agents/ProviderLogo';
 import { PROVIDER_COLORS, PROVIDER_LABELS } from './format';
 import { accountNote, explain, isSignedOut, nextReset, type LimitAccount, type LimitGroup } from './limit-groups';
 
-/* Red where a window is nearly spent, amber where it is worth knowing. A window with room to spare
-   is not news, so it takes the text color rather than a hue that competes with the two that are. */
+/* Red where a window is nearly spent, amber where it is worth knowing; room to spare is not news and takes the text color. */
 function toneOf(used: number): string {
     return used >= 0.9 ? 'bg-status-error' : used >= 0.7 ? 'bg-status-needs-you' : 'bg-text';
 }
@@ -93,8 +92,7 @@ export function WindowBar({ window, now, compact }: { window: UsageWindow; now: 
                     {bar}
                 </Tooltip>
             )}
-            {/* Under the bar rather than beside the label. A weekday and a countdown are too long to
-                share that line, and a reset that wrapped would read as two of them. */}
+            {/* Under the bar: a weekday and a countdown are too long to share the label's line. */}
             {resetsAt !== null && (
                 <p className="text-xs whitespace-nowrap text-text-faint">
                     {t('limits.resets', { at: resetsAt })}

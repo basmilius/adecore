@@ -65,10 +65,7 @@ export function dayOf(date: Date): string {
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
-/*
- * What a period asks for. Today counts from local midnight in hours, the way the commit log already
- * groups days, so every other period reads as one bar per calendar day.
- */
+/* What a period asks for: today in hours from local midnight, every other period a bar per calendar day. */
 export function windowFor(period: UsagePeriod, now = new Date()): UsageSummaryPayload {
     const days = USAGE_PERIODS.find((entry) => entry.id === period)?.days ?? 7;
     const from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (days - 1));

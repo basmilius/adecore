@@ -117,10 +117,8 @@ export interface UsageDay {
 }
 
 /*
- * The same buckets the chart draws, written out as a table of calendar days, newest first. Today is
- * drawn per hour but read per day, so an hour slot is folded onto the date it names. A day nothing
- * happened in is left out, since the chart already shows the gap, and a quiet fortnight would otherwise
- * be fourteen rows of zeroes between the days worth reading.
+ * The chart's buckets as a table of calendar days, newest first; an hour slot folds onto the date it
+ * names. A day nothing happened in is left out, since the chart already shows the gap.
  */
 export function deriveDays(summary: UsageSummaryResult): UsageDay[] {
     const rows = new Map<string, UsageDay>();

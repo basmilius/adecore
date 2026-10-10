@@ -10,9 +10,8 @@ export interface StatusLook {
 }
 
 /*
- * One state, one mark: an entry in the sub-agent flyout, a task on its node (`TaskMark`), what finished
- * in the toolbar (`StatusSummary`) and work in progress in a toast. A spinner stops under reduced
- * motion with every other animation (`styles.css`).
+ * One state, one mark, wherever work is drawn: a sub-agent entry, a task, a summary or a toast. A
+ * spinner stops under reduced motion with every other animation.
  */
 const LOOKS: Record<StatusWord, StatusLook> = {
     running: { icon: LoaderCircle, tone: 'text-status-running', spins: true },
