@@ -1,5 +1,5 @@
 import type { Plan, PlanActor, PlanOp, PlanStep, PlanStepState } from './protocol.ts';
-import { allSteps, effectiveChecks, holdsPersonState, isParentStep, locateItem, refuse, type PlanRefusal } from './tree.ts';
+import { allSteps, effectiveChecks, holdsPersonState, isParentStep, locateItem, missingItem, refuse, type PlanRefusal } from './tree.ts';
 
 export type PlanVerdict = { ok: true } | PlanRefusal;
 
@@ -11,7 +11,7 @@ const AGENT_OPS: ReadonlySet<PlanOp['op']> = new Set(['set', 'note', 'add', 'edi
 function stepFor(plan: Plan, id: string, leaf: boolean): PlanStep | PlanRefusal {
     const location = locateItem(plan, id);
     if (!location) {
-        return refuse('plan-missing-item', `The plan has no item "${id}"`);
+        return missingItem(id);
     }
     if (location.item.type !== 'step') {
         return refuse('plan-not-a-step', `"${id}" is a ${location.item.type}, not a step`);
@@ -99,7 +99,7 @@ export function canApply(op: PlanOp, actor: PlanActor, plan: Plan): PlanVerdict 
         case 'edit': {
             const location = locateItem(plan, op.id);
             if (!location) {
-                return refuse('plan-missing-item', `The plan has no item "${op.id}"`);
+                return missingItem(op.id);
             }
             const item = location.item;
             if (item.type !== 'step') {
@@ -127,14 +127,14 @@ export function canApply(op: PlanOp, actor: PlanActor, plan: Plan): PlanVerdict 
         }
         case 'move': {
             if (!locateItem(plan, op.id)) {
-                return refuse('plan-missing-item', `The plan has no item "${op.id}"`);
+                return missingItem(op.id);
             }
             return mayHoldChildren(plan, op.under);
         }
         case 'remove': {
             const location = locateItem(plan, op.id);
             if (!location) {
-                return refuse('plan-missing-item', `The plan has no item "${op.id}"`);
+                return missingItem(op.id);
             }
             if (holdsPersonState(location.item)) {
                 return refuse('set-by-person', `A person checked "${op.id}" or a step under it, so it stays`);

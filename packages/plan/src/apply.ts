@@ -21,7 +21,7 @@ import {
 } from './protocol.ts';
 import { z } from 'zod';
 import { canApply } from './permissions.ts';
-import { allItems, allSteps, effectiveChecks, locateItem, refuse, structureProblem, type PlanRefusal } from './tree.ts';
+import { allItems, allSteps, effectiveChecks, locateItem, missingItem, refuse, structureProblem, type PlanRefusal } from './tree.ts';
 
 export interface PlanApplyOptions {
     actor: PlanActor;
@@ -107,7 +107,7 @@ function placeFor(
     if (under !== undefined) {
         const location = locateItem(plan, under);
         if (!location) {
-            return refuse('plan-missing-item', `The plan has no item "${under}"`);
+            return missingItem(under);
         }
         const target = location.item;
         if (target.type === 'text') {
@@ -123,7 +123,7 @@ function placeFor(
     } else if (after !== undefined) {
         const location = locateItem(plan, after);
         if (!location) {
-            return refuse('plan-missing-item', `The plan has no item "${after}"`);
+            return missingItem(after);
         }
         parent = location.parent;
         siblings = location.siblings;
@@ -163,6 +163,17 @@ function pruneEmptySteps(items: readonly PlanItem[]): void {
             delete item.steps;
         }
     }
+}
+
+function newItem(op: Extract<PlanOp, { op: 'add' }>, id: string): PlanItem {
+    const base = { id, title: op.title, ...(op.description ? { description: op.description } : {}) };
+    if (op.type === 'section') {
+        return { type: 'section', ...base, items: [] };
+    }
+    if (op.type === 'text') {
+        return { type: 'text', ...base };
+    }
+    return { type: 'step', ...base, ...(op.checks ? { checks: op.checks } : {}) };
 }
 
 function applyOne(plan: Plan, op: PlanOp, options: PlanApplyOptions, mint: () => string, dropped: string[]): PlanRefusal | null {
@@ -209,14 +220,7 @@ function applyOne(plan: Plan, op: PlanOp, options: PlanApplyOptions, mint: () =>
             if ('ok' in place) {
                 return place;
             }
-            const base = { id, title: op.title, ...(op.description ? { description: op.description } : {}) };
-            const item: PlanItem =
-                op.type === 'section'
-                    ? { type: 'section', ...base, items: [] }
-                    : op.type === 'text'
-                      ? { type: 'text', ...base }
-                      : { type: 'step', ...base, ...(op.checks ? { checks: op.checks } : {}) };
-            place.siblings.splice(place.index, 0, item);
+            place.siblings.splice(place.index, 0, newItem(op, id));
             becomeParent(place.parent, dropped);
             return null;
         }

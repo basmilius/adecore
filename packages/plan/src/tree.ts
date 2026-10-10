@@ -27,6 +27,10 @@ export function refuse(code: PlanRefusalCode, message: string): PlanRefusal {
     return { ok: false, code, message };
 }
 
+export function missingItem(id: string): PlanRefusal {
+    return refuse('plan-missing-item', `The plan has no item "${id}"`);
+}
+
 /* Where an item stands: the array that holds it, so an operation can splice it, and the step or section around it. */
 export interface PlanLocation {
     item: PlanItem;
