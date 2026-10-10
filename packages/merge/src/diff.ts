@@ -9,11 +9,7 @@ export interface Change {
     otherEnd: number;
 }
 
-/*
- * How far apart two files may be before the exact walk costs more than the answer is worth. Past
- * this the two are answered as one stretch that differs whole, which reads as a single conflict
- * instead of a list nobody would work through anyway.
- */
+/* Past this edit distance two files are answered as one stretch that differs whole. */
 const MAX_DISTANCE = 4000;
 
 /* The walk keeps every STRIDE-th state and walks the rounds between two again on the way back: a
@@ -28,10 +24,15 @@ interface Move {
     y: number;
 }
 
+/* Whether a diagonal's furthest reach steps in from diagonal + 1 (an insert) rather than diagonal - 1 (a delete). */
+function cameDown(reach: Int32Array, offset: number, diagonal: number, distance: number): boolean {
+    return diagonal === -distance || (diagonal !== distance && reach[offset + diagonal - 1]! < reach[offset + diagonal + 1]!);
+}
+
 /* One round of the walk: every diagonal of this distance taken as far as its lines match. True once the far corner is reached. */
 function extend(left: readonly string[], right: readonly string[], reach: Int32Array, offset: number, distance: number): boolean {
     for (let diagonal = -distance; diagonal <= distance; diagonal += 2) {
-        const down = diagonal === -distance || (diagonal !== distance && reach[offset + diagonal - 1]! < reach[offset + diagonal + 1]!);
+        const down = cameDown(reach, offset, diagonal, distance);
         let x = down ? reach[offset + diagonal + 1]! : reach[offset + diagonal - 1]! + 1;
         let y = x - diagonal;
         while (x < left.length && y < right.length && left[x] === right[y]) {
@@ -64,7 +65,7 @@ function backtrack(left: readonly string[], right: readonly string[], saved: rea
         for (; step > first; step -= 1) {
             const state = states[step - first]!;
             const diagonal = x - y;
-            const down = diagonal === -step || (diagonal !== step && state[offset + diagonal - 1]! < state[offset + diagonal + 1]!);
+            const down = cameDown(state, offset, diagonal, step);
             const previous = down ? diagonal + 1 : diagonal - 1;
             const prevX = state[offset + previous]!;
             const prevY = prevX - previous;

@@ -40,7 +40,7 @@ function delta(change: Change): number {
  * The three versions of a file as the stretches they agree and disagree on, in reading order. A
  * stretch is taken up by both sides at once only where their changes overlap in the base, or where
  * both added something in exactly the same place; anything else is one side's alone and merges
- * without asking. This is what every other function here counts, draws and resolves.
+ * without asking.
  */
 export function splitBlocks(base: readonly string[], ours: readonly string[], theirs: readonly string[]): MergeBlock[] {
     const ourChanges = diffLines(base, ours);

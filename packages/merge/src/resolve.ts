@@ -60,10 +60,9 @@ function covers(base: readonly string[], outer: readonly string[], inner: readon
 }
 
 /*
- * What the wand makes of a conflict, or null for one that needs a person after all. It closes the
- * two nobody would think twice about: the sides that differ only in whitespace inside or after a
- * line, and the side that already holds every line of the other without putting back what the other
- * deleted. Anything else is a choice, and a wand that guesses at those is a wand nobody trusts twice.
+ * What the wand makes of a conflict, or null for one that needs a person after all. It closes only
+ * sides that differ in whitespace inside or after a line, and a side that already holds every line
+ * of the other without putting back what the other deleted. Anything else is a choice it never guesses.
  */
 export function wandLines(block: MergeBlock): string[] | null {
     if (block.kind !== 'conflict') {
@@ -83,9 +82,8 @@ export function wandLines(block: MergeBlock): string[] | null {
 
 /*
  * A short name for the two sides of one block, so an answer written for it can be checked against
- * the block it lands on. Not a secret and not a digest anyone leans on: it only has to differ when
- * the stretch does, and it has to read the same on a daemon and in a browser, which rules out the
- * one hash a browser cannot take synchronously.
+ * the block it lands on. FNV-1a, not a digest: it has to read the same on a server and in a browser,
+ * and a browser has no synchronous crypto hash.
  */
 export function fingerprint(block: MergeBlock): string {
     let hash = 0x811c9dc5;
@@ -113,10 +111,8 @@ export interface MergeDraft {
 
 /*
  * The merged file to start from: everything that merges by itself is merged, and every conflict
- * holds our side until someone says otherwise. Never a conflict marker: what a person edits here is
- * a file that would compile, and the other side is a column away rather than a line below. Blocks
- * that have already been answered are passed in, which is how a proposal lands in a file nobody has
- * open.
+ * holds our side until someone says otherwise. Never a conflict marker, so what a person edits is a
+ * file that would compile. `answered` holds the lines of blocks already resolved, by block index.
  */
 export function draftOf(blocks: readonly MergeBlock[], answered: ReadonlyMap<number, readonly string[]> = new Map()): MergeDraft {
     const lines: string[] = [];
