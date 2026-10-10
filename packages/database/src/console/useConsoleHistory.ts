@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { DatabaseStorage } from '../actions.ts';
 import { useDatabaseStorage } from '../client-context.ts';
 import { addEntry, historyKey, parseHistory, serializeHistory, type HistoryEntry } from './history.ts';
 
@@ -15,14 +16,16 @@ export interface ConsoleHistory {
     clear(): void;
 }
 
+const load = (storage: DatabaseStorage | undefined, key: string): Loaded => ({ key, entries: parseHistory(storage?.get(key) ?? null), changed: false });
+
 /* The runs of one connection, kept in the app's storage when it has one and for the life of the console when it has not. */
 export function useConsoleHistory(connectionId: string): ConsoleHistory {
     const storage = useDatabaseStorage();
     const key = historyKey(connectionId);
-    const [state, setState] = useState<Loaded>(() => ({ key, entries: parseHistory(storage?.get(key) ?? null), changed: false }));
+    const [state, setState] = useState<Loaded>(() => load(storage, key));
 
     if (state.key !== key) {
-        setState({ key, entries: parseHistory(storage?.get(key) ?? null), changed: false });
+        setState(load(storage, key));
     }
 
     useEffect(() => {

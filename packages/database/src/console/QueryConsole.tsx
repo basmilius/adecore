@@ -84,6 +84,49 @@ function AppEditor({ render, ...editor }: QueryConsoleEditorProps & { render(edi
     return render(editor);
 }
 
+/* Run and Run all, or Cancel while a run is under way. */
+function RunButtons({
+    running,
+    disabled,
+    onCancel,
+    onRun
+}: {
+    running: boolean;
+    disabled: boolean;
+    onCancel(): void;
+    onRun(scope: QueryConsoleRunScope): void;
+}) {
+    const { t } = useTranslation('database');
+
+    if (running) {
+        return (
+            <>
+                <Button size="sm" onClick={onCancel}>
+                    <Icon icon={Square} size={12} />
+                    {t('console.cancel')}
+                </Button>
+                <Spinner size={14} label={t('console.running')} />
+            </>
+        );
+    }
+
+    return (
+        <>
+            <Tooltip label={t('console.run')} kbd={RUN_SHORTCUT}>
+                <Button variant="primary" size="sm" disabled={disabled} onClick={() => onRun('selection-or-statement')}>
+                    <Icon icon={Play} size={12} />
+                    {t('console.run')}
+                </Button>
+            </Tooltip>
+            <Tooltip label={t('console.runAll')} kbd={RUN_ALL_SHORTCUT}>
+                <Button variant="secondary" size="sm" disabled={disabled} onClick={() => onRun('all')}>
+                    {t('console.runAll')}
+                </Button>
+            </Tooltip>
+        </>
+    );
+}
+
 /* Type SQL, run it, and read what each statement did. Several statements give a tab each. */
 export function QueryConsole({
     connection,
@@ -139,7 +182,7 @@ export function QueryConsole({
     const [exporting, setExporting] = useState(false);
     // What the console shows itself when the app takes no notices.
     const [notice, setNotice] = useState<DatabaseNotice | null>(null);
-    /* Closed until the first run, so the editor has the whole height before anything ran. */
+    // Closed until the first run, so the editor has the whole height before anything ran.
     const [resultsOpen, setResultsOpen] = useState(false);
     const [resultsHeight, setResultsHeight] = useState(() => parseHeight(storage?.get(RESULTS_HEIGHT_KEY)));
     const { startResize } = useColumnResize(resultsPane, {
@@ -379,34 +422,12 @@ export function QueryConsole({
                     <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border px-3 py-2">
                         {session !== null && (
                             <>
-                                {run.status === 'running' ? (
-                                    <>
-                                        <Button size="sm" onClick={() => running.current?.abort()}>
-                                            <Icon icon={Square} size={12} />
-                                            {t('console.cancel')}
-                                        </Button>
-                                        <Spinner size={14} label={t('console.running')} />
-                                    </>
-                                ) : (
-                                    <>
-                                        <Tooltip label={t('console.run')} kbd={RUN_SHORTCUT}>
-                                            <Button
-                                                variant="primary"
-                                                size="sm"
-                                                disabled={blank || busy}
-                                                onClick={() => requestRun(targetOf('selection-or-statement'))}
-                                            >
-                                                <Icon icon={Play} size={12} />
-                                                {t('console.run')}
-                                            </Button>
-                                        </Tooltip>
-                                        <Tooltip label={t('console.runAll')} kbd={RUN_ALL_SHORTCUT}>
-                                            <Button variant="secondary" size="sm" disabled={blank || busy} onClick={() => requestRun(targetOf('all'))}>
-                                                {t('console.runAll')}
-                                            </Button>
-                                        </Tooltip>
-                                    </>
-                                )}
+                                <RunButtons
+                                    running={run.status === 'running'}
+                                    disabled={blank || busy}
+                                    onCancel={() => running.current?.abort()}
+                                    onRun={(scope) => requestRun(targetOf(scope))}
+                                />
                                 <TransactionControls
                                     mode={mode}
                                     onModeChange={changeMode}

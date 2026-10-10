@@ -18,7 +18,6 @@ const lineEndOf = (value: string, at: number): number => {
     return newline === -1 ? value.length : newline;
 };
 
-/* The whitespace a line begins with. */
 const indentOf = (line: string): string => /^[ \t]*/.exec(line)![0];
 
 /* The lines a selection touches. A selection that ends at the start of a line leaves that line out. */
@@ -58,13 +57,12 @@ export const outdentEdit = (value: string, start: number, end: number): TextEdit
     if (total === 0) {
         return null;
     }
-    const firstLineStart = from;
     return {
         from,
         to,
         insert: lines.map((line, index) => line.slice(removed[index]!)).join('\n'),
-        selectionStart: Math.max(firstLineStart, start - removed[0]!),
-        selectionEnd: Math.max(firstLineStart, end - total)
+        selectionStart: Math.max(from, start - removed[0]!),
+        selectionEnd: Math.max(from, end - total)
     };
 };
 
