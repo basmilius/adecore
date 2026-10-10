@@ -92,7 +92,7 @@ The page reads again while a block is visible and the app is in front: at most e
 
 ## Reason codes
 
-A failed or refused reading, a plain link and a refused choice carry a `code` that stays the same across versions, beside a `reason` in words. A client words a code it knows itself and shows the reason for one it does not. `uiReasonText` in [agents-react](/agents-react/chat/intelligent-ui#the-context) does this.
+A failed or refused reading, a plain link and a refused choice carry a `code` that stays the same across versions, beside a `reason` in words. A client words a code it knows itself and shows the reason for one it does not. `uiReasonText` in [agents-react](/agents-react/chat/intelligent-ui#words-and-accessibility) does this.
 
 | Code                  | Meaning                                                          |
 | --------------------- | ---------------------------------------------------------------- |
