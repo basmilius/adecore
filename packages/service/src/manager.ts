@@ -19,7 +19,7 @@ export interface ServiceFiles {
 
 export interface ServiceManager {
     readonly kind: 'launchd' | 'systemd';
-    /* Where the definition lives, for the documentation and the error a person reads. */
+    /* The definition's file. */
     readonly path: string;
     isInstalled(): boolean;
     /* The definition on disk, null when there is none. */
@@ -41,13 +41,9 @@ export interface ServiceManager {
     linger?: { enabled(): boolean; enable(): void };
 }
 
-function describe(result: CommandResult, what: string): string {
-    return `${what} failed (${result.code}): ${(result.stderr || result.stdout).trim() || 'no output'}`;
-}
-
 function expectSuccess(result: CommandResult, what: string): void {
     if (result.code !== 0) {
-        throw new Error(describe(result, what));
+        throw new Error(`${what} failed (${result.code}): ${(result.stderr || result.stdout).trim() || 'no output'}`);
     }
 }
 
@@ -67,10 +63,9 @@ export interface LaunchdOptions {
  * the bundle, where the login shell's PATH and a log path in the home cannot be written.
  */
 export function launchdManager(options: LaunchdOptions): ServiceManager {
-    const label = options.label;
-    const path = join(options.home, 'Library', 'LaunchAgents', `${label}.plist`);
+    const path = join(options.home, 'Library', 'LaunchAgents', `${options.label}.plist`);
     const domain = `gui/${options.uid}`;
-    const target = `${domain}/${label}`;
+    const target = `${domain}/${options.label}`;
     const launchctl = (...args: string[]): CommandResult => options.run('/bin/launchctl', args);
     const isLoaded = (): boolean => launchctl('print', target).code === 0;
 
