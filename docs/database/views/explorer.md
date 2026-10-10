@@ -110,4 +110,4 @@ The tree takes one tab stop. The arrow keys move, Right and Left expand and coll
 
 ## Dragging tables
 
-Provide `onTableDragStart(ref, event, kind)` to make table and view rows draggable. The callback receives the table reference, the React drag event and the table kind (`table` or `view`). Write the application's payload through `event.dataTransfer`. `onTableDragEnd(event)` can clear drag state when the drop finishes or is canceled. Dragging does not open or select the table. Without a start handler, rows are not draggable.
+`onTableDragStart(ref, event, kind)` makes the rows of tables and views draggable. It gets the table, the React drag event and the kind (`table` or `view`); write the app's payload on `event.dataTransfer`. `onTableDragEnd(event)` is where the app clears its drag state once the drop finished or was cancelled. A drag neither opens nor selects the table. Without `onTableDragStart` nothing drags.

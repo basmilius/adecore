@@ -103,32 +103,26 @@ A usage limit or an overloaded model is not a turn state: it is an `error` turn 
 
 ## Generated images
 
-A tool named `ImageGeneration` stores a `GeneratedImageInput`: an optional attachment,
-revised prompt and transparency flag. `GeneratedImageInputSchema` validates that metadata;
-`generatedImageAttachment(item)` returns its attachment or `null`. A failed generation
-keeps its error in the tool output and has no attachment. Image bytes never enter a chat
-item. Attachment metadata may include pixel `width` and `height`. Assistant items may
-include the provider's `phase`, such as `commentary` or `final_answer`. Both fields are
-optional so existing records remain readable.
+A tool named `ImageGeneration` stores a `GeneratedImageInput`: an optional attachment, the revised prompt and whether the image is transparent. `GeneratedImageInputSchema` validates it, and `generatedImageAttachment(item)` returns the attachment or `null`. A failed generation keeps its error in the tool output and has no attachment. The bytes of an image never go in a chat item. An attachment may name its `width` and `height` in pixels, and an assistant item the provider's `phase`, such as `commentary` or `final_answer`. Both are optional, so older records still read.
 
 
 ## Intelligent UI
 
-An assistant item may carry `ui`, an array of open UI block envelopes from `@adecore/intelligent-ui/protocol`. Node types are strings, props and expression payloads are records, and each block carries its catalog version, stable ID, source range, diagnostics and Markdown fallback. Unknown component names and catalog versions do not invalidate the surrounding history.
+An assistant item may carry `ui`, an array of UI block envelopes from `@adecore/intelligent-ui/protocol`. The envelopes are open: a node type is a string, and props and expressions are records. Each block carries its catalog version, a stable ID, its range in the source, its diagnostics and a Markdown fallback. A component name or catalog version a client does not know leaves the rest of the history valid.
 
-A streaming preview uses an existing `delta` event with empty `text`, optional `ui` and `textLength`. It has no envelope `seq`, is not written to the chat log and is sent only to clients attached to that chat. A client applies it only to the matching length of a still-streaming assistant item. Older clients ignore these optional fields. The final assistant item carries the authoritative tree once and replays with the rest of the thread.
+While a reply streams, a preview of its blocks rides on a `delta` event with an empty `text`, an optional `ui` and `textLength`. It has no `seq`, stays out of the chat log and goes only to clients attached to the chat. A client applies it only while the assistant item still streams and has that length. An older client ignores the optional fields. The final assistant item carries the tree that counts, once, and replays with the rest of the thread.
 
 
 ## Choices in UI replies
 
-`ChatUiChoicePayloadSchema` and `ChatUiChoicePayload` are the `chat.uiChoice` request: chat, assistant item, block, revision and choice IDs, plus optional local input `values`. Its result is `ChatSendResult`. Labels and message context never come from the client. The visible context becomes the message body; the label accompanies the provider prompt as a preamble. The daemon assigns the completed block revision and validates the choice against that stored block.
+`ChatUiChoicePayloadSchema` and `ChatUiChoicePayload` are the `chat.uiChoice` request: the IDs of the chat, the assistant item, the block, the revision and the choice, and optional local input `values`. Its result is a `ChatSendResult`. The client never sends a label or the context of the message. The host reads both from the stored block: the visible context becomes the message, and the label goes before it in the prompt to the provider. The host also sets the revision of the finished block and checks the choice against it.
 
-`ChatUiChoiceOriginSchema` / `ChatUiChoiceOrigin` preserve the source identity, label, source time, whether it names an older reply, submitted values and send time on a user item or queued message. The assistant's optional `uiAnswers` map contains `ChatUiAnswerSchema` / `ChatUiAnswer` records with the reserved turn ID and whether the message queued. Retrying the same answered choice returns that turn; another choice in that block is refused. Queue draining keeps the origin and marks the answer sent. Older decoders omit these optional fields.
+`ChatUiChoiceOriginSchema` and `ChatUiChoiceOrigin` keep, on a user item or a queued message, where a choice came from: the block, its label and time, whether it names an older reply, the values sent and when. The assistant's optional `uiAnswers` map holds `ChatUiAnswerSchema` / `ChatUiAnswer` records with the turn ID kept for the answer and whether the message queued. Picking the same choice again returns that turn; another choice in that block is refused. A queued answer keeps its origin when it goes out and is marked sent. An older decoder drops these optional fields.
 
 ## Live UI query records
 
-`ChatUiQueryPayloadSchema` and `ChatUiQueryPayload` describe `ui.query`: chat, item, block, revision and the stored query name, with optional local input values. The client cannot supply a source, SQL or fixed arguments.
+`ChatUiQueryPayloadSchema` and `ChatUiQueryPayload` are `ui.query`: the chat, item, block and revision, the name of the stored query, and optional local input values. A client never sends a source, SQL or fixed arguments.
 
-`ChatUiQueryReadingSchema` and `ChatUiQueryReading` carry a fresh value and opaque read id, or a failed or refused reading with its reason, an optional stable `code` for the reason and its time. The `state` sets of readings and link resolutions are frozen, since native clients validate these payloads whole; `code` is an open string. `ChatUiQueryStateSchema` and `ChatUiQueryState` keep the writer's chat and the first reading of each block, with its frozen text fallback, on an assistant item. A delta may update this metadata without repeating the compiled tree. A choice can name the read ids it displayed; the daemon supplies those issued values after checking access again.
+`ChatUiQueryReadingSchema` and `ChatUiQueryReading` carry a fresh value with an opaque read id, or a reading that failed or was refused, with the reason, an optional stable `code` for it and its time. The `state` values of readings and link resolutions are a closed set, since native clients validate these payloads whole; `code` is any string. `ChatUiQueryStateSchema` and `ChatUiQueryState` keep, on an assistant item, the writer's chat and the first reading of each block with its frozen text fallback. A delta may change them without sending the compiled tree again. A choice can name the read ids it showed; the host fills in those values after it checks access again.
 
-`ChatUiLinkPayloadSchema` and `ChatUiLinkPayload` name a stored node for `ui.link`, with the block identity, local inputs and issued query read ids. `ChatUiLinkReadingSchema` and `ChatUiLinkReading` describe its authorized navigation target or why it remains plain. Initial link resolutions may be saved beside frozen readings; every open resolves the stored node and checks host access again.
+`ChatUiLinkPayloadSchema` and `ChatUiLinkPayload` name a stored node for `ui.link`, with the block, the local inputs and the read ids the host issued. `ChatUiLinkReadingSchema` and `ChatUiLinkReading` say where the link may go, or why it stays plain text. The first resolutions may be saved beside the frozen readings; every open resolves the stored node again and checks access again.

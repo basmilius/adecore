@@ -16,7 +16,7 @@ Three renderers, for three kinds of text. All of them write GitHub-flavored Mark
 - `ReplyMarkdown({ text, streaming, arriving? })` is a reply. It parses a block at a time, so a streamed word only parses the block that grows. While `streaming`, new words fade in and a code fence that is still open is highlighted as it grows; `arriving` fades in each block instead.
 - `Markdown({ text, breaks?, fileLinks?, rehypePlugins?, componentOverrides? })` is any other text, such as a note from your app. `breaks` keeps line breaks, and `fileLinks` (on by default) turns paths into links through the host's `fileLinks`.
 
-A path becomes a link only when the host's `fileLinks.target(text, cwd)` finds one in it. `FileLinkContext` gives the folder a relative path counts from; the thread provides the chat's own `cwd`.
+A path becomes a link only when the host's `fileLinks.target(text, cwd)` finds one in it. `FileLinkContext` gives the folder a relative path counts from; the thread sets it to the chat's own `cwd`.
 
 ## CodeBlock
 
@@ -30,7 +30,7 @@ A fenced block, highlighted with Shiki in the theme the host's `code` names for 
 
 `useCodeTheme()` answers the theme id in use. `CodeStreamingContext` tells a block that its fence is still open, which `ReplyMarkdown` sets.
 
-Every block has a Copy icon that copies its `code` text, including whitespace and line endings. Controls appear on hover or keyboard focus, and remain visible on devices without hover. A failed clipboard write shows an error and never a copied state. The optional `actions` React node adds controls beside Copy, inside the same block; omitting it preserves existing calls. Code scrolls separately from the controls. Main replies provide the host's optional [shell action](/agents-react/guide/host#slots-and-cards) here.
+Every block has a Copy icon that copies its `code` text, including whitespace and line endings. The controls show on hover or keyboard focus, and always on a device without hover. A failed clipboard write shows an error, never a copied state. The optional `actions` node adds controls of your own beside Copy, in the same block. The code scrolls apart from the controls. A reply of the chat itself puts the host's [shell action](/agents-react/guide/host#slots-and-cards) there.
 
 ## AnsiOutput and FadingWords
 
