@@ -90,6 +90,8 @@ export const createWindows = (options: WindowsOptions) => {
 
     const holderOf = (key: string): Entry | null => alive().find((entry) => entry.key === key) ?? null;
 
+    const pageWindow = (contents: WebContents): BrowserWindow | null => alive().find((entry) => entry.window.webContents === contents)?.window ?? null;
+
     const raise = (window: BrowserWindow): void => {
         if (window.isMinimized()) {
             window.restore();
@@ -100,10 +102,10 @@ export const createWindows = (options: WindowsOptions) => {
 
     const boundsFor = (key: string | null): Partial<Rectangle> & WindowSize => {
         const stateKey = key ?? UNKEYED_STATE;
-        const front = focused();
         if (options.state.has(stateKey)) {
             return options.state.bounds(stateKey);
         }
+        const front = focused();
         if (!front) {
             return options.state.bounds(options.formerKey !== undefined && options.state.has(options.formerKey) ? options.formerKey : stateKey);
         }
@@ -200,7 +202,7 @@ export const createWindows = (options: WindowsOptions) => {
          * The window whose own page this is, and null for anything else, a `<webview>` inside it included.
          * This is the check for an IPC message that may speak for the app.
          */
-        fromPage: (contents: WebContents): BrowserWindow | null => alive().find((entry) => entry.window.webContents === contents)?.window ?? null,
+        fromPage: pageWindow,
 
         /*
          * Moves what a window shows into a new window, which comes to the front, and leaves the old one
@@ -222,7 +224,7 @@ export const createWindows = (options: WindowsOptions) => {
             if (guestOwner !== undefined) {
                 return entries.get(guestOwner)?.window ?? null;
             }
-            return alive().find((entry) => entry.window.webContents === contents)?.window ?? null;
+            return pageWindow(contents);
         },
 
         /* The window last in front, for what has no sender: a second instance, a notification, a menu command. */

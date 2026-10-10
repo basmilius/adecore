@@ -199,7 +199,6 @@ export const createWindowState = (options: WindowStateOptions) => {
             });
         },
 
-        /* Whether a key has bounds saved. */
         has: (key: string): boolean => windows.has(key),
 
         /* Writes what is pending at once, for the moment the app quits. */

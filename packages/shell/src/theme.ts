@@ -36,12 +36,12 @@ export const createTheme = (options: ThemeOptions) => {
         apply: (theme: ThemeState): void => {
             current = theme;
             options.nativeTheme.themeSource = theme.followsSystem ? 'system' : theme.resolved;
+            const overlay = platform === 'darwin' ? undefined : overlayOf(theme.resolved);
             for (const window of options.windows()) {
                 if (window.isDestroyed()) {
                     continue;
                 }
-                const overlay = overlayOf(theme.resolved);
-                if (platform !== 'darwin' && overlay) {
+                if (overlay) {
                     window.setTitleBarOverlay(overlay);
                 }
                 window.setBackgroundColor(theme.background);
