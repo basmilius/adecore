@@ -1,6 +1,7 @@
 import { useRef, useState, type ReactNode, type Ref } from 'react';
 import clsx from 'clsx';
 import { ColumnResizeHandle, useColumnResize } from '@adecore/ui';
+import { assignRef } from '../assign-ref.ts';
 
 export const VALUE_PANEL_WIDTH = 320;
 export const VALUE_PANEL_MIN_WIDTH = 240;
@@ -41,11 +42,7 @@ export function ValueDock({ open, panel, children, width: given, onWidthChange, 
         <div
             ref={(node) => {
                 root.current = node;
-                if (typeof ref === 'function') {
-                    ref(node);
-                } else if (ref) {
-                    ref.current = node;
-                }
+                assignRef(ref, node);
             }}
             className={clsx('flex min-h-0 min-w-0 flex-1', className)}
         >

@@ -78,19 +78,18 @@ export const gutterWidth = (rowCount: number): number => Math.max(GUTTER_MIN_WID
 
 export const clampColumnWidth = (width: number): number => Math.max(MIN_COLUMN_WIDTH, Math.min(Math.ceil(width), MAX_COLUMN_WIDTH));
 
-/* From the longest text among the header and the first rows. `keyed` makes room for the key icon in front of the name. */
-export const estimateColumnWidth = (header: string, samples: readonly string[], keyed: boolean): number => {
-    const body = samples.slice(0, SAMPLE_ROWS).reduce((longest, text) => Math.max(longest, text.length), 0);
-    const named = header.length * CHARACTER_WIDTH + (keyed ? KEY_ICON_ROOM : 0) + SORT_ROOM;
-    return clampColumnWidth(Math.max(body * CHARACTER_WIDTH, named) + CELL_PADDING);
-};
+const bodyWidth = (texts: readonly string[]): number => texts.reduce((longest, text) => Math.max(longest, text.length), 0) * CHARACTER_WIDTH;
+
+/* `keyed` makes room for the key icon in front of the name. */
+const headerWidth = (header: string, keyed: boolean): number => header.length * CHARACTER_WIDTH + (keyed ? KEY_ICON_ROOM : 0) + SORT_ROOM;
+
+/* From the longest text among the header and the first rows. */
+export const estimateColumnWidth = (header: string, samples: readonly string[], keyed: boolean): number =>
+    clampColumnWidth(Math.max(bodyWidth(samples.slice(0, SAMPLE_ROWS)), headerWidth(header, keyed)) + CELL_PADDING);
 
 /* Wide enough for the header and every text of the column, up to `MAX_FIT_WIDTH`. */
-export const fitColumnWidth = (header: string, texts: readonly string[], keyed: boolean): number => {
-    const body = texts.reduce((longest, text) => Math.max(longest, text.length), 0) * CHARACTER_WIDTH;
-    const named = header.length * CHARACTER_WIDTH + (keyed ? KEY_ICON_ROOM : 0) + SORT_ROOM;
-    return Math.max(MIN_COLUMN_WIDTH, Math.min(Math.ceil(Math.max(body, named) + CELL_PADDING), MAX_FIT_WIDTH));
-};
+export const fitColumnWidth = (header: string, texts: readonly string[], keyed: boolean): number =>
+    Math.max(MIN_COLUMN_WIDTH, Math.min(Math.ceil(Math.max(bodyWidth(texts), headerWidth(header, keyed)) + CELL_PADDING), MAX_FIT_WIDTH));
 
 export const isDoubleClick = (previous: number | null, now: number): boolean => previous !== null && now - previous <= DOUBLE_CLICK_MS;
 

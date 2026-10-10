@@ -51,10 +51,11 @@ export const captureLayout = (columns: readonly { readonly name: string }[], sta
             widths[column.name] = width;
         }
     }
+    const namesOf = (indexes: readonly number[]): string[] => indexes.flatMap((index) => columns[index]?.name ?? []);
     return {
         widths,
-        hidden: [...state.view.hidden].sort((a, b) => a - b).flatMap((index) => (columns[index] === undefined ? [] : [columns[index]!.name])),
-        pinned: state.view.pinned.flatMap((index) => (columns[index] === undefined ? [] : [columns[index]!.name]))
+        hidden: namesOf([...state.view.hidden].sort((a, b) => a - b)),
+        pinned: namesOf(state.view.pinned)
     };
 };
 

@@ -16,7 +16,11 @@ import { Ban, Copy, RotateCcw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { ContextMenu, copyText, EDIT_SHORTCUTS, Icon, isApplePlatform, isModHeld, Kbd, useContentSize } from '@adecore/ui';
 import type { EditValue, Value } from '../protocol/index.ts';
+import { assignRef } from '../assign-ref.ts';
 import type { SqlTarget } from '../sql.ts';
+import { useNumberNotation } from '../client-context.ts';
+import { usePopupPress } from '../use-popup-press.ts';
+import { useStableCallback } from '../use-stable-callback.ts';
 import type { RangeBlock } from './aggregates.ts';
 import { fullRect, rectBetween, rectContains } from './cell-range.ts';
 import type { EditMove } from './CellEditor.tsx';
@@ -49,9 +53,6 @@ import { moveFocus, type CellPosition, type NavigationKey } from './navigation.t
 import { selectRow } from './row-selection.ts';
 import { sortOnly, sortStateOf, type GridSort } from './sort.ts';
 import type { ColumnRequest, FocusedCell, FocusRequest, GridColumn, GridMenuContext, GridRow } from './types.ts';
-import { useNumberNotation } from '../client-context.ts';
-import { usePopupPress } from '../use-popup-press.ts';
-import { useStableCallback } from '../use-stable-callback.ts';
 
 export interface DataGridProps {
     columns: readonly GridColumn[];
@@ -174,7 +175,7 @@ export function DataGrid({
     const anchor = useRef(-1);
     const pressedInPopup = usePopupPress();
     const notation = useNumberNotation();
-    /* Set once an edit commits or cancels, so the blur that follows the input's removal does not commit it again. */
+    // Set once an edit commits or cancels, so the blur that follows the input's removal does not commit it again.
     const settled = useRef(true);
     const dragging = useRef(false);
     const dragOrigin = useRef<CellPosition | null>(null);
@@ -252,9 +253,6 @@ export function DataGrid({
 
     useEffect(() => {
         reportFocus.current = onFocusedCellChange;
-    });
-
-    useEffect(() => {
         reportRange.current = onRangeChange;
         reportLayout.current = onLayoutChange;
     });
@@ -281,8 +279,11 @@ export function DataGrid({
     }, [blockKey]);
 
     useEffect(() => {
-        const index = focusRequest === null || focusRequest === undefined ? -1 : rows.findIndex((row) => row.key === focusRequest.rowKey);
-        if (focusRequest !== null && focusRequest !== undefined && index >= 0) {
+        if (focusRequest === null || focusRequest === undefined) {
+            return;
+        }
+        const index = rows.findIndex((row) => row.key === focusRequest.rowKey);
+        if (index >= 0) {
             focusAt({ row: index, column: focusRequest.column });
             if (focusRequest.quiet !== true) {
                 scroller.current?.focus();
@@ -318,11 +319,7 @@ export function DataGrid({
         (node: HTMLDivElement | null) => {
             scroller.current = node;
             measure(node);
-            if (typeof ref === 'function') {
-                ref(node);
-            } else if (ref) {
-                ref.current = node;
-            }
+            assignRef(ref, node);
         },
         [measure, ref]
     );
