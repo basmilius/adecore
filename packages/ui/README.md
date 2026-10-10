@@ -54,6 +54,10 @@ From there, every component is ready to use:
 
 [Getting started](https://adecore.dev/ui/guide/getting-started) covers the rest: the format source, a third language, the optional pieces and how to work on a local checkout.
 
+## Workspaces
+
+`Workspace` lays out a toolbar, side regions and content in a standard or a roomy layout. `SplitView` nests resizable panels with document tabs, and `TabStrip` draws the tabs. A view stays mounted when it moves to another panel. The app keeps the documents' state, decides whether a tab may close and saves the layout. The [workspace guide](https://adecore.dev/ui/layout/workspace) covers the controlled layout model, with demos.
+
 ## Entry points
 
 | Import | What it holds |
@@ -81,7 +85,3 @@ Nothing else is public. No module does work on import, so a bundler keeps only w
 ## License
 
 FSL-1.1-MIT, see [LICENSE](./LICENSE).
-
-## Workspaces
-
-`Workspace`, `SplitView` and `TabStrip` provide standard or roomy layouts, nested resizable panels and open document tabs. Views stay mounted when they move between panels. Applications own document state, close approval and persistence. See the [workspace guide](https://adecore.dev/ui/layout/workspace) for the controlled layout model and demos.

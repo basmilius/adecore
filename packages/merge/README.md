@@ -24,8 +24,8 @@ for (const [index, block] of blocks.entries()) {
 const text = joinLines(draftOf(blocks, answers).lines, shapeOf(ours));
 ```
 
-The fixed answer above represents a caller's completed decision. Unanswered draft conflicts use ours without markers; saving requires a separate unresolved check. Preserve text shape and verify input versions before writing. The host owns authorization, file access and stale-answer rejection.
+The answer in the example stands for a decision the caller already made. A draft takes ours, without markers, for every conflict that has no answer yet, so check for unresolved conflicts separately before saving. Keep the shape of the text, and check that the inputs are still the versions you read before writing. Authorization, file access and refusing a stale answer are the host's.
 
 Read the [overview](https://adecore.dev/merge/), [lines and diffs](https://adecore.dev/merge/lines) and [three-way merge](https://adecore.dev/merge/three-way).
 
-From the repository root, run `bun run --cwd packages/merge test`, `typecheck` or `build`. The isolated `test:memory` command checks bounded diff memory workloads. A source-relative example is in [examples/resolve-conflict.ts](./examples/resolve-conflict.ts).
+From the repository root, run `bun run --cwd packages/merge test`, `typecheck` or `build`. `test:memory` runs on its own and checks that a diff of two large files stays under 20 MB. [examples/resolve-conflict.ts](./examples/resolve-conflict.ts) is a whole example that imports the source.

@@ -13,7 +13,7 @@
 [![terminal on npm](https://img.shields.io/npm/v/@adecore/terminal?label=terminal)](https://www.npmjs.com/package/@adecore/terminal)
 [![Docs](https://img.shields.io/badge/docs-adecore.dev-blue)](https://adecore.dev)
 
-Shared packages for development apps on Electron, React 19 and Tailwind 4. UI and terminal views, agent hosts and chat, database tooling, editors, language services, drawing and diagram cores, merge algorithms and user service managers follow one release version.
+Shared packages for development apps on Electron, React 19 and Tailwind 4: UI and terminal views, agent hosts and chat, database tooling, editors, language services, drawing and diagram cores, merge algorithms and user service managers. They all release under one version.
 
 The documentation is at **[adecore.dev](https://adecore.dev)**, with a live demo of every component. The [introduction](https://adecore.dev/guide/) is the place to start.
 
@@ -38,7 +38,7 @@ The documentation is at **[adecore.dev](https://adecore.dev)**, with a live demo
 | [`@adecore/lsp`](packages/lsp)                                 | Language service contracts, JSON-RPC client, transports and fakes.                                                                                                                              | [LSP](https://adecore.dev/lsp/)                                 |
 | [`@adecore/editor-react`](packages/editor-react)               | Language feature coordination, React popups and review displays.                                                                                                                                | [editor views](https://adecore.dev/editor-react/)               |
 
-Newly transferred packages stay private at `0.0.0` until their first npm publication and Trusted Publishing setup are complete. The editor family preserves its current implementation and documented remaining work.
+A newly transferred package stays private at `0.0.0` until it has its first npm version and Trusted Publishing is set up for it. The editor packages keep their current limits, and their docs list the work that remains.
 
 ```sh
 bun add @adecore/ui
@@ -74,7 +74,7 @@ An app can use a checkout of this repository without a build per change. Every p
 
 ## Releases
 
-A release starts as a draft GitHub release, and [`release.yml`](.github/workflows/release.yml) runs by hand for its version. It tags the commit, sets the version in every package and runs check, test and build. It normalizes internal dependencies to the release version, validates packed artifacts, then publishes public packages in dependency order through Trusted Publishing, with provenance, and deploys the docs. Database platform binaries precede the host package. Private packages are skipped; a public package cannot depend on a private workspace. A prerelease goes out under the `next` dist-tag and uploads the docs without making them live. The workflow publishes the GitHub release last, because a published release is immutable. Every `package.json` in the repository stays at `0.0.0`.
+A release starts as a draft GitHub release, and [`release.yml`](.github/workflows/release.yml) runs by hand for its version. It tags the commit, sets the version in every package and runs check, test and build. It sets internal dependencies to the release version and validates the packed artifacts. Then it publishes the public packages in dependency order through Trusted Publishing, with provenance, and deploys the docs. The database's platform binaries go out before the package that loads them. Private packages are skipped, and a public package cannot depend on a private one. A prerelease goes out under the `next` dist-tag and uploads the docs without making them live. The workflow publishes the GitHub release last, because a published release is immutable. Every `package.json` in the repository stays at `0.0.0`.
 
 ## Issues
 
