@@ -49,6 +49,7 @@ The core, a session per chat, the thread and what is written of it.
 | [`chat/subagent-reader`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/subagent-reader.ts) | `SubagentChat`, `SubagentReaderOptions`, `SubagentReader` |
 | [`chat/subagent-settlement`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/subagent-settlement.ts) | `SubagentSettlement`, `settlementOf`, `readSubagentSettlement` |
 | [`chat/thread`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/thread.ts) | `ChatThread` |
+| [`chat/ui-queries`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/ui-queries.ts) | `ChatUiSource`, `ChatUiHost`, `ChatUiRefusal`, `ChatUiQueries` |
 | [`chat/visual-store`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/visual-store.ts) | `visualFileName`, `isVisualFileName`, `VisualInput`, `VisualStoreOptions`, `VisualListener`, `VisualStore` |
 | [`chat/wake-chat`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/wake-chat.ts) | `WakeChat`, `ChatOpenerDeps`, `loadChat`, `chatOpener` |
 

@@ -51,6 +51,8 @@ const intelligentUi: ChatUiHost = {
 
 `capture`, `authorize` and `read` are yours; `projectsOf`, `assertCanRead` and `fetchRuns` stand for your own code. `capture` records what the writing chat may read, once per reply. `authorize` throws to refuse, and runs before every read with that captured access and the chat's current info. `read` returns the result, which must pass `result`.
 
+To say why with a code a client can word itself, throw a `ChatUiRefusal(code, reason)` from `@adecore/agents/chat/ui-queries`, as in `throw new ChatUiRefusal('project-closed', 'The project is closed.')`. The code lands in the reading's `code` and the sentence in its `reason`: from `authorize` the reading is `refused`, from `read` it is `failed`, and from `ChatUiHost.link` the link stays plain. Keep a code the same across versions, and pick one that is not in the table below.
+
 ## Reading
 
 A client asks `ui.query` with the block's identity, the query name and its current input values. The backend then:
@@ -109,4 +111,4 @@ A failed or refused reading, a plain link and a refused choice carry a `code` th
 | `link-unchecked`      | The link has to be checked again                                 |
 | `unreadable`          | The page could not reach the backend                             |
 
-A refusal from your own `authorize` carries its message as the reason and no code.
+Any other error your `authorize`, `read` or `link` throws carries its message as the reason and no code.

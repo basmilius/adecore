@@ -48,6 +48,16 @@ class UiQueryError extends ChatError<string> {
     }
 }
 
+/*
+ * What a host's `authorize`, `read` or `link` throws to say why with a code: `code` reaches the reading's
+ * `code` and should stay the same across versions, `reason` is the plain sentence a client shows without it.
+ */
+export class ChatUiRefusal extends UiQueryError {
+    constructor(code: string, reason: string) {
+        super('refused-query', code, reason);
+    }
+}
+
 const MAX_QUERY_BYTES = 64 * 1024;
 const MAX_SNAPSHOT_BYTES = 128 * 1024;
 const READ_TIMEOUT_MS = 8_000;

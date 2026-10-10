@@ -4,7 +4,7 @@ import type { ChatAssistantItem, ChatEvent, ChatInfo } from '@adecore/agent-cont
 import { compileUiBlock, resolveUiChoice } from '@adecore/intelligent-ui';
 import { claudeProvider } from '../providers/claude-provider.ts';
 import { ChatSession } from './chat-session.ts';
-import { ChatUiQueries, type ChatUiHost } from './ui-queries.ts';
+import { ChatUiQueries, ChatUiRefusal, type ChatUiHost } from './ui-queries.ts';
 
 function rig() {
     let permitted = true;
@@ -79,6 +79,7 @@ function rig() {
     const queries = new ChatUiQueries(host);
     const payload = { chatId: 'chat', itemId: 'reply', blockId: 'block', revision: 'rev', query: '$data' };
     return {
+        host,
         queries,
         session,
         payload,
@@ -118,6 +119,19 @@ describe('stored UI queries', () => {
         expect((await r.queries.query(r.session, { ...r.payload, revision: 'other' })).state).toBe('refused');
         expect((await r.queries.query(r.session, { ...r.payload, query: '$other' })).state).toBe('refused');
         expect(r.counts().reads).toBe(0);
+    });
+    test('a refusal of the host carries its own code and reason', async () => {
+        const r = rig();
+        const source = r.host.sources.status!;
+        source.authorize = async () => {
+            throw new ChatUiRefusal('project-closed', 'The project is closed.');
+        };
+        expect(await r.queries.query(r.session, r.payload)).toMatchObject({ state: 'refused', code: 'project-closed', reason: 'The project is closed.' });
+        source.authorize = async () => {};
+        source.read = async () => {
+            throw new ChatUiRefusal('rate-limited', 'The service asked to wait.');
+        };
+        expect(await r.queries.query(r.session, r.payload)).toMatchObject({ state: 'failed', code: 'rate-limited', reason: 'The service asked to wait.' });
     });
     test('a denied capture survives restart without capturing wider rights', async () => {
         const r = rig();
