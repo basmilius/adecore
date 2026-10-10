@@ -13,6 +13,7 @@ import {
     type ProviderAccountVariable,
     type ProviderInfo
 } from '@adecore/agent-contracts';
+import { DEFAULT_CODEX_CLIENT, type CodexClientInfo } from '../../chat/codex-transport.ts';
 import { ClientSinks } from '../../client-sinks.ts';
 import { errorText } from '../../error-text.ts';
 import type { AgentEvent, AgentSink } from '../../events.ts';
@@ -23,7 +24,6 @@ import { prepareShadowHome, type ShadowHomeReport } from './shadow-home.ts';
 import { askAccountAs, type AskAccount } from './status.ts';
 import { acceptAccounts, accountsPath, InvalidAccountError, readAccounts, wireAccounts, writeAccounts, type StoredAccounts } from './store.ts';
 import { DEFAULT_ACCOUNTS_HOST, platformSecrets, secretKey, SecretsUnavailableError, type AccountsHost, type SecretStore } from './variables.ts';
-import { DEFAULT_CODEX_CLIENT, type CodexClientInfo } from '../../chat/codex-transport.ts';
 
 /* Who is signed in changes by hand and rarely; often enough to notice, rarely enough not to start CLIs all day. */
 const CHECK_INTERVAL_MS = 15 * 60_000;
@@ -223,21 +223,11 @@ export class ProviderAccountsService implements AccountLaunches {
     }
 
     transcriptFolder(kind: AgentKind, id: string | undefined): string | null {
-        const key = id ?? kind;
-        const account = this.accounts[key];
-        if (account === undefined || account.kind !== kind) {
-            return null;
-        }
-        return transcriptFolder(key, account, this.providers.get(kind), this.env);
+        return this.folderOf(kind, id, transcriptFolder);
     }
 
     homeFolder(kind: AgentKind, id: string | undefined): string | null {
-        const key = id ?? kind;
-        const account = this.accounts[key];
-        if (account === undefined || account.kind !== kind) {
-            return null;
-        }
-        return accountFolder(key, account, this.providers.get(kind), this.env);
+        return this.folderOf(kind, id, accountFolder);
     }
 
     canContinue(kind: AgentKind, from: string | undefined, to: string | undefined): boolean {
@@ -341,6 +331,15 @@ export class ProviderAccountsService implements AccountLaunches {
     async refresh(): Promise<ProviderAccounts> {
         await this.queue(true);
         return this.snapshot();
+    }
+
+    private folderOf(kind: AgentKind, id: string | undefined, folder: typeof accountFolder): string | null {
+        const key = id ?? kind;
+        const account = this.accounts[key];
+        if (account === undefined || account.kind !== kind) {
+            return null;
+        }
+        return folder(key, account, this.providers.get(kind), this.env);
     }
 
     private async runWatch(id: string, watch: LoginWatch): Promise<void> {

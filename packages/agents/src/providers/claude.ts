@@ -39,7 +39,6 @@ interface ClaudeLaunch {
     folders?: readonly string[];
 }
 
-/* The argument list for one Claude Code chat process. */
 export function claudeArgs(launch: ClaudeLaunch): string[] {
     // The `=` form matters, since the flag is variadic and would swallow a prompt argument after it (measured on Claude Code 2.1.274).
     const args = [

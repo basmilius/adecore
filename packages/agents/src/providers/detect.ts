@@ -1,18 +1,9 @@
 import { spawnChatProcess, type SpawnChatProcess } from '../chat/chat-process.ts';
+import { definedEnv } from './accounts/launch.ts';
 
 export interface CliDetection {
     installed: boolean;
     version: string | null;
-}
-
-function definedOnly(env: Record<string, string | undefined>): Record<string, string> {
-    const defined: Record<string, string> = {};
-    for (const [key, value] of Object.entries(env)) {
-        if (value !== undefined) {
-            defined[key] = value;
-        }
-    }
-    return defined;
 }
 
 /* Asks a CLI for its version; a missing binary is a plain "not installed", never an error. */
@@ -26,7 +17,7 @@ export async function detectCli(
         const code = new Promise<number | null>((resolve) => {
             exited = resolve;
         });
-        const proc = spawn({ command: [command, '--version'], cwd: process.cwd(), env: definedOnly(env), onExit: (exitCode) => exited(exitCode) });
+        const proc = spawn({ command: [command, '--version'], cwd: process.cwd(), env: definedEnv(env), onExit: (exitCode) => exited(exitCode) });
         proc.stdin.end();
         const output = await new Response(proc.stdout).text();
         if ((await code) !== 0) {

@@ -84,6 +84,7 @@ export function redactVariables(variables: readonly ProviderAccountVariable[]): 
 export function keychainService(host: AccountsHost, home: string): string {
     return `${host.keychainPrefix}-provider-env-${createHash('sha256').update(resolve(home)).digest('hex').slice(0, 12)}`;
 }
+
 // `security` exits with this when no item matches.
 const NOT_FOUND = 44;
 
