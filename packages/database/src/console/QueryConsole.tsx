@@ -4,7 +4,7 @@ import { Check, CircleAlert, History, Play, Square, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Banner, Button, ColumnResizeHandle, Icon, IconButton, messageOf, PromptDialog, Spinner, Tabs, Tooltip, useColumnResize } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
-import { DatabaseRequestError, type Connection } from '../client/types.ts';
+import { isCancelled, type Connection } from '../client/types.ts';
 import type { DatabaseNotice } from '../actions.ts';
 import { useDatabaseAction, useDatabaseClient, useDatabaseFiles, useDatabaseNotice, useDatabaseStorage } from '../client-context.ts';
 import type { FileFormat, RowsResult, SchemaInfo, StatementResult } from '../protocol/index.ts';
@@ -293,7 +293,7 @@ export function QueryConsole({
             setRun({ status: 'done', results: executed.results });
             record(outcomeOf(executed.results));
         } catch (error) {
-            if (controller.signal.aborted || (error instanceof DatabaseRequestError && error.code === 'cancelled')) {
+            if (controller.signal.aborted || isCancelled(error)) {
                 setRun({ status: 'cancelled' });
             } else {
                 setRun({ status: 'failed', message: messageOf(error) });

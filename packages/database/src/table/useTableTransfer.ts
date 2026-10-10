@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { messageOf } from '@adecore/ui';
 import type { DatabaseFiles } from '../actions.ts';
-import { DatabaseRequestError, type DatabaseClient, type DatabaseSession } from '../client/types.ts';
+import { isCancelled, type DatabaseClient, type DatabaseSession } from '../client/types.ts';
 import type { FileFormat, TableStructure } from '../protocol/index.ts';
 import type { ImportSample } from './ImportDialog.tsx';
 import { formatOfPath, importableColumns, mapColumn, matchColumns, type ImportFormat } from './import-mapping.ts';
@@ -12,6 +12,9 @@ export type TransferNotice =
     | { readonly kind: 'exported'; readonly rows: number }
     | { readonly kind: 'imported'; readonly rows: number }
     | { readonly kind: 'failed'; readonly during: 'export' | 'import'; readonly message: string };
+
+/* How long a finished export or import stays on the strip. */
+const NOTICE_MS = 8000;
 
 /* The import a person is setting up. */
 export interface ImportDraft {
@@ -68,7 +71,7 @@ export function useTableTransfer({ client, session, files, schema, table, struct
         if (notice?.kind !== 'exported' && notice?.kind !== 'imported') {
             return;
         }
-        const timer = setTimeout(() => setNotice(null), 8000);
+        const timer = setTimeout(() => setNotice(null), NOTICE_MS);
         return () => clearTimeout(timer);
     }, [notice]);
 
@@ -102,8 +105,7 @@ export function useTableTransfer({ client, session, files, schema, table, struct
                 );
                 show({ kind: 'exported', rows: result.rows });
             } catch (error) {
-                const cancelled = controller.signal.aborted || (error instanceof DatabaseRequestError && error.code === 'cancelled');
-                if (cancelled) {
+                if (controller.signal.aborted || isCancelled(error)) {
                     setNotice(null);
                 } else {
                     show({ kind: 'failed', during: 'export', message: messageOf(error) });
@@ -153,7 +155,7 @@ export function useTableTransfer({ client, session, files, schema, table, struct
                     now === null || now.path !== path ? now : { ...now, header, sample: read, mapping: matchColumns(read.columns, tableColumns, header) }
                 );
             } catch (error) {
-                if (!(error instanceof DatabaseRequestError && error.code === 'cancelled')) {
+                if (!isCancelled(error)) {
                     setImportDraft((now) => (now === null || now.path !== path ? now : { ...now, error: messageOf(error) }));
                 }
             }

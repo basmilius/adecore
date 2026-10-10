@@ -25,7 +25,6 @@ export interface CommandFieldProps {
     engine: Engine;
     /* Every change of the chips applies at once, so this is told the whole list each time. */
     onChipsChange(next: Chip[]): void;
-    /* "Jump to column" was picked. */
     onJumpToColumn(name: string): void;
     /* The text input, for the owner to focus on Mod+F. */
     inputRef?: Ref<HTMLInputElement>;

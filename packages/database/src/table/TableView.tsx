@@ -27,7 +27,7 @@ import type { GridSort } from '../grid/sort.ts';
 import type { ColumnRequest, FocusedCell, FocusRequest, GridMenuContext } from '../grid/types.ts';
 import { RecordView } from '../grid/RecordView.tsx';
 import { ValueDock } from '../grid/ValueDock.tsx';
-import { valueOfCell, type EditValue, type RowChange, type Value } from '../protocol/index.ts';
+import { valueOfCell, type EditValue, type RowChange, type TableStructure, type Value } from '../protocol/index.ts';
 import type { SqlTarget } from '../sql.ts';
 import { useSchemaChange } from '../use-schema-change.ts';
 import { useStableCallback } from '../use-stable-callback.ts';
@@ -109,6 +109,19 @@ interface Filters {
 
 const NO_KEYS: ReadonlySet<string> = new Set();
 
+const readOnlyReasonOf = (connection: Connection, structure: TableStructure | null, t: TFunction<'database'>): string | null => {
+    if (connection.config.readOnly === true) {
+        return t('table.readOnly.connection');
+    }
+    if (structure?.kind === 'view') {
+        return t('table.readOnly.view');
+    }
+    if (structure !== null && structure.rowKey === null) {
+        return t('table.readOnly.noKey');
+    }
+    return null;
+};
+
 /* What the strip over the table, or the app's notice, says of an export or an import. */
 const transferText = (found: TransferNotice, t: TFunction<'database'>): string => {
     switch (found.kind) {
@@ -123,7 +136,6 @@ const transferText = (found: TransferNotice, t: TFunction<'database'>): string =
     }
 };
 
-/* How much of a value a menu item spells out before it cuts it. */
 const MENU_VALUE_LENGTH = 40;
 
 const FOCUS_COMMAND = shortcut('Mod+F');
@@ -210,16 +222,7 @@ function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defa
     const loaded = rowsLoad.value?.result ?? null;
     const loadedOffset = rowsLoad.value?.offset ?? 0;
 
-    const readOnlyReason =
-        connection.config.readOnly === true
-            ? t('table.readOnly.connection')
-            : structure === null
-              ? null
-              : structure.kind === 'view'
-                ? t('table.readOnly.view')
-                : structure.rowKey === null
-                  ? t('table.readOnly.noKey')
-                  : null;
+    const readOnlyReason = readOnlyReasonOf(connection, structure, t);
     const editable = readOnlyReason === null && structure !== null && loaded !== null && !rowsLoad.loading;
 
     const columns = useMemo(() => (loaded === null ? [] : buildGridColumns(loaded, structure)), [loaded, structure]);
@@ -342,7 +345,7 @@ function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defa
         }
     };
 
-    /* Every change of the chips applies at once; one that changes the page asks first when it would throw pending changes away. */
+    /* A change that leaves the SQL alone only remembers the filters and keeps the page. */
     const applyChips = (next: readonly Chip[]): void => {
         const where = chipsToWhere(next);
         const orderBy = chipsToOrderBy(engine, next);
@@ -713,27 +716,7 @@ function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defa
                     </Button>
                 </Banner>
             )}
-            {transfer.notice !== null && (
-                <Banner
-                    icon={transfer.notice.kind === 'failed' ? CircleAlert : transfer.notice.kind === 'exporting' ? Download : Check}
-                    tone={transfer.notice.kind === 'failed' ? 'error' : 'neutral'}
-                    message={transferText(transfer.notice, t)}
-                    className="shrink-0 pt-2"
-                >
-                    {transfer.notice.kind === 'exporting' ? (
-                        <>
-                            <Spinner size={12} label={t('table.export.running', { format: transfer.notice.format.toUpperCase() })} />
-                            <Button size="xs" onClick={transfer.cancelExport}>
-                                {t('table.export.cancel')}
-                            </Button>
-                        </>
-                    ) : (
-                        <Button size="xs" onClick={transfer.dismiss}>
-                            {t('table.dismiss')}
-                        </Button>
-                    )}
-                </Banner>
-            )}
+            {transfer.notice !== null && <TransferBanner notice={transfer.notice} onCancel={transfer.cancelExport} onDismiss={transfer.dismiss} />}
             {loaded === null ? (
                 <PanelEmpty busy={notice === null}>{notice === null ? t('table.loading') : t('table.notLoaded')}</PanelEmpty>
             ) : (
@@ -839,5 +822,36 @@ function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defa
                 }}
             />
         </div>
+    );
+}
+
+interface TransferBannerProps {
+    notice: TransferNotice;
+    onCancel(): void;
+    onDismiss(): void;
+}
+
+function TransferBanner({ notice, onCancel, onDismiss }: TransferBannerProps) {
+    const { t } = useTranslation('database');
+    return (
+        <Banner
+            icon={notice.kind === 'failed' ? CircleAlert : notice.kind === 'exporting' ? Download : Check}
+            tone={notice.kind === 'failed' ? 'error' : 'neutral'}
+            message={transferText(notice, t)}
+            className="shrink-0 pt-2"
+        >
+            {notice.kind === 'exporting' ? (
+                <>
+                    <Spinner size={12} label={t('table.export.running', { format: notice.format.toUpperCase() })} />
+                    <Button size="xs" onClick={onCancel}>
+                        {t('table.export.cancel')}
+                    </Button>
+                </>
+            ) : (
+                <Button size="xs" onClick={onDismiss}>
+                    {t('table.dismiss')}
+                </Button>
+            )}
+        </Banner>
     );
 }

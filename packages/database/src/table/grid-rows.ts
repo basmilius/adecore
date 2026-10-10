@@ -15,13 +15,8 @@ export const parseRowKey = (key: string): RowRef =>
 
 export const buildGridColumns = (loaded: Pick<RowsResult, 'columns'>, structure: TableStructure | null): GridColumn[] => {
     const keys = { primaryKey: structure?.primaryKey ?? [], foreignKey: structure?.foreignKeys.flatMap((key) => key.columns) ?? [] };
-    return loaded.columns.map((column) =>
-        gridColumnOf(
-            column,
-            structure?.columns.find((info) => info.name === column.name),
-            keys
-        )
-    );
+    const infoOf = (name: string) => structure?.columns.find((info) => info.name === name);
+    return loaded.columns.map((column) => gridColumnOf(column, infoOf(column.name), keys));
 };
 
 export interface GridRowsInput {

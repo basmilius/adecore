@@ -2,7 +2,10 @@ import type { GridLayout } from '../grid/column-layout.ts';
 import type { StoredFilter } from './command-field.ts';
 import { PAGE_SIZES } from './paging.ts';
 
-/* Bump when the shape changes; a stored value of another version is ignored rather than migrated. `filters` was added alongside `where`, which still says the same thing for a value without it. */
+/*
+ * Bump when the shape changes; a stored value of another version is ignored rather than migrated. `filters`
+ * came later without a bump, since `where` still says the same thing for a value without it.
+ */
 export const LAYOUT_VERSION = 1;
 
 /* What is remembered of one table's view between visits. */
@@ -20,10 +23,10 @@ export const layoutStorageKey = (connectionId: string, schema: string, table: st
 
 const isStringList = (value: unknown): value is string[] => Array.isArray(value) && value.every((item) => typeof item === 'string');
 
+const isRecord = (value: unknown): value is Record<string, unknown> => value !== null && typeof value === 'object' && !Array.isArray(value);
+
 const isStoredFilter = (value: unknown): value is StoredFilter =>
     isRecord(value) && typeof value.text === 'string' && typeof value.sql === 'string' && value.sql.trim() !== '';
-
-const isRecord = (value: unknown): value is Record<string, unknown> => value !== null && typeof value === 'object' && !Array.isArray(value);
 
 export const serializeLayout = (layout: StoredLayout): string => JSON.stringify({ version: LAYOUT_VERSION, ...layout });
 

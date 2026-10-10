@@ -159,3 +159,6 @@ export class DatabaseRequestError extends Error {
         this.change = change;
     }
 }
+
+/* Whether a request failed because it was cancelled, which is no failure to show. */
+export const isCancelled = (error: unknown): boolean => error instanceof DatabaseRequestError && error.code === 'cancelled';

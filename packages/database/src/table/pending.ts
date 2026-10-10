@@ -112,8 +112,6 @@ export const rowKeyOf = (structure: TableStructure, loaded: LoadedRows, row: num
     return key;
 };
 
-const numeric = (text: string): number => Number(text);
-
 /* Updates, then deletes, then inserts, all computed against the page as loaded. Throws for a change on a row without a usable key, which the grid never lets a person make. */
 export const toRowChanges = (structure: TableStructure, loaded: LoadedRows, pending: PendingChanges): RowChange[] => {
     const keyOf = (row: number): RowKey => {
@@ -124,7 +122,7 @@ export const toRowChanges = (structure: TableStructure, loaded: LoadedRows, pend
         return key;
     };
     const updates = Object.keys(pending.edits)
-        .map(numeric)
+        .map(Number)
         .filter((row) => !pending.deletes.has(row))
         .sort((left, right) => left - right)
         .map((row): RowChange => ({ kind: 'update', key: keyOf(row), values: pending.edits[row]! }));
@@ -133,11 +131,18 @@ export const toRowChanges = (structure: TableStructure, loaded: LoadedRows, pend
     return [...updates, ...deletes, ...inserts];
 };
 
+const keyValueText = (value: Value): string => {
+    if (value === null) {
+        return 'NULL';
+    }
+    if (typeof value === 'object') {
+        return `0x${value.hex}`;
+    }
+    return typeof value === 'string' ? `'${value}'` : String(value);
+};
+
 /* A key as a person would write it in a WHERE: `id = 5, tenant = 'a'`. */
 export const describeKey = (key: RowKey): string =>
     Object.entries(key)
-        .map(
-            ([column, value]) =>
-                `${column} = ${value === null ? 'NULL' : typeof value === 'object' ? `0x${value.hex}` : typeof value === 'string' ? `'${value}'` : String(value)}`
-        )
+        .map(([column, value]) => `${column} = ${keyValueText(value)}`)
         .join(', ');

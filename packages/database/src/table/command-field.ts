@@ -65,6 +65,8 @@ const isFilter = (chip: Chip): chip is FilterChip => chip.kind === 'filter';
 
 const isSort = (chip: Chip): chip is SortChip => chip.kind === 'sort';
 
+const sortChip = (sort: ColumnSort): SortChip => ({ kind: 'sort', column: sort.column, direction: sort.direction });
+
 /* A name as typed in SQL: bare when it can be, else in double quotes. The quotes are only for the text of a chip; `sql` quotes per engine. */
 export const identifierText = (name: string): string => (BARE_NAME.test(name) ? name : `"${name.replaceAll('"', '""')}"`);
 
@@ -95,10 +97,7 @@ export const chipsToOrderBy = (engine: Engine, chips: readonly Chip[]): string =
 export const sortsOf = (chips: readonly Chip[]): ColumnSort[] => chips.filter(isSort).map(({ column, direction }) => ({ column, direction }));
 
 /* The sorts of a header menu replace every sort and raw ORDER BY, keeping the filters where they are. */
-export const withSorts = (chips: readonly Chip[], sorts: readonly ColumnSort[]): Chip[] => [
-    ...chips.filter(isFilter),
-    ...sorts.map((sort): Chip => ({ kind: 'sort', column: sort.column, direction: sort.direction }))
-];
+export const withSorts = (chips: readonly Chip[], sorts: readonly ColumnSort[]): Chip[] => [...chips.filter(isFilter), ...sorts.map(sortChip)];
 
 /* A column that is not sorted joins as ascending; one that is flips its direction where it stands. */
 export const toggleSort = (chips: readonly Chip[], column: string): Chip[] => {
@@ -139,7 +138,7 @@ export const sortChipsOf = (engine: Engine, orderBy: string): Chip[] => {
         return [];
     }
     const sorts = parseOrderByLoose(engine, text);
-    return sorts === null ? [{ kind: 'order', text }] : sorts.map((sort): Chip => ({ kind: 'sort', column: sort.column, direction: sort.direction }));
+    return sorts === null ? [{ kind: 'order', text }] : sorts.map(sortChip);
 };
 
 export interface ChipSource {
@@ -183,13 +182,11 @@ const readOperation = (rest: string): string | null => {
         const operator = compare[1] === '==' ? '=' : compare[1] === '!=' ? '<>' : compare[1];
         return isClosed(compare[2]!) ? `${operator} ${compare[2]}` : null;
     }
-    const pattern = PATTERN.exec(rest);
-    if (pattern !== null) {
-        return isClosed(pattern[2]!) ? `${upper(pattern[1]!)} ${pattern[2]}` : null;
-    }
-    const member = MEMBER.exec(rest);
-    if (member !== null) {
-        return isClosed(member[2]!) ? `${upper(member[1]!)} ${member[2]}` : null;
+    for (const form of [PATTERN, MEMBER]) {
+        const found = form.exec(rest);
+        if (found !== null) {
+            return isClosed(found[2]!) ? `${upper(found[1]!)} ${found[2]}` : null;
+        }
     }
     const between = BETWEEN.exec(rest);
     if (between !== null) {
