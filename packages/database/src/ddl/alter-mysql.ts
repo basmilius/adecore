@@ -1,18 +1,10 @@
 import { columnSpecSql } from './column.ts';
-import { foreignKeySql, mysqlOptionsSql } from './create.ts';
+import { foreignKeySql, inlineIndexSql, mysqlOptionsSql } from './create.ts';
 import { columnList, quote, tableName, type Dialect } from './dialect.ts';
 import type { TableDiff } from './diff.ts';
-import type { ColumnDraft, IndexDraft, TableDraft } from './draft.ts';
+import type { ColumnDraft, TableDraft } from './draft.ts';
 
 const positionSql = (dialect: Dialect, after: string | null): string => (after === null ? 'FIRST' : `AFTER ${quote(dialect, after)}`);
-
-const indexSql = (dialect: Dialect, index: IndexDraft): string =>
-    [
-        'ADD',
-        index.unique ? 'UNIQUE INDEX' : 'INDEX',
-        ...(index.name === '' ? [] : [quote(dialect, index.name)]),
-        `(${columnList(dialect, index.columns)})`
-    ].join(' ');
 
 const withPosition = (clause: string, position: string | null): string => (position === null ? clause : `${clause} ${position}`);
 
@@ -71,7 +63,7 @@ export const mysqlAlterSql = (dialect: Dialect, schema: string, original: TableD
         late.push(`ADD PRIMARY KEY (${columnList(dialect, draft.primaryKey)})`);
     }
     for (const index of diff.addedIndexes) {
-        late.push(indexSql(dialect, index));
+        late.push(`ADD ${inlineIndexSql(dialect, index)}`);
     }
     for (const foreignKey of diff.addedForeignKeys) {
         late.push(`ADD ${foreignKeySql(dialect, schema, foreignKey)}`);

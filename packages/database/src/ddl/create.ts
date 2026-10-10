@@ -43,7 +43,7 @@ export const mysqlOptionsSql = (options: TableOptions, against?: TableOptions): 
 
 const sqliteOptionsSql = (options: TableOptions): string[] => [...(options.strict ? ['STRICT'] : []), ...(options.withoutRowid ? ['WITHOUT ROWID'] : [])];
 
-const inlineIndexSql = (dialect: Dialect, index: IndexDraft): string =>
+export const inlineIndexSql = (dialect: Dialect, index: IndexDraft): string =>
     [index.unique ? 'UNIQUE INDEX' : 'INDEX', ...(index.name === '' ? [] : [quote(dialect, index.name)]), `(${columnList(dialect, index.columns)})`].join(' ');
 
 /* `CREATE [UNIQUE] INDEX name ON table (columns)`. */

@@ -8,7 +8,7 @@ import { dropIndexSql } from './statements.ts';
 const RENAME_COLUMN = [3, 25];
 const DROP_COLUMN = [3, 35];
 
-/* The clauses `ALTER TABLE .. ADD COLUMN` refuses: a key, a computed value, or a NOT NULL column with nothing to fill the rows with. */
+/* Whether `ALTER TABLE .. ADD COLUMN` takes the column; it refuses a key, a stored computed value, or a NOT NULL column with nothing to fill the rows with. */
 const addable = (column: ColumnDraft): boolean => {
     if (column.autoIncrement || (column.generated && column.generatedClause !== null && /\bSTORED\b/i.test(column.generatedClause))) {
         return false;

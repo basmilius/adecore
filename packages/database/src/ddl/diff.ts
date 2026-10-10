@@ -73,13 +73,10 @@ const OPTION_FIELDS: readonly (keyof TableOptions)[] = ['engine', 'charset', 'co
 const matches = (original: { readonly name: string; readonly key: string }, draft: { readonly originalName: string | null; readonly key: string }): boolean =>
     draft.originalName !== null && (original.name === '' ? draft.key === original.key : draft.originalName === original.name);
 
-/* What a draft changes in the table it came from, told apart by the names items kept. */
-export const diffOf = (dialect: Dialect, original: TableDraft, draft: TableDraft): TableDiff => {
-    const survivors = draft.columns.filter((column) => column.originalName !== null);
-    const renames = new Map(survivors.map((column) => [column.originalName!, column.name]));
-    const project = (names: readonly string[]): string[] => names.map((name) => renames.get(name) ?? name);
-    const originalOf = (name: string): ColumnDraft | undefined => original.columns.find((column) => column.name === name);
+type Project = (names: readonly string[]) => string[];
 
+const columnChanges = (dialect: Dialect, original: TableDraft, draft: TableDraft) => {
+    const survivors = draft.columns.filter((column) => column.originalName !== null);
     const positions = survivors.map((column) => original.columns.findIndex((candidate) => candidate.name === column.originalName));
     const staying = longestRun(positions);
     let survivor = 0;
@@ -92,7 +89,7 @@ export const diffOf = (dialect: Dialect, original: TableDraft, draft: TableDraft
             return;
         }
         const rank = survivor++;
-        const before = originalOf(column.originalName);
+        const before = original.columns.find((candidate) => candidate.name === column.originalName);
         if (before === undefined) {
             return;
         }
@@ -107,7 +104,10 @@ export const diffOf = (dialect: Dialect, original: TableDraft, draft: TableDraft
     });
 
     const droppedColumns = original.columns.filter((column) => !survivors.some((kept) => kept.originalName === column.name));
+    return { droppedColumns, keptColumns, addedColumns };
+};
 
+const indexChanges = (original: TableDraft, draft: TableDraft, project: Project) => {
     const droppedIndexes: IndexDraft[] = [];
     const addedIndexes = draft.indexes.filter((index) => index.originalName === null);
     const renamedIndexes: RenamedIndex[] = [];
@@ -122,39 +122,44 @@ export const diffOf = (dialect: Dialect, original: TableDraft, draft: TableDraft
             renamedIndexes.push({ from: before, to: after });
         }
     }
+    return { droppedIndexes, addedIndexes, renamedIndexes };
+};
 
+const sameForeignKey = (before: ForeignKeyDraft, after: ForeignKeyDraft, project: Project): boolean =>
+    before.name === after.name &&
+    sameList(project(before.columns), after.columns) &&
+    before.referencedSchema === after.referencedSchema &&
+    before.referencedTable === after.referencedTable &&
+    sameList(before.referencedColumns, after.referencedColumns) &&
+    before.onUpdate === after.onUpdate &&
+    before.onDelete === after.onDelete;
+
+const foreignKeyChanges = (original: TableDraft, draft: TableDraft, project: Project) => {
     const droppedForeignKeys: ForeignKeyDraft[] = [];
     const addedForeignKeys = draft.foreignKeys.filter((key) => key.originalName === null);
     for (const before of original.foreignKeys) {
         const after = draft.foreignKeys.find((key) => matches(before, key));
-        const same =
-            after !== undefined &&
-            before.name === after.name &&
-            sameList(project(before.columns), after.columns) &&
-            before.referencedSchema === after.referencedSchema &&
-            before.referencedTable === after.referencedTable &&
-            sameList(before.referencedColumns, after.referencedColumns) &&
-            before.onUpdate === after.onUpdate &&
-            before.onDelete === after.onDelete;
-        if (!same) {
+        if (after === undefined || !sameForeignKey(before, after, project)) {
             droppedForeignKeys.push(before);
             if (after !== undefined) {
                 addedForeignKeys.push(after);
             }
         }
     }
+    return { droppedForeignKeys, addedForeignKeys };
+};
+
+/* What a draft changes in the table it came from, told apart by the names items kept. */
+export const diffOf = (dialect: Dialect, original: TableDraft, draft: TableDraft): TableDiff => {
+    const renames = new Map(draft.columns.filter((column) => column.originalName !== null).map((column) => [column.originalName!, column.name]));
+    const project: Project = (names) => names.map((name) => renames.get(name) ?? name);
 
     return {
         renamed: original.name !== draft.name,
-        droppedColumns,
-        keptColumns,
-        addedColumns,
+        ...columnChanges(dialect, original, draft),
         primaryKeyChanged: !sameList(project(original.primaryKey), draft.primaryKey),
-        droppedIndexes,
-        addedIndexes,
-        renamedIndexes,
-        droppedForeignKeys,
-        addedForeignKeys,
+        ...indexChanges(original, draft, project),
+        ...foreignKeyChanges(original, draft, project),
         optionsChanged: OPTION_FIELDS.some((field) => original.options[field] !== draft.options[field])
     };
 };

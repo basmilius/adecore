@@ -37,11 +37,10 @@ export const columnSpecSql = (dialect: Dialect, column: ColumnDraft, { inlinePri
         parts.push(column.autoIncrement ? 'PRIMARY KEY AUTOINCREMENT' : 'PRIMARY KEY');
     }
     // MariaDB takes neither NULL nor NOT NULL after the expression of a computed column.
-    if (column.generated && dialect.flavor === 'mariadb') {
-        // The expression says everything.
-    } else if (!column.nullable) {
+    const statesNullability = !(column.generated && dialect.flavor === 'mariadb');
+    if (statesNullability && !column.nullable) {
         parts.push('NOT NULL');
-    } else if (mysql) {
+    } else if (statesNullability && mysql) {
         // MySQL gives a TIMESTAMP column NOT NULL unless it is told otherwise.
         parts.push('NULL');
     }
