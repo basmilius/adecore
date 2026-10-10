@@ -9,11 +9,7 @@ import { useChatScope } from '../../scope';
 import { useChatRow } from '../../state/chats';
 import { Icon, Menu } from '@adecore/ui';
 
-/*
- * "Bookmarks" in the menu of a chat node or a chat view: the chat's bookmarks in the order of the
- * thread, each a jump to its message, with rename and remove on the row. A chat without bookmarks
- * draws nothing.
- */
+/* A chat's bookmarks in thread order, each a jump to its message with rename and remove; nothing without bookmarks. */
 export function BookmarkSubmenu({ chatId }: { chatId: string }) {
     const { t } = useTranslation('agent-chat');
     const scope = useChatScope();

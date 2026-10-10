@@ -28,10 +28,9 @@ function personActsIn(frame: HTMLIFrameElement): boolean {
 }
 
 /*
- * One visual's page in a frame on the thread's own ground. The frame loads the app's sandbox host
- * page and the bridge hands it the page and the theme. The frame never gets `allow-same-origin`,
- * which keeps the page on an opaque origin even when the host page is served on the app's own. Its
- * box keeps one height while the page loads and when it fails, so nothing under it moves.
+ * One visual's page in a frame that loads the app's sandbox host page; the bridge hands it the page and
+ * the theme. The frame never gets `allow-same-origin`, which keeps the page on an opaque origin even
+ * when the host page is served on the app's own. Its box keeps one height while it loads or fails.
  */
 export function VisualFrame({ chatId, visual, fill = false, className }: VisualFrameProps) {
     const { t } = useTranslation('agent-chat');

@@ -70,9 +70,8 @@ const NOTHING_FOUND: readonly boolean[] = [];
 
 /*
  * The strip at the left edge of a chat view: a tick per message of the person, per wake by tasks and
- * per other message with a bookmark, the ones on screen bright and the rest dimmed, a bookmark in the accent, growing only under the pointer. A single hover card follows the pointer along the strip, anchored at the tick
- * it points at, so a thousand ticks are a thousand spans and not a thousand popups. While a find is
- * open, a short mark at the strip's right edge stands beside every tick with a hit under it.
+ * per other bookmarked message, the ones on screen bright. One hover card follows the pointer, so a
+ * thousand ticks are a thousand spans and not a thousand popups. An open find marks every tick it hits.
  */
 export const Scrubber = memo(function Scrubber({
     ticks,

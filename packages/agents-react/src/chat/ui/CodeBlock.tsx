@@ -123,9 +123,8 @@ const CodeLine = memo(function CodeLine({ tokens }: { tokens: CodeToken[] }) {
 
 /*
  * A fenced block, highlighted a line at a time. Until shiki and the grammar are there it holds its
- * place invisibly in the same shape, so there is never a frame of bare code that turns colored. A
- * fence that is still open is tokenized as it grows, and the same component carries on once it
- * closes, so closing it does not draw it again.
+ * place invisibly, so bare code never turns colored. An open fence is tokenized as it grows, and
+ * closing it does not draw it again.
  */
 export function CodeBlock({ code, lang, actions }: { code: string; lang: string; actions?: ReactNode }) {
     const { t } = useTranslation('agent-chat');

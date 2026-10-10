@@ -103,6 +103,13 @@ function modelValue(provider: AgentKind, slug: string): string {
     return `${provider}/${slug}`;
 }
 
+/* Each provider's current or legacy models; a provider with none of them is left out. */
+function modelGroupsOf(providers: ProviderInfo[], legacy: boolean): Array<{ entry: ProviderInfo; models: ModelInfo[] }> {
+    return providers
+        .map((entry) => ({ entry, models: entry.models.filter((row) => (row.legacy === true) === legacy) }))
+        .filter((group) => group.models.length > 0);
+}
+
 /*
  * Everything that decides how the next turn runs, behind one pill: the model, its own knobs and the
  * permission mode. Model and effective permissions stay visible as the composer narrows.
@@ -142,8 +149,8 @@ export function RunSettings({
         summary.push({ id: CONTEXT_OPTION, label: formatTokens(usage.contextWindow ?? 0), ring: true });
     }
     const grouped = providers.length > 1;
-    const live = providers.map((entry) => ({ entry, models: entry.models.filter((row) => !row.legacy) })).filter((group) => group.models.length > 0);
-    const legacy = providers.map((entry) => ({ entry, models: entry.models.filter((row) => row.legacy) })).filter((group) => group.models.length > 0);
+    const live = modelGroupsOf(providers, false);
+    const legacy = modelGroupsOf(providers, true);
     const chosenLegacy = owner?.models.find((row) => row.legacy && row.slug === selection.model);
     const chosenModel = modelValue(provider, selection.model);
     const shownMode = effectiveRuntimeMode ?? runtimeMode;

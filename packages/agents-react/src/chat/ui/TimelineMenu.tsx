@@ -11,11 +11,7 @@ import { useChatRow } from '../../state/chats';
 import { openFileLink, useFileLinkCwd, useFileLinkScopeId } from './file-links';
 import { ContextMenu, copyText, DisabledReason, EDIT_SHORTCUTS, Icon, Kbd, selectAllWithin } from '@adecore/ui';
 
-/*
- * The menu behind a right-click in a thread. Copy is the reason it exists. Everything in a thread
- * is text a person may want out of it, and a whole message, a code block or the markdown an answer
- * was written in are each a different amount of that.
- */
+/* The menu behind a right-click in a thread, mostly for copying: a whole message, a code block or an answer's markdown. */
 export function TimelineMenuPopup({
     target,
     thread,
@@ -88,10 +84,8 @@ export function TimelineMenuPopup({
 }
 
 /*
- * Place a bookmark on a message, or rename and remove the one it has: the same rows from the thread
- * and from the strip beside it. `onName` runs when a row opens the name field, which sits on the
- * bookmark's line over the message and so has to be on screen; the strip scrolls there, the thread
- * was clicked on it.
+ * Place a bookmark on a message, or rename and remove the one it has, from the thread and from the strip.
+ * `onName` runs when a row opens the name field, which sits over the message and so has to be on screen.
  */
 export function BookmarkMenuItems({ chatId, itemId, onName }: { chatId: string; itemId: string; onName?: () => void }) {
     const { t } = useTranslation('agent-chat');

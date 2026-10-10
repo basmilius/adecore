@@ -43,11 +43,9 @@ interface ModelPickerProps {
 }
 
 /*
- * Which model answers: the provider's mark plus the model's short name
- * as the trigger, a search field over the popup, one group per provider and the legacy models
- * behind an expander. Before the first message the list carries every installed CLI, so picking
- * another provider's model is also how a chat picks its provider. A chat bound to one CLI passes
- * only that CLI, which drops the group headers and leaves its own catalog to choose from.
+ * Which model answers: a search field over one group per provider, with the legacy models behind an
+ * expander. Before the first message the list carries every installed CLI, so picking another
+ * provider's model is also how a chat picks its provider; with one CLI the group headers drop.
  */
 export function ModelPicker({
     providers,
@@ -224,10 +222,8 @@ export function ModelPicker({
 }
 
 /*
- * Prompts put aside with Cmd+S. The shelf is the whole app's, not this chat's. On a canvas a
- * stashed prompt usually moves to another node, which is the reason to put it away in the first
- * place. Restoring drops the text, the mentions and the skills into this composer; the files a
- * draft held are named on the row but not kept, because their bytes never go to storage.
+ * Prompts put aside with Cmd+S, on a shelf the whole app shares, since a stashed prompt usually moves
+ * to another chat. A draft's files are named on the row but not kept: their bytes never go to storage.
  */
 export function StashPicker({ onRestore }: { onRestore(prompt: StashedPrompt): void }) {
     const { t } = useTranslation('agent-chat');

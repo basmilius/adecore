@@ -1,8 +1,8 @@
 import { createContext, type ReactNode } from 'react';
 import type { UiComponentName, UiProps, UiViewNode } from '@adecore/intelligent-ui';
-
-export type { UiLinkTarget } from '@adecore/intelligent-ui/links';
 import type { UiLinkTarget } from '@adecore/intelligent-ui/links';
+
+export type { UiLinkTarget };
 
 /* How the host lets a link be drawn: a chip it can open, or plain text it cannot. */
 export interface UiLink {

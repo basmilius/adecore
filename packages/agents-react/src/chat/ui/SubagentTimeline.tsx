@@ -136,8 +136,7 @@ export function SubagentTimeline({ chatId, toolUseId }: { chatId: string; toolUs
                                 loadEarlier();
                             }}
                         >
-                            {/* The same menu the chat's own thread has; this transcript is read-only, so the chat
-                    it belongs to is not passed on and the fork item stays out. */}
+                            {/* The chat's own menu; this transcript is read-only, so no chat is passed and the fork item stays out. */}
                             <ContextMenu.Root>
                                 <ContextMenu.Trigger
                                     ref={threadRef}

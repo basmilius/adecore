@@ -8,9 +8,7 @@ import { Icon, IconButton } from '@adecore/ui';
 
 const CRUMB_LINK = 'truncate text-text-muted hover:text-text';
 
-/*
- * The chat's own title where the bar draws it. While a sub-agent stands in the chat's place it is the first crumb of the way down, so pressing it goes back to the main agent.
- */
+/* The chat's own title in the bar; while a sub-agent stands in the chat's place, pressing it goes back to the main agent. */
 export function SubagentTitleCrumb({ chatId, className, children }: { chatId: string; className?: string; children: ReactNode }) {
     const { trail, show } = useSubagentTrail(chatId);
     if (trail.length === 0) {

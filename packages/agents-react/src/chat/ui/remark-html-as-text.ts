@@ -1,4 +1,4 @@
-/* Just the part of mdast this plugin touches; the package's own types are not a dependency of the client. */
+/* Just the part of mdast this plugin touches; the package's own types are not a dependency here. */
 interface MdastNode {
     type: string;
     value?: string;

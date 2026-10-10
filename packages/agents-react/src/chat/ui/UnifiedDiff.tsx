@@ -7,9 +7,8 @@ import { useDiffTheme } from './diff-theme';
 import { fullFileDiff, type DiffContents } from './full-diff';
 
 /*
- * A patch the CLI reported itself (Codex writes unified diffs). The renderer needs a file header
- * to know what it is looking at, and a CLI that only sends hunks gets one from the path we know.
- * A diff without hunks at all is shown as its own lines, so nothing is ever swallowed.
+ * A patch the CLI reported itself. The renderer needs a file header, which a CLI that only sends hunks
+ * gets from the path we know; a diff without hunks is shown as its own lines, so nothing is swallowed.
  */
 function asPatch(change: ChatFileChange): string | null {
     if (!/^@@/m.test(change.diff)) {
@@ -23,8 +22,7 @@ function asPatch(change: ChatFileChange): string | null {
     return `--- ${from}\n+++ ${to}\n${change.diff}`;
 }
 
-/* Lets a diff with a view of its own run to the bottom of it, so the scrollbar of a short one sits
-   there instead of under its last line; the lines themselves keep their height. */
+/* Lets a diff with a view of its own run to its bottom, so a short one's scrollbar sits there and not under its last line. */
 const FILL_CSS = `
 :host { display: flex; flex-direction: column; flex-grow: 1; }
 pre { flex-grow: 1; align-content: start; }

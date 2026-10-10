@@ -21,9 +21,8 @@ function lastLineOf(range: Range): DOMRect | null {
 }
 
 /*
- * A button under a selection in an answer that hands it to the composer. Quoting on the selection
- * alone grew the composer while the person was still selecting, which moved the thread under the
- * pointer. It only shows once the pointer is up, so a drag never has it jump along.
+ * A button under a selection in an answer that hands it to the composer. It shows once the pointer is
+ * up: quoting on the selection alone grew the composer mid-drag and moved the thread under the pointer.
  */
 export function QuoteButton({
     thread,

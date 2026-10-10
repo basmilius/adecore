@@ -1,6 +1,6 @@
 import { chipText, tokenizeChips, type ChipSegment } from '../mentions';
 
-/* Just the part of hast this plugin touches; the package's own types are not a dependency of the client. */
+/* Just the part of hast this plugin touches; the package's own types are not a dependency here. */
 interface HastText {
     type: 'text';
     value: string;
