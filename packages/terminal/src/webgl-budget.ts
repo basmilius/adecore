@@ -105,7 +105,7 @@ class WebglBudget {
             });
             void addonLoad.then(
                 () => {
-                    if (this.slots.holders().includes(id)) {
+                    if (this.slots.holds(id)) {
                         this.load(id);
                     }
                 },
