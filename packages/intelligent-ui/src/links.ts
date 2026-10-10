@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { UiLimits } from './budget.ts';
 import type { UiBlock } from './compiler.ts';
 import { evaluateUiBlock, type UiViewNode } from './runtime.ts';
 import { uiValidatedState } from './query.ts';
@@ -31,9 +32,10 @@ export type UiLinkResolution = z.infer<typeof UiLinkResolutionSchema>;
 export function uiLinkTargets(
     block: UiBlock,
     input: Readonly<Record<string, unknown>> = {},
-    queries: Readonly<Record<string, unknown>> = {}
+    queries: Readonly<Record<string, unknown>> = {},
+    limits: Partial<UiLimits> = {}
 ): Record<string, UiLinkTarget> {
-    const state = uiValidatedState(block, input, queries);
+    const state = uiValidatedState(block, input, queries, limits);
     const targets: Record<string, UiLinkTarget> = Object.create(null);
     const visit = (nodes: readonly UiViewNode[]) => {
         for (const node of nodes) {
@@ -47,6 +49,6 @@ export function uiLinkTargets(
             visit(node.children);
         }
     };
-    visit(evaluateUiBlock(block, state).nodes);
+    visit(evaluateUiBlock(block, state, limits).nodes);
     return targets;
 }

@@ -45,7 +45,7 @@ The fourth argument holds query values. The caller supplies them from its own re
 
 A submitted value is accepted when it equals the default, when a visible complete control holds it within the options it offers (a Segmented value one of its Options, a Checklist value made of its Items), or when a visible enabled Button sets exactly that value. A Button's `@Set` takes a constant for this reason: its value does not depend on the state it was pressed in. A control inside a `Show` that is false is not visible, so it cannot vouch for a value.
 
-`uiValidatedState(block, input, queries?)` applies the same check and returns a `UiState` holding the values. Queries and links use it before they evaluate anything with client input.
+`uiValidatedState(block, input, queries?, limits?)` applies the same check and returns a `UiState` holding the values. Queries and links use it before they evaluate anything with client input.
 
 ## Live blocks
 

@@ -1,17 +1,22 @@
 import { UI_CATALOG_VERSION } from './catalog.ts';
-import { UiBudget, UiFailure } from './budget.ts';
+import { UiBudget, UiFailure, type UiLimits } from './budget.ts';
 import type { UiBlock } from './compiler.ts';
 import { uiVisibleInputs } from './inputs.ts';
 import { uiNodeFallback } from './fallback.ts';
 import { copyUiValue, evaluateUiExpression, sameUiValue, type UiValue } from './expression.ts';
 import { evaluateUiBlock, uiInputValues, UiState, type UiViewNode } from './runtime.ts';
 
-export function uiValidatedState(block: UiBlock, input: Readonly<Record<string, unknown>> = {}, queries: Readonly<Record<string, unknown>> = {}): UiState {
+export function uiValidatedState(
+    block: UiBlock,
+    input: Readonly<Record<string, unknown>> = {},
+    queries: Readonly<Record<string, unknown>> = {},
+    limits: Partial<UiLimits> = {}
+): UiState {
     if (!block.complete || block.catalogVersion !== UI_CATALOG_VERSION) {
         throw new UiFailure('invalid_block', 'Only completed supported blocks can resolve input.');
     }
-    const values = copyUiValue(input, new UiBudget()) as Record<string, UiValue>;
-    const state = new UiState(block);
+    const values = copyUiValue(input, new UiBudget(limits)) as Record<string, UiValue>;
+    const state = new UiState(block, limits);
     for (const [name, value] of Object.entries(queries)) {
         state.setQuery(name, value, block);
     }
@@ -22,7 +27,7 @@ export function uiValidatedState(block: UiBlock, input: Readonly<Record<string, 
         }
         state.set(key, value);
     }
-    const evaluated = evaluateUiBlock(block, state);
+    const evaluated = evaluateUiBlock(block, state, limits);
     if (evaluated.diagnostics.some((diagnostic) => diagnostic.code === 'budget_exceeded')) {
         throw new UiFailure('budget_exceeded', 'The query inputs exceeded their evaluation budget.');
     }
@@ -35,15 +40,20 @@ export function uiValidatedState(block: UiBlock, input: Readonly<Record<string, 
     return state;
 }
 
-export function uiQueryArguments(block: UiBlock, name: string, input: Readonly<Record<string, unknown>> = {}): Record<string, UiValue> {
+export function uiQueryArguments(
+    block: UiBlock,
+    name: string,
+    input: Readonly<Record<string, unknown>> = {},
+    limits: Partial<UiLimits> = {}
+): Record<string, UiValue> {
     if (!Object.hasOwn(block.queries, name)) {
         throw new UiFailure('invalid_query', 'This block does not declare that query.');
     }
-    const state = uiValidatedState(block, input);
+    const state = uiValidatedState(block, input, {}, limits);
     const query = block.queries[name];
     return query.expression
-        ? (evaluateUiExpression(query.expression, state.scope(), new UiBudget()) as Record<string, UiValue>)
-        : (copyUiValue(query.args, new UiBudget()) as Record<string, UiValue>);
+        ? (evaluateUiExpression(query.expression, state.scope(), new UiBudget(limits)) as Record<string, UiValue>)
+        : (copyUiValue(query.args, new UiBudget(limits)) as Record<string, UiValue>);
 }
 
 export function uiQueryFallback(block: UiBlock, queries: Readonly<Record<string, unknown>>): string {

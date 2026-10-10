@@ -63,7 +63,7 @@ A client asks `ui.query` with the block's identity, the query name and its curre
 4. Parses the arguments with the source's schema and authorizes them with the captured access.
 5. Answers from the cache if the same arguments were read in the last ten seconds, or reads.
 
-`uiValidatedState(block, input, queries?)` accepts only values of declared inputs that a person could have set on screen; see [Choices](/intelligent-ui/host/choices#what-a-person-could-have-set). `uiQueryArguments` throws a `UiFailure` (`invalid_query`, `refused_binding`, `invalid_value`) for anything else.
+`uiValidatedState(block, input, queries?, limits?)` accepts only values of declared inputs that a person could have set on screen; see [Choices](/intelligent-ui/host/choices#what-a-person-could-have-set). `uiQueryArguments` throws a `UiFailure` (`invalid_query`, `refused_binding`, `invalid_value`) for anything else.
 
 A reading is a `ChatUiQueryReading`: `state` (`fresh`, `failed` or `refused`), the `value` and a `readId` when fresh, `readAt`, and for a failure a `reason` with a stable `code`.
 

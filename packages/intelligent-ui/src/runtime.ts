@@ -38,13 +38,15 @@ export class UiState {
     private querySignatures: Record<string, string> = Object.create(null);
     private readonly listeners = new Set<() => void>();
     private revision = 0;
+    private readonly limits: Partial<UiLimits>;
 
-    constructor(block: UiBlock) {
+    constructor(block: UiBlock, limits: Partial<UiLimits> = {}) {
+        this.limits = limits;
         this.sync(block);
     }
 
     sync(block: UiBlock): void {
-        const defaults = copyUiValue(block.defaults) as Record<string, UiValue>;
+        const defaults = copyUiValue(block.defaults, new UiBudget(this.limits)) as Record<string, UiValue>;
         if (this.id !== block.id) {
             this.values = Object.create(null);
             this.queries = Object.create(null);
@@ -82,14 +84,14 @@ export class UiState {
     }
 
     scope(): Readonly<Record<string, UiValue>> {
-        return copyUiValue({ ...this.values, ...this.queries }) as Record<string, UiValue>;
+        return copyUiValue({ ...this.values, ...this.queries }, new UiBudget(this.limits)) as Record<string, UiValue>;
     }
 
     set(name: string, value: unknown): void {
         if (!Object.hasOwn(this.defaults, name)) {
             throw new UiFailure('refused_binding', 'Only declared local state can be changed.');
         }
-        const next = copyUiValue(value);
+        const next = copyUiValue(value, new UiBudget(this.limits));
         const initial = this.defaults[name];
         if (Array.isArray(next) !== Array.isArray(initial) || typeof next !== typeof initial || (next === null) !== (initial === null)) {
             throw new UiFailure('invalid_value', 'The state type cannot change.');
@@ -102,17 +104,17 @@ export class UiState {
         if (block.id !== this.id || !Object.hasOwn(block.queries, name) || this.querySignatures[name] !== JSON.stringify(block.queries[name])) {
             throw new UiFailure('refused_query', 'The query must belong to this block.');
         }
-        this.queries[name] = copyUiValue(value);
+        this.queries[name] = copyUiValue(value, new UiBudget(this.limits));
         this.changed();
     }
 
     run(action: UiExpression): void {
         const target = uiActionTarget(action, (name) => Object.hasOwn(this.defaults, name));
         if (target === null) {
-            this.values = copyUiValue(this.defaults) as Record<string, UiValue>;
+            this.values = copyUiValue(this.defaults, new UiBudget(this.limits)) as Record<string, UiValue>;
             this.changed();
         } else if (action.kind === 'call' && action.name === 'Set') {
-            this.set(target, evaluateUiExpression(action.args[1], this.scope()));
+            this.set(target, evaluateUiExpression(action.args[1], this.scope(), new UiBudget(this.limits)));
         } else {
             this.set(target, this.defaults[target]);
         }
@@ -301,13 +303,14 @@ export function resolveUiChoice(
     block: UiBlock,
     choiceId: string,
     input: Readonly<Record<string, unknown>> = {},
-    queries: Readonly<Record<string, unknown>> = {}
+    queries: Readonly<Record<string, unknown>> = {},
+    limits: Partial<UiLimits> = {}
 ): UiChoiceSelection {
     if (!block.complete || block.catalogVersion !== UI_CATALOG_VERSION) {
         throw new UiFailure('refused_choice', 'Only a completed supported block can send a choice.');
     }
-    const values = copyUiValue(input, new UiBudget()) as Record<string, UiValue>;
-    const state = new UiState(block);
+    const values = copyUiValue(input, new UiBudget(limits)) as Record<string, UiValue>;
+    const state = new UiState(block, limits);
     for (const [name, value] of Object.entries(queries)) {
         state.setQuery(name, value, block);
     }
@@ -322,7 +325,7 @@ export function resolveUiChoice(
             changed.add(name);
         }
     }
-    const evaluated = evaluateUiBlock(block, state);
+    const evaluated = evaluateUiBlock(block, state, limits);
     if (evaluated.diagnostics.some((diagnostic) => diagnostic.code === 'budget_exceeded')) {
         throw new UiFailure('budget_exceeded', 'The choice exceeded its evaluation budget.');
     }

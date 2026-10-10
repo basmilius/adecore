@@ -4,7 +4,7 @@ A File, Diff, Commit or Node in a block names something the host owns. The host 
 
 ## Targets
 
-`uiLinkTargets(block, input?, queries?)` evaluates a completed block with validated input and lists its visible link targets, by evaluated node id. Hidden, unfinished and invalid nodes are left out, and so are parts inside a `Show` that is false.
+`uiLinkTargets(block, input?, queries?, limits?)` evaluates a completed block with validated input and lists its visible link targets, by evaluated node id. Hidden, unfinished and invalid nodes are left out, and so are parts inside a `Show` that is false.
 
 ```ts
 import { uiLinkTargets } from '@adecore/intelligent-ui/links';

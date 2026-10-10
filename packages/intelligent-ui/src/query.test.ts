@@ -1,7 +1,9 @@
 import { expect, test } from 'bun:test';
 import { z } from 'zod';
 import { compileUiBlock } from './compiler.ts';
-import { uiQueryArguments, uiQueryFallback } from './query.ts';
+import { uiLinkTargets } from './links.ts';
+import { uiQueryArguments, uiQueryFallback, uiValidatedState } from './query.ts';
+import { resolveUiChoice } from './runtime.ts';
 
 const schemas = { rows: z.object({ limit: z.number().int().min(1).max(10), repo: z.string() }).strict() };
 
@@ -34,4 +36,22 @@ test('the query fallback reads every node the way the compiled fallback does', (
     );
     expect(block.diagnostics).toEqual([]);
     expect(uiQueryFallback(block, { $rows: { count: 4 } })).toBe('Rows: 4\nDocs: https://adecore.dev\nsrc/a.ts Entry');
+});
+
+test('a host passes its own limits to every budget behind query arguments, links and choices', () => {
+    const block = compileUiBlock(
+        '$rows = @Query("rows", {limit: $limit, repo: "."})\n$limit = 3\n<Slider min={1} max={10} value={$limit}>Rows</Slider><File path="src/a.ts"/><Choices><Choice context="Go">Go</Choice></Choices>',
+        { id: 'b', final: true, querySchemas: schemas }
+    );
+    expect(block.diagnostics).toEqual([]);
+    const choiceId = block.nodes.find((node) => node.type === 'Choices')!.children[0].id;
+    const tight = { steps: 1 };
+    expect(uiValidatedState(block, { $limit: 5 }).scope().$limit).toBe(5);
+    expect(() => uiValidatedState(block, { $limit: 5 }, {}, tight)).toThrow(expect.objectContaining({ code: 'budget_exceeded' }));
+    expect(uiQueryArguments(block, '$rows', { $limit: 5 })).toEqual({ limit: 5, repo: '.' });
+    expect(() => uiQueryArguments(block, '$rows', { $limit: 5 }, tight)).toThrow(expect.objectContaining({ code: 'budget_exceeded' }));
+    expect(Object.values(uiLinkTargets(block))).toEqual([{ type: 'File', path: 'src/a.ts' }]);
+    expect(() => uiLinkTargets(block, {}, {}, tight)).toThrow(expect.objectContaining({ code: 'budget_exceeded' }));
+    expect(resolveUiChoice(block, choiceId).context).toBe('Go');
+    expect(() => resolveUiChoice(block, choiceId, {}, {}, tight)).toThrow(expect.objectContaining({ code: 'budget_exceeded' }));
 });
