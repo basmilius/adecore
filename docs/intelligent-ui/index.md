@@ -1,89 +1,68 @@
 # @adecore/intelligent-ui
 
-A streaming compiler and bounded expression interpreter for UI blocks in agent replies. The catalog defines props once with Zod. Renderers consume evaluated props and input bindings; they do not evaluate model text.
+An agent can answer with a block of components instead of a page of prose: a summary, a table, a checklist, the next steps a person picks from. This package defines that catalog, compiles the blocks out of a reply while it streams and evaluates them in a bounded interpreter. It has no framework and no DOM. A renderer draws what it returns.
 
-The first package version and its Trusted Publisher are configured. Shared chat sessions compile UI blocks and transport previews without logging them. Host actions, query authorization and native platform renderers remain separate work. These APIs do not authorize a query or an action.
-
-```ts
-import { compileUi, evaluateUiBlock, UiState } from '@adecore/intelligent-ui';
-
-const blocks = compileUi(reply, { id: assistantItemId, final: true });
-for (const block of blocks) {
-    const state = new UiState(block);
-    const view = evaluateUiBlock(block, state);
-    render(view.nodes);
-}
+```ui
+$selected = ["links"]
+<Summary tone="warning" badge="2 findings">The review found two problems</Summary>
+<Checklist value={$selected}>
+<Item value="links"><File path="src/terminal/links.ts" line={148}>Cuts a path at a space</File></Item>
+<Item value="preload"><File path="src/preload.ts" line={62}>Bridge method not optional</File></Item>
+</Checklist>
+<Choices>
+<Choice primary={true} context={"Fix these findings: " + @Join($selected)}>Fix {@Count($selected)}</Choice>
+<Choice>Leave it</Choice>
+</Choices>
 ```
 
-## Compilation
+The agent writes a block like the one above in a fenced code block of its reply. [`UiReply`](/agents-react/chat/intelligent-ui) draws it like this:
 
-`compileUi(text, options)` finds blocks marked with `UiCompileOptions.fenceLanguage`, or `UI_FENCE_LANGUAGE` (`ui`) without one, among Markdown, including unfinished fences. It ignores UI fences nested inside another code fence. Each `UiBlock` has its own ID, text range, catalog version, declarations, nodes, diagnostics and Markdown fallback. `compileUiBlock(source, options)` compiles one fence's contents. `uiHasFence(text, fenceLanguage?)` is a cheap test for an opening fence before a compiler is worth creating.
+<Demo src="agents/intelligent-ui" />
 
-`UiCompileOptions.id` identifies the assistant item or block. Supply the same ID on each recompile. Node IDs include the start of their tag, so appending text preserves them. `final` reports unfinished syntax when the authoritative response arrives. `latestAttachment` resolves `Image generated="latest"` to an attachment. `limits` overrides the work budget; `now` supplies a clock for deterministic tests.
+## How a block travels
 
-`UiCompiler` retains unchanged fences between compilations. A changed fence or generated attachment is recompiled; a final update always recompiles the authoritative text, including an unfinished last fence. `UiCompilerOptions` holds the stable configuration and `UiCompileUpdate` supplies `final` and `latestAttachment`. `clear()` releases cached blocks.
+1. The host tells the agent the language with [`uiSessionNote`](/intelligent-ui/guide/getting-started#tell-the-agent).
+2. The agent writes a fenced `ui` block in its reply.
+3. The backend compiles the reply while it streams and stores the final blocks on the assistant item.
+4. The page evaluates each block against its local state and draws the nodes.
+5. A person changes inputs in the block. Nothing leaves the block until they pick a Choice, which sends one message back.
+6. Live data and links go through the host, which checks every read and every target.
 
-`UiStream` wraps that compiler with `UI_STREAM_INTERVAL_MS` (250 ms). Its first update compiles immediately; continuous updates compile the newest text on the fixed throttle. `UiStreamOptions` supplies an injected `UiStreamClock` and an `emit(UiStreamPreview)` callback with `blocks` and `textLength`. `finish(text, latestAttachment?)` cancels pending previews and returns the final blocks immediately. `dispose()` cancels timers and releases cached text. These callbacks carry previews only; the host owns their transport and writes only the result of `finish` to its log.
+## What a block can do
 
-The parser recovers at the next tag or line after malformed input. Open tags remain incomplete. A streamed quoted prop exposes the text already received. CodeBlock contents are literal, including angle brackets and braces. Unknown components retain their own fallback; unknown props produce `refused_prop` and are dropped. A budget failure replaces the whole compiled block with a bounded fallback and one diagnosis.
+- Show status, numbers, records and charts from the [catalog](/intelligent-ui/components/status).
+- Keep local state: a checklist, a switch, a slider, a segmented control and buttons that set or reset values.
+- Compute text and props with a small [expression language](/intelligent-ui/language/expressions): arithmetic, comparisons, `@Count`, `@Filter`, `@Sum`, `@Join` and `@Round`.
+- Read [live data](/intelligent-ui/host/queries) from a source the host registered.
+- Name a file, a diff, a commit or a node, which the host turns into a [link](/intelligent-ui/host/links).
+- Ask the person to pick a next step with [Choices](/intelligent-ui/host/choices).
 
-`UiNode` keeps static `props` separate from `expressions` and local-variable `bindings`. Its `type` is a string so an unfamiliar component can fall back without rejecting neighboring content. `UiNodeSchema`, `UiBlockSchema`, `UiBlocksSchema` and `UiDiagnosticSchema` describe the wire envelope. A host may attach an optional `revision` to a completed block; the compiler does not assign one. Component names, props and expressions stay open, so a future catalog can be retained and shown as fallback. Chat contracts carry the blocks on the optional `assistant.ui` field. Preview deltas carry `ui` and `textLength` without a log sequence. Sessions retain previews outside the canonical thread, attach them to current snapshots and replay responses, and store only the authoritative final tree. Compiler diagnostics wait in the durable preamble for the next real prompt.
+A block cannot run code, fetch an address, style anything or act outside itself. The [security model](/intelligent-ui/guide/security) lists every boundary.
 
-`parseUiSyntax` exposes the intermediate `UiSyntax` and `UiSyntaxNode` for compiler tooling. `UiDiagnostic` carries a code, message, source range and optional node ID. `uiDiagnostic` turns a caught failure into that shape.
+## Entry points
 
-## Catalog
+| Entry point                          | What it holds                                            |
+| ------------------------------------ | -------------------------------------------------------- |
+| `@adecore/intelligent-ui`            | Every name below, in one import                          |
+| `@adecore/intelligent-ui/catalog`    | The components, their props and the group rules          |
+| `@adecore/intelligent-ui/compiler`   | `compileUi`, `UiCompiler` and the reply and host limits  |
+| `@adecore/intelligent-ui/stream`     | `UiStream`, the throttled compiler for a streaming reply |
+| `@adecore/intelligent-ui/syntax`     | The parser's intermediate tree and diagnostics           |
+| `@adecore/intelligent-ui/expression` | The expression parser, the interpreter and value helpers |
+| `@adecore/intelligent-ui/runtime`    | `UiState`, `evaluateUiBlock` and `resolveUiChoice`       |
+| `@adecore/intelligent-ui/query`      | Validated inputs, query arguments and the query fallback |
+| `@adecore/intelligent-ui/links`      | Link targets and the host's resolution                   |
+| `@adecore/intelligent-ui/protocol`   | Zod schemas of compiled blocks on the wire               |
+| `@adecore/intelligent-ui/text`       | The instructions for the agent and the text fallback     |
+| `@adecore/intelligent-ui/budget`     | The work limits and the refusal type                     |
 
-`UI_CATALOG` contains each component's schema, description, group and applicable parent, child or binding rule. `UI_GROUPS` contains the instructions shared by each group. `isUiComponent` recognizes a catalog name; `uiCatalogText` lists names, props and descriptions for tooling. `uiCompactCatalog` derives the short prop list from those schemas, `uiSessionNote` adds the language instructions, and `uiReferenceText` combines full descriptions with group rules. Both take `UiTextOptions` with the same `fenceLanguage` as the compiler. `uiFallbackText` replaces UI fences with their compiled fallback while retaining surrounding prose.
+The package depends on zod and nothing else, and runs in Bun, Node and a browser. [`@adecore/agents`](/agents/chats#live-ui-sources) compiles the blocks in a chat session, and [`@adecore/agents-react`](/agents-react/chat/intelligent-ui) draws them.
 
-`UiComponentName` is the key union. `UiProps<Name>` is inferred from that component's schema. `UiToneSchema` and `UiTone` provide neutral, info, success, warning and danger. `UI_CATALOG_VERSION` identifies this catalog.
+## Where to go next
 
-| Group | Components |
-| --- | --- |
-| Status | Summary, Callout, Tag, Progress, Steps / Step |
-| Data | Stats / Stat, EntityList / Entry, Table / Column, Chart |
-| Structure | Tabs / Tab, Sections / Section |
-| Content | CodeBlock, Image, Sources / Source |
-| Host links | File, Diff, Commit, Node |
-| Local inputs | Checklist / Item, Switch, Slider, Segmented / Option, Button, Show, Each |
-| Choices | Choices / Choice |
-
-Image accepts exactly one of `attachment` and `generated="latest"`, plus an optional alt and caption. It never takes a URL or a filesystem path. Charts use rows with a label and numeric series; their renderer will validate usable series before drawing. A Column names a field and optionally its title, unit and presentation.
-
-## Expressions and state
-
-`parseUiExpression(source, budget?)` returns a `UiExpression` AST. `evaluateUiExpression(ast, variables?, budget?)` returns a finite JSON `UiValue`. It supports scalar, array and object literals, variables, own field/index reads, arithmetic, strict comparisons, boolean operators and these helpers:
-
-| Helper | Arguments |
-| --- | --- |
-| `@Count` | list or string |
-| `@Filter` | list, local name, boolean predicate, e.g. `@Filter($rows, row, row.failed)` |
-| `@Sum` | numeric list, or record list and a field name |
-| `@Join` | scalar list and optional separator |
-| `@Round` | number and optional precision from zero to six |
-
-There is no JavaScript execution, general function call, assignment, network access or inherited field access. `__proto__`, `constructor` and `prototype` are refused. `sameUiValue(first, second)` compares two values deeply, regardless of key order. `copyUiValue` validates and copies JSON input without invoking accessors; class instances, nonfinite numbers, sparse arrays and cycles are refused.
-
-`UiState` belongs to one chat/item/block identity. `sync(block)` preserves edits when a declaration's default is unchanged, resets changed defaults, removes disappeared variables and clears changed query data. A reload creates a new state from defaults. `scope()` returns a safe copy. `set(name, value)` changes a declared local variable without changing its type. `run(ast)` accepts only `@Set($name, expression)`, `@Reset($name)` and `@Reset()`. `snapshot()` and `subscribe(listener)` let a renderer observe input edits.
-
-A Button holds one action in `action`: `@Set($name, literal)`, `@Reset($name)` or `@Reset()` on declared local state, never a query. The compiler keeps it unevaluated and refuses any other action or a computed value. Its view node's `onAction()` runs it through `run` once the node is complete and not disabled. An action changes local state only. A choice or query argument accepts a variable's value when it is the default, a visible control holds it, or a visible enabled Button sets exactly that value.
-
-`evaluateUiBlock(block, state?, limits?)` returns `UiEvaluation`, including `UiViewNode` objects and per-element diagnostics. View nodes contain validated evaluated props, children and `UiBinding` callbacks. Their optional `sourceId` identifies the compiled node before Each adds an iteration suffix. A binding changes state only after its input node is complete and the new prop passes its schema. Show and Each are resolved before rendering. Repetition reserves iterations before allocating children. Unknown catalog versions and invalid elements retain their fallback.
-
-`$name = @Query("source", {args})` requires a matching schema in `UiCompileOptions.querySchemas`. It yields a read-only `UiQuery`; ordinary value evaluation never performs a query. The authorized host may supply data with `state.setQuery(name, value, block)`. Results for replaced query definitions are refused. The source is literal. Arguments may use declared local state; query results cannot select a source or another query’s arguments. `uiQueryArguments(block, name, input?)` validates local bindings and evaluates arguments against the stored definition. `uiQueryFallback(block, values)` gives the evaluated text kept with the first host reading. Host integration, access, quotas and visible refresh are described in [live sources](/agents/chats#live-ui-sources).
-
-## Budgets and acceptance
-
-`UI_REPLY_LIMITS` caps one reply at 16 compiled blocks, 262,144 UTF-16 units of UI source, 2,048 compiled nodes and 60 ms of cumulative compilation. Further fences remain text; the first refusal carries a budget diagnosis. Scanning stops at that refusal without splitting the whole reply into lines. Reply refusals are not cached, so removing an earlier block can make a later block render again.
-
-`UI_HOST_LIMITS` holds what a host reads for one block: at most `queries` (8) queries, `links` (64) link targets, and a visible block read again at most every `refreshMilliseconds` (10,000). `uiMayReferenceHost(text)` is a cheap test for whether a reply may declare a query or name a link target. `UI_LIMITS` bounds characters, nesting, nodes, diagnoses, steps, iterations, string length and elapsed time. `UiLimits` describes overrides. `UiBudget` counts work inside helpers as well as ordinary evaluation. `UiFailure` carries a machine-readable refusal code; `safeKey` applies the forbidden-field rule.
-
-The tests compile ten hand-written examples and every character prefix, then exercise malformed syntax, prototype/accessor attacks, helper budgets, output expansion, query replacement and state reset. Recorded Claude/Codex responses and measurements under simultaneous chats remain acceptance work. [Compilation and replay measurements](./performance) cover a single fixture session through the shared chat core. The linked React client renders blocks, live queries and choices. The iPhone interpreter passes the shared parity fixtures; its native presentation is being integrated.
-
-
-## Choice validation
-
-`uiInputValues(block, state)` copies only declared state attached to supported input bindings. `resolveUiChoice(block, choiceId, input?, queries?)` evaluates a stored completed block with those values and returns a `UiChoiceSelection`: its label, visible context and validated input values. It refuses unknown state, type changes, values outside visible controls, hidden or disabled choices, unsupported catalogs and unfinished blocks. A choice without context sends its label. Query values cannot be supplied through this input map. The host checks block ownership and revision before calling it and records the send itself.
-
-## Stored link targets
-
-`uiValidatedState` checks submitted values against declared, visible input controls before host queries or links use them. `uiLinkTargets` evaluates a completed supported block and lists only its visible File, Diff, Commit and Node targets by evaluated node id. `UiLinkTargetSchema` and `UiLinkTarget` define those targets; `UiLinkResolutionSchema` and `UiLinkResolution` describe an authorized chip or plain text, with an optional canonical target, host navigation metadata and a stable `code` beside a plain `reason`. The client does not decide whether a path belongs to a project.
+- [Getting started](/intelligent-ui/guide/getting-started) wires a host end to end.
+- [Security model](/intelligent-ui/guide/security) lists what agent text can and cannot do.
+- [Syntax](/intelligent-ui/language/syntax), [expressions](/intelligent-ui/language/expressions) and [state and inputs](/intelligent-ui/language/state) describe the language.
+- The component pages list every prop: [status](/intelligent-ui/components/status), [data](/intelligent-ui/components/data), [structure](/intelligent-ui/components/structure), [content](/intelligent-ui/components/content), [host links](/intelligent-ui/components/links), [inputs](/intelligent-ui/components/inputs) and [choices](/intelligent-ui/components/choices).
+- The host pages cover [live queries](/intelligent-ui/host/queries), [choices](/intelligent-ui/host/choices), [links](/intelligent-ui/host/links), [compilation and streaming](/intelligent-ui/host/compilation) and [performance](/intelligent-ui/performance).
+- [Exports](/intelligent-ui/reference) lists every public name by entry point.

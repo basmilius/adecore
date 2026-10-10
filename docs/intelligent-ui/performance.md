@@ -1,6 +1,6 @@
-# Compilation and replay measurements
+# Performance
 
-Run `bun --conditions=source scripts/benchmark-ui.ts` from the repository root. It uses a temporary chat store and a fixture backend, streams about 100 deltas ten milliseconds apart, and removes the store afterward. The output includes compiler timing, synchronous delta handling, timer delay, UI bytes, log bytes and disk-backed replay timing.
+Compilation and replay are measured with `bun --conditions=source scripts/benchmark-ui.ts`. Run it from the repository root. It uses a temporary chat store and a fixture backend, streams about 100 deltas ten milliseconds apart, and removes the store afterward. The output includes compiler timing, synchronous delta handling, timer delay, UI bytes, log bytes and disk-backed replay timing.
 
 The measurements below were taken on macOS arm64 with Bun 1.4.2 on 9 October 2026. Scans and replays each have twenty samples after warmup. Replay reads have a warm filesystem cache. Timer delay measures how late a ten-millisecond timer ran during the fixture session, including ordinary chat processing and disk writes. It does not isolate the compiler's contribution.
 

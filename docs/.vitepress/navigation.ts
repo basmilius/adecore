@@ -194,6 +194,35 @@ export const sidebar: DefaultTheme.SidebarMulti = {
         ]),
         group('Reference', [['Modules', '/agents/reference']])
     ],
+    '/intelligent-ui/': [
+        group('Intelligent UI', [
+            ['Overview', '/intelligent-ui/'],
+            ['Getting started', '/intelligent-ui/guide/getting-started'],
+            ['Security model', '/intelligent-ui/guide/security']
+        ]),
+        group('Language', [
+            ['Syntax', '/intelligent-ui/language/syntax'],
+            ['Expressions', '/intelligent-ui/language/expressions'],
+            ['State and inputs', '/intelligent-ui/language/state']
+        ]),
+        group('Components', [
+            ['Status', '/intelligent-ui/components/status'],
+            ['Data', '/intelligent-ui/components/data'],
+            ['Structure', '/intelligent-ui/components/structure'],
+            ['Content', '/intelligent-ui/components/content'],
+            ['Host links', '/intelligent-ui/components/links'],
+            ['Inputs', '/intelligent-ui/components/inputs'],
+            ['Choices', '/intelligent-ui/components/choices']
+        ]),
+        group('Host integration', [
+            ['Live queries', '/intelligent-ui/host/queries'],
+            ['Choices', '/intelligent-ui/host/choices'],
+            ['Links', '/intelligent-ui/host/links'],
+            ['Compilation and streaming', '/intelligent-ui/host/compilation'],
+            ['Performance', '/intelligent-ui/performance']
+        ]),
+        group('Reference', [['Exports', '/intelligent-ui/reference']])
+    ],
     '/agents-react/': [
         group('Agent views', [
             ['Overview', '/agents-react/'],

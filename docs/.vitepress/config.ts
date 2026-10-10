@@ -37,6 +37,8 @@ export default defineConfig({
     },
     head: [['script', {}, followAppearance]],
     markdown: {
+        // A block of the intelligent UI is tags with braced expressions, which JSX colors well enough.
+        languageAlias: { ui: 'jsx' },
         config(md) {
             md.use(demoPlugin);
         }
@@ -85,7 +87,8 @@ export default defineConfig({
             category('Agents', [
                 ['Agent contracts', 'agent-contracts'],
                 ['Agents', 'agents'],
-                ['Agent views', 'agents-react']
+                ['Agent views', 'agents-react'],
+                ['Intelligent UI', 'intelligent-ui']
             ]),
             category('Editor', [
                 ['Editor core', 'editor-core'],
