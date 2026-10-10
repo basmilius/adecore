@@ -3,6 +3,8 @@ import { dateFormatter, wordFormatter } from './locale.ts';
 /* The parts that are a word rather than a number, and so come from the language and not the region. */
 const WORD_PARTS = new Set<Intl.DateTimeFormatPartTypes>(['month', 'weekday', 'dayPeriod', 'era']);
 
+const toDate = (at: Date | number): Date => (typeof at === 'number' ? new Date(at) : at);
+
 /*
  * A date written the way the region writes one, with its words in the language the interface is in.
  * Both formatters get the same options and the same instant, so every part the region asks for has
@@ -11,13 +13,13 @@ const WORD_PARTS = new Set<Intl.DateTimeFormatPartTypes>(['month', 'weekday', 'd
  * region does not say AM.
  */
 export const formatDateTime = (at: Date | number, options: Intl.DateTimeFormatOptions): string => {
-    const date = typeof at === 'number' ? new Date(at) : at;
+    const date = toDate(at);
     const parts = dateFormatter(options).formatToParts(date);
     if (!parts.some((part) => WORD_PARTS.has(part.type))) {
         return parts.map((part) => part.value).join('');
     }
-    const english = wordFormatter(options).formatToParts(date);
-    return parts.map((part) => (WORD_PARTS.has(part.type) ? (english.find((word) => word.type === part.type)?.value ?? part.value) : part.value)).join('');
+    const words = wordFormatter(options).formatToParts(date);
+    return parts.map((part) => (WORD_PARTS.has(part.type) ? (words.find((word) => word.type === part.type)?.value ?? part.value) : part.value)).join('');
 };
 
 const CLOCK: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit' };
@@ -55,8 +57,8 @@ export const formatNumericDate = (at: Date | number): string => formatDateTime(a
 
 /* Whether two instants fall on the same day of the same year, in the zone of whoever is reading. */
 export const isSameDay = (a: Date | number, b: Date | number): boolean => {
-    const left = typeof a === 'number' ? new Date(a) : a;
-    const right = typeof b === 'number' ? new Date(b) : b;
+    const left = toDate(a);
+    const right = toDate(b);
     return left.getFullYear() === right.getFullYear() && left.getMonth() === right.getMonth() && left.getDate() === right.getDate();
 };
 

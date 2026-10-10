@@ -88,22 +88,22 @@ const resolve = (region: string): string => {
    plain function over the source rather than a hook. */
 export const formatLocale = (): string => resolve(source.region());
 
-/* What a component calls to draw again once the region changes. The value is the locale, which a
-   caller may use or ignore; subscribing is the point. */
 const subscribe = (onChange: () => void): (() => void) => source.subscribe(onChange);
 
+/* What a component calls to draw again once the region changes. The value is the locale, which a
+   caller may use or ignore; subscribing is the point. */
 export const useFormatLocale = (): string => useSyncExternalStore(subscribe, formatLocale, formatLocale);
+
+interface Cached<T> {
+    locale: string;
+    formatter: T;
+}
 
 /*
  * A formatter per options object, keyed on the object itself, so a module-level spec builds its
  * formatter once and a list of a thousand rows constructs nothing. A region change throws the entry
  * away, since the locale is part of what was cached.
  */
-interface Cached<T> {
-    locale: string;
-    formatter: T;
-}
-
 const cacheFor = <O extends object, T>(store: WeakMap<O, Cached<T>>, options: O, locale: string, build: (locale: string, options: O) => T): T => {
     const hit = store.get(options);
     if (hit !== undefined && hit.locale === locale) {

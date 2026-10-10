@@ -9,31 +9,28 @@ export const formatNumber = (value: number): string => numberFormatter(WHOLE).fo
 /* The same, to one decimal, where the fraction is the part that means something. */
 export const formatDecimal = (value: number): string => numberFormatter(ONE_DECIMAL).format(value);
 
-const fixedSpecs = new Map<number, Intl.NumberFormatOptions>();
+/* One options object per key, so the formatter cached on it is built once (`numberFormatter`). */
+const specCache = <Key>(build: (key: Key) => Intl.NumberFormatOptions): ((key: Key) => Intl.NumberFormatOptions) => {
+    const specs = new Map<Key, Intl.NumberFormatOptions>();
+    return (key) => {
+        let spec = specs.get(key);
+        if (spec === undefined) {
+            spec = build(key);
+            specs.set(key, spec);
+        }
+        return spec;
+    };
+};
+
+const fixedSpec = specCache((decimals: number) => ({ minimumFractionDigits: decimals, maximumFractionDigits: decimals }));
+
+const roundedSpec = specCache((decimals: number) => ({ maximumFractionDigits: decimals }));
 
 /* Always `decimals` places, so values that follow each other keep one width: `1,0` and `1,5`, never `1` and `1,5`. */
 export const formatFixed = (value: number, decimals: number): string => numberFormatter(fixedSpec(decimals)).format(value);
 
-const fixedSpec = (decimals: number): Intl.NumberFormatOptions => {
-    let spec = fixedSpecs.get(decimals);
-    if (spec === undefined) {
-        spec = { minimumFractionDigits: decimals, maximumFractionDigits: decimals };
-        fixedSpecs.set(decimals, spec);
-    }
-    return spec;
-};
-
-const roundedSpecs = new Map<number, Intl.NumberFormatOptions>();
-
 /* At most `decimals` places, trailing zeros dropped, for a figure whose fraction may or may not be there: `39`, `1,95`. */
-export const formatRounded = (value: number, decimals: number): string => {
-    let spec = roundedSpecs.get(decimals);
-    if (spec === undefined) {
-        spec = { maximumFractionDigits: decimals };
-        roundedSpecs.set(decimals, spec);
-    }
-    return numberFormatter(spec).format(value);
-};
+export const formatRounded = (value: number, decimals: number): string => numberFormatter(roundedSpec(decimals)).format(value);
 
 /* Intl takes at most this many fraction digits. */
 const MAX_FRACTION_DIGITS = 100;
