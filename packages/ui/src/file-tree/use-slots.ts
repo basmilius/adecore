@@ -54,6 +54,33 @@ export function useFileTreeSlots(model: FileTree, frame: HTMLElement | null, lab
         };
 
         const resize = new ResizeObserver(position);
+        const dropPort = (port: Port): void => {
+            port.control.remove();
+            port.decoration.remove();
+            resize.unobserve(port.lightControl);
+            resize.unobserve(port.lightDecoration);
+            port.lightControl.remove();
+            port.lightDecoration.remove();
+        };
+        const makePort = (element: HTMLElement, host: HTMLElement, kind: 'control' | 'decoration'): { container: HTMLElement; target: HTMLElement } => {
+            const container = document.createElement('span');
+            container.dataset.treePort = kind;
+            const slot = document.createElement('slot');
+            slot.name = `${prefix}-${kind}-${serial}`;
+            container.append(slot);
+            element.parentElement?.append(container);
+            const target = document.createElement('span');
+            target.slot = slot.name;
+            target.dataset.treeSlot = kind;
+            target.className = kind === 'control' ? 'adecore-tree-control' : 'adecore-tree-decoration';
+            // React delegates to this portal target before the event reaches the engine's shadow tree.
+            for (const type of ['click', 'dblclick', 'keydown', 'keyup', 'pointerdown', 'dragstart']) {
+                target.addEventListener(type, (event) => event.stopPropagation());
+            }
+            host.append(target);
+            resize.observe(target);
+            return { container, target };
+        };
         const scan = (): void => {
             pending = false;
             if (disposed) {
@@ -87,12 +114,7 @@ export function useFileTreeSlots(model: FileTree, frame: HTMLElement | null, lab
             const live = new Set(elements);
             for (const [element, port] of ports) {
                 if (!live.has(element)) {
-                    port.control.remove();
-                    port.decoration.remove();
-                    resize.unobserve(port.lightControl);
-                    resize.unobserve(port.lightDecoration);
-                    port.lightControl.remove();
-                    port.lightDecoration.remove();
+                    dropPort(port);
                     ports.delete(element);
                 }
             }
@@ -108,28 +130,9 @@ export function useFileTreeSlots(model: FileTree, frame: HTMLElement | null, lab
                 element.dataset.joinedEnd = String(row.isSelected && rows[row.index + 1]?.isSelected === true);
                 let port = ports.get(element);
                 if (port === undefined) {
-                    const makePort = (kind: string): { container: HTMLElement; target: HTMLElement } => {
-                        const container = document.createElement('span');
-                        container.dataset.treePort = kind;
-                        const slot = document.createElement('slot');
-                        slot.name = `${prefix}-${kind}-${serial}`;
-                        container.append(slot);
-                        element.parentElement?.append(container);
-                        const target = document.createElement('span');
-                        target.slot = slot.name;
-                        target.dataset.treeSlot = kind;
-                        target.className = kind === 'control' ? 'adecore-tree-control' : 'adecore-tree-decoration';
-                        // React delegates to this portal target before the event reaches the engine's shadow tree.
-                        for (const type of ['click', 'dblclick', 'keydown', 'keyup', 'pointerdown', 'dragstart']) {
-                            target.addEventListener(type, (event) => event.stopPropagation());
-                        }
-                        current.append(target);
-                        resize.observe(target);
-                        return { container, target };
-                    };
                     serial++;
-                    const control = makePort('control');
-                    const decoration = makePort('decoration');
+                    const control = makePort(element, current, 'control');
+                    const decoration = makePort(element, current, 'decoration');
                     port = {
                         rowElement: element,
                         control: control.container,
@@ -181,10 +184,7 @@ export function useFileTreeSlots(model: FileTree, frame: HTMLElement | null, lab
             for (const port of ports.values()) {
                 port.rowElement.style.removeProperty('--adecore-tree-control-space');
                 port.rowElement.style.removeProperty('--adecore-tree-decoration-space');
-                port.control.remove();
-                port.decoration.remove();
-                port.lightControl.remove();
-                port.lightDecoration.remove();
+                dropPort(port);
             }
         };
     }, [frame, model, label, prefix]);

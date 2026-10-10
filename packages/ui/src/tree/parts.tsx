@@ -1,4 +1,4 @@
-import { useCallback, type MouseEvent, type KeyboardEvent, type PointerEvent } from 'react';
+import { useCallback, type MouseEvent } from 'react';
 import clsx from 'clsx';
 import { useRender } from '@base-ui-components/react/use-render';
 import { ChevronRight } from 'lucide-react';
@@ -8,6 +8,14 @@ import { Icon } from '../Icon.tsx';
 import { mergeRefs } from '../merge-refs.ts';
 import { treeRowStyle } from './style.ts';
 import { TREE_ROWS, useTreeShift } from './use-tree-shift.tsx';
+
+/* A handler that keeps the event to the control, so the row under it never sees the press. */
+const stopped =
+    <Event extends { stopPropagation(): void }>(handler?: (event: Event) => void) =>
+    (event: Event): void => {
+        event.stopPropagation();
+        handler?.(event);
+    };
 
 export type TreeRootProps = useRender.ComponentProps<'div'> & {
     /* What a row wider than the tree does: cut its name off at the end, or keep the row whole and let every row slide sideways together, as a file tree does. */
@@ -127,10 +135,7 @@ export function TreeChevron({ expanded, onExpandedChange, render, className, ref
                     onExpandedChange?.(!expanded);
                 }
             },
-            onDoubleClick: (event: MouseEvent<HTMLButtonElement>) => {
-                event.stopPropagation();
-                onDoubleClick?.(event);
-            },
+            onDoubleClick: stopped(onDoubleClick),
             children: <Icon icon={ChevronRight} size={12} className={expanded ? 'rotate-90' : undefined} />
         }
     });
@@ -156,22 +161,10 @@ export function TreeControl({ render, className, ref, onClick, onDoubleClick, on
             ...props,
             'data-tree-control': true,
             className: clsx('adecore-tree-control', className),
-            onClick: (event: MouseEvent<HTMLSpanElement>) => {
-                event.stopPropagation();
-                onClick?.(event);
-            },
-            onDoubleClick: (event: MouseEvent<HTMLSpanElement>) => {
-                event.stopPropagation();
-                onDoubleClick?.(event);
-            },
-            onKeyDown: (event: KeyboardEvent<HTMLSpanElement>) => {
-                event.stopPropagation();
-                onKeyDown?.(event);
-            },
-            onPointerDown: (event: PointerEvent<HTMLSpanElement>) => {
-                event.stopPropagation();
-                onPointerDown?.(event);
-            }
+            onClick: stopped(onClick),
+            onDoubleClick: stopped(onDoubleClick),
+            onKeyDown: stopped(onKeyDown),
+            onPointerDown: stopped(onPointerDown)
         }
     });
 }

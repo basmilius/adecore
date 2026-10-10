@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactElement } from 'react';
-import { clampShift, maxShift, SHIFT_PROPERTY, shiftNeed, shiftThumb, sidewaysDelta } from '../file-tree/shift.ts';
+import { clampShift, maxShift, SHIFT_PROPERTY, shiftNeed, shiftThumb, sidewaysDelta } from './shift.ts';
 
 const HIDE_AFTER = 900;
 

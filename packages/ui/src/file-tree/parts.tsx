@@ -26,8 +26,8 @@ export type FileTreeRootProps = useRender.ComponentProps<'div'> & {
     treeProps?: Omit<PierreProps, 'model'>;
 };
 
-function inSlot(event: { nativeEvent: Event }): boolean {
-    return event.nativeEvent.composedPath().some((node) => node instanceof HTMLElement && node.hasAttribute('data-tree-slot'));
+function inSlot(event: Event): boolean {
+    return event.composedPath().some((node) => node instanceof HTMLElement && node.hasAttribute('data-tree-slot'));
 }
 
 export function FileTreeRoot({
@@ -118,7 +118,7 @@ export function FileTreeRoot({
             return;
         }
         const onClickRow = (event: MouseEvent): void => {
-            if (event.defaultPrevented || inSlot({ nativeEvent: event }) || extendsSelection(event)) {
+            if (event.defaultPrevented || inSlot(event) || extendsSelection(event)) {
                 return;
             }
             const path = rowPathOf({ nativeEvent: event });
@@ -127,7 +127,7 @@ export function FileTreeRoot({
             }
         };
         const onKey = (event: KeyboardEvent): void => {
-            if (event.defaultPrevented || inSlot({ nativeEvent: event })) {
+            if (event.defaultPrevented || inSlot(event)) {
                 return;
             }
             if (movesFocus(event) && selectionFollowsFocus) {
@@ -149,24 +149,19 @@ export function FileTreeRoot({
                 }
             }
         };
-        const onContext = (event: MouseEvent): void => {
-            if (inSlot({ nativeEvent: event })) {
-                return;
-            }
-            const path = rowPathOf({ nativeEvent: event });
-            if (path !== null) {
-                onRowContextMenu?.(path, menuTargetsOf(path, model.getSelectedPaths()), event);
-            }
-        };
-        const onDrag = (event: DragEvent): void => {
-            if (inSlot({ nativeEvent: event })) {
-                return;
-            }
-            const path = rowPathOf({ nativeEvent: event });
-            if (path !== null) {
-                onRowDragStart?.(path, menuTargetsOf(path, model.getSelectedPaths()), event);
-            }
-        };
+        const withTargets =
+            <RowEvent extends Event>(handle?: (path: string, targets: readonly string[], event: RowEvent) => void) =>
+            (event: RowEvent): void => {
+                if (inSlot(event)) {
+                    return;
+                }
+                const path = rowPathOf({ nativeEvent: event });
+                if (path !== null) {
+                    handle?.(path, menuTargetsOf(path, model.getSelectedPaths()), event);
+                }
+            };
+        const onContext = withTargets(onRowContextMenu);
+        const onDrag = withTargets(onRowDragStart);
         frame.addEventListener('click', onClickRow);
         frame.addEventListener('keydown', onKey, true);
         frame.addEventListener('contextmenu', onContext);

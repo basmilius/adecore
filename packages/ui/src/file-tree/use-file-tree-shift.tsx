@@ -1,7 +1,7 @@
 import { useMemo, type ReactElement } from 'react';
 import type { FileTree } from '@pierre/trees';
 import { useTreeShift, type TreeShiftSource } from '../tree/use-tree-shift.tsx';
-import { shiftNeed } from './shift.ts';
+import { shiftNeed } from '../tree/shift.ts';
 
 const ROWS = '[data-type="item"]:not([data-item-parked="true"])';
 
@@ -11,6 +11,7 @@ function boxesOf(element: Element): Element[] {
 
 function limitOf(row: HTMLElement, content: Element, gap: number): number {
     const start = content.getBoundingClientRect().left;
+    const contentMargin = Number.parseFloat(getComputedStyle(content).marginInlineEnd) || 0;
     let limit = Number.POSITIVE_INFINITY;
     for (const part of [...row.children].filter((child) => child !== content).flatMap((child) => boxesOf(child))) {
         const rect = part.getBoundingClientRect();
@@ -23,13 +24,9 @@ function limitOf(row: HTMLElement, content: Element, gap: number): number {
         limit = Math.min(limit, rect.left - gap);
     }
     if (limit !== Number.POSITIVE_INFINITY) {
-        return limit - (Number.parseFloat(getComputedStyle(content).marginInlineEnd) || 0);
+        return limit - contentMargin;
     }
-    return (
-        row.getBoundingClientRect().right -
-        Number.parseFloat(getComputedStyle(row).paddingInlineEnd) -
-        (Number.parseFloat(getComputedStyle(content).marginInlineEnd) || 0)
-    );
+    return row.getBoundingClientRect().right - Number.parseFloat(getComputedStyle(row).paddingInlineEnd) - contentMargin;
 }
 
 function needOf(row: HTMLElement, shift: number, gap: number, range: Range): number | null {
