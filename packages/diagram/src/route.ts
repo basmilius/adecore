@@ -129,12 +129,12 @@ export function routeChannel(input: ChannelInput): ChannelResult {
     const order = vertical.map((_, i) => i).sort((left, right) => score[left]! - score[right]! || left - right);
     for (let pass = 0; pass < count; pass++) {
         let swapped = false;
-        for (let p = 0; p + 1 < count; p++) {
-            const left = order[p]!;
-            const right = order[p + 1]!;
+        for (let slot = 0; slot + 1 < count; slot++) {
+            const left = order[slot]!;
+            const right = order[slot + 1]!;
             if (cost[right * count + left]! < cost[left * count + right]!) {
-                order[p] = right;
-                order[p + 1] = left;
+                order[slot] = right;
+                order[slot + 1] = left;
                 swapped = true;
             }
         }
@@ -144,10 +144,10 @@ export function routeChannel(input: ChannelInput): ChannelResult {
     }
     const track = new Array<number>(count).fill(0);
     let tracks = 0;
-    order.forEach((index, p) => {
+    order.forEach((index, slot) => {
         let at = 0;
-        for (let q = 0; q < p; q++) {
-            const other = order[q]!;
+        for (let earlier = 0; earlier < slot; earlier++) {
+            const other = order[earlier]!;
             if (near(vertical[other]!, vertical[index]!)) {
                 at = Math.max(at, track[other]! + 1);
             }

@@ -15,19 +15,19 @@ export interface ShapePaths {
 }
 
 function roundedRect(box: Rect, radius: number): string {
-    const r = Math.round(Math.min(radius, box.w / 2, box.h / 2));
+    const corner = Math.round(Math.min(radius, box.w / 2, box.h / 2));
     const right = box.x + box.w;
     const bottom = box.y + box.h;
     return [
-        `M${box.x + r} ${box.y}`,
-        `H${right - r}`,
-        `A${r} ${r} 0 0 1 ${right} ${box.y + r}`,
-        `V${bottom - r}`,
-        `A${r} ${r} 0 0 1 ${right - r} ${bottom}`,
-        `H${box.x + r}`,
-        `A${r} ${r} 0 0 1 ${box.x} ${bottom - r}`,
-        `V${box.y + r}`,
-        `A${r} ${r} 0 0 1 ${box.x + r} ${box.y}`,
+        `M${box.x + corner} ${box.y}`,
+        `H${right - corner}`,
+        `A${corner} ${corner} 0 0 1 ${right} ${box.y + corner}`,
+        `V${bottom - corner}`,
+        `A${corner} ${corner} 0 0 1 ${right - corner} ${bottom}`,
+        `H${box.x + corner}`,
+        `A${corner} ${corner} 0 0 1 ${box.x} ${bottom - corner}`,
+        `V${box.y + corner}`,
+        `A${corner} ${corner} 0 0 1 ${box.x + corner} ${box.y}`,
         'Z'
     ].join(' ');
 }

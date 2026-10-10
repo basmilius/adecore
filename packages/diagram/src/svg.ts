@@ -34,11 +34,7 @@ function escapeXml(value: string): string {
     return value.replace(NOT_XML, '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 }
 
-/*
- * The whole diagram as one SVG string, for an export and for what the daemon hands an agent. The
- * view in the app draws the same layout and the same paths as elements of its own, so the two only
- * differ in where the colors come from.
- */
+/* The whole diagram as one SVG string, from the same layout and paths a view draws with its own elements. */
 export function toSvg(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'groups' | 'edges'>, options: DiagramSvgOptions = {}): string {
     const palette = options.palette ?? DEFAULT_PALETTE;
     const paper = options.paper ?? DEFAULT_PAPER;

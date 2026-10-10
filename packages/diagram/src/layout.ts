@@ -1,7 +1,7 @@
-import type { DiagramDocument, DiagramEdge, DiagramNode, DiagramShape } from './protocol.ts';
+import type { DiagramDocument, DiagramEdge, DiagramGroup, DiagramNode, DiagramShape } from './protocol.ts';
 import { centerOf, intersects, roundPoint, type Point, type Rect } from '@adecore/drawing';
 import { placeAcross } from './across.ts';
-import { DUMMY_MARGIN, NODE_MARGIN, bandCode, type Band, type Hop, type Unit } from './graph.ts';
+import { DUMMY_MARGIN, NODE_MARGIN, bandCode, type Band, type Hop, type Layering, type Unit } from './graph.ts';
 import { orderLayers } from './order.ts';
 import { routeChannel, type ChannelHop, type ChannelLabel } from './route.ts';
 import { LABEL_LINE, LABEL_SIZE, SUB_LINE, SUB_SIZE, estimateTextWidth, widestLine, wrapText } from './text.ts';
@@ -336,21 +336,30 @@ interface Port {
     apply: (y: number) => void;
 }
 
-/*
- * Deterministic layered layout with integer coordinates. Barycenter sweeps order unpinned nodes;
- * pinned nodes keep their position, and skipped layers give edges explicit routing points.
- */
-export function layoutOf(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'groups' | 'edges'>): DiagramLayout {
-    const down = document.meta.direction === 'down';
-    const layers = layersOf(document.nodes, document.edges);
-    const sizes = document.nodes.map((node) => sizeOfNode(node));
-    const knownIds = new Set(document.nodes.map((node) => node.id));
+interface Edges {
+    hops: Hop[];
+    chains: Chain[];
+    loops: Loop[];
+    /* Edges with a pinned end, or with both ends in one layer: routed straight, outside the layering. */
+    loose: number[];
+    lines: number[][];
+}
 
-    // Every node that is not pinned is a unit, sized in the right-running frame.
+interface Ports {
+    hopStart: number[];
+    hopEnd: number[];
+    loopStart: number[];
+    loopEnd: number[];
+}
+
+type LabelSize = ReturnType<typeof sizeOfEdgeLabel>;
+
+/* Every node that is not pinned is a unit, sized in the right-running frame. */
+function unitsOf(nodes: readonly DiagramNode[], layers: ReadonlyMap<string, number>, sizes: readonly NodeSize[], down: boolean) {
     const units: Unit[] = [];
     const unitOf = new Map<string, number>();
     const unitOfNode = new Map<number, number>();
-    document.nodes.forEach((node, index) => {
+    nodes.forEach((node, index) => {
         if (node.pos) {
             return;
         }
@@ -369,10 +378,13 @@ export function layoutOf(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'gro
             down: []
         });
     });
+    return { units, unitOf, unitOfNode };
+}
 
+function bandsOf(groups: readonly DiagramGroup[], units: Unit[], unitOf: ReadonlyMap<string, number>, down: boolean) {
     const bands: Band[] = [];
     const bandOfGroup = new Map<number, number>();
-    document.groups.forEach((group, groupIndex) => {
+    groups.forEach((group, groupIndex) => {
         const inside = group.wraps.flatMap((id) => {
             const unit = unitOf.get(id);
             return unit === undefined || units[unit]!.band >= 0 ? [] : [unit];
@@ -399,13 +411,17 @@ export function layoutOf(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'gro
             labelWidth: estimateTextWidth(group.label, SUB_SIZE, true)
         });
     });
+    return { bands, bandOfGroup };
+}
 
+/* Splits every edge between two units into hops of one layer each, adding a point to `units` for every layer it skips. */
+function edgesOf(edges: readonly DiagramEdge[], units: Unit[], unitOf: ReadonlyMap<string, number>, knownIds: ReadonlySet<string>): Edges {
     const hops: Hop[] = [];
     const chains: Chain[] = [];
     const loops: Loop[] = [];
     const loose: number[] = [];
     const lines: number[][] = [];
-    document.edges.forEach((edge, index) => {
+    edges.forEach((edge, index) => {
         if (!knownIds.has(edge.from) || !knownIds.has(edge.to)) {
             return;
         }
@@ -449,8 +465,11 @@ export function layoutOf(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'gro
         }
         chains.push({ edge: index, hops: chain, reversed });
     });
+    return { hops, chains, loops, loose, lines };
+}
 
-    const layerCount = units.reduce((count, unit) => Math.max(count, unit.layer + 1), 0);
+/* The top-level entries of every layer, with the members of each band filled in and its height measured. */
+function itemsOf(units: readonly Unit[], bands: readonly Band[], layerCount: number, down: boolean): number[][] {
     const items: number[][] = Array.from({ length: layerCount }, () => []);
     units.forEach((unit, index) => {
         if (unit.band < 0) {
@@ -483,13 +502,12 @@ export function layoutOf(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'gro
             band.height = Math.max(band.height, band.labelWidth + GROUP_LABEL_INSET * 2);
         }
     });
+    return items;
+}
 
-    const layering = { units, hops, bands, lines, items };
-    orderLayers(layering);
-    const top = placeAcross(layering);
-    const centerOf = (unit: number): number => top[unit]! + units[unit]!.h / 2;
-
-    // Ports: every hop leaves its box on the side facing the flow and enters on the side facing back.
+/* Every hop leaves its box on the side facing the flow and enters on the side facing back. */
+function portsOf(units: readonly Unit[], top: readonly number[], hops: readonly Hop[], loops: readonly Loop[]): Ports {
+    const middleOf = (unit: number): number => top[unit]! + units[unit]!.h / 2;
     const hopStart = new Array<number>(hops.length).fill(0);
     const hopEnd = new Array<number>(hops.length).fill(0);
     const loopStart = new Array<number>(loops.length).fill(0);
@@ -497,11 +515,11 @@ export function layoutOf(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'gro
     const exits: Port[][] = units.map(() => []);
     const entries: Port[][] = units.map(() => []);
     hops.forEach((hop, index) => {
-        exits[hop.from]!.push({ key: centerOf(hop.to), edge: hop.edge, order: 0, apply: (y) => (hopStart[index] = y) });
-        entries[hop.to]!.push({ key: centerOf(hop.from), edge: hop.edge, order: 0, apply: (y) => (hopEnd[index] = y) });
+        exits[hop.from]!.push({ key: middleOf(hop.to), edge: hop.edge, order: 0, apply: (y) => (hopStart[index] = y) });
+        entries[hop.to]!.push({ key: middleOf(hop.from), edge: hop.edge, order: 0, apply: (y) => (hopEnd[index] = y) });
     });
     loops.forEach((loop, index) => {
-        const key = centerOf(loop.unit);
+        const key = middleOf(loop.unit);
         exits[loop.unit]!.push(
             { key, edge: loop.edge, order: 0, apply: (y) => (loopStart[index] = y) },
             { key, edge: loop.edge, order: 1, apply: (y) => (loopEnd[index] = y) }
@@ -513,7 +531,7 @@ export function layoutOf(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'gro
         }
         // In the order of the other ends, so two hops leaving one box do not cross on the way out.
         ports.sort((left, right) => left.key - right.key || left.edge - right.edge || left.order - right.order);
-        const middle = centerOf(unit);
+        const middle = middleOf(unit);
         const room = Math.max(0, units[unit]!.h - PORT_INSET * 2);
         const step = ports.length > 1 ? Math.min(PORT_GAP, Math.floor(room / (ports.length - 1))) : 0;
         ports.forEach((port, index) => port.apply(Math.round(middle + (index - (ports.length - 1) / 2) * step)));
@@ -535,7 +553,23 @@ export function layoutOf(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'gro
             hopStart[index] = hopEnd[index]!;
         }
     });
+    return { hopStart, hopEnd, loopStart, loopEnd };
+}
 
+interface Columns {
+    columnX: number[];
+    columnWidth: number[];
+    unitX: number[];
+    /* Per hop that bends, where its run across the flow sits in the channel after its layer. */
+    trackX: Map<number, number>;
+    /* Per edge, its label in the right-running frame. */
+    frameLabels: Map<number, Rect>;
+}
+
+/* Places the layers along the flow, each followed by the channel its hops and labels are routed through. */
+function placeAlong(layering: Layering, edges: Edges, ports: Ports, labelSizes: readonly (LabelSize | null)[], layerCount: number, down: boolean): Columns {
+    const { units, bands } = layering;
+    const { hops, chains, loops } = edges;
     const byLayer: number[][] = Array.from({ length: layerCount }, () => []);
     units.forEach((unit, index) => byLayer[unit.layer]!.push(index));
     const columnWidth = byLayer.map((column) => even(column.reduce((widest, unit) => Math.max(widest, units[unit]!.w), 0)));
@@ -544,7 +578,6 @@ export function layoutOf(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'gro
     const hopsByLayer: number[][] = Array.from({ length: layerCount }, () => []);
     hops.forEach((hop, index) => hopsByLayer[units[hop.from]!.layer]!.push(index));
 
-    const labelSizes = document.edges.map((edge) => (edge.label ? sizeOfEdgeLabel(edge.label) : null));
     const labelHop = new Map<number, number>();
     for (const chain of chains) {
         if (labelSizes[chain.edge]) {
@@ -553,9 +586,8 @@ export function layoutOf(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'gro
     }
     const frameLabels = new Map<number, Rect>();
     const trackX = new Map<number, number>();
-
     const alongBefore = GROUP_PADDING + (down ? GROUP_LABEL_BAND : 0);
-    const bandAlongStart = (band: Band): number => Math.min(...band.members[0]!.map((unit) => unitX[unit]!)) - alongBefore;
+
     for (let layer = 0; layer < layerCount; layer++) {
         for (const unit of byLayer[layer]!) {
             unitX[unit] = columnX[layer]! + Math.floor((columnWidth[layer]! - units[unit]!.w) / 2);
@@ -564,19 +596,19 @@ export function layoutOf(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'gro
             break;
         }
         const start = columnX[layer]! + columnWidth[layer]!;
-        const channelHops: ChannelHop[] = hopsByLayer[layer]!.map((hop) => ({ hop, ya: hopStart[hop]!, yb: hopEnd[hop]! }));
+        const channelHops: ChannelHop[] = hopsByLayer[layer]!.map((hop) => ({ hop, ya: ports.hopStart[hop]!, yb: ports.hopEnd[hop]! }));
         const channelLabels: ChannelLabel[] = [];
         for (const hop of hopsByLayer[layer]!) {
             const edge = labelHop.get(hop);
             const size = edge === undefined ? null : labelSizes[edge];
             if (edge !== undefined && size) {
-                channelLabels.push({ edge, hop, y: hopStart[hop]!, along: down ? size.h : size.w, across: down ? size.w : size.h });
+                channelLabels.push({ edge, hop, y: ports.hopStart[hop]!, along: down ? size.h : size.w, across: down ? size.w : size.h });
             }
         }
         loops.forEach((loop, index) => {
             const size = labelSizes[loop.edge];
             if (size && units[loop.unit]!.layer === layer) {
-                channelLabels.push({ edge: loop.edge, hop: -1, y: loopEnd[index]!, along: down ? size.h : size.w, across: down ? size.w : size.h });
+                channelLabels.push({ edge: loop.edge, hop: -1, y: ports.loopEnd[index]!, along: down ? size.h : size.w, across: down ? size.w : size.h });
             }
         });
         channelLabels.sort((left, right) => left.edge - right.edge);
@@ -602,6 +634,51 @@ export function layoutOf(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'gro
         channel.labels.forEach((rect, edge) => frameLabels.set(edge, rect));
         columnX[layer + 1] = start + channel.width;
     }
+    return { columnX, columnWidth, unitX, trackX, frameLabels };
+}
+
+/* A label that no channel placed (a loop in the last layer, an edge with a pinned end) moves down until it is clear. */
+function settleLabels(edges: readonly EdgeRoute[], unplaced: ReadonlySet<number>, nodes: readonly NodeBox[], groups: readonly GroupBox[]): void {
+    const settled = edges.flatMap((edge) => (edge.label && !unplaced.has(edge.index) ? [edge.label] : []));
+    for (const edge of edges) {
+        const label = edge.label;
+        if (!label || !unplaced.has(edge.index)) {
+            continue;
+        }
+        const taken = (): boolean =>
+            [...nodes, ...groups.map((group) => group.labelBox)].some((box) => intersects(box, label)) ||
+            settled.some((other) => intersects({ x: other.x - 4, y: other.y - 4, w: other.w + 8, h: other.h + 8 }, label));
+        for (let step = 0; step < 1000 && taken(); step++) {
+            label.y += 4;
+        }
+        settled.push(label);
+    }
+}
+
+/*
+ * Deterministic layered layout with integer coordinates. Barycenter sweeps order unpinned nodes;
+ * pinned nodes keep their position, and skipped layers give edges explicit routing points.
+ */
+export function layoutOf(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'groups' | 'edges'>): DiagramLayout {
+    const down = document.meta.direction === 'down';
+    const layers = layersOf(document.nodes, document.edges);
+    const sizes = document.nodes.map((node) => sizeOfNode(node));
+    const knownIds = new Set(document.nodes.map((node) => node.id));
+
+    const { units, unitOf, unitOfNode } = unitsOf(document.nodes, layers, sizes, down);
+    const { bands, bandOfGroup } = bandsOf(document.groups, units, unitOf, down);
+    const graphEdges = edgesOf(document.edges, units, unitOf, knownIds);
+    const { hops, chains, loops, loose } = graphEdges;
+    const layerCount = units.reduce((count, unit) => Math.max(count, unit.layer + 1), 0);
+    const items = itemsOf(units, bands, layerCount, down);
+
+    const layering: Layering = { units, hops, bands, lines: graphEdges.lines, items };
+    orderLayers(layering);
+    const top = placeAcross(layering);
+    const middleOf = (unit: number): number => top[unit]! + units[unit]!.h / 2;
+    const ports = portsOf(units, top, hops, loops);
+    const labelSizes = document.edges.map((edge) => (edge.label ? sizeOfEdgeLabel(edge.label) : null));
+    const { columnX, columnWidth, unitX, trackX, frameLabels } = placeAlong(layering, graphEdges, ports, labelSizes, layerCount, down);
 
     const frameBoxOf = (unit: number): Rect => ({ x: unitX[unit]!, y: top[unit]!, w: units[unit]!.w, h: units[unit]!.h });
     const shapeOf = (unit: number): DiagramShape | undefined => document.nodes[units[unit]!.node]!.shape;
@@ -611,7 +688,7 @@ export function layoutOf(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'gro
             return columnX[self.layer]! + columnWidth[self.layer]!;
         }
         const box = frameBoxOf(unit);
-        return box.x + box.w - insetOf(shapeOf(unit), box, y - centerOf(unit), down);
+        return box.x + box.w - insetOf(shapeOf(unit), box, y - middleOf(unit), down);
     };
     const entryX = (unit: number, y: number): number => {
         const self = units[unit]!;
@@ -619,7 +696,7 @@ export function layoutOf(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'gro
             return columnX[self.layer]!;
         }
         const box = frameBoxOf(unit);
-        return box.x + insetOf(shapeOf(unit), box, y - centerOf(unit), down);
+        return box.x + insetOf(shapeOf(unit), box, y - middleOf(unit), down);
     };
     const toReal = (point: Point): Point => (down ? flipPoint(point) : point);
     const labelOf = (edge: number, frame: Rect | undefined): EdgeLabelBox | null => {
@@ -659,8 +736,8 @@ export function layoutOf(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'gro
         const points: Point[] = [];
         for (const index of chain.hops) {
             const hop = hops[index]!;
-            const ya = hopStart[index]!;
-            const yb = hopEnd[index]!;
+            const ya = ports.hopStart[index]!;
+            const yb = ports.hopEnd[index]!;
             points.push({ x: exitX(hop.from, ya), y: ya });
             if (ya !== yb) {
                 const x = trackX.get(index)!;
@@ -681,8 +758,8 @@ export function layoutOf(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'gro
     loops.forEach((loop, index) => {
         const box = frameBoxOf(loop.unit);
         const reach = box.x + box.w + LOOP;
-        const startY = loopStart[index]!;
-        const endY = loopEnd[index]!;
+        const startY = ports.loopStart[index]!;
+        const endY = ports.loopEnd[index]!;
         const points = [
             { x: exitX(loop.unit, startY), y: startY },
             { x: reach, y: startY },
@@ -725,15 +802,15 @@ export function layoutOf(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'gro
     }
     const edges = routes.filter((route): route is EdgeRoute => route !== undefined);
 
-    const alongAfter = GROUP_PADDING;
+    const alongBefore = GROUP_PADDING + (down ? GROUP_LABEL_BAND : 0);
     const groups: GroupBox[] = document.groups.flatMap((group, groupIndex) => {
         const rects: Rect[] = [];
         const bandIndex = bandOfGroup.get(groupIndex);
         if (bandIndex !== undefined) {
             const band = bands[bandIndex]!;
             const members = band.members.flat().filter((unit) => units[unit]!.node >= 0);
-            const alongStart = bandAlongStart(band);
-            const alongEnd = Math.max(...members.map((unit) => unitX[unit]! + units[unit]!.w)) + alongAfter;
+            const alongStart = Math.min(...band.members[0]!.map((unit) => unitX[unit]!)) - alongBefore;
+            const alongEnd = Math.max(...members.map((unit) => unitX[unit]! + units[unit]!.w)) + GROUP_PADDING;
             const frame = { x: alongStart, y: band.top, w: alongEnd - alongStart, h: band.height };
             rects.push(down ? flip(frame) : frame);
         }
@@ -756,21 +833,7 @@ export function layoutOf(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'gro
         return [{ id: group.id, ...rect, labelBox }];
     });
 
-    // A label that no channel placed (a loop in the last layer, an edge with a pinned end) moves down until it is clear.
-    const settled = edges.flatMap((edge) => (edge.label && !unplaced.has(edge.index) ? [edge.label] : []));
-    for (const edge of edges) {
-        const label = edge.label;
-        if (!label || !unplaced.has(edge.index)) {
-            continue;
-        }
-        const taken = (): boolean =>
-            [...nodes, ...groups.map((group) => group.labelBox)].some((box) => intersects(box, label)) ||
-            settled.some((other) => intersects({ x: other.x - 4, y: other.y - 4, w: other.w + 8, h: other.h + 8 }, label));
-        for (let step = 0; step < 1000 && taken(); step++) {
-            label.y += 4;
-        }
-        settled.push(label);
-    }
+    settleLabels(edges, unplaced, nodes, groups);
     const corners = edges.flatMap((edge) => edge.points.map((point) => ({ ...point, w: 0, h: 0 })));
     const labels = edges.flatMap((edge) => (edge.label ? [edge.label] : []));
     const groupLabels = groups.map((group) => group.labelBox);

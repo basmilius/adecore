@@ -1,4 +1,4 @@
-import { BAND_MARGIN, bandOfCode, type Layering } from './graph.ts';
+import { BAND_MARGIN, bandCode, bandOfCode, type Layering } from './graph.ts';
 
 /* Rounds that pull every unit towards the units it is joined to, alternating the direction of the sweep. */
 const ROUNDS = 8;
@@ -175,7 +175,7 @@ export function placeAcross(layering: Layering): number[] {
             if (shifts.length === 0) {
                 return;
             }
-            const code = -(bandIndex + 1);
+            const code = bandCode(bandIndex);
             let low = -Infinity;
             let high = Infinity;
             for (let layer = band.first; layer <= band.last; layer++) {
