@@ -1,5 +1,5 @@
 import type { ValueKind } from '../protocol/index.ts';
-import { qualifiedName, quoteIdentifier, sqlLiteral, type SqlTarget } from '../sql.ts';
+import { isNumericKind, qualifiedName, quoteIdentifier, sqlLiteral, type SqlTarget } from '../sql.ts';
 import { copyTextOf, type Shown } from './display.ts';
 
 export type CopyFormat = 'tsv' | 'csv' | 'json' | 'sql';
@@ -19,7 +19,6 @@ export interface CopyInput {
     readonly target?: SqlTarget;
 }
 
-const NUMERIC_KINDS: ReadonlySet<ValueKind> = new Set(['integer', 'decimal', 'float']);
 const JSON_NUMBER = /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/;
 
 const quoteField = (text: string): string => `"${text.replaceAll('"', '""')}"`;
@@ -45,7 +44,7 @@ const jsonOf = (cell: Shown, kind: ValueKind): string => {
         return Number.isFinite(cell) ? String(cell) : 'null';
     }
     if (typeof cell === 'string') {
-        if (NUMERIC_KINDS.has(kind) && JSON_NUMBER.test(cell)) {
+        if (isNumericKind(kind) && JSON_NUMBER.test(cell)) {
             return cell;
         }
         if (kind === 'json') {

@@ -1,5 +1,6 @@
 import { formatBytes, formatNumeral } from '@adecore/ui/format';
 import type { BinaryValue, Cell, EditValue, ValueKind } from '../protocol/index.ts';
+import { isNumericKind } from '../sql.ts';
 
 /* What a cell shows: a cell of a result, or the column's default for a value an edit set to `DEFAULT`. */
 export type Shown = Cell | { readonly kind: 'default' };
@@ -21,11 +22,6 @@ export type NumberNotation = 'database' | 'region';
 export const DISPLAY_LIMIT = 200;
 /* How many bytes of a binary value the cell spells out. */
 export const BINARY_PREVIEW_BYTES = 8;
-
-const NUMERIC_KINDS: ReadonlySet<ValueKind> = new Set(['integer', 'decimal', 'float']);
-
-/* Whether the cells of a column of this kind sit against the end of their cell, as numbers do. */
-export const isNumericKind = (kind: ValueKind): boolean => NUMERIC_KINDS.has(kind);
 
 const ELLIPSIS = '…';
 

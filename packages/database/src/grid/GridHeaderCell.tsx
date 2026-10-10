@@ -7,9 +7,8 @@ import { formatNumber } from '@adecore/ui/format';
 import { CODE_TEXT } from '../code-text.ts';
 import { keyLabelOf } from '../column-keys.ts';
 import { KeyIcon } from '../KeyIcon.tsx';
-import type { SortDirection } from '../sql.ts';
+import { isNumericKind, type SortDirection } from '../sql.ts';
 import type { ColumnClick } from './column-selection.ts';
-import { isNumericKind } from './display.ts';
 import { isDoubleClick, MAX_RESIZED_WIDTH, MIN_COLUMN_WIDTH } from './layout.ts';
 import type { GridColumn } from './types.ts';
 
@@ -140,7 +139,7 @@ export function GridHeaderCell({
     const { t } = useTranslation('database');
     const cell = useRef<HTMLDivElement>(null);
     const lastPress = useRef<number | null>(null);
-    /* Set by a press on the resize strip, since the click that ends the drag would otherwise pick the column. */
+    // Set by a press on the resize strip, since the click that ends the drag would otherwise pick the column.
     const resized = useRef(false);
     const { startResize } = useColumnResize(cell, {
         size: width,

@@ -1,8 +1,7 @@
-import { sqlLiteral } from '../sql.ts';
+import { NUMERIC_TEXT, sqlLiteral } from '../sql.ts';
 import { quote, type Dialect } from './dialect.ts';
 import type { ColumnDraft } from './draft.ts';
 
-const NUMBER = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/;
 const STRING = /^'(?:[^']|'')*'$/;
 const KEYWORD = /^(?:NULL|TRUE|FALSE|CURRENT_DATE|CURRENT_TIME(?:\(\d*\))?|CURRENT_TIMESTAMP(?:\(\d*\))?|LOCALTIME(?:STAMP)?(?:\(\d*\))?|NOW\(\d*\))$/i;
 
@@ -12,7 +11,7 @@ const KEYWORD = /^(?:NULL|TRUE|FALSE|CURRENT_DATE|CURRENT_TIME(?:\(\d*\))?|CURRE
  */
 export const defaultClause = (expression: string): string => {
     const text = expression.trim();
-    if (NUMBER.test(text) || STRING.test(text) || KEYWORD.test(text)) {
+    if (NUMERIC_TEXT.test(text) || STRING.test(text) || KEYWORD.test(text)) {
         return text;
     }
     return text.startsWith('(') && text.endsWith(')') ? text : `(${text})`;

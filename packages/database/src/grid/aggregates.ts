@@ -1,8 +1,6 @@
 import type { ValueKind } from '../protocol/index.ts';
+import { isNumericKind, NUMERIC_TEXT } from '../sql.ts';
 import type { Shown } from './display.ts';
-
-const NUMERIC_KINDS: ReadonlySet<ValueKind> = new Set(['integer', 'decimal', 'float']);
-const NUMERIC_TEXT = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/;
 
 /* A block of rows, and the columns (indexes into the columns of the grid) it spans. */
 export interface RangeBlock {
@@ -62,7 +60,7 @@ export const aggregateBlock = (rows: readonly (readonly Shown[])[], kinds: reado
         for (const column of block.columns) {
             count++;
             const kind = kinds[column];
-            const found = kind !== undefined && NUMERIC_KINDS.has(kind) ? numberOf(cells[column] ?? null) : null;
+            const found = kind !== undefined && isNumericKind(kind) ? numberOf(cells[column] ?? null) : null;
             if (found === null) {
                 continue;
             }

@@ -18,7 +18,12 @@ export interface SqlTarget {
 export type LiteralValue = Cell | Value | { readonly kind: 'default' };
 
 const NUMERIC_KINDS: ReadonlySet<ValueKind> = new Set(['integer', 'decimal', 'float']);
-const NUMERIC_TEXT = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/;
+
+/* A number as SQL and most people write it: a sign, digits with an optional fraction, and an exponent. */
+export const NUMERIC_TEXT = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/;
+
+/* Whether a value of this kind is a number, which a grid aligns against the end of its cell. */
+export const isNumericKind = (kind: ValueKind): boolean => NUMERIC_KINDS.has(kind);
 const ORDER_ITEM = /\s*(`(?:[^`]|``)+`|"(?:[^"]|"")+"|[A-Za-z_][\w$]*)(?:\s+(asc|desc))?\s*(,|$)/iy;
 
 const markOf = (engine: Engine): string => (engine === 'mysql' ? '`' : '"');
@@ -54,7 +59,7 @@ export const sqlLiteral = (engine: Engine, value: LiteralValue, kind?: ValueKind
             return Number.isFinite(value) ? String(value) : 'NULL';
         case 'string': {
             const trimmed = value.trim();
-            return kind !== undefined && NUMERIC_KINDS.has(kind) && NUMERIC_TEXT.test(trimmed) ? trimmed : stringLiteral(engine, value);
+            return kind !== undefined && isNumericKind(kind) && NUMERIC_TEXT.test(trimmed) ? trimmed : stringLiteral(engine, value);
         }
     }
     switch (value.kind) {
