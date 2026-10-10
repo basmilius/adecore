@@ -3,6 +3,7 @@ import { basenameOf } from './paths.ts';
 import type { EditorLanguage } from './editor-language.ts';
 import { entriesOf, workspaceEntriesOf, type SymbolEntry, type WorkspaceEntry } from './symbol-picker-model.ts';
 import { isShortcut } from './shortcut-keys.ts';
+import { messageOf } from './error-message.ts';
 
 const TOAST_ID = 'language-symbols';
 
@@ -43,7 +44,7 @@ export class SymbolPickerFeature {
                 this.language.project.host.notify?.({
                     id: TOAST_ID,
                     kind: 'error',
-                    title: this.language.project.i18n.t('editor:language.symbols.failed', { message: error instanceof Error ? error.message : String(error) })
+                    title: this.language.project.i18n.t('editor:language.symbols.failed', { message: messageOf(error) })
                 });
             }
         }

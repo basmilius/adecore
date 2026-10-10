@@ -1,9 +1,9 @@
-import { useEditorRendering } from './rendering-context.ts';
 import { useEffect, useState, type MouseEvent } from 'react';
-import { Markdown } from './Markdown.tsx';
 import { Tooltip } from '@adecore/ui';
-import { hoverSectionsOf, markdownParts, type DocTag, type HoverSection, type HoverText } from './hover-content.ts';
 import { BaselineStatus } from './BaselineStatus.tsx';
+import { hoverSectionsOf, markdownParts, type DocTag, type HoverSection, type HoverText } from './hover-content.ts';
+import { Markdown } from './Markdown.tsx';
+import { useEditorRendering } from './rendering-context.ts';
 import { declaredNameOf, linkTypeNames } from './symbol-links.ts';
 
 /* Code as the viewer colors it, plain until the grammar is in so the card never changes size under the pointer by much. */
@@ -102,10 +102,7 @@ function phpWithoutOpenTag(html: string): string {
     return html.replace(/<span[^>]*>&#x3C;\?<\/span><span[^>]*>php<\/span>(<span[^>]*>) /, '$1');
 }
 
-/*
- * Where a suggestion comes from, such as `use Raxos\Database\Orm\Attribute\PrimaryKey`, on one line that gives
- * way from its start, so the end of the name stays readable and a word is never cut in two. The full text is in the tooltip.
- */
+/* Where a suggestion comes from, such as a PHP `use` line, cut from its start so the end of the name stays readable. */
 export function SourceLine({ text, language }: { text: string; language: string }) {
     const { theme, highlight } = useEditorRendering();
     const [html, setHtml] = useState<{ key: string; html: string } | null>(null);
@@ -113,10 +110,7 @@ export function SourceLine({ text, language }: { text: string; language: string 
     const key = `${theme}\0${text}`;
 
     useEffect(() => {
-        if (!highlighted) {
-            return;
-        }
-        if (highlight === undefined) {
+        if (!highlighted || highlight === undefined) {
             return;
         }
         let alive = true;

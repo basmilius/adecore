@@ -1,13 +1,15 @@
 import { StaleResultError, type Location, type PrepareRenameResult, type WorkspaceEdit } from '@adecore/lsp';
 import type { EditorRange } from '@adecore/editor';
 import type { EditorLanguage } from './editor-language.ts';
+import { lineTextOf } from './line-text.ts';
 import type { RenameView } from './popups.ts';
 import { occurrencesOf, renamePreviewOf, renameTargetOf, wordRangeAt, type RenameTarget } from './rename-model.ts';
 import { isShortcut } from './shortcut-keys.ts';
+import { messageOf } from './error-message.ts';
 
 const METHOD = 'textDocument/rename';
 const TOAST_ID = 'language-rename';
-/* How many names are offered, and how many other lines and files are read to say how the symbol is used. */
+/* How much is read to tell a name suggester how the symbol is used: its first places, other files and lines around it. */
 const SAMPLE_LOCATIONS = 8;
 const SAMPLE_OTHER_FILES = 3;
 const CONTEXT_LINES = 3;
@@ -27,10 +29,6 @@ interface Session {
  * Edits to other files land as unsaved drafts (`applyWorkspaceEdit`), so nothing is written to disk here.
  */
 export class RenameFeature {
-    private tell(kind: 'success' | 'error', title: string): void {
-        this.language.project.host.notify?.({ id: TOAST_ID, kind, title });
-    }
-
     private readonly language: EditorLanguage;
     private session: Session | null = null;
 
@@ -80,11 +78,7 @@ export class RenameFeature {
         const target = renameTargetOf(
             answer,
             (range) => editor.textInRange(range),
-            () =>
-                wordRangeAt(
-                    editor.textInRange({ start: { line: caret.line, character: 0 }, end: { line: caret.line, character: Number.MAX_SAFE_INTEGER } }),
-                    caret
-                )
+            () => wordRangeAt(lineTextOf(editor, caret.line), caret)
         );
         if (target === null) {
             this.tell('error', this.say('nothing'));
@@ -135,7 +129,7 @@ export class RenameFeature {
             this.publish({ phase: 'preview', busy: false, name: next, files });
         } catch (error) {
             if (this.session === session) {
-                this.fail(error instanceof StaleResultError ? this.say('stale') : error instanceof Error ? error.message : String(error));
+                this.fail(error instanceof StaleResultError ? this.say('stale') : messageOf(error));
             }
         }
     }
@@ -155,6 +149,13 @@ export class RenameFeature {
         this.finish();
     }
 
+    /* The name was changed, which answers the failure under it. */
+    edited(): void {
+        if (this.language.popups.getState().rename?.error != null) {
+            this.publish({ error: null });
+        }
+    }
+
     private async apply(session: Session): Promise<void> {
         const result = await this.language.project.applyWorkspaceEdit(session.edit!);
         if (this.session !== session) {
@@ -172,13 +173,6 @@ export class RenameFeature {
         if (this.session !== null) {
             this.session.edit = null;
             this.publish({ phase: 'input', busy: false, files: [], error: this.say('failed', { message }) });
-        }
-    }
-
-    /* The name was changed, which answers the failure under it. */
-    edited(): void {
-        if (this.language.popups.getState().rename?.error != null) {
-            this.publish({ error: null });
         }
     }
 
@@ -282,6 +276,10 @@ export class RenameFeature {
                 ...patch
             }
         });
+    }
+
+    private tell(kind: 'success' | 'error', title: string): void {
+        this.language.project.host.notify?.({ id: TOAST_ID, kind, title });
     }
 
     private say(key: string, options?: Record<string, unknown>): string {

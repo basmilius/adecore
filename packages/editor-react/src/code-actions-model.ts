@@ -17,6 +17,14 @@ export interface ActionEntry {
     readonly group: ActionGroup;
 }
 
+/* Entries in the order of `order`, the preferred actions of each group first. */
+function inGroupOrder(entries: readonly ActionEntry[], order: readonly ActionGroup[]): ActionEntry[] {
+    return order.flatMap((group) => {
+        const own = entries.filter((entry) => entry.group === group);
+        return [...own.filter((entry) => entry.action.isPreferred === true), ...own.filter((entry) => entry.action.isPreferred !== true)];
+    });
+}
+
 /* The kinds nest by dots: `refactor.extract.function` is an extraction and `source.organizeImports` a source action. */
 export function groupOf(kind: string | undefined): ActionGroup {
     if (kind === 'quickfix' || kind?.startsWith('quickfix.')) {
@@ -45,10 +53,7 @@ export function actionsOf(result: readonly (CodeAction | Command)[] | null, orde
         .map((item) => (typeof item.command === 'string' ? ({ title: item.title, command: item as Command } satisfies CodeAction) : (item as CodeAction)))
         .filter((action) => action.disabled === undefined)
         .map((action, index) => ({ id: String(index), action, group: groupOf(action.kind) }));
-    return order.flatMap((group) => {
-        const own = entries.filter((entry) => entry.group === group);
-        return [...own.filter((entry) => entry.action.isPreferred === true), ...own.filter((entry) => entry.action.isPreferred !== true)];
-    });
+    return inGroupOrder(entries, order);
 }
 
 /* Entries from several requests as one list: the same order as a single answer, and an id of its own for each row. Two actions with a title and kind alike are one. */
@@ -62,10 +67,7 @@ export function mergeEntries(lists: readonly (readonly ActionEntry[])[]): Action
         seen.add(key);
         return true;
     });
-    return ACTION_GROUPS.flatMap((group) => {
-        const own = unique.filter((entry) => entry.group === group);
-        return [...own.filter((entry) => entry.action.isPreferred === true), ...own.filter((entry) => entry.action.isPreferred !== true)];
-    }).map((entry, index) => ({ ...entry, id: String(index) }));
+    return inGroupOrder(unique, ACTION_GROUPS).map((entry, index) => ({ ...entry, id: String(index) }));
 }
 
 /* Whether the lightbulb offers it: a source action such as organizing imports is a command of its own and never a hint. */

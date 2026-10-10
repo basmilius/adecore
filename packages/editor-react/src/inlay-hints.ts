@@ -1,6 +1,7 @@
 import type { EditorInlayHint, EditorPosition, EditorRange } from '@adecore/editor';
 import type { InlayHint } from '@adecore/lsp';
 import type { EditorLanguage } from './editor-language.ts';
+import { lineTextOf } from './line-text.ts';
 import { Refresher } from './refresher.ts';
 import { realTimers, type Timers } from './timers.ts';
 
@@ -53,7 +54,7 @@ export class InlayHintsFeature {
                 }
                 const range = withMargin(editor.getVisibleRange(), editor.positionAt(Number.MAX_SAFE_INTEGER), (line) => ({
                     line,
-                    character: editor.textInRange({ start: { line, character: 0 }, end: { line, character: Number.MAX_SAFE_INTEGER } }).length
+                    character: lineTextOf(editor, line).length
                 }));
                 this.asked = range;
                 const hints = await service.inlayHints(uri, range, { signal });

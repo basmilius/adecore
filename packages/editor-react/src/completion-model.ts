@@ -1,7 +1,7 @@
 import type { EditorContentChange, EditorPosition, EditorRange } from '@adecore/editor';
-import type { CompletionItem, CompletionList, CompletionResult, InsertReplaceEdit, MarkupContent, TextEdit } from '@adecore/lsp';
+import type { CompletionItem, CompletionList, CompletionResult, MarkupContent } from '@adecore/lsp';
 import { comparePositions } from './diagnostics-model.ts';
-import { isEmptyHover, splitSignatures, type HoverText } from './hover-content.ts';
+import { escapeMarkdown, isEmptyHover, splitSignatures, type HoverText } from './hover-content.ts';
 import type { CompletionDocs } from './popups.ts';
 import { parseSnippet, tabOrder, type SnippetStop } from './snippet.ts';
 
@@ -280,6 +280,10 @@ export const CONSTRUCTOR_KIND = 4;
 export const CLASS_KIND = 7;
 export const SNIPPET_FORMAT = 2;
 
+export function isCallableKind(kind: number | undefined): boolean {
+    return kind === METHOD_KIND || kind === FUNCTION_KIND || kind === CONSTRUCTOR_KIND;
+}
+
 /* A call snippet with the call cut off, for a name that already has its parentheses: `log(${1:value})$0` becomes `log`. */
 function withoutCall(snippet: string): string {
     const open = snippet.search(/(?<!\\)\(/);
@@ -309,8 +313,7 @@ export function insertionOf(item: CompletionItem, caret: EditorPosition, lineBef
         return { range, text: raw, stops: [] };
     }
     const followed = range.end.line === caret.line && lineAfter.slice(Math.max(0, range.end.character - caret.character)).startsWith('(');
-    const callable = item.kind === METHOD_KIND || item.kind === FUNCTION_KIND || item.kind === CONSTRUCTOR_KIND;
-    const parsed = parseSnippet(followed && callable ? withoutCall(raw) : raw);
+    const parsed = parseSnippet(followed && isCallableKind(item.kind) ? withoutCall(raw) : raw);
     return { range, text: parsed.text, stops: tabOrder(parsed) };
 }
 
@@ -352,14 +355,11 @@ export function documentationText(documentation: string | MarkupContent | undefi
     if (documentation === undefined) {
         return '';
     }
-    return typeof documentation === 'string'
-        ? documentation
-        : documentation.kind === 'plaintext'
-          ? documentation.value.replace(/([\\`*_{}[\]()#+\-.!|<>~])/g, '\\$1')
-          : documentation.value;
+    return typeof documentation === 'string' ? documentation : documentation.kind === 'plaintext' ? escapeMarkdown(documentation.value) : documentation.value;
 }
 
-const SOURCE_LINE = /^(?:use\s|Auto import from\b)/;
+/* A detail line that only says where an item comes from: a PHP `use` or an auto import. */
+export const SOURCE_LINE = /^(?:use\s|Auto import from\b)/;
 
 /*
  * What is said about a suggestion beside the list, in the shape a hover has: the signature it names and the
@@ -378,8 +378,6 @@ export function completionDocsOf(item: CompletionItem, highlightLanguage: string
     };
     return source === '' && isEmptyHover(text) ? null : { source, text };
 }
-
-export type { InsertReplaceEdit, TextEdit };
 
 const KIND_LETTERS: Record<number, string> = {
     1: 't',

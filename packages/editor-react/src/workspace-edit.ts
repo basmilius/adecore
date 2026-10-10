@@ -9,6 +9,7 @@ import {
     type WorkspaceEdit
 } from '@adecore/lsp';
 import type { DiskText } from './host-types.ts';
+import { messageOf } from './error-message.ts';
 
 /* A file that changed without an editor of this project holding it: its new text waits as an unsaved draft. */
 export interface StagedFile {
@@ -113,12 +114,10 @@ interface PlannedCreate {
 type Planned = PlannedEdits | PlannedCreate | { readonly kind: 'rename'; readonly oldPath: string; readonly newPath: string };
 
 /*
- * Applies an LSP workspace edit on the client, step by step in the order it says. A file an editor holds takes
- * its edits as one undo step. Any other file gets its new text as an unsaved draft that a person saves, and
- * nothing is written to disk on a server's word alone, unless the edit also moves a file: the edits and the
- * move are then one change, so every file is saved through the machine and the move is made there. A file
- * the edit creates is made through the machine with the text the edit writes into it. The edit is checked
- * against every text first, so one that does not fit changes nothing.
+ * Applies an LSP workspace edit step by step, after checking it against every text so one that does not fit
+ * changes nothing. A file an editor holds takes its edits as one undo step; any other file gets an unsaved
+ * draft, since nothing is written to disk on a server's word alone, unless the edit also moves a file: then it
+ * is one change, saved and moved through the machine. A file the edit creates is made through the machine.
  */
 export async function applyWorkspaceEdit(edit: WorkspaceEdit, host: WorkspaceEditHost): Promise<ApplyWorkspaceEditResult> {
     const steps = stepsOf(edit);
@@ -206,7 +205,7 @@ async function plan(steps: readonly Step[], host: WorkspaceEditHost): Promise<Pl
             try {
                 created.text = applyTextEdits(created.text, step.edits);
             } catch (error) {
-                return error instanceof Error ? error.message : String(error);
+                return messageOf(error);
             }
             continue;
         }
@@ -228,7 +227,7 @@ async function plan(steps: readonly Step[], host: WorkspaceEditHost): Promise<Pl
         try {
             after = applyTextEdits(held.text, step.edits);
         } catch (error) {
-            return error instanceof Error ? error.message : String(error);
+            return messageOf(error);
         }
         planned.push({ kind: 'edits', uri: step.uri, edits: step.edits, before: held.text, after, disk: held.disk });
         texts.set(source, { text: after, disk: held.disk });

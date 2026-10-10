@@ -1,5 +1,5 @@
 import { splitLines } from '@adecore/merge';
-import type { GitBlameResult } from './host-types.ts';
+import type { GitBlameCommit, GitBlameResult } from './host-types.ts';
 import type { EditorCodeVision, EditorCodeVisionEntry, EditorRect } from '@adecore/editor';
 import type { DocumentSymbolResult } from '@adecore/lsp';
 import type { EditorLanguage } from './editor-language.ts';
@@ -30,11 +30,10 @@ export type BlameSource =
     | { readonly kind: 'ready'; readonly blame: GitBlameResult; readonly base: string; openCommit?(hash: string): void };
 
 /*
- * The rows above declarations: how often each is used and, once git has been asked, who wrote it. The
- * declarations come from the symbols the servers know, and a row holds its height from the first
- * answer on, empty until its entries are in, so the text never moves when they arrive. Counts are asked
- * lazily, for the declarations in view and a margin around them, a few at a time, and only after the
- * text has settled; an old count stays on its row until the new one is in.
+ * The rows above declarations: how often each is used and who wrote it. A row holds its height from the
+ * first answer on, empty until its entries are in, so the text never moves when they arrive. Counts are
+ * asked for the declarations near the view, a few at a time, once the text has settled; an old count
+ * stays on its row until the new one is in.
  */
 export class CodeVisionFeature {
     private readonly language: EditorLanguage;
@@ -214,22 +213,27 @@ export class CodeVisionFeature {
                 });
             }
             if (mapped !== null && declaration.authors) {
-                let authorship = this.authorships.get(declaration.id);
-                if (authorship === undefined) {
-                    authorship = authorshipOf(commits, mapped, this.lines, declaration.authorFrom, declaration.authorTo);
-                    this.authorships.set(declaration.id, authorship);
-                }
-                const shown = authorship;
+                const authorship = this.authorshipOf(declaration, commits, mapped);
                 entries.push({
                     id: 'authors',
-                    text: authorsText(shown, this.language.project.i18n),
-                    ...(shown.authors.length > 0 ? { icon: shown.authors.length > 1 ? ('users' as const) : ('user' as const) } : {}),
-                    activate: (anchor) => this.showAuthors(declaration, shown, anchor)
+                    text: authorsText(authorship, this.language.project.i18n),
+                    ...(authorship.authors.length > 0 ? { icon: authorship.authors.length > 1 ? ('users' as const) : ('user' as const) } : {}),
+                    activate: (anchor) => this.showAuthors(declaration, authorship, anchor)
                 });
             }
             rows.push({ id: declaration.id, line: declaration.line, entries });
         }
         return rows;
+    }
+
+    private authorshipOf(declaration: CodeVisionDeclaration, commits: readonly GitBlameCommit[], mapped: Int32Array): CodeAuthorship {
+        const known = this.authorships.get(declaration.id);
+        if (known !== undefined) {
+            return known;
+        }
+        const authorship = authorshipOf(commits, mapped, this.lines, declaration.authorFrom, declaration.authorTo);
+        this.authorships.set(declaration.id, authorship);
+        return authorship;
     }
 
     private mapOfBlame(source: Extract<BlameSource, { kind: 'ready' }>): Int32Array | null {

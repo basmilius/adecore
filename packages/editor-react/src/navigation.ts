@@ -5,6 +5,7 @@ import type { EditorLanguage } from './editor-language.ts';
 import { rangeHolds } from './diagnostics-model.ts';
 import { placesOfName } from './symbol-links.ts';
 import { isShortcut } from './shortcut-keys.ts';
+import { messageOf } from './error-message.ts';
 
 export type NavigationKind = 'definition' | 'declaration' | 'typeDefinition' | 'implementation';
 
@@ -106,7 +107,7 @@ export class NavigationFeature {
             result = await REQUESTS[kind](project.service, uri, position);
         } catch (error) {
             if (!(error instanceof StaleResultError)) {
-                this.tell(this.say('failed', { message: error instanceof Error ? error.message : String(error) }));
+                this.tell(this.say('failed', { message: messageOf(error) }));
             }
             return;
         }

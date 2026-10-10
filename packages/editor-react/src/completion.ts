@@ -20,6 +20,8 @@ import {
 import { PARAMETER_HINTS_COMMAND, isCallItem, planCall, withParentheses, type CallPlan } from './completion-call.ts';
 import { RecentChoices, recentChoicesOf } from './recent-choices.ts';
 import { shikiLanguageOf } from './language-ids.ts';
+import { textBeforeOf } from './line-text.ts';
+import { isEmptyRange } from './proposal-model.ts';
 import { isShortcut } from './shortcut-keys.ts';
 import type { CompletionRow, CompletionView } from './popups.ts';
 import { realTimers, type Timers } from './timers.ts';
@@ -32,10 +34,6 @@ const RESOLVE_DELAY_MS = 120;
 const PAGE = 8;
 const LINES_BACK = 60;
 const TOAST_ID = 'language-completion';
-
-function isEmpty(range: EditorRange): boolean {
-    return comparePositions(range.start, range.end) === 0;
-}
 
 /*
  * The suggestions that open while a word is typed. A single typed identifier character or a trigger
@@ -120,7 +118,7 @@ export class CompletionFeature {
             item = await this.resolveNow(entry.item);
         }
         const caret = editor.getCaret();
-        const lineBefore = editor.textInRange({ start: { line: caret.line, character: 0 }, end: caret });
+        const lineBefore = textBeforeOf(editor, caret);
         const lineAfter = editor.textInRange({ start: caret, end: { line: caret.line, character: Number.MAX_SAFE_INTEGER } });
         // A character that commits is typed after the name, so a call is not added before it.
         const planned = insertionOf(item, caret, lineBefore, replace, commit === undefined ? lineAfter : '(');
@@ -310,13 +308,10 @@ export class CompletionFeature {
         const triggers = this.triggerCharacters();
         const last = Array.from(text).at(-1) ?? '';
         const typedIdentifier = text !== '' && Array.from(text).every(isIdentifierCharacter);
-        if (text.length > 0 && triggers.includes(last) && text.length === 1) {
+        if (text.length === 1 && triggers.includes(last)) {
             this.close();
             this.beginRequest({ triggerKind: 2, triggerCharacter: last }, 0);
-        } else if (
-            isEmpty(range) &&
-            opensCompletion(this.language.editor.textInRange({ start: { line: range.start.line, character: 0 }, end: range.start }), text)
-        ) {
+        } else if (isEmptyRange(range) && opensCompletion(textBeforeOf(this.language.editor, range.start), text)) {
             this.close();
             this.beginRequest({ triggerKind: 1 }, START_DELAY_MS);
         } else if (this.isOpen) {
@@ -326,7 +321,7 @@ export class CompletionFeature {
             } else {
                 this.close();
             }
-        } else if (text.length === 1 && typedIdentifier && isEmpty(range)) {
+        } else if (text.length === 1 && typedIdentifier && isEmptyRange(range)) {
             this.beginRequest({ triggerKind: 1 }, START_DELAY_MS);
         }
     }
@@ -393,7 +388,7 @@ export class CompletionFeature {
         this.server = project.host.serverNames?.(uri)[0] ?? '';
         if (!refresh) {
             const caret = editor.getCaret();
-            const lineBefore = editor.textInRange({ start: { line: caret.line, character: 0 }, end: caret });
+            const lineBefore = textBeforeOf(editor, caret);
             const prefix = context.triggerKind === 2 ? '' : identifierPrefix(lineBefore);
             this.start = { line: caret.line, character: caret.character - prefix.length };
             this.active = 0;
@@ -419,7 +414,7 @@ export class CompletionFeature {
             this.close();
             return;
         }
-        const lineBefore = editor.textInRange({ start: { line: caret.line, character: 0 }, end: caret });
+        const lineBefore = textBeforeOf(editor, caret);
         // Most items of a list replace the same range, so the text under it is read once and not once per item.
         const typed = new Map<string, string>();
         const textBetween = (range: EditorRange): string => {

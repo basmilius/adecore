@@ -1,5 +1,5 @@
 import type { CompletionItem } from '@adecore/lsp';
-import { CLASS_KIND, CONSTRUCTOR_KIND, FUNCTION_KIND, METHOD_KIND, SNIPPET_FORMAT, type Insertion } from './completion-model.ts';
+import { CLASS_KIND, SNIPPET_FORMAT, SOURCE_LINE, isCallableKind, type Insertion } from './completion-model.ts';
 
 /* What the platform's editors send to ask for parameter info once an item is in; the card is ours to open. */
 export const PARAMETER_HINTS_COMMAND = 'editor.action.triggerParameterHints';
@@ -13,7 +13,6 @@ const TYPE_OPERATOR = /\b(?:typeof|keyof|instanceof|implements|satisfies|as)\s+[
 const AFTER_NEW = /\bnew\s+[\w$.\\]*$/;
 const EXISTING_CALL = /^\s*\(/;
 const SIGNATURE_KIND_PREFIX = /^\([a-z]+(?: [a-z]+)*\)\s+(?!=>)/;
-const SOURCE_LINE = /^(?:use\s|Auto import from\b)/;
 
 /*
  * What accepting an item does about the call it names: nothing, parentheses added with the caret inside or
@@ -37,10 +36,7 @@ export interface CallSite {
 
 /* Whether the item is something that is called where it stands: a function, a method, a constructor, or a class after `new`. */
 export function isCallItem(item: CompletionItem, lineBefore: string): boolean {
-    if (item.kind === METHOD_KIND || item.kind === FUNCTION_KIND || item.kind === CONSTRUCTOR_KIND) {
-        return true;
-    }
-    return item.kind === CLASS_KIND && AFTER_NEW.test(lineBefore);
+    return isCallableKind(item.kind) || (item.kind === CLASS_KIND && AFTER_NEW.test(lineBefore));
 }
 
 /* Whether the parameter list in a signature has anything in it; null when the text names no list. */

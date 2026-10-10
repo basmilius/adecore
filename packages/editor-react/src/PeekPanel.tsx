@@ -170,10 +170,9 @@ function Places({ language, view }: { language: EditorLanguage; view: PeekView }
 }
 
 /*
- * The references of a name drawn in the row the editor leaves under the line: the file of the active
- * reference and where it is, the code around it on the left and every place on the right. It lives in a
- * portal into the editor's own row, which the editor makes again when it scrolls back into view. It has
- * the editor's own ground and no edge of its own, so it reads as part of the file.
+ * The references of a name in the row the editor leaves under the line: the code around the active one on
+ * the left and every place on the right. It portals into that row, which the editor makes again when it
+ * scrolls back into view, and has no edge of its own, so it reads as part of the file.
  */
 export function PeekPanel({ language, view }: { language: EditorLanguage; view: PeekView }) {
     const { t } = useTranslation('editor');

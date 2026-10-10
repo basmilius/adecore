@@ -2,6 +2,7 @@ import type { EditorPosition } from '@adecore/editor';
 import { isIdentifierCharacter } from './completion-model.ts';
 import type { EditorLanguage } from './editor-language.ts';
 import { locationsOf } from './hover-content.ts';
+import { lineTextOf } from './line-text.ts';
 import { wordRangeAt } from './rename-model.ts';
 
 /*
@@ -78,7 +79,7 @@ export class DefinitionLinkFeature {
             return;
         }
         const { editor, project, uri } = this.language;
-        const line = editor.textInRange({ start: { line: pointer.line, character: 0 }, end: { line: pointer.line, character: Number.MAX_SAFE_INTEGER } });
+        const line = lineTextOf(editor, pointer.line);
         const word = isIdentifierCharacter(line[pointer.character] ?? '') ? wordRangeAt(line, pointer) : null;
         if (word === null) {
             this.clear();

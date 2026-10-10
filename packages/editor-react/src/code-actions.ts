@@ -18,6 +18,7 @@ import type { PickGroup, PickPreview } from './popups.ts';
 import { Refresher } from './refresher.ts';
 import { isShortcut } from './shortcut-keys.ts';
 import { realTimers, type Timers } from './timers.ts';
+import { messageOf } from './error-message.ts';
 
 const METHOD = 'textDocument/codeAction';
 const PAUSE_MS = 250;
@@ -36,6 +37,14 @@ function isRefusal(error: unknown): boolean {
     return error instanceof LspError && error.code === ErrorCodes.InternalError;
 }
 
+interface RequestOptions {
+    readonly only?: readonly string[];
+    readonly signal?: AbortSignal;
+    /* The problems the actions are about; the ones touching the range when absent. */
+    readonly about?: readonly Diagnostic[];
+    readonly order?: readonly ActionGroup[];
+}
+
 interface AskOptions {
     readonly range: EditorRange;
     readonly only?: readonly string[];
@@ -49,16 +58,11 @@ interface AskOptions {
 }
 
 /*
- * What the language servers offer to do at the caret or the selection: a lightbulb in the gutter on the line
- * that has something, a list under the caret (Mod+.) grouped by kind with the change an action would make
- * shown under it, the Quick fix of a problem's card, and the commands that organize imports and format the file.
- * An action is resolved before it is applied, since a server fills in its edit only when asked for it.
+ * What the servers offer at the caret or the selection: the gutter's lightbulb, the list under the caret
+ * with a preview of each change, a problem's Quick fix, organize imports and format. An action is resolved
+ * before it is applied, since a server fills in its edit only when asked for it.
  */
 export class CodeActionsFeature {
-    private tell(kind: 'success' | 'error', title: string): void {
-        this.language.project.host.notify?.({ id: TOAST_ID, kind, title });
-    }
-
     private readonly language: EditorLanguage;
     private readonly refresher: Refresher;
     /* While a list is being asked for, the lightbulb waits: both are the same request and the newer one would cancel the older. */
@@ -127,7 +131,7 @@ export class CodeActionsFeature {
     async organizeImports(): Promise<void> {
         const { editor } = this.language;
         const everything = { start: { line: 0, character: 0 }, end: editor.positionAt(Number.MAX_SAFE_INTEGER) };
-        const entries = await this.request(everything, ['source.organizeImports'], INVOKED);
+        const entries = await this.request(everything, INVOKED, { only: ['source.organizeImports'] });
         const entry = entries?.find((candidate) => candidate.action.kind?.startsWith('source.organizeImports') === true);
         if (entry === undefined) {
             this.tell('success', this.say(entries === null ? 'unavailable' : 'organized'));
@@ -154,16 +158,10 @@ export class CodeActionsFeature {
 
     /* The actions of one kind for the selection, as entries a menu can list and `apply` runs. */
     list(only: readonly string[]): Promise<ActionEntry[] | null> {
-        return this.supported
-            ? this.request(
-                  this.language.editor.getSelection(),
-                  only,
-                  AUTOMATIC,
-                  undefined,
-                  undefined,
-                  only.includes('refactor') ? REFACTOR_GROUPS : ACTION_GROUPS
-              )
-            : Promise.resolve(null);
+        if (!this.supported) {
+            return Promise.resolve(null);
+        }
+        return this.request(this.language.editor.getSelection(), AUTOMATIC, { only, order: only.includes('refactor') ? REFACTOR_GROUPS : ACTION_GROUPS });
     }
 
     private async ask(options: AskOptions): Promise<void> {
@@ -178,7 +176,7 @@ export class CodeActionsFeature {
         try {
             entries = options.withLine
                 ? await this.requestWithLine(options.range, INVOKED)
-                : await this.request(options.range, options.only, INVOKED, undefined, options.diagnostics, options.groups);
+                : await this.request(options.range, INVOKED, { only: options.only, about: options.diagnostics, order: options.groups });
         } finally {
             this.asking = false;
         }
@@ -210,24 +208,18 @@ export class CodeActionsFeature {
     }
 
     /* Asks the servers; null when they could not answer, with the reason said aloud for a request a person made. */
-    private async request(
-        range: EditorRange,
-        only: readonly string[] | undefined,
-        triggerKind: number,
-        signal?: AbortSignal,
-        about?: readonly Diagnostic[],
-        order?: readonly ActionGroup[]
-    ): Promise<ActionEntry[] | null> {
+    private async request(range: EditorRange, triggerKind: number, options: RequestOptions = {}): Promise<ActionEntry[] | null> {
         const { project, uri, diagnostics } = this.language;
+        const { only, signal, order } = options;
         try {
+            const about =
+                options.about ??
+                diagnosticsAt(
+                    diagnostics.problems.map((problem) => problem.diagnostic),
+                    range
+                );
             const context = {
-                diagnostics: [
-                    ...(about ??
-                        diagnosticsAt(
-                            diagnostics.problems.map((problem) => problem.diagnostic),
-                            range
-                        ))
-                ],
+                diagnostics: [...about],
                 ...(only ? { only: [...only] } : {}),
                 triggerKind: triggerKind as 1 | 2
             };
@@ -247,7 +239,7 @@ export class CodeActionsFeature {
      * elsewhere on its line too, since the fix of an error is wanted from anywhere on the line it is on.
      */
     private async requestWithLine(range: EditorRange, triggerKind: number, signal?: AbortSignal): Promise<ActionEntry[] | null> {
-        const entries = await this.request(range, undefined, triggerKind, signal);
+        const entries = await this.request(range, triggerKind, { signal });
         if (entries === null || range.start.line !== range.end.line) {
             return entries;
         }
@@ -256,7 +248,9 @@ export class CodeActionsFeature {
             return entries;
         }
         const onLine = fixableOnLine(all, range.start.line).slice(0, LINE_PROBLEMS);
-        const fixes = await Promise.all(onLine.map((diagnostic) => this.request(diagnostic.range, ['quickfix'], triggerKind, signal, [diagnostic])));
+        const fixes = await Promise.all(
+            onLine.map((diagnostic) => this.request(diagnostic.range, triggerKind, { only: ['quickfix'], signal, about: [diagnostic] }))
+        );
         return mergeEntries([entries, ...fixes.map((list) => list ?? [])]);
     }
 
@@ -372,9 +366,13 @@ export class CodeActionsFeature {
         }
     }
 
+    private tell(kind: 'success' | 'error', title: string): void {
+        this.language.project.host.notify?.({ id: TOAST_ID, kind, title });
+    }
+
     private fail(error: unknown): void {
         if (!(error instanceof StaleResultError)) {
-            this.tell('error', this.say('failed', { message: error instanceof Error ? error.message : String(error) }));
+            this.tell('error', this.say('failed', { message: messageOf(error) }));
         }
     }
 

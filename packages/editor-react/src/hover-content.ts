@@ -52,10 +52,12 @@ export function hoverTextOf(hover: Hover): HoverText {
     if (typeof contents === 'string' || 'language' in contents) {
         return markedStringText(contents);
     }
-    // Plain text is text, and not markdown that happens to have underscores in it.
-    return contents.kind === 'plaintext'
-        ? { signatures: [], markdown: contents.value.replace(/([\\`*_{}[\]()#+\-.!|<>~])/g, '\\$1').trim() }
-        : splitSignatures(contents.value);
+    return contents.kind === 'plaintext' ? { signatures: [], markdown: escapeMarkdown(contents.value).trim() } : splitSignatures(contents.value);
+}
+
+/* Plain text as markdown that reads the same, its markdown characters escaped. */
+export function escapeMarkdown(text: string): string {
+    return text.replace(/([\\`*_{}[\]()#+\-.!|<>~])/g, '\\$1');
 }
 
 export function isEmptyHover(text: HoverText): boolean {

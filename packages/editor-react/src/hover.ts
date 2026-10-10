@@ -2,6 +2,7 @@ import type { EditorHover, EditorPosition, EditorRange } from '@adecore/editor';
 import type { EditorLanguage } from './editor-language.ts';
 import { rangeHolds, type Problem } from './diagnostics-model.ts';
 import { hoverTextOf, isEmptyHover, locationsOf } from './hover-content.ts';
+import { lineTextOf } from './line-text.ts';
 import { wordRangeAt } from './rename-model.ts';
 import type { HoverInfo } from './popups.ts';
 import { isShortcut } from './shortcut-keys.ts';
@@ -21,11 +22,11 @@ const TOAST_ID = 'language-hover';
 export class HoverFeature {
     private readonly language: EditorLanguage;
     private readonly timers: Timers;
-    private showTimer: unknown;
-    private countTimer: unknown;
     /* The counts asked for since the text last changed, by the symbol's position, so moving back to a name does not ask again. */
     private readonly counts = new Map<string, number>();
+    private showTimer: unknown;
     private hideTimer: unknown;
+    private countTimer: unknown;
     private inCard = false;
     /* Counts every request, so an answer that arrives after the pointer moved on is dropped. */
     private request = 0;
@@ -181,12 +182,15 @@ export class HoverFeature {
             service.hover(uri, position, { signal }).catch(() => null),
             service.supports('textDocument/definition', uri) ? service.definition(uri, position, { signal }).catch(() => null) : null
         ]);
-        const text = hover === null ? null : hoverTextOf(hover);
-        if (hover === null || text === null || isEmptyHover(text)) {
+        if (hover === null) {
+            return { info: null, range: null };
+        }
+        const text = hoverTextOf(hover);
+        if (isEmptyHover(text)) {
             return { info: null, range: null };
         }
         const { editor } = this.language;
-        const line = editor.textInRange({ start: { line: position.line, character: 0 }, end: { line: position.line, character: Number.MAX_SAFE_INTEGER } });
+        const line = lineTextOf(editor, position.line);
         const word = wordRangeAt(line, position);
         return {
             info: {
@@ -271,10 +275,7 @@ export class HoverFeature {
 
     /* Where the word at a position starts, which names the symbol for the cache. */
     wordStart(position: EditorPosition): number {
-        const line = this.language.editor.textInRange({
-            start: { line: position.line, character: 0 },
-            end: { line: position.line, character: Number.MAX_SAFE_INTEGER }
-        });
+        const line = lineTextOf(this.language.editor, position.line);
         return wordRangeAt(line, position)?.start.character ?? position.character;
     }
 }
