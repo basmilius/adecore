@@ -1,10 +1,10 @@
 import type { ChatItem } from '@adecore/agent-contracts';
+import { errorText } from '../error-text.ts';
 import type { SpawnChatProcess } from './chat-process.ts';
 import { CodexProtocol } from './codex-protocol.ts';
 import { CodexTransport, DEFAULT_CODEX_CLIENT, type CodexClientInfo } from './codex-transport.ts';
 import { ChatError } from './errors.ts';
 import { readingThread, settledReading } from './subagent-projection.ts';
-import { errorText } from '../error-text.ts';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -116,14 +116,15 @@ async function nthTurnId(transport: CodexTransport, threadId: string, turns: num
     let seen = 0;
     let cursor: string | null = null;
     do {
-        const page = await transport.request('thread/turns/list', { threadId, limit: 100, sortDirection: 'asc', ...(cursor === null ? {} : { cursor }) });
-        const data = isRecord(page) && Array.isArray(page.data) ? page.data.filter(isRecord) : [];
-        for (const turn of data) {
+        const page = parseThreadItemsPage(
+            await transport.request('thread/turns/list', { threadId, limit: 100, sortDirection: 'asc', ...(cursor === null ? {} : { cursor }) })
+        );
+        for (const turn of page.entries) {
             if (++seen === turns) {
                 return typeof turn.id === 'string' ? turn.id : null;
             }
         }
-        cursor = isRecord(page) && typeof page.nextCursor === 'string' && page.nextCursor !== '' ? page.nextCursor : null;
+        cursor = page.nextCursor;
     } while (cursor !== null);
     return null;
 }

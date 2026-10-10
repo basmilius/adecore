@@ -4,12 +4,12 @@ import { join } from 'node:path';
 import { ChatInfoSchema, ChatItemSchema, type ChatInfo, type ChatItem } from '@adecore/agent-contracts';
 import { z } from 'zod';
 import { isNotFound, writeAtomic, writeAtomicSync } from '../fs.ts';
-import { isBookmarkFileName } from './bookmark-store.ts';
+import { recordFileName } from '../record-directory.ts';
 import { migrateInlineAttachments, type AttachmentStore } from './attachment-store.ts';
+import { isBookmarkFileName } from './bookmark-store.ts';
 import { parseLog, type ChatLogLine } from './chat-log.ts';
 import { ChatThread } from './thread.ts';
 import { isVisualFileName } from './visual-store.ts';
-import { recordFileName } from '../record-directory.ts';
 
 // zod strips what it does not know inside the info and the items, so a file written by an older build
 // (with `interactionMode`, say) still parses and loses only the dropped field. A record without `seq`
@@ -30,7 +30,7 @@ const OWN_KEYS = new Set(['info', 'items', 'seq', 'resetSeq', 'preambles', 'uiAc
 /* What a host keeps in a chat's record beside the thread; it never reaches the wire. */
 export type ChatRecordExtras = Record<string, unknown>;
 
-function extrasOf(record: Record<string, unknown>): ChatRecordExtras {
+function withoutOwnKeys(record: Record<string, unknown>): ChatRecordExtras {
     return Object.fromEntries(Object.entries(record).filter(([key]) => !OWN_KEYS.has(key)));
 }
 
@@ -88,10 +88,6 @@ function liftUiAccess(record: unknown): unknown {
         }
     }
     return Object.keys(uiAccess).length === 0 ? record : { ...record, uiAccess };
-}
-
-function withoutOwnKeys(extras: ChatRecordExtras): ChatRecordExtras {
-    return Object.fromEntries(Object.entries(extras).filter(([key]) => !OWN_KEYS.has(key)));
 }
 
 export interface ChatStoreOptions {
@@ -214,7 +210,7 @@ export class ChatStore {
             resetSeq,
             preambles: snapshot.preambles ?? [],
             uiAccess: snapshot.uiAccess ?? {},
-            extras: extrasOf(snapshot),
+            extras: withoutOwnKeys(snapshot),
             lines
         };
     }

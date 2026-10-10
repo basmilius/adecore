@@ -1,7 +1,7 @@
 import type { AgentKind } from '@adecore/agent-contracts';
-import { cleanTitle } from '../title-file.ts';
 import type { ProviderRegistry } from '../providers/registry.ts';
 import { runProcess } from '../run-process.ts';
+import { cleanTitle } from '../title-file.ts';
 
 // Enough of a conversation to name it; the rest of a long prompt or answer says nothing a title needs.
 const MAX_PROMPT_CHARS = 2000;
@@ -19,10 +19,7 @@ function cap(text: string, limit: number): string {
     return text.length <= limit ? text : `${text.slice(0, limit)}...`;
 }
 
-/*
- * What the CLI is asked. JSON again, as for a commit message: a model left to write freely opens
- * with a sentence, and that sentence would become the name of the node.
- */
+/* JSON, since a model left to write freely opens with a sentence, and that sentence would become the name. */
 export function buildTitlePrompt(prompt: string, answer: string): string {
     return [
         'Write a short title for the conversation below, as a person would name it in a list of chats.',
@@ -42,9 +39,8 @@ export function buildTitlePrompt(prompt: string, answer: string): string {
 }
 
 /*
- * The title out of what the CLI printed, or null. Strict on purpose, unlike a commit message: a run
- * that holds no `{"title": "..."}` object printed something other than a title, and a derived name
- * is better than a stray line of it.
+ * Strict on purpose: a run that holds no `{"title": "..."}` object printed something other than a
+ * title, and a derived name is better than a stray line of it.
  */
 export function parseTitle(output: string): string | null {
     const start = [...output.matchAll(/\{\s*"title"/g)].at(-1)?.index;

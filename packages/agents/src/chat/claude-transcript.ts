@@ -5,8 +5,8 @@ import type { ChatHistoryResult, ChatItem } from '@adecore/agent-contracts';
 import { readLines } from '../title-file.ts';
 import { ClaudeProtocol } from './claude-protocol.ts';
 import { readingThread, settledReading } from './subagent-projection.ts';
-import type { ChatThread } from './thread.ts';
 import type { ThreadProjector } from './projector.ts';
+import type { ChatThread } from './thread.ts';
 
 const CHUNK_BYTES = 4 * 1024 * 1024;
 

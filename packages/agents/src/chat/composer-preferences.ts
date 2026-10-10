@@ -15,9 +15,8 @@ interface Held {
 
 /*
  * What each connected client says a new chat starts with, for the chats the host starts with no
- * client mounting them. Held per socket like the approval switch: a machine never remembers a
- * person's pick after that person's client is gone, so with nobody connected a chat gets the
- * host's own defaults.
+ * client mounting them. Held per client only, so with nobody connected a chat gets the host's own
+ * defaults rather than the pick of a person who left.
  */
 export class ComposerPreferences {
     private readonly byClient = new Map<string, Held>();

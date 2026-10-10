@@ -48,8 +48,8 @@ export interface ChatLogState {
 }
 
 /*
- * Number and synchronously append each broadcast event so disk, memory and snapshot boundaries keep
- * one order. Recent lines stay in memory for immediate `since` attachment.
+ * Numbers every broadcast event and appends it synchronously, so disk, memory and snapshot boundaries
+ * keep one order. Recent lines stay in memory to answer an attach with `since` at once.
  */
 export class ChatLog {
     private readonly path: string | null;

@@ -2,7 +2,10 @@ import type { ChatItem } from '@adecore/agent-contracts';
 import type { ChatCore } from './chat-core.ts';
 import type { ChatSession } from './chat-session.ts';
 
-/* A chat the host may open a turn in, as the outbox handlers see it: what its thread holds, and the one call that opens one, false while a turn or an owed resume is in the way. */
+/*
+ * A chat the host may open a turn in, as the outbox handlers see it. `wake` answers false while a
+ * turn or an owed resume is in the way.
+ */
 export interface WakeChat {
     items(): ChatItem[];
     persist?(): Promise<void>;

@@ -113,6 +113,13 @@ function tooLarge(bytes: number): never {
     );
 }
 
+function refuseOversized(html: string): void {
+    const bytes = Buffer.byteLength(html, 'utf8');
+    if (bytes > VISUAL_LIMITS.bytes) {
+        tooLarge(bytes);
+    }
+}
+
 /*
  * The visuals of every chat. The list of a chat is one file beside its record under `<home>/chats`;
  * each page is a file in the chat's attachment folder, `<id>.html`, so whatever serves an attachment
@@ -164,9 +171,7 @@ export class VisualStore {
         if (html.trim() === '') {
             refuse('visual-invalid', 'The page is empty; pass one self-contained HTML document');
         }
-        if (Buffer.byteLength(html, 'utf8') > VISUAL_LIMITS.bytes) {
-            tooLarge(Buffer.byteLength(html, 'utf8'));
-        }
+        refuseOversized(html);
         return this.writeWorkspaceFile(chatId, name, html);
     }
 
@@ -178,9 +183,7 @@ export class VisualStore {
     async publish(chatId: string, input: VisualInput): Promise<ChatVisual> {
         const { title, html, maxHeight, layout, heights } = checked(input);
         // Before the bootstrap is added, so a page far too large is never copied first.
-        if (Buffer.byteLength(html, 'utf8') > VISUAL_LIMITS.bytes) {
-            tooLarge(Buffer.byteLength(html, 'utf8'));
-        }
+        refuseOversized(html);
         const page = Buffer.from(injectVisualBootstrap(html), 'utf8');
         if (page.byteLength > VISUAL_LIMITS.bytes) {
             tooLarge(page.byteLength);

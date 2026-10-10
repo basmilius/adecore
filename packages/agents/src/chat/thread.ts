@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
+import type { AgentStatus, ChatApprovalItem, ChatEvent, ChatHistoryResult, ChatInfo, ChatItem, ChatQuestionItem } from '@adecore/agent-contracts';
 import { ChatError } from './errors.ts';
 import { requestSummaries } from './request-summary.ts';
-import type { AgentStatus, ChatApprovalItem, ChatEvent, ChatHistoryResult, ChatInfo, ChatItem, ChatQuestionItem } from '@adecore/agent-contracts';
 
 /*
  * The state of one chat as the client sees it. Every mutation answers the event that describes

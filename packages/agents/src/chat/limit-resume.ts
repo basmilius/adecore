@@ -5,13 +5,8 @@ export const LIMIT_RETRY_DELAYS_MS: readonly number[] = [60_000, 5 * 60_000, 15 
 
 /* The last turn of a thread, when it stopped on a limit. */
 export function limitedTurn(items: readonly ChatItem[]): (ChatTurnItem & { limit: ChatTurnLimit }) | null {
-    for (let i = items.length - 1; i >= 0; i--) {
-        const item = items[i]!;
-        if (item.kind === 'turn') {
-            return item.state === 'error' && item.limit !== undefined ? (item as ChatTurnItem & { limit: ChatTurnLimit }) : null;
-        }
-    }
-    return null;
+    const last = items.findLast((item) => item.kind === 'turn');
+    return last?.kind === 'turn' && last.state === 'error' && last.limit !== undefined ? (last as ChatTurnItem & { limit: ChatTurnLimit }) : null;
 }
 
 /* How many turns in a row, up to and including this one, stopped on a limit: the tries a person did not step in between. */
