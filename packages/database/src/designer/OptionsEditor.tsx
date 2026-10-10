@@ -11,91 +11,111 @@ export function OptionsEditor({ draft, dialect, disabled, onChange, className, r
     const { t } = useTranslation('database');
     const id = useId();
     const { options } = draft;
+    const patch = (change: Parameters<typeof patchOptions>[1]): void => onChange(patchOptions(draft, change));
     if (dialect.engine === 'sqlite') {
         return (
             <div ref={ref} className={clsx('flex flex-col gap-4 p-3', className)}>
-                <label className="flex items-start gap-3">
-                    <Switch
-                        label={t('designer.options.withoutRowid')}
-                        checked={options.withoutRowid}
-                        disabled={disabled}
-                        onCheckedChange={(checked) => onChange(patchOptions(draft, { withoutRowid: checked }))}
-                    />
-                    <span className="flex flex-col">
-                        <span className="text-sm text-text">{t('designer.options.withoutRowid')}</span>
-                        <span className="text-xs text-text-muted">{t('designer.options.withoutRowidHint')}</span>
-                    </span>
-                </label>
-                <label className="flex items-start gap-3">
-                    <Switch
-                        label={t('designer.options.strict')}
-                        checked={options.strict}
-                        disabled={disabled}
-                        onCheckedChange={(checked) => onChange(patchOptions(draft, { strict: checked }))}
-                    />
-                    <span className="flex flex-col">
-                        <span className="text-sm text-text">{t('designer.options.strict')}</span>
-                        <span className="text-xs text-text-muted">{t('designer.options.strictHint')}</span>
-                    </span>
-                </label>
+                <OptionSwitch
+                    label={t('designer.options.withoutRowid')}
+                    hint={t('designer.options.withoutRowidHint')}
+                    checked={options.withoutRowid}
+                    disabled={disabled}
+                    onCheckedChange={(withoutRowid) => patch({ withoutRowid })}
+                />
+                <OptionSwitch
+                    label={t('designer.options.strict')}
+                    hint={t('designer.options.strictHint')}
+                    checked={options.strict}
+                    disabled={disabled}
+                    onCheckedChange={(strict) => patch({ strict })}
+                />
             </div>
         );
     }
     return (
         <div ref={ref} className={clsx('flex max-w-xl flex-col gap-4 p-3', className)}>
-            <datalist id={`${id}-engines`}>
-                {MYSQL_ENGINES.map((engine) => (
-                    <option key={engine} value={engine} />
-                ))}
-            </datalist>
-            <datalist id={`${id}-charsets`}>
-                {MYSQL_CHARSETS.map((charset) => (
-                    <option key={charset} value={charset} />
-                ))}
-            </datalist>
-            <datalist id={`${id}-collations`}>
-                {collationSuggestionsOf(options.charset).map((collation) => (
-                    <option key={collation} value={collation} />
-                ))}
-            </datalist>
-            <Field label={t('designer.options.engine')} hint={t('designer.options.serverDefault')}>
-                <Input
-                    mono
-                    list={`${id}-engines`}
-                    spellCheck={false}
-                    value={options.engine}
-                    disabled={disabled}
-                    onChange={(event) => onChange(patchOptions(draft, { engine: event.target.value }))}
-                />
-            </Field>
-            <Field label={t('designer.options.charset')} hint={t('designer.options.serverDefault')}>
-                <Input
-                    mono
-                    list={`${id}-charsets`}
-                    spellCheck={false}
-                    value={options.charset}
-                    disabled={disabled}
-                    onChange={(event) => onChange(patchOptions(draft, { charset: event.target.value }))}
-                />
-            </Field>
-            <Field label={t('designer.options.collation')} hint={t('designer.options.serverDefault')}>
-                <Input
-                    mono
-                    list={`${id}-collations`}
-                    spellCheck={false}
-                    value={options.collation}
-                    disabled={disabled}
-                    onChange={(event) => onChange(patchOptions(draft, { collation: event.target.value }))}
-                />
-            </Field>
+            <SuggestedField
+                label={t('designer.options.engine')}
+                listId={`${id}-engines`}
+                suggestions={MYSQL_ENGINES}
+                value={options.engine}
+                disabled={disabled}
+                onValueChange={(engine) => patch({ engine })}
+            />
+            <SuggestedField
+                label={t('designer.options.charset')}
+                listId={`${id}-charsets`}
+                suggestions={MYSQL_CHARSETS}
+                value={options.charset}
+                disabled={disabled}
+                onValueChange={(charset) => patch({ charset })}
+            />
+            <SuggestedField
+                label={t('designer.options.collation')}
+                listId={`${id}-collations`}
+                suggestions={collationSuggestionsOf(options.charset)}
+                value={options.collation}
+                disabled={disabled}
+                onValueChange={(collation) => patch({ collation })}
+            />
             <Field label={t('designer.options.comment')}>
-                <TextArea
-                    rows={3}
-                    value={options.comment}
-                    disabled={disabled}
-                    onChange={(event) => onChange(patchOptions(draft, { comment: event.target.value }))}
-                />
+                <TextArea rows={3} value={options.comment} disabled={disabled} onChange={(event) => patch({ comment: event.target.value })} />
             </Field>
         </div>
+    );
+}
+
+function OptionSwitch({
+    label,
+    hint,
+    checked,
+    disabled,
+    onCheckedChange
+}: {
+    label: string;
+    hint: string;
+    checked: boolean;
+    disabled: boolean;
+    onCheckedChange(checked: boolean): void;
+}) {
+    return (
+        <label className="flex items-start gap-3">
+            <Switch label={label} checked={checked} disabled={disabled} onCheckedChange={onCheckedChange} />
+            <span className="flex flex-col">
+                <span className="text-sm text-text">{label}</span>
+                <span className="text-xs text-text-muted">{hint}</span>
+            </span>
+        </label>
+    );
+}
+
+/* A free text field with a list of common values to pick from; empty leaves it to the server. */
+function SuggestedField({
+    label,
+    listId,
+    suggestions,
+    value,
+    disabled,
+    onValueChange
+}: {
+    label: string;
+    listId: string;
+    suggestions: readonly string[];
+    value: string;
+    disabled: boolean;
+    onValueChange(value: string): void;
+}) {
+    const { t } = useTranslation('database');
+    return (
+        <>
+            <datalist id={listId}>
+                {suggestions.map((suggestion) => (
+                    <option key={suggestion} value={suggestion} />
+                ))}
+            </datalist>
+            <Field label={label} hint={t('designer.options.serverDefault')}>
+                <Input mono list={listId} spellCheck={false} value={value} disabled={disabled} onChange={(event) => onValueChange(event.target.value)} />
+            </Field>
+        </>
     );
 }

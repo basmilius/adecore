@@ -5,8 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Button, Icon, copyText } from '@adecore/ui';
 import { CODE_TEXT } from '../code-text.ts';
 import type { DraftProblem } from '../ddl/index.ts';
-import type { Plan } from './plan.ts';
-import { scriptOf } from './plan.ts';
+import { scriptOf, type Plan } from './plan.ts';
 
 export interface SqlPreviewProps {
     plan: Plan;
@@ -15,7 +14,7 @@ export interface SqlPreviewProps {
 }
 
 /* The sentence a problem of the draft is read as. */
-export function ProblemText({ problem }: { problem: DraftProblem }) {
+function ProblemText({ problem }: { problem: DraftProblem }) {
     const { t } = useTranslation('database');
     return <>{t(`ddl.problem.${problem.code}`, { subject: problem.subject })}</>;
 }

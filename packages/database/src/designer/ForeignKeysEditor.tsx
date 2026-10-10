@@ -1,7 +1,7 @@
 import clsx from 'clsx';
 import { Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Button, EmptyState, Field, Icon, IconButton, Input, Select, Spinner } from '@adecore/ui';
+import { Button, EmptyState, Field, Icon, IconButton, Input, Select, Spinner, type SelectItem } from '@adecore/ui';
 import { FOREIGN_KEY_ACTIONS } from '../ddl/index.ts';
 import type { EditorProps } from './editor-props.ts';
 import { NamePicker } from './NamePicker.tsx';
@@ -58,32 +58,20 @@ export function ForeignKeysEditor({ draft, schema, tables, referenceColumns, dis
                                         onValueChange={(table) => onChange(setReferencedTable(draft, foreignKey.key, schema, table))}
                                     />
                                 </Field>
-                                <Field label={t('designer.foreignKeys.onUpdate')} group className="w-40">
-                                    <Select
-                                        size="sm"
-                                        className="w-full"
-                                        label={t('designer.foreignKeys.onUpdate')}
-                                        value={foreignKey.onUpdate ?? DEFAULT_ACTION}
-                                        disabled={disabled}
-                                        items={actions}
-                                        onValueChange={(action) =>
-                                            onChange(patchForeignKey(draft, foreignKey.key, { onUpdate: action === DEFAULT_ACTION ? null : action }))
-                                        }
-                                    />
-                                </Field>
-                                <Field label={t('designer.foreignKeys.onDelete')} group className="w-40">
-                                    <Select
-                                        size="sm"
-                                        className="w-full"
-                                        label={t('designer.foreignKeys.onDelete')}
-                                        value={foreignKey.onDelete ?? DEFAULT_ACTION}
-                                        disabled={disabled}
-                                        items={actions}
-                                        onValueChange={(action) =>
-                                            onChange(patchForeignKey(draft, foreignKey.key, { onDelete: action === DEFAULT_ACTION ? null : action }))
-                                        }
-                                    />
-                                </Field>
+                                <ActionField
+                                    label={t('designer.foreignKeys.onUpdate')}
+                                    value={foreignKey.onUpdate}
+                                    items={actions}
+                                    disabled={disabled}
+                                    onValueChange={(action) => onChange(patchForeignKey(draft, foreignKey.key, { onUpdate: action }))}
+                                />
+                                <ActionField
+                                    label={t('designer.foreignKeys.onDelete')}
+                                    value={foreignKey.onDelete}
+                                    items={actions}
+                                    disabled={disabled}
+                                    onValueChange={(action) => onChange(patchForeignKey(draft, foreignKey.key, { onDelete: action }))}
+                                />
                                 <IconButton
                                     icon={Trash2}
                                     size="xs"
@@ -128,5 +116,34 @@ export function ForeignKeysEditor({ draft, schema, tables, referenceColumns, dis
                 </Button>
             </div>
         </div>
+    );
+}
+
+/* What a key does on an update or a delete; `null` is the engine's default. */
+function ActionField({
+    label,
+    value,
+    items,
+    disabled,
+    onValueChange
+}: {
+    label: string;
+    value: string | null;
+    items: SelectItem<string>[];
+    disabled: boolean;
+    onValueChange(action: string | null): void;
+}) {
+    return (
+        <Field label={label} group className="w-40">
+            <Select
+                size="sm"
+                className="w-full"
+                label={label}
+                value={value ?? DEFAULT_ACTION}
+                disabled={disabled}
+                items={items}
+                onValueChange={(action) => onValueChange(action === DEFAULT_ACTION ? null : action)}
+            />
+        </Field>
     );
 }

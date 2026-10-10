@@ -104,13 +104,16 @@ export function TableDesigner({ connection, schema, table, toolbarStart, classNa
         const session = client.session(connection);
         const statements = plan.statements;
         const wasNew = snapshot.structure === null;
+        const settle = (message: string | null): void => {
+            setFailure(message);
+            setConfirming(false);
+        };
         let outcome: ExecuteResult;
         applying.current = true;
         try {
             outcome = await session.execute(statements.join(';\n'), { schema });
         } catch (e) {
-            setFailure(messageOf(e, t('designer.failed')));
-            setConfirming(false);
+            settle(messageOf(e, t('designer.failed')));
             return;
         } finally {
             applying.current = false;
@@ -118,12 +121,10 @@ export function TableDesigner({ connection, schema, table, toolbarStart, classNa
         const failed = outcome.results.find((result) => result.kind === 'error');
         if (failed?.kind === 'error') {
             await recoverFrom(session, statements, failed.sql, outcome.inTransaction);
-            setFailure(failed.error.message);
-            setConfirming(false);
+            settle(failed.error.message);
             return;
         }
-        setFailure(null);
-        setConfirming(false);
+        settle(null);
         // The client has told its listeners already: `execute` does for a statement that creates, alters or drops.
         if (wasNew || draft.name !== draft.originalName) {
             setSubject({ requested: table, current: draft.name });
