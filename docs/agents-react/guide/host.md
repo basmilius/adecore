@@ -18,6 +18,7 @@ A patch replaces top-level fields only: to change one function of `code`, `promp
 | `searchFiles(scopeId, cwd, query, limit)` | No `@` file picker                          | Relative paths under `cwd` for the composer's picker.                                                  |
 | `attachments`                      | No previews; reading rejects                       | `useUrl` for a URL to an attached file's bytes, `read` for the bytes as a `Blob`.                      |
 | `ReadImage`                        | Nothing under a tool that read an image            | A component that draws the image at `path`.                                                            |
+| `intelligentUi`                    | Choices stay closed, live values and links stay as first read | `sendChoice`, `query`, `link`, `openLink`, `openUrl` and `subscribe` for [Intelligent UI](/intelligent-ui/guide/getting-started#draw-the-blocks) blocks. |
 | `fileLinks`                        | Paths in a reply stay text                         | `target(text, cwd, scopeId)` finds a `FileRef`; `open(cwd, ref, scopeId)` opens it on its rendering scope.                              |
 | `code`                             | Light, `github-light` and `github-dark`            | `useMode()` follows the app's light or dark, `useThemes()` names the Shiki themes, `custom` registers your own. |
 | `useStreaming()`                   | `words`                                            | How a reply appears while it streams: `words`, `blocks` or `whole`.                                    |
