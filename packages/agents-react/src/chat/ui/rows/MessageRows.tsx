@@ -391,9 +391,8 @@ function OpenChatButton({ chatId }: { chatId: string }) {
 }
 
 /*
- * The header of a turn the agent started itself, in place of the message of the person that is
- * missing. It is one line: what the sub-agent came back with lives on that agent's own row, behind
- * "Show result". When the CLI named the sub-agent it woke up about, the header opens that row.
+ * The header of a turn the agent started itself, in place of a message of the person. What the
+ * sub-agent came back with lives on its own row, which the header opens when the CLI named it.
  */
 export function AgentTurnRow({ label, onOpen }: { label: string; onOpen?: () => void }) {
     const line = 'mb-0.5 flex h-7 w-full items-center gap-2 text-left text-xs text-text-muted';
@@ -430,7 +429,7 @@ export function CompactionRow({ preTokens }: { preTokens: number | null }) {
     );
 }
 
-const DECISION_ICON: Record<Exclude<ChatApprovalItem['decision'], 'pending'>, React.ReactNode> = {
+const DECISION_ICON: Record<Exclude<ChatApprovalItem['decision'], 'pending'>, ReactNode> = {
     allow: <Icon icon={Check} size={12} />,
     'allow-always': <Icon icon={Check} size={12} />,
     deny: <Icon icon={X} size={12} />,

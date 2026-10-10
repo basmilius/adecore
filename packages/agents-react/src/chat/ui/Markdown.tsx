@@ -67,17 +67,14 @@ function languageOf(className: string | undefined): string {
 const INLINE_CODE = 'rounded-sm bg-surface-sunken px-1 py-px font-mono text-code';
 
 /*
- * A path an agent wrote down, opened in the preview panel. It keeps the shape of the code chip it
- * would otherwise be, so a sentence full of them does not start dancing; only the color says it can
- * be clicked. `data-file-path` is what the thread's own right-click menu reads, so a link answers to
- * both ways of opening it.
+ * A path an agent wrote down. It keeps the shape of the code chip it would otherwise be, so a sentence
+ * full of them does not shift; `data-file-path` is what the thread's right-click menu reads.
  */
 function FileLink({ target, className, children }: { target: FileRef; className?: string; children: ReactNode }) {
     const cwd = useFileLinkCwd();
     const scopeId = useFileLinkScopeId();
     return (
-        // `select-text` because a thread is copied as often as it is clicked, and a button is not
-        // selectable on its own.
+        // A button is not selectable on its own, and a thread is copied as often as it is clicked.
         <button
             type="button"
             className={clsx('cursor-pointer select-text', className)}
@@ -108,8 +105,10 @@ function InlineCode({ text }: { text: string }) {
     );
 }
 
-/* The path a link target spells, with the one scheme that still means a file on the host's machine
-   taken off. A href nobody encoded is left as it is, since decoding throws on a stray percent. */
+/*
+ * The path a link target spells, without the one scheme that still means a file on the host's machine.
+ * A href nobody encoded is left as it is, since decoding throws on a stray percent.
+ */
 function hrefPath(href: string): string {
     const bare = href.replace(/^file:\/\//, '');
     try {
@@ -129,6 +128,10 @@ function MarkdownLink({ href, children }: { href?: string; children?: ReactNode 
             </FileLink>
         );
     }
+    return <ExternalLink href={href}>{children}</ExternalLink>;
+}
+
+function ExternalLink({ href, children }: { href?: string; children?: ReactNode }) {
     return (
         <a href={href} target="_blank" rel="noreferrer">
             {children}
@@ -173,13 +176,7 @@ const plainComponents = {
             </MarkdownCode>
         );
     },
-    a({ href, children }: { href?: string; children?: ReactNode }) {
-        return (
-            <a href={href} target="_blank" rel="noreferrer">
-                {children}
-            </a>
-        );
-    }
+    a: ExternalLink
 };
 
 // A reply sits under the heading of its message, an `h3`, so its own headings start one level below
@@ -271,8 +268,7 @@ const MESSAGE_PLUGINS = [remarkGfm, remarkHtmlAsText, remarkBreaks];
 const FADE_PLUGINS = [rehypeFadeWords];
 const NO_PLUGINS: typeof FADE_PLUGINS = [];
 
-/* One block of a reply. It renders no element of its own, so prose still sees the paragraphs as
-   direct children and keeps its first and last margins. */
+/* One block of a reply. It renders no element of its own, so prose keeps its first and last margins. */
 const ReplyBlock = memo(function ReplyBlock({ text, fade, open, reply }: { text: string; fade: boolean; open: boolean; reply?: ShellCodeBlockReply }) {
     return (
         // A context rather than a second set of components. A component that changed would mount the

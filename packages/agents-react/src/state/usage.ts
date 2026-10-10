@@ -177,10 +177,8 @@ export const useUsageStore = createChatStore<UsageStore>(
 );
 
 /*
- * The preferences of the viewer over the numbers of the host in scope, as one thing to select from.
- * The usage page renders the host its picker is on as a scope of its own; everything outside it (the
- * limit bars beside the work) reads the host around it, so browsing another host's spend never
- * moves the bars that say how much of the plan the agents beside you have left.
+ * The viewer's preferences over the numbers of the host in scope. The usage page renders its picked
+ * host as a scope of its own, so browsing another host's spend never moves the limit bars outside it.
  */
 export type UsageView = Preferences & UsageRow;
 

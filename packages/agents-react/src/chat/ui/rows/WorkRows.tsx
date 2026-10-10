@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import clsx from 'clsx';
 import i18next from 'i18next';
 import { useTranslation } from 'react-i18next';
@@ -40,14 +40,14 @@ export function ToggleLine({
     trailing,
     className
 }: {
-    icon: React.ReactNode;
+    icon: ReactNode;
     label: string;
     detail?: string;
     open: boolean;
     onToggle(): void;
     failed?: boolean;
     live?: boolean;
-    trailing?: React.ReactNode;
+    trailing?: ReactNode;
     className?: string;
 }) {
     return (
@@ -75,24 +75,60 @@ export function ToggleLine({
     );
 }
 
-function ToolBody({ tool }: { tool: ChatToolItem }) {
+/* The diff renderers load lazily, so a diff waits on them under a line that says so. */
+function DiffSuspense({ children }: { children: ReactNode }) {
     const { t } = useTranslation('agent-chat');
+    return <Suspense fallback={<div className="px-3 py-2 text-xs text-text-faint">{t('work.loadingDiff')}</div>}>{children}</Suspense>;
+}
+
+/* A file in a changed files card, which opens its diff under it. */
+function ChangedFileLine({
+    path,
+    open,
+    onToggle,
+    trailing,
+    children
+}: {
+    path: string;
+    open: boolean;
+    onToggle(): void;
+    trailing: ReactNode;
+    children: ReactNode;
+}) {
+    return (
+        <div className="border-t border-border">
+            <button
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-text-muted hover:bg-surface-hover"
+                data-file-path={path}
+                onClick={onToggle}
+            >
+                <Icon icon={ChevronRight} size={12} className={clsx('shrink-0 text-text-faint transition-transform', open && 'rotate-90')} />
+                <span className="min-w-0 truncate font-mono text-text">{path}</span>
+                <span className="grow" />
+                {trailing}
+            </button>
+            {open && <div className="border-t border-border">{children}</div>}
+        </div>
+    );
+}
+
+function ToolBody({ tool }: { tool: ChatToolItem }) {
     const patches = unifiedChanges(tool);
     const changes = patches.length > 0 ? [] : fileChanges(tool.name, tool.input);
     return (
         <div className="mt-1.5 mb-2 ml-6 overflow-hidden rounded-md border border-border bg-surface-raised">
             {patches.length > 0 ? (
-                <Suspense fallback={<div className="px-3 py-2 text-xs text-text-faint">{t('work.loadingDiff')}</div>}>
+                <DiffSuspense>
                     {patches.map((change, index) => (
                         <UnifiedDiff key={index} change={change} />
                     ))}
-                </Suspense>
+                </DiffSuspense>
             ) : changes.length > 0 ? (
-                <Suspense fallback={<div className="px-3 py-2 text-xs text-text-faint">{t('work.loadingDiff')}</div>}>
+                <DiffSuspense>
                     {changes.map((change, index) => (
                         <EditDiff key={index} change={change} />
                     ))}
-                </Suspense>
+                </DiffSuspense>
             ) : (
                 <pre className="max-h-64 overflow-auto px-3 py-2 font-mono text-code text-text-muted select-text">
                     {clip(JSON.stringify(tool.input, null, 2) ?? '')}
@@ -113,9 +149,10 @@ function ToolBody({ tool }: { tool: ChatToolItem }) {
     );
 }
 
-/* One settled tool call: a line, and its input and output behind it. An image the call looked at
-   is drawn under the line, because a picture says more about that read than its path does.
-   `icon`, `label` and `failed` let a row that knows the call better name it in its own words. */
+/*
+ * One settled tool call: a line, and its input and output behind it. An image the call looked at is
+ * drawn under the line. `icon`, `label` and `failed` let a row that knows the call better name it.
+ */
 export function WorkRow({
     tool,
     nested,
@@ -127,7 +164,7 @@ export function WorkRow({
     tool: ChatToolItem;
     nested?: boolean;
     detail?: string;
-    icon?: React.ReactNode;
+    icon?: ReactNode;
     label?: string;
     failed?: boolean;
 }) {
@@ -235,14 +272,13 @@ function omittedLabel(reason: 'binary' | 'too-large'): string {
 
 /* One file of a turn's checkpoint diff: its patch, or the reason there is none. */
 function CheckpointFileBody({ file }: { file: ChatCheckpointFile }) {
-    const { t } = useTranslation('agent-chat');
     if (file.omitted) {
         return <div className="px-3 py-2 text-xs text-text-faint">{omittedLabel(file.omitted)}</div>;
     }
     return (
-        <Suspense fallback={<div className="px-3 py-2 text-xs text-text-faint">{t('work.loadingDiff')}</div>}>
+        <DiffSuspense>
             <UnifiedDiff change={file} />
-        </Suspense>
+        </DiffSuspense>
     );
 }
 
@@ -261,11 +297,11 @@ function ChangedFilesCard({
     deleted?: number;
     /* A jump from outside the chat that asked for this card; each new one opens it. */
     revealNonce?: number;
-    children: React.ReactNode;
+    children: ReactNode;
 }) {
     const { t } = useTranslation('agent-chat');
     const [expanded, setExpanded] = useState(false);
-    // A jump from outside opens the card, also when the jump put the row on screen and so mounted it; the flash is gone by the time the row is scrolled to again.
+    // A jump opens the card, also one that mounted it by scrolling it on screen; the flash is gone by the next visit.
     const [seenReveal, setSeenReveal] = useState(0);
     if (revealNonce > 0 && revealNonce !== seenReveal) {
         setSeenReveal(revealNonce);
@@ -345,28 +381,20 @@ export function ChangedFilesRow({
                 deleted={files.reduce((sum, file) => sum + file.deleted, 0)}
             >
                 {files.map((file) => (
-                    <div key={file.path} className="border-t border-border">
-                        <button
-                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-text-muted hover:bg-surface-hover"
-                            data-file-path={file.path}
-                            onClick={() => setOpen((o) => ({ ...o, [file.path]: !o[file.path] }))}
-                        >
-                            <Icon
-                                icon={ChevronRight}
-                                size={12}
-                                className={clsx('shrink-0 text-text-faint transition-transform', open[file.path] && 'rotate-90')}
-                            />
-                            <span className="min-w-0 truncate font-mono text-text">{file.path}</span>
-                            <span className="grow" />
-                            <span className="text-chat-added tabular-nums">+{file.added}</span>
-                            <span className="text-chat-removed tabular-nums">-{file.deleted}</span>
-                        </button>
-                        {open[file.path] && (
-                            <div className="border-t border-border">
-                                <CheckpointFileBody file={file} />
-                            </div>
-                        )}
-                    </div>
+                    <ChangedFileLine
+                        key={file.path}
+                        path={file.path}
+                        open={open[file.path] === true}
+                        onToggle={() => setOpen((o) => ({ ...o, [file.path]: !o[file.path] }))}
+                        trailing={
+                            <>
+                                <span className="text-chat-added tabular-nums">+{file.added}</span>
+                                <span className="text-chat-removed tabular-nums">-{file.deleted}</span>
+                            </>
+                        }
+                    >
+                        <CheckpointFileBody file={file} />
+                    </ChangedFileLine>
                 ))}
             </ChangedFilesCard>
         );
@@ -384,7 +412,7 @@ function ProviderChangedFiles({
     tools: ChatToolItem[];
     open: Record<string, boolean>;
     revealNonce: number;
-    setOpen: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+    setOpen: Dispatch<SetStateAction<Record<string, boolean>>>;
 }) {
     const { t } = useTranslation('agent-chat');
     const byPath = new Map<string, { edits: FileChange[]; patches: ChatFileChange[] }>();
@@ -411,35 +439,24 @@ function ProviderChangedFiles({
     }
     return (
         <ChangedFilesCard count={byPath.size} revealNonce={revealNonce}>
-            {[...byPath].map(([path, entry]) => {
-                const count = entry.edits.length + entry.patches.length;
-                return (
-                    <div key={path} className="border-t border-border">
-                        <button
-                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-text-muted hover:bg-surface-hover"
-                            data-file-path={path}
-                            onClick={() => setOpen((o) => ({ ...o, [path]: !o[path] }))}
-                        >
-                            <Icon icon={ChevronRight} size={12} className={clsx('shrink-0 text-text-faint transition-transform', open[path] && 'rotate-90')} />
-                            <span className="min-w-0 truncate font-mono text-text">{path}</span>
-                            <span className="grow" />
-                            <span className="text-text-faint">{t('work.edits', { count })}</span>
-                        </button>
-                        {open[path] && (
-                            <div className="border-t border-border">
-                                <Suspense fallback={<div className="px-3 py-2 text-xs text-text-faint">{t('work.loadingDiff')}</div>}>
-                                    {entry.patches.map((change, index) => (
-                                        <UnifiedDiff key={`patch-${index}`} change={change} />
-                                    ))}
-                                    {entry.edits.map((change, index) => (
-                                        <EditDiff key={`edit-${index}`} change={change} />
-                                    ))}
-                                </Suspense>
-                            </div>
-                        )}
-                    </div>
-                );
-            })}
+            {[...byPath].map(([path, entry]) => (
+                <ChangedFileLine
+                    key={path}
+                    path={path}
+                    open={open[path] === true}
+                    onToggle={() => setOpen((o) => ({ ...o, [path]: !o[path] }))}
+                    trailing={<span className="text-text-faint">{t('work.edits', { count: entry.edits.length + entry.patches.length })}</span>}
+                >
+                    <DiffSuspense>
+                        {entry.patches.map((change, index) => (
+                            <UnifiedDiff key={`patch-${index}`} change={change} />
+                        ))}
+                        {entry.edits.map((change, index) => (
+                            <EditDiff key={`edit-${index}`} change={change} />
+                        ))}
+                    </DiffSuspense>
+                </ChangedFileLine>
+            ))}
         </ChangedFilesCard>
     );
 }

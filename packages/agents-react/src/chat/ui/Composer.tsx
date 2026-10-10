@@ -240,13 +240,9 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
     const quote = draft.quote;
     // The CLI announces its session on the first message, so anything before that is still a blank chat.
     const started = info.agentSessionId !== null || info.usage.turns > 0;
-    /*
-     * A chat that has started keeps its provider (the CLI holds the thread), and one opened for a
-     * named CLI was never going to change it. Either way the models stay switchable. The CLI takes
-     * the new one on the restart the next send does anyway. With one provider in the list the
-     * picker drops its group headers on its own, so it reads as that CLI's own catalog.
-     */
     const accountChoice = useAccountChoice(info.provider, info.account);
+    // A chat that has started keeps its provider (the CLI holds the thread), and so does one opened for a
+    // named CLI; its models stay switchable, since the CLI takes a new one on the restart the next send does.
     const pickable =
         started || providerFixed
             ? providers.filter((entry) => entry.kind === info.provider)

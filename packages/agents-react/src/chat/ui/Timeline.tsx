@@ -1,6 +1,6 @@
-import { type CSSProperties, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { type CSSProperties, type RefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useVirtualizer } from '@tanstack/react-virtual';
+import { useVirtualizer, type Virtualizer } from '@tanstack/react-virtual';
 import clsx from 'clsx';
 import { LoaderCircle } from 'lucide-react';
 import type { ChatBookmark } from '@adecore/agent-contracts';
@@ -66,6 +66,12 @@ import { useModelName } from '../../agents/model-name';
 import { ContextMenu, EmptyState, ErrorBoundary, Icon, SectionLabel } from '@adecore/ui';
 
 const ESTIMATED_ROW_PX = 56;
+
+/* A jump puts its row at the top and stops following the end, so the reader stays where they landed. */
+function showRowAtTop(virtualizer: Virtualizer<HTMLDivElement, Element>, followRef: RefObject<boolean>, index: number): void {
+    followRef.current = false;
+    virtualizer.scrollToIndex(index, { align: 'start' });
+}
 
 /*
  * A thread before its first message: which model answers, what the lines into this node let it read,
@@ -288,7 +294,7 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
         [chatId]
     );
 
-    // The client does not run the React Compiler, so its memoization rule has nothing to break here.
+    // Nothing here builds with the React Compiler, so its memoization rule has nothing to break.
     // oxlint-disable-next-line react/incompatible-library
     const virtualizer = useVirtualizer({
         count: rows.length,
@@ -307,11 +313,9 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
     });
     const tail = lastReplyLength ?? rows.length;
     /*
-     * The rows are measured as they render, so the end of the list moves while it is drawn: a diff
-     * that highlights, an image that loads, a tool row that grows a line of output. `scrollToIndex`
-     * aims at where the row was when it was asked, which is what left the thread short of the end.
-     * The scroller's own bottom is a fact rather than an estimate, and the total size changing is
-     * what says a row was measured again, so this runs for every one of those.
+     * Rows are measured as they render, so the end moves while it is drawn (a diff that highlights, an
+     * image that loads). `scrollToIndex` aims at where a row was when asked and fell short; the
+     * scroller's own bottom is a fact, and a new total size says a row was measured again.
      */
     const totalSize = virtualizer.getTotalSize();
     useLayoutEffect(() => {
@@ -361,8 +365,7 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
 
     /*
      * Where each message starts, from the virtualizer's measurements (an estimate for a row it never
-     * drew), so reading the scroll position costs no layout. The virtualizer renders this component on
-     * every scroll already.
+     * drew), so reading the scroll position costs no layout.
      */
     const measurements = virtualizer.measurementsCache;
     const starts = ticks.map((tick) => measurements[tick.rowIndex]?.start ?? tick.rowIndex * ESTIMATED_ROW_PX);
@@ -418,8 +421,7 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
             setSeeking({ itemId: tick.bookmark.itemId, key: keyOf(chatId) });
             return;
         }
-        followRef.current = false;
-        virtualizer.scrollToIndex(tick.rowIndex, { align: 'start' });
+        showRowAtTop(virtualizer, followRef, tick.rowIndex);
     };
 
     useLayoutEffect(() => {
@@ -439,8 +441,7 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
             } else {
                 setSeeking(null);
                 if (jump.kind === 'row') {
-                    followRef.current = false;
-                    virtualizer.scrollToIndex(jump.index, { align: 'start' });
+                    showRowAtTop(virtualizer, followRef, jump.index);
                     setLanding({ target: seeking.block, key: seeking.key });
                 }
             }
@@ -449,8 +450,7 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
         const index = rows.findIndex((row) => row.id === seeking.itemId);
         if (index !== -1) {
             setSeeking(null);
-            followRef.current = false;
-            virtualizer.scrollToIndex(index, { align: 'start' });
+            showRowAtTop(virtualizer, followRef, index);
             return;
         }
         const item = items?.[seeking.itemId];
@@ -505,8 +505,7 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
         const found = changes !== -1 ? changes : rows.findIndex((row) => row.id === opening?.id || row.id === `start-${turnId}` || row.id === `fold-${turnId}`);
         if (found !== -1) {
             setRevealing(null);
-            followRef.current = false;
-            virtualizer.scrollToIndex(found, { align: 'start' });
+            showRowAtTop(virtualizer, followRef, found);
             useTimelineFlash.getState().flash(keyOf(chatId), rows[found]!.id, changes !== -1);
             return;
         }
@@ -564,8 +563,7 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
             return;
         }
         subagents.add(found.branch.id);
-        followRef.current = false;
-        virtualizer.scrollToIndex(found.index, { align: 'start' });
+        showRowAtTop(virtualizer, followRef, found.index);
     };
 
     return (
