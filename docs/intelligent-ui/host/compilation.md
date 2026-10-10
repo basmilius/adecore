@@ -100,7 +100,7 @@ The agents host turns the diagnostics of a final reply into one note in front of
 
 Every node and block carries text a client can show instead: a Stat as `label: value unit`, a Source as `title: url`, a link as its target and description, a Table and a Chart as their data in JSON. A failed part shows its own fallback and its neighbors still draw.
 
-`uiFallbackText(text, blocks)` replaces every fence of a reply with its block's fallback and keeps the prose around it, for a notification, a search index or a client without a renderer. `uiQueryFallback(block, values)` gives the fallback evaluated with query readings; see [Live queries](/intelligent-ui/host/queries#freshness).
+`uiFallbackText(text, blocks)` replaces every fence of a reply with its block's fallback and keeps the prose around it, for a notification, a search index or a client without a renderer. With [`@adecore/agents`](/agents/chats#live-ui-sources), `readableAssistantText(item)` does this for a stored reply. `uiQueryFallback(block, values)` gives the fallback evaluated with query readings; see [Live queries](/intelligent-ui/host/queries#freshness).
 
 ## The catalog in code
 

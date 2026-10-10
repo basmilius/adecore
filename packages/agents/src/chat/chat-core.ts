@@ -57,6 +57,7 @@ import type { CodexProcessSpec } from './codex-thread.ts';
 import type { CodexClientInfo } from './codex-transport.ts';
 import { ComposerPreferences } from './composer-preferences.ts';
 import { DeltaCoalescer } from './delta-coalescer.ts';
+import { readableAssistantText } from './readable-text.ts';
 import { ChatError } from './errors.ts';
 import { commandLabel, isBackgroundWork, runsInBackground, type BackgroundWork } from './background-work.ts';
 import { SubagentReader, type SubagentReaderOptions } from './subagent-reader.ts';
@@ -84,7 +85,8 @@ function isBookmarkable(item: ChatItem): item is BookmarkableItem {
 /* The start of a message on one line; a message of only attachments is its file names. */
 function excerptOf(item: BookmarkableItem): string {
     const files = item.kind === 'user' ? (item.attachments ?? []).map((attachment) => attachment.name).join(', ') : '';
-    return (item.text.trim() === '' ? files : item.text).replace(/\s+/g, ' ').trim();
+    const text = item.kind === 'assistant' ? readableAssistantText(item) : item.text;
+    return (text.trim() === '' ? files : text).replace(/\s+/g, ' ').trim();
 }
 
 // One process worked on the turn and one more may take it up after a restart; a loop of resumes could redo a command forever.

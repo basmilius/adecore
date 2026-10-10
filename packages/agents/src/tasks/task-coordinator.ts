@@ -1,6 +1,7 @@
 import type { ChatBackgroundTask, ChatItem, ChatTurnItem, Task, TaskResult } from '@adecore/agent-contracts';
 import { abortedByMachine, clipText } from '@adecore/agent-contracts';
 import { BACKGROUND_COMMAND_LIMIT_MS, commandLabel, isBackgroundWork, runningInBackground, runsInBackground } from '../chat/background-work.ts';
+import { readableAssistantText } from '../chat/readable-text.ts';
 import { errorText } from '../error-text.ts';
 import type { AgentEvent } from '../events.ts';
 import type { TaskStore } from './task-store.ts';
@@ -40,8 +41,11 @@ export interface TaskCoordinatorDeps {
 function answerOf(items: readonly ChatItem[], turnId: string): string | null {
     for (let i = items.length - 1; i >= 0; i--) {
         const item = items[i]!;
-        if (item.kind === 'assistant' && item.turnId === turnId && !item.parentToolUseId && item.text.trim() !== '') {
-            return item.text.trim();
+        if (item.kind === 'assistant' && item.turnId === turnId && !item.parentToolUseId) {
+            const text = readableAssistantText(item).trim();
+            if (text !== '') {
+                return text;
+            }
         }
     }
     return null;

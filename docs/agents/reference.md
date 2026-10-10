@@ -43,6 +43,7 @@ The core, a session per chat, the thread and what is written of it.
 | [`chat/input`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/input.ts) | `lastSkillToken`, `splitSkillPrompt`, `attachmentNote`, `buildUserMessage` |
 | [`chat/limit-resume`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/limit-resume.ts) | `LIMIT_RETRY_DELAYS_MS`, `limitedTurn`, `limitResumeAt`, `limitResumeWake` |
 | [`chat/projector`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/projector.ts) | `isMainAgentOutput`, `summaryLine`, `stripAgentFooter`, `ThreadProjector` |
+| [`chat/readable-text`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/readable-text.ts) | `readableAssistantText` |
 | [`chat/request-summary`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/request-summary.ts) | `approvalSummary`, `requestSummaries` |
 | [`chat/subagent-projection`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/subagent-projection.ts) | `readingThread`, `settledReading` |
 | [`chat/subagent-reader`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/subagent-reader.ts) | `SubagentChat`, `SubagentReaderOptions`, `SubagentReader` |

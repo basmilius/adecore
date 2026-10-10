@@ -30,6 +30,7 @@ import type { ChatTitleInput } from './chat-title.ts';
 import { ChatError } from './errors.ts';
 import { limitedTurn, limitResumeAt, limitResumeWake } from './limit-resume.ts';
 import { isMainAgentOutput, ThreadProjector } from './projector.ts';
+import { readableAssistantText } from './readable-text.ts';
 import type { SubagentSettlement } from './subagent-settlement.ts';
 import { ChatThread } from './thread.ts';
 import { errorText } from '../error-text.ts';
@@ -1860,7 +1861,7 @@ export class ChatSession {
         this.naming = true;
         const turnId = done[0]!.id;
         const answer = items
-            .map((item) => (item.kind === 'assistant' && item.turnId === turnId ? item.text : ''))
+            .map((item) => (item.kind === 'assistant' && item.turnId === turnId ? readableAssistantText(item) : ''))
             .filter((text) => text !== '')
             .join('\n\n');
         const agentSessionId = this.thread.info.agentSessionId;

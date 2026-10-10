@@ -3,6 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { notResumedNote, type ChatBackgroundTask, type ChatItem, type ChatTurnItem, type Task } from '@adecore/agent-contracts';
+import { compileUi } from '@adecore/intelligent-ui';
 import type { AgentEvent } from '../events.ts';
 import { writeAtomic } from '../fs.ts';
 import { TaskCoordinator, resultOfTurn } from './task-coordinator.ts';
@@ -116,6 +117,14 @@ describe('the result of a turn', () => {
     test('is the last answer of the child itself, not of a subagent it ran', () => {
         const items = [answer('t', 'first'), answer('t', 'last'), answer('t', 'from a subagent', 'toolu_1')];
         expect(resultOfTurn(turn('t', 'done'), items, 3)).toEqual({ status: 'done', result: { text: 'last', source: 'turn', at: 3 } });
+    });
+
+    test('reads the UI blocks of the answer as their fallback, not their source', () => {
+        const text = '```ui\n<Summary>Release overview</Summary>\n```';
+        const item = { ...answer('t', text), ui: compileUi(text, { id: 'a', final: true }) } as ChatItem;
+        const result = resultOfTurn(turn('t', 'done'), [item], 3).result.text;
+        expect(result).toContain('Release overview');
+        expect(result).not.toContain('<Summary');
     });
 
     test('a turn a person stopped or the machine ended fails the task and says which', () => {
