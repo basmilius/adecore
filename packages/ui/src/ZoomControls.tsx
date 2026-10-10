@@ -1,5 +1,5 @@
 import type { Ref } from 'react';
-import { Maximize, Minus, Plus, Scan } from 'lucide-react';
+import { Maximize, Minus, Plus, Scan, type LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { ButtonGroup } from './ButtonGroup.tsx';
 import { Icon } from './Icon.tsx';
@@ -42,6 +42,14 @@ export interface ZoomControlsProps {
     ref?: Ref<HTMLDivElement>;
 }
 
+function MenuIcon({ icon }: { icon: LucideIcon }) {
+    return (
+        <span className="grid h-4 w-4 place-items-center">
+            <Icon icon={icon} size={14} />
+        </span>
+    );
+}
+
 /* The zoom group of a dock: out, the readout with its presets, in, and fit everything. */
 export function ZoomControls({
     zoom,
@@ -77,16 +85,12 @@ export function ZoomControls({
                     </MenuRadioGroup>
                     <MenuSeparator />
                     <MenuItem onClick={onFitAll}>
-                        <span className="grid h-4 w-4 place-items-center">
-                            <Icon icon={Maximize} size={14} />
-                        </span>
+                        <MenuIcon icon={Maximize} />
                         {labels.fit ?? t('zoom.fit')} {shortcuts.fitAll && <Kbd shortcut={shortcuts.fitAll} />}
                     </MenuItem>
                     {selection && (
                         <MenuItem disabled={!selection.enabled} onClick={selection.onZoom}>
-                            <span className="grid h-4 w-4 place-items-center">
-                                <Icon icon={Scan} size={14} />
-                            </span>
+                            <MenuIcon icon={Scan} />
                             {selection.label} {selection.shortcut && <Kbd shortcut={selection.shortcut} />}
                         </MenuItem>
                     )}

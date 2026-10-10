@@ -124,6 +124,12 @@ export function TabsList({ className, children, start, end, ...props }: TabsList
 
     const visible = shown === null ? tabs : shown.map((index) => tabs[index]!);
     const hidden = shown === null ? [] : tabs.filter((_, index) => !shown.includes(index));
+    const more = (
+        <>
+            {t('tabs.more')}
+            <Icon icon={ChevronDown} size={14} />
+        </>
+    );
 
     return (
         <div ref={strip} className={clsx('relative flex items-center gap-4 border-b border-border', className)}>
@@ -137,10 +143,7 @@ export function TabsList({ className, children, start, end, ...props }: TabsList
             </BaseTabs.List>
             {hidden.length > 0 && (
                 <MenuRoot>
-                    <MenuTrigger className={MORE}>
-                        {t('tabs.more')}
-                        <Icon icon={ChevronDown} size={14} />
-                    </MenuTrigger>
+                    <MenuTrigger className={MORE}>{more}</MenuTrigger>
                     <MenuPopup align="end" className="min-w-48">
                         <InMenuContext value>
                             {hidden.map((tab) => (
@@ -164,10 +167,7 @@ export function TabsList({ className, children, start, end, ...props }: TabsList
                         {tab.props.onClose !== undefined && <span className="size-5 shrink-0" />}
                     </span>
                 ))}
-                <span className={MORE}>
-                    {t('tabs.more')}
-                    <Icon icon={ChevronDown} size={14} />
-                </span>
+                <span className={MORE}>{more}</span>
             </div>
         </div>
     );
