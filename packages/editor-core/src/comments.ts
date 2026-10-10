@@ -1,5 +1,6 @@
 import type { EditPlan, EditSource } from './edit-source.ts';
 import { type BlockComment, type CommentSyntax, commentSyntax } from './languages.ts';
+import { indentText, isBlank, rangeOf, whitespaceOf } from './line-text.ts';
 import { mapOffset } from './offsets.ts';
 import { indentationColumn } from './structure.ts';
 import type { Selection, TextEdit } from './types.ts';
@@ -26,21 +27,9 @@ interface Geometry {
     length: number;
 }
 
-function whitespaceOf(text: string): string {
-    return /^[\t ]*/.exec(text)![0];
-}
-
-function isBlank(text: string): boolean {
-    return text.trim() === '';
-}
-
 function syntaxOf(source: EditSource, options: CommentOptions, line: number): CommentSyntax {
     const syntax = commentSyntax(options.language, source.region(line));
     return options.lineToken === undefined ? syntax : { ...syntax, line: options.lineToken };
-}
-
-function rangeOf(selection: Selection): { from: number; to: number } {
-    return { from: Math.min(selection.anchor, selection.head), to: Math.max(selection.anchor, selection.head) };
 }
 
 /* The runs of adjacent lines the selections touch. A selection that ends at the start of a line does not touch it. */
@@ -78,13 +67,6 @@ function isCommented(text: string, syntax: CommentSyntax, multiline: boolean): b
         return multiline;
     }
     return trimmed.length >= block.open.length + block.close.length && trimmed.startsWith(block.open) && trimmed.endsWith(block.close);
-}
-
-function indentText(width: number, options: CommentOptions): string {
-    if (options.insertSpaces) {
-        return ' '.repeat(width);
-    }
-    return '\t'.repeat(Math.floor(width / options.tabSize)) + ' '.repeat(width % options.tabSize);
 }
 
 /* The new place of a line after the edits, which never cross a line break. */
@@ -162,14 +144,20 @@ export function planLineComments(source: EditSource, selections: readonly Select
     return { edits, selections: finalSelections(source, selections, blocks, edits, allCommented, placed, lineBased, options.lineSpan) };
 }
 
-function minimumIndent(source: EditSource, block: Block, syntax: CommentSyntax, options: CommentOptions): number {
+/* The indentation of the least indented non-blank line, infinite when every line is blank. */
+function smallestIndent(source: EditSource, first: number, last: number, tabSize: number): number {
     let minimum = Number.POSITIVE_INFINITY;
-    for (let line = block.first; line <= block.last; line++) {
+    for (let line = first; line <= last; line++) {
         const text = source.line(line).text;
         if (!isBlank(text)) {
-            minimum = Math.min(minimum, indentationColumn(whitespaceOf(text), options.tabSize));
+            minimum = Math.min(minimum, indentationColumn(whitespaceOf(text), tabSize));
         }
     }
+    return minimum;
+}
+
+function minimumIndent(source: EditSource, block: Block, syntax: CommentSyntax, options: CommentOptions): number {
+    let minimum = smallestIndent(source, block.first, block.last, options.tabSize);
     if (block.first > 0) {
         const previous = source.line(block.first - 1).text;
         const marker = syntax.line ?? syntax.block?.open;
@@ -394,13 +382,7 @@ function wrapRange(source: EditSource, from: number, to: number, block: BlockCom
             { from: to, to, text: ` ${block.close}` }
         ];
     }
-    let minimum = Number.POSITIVE_INFINITY;
-    for (let line = first; line <= last; line++) {
-        const text = source.line(line).text;
-        if (!isBlank(text)) {
-            minimum = Math.min(minimum, indentationColumn(whitespaceOf(text), options.tabSize));
-        }
-    }
+    const minimum = smallestIndent(source, first, last, options.tabSize);
     const space = indentText(Number.isFinite(minimum) ? minimum : 0, options);
     const newline = source.newline(first);
     const closing = source.charAt(to - 1) === '\n' ? `${space}${block.close}${newline}` : `${newline}${space}${block.close}`;

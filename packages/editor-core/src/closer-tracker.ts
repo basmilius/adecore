@@ -5,7 +5,7 @@ interface Mark {
     close: number;
 }
 
-const limit = 64;
+const maxMarks = 64;
 
 /*
  * The closers the editor inserted by itself and the caret has not left yet, which Tab steps over. A
@@ -17,7 +17,7 @@ export class CloserTracker {
 
     add(open: number, close: number): void {
         this.marks.push({ open, close });
-        if (this.marks.length > limit) {
+        if (this.marks.length > maxMarks) {
             this.marks.shift();
         }
     }

@@ -1,6 +1,7 @@
 import type { EditSource } from './edit-source.ts';
 import { commentSyntax } from './languages.ts';
-import { hasHashComments, isBraced, isPhp } from './lexical.ts';
+import { hasHashComments, isBraced, isPhp, openers } from './lexical.ts';
+import { whitespaceOf } from './line-text.ts';
 import { hasJsx, isJsxAttributeValue } from './markup-regions.ts';
 import type { DocumentLine } from './rope.ts';
 import { indentationColumn } from './structure.ts';
@@ -25,7 +26,6 @@ export interface EnterPlan {
     caret: number;
 }
 
-const closers: Readonly<Record<string, string>> = { '(': ')', '[': ']', '{': '}' };
 const concatenation = new Map<string, string>();
 for (const id of 'typescript javascript typescriptreact javascriptreact tsx jsx ts js java csharp cs kotlin scala dart swift go groovy'.split(' ')) {
     concatenation.set(id, '+');
@@ -41,11 +41,7 @@ const jsxScanLimit = 2_000_000;
 /* How far past the caret a comment is searched for its end. */
 const commentReach = 20_000;
 
-function whitespaceOf(text: string): string {
-    return /^[\t ]*/.exec(text)![0];
-}
-
-function isBlank(text: string): boolean {
+function isIndentOnly(text: string): boolean {
     return /^[\t ]*$/.test(text);
 }
 
@@ -90,16 +86,21 @@ class Enter {
             return { from, to, text: newline + leading, caret: newline.length + leading.length };
         }
         const context = source.context(from);
-        const selection = from !== to;
-        const planned =
-            context.mode === 'block-comment'
-                ? this.inBlockComment(from, to, context, index)
-                : context.mode === 'line-comment' && !selection
-                  ? this.inLineComment(from, context, index)
-                  : context.mode === 'quote' && !selection
-                    ? this.inString(from, context, index)
-                    : null;
-        return planned ?? this.inCode(from, to, context, index);
+        return this.inLiteral(from, to, context, index) ?? this.inCode(from, to, context, index);
+    }
+
+    /* The plan inside a comment or a string, or null where Enter acts as in code. */
+    private inLiteral(from: number, to: number, context: TypingContext, index: number): EnterPlan | null {
+        if (context.mode === 'block-comment') {
+            return this.inBlockComment(from, to, context, index);
+        }
+        if (from !== to) {
+            return null;
+        }
+        if (context.mode === 'line-comment') {
+            return this.inLineComment(from, context, index);
+        }
+        return context.mode === 'quote' ? this.inString(from, context, index) : null;
     }
 
     /* The indentation a new statement after this line gets, which is not the line's own when the line is a continuation. */
@@ -115,7 +116,7 @@ class Enter {
 
     private previousCodeLine(index: number): number | null {
         for (let candidate = index - 1; candidate >= 0 && candidate >= index - lookBack; candidate--) {
-            if (!isBlank(this.source.line(candidate).text)) {
+            if (!isIndentOnly(this.source.line(candidate).text)) {
                 return candidate;
             }
         }
@@ -137,7 +138,7 @@ class Enter {
         const { unit, language } = options;
         // A comment that trails the code is not part of what decides the indentation.
         const commentAt = lineContext.mode === 'line-comment' ? lineContext.commentStart : undefined;
-        const trailing = commentAt !== undefined && commentAt >= line.start && !isBlank(source.slice(line.start, commentAt));
+        const trailing = commentAt !== undefined && commentAt >= line.start && !isIndentOnly(source.slice(line.start, commentAt));
         const trimmed = trailing ? source.slice(line.start, commentAt).trimEnd() : before.trimEnd();
         const context = trailing ? source.context(line.start + trimmed.length) : lineContext;
         const last = trimmed.at(-1) ?? '';
@@ -152,10 +153,10 @@ class Enter {
             return plain(leading);
         }
 
-        const opener = closers[last] !== undefined && context.bracket?.close === closers[last] && context.bracket.at === line.start + trimmed.length - 1;
+        const opener = openers[last] !== undefined && context.bracket?.close === openers[last] && context.bracket.at === line.start + trimmed.length - 1;
         if (opener) {
             const inner = start + unit;
-            if (next === closers[last]) {
+            if (next === openers[last]) {
                 return { from, to: afterWhitespace, text: newline + inner + newline + start, caret: newline.length + inner.length };
             }
             const closing =
@@ -177,7 +178,8 @@ class Enter {
         }
 
         if (continues(trimmed, context, language)) {
-            const continued = this.previousCodeLine(index) !== null && this.lineContinues(this.previousCodeLine(index)!);
+            const previous = this.previousCodeLine(index);
+            const continued = previous !== null && this.lineContinues(previous);
             return plain(continued ? leading : start + unit);
         }
         return plain(start);
@@ -272,7 +274,7 @@ class Enter {
             return { from, to: textStart, text: newline + leading, caret: newline.length + leading.length };
         }
         const code = source.slice(line.start, commentStart);
-        const onlyComment = isBlank(code);
+        const onlyComment = isIndentOnly(code);
         let spacing = ' ';
         if (onlyComment) {
             const gap = whitespaceOf(source.slice(commentStart + marker.length, line.end));
@@ -405,7 +407,13 @@ class Enter {
             }
             return { from, to: textStart, text: newline + star, caret: newline.length + star.length };
         }
-        if (isDoc && onOpener && source.lineAt(closeAt) === index && isBlank(source.slice(to, closeAt)) && isBlank(source.slice(closeAt + 2, line.end))) {
+        if (
+            isDoc &&
+            onOpener &&
+            source.lineAt(closeAt) === index &&
+            isIndentOnly(source.slice(to, closeAt)) &&
+            isIndentOnly(source.slice(closeAt + 2, line.end))
+        ) {
             // Nothing left to say after the caret: the closer gets a line of its own, under the opener's star.
             const star = this.starPrefix(line, lead, false, isDoc);
             return { from, to: line.end, text: `${newline}${star}${newline}${lead} */`, caret: newline.length + star.length };

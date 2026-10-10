@@ -117,6 +117,12 @@ function scanLiteral(state: TypingContext, text: string, at: number, end: number
     return at;
 }
 
+function openComment(state: TypingContext, mode: 'line-comment' | 'block-comment' | 'html-comment', start: number, resume: number): number {
+    state.mode = mode;
+    state.commentStart = start;
+    return resume;
+}
+
 function scanCode(state: TypingContext, rules: Rules, text: string, at: number, end: number, offset: number): number {
     const char = text[at];
     const next = text[at + 1];
@@ -125,29 +131,16 @@ function scanCode(state: TypingContext, rules: Rules, text: string, at: number, 
         return at;
     }
     if (rules.markup && text.startsWith('<!--', at)) {
-        state.mode = 'html-comment';
-        state.commentStart = offset + at;
-        return at + 3;
+        return openComment(state, 'html-comment', offset + at, at + 3);
     }
     if (rules.hash && char === '#' && !(rules.php && next === '[') && (!rules.hashAtWordStart || startsWord(text, at))) {
-        state.mode = 'line-comment';
-        state.commentStart = offset + at;
-        return at;
+        return openComment(state, 'line-comment', offset + at, at);
     }
-    if (rules.dash && char === '-' && next === '-') {
-        state.mode = 'line-comment';
-        state.commentStart = offset + at;
-        return at + 1;
-    }
-    if (rules.slash && char === '/' && next === '/') {
-        state.mode = 'line-comment';
-        state.commentStart = offset + at;
-        return at + 1;
+    if ((rules.dash && char === '-' && next === '-') || (rules.slash && char === '/' && next === '/')) {
+        return openComment(state, 'line-comment', offset + at, at + 1);
     }
     if (rules.block && char === '/' && next === '*') {
-        state.mode = 'block-comment';
-        state.commentStart = offset + at;
-        return at + 1;
+        return openComment(state, 'block-comment', offset + at, at + 1);
     }
     if (rules.php && char === '<' && text.startsWith('<<<', at)) {
         const opener = PHP_HEREDOC.exec(text.slice(at));

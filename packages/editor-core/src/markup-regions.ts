@@ -179,7 +179,7 @@ class JsxScanner {
     /* An element from its `<`, recorded when no element holds it, and the offset after its closing tag; -1 when it is not one. */
     private element(from: number, outermost: boolean): number {
         this.depth++;
-        const end = this.parse(from);
+        const end = this.parseElement(from);
         this.depth--;
         if (end >= 0 && outermost && this.depth === 0) {
             this.ranges.push({ from, to: end });
@@ -195,7 +195,7 @@ class JsxScanner {
         return at;
     }
 
-    private parse(from: number): number {
+    private parseElement(from: number): number {
         const { text } = this;
         let at = from + 1;
         while (at < text.length && NAME.test(text[at]!)) {
@@ -244,7 +244,7 @@ class JsxScanner {
             } else if (value === '{') {
                 at = this.code(at + 1, '}');
             } else if (value === '<' && START_OF_NAME.test(text[at + 1] ?? '')) {
-                at = this.parse(at);
+                at = this.parseElement(at);
             } else {
                 return -1;
             }
@@ -265,7 +265,7 @@ class JsxScanner {
                 const closing = /^<\/\s*([\w$.:-]*)\s*>/.exec(text.slice(at, at + 200));
                 return closing !== null && closing[1] === name ? at + closing[0].length : -1;
             } else if (START_OF_NAME.test(text[at + 1] ?? '')) {
-                at = this.parse(at);
+                at = this.parseElement(at);
             } else {
                 return -1;
             }
@@ -281,6 +281,24 @@ export function jsxRanges(text: string): { from: number; to: number }[] {
     const scanner = new JsxScanner(text);
     scanner.scan();
     return scanner.ranges;
+}
+
+/* Whether `offset` falls inside one of `ranges`, which are sorted and do not overlap. */
+function insideAny(ranges: readonly { from: number; to: number }[], offset: number): boolean {
+    let low = 0;
+    let high = ranges.length - 1;
+    while (low <= high) {
+        const middle = (low + high) >> 1;
+        const range = ranges[middle]!;
+        if (offset < range.from) {
+            high = middle - 1;
+        } else if (offset >= range.to) {
+            low = middle + 1;
+        } else {
+            return true;
+        }
+    }
+    return false;
 }
 
 /* Whether a language is one whose scripts can hold JSX. */
@@ -313,20 +331,7 @@ export function markupGuard(source: EditSource, language: string): (line: number
         return (line) => {
             const bounds = source.line(line);
             const start = bounds.start + (/^[\t ]*/.exec(bounds.text)?.[0].length ?? 0);
-            let low = 0;
-            let high = ranges.length - 1;
-            while (low <= high) {
-                const middle = (low + high) >> 1;
-                const range = ranges[middle]!;
-                if (start < range.from) {
-                    high = middle - 1;
-                } else if (start >= range.to) {
-                    low = middle + 1;
-                } else {
-                    return true;
-                }
-            }
-            return false;
+            return insideAny(ranges, start);
         };
     }
     return () => false;

@@ -2,6 +2,7 @@ import type { EditPlan, EditSource } from './edit-source.ts';
 import { commentSyntax } from './languages.ts';
 import { continues } from './enter.ts';
 import { indentsByBrackets } from './lexical.ts';
+import { isBlank, rangeOf, whitespaceOf } from './line-text.ts';
 import { markupGuard } from './markup-regions.ts';
 import { mapOffset } from './offsets.ts';
 import type { Selection, TextEdit } from './types.ts';
@@ -14,18 +15,6 @@ export interface LineCommandOptions {
 }
 
 const identifier = /[\p{L}\p{N}\p{M}\p{Pc}$]/u;
-
-function rangeOf(selection: Selection): { from: number; to: number } {
-    return { from: Math.min(selection.anchor, selection.head), to: Math.max(selection.anchor, selection.head) };
-}
-
-function whitespaceOf(text: string): string {
-    return /^[\t ]*/.exec(text)![0];
-}
-
-function isBlank(text: string): boolean {
-    return text.trim() === '';
-}
 
 /* How far the edits in front of an offset moved it. An edit that starts at the offset is not in front of it. */
 function shiftBefore(offset: number, edits: readonly TextEdit[]): number {
@@ -137,7 +126,7 @@ export function planJoinLines(source: EditSource, selections: readonly Selection
                 !isBlank(source.slice(source.line(line).start, comment.start)) &&
                 !source.slice(nextStart, nextLine.end).startsWith(comment.marker.trimEnd()) &&
                 commentSyntax(options.language, source.region(line)).block?.open === '/*';
-            if (converts && comment) {
+            if (converts) {
                 const body = source.slice(comment.start + comment.marker.length, join.from);
                 if (!body.includes('*/')) {
                     edits.push({ from: comment.start, to: comment.start + comment.marker.length, text: '/*' });

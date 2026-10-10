@@ -15,16 +15,9 @@ const HEREDOC = /<<<[ \t]*(["']?)([A-Za-z_]\w*)\1\s*$/;
 function markdownFolds(lineCount: number, getLine: (line: number) => DocumentLine): FoldingRange[] {
     const result: FoldingRange[] = [];
     const headings: { line: number; level: number }[] = [];
-    let first = 0;
-    if (lineCount > 0 && getLine(0).text.trim() === '---') {
-        for (let line = 1; line < lineCount; line++) {
-            const text = getLine(line).text.trim();
-            if (text === '---' || text === '...') {
-                result.push(rangeOf(0, line, getLine, 'block', 'front-matter'));
-                first = line + 1;
-                break;
-            }
-        }
+    const frontMatter = frontMatterEnd(lineCount, getLine);
+    if (frontMatter !== -1) {
+        result.push(rangeOf(0, frontMatter, getLine, 'block', 'front-matter'));
     }
     let tableStart = -1;
     const flushTable = (end: number): void => {
@@ -33,19 +26,12 @@ function markdownFolds(lineCount: number, getLine: (line: number) => DocumentLin
         }
         tableStart = -1;
     };
-    for (let line = first; line < lineCount; line++) {
+    for (let line = frontMatter + 1; line < lineCount; line++) {
         const text = getLine(line).text;
         const fence = FENCE.exec(text);
         if (fence !== null) {
             flushTable(line - 1);
-            const marker = fence[1]!;
-            let end = -1;
-            for (let next = line + 1; next < lineCount && end === -1; next++) {
-                const closer = FENCE.exec(getLine(next).text);
-                if (closer !== null && closer[1]![0] === marker[0] && closer[1]!.length >= marker.length && getLine(next).text.trim() === closer[1]) {
-                    end = next;
-                }
-            }
+            const end = fenceEnd(line, fence[1]!, lineCount, getLine);
             if (end !== -1) {
                 result.push(rangeOf(line, end, getLine, 'block', 'code-fence'));
                 line = end;
@@ -74,6 +60,31 @@ function markdownFolds(lineCount: number, getLine: (line: number) => DocumentLin
         }
     }
     return result;
+}
+
+/* The line that closes front matter opened on the first line, or -1. */
+function frontMatterEnd(lineCount: number, getLine: (line: number) => DocumentLine): number {
+    if (lineCount === 0 || getLine(0).text.trim() !== '---') {
+        return -1;
+    }
+    for (let line = 1; line < lineCount; line++) {
+        const text = getLine(line).text.trim();
+        if (text === '---' || text === '...') {
+            return line;
+        }
+    }
+    return -1;
+}
+
+/* The line that closes a fence opened on `line` with `marker`, or -1. */
+function fenceEnd(line: number, marker: string, lineCount: number, getLine: (line: number) => DocumentLine): number {
+    for (let next = line + 1; next < lineCount; next++) {
+        const closer = FENCE.exec(getLine(next).text)?.[1];
+        if (closer !== undefined && closer[0] === marker[0] && closer.length >= marker.length && getLine(next).text.trim() === closer) {
+            return next;
+        }
+    }
+    return -1;
 }
 
 /* `<?php ... ?>` blocks that sit between markup, and heredocs and nowdocs. A block that opens the file is the file, not a fold. */

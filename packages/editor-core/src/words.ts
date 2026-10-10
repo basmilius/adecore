@@ -6,6 +6,8 @@
 // 7184b03af6c5370e79a01ded0df68cf56d7669da, platform/platform-impl/src/com/intellij/openapi/editor/actions/EditorActionUtil.java,
 // lines 934-982.
 
+import { splitsSurrogate } from './search.ts';
+
 // Java's Character.isJavaIdentifierPart, which counts the ignorable control characters as part of a word.
 // oxlint-disable-next-line no-control-regex
 const identifierPart = /[\p{L}\p{Nl}\p{Sc}\p{Pc}\p{Nd}\p{Mc}\p{Mn}\p{Cf}\u0000-\u0008\u000e-\u001b\u007f-\u009f]/u;
@@ -70,11 +72,8 @@ export function isWordBoundary(text: WordText, offset: number, camel: boolean, i
 export function wordBoundary(text: WordText, offset: number, direction: -1 | 1, camel = true): number {
     let position = offset + direction;
     while (position > 0 && position < text.length) {
-        const before = text.charAt(position - 1);
-        const after = text.charAt(position);
-        const splitsPair = /[\ud800-\udbff]/.test(before) && /[\udc00-\udfff]/.test(after);
-        const splitsLineBreak = before === '\r' && after === '\n';
-        if (!splitsPair && !splitsLineBreak && isWordBoundary(text, position, camel, direction === -1)) {
+        const splitsLineBreak = text.charAt(position - 1) === '\r' && text.charAt(position) === '\n';
+        if (!splitsSurrogate(text, position) && !splitsLineBreak && isWordBoundary(text, position, camel, direction === -1)) {
             return position;
         }
         position += direction;

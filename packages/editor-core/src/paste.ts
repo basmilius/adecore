@@ -1,4 +1,5 @@
 import type { EditPlan, EditSource } from './edit-source.ts';
+import { indentText, isBlank, whitespaceOf } from './line-text.ts';
 import { mapOffset } from './offsets.ts';
 import { indentationColumn } from './structure.ts';
 import type { Selection, TextEdit } from './types.ts';
@@ -10,14 +11,6 @@ export interface PasteOptions {
     wholeLines: boolean;
     /* Moves a pasted block to the indentation of the place it lands on. */
     reindent: boolean;
-}
-
-function whitespaceOf(text: string): string {
-    return /^[\t ]*/.exec(text)![0];
-}
-
-function isBlank(text: string): boolean {
-    return text.trim() === '';
 }
 
 /* A line break at the end is the end of the last line, not a line of its own. */
@@ -32,13 +25,6 @@ function perCaretLines(text: string, carets: number): string[] | null {
     }
     const lines = linesOf(text);
     return lines.length === carets ? lines : null;
-}
-
-function indentText(width: number, options: PasteOptions): string {
-    if (options.insertSpaces) {
-        return ' '.repeat(width);
-    }
-    return '\t'.repeat(Math.floor(width / options.tabSize)) + ' '.repeat(width % options.tabSize);
 }
 
 /*

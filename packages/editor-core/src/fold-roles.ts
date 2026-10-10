@@ -1,4 +1,5 @@
-import { isImportLine } from './lexical-folds.ts';
+import { isImportLine, rangeOf, textStart } from './lexical-folds.ts';
+import { isBlank } from './line-text.ts';
 import type { DocumentLine } from './rope.ts';
 import type { FoldHints, FoldRangeHint, FoldRole, FoldingRange } from './structure.ts';
 
@@ -46,10 +47,6 @@ export function bracketRole(slice: (from: number, to: number) => string, from: n
     return /^\s*(?:case\b|default\s*:|(?:export\s+)?(?:declare\s+)?(?:type|interface)\b)/.test(head) ? undefined : 'object-literal';
 }
 
-function isBlank(text: string): boolean {
-    return text.trim() === '';
-}
-
 /*
  * The comment at the very top of a file is its header, unless it is the documentation of what follows
  * right under it. Only the first comment can be one, and only behind a shebang, an open tag or blank lines.
@@ -65,8 +62,7 @@ export function markFileHeader(ranges: FoldingRange[], getLine: (line: number) =
             return;
         }
     }
-    const start = getLine(candidate.startLine);
-    if (candidate.from > start.start + (start.text.length - start.text.trimStart().length)) {
+    if (candidate.from > textStart(getLine(candidate.startLine))) {
         return;
     }
     const next = candidate.endLine + 1 < lineCount ? getLine(candidate.endLine + 1).text : '';
@@ -125,19 +121,9 @@ export function applyFoldHints(
         if (endLine - startLine < minimum || starts.has(startLine)) {
             continue;
         }
-        const first = getLine(startLine);
-        const indent = first.text.length - first.text.trimStart().length;
-        const role = serverRole(hint.kind, first.text.trimStart());
         starts.add(startLine);
-        result.push({
-            startLine,
-            endLine,
-            from: first.start + indent,
-            to: getLine(endLine).end,
-            kind: 'server',
-            ...(role === undefined ? {} : { role }),
-            ...edgesOf(hint)
-        });
+        const role = serverRole(hint.kind, getLine(startLine).text.trimStart());
+        result.push({ ...rangeOf(startLine, endLine, getLine, 'server', role), ...edgesOf(hint) });
     }
     return result.sort((left, right) => left.startLine - right.startLine || right.endLine - left.endLine);
 }

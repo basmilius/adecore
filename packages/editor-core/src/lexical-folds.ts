@@ -48,6 +48,11 @@ function bracketDelta(text: string): number {
     return depth;
 }
 
+/* The offset of the first character of a line that is not indentation. */
+export function textStart(line: DocumentLine): number {
+    return line.start + (line.text.length - line.text.trimStart().length);
+}
+
 /* A fold of whole lines, from the end of the first to the end of the last. */
 export function rangeOf(
     startLine: number,
@@ -56,11 +61,10 @@ export function rangeOf(
     kind: FoldingRange['kind'],
     role?: FoldRole
 ): FoldingRange {
-    const start = getLine(startLine);
     return {
         startLine,
         endLine,
-        from: start.start + (start.text.length - start.text.trimStart().length),
+        from: textStart(getLine(startLine)),
         to: getLine(endLine).end,
         kind,
         ...(role === undefined ? {} : { role })

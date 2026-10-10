@@ -22,41 +22,35 @@ export function replaceWithCaseRespect(replacement: string, found: string): stri
     if (foundTail === '') {
         return head + replacementTail;
     }
-    let replacementLower = true;
-    let replacementUpper = true;
-    for (const character of replacementTail) {
-        if (!letter.test(character)) {
-            continue;
-        }
-        replacementLower &&= lower.test(character);
-        replacementUpper &&= upper.test(character);
-        if (!replacementLower && !replacementUpper) {
-            break;
-        }
-    }
-    let tailUpper = true;
-    let tailLower = true;
-    let tailChecked = false;
-    for (const character of foundTail) {
-        if (!letter.test(character)) {
-            continue;
-        }
-        tailUpper &&= upper.test(character);
-        tailLower &&= lower.test(character);
-        tailChecked = true;
-        if (!tailUpper && !tailLower) {
-            break;
-        }
-    }
-    if (!tailChecked) {
-        tailUpper = letter.test(firstFound!) && upper.test(firstFound!);
-        tailLower = letter.test(firstFound!) && lower.test(firstFound!);
-    }
-    if (tailUpper && (replacementLower || !replacementUpper)) {
+    const replacementCase = letterCase(replacementTail);
+    const foundCase = letterCase(foundTail);
+    // A tail without letters, like `x2`, follows the first letter of the match.
+    const tailUpper = foundCase.hasLetters ? foundCase.upper : upper.test(firstFound!);
+    const tailLower = foundCase.hasLetters ? foundCase.lower : lower.test(firstFound!);
+    if (tailUpper && (replacementCase.lower || !replacementCase.upper)) {
         return head + replacementTail.toUpperCase();
     }
-    if (tailLower && (replacementLower || replacementUpper)) {
+    if (tailLower && (replacementCase.lower || replacementCase.upper)) {
         return head + replacementTail.toLowerCase();
     }
     return head + replacementTail;
+}
+
+/* Whether every letter of `text` is upper case and whether every one is lower case; both hold without letters. */
+function letterCase(text: string): { upper: boolean; lower: boolean; hasLetters: boolean } {
+    let allUpper = true;
+    let allLower = true;
+    let hasLetters = false;
+    for (const character of text) {
+        if (!letter.test(character)) {
+            continue;
+        }
+        hasLetters = true;
+        allUpper &&= upper.test(character);
+        allLower &&= lower.test(character);
+        if (!allUpper && !allLower) {
+            break;
+        }
+    }
+    return { upper: allUpper, lower: allLower, hasLetters };
 }

@@ -10,6 +10,7 @@ import { isPlainText, vueRegionAt } from './languages.ts';
 import { blockFolds } from './block-folds.ts';
 import { applyFoldHints, markFileHeader } from './fold-roles.ts';
 import { lexicalFolds } from './lexical-folds.ts';
+import { rangeOf, whitespaceOf } from './line-text.ts';
 import { isQuote, replacesComparison, surround, swapQuotes } from './typing-handlers.ts';
 import { scanBrackets } from './brackets.ts';
 import type { BracketIndex } from './brackets.ts';
@@ -38,7 +39,6 @@ import { isHumpBoundary, isWordBoundary } from './words.ts';
 
 export type { DocumentLine, FindMatch, FindNextOptions, FindOptions, FoldingOptions, FoldingRange };
 
-/* A stretch of the text by offsets. */
 export interface OffsetRange {
     readonly from: number;
     readonly to: number;
@@ -154,16 +154,8 @@ const arrowContinues = /^[\p{L}_{]/u;
 const wordCommand = /^(select|delete)?(word|camel)(Left|Right)$/i;
 const graphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
 
-function rangeOf(selection: Selection): { from: number; to: number } {
-    return { from: Math.min(selection.anchor, selection.head), to: Math.max(selection.anchor, selection.head) };
-}
-
 function sameSelections(left: readonly Selection[], right: readonly Selection[]): boolean {
     return left.length === right.length && left.every((selection, index) => selection.anchor === right[index]!.anchor && selection.head === right[index]!.head);
-}
-
-function indentLength(text: string): number {
-    return text.match(/^[\t ]*/)?.[0].length ?? 0;
 }
 
 function trailingBlankLength(text: string): number {
@@ -274,13 +266,13 @@ function inverseChanges(changes: readonly DocumentChange[]): DocumentChange[] {
     });
 }
 
-/* Runs of consecutive line numbers, from a sorted list. */
 type LineSpanOf = NonNullable<CommandOptions['lineSpan']>;
 
 function range(first: number, last: number): number[] {
     return Array.from({ length: last - first + 1 }, (_, index) => first + index);
 }
 
+/* Runs of consecutive line numbers, from a sorted list. */
 function blocks(indices: readonly number[]): LineBlock[] {
     const result: LineBlock[] = [];
     for (const index of indices) {
@@ -313,7 +305,8 @@ function indentStopLength(prefix: string, tabSize: number): number {
 
 function positionIn(rope: TextRope, offset: number): Position {
     const line = rope.lineAt(offset);
-    return { line, column: Math.min(offset, rope.lineBounds(line).end) - rope.lineBounds(line).start };
+    const bounds = rope.lineBounds(line);
+    return { line, column: Math.min(offset, bounds.end) - bounds.start };
 }
 
 /* Simultaneous edits of `rope` as a sequence, last to first, so each edit's position in `rope` is also its position once the ones after it are applied. */
@@ -349,6 +342,15 @@ function stretchEdits(before: TextRope, after: TextRope, transactions: readonly 
         return [];
     }
     return [{ start: positionIn(before, prefix), end: positionIn(before, oldEnd), text: after.slice(prefix, newEnd) }];
+}
+
+/* An occurrence selected with its caret `shift` characters into it, as the caret stood in the selection it repeats. */
+function occurrenceSelection(match: OffsetRange, shift: number): Selection {
+    if (shift === 0) {
+        return { anchor: match.to, head: match.from };
+    }
+    const caret = Math.min(match.from + shift, match.to);
+    return { anchor: caret === match.to ? match.from : match.to, head: caret };
 }
 
 /*
@@ -557,10 +559,7 @@ export class DocumentModel {
     }
 
     positionAt(offset: number): Position {
-        const clamped = offsetIn(this.rope, offset);
-        const line = this.rope.lineAt(clamped);
-        const bounds = this.rope.lineBounds(line);
-        return { line, column: Math.min(clamped, bounds.end) - bounds.start };
+        return positionIn(this.rope, offsetIn(this.rope, offset));
     }
 
     /* A column past the end of its line lands on the end of the line, before the line break. */
@@ -930,7 +929,7 @@ export class DocumentModel {
         if (!/^[\t ]*$/.test(before)) {
             return null;
         }
-        const indent = this.getLine(this.rope.lineAt(opener)).text.match(/^[\t ]*/)?.[0] ?? '';
+        const indent = whitespaceOf(this.getLine(this.rope.lineAt(opener)).text);
         if (indent === before) {
             return null;
         }
@@ -1341,16 +1340,11 @@ export class DocumentModel {
         return plan !== null && this.applyEdits(plan.edits, { source: 'command', selections: plan.selections });
     }
 
-    /* The lines the carets and selections touch. A selection that ends at the start of a line does not touch it. */
+    /* The lines the carets and selections touch, sorted. */
     private selectedLines(span?: LineSpanOf): number[] {
         const indices = new Set<number>();
         for (const selection of this.selections) {
-            const { from, to } = rangeOf(selection);
-            let first = this.rope.lineAt(from);
-            let last = this.rope.lineAt(to);
-            if (to > from && this.rope.lineBounds(last).start === to) {
-                last--;
-            }
+            let { first, last } = this.touchedLines(selection);
             if (span) {
                 first = span(first).first;
                 last = Math.max(last, span(last).last);
@@ -1360,6 +1354,14 @@ export class DocumentModel {
             }
         }
         return [...indices].sort((left, right) => left - right);
+    }
+
+    /* The lines a selection touches; one that ends at the start of a line does not touch it. */
+    private touchedLines(selection: Selection): LineBlock {
+        const { from, to } = rangeOf(selection);
+        const first = this.rope.lineAt(from);
+        const last = this.rope.lineAt(to);
+        return { first, last: last > first && this.rope.lineBounds(last).start === to ? last - 1 : last };
     }
 
     /* A selection is copied in place, its copy selected; a caret duplicates its line and moves down with it. */
@@ -1542,7 +1544,7 @@ export class DocumentModel {
                 const index = this.rope.lineAt(selection.head);
                 const line = this.rope.lineBounds(index);
                 const text = this.getLine(index).text;
-                const indent = (text.match(/^[\t ]*/)?.[0] ?? '') + (/^[\t ]*[)\]}]/.test(text) ? unit : '');
+                const indent = whitespaceOf(text) + (/^[\t ]*[)\]}]/.test(text) ? unit : '');
                 return { from: line.start, to: line.start, text: indent + this.newlineAt(index), anchor: indent.length, head: indent.length };
             }),
             { source: 'command' }
@@ -1601,7 +1603,7 @@ export class DocumentModel {
             return true;
         }
         const closer = index.pairs.get(offset);
-        const indentAt = (at: number): number => this.getLine(this.rope.lineAt(at)).text.match(/^[\t ]*/)![0].length;
+        const indentAt = (at: number): number => whitespaceOf(this.getLine(this.rope.lineAt(at)).text).length;
         if (closer === undefined || indentAt(closer) >= indentAt(offset)) {
             return false;
         }
@@ -1958,7 +1960,7 @@ export class DocumentModel {
             { from: 0, to: this.rope.length }
         ];
         if (first.start === last.start) {
-            candidates.push({ from: first.start + indentLength(first.text), to: first.end - trailingBlankLength(first.text) });
+            candidates.push({ from: first.start + whitespaceOf(first.text).length, to: first.end - trailingBlankLength(first.text) });
         }
         for (const range of this.structure()) {
             candidates.push({ from: range.innerFrom, to: range.innerTo }, range);
@@ -2033,10 +2035,7 @@ export class DocumentModel {
             this.rememberOccurrence(wholeWord, notFoundBefore);
             return false;
         }
-        const shift = primary.head - from;
-        const caret = Math.min(match.from + shift, match.to);
-        const added = shift === 0 ? { anchor: match.to, head: match.from } : { anchor: caret === match.to ? match.from : match.to, head: caret };
-        const changed = this.changeSelections([...this.selections, added]);
+        const changed = this.changeSelections([...this.selections, occurrenceSelection(match, primary.head - from)]);
         this.rememberOccurrence(wholeWord, false);
         return changed;
     }
@@ -2071,12 +2070,7 @@ export class DocumentModel {
         if (matches.length === 0) {
             return false;
         }
-        const changed = this.changeSelections(
-            matches.map((match) => {
-                const caret = Math.min(match.from + shift, match.to);
-                return shift === 0 ? { anchor: match.to, head: match.from } : { anchor: caret === match.to ? match.from : match.to, head: caret };
-            })
-        );
+        const changed = this.changeSelections(matches.map((match) => occurrenceSelection(match, shift)));
         this.rememberOccurrence(wholeWord, false);
         return changed;
     }
@@ -2086,12 +2080,7 @@ export class DocumentModel {
         const forward = this.selections.at(-1)!.head >= this.selections.at(-1)!.anchor;
         const carets: Selection[] = [];
         for (const selection of this.selections) {
-            const { from, to } = rangeOf(selection);
-            const first = this.rope.lineAt(from);
-            let last = this.rope.lineAt(to);
-            if (last > first && to === this.rope.lineBounds(last).start) {
-                last--;
-            }
+            const { first, last } = this.touchedLines(selection);
             for (let line = first; line <= last; line++) {
                 const end = this.rope.lineBounds(line).end;
                 carets.push({ anchor: end, head: end });

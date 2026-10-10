@@ -50,9 +50,8 @@ export interface FoldingRange {
 }
 
 export interface FoldingOptions {
-    /* On unless `false`. */
+    /* Both on unless `false`. */
     brackets?: boolean;
-    /* On unless `false`. */
     comments?: boolean;
     indentation?: boolean;
     /* The language id, which decides what an import line and a line comment look like. Without one only brackets, block comments and indentation fold. */
@@ -189,7 +188,7 @@ export function deriveFoldingRanges(
     options: FoldingOptions = {},
     slice?: (from: number, to: number) => string
 ): FoldingRange[] {
-    const minimum = options.minLines === undefined ? 1 : Math.max(1, Number.isFinite(options.minLines) ? Math.trunc(options.minLines) : 1);
+    const minimum = Number.isFinite(options.minLines) ? Math.max(1, Math.trunc(options.minLines!)) : 1;
     const result: FoldingRange[] = [];
     for (const range of ranges) {
         if (range.kind === 'string' || (range.kind === 'bracket' ? options.brackets === false : options.comments === false)) {
