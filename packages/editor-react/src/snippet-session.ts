@@ -12,10 +12,9 @@ export function positionInInsertion(start: EditorPosition, text: string, offset:
 }
 
 /*
- * The tab stops of a snippet that was just inserted. The caret goes to the first one, with its default text
- * selected; Tab goes on to the next and Shift+Tab back, and the last stop (`$0`, or the end of the text)
- * ends it. Escape, a caret that leaves the snippet and any change that is not typing end it too. Typing in
- * a stop does not touch the others: they follow the text, but a mirror of a stop is not edited along.
+ * The tab stops of a snippet that was just inserted. Tab and Shift+Tab move between them; the last stop,
+ * Escape, a caret that leaves the snippet and any change that is not typing end it. A mirror of a stop
+ * follows the text but is not edited along.
  */
 export class SnippetFeature {
     private readonly language: EditorLanguage;
