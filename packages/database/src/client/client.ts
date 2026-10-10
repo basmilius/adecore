@@ -25,9 +25,9 @@ const cancelledError = (): DatabaseRequestError => new DatabaseRequestError('can
 const isUnknownSession = (error: unknown): boolean => error instanceof DatabaseRequestError && error.code === 'unknown-session';
 
 const LEADING_COMMENTS = /^(?:\s+|--[^\n]*(?:\n|$)|#[^\n]*(?:\n|$)|\/\*[\s\S]*?\*\/)+/;
-const CHANGES_SHAPE = /^(?:create|alter|drop|rename|truncate)\b/i;
+const SCHEMA_STATEMENT = /^(?:create|alter|drop|rename|truncate)\b/i;
 
-const changesShape = (sql: string): boolean => CHANGES_SHAPE.test(sql.replace(LEADING_COMMENTS, ''));
+const changesSchema = (sql: string): boolean => SCHEMA_STATEMENT.test(sql.replace(LEADING_COMMENTS, ''));
 
 /* Structural equality for the JSON a config is made of; a key set to `undefined` counts as absent. */
 const isEqual = (left: unknown, right: unknown): boolean => {
@@ -70,6 +70,17 @@ export const createDatabaseClient = (transport: DatabaseTransport, options: Data
     const createId = options.createId ?? (() => crypto.randomUUID());
     const live = new Map<string, Map<string, ReturnType<typeof createSession>>>();
     const schemaListeners = new Set<(change: SchemaChange) => void>();
+
+    const channelsOf = (connectionId: string): Map<string, ReturnType<typeof createSession>> => {
+        let channels = live.get(connectionId);
+
+        if (channels === undefined) {
+            channels = new Map();
+            live.set(connectionId, channels);
+        }
+
+        return channels;
+    };
 
     const notifySchemaChange = (change: SchemaChange): void => {
         for (const listener of [...schemaListeners]) {
@@ -127,12 +138,7 @@ export const createDatabaseClient = (transport: DatabaseTransport, options: Data
 
         /* A session that was closed and is used again is findable again, so `disconnect` and `dispose` reach it. */
         const track = (): void => {
-            let channels = live.get(connection.id);
-
-            if (channels === undefined) {
-                channels = new Map();
-                live.set(connection.id, channels);
-            }
+            const channels = channelsOf(connection.id);
 
             if (!channels.has(channel)) {
                 channels.set(channel, created);
@@ -240,7 +246,7 @@ export const createDatabaseClient = (transport: DatabaseTransport, options: Data
                 const { signal: _signal, ...rest } = executeOptions ?? {};
                 const result = await request('execute', (id) => ({ session: id, sql, ...rest }), executeOptions, false);
 
-                if (result.results.some((item) => item.kind !== 'error' && changesShape(item.sql))) {
+                if (result.results.some((item) => item.kind !== 'error' && changesSchema(item.sql))) {
                     notifySchemaChange({ connectionId: connection.id, ...(rest.schema === undefined ? {} : { schema: rest.schema }) });
                 }
 
@@ -290,8 +296,7 @@ export const createDatabaseClient = (transport: DatabaseTransport, options: Data
             };
         },
         session(connection, channel = '') {
-            let channels = live.get(connection.id);
-            const existing = channels?.get(channel);
+            const existing = live.get(connection.id)?.get(channel);
 
             if (existing !== undefined && isEqual(existing.session.connection.config, connection.config)) {
                 existing.update(connection);
@@ -301,13 +306,7 @@ export const createDatabaseClient = (transport: DatabaseTransport, options: Data
             void existing?.close();
 
             const created = createSession(connection, channel);
-
-            if (channels === undefined) {
-                channels = new Map();
-                live.set(connection.id, channels);
-            }
-
-            channels.set(channel, created);
+            channelsOf(connection.id).set(channel, created);
             return created.session;
         },
         async disconnect(connectionId) {
