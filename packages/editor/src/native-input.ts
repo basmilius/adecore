@@ -119,8 +119,7 @@ export class NativeInput {
             return;
         }
         if (this.model.getSelections().length > 1) {
-            const suffix = context.value.length - context.end;
-            this.host.replace(this.element.value.slice(context.start, Math.max(context.start, this.element.value.length - suffix)));
+            this.host.replace(this.replacedText(context));
             return;
         }
         const edit = {
@@ -172,7 +171,11 @@ export class NativeInput {
     }
 
     private composedText(): string {
-        const context = this.compositionContext!;
+        return this.replacedText(this.compositionContext!);
+    }
+
+    /* What the textarea now holds where the selection of `context` was, the text after it kept. */
+    private replacedText(context: InputContext): string {
         const suffix = context.value.length - context.end;
         return this.element.value.slice(context.start, Math.max(context.start, this.element.value.length - suffix));
     }

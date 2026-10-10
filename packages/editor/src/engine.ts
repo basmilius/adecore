@@ -1,4 +1,4 @@
-import { changedSpans, DocumentModel, type EditorSnapshot, replacementText } from '@adecore/editor-core';
+import { changedSpans, DocumentModel, type EditorSnapshot, type FoldHints, replacementText } from '@adecore/editor-core';
 import { InputController } from './controller.ts';
 import { resolveSmartKeys } from './smart-keys.ts';
 import { emit, type Listener, subscribe } from './listeners.ts';
@@ -191,10 +191,7 @@ class SmartEditor implements Editor {
     }
 
     onTextChange(listener: (change: EditorTextChange) => void): () => void {
-        this.textChanges.add(listener);
-        return () => {
-            this.textChanges.delete(listener);
-        };
+        return subscribe(this.textChanges, listener);
     }
 
     private announceTextChange(edits: NonNullable<EditorSnapshot['contentEdits']>, source: EditorTextChange['source']): void {
@@ -205,9 +202,7 @@ class SmartEditor implements Editor {
                 text: edit.text
             }))
         };
-        for (const listener of [...this.textChanges]) {
-            listener(change);
-        }
+        emit(this.textChanges, change);
     }
 
     private caretMoved(head: number): void {
@@ -216,9 +211,7 @@ class SmartEditor implements Editor {
         }
         this.caretOffset = head;
         const position = this.positionAt(head);
-        for (const listener of [...this.carets]) {
-            listener(position);
-        }
+        emit(this.carets, position);
     }
 
     getCaret(): EditorPosition {
@@ -230,15 +223,16 @@ class SmartEditor implements Editor {
     }
 
     getSelection(): EditorRange {
-        const { anchor, head } = this.model.getPrimary();
-        return { start: this.positionAt(Math.min(anchor, head)), end: this.positionAt(Math.max(anchor, head)) };
+        return this.rangeOf(this.model.getPrimary());
     }
 
     getSelections(): EditorRange[] {
-        return this.model.getSelections().map(({ anchor, head }) => ({
-            start: this.positionAt(Math.min(anchor, head)),
-            end: this.positionAt(Math.max(anchor, head))
-        }));
+        return this.model.getSelections().map((selection) => this.rangeOf(selection));
+    }
+
+    /* A selection as a range, start before end. */
+    private rangeOf({ anchor, head }: { anchor: number; head: number }): EditorRange {
+        return { start: this.positionAt(Math.min(anchor, head)), end: this.positionAt(Math.max(anchor, head)) };
     }
 
     getIndentation(): EditorIndentation {
@@ -267,10 +261,7 @@ class SmartEditor implements Editor {
     }
 
     onCaret(listener: (position: EditorPosition) => void): () => void {
-        this.carets.add(listener);
-        return () => {
-            this.carets.delete(listener);
-        };
+        return subscribe(this.carets, listener);
     }
 
     onHover(listener: (hover: EditorHover | null) => void): () => void {
@@ -625,7 +616,7 @@ class SmartEditor implements Editor {
         return this.view.onGutterAction(listener);
     }
 
-    setGutterMarkers(markers: readonly EditorGutterMarker[], owner: string = 'default'): void {
+    setGutterMarkers(markers: readonly EditorGutterMarker[], owner: string = DEFAULT_WIDGET_OWNER): void {
         this.view.setGutterMarkers(owner, markers);
     }
 
@@ -667,30 +658,30 @@ class SmartEditor implements Editor {
     }
 
     setFoldHints(hints: EditorFoldHints | null): void {
-        this.view.setFoldHints(
-            hints === null
-                ? null
-                : {
-                      symbols: (hints.symbols ?? []).map((symbol) => ({
-                          from: this.offsetAt(symbol.range.start),
-                          to: this.offsetAt(symbol.range.end),
-                          body: symbol.body
-                      })),
-                      ranges: (hints.ranges ?? []).map((range) => {
-                          const first = this.model.getLine(Math.min(range.startLine, this.model.getLineCount() - 1));
-                          const last = this.model.getLine(Math.min(range.endLine, this.model.getLineCount() - 1));
-                          const within = (line: { start: number; end: number }, character: number): number =>
-                              Math.min(line.end, line.start + Math.max(0, character));
-                          return {
-                              from: first.start,
-                              to: last.start,
-                              ...(range.kind === undefined ? {} : { kind: range.kind }),
-                              ...(range.startCharacter === undefined ? {} : { head: within(first, range.startCharacter) }),
-                              ...(range.endCharacter === undefined ? {} : { tail: within(last, range.endCharacter) })
-                          };
-                      })
-                  }
-        );
+        this.view.setFoldHints(hints === null ? null : this.foldHintsByOffset(hints));
+    }
+
+    private foldHintsByOffset(hints: EditorFoldHints): FoldHints {
+        const lineOf = (line: number): { start: number; end: number } => this.model.getLine(Math.min(line, this.model.getLineCount() - 1));
+        const within = (line: { start: number; end: number }, character: number): number => Math.min(line.end, line.start + Math.max(0, character));
+        return {
+            symbols: (hints.symbols ?? []).map((symbol) => ({
+                from: this.offsetAt(symbol.range.start),
+                to: this.offsetAt(symbol.range.end),
+                body: symbol.body
+            })),
+            ranges: (hints.ranges ?? []).map((range) => {
+                const first = lineOf(range.startLine);
+                const last = lineOf(range.endLine);
+                return {
+                    from: first.start,
+                    to: last.start,
+                    ...(range.kind === undefined ? {} : { kind: range.kind }),
+                    ...(range.startCharacter === undefined ? {} : { head: within(first, range.startCharacter) }),
+                    ...(range.endCharacter === undefined ? {} : { tail: within(last, range.endCharacter) })
+                };
+            })
+        };
     }
 
     setSmartKeys(keys: Partial<EditorSmartKeys>): void {

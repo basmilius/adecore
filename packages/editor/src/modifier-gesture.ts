@@ -45,8 +45,8 @@ export class DoubleModifierGesture {
 
     /* Another modifier held with the one that counts spoils the gesture. */
     private spoiled(event: GestureEvent): boolean {
-        const others = this.modifier === 'Alt' ? event.ctrlKey || event.metaKey || event.shiftKey : event.altKey || event.metaKey || event.shiftKey;
-        return others;
+        const other = this.modifier === 'Alt' ? event.ctrlKey : event.altKey;
+        return other || event.metaKey || event.shiftKey;
     }
 
     keydown(event: GestureEvent): GestureAction | null {

@@ -56,7 +56,6 @@ export function overviewTicks(spans: readonly OverviewSpan[], contentHeight: num
 /* What is painted later is on top: the current find match, and the worse a problem is the later it goes. */
 const PAINT_ORDER: Partial<Record<OverviewKind, number>> = { warning: 1, error: 2, 'find-current': 3 };
 
-/* Draws the ticks. */
 export function paintOverview(container: HTMLElement, ticks: readonly OverviewTick[]): void {
     const document = container.ownerDocument;
     const order = (tick: OverviewTick): number => PAINT_ORDER[tick.kind] ?? 0;

@@ -53,7 +53,7 @@ function positionIn(text: string, offset: number): EditorPosition {
     return { line: lines.length - 1, character: lines.at(-1)!.length };
 }
 
-/* An editor without a DOM, for tests: `type`, `save` and `blur` do what a person would, the rest says what the client asked of it. */
+/* An editor without a DOM, for tests: `type`, `save` and `blur` do what a person would, the rest says what the host asked of it. */
 export class FakeEditor implements Editor {
     readonly element: HTMLElement;
     readonly language: string | undefined;
@@ -67,10 +67,10 @@ export class FakeEditor implements Editor {
     revealedLine: number | null;
     focused = false;
     indentation: EditorIndentation;
-    /* How often the client asked it to read the code face off the page again. */
+    /* How often the host asked it to read the code face off the page again. */
     fontRefreshes = 0;
     disposed = false;
-    /* What the client asked to find last; null once it ended the find. */
+    /* What the host asked to find last; null once it ended the find. */
     findQuery: EditorFindQuery | null = null;
     findState: EditorFindState = { count: 0, current: null };
     private text: string;
@@ -147,9 +147,7 @@ export class FakeEditor implements Editor {
             source,
             changes: [{ range: { start: positionIn(before, span.start), end: positionIn(before, span.end) }, text: span.text }]
         };
-        for (const listener of [...this.textChanges]) {
-            listener(change);
-        }
+        emit(this.textChanges, change);
     }
 
     private readonly tracked = new Set<{ from: number; to: number; lost: boolean }>();
@@ -180,10 +178,7 @@ export class FakeEditor implements Editor {
     }
 
     onTextChange(listener: (change: EditorTextChange) => void): () => void {
-        this.textChanges.add(listener);
-        return () => {
-            this.textChanges.delete(listener);
-        };
+        return subscribe(this.textChanges, listener);
     }
 
     positionAt(offset: number): EditorPosition {
@@ -216,7 +211,7 @@ export class FakeEditor implements Editor {
         return subscribe(this.blurs, listener);
     }
 
-    /* How the client last asked the view to follow a jump. */
+    /* How the host last asked the view to follow a jump. */
     lastReveal: EditorReveal | null = null;
 
     revealLine(line: number, reveal: EditorReveal = 'center'): void {
@@ -224,7 +219,7 @@ export class FakeEditor implements Editor {
         this.lastReveal = reveal;
     }
 
-    /* Counts plain occurrences only; the matcher itself is the editor's, and a test here is about the client's side. */
+    /* Counts plain occurrences only; the matcher itself is the editor's, and a test here is about the host's side. */
     find(query: EditorFindQuery | null): void {
         this.findQuery = query;
         const needle = query === null || query.text === '' ? '' : query.caseSensitive ? query.text : query.text.toLowerCase();
@@ -233,12 +228,12 @@ export class FakeEditor implements Editor {
         this.announceFind({ count, current: count === 0 ? null : 0 });
     }
 
-    /* What the client asked to replace, one match at a time and all at once. */
+    /* What the host asked to replace, one match at a time and all at once. */
     replacements: string[] = [];
     replaceOptions: EditorReplaceOptions[] = [];
-    /* What the client last asked to show under the match. */
+    /* What the host last asked to show under the match. */
     replacePreview: string | null = null;
-    /* What the client asked to select all matches of, and how many it was told there were. */
+    /* What the host asked to select all matches of, and how many it was told there were. */
     selectedMatches = 0;
     lastFindFromCursor: { query: EditorFindQuery; direction: 1 | -1 } | null = null;
     replacementsOfAll: string[] = [];
@@ -278,10 +273,7 @@ export class FakeEditor implements Editor {
     }
 
     onFind(listener: (state: EditorFindState) => void): () => void {
-        this.finds.add(listener);
-        return () => {
-            this.finds.delete(listener);
-        };
+        return subscribe(this.finds, listener);
     }
 
     endFind(): void {
@@ -292,39 +284,39 @@ export class FakeEditor implements Editor {
         this.wrap = wrap;
     }
 
-    /* What the client handed it last; null while it reads the structure itself. */
+    /* What the host handed it last; null while it reads the structure itself. */
     blocks: readonly EditorBlock[] | null = null;
     private readonly scopes = new Set<(scope: readonly EditorBlock[]) => void>();
 
-    /* What the client marked as changed last. */
+    /* What the host marked as changed last. */
     changeMarks: readonly EditorChangeMark[] = [];
 
     setChangeMarks(marks: readonly EditorChangeMark[]): void {
         this.changeMarks = marks;
     }
 
-    /* The tinted lines the client set last. */
+    /* The tinted lines the host set last. */
     lineHighlights: readonly EditorLineHighlight[] = [];
 
     setLineHighlights(highlights: readonly EditorLineHighlight[]): void {
         this.lineHighlights = highlights;
     }
 
-    /* What the client drew as code outside the document: the text and how, and into which element. */
+    /* What the host drew as code outside the document: the text and how, and into which element. */
     codeBlocks: { container: HTMLElement; text: string; options: EditorCodeBlockOptions }[] = [];
 
     renderCode(container: HTMLElement, text: string, options: EditorCodeBlockOptions = {}): void {
         this.codeBlocks.push({ container, text, options });
     }
 
-    /* The cursors of agents the client set last. */
+    /* The cursors of agents the host set last. */
     remoteCursors: readonly EditorRemoteCursor[] = [];
 
     setRemoteCursors(cursors: readonly EditorRemoteCursor[]): void {
         this.remoteCursors = cursors;
     }
 
-    /* What the client marked as written by an agent last. */
+    /* What the host marked as written by an agent last. */
     attributionMarks: readonly EditorAttributionMark[] = [];
     private readonly attributionHovers = new Set<(hover: EditorAttributionHover | null) => void>();
 
@@ -333,10 +325,7 @@ export class FakeEditor implements Editor {
     }
 
     onAttributionHover(listener: (hover: EditorAttributionHover | null) => void): () => void {
-        this.attributionHovers.add(listener);
-        return () => {
-            this.attributionHovers.delete(listener);
-        };
+        return subscribe(this.attributionHovers, listener);
     }
 
     /* The pointer on the bar of a mark, or leaving it. The rect is where `rectAt` puts the mark's first line unless given. */
@@ -346,9 +335,7 @@ export class FakeEditor implements Editor {
             mark === undefined
                 ? null
                 : { id: mark.id, rect: rect ?? this.rectAt({ line: mark.startLine - 1, character: 0 }) ?? { left: 0, top: 0, right: 0, bottom: 0 } };
-        for (const listener of [...this.attributionHovers]) {
-            listener(hover);
-        }
+        emit(this.attributionHovers, hover);
     }
 
     /* What each owner put next to lines of the text last. */
@@ -388,14 +375,14 @@ export class FakeEditor implements Editor {
         }
     }
 
-    /* The code vision rows the client set last. */
+    /* The code vision rows the host set last. */
     codeVision: readonly EditorCodeVision[] = [];
 
     setCodeVision(rows: readonly EditorCodeVision[]): void {
         this.codeVision = rows;
     }
 
-    /* The button the client set in the gutter last. */
+    /* The button the host set in the gutter last. */
     gutterAction: EditorGutterAction | null = null;
     private readonly gutterActionListeners = new Set<(line: number) => void>();
 
@@ -404,10 +391,7 @@ export class FakeEditor implements Editor {
     }
 
     onGutterAction(listener: (line: number) => void): () => void {
-        this.gutterActionListeners.add(listener);
-        return () => {
-            this.gutterActionListeners.delete(listener);
-        };
+        return subscribe(this.gutterActionListeners, listener);
     }
 
     /* What each owner put in the gutter last. */
@@ -423,25 +407,18 @@ export class FakeEditor implements Editor {
     }
 
     onGutterMarker(listener: (id: string) => void): () => void {
-        this.gutterMarkerListeners.add(listener);
-        return () => {
-            this.gutterMarkerListeners.delete(listener);
-        };
+        return subscribe(this.gutterMarkerListeners, listener);
     }
 
     /* A press on a gutter marker. */
     pressGutterMarker(id: string): void {
-        for (const listener of [...this.gutterMarkerListeners]) {
-            listener(id);
-        }
+        emit(this.gutterMarkerListeners, id);
     }
 
     /* A press on the gutter button, if there is one. */
     pressGutterAction(): void {
         if (this.gutterAction !== null) {
-            for (const listener of [...this.gutterActionListeners]) {
-                listener(this.gutterAction.line);
-            }
+            emit(this.gutterActionListeners, this.gutterAction.line);
         }
     }
 
@@ -450,17 +427,12 @@ export class FakeEditor implements Editor {
     }
 
     onScope(listener: (scope: readonly EditorBlock[]) => void): () => void {
-        this.scopes.add(listener);
-        return () => {
-            this.scopes.delete(listener);
-        };
+        return subscribe(this.scopes, listener);
     }
 
-    /* The caret moving into blocks, for a test of what the client draws from it. */
+    /* The caret moving into blocks, for a test of what the host draws from it. */
     enterScope(scope: readonly EditorBlock[]): void {
-        for (const listener of [...this.scopes]) {
-            listener(scope);
-        }
+        emit(this.scopes, scope);
     }
 
     smartKeys: Partial<EditorSmartKeys>;
@@ -506,7 +478,7 @@ export class FakeEditor implements Editor {
         this.indentation = indentation;
     }
 
-    /* What the client marked and highlighted last. */
+    /* What the host marked and highlighted last. */
     markers: readonly EditorMarker[] = [];
     highlights: readonly EditorHighlight[] = [];
     caret: EditorPosition = { line: 0, character: 0 };
@@ -522,7 +494,7 @@ export class FakeEditor implements Editor {
         this.markers = markers;
     }
 
-    /* What the client drew as hints last. */
+    /* What the host drew as hints last. */
     inlayHints: readonly EditorInlayHint[] = [];
 
     setInlayHints(hints: readonly EditorInlayHint[]): void {
@@ -536,14 +508,14 @@ export class FakeEditor implements Editor {
         this.ghost = ghost;
     }
 
-    /* What the client classified last. */
+    /* What the host classified last. */
     semanticTokens: readonly EditorSemanticToken[] | null = null;
 
     setSemanticTokens(tokens: readonly EditorSemanticToken[] | null): void {
         this.semanticTokens = tokens;
     }
 
-    /* What the client drew as a link last. */
+    /* What the host drew as a link last. */
     link: EditorRange | null = null;
 
     setLink(range: EditorRange | null): void {
@@ -558,7 +530,7 @@ export class FakeEditor implements Editor {
         return this.caret;
     }
 
-    /* The folds the client asked to keep. */
+    /* The folds the host asked to keep. */
     folds: EditorFolds = { collapsed: [], custom: [] };
 
     getFolds(): EditorFolds {
@@ -616,40 +588,28 @@ export class FakeEditor implements Editor {
         this.lastReveal = reveal;
         this.caret = range.end;
         this.selection = range;
-        for (const listener of [...this.carets]) {
-            listener(range.end);
-        }
+        emit(this.carets, range.end);
     }
 
     /* The caret a person's click or key moved. */
     moveCaret(position: EditorPosition): void {
         this.caret = position;
         this.selection = null;
-        for (const listener of [...this.carets]) {
-            listener(position);
-        }
+        emit(this.carets, position);
     }
 
     onCaret(listener: (position: EditorPosition) => void): () => void {
-        this.carets.add(listener);
-        return () => {
-            this.carets.delete(listener);
-        };
+        return subscribe(this.carets, listener);
     }
 
     onHover(listener: (hover: EditorHover | null) => void): () => void {
-        this.hovers.add(listener);
-        return () => {
-            this.hovers.delete(listener);
-        };
+        return subscribe(this.hovers, listener);
     }
 
     /* The pointer resting on a position, or leaving the text. */
     hover(position: EditorPosition | null): void {
         const hover = position === null ? null : { position, rect: this.rectAt(position)! };
-        for (const listener of [...this.hovers]) {
-            listener(hover);
-        }
+        emit(this.hovers, hover);
     }
 
     rectAt(position: EditorPosition): EditorRect | null {
@@ -685,27 +645,18 @@ export class FakeEditor implements Editor {
     }
 
     onKeyDown(handler: EditorKeyHandler): () => void {
-        this.keys.add(handler);
-        return () => {
-            this.keys.delete(handler);
-        };
+        return subscribe(this.keys, handler);
     }
 
     private readonly clickHandlers = new Set<EditorClickHandler>();
     private readonly contextListeners = new Set<(menu: EditorContextMenu) => void>();
 
     onClick(handler: EditorClickHandler): () => void {
-        this.clickHandlers.add(handler);
-        return () => {
-            this.clickHandlers.delete(handler);
-        };
+        return subscribe(this.clickHandlers, handler);
     }
 
     onContextMenu(listener: (menu: EditorContextMenu) => void): () => void {
-        this.contextListeners.add(listener);
-        return () => {
-            this.contextListeners.delete(listener);
-        };
+        return subscribe(this.contextListeners, listener);
     }
 
     /* A press on a character as the editor sees it first; true when a handler took it, and the caret stays where it is otherwise only until the test moves it. */
@@ -715,9 +666,7 @@ export class FakeEditor implements Editor {
 
     /* The context menu asked for at a position. */
     openContextMenu(menu: EditorContextMenu): void {
-        for (const listener of [...this.contextListeners]) {
-            listener(menu);
-        }
+        emit(this.contextListeners, menu);
     }
 
     /* A key as the editor sees it first; true when a handler took it. */
@@ -805,12 +754,10 @@ export class FakeEditor implements Editor {
 
     private announceFind(state: EditorFindState): void {
         this.findState = state;
-        for (const listener of [...this.finds]) {
-            listener(state);
-        }
+        emit(this.finds, state);
     }
 
-    /* A test that drives an editor its client already disposed has found a leak. */
+    /* A test that drives an editor its host already disposed has found a leak. */
     private assertLive(): void {
         if (this.disposed) {
             throw new Error('The editor is disposed');

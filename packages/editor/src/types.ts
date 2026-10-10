@@ -45,7 +45,7 @@ export type EditorTheme = string;
 
 export interface EditorOptions {
     readonly text: string;
-    /* The Shiki id `fs.read` answers with. Without one, or with one Shiki does not know, it is plain text. */
+    /* A Shiki language id. Without one, or with one Shiki does not know, it is plain text. */
     readonly language?: string;
     /* The file's path, absolute or only a name. A language service reads the dialect off its extension, a `.tsx` from a `.ts`. */
     readonly path?: string;
@@ -459,8 +459,10 @@ export interface EditorTrackedRange {
 
 export interface Editor {
     getText(): string;
-    /* A change from outside, such as a reload after `fs.changed` or another surface's edit. It is never
-       reported as a change, and the cursor and the scroll stay put wherever the text around them did. */
+    /*
+     * A change from outside, such as a reload after the file changed on disk. It is never reported as a
+     * change, and the cursor and the scroll stay put wherever the text around them did.
+     */
     setText(text: string): void;
     onChange(listener: () => void): () => void;
     /* Every change of the text, `setText` and undo included, with what changed in the positions a language server expects. */
@@ -470,14 +472,16 @@ export interface Editor {
     offsetAt(position: EditorPosition): number;
     /* The text of a range, such as the word before the caret. */
     textInRange(range: EditorRange): string;
-    /* Mod+S from inside the editor; what happens then is the client's. */
+    /* Mod+S from inside the editor; what happens then is the host's. */
     onSave(listener: () => void): () => void;
     /* The focus left the editor and every widget of its own, such as its suggestions. */
     onBlur(listener: () => void): () => void;
     /* Puts the cursor at the start of a one-based line and scrolls it into view, a third from the top when it was out of view. */
     revealLine(line: number, reveal?: EditorReveal): void;
-    /* Marks every match and moves to the first one from the cursor on; null takes the marks away. The
-       count comes back through `onFind`, and again whenever an edit changes it. */
+    /*
+     * Marks every match and moves to the first one from the cursor on; null takes the marks away. The
+     * count comes back through `onFind`, and again whenever an edit changes it.
+     */
     find(query: EditorFindQuery | null): void;
     findStep(direction: 1 | -1): void;
     /* Replaces the match the find is on, with `$1` and the like expanded for a regular expression, and moves to the next one. False when there is none or the editor is read only. */
@@ -507,8 +511,10 @@ export interface Editor {
     setFoldHints(hints: EditorFoldHints | null): void;
     /* Marks that follow their lines through edits until the host sets them again. */
     setChangeMarks(marks: readonly EditorChangeMark[]): void;
-    /* The blocks sticky scroll and the breadcrumb go by. The editor reads them from brackets and
-       indentation until the host has better, such as a language server's symbols; null goes back. */
+    /*
+     * The blocks sticky scroll and the breadcrumb go by. The editor reads them from brackets and
+     * indentation until the host has better, such as a language server's symbols; null goes back.
+     */
     setBlocks(blocks: readonly EditorBlock[] | null): void;
     /* The named blocks around the caret, outermost first, said again only when they change. */
     onScope(listener: (scope: readonly EditorBlock[]) => void): () => void;

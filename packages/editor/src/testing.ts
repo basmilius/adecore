@@ -43,6 +43,10 @@ export function createPage(): { document: Document; window: Window & typeof glob
     };
 }
 
+function createEvent(window: Window, type: string): Event {
+    return new (window as unknown as { Event: typeof Event }).Event(type, { bubbles: true, cancelable: true });
+}
+
 export interface KeyOptions {
     ctrlKey?: boolean;
     metaKey?: boolean;
@@ -52,7 +56,7 @@ export interface KeyOptions {
 
 /* Fires a keydown at the element and says whether the editor took the key. */
 export function press(window: Window, target: Element, key: string, options: KeyOptions = {}): boolean {
-    const event = new (window as unknown as { Event: typeof Event }).Event('keydown', { bubbles: true, cancelable: true });
+    const event = createEvent(window, 'keydown');
     Object.assign(event, { key, ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, isComposing: false, ...options });
     target.dispatchEvent(event);
     return event.defaultPrevented;
@@ -60,14 +64,14 @@ export function press(window: Window, target: Element, key: string, options: Key
 
 /* Fires a keyup at the element, the other half of `press`. */
 export function release(window: Window, target: Element, key: string, options: KeyOptions = {}): void {
-    const event = new (window as unknown as { Event: typeof Event }).Event('keyup', { bubbles: true, cancelable: true });
+    const event = createEvent(window, 'keyup');
     Object.assign(event, { key, ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, isComposing: false, ...options });
     target.dispatchEvent(event);
 }
 
 /* What a browser sends before it puts text in a textarea. */
 export function typeInto(window: Window, target: Element, text: string): void {
-    const event = new (window as unknown as { Event: typeof Event }).Event('beforeinput', { bubbles: true, cancelable: true });
+    const event = createEvent(window, 'beforeinput');
     Object.assign(event, { inputType: 'insertText', data: text, isComposing: false });
     target.dispatchEvent(event);
 }
@@ -79,7 +83,7 @@ export function clipboard(
     type: 'copy' | 'cut' | 'paste',
     data: { text: string } = { text: '' }
 ): { prevented: boolean; text: string } {
-    const event = new (window as unknown as { Event: typeof Event }).Event(type, { bubbles: true, cancelable: true });
+    const event = createEvent(window, type);
     Object.assign(event, {
         clipboardData: {
             getData: () => data.text,
@@ -101,7 +105,7 @@ export function pointer(
     y: number,
     options: KeyOptions = {}
 ): void {
-    const event = new (window as unknown as { Event: typeof Event }).Event(type, { bubbles: true, cancelable: true });
+    const event = createEvent(window, type);
     Object.assign(event, {
         clientX: x,
         clientY: y,

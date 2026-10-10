@@ -49,8 +49,7 @@ export class TokenCache {
         this.lines = this.source.getLineCount();
         this.entries = [];
         this.frontier = 0;
-        this.reusableFrom = Number.POSITIVE_INFINITY;
-        this.pivotLine = -1;
+        this.forgetPivot();
     }
 
     /* How far down the document has colors that are right for the text. */
@@ -92,8 +91,7 @@ export class TokenCache {
         if (first === undefined) {
             this.entries = [];
             this.frontier = 0;
-            this.reusableFrom = Number.POSITIVE_INFINITY;
-            this.pivotLine = -1;
+            this.forgetPivot();
             return;
         }
         const firstLine = lineOf(first.from);
@@ -108,8 +106,7 @@ export class TokenCache {
         this.frontier = Math.min(this.frontier, firstLine);
         if (last === undefined || lastOld < firstLine || this.entries.length <= firstLine) {
             this.entries.length = Math.min(this.entries.length, firstLine);
-            this.reusableFrom = Number.POSITIVE_INFINITY;
-            this.pivotLine = -1;
+            this.forgetPivot();
             return;
         }
         const old = this.entries[lastOld];
@@ -131,8 +128,7 @@ export class TokenCache {
         }
         if (tokenizer.stale?.() === true) {
             this.frontier = 0;
-            this.reusableFrom = Number.POSITIVE_INFINITY;
-            this.pivotLine = -1;
+            this.forgetPivot();
         }
         const count = this.source.getLineCount();
         const limit = Math.min(until, count - 1);
@@ -157,8 +153,7 @@ export class TokenCache {
                 (previous !== undefined && line >= this.reusableFrom && tokenizer.sameState(previous.state, next.state));
             if (settled) {
                 this.frontier = this.entries.length;
-                this.reusableFrom = Number.POSITIVE_INFINITY;
-                this.pivotLine = -1;
+                this.forgetPivot();
                 break;
             }
             if (now() > deadline) {
@@ -166,6 +161,11 @@ export class TokenCache {
             }
         }
         return this.frontier > from ? { from, to: this.frontier - 1 } : null;
+    }
+
+    private forgetPivot(): void {
+        this.reusableFrom = Number.POSITIVE_INFINITY;
+        this.pivotLine = -1;
     }
 
     /* Whether lines through `line` are colored for the text as it is now. */

@@ -1,6 +1,7 @@
 import type { Keymap } from './keymap-table.ts';
 import type { CommandOptions, EditorCommand, Selection, TextEdit } from '@adecore/editor-core';
 import { replacementEdits } from './input.ts';
+import { emit, subscribe } from './listeners.ts';
 import { chordMatches, type KeyAction, keyAction, type MoveKey } from './keymap.ts';
 import { DoubleModifierGesture } from './modifier-gesture.ts';
 import { NativeInput } from './native-input.ts';
@@ -28,8 +29,6 @@ export interface ControllerOptions {
 }
 
 const MODIFYING = new Set<EditorCommand>([
-    'undo',
-    'redo',
     'deleteWordLeft',
     'deleteWordRight',
     'deleteCamelLeft',
@@ -74,6 +73,10 @@ const VIEW_COMMANDS = new Set<EditorViewCommand>([
 
 /* The clipboard text of the last copy or cut of a bare caret, which pastes back as whole lines. Shared, since it can be pasted in another editor. */
 let lineClip: string | null = null;
+
+function selectionSignature(selections: readonly Selection[]): string {
+    return selections.map((selection) => `${selection.anchor}:${selection.head}`).join(',');
+}
 
 /* Typing in the same stretch is one undo step until a pause this long. */
 const TYPING_PAUSE_MS = 750;
@@ -375,7 +378,7 @@ export class InputController {
 
     private modelCommand(name: EditorCommand): boolean {
         const { model } = this.view;
-        const modifies = MODIFYING.has(name) && name !== 'undo' && name !== 'redo';
+        const modifies = MODIFYING.has(name);
         if ((modifies || name === 'undo' || name === 'redo') && this.blockedByReadOnly()) {
             return false;
         }
@@ -449,7 +452,7 @@ export class InputController {
     /* Column mode on drops every caret but the first and keeps a selection as a box; off it makes one selection of the box. */
     private toggleColumnMode(): void {
         const { view } = this;
-        const { model, layout } = view;
+        const { model } = view;
         this.block = null;
         if (view.columnMode) {
             const first = model.getSelections()[0]!;
@@ -462,9 +465,7 @@ export class InputController {
         const primary = model.getPrimary();
         model.setSelections([primary]);
         if (primary.anchor !== primary.head) {
-            const anchor = layout.caret(primary.anchor);
-            const head = layout.caret(primary.head);
-            this.block = { anchor: { x: anchor.x, y: anchor.y }, head: { x: head.x, y: head.y }, signature: '' };
+            this.block = this.blockOf(primary, '');
             this.extendBlock({ x: 0, y: 0 });
         }
     }
@@ -472,13 +473,9 @@ export class InputController {
     /* Moves the corner of the box by a step and selects the columns between it and the other corner. */
     private extendBlock(step: { x: number; y: number }): void {
         const { model, layout } = this.view;
-        const selections = model.getSelections();
-        const signature = selections.map((selection) => `${selection.anchor}:${selection.head}`).join(',');
+        const signature = selectionSignature(model.getSelections());
         if (this.block === null || (this.block.signature !== '' && this.block.signature !== signature)) {
-            const primary = model.getPrimary();
-            const anchor = layout.caret(primary.anchor);
-            const head = layout.caret(primary.head);
-            this.block = { anchor: { x: anchor.x, y: anchor.y }, head: { x: head.x, y: head.y }, signature };
+            this.block = this.blockOf(model.getPrimary(), signature);
         }
         const block = this.block;
         block.head = {
@@ -486,10 +483,15 @@ export class InputController {
             y: Math.max(0, Math.min(layout.height - layout.metrics.lineHeight, block.head.y + step.y))
         };
         model.setSelections(columnSelections(layout, block.anchor, block.head));
-        block.signature = model
-            .getSelections()
-            .map((selection) => `${selection.anchor}:${selection.head}`)
-            .join(',');
+        block.signature = selectionSignature(model.getSelections());
+    }
+
+    /* A box between the two ends of a selection. */
+    private blockOf(selection: Selection, signature: string): NonNullable<InputController['block']> {
+        const { layout } = this.view;
+        const anchor = layout.caret(selection.anchor);
+        const head = layout.caret(selection.head);
+        return { anchor: { x: anchor.x, y: anchor.y }, head: { x: head.x, y: head.y }, signature };
     }
 
     private moveCarets(key: MoveKey, extend: boolean): void {
@@ -509,19 +511,17 @@ export class InputController {
         const { model, layout } = this.view;
         const vertical = key === 'ArrowUp' || key === 'ArrowDown';
         const direction = key === 'ArrowLeft' || key === 'ArrowUp' ? -1 : 1;
+        const edge = (selection: Selection): number =>
+            direction < 0 ? Math.min(selection.anchor, selection.head) : Math.max(selection.anchor, selection.head);
         const selections = model.getSelections().map((selection, index) => {
+            const collapses = !extend && selection.anchor !== selection.head;
             let head: number;
-            if (!vertical && !extend && selection.anchor !== selection.head) {
-                head = direction < 0 ? Math.min(selection.anchor, selection.head) : Math.max(selection.anchor, selection.head);
+            if (!vertical && collapses) {
+                head = edge(selection);
             } else if (vertical) {
                 // A selection first gives way to the edge in the direction of the move, as the platform's Up and Down do.
-                const hasSelection = !extend && selection.anchor !== selection.head;
-                const from = hasSelection
-                    ? direction < 0
-                        ? Math.min(selection.anchor, selection.head)
-                        : Math.max(selection.anchor, selection.head)
-                    : selection.head;
-                if (hasSelection) {
+                const from = collapses ? edge(selection) : selection.head;
+                if (collapses) {
                     delete this.desiredXs[index];
                 }
                 this.desiredXs[index] ??= layout.caret(from).x;
@@ -634,24 +634,15 @@ export class InputController {
 
     /* A handler sees the key before the editor does, the page's own shortcuts included, since a list of suggestions owns the arrows while it is open. */
     onKeyDown(handler: EditorKeyHandler): () => void {
-        this.keyHandlers.add(handler);
-        return () => {
-            this.keyHandlers.delete(handler);
-        };
+        return subscribe(this.keyHandlers, handler);
     }
 
     onClick(handler: EditorClickHandler): () => void {
-        this.clickHandlers.add(handler);
-        return () => {
-            this.clickHandlers.delete(handler);
-        };
+        return subscribe(this.clickHandlers, handler);
     }
 
     onContextMenu(listener: (menu: EditorContextMenu) => void): () => void {
-        this.contextListeners.add(listener);
-        return () => {
-            this.contextListeners.delete(listener);
-        };
+        return subscribe(this.contextListeners, listener);
     }
 
     private keydown(event: KeyboardEvent): void {
@@ -728,9 +719,9 @@ export class InputController {
             ? selections
                   .map((selection) => {
                       const { first, last } = this.view.lineSpan(model.positionAt(selection.head).line);
-                      return { start: model.getLine(first).start, end: model.getLine(last).end, next: model.getLine(last).next };
+                      const end = model.getLine(last);
+                      return model.slice(model.getLine(first).start, end.next) + (end.next === end.end ? '\n' : '');
                   })
-                  .map((lines) => model.slice(lines.start, lines.next) + (lines.next === lines.end ? '\n' : ''))
                   .join('')
             : selections.map((selection) => model.slice(Math.min(selection.anchor, selection.head), Math.max(selection.anchor, selection.head))).join('\n');
         event.clipboardData?.setData('text/plain', text);
@@ -794,9 +785,7 @@ export class InputController {
             .getSelections()
             .some((candidate) => Math.min(candidate.anchor, candidate.head) <= offset && offset <= Math.max(candidate.anchor, candidate.head));
         const menu: EditorContextMenu = { position: this.positionOf(offset), inSelection: selection, x: event.clientX, y: event.clientY };
-        for (const listener of [...this.contextListeners]) {
-            listener(menu);
-        }
+        emit(this.contextListeners, menu);
     }
 
     /* A press on a pinned header goes to that header. */

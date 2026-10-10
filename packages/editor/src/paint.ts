@@ -345,6 +345,15 @@ export interface GutterPaint {
     markers: ReadonlyMap<number, { id: string; label: string }>;
 }
 
+function gutterButton(document: Document, className: string, label: string): HTMLButtonElement {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = className;
+    button.tabIndex = -1;
+    button.setAttribute('aria-label', label);
+    return button;
+}
+
 /* The line numbers of the visible rows, and the fold control of the lines that have one. */
 export function paintGutter(container: HTMLElement, layout: EditorLayout, rows: readonly LayoutRow[], paint: GutterPaint): void {
     const document = container.ownerDocument;
@@ -365,22 +374,14 @@ export function paintGutter(container: HTMLElement, layout: EditorLayout, rows: 
         number.textContent = String(row.line + 1);
         item.append(number);
         if (paint.action?.line === row.line) {
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.className = 'se-gutter-action';
+            const button = gutterButton(document, 'se-gutter-action', paint.action.label);
             button.dataset.gutterAction = String(row.line);
-            button.tabIndex = -1;
-            button.setAttribute('aria-label', paint.action.label);
             item.append(button);
         }
         const marker = paint.markers.get(row.line);
         if (marker !== undefined) {
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.className = 'se-gutter-marker';
+            const button = gutterButton(document, 'se-gutter-marker', marker.label);
             button.dataset.gutterMarker = marker.id;
-            button.tabIndex = -1;
-            button.setAttribute('aria-label', marker.label);
             item.append(button);
         }
         const sign = paint.highlights.get(row.line)?.sign;
@@ -412,12 +413,8 @@ export function paintGutter(container: HTMLElement, layout: EditorLayout, rows: 
         }
         const collapsed = paint.foldable.get(row.line);
         if (collapsed !== undefined) {
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.className = collapsed ? 'se-fold-toggle se-folded' : 'se-fold-toggle';
+            const button = gutterButton(document, collapsed ? 'se-fold-toggle se-folded' : 'se-fold-toggle', collapsed ? 'Expand' : 'Collapse');
             button.dataset.foldLine = String(row.line);
-            button.tabIndex = -1;
-            button.setAttribute('aria-label', collapsed ? 'Expand' : 'Collapse');
             item.append(button);
         }
         fragment.append(item);

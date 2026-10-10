@@ -25,28 +25,7 @@ export function renderCodeBlock(
         if (options.color !== undefined) {
             row.style.background = tintValue(options.color);
         }
-        const gutter = document.createElement('div');
-        gutter.className = 'se-code-gutter';
-        if (options.firstLine !== undefined) {
-            const number = document.createElement('span');
-            number.textContent = String(options.firstLine + index);
-            gutter.append(number);
-        }
-        if (options.sign) {
-            const sign = document.createElement('span');
-            sign.className = 'se-line-sign';
-            sign.textContent = options.sign;
-            if (options.color !== undefined) {
-                sign.style.color = colorValue(options.color);
-            }
-            gutter.append(sign);
-        }
-        if (options.color !== undefined) {
-            const bar = document.createElement('span');
-            bar.className = 'se-attribution';
-            bar.style.background = colorValue(options.color);
-            gutter.append(bar);
-        }
+        const gutter = codeGutter(document, options, index);
         const code = document.createElement('div');
         code.className = 'se-code-text';
         if (options.faded) {
@@ -61,6 +40,32 @@ export function renderCodeBlock(
         block.append(row);
     });
     container.append(block);
+}
+
+function codeGutter(document: Document, options: EditorCodeBlockOptions, index: number): HTMLElement {
+    const gutter = document.createElement('div');
+    gutter.className = 'se-code-gutter';
+    if (options.firstLine !== undefined) {
+        const number = document.createElement('span');
+        number.textContent = String(options.firstLine + index);
+        gutter.append(number);
+    }
+    if (options.sign) {
+        const sign = document.createElement('span');
+        sign.className = 'se-line-sign';
+        sign.textContent = options.sign;
+        if (options.color !== undefined) {
+            sign.style.color = colorValue(options.color);
+        }
+        gutter.append(sign);
+    }
+    if (options.color !== undefined) {
+        const bar = document.createElement('span');
+        bar.className = 'se-attribution';
+        bar.style.background = colorValue(options.color);
+        gutter.append(bar);
+    }
+    return gutter;
 }
 
 function fill(element: HTMLElement, line: string, tokens: readonly LineToken[] | null, emphasis: ReadonlyArray<readonly [number, number]>): void {

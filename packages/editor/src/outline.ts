@@ -120,7 +120,7 @@ export function structuralEntries(
     return entries;
 }
 
-function toEditorLines(entry: OutlineEntry, document: OutlineDocument): OutlineBlock {
+function toBlock(entry: OutlineEntry, document: OutlineDocument): OutlineBlock {
     const startLine = document.positionAt(entry.from).line;
     return {
         startLine,
@@ -187,7 +187,7 @@ export class Outline {
     blocks(document: OutlineDocument): readonly OutlineBlock[] {
         if (this.cache?.version !== this.version) {
             const sorted = (this.provided ?? this.structure)
-                .map((entry) => toEditorLines(entry, document))
+                .map((entry) => toBlock(entry, document))
                 .sort((left, right) => left.startLine - right.startLine || right.endLine - left.endLine);
             this.cache = { version: this.version, blocks: sorted.filter((block, index) => index === 0 || block.startLine !== sorted[index - 1]!.startLine) };
         }

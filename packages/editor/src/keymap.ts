@@ -1,7 +1,6 @@
 import type { EditorCommand } from '@adecore/editor-core';
-import type { EditorViewCommand } from './types.ts';
 import { chordOf, KEYMAP, KEYMAP_IDS, type Keymap, type KeymapId, parseChord } from './keymap-table.ts';
-import type { KeyChord } from './types.ts';
+import type { EditorViewCommand, KeyChord } from './types.ts';
 
 export interface KeyLike {
     key: string;
@@ -28,6 +27,10 @@ const MOVES = new Set<string>(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'
 
 function command(name: EditorCommand): KeyAction {
     return { type: 'command', command: name };
+}
+
+function view(name: EditorViewCommand): KeyAction {
+    return { type: 'view', command: name };
 }
 
 /* What each key of the table does in the editor. A key of the table that is not here is a language command, which the host answers. */
@@ -69,21 +72,21 @@ const ACTIONS: Partial<Record<KeymapId, KeyAction>> = {
     selectTextStart: { type: 'edge', end: false, extend: true },
     textEnd: { type: 'edge', end: true, extend: false },
     selectTextEnd: { type: 'edge', end: true, extend: true },
-    collapse: { type: 'view', command: 'collapseRegion' },
-    expand: { type: 'view', command: 'expandRegion' },
-    collapseAll: { type: 'view', command: 'collapseAllRegions' },
-    expandAll: { type: 'view', command: 'expandAllRegions' },
-    collapseRecursively: { type: 'view', command: 'collapseRegionRecursively' },
-    expandRecursively: { type: 'view', command: 'expandRegionRecursively' },
-    foldSelection: { type: 'view', command: 'foldSelection' },
-    collapseDocComments: { type: 'view', command: 'collapseDocComments' },
-    expandDocComments: { type: 'view', command: 'expandDocComments' },
-    expandAllToLevel1: { type: 'view', command: 'expandAllToLevel1' },
-    expandAllToLevel2: { type: 'view', command: 'expandAllToLevel2' },
-    expandAllToLevel3: { type: 'view', command: 'expandAllToLevel3' },
-    expandAllToLevel4: { type: 'view', command: 'expandAllToLevel4' },
-    expandAllToLevel5: { type: 'view', command: 'expandAllToLevel5' },
-    toggleColumnMode: { type: 'view', command: 'toggleColumnMode' }
+    collapse: view('collapseRegion'),
+    expand: view('expandRegion'),
+    collapseAll: view('collapseAllRegions'),
+    expandAll: view('expandAllRegions'),
+    collapseRecursively: view('collapseRegionRecursively'),
+    expandRecursively: view('expandRegionRecursively'),
+    foldSelection: view('foldSelection'),
+    collapseDocComments: view('collapseDocComments'),
+    expandDocComments: view('expandDocComments'),
+    expandAllToLevel1: view('expandAllToLevel1'),
+    expandAllToLevel2: view('expandAllToLevel2'),
+    expandAllToLevel3: view('expandAllToLevel3'),
+    expandAllToLevel4: view('expandAllToLevel4'),
+    expandAllToLevel5: view('expandAllToLevel5'),
+    toggleColumnMode: view('toggleColumnMode')
 };
 
 const PUNCTUATION_CODES: Readonly<Record<string, string>> = {

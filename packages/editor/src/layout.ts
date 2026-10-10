@@ -136,6 +136,7 @@ const DEFAULT_BLOCK_HEIGHT = 40;
 const WRAP_INDENT_STEP = 2;
 const GEOMETRY_CACHE_SIZE = 400;
 const PLAIN = /^[\x20-\x7e\t]*$/;
+const GRAPHEME_LIMIT = 20000;
 const SEGMENTER = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
 
 function lowerBound(values: readonly number[], value: number): number {
@@ -152,10 +153,10 @@ function lowerBound(values: readonly number[], value: number): number {
     return low;
 }
 
-/* Where each character starts, with the length last. A line that long is cut by code unit, since splitting it by grapheme would cost more than it shows. */
+/* Where each character starts, with the length last. A very long line is cut by code unit, since splitting it by grapheme would cost more than it shows. */
 function characterOffsets(text: string): number[] {
     const offsets: number[] = [];
-    if (text.length > 20000 || PLAIN.test(text)) {
+    if (text.length > GRAPHEME_LIMIT || PLAIN.test(text)) {
         for (let i = 0; i < text.length; i++) {
             offsets.push(i);
         }
@@ -432,8 +433,8 @@ export class EditorLayout {
             }
             const fold = folds.get(line);
             const last = Math.max(line, Math.min(count - 1, fold?.endLine ?? line));
-            const tail = fold?.closer !== undefined && last > line ? this.tailOf(fold.closer, last) : null;
-            const head = fold?.head !== undefined && last > line ? this.tailOf(fold.head, line) : null;
+            const tail = fold?.closer !== undefined && last > line ? this.clampToLine(fold.closer, last) : null;
+            const head = fold?.head !== undefined && last > line ? this.clampToLine(fold.head, line) : null;
             const index = this.rows.length;
             const bounds = this.wrapWidth === null ? null : this.document.getLine(line);
             const subRows = this.rowCountOf(line, bounds === null ? 0 : bounds.end - bounds.start);
@@ -461,9 +462,9 @@ export class EditorLayout {
     }
 
     /* An offset of a fold clamped to its line, since the fold may be a moment older than an edit. */
-    private tailOf(closer: number, line: number): number {
+    private clampToLine(offset: number, line: number): number {
         const bounds = this.document.getLine(line);
-        return Math.min(bounds.end, Math.max(bounds.start, closer));
+        return Math.min(bounds.end, Math.max(bounds.start, offset));
     }
 
     private reflow(): void {

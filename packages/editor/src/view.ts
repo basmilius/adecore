@@ -5,6 +5,7 @@ import {
     type FoldHints,
     type FoldRole,
     type FoldingRange,
+    indentationColumn,
     replacementText,
     scanBrackets,
     type BracketIndex,
@@ -15,6 +16,7 @@ import { type BlockWidget, EditorLayout, type FoldState, type Inlay, type Layout
 import { createMetrics, type EditorFont, readEditorFont } from './metrics.ts';
 import { type AttributedLines, AttributionRuns, colorValue, tintValue } from './attribution.ts';
 import { renderCodeBlock } from './code-block.ts';
+import { emit, subscribe } from './listeners.ts';
 import { mapOffset } from './offsets.ts';
 import { mapTrackedRange } from './tracked-range.ts';
 import { type ScrollKind, scrollPosition } from './scroll.ts';
@@ -35,7 +37,6 @@ import {
     type WrapSign
 } from './paint.ts';
 import { overlayTokens, type SemanticSpan } from './semantic.ts';
-import { indentationColumn } from '@adecore/editor-core';
 import { TokenCache } from './tokens.ts';
 import type {
     EditorBlock,
@@ -56,6 +57,22 @@ import type {
 
 function sameRect(left: EditorRect, right: EditorRect): boolean {
     return left.left === right.left && left.top === right.top && left.right === right.right && left.bottom === right.bottom;
+}
+
+function mapRange<Range extends { from: number; to: number }>(range: Range, changes: readonly DocumentChange[]): Range {
+    return { ...range, from: mapOffset(range.from, changes), to: mapOffset(range.to, changes) };
+}
+
+function mapFoldHints(hints: FoldHints, changes: readonly DocumentChange[]): FoldHints {
+    return {
+        symbols: hints.symbols?.map((hint) => mapRange(hint, changes)) ?? [],
+        ranges:
+            hints.ranges?.map((hint) => ({
+                ...mapRange(hint, changes),
+                ...(hint.head === undefined ? {} : { head: mapOffset(hint.head, changes) }),
+                ...(hint.tail === undefined ? {} : { tail: mapOffset(hint.tail, changes) })
+            })) ?? []
+    };
 }
 
 export interface ViewSettings {
@@ -556,45 +573,7 @@ export class EditorView {
                 this.layoutGhostParts();
             }
             for (const changes of batches) {
-                this.inlays = this.inlays.map((inlay) => ({ ...inlay, at: mapOffset(inlay.at, changes) }));
-                for (const [owner, blocks] of this.blocks) {
-                    this.blocks.set(
-                        owner,
-                        blocks.map((block) => ({ ...block, at: mapOffset(block.at, changes) }))
-                    );
-                }
-                this.lenses = this.lenses.map((lens) => ({ ...lens, at: mapOffset(lens.at, changes) }));
-                this.collapsed = new Set([...this.collapsed].map((anchor) => mapOffset(anchor, changes)));
-                this.settled = new Set([...this.settled].map((anchor) => mapOffset(anchor, changes)));
-                if (this.foldHints !== null) {
-                    this.foldHints = {
-                        symbols:
-                            this.foldHints.symbols?.map((hint) => ({ ...hint, from: mapOffset(hint.from, changes), to: mapOffset(hint.to, changes) })) ?? [],
-                        ranges:
-                            this.foldHints.ranges?.map((hint) => ({
-                                ...hint,
-                                from: mapOffset(hint.from, changes),
-                                to: mapOffset(hint.to, changes),
-                                ...(hint.head === undefined ? {} : { head: mapOffset(hint.head, changes) }),
-                                ...(hint.tail === undefined ? {} : { tail: mapOffset(hint.tail, changes) })
-                            })) ?? []
-                    };
-                }
-                this.customFolds = this.customFolds.map((fold) => ({ from: mapOffset(fold.from, changes), to: mapOffset(fold.to, changes) }));
-                this.find.mapBounds(changes);
-                this.changeMarks = this.changeMarks.map((mark) => ({ ...mark, from: mapOffset(mark.from, changes), to: mapOffset(mark.to, changes) }));
-                this.markers = this.markers.map((marker) => ({ ...marker, from: mapOffset(marker.from, changes), to: mapOffset(marker.to, changes) }));
-                this.mapTracked(changes);
-                this.attribution.map(changes);
-                this.highlights.map(changes);
-                this.remoteCarets = this.remoteCarets.map((caret) => ({ ...caret, at: mapOffset(caret.at, changes) }));
-                for (const [owner, entries] of this.lineActions) {
-                    this.lineActions.set(
-                        owner,
-                        entries.map((entry) => ({ ...entry, at: mapOffset(entry.at, changes) }))
-                    );
-                }
-                this.semantic = this.semantic.map((token) => ({ ...token, from: mapOffset(token.from, changes), to: mapOffset(token.to, changes) }));
+                this.followEdit(changes);
             }
             this.foldRanges = this.mappedFolds(batches);
             this.semanticVersion++;
@@ -623,6 +602,38 @@ export class EditorView {
             this.rowEndCaret = null;
         }
         this.requestRender();
+    }
+
+    /* Moves everything anchored to an offset along with one batch of changes. */
+    private followEdit(changes: readonly DocumentChange[]): void {
+        this.inlays = this.inlays.map((inlay) => ({ ...inlay, at: mapOffset(inlay.at, changes) }));
+        for (const [owner, blocks] of this.blocks) {
+            this.blocks.set(
+                owner,
+                blocks.map((block) => ({ ...block, at: mapOffset(block.at, changes) }))
+            );
+        }
+        this.lenses = this.lenses.map((lens) => ({ ...lens, at: mapOffset(lens.at, changes) }));
+        this.collapsed = new Set([...this.collapsed].map((anchor) => mapOffset(anchor, changes)));
+        this.settled = new Set([...this.settled].map((anchor) => mapOffset(anchor, changes)));
+        if (this.foldHints !== null) {
+            this.foldHints = mapFoldHints(this.foldHints, changes);
+        }
+        this.customFolds = this.customFolds.map((fold) => mapRange(fold, changes));
+        this.find.mapBounds(changes);
+        this.changeMarks = this.changeMarks.map((mark) => mapRange(mark, changes));
+        this.markers = this.markers.map((marker) => mapRange(marker, changes));
+        this.mapTracked(changes);
+        this.attribution.map(changes);
+        this.highlights.map(changes);
+        this.remoteCarets = this.remoteCarets.map((caret) => ({ ...caret, at: mapOffset(caret.at, changes) }));
+        for (const [owner, entries] of this.lineActions) {
+            this.lineActions.set(
+                owner,
+                entries.map((entry) => ({ ...entry, at: mapOffset(entry.at, changes) }))
+            );
+        }
+        this.semantic = this.semantic.map((token) => mapRange(token, changes));
     }
 
     private mapTracked(changes: readonly DocumentChange[]): void {
@@ -773,9 +784,7 @@ export class EditorView {
         );
         const anchors = new Set(this.foldRanges.map((range) => range.from));
         this.collapsed = new Set([...this.collapsed].filter((anchor) => anchors.has(anchor)));
-        this.anchorScroll(() => this.layout.configure({ folds: this.foldStates() }));
-        this.moveHiddenCarets();
-        this.render();
+        this.refoldLayout();
     }
 
     /* The folds a person made of a selection, which the document's own structure does not know, among the ones it does. */
@@ -1149,9 +1158,11 @@ export class EditorView {
         if (!rect) {
             return { x: clientX - this.gutterWidth + this.viewport.scrollLeft, y: clientY + this.viewport.scrollTop };
         }
-        const scaleX = this.viewport.offsetWidth > 0 ? rect.width / this.viewport.offsetWidth : 1;
-        const scaleY = this.viewport.offsetHeight > 0 ? rect.height / this.viewport.offsetHeight : 1;
-        return { x: (clientX - rect.left) / scaleX - this.gutterWidth + this.viewport.scrollLeft, y: (clientY - rect.top) / scaleY + this.viewport.scrollTop };
+        const scale = this.screenScale(rect);
+        return {
+            x: (clientX - rect.left) / scale.x - this.gutterWidth + this.viewport.scrollLeft,
+            y: (clientY - rect.top) / scale.y + this.viewport.scrollTop
+        };
     }
 
     offsetAtPoint(clientX: number, clientY: number): number {
@@ -1250,13 +1261,9 @@ export class EditorView {
     }
 
     onHover(listener: (offset: number | null) => void): () => void {
-        this.hoverListeners.add(listener);
-        return () => {
-            this.hoverListeners.delete(listener);
-        };
+        return subscribe(this.hoverListeners, listener);
     }
 
-    /* The pointer moved over the editor; a drag in progress is not a hover. */
     /*
      * The other places the selected text is, found without a language server: only for one selection that
      * holds no line break and is not blank, and not at all when there are more than a few of them.
@@ -1480,6 +1487,7 @@ export class EditorView {
         this.render();
     }
 
+    /* The pointer moved over the editor; a drag in progress is not a hover. */
     hoverMoved(event: PointerEvent): void {
         this.content.classList.toggle(
             'se-over-selection',
@@ -1493,16 +1501,11 @@ export class EditorView {
             return;
         }
         this.hoverOffset = offset;
-        for (const listener of [...this.hoverListeners]) {
-            listener(offset);
-        }
+        emit(this.hoverListeners, offset);
     }
 
     onViewChange(listener: () => void): () => void {
-        this.viewListeners.add(listener);
-        return () => {
-            this.viewListeners.delete(listener);
-        };
+        return subscribe(this.viewListeners, listener);
     }
 
     private announceView(): void {
@@ -1511,9 +1514,7 @@ export class EditorView {
             return;
         }
         this.viewKey = key;
-        for (const listener of [...this.viewListeners]) {
-            listener();
-        }
+        emit(this.viewListeners);
     }
 
     private caretOf(head: number): LayoutRect {
@@ -1525,7 +1526,6 @@ export class EditorView {
         return this.scrollRun?.to ?? { x: this.viewport.scrollLeft, y: this.viewport.scrollTop };
     }
 
-    /* Stops a scroll on its way where it is. */
     cancelScroll(): void {
         if (this.scrollRun !== null) {
             this.document.defaultView?.cancelAnimationFrame?.(this.scrollRun.frame);
@@ -1533,7 +1533,6 @@ export class EditorView {
         }
     }
 
-    /* Whether a person asked their system for less motion. */
     private reducedMotion(): boolean {
         return this.document.defaultView?.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true;
     }
@@ -1672,16 +1671,11 @@ export class EditorView {
     }
 
     onFind(listener: (state: EditorFindState) => void): () => void {
-        this.findListeners.add(listener);
-        return () => {
-            this.findListeners.delete(listener);
-        };
+        return subscribe(this.findListeners, listener);
     }
 
     private announceFind(): void {
-        for (const listener of [...this.findListeners]) {
-            listener(this.find.state);
-        }
+        emit(this.findListeners, this.find.state);
     }
 
     revealFind(): void {
@@ -2114,10 +2108,7 @@ export class EditorView {
     }
 
     onAttributionHover(listener: (hover: { id: string; rect: EditorRect } | null) => void): () => void {
-        this.attributionListeners.add(listener);
-        return () => {
-            this.attributionListeners.delete(listener);
-        };
+        return subscribe(this.attributionListeners, listener);
     }
 
     /* The bar is three pixels wide, so the pointer finds it a few pixels to either side. */
@@ -2139,9 +2130,7 @@ export class EditorView {
             return;
         }
         this.attributionHover = next;
-        for (const listener of [...this.attributionListeners]) {
-            listener(next);
-        }
+        emit(this.attributionListeners, next);
     }
 
     private attributionUnder(clientX: number, clientY: number): { id: string; rect: EditorRect } | null {
@@ -2259,10 +2248,7 @@ export class EditorView {
     }
 
     onScope(listener: (scope: readonly EditorBlock[]) => void): () => void {
-        this.scopeListeners.add(listener);
-        return () => {
-            this.scopeListeners.delete(listener);
-        };
+        return subscribe(this.scopeListeners, listener);
     }
 
     private announceScope(): void {
@@ -2278,9 +2264,7 @@ export class EditorView {
             return;
         }
         this.scopeKey = key;
-        for (const listener of [...this.scopeListeners]) {
-            listener(scope);
-        }
+        emit(this.scopeListeners, scope);
     }
 
     private stickyLimit(): number {
@@ -2356,10 +2340,7 @@ export class EditorView {
     }
 
     onGutterAction(listener: (line: number) => void): () => void {
-        this.gutterActionListeners.add(listener);
-        return () => {
-            this.gutterActionListeners.delete(listener);
-        };
+        return subscribe(this.gutterActionListeners, listener);
     }
 
     setGutterMarkers(owner: string, markers: readonly { id: string; line: number; label: string }[]): void {
@@ -2379,10 +2360,7 @@ export class EditorView {
     }
 
     onGutterMarker(listener: (id: string) => void): () => void {
-        this.gutterMarkerListeners.add(listener);
-        return () => {
-            this.gutterMarkerListeners.delete(listener);
-        };
+        return subscribe(this.gutterMarkerListeners, listener);
     }
 
     /* The id of the host's gutter marker when the target is it. */
@@ -2392,12 +2370,10 @@ export class EditorView {
     }
 
     pressGutterMarker(id: string): void {
-        for (const listener of [...this.gutterMarkerListeners]) {
-            listener(id);
-        }
+        emit(this.gutterMarkerListeners, id);
     }
 
-    /* One marker per line: where two owners mark the same line, the owner named first stays. */
+    /* One marker per line: where two owners mark the same line, the owner that sorts first stays. */
     private markersByLine(): ReadonlyMap<number, { id: string; label: string }> {
         const byLine = new Map<number, { id: string; label: string }>();
         for (const owner of [...this.gutterMarkers.keys()].sort()) {
@@ -2417,9 +2393,7 @@ export class EditorView {
     }
 
     pressGutterAction(line: number): void {
-        for (const listener of [...this.gutterActionListeners]) {
-            listener(line);
-        }
+        emit(this.gutterActionListeners, line);
     }
 
     /* Whether a click at this point of the gutter is on a fold control, and which line it folds. */

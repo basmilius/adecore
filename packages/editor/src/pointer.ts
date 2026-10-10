@@ -77,6 +77,14 @@ const MULTI_CLICK_DISTANCE = 4;
 /* How far the pointer goes, in pixels, before a press on a selection starts carrying it. */
 const CARRY_THRESHOLD = 5;
 
+/* How far `value` lies outside `[low, high]`, negative below it and zero inside. */
+function overshoot(value: number, low: number, high: number): number {
+    if (value < low) {
+        return value - low;
+    }
+    return value > high ? value - high : 0;
+}
+
 /* The selection a mouse makes: a click, a drag, shift to extend, alt to add a caret or, dragged, a column, a double click for a word and a triple for a line, which a drag then grows by words and lines. */
 export class PointerSelection {
     private drag: Drag | undefined;
@@ -313,8 +321,8 @@ export class PointerSelection {
             return;
         }
         const rect = viewport.getBoundingClientRect();
-        const dy = this.drag.y < rect.top ? this.drag.y - rect.top : this.drag.y > rect.bottom ? this.drag.y - rect.bottom : 0;
-        const dx = this.drag.x < rect.left ? this.drag.x - rect.left : this.drag.x > rect.right ? this.drag.x - rect.right : 0;
+        const dy = overshoot(this.drag.y, rect.top, rect.bottom);
+        const dx = overshoot(this.drag.x, rect.left, rect.right);
         if (dy || dx) {
             viewport.scrollTop += Math.max(-SCROLL_STEP, Math.min(SCROLL_STEP, dy));
             viewport.scrollLeft += Math.max(-SCROLL_STEP, Math.min(SCROLL_STEP, dx));
