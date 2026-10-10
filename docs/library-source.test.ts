@@ -1,10 +1,10 @@
 import { expect, test } from 'bun:test';
 import { librarySourceAliases } from './.vitepress/library-source.ts';
 
-const resolve = (specifier: string): string | undefined => {
+function resolve(specifier: string): string | undefined {
     const alias = librarySourceAliases().find((entry) => entry.find.test(specifier));
     return alias && specifier.replace(alias.find, alias.replacement);
-};
+}
 
 test('docs resolve exact, nested, wildcard and asset source exports from workspace manifests', () => {
     expect(resolve('@adecore/ui')).toEndWith('/packages/ui/src/index.ts');

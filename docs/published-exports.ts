@@ -12,18 +12,18 @@ export interface PublishedEntry {
     readonly file: string;
 }
 
-const moduleOf = (from: string, specifier: string): string | null => {
+function moduleOf(from: string, specifier: string): string | null {
     const base = resolve(dirname(from), specifier);
     return (
         [base, `${base}.ts`, `${base}.tsx`, join(base, 'index.ts'), join(base, 'index.tsx')].find((path) => /\.tsx?$/.test(path) && existsSync(path)) ?? null
     );
-};
+}
 
 /*
  * The names a module exports, types included, read from its text: named exports, declarations,
  * `export * as` and what `export *` passes on. A default export has no name of its own and is left out.
  */
-export const exportedNames = (file: string, seen = new Set<string>()): string[] => {
+export function exportedNames(file: string, seen = new Set<string>()): string[] {
     if (seen.has(file)) {
         return [];
     }
@@ -60,10 +60,10 @@ export const exportedNames = (file: string, seen = new Set<string>()): string[] 
         }
     }
     return [...new Set(names)];
-};
+}
 
 /* Every TypeScript entry point of every package that is published, a wildcard export expanded to its modules. */
-export const publishedEntries = (): PublishedEntry[] => {
+export function publishedEntries(): PublishedEntry[] {
     const entries: PublishedEntry[] = [];
     for (const manifest of [...new Glob('packages/*/package.json').scanSync({ cwd: ROOT })].sort()) {
         const json = JSON.parse(readFileSync(join(ROOT, manifest), 'utf8')) as { name: string; private?: boolean; exports?: Record<string, unknown> };
@@ -90,6 +90,8 @@ export const publishedEntries = (): PublishedEntry[] => {
         }
     }
     return entries;
-};
+}
 
-export const absolute = (file: string): string => join(ROOT, file);
+export function absolute(file: string): string {
+    return join(ROOT, file);
+}

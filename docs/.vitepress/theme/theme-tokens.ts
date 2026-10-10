@@ -1,7 +1,4 @@
-/*
- * Reads the tokens out of the library's `theme.css`, so the theme page lists what the file holds
- * rather than what someone remembered to copy. Pure, so it runs in the data loader and in a test.
- */
+/* Reads the tokens out of the library's `theme.css`, so the theme page lists what the file holds rather than a copy. */
 
 export type TokenKind = 'color' | 'channels' | 'shadow' | 'value';
 
@@ -20,7 +17,7 @@ export interface ScaleToken {
     name: string;
     group: string;
     value: string;
-    /* The line height a text size carries with it. */
+    /* Only a text size carries one. */
     lineHeight: string | null;
 }
 
@@ -35,7 +32,7 @@ interface Block {
 }
 
 /* The blocks at the top level of the file, with what is nested in them left as their body. */
-const blocksOf = (css: string): Block[] => {
+function blocksOf(css: string): Block[] {
     const blocks: Block[] = [];
     let depth = 0;
     let start = 0;
@@ -58,10 +55,10 @@ const blocksOf = (css: string): Block[] => {
         }
     }
     return blocks;
-};
+}
 
-const declarationsOf = (body: string): [string, string][] =>
-    body
+function declarationsOf(body: string): [string, string][] {
+    return body
         .split(';')
         .map((declaration) => declaration.trim())
         .filter((declaration) => declaration.startsWith('--'))
@@ -75,6 +72,7 @@ const declarationsOf = (body: string): [string, string][] =>
                     .trim()
             ];
         });
+}
 
 const GROUPS: [string, RegExp][] = [
     ['ground', /^(bg|surface.*)$/],
@@ -97,9 +95,13 @@ const SCALE_GROUPS: [string, RegExp][] = [
     ['spacing', /^spacing$/]
 ];
 
-const groupOf = (name: string, groups: [string, RegExp][]): string => groups.find(([, pattern]) => pattern.test(name))?.[0] ?? 'other';
+const LINE_HEIGHT = '--line-height';
 
-const kindOf = (value: string): TokenKind => {
+function groupOf(name: string, groups: [string, RegExp][]): string {
+    return groups.find(([, pattern]) => pattern.test(name))?.[0] ?? 'other';
+}
+
+function kindOf(value: string): TokenKind {
     if (/^\d+ \d+ \d+$/.test(value)) {
         return 'channels';
     }
@@ -107,9 +109,31 @@ const kindOf = (value: string): TokenKind => {
         return 'shadow';
     }
     return /^(#|rgb|hsl|oklch|color-mix)/.test(value) ? 'color' : 'value';
-};
+}
 
-export const readThemeTokens = (css: string): ThemeTokens => {
+/*
+ * Splits an `@theme` block into the utilities it maps onto a theme token (`--color-surface: var(--surface)`)
+ * and the scale it defines itself, each text size with its line height.
+ */
+function readThemeBlock(declarations: [string, string][], utilities: Map<string, string>, scale: ScaleToken[]): void {
+    for (const [name, value] of declarations) {
+        const mapped = /^var\(--([\w-]+)\)$/.exec(value);
+        const utility = /^(?:color|shadow)-([\w-]+)$/.exec(name);
+        if (mapped !== null && utility !== null) {
+            utilities.set(mapped[1]!, utility[1]!);
+        } else if (!name.endsWith(LINE_HEIGHT) && !name.endsWith('*')) {
+            scale.push({ name, group: groupOf(name, SCALE_GROUPS), value, lineHeight: null });
+        }
+    }
+    for (const [name, value] of declarations.filter(([name]) => name.endsWith(LINE_HEIGHT))) {
+        const size = scale.find((entry) => entry.name === name.slice(0, -LINE_HEIGHT.length));
+        if (size !== undefined) {
+            size.lineHeight = value;
+        }
+    }
+}
+
+export function readThemeTokens(css: string): ThemeTokens {
     const blocks = blocksOf(css.replace(/\/\*[\s\S]*?\*\//g, ''));
     const light = new Map<string, string>();
     const dark = new Map<string, string>();
@@ -126,28 +150,18 @@ export const readThemeTokens = (css: string): ThemeTokens => {
         } else if (prelude === ':root') {
             declarations.forEach(([name, value]) => layers.set(name, value));
         } else if (prelude.startsWith('@theme')) {
-            for (const [name, value] of declarations) {
-                const mapped = /^var\(--([\w-]+)\)$/.exec(value);
-                const utility = /^(?:color|shadow)-([\w-]+)$/.exec(name);
-                if (mapped !== null && utility !== null) {
-                    utilities.set(mapped[1]!, utility[1]!);
-                } else if (!name.endsWith('--line-height') && !name.endsWith('*')) {
-                    scale.push({ name, group: groupOf(name, SCALE_GROUPS), value, lineHeight: null });
-                }
-            }
-            for (const [name, value] of declarations.filter(([name]) => name.endsWith('--line-height'))) {
-                const size = scale.find((entry) => entry.name === name.slice(0, -'--line-height'.length));
-                if (size !== undefined) {
-                    size.lineHeight = value;
-                }
-            }
+            readThemeBlock(declarations, utilities, scale);
         }
     }
 
-    const themed = [...light].map(([name, value]): ThemeToken => {
-        const override = dark.get(name) ?? null;
-        return { name, group: groupOf(name, GROUPS), kind: kindOf(value), light: value, dark: override, utility: utilities.get(name) ?? null };
-    });
+    const themed = [...light].map(([name, value]): ThemeToken => ({
+        name,
+        group: groupOf(name, GROUPS),
+        kind: kindOf(value),
+        light: value,
+        dark: dark.get(name) ?? null,
+        utility: utilities.get(name) ?? null
+    }));
     const layered = [...layers].map(([name, value]): ThemeToken => ({
         name,
         group: groupOf(name, GROUPS),
@@ -157,4 +171,4 @@ export const readThemeTokens = (css: string): ThemeTokens => {
         utility: null
     }));
     return { tokens: [...themed, ...layered], scale };
-};
+}

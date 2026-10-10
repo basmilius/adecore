@@ -14,8 +14,8 @@ const QUERY_SCHEMAS = {
     'tasks.open': z.strictObject({ project: z.string() })
 };
 
-/* Every ```ui fence on the pages about the package, as written. */
 const PAGES = [...new Glob('intelligent-ui/**/*.md').scanSync(HERE), 'agents-react/chat/intelligent-ui.md'].sort();
+/* Every ```ui fence on those pages, as written. */
 const examples = PAGES.flatMap((path) =>
     [...readFileSync(join(HERE, path), 'utf8').matchAll(/^```ui\n([\s\S]*?)^```$/gm)].map((match, index) => ({
         name: `${path} #${index + 1}`,

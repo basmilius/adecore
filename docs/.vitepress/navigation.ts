@@ -1,10 +1,12 @@
 import type { DefaultTheme } from 'vitepress';
 
-const group = (text: string, items: [string, string][]): DefaultTheme.SidebarItem => ({
-    text,
-    collapsed: false,
-    items: items.map(([label, link]) => ({ text: label, link }))
-});
+function group(text: string, items: [string, string][]): DefaultTheme.SidebarItem {
+    return {
+        text,
+        collapsed: false,
+        items: items.map(([label, link]) => ({ text: label, link }))
+    };
+}
 
 const guide: DefaultTheme.SidebarItem[] = [group('Guide', [['Introduction', '/guide/']])];
 

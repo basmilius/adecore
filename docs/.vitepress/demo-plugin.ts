@@ -7,10 +7,10 @@ const DEMOS = new URL('../demos/', import.meta.url);
 const DEMO_TAG = /^<Demo\s+src="([\w/-]+)"((?:\s+[a-z]+)*)\s*\/>$/;
 
 /*
- * Turns a demo tag into the island that mounts it and the demo file itself, highlighted the way every
- * other code block on the page is. The file is read here, so a demo that does not exist fails the build.
+ * Turns a demo tag into the island that mounts it, followed by the highlighted demo file. The file is
+ * read here, so a demo that does not exist fails the build.
  */
-export const demoPlugin = (md: MarkdownRenderer): void => {
+export function demoPlugin(md: MarkdownRenderer): void {
     const fence = md.renderer.rules.fence!;
 
     // VitePress hands a component tag on a line of its own over as inline HTML, a plain renderer as a block.
@@ -28,4 +28,4 @@ export const demoPlugin = (md: MarkdownRenderer): void => {
             return `<Demo src="${src}"${flags}>${code}</Demo>\n`;
         };
     }
-};
+}

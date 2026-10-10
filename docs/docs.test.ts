@@ -7,23 +7,25 @@ import { absolute, exportedNames, publishedEntries } from './published-exports.t
 const HERE = new URL('.', import.meta.url).pathname;
 const SNAPSHOT = readFileSync(join(HERE, '../packages/ui/src/__snapshots__/exports.test.ts.snap'), 'utf8');
 
-const filesIn = (pattern: string): { path: string; text: string }[] =>
-    [...new Glob(pattern).scanSync({ cwd: HERE, dot: true })]
+function filesIn(pattern: string): { path: string; text: string }[] {
+    return [...new Glob(pattern).scanSync({ cwd: HERE, dot: true })]
         .filter((path) => !/(^|\/)(node_modules|dist|cache)\//.test(path))
         .map((path) => ({ path, text: readFileSync(join(HERE, path), 'utf8') }));
+}
 
 const PAGES = filesIn('**/*.md')
     .map(({ text }) => text)
     .join('\n');
 
 /* Every name an entry point exports, types included, read from the snapshot that holds the public API. */
-const snapshotNames = (): string[] =>
-    [...SNAPSHOT.matchAll(/exports\[`the public API \S+ exports these names 1`\] = `([^`]*)`/g)].flatMap((block) =>
+function snapshotNames(): string[] {
+    return [...SNAPSHOT.matchAll(/exports\[`the public API \S+ exports these names 1`\] = `([^`]*)`/g)].flatMap((block) =>
         [...block[1]!.matchAll(/"(?:type )?([\w$]+)"/g)].map((name) => name[1]!)
     );
+}
 
 /* Every part of a compound component, as `Menu.Item`. */
-const compoundParts = (): string[] => {
+function compoundParts(): string[] {
     const block = /exports\[`the public API the compound components have these parts 1`\] = `([^`]*)`/.exec(SNAPSHOT)![1]!;
     const parts: string[] = [];
     let compound = '';
@@ -37,12 +39,13 @@ const compoundParts = (): string[] => {
         }
     }
     return parts;
-};
+}
 
 const WORDS = new Set(PAGES.match(/[\w$]+/g));
 
-const mentioned = (name: string): boolean =>
-    name.includes('.') ? new RegExp(`(?<![\\w$])${name.replace('.', '\\.')}(?![\\w$])`).test(PAGES) : WORDS.has(name);
+function mentioned(name: string): boolean {
+    return name.includes('.') ? new RegExp(`(?<![\\w$])${name.replace('.', '\\.')}(?![\\w$])`).test(PAGES) : WORDS.has(name);
+}
 
 /* The apps that use the library, which no page names. */
 const APP_NAMES = /ruimte|aftermotion|solvidi|command[ -]center/i;

@@ -19,12 +19,14 @@ const followAppearance = `(() => {
 // The base reset stays, since a library button without it would wear the browser's own border.
 const isolateDemos = postcssIsolateStyles({ includeFiles: [/vp-doc\.css/] });
 
-/* A top-level nav item of one category, a dropdown of its packages that lights up on any page of them. */
-const category = (text: string, packages: [string, string][]): DefaultTheme.NavItemWithChildren => ({
-    text,
-    activeMatch: `^/(${packages.map(([, folder]) => folder).join('|')})/`,
-    items: packages.map(([label, folder]) => ({ text: label, link: `/${folder}/` }))
-});
+/* A dropdown of a category's packages that lights up on any page of them. */
+function category(text: string, packages: [string, string][]): DefaultTheme.NavItemWithChildren {
+    return {
+        text,
+        activeMatch: `^/(${packages.map(([, folder]) => folder).join('|')})/`,
+        items: packages.map(([label, folder]) => ({ text: label, link: `/${folder}/` }))
+    };
+}
 
 export default defineConfig({
     title: 'ADE CORE',
