@@ -174,6 +174,15 @@ describe.skipIf(typeof document === 'undefined')('a color wheel picker in a page
         expect(trigger().textContent).toBe('Green');
     });
 
+    test('ends the preview when it goes away while open', async () => {
+        await open();
+        await act(async () => swatch('Blue')?.focus());
+        expect(previews.at(-1)).toBe('blue');
+        await act(async () => root.unmount());
+        expect(previews.at(-1)).toBeNull();
+        // The shared cleanup unmounts once more; a second unmount of a root is a no-op.
+    });
+
     test('walks the wheel with the arrows without picking', async () => {
         await open();
         await press('ArrowRight');

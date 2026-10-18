@@ -1,4 +1,4 @@
-import { useId, useRef, useState, type KeyboardEvent, type Ref } from 'react';
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type Ref } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { ColorSwatch } from './ColorSwatch.tsx';
 import { Icon } from './Icon.tsx';
@@ -66,7 +66,7 @@ const STEPS: Record<string, (index: number, count: number) => number> = {
  * While the wheel is open the swatch under the pointer or the focus is reported as a preview, so the
  * caller can show it in place; its name stands under the wheel, which is why a swatch carries no
  * tooltip. The wheel is one tab stop: the arrows walk it in its order and only Enter, Space or a click
- * picks. Every preview ends with null, after a pick as well as on closing without one.
+ * picks. Every preview ends with null, after a pick as well as on closing without one or on going away while open.
  */
 export function ColorWheelPicker<Id extends string>({
     value,
@@ -90,10 +90,26 @@ export function ColorWheelPicker<Id extends string>({
     const wheel = useRef<HTMLDivElement>(null);
     const { size, spots } = layout(rings, center);
     const tabStop = spots.find((spot) => spot.id === (focused ?? value))?.id ?? spots[0]?.id;
+    // Read by the cleanup below, which runs after the state and the props of its render are gone.
+    const preview = useRef({ looking: false, onPreviewChange });
+    useEffect(() => {
+        preview.current.onPreviewChange = onPreviewChange;
+    });
     const look = (id: Id | null): void => {
         setLooking(id);
+        preview.current.looking = id !== null;
         onPreviewChange?.(id);
     };
+    // A picker taken away while a color is previewed (its dialog closed under it) gets no close of its
+    // popover, so it ends the preview itself rather than leave the caller showing a color nobody picked.
+    useEffect(
+        () => () => {
+            if (preview.current.looking) {
+                preview.current.onPreviewChange?.(null);
+            }
+        },
+        []
+    );
     const close = (): void => {
         setOpen(false);
         setFocused(null);
