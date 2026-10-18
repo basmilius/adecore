@@ -7,7 +7,7 @@ import { Icon } from './Icon.tsx';
 import { MENU_LABEL } from './menu/parts.tsx';
 import { renderPositioner } from './popup-layer.ts';
 import { RowContent } from './select-row.tsx';
-import { isGroup, rowClassName, TRIGGER_DISABLED, TRIGGER_SIZE, TRIGGER_VARIANT, type SelectGroup, type SelectItem } from './select-shared.ts';
+import { isGroup, rowClassName, triggerClassName, type SelectGroup, type SelectItem } from './select-shared.ts';
 import { SelectSearch } from './SelectSearch.tsx';
 
 export type { SelectGroup, SelectItem };
@@ -79,17 +79,7 @@ function PlainSelect<T extends string>({
             disabled={disabled}
             onValueChange={(next) => onValueChange(next as T)}
         >
-            <BaseSelect.Trigger
-                ref={ref}
-                aria-label={label}
-                className={clsx(
-                    'flex shrink-0 items-center whitespace-nowrap text-xs',
-                    TRIGGER_SIZE[size],
-                    TRIGGER_VARIANT[variant],
-                    TRIGGER_DISABLED,
-                    className
-                )}
-            >
+            <BaseSelect.Trigger ref={ref} aria-label={label} className={triggerClassName(size, variant, className)}>
                 {selected?.icon}
                 <BaseSelect.Value className={clsx(truncateValue && 'truncate')}>{() => selected?.label ?? placeholder ?? t('action.select')}</BaseSelect.Value>
                 <BaseSelect.Icon className="ml-auto flex shrink-0 pl-1">

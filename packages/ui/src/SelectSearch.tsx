@@ -8,7 +8,7 @@ import { MENU_LABEL } from './menu/parts.tsx';
 import { renderPositioner } from './popup-layer.ts';
 import type { SelectProps } from './Select.tsx';
 import { RowContent } from './select-row.tsx';
-import { isGroup, rowClassName, TRIGGER_DISABLED, TRIGGER_SIZE, TRIGGER_VARIANT, type SelectGroup, type SelectItem } from './select-shared.ts';
+import { isGroup, rowClassName, triggerClassName, type SelectGroup, type SelectItem } from './select-shared.ts';
 
 /* The `Select` with a search field on top of its options, for lists too long to scan. A combobox of Base UI brings the filtering and the keyboard. */
 export function SelectSearch<T extends string>({
@@ -65,17 +65,7 @@ export function SelectSearch<T extends string>({
                 }
             }}
         >
-            <Combobox.Trigger
-                ref={ref}
-                aria-label={label}
-                className={clsx(
-                    'flex shrink-0 items-center whitespace-nowrap text-xs',
-                    TRIGGER_SIZE[size],
-                    TRIGGER_VARIANT[variant],
-                    TRIGGER_DISABLED,
-                    className
-                )}
-            >
+            <Combobox.Trigger ref={ref} aria-label={label} className={triggerClassName(size, variant, className)}>
                 {selected?.icon}
                 <span className={clsx(truncateValue && 'truncate')}>{selected?.label ?? placeholder ?? t('action.select')}</span>
                 <span className="ml-auto flex shrink-0 pl-1">

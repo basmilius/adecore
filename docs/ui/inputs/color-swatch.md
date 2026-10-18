@@ -8,9 +8,9 @@ import { ColorSwatch } from '@adecore/ui';
 
 <Demo src="inputs/color-swatch" />
 
-Without a `color` the swatch is an outlined circle: no color at all, or the button that opens the rest of a palette. Children replace the tick, such as an ellipsis on a "more colors" swatch. `on="popup"` tightens the ring of a picked swatch for one inside a popup.
+Without a `color` the swatch is an outlined circle: no color at all, or the button that opens the rest of a palette. Children replace the tick, such as an ellipsis on a "more colors" swatch, and `tick={false}` leaves it off where the ring alone marks the picked color, such as on a swatch of two tones. `on="popup"` tightens the ring of a picked swatch for one inside a popup.
 
-`ColorSwatch` is a button without a name of its own: give it an `aria-label` and put the name in a [`Tooltip`](/ui/overlays/tooltip). For a row of them, give the row `role="radiogroup"` and each swatch `role="radio"` and `aria-checked`, as the demo does, or use [`AccentSwatches`](/ui/inputs/accent-swatches), which does it for you.
+`ColorSwatch` is a button without a name of its own: give it an `aria-label` and put the name in a [`Tooltip`](/ui/overlays/tooltip). For a row of them, give the row `role="radiogroup"` and each swatch `role="radio"` and `aria-checked`, as the demo does, or use [`AccentSwatches`](/ui/inputs/accent-swatches) or [`ColorWheelPicker`](/ui/inputs/color-wheel-picker), which do it for you.
 
 In a menu, make each swatch an item that is no row with `render={<Menu.Item unstyled />}`. The arrow keys reach it and picking it closes the menu, while the row's padding and highlight stay off the circle; the swatch draws the accent outline under the keyboard itself. See the swatches in [Menu](/ui/overlays/menu#checks-and-labels).
 
@@ -22,6 +22,7 @@ In a menu, make each swatch an item that is no row with `render={<Menu.Item unst
 | --- | --- | --- | --- |
 | `color` | `string` | | Any CSS color. |
 | `picked` | `boolean` | `false` | |
+| `tick` | `boolean` | `true` | Whether a picked swatch draws its tick. |
 | `on` | `'surface' \| 'popup'` | `'surface'` | What the swatch stands on, which the ring is offset against. |
 | `render` | `RenderProp` | | Another element to be the swatch, such as a menu trigger or `<Menu.Item unstyled />`. |
 

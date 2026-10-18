@@ -37,7 +37,8 @@ const desktopUi: DefaultTheme.SidebarItem[] = [
         ['ChoiceCards', '/ui/inputs/choice-cards'],
         ['IconPicker', '/ui/inputs/icon-picker'],
         ['ColorSwatch', '/ui/inputs/color-swatch'],
-        ['AccentSwatches', '/ui/inputs/accent-swatches']
+        ['AccentSwatches', '/ui/inputs/accent-swatches'],
+        ['ColorWheelPicker', '/ui/inputs/color-wheel-picker']
     ]),
     group('Overlays', [
         ['Menu', '/ui/overlays/menu'],

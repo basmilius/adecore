@@ -30,5 +30,9 @@ export const TRIGGER_VARIANT = {
 /* The dimmed look `Switch` and `Button` wear when disabled, so a select that cannot open reads as such. */
 export const TRIGGER_DISABLED = 'data-disabled:cursor-default data-disabled:opacity-50';
 
+/* The trigger of every select, and of any other picker that stands in a row of selects and has to line up with them. */
+export const triggerClassName = (size: keyof typeof TRIGGER_SIZE, variant: keyof typeof TRIGGER_VARIANT, className?: string): string =>
+    clsx('flex shrink-0 items-center whitespace-nowrap text-xs', TRIGGER_SIZE[size], TRIGGER_VARIANT[variant], TRIGGER_DISABLED, className);
+
 /* A description makes the row two lines high; the box keeps the icon on the label's line. */
 export const rowClassName = (item: SelectItem<string>): string => clsx('menu-item', item.description && 'items-start');

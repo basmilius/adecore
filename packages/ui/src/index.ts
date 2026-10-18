@@ -35,6 +35,7 @@ export { Checkbox, type CheckboxProps } from './Checkbox.tsx';
 export { ChoiceCards, type Choice, type ChoiceCardsProps } from './ChoiceCards.tsx';
 export { CloseButton, type CloseButtonProps } from './CloseButton.tsx';
 export { ColorSwatch, type ColorSwatchProps } from './ColorSwatch.tsx';
+export { ColorWheelPicker, type ColorWheelPickerProps } from './ColorWheelPicker.tsx';
 export { ColumnResizeHandle, type ColumnResizeHandleProps } from './ColumnResizeHandle.tsx';
 export { DisabledReason, type DisabledReasonProps } from './DisabledReason.tsx';
 export { DockShell, type DockShellProps } from './DockShell.tsx';
