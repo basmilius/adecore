@@ -44,6 +44,73 @@ function assistant(id: string, seconds: number, output: number): string {
 }
 
 describe('the usage scanner', () => {
+    test('reads the log of the API of Claude with its cache writes, and finds it again from the saved index', async () => {
+        const { home } = await workspace();
+        const folder = join(home, '..', 'claude-api', 'usage');
+        await mkdir(folder, { recursive: true });
+        // Anthropic reports the input apart from both cache kinds, and bills a write above it.
+        const line = JSON.stringify({
+            at: Date.parse('2026-10-20T09:00:00.000Z'),
+            model: 'claude-sonnet-5-5',
+            session: 's-1',
+            cwd: '/work/repo',
+            input: 120,
+            cacheRead: 9000,
+            cacheWrite: 400,
+            output: 250,
+            reasoning: 0
+        });
+        await writeFile(
+            join(folder, '2026-10.jsonl'),
+            `${line}
+`
+        );
+
+        const root = { provider: 'anthropic-claude-api', path: folder } as const;
+        const scanner = new UsageScanner(home, [root]);
+        expect((await scanner.scan()).roots).toEqual([{ provider: 'anthropic-claude-api', path: folder, status: 'ok', message: null }]);
+        expect(scanner.records().map((record) => [record.provider, record.totals])).toEqual([
+            ['anthropic-claude-api', { calls: 1, input: 120, cacheRead: 9000, cacheWrite: 400, cacheWrite1h: 0, output: 250, reasoning: 0 }]
+        ]);
+
+        // The index it saved still names the provider, so a restart reads nothing again.
+        const warm = new UsageScanner(home, [root]);
+        expect((await warm.scan()).changedFiles).toBe(0);
+        expect(warm.records().map((record) => record.provider)).toEqual(['anthropic-claude-api']);
+    });
+
+    test('reads the log of a provider with no transcripts, and a call appended later once', async () => {
+        const { home } = await workspace();
+        const folder = join(home, '..', 'nanogpt', 'usage');
+        await mkdir(folder, { recursive: true });
+        const line = (seconds: number, completion: number): string =>
+            `${JSON.stringify({
+                at: Date.parse('2026-10-20T09:00:00.000Z') + seconds * 1000,
+                model: 'z-ai/glm-5.3',
+                session: 's-1',
+                cwd: '/work/repo',
+                input: 1000,
+                cacheRead: 0,
+                cacheWrite: 0,
+                output: completion,
+                reasoning: 0
+            })}\n`;
+        await writeFile(join(folder, '2026-10.jsonl'), line(0, 100));
+
+        const scanner = new UsageScanner(home, [{ provider: 'nanogpt', path: folder }]);
+        expect((await scanner.scan()).roots).toEqual([{ provider: 'nanogpt', path: folder, status: 'ok', message: null }]);
+        expect(scanner.records().map((record) => [record.provider, record.totals.input, record.totals.output])).toEqual([['nanogpt', 1000, 100]]);
+
+        await writeFile(join(folder, '2026-10.jsonl'), line(0, 100) + line(60, 250));
+        await scanner.scan();
+        expect(scanner.records().map((record) => record.totals.output)).toEqual([100, 250]);
+
+        // A fresh scanner starts from the index it saved, and the provider survives the round trip.
+        const warm = new UsageScanner(home, [{ provider: 'nanogpt', path: folder }]);
+        expect((await warm.scan()).changedFiles).toBe(0);
+        expect(warm.records().map((record) => record.provider)).toEqual(['nanogpt', 'nanogpt']);
+    });
+
     test('reads both roots, keeps the index and opens nothing on a second pass', async () => {
         const { home, claude, codex, roots } = await workspace();
         await writeFile(join(claude, 'a.jsonl'), assistant('msg_1', 0, 40) + assistant('msg_2', 5, 60));

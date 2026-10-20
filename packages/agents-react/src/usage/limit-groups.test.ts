@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import type { ProviderAccounts, ProviderAccountStatus, UsageLimitsProvider, UsageWindow } from '@adecore/agent-contracts';
-import { checkedLabel, hasSeveralAccounts, limitGroups, nextReset } from './limit-groups';
+import { checkedLabel, explain, hasSeveralAccounts, limitGroups, nextReset } from './limit-groups';
 
 function status(id: string, kind: string, state: ProviderAccountStatus['state'] = 'ready'): ProviderAccountStatus {
     return {
@@ -16,7 +16,7 @@ function status(id: string, kind: string, state: ProviderAccountStatus['state'] 
     };
 }
 
-function entry(kind: 'claude' | 'codex', account?: { id: string; label: string }, extra: Partial<UsageLimitsProvider> = {}): UsageLimitsProvider {
+function entry(kind: 'claude' | 'codex' | 'nanogpt', account?: { id: string; label: string }, extra: Partial<UsageLimitsProvider> = {}): UsageLimitsProvider {
     return {
         kind,
         ...(account === undefined ? {} : { account }),
@@ -72,6 +72,20 @@ describe('limits per account', () => {
         const groups = limitGroups({ providers: [entry('claude'), entry('codex')] }, null);
         expect(groups.map((group) => group.accounts.map((account) => account.name))).toEqual([['Claude Code'], ['Codex']]);
         expect(hasSeveralAccounts(groups)).toBe(false);
+    });
+});
+
+describe('a provider with no CLI', () => {
+    test('is a group of its own, named after the provider, with no account to sign in to', () => {
+        const groups = limitGroups({ providers: [entry('nanogpt', undefined, { plan: 'Subscription', windows: [window('weekly_input', 900)] })] }, null);
+        expect(groups.map((group) => [group.kind, group.accounts.map((account) => account.name)])).toEqual([['nanogpt', ['NanoGPT']]]);
+    });
+
+    test('says why it has no numbers in its own words when it has some, and in the usual ones when it has none', () => {
+        const withWords = entry('nanogpt', undefined, { unavailable: { reason: 'no-subscription', message: 'Add an API key in Settings' } });
+        expect(explain(withWords)).toBe('Add an API key in Settings');
+        const claudeKey = entry('claude', undefined, { unavailable: { reason: 'no-subscription', message: null } });
+        expect(explain(claudeKey)).toBe('This account uses an API key, which has no plan limits.');
     });
 });
 

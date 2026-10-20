@@ -1,9 +1,10 @@
 import { z } from 'zod';
 import { SessionIdSchema } from './ids.ts';
 
-// The supported agent CLIs. Whether one has a chat backend or a hook normalizer is a capability
-// on its provider, not a second list: a CLI without hooks still opens as a terminal agent.
-export const AgentKindSchema = z.enum(['claude', 'codex', 'gemini', 'copilot', 'apple']);
+// The supported agent CLIs, and the providers a host runs without one (a model on the machine, a
+// subscription API). Whether one has a chat backend or a hook normalizer is a capability on its
+// provider, not a second list: a CLI without hooks still opens as a terminal agent.
+export const AgentKindSchema = z.enum(['claude', 'codex', 'gemini', 'copilot', 'apple', 'nanogpt', 'anthropic-claude-api']);
 export type AgentKind = z.infer<typeof AgentKindSchema>;
 
 // `exited` is the daemon's own reading, not a hook's: the CLI went down with its shell without

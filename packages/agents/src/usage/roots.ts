@@ -10,7 +10,7 @@ export interface UsageRootPath {
 }
 
 /* Where in its config folder each CLI leaves its transcripts. */
-const TRANSCRIPTS: Record<UsageProvider, string> = { claude: 'projects', codex: 'sessions' };
+const TRANSCRIPTS: Record<UsageProvider, string> = { claude: 'projects', codex: 'sessions', nanogpt: 'usage', 'anthropic-claude-api': 'usage' };
 
 /* The transcripts of the default accounts, found through the variables the CLIs themselves read. */
 export function usageRoots(env: Record<string, string | undefined> = process.env): UsageRootPath[] {

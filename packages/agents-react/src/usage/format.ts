@@ -28,9 +28,19 @@ export function moneyFormat(currency: UsageCurrency, rate: UsageRate | null): (u
     };
 }
 
-export const PROVIDER_LABELS: Record<UsageProvider, string> = { claude: 'Claude Code', codex: 'Codex' };
+export const PROVIDER_LABELS: Record<UsageProvider, string> = {
+    claude: 'Claude Code',
+    codex: 'Codex',
+    nanogpt: 'NanoGPT',
+    'anthropic-claude-api': 'Claude API'
+};
 
-export const PROVIDER_COLORS: Record<UsageProvider, string> = { claude: 'var(--chart-claude)', codex: 'var(--chart-codex)' };
+export const PROVIDER_COLORS: Record<UsageProvider, string> = {
+    claude: 'var(--chart-claude)',
+    codex: 'var(--chart-codex)',
+    nanogpt: 'var(--chart-nanogpt)',
+    'anthropic-claude-api': 'var(--chart-anthropic-claude-api)'
+};
 
 /*
  * A slot is `2026-09-10` or `2026-09-10T14`, already in the viewer's own zone, so it is read as plain

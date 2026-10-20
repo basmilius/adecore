@@ -14,7 +14,7 @@ const MAX_BACKOFF_MS = 60 * 60_000;
 /* An account other than the default one that nobody started a CLI under for this long is only read when a person asks. */
 const RECENT_USE_MS = 24 * 60 * 60_000;
 
-const PROVIDERS: readonly UsageProvider[] = ['claude', 'codex'];
+const PROVIDERS: readonly UsageProvider[] = ['claude', 'codex', 'nanogpt'];
 
 export type ProbeEnv = Record<string, string>;
 
@@ -62,6 +62,12 @@ export interface UsageMonitorOptions {
     accounts?: LimitAccounts;
     /* How to ask; a test answers without starting a CLI. */
     probe?: (kind: UsageProvider, command: readonly string[], env: ProbeEnv) => Promise<ProbeResult>;
+    /*
+     * A plan the host reads itself, for a provider with no CLI to ask (a subscription API the host calls with
+     * its own key). It answers in place of the probe, with no environment and no check that a CLI is installed:
+     * what it says is the whole story, a missing key included.
+     */
+    plans?: Partial<Record<UsageProvider, () => Promise<ProbeResult>>>;
     now?: () => number;
     // How the host names itself to the app-server a probe opens.
     client?: CodexClientInfo;
@@ -71,12 +77,14 @@ export interface UsageMonitorOptions {
  * What is left of each plan, per account. Two sources feed it: a read of our own every five minutes,
  * which starts the CLI, asks and ends it, and the events a running turn streams in between, which
  * cost nothing and arrive the moment a number moves. Neither reads a credential: both CLIs already
- * hold their own login and answer the question themselves.
+ * hold their own login and answer the question themselves. A provider without a CLI is read by the
+ * host that holds its key (`plans`), on the same clock.
  */
 export class UsageMonitor {
     private readonly registry: ProviderRegistry;
     private readonly accounts: LimitAccounts | null;
     private readonly probe: NonNullable<UsageMonitorOptions['probe']>;
+    private readonly plans: NonNullable<UsageMonitorOptions['plans']>;
     private readonly now: () => number;
     private readonly sinks = new ClientSinks<AgentEvent>();
     // By account id, so the default account of a CLI is under the CLI's kind.
@@ -87,6 +95,7 @@ export class UsageMonitor {
     constructor(options: UsageMonitorOptions) {
         this.registry = options.providers;
         this.accounts = options.accounts ?? null;
+        this.plans = options.plans ?? {};
         this.probe = options.probe ?? ((kind, command, env) => (kind === 'claude' ? probeClaude(command, env) : probeCodex(command, env, options.client)));
         this.now = options.now ?? Date.now;
         for (const kind of PROVIDERS) {
@@ -197,16 +206,18 @@ export class UsageMonitor {
                 continue;
             }
             const info = installed.find((provider) => provider.kind === kind);
-            if (info === undefined || !info.installed) {
+            if (this.plans[kind] === undefined && (info === undefined || !info.installed)) {
                 state.published = { ...blank(kind), checkedAt: this.now(), unavailable: { reason: 'not-installed', message: null } };
                 state.nextAt = this.now() + PROBE_INTERVAL_MS;
                 changed = true;
                 continue;
             }
+            // The next read is counted from when this one started, so a read that takes a few seconds does not push the tick of the clock past its time.
+            const startedAt = this.now();
             const result = await this.read(account);
             const failed = 'unavailable' in result && result.unavailable?.reason === 'failed';
             state.backoffMs = failed ? Math.min(MAX_BACKOFF_MS, state.backoffMs * 2) : PROBE_INTERVAL_MS;
-            state.nextAt = this.now() + state.backoffMs;
+            state.nextAt = startedAt + state.backoffMs;
             if (failed && state.published.windows.length > 0) {
                 // A pass that could not reach the CLI leaves the last good numbers where they are.
                 continue;
@@ -223,6 +234,14 @@ export class UsageMonitor {
     }
 
     private async read(account: LimitAccount): Promise<ProbeResult> {
+        const plan = this.plans[account.kind];
+        if (plan !== undefined) {
+            try {
+                return await plan();
+            } catch (e) {
+                return { unavailable: { reason: 'failed', message: errorText(e) } };
+            }
+        }
         let env: ProbeEnv;
         try {
             env = this.accounts === null ? definedEnv(process.env) : this.accounts.envFor(account.kind, account.id);

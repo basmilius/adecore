@@ -1,4 +1,4 @@
-import type { UsageProvider } from '@adecore/agent-contracts';
+import { USAGE_PROVIDERS, type UsageProvider } from '@adecore/agent-contracts';
 import type { UsageRecord } from './record.ts';
 import type { CodexParserState } from './readers/codex.ts';
 
@@ -147,7 +147,8 @@ export function decodeIndex(text: string): UsageIndex {
     const accounts = Array.isArray(document.accounts) ? document.accounts : [];
     const name = (table: string[], at: number): string | null => (typeof table[at] === 'string' ? table[at] : null);
     for (const [path, file] of Object.entries(document.files ?? {})) {
-        if (file.p !== 'claude' && file.p !== 'codex') {
+        // Every provider the schema knows, so a new one is never dropped from the index it was saved in.
+        if (!(USAGE_PROVIDERS as readonly string[]).includes(file.p)) {
             continue;
         }
         if (typeof file.s !== 'number' || typeof file.m !== 'number' || typeof file.o !== 'number' || file.o < 0 || !Array.isArray(file.r)) {

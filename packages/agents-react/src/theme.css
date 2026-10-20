@@ -13,6 +13,8 @@
     --chart-codex: #30b0c7;
     --chart-gemini: #3b82f6;
     --chart-copilot: #64748b;
+    --chart-nanogpt: #34c759;
+    --chart-anthropic-claude-api: #af52de;
     /* What a chat's context holds, one color per part; the rest is the system's and stays gray. */
     --chart-context-tools: #4d7ce6;
     --chart-context-files: #9a63e0;
@@ -45,6 +47,8 @@
     --chart-codex: #40c8e0;
     --chart-gemini: #60a5fa;
     --chart-copilot: #94a3b8;
+    --chart-nanogpt: #30d158;
+    --chart-anthropic-claude-api: #bf5af2;
     --chart-context-tools: #8aa7f5;
     --chart-context-files: #b98af3;
     --chart-context-conversation: #6dd08b;
@@ -82,6 +86,8 @@
     --color-chart-codex: var(--chart-codex);
     --color-chart-gemini: var(--chart-gemini);
     --color-chart-copilot: var(--chart-copilot);
+    --color-chart-nanogpt: var(--chart-nanogpt);
+    --color-chart-anthropic-claude-api: var(--chart-anthropic-claude-api);
     --color-chart-context-tools: var(--chart-context-tools);
     --color-chart-context-files: var(--chart-context-files);
     --color-chart-context-conversation: var(--chart-context-conversation);

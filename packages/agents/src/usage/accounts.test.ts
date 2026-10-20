@@ -11,7 +11,7 @@ let home: string;
 let service: ProviderAccountsService;
 
 function nameOf(kind: string): string {
-    return kind === 'claude' ? 'Claude Code' : 'Codex';
+    return kind === 'claude' ? 'Claude Code' : kind === 'nanogpt' ? 'NanoGPT' : kind === 'anthropic-claude-api' ? 'Claude API' : 'Codex';
 }
 
 beforeEach(async () => {
@@ -38,6 +38,8 @@ describe('the accounts of the usage page and the limits', () => {
         expect(usageAccountsOf(service, nameOf)).toEqual([
             { id: 'claude', kind: 'claude', label: 'Claude Code' },
             { id: 'codex', kind: 'codex', label: 'Codex' },
+            { id: 'nanogpt', kind: 'nanogpt', label: 'NanoGPT' },
+            { id: 'anthropic-claude-api', kind: 'anthropic-claude-api', label: 'Claude API' },
             { id: 'claude_work', kind: 'claude', label: 'Work', color: 'blue' },
             { id: 'claude_off', kind: 'claude', label: 'Off' },
             { id: 'codex_work', kind: 'codex', label: 'Work' }
@@ -55,9 +57,9 @@ describe('the accounts of the usage page and the limits', () => {
 
     test('reads the plan of every default account, and of another once it is on and signed in', async () => {
         const limits = limitAccountsOf(service, nameOf, { HOME: home, USERPROFILE: home });
-        expect(limits.list().map((account) => account.id)).toEqual(['claude', 'codex']);
+        expect(limits.list().map((account) => account.id)).toEqual(['claude', 'codex', 'nanogpt', 'anthropic-claude-api']);
         await service.refresh();
-        expect(limits.list().map((account) => account.id)).toEqual(['claude', 'codex', 'claude_work', 'codex_work']);
+        expect(limits.list().map((account) => account.id)).toEqual(['claude', 'codex', 'nanogpt', 'anthropic-claude-api', 'claude_work', 'codex_work']);
         expect(limits.envFor('claude', 'claude_work').CLAUDE_CONFIG_DIR).toBe(join(root, 'work'));
         expect(limits.lastUsedAt('claude_work')).toBeNull();
         service.launched('claude', 'claude_work');

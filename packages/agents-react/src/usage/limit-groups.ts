@@ -108,7 +108,8 @@ export function explain(provider: UsageLimitsProvider): string | null {
         return i18next.t('agent-usage:limits.notInstalled');
     }
     if (provider.unavailable.reason === 'no-subscription') {
-        return i18next.t('agent-usage:limits.noSubscription');
+        // A provider that knows why it has no plan says so; the rest are accounts on an API key.
+        return provider.unavailable.message ?? i18next.t('agent-usage:limits.noSubscription');
     }
     return provider.unavailable.message ?? i18next.t('agent-usage:limits.unreachable');
 }

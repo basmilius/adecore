@@ -5,6 +5,8 @@ import { AgentIcon } from '../agents/AgentIcon';
 // Each CLI in its color of the usage charts, so a mark here reads as the same CLI there.
 const CLI_COLORS: Record<AgentKind, string> = {
     apple: 'text-text-muted',
+    nanogpt: 'text-text-muted',
+    'anthropic-claude-api': 'text-chart-claude',
     claude: 'text-chart-claude',
     codex: 'text-chart-codex',
     gemini: 'text-chart-gemini',

@@ -98,7 +98,7 @@ describe('ProviderAccountsService', () => {
     test('without a file every CLI has its default account, checking until its CLI answered', async () => {
         const service = await make();
         const before = service.snapshot();
-        expect(Object.keys(before.accounts)).toEqual(['claude', 'codex', 'gemini', 'copilot', 'apple']);
+        expect(Object.keys(before.accounts)).toEqual(['claude', 'codex', 'gemini', 'copilot', 'apple', 'nanogpt', 'anthropic-claude-api']);
         expect(before.statuses.every((status) => status.state === 'checking')).toBe(true);
 
         const after = await service.refresh();
