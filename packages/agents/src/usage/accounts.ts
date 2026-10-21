@@ -1,5 +1,5 @@
 import { USAGE_PROVIDERS, type ChatInfo, type ProviderAccounts, type UsageAccount, type UsageProvider } from '@adecore/agent-contracts';
-import { definedEnv } from '../providers/accounts/launch.ts';
+import { definedEnv, storedAccount } from '../providers/accounts/launch.ts';
 import type { ProviderAccountsService } from '../providers/accounts/service.ts';
 import type { LimitAccount, LimitAccounts } from './limits/monitor.ts';
 import { accountRoots, type UsageRootPath } from './roots.ts';
@@ -69,7 +69,8 @@ export function limitAccountsOf(
             machineAccounts(service.snapshot(), nameOf)
                 .filter((account) => account.isDefault || (account.enabled && account.signedIn))
                 .map((account): LimitAccount => ({ ...usageAccount(account), isDefault: account.isDefault })),
-        envFor: (kind, id) => definedEnv(service.envFor(kind, id, baseEnv)),
+        // A plan read is no start: the default account goes unnamed, so turning it off does not fail its read.
+        envFor: (kind, id) => definedEnv(service.envFor(kind, storedAccount(kind, id), baseEnv)),
         lastUsedAt: (id) => service.lastLaunchAt(id)
     };
 }

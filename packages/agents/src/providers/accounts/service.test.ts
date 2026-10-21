@@ -228,6 +228,22 @@ describe('ProviderAccountsService', () => {
         expect(service.envFor('claude', 'claude_personal', env)).toEqual({ HOME, USERPROFILE: HOME, CLAUDE_CONFIG_DIR: join(HOME, '.claude_personal') });
     });
 
+    test('refuses a turned-off default account a start names, and still gives a start that names none its environment', async () => {
+        const service = await make();
+        await service.save({ claude: { kind: 'claude', enabled: false } });
+        let refusal: unknown = null;
+        try {
+            service.envFor('claude', 'claude', env);
+        } catch (e) {
+            refusal = e;
+        }
+        expect(refusal).toMatchObject({ code: 'account-unavailable', message: expect.stringContaining('it is turned off') });
+        expect(service.envFor('claude', undefined, env)).toBe(env);
+        await service.save({ claude: { kind: 'claude' } });
+        expect(service.envFor('claude', 'claude', env)).toBe(env);
+        expect(service.envFor('claude', undefined, env)).toBe(env);
+    });
+
     test('refuses an account it cannot start, and never falls back on the default one', async () => {
         const service = await make();
         folders.add(join(HOME, '.claude_gone'));

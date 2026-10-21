@@ -446,10 +446,12 @@ export class ChatCore {
         await this.hooks.admit?.(payload.chatId, cwd);
         // A thread on disk keeps its account too. One it lost still opens, and says why on its next turn.
         // A new one without an account takes the person's pick for this CLI, which is refused rather than replaced when it went.
-        const account = stored ? stored.info.account : storedAccount(kind, payload.account ?? this.composerPreferences.for(kind).account);
+        // The pick is checked as named, before the default account loses its id, so one that is turned off is refused too.
+        const requested = payload.account ?? this.composerPreferences.for(kind).account;
         if (!stored) {
-            this.requireAccount(kind, account);
+            this.requireAccount(kind, requested);
         }
+        const account = stored ? stored.info.account : storedAccount(kind, requested);
         const narrowed = (mode: RuntimeMode): RuntimeMode => (this.hooks.runtimeModeFor ? this.hooks.runtimeModeFor(payload.chatId, mode) : mode);
         // Asked again for a chat on disk, since the host may have listed it since.
         const hidden = this.hooks.hiddenFor?.(payload.chatId) ? { hidden: true } : {};
@@ -568,7 +570,8 @@ export class ChatCore {
         if (to === from) {
             return;
         }
-        this.requireAccount(kind, to);
+        // As named, so a switch to the default account is refused while it is turned off.
+        this.requireAccount(kind, requested);
         const spoke = session.info.agentSessionId !== null || session.info.usage.turns > 0;
         if (spoke && !this.canContinue(kind, from, to)) {
             const label = this.accountLabel(kind, to);

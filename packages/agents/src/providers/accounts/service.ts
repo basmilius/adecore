@@ -225,6 +225,10 @@ export class ProviderAccountsService implements AccountLaunches {
         };
         if (isDefaultAccountOf(kind, id)) {
             const account = this.accounts[kind] ?? { kind };
+            // Only a start that names it: every turn of a chat on the default account asks with none.
+            if (id !== undefined && account.enabled === false) {
+                throw refuse('it is turned off');
+            }
             return accountEnv(kind, account, provider, baseEnv, variables(account));
         }
         const account = this.accounts[key];

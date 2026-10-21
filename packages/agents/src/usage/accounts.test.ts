@@ -65,6 +65,14 @@ describe('the accounts of the usage page and the limits', () => {
         expect(limits.lastUsedAt('claude_work')).not.toBeNull();
     });
 
+    test('reads the plan of a default account that is turned off, since a read starts nothing', async () => {
+        await service.save({ ...service.snapshot().accounts, claude: { kind: 'claude', enabled: false } });
+        const limits = limitAccountsOf(service, nameOf, { HOME: home, USERPROFILE: home });
+        expect(limits.list().map((account) => account.id)).toContain('claude');
+        expect(() => service.envFor('claude', 'claude', { HOME: home })).toThrow('it is turned off');
+        expect(limits.envFor('claude', 'claude')).toEqual({ HOME: home, USERPROFILE: home });
+    });
+
     test('knows which account ran a session of a chat', () => {
         const known = chatSessionAccounts([
             { provider: 'codex', agentSessionId: 't-1', account: 'codex_work' },
