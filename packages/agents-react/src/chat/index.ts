@@ -1,5 +1,5 @@
 // Public API: exports.test.ts snapshots this list, so a name added or dropped here is an API change.
-export { type AccountChoice, useAccountChoice } from './account-choice';
+export { type AccountChoice, useAccountChoice, type NewAccountChoice, useNewAccountChoice } from './account-choice';
 export { transportActions, actionsOf, useChatActions } from './actions';
 export { type ChatSendExtras, ChatClient } from './chat-client';
 export type { ProjectChat } from './chat-references';

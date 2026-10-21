@@ -26,7 +26,7 @@ A chat outside its views: the client, actions, drafts, preferences, mentions, fo
 
 | Module | Exports |
 | --- | --- |
-| [`chat/account-choice`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/account-choice.ts) | `AccountChoice`, `useAccountChoice` |
+| [`chat/account-choice`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/account-choice.ts) | `AccountChoice`, `useAccountChoice`, `NewAccountChoice`, `useNewAccountChoice` |
 | [`chat/actions`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/actions.ts) | `transportActions`, `actionsOf`, `useChatActions` |
 | [`chat/chat-client`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/chat-client.ts) | `ChatSendExtras`, `ChatClient` |
 | [`chat/chat-references`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/chat-references.ts) | `ProjectChat` |

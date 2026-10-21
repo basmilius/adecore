@@ -116,6 +116,22 @@ describe('a choice of account in a chat', () => {
         expect(offeredAccounts(entries, 'codex_off').map((entry) => entry.id)).toEqual(['codex', 'codex_work', 'codex_off']);
     });
 
+    test('drops a turned-off default account with none in use, and keeps it only when it is the one in use', () => {
+        const entries = accountsOfKind(
+            {
+                accounts: {
+                    claude: { kind: 'claude', enabled: false },
+                    claude_work: { kind: 'claude', home: '~/.claude-work' },
+                    claude_unsaid: { kind: 'claude', home: '~/.claude-unsaid', enabled: undefined }
+                },
+                statuses: []
+            },
+            'claude'
+        );
+        expect(offeredAccounts(entries, undefined).map((entry) => entry.id)).toEqual(['claude_work', 'claude_unsaid']);
+        expect(offeredAccounts(entries, 'claude').map((entry) => entry.id)).toEqual(['claude', 'claude_work', 'claude_unsaid']);
+    });
+
     test('goes on under an account that writes its conversations to the same folder, and under no other', () => {
         expect(canContinueOn(three, 'codex', undefined, 'codex_work')).toBe(true);
         expect(canContinueOn(three, 'codex', 'codex_work', 'codex')).toBe(true);
