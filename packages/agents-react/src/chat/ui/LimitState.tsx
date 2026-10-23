@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import clsx from 'clsx';
 import { ChevronDown, Hourglass } from 'lucide-react';
 import type { ChatInfo } from '@adecore/agent-contracts';
 import { AccountDot } from '../../agents/AccountDot';
@@ -8,7 +9,7 @@ import { canContinueOn, type AccountEntry } from '../../agents/accounts';
 import { useAccountChoice, type AccountChoice } from '../account-choice';
 import { limitView } from '../logic/limit';
 import { useFormatLocale } from '@adecore/ui/format';
-import { Switch, Button, ButtonGroup, Icon, IconButton, Menu, Pill, Tooltip, useNow } from '@adecore/ui';
+import { Switch, Button, ButtonGroup, Icon, Menu, Pill, Tooltip, useNow } from '@adecore/ui';
 import { useUsageLimits } from '../../usage/limits';
 import { useChats } from '../../state/chats';
 import { useChatHost } from '../../host';
@@ -104,12 +105,13 @@ function ContinueOn({ chatId, info, choice }: { chatId: string; info: ChatInfo; 
             .finally(() => setBusy(false));
     };
     const name = choice.nameOf(target);
+    const split = targets.length > 1;
     const suggestion = (
         <Tooltip label={t('limit.continueOnTip', { account: name })}>
             <Button
                 variant="secondary"
                 size="sm"
-                className="shrink-0 gap-1.5 whitespace-nowrap"
+                className={clsx('shrink-0 gap-1.5 whitespace-nowrap', split && 'rounded-r-none')}
                 disabled={busy}
                 aria-label={t('limit.continueOnAria', { account: name })}
                 onClick={() => go(target)}
@@ -120,14 +122,18 @@ function ContinueOn({ chatId, info, choice }: { chatId: string; info: ChatInfo; 
             </Button>
         </Tooltip>
     );
-    if (targets.length < 2) {
+    if (!split) {
         return suggestion;
     }
     return (
         <ButtonGroup className="shrink-0">
             {suggestion}
             <Menu.Root>
-                <IconButton icon={ChevronDown} size="sm" label={t('limit.chooseAccount')} disabled={busy} render={<Menu.Trigger />} />
+                <Tooltip label={t('limit.chooseAccount')} name>
+                    <Menu.Trigger render={<Button variant="secondary" size="sm" className="rounded-l-none px-1.5" disabled={busy} />}>
+                        <Icon icon={ChevronDown} size={14} />
+                    </Menu.Trigger>
+                </Tooltip>
                 <Menu.Popup align="end" className="min-w-64">
                     <Menu.Group>
                         <Menu.GroupLabel>{t('limit.continueOn')}</Menu.GroupLabel>
