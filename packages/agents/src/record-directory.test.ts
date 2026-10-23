@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { z } from 'zod';
-import { RecordDirectory, recordFileName } from './record-directory.ts';
+import { RecordDirectory, type RecordDirectoryOptions, recordFileName } from './record-directory.ts';
 
 const RecordSchema = z.object({ id: z.string(), text: z.string() });
 type Entry = z.infer<typeof RecordSchema>;
@@ -47,7 +47,7 @@ function gatedRemoval() {
     return { remove, started, nextStart, release };
 }
 
-function directory(options: { remove?: (path: string) => Promise<void>; write?: (path: string, text: string) => Promise<void> }): RecordDirectory<Entry> {
+function directory(options: Pick<RecordDirectoryOptions<Entry>, 'remove' | 'write'> = {}): RecordDirectory<Entry> {
     return new RecordDirectory<Entry>({ dir, schema: RecordSchema, idOf: (record) => record.id, ...options });
 }
 
@@ -120,4 +120,16 @@ test('removes of different records do not wait on each other', async () => {
 
     letGo();
     await Promise.all([first, second]);
+});
+
+test('a record written again right after a remove keeps its new file', async () => {
+    const records = directory();
+    await records.write({ id: 'task-1', text: 'a' });
+
+    const remove = records.remove('task-1');
+    const write = records.write({ id: 'task-1', text: 'b' });
+    await remove;
+    await expect(write).resolves.toBe(true);
+
+    expect(JSON.parse(await readFile(join(dir, recordFileName('task-1')), 'utf8'))).toEqual({ id: 'task-1', text: 'b' });
 });

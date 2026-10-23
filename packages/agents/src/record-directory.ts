@@ -14,6 +14,7 @@ export interface RecordDirectoryOptions<T> {
     schema: z.ZodType<T>;
     idOf(record: T): string;
     write?: (path: string, text: string) => Promise<void>;
+    // Stands in for `removeFile` whole, so it must take a missing file as removed: a write and a remove delete twice.
     remove?: (path: string) => Promise<void>;
     /*
      * What a record read from disk is worth keeping as, for a store that drops what went stale while
@@ -39,7 +40,7 @@ export class RecordDirectory<T> {
      * One write or remove at a time per record, so an older write never lands after a newer one and
      * no delete starts while another of the same file is pending, which Windows can fail with EFAULT.
      */
-    private readonly writes = new KeyedSerializer();
+    private readonly files = new KeyedSerializer();
 
     constructor(options: RecordDirectoryOptions<T>) {
         this.dir = options.dir;
@@ -107,7 +108,7 @@ export class RecordDirectory<T> {
     write(record: T): Promise<boolean> {
         const id = this.idOf(record);
         this.records.set(id, record);
-        return this.writes.run(id, async () => {
+        return this.files.run(id, async () => {
             if (this.records.get(id) !== record) {
                 return false;
             }
@@ -124,7 +125,7 @@ export class RecordDirectory<T> {
     /* Forgets a record here and now; its file follows, after what is queued for it. */
     remove(id: string): Promise<void> {
         this.records.delete(id);
-        return this.writes.run(id, () => this.removeFile(this.pathOf(id)));
+        return this.files.run(id, () => this.removeFile(this.pathOf(id)));
     }
 
     async prune(drop: (record: T) => boolean): Promise<void> {
