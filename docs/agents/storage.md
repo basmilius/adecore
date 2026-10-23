@@ -53,7 +53,7 @@ The count ends at 2. `Serializer.run` runs work one at a time, even after one fa
 
 `writeAtomic(target, content, mode = 0o600, { durable? })` writes a temporary file beside the target and renames it over, retrying a busy rename five times, 40 ms apart. `durable` syncs the file before the rename and its folder after, except on Windows. Create the folder first. `writeAtomicSync` and `replaceSync` do the same synchronously, without `durable`. `fileExists` is `false` for any error, so use `isNotFound` when other errors should surface.
 
-`RecordDirectory<T>` is a folder of JSON records, checked by a schema on load and written one at a time per id; a record that does not parse stays on disk. `keep` can rewrite or drop records on load.
+`RecordDirectory<T>` is a folder of JSON records, checked by a schema on load and written and removed one at a time per id, so two deletes of one file never overlap; a record that does not parse stays on disk. `keep` can rewrite or drop records on load, and `write` and `remove` replace the file operations, for a test.
 
 ## Other helpers
 
