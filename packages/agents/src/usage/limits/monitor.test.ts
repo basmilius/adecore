@@ -181,6 +181,30 @@ describe('the usage monitor', () => {
             monitor.stop();
         });
 
+        test('a plan the host reads itself is asked once per account, with the account', async () => {
+            const asked: string[] = [];
+            const monitor = new UsageMonitor({
+                providers: registry([]),
+                accounts: accounts([
+                    { id: 'grok', kind: 'grok', label: 'Grok', isDefault: true },
+                    { id: 'grok_work', kind: 'grok', label: 'Work', isDefault: false }
+                ]),
+                plans: {
+                    grok: (account) => {
+                        asked.push(account.id);
+                        return Promise.resolve(reading(account.isDefault ? 0.1 : 0.6));
+                    }
+                }
+            });
+            await monitor.refresh(true);
+            expect(asked).toEqual(['grok', 'grok_work']);
+            expect(monitor.snapshot().providers.map((provider) => [provider.account?.id, provider.windows[0]?.used])).toEqual([
+                ['grok', 0.1],
+                ['grok_work', 0.6]
+            ]);
+            monitor.stop();
+        });
+
         test('says why an account could not be read', async () => {
             const monitor = new UsageMonitor({
                 providers: registry(['claude']),

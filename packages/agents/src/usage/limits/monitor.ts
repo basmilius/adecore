@@ -65,11 +65,11 @@ export interface UsageMonitorOptions {
     /* How to ask; a test answers without starting a CLI. */
     probe?: (kind: UsageProvider, command: readonly string[], env: ProbeEnv) => Promise<ProbeResult>;
     /*
-     * A plan the host reads itself, for a provider with no CLI to ask (a subscription API the host calls with
-     * its own key). It answers in place of the probe, with no environment and no check that a CLI is installed:
-     * what it says is the whole story, a missing key included.
+     * A plan the host reads itself, for a provider whose CLI cannot be asked (a subscription API the host calls,
+     * or a billing endpoint only the CLI's interface shows). It answers in place of the probe, once per account,
+     * with no environment and no check that a CLI is installed: what it says is the whole story, a missing key included.
      */
-    plans?: Partial<Record<UsageProvider, () => Promise<ProbeResult>>>;
+    plans?: Partial<Record<UsageProvider, (account: LimitAccount) => Promise<ProbeResult>>>;
     now?: () => number;
     // How the host names itself to the app-server a probe opens.
     client?: CodexClientInfo;
@@ -242,7 +242,7 @@ export class UsageMonitor {
         const plan = this.plans[account.kind];
         if (plan !== undefined) {
             try {
-                return await plan();
+                return await plan(account);
             } catch (e) {
                 return { unavailable: { reason: 'failed', message: errorText(e) } };
             }
