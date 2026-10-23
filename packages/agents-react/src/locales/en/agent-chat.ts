@@ -94,7 +94,10 @@ export default {
         continueOn: 'Continue on',
         continueOnAria: 'Continue on {{account}}',
         continueOnTip: 'Switches to {{account}}, which has the most room left, and resends the turn.',
-        continueFailed: 'Could not continue on {{account}}'
+        continueFailed: 'Could not continue on {{account}}',
+        chooseAccount: 'Choose another account',
+        continueInForkAria: 'Continue on {{account}} in a fork',
+        inFork: 'in a fork'
     },
     contextMeter: {
         aria: '{{percent}}% of context used',
