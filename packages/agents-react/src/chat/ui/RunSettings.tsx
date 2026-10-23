@@ -18,7 +18,7 @@ import {
     Star,
     type LucideIcon
 } from 'lucide-react';
-import type { AgentKind, ChatUsage, ModelInfo, ModelOptionDescriptor, ModelSelection, ProviderInfo, RuntimeMode, UsageWindow } from '@adecore/agent-contracts';
+import type { AgentKind, ChatUsage, ModelInfo, ModelOptionDescriptor, ModelSelection, ProviderInfo, RuntimeMode } from '@adecore/agent-contracts';
 import { AccountDot } from '../../agents/AccountDot';
 import { limitsOfAccount, sessionWindow } from '../../agents/account-limits';
 import { canContinueOn } from '../../agents/accounts';
@@ -26,15 +26,15 @@ import { AgentIcon } from '../../agents/AgentIcon';
 import type { AccountChoice } from '../account-choice';
 import { modelName, shortModelName } from '../../agents/model-name';
 import { ModelMarks } from './ModelMarks';
+import { SessionLine } from './SessionLine';
 import { favoritesFirst, searchModels, shortlistOf, wantsModelSearch } from '../logic/picker-entries';
 import { favoriteModelsOf, toggleFavoriteModel, useChatPreferences } from '../preferences';
 import { CONTEXT_OPTION, contextFraction, contextSegments, orderOptions, type ContextPart } from '../logic/context-usage';
 import { RUNTIME_MODES } from '../runtime-modes';
 import { localizedOption } from '../../agents/option-words';
-import { formatClock, formatWeekdayClock, isSameDay, formatPercent, formatTokens } from '@adecore/ui/format';
+import { formatPercent, formatTokens } from '@adecore/ui/format';
 import { Icon, Menu, Tooltip, useNow } from '@adecore/ui';
 import { useChatHost } from '../../host';
-import { evenPace, paceText } from '../../usage/limit-groups';
 import { useUsageLimits } from '../../usage/limits';
 
 const MINUTE_MS = 60_000;
@@ -453,15 +453,6 @@ export function RunSettings({
     );
 }
 
-/* Red where a window is nearly spent, amber where it is worth knowing, as the usage bars have it. */
-function sessionTone(used: number): { bar: string; text: string } {
-    return used >= 0.9
-        ? { bar: 'bg-status-error', text: 'text-status-error' }
-        : used >= 0.7
-          ? { bar: 'bg-status-needs-you', text: 'text-status-needs-you' }
-          : { bar: 'bg-text-muted', text: 'text-text-muted' };
-}
-
 /*
  * The account the next turn runs under, for the chat's own CLI. Before the first turn any of them;
  * after it one that reads the conversation, since the others would start it over, and a fork is how
@@ -527,37 +518,6 @@ function AccountRows({ choice, locked }: { choice: AccountChoice; locked(id: str
             row
         );
     });
-}
-
-function SessionLine({ window, now }: { window: UsageWindow; now: number }) {
-    const { t } = useTranslation('agent-chat');
-    const percent = Math.round(window.used * 100);
-    const tone = sessionTone(window.used);
-    const mark = evenPace(window, now)?.percent ?? null;
-    const resetsAt = window.resetsAt;
-    return (
-        <span className="flex items-center gap-2 text-xs text-text-faint tabular-nums">
-            <span aria-hidden className="relative h-1 w-14 shrink-0 rounded-full bg-surface-sunken">
-                <span className={clsx('absolute inset-y-0 left-0 rounded-full', tone.bar)} style={{ width: `${Math.min(100, percent)}%` }} />
-                {/* Where an even spread over the window would stand, as the usage bars mark it. */}
-                {mark !== null && (
-                    <span
-                        className={clsx('absolute -inset-y-0.5 w-px -translate-x-1/2', mark <= percent ? 'bg-surface-raised' : 'bg-text-muted')}
-                        style={{ left: `${mark}%` }}
-                    />
-                )}
-            </span>
-            <span aria-hidden className={tone.text}>
-                {formatPercent(percent)}
-            </span>
-            <span className="sr-only">{paceText(window, now)}</span>
-            {resetsAt !== null && (
-                <span className="whitespace-nowrap">
-                    · {t('pickers.account.resets', { time: isSameDay(resetsAt, now) ? formatClock(resetsAt) : formatWeekdayClock(resetsAt) })}
-                </span>
-            )}
-        </span>
-    );
 }
 
 /* How full the context is, drawn small enough to sit in the pill beside the window's size. */

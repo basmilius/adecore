@@ -1,13 +1,27 @@
 import { afterEach, describe, expect, jest, test } from 'bun:test';
-import { act } from 'react';
+import { act, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { EditorView } from '@codemirror/view';
-import type { ChatInfo, ChatItem, ChatSkill, ModelInfo, ProviderCapabilities, ProviderInfo } from '@adecore/agent-contracts';
+import type {
+    ChatInfo,
+    ChatItem,
+    ChatSkill,
+    ModelInfo,
+    ProviderAccounts,
+    ProviderAccountStatus,
+    ProviderCapabilities,
+    ProviderInfo,
+    UsageLimitsProvider,
+    UsageLimitsSnapshot
+} from '@adecore/agent-contracts';
 import { createPage } from '@adecore/editor/testing';
-import { ChatHostProvider, type ChatActions, type ChatHost } from '../../host';
+import { Menu } from '@adecore/ui';
+import { ChatHostProvider, type ChatActions, type ChatHost, type ChatToast } from '../../host';
 import { ChatScopeContext, type ChatScope } from '../../scope';
 import { useChats } from '../../state/chats';
 import { useProvidersStore } from '../../state/providers';
+import { useProviderAccountsStore } from '../../state/provider-accounts';
+import { useUsageStore } from '../../state/usage';
 import { ChatTransportError } from '../../transport';
 import type { ChatSendExtras } from '../chat-client';
 import { EMPTY_DRAFT, readDraft, writeDraft } from '../drafts';
@@ -82,6 +96,9 @@ interface Options {
     items?: ChatItem[];
     disabled?: boolean;
     readOnly?: boolean;
+    /* The accounts of the machine and what their plans have left, for the limit bar. */
+    accounts?: ProviderAccounts;
+    limits?: UsageLimitsSnapshot;
     onSend?: (text: string, extras: ChatSendExtras) => void | Promise<boolean>;
 }
 
@@ -103,8 +120,10 @@ interface Mounted {
     click(element: Element, modifiers?: Modifiers): Promise<void>;
     fire(target: Element, type: string, fields: Record<string, unknown>): Promise<void>;
     byLabel(label: string): HTMLElement | null;
-    /* The props a component of this name rendered with, for one whose popup linkedom cannot open. */
-    propsOf(name: string): Record<string, unknown> | null;
+    /* The props a component of this name rendered with, for one whose popup linkedom cannot open; more names look inside the one before. */
+    propsOf(...path: string[]): Record<string, unknown> | null;
+    /* Draws what a popup would hold under the same host and scope, beside the composer, since linkedom cannot open the popup itself. */
+    draw(node: ReactNode): Promise<HTMLElement>;
     text(): string;
     remount(): Promise<void>;
 }
@@ -196,19 +215,22 @@ interface Fiber {
     sibling: Fiber | null;
 }
 
-function propsIn(container: object, name: string): Record<string, unknown> | null {
+function propsIn(container: object, ...path: string[]): Record<string, unknown> | null {
     const key = Object.keys(container).find((entry) => entry.startsWith('__reactContainer$'))!;
-    const find = (fiber: Fiber | null): Fiber | null => {
+    const find = (fiber: Fiber | null, name: string): Fiber | null => {
         for (let node = fiber; node !== null; node = node.sibling) {
-            const found = typeof node.type === 'function' && (node.type as { name: string }).name === name ? node : find(node.child);
+            const found = typeof node.type === 'function' && (node.type as { name: string }).name === name ? node : find(node.child, name);
             if (found !== null) {
                 return found;
             }
         }
         return null;
     };
-    const root = (container as Record<string, { stateNode: { current: Fiber } }>)[key]!.stateNode.current;
-    return find(root)?.memoizedProps ?? null;
+    let fiber: Fiber | null = (container as Record<string, { stateNode: { current: Fiber } }>)[key]!.stateNode.current;
+    for (const name of path) {
+        fiber = find(fiber?.child ?? null, name);
+    }
+    return fiber?.memoizedProps ?? null;
 }
 
 const cleanups: Array<() => Promise<void> | void> = [];
@@ -236,6 +258,7 @@ async function mount(options: Options = {}): Promise<Mounted> {
         sendNow: record('sendNow'),
         compact: record('compact'),
         configure: record('configure'),
+        continueOn: record('continueOn'),
         ...options.actions
     } as ChatActions;
     const host: Partial<ChatHost> = { actions, isApplePlatform: () => true, ...options.host };
@@ -243,12 +266,24 @@ async function mount(options: Options = {}): Promise<Mounted> {
         id: SCOPE_ID,
         keyOf: (chatId: string) => `${SCOPE_ID}/${chatId}`,
         owns: (key: string) => key.startsWith(`${SCOPE_ID}/`),
-        transport: { status: 'open', request: async () => ({}), on: () => () => {}, subscribeStatus: () => () => {} },
+        transport: {
+            status: 'open',
+            // A read of the plans never answers here: a test that needs them puts them in the store itself.
+            request: (method: string) => (method.startsWith('usage.') && options.limits !== undefined ? new Promise(() => {}) : Promise.resolve({})),
+            on: () => () => {},
+            subscribeStatus: () => () => {}
+        },
         chats: { listSkills: async () => options.skills ?? [] }
     } as unknown as ChatScope;
     const info = options.info ?? infoOf();
     useProvidersStore.getState().setProviders(SCOPE_ID, [providerOf(options.capabilities ?? {}, options.model)]);
     useChats.getState().reset(scope.keyOf(CHAT), info, options.items ?? []);
+    if (options.accounts !== undefined) {
+        useProviderAccountsStore.getState().set(SCOPE_ID, options.accounts);
+    }
+    if (options.limits !== undefined) {
+        useUsageStore.getState().setLimits(SCOPE_ID, options.limits);
+    }
     const element = (
         <ChatHostProvider host={host}>
             <ChatScopeContext.Provider value={scope}>
@@ -274,6 +309,8 @@ async function mount(options: Options = {}): Promise<Mounted> {
         await act(async () => root.unmount());
         useChats.getState().forget(scope.keyOf(CHAT));
         useProvidersStore.getState().forget(SCOPE_ID);
+        useProviderAccountsStore.getState().forget(SCOPE_ID);
+        useUsageStore.getState().forget(SCOPE_ID);
         writeDraft(CHAT, EMPTY_DRAFT);
     });
     const view = (): EditorView => EditorView.findFromDOM(page.host.querySelector('.cm-content') as HTMLElement)!;
@@ -312,7 +349,24 @@ async function mount(options: Options = {}): Promise<Mounted> {
         click: (target, modifiers = {}) => fire(target, 'click', { button: 0, altKey: false, shiftKey: false, ...modifiers }),
         fire,
         byLabel: (label) => page.host.querySelector(`[aria-label="${label}"]`),
-        propsOf: (name) => propsIn(page.host, name),
+        propsOf: (...path) => propsIn(page.host, ...path),
+        draw: async (node) => {
+            const container = page.document.createElement('div');
+            page.document.body.appendChild(container);
+            const drawn = createRoot(container);
+            await act(async () =>
+                drawn.render(
+                    <ChatHostProvider host={host}>
+                        <ChatScopeContext.Provider value={scope}>{node}</ChatScopeContext.Provider>
+                    </ChatHostProvider>
+                )
+            );
+            cleanups.push(async () => {
+                await act(async () => drawn.unmount());
+                container.remove();
+            });
+            return container;
+        },
         text: () => view().state.doc.toString(),
         remount: async () => {
             await act(async () => root.unmount());
@@ -653,6 +707,144 @@ describe('continuing after a stop', () => {
         const composer = await mount({ items: [{ ...stopped[0], state: 'done' }] as ChatItem[] });
         expect(composer.byLabel('Send')).not.toBeNull();
         expect(composer.page.host.textContent).not.toContain('Continue');
+    });
+});
+
+describe('continuing on another account after a usage limit', () => {
+    const limited = infoOf({ status: 'error', limit: { kind: 'usage' } } as Partial<ChatInfo>);
+    // The chat's own account and Home write their conversations to one folder, so Home takes the chat over and Work forks it.
+    const SHARED = '/home/sam/.claude/projects';
+
+    function status(id: string, state: ProviderAccountStatus['state'] = 'ready', transcripts = `/home/sam/.${id}/projects`): ProviderAccountStatus {
+        return { id, kind: 'claude', state, email: null, plan: null, organization: null, home: '', transcripts, message: null, checkedAt: 1 };
+    }
+
+    const accounts: ProviderAccounts = {
+        accounts: {
+            claude: { kind: 'claude' },
+            claude_work: { kind: 'claude', label: 'Work' },
+            claude_home: { kind: 'claude', label: 'Home' },
+            claude_off: { kind: 'claude', label: 'Off', enabled: false },
+            claude_out: { kind: 'claude', label: 'Out' },
+            claude_full: { kind: 'claude', label: 'Full' },
+            claude_new: { kind: 'claude', label: 'New' }
+        },
+        statuses: [
+            status('claude', 'ready', SHARED),
+            status('claude_work'),
+            status('claude_home', 'ready', SHARED),
+            status('claude_off'),
+            status('claude_out', 'signed-out'),
+            status('claude_full'),
+            status('claude_new')
+        ]
+    };
+
+    function plan(id: string, session: number, { weekly = 0.1, checkedAt = 5 } = {}): UsageLimitsProvider {
+        return {
+            kind: 'claude',
+            account: { id, label: id },
+            plan: 'max',
+            checkedAt,
+            source: 'probe',
+            windows: [
+                { id: 'session', kind: 'session', label: 'Session', used: session, resetsAt: null, durationMs: null },
+                { id: 'weekly', kind: 'weekly', label: 'Weekly', used: weekly, resetsAt: null, durationMs: null }
+            ],
+            cost: null,
+            unavailable: null
+        };
+    }
+
+    // The chat's own account is spent; of the rest only Work and Home can take a turn, Home with the least spent.
+    const spent = [
+        plan('claude', 1),
+        plan('claude_off', 0),
+        plan('claude_out', 0),
+        plan('claude_full', 0.1, { weekly: 1 }),
+        plan('claude_new', 0, { checkedAt: 0 })
+    ];
+    const roomy: UsageLimitsSnapshot = { providers: [...spent, plan('claude_work', 0.6), plan('claude_home', 0.2)] };
+
+    const continued = (composer: Mounted): unknown[] => composer.calls.filter(([name]) => name === 'continueOn').map(([, ...args]) => args);
+    const continueButtons = (composer: Mounted): HTMLElement[] => [...composer.page.host.querySelectorAll<HTMLElement>('[aria-label^="Continue on"]')];
+
+    /* The rows the chevron's menu holds, drawn as the open popup would draw them. */
+    async function menuRows(composer: Mounted): Promise<HTMLElement[]> {
+        const popup = composer.propsOf('ContinueOn', 'MenuPopup') as { children: ReactNode };
+        const drawn = await composer.draw(<Menu.Root>{popup.children}</Menu.Root>);
+        return [...drawn.querySelectorAll<HTMLElement>('[role="menuitem"]')];
+    }
+
+    test('suggests the account with the least spent, and goes on there with one click', async () => {
+        const composer = await mount({ info: limited, accounts, limits: roomy });
+        const suggestion = composer.byLabel('Continue on Home')!;
+        expect(suggestion.textContent).toBe('Continue onHome');
+        expect(composer.byLabel('Choose another account')?.getAttribute('aria-haspopup')).toBe('menu');
+        await composer.click(suggestion);
+        expect(continued(composer)).toEqual([[CHAT, 'claude_home']]);
+    });
+
+    test('the menu lists every account with room, least spent first with its session, and a pick goes on there', async () => {
+        const composer = await mount({ info: limited, accounts, limits: roomy });
+        const rows = await menuRows(composer);
+        expect(rows.map((row) => row.getAttribute('aria-label'))).toEqual(['Continue on Home', 'Continue on Work in a fork']);
+        expect(rows[0]!.textContent).toStartWith('Home');
+        expect(rows[0]!.textContent).toContain('20%');
+        expect(rows[1]!.textContent).toStartWith('Work');
+        expect(rows[1]!.textContent).toContain('60%');
+        await composer.click(rows[1]!);
+        expect(continued(composer)).toEqual([[CHAT, 'claude_work']]);
+    });
+
+    test('a row says when the account would go on in a fork, and not when it takes the chat over', async () => {
+        const composer = await mount({ info: limited, accounts, limits: roomy });
+        const [home, work] = await menuRows(composer);
+        expect(home!.textContent).not.toContain('in a fork');
+        expect(work!.textContent).toContain('in a fork');
+    });
+
+    test('leaves out an account that is off, signed out, at its limit or never read', async () => {
+        const composer = await mount({ info: limited, accounts, limits: roomy });
+        const names = (await menuRows(composer)).map((row) => row.textContent ?? '');
+        expect(names).toHaveLength(2);
+        for (const name of ['Off', 'Out', 'Full', 'New']) {
+            expect(names.some((text) => text.includes(name))).toBe(false);
+        }
+    });
+
+    test('one account with room is offered without a menu', async () => {
+        const composer = await mount({ info: limited, accounts, limits: { providers: [...spent, plan('claude_work', 0.6), plan('claude_home', 1)] } });
+        expect(continueButtons(composer).map((button) => button.getAttribute('aria-label'))).toEqual(['Continue on Work']);
+        expect(composer.byLabel('Choose another account')).toBeNull();
+    });
+
+    test('no account with room offers nothing', async () => {
+        const composer = await mount({ info: limited, accounts, limits: { providers: spent } });
+        expect(composer.page.host.textContent).toContain('Stopped on a usage limit');
+        expect(continueButtons(composer)).toEqual([]);
+        expect(composer.byLabel('Choose another account')).toBeNull();
+    });
+
+    test('a failed switch says so and leaves the bar to try again', async () => {
+        const notices: ChatToast[] = [];
+        const composer = await mount({
+            info: limited,
+            accounts,
+            limits: roomy,
+            host: { notify: (toast) => void notices.push(toast) },
+            actions: {
+                continueOn: async () => {
+                    throw new Error('The machine said no');
+                }
+            }
+        });
+        const rows = await menuRows(composer);
+        await composer.click(rows[1]!);
+        await settle();
+        expect(notices).toEqual([{ kind: 'error', title: 'Could not continue on Work', description: 'The machine said no' }]);
+        expect((composer.byLabel('Continue on Home') as HTMLButtonElement).disabled).toBe(false);
+        expect((composer.byLabel('Choose another account') as HTMLButtonElement).disabled).toBe(false);
     });
 });
 

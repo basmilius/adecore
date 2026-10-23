@@ -14,7 +14,7 @@ import { LimitDock, LimitPill, ResumeCompactionDock } from '@adecore/agents-reac
 
 The switch sets the chat's `resumeAtReset` through `configure`. It is there only while the host's `useResumeAtReset(scopeId)` allows it; whether and when a chat goes on is up to the host.
 
-When the chat's CLI has another account that is on, signed in and has room left, the dock offers to continue there (`continueOn`). The host decides whether that takes the chat over or forks it. Nothing switches accounts without a person pressing the button; `continueTarget` picks the one with the least of its session spent.
+When the chat's CLI has another account that is on, signed in and has room left, the dock offers to continue there (`continueOn`). The host decides whether that takes the chat over or forks it. Nothing switches accounts without a person pressing the button. The button names the account with the least of its session spent; with two or more, a chevron beside it opens a menu of all of them in that order, each with its session and, for one that cannot read the chat's conversation, a note that it goes on in a fork. A pick does what the button does, for that account, and is not remembered: the next limit suggests the account with the most room again. An account that is off, signed out, at its own limit or not read yet is not offered.
 
 ## ResumeCompactionDock
 

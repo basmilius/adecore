@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import type { ProviderAccounts, ProviderAccountStatus, UsageLimitsProvider, UsageLimitsSnapshot } from '@adecore/agent-contracts';
-import { continueTarget, hasUnreadAccount, limitsOfAccount } from './account-limits';
+import { continueTarget, continueTargets, hasUnreadAccount, limitsOfAccount } from './account-limits';
 
 function status(id: string, state: ProviderAccountStatus['state'] = 'ready'): ProviderAccountStatus {
     return {
@@ -64,6 +64,34 @@ describe('going on under another account after a limit', () => {
         );
         expect(continueTarget(accounts, read, 'claude', undefined)).toBeNull();
         expect(continueTarget(accounts, null, 'claude', undefined)).toBeNull();
+    });
+
+    test('lists every account with room, the least spent first, and suggests the first', () => {
+        const read = snapshot(limits(null, 0.4), limits('claude_work', 0.6), limits('claude_home', 0.2));
+        const ids = (current: string | undefined): string[] => continueTargets(accounts, read, 'claude', current).map((entry) => entry.id);
+        expect(ids('claude_out')).toEqual(['claude_home', 'claude', 'claude_work']);
+        expect(ids(undefined)).toEqual(['claude_home', 'claude_work']);
+        expect(continueTarget(accounts, read, 'claude', undefined)?.id).toBe(ids(undefined)[0]);
+    });
+
+    test('lists none that is off, signed out, spent on any window, or not read yet', () => {
+        const read = snapshot(
+            limits(null, 1),
+            limits('claude_work', 0.2, 1),
+            limits('claude_home', 0.1, 0.1, 0),
+            limits('claude_off', 0),
+            limits('claude_out', 0)
+        );
+        expect(continueTargets(accounts, read, 'claude', undefined)).toEqual([]);
+        expect(continueTargets(accounts, null, 'claude', undefined)).toEqual([]);
+        const someRoom = snapshot(
+            limits(null, 1),
+            limits('claude_work', 0.5),
+            limits('claude_home', 0.1, 0.1, 0),
+            limits('claude_off', 0),
+            limits('claude_out', 0)
+        );
+        expect(continueTargets(accounts, someRoom, 'claude', undefined).map((entry) => entry.id)).toEqual(['claude_work']);
     });
 
     test('knows which accounts still need a read', () => {

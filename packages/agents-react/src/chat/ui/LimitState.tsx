@@ -1,19 +1,22 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Hourglass } from 'lucide-react';
+import clsx from 'clsx';
+import { ChevronDown, Hourglass } from 'lucide-react';
 import type { ChatInfo } from '@adecore/agent-contracts';
 import { AccountDot } from '../../agents/AccountDot';
-import { continueTarget, hasUnreadAccount } from '../../agents/account-limits';
+import { continueTargets, hasUnreadAccount, limitsOfAccount, sessionWindow } from '../../agents/account-limits';
+import { canContinueOn, type AccountEntry } from '../../agents/accounts';
 import { useAccountChoice, type AccountChoice } from '../account-choice';
 import { limitView } from '../logic/limit';
 import { useFormatLocale } from '@adecore/ui/format';
-import { Switch, Button, Icon, Pill, Tooltip, useNow } from '@adecore/ui';
+import { Switch, Button, ButtonGroup, Icon, Menu, Pill, Tooltip, useNow } from '@adecore/ui';
 import { useUsageLimits } from '../../usage/limits';
 import { useChats } from '../../state/chats';
 import { useChatHost } from '../../host';
 import { useChatScope, type ChatScope } from '../../scope';
 import { useChatActions } from '../actions';
 import { useUsageStore } from '../../state/usage';
+import { SessionLine } from './SessionLine';
 import { useHostResumeAtReset } from '../../host-hooks';
 
 // A time a limit names reads as a clock today and with its day after that, so the words follow the minute.
@@ -62,9 +65,11 @@ function ResumeAtResetToggle({ chatId, info }: { chatId: string; info: ChatInfo 
 }
 
 /*
- * Another account of the chat's CLI that has room: the one with the least of its session spent. Only
- * ever offered, since going on there spends someone's other plan. An account that reads the chat's
- * conversation takes it over; any other goes on in a fork, which then opens the way a fork does.
+ * Another account of the chat's CLI that has room: the one with the least of its session spent, and
+ * beside it a menu of every account with room, for a person whose companies each pay for their own
+ * work. Only ever offered, since going on there spends someone's other plan, and nothing is
+ * remembered: the next limit suggests the one with the most room again. An account that reads the
+ * chat's conversation takes it over; any other goes on in a fork, which then opens the way a fork does.
  */
 function ContinueOn({ chatId, info, choice }: { chatId: string; info: ChatInfo; choice: AccountChoice }) {
     const host = useChatHost();
@@ -73,7 +78,7 @@ function ContinueOn({ chatId, info, choice }: { chatId: string; info: ChatInfo; 
     const actions = useChatActions();
     const limits = useUsageLimits();
     const [busy, setBusy] = useState(false);
-    const target = continueTarget(choice.accounts, limits, info.provider, info.account);
+    const targets = continueTargets(choice.accounts, limits, info.provider, info.account);
     const unread = limits !== null && hasUnreadAccount(choice.accounts, limits, info.provider, info.account);
 
     useEffect(() => {
@@ -82,32 +87,34 @@ function ContinueOn({ chatId, info, choice }: { chatId: string; info: ChatInfo; 
         }
     }, [scope, unread]);
 
-    if (target === null) {
+    const target = targets[0];
+    if (target === undefined) {
         return null;
     }
-    const name = choice.nameOf(target);
-    const go = (): void => {
+    const go = (entry: AccountEntry): void => {
         setBusy(true);
         actions
-            .continueOn(chatId, target.id)
+            .continueOn(chatId, entry.id)
             .catch((e: unknown) =>
                 host.notify({
                     kind: 'error',
-                    title: t('limit.continueFailed', { account: name }),
+                    title: t('limit.continueFailed', { account: choice.nameOf(entry) }),
                     description: e instanceof Error ? e.message : String(e)
                 })
             )
             .finally(() => setBusy(false));
     };
-    return (
+    const name = choice.nameOf(target);
+    const split = targets.length > 1;
+    const suggestion = (
         <Tooltip label={t('limit.continueOnTip', { account: name })}>
             <Button
                 variant="secondary"
                 size="sm"
-                className="shrink-0 gap-1.5 whitespace-nowrap"
+                className={clsx('shrink-0 gap-1.5 whitespace-nowrap', split && 'rounded-r-none')}
                 disabled={busy}
                 aria-label={t('limit.continueOnAria', { account: name })}
-                onClick={go}
+                onClick={() => go(target)}
             >
                 {t('limit.continueOn')}
                 <AccountDot color={target.account.color} className="size-1.75" />
@@ -115,6 +122,66 @@ function ContinueOn({ chatId, info, choice }: { chatId: string; info: ChatInfo; 
             </Button>
         </Tooltip>
     );
+    if (!split) {
+        return suggestion;
+    }
+    return (
+        <ButtonGroup className="shrink-0">
+            {suggestion}
+            <Menu.Root>
+                <Tooltip label={t('limit.chooseAccount')} name>
+                    <Menu.Trigger render={<Button variant="secondary" size="sm" className="-ml-px rounded-l-none border-l-0 px-1.5" disabled={busy} />}>
+                        <Icon icon={ChevronDown} size={14} />
+                    </Menu.Trigger>
+                </Tooltip>
+                <Menu.Popup align="end" className="min-w-64">
+                    <Menu.Group>
+                        <Menu.GroupLabel>{t('limit.continueOn')}</Menu.GroupLabel>
+                        <ContinueOnRows targets={targets} info={info} choice={choice} onPick={go} />
+                    </Menu.Group>
+                </Menu.Popup>
+            </Menu.Root>
+        </ButtonGroup>
+    );
+}
+
+/* Mounted only while the menu is open, so the clock of the session lines only ticks while someone reads them. */
+function ContinueOnRows({
+    targets,
+    info,
+    choice,
+    onPick
+}: {
+    targets: AccountEntry[];
+    info: ChatInfo;
+    choice: AccountChoice;
+    onPick(entry: AccountEntry): void;
+}) {
+    const { t } = useTranslation('agent-chat');
+    const limits = useUsageLimits();
+    const now = useNow(MINUTE_MS);
+    return targets.map((entry) => {
+        const name = choice.nameOf(entry);
+        const session = sessionWindow(limitsOfAccount(limits, entry.id));
+        const fork = !canContinueOn(choice.accounts, info.provider, info.account, entry.id);
+        return (
+            <Menu.Item
+                key={entry.id}
+                className="items-start"
+                aria-label={t(fork ? 'limit.continueInForkAria' : 'limit.continueOnAria', { account: name })}
+                onClick={() => onPick(entry)}
+            >
+                <span className="flex min-w-0 grow flex-col">
+                    <span className="flex min-w-0 items-center gap-2">
+                        <AccountDot color={entry.account.color} />
+                        <span className="truncate">{name}</span>
+                        {fork && <Menu.Hint>{t('limit.inFork')}</Menu.Hint>}
+                    </span>
+                    {session !== null && <SessionLine window={session} now={now} />}
+                </span>
+            </Menu.Item>
+        );
+    });
 }
 
 /* At the top of the composer while the last turn stopped on a limit: what stopped it, when it goes on, and the switch. */

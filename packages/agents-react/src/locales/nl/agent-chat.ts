@@ -94,7 +94,10 @@ export default {
         continueOn: 'Verder op',
         continueOnAria: 'Verder op {{account}}',
         continueOnTip: 'Wisselt naar {{account}}, dat de meeste ruimte over heeft, en verstuurt de turn opnieuw.',
-        continueFailed: 'Kon niet verder op {{account}}'
+        continueFailed: 'Kon niet verder op {{account}}',
+        chooseAccount: 'Kies een ander account',
+        continueInForkAria: 'Verder op {{account}} in een fork',
+        inFork: 'in een fork'
     },
     contextMeter: {
         aria: '{{percent}}% van de context gebruikt',

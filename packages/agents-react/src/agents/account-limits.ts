@@ -32,22 +32,32 @@ function others(accounts: ProviderAccounts | null, kind: AgentKind, current: str
 }
 
 /*
- * The account a chat that stopped on a limit could go on under: another one of its CLI that is on,
- * signed in and has room, the one with the least of its session spent. Null when none has room, or
- * none was read yet; the choice is only ever offered, never made.
+ * The accounts a chat that stopped on a limit could go on under: the others of its CLI that are on,
+ * signed in and have room, the one with the least of its session spent first. Empty when none has
+ * room, or none was read yet; the choice is only ever offered, never made.
  */
+export function continueTargets(
+    accounts: ProviderAccounts | null,
+    snapshot: UsageLimitsSnapshot | null,
+    kind: AgentKind,
+    current: string | undefined
+): AccountEntry[] {
+    const roomy = others(accounts, kind, current).flatMap((entry) => {
+        const limits = limitsOfAccount(snapshot, entry.id);
+        return hasRoom(limits) ? [{ entry, pressure: pressure(limits) }] : [];
+    });
+    roomy.sort((a, b) => a.pressure - b.pressure);
+    return roomy.map((target) => target.entry);
+}
+
+/* The one `continueTargets` suggests: the account with the most room. */
 export function continueTarget(
     accounts: ProviderAccounts | null,
     snapshot: UsageLimitsSnapshot | null,
     kind: AgentKind,
     current: string | undefined
 ): AccountEntry | null {
-    const roomy = others(accounts, kind, current).flatMap((entry) => {
-        const limits = limitsOfAccount(snapshot, entry.id);
-        return hasRoom(limits) ? [{ entry, pressure: pressure(limits) }] : [];
-    });
-    roomy.sort((a, b) => a.pressure - b.pressure);
-    return roomy[0]?.entry ?? null;
+    return continueTargets(accounts, snapshot, kind, current)[0] ?? null;
 }
 
 /* Whether another account a chat could go on under has no numbers yet, since the machine only reads one in use by itself. */
