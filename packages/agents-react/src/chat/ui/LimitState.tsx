@@ -130,7 +130,7 @@ function ContinueOn({ chatId, info, choice }: { chatId: string; info: ChatInfo; 
             {suggestion}
             <Menu.Root>
                 <Tooltip label={t('limit.chooseAccount')} name>
-                    <Menu.Trigger render={<Button variant="secondary" size="sm" className="rounded-l-none px-1.5" disabled={busy} />}>
+                    <Menu.Trigger render={<Button variant="secondary" size="sm" className="-ml-px rounded-l-none border-l-0 px-1.5" disabled={busy} />}>
                         <Icon icon={ChevronDown} size={14} />
                     </Menu.Trigger>
                 </Tooltip>
