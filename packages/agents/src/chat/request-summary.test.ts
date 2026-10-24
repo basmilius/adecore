@@ -163,3 +163,32 @@ describe('ChatThread requests', () => {
         expect(thread.info).not.toHaveProperty('requests');
     });
 });
+
+describe('pending request lifecycle', () => {
+    test('reopened requests keep their original thread order, and replayed resets replace them', () => {
+        const first = approval('Bash', { command: 'first' }, { id: 'first', requestId: 'first' });
+        const second = question({ id: 'second', requestId: 'second' });
+        const thread = new ChatThread(info, [first, second]);
+        thread.upsert({ ...first, decision: 'allow' });
+        expect(thread.pending()).toEqual([second]);
+        thread.upsert(first);
+        expect(thread.pending()).toEqual([first, second]);
+        expect(thread.info.requests?.map((request) => request.requestId)).toEqual(['first', 'second']);
+        thread.apply({ type: 'reset', info, items: [second] });
+        expect(thread.pending()).toEqual([second]);
+        expect(thread.statusFor(null)).toBe('needs-you');
+        thread.upsert({ ...second, state: 'answered', answers: {} });
+        expect(thread.pending()).toEqual([]);
+        expect(thread.info.requests).toBeUndefined();
+        expect(thread.statusFor(null)).toBe('idle');
+    });
+
+    test('replacing a request by another kind clears its pending summary', () => {
+        const first = approval('Bash', { command: 'first' });
+        const thread = new ChatThread(info, [first]);
+        thread.upsert({ id: first.id, kind: 'user', createdAt: 1, turnId: null, text: 'Replacement' });
+        expect(thread.pending()).toEqual([]);
+        expect(thread.info.requests).toBeUndefined();
+        expect(thread.statusFor('turn')).toBe('running');
+    });
+});

@@ -24,6 +24,7 @@ export class ChatThread {
     private readonly order: string[] = [];
     private historyGeneration = randomUUID();
     private readonly indices = new Map<string, number>();
+    private readonly requests = new Map<string, ChatApprovalItem | ChatQuestionItem>();
     // What the host asks a person beside the CLI's own requests, such as a card a verb waits on.
     private readonly holds = new Set<string>();
 
@@ -33,6 +34,7 @@ export class ChatThread {
             this.items.set(item.id, item);
             this.indices.set(item.id, this.order.length);
             this.order.push(item.id);
+            this.indexRequest(item);
         }
         this.syncRequests();
     }
@@ -61,7 +63,9 @@ export class ChatThread {
             this.order.push(item.id);
         }
         this.items.set(item.id, item);
-        if (item.kind === 'approval' || item.kind === 'question') {
+        const wasPending = this.requests.has(item.id);
+        this.indexRequest(item);
+        if (wasPending || item.kind === 'approval' || item.kind === 'question') {
             this.syncRequests();
         }
         return { type: 'item', item, historyIndex: this.indices.get(item.id)! };
@@ -111,6 +115,7 @@ export class ChatThread {
     reset(patch: Partial<ChatInfo>): ChatEvent {
         this.items.clear();
         this.indices.clear();
+        this.requests.clear();
         this.historyGeneration = randomUUID();
         this.order.length = 0;
         this.info = { ...this.info, ...patch };
@@ -151,17 +156,22 @@ export class ChatThread {
 
     /* A request can outlive the turn it came in, when work the CLI runs beside its turns asked it. */
     statusFor(activeTurnId: string | null): AgentStatus {
-        if (this.pending().length > 0 || this.holds.size > 0) {
+        if (this.requests.size > 0 || this.holds.size > 0) {
             return 'needs-you';
         }
         return activeTurnId === null ? 'idle' : 'running';
     }
 
     pending(): Array<ChatApprovalItem | ChatQuestionItem> {
-        return this.list().filter(
-            (item): item is ChatApprovalItem | ChatQuestionItem =>
-                (item.kind === 'approval' && item.decision === 'pending') || (item.kind === 'question' && item.state === 'pending')
-        );
+        return [...this.requests.values()].sort((left, right) => this.indices.get(left.id)! - this.indices.get(right.id)!);
+    }
+
+    private indexRequest(item: ChatItem): void {
+        if ((item.kind === 'approval' && item.decision === 'pending') || (item.kind === 'question' && item.state === 'pending')) {
+            this.requests.set(item.id, item);
+        } else {
+            this.requests.delete(item.id);
+        }
     }
 
     /*
