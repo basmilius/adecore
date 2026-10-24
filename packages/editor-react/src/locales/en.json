@@ -70,6 +70,12 @@
                 "delete": "Deletes"
             }
         },
+        "markup": {
+            "wrap": "Wrap with abbreviation",
+            "placeholder": "Abbreviation, such as div.card>p",
+            "apply": "Wrap",
+            "invalid": "Not an abbreviation"
+        },
         "navigation": {
             "unavailable": "Not available here",
             "none": "Nothing found",

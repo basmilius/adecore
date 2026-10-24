@@ -55,8 +55,11 @@ export type {
     PickPreview,
     SymbolsView,
     MenuView,
-    AuthorsView
+    AuthorsView,
+    WrapView
 } from './popups.ts';
+export { type MarkupFeature } from './markup.ts';
+export type { MarkupSettings } from './markup.ts';
 export { RowHost, LineActionHost } from './row-host.ts';
 export type { HostedRow, HostedAction } from './row-host.ts';
 export { type HighlightLayers, highlightLayers } from './highlight-layers.ts';

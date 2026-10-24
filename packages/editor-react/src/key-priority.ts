@@ -5,11 +5,12 @@ import type { EditorKeyHandler } from '@adecore/editor';
  * apart, so a handler of the app can stand between two features; 0, the default, comes after all of them.
  */
 export const KEY_PRIORITY = {
-    pick: 1500,
-    diagnostics: 1400,
-    hover: 1300,
-    completion: 1200,
-    snippets: 1100,
+    pick: 1600,
+    diagnostics: 1500,
+    hover: 1400,
+    completion: 1300,
+    snippets: 1200,
+    markup: 1100,
     signature: 1000,
     highlights: 900,
     codeActions: 800,

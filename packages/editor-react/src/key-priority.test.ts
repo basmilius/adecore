@@ -133,6 +133,7 @@ describe('the keys of an editor language', () => {
             'hover',
             'completion',
             'snippets',
+            'markup',
             'signature',
             'highlights',
             'codeActions',
