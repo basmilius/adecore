@@ -196,6 +196,13 @@ export interface AuthorsView {
     readonly openCommit: (() => void) | null;
 }
 
+/* The field that asks for the abbreviation a selection is wrapped in. */
+export interface WrapView {
+    readonly anchor: EditorPosition;
+    /* Why the last abbreviation did not expand; the field stays open for another. */
+    readonly error: string | null;
+}
+
 export interface PopupState {
     readonly hover: HoverView | null;
     readonly completion: CompletionView | null;
@@ -207,6 +214,7 @@ export interface PopupState {
     readonly symbols: SymbolsView | null;
     readonly menu: MenuView | null;
     readonly authors: AuthorsView | null;
+    readonly wrap: WrapView | null;
 }
 
 export type PopupStore = StoreApi<PopupState>;
@@ -222,6 +230,7 @@ export function createPopupStore(): PopupStore {
         callHierarchy: null,
         symbols: null,
         menu: null,
-        authors: null
+        authors: null,
+        wrap: null
     }));
 }

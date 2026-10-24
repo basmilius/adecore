@@ -94,6 +94,7 @@ export const KEYMAP = {
     renameSymbol: bind('Shift+F6'),
     organizeImports: bind('Ctrl+Alt+O'),
     formatDocument: bind('Mod+Alt+L'),
+    wrapWithAbbreviation: bind('Mod+Alt+J'),
     selectionToChat: bind(null),
     inlineEdit: bind(null),
     suggestInline: bind(null),
@@ -123,7 +124,7 @@ export const KEYMAP = {
 export type KeymapId = keyof typeof KEYMAP;
 
 /* Commands added after a host may have written a full keymap of its own; a keymap without one falls back to the built-in chord. */
-export type OptionalKeymapId = 'toggleRenderedDocs';
+export type OptionalKeymapId = 'toggleRenderedDocs' | 'wrapWithAbbreviation';
 
 export type Keymap = Readonly<Record<Exclude<KeymapId, OptionalKeymapId>, KeyBinding> & Partial<Record<OptionalKeymapId, KeyBinding>>>;
 export type KeymapOverrides = Partial<Record<KeymapId, Partial<KeyBinding>>>;
