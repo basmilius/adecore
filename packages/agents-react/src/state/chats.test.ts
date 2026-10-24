@@ -142,6 +142,7 @@ describe('a status without an attach', () => {
 
         expect(useChats.getState().byKey['local:chat-1']).toEqual({
             info: info({ status: 'needs-you' }),
+            historyPending: true,
             items: {},
             structure: {},
             order: []

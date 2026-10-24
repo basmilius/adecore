@@ -12,7 +12,7 @@ import {
     type ReactNode
 } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useVirtualizer, type Virtualizer } from '@tanstack/react-virtual';
+import { defaultRangeExtractor, useVirtualizer, type Virtualizer } from '@tanstack/react-virtual';
 import clsx from 'clsx';
 import { LoaderCircle } from 'lucide-react';
 import type { ChatBookmark } from '@adecore/agent-contracts';
@@ -193,6 +193,7 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
     const visuals = useChatRow(chatId, (row) => row?.visuals);
     const forkedTurns = useForkedTurns(chatId);
     const info = useChatRow(chatId, (row) => row?.info ?? null);
+    const historyPending = useChatRow(chatId, (row) => row?.historyPending === true);
     const cursor = useChatRow(chatId, (row) => row?.history?.cursor ?? null);
     const scope = useChatScope();
     const { id: scopeId, keyOf } = scope;
@@ -272,9 +273,10 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
     );
     const welcomes = useHostWelcome(chatId);
 
+    const loadingHistory = historyPending && ((info !== null && (info.usage.turns > 0 || info.activeTurnId !== null)) || (order?.length ?? 0) > 0);
     const empty = rows.length === 0;
     // A chat that took a turn before is one whose thread has not come in yet, not one to greet.
-    const welcome = welcomes && empty && (info === null || (info.usage.turns === 0 && info.activeTurnId === null));
+    const welcome = !loadingHistory && welcomes && empty && (info === null || (info.usage.turns === 0 && info.activeTurnId === null));
     const marks = useMemo(() => bookmarkRows(rows, bookmarks ?? [], items ?? {}), [rows, bookmarks, items]);
     const ticks = useMemo(() => ticksOf(rows, marks), [rows, marks]);
     // A message a jump is on its way to; it may first have to open the turn its reply folded into.
@@ -300,7 +302,7 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
     );
 
     // Whether the thread's text clears the strip depends on the width of the view, which only the thread's own frame tells.
-    useEffect(() => {
+    useLayoutEffect(() => {
         const element = frameRef.current;
         if (element === null || typeof ResizeObserver === 'undefined') {
             return;
@@ -350,14 +352,30 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
         [chatId]
     );
 
+    const [measuredThread, setMeasuredThread] = useState<string | null>(null);
+    const initialLayout = measuredThread !== keyOf(chatId);
+    const [, settleLayout] = useReducer((count: number) => count + 1, 0);
+
     // Nothing here builds with the React Compiler, so its memoization rule has nothing to break.
     // oxlint-disable-next-line react/incompatible-library
     const virtualizer = useVirtualizer({
-        count: rows.length,
+        count: loadingHistory ? 0 : rows.length,
         getScrollElement: () => scrollRef.current,
         estimateSize: () => ESTIMATED_ROW_PX,
         getItemKey: (index) => rows[index]!.id,
         overscan: 8,
+        // Include the end before the first pin, so its actual heights are known before revealing it.
+        rangeExtractor: (range) => {
+            const indexes = defaultRangeExtractor(range);
+            if (!initialLayout) {
+                return indexes;
+            }
+            const tail = Math.max(8, Math.ceil(frame.height / ESTIMATED_ROW_PX));
+            return [...new Set([...indexes, ...Array.from({ length: Math.min(tail, range.count) }, (_, index) => range.count - 1 - index)])].sort(
+                (left, right) => left - right
+            );
+        },
+        measureElement: (element, entry) => Math.round(entry?.borderBoxSize?.[0]?.blockSize ?? (element as HTMLElement).offsetHeight),
         scrollPaddingEnd: coveredHeight
     });
 
@@ -368,6 +386,24 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
      * A word that does not add a line moves nothing, so the thread does not listen to the words.
      */
     const totalSize = virtualizer.getTotalSize();
+    const virtualRows = virtualizer.getVirtualItems();
+    useLayoutEffect(() => {
+        if (!initialLayout || empty || loadingHistory || frame.height === 0) {
+            return;
+        }
+        // Ref measurements can change offsets after render. Commit those offsets before the first paint.
+        const measured = virtualizer.getVirtualItems();
+        if (
+            virtualRows.length !== measured.length ||
+            virtualRows.some((row, index) => row.key !== measured[index]?.key || row.start !== measured[index]?.start || row.size !== measured[index]?.size)
+        ) {
+            settleLayout();
+            return;
+        }
+        if (measured.at(-1)?.index === rows.length - 1) {
+            setMeasuredThread(keyOf(chatId));
+        }
+    }, [initialLayout, empty, loadingHistory, frame.height, virtualRows, virtualizer, rows.length, keyOf, chatId]);
     useLayoutEffect(() => {
         const element = scrollRef.current;
         if (!followRef.current || element === null) {
@@ -507,6 +543,9 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
             setSeeking(null);
             return;
         }
+        if (loadingHistory) {
+            return;
+        }
         if (seeking.block) {
             const jump = uiReplyJump(seeking.block, rows, items, turns.ids, cursor !== null);
             if (jump.kind === 'earlier') {
@@ -547,8 +586,8 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
         }
         setSeeking(null);
         seeking.options?.onMissing?.();
-    }, [seeking, rows, items, turns, virtualizer, cursor, loadEarlier, keyOf, chatId]);
-    const waitingForThread = seeking !== null && items === undefined;
+    }, [seeking, rows, items, turns, virtualizer, cursor, loadEarlier, keyOf, chatId, loadingHistory]);
+    const waitingForThread = seeking !== null && (items === undefined || loadingHistory);
     useEffect(() => {
         if (!waitingForThread) {
             return;
@@ -724,15 +763,20 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
                                     setTarget(readTimelineTarget(e.target as HTMLElement, threadRef.current, withCurrentText(rows, fullItems())))
                                 }
                             >
-                                {welcome ? (
+                                {loadingHistory ? (
+                                    <div className="flex grow items-center justify-center gap-2 text-sm text-text-muted" role="status">
+                                        <Icon icon={LoaderCircle} size={16} className="animate-spin" />
+                                        <span>{t('timeline.loading')}</span>
+                                    </div>
+                                ) : welcome ? (
                                     <WelcomeGreeting chatId={chatId} />
                                 ) : empty ? (
                                     <EmptyThread chatId={chatId} />
                                 ) : (
-                                    <div className="relative w-full shrink-0" style={{ height: virtualizer.getTotalSize() }}>
+                                    <div className="relative w-full shrink-0" style={{ height: totalSize, visibility: initialLayout ? 'hidden' : undefined }}>
                                         <UiReplyNavigationContext.Provider value={uiNavigation}>
                                             <FindRevealContext.Provider value={chatFind.reveal}>
-                                                {virtualizer.getVirtualItems().map((virtualRow) => {
+                                                {virtualRows.map((virtualRow) => {
                                                     const row = rows[virtualRow.index]!;
                                                     return (
                                                         <ThreadRow

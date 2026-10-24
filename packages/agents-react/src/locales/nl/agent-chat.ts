@@ -233,6 +233,7 @@ export default {
             canRead: 'Kan lezen',
             worksIn: 'Werkt in'
         },
+        loading: 'Gesprek laden',
         loadingEarlier: 'Eerdere berichten laden',
         stripFailed: 'Kon de berichten niet tonen',
         cardFailed: 'Kon deze kaart niet tonen',

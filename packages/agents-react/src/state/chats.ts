@@ -17,6 +17,8 @@ import { ChatScopeContext, useChatScope } from '../scope';
 
 export interface ChatState {
     info: ChatInfo;
+    /* Status and live events do not establish where the initial history begins. */
+    historyPending?: boolean;
     items: Record<string, ChatItem>;
     /*
      * The items as the timeline groups them: the same map as `items`, except that a delta growing a
@@ -63,6 +65,11 @@ export type ChatStatuses = Record<string, Pick<ChatState, 'info'>>;
 
 /* What a chat client writes. It owns one host's link, so it speaks in chat ids alone. */
 export interface ChatSink {
+    /*
+     * A token held by the cached thread, replaced on reset or eviction. It may change after a write.
+     * Without it a client can only retain a replay checkpoint while the chat is mounted.
+     */
+    historyIdentity?(chatId: string): object | undefined;
     /* Without a page the items are the whole thread. */
     reset(chatId: string, info: ChatInfo, items: ChatItem[], page?: ChatPage): void;
     /* The page before the one the chat holds, read with `cursor`. */
@@ -140,6 +147,7 @@ export function prependPage(state: ChatState, cursor: string, page: ChatHistoryR
     if (state.history?.cursor !== cursor) {
         return state;
     }
+    const { historyPending: _historyPending, ...loaded } = state;
     const held = new Set(state.order);
     const older = page.items.filter((item) => !held.has(item.id));
     const olderIds = new Set(older.map((item) => item.id));
@@ -150,12 +158,12 @@ export function prependPage(state: ChatState, cursor: string, page: ChatHistoryR
     }
     const order = [...olderIds, ...state.order];
     if (page.history.cursor === null) {
-        const { history: _history, waitingBefore: _waitingBefore, subagentsBefore: _subagentsBefore, ...rest } = state;
+        const { history: _history, waitingBefore: _waitingBefore, subagentsBefore: _subagentsBefore, ...rest } = loaded;
         return { ...rest, items, structure: items, order };
     }
     const waitingBefore = (state.waitingBefore ?? []).filter((id) => !olderIds.has(id));
     const subagentsBefore = (state.subagentsBefore ?? []).filter((id) => !olderIds.has(id));
-    return { ...state, items, structure: items, order, history: page.history, waitingBefore, subagentsBefore };
+    return { ...loaded, items, structure: items, order, history: page.history, waitingBefore, subagentsBefore };
 }
 
 /* The requests that still wait, oldest first: those from before the page this client holds, then the thread's own. */
@@ -281,7 +289,7 @@ export const useChats = create<ChatsStore>((set) => ({
         set((s) => {
             const current = s.byKey[key];
             if (!current) {
-                return { byKey: { ...s.byKey, [key]: stateOf(info, []) }, statusByKey: withStatus(s.statusByKey, key, info) };
+                return { byKey: { ...s.byKey, [key]: { ...stateOf(info, []), historyPending: true } }, statusByKey: withStatus(s.statusByKey, key, info) };
             }
             // An attached client already had this on `chat.event`; writing it again would redraw the thread.
             if (sameInfo(current.info, info)) {
@@ -313,6 +321,7 @@ export const useChats = create<ChatsStore>((set) => ({
 /* The sink of one host's chat client: it hands over chat ids, this puts them under the keys of its scope. */
 export function chatSink(keyOf: (chatId: string) => string): ChatSink {
     return {
+        historyIdentity: (chatId) => useChats.getState().byKey[keyOf(chatId)]?.order,
         reset: (chatId, info, items, page) => useChats.getState().reset(keyOf(chatId), info, items, page),
         prepend: (chatId, cursor, page) => useChats.getState().prepend(keyOf(chatId), cursor, page),
         apply: (chatId, event) => useChats.getState().apply(keyOf(chatId), event),

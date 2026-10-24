@@ -70,6 +70,7 @@ export class ChatClient {
     private readonly observers = new Map<string, number>();
     private readonly inspections = new Map<string, Promise<ChatAttachResult>>();
     private preferences: ChatPreferencesPayload | null = null;
+    private checkpoints = new WeakMap<object, number>();
 
     constructor(transport: ChatTransport, sink: ChatSink, providers: ProviderSink | null = null) {
         this.transport = transport;
@@ -77,10 +78,10 @@ export class ChatClient {
         this.providers = providers;
         this.unsubscribe.push(
             transport.on('chat.event', ({ chatId, event, seq }) => {
+                const previous = this.sequence(chatId);
                 this.sink.apply(chatId, event);
-                const entry = this.mounted.get(chatId);
-                if (entry && seq !== undefined) {
-                    entry.seq = seq;
+                if (previous !== undefined || (!this.sink.historyIdentity && this.mounted.get(chatId)?.attached)) {
+                    this.rememberSequence(chatId, seq);
                 }
             }),
             // Every chat on the machine, attached or not, so a node waiting on a person says so on a view nobody has open.
@@ -163,6 +164,7 @@ export class ChatClient {
         // The account belonged to the CLI the chat leaves, and the seq to its stream: the new chat's
         // stream starts over, so offering it the old seq would read as nothing missed and reset nothing.
         const { attached: _attached, account: _account, seq: _seq, observerOnly: _observerOnly, ...options } = entry;
+        this.rememberSequence(chatId, undefined);
         this.mounted.delete(chatId);
         await this.transport.request('chat.kill', { chatId });
         try {
@@ -299,13 +301,17 @@ export class ChatClient {
         }
         const read = this.transport
             .request('chat.history', { chatId, cursor, limit: HISTORY_PAGE })
-            .then((page) => this.sink.prepend(chatId, cursor, page))
+            .then((page) => {
+                const seq = this.sequence(chatId);
+                this.sink.prepend(chatId, cursor, page);
+                this.rememberSequence(chatId, seq);
+            })
             .catch(async (e: unknown) => {
                 const entry = this.mounted.get(chatId);
                 if (errorCode(e) !== 'history-expired' || !entry) {
                     throw e;
                 }
-                delete entry.seq;
+                this.rememberSequence(chatId, undefined);
                 await this.attach(chatId);
             })
             .finally(() => this.earlier.delete(chatId));
@@ -324,6 +330,7 @@ export class ChatClient {
         }
         this.unsubscribe.length = 0;
         this.observers.clear();
+        this.checkpoints = new WeakMap();
         for (const chatId of [...this.mounted.keys()]) {
             void this.detach(chatId);
         }
@@ -354,7 +361,7 @@ export class ChatClient {
         if (this.mounted.get(chatId) !== entry) {
             return;
         }
-        const since = entry.seq;
+        const since = this.sequence(chatId);
         const result = await this.transport.request('chat.attach', { chatId, historyLimit: HISTORY_PAGE, ...(since === undefined ? {} : { since }) });
         const current = this.mounted.get(chatId);
         if (current !== entry) {
@@ -364,10 +371,12 @@ export class ChatClient {
             }
             return;
         }
-        entry.attached = true;
-        if (result.seq !== undefined) {
-            entry.seq = result.seq;
+        // A cache eviction while the request was in flight also invalidates its replay base.
+        if (result.events && since !== undefined && this.sequence(chatId) === undefined) {
+            await this.attach(chatId);
+            return;
         }
+        entry.attached = true;
         if (result.events && since !== undefined) {
             for (const event of result.events) {
                 this.sink.apply(chatId, event);
@@ -377,9 +386,33 @@ export class ChatClient {
                 result.history === undefined ? undefined : { history: result.history, pending: result.pending ?? [], subagents: result.subagents ?? [] };
             this.sink.reset(chatId, result.info, result.items, page);
         }
+        this.rememberSequence(chatId, result.seq);
         // A host without bookmarks or visuals sends none, and then this chat has none.
         this.sink.bookmarks(chatId, result.bookmarks ?? []);
         this.sink.visuals(chatId, result.visuals ?? []);
+    }
+
+    private sequence(chatId: string): number | undefined {
+        if (!this.sink.historyIdentity) {
+            return this.mounted.get(chatId)?.seq;
+        }
+        const identity = this.sink.historyIdentity(chatId);
+        return identity === undefined ? undefined : this.checkpoints.get(identity);
+    }
+
+    private rememberSequence(chatId: string, seq: number | undefined): void {
+        const entry = this.mounted.get(chatId);
+        if (entry) {
+            entry.seq = seq;
+        }
+        const identity = this.sink.historyIdentity?.(chatId);
+        if (identity !== undefined) {
+            if (seq === undefined) {
+                this.checkpoints.delete(identity);
+            } else {
+                this.checkpoints.set(identity, seq);
+            }
+        }
     }
 
     private sendPreferences(): void {

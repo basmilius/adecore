@@ -7,6 +7,7 @@ import { ChatHostProvider, type ChatHost, type CommandLook } from '../../host';
 import { ChatScopeContext, type ChatScope } from '../../scope';
 import { useChats } from '../../state/chats';
 import { Timeline } from './Timeline';
+import { jumpToTimelineItem } from '../timeline-scroll';
 
 const scope: ChatScope = {
     id: 'render-test',
@@ -171,6 +172,9 @@ class ManualResizeObserver {
 interface Setup {
     items?: ChatItem[];
     host?: Partial<ChatHost>;
+    statusOnly?: boolean;
+    info?: ChatInfo;
+    onLayout?(host: HTMLElement): void;
 }
 
 const NO_HOST: Partial<ChatHost> = {};
@@ -229,13 +233,24 @@ async function mounted(layout: Layout, activeTurnId: string | null, run: (mount:
     const tracker = renderTracker(page.host);
     const commits: Fiber[][] = [];
     try {
-        useChats.getState().reset(KEY, infoOf(activeTurnId), setup.items ?? threadOf());
+        useChats.getState().forget(KEY);
+        if (setup.statusOnly) {
+            useChats.getState().status(KEY, setup.info ?? infoOf(activeTurnId));
+        } else {
+            useChats.getState().reset(KEY, setup.info ?? infoOf(activeTurnId), setup.items ?? threadOf());
+        }
         await act(async () =>
             root.render(
                 <ChatHostProvider host={setup.host ?? NO_HOST}>
                     <ChatScopeContext.Provider value={scope}>
                         <div className="chat-column">
-                            <Profiler id="timeline" onRender={() => commits.push(tracker.rendered())}>
+                            <Profiler
+                                id="timeline"
+                                onRender={() => {
+                                    commits.push(tracker.rendered());
+                                    setup.onLayout?.(page.host);
+                                }}
+                            >
                                 <Timeline chatId="chat" composer={<div data-composer />} />
                             </Profiler>
                         </div>
@@ -396,4 +411,111 @@ test('without looks every shell call reads as itself', async () => {
         },
         { items: shellThread() }
     );
+});
+
+for (const welcomes of [false, true]) {
+    test(`an existing chat waits for history with welcome ${welcomes}, including live events before the empty attach result`, async () => {
+        await mounted(
+            { rowHeights: [60], composerHeight: 80 },
+            null,
+            async ({ page }) => {
+                const composer = page.host.querySelector('[data-composer]');
+                let missing = 0;
+                await act(async () => {
+                    jumpToTimelineItem(KEY, 'not-in-history', {
+                        onMissing: () => {
+                            missing++;
+                        }
+                    });
+                });
+                expect(missing).toBe(0);
+                expect(page.host.querySelector('[role="status"]')?.textContent).toContain('Loading conversation');
+                expect(page.host.textContent).not.toContain('is ready.');
+                await act(async () => useChats.getState().apply(KEY, { type: 'item', item: threadOf()[0]! }));
+                expect(page.host.querySelector('[role="status"]')).not.toBeNull();
+                expect(page.host.querySelector('[data-item-id]')).toBeNull();
+                expect(missing).toBe(0);
+                await act(async () => useChats.getState().reset(KEY, infoOf(null), []));
+                expect(page.host.querySelector('[role="status"]')).toBeNull();
+                expect(page.host.textContent).toContain('is ready.');
+                expect(missing).toBe(1);
+                expect(page.host.querySelector('[data-composer]')).toBe(composer);
+            },
+            { statusOnly: true, host: { useWelcome: () => welcomes } }
+        );
+    });
+}
+
+test('a genuinely new chat keeps its greeting and composer before its empty history arrives', async () => {
+    await mounted(
+        { rowHeights: [], composerHeight: 80 },
+        null,
+        async ({ page }) => {
+            expect(page.host.querySelector('[role="status"]')).toBeNull();
+            expect(page.host.querySelector('[data-composer]')).not.toBeNull();
+            expect(page.host.textContent).not.toContain('is ready.');
+        },
+        { statusOnly: true, info: { ...infoOf(null), usage: { turns: 0 } } as ChatInfo, host: { useWelcome: () => true } }
+    );
+});
+
+for (const cached of [true, false]) {
+    test(`the first visible populated layout has measured row positions (${cached ? 'cached' : 'initial history'})`, async () => {
+        const items = Array.from(
+            { length: 12 },
+            (_, index) =>
+                ({
+                    id: `answer-${index}`,
+                    kind: 'assistant',
+                    turnId: null,
+                    createdAt: index,
+                    text: `Answer ${index}`,
+                    streaming: false
+                }) as ChatItem
+        );
+        const layouts: Array<Array<{ top: number; height: number }>> = [];
+        await mounted(
+            { rowHeights: items.map(() => 300), composerHeight: 120 },
+            null,
+            async ({ page }) => {
+                if (!cached) {
+                    await act(async () => useChats.getState().reset(KEY, infoOf(null), items));
+                }
+                expect(layouts.length).toBeGreaterThan(0);
+                for (const layout of layouts) {
+                    for (let index = 1; index < layout.length; index++) {
+                        expect(layout[index]!.top).toBeGreaterThanOrEqual(layout[index - 1]!.top + layout[index - 1]!.height);
+                    }
+                }
+                const scroller = page.host.querySelector('.chat-scroll') as HTMLElement;
+                expect(scroller.scrollTop).toBe(scroller.scrollHeight);
+            },
+            {
+                items,
+                statusOnly: !cached,
+                onLayout: (host) => {
+                    const elements = [...host.querySelectorAll<HTMLElement>('[data-index]')];
+                    if (elements.length === 0 || elements[0]!.parentElement?.style.visibility === 'hidden') {
+                        return;
+                    }
+                    layouts.push(
+                        elements.map((element) => ({
+                            top: Number(/translateY\(([-\d.]+)px\)/.exec(element.style.transform)?.[1]),
+                            height: element.offsetHeight
+                        }))
+                    );
+                }
+            }
+        );
+    });
+}
+
+test('cached history remains visible when a later failed status arrives', async () => {
+    await mounted({ rowHeights: [60, 60, 60, 60, 60, 60], composerHeight: 80 }, null, async ({ page }) => {
+        const composer = page.host.querySelector('[data-composer]');
+        await act(async () => useChats.getState().status(KEY, { ...infoOf(null), status: 'error', running: false }));
+        expect(page.host.querySelector('[role="status"]')).toBeNull();
+        expect(page.host.textContent).toContain('Answer 1');
+        expect(page.host.querySelector('[data-composer]')).toBe(composer);
+    });
 });

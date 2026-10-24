@@ -233,6 +233,7 @@ export default {
             canRead: 'It can read',
             worksIn: 'It works in'
         },
+        loading: 'Loading conversation',
         loadingEarlier: 'Loading earlier messages',
         stripFailed: 'Could not show the messages',
         cardFailed: 'Could not show this card',
