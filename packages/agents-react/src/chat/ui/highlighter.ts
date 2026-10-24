@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 import type { BundledLanguage, BundledTheme, Highlighter, ThemeRegistration } from 'shiki';
-import type { CodeToken, Tokenize } from './code-lines';
+import { TokenCache, type CodeToken, type Tokenize } from './code-lines';
 import { useChatHost, type ChatHost } from '../../host';
 import { shikiThemeOf } from './code-theme';
 
@@ -42,6 +42,7 @@ function createCodeHighlighter(source: () => Promise<Highlighter>): CodeHighligh
     const languageLoads = new Map<string, Promise<void>>();
     const themes = new Set<string>();
     const themeLoads = new Map<string, Promise<void>>();
+    const tokens = new TokenCache<GrammarState>();
     const tokenizers = new Map<string, { tokenize: Tokenize<GrammarState>; fg: string | undefined }>();
 
     const load = (): Promise<Highlighter> => {
@@ -104,10 +105,10 @@ function createCodeHighlighter(source: () => Promise<Highlighter>): CodeHighligh
             if (!entry) {
                 const options = { lang: resolved as BundledLanguage, theme };
                 entry = {
-                    tokenize: (code, state) => {
+                    tokenize: tokens.wrap(key, (code, state) => {
                         const result = loaded.codeToTokens(code, state ? { ...options, grammarState: state } : options);
                         return { lines: result.tokens, state: result.grammarState };
-                    },
+                    }),
                     fg: loaded.getTheme(theme).fg
                 };
                 tokenizers.set(key, entry);

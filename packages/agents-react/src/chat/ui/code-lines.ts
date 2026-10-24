@@ -9,6 +9,43 @@ export interface CodeToken {
 /* Tokenizes `code` as lines, carrying on from `state` when there is one, and answers the state after it. */
 export type Tokenize<State> = (code: string, state: State | undefined) => { lines: CodeToken[][]; state: State | undefined };
 
+// Virtual rows unmount offscreen; share this budget across their languages and themes.
+const TOKEN_CACHE_BUDGET = 4 * 1024 * 1024;
+const TOKEN_CACHE_ENTRIES = 128;
+
+export class TokenCache<State> {
+    private readonly entries = new Map<string, { result: ReturnType<Tokenize<State>>; cost: number }>();
+    private size = 0;
+
+    wrap(namespace: string, tokenize: Tokenize<State>): Tokenize<State> {
+        return (code, state) => {
+            if (state !== undefined) {
+                return tokenize(code, state);
+            }
+            const key = `${namespace}\0${code}`;
+            const known = this.entries.get(key);
+            if (known !== undefined) {
+                this.entries.delete(key);
+                this.entries.set(key, known);
+                return known.result;
+            }
+            const result = tokenize(code, state);
+            // Account for tokens too, so dense code cannot fill the cache with tiny strings.
+            const cost = key.length * 2 + result.lines.reduce((sum, line) => sum + line.length * 64, 0);
+            if (cost <= TOKEN_CACHE_BUDGET) {
+                while (this.entries.size > 0 && (this.size + cost > TOKEN_CACHE_BUDGET || this.entries.size >= TOKEN_CACHE_ENTRIES)) {
+                    const oldest = this.entries.keys().next().value!;
+                    this.size -= this.entries.get(oldest)!.cost;
+                    this.entries.delete(oldest);
+                }
+                this.entries.set(key, { result, cost });
+                this.size += cost;
+            }
+            return result;
+        };
+    }
+}
+
 /*
  * The lines of a code block that grows at the end. A line that ended keeps the tokens it got, and
  * the grammar state after it is where the next line starts, so a delta tokenizes the lines that are
