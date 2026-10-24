@@ -1,5 +1,5 @@
 import { asError } from './as-error.ts';
-import type { Disposable, LspTransport, RequestId, RequestOptions, RpcMessage, RpcRequest } from './protocol.ts';
+import type { Disposable, LspTransport, RequestId, RequestOptions, RpcMessage, RpcRequest, WorkDoneProgress } from './protocol.ts';
 
 /* The JSON-RPC and LSP codes this package answers with. */
 export const ErrorCodes = {
@@ -86,6 +86,7 @@ export class JsonRpcConnection {
             return Promise.reject(cancelledError());
         }
         const id = ++this.nextId;
+        const progress = this.progressOf(id, params, options);
         return new Promise<T>((resolve, reject) => {
             let timer: ReturnType<typeof setTimeout> | undefined;
             const cancel = (error: LspError): void => {
@@ -102,6 +103,7 @@ export class JsonRpcConnection {
                 cleanup: () => {
                     clearTimeout(timer);
                     options.signal?.removeEventListener('abort', abort);
+                    progress.listening?.dispose();
                 }
             });
             options.signal?.addEventListener('abort', abort, { once: true });
@@ -109,8 +111,34 @@ export class JsonRpcConnection {
             if (timeout > 0) {
                 timer = setTimeout(() => cancel(new LspError(`LSP request timed out: ${method}`, ErrorCodes.RequestCancelled)), timeout);
             }
-            void this.send({ jsonrpc: '2.0', id, method, params }).catch((error) => this.settle(id, undefined, error));
+            void this.send({ jsonrpc: '2.0', id, method, params: progress.params }).catch((error) => this.settle(id, undefined, error));
         });
+    }
+
+    /* Adds the tokens of partial results and work-done progress to the params of a request, and hears `$/progress` for them. */
+    private progressOf(id: RequestId, params: unknown, options: RequestOptions): { params: unknown; listening?: Disposable } {
+        const { onPartialResult, onWorkDoneProgress } = options;
+        if ((onPartialResult === undefined && onWorkDoneProgress === undefined) || params === null || typeof params !== 'object' || Array.isArray(params)) {
+            return { params };
+        }
+        const partialResultToken = onPartialResult === undefined ? undefined : `adecore-partial-${id}`;
+        const workDoneToken = onWorkDoneProgress === undefined ? undefined : `adecore-work-${id}`;
+        const listening = this.onNotification('$/progress', (value) => {
+            const { token, value: report } = value as { token: unknown; value: unknown };
+            if (token === partialResultToken) {
+                onPartialResult?.(report);
+            } else if (token === workDoneToken) {
+                onWorkDoneProgress?.(report as WorkDoneProgress);
+            }
+        });
+        return {
+            params: {
+                ...params,
+                ...(partialResultToken === undefined ? {} : { partialResultToken }),
+                ...(workDoneToken === undefined ? {} : { workDoneToken })
+            },
+            listening
+        };
     }
 
     notify(method: string, params?: unknown): Promise<void> {
