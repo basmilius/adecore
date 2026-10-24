@@ -27,7 +27,8 @@ Positions are the protocol's: zero-based lines and UTF-16 characters. The edit h
 
 ## Limits
 
-- Only the UTF-16 position encoding is offered. A server that picks another one fails to initialize.
+- Only the UTF-16 position encoding is offered, the one every server has to support. A server that picks another one fails to initialize.
+- Workspace edits declare no change annotations, so a server does not ask for confirmation of a change.
 - Diagnostics without a version cannot be proven fresh and are passed on while their document is open.
 - The package applies no workspace edit and touches no file. It plans one, and declares `create` and `rename` as resource operations unless the host says otherwise (a host that deletes lists `delete` too). The failure handling it announces is `abort`: the client stops at the first change that fails, and nothing that already ran is rolled back. The session can announce files the host created or deleted to the servers, as it does for renames (`willCreateFiles`, `didCreateFiles`, `willDeleteFiles`, `didDeleteFiles`).
 - A server that negotiated no document changes cannot follow an edit; `applyChanges` rejects.

@@ -324,7 +324,12 @@ export class FakeLanguageService implements LanguageService {
         return this.request<InlineValue[] | null>('textDocument/inlineValue', uri, { range, context }, options);
     }
 
-    inlineCompletions(uri: string, position: Position, context: InlineCompletionContext, options: LanguageRequestOptions = {}): Promise<InlineCompletionResult> {
+    inlineCompletions(
+        uri: string,
+        position: Position,
+        context: InlineCompletionContext,
+        options: LanguageRequestOptions = {}
+    ): Promise<InlineCompletionResult> {
         return this.request<InlineCompletionResult>('textDocument/inlineCompletion', uri, { position, context }, options);
     }
 
@@ -337,10 +342,16 @@ export class FakeLanguageService implements LanguageService {
     }
 
     async willSaveWaitUntil(uri: string, reason: TextDocumentSaveReason = 1, options: LanguageRequestOptions = {}): Promise<TextEdit[] | null> {
-        return this.supports('textDocument/willSaveWaitUntil', uri) ? this.request<TextEdit[] | null>('textDocument/willSaveWaitUntil', uri, { reason }, options) : null;
+        return this.supports('textDocument/willSaveWaitUntil', uri)
+            ? this.request<TextEdit[] | null>('textDocument/willSaveWaitUntil', uri, { reason }, options)
+            : null;
     }
 
-    workspaceDiagnostics(uri: string, previousResultIds: readonly PreviousResultId[] = [], options: LanguageRequestOptions = {}): Promise<WorkspaceDiagnosticReport> {
+    workspaceDiagnostics(
+        uri: string,
+        previousResultIds: readonly PreviousResultId[] = [],
+        options: LanguageRequestOptions = {}
+    ): Promise<WorkspaceDiagnosticReport> {
         return this.request<WorkspaceDiagnosticReport>('workspace/diagnostic', uri, { previousResultIds }, options);
     }
 

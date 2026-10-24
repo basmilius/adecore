@@ -355,6 +355,7 @@ export const sidebar: DefaultTheme.SidebarMulti = {
             ['Call hierarchy', '/editor-react/call-hierarchy'],
             ['Rename and code actions', '/editor-react/rename'],
             ['Format on type', '/editor-react/format-on-type'],
+            ['Links, colors and more', '/editor-react/language-features'],
             ['FindReplace', '/editor-react/find-replace'],
             ['Reviews and agents', '/editor-react/change-review'],
             ['Patch files', '/editor-react/patch-files'],

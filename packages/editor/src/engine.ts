@@ -85,6 +85,8 @@ class SmartEditor implements Editor {
     private lensRevisions = new Map<string, { signature: string; revision: number }>();
     private tokenizerRequest = 0;
     private settingText = false;
+    /* The hints of each owner, in the order the owners first set theirs. */
+    private readonly inlayOwners = new Map<string, readonly EditorInlayHint[]>();
     private disposed = false;
 
     private readonly engine: SmartEditorEngineOptions;
@@ -380,15 +382,21 @@ class SmartEditor implements Editor {
         );
     }
 
-    setInlayHints(hints: readonly EditorInlayHint[]): void {
+    setInlayHints(hints: readonly EditorInlayHint[], owner: string = DEFAULT_WIDGET_OWNER): void {
+        if (hints.length === 0) {
+            this.inlayOwners.delete(owner);
+        } else {
+            this.inlayOwners.set(owner, hints);
+        }
         this.view.setInlays(
-            hints.map((hint, index) => ({
+            [...this.inlayOwners.values()].flat().map((hint, index) => ({
                 id: hint.id ?? `hint-${index}`,
                 at: this.offsetAt(hint.position),
                 text: hint.label,
                 ...(hint.parts === undefined ? {} : { parts: hint.parts }),
                 ...(hint.paddingLeft ? { gapLeft: INLAY_GAP } : {}),
-                ...(hint.paddingRight ? { gapRight: INLAY_GAP } : {})
+                ...(hint.paddingRight ? { gapRight: INLAY_GAP } : {}),
+                ...(hint.swatch === undefined ? {} : { swatch: hint.swatch })
             }))
         );
     }

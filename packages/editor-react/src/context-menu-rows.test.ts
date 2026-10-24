@@ -9,7 +9,7 @@ describe('the rows of the editor context menu', () => {
     test('put every way to jump in the Go to group, declaration among them', () => {
         const groups = menuGroupsOf(() => true);
         expect(ids(groups.goTo)).toEqual(['definition', 'declaration', 'typeDefinition', 'implementation']);
-        expect(ids(groups.references)).toEqual(['peekReferences', 'callHierarchy']);
+        expect(ids(groups.references)).toEqual(['peekReferences', 'callHierarchy', 'typeHierarchy']);
         expect(ids(groups.changes)).toEqual(['renameSymbol', 'codeActions']);
     });
 

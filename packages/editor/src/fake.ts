@@ -775,11 +775,17 @@ export class FakeEditor implements Editor {
         this.markers = markers;
     }
 
-    /* What the host drew as hints last. */
+    /* What the host drew as hints last, every owner's together. */
     inlayHints: readonly EditorInlayHint[] = [];
+    private readonly inlayOwners = new Map<string, readonly EditorInlayHint[]>();
 
-    setInlayHints(hints: readonly EditorInlayHint[]): void {
-        this.inlayHints = hints;
+    setInlayHints(hints: readonly EditorInlayHint[], owner = 'default'): void {
+        if (hints.length === 0) {
+            this.inlayOwners.delete(owner);
+        } else {
+            this.inlayOwners.set(owner, hints);
+        }
+        this.inlayHints = [...this.inlayOwners.values()].flat();
     }
 
     private readonly inlayHovers = new Set<(target: EditorInlayTarget | null) => void>();

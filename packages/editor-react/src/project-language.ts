@@ -1,6 +1,16 @@
 import { disposeSnippetTransforms } from './snippet-transform-queue.ts';
 import i18next, { type i18n } from 'i18next';
-import { fileUriToPath, pathToFileUri, type ApplyWorkspaceEditResult, type ContentChange, type LanguageService, type WorkspaceEdit } from '@adecore/lsp';
+import {
+    fileUriToPath,
+    pathToFileUri,
+    type ApplyWorkspaceEditResult,
+    type ContentChange,
+    type Disposable,
+    type LanguageService,
+    type ShowDocumentParams,
+    type ShowDocumentResult,
+    type WorkspaceEdit
+} from '@adecore/lsp';
 import type { Editor, EditorPosition } from '@adecore/editor';
 import { NavigationHistory, type Place } from './navigation-history.ts';
 import { ProjectProblems, serviceProblems } from './project-problems.ts';
@@ -105,6 +115,9 @@ export class ProjectLanguage {
     private pendingCaret: Place | null = null;
     private lastPlace: Place | null = null;
     private disposed = false;
+    private readonly subscriptions: readonly Disposable[];
+    /* The result id the server gave each document in its last workspace report, which the next asks with. */
+    private readonly workspaceResults = new Map<string, string>();
 
     constructor(service: LanguageService, host: LanguageHost = {}) {
         this.service = service;
@@ -114,6 +127,9 @@ export class ProjectLanguage {
         this.files = host.files ?? null;
         this.panelBodyHeight = host.panelBodyHeight ?? PANEL_BODY_HEIGHT;
         this.problems = new ProjectProblems(host.problemSource ?? serviceProblems(service, (uri) => this.pathOfLocation(uri) ?? uri));
+        const shows = service.onShowDocument?.((params) => this.showDocument(params));
+        const messages = host.onServerMessage === undefined ? undefined : service.onServerMessage?.((message) => host.onServerMessage!(message));
+        this.subscriptions = [shows, messages].flatMap((subscription) => (subscription === undefined ? [] : [subscription]));
     }
 
     /* Open panels of other editors of the project follow a resize. */
@@ -172,14 +188,63 @@ export class ProjectLanguage {
         return this.service.didDeleteFiles?.(filesOf(targets)) ?? Promise.resolve();
     }
 
-    /* The text of a file as it stands now: an open document's, else a draft's or the machine's; null when it is no text file. */
+    /*
+     * The text of a file as it stands now: an open document's, else a draft's or the machine's; null when it is no
+     * text file. A document of a scheme a server owns, such as a decompiled class, is read from that server.
+     */
     async readText(uri: string): Promise<string | null> {
         const open = this.holders.get(uri)?.sync.text;
         if (open !== undefined) {
             return open;
         }
         const path = fileUriToPath(uri);
-        return path === null || this.files === null ? null : ((await this.files.read(path))?.text ?? null);
+        if (path === null) {
+            return (await this.service.textDocumentContent?.(uri).catch(() => null)) ?? null;
+        }
+        return this.files === null ? null : ((await this.files.read(path))?.text ?? null);
+    }
+
+    /*
+     * Asks the server of `uri` for the problems of every file it knows and lists them in `problems`, for a server that
+     * offers workspace diagnostics. A file the server reports as unchanged keeps what it had. False when no server offers them.
+     */
+    async pullWorkspaceProblems(uri: string, options: { readonly signal?: AbortSignal } = {}): Promise<boolean> {
+        const { service } = this;
+        if (service.workspaceDiagnostics === undefined || !service.supports('workspace/diagnostic', uri)) {
+            return false;
+        }
+        const previous = [...this.workspaceResults].map(([key, value]) => ({ uri: key, value }));
+        const report = await service.workspaceDiagnostics(uri, previous, options);
+        const server = this.host.serverNames?.(uri)[0] ?? 'workspace';
+        for (const item of report.items) {
+            if (item.resultId !== undefined) {
+                this.workspaceResults.set(item.uri, item.resultId);
+            }
+            if (item.kind === 'full') {
+                this.problems.report(this.pathOfLocation(item.uri) ?? item.uri, server, item.items);
+            }
+        }
+        return true;
+    }
+
+    /* Shows what a server asks for: a web address outside the editor, anything else as a place of the host. */
+    private async showDocument(params: ShowDocumentParams): Promise<ShowDocumentResult> {
+        const web = /^(https?|mailto):/i.test(params.uri);
+        if (params.external === true || web) {
+            if (this.host.openExternal !== undefined) {
+                this.host.openExternal(params.uri);
+                return { success: true };
+            }
+            if (typeof window === 'undefined') {
+                return { success: false };
+            }
+            return { success: window.open(params.uri, '_blank', 'noopener,noreferrer') !== null };
+        }
+        if (this.host.openPlace === undefined) {
+            return { success: false };
+        }
+        this.openPlace({ uri: params.uri, position: params.selection?.start ?? { line: 0, character: 0 } });
+        return { success: true };
     }
 
     /*
@@ -272,6 +337,9 @@ export class ProjectLanguage {
             return;
         }
         this.disposed = true;
+        for (const subscription of this.subscriptions) {
+            subscription.dispose();
+        }
         disposeSnippetTransforms(this);
         for (const [uri, holder] of this.holders) {
             holder.sync.dispose();

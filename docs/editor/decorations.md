@@ -28,6 +28,9 @@ The editor draws no message card of its own. [`@adecore/editor-react`](/editor-r
     - `parts`, the label cut into strings that add up to it, each drawn as an element of its own so the pointer can tell them apart. A hint without parts looks the same as one with a single part.
     - `paddingLeft` and `paddingRight`, a gap of 4 pixels kept clear on that side of the pill. The gap is not part of the pill, so a press in it behaves as a press beside the hint.
     - `id`, which names the hint in the events below; `hint-<index>` without one.
+    - `swatch`, a CSS color drawn as a square of 12 pixels in place of the label, such as the color a literal in the code stands for. The label is then what the square is called.
+
+    `setInlayHints(hints, owner?)` replaces the hints of one owner and keeps those of the others, so two features can each draw their own; ids stay unique across owners. Without an owner the hints belong to `default`.
 - `onInlayHover(listener)` says which hint, and which part of its label, the pointer is on as an `EditorInlayTarget` with its `rect` in page pixels, and `null` when it leaves them.
 - `onInlayClick(handler)` sees a press of the primary button on a hint before the editor does, as an `EditorInlayClick`: the hint's `id`, the `part`, `mod`, `alt`, `shift`, `clicks` (2 for a second press on the same hint within half a second) and `touch`. A handler that returns true takes the press and the caret and focus stay where they are; otherwise the editor treats it like a press beside the hint and puts the caret at the nearest edge. The first handler to take it wins. The editor never puts the caret in a hint, since it is not text.
 - `setInlayLink(target)` underlines a hint or one part of it, with a pointing hand, until the host sets another, takes it away with `null`, or sets the hints again.
