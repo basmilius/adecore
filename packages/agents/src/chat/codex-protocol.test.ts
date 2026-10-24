@@ -563,6 +563,20 @@ describe('CodexProtocol', () => {
         expect(protocol.questionAnswer('call_1', { '0': 'Red' })).toEqual({ kind: 'steer', text: 'Red' });
     });
 
+    test('an async question remains answerable when Codex completes its turn and continues working', () => {
+        const protocol = new CodexProtocol(1);
+        protocol.threadReady({ thread: { id: ids.threadId } });
+        protocol.handle({ method: 'turn/started', params: { ...ids, turn: { id: ids.turnId } } });
+        const asked = message('async-choice', 'Which?', { delivery: 'async', questions: [{ title: 'Which?', options: ['Red', 'Blue'] }] });
+        expect(protocol.handle({ method: 'item/completed', params: { ...ids, item: asked } })).toMatchObject([
+            { type: 'question.requested', requestId: 'async-choice', async: true }
+        ]);
+        const completed = protocol.handle({ method: 'turn/completed', params: { threadId: ids.threadId, turn: { id: ids.turnId, status: 'completed' } } });
+        expect(completed.some((event) => event.type === 'request.withdrawn')).toBe(false);
+        protocol.handle({ method: 'turn/started', params: { threadId: ids.threadId, turn: { id: 'next-turn' } } });
+        expect(protocol.questionAnswer('async-choice', { '0': 'Blue' })).toEqual({ kind: 'steer', text: 'Blue' });
+    });
+
     test('an async question can be dismissed, a blocking one cannot', () => {
         const protocol = new CodexProtocol(1);
         const asked = message('call_2', 'Which?', { delivery: 'async', questions: [{ title: 'Which?', options: ['Red'] }] });
@@ -894,6 +908,58 @@ describe('Codex 0.162 requests', () => {
         });
         expect(events).toMatchObject([{ type: 'question.requested', requestId: '1-42', async: true }]);
         expect(protocol.questionAnswer('1-42', { pick: 'Blue' })).toEqual({ kind: 'respond', rpcId: 42, result: { answers: { pick: { answers: ['Blue'] } } } });
+    });
+
+    for (const owner of ['t1', 'native-child']) {
+        for (const ending of ['completed', 'interrupted', 'failed'] as const) {
+            test(`a nonblocking RPC question of ${owner} ${ending === 'completed' ? 'survives' : 'ends with'} its ${ending} turn`, () => {
+                const protocol = new CodexProtocol(1);
+                protocol.threadReady({ thread: { id: 't1' } });
+                protocol.handle({
+                    method: 'item/tool/requestUserInput',
+                    id: 42,
+                    params: { threadId: owner, turnId: 'turn', isBlocking: false, questions: [{ id: 'pick', question: 'Which?', options: null }] }
+                });
+                const ended = protocol.handle({ method: 'turn/completed', params: { threadId: owner, turn: { id: 'turn', status: ending } } });
+                expect(ended.some((event) => event.type === 'request.withdrawn')).toBe(ending !== 'completed');
+                expect(protocol.questionAnswer('1-42', { pick: 'Blue' })).toEqual(
+                    ending === 'completed' ? { kind: 'respond', rpcId: 42, result: { answers: { pick: { answers: ['Blue'] } } } } : null
+                );
+            });
+        }
+    }
+
+    test.each(['activity', 'wait'] as const)('a native child finishing through %s keeps its optional RPC question', (signal) => {
+        const protocol = new CodexProtocol(1);
+        protocol.threadReady({ thread: { id: 'root' } });
+        const activity = (kind: string) => ({ type: 'subAgentActivity', id: kind, kind, agentThreadId: 'child', agentPath: '/root/Reviewer' });
+        protocol.handle({ method: 'item/completed', params: { threadId: 'root', item: activity('started') } });
+        protocol.handle({
+            method: 'item/tool/requestUserInput',
+            id: 42,
+            params: {
+                threadId: 'child',
+                turnId: 'child-turn',
+                isBlocking: false,
+                questions: [{ id: 'pick', question: 'Which?', options: null }]
+            }
+        });
+        const item =
+            signal === 'activity'
+                ? activity('completed')
+                : {
+                      type: 'collabAgentToolCall',
+                      id: 'wait',
+                      tool: 'wait',
+                      status: 'completed',
+                      receiverThreadIds: ['child'],
+                      agentsStates: { child: { status: 'completed' } }
+                  };
+        const ended = protocol.handle({ method: 'item/completed', params: { threadId: 'root', item } });
+        expect(ended).toContainEqual(expect.objectContaining({ type: 'task.done' }));
+        expect(ended.some((event) => event.type === 'request.withdrawn')).toBe(false);
+        expect(protocol.handle({ method: 'thread/closed', params: { threadId: 'child' } })).toEqual([{ type: 'request.withdrawn', requestId: '1-42' }]);
+        expect(protocol.questionAnswer('1-42', { pick: 'Blue' })).toBeNull();
     });
 
     test('a permission grant is shown and denial grants nothing', () => {

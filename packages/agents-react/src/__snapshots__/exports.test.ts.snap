@@ -62,6 +62,7 @@ exports[`the public API ./chat exports these names 1`] = `
   "CHAT_READING_WIDTHS",
   "CHAT_SEND_KEYS",
   "ChatClient",
+  "ChatPromptFeed",
   "EMPTY_DRAFT",
   "EMPTY_TARGET",
   "FORKABLE_PROVIDERS",

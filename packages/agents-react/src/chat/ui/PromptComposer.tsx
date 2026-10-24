@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowDown, Hand, MessageCircleQuestionMark } from 'lucide-react';
 import type { HoldRelease } from '../prompt-hold';
 import { focusPromptHeading, focusPromptStart } from '../../prompts/logic/focus';
-import { orderPrompts, type PendingPrompt } from '../../prompts/logic/prompts';
+import { orderPrompts } from '../../prompts/logic/prompts';
 import { answerPrompt, isBlockingSubject, promptCreatedAt, promptIdOf, type PromptSubject } from '../../prompts/logic/subjects';
 import { useFocusAfterAnswer } from '../../prompts/logic/useFocusAfterAnswer';
 import { usePromptSession } from '../../prompts/logic/usePromptSession';
@@ -12,6 +12,7 @@ import { useChatHost } from '../../host';
 import { useChatScope } from '../../scope';
 import { useChatActions } from '../actions';
 import { Button, Icon } from '@adecore/ui';
+import { useProviders } from '../../state/providers';
 import { useHostExtraPrompts } from '../../host-hooks';
 
 /* Keeps a prompt card behind the draft while the person types; `released` says what lifted the hold last. */
@@ -39,7 +40,7 @@ export function PromptComposer({
     children
 }: {
     chatId: string;
-    pending: PendingPrompt[];
+    pending: PromptSubject[];
     focused: boolean;
     /* Set where the prompts are answered somewhere else; the composer only says where they went, and this goes there. */
     onShowElsewhere?: () => void;
@@ -56,13 +57,11 @@ export function PromptComposer({
     const { id } = useChatScope();
     const host = useChatHost();
     const actions = useChatActions();
+    const providers = useProviders((row) => row.providers);
     const elsewhere = onShowElsewhere !== undefined;
     // A card the app raises itself waits in the chat beside the CLI's own requests.
     const extra = useHostExtraPrompts(id, chatId);
-    const subjects: PromptSubject[] = [
-        ...pending.map((item): PromptSubject => ({ kind: 'chat', nodeId: chatId, item })),
-        ...extra.map((prompt): PromptSubject => ({ kind: 'host', nodeId: chatId, prompt }))
-    ];
+    const subjects: PromptSubject[] = [...pending, ...extra.map((prompt): PromptSubject => ({ kind: 'host', nodeId: chatId, prompt }))];
     const session = usePromptSession({ prompts: subjects, idOf: promptIdOf, pick: pickSubject, disabled });
     const ref = useRef<HTMLDivElement>(null);
     const { active, activeId: activeKey } = session;
@@ -125,7 +124,11 @@ export function PromptComposer({
                         }}
                         more={session.waiting.length - 1}
                         hasDraft={hasDraft}
-                        denyReason={denyReason}
+                        denyReason={
+                            active.kind === 'chat' && active.source?.provider !== undefined
+                                ? providers.find((provider) => provider.kind === active.source?.provider)?.capabilities.denyReason === true
+                                : denyReason
+                        }
                         disabled={disabled}
                         sending={session.sending}
                         error={session.errorOf(promptIdOf(active))}

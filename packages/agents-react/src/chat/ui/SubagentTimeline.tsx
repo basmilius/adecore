@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Bot, LoaderCircle } from 'lucide-react';
 import { deriveTimelineRows } from '../logic/timeline';
@@ -9,8 +9,6 @@ import { EMPTY_TARGET, readTimelineTarget, type TimelineTarget } from '../logic/
 import { openBelow, useSubagentTrail, type SubagentStep } from '../subagent-view';
 import { Row } from './rows/Rows';
 import { ReplyContext } from './reply-context';
-import { PromptComposer } from './PromptComposer';
-import { useProviders } from '../../state/providers';
 import { SubagentInfo } from './SubagentInfo';
 import { TimelineMenuPopup } from './TimelineMenu';
 import { FOLLOW_THRESHOLD_PX, rowRhythm } from './rows/row-rhythm';
@@ -33,14 +31,8 @@ export function SubagentTimeline({ chatId, toolUseId }: { chatId: string; toolUs
     const { t } = useTranslation('agent-chat');
     const scope = useChatScope();
     const { commandLooks } = useChatHost();
-    const connected = useSyncExternalStore(
-        (changed) => scope.transport.subscribeStatus(changed),
-        () => scope.transport.status === 'open',
-        () => false
-    );
     const { trail, show } = useSubagentTrail(chatId);
     const [state, setState] = useState<SubagentConversationState>(INITIAL_CONVERSATION);
-    const denyReason = useProviders((row) => row.providers.find((provider) => provider.kind === state.context?.provider)?.capabilities.denyReason === true);
     const controller = useRef<SubagentConversation | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
     const threadRef = useRef<HTMLDivElement>(null);
@@ -182,21 +174,6 @@ export function SubagentTimeline({ chatId, toolUseId }: { chatId: string; toolUs
                         </div>
                     </ReplyContext.Provider>
                 </FileLinkContext.Provider>
-            )}
-            {state.context?.chatId !== undefined && state.pending.length > 0 && (
-                <div className="chat-column-content shrink-0">
-                    <PromptComposer
-                        key={state.context.chatId}
-                        chatId={state.context.chatId}
-                        pending={state.pending}
-                        focused={false}
-                        disabled={!connected}
-                        hasDraft={false}
-                        denyReason={denyReason}
-                    >
-                        {null}
-                    </PromptComposer>
-                </div>
             )}
         </div>
     );

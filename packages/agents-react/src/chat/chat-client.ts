@@ -42,6 +42,7 @@ export interface ChatSendExtras {
 }
 
 interface Mounted extends ChatOpenOptions, MountedEntry {
+    observerOnly?: boolean;
     // The last place in the chat's stream the store holds, so a reattach asks only for what came after.
     seq?: number;
 }
@@ -66,6 +67,7 @@ export class ChatClient {
     private readonly mounted = new MountedRegistry<Mounted>();
     private readonly unsubscribe: Array<() => void> = [];
     private readonly earlier = new Map<string, Promise<void>>();
+    private readonly observers = new Map<string, number>();
     private readonly inspections = new Map<string, Promise<ChatAttachResult>>();
     private preferences: ChatPreferencesPayload | null = null;
 
@@ -109,6 +111,31 @@ export class ChatClient {
         return read;
     }
 
+    /* Shares a live attachment without creating a chat; a visible composer and several ancestors may hold it together. */
+    observe(chatId: string): () => void {
+        this.observers.set(chatId, (this.observers.get(chatId) ?? 0) + 1);
+        if (!this.mounted.has(chatId)) {
+            this.mounted.set(chatId, { attached: false, observerOnly: true });
+            void this.attach(chatId).catch(() => undefined);
+        }
+        let released = false;
+        return () => {
+            if (released) {
+                return;
+            }
+            released = true;
+            const remaining = (this.observers.get(chatId) ?? 1) - 1;
+            if (remaining > 0) {
+                this.observers.set(chatId, remaining);
+                return;
+            }
+            this.observers.delete(chatId);
+            if (this.mounted.get(chatId)?.observerOnly) {
+                void this.detach(chatId);
+            }
+        };
+    }
+
     /* Answers false when the transport is not connected; the chat opens once it is. */
     async open(chatId: string, options: ChatOpenOptions): Promise<boolean> {
         this.mounted.set(chatId, { ...options, attached: false });
@@ -135,7 +162,7 @@ export class ChatClient {
         }
         // The account belonged to the CLI the chat leaves, and the seq to its stream: the new chat's
         // stream starts over, so offering it the old seq would read as nothing missed and reset nothing.
-        const { attached: _attached, account: _account, seq: _seq, ...options } = entry;
+        const { attached: _attached, account: _account, seq: _seq, observerOnly: _observerOnly, ...options } = entry;
         this.mounted.delete(chatId);
         await this.transport.request('chat.kill', { chatId });
         try {
@@ -157,6 +184,10 @@ export class ChatClient {
 
     async detach(chatId: string): Promise<void> {
         const entry = this.mounted.get(chatId);
+        if (entry && this.observers.has(chatId)) {
+            entry.observerOnly = true;
+            return;
+        }
         this.mounted.delete(chatId);
         if (!entry?.attached) {
             return;
@@ -292,6 +323,7 @@ export class ChatClient {
             off();
         }
         this.unsubscribe.length = 0;
+        this.observers.clear();
         for (const chatId of [...this.mounted.keys()]) {
             void this.detach(chatId);
         }
@@ -307,15 +339,17 @@ export class ChatClient {
         if (!entry) {
             return;
         }
-        await this.transport.request('chat.create', {
-            chatId,
-            provider: entry.provider,
-            account: entry.account,
-            cwd: entry.cwd,
-            resume: entry.resume,
-            selection: entry.selection,
-            runtimeMode: entry.runtimeMode
-        });
+        if (!entry.observerOnly) {
+            await this.transport.request('chat.create', {
+                chatId,
+                provider: entry.provider,
+                account: entry.account,
+                cwd: entry.cwd,
+                resume: entry.resume,
+                selection: entry.selection,
+                runtimeMode: entry.runtimeMode
+            });
+        }
         // Closed or opened again in the meantime: an opening that is still there attaches itself.
         if (this.mounted.get(chatId) !== entry) {
             return;

@@ -503,8 +503,11 @@ export class CodexBackend implements ChatBackend {
         }
         const turnId = this.protocol.turnId;
         if (!turnId) {
-            // Codex refuses a steer without the turn it is meant for, and there is none left to join.
-            return false;
+            // An optional question can outlive its turn; its answer resumes the same chat as plain text.
+            this.turnUnnamed = true;
+            this.promptId = null;
+            this.request('turn/start', this.turnStartParams(textInput(answer.text)));
+            return true;
         }
         this.request('turn/steer', { threadId: this.threadId, expectedTurnId: turnId, input: textInput(answer.text) });
         return true;
@@ -516,6 +519,9 @@ export class CodexBackend implements ChatBackend {
     }
 
     declineRequest(requestId: string, _message: string): boolean {
+        if (this.protocol.dismissQuestion(requestId)) {
+            return true;
+        }
         const answer = this.protocol.declineRequest(requestId);
         if (!this.transport || !answer) {
             return false;

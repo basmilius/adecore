@@ -196,6 +196,56 @@ describe('ChatClient', () => {
         expect(transport.of('chat.detach')).toHaveLength(0);
     });
 
+    test('observers share an attachment with a visible chat and release it only after the last reader', async () => {
+        const { client, transport, sink } = setup();
+        const first = client.observe('child');
+        const second = client.observe('child');
+        await flush();
+        expect(transport.of('chat.create')).toHaveLength(0);
+        expect(transport.of('chat.attach')).toHaveLength(1);
+        expect(sink.resets.at(-1)?.chatId).toBe('child');
+
+        await client.open('child', {});
+        first();
+        first();
+        await client.detach('child');
+        expect(transport.of('chat.detach')).toHaveLength(0);
+        expect(client.isMounted('child')).toBe(true);
+        second();
+        await flush();
+        expect(transport.of('chat.detach').map((call) => call.payload)).toEqual([{ chatId: 'child' }]);
+        expect(client.isMounted('child')).toBe(false);
+        client.dispose();
+    });
+
+    test('an observed child reattaches without creating it after a reconnect', async () => {
+        const { client, transport } = setup();
+        const release = client.observe('child');
+        await flush();
+        transport.setStatus('closed');
+        transport.setStatus('open');
+        await flush();
+        expect(transport.of('chat.attach')).toHaveLength(2);
+        expect(transport.of('chat.create')).toHaveLength(0);
+        release();
+        client.dispose();
+    });
+
+    test('a released observer detaches an attachment that was still on the wire', async () => {
+        const { client, transport, sink } = setup();
+        let finish = () => {};
+        transport.attachHold = new Promise((resolve) => {
+            finish = resolve;
+        });
+        const release = client.observe('child');
+        release();
+        finish();
+        await flush();
+        expect(sink.resets).toEqual([]);
+        expect(transport.of('chat.detach').map((call) => call.payload)).toEqual([{ chatId: 'child' }]);
+        client.dispose();
+    });
+
     test('open creates with cwd and resume, attaches and resets the store with the thread', async () => {
         const { transport, sink, client } = setup();
         transport.items = [{ id: 'u1', kind: 'user', createdAt: 1, turnId: null, text: 'hi' }];

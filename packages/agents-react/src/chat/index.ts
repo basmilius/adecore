@@ -78,3 +78,5 @@ export {
 } from './subagent-view';
 export { stepTimelineMessage, jumpToTimelineItem, type TurnTarget, registerTurnJumper, jumpToTimelineTurn, type ItemJumpOptions } from './timeline-scroll';
 export { type StatusWord, statusLookOf, taskStatusWord, type StatusLook, type TaskState } from '../agents/status-look';
+
+export { ChatPromptFeed } from './pending-prompts';

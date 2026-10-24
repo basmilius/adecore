@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { Pill } from '@adecore/ui';
 import { toolSummary } from '../../chat/logic/tools';
 import { useChatHost } from '../../host';
 import { answerValue, promptAnswers, questionAnswer, type PromptDraft } from '../logic/prompts';
@@ -43,8 +44,13 @@ export function PromptView(props: PromptViewProps) {
     };
     const multiple = item.kind === 'question' && item.questions.length > 1;
     const meta =
-        more > 0 || hasDraft || multiple ? (
+        subject.source !== undefined || more > 0 || hasDraft || multiple ? (
             <>
+                {subject.source && (
+                    <Pill size="sm" className="max-w-full">
+                        <span className="truncate">{subject.source.label}</span>
+                    </Pill>
+                )}
                 {more > 0 && <span className="tabular-nums">{t('meta.waiting', { count: more + 1 })}</span>}
                 {multiple && <span className="tabular-nums">{t('meta.question', { index: draft.index + 1, total: item.questions.length })}</span>}
                 {hasDraft && <span>{t('meta.draftSaved')}</span>}

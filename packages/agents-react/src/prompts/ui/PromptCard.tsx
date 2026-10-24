@@ -81,7 +81,7 @@ export function PromptCard({ kind, heading, meta, top, actions, busy, notice, er
                             {heading}
                         </h3>
                     </div>
-                    {meta && <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-text-muted">{meta}</div>}
+                    {meta && <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-muted">{meta}</div>}
                     {children}
                     {notice && <p className="text-xs text-text-muted">{notice}</p>}
                     {error && (

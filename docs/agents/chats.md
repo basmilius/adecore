@@ -18,7 +18,7 @@ Deltas are joined before they go out, so a client gets fewer, larger events than
 
 A pending approval or question is an item with a `requestId`. `chat.approve` answers an approval with `allow`, `allow-always` or `deny`, and a reason for a CLI that takes one. `allow-always` grants the rule the CLI proposed, nothing wider. `chat.answer` answers a question by question id, and `chat.dismiss` leaves an `async` question by its item id. A request settled elsewhere first, by another client or in the CLI's own prompt, is refused with `request-not-found`.
 
-Stopping a turn settles the requests it left open, so no approval stays pending under a finished turn.
+Stopping a turn settles the requests it left open. Optional Codex questions survive successful turns and keep the chat at `needs-you` until answered or dismissed. An answer joins a running turn, or starts a new turn in the same chat when Codex has finished. A request the CLI explicitly withdraws still closes at once.
 
 Your app can ask a person something the CLI never asked, such as a card a context command waits on. `holdForPerson(chatId, key)` puts the chat at `needs-you` while its turn runs, so its status, notifications and anything else that follows the status treat it like a question; `releaseHold(chatId, key)` takes it back. A chat waits until the last key is released. The card itself, its answer and its timeout stay with your app.
 

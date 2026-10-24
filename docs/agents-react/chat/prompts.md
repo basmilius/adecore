@@ -1,6 +1,6 @@
 # Prompts
 
-The cards a person answers a chat's approvals and questions in. The [composer](/agents-react/chat/composer) draws them itself, in its own place, for every request the chat waits on. The parts are exported for a stack of cards somewhere else, such as over a canvas of chats.
+The cards a person answers a chat's approvals and questions in. The [composer](/agents-react/chat/composer) draws them itself, in its own place, for its own requests and those of its delegated chats. The parts are exported for a stack of cards somewhere else, such as over a canvas of chats.
 
 ```tsx
 import { PromptView, usePromptSession } from '@adecore/agents-react/prompts';
@@ -16,7 +16,11 @@ A question shows its choices, one or several to pick, or a field for a written a
 
 Requests that hold the agent up come first, oldest first, then optional questions. A card being read stays in front when a new request arrives, and a press that started on the card before it never lands on the new one. A refusal leaves the card where it was, with the host's message under it.
 
+Delegated requests carry a badge with the sub-agent's task. Answers still go to the child chat, including when several children use the same request id. The main composer follows running descendants and their pending requests without opening their conversation panels.
+
 ## A stack of your own
+
+`ChatPromptFeed` from `@adecore/agents-react/chat` supplies the same chat subjects to another surface. Construct it with a `ChatScope`, the main chat id and a callback, call `start()`, and call `dispose()` when the surface closes. It shares live child attachments through `ChatClient.observe(chatId)`, whose returned function releases one reader. Observing attaches an existing chat without creating or starting its CLI; the last reader detaches it unless a visible composer still holds it.
 
 `usePromptSession` keeps the state of a stack: which subject is in front, a draft per request, sending and the last error. `PromptView` draws one subject. `answerPrompt(subject, action, actions, host)` sends a card's action as the request it is answered with, or to the host's `prompts.answer` for a prompt of your app.
 
@@ -56,7 +60,7 @@ function Stack({ subjects }: { subjects: PromptSubject[] }) {
 }
 ```
 
-A `PromptSubject` is `{ kind: 'chat', nodeId, item }` for a chat's pending approval or question item, where `nodeId` is the chat id, or `{ kind: 'host', nodeId, prompt }` for one of your own. Keep both capture handlers on the element around the card: they stop a press from answering a card that took the place of the one it started on. `act` answers `sent`, `failed` or `busy`; it sends one answer at a time and hides an answered card until the host settles it.
+A chat's `PromptSubject` is `{ kind: 'chat', nodeId, item }`, where `nodeId` is the chat receiving the answer. Its optional `source: { label, provider? }` identifies the delegated agent and supplies the badge. Use `{ kind: 'host', nodeId, prompt }` for a prompt of your app. Keep both capture handlers on the element around the card: they stop a press from answering a card that took the place of the one it started on. `act` answers `sent`, `failed` or `busy`; it sends one answer at a time and hides an answered card until the host settles it.
 
 ## Keys
 

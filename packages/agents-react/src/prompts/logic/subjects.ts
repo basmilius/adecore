@@ -1,5 +1,6 @@
 import i18next from 'i18next';
 import type { ReactNode } from 'react';
+import type { AgentKind } from '@adecore/agent-contracts';
 import type { ChatHost } from '../../host';
 import { isBlockingPrompt, type PendingPrompt, type PromptAction, type PromptDraft } from './prompts';
 
@@ -20,7 +21,9 @@ export interface HostPrompt {
 }
 
 /* What a prompt card draws, whatever asked it. The chat's items pass through unchanged. */
-export type PromptSubject = { kind: 'chat'; nodeId: string; item: PendingPrompt } | { kind: 'host'; nodeId: string; prompt: HostPrompt };
+export type PromptSubject =
+    | { kind: 'chat'; nodeId: string; item: PendingPrompt; source?: { label: string; provider?: AgentKind } }
+    | { kind: 'host'; nodeId: string; prompt: HostPrompt };
 
 /* The requests a chat's own prompts are answered with. */
 export interface ChatPromptClients {

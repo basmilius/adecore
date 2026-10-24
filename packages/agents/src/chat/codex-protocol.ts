@@ -285,7 +285,12 @@ export class CodexProtocol {
         const threadId = frame.method === 'thread/started' ? (isRecord(params.thread) ? str(params.thread.id) : null) : str(params.threadId);
         if (threadId !== null && this.ownThreadId !== null && threadId !== this.ownThreadId) {
             if (frame.method === 'turn/completed') {
-                this.withdrawOwner(threadId, isRecord(params.turn) ? str(params.turn.id) : null, events);
+                this.withdrawOwner(
+                    threadId,
+                    isRecord(params.turn) ? str(params.turn.id) : null,
+                    events,
+                    isRecord(params.turn) && params.turn.status === 'completed'
+                );
             } else if (frame.method === 'thread/closed') {
                 this.withdrawOwner(threadId, null, events);
             }
@@ -416,7 +421,7 @@ export class CodexProtocol {
         return { rpcId: pending.rpcId, result: { decision: codexDecision(decision, pending) } };
     }
 
-    /* What answers a question, the reply to a blocking one or the text that steers a running turn. */
+    /* An RPC reply, or plain text that continues the chat, for a question that still waits. */
     questionAnswer(requestId: string, answers: Record<string, string>): CodexAnswer | null {
         const pending = this.pending.get(requestId);
         if (pending?.type !== 'question') {
@@ -494,10 +499,10 @@ export class CodexProtocol {
         }
     }
 
-    private withdrawOwner(threadId: string | null, turnId: string | null, events: BackendEvent[]): void {
+    private withdrawOwner(threadId: string | null, turnId: string | null, events: BackendEvent[], keepAsyncQuestions = false): void {
         const belongs = (owner: RequestOwner): boolean => owner.threadId === threadId && (turnId === null || owner.turnId === null || owner.turnId === turnId);
         for (const [requestId, pending] of this.pending) {
-            if (belongs(pending)) {
+            if (belongs(pending) && !(keepAsyncQuestions && pending.type === 'question' && pending.async === true)) {
                 this.pending.delete(requestId);
                 events.push({ type: 'request.withdrawn', requestId });
             }
@@ -664,7 +669,13 @@ export class CodexProtocol {
                     if (!completed || this.pending.has(ref)) {
                         return;
                     }
-                    this.pending.set(ref, { ...this.owner(params), type: 'question', rpcId: null, questionIds: questions.map((question) => question.id) });
+                    this.pending.set(ref, {
+                        ...this.owner(params),
+                        type: 'question',
+                        rpcId: null,
+                        questionIds: questions.map((question) => question.id),
+                        async: true
+                    });
                     events.push({ type: 'question.requested', requestId: ref, questions, async: true });
                     return;
                 }
@@ -805,7 +816,7 @@ export class CodexProtocol {
         const limit = status === 'failed' && isRecord(turn.error) ? this.limitOf(turn.error.codexErrorInfo) : null;
         const turnId = str(turn.id) ?? this.codexTurnId;
         this.codexTurnId = null;
-        this.withdrawOwner(str(params.threadId) ?? this.ownThreadId, turnId, events);
+        this.withdrawOwner(str(params.threadId) ?? this.ownThreadId, turnId, events, status === 'completed');
         // A terminal session still open as the turn ends is one Codex left running; it only completes once its process does.
         for (const [ref, processId] of this.openTerminals) {
             this.backgroundTerminals.set(ref, processId);
@@ -886,7 +897,7 @@ export class CodexProtocol {
                 continue;
             }
             row.settled = true;
-            this.withdrawOwner(threadId, null, events);
+            this.withdrawOwner(threadId, null, events, status === 'completed');
             settled = true;
             events.push({ type: 'task.done', ref: row.ref, summary: collabAgentOutput({ [threadId]: state }), ok: status === 'completed' });
         }
@@ -931,7 +942,7 @@ export class CodexProtocol {
         }
         if ((kind === 'completed' || kind === 'interrupted') && row !== undefined && !row.settled) {
             row.settled = true;
-            this.withdrawOwner(threadId, null, events);
+            this.withdrawOwner(threadId, null, events, kind === 'completed');
             events.push({ type: 'task.done', ref: row.ref, summary: null, ok: kind === 'completed' });
         }
     }
