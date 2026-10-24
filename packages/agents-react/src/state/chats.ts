@@ -75,6 +75,8 @@ export interface ChatSink {
     /* The page before the one the chat holds, read with `cursor`. */
     prepend(chatId: string, cursor: string, page: ChatHistoryResult): void;
     apply(chatId: string, event: ChatEvent): void;
+    /* A reconnect can publish its complete replay at once; absent sinks receive each event through apply. */
+    replay?(chatId: string, events: readonly ChatEvent[]): void;
     /* What a chat is doing, for a thread nobody in this window has open. */
     status(chatId: string, info: ChatInfo): void;
     bookmarks(chatId: string, bookmarks: ChatBookmark[]): void;
@@ -89,6 +91,7 @@ interface ChatsStore {
     reset(key: string, info: ChatInfo, items: ChatItem[], page?: ChatPage): void;
     prepend(key: string, cursor: string, page: ChatHistoryResult): void;
     apply(key: string, event: ChatEvent): void;
+    replay(key: string, events: readonly ChatEvent[]): void;
     status(key: string, info: ChatInfo): void;
     bookmarks(key: string, bookmarks: ChatBookmark[]): void;
     visuals(key: string, visuals: ChatVisual[]): void;
@@ -128,18 +131,20 @@ function isBeforePage(state: ChatState, historyIndex: number | undefined): boole
     return state.history !== undefined && historyIndex !== undefined && historyIndex < state.history.start;
 }
 
+type ItemWriter = (state: ChatState, item: ChatItem, structural?: boolean) => ChatState;
+
 /* An item from before the page this client holds matters only as a sub-agent, a request that waits, or one that stopped waiting. */
-function withEarlierItem(state: ChatState, item: ChatItem): ChatState {
+function withEarlierItem(state: ChatState, item: ChatItem, write: ItemWriter): ChatState {
     if (item.kind === 'subagent') {
         const subagents = state.subagentsBefore ?? [];
-        return { ...withItem(state, item), subagentsBefore: subagents.includes(item.id) ? subagents : [...subagents, item.id] };
+        return { ...write(state, item), subagentsBefore: subagents.includes(item.id) ? subagents : [...subagents, item.id] };
     }
     const waiting = state.waitingBefore ?? [];
     const held = waiting.includes(item.id);
     if (isWaiting(item)) {
-        return { ...withItem(state, item), waitingBefore: held ? waiting : [...waiting, item.id] };
+        return { ...write(state, item), waitingBefore: held ? waiting : [...waiting, item.id] };
     }
-    return held ? { ...withItem(state, item), waitingBefore: waiting.filter((id) => id !== item.id) } : state;
+    return held ? { ...write(state, item), waitingBefore: waiting.filter((id) => id !== item.id) } : state;
 }
 
 /* The page before the one a chat holds, unless the thread was read again since that page was asked for. */
@@ -171,10 +176,9 @@ export function waitingRequestsOf(chat: Pick<ChatState, 'structure' | 'order' | 
     return [...(chat?.waitingBefore ?? []), ...(chat?.order ?? [])].map((id) => chat?.structure[id]).filter(isWaiting);
 }
 
-/* The state with one item replaced, in the thread and in the structure the rows come from. */
-function withItem(state: ChatState, item: ChatItem): ChatState {
+function withItem(state: ChatState, item: ChatItem, structural = true): ChatState {
     const items = { ...state.items, [item.id]: item };
-    return { ...state, items, structure: items };
+    return structural ? { ...state, items, structure: items } : { ...state, items };
 }
 
 /* Cheap enough, since a status only arrives when the host saw one change, never on a streamed word. */
@@ -192,26 +196,47 @@ function without<T>(rows: Record<string, T>, matches: (key: string) => boolean):
 }
 
 export function applyEvent(state: ChatState, event: ChatEvent): ChatState {
+    return applyUpdate(state, event, withItem);
+}
+
+function replayEvents(state: ChatState, events: readonly ChatEvent[]): ChatState {
+    let draft: Record<string, ChatItem> | undefined;
+    const write: ItemWriter = (current, item, structural = true) => {
+        // A text delta must leave the last structural snapshot intact, including within this replay.
+        if (draft !== current.items || (!structural && draft === current.structure)) {
+            draft = { ...current.items };
+        }
+        // Item ids may be __proto__, so this must define an own data property.
+        Object.defineProperty(draft, item.id, { value: item, enumerable: true, configurable: true, writable: true });
+        return structural ? { ...current, items: draft, structure: draft } : { ...current, items: draft };
+    };
+    for (const event of events) {
+        state = applyUpdate(state, event, write);
+    }
+    return state;
+}
+
+function applyUpdate(state: ChatState, event: ChatEvent, write: ItemWriter): ChatState {
     switch (event.type) {
         case 'item': {
             if (isBeforePage(state, event.historyIndex)) {
-                return withEarlierItem(state, event.item);
+                return withEarlierItem(state, event.item, write);
             }
             const known = event.item.id in state.items;
-            return { ...withItem(state, event.item), order: known ? state.order : [...state.order, event.item.id] };
+            return { ...write(state, event.item), order: known ? state.order : [...state.order, event.item.id] };
         }
         case 'delta': {
             const item = state.items[event.itemId];
             if (event.uiQueries && item?.kind === 'assistant') {
                 // The text first, as the daemon's thread applies it, then the metadata on what it grew into.
                 const { uiQueries, ...text } = event;
-                const grown = event.text === '' ? state : applyEvent(state, text);
+                const grown = event.text === '' ? state : applyUpdate(state, text, write);
                 const reply = grown.items[event.itemId] ?? item;
-                return { ...grown, items: { ...grown.items, [event.itemId]: { ...reply, uiQueries } as ChatItem } };
+                return write(grown, { ...reply, uiQueries } as ChatItem, false);
             }
             if (event.ui !== undefined && event.text === '') {
                 if (item?.kind === 'assistant' && item.streaming && event.textLength === item.text.length) {
-                    return { ...state, items: { ...state.items, [event.itemId]: { ...item, ui: event.ui } } };
+                    return write(state, { ...item, ui: event.ui }, false);
                 }
                 return state;
             }
@@ -219,14 +244,14 @@ export function applyEvent(state: ChatState, event: ChatEvent): ChatState {
                 const grown = { ...item, text: item.text + event.text };
                 // The first text is structure after all, since an empty reply that is not streaming has no row.
                 if (item.text === '') {
-                    return withItem(state, grown);
+                    return write(state, grown);
                 }
-                return { ...state, items: { ...state.items, [event.itemId]: grown } };
+                return write(state, grown, false);
             }
             if (item?.kind === 'tool' && item.state === 'running') {
                 const progress = item.progress ?? { startedAt: null, description: null, output: null };
                 const grown = { ...item, progress: { ...progress, output: appendToolOutput(progress.output, event.text) } };
-                return { ...state, items: { ...state.items, [event.itemId]: grown } };
+                return write(state, grown, false);
             }
             return state;
         }
@@ -280,6 +305,16 @@ export const useChats = create<ChatsStore>((set) => ({
             return { byKey: { ...s.byKey, [key]: next }, statusByKey: withStatus(s.statusByKey, key, next.info) };
         });
     },
+    replay(key, events) {
+        set((store) => {
+            const current = store.byKey[key];
+            if (!current || events.length === 0) {
+                return store;
+            }
+            const next = replayEvents(current, events);
+            return next === current ? store : { byKey: { ...store.byKey, [key]: next }, statusByKey: withStatus(store.statusByKey, key, next.info) };
+        });
+    },
     /*
      * The status of a chat this window is not reading, which the host sends for every chat it has
      * loaded. The thread stays empty until somebody attaches, since this is what a header, a list and
@@ -325,6 +360,7 @@ export function chatSink(keyOf: (chatId: string) => string): ChatSink {
         reset: (chatId, info, items, page) => useChats.getState().reset(keyOf(chatId), info, items, page),
         prepend: (chatId, cursor, page) => useChats.getState().prepend(keyOf(chatId), cursor, page),
         apply: (chatId, event) => useChats.getState().apply(keyOf(chatId), event),
+        replay: (chatId, events) => useChats.getState().replay(keyOf(chatId), events),
         status: (chatId, info) => useChats.getState().status(keyOf(chatId), info),
         bookmarks: (chatId, bookmarks) => useChats.getState().bookmarks(keyOf(chatId), bookmarks),
         visuals: (chatId, visuals) => useChats.getState().visuals(keyOf(chatId), visuals),

@@ -153,6 +153,8 @@ The CLIs and their accounts: marks, model names, the providers pane and its part
 
 The stores the views read: chats, providers, accounts and usage.
 
+`ChatSink.replay` is optional. A sink that implements it receives missed events as one ordered batch when a chat reconnects; other sinks receive the same events individually through `apply`. The built-in `chatSink` publishes the batch once, preserving earlier snapshots and the timeline's structural state. Live events still use `apply`.
+
 | Module | Exports |
 | --- | --- |
 | [`state/chats`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/state/chats.ts) | `ChatState`, `ChatsById`, `ChatStatuses`, `ChatSink`, `waitingRequestsOf`, `applyEvent`, `useChats`, `chatSink`, `useChatRow`, `ChatHistoryPage`, `ChatPage` |

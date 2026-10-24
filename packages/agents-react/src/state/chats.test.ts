@@ -27,7 +27,7 @@ function info(patch: Partial<ChatInfo> = {}): ChatInfo {
     };
 }
 
-function user(id: string, text: string): ChatItem {
+function user(id: string, text: string): Extract<ChatItem, { kind: 'user' }> {
     return { id, kind: 'user', createdAt: 0, turnId: null, text };
 }
 
@@ -358,4 +358,78 @@ test('a UI preview updates only the matching streaming text without changing tim
     expect(applyEvent(state, { ...event, textLength: text.length - 1 })).toBe(state);
     const final = applyEvent(preview, { type: 'item', item: { ...reply, ui, streaming: false } });
     expect(applyEvent(final, event)).toBe(final);
+});
+
+describe('chat replay publication', () => {
+    test('keeps old snapshots and the last structural text while replaying mixed events', () => {
+        const key = 'batch-replay';
+        const sink = chatSink(() => key);
+        const reply: ChatItem = { id: 'reply', kind: 'assistant', createdAt: 0, turnId: null, text: '', streaming: true };
+        const tool: ChatItem = {
+            id: 'tool',
+            kind: 'tool',
+            createdAt: 0,
+            turnId: null,
+            toolUseId: 'call',
+            name: 'Bash',
+            input: {},
+            state: 'running',
+            output: null,
+            parentToolUseId: null
+        };
+        sink.reset('chat', info(), [reply, tool]);
+        const previous = useChats.getState().byKey[key]!;
+        let published = 0;
+        const stop = useChats.subscribe(() => published++);
+        try {
+            sink.replay!('chat', [
+                { type: 'delta', itemId: 'reply', text: 'one' },
+                { type: 'delta', itemId: 'reply', text: ' two' },
+                { type: 'item', item: user('note', 'A message') },
+                { type: 'delta', itemId: 'reply', text: ' three', uiQueries: { authorChatId: 'chat-1', blocks: {} } },
+                { type: 'delta', itemId: 'tool', text: 'x'.repeat(65536) },
+                { type: 'delta', itemId: 'tool', text: '😀' }
+            ]);
+            const next = useChats.getState().byKey[key]!;
+            expect(published).toBe(1);
+            expect(next.items.reply).toMatchObject({ text: 'one two three', uiQueries: { authorChatId: 'chat-1', blocks: {} } });
+            expect(next.structure.reply).toMatchObject({ text: 'one two' });
+            expect(next.items.tool).toMatchObject({ progress: { output: 'x'.repeat(65534) + '😀' } });
+            expect(next.structure.tool).toEqual(tool);
+            expect(next.order).toEqual(['reply', 'tool', 'note']);
+            expect(previous.items).toEqual({ reply, tool });
+            expect(previous.order).toEqual(['reply', 'tool']);
+            sink.replay!('chat', [{ type: 'delta', itemId: 'reply', text: ' four' }]);
+            expect(next.items.reply).toMatchObject({ text: 'one two three' });
+            expect(next.structure.reply).toMatchObject({ text: 'one two' });
+            sink.replay!('chat', []);
+            expect(published).toBe(2);
+        } finally {
+            stop();
+            sink.forget('chat');
+        }
+    });
+
+    test('reset and special item ids do not reuse a prior draft or a property setter', () => {
+        const key = 'reset-replay';
+        const sink = chatSink(() => key);
+        const special = user('__proto__', 'A valid item id');
+        sink.reset('chat', info(), [user('old', 'Previous history')]);
+        const previous = useChats.getState().byKey[key]!;
+        try {
+            sink.replay!('chat', [
+                { type: 'item', item: user('first', 'Before reset') },
+                { type: 'reset', info: info(), items: [special] },
+                { type: 'item', item: { ...special, text: 'Updated' } }
+            ]);
+            const next = useChats.getState().byKey[key]!;
+            expect(next.order).toEqual(['__proto__']);
+            expect(Object.getPrototypeOf(next.items)).toBe(Object.prototype);
+            expect(Object.hasOwn(next.items, '__proto__')).toBe(true);
+            expect(next.items.__proto__).toEqual({ ...special, text: 'Updated' });
+            expect(previous.items).toEqual({ old: user('old', 'Previous history') });
+        } finally {
+            sink.forget('chat');
+        }
+    });
 });

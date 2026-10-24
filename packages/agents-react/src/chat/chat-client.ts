@@ -378,8 +378,12 @@ export class ChatClient {
         }
         entry.attached = true;
         if (result.events && since !== undefined) {
-            for (const event of result.events) {
-                this.sink.apply(chatId, event);
+            if (this.sink.replay) {
+                this.sink.replay(chatId, result.events);
+            } else {
+                for (const event of result.events) {
+                    this.sink.apply(chatId, event);
+                }
             }
         } else {
             const page =

@@ -636,7 +636,21 @@ describe('ChatClient cached history', () => {
                           ]
                       }
                     : { seq: 9 };
-            await client.open('existing', {});
+            let lastReply = row()?.items.reply;
+            const delivered: Array<ChatItem | undefined> = [];
+            const stop = useChats.subscribe(() => {
+                const current = row()?.items.reply;
+                if (current !== lastReply) {
+                    delivered.push(current);
+                    lastReply = current;
+                }
+            });
+            try {
+                await client.open('existing', {});
+            } finally {
+                stop();
+            }
+            expect(delivered).toEqual([{ ...reply, text: 'Hello world' }]);
             expect(row()?.order).toHaveLength(181);
             expect(row()?.items.reply).toMatchObject({ text: 'Hello world' });
             await client.detach('existing');
