@@ -15,6 +15,8 @@
 
 The call hierarchy requests (`prepareCallHierarchy`, `incomingCalls(uri, item)` and `outgoingCalls(uri, item)`) are optional, so a service written before them still fits. `uri` is the document the hierarchy was prepared in, which names the server to ask. A feature that needs them checks `supports('textDocument/prepareCallHierarchy', uri)` and that the methods exist.
 
+The methods that follow the newer parts of the protocol are optional for the same reason: `documentLinks`, `resolveDocumentLink`, `documentColors`, `colorPresentations`, `linkedEditingRanges`, `monikers`, `prepareTypeHierarchy`, `supertypes`, `subtypes`, `inlineValues`, `inlineCompletions`, `rangesFormatting`, `willSave`, `willSaveWaitUntil`, `workspaceDiagnostics(uri, previousResultIds?)` and `textDocumentContent(uri)`, each like the method of [`LspDocument`](/lsp/documents#requests) or `LspSession` of its name. Two of them carry what servers send: `onServerMessage(listener)` hands over each `ServerMessage`, a `window/showMessage` (`kind: 'show'`) or a `window/logMessage` (`kind: 'log'`) with its `type`, its `message` and the `source` that sent it, and `onShowDocument(handler)` lets one handler answer `window/showDocument`.
+
 Every request takes `LanguageRequestOptions`: a `signal`, and `parallel: true` for requests of one feature that should run side by side instead of each cancelling the one before, such as counting the references of several declarations. Map it to `cancelPrevious: false` when the service hands a request to an `LspDocument`.
 
 ## What a service promises

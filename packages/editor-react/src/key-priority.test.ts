@@ -142,7 +142,8 @@ describe('the keys of an editor language', () => {
             'callHierarchy',
             'symbolPicker',
             'history',
-            'renderedDocs'
+            'renderedDocs',
+            'inlineCompletion'
         ]);
     });
 });

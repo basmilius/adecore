@@ -741,6 +741,14 @@
     white-space: pre;
     cursor: default;
 }
+.se-swatch {
+    height: 12px;
+    margin-top: calc((var(--code-line-height, 20px) - 12px) / 2);
+    padding: 0;
+    border-radius: var(--radius-sm);
+    box-shadow: inset 0 0 0 1px var(--border);
+    cursor: pointer;
+}
 .se-inlay-link {
     text-decoration: underline;
     text-underline-offset: 2px;

@@ -1,7 +1,7 @@
 import type { KeymapId } from '@adecore/editor/keymap';
 import type { NavigationKind } from './navigation.ts';
 
-export type MenuRowId = NavigationKind | 'peekReferences' | 'callHierarchy' | 'renameSymbol' | 'codeActions';
+export type MenuRowId = NavigationKind | 'peekReferences' | 'callHierarchy' | 'typeHierarchy' | 'renameSymbol' | 'codeActions';
 
 export interface MenuRowSpec {
     readonly id: MenuRowId;
@@ -19,7 +19,8 @@ const GO_TO: readonly MenuRowSpec[] = [
 
 const REFERENCES: readonly MenuRowSpec[] = [
     { id: 'peekReferences', method: 'textDocument/references', shortcut: 'peekReferences' },
-    { id: 'callHierarchy', method: 'textDocument/prepareCallHierarchy', shortcut: 'callHierarchy' }
+    { id: 'callHierarchy', method: 'textDocument/prepareCallHierarchy', shortcut: 'callHierarchy' },
+    { id: 'typeHierarchy', method: 'textDocument/prepareTypeHierarchy', shortcut: 'typeHierarchy' }
 ];
 
 const CHANGES: readonly MenuRowSpec[] = [

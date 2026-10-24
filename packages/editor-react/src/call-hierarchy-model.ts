@@ -1,7 +1,12 @@
-import type { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, Range } from '@adecore/lsp';
+import type { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall, Range, TypeHierarchyItem } from '@adecore/lsp';
 
-/* Callers of a symbol, or the symbols it calls. */
-export type CallDirection = 'incoming' | 'outgoing';
+/* Callers of a symbol or the symbols it calls; or the super and sub types of a type, which the same tree draws. */
+export type CallDirection = 'incoming' | 'outgoing' | 'supertypes' | 'subtypes';
+
+/* Whether a direction walks a type hierarchy and not the calls. */
+export function isTypeDirection(direction: CallDirection): direction is 'supertypes' | 'subtypes' {
+    return direction === 'supertypes' || direction === 'subtypes';
+}
 
 /* The most calls of one level that are drawn at once; the rest wait behind a row that shows more. */
 export const CALL_LEVEL_LIMIT = 50;
@@ -94,6 +99,23 @@ export function childrenOf(direction: CallDirection, parent: CallNode, calls: re
         item: entry.item,
         sites: entry.sites,
         siteUri: direction === 'incoming' ? entry.item.uri : parent.item.uri,
+        expanded: false,
+        load: 'idle',
+        error: null,
+        children: [],
+        shown: 0
+    }));
+}
+
+/* The children of a node made from the types a server returned; a type has no call sites, so a row goes to the type itself. */
+export function typeChildrenOf(parent: CallNode, items: readonly TypeHierarchyItem[]): CallNode[] {
+    return items.map((item, index) => ({
+        id: `${parent.id}.${index}`,
+        parent: parent.id,
+        level: parent.level + 1,
+        item,
+        sites: [],
+        siteUri: null,
         expanded: false,
         load: 'idle',
         error: null,

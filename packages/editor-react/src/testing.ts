@@ -38,7 +38,24 @@ import {
     type SignatureHelpContext,
     type TextEdit,
     type WorkspaceEdit,
-    type WorkspaceSymbolResult
+    type WorkspaceSymbolResult,
+    type Color,
+    type ColorInformation,
+    type ColorPresentation,
+    type DocumentLink,
+    type InlineCompletionContext,
+    type InlineCompletionResult,
+    type InlineValue,
+    type InlineValueContext,
+    type LinkedEditingRanges,
+    type Moniker,
+    type PreviousResultId,
+    type ServerMessage,
+    type ShowDocumentParams,
+    type ShowDocumentResult,
+    type TextDocumentSaveReason,
+    type TypeHierarchyItem,
+    type WorkspaceDiagnosticReport
 } from '@adecore/lsp';
 
 export { ManualTimers } from './timers.ts';
@@ -57,6 +74,8 @@ export class FakeLanguageService implements LanguageService {
     private readonly answers = new Map<string, (call: LanguageCall) => unknown>();
     private readonly diagnostics = new Set<(report: DiagnosticsReport) => void>();
     private readonly changes = new Set<(uri: string) => void>();
+    private readonly messages = new Set<(message: ServerMessage) => void>();
+    private showDocument: ((params: ShowDocumentParams) => Promise<ShowDocumentResult>) | null = null;
 
     respond(method: string, answer: (call: LanguageCall) => unknown, provider: ProviderOptions = {}): void {
         this.answers.set(method, answer);
@@ -263,5 +282,111 @@ export class FakeLanguageService implements LanguageService {
 
     resolveCodeLens(uri: string, lens: CodeLens, options: LanguageRequestOptions = {}): Promise<CodeLens> {
         return this.request<CodeLens>('codeLens/resolve', uri, lens, options);
+    }
+
+    documentLinks(uri: string, options: LanguageRequestOptions = {}): Promise<DocumentLink[] | null> {
+        return this.request<DocumentLink[] | null>('textDocument/documentLink', uri, {}, options);
+    }
+
+    resolveDocumentLink(uri: string, link: DocumentLink, options: LanguageRequestOptions = {}): Promise<DocumentLink> {
+        return this.request<DocumentLink>('documentLink/resolve', uri, link, options);
+    }
+
+    documentColors(uri: string, options: LanguageRequestOptions = {}): Promise<ColorInformation[] | null> {
+        return this.request<ColorInformation[] | null>('textDocument/documentColor', uri, {}, options);
+    }
+
+    colorPresentations(uri: string, color: Color, range: Range, options: LanguageRequestOptions = {}): Promise<ColorPresentation[] | null> {
+        return this.request<ColorPresentation[] | null>('textDocument/colorPresentation', uri, { color, range }, options);
+    }
+
+    linkedEditingRanges(uri: string, position: Position, options: LanguageRequestOptions = {}): Promise<LinkedEditingRanges | null> {
+        return this.request<LinkedEditingRanges | null>('textDocument/linkedEditingRange', uri, { position }, options);
+    }
+
+    monikers(uri: string, position: Position, options: LanguageRequestOptions = {}): Promise<Moniker[] | null> {
+        return this.request<Moniker[] | null>('textDocument/moniker', uri, { position }, options);
+    }
+
+    prepareTypeHierarchy(uri: string, position: Position, options: LanguageRequestOptions = {}): Promise<TypeHierarchyItem[] | null> {
+        return this.request<TypeHierarchyItem[] | null>('textDocument/prepareTypeHierarchy', uri, { position }, options);
+    }
+
+    supertypes(uri: string, item: TypeHierarchyItem, options: LanguageRequestOptions = {}): Promise<TypeHierarchyItem[] | null> {
+        return this.request<TypeHierarchyItem[] | null>('typeHierarchy/supertypes', uri, { item }, options);
+    }
+
+    subtypes(uri: string, item: TypeHierarchyItem, options: LanguageRequestOptions = {}): Promise<TypeHierarchyItem[] | null> {
+        return this.request<TypeHierarchyItem[] | null>('typeHierarchy/subtypes', uri, { item }, options);
+    }
+
+    inlineValues(uri: string, range: Range, context: InlineValueContext, options: LanguageRequestOptions = {}): Promise<InlineValue[] | null> {
+        return this.request<InlineValue[] | null>('textDocument/inlineValue', uri, { range, context }, options);
+    }
+
+    inlineCompletions(
+        uri: string,
+        position: Position,
+        context: InlineCompletionContext,
+        options: LanguageRequestOptions = {}
+    ): Promise<InlineCompletionResult> {
+        return this.request<InlineCompletionResult>('textDocument/inlineCompletion', uri, { position, context }, options);
+    }
+
+    rangesFormatting(uri: string, ranges: readonly Range[], formatting: FormattingOptions, options: LanguageRequestOptions = {}): Promise<TextEdit[] | null> {
+        return this.request<TextEdit[] | null>('textDocument/rangesFormatting', uri, { ranges, options: formatting }, options);
+    }
+
+    async willSave(uri: string, reason: TextDocumentSaveReason = 1): Promise<void> {
+        this.calls.push({ method: 'textDocument/willSave', uri, params: { reason }, options: {} });
+    }
+
+    async willSaveWaitUntil(uri: string, reason: TextDocumentSaveReason = 1, options: LanguageRequestOptions = {}): Promise<TextEdit[] | null> {
+        return this.supports('textDocument/willSaveWaitUntil', uri)
+            ? this.request<TextEdit[] | null>('textDocument/willSaveWaitUntil', uri, { reason }, options)
+            : null;
+    }
+
+    workspaceDiagnostics(
+        uri: string,
+        previousResultIds: readonly PreviousResultId[] = [],
+        options: LanguageRequestOptions = {}
+    ): Promise<WorkspaceDiagnosticReport> {
+        return this.request<WorkspaceDiagnosticReport>('workspace/diagnostic', uri, { previousResultIds }, options);
+    }
+
+    async textDocumentContent(uri: string, options: LanguageRequestOptions = {}): Promise<string | null> {
+        if (!this.supports('workspace/textDocumentContent', uri)) {
+            return null;
+        }
+        return (await this.request<{ text: string } | null>('workspace/textDocumentContent', uri, { uri }, options))?.text ?? null;
+    }
+
+    onServerMessage(listener: (message: ServerMessage) => void): Disposable {
+        this.messages.add(listener);
+        return { dispose: () => this.messages.delete(listener) };
+    }
+
+    onShowDocument(handler: (params: ShowDocumentParams) => Promise<ShowDocumentResult>): Disposable {
+        this.showDocument = handler;
+        return {
+            dispose: () => {
+                if (this.showDocument === handler) {
+                    this.showDocument = null;
+                }
+            }
+        };
+    }
+
+    /* Sends a message as a server would. */
+    message(message: ServerMessage): void {
+        for (const listener of this.messages) {
+            listener(message);
+        }
+    }
+
+    /* Asks the host to show a document as a server would; false when nothing handles it. */
+    async show(params: ShowDocumentParams): Promise<boolean> {
+        return (await this.showDocument?.(params))?.success ?? false;
     }
 }

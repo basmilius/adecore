@@ -16,16 +16,31 @@ import type {
     FileOperationFilter,
     FileSystemWatcher,
     InitializeResult,
+    LogMessageParams,
+    LogTraceParams,
     LspTransport,
+    MessageActionItem,
+    NotebookDocument,
+    NotebookDocumentChangeEvent,
+    PreviousResultId,
     ProgressParams,
+    ProgressToken,
     ProviderOptions,
     PublishDiagnosticsParams,
     Registration,
     RequestOptions,
     ServerCapabilities,
+    ShowDocumentParams,
+    ShowDocumentResult,
+    ShowMessageParams,
+    ShowMessageRequestParams,
+    TextDocumentContentResult,
     TextDocumentSyncOptions,
+    TraceValue,
+    WorkspaceDiagnosticReport,
     WorkspaceEdit,
     WorkspaceFolder,
+    WorkspaceFoldersChangeEvent,
     WorkspaceSymbol,
     WorkspaceSymbolResult
 } from './protocol.ts';
@@ -53,7 +68,21 @@ export interface LspSessionOptions {
     resourceOperations?: readonly ResourceOperationKind[];
     onConfiguration?: (item: ConfigurationItem) => unknown | Promise<unknown>;
     onApplyEdit?: (params: ApplyWorkspaceEditParams) => ApplyWorkspaceEditResult | Promise<ApplyWorkspaceEditResult>;
-    onShowMessage?: (params: { type: number; message: string; actions?: { title: string }[] }) => { title: string } | null | Promise<{ title: string } | null>;
+    /* Answers `window/showMessageRequest` with the action a person chose, or null when they dismissed it. */
+    onShowMessage?: (params: ShowMessageRequestParams) => MessageActionItem | null | Promise<MessageActionItem | null>;
+    /* A message the server wants a person to read, without an answer (`window/showMessage`). */
+    onMessage?: (params: ShowMessageParams) => void;
+    /* A line for a log of the server (`window/logMessage`). */
+    onLog?: (params: LogMessageParams) => void;
+    /* A trace of the server, sent while `trace` is not `off` (`$/logTrace`). */
+    onTrace?: (params: LogTraceParams) => void;
+    onTelemetry?: (data: unknown) => void;
+    /* Shows a document or a web address the server asks for; without it the client answers that it did not. */
+    onShowDocument?: (params: ShowDocumentParams) => ShowDocumentResult | Promise<ShowDocumentResult>;
+    /* The trace level sent with `initialize`; `setTrace` changes it later. `off` by default. */
+    trace?: TraceValue;
+    /* The language of the interface, such as `en` or `nl-NL`, for the server's messages. */
+    locale?: string;
 }
 
 /* The capability that advertises each method statically. */
@@ -91,7 +120,20 @@ const PROVIDERS: Record<string, keyof ServerCapabilities> = {
     'textDocument/prepareCallHierarchy': 'callHierarchyProvider',
     'callHierarchy/incomingCalls': 'callHierarchyProvider',
     'callHierarchy/outgoingCalls': 'callHierarchyProvider',
-    'textDocument/diagnostic': 'diagnosticProvider'
+    'textDocument/diagnostic': 'diagnosticProvider',
+    'workspace/diagnostic': 'diagnosticProvider',
+    'textDocument/documentLink': 'documentLinkProvider',
+    'documentLink/resolve': 'documentLinkProvider',
+    'textDocument/documentColor': 'colorProvider',
+    'textDocument/colorPresentation': 'colorProvider',
+    'textDocument/linkedEditingRange': 'linkedEditingRangeProvider',
+    'textDocument/moniker': 'monikerProvider',
+    'textDocument/prepareTypeHierarchy': 'typeHierarchyProvider',
+    'typeHierarchy/supertypes': 'typeHierarchyProvider',
+    'typeHierarchy/subtypes': 'typeHierarchyProvider',
+    'textDocument/inlineValue': 'inlineValueProvider',
+    'textDocument/inlineCompletion': 'inlineCompletionProvider',
+    'textDocument/rangesFormatting': 'documentRangeFormattingProvider'
 };
 
 /* A method whose dynamic registration is made under the name of another. */
@@ -106,10 +148,24 @@ const REGISTRATION_METHODS: Record<string, string> = {
     'workspaceSymbol/resolve': 'workspace/symbol',
     'textDocument/semanticTokens/full': 'textDocument/semanticTokens',
     'textDocument/semanticTokens/full/delta': 'textDocument/semanticTokens',
-    'textDocument/semanticTokens/range': 'textDocument/semanticTokens'
+    'textDocument/semanticTokens/range': 'textDocument/semanticTokens',
+    'documentLink/resolve': 'textDocument/documentLink',
+    'textDocument/colorPresentation': 'textDocument/documentColor',
+    'typeHierarchy/supertypes': 'textDocument/prepareTypeHierarchy',
+    'typeHierarchy/subtypes': 'textDocument/prepareTypeHierarchy',
+    'textDocument/rangesFormatting': 'textDocument/rangeFormatting',
+    'workspace/diagnostic': 'textDocument/diagnostic'
 };
 
-const REFRESH_REQUESTS = ['workspace/semanticTokens/refresh', 'workspace/inlayHint/refresh', 'workspace/diagnostic/refresh', 'workspace/codeLens/refresh'];
+const REFRESH_REQUESTS = [
+    'workspace/semanticTokens/refresh',
+    'workspace/inlayHint/refresh',
+    'workspace/diagnostic/refresh',
+    'workspace/codeLens/refresh',
+    'workspace/inlineValue/refresh',
+    'workspace/foldingRange/refresh',
+    'workspace/textDocumentContent/refresh'
+];
 
 function matches(options: ProviderOptions, document?: Pick<DocumentItem, 'uri' | 'languageId'>): boolean {
     if (options.documentSelector == null) {
@@ -144,6 +200,12 @@ function offersMethod(method: string, options: ProviderOptions): boolean {
     if (method === 'textDocument/semanticTokens/range') {
         return !!options.range;
     }
+    if (method === 'textDocument/rangesFormatting') {
+        return options.rangesSupport === true;
+    }
+    if (method === 'workspace/diagnostic') {
+        return options.workspaceDiagnostics === true;
+    }
     return true;
 }
 
@@ -161,6 +223,7 @@ export class LspSession {
     private readonly diagnosticListeners = new Set<(params: PublishDiagnosticsParams) => void>();
     private readonly capabilityListeners = new Set<() => void>();
     private configuration: Record<string, unknown>;
+    private folders: WorkspaceFolder[] | null;
 
     constructor(transport: LspTransport, options: LspSessionOptions = {}) {
         this.options = options;
@@ -184,15 +247,18 @@ export class LspSession {
             const { items } = params as { items: ConfigurationItem[] };
             return Promise.all(items.map((item) => (options.onConfiguration ? options.onConfiguration(item) : this.readConfiguration(item.section))));
         });
+        this.folders = options.workspaceFolders ?? (options.rootUri ? [{ uri: options.rootUri, name: 'Workspace' }] : null);
         this.connection.onRequest('workspace/workspaceFolders', () => this.workspaceFolders);
         this.connection.onRequest(
             'workspace/applyEdit',
             (params) => options.onApplyEdit?.(params as ApplyWorkspaceEditParams) ?? { applied: false, failureReason: 'No workspace edit handler is attached' }
         );
-        this.connection.onRequest(
-            'window/showMessageRequest',
-            (params) => options.onShowMessage?.(params as Parameters<NonNullable<LspSessionOptions['onShowMessage']>>[0]) ?? null
-        );
+        this.connection.onRequest('window/showMessageRequest', (params) => options.onShowMessage?.(params as ShowMessageRequestParams) ?? null);
+        this.connection.onRequest('window/showDocument', (params) => options.onShowDocument?.(params as ShowDocumentParams) ?? { success: false });
+        this.connection.onNotification('window/showMessage', (params) => options.onMessage?.(params as ShowMessageParams));
+        this.connection.onNotification('window/logMessage', (params) => options.onLog?.(params as LogMessageParams));
+        this.connection.onNotification('$/logTrace', (params) => options.onTrace?.(params as LogTraceParams));
+        this.connection.onNotification('telemetry/event', (params) => options.onTelemetry?.(params));
         this.connection.onRequest('window/workDoneProgress/create', () => null);
         this.connection.onRequest('client/registerCapability', (params) => {
             const { registrations } = params as { registrations: Registration[] };
@@ -228,7 +294,7 @@ export class LspSession {
     }
 
     get workspaceFolders(): WorkspaceFolder[] | null {
-        return this.options.workspaceFolders ?? (this.options.rootUri ? [{ uri: this.options.rootUri, name: 'Workspace' }] : null);
+        return this.folders === null ? null : [...this.folders];
     }
 
     get syncOptions(): TextDocumentSyncOptions {
@@ -251,6 +317,8 @@ export class LspSession {
                     rootUri: this.options.rootUri ?? null,
                     workspaceFolders: this.workspaceFolders,
                     clientInfo: this.options.clientInfo ?? { name: '@adecore/lsp' },
+                    locale: this.options.locale,
+                    trace: this.options.trace ?? 'off',
                     capabilities: clientCapabilities(this.options),
                     initializationOptions: this.options.initializationOptions
                 });
@@ -297,7 +365,14 @@ export class LspSession {
                 candidates.push(registration.registerOptions ?? {});
             }
         }
-        const provider = this.serverCapabilities[PROVIDERS[method]];
+        if (method === 'textDocument/willSaveWaitUntil' && this.syncOptions.willSaveWaitUntil) {
+            candidates.push({});
+        }
+        const content = this.serverCapabilities.workspace?.textDocumentContent;
+        if (method === 'workspace/textDocumentContent' && content !== undefined) {
+            candidates.push({ schemes: content.schemes });
+        }
+        const provider = PROVIDERS[method] === undefined ? undefined : this.serverCapabilities[PROVIDERS[method]];
         if (provider === true) {
             candidates.push({});
         } else if (provider && typeof provider === 'object' && matches(provider as ProviderOptions, document)) {
@@ -339,6 +414,103 @@ export class LspSession {
             return Promise.reject(new LspError('Server does not support workspace symbol resolution', ErrorCodes.MethodNotFound));
         }
         return this.request('workspaceSymbol/resolve', symbol, options);
+    }
+
+    /*
+     * The diagnostics of every file of the project, for a server that offers them. `previousResultIds` are what the
+     * client last heard per document, so the server can answer `unchanged`; `onPartialResult` streams reports while it works.
+     */
+    workspaceDiagnostics(
+        previousResultIds: readonly PreviousResultId[] = [],
+        identifier?: string,
+        options?: RequestOptions
+    ): Promise<WorkspaceDiagnosticReport> {
+        if (!this.supports('workspace/diagnostic')) {
+            return Promise.reject(new LspError('Server does not support workspace diagnostics', ErrorCodes.MethodNotFound));
+        }
+        return this.request('workspace/diagnostic', { identifier, previousResultIds: [...previousResultIds] }, options);
+    }
+
+    /* The text of a document of a scheme the server owns, such as a decompiled class, which is shown read-only. */
+    textDocumentContent(uri: string, options?: RequestOptions): Promise<TextDocumentContentResult> {
+        const scheme = uri.slice(0, Math.max(0, uri.indexOf(':')));
+        if (!this.providerOptions('workspace/textDocumentContent')?.schemes?.includes(scheme)) {
+            return Promise.reject(new LspError(`Server does not serve documents of ${scheme}:`, ErrorCodes.MethodNotFound));
+        }
+        return this.request('workspace/textDocumentContent', { uri }, options);
+    }
+
+    /* Changes the trace level the server sends `$/logTrace` at. */
+    setTrace(value: TraceValue): Promise<void> {
+        return this.notify('$/setTrace', { value });
+    }
+
+    /* Asks the server to stop work it reported as cancellable under `token`. */
+    cancelWorkDoneProgress(token: ProgressToken): Promise<void> {
+        return this.notify('window/workDoneProgress/cancel', { token });
+    }
+
+    /* Adds and removes folders of the workspace, and tells a server that asked to hear about it. */
+    async changeWorkspaceFolders(event: WorkspaceFoldersChangeEvent): Promise<void> {
+        const removed = new Set(event.removed.map((folder) => fileUriKey(folder.uri)));
+        const kept = (this.folders ?? []).filter((folder) => !removed.has(fileUriKey(folder.uri)));
+        const known = new Set(kept.map((folder) => fileUriKey(folder.uri)));
+        this.folders = [...kept, ...event.added.filter((folder) => !known.has(fileUriKey(folder.uri)))];
+        const notifications = this.serverCapabilities.workspace?.workspaceFolders?.changeNotifications;
+        const registered = [...this.registrations.values()].some((registration) => registration.method === 'workspace/didChangeWorkspaceFolders');
+        if (this.phase === 'ready' && (notifications === true || typeof notifications === 'string' || registered)) {
+            await this.notify('workspace/didChangeWorkspaceFolders', { event: { added: [...event.added], removed: [...event.removed] } });
+        }
+    }
+
+    /* Whether the server synchronizes notebooks of this type and scheme; the `notebook*` methods do nothing for one it does not. */
+    syncsNotebook(notebook: Pick<NotebookDocument, 'uri' | 'notebookType'>): boolean {
+        const selectors = this.serverCapabilities.notebookDocumentSync?.notebookSelector ?? [];
+        const scheme = notebook.uri.slice(0, Math.max(0, notebook.uri.indexOf(':')));
+        return selectors.some(({ notebook: filter }) => {
+            if (filter === undefined) {
+                return true;
+            }
+            if (typeof filter === 'string') {
+                return filter === '*' || filter === notebook.notebookType;
+            }
+            return (
+                (!filter.notebookType || filter.notebookType === notebook.notebookType) &&
+                (!filter.scheme || filter.scheme === scheme) &&
+                (!filter.pattern || globMatch(decodeURIComponent(new URL(notebook.uri).pathname), filter.pattern))
+            );
+        });
+    }
+
+    /* Opens a notebook with the documents of its cells, which do not go through `openDocument`. */
+    async openNotebook(notebook: NotebookDocument, cellTextDocuments: readonly DocumentItem[]): Promise<void> {
+        if (this.syncsNotebook(notebook)) {
+            await this.notify('notebookDocument/didOpen', {
+                notebookDocument: notebook,
+                cellTextDocuments: cellTextDocuments.map((item) => ({ ...item, version: item.version ?? 0 }))
+            });
+        }
+    }
+
+    async changeNotebook(notebook: Pick<NotebookDocument, 'uri' | 'notebookType' | 'version'>, change: NotebookDocumentChangeEvent): Promise<void> {
+        if (this.syncsNotebook(notebook)) {
+            await this.notify('notebookDocument/didChange', { notebookDocument: { uri: notebook.uri, version: notebook.version }, change });
+        }
+    }
+
+    async saveNotebook(notebook: Pick<NotebookDocument, 'uri' | 'notebookType'>): Promise<void> {
+        if (this.syncsNotebook(notebook) && this.serverCapabilities.notebookDocumentSync?.save === true) {
+            await this.notify('notebookDocument/didSave', { notebookDocument: { uri: notebook.uri } });
+        }
+    }
+
+    async closeNotebook(notebook: Pick<NotebookDocument, 'uri' | 'notebookType'>, cellUris: readonly string[]): Promise<void> {
+        if (this.syncsNotebook(notebook)) {
+            await this.notify('notebookDocument/didClose', {
+                notebookDocument: { uri: notebook.uri },
+                cellTextDocuments: cellUris.map((uri) => ({ uri }))
+            });
+        }
     }
 
     async setConfiguration(settings: Record<string, unknown>): Promise<void> {
@@ -525,7 +697,13 @@ function clientCapabilities(options: LspSessionOptions): object {
     const dynamic = { dynamicRegistration: true };
     const symbolKind = { valueSet: Array.from({ length: 26 }, (_, index) => index + 1) };
     return {
-        general: { positionEncodings: ['utf-16'] },
+        general: {
+            positionEncodings: ['utf-16'],
+            staleRequestSupport: { cancel: true, retryOnContentModified: [] },
+            regularExpressions: { engine: 'ECMAScript', version: 'ES2020' },
+            markdown: { parser: 'remark', version: '15' }
+        },
+        notebookDocument: { synchronization: { dynamicRegistration: false, executionSummarySupport: true } },
         workspace: {
             applyEdit: !!options.onApplyEdit,
             workspaceEdit: { documentChanges: true, resourceOperations: [...(options.resourceOperations ?? ['create', 'rename'])], failureHandling: 'abort' },
@@ -546,11 +724,18 @@ function clientCapabilities(options: LspSessionOptions): object {
             semanticTokens: { refreshSupport: true },
             inlayHint: { refreshSupport: true },
             codeLens: { refreshSupport: true },
-            diagnostics: { refreshSupport: true }
+            diagnostics: { refreshSupport: true },
+            inlineValue: { refreshSupport: true },
+            foldingRange: { refreshSupport: true },
+            textDocumentContent: { dynamicRegistration: false }
         },
-        window: { workDoneProgress: true, showMessage: { messageActionItem: { additionalPropertiesSupport: false } } },
+        window: {
+            workDoneProgress: true,
+            showMessage: { messageActionItem: { additionalPropertiesSupport: false } },
+            showDocument: { support: !!options.onShowDocument }
+        },
         textDocument: {
-            synchronization: { dynamicRegistration: false, didSave: true },
+            synchronization: { dynamicRegistration: false, willSave: true, willSaveWaitUntil: true, didSave: true },
             publishDiagnostics: {
                 versionSupport: true,
                 relatedInformation: true,
@@ -562,6 +747,7 @@ function clientCapabilities(options: LspSessionOptions): object {
                 ...dynamic,
                 contextSupport: true,
                 insertTextMode: 1,
+                completionItemKind: { valueSet: Array.from({ length: 25 }, (_, index) => index + 1) },
                 ...(options.completionItemDefaults?.length ? { completionList: { itemDefaults: [...options.completionItemDefaults] } } : {}),
                 completionItem: {
                     snippetSupport: options.snippetSupport ?? false,
@@ -569,6 +755,7 @@ function clientCapabilities(options: LspSessionOptions): object {
                     commitCharactersSupport: true,
                     documentationFormat: ['markdown', 'plaintext'],
                     deprecatedSupport: true,
+                    tagSupport: { valueSet: [1] },
                     preselectSupport: true,
                     insertReplaceSupport: true,
                     labelDetailsSupport: true,
@@ -616,11 +803,23 @@ function clientCapabilities(options: LspSessionOptions): object {
                 },
                 resolveSupport: { properties: ['edit', 'command'] }
             },
-            codeLens: dynamic,
+            codeLens: { ...dynamic, resolveSupport: { properties: ['command'] } },
             formatting: dynamic,
-            rangeFormatting: dynamic,
+            rangeFormatting: { ...dynamic, rangesSupport: true },
             onTypeFormatting: dynamic,
-            foldingRange: { ...dynamic, lineFoldingOnly: false, foldingRange: { collapsedText: false } },
+            foldingRange: {
+                ...dynamic,
+                lineFoldingOnly: false,
+                foldingRangeKind: { valueSet: ['comment', 'imports', 'region'] },
+                foldingRange: { collapsedText: false }
+            },
+            documentLink: { ...dynamic, tooltipSupport: true },
+            colorProvider: dynamic,
+            linkedEditingRange: dynamic,
+            moniker: dynamic,
+            typeHierarchy: dynamic,
+            inlineValue: dynamic,
+            inlineCompletion: dynamic,
             selectionRange: dynamic,
             semanticTokens: {
                 ...dynamic,
