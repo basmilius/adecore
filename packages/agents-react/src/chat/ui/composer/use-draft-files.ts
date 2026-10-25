@@ -5,8 +5,10 @@ import type { ProviderCapabilities } from '@adecore/agent-contracts';
 import { useChatHost } from '../../../host';
 import { checkAttachmentLimits, filesOf, readAttachments, uploadBytes } from '../../attachments';
 import { pasteBecomesAttachment, pastedTextName } from '../../guards';
-import { carriesMentions, droppedMentions, pastedMentions } from '../../mentions';
+import type { Referable } from '../../chat-references';
+import { carriesMentions, droppedMentions, pastedMentions, readClipboardChips, type ReferenceToken } from '../../mentions';
 import type { ComposerInputHandle } from '../ComposerInput';
+import { copyWithChipsFromEditor, pasteWithChips, withPastedChips, type PasteChoices } from './chip-paste';
 import type { ComposerDraft } from './use-composer-draft';
 
 /* The card turns dropped files and paths into attachments and chips; CodeMirror would also paste their text at the drop point. */
@@ -21,10 +23,28 @@ interface DraftFilesInput {
     draft: ComposerDraft;
     inputRef: RefObject<ComposerInputHandle | null>;
     setNotice(notice: string): void;
+    /* The skills there are and what `#` points at, which a paste makes chips of. */
+    skills: readonly string[];
+    referables: readonly Referable[];
+    /* The draft's `#` picks under the names the text spells them by. */
+    referenceChips: readonly ReferenceToken[];
 }
 
-/* What reaches the draft besides typing: files as attachments, dragged paths as mentions, and a long paste as a file of its own. */
-export function useDraftFiles({ capabilities, providerName, writable, draft: { draft, setDraft, setText }, inputRef, setNotice }: DraftFilesInput) {
+/*
+ * What reaches the draft besides typing: files as attachments, dragged paths as mentions, a long paste
+ * as a file of its own, and the chips a copy carried or a pasted text spells.
+ */
+export function useDraftFiles({
+    capabilities,
+    providerName,
+    writable,
+    draft: { draft, setDraft, setText },
+    inputRef,
+    setNotice,
+    skills,
+    referables,
+    referenceChips
+}: DraftFilesInput) {
     const { t } = useTranslation('agent-chat');
     const { isApplePlatform } = useChatHost();
     const [dragging, setDragging] = useState(false);
@@ -94,7 +114,19 @@ export function useDraftFiles({ capabilities, providerName, writable, draft: { d
         }
         // Without attachments there is nowhere else for the text to go, so it pastes as it always did.
         if (inline || capabilities?.attachments === false || !pasteBecomesAttachment(clip)) {
-            return false;
+            const choices: PasteChoices = {
+                skills,
+                referables,
+                referenced: [...draft.chats, ...draft.references],
+                mentions: capabilities?.mentions !== false
+            };
+            const chips = pasteWithChips(view, clip, readClipboardChips(data), choices);
+            if (chips === null) {
+                return false;
+            }
+            // After the editor's own change, which reads the draft as it was rendered.
+            setDraft((current) => withPastedChips(current, chips, choices));
+            return true;
         }
         // The paste still replaces what was selected; it just puts nothing in its place.
         const { from, to } = view.state.selection.main;
@@ -105,6 +137,8 @@ export function useDraftFiles({ capabilities, providerName, writable, draft: { d
         addFiles([new File([clip], name, { type: 'text/plain' })]);
         return true;
     };
+
+    const onCopy = (e: ClipboardEvent, view: EditorView): boolean => copyWithChipsFromEditor(e, view, draft, referenceChips);
 
     /* The whole card takes a dropped file, so a layout around it that takes drops of its own leaves it alone. */
     const dropTarget = {
@@ -131,5 +165,5 @@ export function useDraftFiles({ capabilities, providerName, writable, draft: { d
         }
     };
 
-    return { dragging, dropTarget, addFiles, noteKey, onPaste };
+    return { dragging, dropTarget, addFiles, noteKey, onPaste, onCopy };
 }

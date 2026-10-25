@@ -9,8 +9,10 @@ import { markdownOf, messageTextOf } from '../logic/timeline-copy';
 import { useChatHost } from '../../host';
 import { useChatScope } from '../../scope';
 import { useChatRow, useChats } from '../../state/chats';
-import { ButtonGroup, copyText, IconButton, Tooltip } from '@adecore/ui';
+import { ButtonGroup, IconButton, Tooltip } from '@adecore/ui';
 import { formatClock, formatDateTime, useFormatLocale } from '@adecore/ui/format';
+import { copyWithChips, messageClipboardChips } from './chip-clipboard';
+import { useReferenceLookup } from './thread-references';
 import { TIMESTAMP_FORMAT } from './timestamp-format';
 
 const COPIED_MS = 1500;
@@ -40,6 +42,7 @@ export function MessageActions({ chatId, row }: { chatId: string; row: MessageRo
     const bookmarked = bookmarks?.some((candidate) => candidate.itemId === row.id) === true;
     const canFork = turnId !== null && forkRefusal(info, turn) === null;
     const [copied, setCopied] = useState(false);
+    const lookup = useReferenceLookup(chatId);
 
     useEffect(() => {
         if (!copied) {
@@ -55,7 +58,7 @@ export function MessageActions({ chatId, row }: { chatId: string; row: MessageRo
         const current = item?.kind === row.kind ? ({ ...row, item } as MessageRow) : row;
         const text = (plain ? null : markdownOf(current)) ?? messageTextOf(current);
         if (text !== null) {
-            copyText(text);
+            copyWithChips(messageClipboardChips(current.item, text, lookup));
             setCopied(true);
         }
     };

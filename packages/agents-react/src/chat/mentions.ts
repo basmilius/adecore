@@ -23,6 +23,72 @@ export function writeMentionDrag(data: Pick<DataTransfer, 'setData'>, paths: rea
     }
 }
 
+/* Beside the plain text of a copy from a thread or a composer: the chips in it, so a paste makes them chips again. */
+export const CHIPS_CLIPBOARD_TYPE = 'application/x-adecore-chips';
+
+export interface ClipboardChips {
+    text: string;
+    mentions: string[];
+    skills: string[];
+    references: ReferenceToken[];
+}
+
+/* The chips among `segments`, without doubles, for the copy of `text`. */
+export function clipboardChipsOf(text: string, segments: readonly ChipSegment[]): ClipboardChips {
+    const chips: ClipboardChips = { text, mentions: [], skills: [], references: [] };
+    for (const segment of segments) {
+        if (segment.kind === 'mention' && !chips.mentions.includes(segment.path)) {
+            chips.mentions.push(segment.path);
+        } else if (segment.kind === 'skill' && !chips.skills.includes(segment.name)) {
+            chips.skills.push(segment.name);
+        } else if (segment.kind === 'reference' && !chips.references.some((token) => token.id === segment.id)) {
+            chips.references.push({ id: segment.id, name: segment.name });
+        }
+    }
+    return chips;
+}
+
+export function hasClipboardChips(chips: ClipboardChips): boolean {
+    return chips.mentions.length > 0 || chips.skills.length > 0 || chips.references.length > 0;
+}
+
+export function writeClipboardChips(data: Pick<DataTransfer, 'setData'>, chips: ClipboardChips): void {
+    data.setData('text/plain', chips.text);
+    data.setData(CHIPS_CLIPBOARD_TYPE, JSON.stringify(chips));
+}
+
+const lines = (text: string): string => text.replace(/\r\n/g, '\n');
+
+const isStrings = (value: unknown): value is string[] => Array.isArray(value) && value.every((entry) => typeof entry === 'string');
+
+/* The chips of a paste, or null when it has none or its plain text is no longer the text they were copied with. */
+export function readClipboardChips(data: Pick<DataTransfer, 'getData'>): ClipboardChips | null {
+    const raw = data.getData(CHIPS_CLIPBOARD_TYPE);
+    if (raw === '') {
+        return null;
+    }
+    let parsed: unknown;
+    try {
+        parsed = JSON.parse(raw);
+    } catch {
+        return null;
+    }
+    if (typeof parsed !== 'object' || parsed === null) {
+        return null;
+    }
+    const { text, mentions, skills, references } = parsed as Record<string, unknown>;
+    const tokens = Array.isArray(references)
+        ? references.filter(
+              (token): token is ReferenceToken =>
+                  typeof token === 'object' && token !== null && typeof token.id === 'string' && typeof token.name === 'string' && token.name !== ''
+          )
+        : [];
+    if (typeof text !== 'string' || lines(text) !== lines(data.getData('text/plain')) || !isStrings(mentions) || !isStrings(skills)) {
+        return null;
+    }
+    return { text: lines(text), mentions, skills, references: tokens.map(({ id, name }) => ({ id, name })) };
+}
+
 export interface MentionQuery {
     // Index of the sigil in the text.
     start: number;
@@ -45,15 +111,20 @@ function isBoundary(char: string | undefined): boolean {
     return char === undefined || /\s/.test(char);
 }
 
+const TOKEN_END = /[.,;:!?)\]}"'”’]/;
+
 // A path at the end of a sentence still counts, so "open @a.ts." is a mention of a.ts.
 function isTokenEnd(char: string | undefined): boolean {
-    return isBoundary(char) || /[.,;:!?)]/.test(char!);
+    return isBoundary(char) || TOKEN_END.test(char!);
 }
+
+// A path goes on after a dot or a colon (`a.ts`, `C:`), so only the rest ends a file query.
+const PATH_GOES_ON = /[.:]$/;
 
 /*
  * The `<sigil>word` the caret sits in, if any. The sigil has to open a word (start of text or after
- * whitespace) so an email address never opens the picker, and the word may not have been
- * closed with whitespace yet.
+ * whitespace) so an email address never opens the picker, and the word may not have been closed
+ * with whitespace or the punctuation that ends a token (`#Admin?`) yet.
  */
 function findQuery(text: string, caret: number, sigil: string): MentionQuery | null {
     const before = text.slice(0, caret);
@@ -65,7 +136,15 @@ function findQuery(text: string, caret: number, sigil: string): MentionQuery | n
     if (/\s/.test(query) || !isBoundary(text[caret])) {
         return null;
     }
+    if (query !== '' && isTokenEnd(query.at(-1)) && !(sigil === '@' && PATH_GOES_ON.test(query))) {
+        return null;
+    }
     return { start: at, query };
+}
+
+/* The query, unless its sigil opens a token that is already a chip, which the picker has nothing to add to. */
+export function queryOutsideChips(query: MentionQuery | null, chips: readonly ChipRange[]): MentionQuery | null {
+    return query !== null && chips.some((chip) => chip.from === query.start) ? null : query;
 }
 
 export function findMentionQuery(text: string, caret: number): MentionQuery | null {
@@ -252,9 +331,59 @@ function segmentOf(text: string, range: ChipRange): ChipSegment {
 
 /* Splits the text so a renderer can draw the mentions, skills and references as chips. */
 export function tokenizeChips(text: string, mentions: string[], skills: string[] = [], references: readonly ReferenceToken[] = []): ChipSegment[] {
+    return segmentsOf(text, chipRanges(text, mentions, skills, [], references));
+}
+
+// What a `#` may follow in a text nobody typed through the picker: a space, or an opening bracket or quote.
+const REFERENCE_OPENER = /[\s([{"'“‘]/;
+
+/*
+ * Where a text written without the picker, such as a reply, spells `#Name` for a view, node or chat
+ * by exactly its name. The longest name wins, so a name with a space is found whole. A name more
+ * than one of them carries stays text, unless one of those is in `referenced`, which then wins.
+ */
+export function namedReferenceRanges(
+    text: string,
+    items: readonly ReferenceToken[],
+    referenced: readonly string[] = [],
+    excluded: readonly TextRange[] = []
+): ChipRange[] {
+    const byName = new Map<string, string[]>();
+    for (const item of items) {
+        if (item.name !== '') {
+            byName.set(item.name, [...(byName.get(item.name) ?? []), item.id]);
+        }
+    }
+    const names = [...byName.keys()].sort((a, b) => b.length - a.length);
+    const preferred = new Set(referenced);
+    const ranges: ChipRange[] = [];
+    let index = text.indexOf('#');
+    while (index >= 0) {
+        const from = index;
+        const name =
+            from > 0 && !REFERENCE_OPENER.test(text[from - 1]!)
+                ? undefined
+                : names.find((candidate) => text.startsWith(candidate, from + 1) && isTokenEnd(text[from + 1 + candidate.length]));
+        const to = name === undefined ? from + 1 : from + 1 + name.length;
+        const ids = name === undefined ? [] : byName.get(name)!;
+        const id = ids.find((candidate) => preferred.has(candidate)) ?? (ids.length === 1 ? ids[0] : undefined);
+        if (id !== undefined && !excluded.some((range) => from < range.to && to > range.from)) {
+            ranges.push({ from, to, kind: 'reference', value: id });
+        }
+        index = text.indexOf('#', to);
+    }
+    return ranges;
+}
+
+/* `namedReferenceRanges` as segments, for a renderer. */
+export function tokenizeNamedReferences(text: string, items: readonly ReferenceToken[], referenced: readonly string[] = []): ChipSegment[] {
+    return segmentsOf(text, namedReferenceRanges(text, items, referenced));
+}
+
+function segmentsOf(text: string, ranges: readonly ChipRange[]): ChipSegment[] {
     const segments: ChipSegment[] = [];
     let cursor = 0;
-    for (const range of chipRanges(text, mentions, skills, [], references)) {
+    for (const range of ranges) {
         if (range.from > cursor) {
             segments.push({ kind: 'text', text: text.slice(cursor, range.from) });
         }

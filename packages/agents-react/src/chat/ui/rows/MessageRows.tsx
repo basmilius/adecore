@@ -18,7 +18,6 @@ import { useChatScope } from '../../../scope';
 import { splitQuote } from '../../quote';
 import { jumpToTimelineItem } from '../../timeline-scroll';
 import { useProviders } from '../../../state/providers';
-import { useChatHost } from '../../../host';
 import { referenceTokens } from '../../chat-references';
 import { presentReferences } from '../../mentions';
 import { ReferenceChip } from '../ReferenceChip';
@@ -37,7 +36,9 @@ import { ROW_GUTTER } from '../icons';
 import { useOpenForFind } from '../find-reveal';
 import { ReplyContext, UiReplyNavigationContext } from '../reply-context';
 import { UiReply } from '../intelligent-ui/UiReply';
-import { useHostAttachmentUrl, useHostChatPlace, useHostReferables, useHostReplyAuthor, useHostStreaming } from '../../../host-hooks';
+import { useHostAttachmentUrl, useHostChatPlace, useHostReplyAuthor, useHostStreaming } from '../../../host-hooks';
+import { copySelectionWithChips } from '../chip-clipboard';
+import { useReferenceLookup } from '../thread-references';
 
 // A long prompt folds so the answer stays in view; the reader can open it.
 const USER_FOLD_LINES = 8;
@@ -94,15 +95,13 @@ export function UserRow({ chatId, item }: { chatId: string; item: ChatUserItem }
     const long = item.text.split('\n').length > USER_FOLD_LINES || item.text.length > USER_FOLD_CHARS;
     const attachments = item.attachments ?? [];
     const [missing, setMissing] = useState(false);
-    const { id: scopeId, keyOf } = useChatScope();
-    const { openReference } = useChatHost();
-    const referables = useHostReferables(scopeId, chatId);
+    const { keyOf } = useChatScope();
+    const lookup = useReferenceLookup(chatId);
     const referenced = [...(item.chats ?? []), ...(item.references ?? [])];
-    const references = referenceTokens(referenced, referables.items);
+    const references = referenceTokens(referenced, lookup.items);
     // A chat attached before `#` existed, or a view renamed or gone since, is not in the text; it stands beside it.
     const placed = presentReferences(item.text, referenced, references);
     const beside = referenced.filter((id) => !placed.includes(id));
-    const lookup = { items: referables.items, open: openReference ? (id: string) => openReference(scopeId, id) : null };
     useOpenForFind(item.id, 'text', setOpen);
     // A quote only leads somewhere when the message still opens with the blockquote it was sent with.
     const quoted = item.quoteSource === undefined ? null : splitQuote(item.text);
@@ -116,7 +115,7 @@ export function UserRow({ chatId, item }: { chatId: string; item: ChatUserItem }
     }
     return (
         <ReferenceLookupContext value={lookup}>
-            <div data-find-item={item.id} className="flex flex-col items-end">
+            <div data-find-item={item.id} className="flex flex-col items-end" onCopy={(e) => copySelectionWithChips(e.nativeEvent)}>
                 <MessageHeading>{t('rows.user.heading')}</MessageHeading>
                 {attachments.length > 0 && (
                     <div className="mb-1.5 flex max-w-[80%] flex-wrap justify-end gap-1.5">
@@ -277,10 +276,12 @@ function Writing() {
  * A reply. A word at a time, it follows the text as it arrives. A block at a time, the blocks that
  * closed are drawn and fade in as they land, with "Writing…" where the next one will stand. Whole,
  * it says it is being written and fades in once it is done. Only a row that saw the reply being
- * written fades anything: an old reply scrolled back into view just stands there.
+ * written fades anything: an old reply scrolled back into view just stands there. A `#Name` it
+ * spells for a view, node or chat of the project is a chip that opens it.
  */
 export function AssistantRow({ chatId, item: derived }: { chatId: string; item: ChatAssistantItem }) {
     const item = useCurrentItem(chatId, derived);
+    const lookup = useReferenceLookup(chatId);
     const scope = useChatScope();
     const context = useContext(ReplyContext);
     const reply = context === null && !item.parentToolUseId ? { scopeId: scope.id, chatId, itemId: item.id, streaming: item.streaming } : undefined;
@@ -310,11 +311,13 @@ export function AssistantRow({ chatId, item: derived }: { chatId: string; item: 
     if (mode === 'blocks') {
         const settled = item.streaming ? settledBlocksText(item.text) : item.text;
         return (
-            <div data-find-item={item.id} className="-mx-1 px-1 pb-2">
+            <div data-find-item={item.id} className="-mx-1 px-1 pb-2" onCopy={(e) => copySelectionWithChips(e.nativeEvent)}>
                 <ReplyHeading chatId={chatId} />
                 {settled !== '' && (
                     <div data-find-field="text" data-quote-answer className="contents">
-                        <ReplyMarkdown text={settled} streaming={false} arriving={sawWriting} reply={reply} />
+                        <ReferenceLookupContext value={lookup}>
+                            <ReplyMarkdown text={settled} streaming={false} arriving={sawWriting} reply={reply} />
+                        </ReferenceLookupContext>
                     </div>
                 )}
                 {item.streaming && <Writing />}
@@ -330,10 +333,16 @@ export function AssistantRow({ chatId, item: derived }: { chatId: string; item: 
         );
     }
     return (
-        <div data-find-item={item.id} className={clsx('-mx-1 px-1 pb-2', mode === 'whole' && sawWriting && WHOLE_FADE_CLASS)}>
+        <div
+            data-find-item={item.id}
+            className={clsx('-mx-1 px-1 pb-2', mode === 'whole' && sawWriting && WHOLE_FADE_CLASS)}
+            onCopy={(e) => copySelectionWithChips(e.nativeEvent)}
+        >
             <ReplyHeading chatId={chatId} />
             <div data-find-field="text" data-quote-answer className="contents">
-                <ReplyMarkdown text={reveal.text} streaming={reveal.active} reply={reply} />
+                <ReferenceLookupContext value={lookup}>
+                    <ReplyMarkdown text={reveal.text} streaming={reveal.active} reply={reply} />
+                </ReferenceLookupContext>
             </div>
             {live && item.text === '' && <span className="inline-block h-3.5 w-1.5 animate-pulse rounded-sm bg-text-faint align-middle" />}
         </div>

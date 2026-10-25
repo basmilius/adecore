@@ -1,4 +1,4 @@
-import { chipText, tokenizeChips, type ChipSegment, type ReferenceToken } from '../mentions';
+import { chipText, tokenizeChips, tokenizeNamedReferences, type ChipSegment, type ReferenceToken } from '../mentions';
 
 /* Just the part of hast this plugin touches; the package's own types are not a dependency here. */
 interface HastText {
@@ -25,6 +25,12 @@ export interface ChipOptions {
     references?: readonly ReferenceToken[];
 }
 
+export interface NamedReferenceOptions {
+    items: readonly ReferenceToken[];
+    /* Ids a person pointed at with `#` in the thread, which win over another of the same name. */
+    referenced?: readonly string[];
+}
+
 function valueOf(segment: Exclude<ChipSegment, { kind: 'text' }>): string {
     if (segment.kind === 'mention') {
         return segment.path;
@@ -34,6 +40,9 @@ function valueOf(segment: Exclude<ChipSegment, { kind: 'text' }>): string {
 
 // Inline code overrules a chip: `@a.ts` between backticks is code, not a mention.
 const SKIPPED = new Set(['code', 'pre']);
+
+// A link already leads somewhere of its own.
+const SKIPPED_IN_REPLIES = new Set(['code', 'pre', 'a']);
 
 /* A chip as an element: the renderer reads `data-chip` and `data-value` (a reference's id), the text keeps the sigil. */
 function chipElement(segment: Exclude<ChipSegment, { kind: 'text' }>): HastElement {
@@ -45,15 +54,13 @@ function chipElement(segment: Exclude<ChipSegment, { kind: 'text' }>): HastEleme
     };
 }
 
-function split(parent: HastParent, mentions: string[], skills: string[], references: readonly ReferenceToken[]): void {
+function split(parent: HastParent, tokenize: (text: string) => ChipSegment[], skipped: ReadonlySet<string>): void {
     parent.children = parent.children.flatMap((child): HastNode[] => {
         if (child.type === 'text') {
-            return tokenizeChips(child.value, mentions, skills, references).map((segment) =>
-                segment.kind === 'text' ? { type: 'text', value: segment.text } : chipElement(segment)
-            );
+            return tokenize(child.value).map((segment) => (segment.kind === 'text' ? { type: 'text', value: segment.text } : chipElement(segment)));
         }
-        if (child.type === 'element' && !SKIPPED.has(child.tagName)) {
-            split(child, mentions, skills, references);
+        if (child.type === 'element' && !skipped.has(child.tagName)) {
+            split(child, tokenize, skipped);
         }
         return [child];
     });
@@ -65,6 +72,16 @@ export function rehypeChips({ mentions = [], skills = [], references = [] }: Chi
         if (mentions.length === 0 && skills.length === 0 && references.length === 0) {
             return;
         }
-        split(tree, mentions, skills, references);
+        split(tree, (text) => tokenizeChips(text, mentions, skills, references), SKIPPED);
+    };
+}
+
+/* The `#Name` a reply spells for a view, node or chat by exactly its name, cut out of the text as chips. */
+export function rehypeNamedReferences({ items, referenced = [] }: NamedReferenceOptions) {
+    return (tree: HastParent) => {
+        if (items.length === 0) {
+            return;
+        }
+        split(tree, (text) => (text.includes('#') ? tokenizeNamedReferences(text, items, referenced) : [{ kind: 'text', text }]), SKIPPED_IN_REPLIES);
     };
 }

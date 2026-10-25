@@ -1,16 +1,17 @@
-import { createContext, memo, useContext, type ReactNode } from 'react';
+import { createContext, memo, useContext, type ComponentProps, type ReactNode } from 'react';
 import clsx from 'clsx';
 import { Zap } from 'lucide-react';
 import ReactMarkdown, { type Components, type ExtraProps, type Options } from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
-import { CHIP_IN_MESSAGE, MENTION_TONE, SKILL_TONE } from './chips';
+import { MENTION_TONE, SKILL_TONE, TOKEN_ICON } from './chips';
 import { CodeBlock } from './CodeBlock';
 import { MermaidBlock } from './MermaidBlock';
 import { CodeStreamingContext } from './code-streaming';
 import { splitMarkdownBlocks } from './markdown-blocks';
-import { ReferenceChip } from './ReferenceChip';
-import { rehypeChips, type ChipOptions } from './rehype-chips';
+import { ReferenceChip, TokenChip } from './ReferenceChip';
+import { ReferenceLookupContext } from './reference-lookup';
+import { rehypeChips, rehypeNamedReferences, type ChipOptions, type NamedReferenceOptions } from './rehype-chips';
 import type { ReferenceToken } from '../mentions';
 import { rehypeFadeWords } from './rehype-fade';
 import { remarkHtmlAsText } from './remark-html-as-text';
@@ -266,6 +267,7 @@ function replyHeading(level: 1 | 2 | 3 | 4 | 5 | 6) {
 const replyComponents = {
     ...components,
     code: ReplyCode,
+    span: ChipSpan,
     h1: replyHeading(1),
     h2: replyHeading(2),
     h3: replyHeading(3),
@@ -302,30 +304,40 @@ function Chip({ kind, value }: { kind: string; value: string }) {
     }
     if (kind === 'skill') {
         return (
-            <span className={clsx(CHIP_IN_MESSAGE, SKILL_TONE)}>
-                <Icon icon={Zap} size={14} className="shrink-0 opacity-85" />
-                <span className="truncate">{value}</span>
-            </span>
+            <TokenChip
+                kind="skill"
+                value={value}
+                sigil="$"
+                icon={<Icon icon={Zap} size={14} className={clsx(TOKEN_ICON, 'opacity-85')} />}
+                label={value}
+                tone={SKILL_TONE}
+            />
         );
     }
     return (
         // The path is what the thread's menu opens in the preview from here.
-        <span className={clsx(CHIP_IN_MESSAGE, MENTION_TONE)} data-file-path={value} data-file-directory={/[\\/]$/.test(value)}>
-            <FileIcon path={value} size={14} />
-            <span className="truncate">{value}</span>
-        </span>
+        <TokenChip
+            kind="mention"
+            value={value}
+            sigil="@"
+            icon={<FileIcon path={value} size={14} className={TOKEN_ICON} />}
+            label={value}
+            tone={MENTION_TONE}
+            data-file-path={value}
+            data-file-directory={/[\\/]$/.test(value)}
+        />
     );
 }
 
-const messageComponents = {
-    ...replyComponents,
-    span({ children, 'data-chip': chip, 'data-value': value }: { children?: ReactNode; 'data-chip'?: string; 'data-value'?: string }) {
-        if (chip === undefined || value === undefined) {
-            return <span>{children}</span>;
-        }
-        return <Chip kind={chip} value={value} />;
+type ChipSpanProps = ComponentProps<'span'> & ExtraProps & { 'data-chip'?: string; 'data-value'?: string };
+
+/* A span the chip plugins made is a chip; any other, such as a fading word, stays the span it was. */
+function ChipSpan({ children, node: _node, 'data-chip': chip, 'data-value': value, ...rest }: ChipSpanProps) {
+    if (chip === undefined || value === undefined) {
+        return <span {...rest}>{children}</span>;
     }
-};
+    return <Chip kind={chip} value={value} />;
+}
 
 // Module constants, so a render never hands react-markdown a fresh array and makes it parse again.
 const PLUGINS = [remarkGfm];
@@ -337,12 +349,17 @@ const NO_PLUGINS: typeof FADE_PLUGINS = [];
 
 /* One block of a reply. It renders no element of its own, so prose keeps its first and last margins. */
 const ReplyBlock = memo(function ReplyBlock({ text, fade, open, reply }: { text: string; fade: boolean; open: boolean; reply?: ShellCodeBlockReply }) {
+    const { items, referenced } = useContext(ReferenceLookupContext);
+    // Chips first, so the fade wraps the words around a chip and never cuts a name in two.
+    const named: NamedReferenceOptions = { items, referenced };
+    const rehypePlugins: Options['rehypePlugins'] =
+        items.length === 0 ? (fade ? FADE_PLUGINS : NO_PLUGINS) : [[rehypeNamedReferences, named], ...(fade ? FADE_PLUGINS : [])];
     return (
         // A context rather than a second set of components. A component that changed would mount the
         // code block again the moment its fence closes, and it would lose the lines it already has.
         <CodeStreamingContext.Provider value={open}>
             <ShellCodeBlockReplyContext.Provider value={reply ?? null}>
-                <ReactMarkdown remarkPlugins={REPLY_PLUGINS} rehypePlugins={fade ? FADE_PLUGINS : NO_PLUGINS} components={replyComponents}>
+                <ReactMarkdown remarkPlugins={REPLY_PLUGINS} rehypePlugins={rehypePlugins} components={replyComponents}>
                     {text}
                 </ReactMarkdown>
             </ShellCodeBlockReplyContext.Provider>
@@ -440,7 +457,7 @@ export const MessageMarkdown = memo(function MessageMarkdown({
     const rehypePlugins: [typeof rehypeChips, ChipOptions][] = [[rehypeChips, { mentions, skills, references }]];
     return (
         <div className="chat-markdown prose prose-sm max-w-none text-sm">
-            <ReactMarkdown remarkPlugins={MESSAGE_PLUGINS} rehypePlugins={rehypePlugins} components={messageComponents}>
+            <ReactMarkdown remarkPlugins={MESSAGE_PLUGINS} rehypePlugins={rehypePlugins} components={replyComponents}>
                 {text}
             </ReactMarkdown>
         </div>

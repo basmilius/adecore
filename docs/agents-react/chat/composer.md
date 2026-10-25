@@ -26,6 +26,8 @@ import { Composer } from '@adecore/agents-react/chat/ui';
 
 `onSend(text, extras)` gets the trimmed text and `ChatSendExtras`: the `mentions`, `skills` and referenced `chats` picked, and the `attachments` as uploads. A quote becomes a Markdown quote above the text. The paths and skill names are also in the text; the lists are what the thread draws as chips.
 
+A copy of a message, of a selection in the thread or of a selection in the composer carries its chips beside the plain text, as JSON under `application/x-adecore-chips`: the paths, the skill names and the `#` references as `id` and `name`. A paste with it makes those chips again, as long as the plain text is still the one they were copied with. A paste of plain text makes a chip of a `$name` for a skill the CLI has and of a `#Name` the way a reply does; `@path` only comes back when the paste is nothing but `@path` tokens.
+
 `onSend` may return nothing, and the composer clears its draft at once, without waiting for the host. If a send can fail in your app, keep the text and files until `send` resolves, so a person can try again. Return a promise of whether the host took the message, and a send that also opens a new chat waits for it: Mod+Alt+Enter sends, and once the promise resolves `true` (or once `onSend` returned nothing) calls the host's `openNewChat(scopeId, chatId)`. Without `openNewChat`, Mod+Alt+Enter sends the other way, like Alt+Enter.
 
 A command of your own, such as a menu row, sends what a composer on screen holds the way its keys do: `sendFromComposer(key, how)` from `@adecore/agents-react/chat`, with the scope's `keyOf(chatId)` and a `ComposerSend` (`default`, `alternate` or `and-new`). It answers `false` when that chat has no composer on screen; each composer registers itself. `SEND_AND_NEW_SHORTCUT` is Mod+Alt+Enter, for a menu or a list of keys to print.
@@ -124,6 +126,6 @@ const input = useRef<ComposerInputHandle>(null);
 <ComposerInput ref={input} value={text} placeholder="Describe the change" disabled={false} tabbable onChange={(value) => setText(value)} />;
 ```
 
-The handle has `focus()`, `setCaret(pos)` and `insert(text)`. `onKeyDown(event, view)` and `onPaste(event, view)` run before the editor's own and return `true` for a key or paste they handled. `onChange` and `onSelectionChange` get the text, the selection as `InputSelection` and the editor state. Keep `extensions` and an element `placeholder` the same object between renders, since a new one reconfigures the editor. A `value` from outside moves the caret to the end and stays out of the undo history.
+The handle has `focus()`, `setCaret(pos)` and `insert(text)`. `onKeyDown(event, view)`, `onPaste(event, view)` and `onCopy(event, view)` (for a copy and a cut) run before the editor's own and return `true` for a key, paste or copy they handled. `onChange` and `onSelectionChange` get the text, the selection as `InputSelection` and the editor state. Keep `extensions` and an element `placeholder` the same object between renders, since a new one reconfigures the editor. A `value` from outside moves the caret to the end and stays out of the undo history.
 
 `composerEditorExtensions` is exported from `@adecore/agents-react/chat/ui` for an input of your own. `PlainTextarea` is the textarea a written answer uses unless the host's `dictation` hands another.

@@ -111,7 +111,8 @@ export function useComposerSubmit({
         }
         const chats = presentReferences(trimmed, draft.chats, menus.referenceChips);
         // A machine without `viewReferences` drops the field, so only the chats it does know reach it.
-        const references = menus.referables.chatsOnly ? [] : presentReferences(trimmed, draft.references, menus.referenceChips);        const sent = onSend(withQuote(quote, trimmed), {
+        const references = menus.referables.chatsOnly ? [] : presentReferences(trimmed, draft.references, menus.referenceChips);
+        const sent = onSend(withQuote(quote, trimmed), {
             delivery,
             mentions: presentMentions(trimmed, draft.mentions),
             skills: presentSkills(trimmed, draft.skills),

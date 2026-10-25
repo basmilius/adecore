@@ -8,6 +8,7 @@ import { useChatScope } from '../../../scope';
 import { referenceSuggestions, referenceTokens, type Referable } from '../../chat-references';
 import { usableSlashCommands } from '../../guards';
 import {
+    chipRanges,
     findMentionQuery,
     findReferenceQuery,
     findSkillQuery,
@@ -16,6 +17,7 @@ import {
     insertSkill,
     mentionPick,
     NO_MENTION_SEARCH,
+    queryOutsideChips,
     type MentionQuery,
     type MentionSearch,
     type TextRange
@@ -184,12 +186,13 @@ export function useComposerMenus({ chatId, info, capabilities, providerName, dra
         const empty = selection.from === selection.to;
         const tree = empty ? (ensureSyntaxTree(state, selection.from, 50) ?? syntaxTree(state)) : null;
         const caret = tree !== null && !inCode(tree, value, selection.from) ? selection.from : null;
-        const skill = caret === null ? null : findSkillQuery(value, caret);
+        const chips = caret === null ? [] : chipRanges(value, draft.mentions, draft.skills, [], referenceChips);
+        const skill = caret === null ? null : queryOutsideChips(findSkillQuery(value, caret), chips);
         setSkillQuery((current) => (sameQuery(current, skill) ? current : skill));
         // A CLI that does not expand `@path` gets the text as it is, so the picker stays out of the way.
-        const next = caret === null || capabilities?.mentions === false ? null : findMentionQuery(value, caret);
+        const next = caret === null || capabilities?.mentions === false ? null : queryOutsideChips(findMentionQuery(value, caret), chips);
         setMention((current) => (sameQuery(current, next) ? current : next));
-        const reference = caret === null ? null : findReferenceQuery(value, caret);
+        const reference = caret === null ? null : queryOutsideChips(findReferenceQuery(value, caret), chips);
         setReferenceQuery((current) => (sameQuery(current, reference) ? current : reference));
     };
 
@@ -290,6 +293,7 @@ export function useComposerMenus({ chatId, info, capabilities, providerName, dra
         activeIndex,
         inputAria,
         hasSkills: skills.length > 0,
+        skillNames: skills.map((skill) => skill.name),
         commandQuery,
         commands,
         commandMenuOpen,

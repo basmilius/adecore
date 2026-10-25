@@ -96,7 +96,17 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
     const notice = useNotice();
     const history = usePromptHistory(chatId, box.setText);
     const menus = useComposerMenus({ chatId, info, capabilities, providerName: provider?.name, draft: box, inputRef });
-    const files = useDraftFiles({ capabilities, providerName: provider?.name, writable, draft: box, inputRef, setNotice: notice.setNotice });
+    const files = useDraftFiles({
+        capabilities,
+        providerName: provider?.name,
+        writable,
+        draft: box,
+        inputRef,
+        setNotice: notice.setNotice,
+        skills: menus.skillNames,
+        referables: menus.referables.chatsOnly ? menus.referables.items.filter((item) => item.kind === 'chat') : menus.referables.items,
+        referenceChips: menus.referenceChips
+    });
     const controls = useChatControls({ chatId, info, notice, onRetarget });
     useEffortStepper({
         chatId,
@@ -289,6 +299,7 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
                             onComposing={hold.setComposing}
                             onKeyDown={onKeyDown}
                             onPaste={files.onPaste}
+                            onCopy={files.onCopy}
                         />
                         {notice.notice && (
                             <div

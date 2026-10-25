@@ -205,13 +205,13 @@ describe('the views and nodes a message points at', () => {
 
     test('a reference in the text is a chip that opens it, under the name it has now', () => {
         const html = renderWith(message);
-        expect(html).toMatch(/<button[^>]*>.*<span class="truncate">Sketch<\/span><\/button>/);
-        expect(html).not.toContain('#Sketch');
+        // The sigil stays for a selection to copy, hidden behind the kind's mark.
+        expect(html).toMatch(/<span[^>]*data-chip="reference"[^>]*role="button"[^>]*>.*<span class="sr-only">#<\/span>Sketch<\/span>/);
     });
 
     test('a chat attached before #, and a view gone since, stand beside the text', () => {
         const html = renderWith({ ...message, text: 'Compare these', chats: ['chat-plan'], references: ['view-gone'] });
-        expect(html).toMatch(/<span class="truncate">Planner<\/span>/);
+        expect(html).toMatch(/<span class="sr-only">#<\/span>Planner<\/span>/);
         expect(html).toContain('references.gone');
         expect(html.indexOf('Planner')).toBeLessThan(html.indexOf('Compare these'));
     });

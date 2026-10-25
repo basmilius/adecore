@@ -575,6 +575,100 @@ describe('# references', () => {
         await composer.type('#Oth');
         expect(optionTexts(composer)).toEqual(['Other chatchat']);
     });
+
+    test('punctuation after a name closes the picker, and so does a caret back on a picked chip', async () => {
+        const composer = await mount({ host: { useReferables: () => referables } });
+        await composer.type('Is #Sketch?');
+        expect(composer.page.host.querySelector('[role="listbox"]')).toBeNull();
+        await composer.type(' and #Ske');
+        await composer.press('Enter');
+        expect(composer.text()).toBe('Is #Sketch? and #Sketch ');
+        await composer.caret(23);
+        expect(composer.page.host.querySelector('[role="listbox"]')).toBeNull();
+    });
+});
+
+/* What a copy or a paste reads and writes, by type, the way a browser's clipboard does. */
+function clipboardOf(entries: Record<string, string> = {}) {
+    const data: Record<string, string> = { ...entries };
+    return {
+        data,
+        files: [] as File[],
+        get types() {
+            return Object.keys(data);
+        },
+        getData: (type: string) => data[type] ?? '',
+        setData: (type: string, value: string) => {
+            data[type] = value;
+        }
+    };
+}
+
+describe('copy and paste keep chips', () => {
+    const referables: Referables = {
+        items: [
+            { id: 'view-admin', name: 'Admin', kind: 'canvas', group: 'views' },
+            { id: 'view-admin-panel', name: 'Admin panel', kind: 'drawing', group: 'views' },
+            { id: 'chat-plan', name: 'Plan', kind: 'chat', group: 'views' }
+        ],
+        chatsOnly: false
+    };
+    const skills = [{ name: 'review', description: '' }] as ChatSkill[];
+
+    test('a paste with the chips a copy carried makes those chips again, a chat apart from a view', async () => {
+        const composer = await mount({ host: { useReferables: () => referables }, skills });
+        await settle();
+        const text = 'Read @src/a.ts with $review in #Admin panel and #Plan';
+        const chips = {
+            text,
+            mentions: ['src/a.ts'],
+            skills: ['review'],
+            references: [
+                { id: 'view-admin-panel', name: 'Admin panel' },
+                { id: 'chat-plan', name: 'Plan' }
+            ]
+        };
+        await composer.fire(composer.view().contentDOM, 'paste', {
+            clipboardData: clipboardOf({ 'text/plain': text, 'application/x-adecore-chips': JSON.stringify(chips) })
+        });
+        expect(composer.text()).toBe(text);
+        await composer.press('Enter');
+        expect(composer.sent[0]?.extras).toMatchObject({
+            mentions: ['src/a.ts'],
+            skills: ['review'],
+            chats: ['chat-plan'],
+            references: ['view-admin-panel']
+        });
+    });
+
+    test('plain text makes a chip of a skill there is and of a name the project has, the longest first', async () => {
+        const composer = await mount({ host: { useReferables: () => referables }, skills });
+        await settle();
+        const text = 'Run $review and $missing on #Admin panel, not `#Admin`, and pay $20';
+        await composer.fire(composer.view().contentDOM, 'paste', { clipboardData: clipboardOf({ 'text/plain': text }) });
+        expect(composer.text()).toBe(text);
+        await composer.press('Enter');
+        expect(composer.sent[0]?.extras).toMatchObject({ skills: ['review'], references: ['view-admin-panel'] });
+    });
+
+    test('a copy of a selection carries the chips it holds whole', async () => {
+        const composer = await mount({ host: { useReferables: () => referables }, skills });
+        await settle();
+        await composer.type('See #Adm');
+        await composer.press('ArrowDown');
+        await composer.press('Enter');
+        expect(composer.text()).toBe('See #Admin panel ');
+        await act(async () => composer.view().dispatch({ selection: { anchor: 0, head: 16 } }));
+        const clipboardData = clipboardOf();
+        await composer.fire(composer.view().contentDOM, 'copy', { clipboardData });
+        expect(clipboardData.data['text/plain']).toBe('See #Admin panel');
+        expect(JSON.parse(clipboardData.data['application/x-adecore-chips']!)).toEqual({
+            text: 'See #Admin panel',
+            mentions: [],
+            skills: [],
+            references: [{ id: 'view-admin-panel', name: 'Admin panel' }]
+        });
+    });
 });
 
 describe('skills and commands', () => {

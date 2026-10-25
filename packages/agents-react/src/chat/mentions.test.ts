@@ -1,7 +1,15 @@
 import { describe, expect, test } from 'bun:test';
 import {
+    CHIPS_CLIPBOARD_TYPE,
     chipRanges,
     chipText,
+    clipboardChipsOf,
+    hasClipboardChips,
+    namedReferenceRanges,
+    queryOutsideChips,
+    readClipboardChips,
+    tokenizeNamedReferences,
+    writeClipboardChips,
     findMentionQuery,
     findReferenceQuery,
     findSkillQuery,
@@ -270,4 +278,100 @@ test('mention drags read neutral and transitional formats and write both for old
     expect(droppedMentions(data)).toEqual([]);
     writeMentionDrag(data, ['new.ts'], false);
     expect(values.has(LEGACY_MENTION_DRAG_TYPE)).toBe(false);
+});
+
+describe('a query ends at the punctuation that ends a token', () => {
+    test('a # or a $ closes on a question mark, a comma or a bracket after the name', () => {
+        expect(findReferenceQuery('Is #Admin?', 10)).toBeNull();
+        expect(findReferenceQuery('(#Admin)', 8)).toBeNull();
+        expect(findSkillQuery('run $review,', 12)).toBeNull();
+        expect(findReferenceQuery('Is #Admin', 9)).toEqual({ start: 3, query: 'Admin' });
+    });
+
+    test('a path goes on after a dot or a colon and ends on the rest', () => {
+        expect(findMentionQuery('@src/a.', 7)).toEqual({ start: 0, query: 'src/a.' });
+        expect(findMentionQuery('@src/a.ts?', 10)).toBeNull();
+        expect(findMentionQuery('@src/a.ts,', 10)).toBeNull();
+    });
+
+    test('a query on a token that is already a chip opens nothing', () => {
+        const chips = chipRanges('See #Admin panel and @a.ts', ['a.ts'], [], [], [{ id: 'view', name: 'Admin panel' }]);
+        expect(queryOutsideChips(findReferenceQuery('See #Admin panel and @a.ts', 10), chips)).toBeNull();
+        expect(queryOutsideChips(findMentionQuery('See #Admin panel and @a.ts', 26), chips)).toBeNull();
+        expect(queryOutsideChips({ start: 0, query: 'Adm' }, chips)).toEqual({ start: 0, query: 'Adm' });
+    });
+});
+
+describe('namedReferenceRanges', () => {
+    const items = [
+        { id: 'admin', name: 'Admin' },
+        { id: 'panel', name: 'Admin panel' },
+        { id: 'notes-a', name: 'Notes' },
+        { id: 'notes-b', name: 'Notes' }
+    ];
+    const named = (text: string, referenced: string[] = []) =>
+        namedReferenceRanges(text, items, referenced).map((range) => [text.slice(range.from, range.to), range.value]);
+
+    test('takes the longest exact name, so a name with a space is found whole', () => {
+        expect(named('Open #Admin panel now')).toEqual([['#Admin panel', 'panel']]);
+        expect(named('Open #Admin now')).toEqual([['#Admin', 'admin']]);
+    });
+
+    test('a name ends at punctuation or the end of the text, and is matched by case', () => {
+        expect(named('Is it #Admin? Yes, #Admin.')).toEqual([
+            ['#Admin', 'admin'],
+            ['#Admin', 'admin']
+        ]);
+        expect(named('#admin and #Administrator')).toEqual([]);
+    });
+
+    test('a # opens a word: at the start, after a space or an opening bracket or quote', () => {
+        expect(named('(#Admin) "#Admin"')).toEqual([
+            ['#Admin', 'admin'],
+            ['#Admin', 'admin']
+        ]);
+        expect(named('a#Admin and ##Admin')).toEqual([]);
+    });
+
+    test('a name more than one carries stays text unless the thread pointed at one of them', () => {
+        expect(named('See #Notes')).toEqual([]);
+        expect(named('See #Notes', ['notes-b'])).toEqual([['#Notes', 'notes-b']]);
+    });
+
+    test('an ambiguous longer name never falls back to a shorter one', () => {
+        const ranges = namedReferenceRanges('#Admin panel', [...items, { id: 'panel-2', name: 'Admin panel' }]);
+        expect(ranges).toEqual([]);
+    });
+
+    test('tokenizeNamedReferences spells the text again', () => {
+        const segments = tokenizeNamedReferences('In #Admin panel, done', items);
+        expect(segments.map(chipText).join('')).toBe('In #Admin panel, done');
+        expect(segments[1]).toEqual({ kind: 'reference', id: 'panel', name: 'Admin panel' });
+    });
+});
+
+describe('the chips of a copy', () => {
+    const transfer = (entries: Record<string, string> = {}) => {
+        const values = new Map(Object.entries(entries));
+        return { values, getData: (type: string) => values.get(type) ?? '', setData: (type: string, value: string) => void values.set(type, value) };
+    };
+
+    test('go beside the plain text and come back from it, without doubles', () => {
+        const chips = clipboardChipsOf('@a.ts $go #Admin @a.ts', tokenizeChips('@a.ts $go #Admin @a.ts', ['a.ts'], ['go'], [{ id: 'admin', name: 'Admin' }]));
+        expect(chips).toEqual({ text: '@a.ts $go #Admin @a.ts', mentions: ['a.ts'], skills: ['go'], references: [{ id: 'admin', name: 'Admin' }] });
+        expect(hasClipboardChips(chips)).toBe(true);
+        const data = transfer();
+        writeClipboardChips(data, chips);
+        expect(data.values.get('text/plain')).toBe(chips.text);
+        expect(readClipboardChips(data)).toEqual(chips);
+    });
+
+    test('are dropped when the plain text changed since, or the payload is not theirs', () => {
+        const chips = { text: 'one', mentions: [], skills: ['go'], references: [] };
+        expect(readClipboardChips(transfer({ 'text/plain': 'two', [CHIPS_CLIPBOARD_TYPE]: JSON.stringify(chips) }))).toBeNull();
+        expect(readClipboardChips(transfer({ 'text/plain': 'one', [CHIPS_CLIPBOARD_TYPE]: '{' }))).toBeNull();
+        expect(readClipboardChips(transfer({ 'text/plain': 'one', [CHIPS_CLIPBOARD_TYPE]: '{"text":"one","mentions":[1],"skills":[]}' }))).toBeNull();
+        expect(readClipboardChips(transfer({ 'text/plain': 'one' }))).toBeNull();
+        expect(readClipboardChips(transfer({ 'text/plain': 'a\r\nb', [CHIPS_CLIPBOARD_TYPE]: JSON.stringify({ ...chips, text: 'a\nb' }) }))?.text).toBe('a\nb');
+    });
 });

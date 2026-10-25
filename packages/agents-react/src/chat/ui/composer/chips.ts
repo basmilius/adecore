@@ -6,7 +6,7 @@ import { Decoration, EditorView, WidgetType, type DecorationSet } from '@codemir
 import { Icon } from '@adecore/ui';
 import type { ReferableKind } from '../../chat-references';
 import { chipRanges, type ReferenceToken } from '../../mentions';
-import { CHIP_IN_EDITOR, MENTION_TONE, REFERENCE_TONE, SKILL_TONE } from '../chips';
+import { CHIP_IN_EDITOR, MENTION_TONE, REFERENCE_TONE, SKILL_TONE, TOKEN_ICON_IN_EDITOR } from '../chips';
 import { REFERENCE_ICONS } from '../reference-icons';
 import { codeRanges } from './editor';
 
@@ -43,7 +43,7 @@ class ReferenceIcon extends WidgetType {
 
     toDOM(): HTMLElement {
         const holder = document.createElement('span');
-        holder.className = 'mr-1 inline-block';
+        holder.className = TOKEN_ICON_IN_EDITOR;
         const root = createRoot(holder);
         root.render(createElement(Icon, { icon: REFERENCE_ICONS[this.kind], size: 12 }));
         roots.set(holder, root);

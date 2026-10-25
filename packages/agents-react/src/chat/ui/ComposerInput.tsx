@@ -40,6 +40,8 @@ interface ComposerInputProps {
     onKeyDown?(event: KeyboardEvent, view: EditorView): boolean;
     /* Runs before the editor pastes the plain text itself; true means the paste is handled. */
     onPaste?(event: ClipboardEvent, view: EditorView): boolean;
+    /* Runs before the editor copies or cuts the selection itself; true means the event is handled. */
+    onCopy?(event: ClipboardEvent, view: EditorView): boolean;
 }
 
 const NO_EXTENSIONS: Extension = [];
@@ -103,6 +105,8 @@ export function ComposerInput({
                         EditorView.domEventHandlers({
                             keydown: (event, target) => latest.current.handlers.onKeyDown?.(event, target) ?? false,
                             paste: (event, target) => latest.current.handlers.onPaste?.(event, target) ?? false,
+                            copy: (event, target) => latest.current.handlers.onCopy?.(event, target) ?? false,
+                            cut: (event, target) => latest.current.handlers.onCopy?.(event, target) ?? false,
                             compositionstart: () => {
                                 latest.current.handlers.onComposing?.(true);
                                 return false;
