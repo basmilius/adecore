@@ -17,6 +17,19 @@ export {
     resizeRect,
     scaleElement
 } from './geometry.ts';
+export {
+    DRAWING_EDIT_LIMITS,
+    NewDrawingElementSchema,
+    type NewDrawingElement,
+    DrawingElementPatchSchema,
+    type DrawingElementPatch,
+    DrawingEditSchema,
+    type DrawingEdit,
+    type DrawingEditProblem,
+    type DrawingEditOutcome,
+    type DrawingEditMint,
+    applyDrawingEdit
+} from './edits.ts';
 export { type ElementPath, pathsOfElement } from './paths.ts';
 export { readingOrder } from './reading-order.ts';
 export { type SvgOptions, DEFAULT_SVG_MARGIN, DEFAULT_PALETTE, DEFAULT_PAPER, DEFAULT_EDGE, escapeXml, toSvg } from './svg.ts';

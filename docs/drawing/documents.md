@@ -78,3 +78,22 @@ The schema does not check that `w` and `h` are positive or that the points of a 
 | `DrawingDocumentSchema`    | `DrawingDocument`                      | `{ version, rev, elements }`                                                           |
 
 `DRAWING_COLORS` lists the palette names in the order a color menu shows them. `DRAWING_TEXT_SIZE_MIN` and `DRAWING_TEXT_SIZE_MAX` are 12 and 96.
+
+## Editing by id
+
+A writer that is not the editor on screen, such as an agent, changes a drawing with an edit instead of a whole new document, so it never overwrites what a person draws at the same time. These are on `@adecore/drawing`.
+
+```ts
+import { DrawingEditSchema, applyDrawingEdit } from '@adecore/drawing';
+
+const edit = DrawingEditSchema.parse({
+    add: [{ kind: 'ellipse', x: 620, y: 40, w: 90, h: 90, stroke: 'orange', fill: 'solid', fillColor: 'yellow' }],
+    update: [{ id: 'box', stroke: 'blue' }],
+    remove: ['arrow']
+});
+const outcome = applyDrawingEdit(drawing.elements, edit, { id: () => crypto.randomUUID(), seed: () => Math.floor(Math.random() * 2 ** 31) });
+```
+
+`DrawingEditSchema` (type `DrawingEdit`) has three optional lists. `add` takes `NewDrawingElementSchema` (`NewDrawingElement`): an element without `id`, `seed` and `locked`, where `stroke` reads as `ink`, `strokeWidth` as `2` and the `size` of a text or note as `20`. `update` takes `DrawingElementPatchSchema` (`DrawingElementPatch`): an `id` and the fields that change; the kind stays. `remove` takes ids. Every level is strict, so a misspelled field fails on its path instead of being dropped.
+
+`applyDrawingEdit` returns a `DrawingEditOutcome`: `{ ok: true, elements, added }` with the new ids in the order given, or `{ ok: false, problems }`, a list of `DrawingEditProblem` with the `path` into the edit and a `message`. It applies nothing unless every part is right. An id that is unknown, locked or named twice is a problem, and so is a field of another kind, such as `text` on a `rect`. Removed elements go, updated ones keep their place in the stacking order, and added ones go on top. The `DrawingEditMint` makes the id and seed of each new element. `DRAWING_EDIT_LIMITS` caps one edit at 200 elements touched and a drawing at 5000 elements after it.
