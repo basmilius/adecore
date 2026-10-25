@@ -4,13 +4,17 @@ import { CHAT_READING_WIDTHS, isChatReadingWidth, readingMeasure, readingWidthLa
 describe('reading width', () => {
     test('comfortable is the column a chat of its own always had', () => {
         expect(readingMeasure('comfortable')).toBe(768);
-        expect(readingWidthStyle('comfortable') as Record<string, string>).toEqual({ '--chat-measure': '768px' });
+        expect(readingWidthStyle('comfortable') as Record<string, string>).toEqual({ '--chat-measure': '768px', '--chat-wide-measure': '1200px' });
     });
 
     test('narrow is narrower and full has no bound', () => {
         expect(readingMeasure('narrow')).toBeLessThan(readingMeasure('comfortable'));
         expect(readingMeasure('full')).toBe(Number.POSITIVE_INFINITY);
-        expect(readingWidthStyle('full') as Record<string, string>).toEqual({ '--chat-measure': '100%' });
+        expect(readingWidthStyle('full') as Record<string, string>).toEqual({ '--chat-measure': '100%', '--chat-wide-measure': '100%' });
+    });
+
+    test('a wide visual stops at 1200px unless the chat runs full width', () => {
+        expect((readingWidthStyle('narrow') as Record<string, string>)['--chat-wide-measure']).toBe('1200px');
     });
 
     test('only the known widths are one', () => {

@@ -24,10 +24,17 @@ export function readingMeasure(width: ChatReadingWidth): number {
     return MEASURES[width];
 }
 
-/* What `.chat-column-content` and `.chat-composer-content` read their width from. */
+/* A wide visual outgrows the reading column, but only a full-width chat lets it run past this. */
+const WIDE_MEASURE = 1200;
+
+/* What `.chat-column-content`, `.chat-wide-content` and `.chat-composer-content` read their width from. */
 export function readingWidthStyle(width: ChatReadingWidth): CSSProperties {
     const measure = MEASURES[width];
-    return { '--chat-measure': Number.isFinite(measure) ? `${measure}px` : '100%' } as CSSProperties;
+    const bounded = Number.isFinite(measure);
+    return {
+        '--chat-measure': bounded ? `${measure}px` : '100%',
+        '--chat-wide-measure': bounded ? `${WIDE_MEASURE}px` : '100%'
+    } as CSSProperties;
 }
 
 export function readingWidthLabel(width: ChatReadingWidth): string {

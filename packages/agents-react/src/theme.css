@@ -110,7 +110,7 @@
      */
     .chat-column .chat-column-content { margin-inline: auto; max-width: var(--chat-measure, 768px); }
     /* Wide pages clear the scrubber even when the reply column needs no extra padding. */
-    .chat-wide-content { max-width: calc(100% - 2 * var(--chat-wide-inset, 0px)); }
+    .chat-wide-content { max-width: min(calc(100% - 2 * var(--chat-wide-inset, 0px)), var(--chat-wide-measure, 100%)); }
     /* Wider by the input's inset (`.composer-input .cm-content` padding plus the card's border), so what is typed lines up with the thread. */
     .chat-column .chat-composer-content { margin-inline: auto; max-width: calc(var(--chat-measure, 768px) + 2 * 21px); }
 
