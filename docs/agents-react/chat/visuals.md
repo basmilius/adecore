@@ -18,7 +18,7 @@ const rows = withTimedRows(threadRows, timedRowsOf(cards, visuals, heldFrom));
 
 ## The row
 
-The timeline draws one visual in a row of its own, inside an `ErrorBoundary`. Its row stays in the 768px reply column. A visual with `layout: "wide"` takes the width of the chat pane instead, centered, with margins that clear the scrubber. Every other row keeps its own width, so text does not widen with it. In a narrow pane both layouts shrink to the room there is; the iframe gets that width and reports its new content height without loading the page again. Over the page's top right corner sit an expand button and a menu with Remove, shown while the pointer or the focus is on the visual and always on a touch screen. A click in the page never reaches the thread's context menu, so these are the visual's only controls.
+The timeline draws one visual in a row of its own, inside an `ErrorBoundary`. Its row stays in the 768px reply column. A visual with `layout: "wide"` takes the width of the chat pane instead, centered, with margins that clear the scrubber. Every other row keeps its own width, so text does not widen with it. In a narrow pane both layouts shrink to the room there is; the iframe gets that width and reports its new content height without loading the page again. Over the page's top right corner sit an expand button and a menu with Remove, and above it the actions of the host's `visuals.actions`, shown while the pointer or the focus is on the visual and always on a touch screen. A click in the page never reaches the thread's context menu, so these are the visual's only controls.
 
 The timeline positions and measures each row. The measurement includes the space between turns, and the container picks the reply or the wide column. It uses `STRIP_CLEARANCE_PX`, the scrubber width with its surrounding space, to keep wide pages clear of navigation.
 
@@ -27,6 +27,8 @@ The timeline draws the large view, a dialog titled with the visual's title and a
 ## The frame
 
 The visual's frame loads the host's `frameUrl` with the theme as a fragment, in `<iframe sandbox="allow-scripts allow-forms">` with the visual's title and `loading="lazy"`. Without `allow-same-origin` the page runs on an opaque origin, wherever the host page is served. It keeps that first address for its life, so a theme change never loads the page again.
+
+`VisualPageFrame({ page, title, maxHeight?, fill?, className? })` draws the same frame outside a thread, such as for a page your app kept. `page` reads the page's HTML each time the frame opens; the frame opens again when it changes, so hand in the same function while the page is the same. `maxHeight` defaults to the limit of every visual. It needs the host's `visuals` and draws nothing without them; outside a chat's scroll area an inline frame takes its whole content height, and `fill` lets the page scroll inside its positioned parent.
 
 `VisualBridge` does the talking, over the frame's window (`VisualFrameWindow`), with `VisualBridgeOptions` for what it reads and reports. It answers only the frame's own window:
 

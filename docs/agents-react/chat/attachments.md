@@ -28,6 +28,8 @@ Two optional functions let a person take a [generated image](/agents-react/chat/
 
 Leave either out and its button is not drawn.
 
+`actions(scopeId, chatId, attachment)` adds actions of your own to the menu of a generated image, after Copy prompt, such as keeping a copy in a place of your app's. It answers a list of `HostMenuAction`s, each `{ id, label, icon?, disabled?, run() }`, read again on every render of the row; `run` shows a failure itself. With actions and no revised prompt the image still gets its menu.
+
 ## Mentions
 
 A path picked with `@` sits in the text and in `mentions`; a skill picked with `$` in the text and in `skills`. The composer does the parsing and inserting itself.

@@ -2,9 +2,11 @@ import { createContext, createElement, useContext, useState, type ComponentProps
 import type { Extension } from '@codemirror/state';
 import type { EditorView } from '@codemirror/view';
 import type { Highlighter, ThemeRegistration } from 'shiki';
+import type { LucideIcon } from 'lucide-react';
 import type { EditorEngine } from '@adecore/editor';
 import type {
     AgentKind,
+    ChatAttachment,
     ChatCheckpointDiff,
     ChatConfigurePayload,
     ChatGoalAction,
@@ -15,6 +17,7 @@ import type {
     ChatUiQueryReading,
     ChatUiLinkPayload,
     ChatUiLinkReading,
+    ChatVisual,
     ProviderPlatform
 } from '@adecore/agent-contracts';
 import { isApplePlatform } from '@adecore/ui';
@@ -188,6 +191,19 @@ export interface VisualHost {
     frameUrl: string;
     /* Opens an http or https link a person followed in a visual, outside the app. */
     openLink(url: string): void;
+    /* Actions of the app's own in a visual's menu, above Remove; left out, the menu holds Remove alone. */
+    actions?(scopeId: string, chatId: string, visual: ChatVisual): readonly HostMenuAction[];
+}
+
+/* An action of the app's own in the menu of something a chat made, such as keeping a copy somewhere of the app's. */
+export interface HostMenuAction {
+    /* Unique among the actions of one menu. */
+    id: string;
+    label: string;
+    icon?: LucideIcon;
+    disabled?: boolean;
+    /* Runs once a person picks it; the host shows a failure itself. */
+    run(): void;
 }
 
 /* Who writes a chat's replies, as the header over each one names them. */
@@ -329,6 +345,8 @@ export interface ChatHost {
          * Resolves with the path as a file link opens it, or null when the person cancels; left out, a generated image offers no Save.
          */
         saveToProject?(scopeId: string, chatId: string, attachmentId: string, suggestedName: string): Promise<string | null>;
+        /* Actions of the app's own in a generated image's menu, after the chat's own; left out, the menu holds those alone. */
+        actions?(scopeId: string, chatId: string, attachment: ChatAttachment): readonly HostMenuAction[];
     };
     /* The image a tool read, drawn under its row; null draws none. */
     ReadImage: ComponentType<{ path: string }> | null;

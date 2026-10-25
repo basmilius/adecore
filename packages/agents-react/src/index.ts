@@ -12,6 +12,7 @@ export {
     type SubagentSlotProps,
     type ThreadCard,
     type VisualHost,
+    type HostMenuAction,
     type ReplyAuthor,
     type ChatHost,
     type UiMapSource,

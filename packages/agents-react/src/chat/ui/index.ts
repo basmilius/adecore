@@ -22,6 +22,7 @@ export { Timeline } from './Timeline';
 export { TimelineMenuPopup } from './TimelineMenu';
 export { default as UnifiedDiff } from './UnifiedDiff';
 export { UploadThumb } from './UploadThumb';
+export { VisualPageFrame, type VisualPageFrameProps } from './VisualFrame';
 export { WelcomeGreeting } from './Welcome';
 export { externalChange, composerEditorExtensions } from './composer/editor';
 export {

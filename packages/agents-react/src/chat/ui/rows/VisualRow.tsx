@@ -5,6 +5,7 @@ import { ButtonGroup, ErrorBoundary, Icon, IconButton, Menu, Surface } from '@ad
 import { useChatHost } from '../../../host';
 import { useChatScope } from '../../../scope';
 import { useVisualDialog } from '../../visuals';
+import { HostMenuItems } from '../HostMenuItems';
 import { VisualFrame } from '../VisualFrame';
 
 /*
@@ -16,10 +17,11 @@ import { VisualFrame } from '../VisualFrame';
 export function VisualRow({ chatId, visual }: { chatId: string; visual: ChatVisual }) {
     const host = useChatHost();
     const { t } = useTranslation('agent-chat');
-    const { keyOf } = useChatScope();
+    const { id: scopeId, keyOf } = useChatScope();
     if (host.visuals === null) {
         return null;
     }
+    const extra = host.visuals.actions?.(scopeId, chatId, visual) ?? [];
     const open = (kind: 'expand' | 'remove'): void => useVisualDialog.getState().open(keyOf(chatId), visual.id, kind);
     return (
         <ErrorBoundary label={t('visuals.renderFailed')} resetKeys={[visual]} compact className="relative rounded-lg">
@@ -35,6 +37,8 @@ export function VisualRow({ chatId, visual }: { chatId: string; visual: ChatVisu
                         <Menu.Root>
                             <IconButton icon={Ellipsis} size="sm" label={t('visuals.more')} render={<Menu.Trigger />} />
                             <Menu.Popup align="end">
+                                <HostMenuItems actions={extra} />
+                                {extra.length > 0 && <Menu.Separator />}
                                 <Menu.Item onClick={() => open('remove')}>
                                     <Icon icon={Trash2} size={14} /> {t('visuals.remove')}
                                 </Menu.Item>

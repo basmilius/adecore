@@ -145,10 +145,11 @@ const CHAT_HOST: Partial<ChatHost> = { ComposerSlot: InsertSelection };
 
 ## Visuals
 
-A thread draws the visuals of its chat, pages an agent published, only when `visuals` is set. A `VisualHost` is `{ frameUrl, openLink(url) }`:
+A thread draws the visuals of its chat, pages an agent published, only when `visuals` is set. A `VisualHost` is `{ frameUrl, openLink(url), actions? }`:
 
 - `frameUrl` is the address of the sandbox host page, [`VISUAL_HOST_PAGE`](/agent-contracts/visuals#serving-a-page) from `@adecore/agent-contracts/visual`, served from your code. A frame adds the theme to it as a fragment.
 - `openLink(url)` opens an http or https link a person followed in a visual, outside the app, such as in their browser.
+- `actions(scopeId, chatId, visual)`, optional, answers `HostMenuAction`s (`{ id, label, icon?, disabled?, run() }`) for the visual's menu, drawn above Remove, such as keeping the page in a place of your app's.
 
 ```ts
 import type { ChatHost } from '@adecore/agents-react';

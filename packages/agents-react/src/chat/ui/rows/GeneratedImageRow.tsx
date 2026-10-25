@@ -13,6 +13,7 @@ import { attachmentAspect, generatedImageView, type GeneratedImageFailure } from
 import { toolStartedAt } from '../../logic/tools';
 import { CHIP_IN_MESSAGE, MENTION_TONE } from '../chips';
 import { useFileLinkCwd, useOpenFileLink } from '../file-links';
+import { HostMenuItems } from '../HostMenuItems';
 import { ImageThumb } from '../ImageView';
 import { ROW_GUTTER } from '../icons';
 import { RunningFor, WorkRow } from './WorkRows';
@@ -104,6 +105,7 @@ function ReadyImage({ chatId, attachment, prompt, transparent }: { chatId: strin
     const missing = source.failure !== null;
     const aspect = attachmentAspect(attachment);
     const { open, saveToProject } = attachments;
+    const extra = attachments.actions?.(scopeId, chatId, attachment) ?? [];
 
     const detail = [
         attachment.width !== undefined && attachment.height !== undefined
@@ -171,13 +173,16 @@ function ReadyImage({ chatId, attachment, prompt, transparent }: { chatId: strin
                         >
                             <ButtonGroup>
                                 <IconButton icon={Maximize2} size="sm" label={t('generatedImage.openLarge')} onClick={() => setLightbox(true)} />
-                                {prompt !== null && (
+                                {(prompt !== null || extra.length > 0) && (
                                     <Menu.Root>
                                         <IconButton icon={Ellipsis} size="sm" label={t('generatedImage.more')} render={<Menu.Trigger />} />
                                         <Menu.Popup align="end">
-                                            <Menu.Item onClick={() => copyText(prompt)}>
-                                                <Icon icon={Copy} size={14} /> {t('generatedImage.copyPrompt')}
-                                            </Menu.Item>
+                                            {prompt !== null && (
+                                                <Menu.Item onClick={() => copyText(prompt)}>
+                                                    <Icon icon={Copy} size={14} /> {t('generatedImage.copyPrompt')}
+                                                </Menu.Item>
+                                            )}
+                                            <HostMenuItems actions={extra} />
                                         </Menu.Popup>
                                     </Menu.Root>
                                 )}

@@ -1,7 +1,7 @@
 import { VISUAL_LIMITS, visualFrameHeight, type ChatVisual } from '@adecore/agent-contracts/visual';
 
 /* A frame before anything measured its page: room for a chart, never taller than the page may grow. */
-const DEFAULT_HEIGHT_PX = 240;
+export const DEFAULT_HEIGHT_PX = 240;
 /* Plenty for the visuals of a long session; the oldest goes first. */
 const REMEMBERED_HEIGHTS = 500;
 // Stay within browser layout coordinates even if a page reports a bogus finite size.

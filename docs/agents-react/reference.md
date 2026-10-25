@@ -10,7 +10,7 @@ Wiring the views into an app: the host adapters, the scope, the transport, stora
 
 | Module | Exports |
 | --- | --- |
-| [`host`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/host.ts) | `ChatActions`, `FileRef`, `ShellCodeBlockContext`, `ChatPlace`, `SubagentTask`, `TimelineFindOptions`, `TimelineFind`, `ComposerDictationProps`, `ComposerSlotProps`, `SubagentSlotProps`, `ThreadCard`, `VisualHost`, `ReplyAuthor`, `ChatHost`, `UiMapSource`, `CommandLook`, `CommandLookMatch`, `CommandName`, `ChatHostProvider`, `useChatHost`, `AccentChoice`, `ChatToast`, `TextareaProps`, `ResourceUrl` |
+| [`host`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/host.ts) | `ChatActions`, `FileRef`, `ShellCodeBlockContext`, `ChatPlace`, `SubagentTask`, `TimelineFindOptions`, `TimelineFind`, `ComposerDictationProps`, `ComposerSlotProps`, `SubagentSlotProps`, `ThreadCard`, `VisualHost`, `HostMenuAction`, `ReplyAuthor`, `ChatHost`, `UiMapSource`, `CommandLook`, `CommandLookMatch`, `CommandName`, `ChatHostProvider`, `useChatHost`, `AccentChoice`, `ChatToast`, `TextareaProps`, `ResourceUrl` |
 | [`scope`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/scope.ts) | `ChatScope`, `ChatScopeContext`, `useChatScope` |
 | [`transport`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/transport.ts) | `ChatRequestMap`, `ChatEventMap`, `ChatTransportStatus`, `ChatTransport`, `ChatTransportError`, `errorCode`, `isConnectionError` |
 | [`port-transport`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/port-transport.ts) | `portTransport`, `PortTransport` |
@@ -88,6 +88,7 @@ The views of a chat: the thread, the composer, messages, diffs, subagents, limit
 | [`chat/ui/TimelineMenu`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/TimelineMenu.tsx) | `TimelineMenuPopup` |
 | [`chat/ui/UnifiedDiff`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/UnifiedDiff.tsx) | `UnifiedDiff` |
 | [`chat/ui/UploadThumb`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/UploadThumb.tsx) | `UploadThumb` |
+| [`chat/ui/VisualFrame`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/VisualFrame.tsx) | `VisualPageFrame`, `VisualPageFrameProps` |
 | [`chat/ui/Welcome`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/Welcome.tsx) | `WelcomeGreeting` |
 | [`chat/ui/composer/editor`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/composer/editor.ts) | `externalChange`, `composerEditorExtensions` |
 | [`chat/ui/diff-syntax`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/diff-syntax.ts) | `createDiffSyntaxRuntime`, `diffSyntaxRuntime`, `DiffSyntaxRuntime`, `DiffSyntaxRuntimeOptions`, `DiffSyntaxSession`, `DiffSyntaxMapping`, `DiffSourceTokenSession`, `diffSourceTokens` |
