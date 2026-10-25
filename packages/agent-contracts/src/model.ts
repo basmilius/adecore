@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AgentKindSchema } from './agent.ts';
+import { AgentKindSchema, type AgentKind } from './agent.ts';
 
 // Options a model exposes (effort, context window, thinking). Generic descriptors instead of
 // per-provider enums: a new model is a catalog entry, not a code change.
@@ -177,6 +177,27 @@ export const ProviderInfoSchema = z.object({
     install: ProviderInstallSchema.optional()
 });
 export type ProviderInfo = z.infer<typeof ProviderInfoSchema>;
+
+// The CLIs of the labs that train their own frontier models; a picker lists them before every other provider.
+export const FRONTIER_PROVIDER_KINDS: ReadonlySet<AgentKind> = new Set(['anthropic-claude-api', 'claude', 'codex']);
+
+export interface FrontierGroups<T> {
+    frontier: T[];
+    others: T[];
+}
+
+let nameCollator: Intl.Collator | null = null;
+
+/* The frontier providers and the rest, each by name. Names are proper names, so the runtime locale sorts them. */
+export function groupProvidersByFrontier<T extends { kind: AgentKind; name: string }>(providers: readonly T[]): FrontierGroups<T> {
+    nameCollator ??= new Intl.Collator(undefined, { sensitivity: 'base' });
+    const collator = nameCollator;
+    const byName = (a: T, b: T): number => collator.compare(a.name, b.name);
+    return {
+        frontier: providers.filter((provider) => FRONTIER_PROVIDER_KINDS.has(provider.kind)).sort(byName),
+        others: providers.filter((provider) => !FRONTIER_PROVIDER_KINDS.has(provider.kind)).sort(byName)
+    };
+}
 
 export const ProviderListResultSchema = z.object({
     providers: z.array(ProviderInfoSchema)

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, jest, test } from 'bun:test';
-import { act, type ReactNode } from 'react';
+import { act, Children, type ReactElement, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { EditorView } from '@codemirror/view';
 import type {
@@ -90,6 +90,8 @@ interface Options {
     info?: ChatInfo;
     capabilities?: Partial<ProviderCapabilities>;
     model?: ModelInfo;
+    /* More installed chat CLIs beside Claude Code, for the model menu. */
+    otherProviders?: Array<{ kind: string; name: string }>;
     host?: Partial<ChatHost>;
     actions?: Partial<ChatActions>;
     skills?: ChatSkill[];
@@ -276,7 +278,10 @@ async function mount(options: Options = {}): Promise<Mounted> {
         chats: { listSkills: async () => options.skills ?? [] }
     } as unknown as ChatScope;
     const info = options.info ?? infoOf();
-    useProvidersStore.getState().setProviders(SCOPE_ID, [providerOf(options.capabilities ?? {}, options.model)]);
+    const own = providerOf(options.capabilities ?? {}, options.model);
+    useProvidersStore
+        .getState()
+        .setProviders(SCOPE_ID, [own, ...(options.otherProviders ?? []).map(({ kind, name }) => ({ ...own, kind, name, models: [{ ...MODEL, slug: kind }] }))]);
     useChats.getState().reset(scope.keyOf(CHAT), info, options.items ?? []);
     if (options.accounts !== undefined) {
         useProviderAccountsStore.getState().set(SCOPE_ID, options.accounts);
@@ -1065,5 +1070,24 @@ describe('stepping the reasoning effort', () => {
 
     test('a chat with no composer on screen is not reached', () => {
         expect(stepEffortFromComposer(`${SCOPE_ID}/elsewhere`, 'up')).toBe(false);
+    });
+});
+
+describe('the model menu', () => {
+    test('lists the frontier labs first by name, and the other providers by name under a separator', async () => {
+        const composer = await mount({
+            otherProviders: [
+                { kind: 'grok', name: 'Grok' },
+                { kind: 'codex', name: 'Codex' },
+                { kind: 'antigravity', name: 'Antigravity' }
+            ]
+        });
+        const popup = composer.propsOf('RunSettings', 'MenuPopup') as { children: ReactNode };
+        // The model list only: the submenus after it draw nothing outside an open menu.
+        const [rest] = Children.toArray(popup.children) as Array<ReactElement<{ children: ReactNode[] }>>;
+        const drawn = await composer.draw(<Menu.Root>{rest!.props.children[0]}</Menu.Root>);
+        const list = drawn.querySelector('[role="group"]')!;
+        const sequence = [...list.children].map((node) => (node.getAttribute('role') === 'separator' ? '--' : node.firstElementChild?.textContent));
+        expect(sequence).toEqual(['Claude Code', 'Codex', '--', 'Antigravity', 'Grok']);
     });
 });

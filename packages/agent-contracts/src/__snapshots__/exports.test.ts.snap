@@ -130,6 +130,7 @@ exports[`the public API . exports these names 1`] = `
   "EmptySchema",
   "ErrorSchema",
   "EventSchema",
+  "FRONTIER_PROVIDER_KINDS",
   "GeneratedImageInputSchema",
   "HOST_TASK_ORIGIN",
   "KNOWN_AGENT_KINDS",
@@ -220,6 +221,7 @@ exports[`the public API . exports these names 1`] = `
   "clipText",
   "evenPace",
   "generatedImageAttachment",
+  "groupProvidersByFrontier",
   "injectVisualBootstrap",
   "isKnownAgentKind",
   "isRecord",
@@ -341,6 +343,7 @@ exports[`the public API . exports these names 1`] = `
   "type EvenPace",
   "type Event",
   "type FramePort",
+  "type FrontierGroups",
   "type GeneratedImageInput",
   "type KnownAgentKind",
   "type ModelCatalogData",
@@ -722,6 +725,7 @@ exports[`the public API ./ids exports these names 1`] = `
 
 exports[`the public API ./model exports these names 1`] = `
 [
+  "FRONTIER_PROVIDER_KINDS",
   "ModelCatalogDataSchema",
   "ModelCatalogEntrySchema",
   "ModelCatalogProfileSchema",
@@ -736,7 +740,9 @@ exports[`the public API ./model exports these names 1`] = `
   "ProviderPlatformSchema",
   "ProviderSignInSchema",
   "RuntimeModeSchema",
+  "groupProvidersByFrontier",
   "resumeCommandFor",
+  "type FrontierGroups",
   "type ModelCatalogData",
   "type ModelCatalogEntry",
   "type ModelCatalogProfile",

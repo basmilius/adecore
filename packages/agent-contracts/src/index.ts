@@ -302,6 +302,9 @@ export {
     type ProviderInstall,
     ProviderInfoSchema,
     type ProviderInfo,
+    FRONTIER_PROVIDER_KINDS,
+    type FrontierGroups,
+    groupProvidersByFrontier,
     ProviderListResultSchema,
     type ProviderListResult,
     resumeCommandFor

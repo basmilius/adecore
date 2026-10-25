@@ -10,7 +10,7 @@ import { useChatHost } from '../../host';
 import { ChatScopeContext } from '../../scope';
 import { useReportedModels } from '../../state/chats';
 import { ModelMarks } from './ModelMarks';
-import { pickerEntriesOf, type PickerEntry } from '../logic/picker-entries';
+import { inPickerOrder, pickerEntriesOf, separatesFrontier, type PickerEntry } from '../logic/picker-entries';
 import { favoriteModelsOf, toggleFavoriteModel, useChatPreferences } from '../preferences';
 import { forgetStashed, STASH_SHORTCUT, useStash, type StashedPrompt } from '../stash';
 import { Button, Icon, IconButton, Menu, Popover, Tooltip } from '@adecore/ui';
@@ -75,7 +75,7 @@ export function ModelPicker({
 
     const favorites = useChatPreferences((preferences) => preferences.favoriteModels);
     const starredHere = (row: PickerEntry | undefined): boolean => row?.kind === 'model' && favorites[row.provider.kind]?.includes(row.model.slug) === true;
-    const entries = pickerEntriesOf(providers, trimmed, legacyOpen, expanded, { provider, model: selection.model }, (kind) =>
+    const entries = pickerEntriesOf(inPickerOrder(providers), trimmed, legacyOpen, expanded, { provider, model: selection.model }, (kind) =>
         favoriteModelsOf(favorites, kind)
     );
     const scope = useContext(ChatScopeContext);
@@ -83,6 +83,10 @@ export function ModelPicker({
     const reported = useReportedModels(provider);
     const requirementOf = (entry: PickerEntry & { kind: 'model' }) => modelRequirementOf(entry.model, entry.provider, reported);
     // A CLI that is too old blocks all its models; one way to its settings under the group says it once.
+    const kindBefore = (i: number): AgentKind | undefined => {
+        const before = entries[i - 1];
+        return before === undefined || before.kind === 'legacy' ? undefined : before.provider.kind;
+    };
     const blockedKinds = new Set(entries.flatMap((entry) => (entry.kind === 'model' && requirementOf(entry) !== null ? [entry.provider.kind] : [])));
 
     /* Closing forgets the search, so the next open (a click or `/model`) starts on the whole list. */
@@ -188,6 +192,7 @@ export function ModelPicker({
                             const header = grouped && (before === undefined || before.kind === 'legacy' || before.provider.kind !== entry.provider.kind);
                             return (
                                 <div key={`all-${entry.provider.kind}`}>
+                                    {separatesFrontier(kindBefore(i), entry.provider.kind) && <Menu.Separator />}
                                     {header && (
                                         <Menu.Label className="flex items-center gap-1.5">
                                             <AgentIcon kind={entry.provider.kind} size={12} />
@@ -243,6 +248,7 @@ export function ModelPicker({
                         const starred = starredHere(entry);
                         return (
                             <div key={`${entry.provider.kind}/${entry.model.slug}`}>
+                                {separatesFrontier(kindBefore(i), entry.provider.kind) && <Menu.Separator />}
                                 {first && (
                                     <Menu.Label className="flex items-center gap-1.5">
                                         <AgentIcon kind={entry.provider.kind} size={12} />

@@ -84,6 +84,15 @@ resumeCommandFor('example-cli {flags} --resume {id}', "it's-1", ['--read-only'])
 // example-cli --read-only --resume 'it'\''s-1'
 ```
 
+`groupProvidersByFrontier(providers)` splits a list into `FrontierGroups`, `{ frontier, others }`, each sorted by name. A picker lists the frontier group first, with a separator before the others. `FRONTIER_PROVIDER_KINDS` holds the kinds of the frontier group: `anthropic-claude-api`, `claude` and `codex`. Anything with a `kind` and a `name` goes in, so a host can order its `provider.list` reply the same way.
+
+```ts
+import { groupProvidersByFrontier } from '@adecore/agent-contracts/model';
+
+const { frontier, others } = groupProvidersByFrontier(providers);
+const ordered = [...frontier, ...others];
+```
+
 ## Runtime modes
 
 `RuntimeModeSchema` is the permission policy of a chat, one vocabulary for every provider: `supervised`, `auto-accept-edits`, `auto` and `full-access`, from narrowest to widest. Each host adapter maps it onto its CLI; see [Providers](/agents/providers#runtime-modes) for the mapping of the built-in ones. A chat keeps the mode it asked for in `runtimeMode` and the mode the CLI confirmed in `effectiveRuntimeMode`; show the second when there is one.

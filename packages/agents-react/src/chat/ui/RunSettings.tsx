@@ -27,7 +27,7 @@ import type { AccountChoice } from '../account-choice';
 import { modelName, shortModelName } from '../../agents/model-name';
 import { ModelMarks } from './ModelMarks';
 import { SessionLine } from './SessionLine';
-import { favoritesFirst, searchModels, shortlistOf, wantsModelSearch } from '../logic/picker-entries';
+import { favoritesFirst, inPickerOrder, searchModels, separatesFrontier, shortlistOf, wantsModelSearch } from '../logic/picker-entries';
 import { favoriteModelsOf, toggleFavoriteModel, useChatPreferences } from '../preferences';
 import { CONTEXT_OPTION, contextFraction, contextSegments, orderOptions, type ContextPart } from '../logic/context-usage';
 import { RUNTIME_MODES } from '../runtime-modes';
@@ -113,7 +113,7 @@ function modelValue(provider: AgentKind, slug: string): string {
 
 /* Each provider's current or legacy models; a provider with none of them is left out. */
 function modelGroupsOf(providers: ProviderInfo[], legacy: boolean): Array<{ entry: ProviderInfo; models: ModelInfo[] }> {
-    return providers
+    return inPickerOrder(providers)
         .map((entry) => ({ entry, models: entry.models.filter((row) => (row.legacy === true) === legacy) }))
         .filter((group) => group.models.length > 0);
 }
@@ -177,7 +177,7 @@ export function RunSettings({
     const searchable = wantsModelSearch(providers);
     const favorites = useChatPreferences((preferences) => preferences.favoriteModels);
     const favoritesOf = (kind: AgentKind): ReadonlySet<string> => favoriteModelsOf(favorites, kind);
-    const found = query.trim() === '' ? null : searchModels(providers, query, favoritesOf);
+    const found = query.trim() === '' ? null : searchModels(inPickerOrder(providers), query, favoritesOf);
 
     // The menu moves the focus to its popup as it opens, so the search field takes it a frame later.
     useEffect(() => {
@@ -292,16 +292,19 @@ export function RunSettings({
     };
 
     const modelGroups = (groups: typeof live) =>
-        groups.map(({ entry, models }) => (
-            <Menu.Group key={entry.kind}>
-                {grouped && (
-                    <Menu.GroupLabel className="flex items-center gap-1.5">
-                        <AgentIcon kind={entry.kind} size={12} />
-                        {entry.name}
-                    </Menu.GroupLabel>
-                )}
-                {providerModels(entry, models)}
-            </Menu.Group>
+        groups.map(({ entry, models }, i) => (
+            <Fragment key={entry.kind}>
+                {separatesFrontier(groups[i - 1]?.entry.kind, entry.kind) && <Menu.Separator />}
+                <Menu.Group>
+                    {grouped && (
+                        <Menu.GroupLabel className="flex items-center gap-1.5">
+                            <AgentIcon kind={entry.kind} size={12} />
+                            {entry.name}
+                        </Menu.GroupLabel>
+                    )}
+                    {providerModels(entry, models)}
+                </Menu.Group>
+            </Fragment>
         ));
 
     return (
@@ -370,16 +373,19 @@ export function RunSettings({
                 {found !== null && found.length === 0 && <div className="px-2.5 py-3 text-xs text-text-faint">{t('pickers.model.noMatch')}</div>}
                 {found !== null && found.length > 0 && (
                     <Menu.RadioGroup value={chosenModel} onValueChange={chooseModel}>
-                        {found.map(({ entry, models }) => (
-                            <Menu.Group key={entry.kind}>
-                                {grouped && (
-                                    <Menu.GroupLabel className="flex items-center gap-1.5">
-                                        <AgentIcon kind={entry.kind} size={12} />
-                                        {entry.name}
-                                    </Menu.GroupLabel>
-                                )}
-                                {byMaker(entry, models)}
-                            </Menu.Group>
+                        {found.map(({ entry, models }, i) => (
+                            <Fragment key={entry.kind}>
+                                {separatesFrontier(found[i - 1]?.entry.kind, entry.kind) && <Menu.Separator />}
+                                <Menu.Group>
+                                    {grouped && (
+                                        <Menu.GroupLabel className="flex items-center gap-1.5">
+                                            <AgentIcon kind={entry.kind} size={12} />
+                                            {entry.name}
+                                        </Menu.GroupLabel>
+                                    )}
+                                    {byMaker(entry, models)}
+                                </Menu.Group>
+                            </Fragment>
                         ))}
                     </Menu.RadioGroup>
                 )}
