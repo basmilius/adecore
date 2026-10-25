@@ -10,7 +10,9 @@ import type { TimelineTarget } from '../logic/timeline-target';
 import { useChatHost } from '../../host';
 import { useChatScope } from '../../scope';
 import { useChatRow } from '../../state/chats';
+import { copyWithChips, rowClipboardChips } from './chip-clipboard';
 import { useFileLinkCwd, useFileLinkScopeId, useOpenFileLink } from './file-links';
+import { useReferenceLookup } from './thread-references';
 import { ContextMenu, copyText, DisabledReason, EDIT_SHORTCUTS, Icon, Kbd, selectAllWithin } from '@adecore/ui';
 
 /* The menu behind a right-click in a thread, mostly for copying: a whole message, a code block or an answer's markdown. */
@@ -28,7 +30,8 @@ export function TimelineMenuPopup({
     column?: boolean;
 }) {
     const { t } = useTranslation('agent-chat');
-    const message = target.row === null ? null : messageTextOf(target.row);
+    const row = target.row;
+    const message = row === null ? null : messageTextOf(row);
     const turnId = chatId === null || target.row === null ? null : turnIdOfRow(target.row);
     const forkBlocked = useChatRow(chatId ?? '', (row) => (turnId === null ? null : forkRefusal(row?.info ?? null, row?.structure[turnId])));
     const markdown = target.row === null ? null : markdownOf(target.row);
@@ -36,6 +39,7 @@ export function TimelineMenuPopup({
     // A thread outside a chat (a sub-agent's transcript) has no cwd of its own; the app answers for it then.
     const cwd = useFileLinkCwd();
     const scopeId = useFileLinkScopeId();
+    const lookup = useReferenceLookup(chatId ?? '');
     const { fork, fileLinks } = useChatHost();
     const openFileLink = useOpenFileLink();
     const openInPreview = (): void => {
@@ -50,8 +54,8 @@ export function TimelineMenuPopup({
             <ContextMenu.Item disabled={target.selection === ''} onClick={() => copyText(target.selection)}>
                 <Icon icon={Copy} size={14} /> {t('common.action.copy')} <Kbd shortcut={EDIT_SHORTCUTS.copy} />
             </ContextMenu.Item>
-            {message !== null && (
-                <ContextMenu.Item onClick={() => copyText(message)}>
+            {row !== null && message !== null && (
+                <ContextMenu.Item onClick={() => copyWithChips(rowClipboardChips(row, message, lookup))}>
                     <Icon icon={MessageSquare} size={14} /> {t('timeline.menu.copyMessage')}
                 </ContextMenu.Item>
             )}

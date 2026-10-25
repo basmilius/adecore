@@ -10,6 +10,7 @@ import {
     type ChipSegment,
     type ClipboardChips
 } from '../mentions';
+import type { TimelineRow } from '../logic/timeline';
 import type { ReferenceLookup } from './reference-lookup';
 
 /* The chips a copy of a whole message carries: what the person picked, or what a reply names. */
@@ -23,6 +24,14 @@ export function messageClipboardChips(
     }
     const tokens = referenceTokens([...(item.chats ?? []), ...(item.references ?? [])], lookup.items);
     return clipboardChipsOf(text, tokenizeChips(text, item.mentions ?? [], item.skills ?? [], tokens));
+}
+
+/* The chips a copy of a row of the thread carries; only a message has any. */
+export function rowClipboardChips(row: TimelineRow, text: string, lookup: Pick<ReferenceLookup, 'items' | 'referenced'>): ClipboardChips {
+    if (row.kind === 'user' || row.kind === 'assistant') {
+        return messageClipboardChips(row.item, text, lookup);
+    }
+    return clipboardChipsOf(text, []);
 }
 
 /* What a chip the transcript drew stands for, read back from the attributes `TokenChip` writes. */
