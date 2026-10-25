@@ -97,3 +97,15 @@ const outcome = applyDrawingEdit(drawing.elements, edit, { id: () => crypto.rand
 `DrawingEditSchema` (type `DrawingEdit`) has three optional lists. `add` takes `NewDrawingElementSchema` (`NewDrawingElement`): an element without `id`, `seed` and `locked`, where `stroke` reads as `ink`, `strokeWidth` as `2` and the `size` of a text or note as `20`. `update` takes `DrawingElementPatchSchema` (`DrawingElementPatch`): an `id` and the fields that change; the kind stays. `remove` takes ids. Every level is strict, so a misspelled field fails on its path instead of being dropped.
 
 `applyDrawingEdit` returns a `DrawingEditOutcome`: `{ ok: true, elements, added }` with the new ids in the order given, or `{ ok: false, problems }`, a list of `DrawingEditProblem` with the `path` into the edit and a `message`. It applies nothing unless every part is right. An id that is unknown, locked or named twice is a problem, and so is a field of another kind, such as `text` on a `rect`. Removed elements go, updated ones keep their place in the stacking order, and added ones go on top. The `DrawingEditMint` makes the id and seed of each new element. `DRAWING_EDIT_LIMITS` caps one edit at 200 elements touched and a drawing at 5000 elements after it.
+
+## Rebasing unsaved edits
+
+The editor on screen keeps drawing while such a writer saves. When a newer document arrives before its own edits are saved, it puts them on top of that document by id.
+
+```ts
+import { rebaseDrawingElements } from '@adecore/drawing';
+
+const outcome = rebaseDrawingElements(saved.elements, onScreen.elements, incoming.elements);
+```
+
+`rebaseDrawingElements(base, mine, theirs)` returns a `DrawingRebase`: `{ ok: true, elements }`, or `{ ok: false, conflicts }` with the ids both sides changed. `base` is the document both sides started from. An element added, changed or removed on one side only takes that side, and the same change on both sides is no conflict. Key order does not count as a change. The stacking order is the one a side changed, `theirs` when neither or both did, and an element only the other side added goes just above the element it stood on there.

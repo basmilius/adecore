@@ -31,6 +31,7 @@ export {
     applyDrawingEdit
 } from './edits.ts';
 export { type ElementPath, pathsOfElement } from './paths.ts';
+export { type DrawingRebase, rebaseDrawingElements } from './rebase.ts';
 export { readingOrder } from './reading-order.ts';
 export { type SvgOptions, DEFAULT_SVG_MARGIN, DEFAULT_PALETTE, DEFAULT_PAPER, DEFAULT_EDGE, escapeXml, toSvg } from './svg.ts';
 export {
