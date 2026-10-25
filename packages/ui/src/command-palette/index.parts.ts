@@ -14,3 +14,5 @@ export {
     CommandPalettePopup as Popup,
     CommandPaletteRoot as Root
 } from './parts.tsx';
+
+export { CommandPaletteVirtualList as VirtualList } from './virtual.tsx';

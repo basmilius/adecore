@@ -58,3 +58,28 @@ The highlight starts on the first row when the palette opens, when a person type
 ## Types
 
 `CommandPaletteRootProps`, `CommandPalettePopupProps`, `CommandPaletteInputProps` and `CommandPaletteFooterProps` are exported types.
+
+
+## Large lists
+
+Use `CommandPalette.VirtualList` instead of `CommandPalette.List` for a large catalog, and set `virtualized` on the root. It reads the root's filtered items and mounts the visible rows with a small buffer. Every item remains available to the arrow keys. Rows are measured so their height can vary, and keyboard highlighting scrolls the target into view.
+
+```tsx
+<CommandPalette.Root virtualized items={items}>
+    <CommandPalette.Popup>
+        <CommandPalette.Input aria-label="Find a command" />
+        <CommandPalette.Empty>No matching command</CommandPalette.Empty>
+        <CommandPalette.VirtualList<Command>>
+            {(command, itemProps) => (
+                <CommandPalette.Item {...itemProps} value={command} onClick={command.run}>
+                    {command.label}
+                </CommandPalette.Item>
+            )}
+        </CommandPalette.VirtualList>
+    </CommandPalette.Popup>
+</CommandPalette.Root>
+```
+
+Spread `itemProps` onto each item. They carry its flat `index`, `aria-posinset` and `aria-setsize`, so positions refer to the whole filtered list. Grouped catalogs pass `groupLabel={(group) => group.label}` and the group type as the second type parameter. A visible group's label remains accessible when its heading scrolls out of view. The component accepts the same element props and ref as `CommandPalette.List`.
+
+`CommandPaletteVirtualListProps` and `CommandPaletteVirtualItemProps` are exported types. Existing palettes using `List` keep their rendering behavior.

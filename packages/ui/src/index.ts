@@ -152,3 +152,5 @@ export {
     type SplitCommand
 } from './workspace/model.ts';
 export { tabGapAt, type SplitRect, type SplitEdges, type SplitMinimum } from './workspace/geometry.ts';
+
+export type { CommandPaletteVirtualListProps, CommandPaletteVirtualItemProps } from './command-palette/virtual.tsx';

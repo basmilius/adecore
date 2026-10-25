@@ -440,6 +440,7 @@
       "dependencies": {
         "@base-ui/react": "^1.9.0",
         "@pierre/trees": "1.0.0-beta.6",
+        "@tanstack/react-virtual": "^3.14.13",
         "clsx": "^2.1.1",
         "lucide-react": "^1.47.0",
         "zustand": "^5.0.15",

@@ -137,6 +137,8 @@ exports[`the public API . exports these names 1`] = `
   "type CommandPaletteInputProps",
   "type CommandPalettePopupProps",
   "type CommandPaletteRootProps",
+  "type CommandPaletteVirtualItemProps",
+  "type CommandPaletteVirtualListProps",
   "type ContentSize",
   "type CopyButtonProps",
   "type DialogDescriptionProps",
@@ -395,6 +397,7 @@ exports[`the public API the compound components have these parts 1`] = `
     "Popup",
     "Root",
     "Status",
+    "VirtualList",
   ],
   "ContextMenu": [
     "Check",

@@ -1,4 +1,4 @@
-import { createContext, useContext, useLayoutEffect, useRef, useState, type ComponentProps, type ReactNode, type RefObject } from 'react';
+import { useContext, useLayoutEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
 import clsx from 'clsx';
 import { Search } from 'lucide-react';
@@ -11,16 +11,7 @@ import { Icon } from '../Icon.tsx';
 import { Kbd } from '../Kbd.tsx';
 import { mergeRefs } from '../merge-refs.ts';
 import { KEY_SHORTCUTS } from '../shortcut.ts';
-
-interface PaletteRefs {
-    /* For the popup to put the focus in when it opens: a control before it would take it otherwise. */
-    input: RefObject<HTMLInputElement | null>;
-    /* For the root to scroll back to the top when the app sets the query. */
-    list: RefObject<HTMLDivElement | null>;
-    highlight(row: Element): void;
-}
-
-const PaletteRefsContext = createContext<PaletteRefs | null>(null);
+import { PaletteRefsContext } from './context.ts';
 
 const NO_ITEMS: readonly never[] = [];
 
@@ -58,11 +49,13 @@ export function CommandPaletteRoot<ItemValue>({
     value,
     onValueChange,
     items,
+    onItemHighlighted,
     children,
     ...props
 }: CommandPaletteRootProps<ItemValue>) {
     const inputRef = useRef<HTMLInputElement>(null);
     const listRef = useRef<HTMLDivElement>(null);
+    const virtualScroll = useRef<((index: number, reason: string) => void) | null>(null);
     const [focusHighlight, setFocusHighlight] = useState(false);
     /*
      * Base UI moves the highlight to the first row for a typed query only. For a query the app sets,
@@ -104,7 +97,7 @@ export function CommandPaletteRoot<ItemValue>({
 
     return (
         <DialogRoot open={open} defaultOpen={defaultOpen} onOpenChange={onOpenChange} onOpenChangeComplete={onOpenChangeComplete}>
-            <PaletteRefsContext value={{ input: inputRef, list: listRef, highlight }}>
+            <PaletteRefsContext value={{ input: inputRef, list: listRef, highlight, virtualScroll }}>
                 {/* Its props take a flat list or groups; only its overloads split the two, which a generic caller cannot pick between. */}
                 <Autocomplete.Root<ItemValue>
                     {...props}
@@ -116,6 +109,12 @@ export function CommandPaletteRoot<ItemValue>({
                         onValueChange?.(next, details);
                     }}
                     items={(resetting ? NO_ITEMS : items) as readonly ItemValue[] | undefined}
+                    onItemHighlighted={(item, details) => {
+                        if (item !== undefined && virtualScroll.current !== null) {
+                            queueMicrotask(() => virtualScroll.current?.(details.index, details.reason));
+                        }
+                        onItemHighlighted?.(item, details);
+                    }}
                     inline
                     open
                     autoHighlight={autoHighlight}
