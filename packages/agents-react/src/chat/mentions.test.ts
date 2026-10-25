@@ -2,15 +2,17 @@ import { describe, expect, test } from 'bun:test';
 import {
     chipRanges,
     chipText,
-    dropQuery,
     findMentionQuery,
+    findReferenceQuery,
     findSkillQuery,
     insertMention,
+    insertReference,
     insertSkill,
     mentionPick,
     NO_MENTION_SEARCH,
     pastedMentions,
     presentMentions,
+    presentReferences,
     presentSkills,
     tokenizeChips
 } from './mentions';
@@ -29,20 +31,16 @@ describe('findMentionQuery', () => {
 });
 
 describe('mentionPick', () => {
-    const chats = [{ id: 'chat-2' }];
-
-    test('picks a chat above the files, and a file the current query found', () => {
+    test('picks the file the current query found', () => {
         const search = { query: 'pack', files: ['package.json', 'packages/a.ts'] };
-        expect(mentionPick(0, chats, search, 'pack')).toEqual({ kind: 'chat', chat: { id: 'chat-2' } });
-        expect(mentionPick(2, chats, search, 'pack')).toEqual({ kind: 'file', path: 'packages/a.ts' });
+        expect(mentionPick(1, search, 'pack')).toBe('packages/a.ts');
     });
 
     test('picks no file while the answer for the query typed since is on its way', () => {
         // `@` answered at once, then `@pack` and Enter came before its debounced search did.
         const search = { query: '', files: ['README.md', 'src/main.ts'] };
-        expect(mentionPick(0, [], search, 'pack')).toBeNull();
-        expect(mentionPick(0, chats, search, 'pack')).toEqual({ kind: 'chat', chat: { id: 'chat-2' } });
-        expect(mentionPick(0, [], NO_MENTION_SEARCH, '')).toBeNull();
+        expect(mentionPick(0, search, 'pack')).toBeNull();
+        expect(mentionPick(0, NO_MENTION_SEARCH, '')).toBeNull();
     });
 });
 
@@ -53,10 +51,65 @@ describe('insertMention', () => {
     });
 });
 
-describe('dropQuery', () => {
-    test('takes the @query out and leaves the caret where it stood', () => {
-        const query = findMentionQuery('see @plan now', 9)!;
-        expect(dropQuery('see @plan now', query)).toEqual({ text: 'see  now', caret: 4 });
+describe('findReferenceQuery', () => {
+    test('opens on a # with a letter right after it, also a letter outside ASCII', () => {
+        expect(findReferenceQuery('draw in #Sch', 12)).toEqual({ start: 8, query: 'Sch' });
+        expect(findReferenceQuery('#Ébauche', 8)).toEqual({ start: 0, query: 'Ébauche' });
+    });
+
+    test('leaves a heading, a number, a bare # and a color as no query of its own', () => {
+        expect(findReferenceQuery('# Title', 7)).toBeNull();
+        expect(findReferenceQuery('#', 1)).toBeNull();
+        expect(findReferenceQuery('issue #123', 10)).toBeNull();
+        expect(findReferenceQuery('a#b', 3)).toBeNull();
+    });
+});
+
+describe('insertReference', () => {
+    test('puts the whole name in, spaces and all, where the first word was typed', () => {
+        const query = findReferenceQuery('see #Onder now', 10)!;
+        expect(insertReference('see #Onder now', query, 'Onderzoek Q3')).toEqual({ text: 'see #Onderzoek Q3  now', caret: 18 });
+    });
+});
+
+describe('references in the text', () => {
+    const tokens = [
+        { id: 'view-q3', name: 'Onderzoek Q3' },
+        { id: 'view-research', name: 'Onderzoek' },
+        { id: 'node-sketch', name: 'Sketch' }
+    ];
+
+    test('chipRanges finds a name with a space by the id it stands for, the longer name first', () => {
+        const text = 'Compare #Onderzoek Q3 with #Onderzoek.';
+        const ranges = chipRanges(text, [], [], [], tokens);
+        expect(ranges).toEqual([
+            { from: 8, to: 21, kind: 'reference', value: 'view-q3' },
+            { from: 27, to: 37, kind: 'reference', value: 'view-research' }
+        ]);
+        expect(ranges.map((range) => text.slice(range.from, range.to))).toEqual(['#Onderzoek Q3', '#Onderzoek']);
+    });
+
+    test('a reference in a code span stays text', () => {
+        expect(chipRanges('`#Sketch` and #Sketch', [], [], [{ from: 0, to: 9 }], tokens)).toEqual([
+            { from: 14, to: 21, kind: 'reference', value: 'node-sketch' }
+        ]);
+    });
+
+    test('tokenizeChips keeps the name the text spells and spells the text again', () => {
+        const text = 'Draw a sun in #Sketch, see @a.ts';
+        const segments = tokenizeChips(text, ['a.ts'], [], tokens);
+        expect(segments).toEqual([
+            { kind: 'text', text: 'Draw a sun in ' },
+            { kind: 'reference', id: 'node-sketch', name: 'Sketch' },
+            { kind: 'text', text: ', see ' },
+            { kind: 'mention', path: 'a.ts' }
+        ]);
+        expect(segments.map(chipText).join('')).toBe(text);
+    });
+
+    test('presentReferences keeps the picked ids still in the text, in text order', () => {
+        expect(presentReferences('#Sketch then #Onderzoek Q3', ['view-q3', 'node-sketch', 'view-research'], tokens)).toEqual(['node-sketch', 'view-q3']);
+        expect(presentReferences('#Sketch', ['view-q3'], tokens)).toEqual([]);
     });
 });
 

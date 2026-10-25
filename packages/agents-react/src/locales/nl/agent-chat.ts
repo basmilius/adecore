@@ -16,10 +16,9 @@ export default {
         unreadable: 'Kon {{name}} niet lezen',
         unreadableThumbnail: 'Kon de miniatuur niet lezen'
     },
-    chatReference: {
-        gone: 'Chat niet in dit project',
-        untitled: 'Naamloze chat',
-        remove: '{{title}} verwijderen'
+    references: {
+        gone: 'Niet in dit project',
+        untitled: 'Naamloos'
     },
     fork: {
         refusal: {
@@ -304,7 +303,8 @@ export default {
         menu: {
             commands: "Commando's",
             skills: 'Skills',
-            mentions: 'Vermeldingen'
+            mentions: 'Vermeldingen',
+            references: 'Views en nodes'
         },
         held: {
             question: 'Er wacht een vraag. Opent zodra je stopt met typen.',
@@ -349,9 +349,25 @@ export default {
         mentions: {
             here: 'Bestanden in deze map',
             files: 'Bestanden',
-            chats: 'Chats in dit project',
-            noMatch: 'Geen bestanden of chats gevonden',
+            noMatch: 'Geen bestanden gevonden',
             empty: 'Hier staan geen bestanden'
+        },
+        references: {
+            canvas: 'Op dit canvas',
+            views: 'Views',
+            noMatch: 'Geen view of node gevonden',
+            kinds: {
+                canvas: 'canvas',
+                chat: 'chat',
+                terminal: 'terminal',
+                note: 'notitie',
+                text: 'tekst',
+                drawing: 'tekening',
+                diagram: 'diagram',
+                browser: 'browser',
+                device: 'apparaat',
+                file: 'bestand'
+            }
         },
         queue: {
             attachments_one: '{{count}} bijlage',

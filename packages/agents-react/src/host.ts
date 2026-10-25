@@ -18,6 +18,7 @@ import type {
     ProviderPlatform
 } from '@adecore/agent-contracts';
 import { isApplePlatform } from '@adecore/ui';
+import type { Referables } from './chat/chat-references';
 import type { TimelineRow } from './chat/logic/timeline';
 import type { FindReveal } from './chat/ui/find-reveal';
 import type { PromptAction } from './prompts/logic/prompts';
@@ -379,8 +380,12 @@ export interface ChatHost {
         render(prompt: HostPrompt, props: PromptViewProps): ReactNode;
         answer(prompt: HostPrompt, action: PromptAction): Promise<void>;
     };
-    /* Other chats a message may point at with `@`, beside the files. */
+    /* Other chats a message may point at with `#`, for a host that has no views; `useReferables` takes over where it is given. */
     useReferableChats(): ReadonlyArray<{ id: string; title: string }>;
+    /* The views and nodes a message of this chat may point at with `#`, under the names they have right now. */
+    useReferables?(scopeId: string, chatId: string): Referables;
+    /* Opens a view or zooms to a node a message points at; left out, a chip opens nothing. */
+    openReference?(scopeId: string, id: string): void;
     /* Opens the CLI's own login for an account, somewhere the app can run a command; null offers none. */
     openLogin: ((scopeId: string, kind: AgentKind, accountId: string, name: string) => Promise<void>) | null;
     /* Why a login cannot start from here right now, or null when it can. */

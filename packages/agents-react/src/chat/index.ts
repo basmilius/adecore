@@ -2,7 +2,7 @@
 export { type AccountChoice, useAccountChoice, type NewAccountChoice, useNewAccountChoice } from './account-choice';
 export { transportActions, actionsOf, useChatActions } from './actions';
 export { type ChatSendExtras, ChatClient } from './chat-client';
-export type { ProjectChat } from './chat-references';
+export type { ProjectChat, Referable, ReferableKind, Referables } from './chat-references';
 export { sendFromComposer, type ComposerSend } from './composer-send';
 export { stepEffortFromComposer } from './composer-effort';
 export type { EffortStep } from './logic/effort';

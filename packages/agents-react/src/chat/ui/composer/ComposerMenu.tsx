@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
-import { MessageSquare, SquareSlash, Zap } from 'lucide-react';
+import { SquareSlash, Zap } from 'lucide-react';
 import { FileIcon, Icon, Menu, MiddleTruncate } from '@adecore/ui';
+import { REFERENCE_ICONS } from '../reference-icons';
 import type { ComposerMenus as Menus } from './use-composer-menus';
 import { optionIdOf } from './menu-aria';
 
@@ -72,52 +73,64 @@ function SkillMenu({ menus }: { menus: Menus }) {
 
 function MentionMenu({ menus, query }: { menus: Menus; query: string }) {
     const { t } = useTranslation('agent-chat');
-    const { listId, chatMatches, files, mentionCount } = menus;
-    const mentionsLabelId = `${listId}-chats`;
+    const { listId, files, mentionCount } = menus;
     const filesLabelId = `${listId}-files`;
-    const filesLabelShown = query === '' || chatMatches.length > 0;
+    const filesLabelShown = query === '';
     return (
         <div className="border-b border-border px-1.5 py-1.5">
             {mentionCount > 0 && (
-                <div id={listId} role="listbox" aria-label={t('composer.menu.mentions')}>
-                    {chatMatches.length > 0 && (
-                        <div role="group" aria-labelledby={mentionsLabelId}>
-                            <Menu.Label id={mentionsLabelId}>{t('composer.mentions.chats')}</Menu.Label>
-                            {chatMatches.map((chat, index) => (
-                                <MenuOption key={chat.id} menus={menus} index={index} className="items-center" onPick={() => menus.chooseChat(chat.id)}>
-                                    <Icon icon={MessageSquare} size={14} className="shrink-0 text-text-faint" />
-                                    <span className="truncate text-text">{chat.title || t('chatReference.untitled')}</span>
-                                </MenuOption>
-                            ))}
-                        </div>
-                    )}
-                    {files.length > 0 && (
-                        <div role="group" {...(filesLabelShown ? { 'aria-labelledby': filesLabelId } : { 'aria-label': t('composer.mentions.files') })}>
-                            {filesLabelShown && (
-                                <Menu.Label id={filesLabelId}>{query === '' ? t('composer.mentions.here') : t('composer.mentions.files')}</Menu.Label>
-                            )}
-                            {files.map((path, index) => {
-                                const { name, dir } = splitPath(path);
-                                return (
-                                    <MenuOption
-                                        key={path}
-                                        menus={menus}
-                                        index={chatMatches.length + index}
-                                        className="items-center"
-                                        onPick={() => menus.chooseMention(path)}
-                                    >
-                                        <FileIcon path={path} size={14} />
-                                        <span className="truncate font-mono text-text">{name}</span>
-                                        {dir && <MiddleTruncate text={dir} tooltip={false} className="text-text-faint" />}
-                                    </MenuOption>
-                                );
-                            })}
-                        </div>
-                    )}
+                <div id={listId} role="listbox" {...(filesLabelShown ? { 'aria-labelledby': filesLabelId } : { 'aria-label': t('composer.mentions.files') })}>
+                    {filesLabelShown && <Menu.Label id={filesLabelId}>{t('composer.mentions.here')}</Menu.Label>}
+                    {files.map((path, index) => {
+                        const { name, dir } = splitPath(path);
+                        return (
+                            <MenuOption key={path} menus={menus} index={index} className="items-center" onPick={() => menus.chooseMention(path)}>
+                                <FileIcon path={path} size={14} />
+                                <span className="truncate font-mono text-text">{name}</span>
+                                {dir && <MiddleTruncate text={dir} tooltip={false} className="text-text-faint" />}
+                            </MenuOption>
+                        );
+                    })}
                 </div>
             )}
             {mentionCount === 0 && (
                 <div className="px-2 py-1 text-xs text-text-faint">{query ? t('composer.mentions.noMatch') : t('composer.mentions.empty')}</div>
+            )}
+        </div>
+    );
+}
+
+/* The views, nodes and chats a `#` offers, what stands on this canvas first, each with its kind or what tells it apart. */
+function ReferenceMenu({ menus }: { menus: Menus }) {
+    const { t } = useTranslation('agent-chat');
+    const { listId, referenceMatches } = menus;
+    const groups = (['canvas', 'views'] as const)
+        .map((group) => ({ group, items: referenceMatches.filter((item) => item.group === group) }))
+        .filter((entry) => entry.items.length > 0);
+    return (
+        <div className="border-b border-border px-1.5 py-1.5">
+            {referenceMatches.length > 0 ? (
+                <div id={listId} role="listbox" aria-label={t('composer.menu.references')}>
+                    {groups.map(({ group, items }) => (
+                        <div key={group} role="group" aria-labelledby={`${listId}-${group}`}>
+                            <Menu.Label id={`${listId}-${group}`}>{t(`composer.references.${group}`)}</Menu.Label>
+                            {items.map((item) => {
+                                const index = referenceMatches.indexOf(item);
+                                return (
+                                    <MenuOption key={item.id} menus={menus} index={index} className="items-center" onPick={() => menus.chooseReference(item)}>
+                                        <Icon icon={REFERENCE_ICONS[item.kind]} size={14} className="shrink-0 text-text-faint" />
+                                        <span className="truncate text-text">{item.name}</span>
+                                        <span className="ml-auto shrink-0 truncate pl-2 text-text-faint">
+                                            {item.detail ?? t(`composer.references.kinds.${item.kind}`)}
+                                        </span>
+                                    </MenuOption>
+                                );
+                            })}
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="px-2 py-1 text-xs text-text-faint">{t('composer.references.noMatch')}</div>
             )}
         </div>
     );
@@ -133,6 +146,9 @@ export function ComposerMenu({ menus }: { menus: Menus }) {
     }
     if (menus.mentionMenuOpen && menus.mention !== null) {
         return <MentionMenu menus={menus} query={menus.mention.query} />;
+    }
+    if (menus.referenceMenuOpen) {
+        return <ReferenceMenu menus={menus} />;
     }
     return null;
 }

@@ -18,7 +18,11 @@ import { useChatScope } from '../../../scope';
 import { splitQuote } from '../../quote';
 import { jumpToTimelineItem } from '../../timeline-scroll';
 import { useProviders } from '../../../state/providers';
-import { ChatReferenceChip } from '../ChatReferenceChip';
+import { useChatHost } from '../../../host';
+import { referenceTokens } from '../../chat-references';
+import { presentReferences } from '../../mentions';
+import { ReferenceChip } from '../ReferenceChip';
+import { ReferenceLookupContext } from '../reference-lookup';
 import { ImageThumb } from '../ImageView';
 import { Markdown, MessageMarkdown, ReplyMarkdown } from '../Markdown';
 import { FadingWords } from '../FadingWords';
@@ -33,7 +37,7 @@ import { ROW_GUTTER } from '../icons';
 import { useOpenForFind } from '../find-reveal';
 import { ReplyContext, UiReplyNavigationContext } from '../reply-context';
 import { UiReply } from '../intelligent-ui/UiReply';
-import { useHostAttachmentUrl, useHostChatPlace, useHostReplyAuthor, useHostStreaming } from '../../../host-hooks';
+import { useHostAttachmentUrl, useHostChatPlace, useHostReferables, useHostReplyAuthor, useHostStreaming } from '../../../host-hooks';
 
 // A long prompt folds so the answer stays in view; the reader can open it.
 const USER_FOLD_LINES = 8;
@@ -89,9 +93,16 @@ export function UserRow({ chatId, item }: { chatId: string; item: ChatUserItem }
     const [open, setOpen] = useState(false);
     const long = item.text.split('\n').length > USER_FOLD_LINES || item.text.length > USER_FOLD_CHARS;
     const attachments = item.attachments ?? [];
-    const chats = item.chats ?? [];
     const [missing, setMissing] = useState(false);
-    const { keyOf } = useChatScope();
+    const { id: scopeId, keyOf } = useChatScope();
+    const { openReference } = useChatHost();
+    const referables = useHostReferables(scopeId, chatId);
+    const referenced = [...(item.chats ?? []), ...(item.references ?? [])];
+    const references = referenceTokens(referenced, referables.items);
+    // A chat attached before `#` existed, or a view renamed or gone since, is not in the text; it stands beside it.
+    const placed = presentReferences(item.text, referenced, references);
+    const beside = referenced.filter((id) => !placed.includes(id));
+    const lookup = { items: referables.items, open: openReference ? (id: string) => openReference(scopeId, id) : null };
     useOpenForFind(item.id, 'text', setOpen);
     // A quote only leads somewhere when the message still opens with the blockquote it was sent with.
     const quoted = item.quoteSource === undefined ? null : splitQuote(item.text);
@@ -104,65 +115,69 @@ export function UserRow({ chatId, item }: { chatId: string; item: ChatUserItem }
         }
     }
     return (
-        <div data-find-item={item.id} className="flex flex-col items-end">
-            <MessageHeading>{t('rows.user.heading')}</MessageHeading>
-            {attachments.length > 0 && (
-                <div className="mb-1.5 flex max-w-[80%] flex-wrap justify-end gap-1.5">
-                    {attachments.map((attachment) =>
-                        isImageAttachment(attachment.mime) ? (
-                            <AttachmentThumb key={attachment.id} chatId={chatId} attachment={attachment} />
-                        ) : (
-                            <AttachmentLink key={attachment.id} chatId={chatId} attachment={attachment} />
-                        )
-                    )}
-                </div>
-            )}
-            {chats.length > 0 && (
-                <div className="mb-1.5 flex max-w-[80%] flex-wrap justify-end gap-1.5">
-                    {chats.map((id) => (
-                        <ChatReferenceChip key={id} chatId={id} />
-                    ))}
-                </div>
-            )}
-            {item.uiChoice !== undefined && <ChoiceLine chatId={chatId} choice={item.uiChoice} />}
-            {item.text !== '' && (
-                <div className="relative max-w-[80%] rounded-2xl bg-surface-active px-3.5 py-2.5 text-sm wrap-anywhere text-text select-text">
-                    <div data-find-field="text" className={clsx(long && !open && FOLD)}>
-                        {quoted !== null && source !== undefined ? (
-                            <>
-                                {/* A div, since the quote is block markdown and a button holds none. */}
-                                <Tooltip label={t('composer.quote.goToSource')}>
-                                    <div
-                                        role="button"
-                                        tabIndex={0}
-                                        className="mb-2 cursor-pointer rounded-sm border-l-2 border-border-strong pl-2.5 text-text-muted hover:bg-text/5 hover:text-text focus-visible:outline-2 focus-visible:outline-accent"
-                                        onClick={goToSource}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter' || e.key === ' ') {
-                                                e.preventDefault();
-                                                goToSource();
-                                            }
-                                        }}
-                                    >
-                                        <MessageMarkdown text={quoted.quote} />
-                                    </div>
-                                </Tooltip>
-                                {missing && <div className="mb-2 text-xs text-text-faint">{t('rows.user.quoteGone')}</div>}
-                                {quoted.rest !== '' && <MessageMarkdown text={quoted.rest} mentions={item.mentions} skills={item.skills} />}
-                            </>
-                        ) : (
-                            <MessageMarkdown text={item.text} mentions={item.mentions} skills={item.skills} />
+        <ReferenceLookupContext value={lookup}>
+            <div data-find-item={item.id} className="flex flex-col items-end">
+                <MessageHeading>{t('rows.user.heading')}</MessageHeading>
+                {attachments.length > 0 && (
+                    <div className="mb-1.5 flex max-w-[80%] flex-wrap justify-end gap-1.5">
+                        {attachments.map((attachment) =>
+                            isImageAttachment(attachment.mime) ? (
+                                <AttachmentThumb key={attachment.id} chatId={chatId} attachment={attachment} />
+                            ) : (
+                                <AttachmentLink key={attachment.id} chatId={chatId} attachment={attachment} />
+                            )
                         )}
                     </div>
-                    {long && (
-                        <button className="mt-1 flex items-center gap-1 text-xs text-text-muted hover:text-text" onClick={() => setOpen((o) => !o)}>
-                            <Icon icon={ChevronDown} size={12} className={clsx('transition-transform', open && 'rotate-180')} />{' '}
-                            {open ? t('rows.user.showLess') : t('rows.user.showAll')}
-                        </button>
-                    )}
-                </div>
-            )}
-        </div>
+                )}
+                {beside.length > 0 && (
+                    <div className="mb-1.5 flex max-w-[80%] flex-wrap justify-end gap-1.5">
+                        {beside.map((id) => (
+                            <ReferenceChip key={id} id={id} />
+                        ))}
+                    </div>
+                )}
+                {item.uiChoice !== undefined && <ChoiceLine chatId={chatId} choice={item.uiChoice} />}
+                {item.text !== '' && (
+                    <div className="relative max-w-[80%] rounded-2xl bg-surface-active px-3.5 py-2.5 text-sm wrap-anywhere text-text select-text">
+                        <div data-find-field="text" className={clsx(long && !open && FOLD)}>
+                            {quoted !== null && source !== undefined ? (
+                                <>
+                                    {/* A div, since the quote is block markdown and a button holds none. */}
+                                    <Tooltip label={t('composer.quote.goToSource')}>
+                                        <div
+                                            role="button"
+                                            tabIndex={0}
+                                            className="mb-2 cursor-pointer rounded-sm border-l-2 border-border-strong pl-2.5 text-text-muted hover:bg-text/5 hover:text-text focus-visible:outline-2 focus-visible:outline-accent"
+                                            onClick={goToSource}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                    e.preventDefault();
+                                                    goToSource();
+                                                }
+                                            }}
+                                        >
+                                            <MessageMarkdown text={quoted.quote} />
+                                        </div>
+                                    </Tooltip>
+                                    {missing && <div className="mb-2 text-xs text-text-faint">{t('rows.user.quoteGone')}</div>}
+                                    {quoted.rest !== '' && (
+                                        <MessageMarkdown text={quoted.rest} mentions={item.mentions} skills={item.skills} references={references} />
+                                    )}
+                                </>
+                            ) : (
+                                <MessageMarkdown text={item.text} mentions={item.mentions} skills={item.skills} references={references} />
+                            )}
+                        </div>
+                        {long && (
+                            <button className="mt-1 flex items-center gap-1 text-xs text-text-muted hover:text-text" onClick={() => setOpen((o) => !o)}>
+                                <Icon icon={ChevronDown} size={12} className={clsx('transition-transform', open && 'rotate-180')} />{' '}
+                                {open ? t('rows.user.showLess') : t('rows.user.showAll')}
+                            </button>
+                        )}
+                    </div>
+                )}
+            </div>
+        </ReferenceLookupContext>
     );
 }
 

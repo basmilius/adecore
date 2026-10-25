@@ -84,6 +84,15 @@ function pickInMenu(e: KeyboardEvent, { menus, setText }: KeyHandlerInput): bool
             return true;
         }
     }
+    if (menus.referenceMenuOpen && menus.referenceMatches.length > 0) {
+        if (menus.moveInMenu(e.key, menus.referenceMatches.length)) {
+            return true;
+        }
+        if (e.key === 'Tab' || e.key === 'Enter') {
+            menus.chooseReferenceAt(activeIndex);
+            return true;
+        }
+    }
     return false;
 }
 

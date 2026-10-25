@@ -16,10 +16,9 @@ export default {
         unreadable: 'Could not read {{name}}',
         unreadableThumbnail: 'Could not read the thumbnail'
     },
-    chatReference: {
-        gone: 'Chat not in this project',
-        untitled: 'Untitled chat',
-        remove: 'Remove {{title}}'
+    references: {
+        gone: 'Not in this project',
+        untitled: 'Untitled'
     },
     fork: {
         refusal: {
@@ -304,7 +303,8 @@ export default {
         menu: {
             commands: 'Commands',
             skills: 'Skills',
-            mentions: 'Mentions'
+            mentions: 'Mentions',
+            references: 'Views and nodes'
         },
         held: {
             question: 'Question waiting. Opens when you pause typing.',
@@ -349,9 +349,25 @@ export default {
         mentions: {
             here: 'Files in this folder',
             files: 'Files',
-            chats: 'Chats in this project',
-            noMatch: 'No files or chats match',
+            noMatch: 'No files match',
             empty: 'No files here'
+        },
+        references: {
+            canvas: 'On this canvas',
+            views: 'Views',
+            noMatch: 'No view or node matches',
+            kinds: {
+                canvas: 'canvas',
+                chat: 'chat',
+                terminal: 'terminal',
+                note: 'note',
+                text: 'text',
+                drawing: 'drawing',
+                diagram: 'diagram',
+                browser: 'browser',
+                device: 'device',
+                file: 'file'
+            }
         },
         queue: {
             attachments_one: '{{count}} attachment',

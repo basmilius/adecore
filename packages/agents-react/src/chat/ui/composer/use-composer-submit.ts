@@ -8,7 +8,7 @@ import { registerComposerSender, type ComposerSend } from '../../composer-send';
 import { isEmptyDraft } from '../../drafts';
 import { CONTINUE_PROMPT } from '../../logic/continue-after-stop';
 import type { PromptGuard } from '../../guards';
-import { presentMentions, presentSkills } from '../../mentions';
+import { presentMentions, presentReferences, presentSkills } from '../../mentions';
 import { withQuote } from '../../quote';
 import { restorableChats, stashDraft, useStash, type StashedPrompt } from '../../stash';
 import { scrollTimelineToEnd } from '../../timeline-scroll';
@@ -19,7 +19,6 @@ import type { ComposerDraft } from './use-composer-draft';
 import type { ComposerMenus } from './use-composer-menus';
 import type { PromptHistory } from './use-prompt-history';
 import type { ComposerPromptHold } from './use-prompt-hold';
-import { useHostReferableChats } from '../../../host-hooks';
 
 interface SubmitInput {
     chatId: string;
@@ -59,7 +58,6 @@ export function useComposerSubmit({
     const host = useChatHost();
     const scope = useChatScope();
     const { draft, setDraft } = box;
-    const referable = useHostReferableChats();
 
     /* Opens the host's new chat once the host took the message; a host that answers nothing took it. */
     const afterSend = (sent: void | Promise<boolean>, andNew: boolean): void => {
@@ -111,14 +109,16 @@ export function useComposerSubmit({
             box.clear();
             return;
         }
-        const sent = onSend(withQuote(quote, trimmed), {
+        const chats = presentReferences(trimmed, draft.chats, menus.referenceChips);
+        // A machine without `viewReferences` drops the field, so only the chats it does know reach it.
+        const references = menus.referables.chatsOnly ? [] : presentReferences(trimmed, draft.references, menus.referenceChips);        const sent = onSend(withQuote(quote, trimmed), {
             delivery,
             mentions: presentMentions(trimmed, draft.mentions),
             skills: presentSkills(trimmed, draft.skills),
-            chats: draft.chats,
+            chats,
             quoteSource: quote !== '' && quoteSource !== null ? { itemId: quoteSource } : undefined,
             attachments: draft.attachments,
-            references: draft.references.length > 0 ? draft.references : undefined
+            references: references.length > 0 ? references : undefined
         });
         afterSend(sent, how === 'and-new');
         box.clear();
@@ -141,7 +141,11 @@ export function useComposerSubmit({
     const restoreStashed = (prompt: StashedPrompt): void => {
         const stashedQuote = prompt.quote;
         const here = stashedQuote !== undefined && stashedQuote.chatId === chatId;
-        const { chats, dropped } = restorableChats(prompt.chats, new Set(referable.map((chat) => chat.id)), chatId);
+        const { chats, dropped } = restorableChats(
+            prompt.chats,
+            new Set(menus.referables.items.filter((item) => item.kind === 'chat').map((item) => item.id)),
+            chatId
+        );
         setDraft((current) => ({
             ...current,
             text: stashedQuote === undefined || here ? prompt.text : withQuote(stashedQuote.text, prompt.text),

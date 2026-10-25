@@ -1,4 +1,4 @@
-import { chipText, tokenizeChips, type ChipSegment } from '../mentions';
+import { chipText, tokenizeChips, type ChipSegment, type ReferenceToken } from '../mentions';
 
 /* Just the part of hast this plugin touches; the package's own types are not a dependency here. */
 interface HastText {
@@ -22,41 +22,49 @@ interface HastParent {
 export interface ChipOptions {
     mentions?: string[];
     skills?: string[];
+    references?: readonly ReferenceToken[];
+}
+
+function valueOf(segment: Exclude<ChipSegment, { kind: 'text' }>): string {
+    if (segment.kind === 'mention') {
+        return segment.path;
+    }
+    return segment.kind === 'skill' ? segment.name : segment.id;
 }
 
 // Inline code overrules a chip: `@a.ts` between backticks is code, not a mention.
 const SKIPPED = new Set(['code', 'pre']);
 
-/* A chip as an element: the renderer reads `data-chip` and `data-value`, the text keeps the sigil. */
+/* A chip as an element: the renderer reads `data-chip` and `data-value` (a reference's id), the text keeps the sigil. */
 function chipElement(segment: Exclude<ChipSegment, { kind: 'text' }>): HastElement {
     return {
         type: 'element',
         tagName: 'span',
-        properties: { dataChip: segment.kind, dataValue: segment.kind === 'mention' ? segment.path : segment.name },
+        properties: { dataChip: segment.kind, dataValue: valueOf(segment) },
         children: [{ type: 'text', value: chipText(segment) }]
     };
 }
 
-function split(parent: HastParent, mentions: string[], skills: string[]): void {
+function split(parent: HastParent, mentions: string[], skills: string[], references: readonly ReferenceToken[]): void {
     parent.children = parent.children.flatMap((child): HastNode[] => {
         if (child.type === 'text') {
-            return tokenizeChips(child.value, mentions, skills).map((segment) =>
+            return tokenizeChips(child.value, mentions, skills, references).map((segment) =>
                 segment.kind === 'text' ? { type: 'text', value: segment.text } : chipElement(segment)
             );
         }
         if (child.type === 'element' && !SKIPPED.has(child.tagName)) {
-            split(child, mentions, skills);
+            split(child, mentions, skills, references);
         }
         return [child];
     });
 }
 
-/* The `@path` and `$name` tokens a person picked in the composer, cut out of the text as chips. */
-export function rehypeChips({ mentions = [], skills = [] }: ChipOptions = {}) {
+/* The `@path`, `$name` and `#name` tokens a person picked in the composer, cut out of the text as chips. */
+export function rehypeChips({ mentions = [], skills = [], references = [] }: ChipOptions = {}) {
     return (tree: HastParent) => {
-        if (mentions.length === 0 && skills.length === 0) {
+        if (mentions.length === 0 && skills.length === 0 && references.length === 0) {
             return;
         }
-        split(tree, mentions, skills);
+        split(tree, mentions, skills, references);
     };
 }

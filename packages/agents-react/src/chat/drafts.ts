@@ -9,7 +9,7 @@ export interface ChatDraft {
     text: string;
     mentions: string[];
     skills: string[];
-    /* Chats of the project picked with `@`, drawn beside the text rather than in it. */
+    /* Chats of the project picked with `#`, by id; apart from `references`, since every machine takes a chat. */
     chats: string[];
     attachments: ChatAttachmentUpload[];
     /* A piece of an answer that goes above the text as a blockquote; empty for none. */
@@ -18,6 +18,8 @@ export interface ChatDraft {
     quoteSource: string | null;
     /* Views and nodes of the project picked with `#`, by id. */
     references: string[];
+    /* The name each pick was spelled with in the text, by id, so a chip outlives a rename; a pick without one takes the name it has now. */
+    referenceNames?: Record<string, string>;
 }
 
 export const EMPTY_DRAFT: ChatDraft = { text: '', mentions: [], skills: [], chats: [], attachments: [], quote: '', quoteSource: null, references: [] };
@@ -32,6 +34,7 @@ type DraftRecord = {
     quote?: string;
     quoteSource?: string;
     references?: string[];
+    referenceNames?: Record<string, string>;
 };
 
 const storage = persistedJson<Record<string, DraftRecord>>(
@@ -78,7 +81,8 @@ export function readDraft(chatId: string): ChatDraft {
               attachments: record.attachments ?? [],
               quote: record.quote ?? '',
               quoteSource: record.quoteSource ?? null,
-              references: record.references ?? []
+              references: record.references ?? [],
+              ...(record.referenceNames === undefined ? {} : { referenceNames: record.referenceNames })
           }
         : EMPTY_DRAFT;
 }
@@ -99,7 +103,8 @@ export function writeDraft(chatId: string, draft: ChatDraft): void {
         attachments: draft.attachments,
         quote: draft.quote,
         ...(draft.quoteSource === null ? {} : { quoteSource: draft.quoteSource }),
-        references: draft.references
+        references: draft.references,
+        ...namesOf(draft)
     };
     if (storage.write(drafts)) {
         return;
@@ -112,9 +117,14 @@ export function writeDraft(chatId: string, draft: ChatDraft): void {
         chats: draft.chats,
         quote: draft.quote,
         ...(draft.quoteSource === null ? {} : { quoteSource: draft.quoteSource }),
-        references: draft.references
+        references: draft.references,
+        ...namesOf(draft)
     };
     storage.write(drafts);
+}
+
+function namesOf(draft: ChatDraft): Pick<DraftRecord, 'referenceNames'> {
+    return draft.referenceNames === undefined ? {} : { referenceNames: draft.referenceNames };
 }
 
 /* Text handed to a draft from outside the composer goes under what was already typed, never over it. */
@@ -149,7 +159,8 @@ export function takeBackIntoDraft(
             attachments: [...checked.accepted.map((entry) => entry.upload), ...current.attachments],
             quote: current.quote,
             quoteSource: current.quoteSource,
-            references: union(taken.references, current.references)
+            references: union(taken.references, current.references),
+            ...namesOf(current)
         },
         rejected: checked.rejected
     };

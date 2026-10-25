@@ -26,7 +26,7 @@ import { ResumeCompactionDock } from './ResumeCompactionDock';
 import { chipDecorations } from './composer/chips';
 import { ComposerControls } from './composer/ComposerControls';
 import { ComposerMenu } from './composer/ComposerMenu';
-import { DraftAttachments, DraftChats, DraftQuote } from './composer/DraftParts';
+import { DraftAttachments, DraftQuote } from './composer/DraftParts';
 import { composerKeyHandler } from './composer/key-handler';
 import { useHintedPlaceholder } from './composer/placeholder';
 import { QueuedMessages } from './composer/QueuedMessages';
@@ -154,7 +154,7 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
     const pending = usePendingRequests(chatId);
     const compactionOffer = useCompactionOffer(chatId, info, capabilities?.compaction);
     const placeholder = useHintedPlaceholder({ chatId, disabled, readOnly, mentionable: capabilities?.mentions !== false, hasSkills: menus.hasSkills });
-    const editorExtensions = [chipDecorations({ mentions: draft.mentions, skills: draft.skills }), LEAVE_DROPS_TO_THE_CARD];
+    const editorExtensions = [chipDecorations({ mentions: draft.mentions, skills: draft.skills, references: menus.referenceChips }), LEAVE_DROPS_TO_THE_CARD];
     /* The timeline owns the scroller; this is the one bit of it the composer needs to know. */
     const atEnd = useSyncExternalStore(
         subscribeTimelineEnd,
@@ -263,7 +263,6 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
                                 onSourceGone={() => notice.setNotice(t('rows.user.quoteGone'), 'info')}
                             />
                         )}
-                        {draft.chats.length > 0 && <DraftChats chats={draft.chats} onRemove={box.removeChat} />}
                         {draft.attachments.length > 0 && <DraftAttachments attachments={draft.attachments} onRemove={box.removeAttachment} />}
                         <ComposerInput
                             ref={inputRef}

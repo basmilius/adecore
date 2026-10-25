@@ -1,10 +1,16 @@
-/* An `@file` or `$skill` token drawn as a pill: the tone says which of the two it is, the shape
+/* An `@file`, `$skill` or `#reference` token drawn as a pill: the tone says which it is, the shape
    says where it is drawn. */
 
 export const MENTION_TONE = 'bg-accent-soft text-accent shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--accent)_25%,transparent)]';
 
 /* A skill is the same token shape as a file mention, in its own hue. */
 export const SKILL_TONE = 'bg-skill-soft text-skill shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--skill)_25%,transparent)]';
+
+/* A `#` to a view, node or chat is neutral, so it never reads as a file or a skill. */
+export const REFERENCE_TONE = 'bg-text/8 text-text shadow-[inset_0_0_0_1px_var(--border-strong)]';
+
+/* A `#` whose view or node is no longer in the project. */
+export const REFERENCE_GONE_TONE = 'bg-text/4 text-text-faint shadow-[inset_0_0_0_1px_var(--border)]';
 
 /* The pill in the composer's editor, around the token's own characters: the editor places the caret
    from what it drew, so padding is safe, and a chip that wraps keeps it on every fragment. */

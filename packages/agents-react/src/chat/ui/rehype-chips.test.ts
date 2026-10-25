@@ -43,6 +43,12 @@ describe('rehypeChips', () => {
         expect(chips('See `@src/a.ts`\n\n```\n@src/a.ts\n```', { mentions: ['src/a.ts'] })).toEqual([]);
     });
 
+    test('cuts a reference out by its name and carries its id', () => {
+        expect(chips('Draw a sun in #Onderzoek Q3, not in `#Onderzoek Q3`.', { references: [{ id: 'view-q3', name: 'Onderzoek Q3' }] })).toEqual([
+            { chip: 'reference', value: 'view-q3', text: '#Onderzoek Q3' }
+        ]);
+    });
+
     test('draws nothing for a token nobody picked', () => {
         expect(chips('Open @src/b.ts', { mentions: ['src/a.ts'] })).toEqual([]);
         expect(chips('Open @src/a.ts', {})).toEqual([]);

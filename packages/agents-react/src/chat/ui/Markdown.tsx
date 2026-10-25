@@ -9,7 +9,9 @@ import { CodeBlock } from './CodeBlock';
 import { MermaidBlock } from './MermaidBlock';
 import { CodeStreamingContext } from './code-streaming';
 import { splitMarkdownBlocks } from './markdown-blocks';
+import { ReferenceChip } from './ReferenceChip';
 import { rehypeChips, type ChipOptions } from './rehype-chips';
+import type { ReferenceToken } from '../mentions';
 import { rehypeFadeWords } from './rehype-fade';
 import { remarkHtmlAsText } from './remark-html-as-text';
 import { useChatHost, type ChatHost, type FileRef, type ShellCodeBlockContext } from '../../host';
@@ -293,8 +295,11 @@ function ReplyCode({ className, children, node }: { className?: string; children
     return <InlineCode text={text} />;
 }
 
-/* A picked file or skill in a sent message. The glyph stands in for the sigil the text still carries. */
+/* A picked file, skill or reference in a sent message. The glyph stands in for the sigil the text still carries. */
 function Chip({ kind, value }: { kind: string; value: string }) {
+    if (kind === 'reference') {
+        return <ReferenceChip id={value} />;
+    }
     if (kind === 'skill') {
         return (
             <span className={clsx(CHIP_IN_MESSAGE, SKILL_TONE)}>
@@ -419,10 +424,20 @@ export const ReplyMarkdown = memo(function ReplyMarkdown({
 
 /*
  * A message a person sent. Enter meant a line break, a tag typed without backticks stays the text
- * it was, and the files and skills picked in the composer are chips again.
+ * it was, and the files, skills and references picked in the composer are chips again.
  */
-export const MessageMarkdown = memo(function MessageMarkdown({ text, mentions, skills }: { text: string; mentions?: string[]; skills?: string[] }) {
-    const rehypePlugins: [typeof rehypeChips, ChipOptions][] = [[rehypeChips, { mentions, skills }]];
+export const MessageMarkdown = memo(function MessageMarkdown({
+    text,
+    mentions,
+    skills,
+    references
+}: {
+    text: string;
+    mentions?: string[];
+    skills?: string[];
+    references?: readonly ReferenceToken[];
+}) {
+    const rehypePlugins: [typeof rehypeChips, ChipOptions][] = [[rehypeChips, { mentions, skills, references }]];
     return (
         <div className="chat-markdown prose prose-sm max-w-none text-sm">
             <ReactMarkdown remarkPlugins={MESSAGE_PLUGINS} rehypePlugins={rehypePlugins} components={messageComponents}>

@@ -6,6 +6,7 @@
  * key, so they never change under a mounted view; only these wrappers go uncompiled for it.
  */
 import type { ProviderPlatform } from '@adecore/agent-contracts';
+import { referablesOfChats, type Referables } from './chat/chat-references';
 import { useChatHost, type ChatHost, type CommandLook } from './host';
 
 export function useHostCodeMode(): 'light' | 'dark' {
@@ -46,6 +47,14 @@ export function useHostTimelineFind(...args: Parameters<ChatHost['useTimelineFin
 
 export function useHostReferableChats(): ReturnType<ChatHost['useReferableChats']> {
     return useChatHost().useReferableChats();
+}
+
+const useReferablesFromChats = (_scopeId: string, _chatId: string): Referables => referablesOfChats(useHostReferableChats());
+
+/* A host without views of its own offers its chats. */
+export function useHostReferables(scopeId: string, chatId: string): Referables {
+    const useReferables = useChatHost().useReferables ?? useReferablesFromChats;
+    return useReferables(scopeId, chatId);
 }
 
 export function useHostLoginBlocked(...args: Parameters<ChatHost['useLoginBlocked']>): ReturnType<ChatHost['useLoginBlocked']> {

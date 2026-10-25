@@ -5,7 +5,6 @@ import { Icon, IconButton, Tooltip } from '@adecore/ui';
 import { useChatScope } from '../../../scope';
 import { formatBytes, isImageAttachment, uploadBytes } from '../../attachments';
 import { jumpToTimelineItem } from '../../timeline-scroll';
-import { ChatReferenceChip } from '../ChatReferenceChip';
 import { UploadThumb } from '../UploadThumb';
 
 const ROW = 'px-5 pt-4 @max-md/composer:px-3.5 @max-md/composer:pt-3';
@@ -39,17 +38,6 @@ export function DraftQuote({ chatId, quote, source, onRemove, onSourceGone }: Dr
                 </Tooltip>
             )}
             <IconButton icon={X} size="2xs" label={t('composer.quote.remove')} onClick={onRemove} />
-        </div>
-    );
-}
-
-/* Other chats the message points at, beside the text rather than in it. */
-export function DraftChats({ chats, onRemove }: { chats: readonly string[]; onRemove(id: string): void }) {
-    return (
-        <div className={`flex flex-wrap gap-1.5 ${ROW}`}>
-            {chats.map((id) => (
-                <ChatReferenceChip key={id} chatId={id} onRemove={() => onRemove(id)} />
-            ))}
         </div>
     );
 }

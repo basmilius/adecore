@@ -24,6 +24,7 @@ import { useProviderAccountsStore } from '../../state/provider-accounts';
 import { useUsageStore } from '../../state/usage';
 import { ChatTransportError } from '../../transport';
 import type { ChatSendExtras } from '../chat-client';
+import type { Referables } from '../chat-references';
 import { EMPTY_DRAFT, readDraft, writeDraft } from '../drafts';
 import { readChatPreferences, rememberChatPreferences } from '../preferences';
 import { useStash, type StashedPrompt } from '../stash';
@@ -479,15 +480,11 @@ describe('mentions', () => {
         expect([...composer.page.host.querySelectorAll('[role="option"]')].map((option) => option.textContent)).toEqual(['util.tssrc/lib']);
     });
 
-    test('another chat is offered beside the files and lands as a chip', async () => {
+    test('offers files only, never another chat', async () => {
         const composer = await mount({ host: { searchFiles, useReferableChats: () => [{ id: 'other', title: 'Other chat' }] } });
         await composer.type('@');
         await settle();
-        await composer.press('Enter');
-        expect(composer.text()).toBe('');
-        await composer.type('See there');
-        await composer.press('Enter');
-        expect(composer.sent[0]?.extras.chats).toEqual(['other']);
+        expect(optionTexts(composer)).toEqual(['app.tssrc', 'util.tssrc/lib']);
     });
 
     test('a CLI that does not expand mentions gets no picker', async () => {
@@ -502,6 +499,81 @@ describe('mentions', () => {
         await composer.type('`@');
         await settle();
         expect(composer.page.host.querySelector('[role="listbox"]')).toBeNull();
+    });
+});
+
+function optionTexts(composer: Mounted): Array<string | null> {
+    return [...composer.page.host.querySelectorAll('[role="option"]')].map((option) => option.textContent);
+}
+
+describe('# references', () => {
+    const referables: Referables = {
+        items: [
+            { id: 'node-research', name: 'Research', kind: 'note', group: 'canvas' },
+            { id: 'view-sketch', name: 'Sketch', kind: 'drawing', group: 'views' },
+            { id: 'view-q3', name: 'Research Q3', kind: 'chat', group: 'views', detail: 'Planning' }
+        ],
+        chatsOnly: false
+    };
+
+    test('offers what stands on the canvas, then the views, each with its kind or what tells it apart', async () => {
+        const composer = await mount({ host: { useReferables: () => referables } });
+        await composer.type('See #Res');
+        expect(optionTexts(composer)).toEqual(['Researchnote', 'Research Q3Planning']);
+        expect(composer.page.host.textContent).toContain('On this canvas');
+        expect(composer.page.host.textContent).toContain('Views');
+    });
+
+    test('a pick lands as a chip with its whole name, and the send carries a view in references and a chat in chats', async () => {
+        const composer = await mount({ host: { useReferables: () => referables } });
+        await composer.type('Draw in #Ske');
+        await composer.press('Enter');
+        expect(composer.text()).toBe('Draw in #Sketch ');
+        await settle();
+        const chip = [...composer.page.host.querySelectorAll('.cm-content span')].find((span) => span.className.includes('bg-text/8'));
+        expect(chip?.textContent).toBe('Sketch');
+        expect(chip?.querySelector('svg')).not.toBeNull();
+        await composer.caret(16);
+        await composer.type('and #Research');
+        await composer.press('ArrowDown');
+        await composer.press('Enter');
+        expect(composer.text()).toBe('Draw in #Sketch and #Research Q3 ');
+        await composer.press('Enter');
+        expect(composer.sent[0]).toEqual({
+            text: 'Draw in #Sketch and #Research Q3',
+            extras: { delivery: 'queue', mentions: [], skills: [], chats: ['view-q3'], attachments: [], references: ['view-sketch'] }
+        });
+    });
+
+    test('a pick whose name is typed away is no longer sent', async () => {
+        const composer = await mount({ host: { useReferables: () => referables } });
+        await composer.type('#Ske');
+        await composer.press('Enter');
+        expect(composer.text()).toBe('#Sketch ');
+        await act(async () => composer.view().dispatch({ changes: { from: 0, to: 1 } }));
+        await composer.press('Enter');
+        expect(composer.sent[0]).toMatchObject({ text: 'Sketch' });
+        expect(composer.sent[0]?.extras.references).toBeUndefined();
+    });
+
+    test('a machine that only takes chats is offered only chats', async () => {
+        const composer = await mount({ host: { useReferables: () => ({ ...referables, chatsOnly: true }) } });
+        await composer.type('#Res');
+        expect(optionTexts(composer)).toEqual(['Research Q3Planning']);
+    });
+
+    test('a heading, a number or a name that matches nothing', async () => {
+        const composer = await mount({ host: { useReferables: () => referables } });
+        await composer.type('# Title #1');
+        expect(composer.page.host.querySelector('[role="listbox"]')).toBeNull();
+        await composer.type(' #Zebra');
+        expect(composer.page.host.textContent).toContain('No view or node matches');
+    });
+
+    test('a host without views offers its chats behind #', async () => {
+        const composer = await mount({ host: { useReferableChats: () => [{ id: 'other', title: 'Other chat' }] } });
+        await composer.type('#Oth');
+        expect(optionTexts(composer)).toEqual(['Other chatchat']);
     });
 });
 
@@ -599,13 +671,23 @@ describe('the stash', () => {
     };
 
     test('a restored prompt keeps the chats the project has and says it left the others out', async () => {
-        shelve({ id: 'stash-1', text: 'See there', mentions: [], skills: [], chats: ['other', 'foreign'], attachments: [], createdAt: 1, references: [] });
+        shelve({
+            id: 'stash-1',
+            text: 'See #Other chat there',
+            mentions: [],
+            skills: [],
+            chats: ['other', 'foreign'],
+            attachments: [],
+            createdAt: 1,
+            references: []
+        });
         const composer = await mount({ host: { useReferableChats: () => [{ id: 'other', title: 'Other chat' }] } });
         await composer.press('s', { metaKey: true, code: 'KeyS' });
-        expect(composer.text()).toBe('See there');
+        expect(composer.text()).toBe('See #Other chat there');
         expect(readDraft(CHAT).chats).toEqual(['other']);
-        expect(composer.page.host.textContent).toContain('Other chat');
         expect(composer.page.host.querySelector('[role="status"]')?.textContent).toBe('Left out 1 chat from another project');
+        await composer.press('Enter');
+        expect(composer.sent[0]?.extras.chats).toEqual(['other']);
     });
 
     test('a restored prompt whose chats all remain says nothing', async () => {

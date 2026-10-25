@@ -5,13 +5,14 @@ import type { EditorState } from '@codemirror/state';
 import type { ChatInfo, ChatSkill, ProviderCapabilities } from '@adecore/agent-contracts';
 import { useChatHost } from '../../../host';
 import { useChatScope } from '../../../scope';
-import { chatSuggestions } from '../../chat-references';
+import { referenceSuggestions, referenceTokens, type Referable } from '../../chat-references';
 import { usableSlashCommands } from '../../guards';
 import {
-    dropQuery,
     findMentionQuery,
+    findReferenceQuery,
     findSkillQuery,
     insertMention,
+    insertReference,
     insertSkill,
     mentionPick,
     NO_MENTION_SEARCH,
@@ -23,13 +24,12 @@ import type { ComposerInputHandle } from '../ComposerInput';
 import type { ComposerDraft } from './use-composer-draft';
 import { inCode } from './keys';
 import { clampMenuIndex, composerMenuAria } from './menu-aria';
-import { useHostReferableChats } from '../../../host-hooks';
+import { useHostReferables } from '../../../host-hooks';
 
 const SEARCH_DEBOUNCE_MS = 80;
 // What fits above the composer without turning the picker into a file tree.
 const MENTION_RESULTS = 8;
-// The chats go above the files, so a few leave the files in view.
-const CHAT_RESULTS = 4;
+const REFERENCE_RESULTS = 8;
 
 // Commands the composer handles itself; the CLI's own ones are sent through as text.
 export const LOCAL_COMMANDS = ['model', 'compact', 'clear'];
@@ -55,17 +55,19 @@ function sameQuery(left: MentionQuery | null, right: MentionQuery | null): boole
 }
 
 /*
- * The pickers over the box: `/` for a command, `$` for a skill and `@` for a file or another chat.
- * One is open at a time, and the arrow keys and the editor's ARIA attributes follow that one.
+ * The pickers over the box: `/` for a command, `$` for a skill, `@` for a file and `#` for a view,
+ * a node or another chat. One is open at a time, and the arrow keys and the editor's ARIA attributes
+ * follow that one.
  */
 export function useComposerMenus({ chatId, info, capabilities, providerName, draft: { draft, setDraft, setText }, inputRef }: MenusInput) {
     const { t } = useTranslation('agent-chat');
     const scope = useChatScope();
     const host = useChatHost();
     const { searchFiles } = host;
-    const chats = useHostReferableChats();
+    const referables = useHostReferables(scope.id, chatId);
     const [menuIndex, setMenuIndex] = useState(0);
     const [mention, setMention] = useState<MentionQuery | null>(null);
+    const [referenceQuery, setReferenceQuery] = useState<MentionQuery | null>(null);
     const [skillQuery, setSkillQuery] = useState<MentionQuery | null>(null);
     const [skills, setSkills] = useState<ChatSkill[]>([]);
     const [searched, setSearched] = useState<MentionSearch>(NO_MENTION_SEARCH);
@@ -157,17 +159,27 @@ export function useComposerMenus({ chatId, info, capabilities, providerName, dra
     const mentionMenuOpen = !commandMenuOpen && !skillMenuOpen && mention !== null;
     // Results belong to the query that asked for them; a closed picker shows none while the next answer is on its way.
     const files = mention === null ? [] : searched.files;
-    const chatMatches = mention === null ? [] : chatSuggestions(chats, mention.query, [chatId, ...draft.chats], CHAT_RESULTS);
-    const mentionCount = chatMatches.length + files.length;
+    const mentionCount = files.length;
+    // A host with nothing to point at keeps `#fff` out of the way rather than saying nothing matches.
+    const offersReferences = referables.items.some((item) => !referables.chatsOnly || item.kind === 'chat');
+    const referenceMenuOpen = !commandMenuOpen && !skillMenuOpen && !mentionMenuOpen && referenceQuery !== null && offersReferences;
+    const referenceMatches = referenceMenuOpen
+        ? referenceSuggestions(referables, referenceQuery.query, [chatId, ...draft.chats, ...draft.references], REFERENCE_RESULTS)
+        : [];
+    // What the editor draws as chips and the send checks are still in the text, under the name each was picked with.
+    const referenceChips = referenceTokens([...draft.chats, ...draft.references], referables.items, draft.referenceNames).map((token) => ({
+        ...token,
+        kind: referables.items.find((item) => item.id === token.id)?.kind ?? null
+    }));
     // One menu is open at a time, so they share an id.
     const listId = useId();
-    const menuOpen = commandMenuOpen || skillMenuOpen || mentionMenuOpen;
-    const menuCount = commandMenuOpen ? commands.length : skillMenuOpen ? skillMatches.length : mentionCount;
+    const menuOpen = commandMenuOpen || skillMenuOpen || mentionMenuOpen || referenceMenuOpen;
+    const menuCount = commandMenuOpen ? commands.length : skillMenuOpen ? skillMatches.length : mentionMenuOpen ? mentionCount : referenceMatches.length;
     // The list can shrink under a stale index; every reader takes the one that still points at an option.
     const activeIndex = clampMenuIndex(menuIndex, menuCount);
     const inputAria = composerMenuAria({ label: t('composer.inputLabel'), listId, open: menuOpen, activeIndex, count: menuCount });
 
-    /* Which picker the caret opens: `@` for a file, `$` for a skill, or neither. In code a sigil is just text. */
+    /* Which picker the caret opens: `@` for a file, `$` for a skill, `#` for a reference, or none. In code a sigil is just text. */
     const trackTriggers = (value: string, selection: TextRange, state: EditorState): void => {
         const empty = selection.from === selection.to;
         const tree = empty ? (ensureSyntaxTree(state, selection.from, 50) ?? syntaxTree(state)) : null;
@@ -177,6 +189,8 @@ export function useComposerMenus({ chatId, info, capabilities, providerName, dra
         // A CLI that does not expand `@path` gets the text as it is, so the picker stays out of the way.
         const next = caret === null || capabilities?.mentions === false ? null : findMentionQuery(value, caret);
         setMention((current) => (sameQuery(current, next) ? current : next));
+        const reference = caret === null ? null : findReferenceQuery(value, caret);
+        setReferenceQuery((current) => (sameQuery(current, reference) ? current : reference));
     };
 
     // The inserted text reaches the editor with the render it causes, so the caret waits a frame for it.
@@ -187,6 +201,7 @@ export function useComposerMenus({ chatId, info, capabilities, providerName, dra
     const close = (): void => {
         setMention(null);
         setSkillQuery(null);
+        setReferenceQuery(null);
     };
 
     const chooseMention = (path: string): void => {
@@ -199,23 +214,39 @@ export function useComposerMenus({ chatId, info, capabilities, providerName, dra
         moveCaret(result.caret);
     };
 
-    /* A picked chat sits beside the text as a chip, so the `@query` that found it goes. */
-    const chooseChat = (id: string): void => {
-        if (!mention) {
+    const chooseMentionAt = (index: number): void => {
+        const path = mention === null ? null : mentionPick(index, searched, mention.query);
+        if (path !== null) {
+            chooseMention(path);
+        }
+    };
+
+    /*
+     * A picked view, node or chat becomes a `#name` chip in the text. The draft keeps the name it was
+     * spelled with, since a rename would otherwise unmake the chip. A chat goes apart, as `chats`.
+     */
+    const chooseReference = (item: Referable): void => {
+        if (!referenceQuery) {
             return;
         }
-        const result = dropQuery(text, mention);
-        setDraft((current) => ({ ...current, text: result.text, chats: current.chats.includes(id) ? current.chats : [...current.chats, id] }));
-        setMention(null);
+        const result = insertReference(text, referenceQuery, item.name);
+        const chat = item.kind === 'chat';
+        const add = (ids: string[]): string[] => (ids.includes(item.id) ? ids : [...ids, item.id]);
+        setDraft((current) => ({
+            ...current,
+            text: result.text,
+            chats: chat ? add(current.chats) : current.chats,
+            references: chat ? current.references : add(current.references),
+            referenceNames: { ...current.referenceNames, [item.id]: item.name }
+        }));
+        setReferenceQuery(null);
         moveCaret(result.caret);
     };
 
-    const chooseMentionAt = (index: number): void => {
-        const pick = mention === null ? null : mentionPick(index, chatMatches, searched, mention.query);
-        if (pick?.kind === 'chat') {
-            chooseChat(pick.chat.id);
-        } else if (pick?.kind === 'file') {
-            chooseMention(pick.path);
+    const chooseReferenceAt = (index: number): void => {
+        const item = referenceMatches[index] ?? referenceMatches[0];
+        if (item !== undefined) {
+            chooseReference(item);
         }
     };
 
@@ -267,14 +298,18 @@ export function useComposerMenus({ chatId, info, capabilities, providerName, dra
         mention,
         mentionMenuOpen,
         mentionCount,
-        chatMatches,
         files,
+        referenceMenuOpen,
+        referenceMatches,
+        referables,
+        referenceChips,
         setMenuIndex,
         trackTriggers,
         close,
         chooseMention,
-        chooseChat,
         chooseMentionAt,
+        chooseReference,
+        chooseReferenceAt,
         chooseSkill,
         pickCommand,
         moveInMenu

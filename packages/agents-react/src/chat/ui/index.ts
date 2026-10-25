@@ -3,7 +3,6 @@ export { AccountPill } from './AccountPill';
 export { AnsiOutput } from './AnsiOutput';
 export { BookmarkSubmenu } from './BookmarkSubmenu';
 export { ChatActivity, StatusIcon } from './ChatActivity';
-export { ChatReferenceChip } from './ChatReferenceChip';
 export { CodeBlock } from './CodeBlock';
 export { Composer } from './Composer';
 export { type ComposerInputHandle, ComposerInput, type InputSelection } from './ComposerInput';

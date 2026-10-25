@@ -12,7 +12,6 @@ export interface ComposerDraft {
     setText(next: string, mentions?: string[], skills?: string[]): void;
     clear(): void;
     removeQuote(): void;
-    removeChat(id: string): void;
     removeAttachment(index: number): void;
 }
 
@@ -58,14 +57,9 @@ export function useComposerDraft(chatId: string, inputRef: RefObject<ComposerInp
         inputRef.current?.focus();
     };
 
-    const removeChat = (id: string): void => {
-        setDraft((current) => ({ ...current, chats: current.chats.filter((entry) => entry !== id) }));
-        inputRef.current?.focus();
-    };
-
     const removeAttachment = (index: number): void => {
         setDraft((current) => ({ ...current, attachments: current.attachments.filter((_, i) => i !== index) }));
     };
 
-    return { draft, setDraft, latest, setText, clear, removeQuote, removeChat, removeAttachment };
+    return { draft, setDraft, latest, setText, clear, removeQuote, removeAttachment };
 }

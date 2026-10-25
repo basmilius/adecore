@@ -180,3 +180,39 @@ describe('the line over a message that answers a choice', () => {
         expect(renderUser({ ...message, uiChoice: { ...choice, older: true } })).toContain(`Chose “Fix both” on the reply of ${formatMoment(sourceAt)}`);
     });
 });
+
+describe('the views and nodes a message points at', () => {
+    const referables = {
+        items: [
+            { id: 'view-sketch', name: 'Sketch', kind: 'drawing' as const, group: 'views' as const },
+            { id: 'chat-plan', name: 'Planner', kind: 'chat' as const, group: 'views' as const }
+        ],
+        chatsOnly: false
+    };
+    const message: ChatUserItem = { id: 'message', kind: 'user', turnId: null, createdAt: 0, text: 'Draw a sun in #Sketch', references: ['view-sketch'] };
+    const renderWith = (item: ChatUserItem) =>
+        renderToStaticMarkup(
+            createElement(
+                ChatHostProvider,
+                { host: { useReferables: () => referables, openReference: () => {} } },
+                createElement(
+                    I18nextProvider,
+                    { i18n },
+                    createElement(ChatScopeContext.Provider, { value: scope }, createElement(UserRow, { chatId: 'parent', item }))
+                )
+            )
+        );
+
+    test('a reference in the text is a chip that opens it, under the name it has now', () => {
+        const html = renderWith(message);
+        expect(html).toMatch(/<button[^>]*>.*<span class="truncate">Sketch<\/span><\/button>/);
+        expect(html).not.toContain('#Sketch');
+    });
+
+    test('a chat attached before #, and a view gone since, stand beside the text', () => {
+        const html = renderWith({ ...message, text: 'Compare these', chats: ['chat-plan'], references: ['view-gone'] });
+        expect(html).toMatch(/<span class="truncate">Planner<\/span>/);
+        expect(html).toContain('references.gone');
+        expect(html.indexOf('Planner')).toBeLessThan(html.indexOf('Compare these'));
+    });
+});

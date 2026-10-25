@@ -20,6 +20,16 @@ describe('chipDecorations', () => {
         expect(chipsOf(state)).toEqual(['$unslop', '@a.ts']);
     });
 
+    test('marks a reference by the whole of its name and puts the mark of its kind over the #', () => {
+        const references = [
+            { id: 'view-q3', name: 'Research Q3', kind: 'chat' as const },
+            { id: 'node-gone', name: 'Gone', kind: null }
+        ];
+        const state = EditorState.create({ doc: 'compare #Research Q3 with #Gone', extensions: chipDecorations({ mentions: [], skills: [], references }) });
+        // The chip of a known kind is the pill and, inside it, the `#` the mark stands in for.
+        expect(chipsOf(state).sort()).toEqual(['#', '#Gone', '#Research Q3']);
+    });
+
     test('drops a chip an edit breaks and draws one an edit completes', () => {
         const state = EditorState.create({ doc: 'see @a.ts', extensions: chipDecorations({ mentions: ['a.ts'], skills: [] }) });
         const broken = state.update({ changes: { from: 8, to: 9 } }).state;
