@@ -10,12 +10,12 @@ describe('groupProvidersByFrontier', () => {
             provider('codex', 'Codex'),
             provider('copilot', 'GitHub Copilot'),
             provider('claude', 'Claude Code'),
-            provider('nanogpt', 'NanoGPT Subscription'),
+            provider('nanogpt', 'NanoGPT'),
             provider('anthropic-claude-api', 'Claude API'),
             provider('antigravity', 'Antigravity')
         ]);
         expect(groups.frontier.map((entry) => entry.name)).toEqual(['Claude API', 'Claude Code', 'Codex']);
-        expect(groups.others.map((entry) => entry.name)).toEqual(['Antigravity', 'GitHub Copilot', 'Grok', 'NanoGPT Subscription']);
+        expect(groups.others.map((entry) => entry.name)).toEqual(['Antigravity', 'GitHub Copilot', 'Grok', 'NanoGPT']);
     });
 
     test('sorts regardless of case and leaves the list it was given alone', () => {
