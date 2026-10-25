@@ -1,4 +1,5 @@
 import type { AgentKind, ModelInfo, ProviderInfo } from '@adecore/agent-contracts';
+import { nameCollator } from '@adecore/ui/format';
 
 /*
  * A provider with more live models than this keeps the list short: the model that is picked and the default,
@@ -21,6 +22,8 @@ export interface PickerCurrent {
 export type FavoritesOf = (kind: AgentKind) => ReadonlySet<string>;
 
 const NO_FAVORITES: FavoritesOf = () => new Set();
+const VENDOR_ORDER: Intl.CollatorOptions = { sensitivity: 'base' };
+const MODEL_ORDER: Intl.CollatorOptions = { sensitivity: 'base', numeric: true };
 
 function matches(model: ModelInfo, query: string): boolean {
     return model.name.toLowerCase().includes(query) || model.slug.toLowerCase().includes(query) || (model.vendor?.toLowerCase().includes(query) ?? false);
@@ -34,14 +37,13 @@ export function modelsByVendor(models: ModelInfo[]): ModelInfo[] {
     if (!models.some((model) => model.vendor !== undefined)) {
         return models;
     }
+    const vendorOrder = nameCollator(VENDOR_ORDER).compare;
+    const modelOrder = nameCollator(MODEL_ORDER).compare;
     return [...models].sort((a, b) => {
         if (a.vendor === undefined || b.vendor === undefined) {
             return a.vendor === b.vendor ? 0 : a.vendor === undefined ? 1 : -1;
         }
-        return (
-            a.vendor.localeCompare(b.vendor, undefined, { sensitivity: 'base' }) ||
-            a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true })
-        );
+        return vendorOrder(a.vendor, b.vendor) || modelOrder(a.name, b.name);
     });
 }
 

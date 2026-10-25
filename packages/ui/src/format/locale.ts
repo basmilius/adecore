@@ -95,16 +95,17 @@ const subscribe = (onChange: () => void): (() => void) => source.subscribe(onCha
 export const useFormatLocale = (): string => useSyncExternalStore(subscribe, formatLocale, formatLocale);
 
 interface Cached<T> {
-    locale: string;
+    locale: string | undefined;
     formatter: T;
 }
 
-/*
- * A formatter per options object, keyed on the object itself, so a module-level spec builds its
- * formatter once and a list of a thousand rows constructs nothing. A region change throws the entry
- * away, since the locale is part of what was cached.
- */
-const cacheFor = <O extends object, T>(store: WeakMap<O, Cached<T>>, options: O, locale: string, build: (locale: string, options: O) => T): T => {
+/* A module-level options object shares its formatter across rows; a changed locale replaces it. */
+const cacheFor = <O extends object, T>(
+    store: WeakMap<O, Cached<T>>,
+    options: O,
+    locale: string | undefined,
+    build: (locale: string | undefined, options: O) => T
+): T => {
     const hit = store.get(options);
     if (hit !== undefined && hit.locale === locale) {
         return hit.formatter;
@@ -118,6 +119,7 @@ const numbers = new WeakMap<Intl.NumberFormatOptions, Cached<Intl.NumberFormat>>
 const dates = new WeakMap<Intl.DateTimeFormatOptions, Cached<Intl.DateTimeFormat>>();
 const words = new WeakMap<Intl.DateTimeFormatOptions, Cached<Intl.DateTimeFormat>>();
 const relatives = new WeakMap<Intl.RelativeTimeFormatOptions, Cached<Intl.RelativeTimeFormat>>();
+const names = new WeakMap<Intl.CollatorOptions, Cached<Intl.Collator>>();
 
 export const numberFormatter = (options: Intl.NumberFormatOptions): Intl.NumberFormat =>
     cacheFor(numbers, options, formatLocale(), (locale, spec) => new Intl.NumberFormat(locale, spec));
@@ -133,6 +135,10 @@ export const wordFormatter = (options: Intl.DateTimeFormatOptions): Intl.DateTim
 /* `3 min. geleden` is words as much as a number, so the language writes it, the way it writes a month. */
 export const relativeFormatter = (options: Intl.RelativeTimeFormatOptions): Intl.RelativeTimeFormat =>
     cacheFor(relatives, options, wordLocale(), (locale, spec) => new Intl.RelativeTimeFormat(locale, spec));
+
+/* Proper names keep the runtime locale; a shared options object reuses its collator. */
+export const nameCollator = (options: Intl.CollatorOptions): Intl.Collator =>
+    cacheFor(names, options, undefined, (locale, spec) => new Intl.Collator(locale, spec));
 
 const collators = new Map<string, Intl.Collator>();
 

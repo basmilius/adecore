@@ -54,6 +54,15 @@ names.sort(labelCollator().compare);
 
 It compares without regard to case or accents and reads numbers inside a label as numbers, so `Tab 2` comes before `Tab 10`.
 
+## Sorting proper names
+
+`nameCollator(options)` returns an `Intl.Collator` in the runtime's own locale, for proper names such as model or vendor names. It keeps the supplied collation options. Reuse a stable options object to share the collator across sorts; changing the interface language leaves this native ordering in place.
+
+```ts
+const modelOrder: Intl.CollatorOptions = { sensitivity: 'base', numeric: true };
+models.sort(nameCollator(modelOrder).compare);
+```
+
 ## Fallbacks
 
 `systemLocale()` returns the operating system's locale: the source's `systemLocale` when it hands one over and `Intl` accepts it, then the browser's first language, then `en-US`. A test that must not depend on the machine it runs on sets a region explicitly, as the [fake source](/ui/utilities/testing) does.

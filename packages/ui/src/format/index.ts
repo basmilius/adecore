@@ -17,7 +17,7 @@ export {
     isSameDay
 } from './datetime.ts';
 export { formatAgo, formatClockDuration, formatCountdown, formatDuration, formatElapsedShort, formatPreciseDuration } from './duration.ts';
-export { formatLocale, labelCollator, setFormatSource, systemLocale, useFormatLocale, type FormatSource } from './locale.ts';
+export { formatLocale, labelCollator, nameCollator, setFormatSource, systemLocale, useFormatLocale, type FormatSource } from './locale.ts';
 export {
     formatBytes,
     formatDecimal,

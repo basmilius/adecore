@@ -125,3 +125,14 @@ describe('starred models', () => {
         expect(found[0]!.models.map((entry) => entry.slug)).toEqual(['opus-fast', 'opus']);
     });
 });
+
+test('vendor and model ties keep source order, while missing vendors go last', () => {
+    const models = [
+        model('first', { vendor: 'vendor', name: 'Model 02' }),
+        model('second', { vendor: 'Vendor', name: 'model 2' }),
+        model('tenth', { vendor: 'Vendor', name: 'Model 10' }),
+        model('unknown', { name: 'Model 1' }),
+        model('earlier', { vendor: 'ACME', name: 'Model 3' })
+    ];
+    expect(favoritesFirst(models, new Set()).map((entry) => entry.slug)).toEqual(['earlier', 'first', 'second', 'tenth', 'unknown']);
+});
