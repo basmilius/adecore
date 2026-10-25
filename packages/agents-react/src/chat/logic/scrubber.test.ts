@@ -231,6 +231,26 @@ describe('messageAt and slotOf', () => {
 });
 
 describe('messagesInView', () => {
+    test('reads a bounded number of live measurement starts in a long thread', () => {
+        let reads = 0;
+        let shift = 0;
+        const starts = {
+            length: 30000,
+            at: (index: number): number | undefined => {
+                reads++;
+                return index >= 0 && index < 30000 ? index * 100 + shift : undefined;
+            }
+        };
+        expect(messagesInView({ starts, scrollTop: 1234500, visibleHeight: 500 })).toEqual({ first: 12345, last: 12349 });
+        expect(reads).toBeLessThan(40);
+        shift = 50;
+        reads = 0;
+        expect(messagesInView({ starts, scrollTop: 1234500, visibleHeight: 500 })).toEqual({ first: 12344, last: 12349 });
+        expect(reads).toBeLessThan(40);
+        expect(stepMessage(starts, (index) => index % 2 === 0, 1234500, -1)).toBe(12344);
+        expect(stepMessage(starts, (index) => index % 2 === 0, 1234500, 1)).toBe(12346);
+    });
+
     const starts = [0, 400, 1200, 1300, 2600];
 
     test('every message with part of its stretch on screen is in view', () => {

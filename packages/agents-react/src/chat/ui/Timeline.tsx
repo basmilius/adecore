@@ -429,12 +429,15 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
     const readingWidth = useChatPreferences((preferences) => preferences.readingWidth);
     const paddingLeft = threadPaddingLeft(frame.width, showsScrubber, readingMeasure(readingWidth));
 
-    /*
-     * Where each message starts, from the virtualizer's measurements (an estimate for a row it never
-     * drew), so reading the scroll position costs no layout.
-     */
+    // The virtualizer materializes measurements on access; binary searches need only a few message starts.
     const measurements = virtualizer.measurementsCache;
-    const starts = ticks.map((tick) => measurements[tick.rowIndex]?.start ?? tick.rowIndex * ESTIMATED_ROW_PX);
+    const starts = {
+        length: ticks.length,
+        at: (index: number): number | undefined => {
+            const tick = ticks.at(index);
+            return tick === undefined ? undefined : (measurements[tick.rowIndex]?.start ?? tick.rowIndex * ESTIMATED_ROW_PX);
+        }
+    };
     const scrollTop = virtualizer.scrollOffset ?? 0;
     const viewport = virtualizer.scrollRect?.height ?? 0;
     const visibleHeight = Math.max(0, viewport - coveredHeight);

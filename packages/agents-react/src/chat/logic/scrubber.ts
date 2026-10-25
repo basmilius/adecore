@@ -207,14 +207,16 @@ function lastIndexAtOrBelow(length: number, valueAt: (index: number) => number, 
     return found;
 }
 
+type MessageStarts = Pick<readonly number[], 'length' | 'at'>;
+
 /* The last index whose start lies at or above a line, or -1. */
-function lastAtOrAbove(starts: readonly number[], line: number): number {
-    return lastIndexAtOrBelow(starts.length, (index) => starts[index]!, line);
+function lastAtOrAbove(starts: MessageStarts, line: number): number {
+    return lastIndexAtOrBelow(starts.length, (index) => starts.at(index)!, line);
 }
 
 export interface ReadingPosition {
     /* Where each message's row starts in the thread, in the virtualizer's measurements. */
-    starts: readonly number[];
+    starts: MessageStarts;
     scrollTop: number;
     /* The height of the thread a person can read, without what the composer covers. */
     visibleHeight: number;
@@ -231,13 +233,13 @@ export interface MessageRange {
  */
 export function messagesInView({ starts, scrollTop, visibleHeight }: ReadingPosition): MessageRange | null {
     const bottom = scrollTop + visibleHeight;
-    if (starts.length === 0 || visibleHeight <= 0 || starts[0]! >= bottom) {
+    if (starts.length === 0 || visibleHeight <= 0 || starts.at(0)! >= bottom) {
         return null;
     }
     const first = Math.max(0, lastAtOrAbove(starts, scrollTop));
     let last = lastAtOrAbove(starts, bottom);
     // A row that starts on the very last line has not a pixel on screen yet.
-    if (starts[last]! >= bottom) {
+    if (starts.at(last)! >= bottom) {
         last--;
     }
     return { first, last: Math.max(first, last) };
@@ -253,7 +255,7 @@ export function slotInView(slot: TickSlot, range: MessageRange | null): boolean 
  * message's start at the top, so back from there is the one before it, and back from the middle of
  * a long answer is the question it belongs to. A pixel of slack absorbs rounding in the scroller.
  */
-export function stepMessage(starts: readonly number[], eligible: (index: number) => boolean, scrollTop: number, direction: -1 | 1): number | null {
+export function stepMessage(starts: MessageStarts, eligible: (index: number) => boolean, scrollTop: number, direction: -1 | 1): number | null {
     if (direction === -1) {
         for (let i = lastAtOrAbove(starts, scrollTop - 1.5); i >= 0; i--) {
             if (eligible(i)) {
