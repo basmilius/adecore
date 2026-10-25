@@ -123,6 +123,7 @@ function insideRowOf(fiber: Fiber, itemId: string): boolean {
 interface Layout {
     rowHeights: number[];
     composerHeight: number;
+    clampScroll?: boolean;
 }
 
 interface Mounted {
@@ -217,6 +218,18 @@ async function mounted(layout: Layout, activeTurnId: string | null, run: (mount:
         clientHeight: { get: () => VIEWPORT.height, configurable: true },
         scrollHeight: { get: () => layout.rowHeights.reduce((sum, height) => sum + height, 0) + layout.composerHeight, configurable: true }
     });
+    if (layout.clampScroll) {
+        const offsets = new WeakMap<HTMLElement, number>();
+        Object.defineProperty(view.HTMLElement.prototype, 'scrollTop', {
+            get(this: HTMLElement) {
+                return offsets.get(this) ?? 0;
+            },
+            set(this: HTMLElement, value: number) {
+                offsets.set(this, Math.max(0, Math.min(value, this.scrollHeight - this.clientHeight)));
+            },
+            configurable: true
+        });
+    }
     Object.defineProperty(view.Element.prototype, 'getBoundingClientRect', {
         value: () => ({ x: 0, y: 0, top: 0, left: 0, right: VIEWPORT.width, bottom: VIEWPORT.height, ...VIEWPORT }),
         configurable: true
@@ -315,6 +328,63 @@ test('a word that adds a line moves the end of the thread down without drawing i
         ).toEqual([]);
         expect(commits.flat().filter((fiber) => nameOf(fiber) === 'AssistantRow')).toHaveLength(1);
     });
+});
+
+test('growing a reply cannot hide earlier rows while the thread still fits without scrolling', async () => {
+    const items: ChatItem[] = Array.from({ length: 20 }, (_, index) => ({
+        id: `reply-${index}`,
+        kind: 'assistant',
+        turnId: null,
+        createdAt: index + 1,
+        text: `Reply ${index}`,
+        streaming: index === 19
+    }));
+    await mounted(
+        { rowHeights: Array(20).fill(10), composerHeight: 80, clampScroll: true },
+        null,
+        async ({ page, resizeRow }) => {
+            const scroller = page.host.querySelector('.chat-scroll') as HTMLElement;
+            for (let height = 40; height <= 310; height += 30) {
+                await resizeRow(19, height);
+                expect(scroller.scrollHeight).toBeLessThan(scroller.clientHeight);
+                expect(scroller.scrollTop).toBe(0);
+                expect(page.host.querySelector('[data-item-id="reply-0"]')).not.toBeNull();
+            }
+            expect(useChats.getState().byKey[KEY]?.order).toHaveLength(20);
+        },
+        { items }
+    );
+});
+
+test('loading an older page keeps the reader on the same message', async () => {
+    const items: ChatItem[] = Array.from({ length: 40 }, (_, index) => ({
+        id: `reply-${index}`,
+        kind: 'assistant',
+        turnId: null,
+        createdAt: index + 1,
+        text: `Reply ${index}`,
+        streaming: false
+    }));
+    const layout = { rowHeights: Array(20).fill(56), composerHeight: 0, clampScroll: true };
+    await mounted(
+        layout,
+        null,
+        async ({ page }) => {
+            const scroller = page.host.querySelector('.chat-scroll') as HTMLElement;
+            await act(async () => useChats.getState().reset(KEY, infoOf(null), items.slice(20), { history: { start: 20, cursor: 'g:20' }, pending: [] }));
+            await act(async () => {
+                scroller.scrollTop = 280;
+                scroller.dispatchEvent(new page.window.Event('scroll', { bubbles: true }));
+            });
+            expect(page.host.querySelector('[data-item-id="reply-25"]')).not.toBeNull();
+            layout.rowHeights.unshift(...Array(20).fill(56));
+            await act(async () => useChats.getState().prepend(KEY, 'g:20', { items: items.slice(0, 20), history: { start: 0, cursor: null } }));
+            expect(scroller.scrollTop).toBe(1400);
+            await act(async () => scroller.dispatchEvent(new page.window.Event('scroll', { bubbles: true })));
+            expect(page.host.querySelector('[data-item-id="reply-25"]')).not.toBeNull();
+        },
+        { items: items.slice(20) }
+    );
 });
 
 test('the strip follows a message coming out from under the composer while the reader scrolls inside a long reply', async () => {

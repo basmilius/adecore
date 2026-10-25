@@ -29,6 +29,7 @@ import {
     setTimelineAtEnd,
     wantsEarlier,
     type ItemJumpOptions,
+    type ReadingAnchor,
     type TurnTarget
 } from '../timeline-scroll';
 import { useTimelineFlash } from '../timeline-flash';
@@ -226,6 +227,8 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
     const [frame, setFrame] = useState({ width: 0, height: 0, column: false });
     const [loadingEarlier, setLoadingEarlier] = useState(false);
     const loadingEarlierRef = useRef(false);
+    const anchorRef = useRef<ReadingAnchor | null>(null);
+    const headRef = useRef<string | undefined>(undefined);
 
     const loadEarlier = useCallback(() => {
         if (cursor === null || loadingEarlierRef.current) {
@@ -355,7 +358,7 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
     // Changing this callback invalidates every cached measurement, including on a scroll.
     const getItemKey = useCallback((index: number) => rows[index]!.id, [rows]);
 
-    // Nothing here builds with the React Compiler, so its memoization rule has nothing to break.
+    // Follow the browser's actual end below. Virtual end anchoring drifts when growth still fits without scrolling.
     // oxlint-disable-next-line react/incompatible-library
     const virtualizer = useVirtualizer({
         count: loadingHistory ? 0 : rows.length,
@@ -363,7 +366,6 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
         estimateSize: () => ESTIMATED_ROW_PX,
         getItemKey,
         overscan: 8,
-        anchorTo: 'end',
         // Include the end before the first pin, so its actual heights are known before revealing it.
         rangeExtractor: (range) => {
             const indexes = defaultRangeExtractor(range);
@@ -413,6 +415,26 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
         element.scrollTop = element.scrollHeight;
         scrollGeometry.current = { top: element.scrollTop, height: element.scrollHeight, viewport: element.clientHeight };
     }, [rows.length, totalSize, composerHeight, frame.height]);
+
+    // Prepending history moves rows; keep the reader on the same row at the same height.
+    useLayoutEffect(() => {
+        const element = scrollRef.current;
+        const head = order?.[0];
+        const moved = head !== headRef.current;
+        headRef.current = head;
+        if (element === null) {
+            return;
+        }
+        const anchor = anchorRef.current;
+        const index = moved && anchor !== null && !followRef.current ? rows.findIndex((row) => row.id === anchor.id) : -1;
+        if (anchor !== null && index !== -1) {
+            virtualizer.getTotalSize();
+            element.scrollTop = virtualizer.measurementsCache[index]!.start - anchor.offset;
+            return;
+        }
+        const row = virtualizer.getVirtualItemForOffset(element.scrollTop);
+        anchorRef.current = row === undefined ? null : { id: String(row.key), offset: row.start - element.scrollTop };
+    });
 
     // Close to the top, the page before goes in; again after each page that left too little above the reader.
     useEffect(() => {
