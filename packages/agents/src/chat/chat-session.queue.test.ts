@@ -629,3 +629,43 @@ test('a steer refused after the send was answered keeps the message and pauses t
     expect(run.session.info.queuePaused).toBe(true);
     await run.session.dispose();
 });
+
+describe('what a message pointed at', () => {
+    const named: ChatSessionOptions['references'] = (attached) => ({
+        chats: (attached.chats ?? []).filter((id) => id !== 'gone'),
+        references: (attached.references ?? []).filter((id) => id !== 'gone'),
+        note: `Read ${[...(attached.chats ?? []), ...(attached.references ?? [])].join(', ')}.`
+    });
+
+    test('goes on the user item as the host named it, with its note in front of the prompt', async () => {
+        const run = rig({ references: named });
+        run.session.send('draw a sun in #Sketch', { chats: ['chat-b'], references: ['view-sketch', 'gone'] });
+        await flush();
+        const user = run.session.thread.list().find((item) => item.kind === 'user');
+        expect(user).toMatchObject({ chats: ['chat-b'], references: ['view-sketch'] });
+        expect(run.sent[0]?.preamble).toContain('Read chat-b, view-sketch, gone.');
+        await run.session.dispose();
+    });
+
+    test('waits in the queue and still reaches the host when the message goes', async () => {
+        const run = rig({ references: named });
+        run.session.send('original');
+        await flush();
+        run.session.send('and #Notes', { references: ['note-1'] });
+        expect(run.session.info.queue?.[0]?.references).toEqual(['note-1']);
+        run.event({ type: 'turn.done', state: 'done', costUsd: 0 });
+        await flush();
+        const users = run.session.thread.list().filter((item) => item.kind === 'user');
+        expect(users.at(-1)).toMatchObject({ text: 'and #Notes', references: ['note-1'] });
+        await run.session.dispose();
+    });
+
+    test('is dropped without a host that names it', async () => {
+        const run = rig();
+        run.session.send('look at #Sketch', { references: ['view-sketch'] });
+        await flush();
+        const user = run.session.thread.list().find((item) => item.kind === 'user');
+        expect(user && 'references' in user).toBe(false);
+        await run.session.dispose();
+    });
+});

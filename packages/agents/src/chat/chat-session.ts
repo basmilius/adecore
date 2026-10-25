@@ -57,7 +57,16 @@ export interface PromptNotes {
 }
 
 /* Chats a person attached to a message: the ones the host knows, and what the agent is told about them. */
-export type ChatReferences = (ids: readonly string[] | undefined) => { ids: string[]; note: string | null };
+/* What a message pointed at: other chats with `@`, and views and nodes with `#`, by id. */
+export interface ChatAttached {
+    chats: string[];
+    references: string[];
+}
+
+export type ChatReferences = (attached: {
+    readonly chats?: readonly string[];
+    readonly references?: readonly string[];
+}) => ChatAttached & { note: string | null };
 
 export interface ChatSessionOptions {
     info: ChatInfo;
@@ -129,6 +138,7 @@ export interface ChatSendExtras {
     chats?: string[];
     quoteSource?: ChatQuoteSource;
     attachments?: ChatAttachment[];
+    references?: string[];
 }
 
 /* How a turn the host went down in is taken up: what the CLI is told, the note a person reads, and what goes in front. */
@@ -407,7 +417,8 @@ export class ChatSession {
                 ...(extras.skills?.length ? { skills: extras.skills } : {}),
                 ...(extras.chats?.length ? { chats: extras.chats } : {}),
                 ...(extras.quoteSource ? { quoteSource: extras.quoteSource } : {}),
-                ...(extras.attachments?.length ? { attachments: extras.attachments } : {})
+                ...(extras.attachments?.length ? { attachments: extras.attachments } : {}),
+                ...(extras.references?.length ? { references: extras.references } : {})
             };
             this.setQueue([...this.queue, message]);
             this.lapseResume();
@@ -523,6 +534,15 @@ export class ChatSession {
         return plain;
     }
 
+    /* The chats and views a message pointed at as the host names them; without a host's `references` they are dropped. */
+    private attached(text: string, extras: ChatSendExtras): ChatAttached & { note: string | null } {
+        // A slash command must stay the first thing the CLI reads, as `contextNote` keeps it.
+        if (text.startsWith('/') || !this.options.references) {
+            return { chats: [], references: [], note: null };
+        }
+        return this.options.references({ chats: extras.chats, references: extras.references });
+    }
+
     sendInput(text: string, extras: ChatSendExtras = {}): Promise<{ queued: boolean; turnId: string }> {
         return this.submitInput(text, extras);
     }
@@ -580,11 +600,11 @@ export class ChatSession {
         queued: { queued: boolean; turnId: string }
     ): Promise<{ queued: boolean; turnId: string }> {
         try {
-            const references = this.options.references?.(extras.chats) ?? { ids: extras.chats ?? [], note: null };
+            const attached = this.attached(text, extras);
             const accepted = await steerTurn({
                 promptId: message.id,
                 text,
-                preamble: references.note,
+                preamble: attached.note,
                 attachments: extras.attachments ?? [],
                 mentions: extras.mentions ?? [],
                 skills: extras.skills ?? []
@@ -601,9 +621,10 @@ export class ChatSession {
                     text,
                     mentions: extras.mentions,
                     skills: extras.skills,
-                    chats: references.ids,
+                    chats: attached.chats,
                     attachments: extras.attachments,
-                    ...(extras.quoteSource ? { quoteSource: extras.quoteSource } : {})
+                    ...(extras.quoteSource ? { quoteSource: extras.quoteSource } : {}),
+                    ...(attached.references.length > 0 ? { references: attached.references } : {})
                 }),
                 this.thread.patchInfo({ queue: this.queue.filter((entry) => entry.id !== message.id) })
             ]);
@@ -700,7 +721,8 @@ export class ChatSession {
                 chats: next.chats,
                 attachments: next.attachments,
                 uiChoice: next.uiChoice,
-                quoteSource: next.quoteSource
+                quoteSource: next.quoteSource,
+                references: next.references
             },
             next.turnId
         );
@@ -714,13 +736,12 @@ export class ChatSession {
             this.emit([this.thread.patchInfo({ goal: undefined })]);
         }
         const { preamble, note } = this.contextNote(text);
-        // A slash command must stay the first thing the CLI reads, as `contextNote` keeps it.
-        const references = text.startsWith('/') || !this.options.references ? { ids: [], note: null } : this.options.references(extras.chats);
-        const turnId = this.openTurn(text, note, { ...extras, chats: references.ids }, requestedTurnId);
+        const attached = this.attached(text, extras);
+        const turnId = this.openTurn(text, note, { ...extras, chats: attached.chats, references: attached.references }, requestedTurnId);
         const choiceNote = extras.uiChoice
             ? `The person chose ${JSON.stringify(extras.uiChoice.label)} from your UI reply. Their message is the visible context of that choice.`
             : null;
-        const said = [preamble, references.note, choiceNote].filter((part): part is string => part !== null);
+        const said = [preamble, attached.note, choiceNote].filter((part): part is string => part !== null);
         const input = {
             text,
             preamble: said.length === 0 ? null : said.join('\n\n'),
@@ -1612,7 +1633,8 @@ export class ChatSession {
                     chats,
                     attachments,
                     ...(extras.uiChoice ? { uiChoice: extras.uiChoice } : {}),
-                    ...(extras.quoteSource ? { quoteSource: extras.quoteSource } : {})
+                    ...(extras.quoteSource ? { quoteSource: extras.quoteSource } : {}),
+                    ...(extras.references?.length ? { references: extras.references } : {})
                 })
             );
         }

@@ -117,7 +117,8 @@ export function useComposerSubmit({
             skills: presentSkills(trimmed, draft.skills),
             chats: draft.chats,
             quoteSource: quote !== '' && quoteSource !== null ? { itemId: quoteSource } : undefined,
-            attachments: draft.attachments
+            attachments: draft.attachments,
+            references: draft.references.length > 0 ? draft.references : undefined
         });
         afterSend(sent, how === 'and-new');
         box.clear();
@@ -147,6 +148,7 @@ export function useComposerSubmit({
             mentions: [...prompt.mentions],
             skills: [...prompt.skills],
             chats,
+            references: [...prompt.references],
             ...(here ? { quote: stashedQuote.text, quoteSource: stashedQuote.itemId } : {})
         }));
         if (dropped > 0) {

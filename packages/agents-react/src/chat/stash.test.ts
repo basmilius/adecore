@@ -3,7 +3,7 @@ import { STASH_CHATS_LIMIT, STASH_LIMIT, parseStash, restorableChats, stashedFro
 import { EMPTY_DRAFT } from './drafts.ts';
 
 function prompt(id: string): StashedPrompt {
-    return { id, text: id, mentions: [], skills: [], chats: [], attachments: [], createdAt: 1 };
+    return { id, text: id, mentions: [], skills: [], chats: [], attachments: [], createdAt: 1, references: [] };
 }
 
 describe('parseStash', () => {
@@ -21,7 +21,8 @@ describe('parseStash', () => {
                 skills: ['unslop'],
                 chats: [],
                 attachments: [{ name: 'a.png', mime: 'image/png', size: 12 }],
-                createdAt: 0
+                createdAt: 0,
+                references: []
             }
         ]);
     });
@@ -29,6 +30,11 @@ describe('parseStash', () => {
     test('an entry written before attached chats existed has none', () => {
         expect(parseStash(JSON.stringify([{ id: 'a', text: 'x' }]))[0]?.chats).toEqual([]);
         expect(parseStash(JSON.stringify([{ id: 'a', text: 'x', chats: ['chat-b', 3] }]))[0]?.chats).toEqual(['chat-b']);
+    });
+
+    test('an entry written before references existed has none', () => {
+        expect(parseStash(JSON.stringify([{ id: 'a', text: 'x' }]))[0]?.references).toEqual([]);
+        expect(parseStash(JSON.stringify([{ id: 'a', text: 'x', references: ['view-a', 3] }]))[0]?.references).toEqual(['view-a']);
     });
 
     test('an empty, a broken or a non-list value is no stash at all', () => {
@@ -57,7 +63,8 @@ describe('stashedFrom', () => {
             chats: ['chat-b'],
             attachments: [{ name: 'shot.png', mime: 'image/png', data: 'AAAA' }],
             quote: '',
-            quoteSource: null
+            quoteSource: null,
+            references: ['view-a']
         };
         expect(stashedFrom(draft, 'id-1', 5, 'chat-a')).toEqual({
             id: 'id-1',
@@ -66,7 +73,8 @@ describe('stashedFrom', () => {
             skills: ['unslop'],
             chats: ['chat-b'],
             attachments: [{ name: 'shot.png', mime: 'image/png', size: 3 }],
-            createdAt: 5
+            createdAt: 5,
+            references: ['view-a']
         });
     });
 

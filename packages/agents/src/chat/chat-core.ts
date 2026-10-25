@@ -137,7 +137,7 @@ export interface ChatCoreHooks {
     hiddenFor?(chatId: string): boolean;
     /* What the host says in front of a chat's next real prompt, beside what the chat keeps itself. */
     promptNotesFor?(chatId: string): PromptNotes | undefined;
-    /* How the chats a person attached to a message are named to the agent; without it they are dropped. */
+    /* How the chats, views and nodes a person attached to a message are named to the agent; without it they are dropped. */
     referencesFor?(chatId: string): ChatReferences | undefined;
     /* The environment of this chat's CLI before its account adds its own. */
     envFor?(chatId: string, base: Record<string, string>): Record<string, string | undefined>;

@@ -23,7 +23,14 @@ describe('a queued message taken back to edit', () => {
     const upload = (name: string) => ({ name, mime: 'text/plain', data: 'aGVsbG8=' });
 
     test('fills an empty composer as it was queued', () => {
-        const taken = { text: 'see @src/a.ts', mentions: ['src/a.ts'], skills: ['review'], chats: ['chat-a'], attachments: [upload('a.txt')] };
+        const taken = {
+            text: 'see @src/a.ts',
+            mentions: ['src/a.ts'],
+            skills: ['review'],
+            chats: ['chat-a'],
+            attachments: [upload('a.txt')],
+            references: ['view-a']
+        };
         expect(takeBackIntoDraft(EMPTY_DRAFT, taken)).toEqual({ draft: { ...taken, quote: '', quoteSource: null }, rejected: [] });
     });
 
@@ -35,9 +42,17 @@ describe('a queued message taken back to edit', () => {
             chats: ['chat-b', 'chat-a'],
             attachments: [upload('b.txt')],
             quote: 'The cache is per machine.',
-            quoteSource: 'answer-1'
+            quoteSource: 'answer-1',
+            references: ['node-b']
         };
-        const taken = { text: 'see @src/a.ts\n', mentions: ['src/a.ts'], skills: ['review'], chats: ['chat-a'], attachments: [upload('a.txt')] };
+        const taken = {
+            text: 'see @src/a.ts\n',
+            mentions: ['src/a.ts'],
+            skills: ['review'],
+            chats: ['chat-a'],
+            attachments: [upload('a.txt')],
+            references: ['view-a', 'node-b']
+        };
         expect(takeBackIntoDraft(current, taken).draft).toEqual({
             text: 'see @src/a.ts\n\nand @src/b.ts',
             mentions: ['src/a.ts', 'src/b.ts'],
@@ -45,7 +60,8 @@ describe('a queued message taken back to edit', () => {
             chats: ['chat-a', 'chat-b'],
             attachments: [upload('a.txt'), upload('b.txt')],
             quote: 'The cache is per machine.',
-            quoteSource: 'answer-1'
+            quoteSource: 'answer-1',
+            references: ['view-a', 'node-b']
         });
     });
 
@@ -62,4 +78,10 @@ test('the source of a quote survives a write and a read', () => {
     writeDraft('chat-quote', { ...EMPTY_DRAFT, text: 'Why?', quote: 'One.', quoteSource: 'answer-1' });
     expect(readDraft('chat-quote')).toMatchObject({ quote: 'One.', quoteSource: 'answer-1' });
     writeDraft('chat-quote', EMPTY_DRAFT);
+});
+
+test('the views and nodes picked with # survive a write and a read', () => {
+    writeDraft('chat-references', { ...EMPTY_DRAFT, text: 'Draw a sun in #Sketch', references: ['view-sketch'] });
+    expect(readDraft('chat-references').references).toEqual(['view-sketch']);
+    writeDraft('chat-references', EMPTY_DRAFT);
 });

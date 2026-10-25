@@ -599,7 +599,7 @@ describe('the stash', () => {
     };
 
     test('a restored prompt keeps the chats the project has and says it left the others out', async () => {
-        shelve({ id: 'stash-1', text: 'See there', mentions: [], skills: [], chats: ['other', 'foreign'], attachments: [], createdAt: 1 });
+        shelve({ id: 'stash-1', text: 'See there', mentions: [], skills: [], chats: ['other', 'foreign'], attachments: [], createdAt: 1, references: [] });
         const composer = await mount({ host: { useReferableChats: () => [{ id: 'other', title: 'Other chat' }] } });
         await composer.press('s', { metaKey: true, code: 'KeyS' });
         expect(composer.text()).toBe('See there');
@@ -609,7 +609,7 @@ describe('the stash', () => {
     });
 
     test('a restored prompt whose chats all remain says nothing', async () => {
-        shelve({ id: 'stash-1', text: 'See there', mentions: [], skills: [], chats: ['other'], attachments: [], createdAt: 1 });
+        shelve({ id: 'stash-1', text: 'See there', mentions: [], skills: [], chats: ['other'], attachments: [], createdAt: 1, references: [] });
         const composer = await mount({ host: { useReferableChats: () => [{ id: 'other', title: 'Other chat' }] } });
         await composer.press('s', { metaKey: true, code: 'KeyS' });
         expect(readDraft(CHAT).chats).toEqual(['other']);

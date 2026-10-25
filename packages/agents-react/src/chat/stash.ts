@@ -32,6 +32,8 @@ export interface StashedPrompt {
     /* A quote that knew its reply, kept apart from the text so it can lead back to it in the chat it came from. */
     quote?: StashedQuote;
     createdAt: number;
+    /* Views and nodes of the project picked with `#`; an entry from before this field has none. */
+    references: string[];
 }
 
 export interface StashedQuote {
@@ -88,7 +90,8 @@ export function parseStash(raw: string | null): StashedPrompt[] {
                 chats: strings(entry.chats),
                 attachments: attachments(entry.attachments),
                 ...stashedQuoteField(entry.quote),
-                createdAt: typeof entry.createdAt === 'number' ? entry.createdAt : 0
+                createdAt: typeof entry.createdAt === 'number' ? entry.createdAt : 0,
+                references: strings(entry.references)
             }))
             .slice(0, STASH_LIMIT);
     } catch {
@@ -118,7 +121,8 @@ export function stashedFrom(draft: ChatDraft, id: string, now: number, chatId: s
         skills: [...draft.skills],
         chats: [...draft.chats],
         attachments: draft.attachments.map((attachment) => ({ name: attachment.name, mime: attachment.mime, size: uploadBytes(attachment) })),
-        createdAt: now
+        createdAt: now,
+        references: [...draft.references]
     };
 }
 

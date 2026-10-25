@@ -39,6 +39,8 @@ export interface ChatSendExtras {
     /* The reply a quote at the head of the text was taken from. */
     quoteSource?: ChatQuoteSource;
     attachments?: ChatAttachmentUpload[];
+    /* Views and nodes picked with `#`; a machine that does not know the field drops it. */
+    references?: string[];
 }
 
 interface Mounted extends ChatOpenOptions, MountedEntry {
@@ -211,7 +213,8 @@ export class ChatClient {
             skills: extras.skills,
             chats: extras.chats,
             quoteSource: extras.quoteSource,
-            attachments: extras.attachments
+            attachments: extras.attachments,
+            references: extras.references
         });
     }
 

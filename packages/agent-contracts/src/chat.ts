@@ -145,7 +145,8 @@ export const ChatQueuedMessageSchema = z.object({
     attachments: z.array(ChatAttachmentSchema).optional(),
     createdAt: z.number(),
     uiChoice: ChatUiChoiceOriginSchema.optional(),
-    quoteSource: ChatQuoteSourceSchema.optional()
+    quoteSource: ChatQuoteSourceSchema.optional(),
+    references: z.array(z.string()).optional()
 });
 export type ChatQueuedMessage = z.infer<typeof ChatQueuedMessageSchema>;
 
@@ -342,7 +343,9 @@ export const ChatUserItemSchema = z.object({
     attachments: z.array(ChatAttachmentSchema).optional(),
     uiChoice: ChatUiChoiceOriginSchema.optional(),
     // The reply the quote at the head of the text was taken from; absent when it names none or the reply is gone.
-    quoteSource: ChatQuoteSourceSchema.optional()
+    quoteSource: ChatQuoteSourceSchema.optional(),
+    // Views and nodes the person picked with `#`, by id; like `chats`, the agent reads them itself.
+    references: z.array(z.string()).optional()
 });
 
 // `state` is a frozen set: native clients validate these payloads whole, so a new state would fail them.
@@ -979,7 +982,8 @@ export const ChatSendPayloadSchema = z
         skills: z.array(z.string().min(1)).max(16).optional(),
         chats: z.array(ChatIdSchema).max(16).optional(),
         quoteSource: ChatQuoteSourceSchema.optional(),
-        attachments: ChatAttachmentUploadsSchema.optional()
+        attachments: ChatAttachmentUploadsSchema.optional(),
+        references: z.array(z.string().min(1)).max(16).optional()
     })
     .refine((payload) => payload.text.trim() !== '' || (payload.attachments?.length ?? 0) > 0, { message: 'A message needs text or an attachment' });
 export type ChatSendPayload = z.infer<typeof ChatSendPayloadSchema>;

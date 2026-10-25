@@ -58,7 +58,8 @@ export function useTakeBack({ chatId, draft: { latest, setDraft }, setNotice, on
                 mentions: message.mentions ?? [],
                 skills: message.skills ?? [],
                 chats: message.chats ?? [],
-                attachments: uploads
+                attachments: uploads,
+                references: message.references ?? []
             };
             // A file that would not fit is refused here, while the message still holds it on the machine.
             const wouldReject = takeBackIntoDraft(latest.current, taken).rejected[0];

@@ -16,9 +16,11 @@ export interface ChatDraft {
     quote: string;
     /* The reply the quote was taken from; null when the quote names none. */
     quoteSource: string | null;
+    /* Views and nodes of the project picked with `#`, by id. */
+    references: string[];
 }
 
-export const EMPTY_DRAFT: ChatDraft = { text: '', mentions: [], skills: [], chats: [], attachments: [], quote: '', quoteSource: null };
+export const EMPTY_DRAFT: ChatDraft = { text: '', mentions: [], skills: [], chats: [], attachments: [], quote: '', quoteSource: null, references: [] };
 
 // Older records only had text; the rest is filled in on read.
 type DraftRecord = {
@@ -29,6 +31,7 @@ type DraftRecord = {
     attachments?: ChatAttachmentUpload[];
     quote?: string;
     quoteSource?: string;
+    references?: string[];
 };
 
 const storage = persistedJson<Record<string, DraftRecord>>(
@@ -74,7 +77,8 @@ export function readDraft(chatId: string): ChatDraft {
               chats: record.chats ?? [],
               attachments: record.attachments ?? [],
               quote: record.quote ?? '',
-              quoteSource: record.quoteSource ?? null
+              quoteSource: record.quoteSource ?? null,
+              references: record.references ?? []
           }
         : EMPTY_DRAFT;
 }
@@ -94,7 +98,8 @@ export function writeDraft(chatId: string, draft: ChatDraft): void {
         chats: draft.chats,
         attachments: draft.attachments,
         quote: draft.quote,
-        ...(draft.quoteSource === null ? {} : { quoteSource: draft.quoteSource })
+        ...(draft.quoteSource === null ? {} : { quoteSource: draft.quoteSource }),
+        references: draft.references
     };
     if (storage.write(drafts)) {
         return;
@@ -106,7 +111,8 @@ export function writeDraft(chatId: string, draft: ChatDraft): void {
         skills: draft.skills,
         chats: draft.chats,
         quote: draft.quote,
-        ...(draft.quoteSource === null ? {} : { quoteSource: draft.quoteSource })
+        ...(draft.quoteSource === null ? {} : { quoteSource: draft.quoteSource }),
+        references: draft.references
     };
     storage.write(drafts);
 }
@@ -142,7 +148,8 @@ export function takeBackIntoDraft(
             chats: union(taken.chats, current.chats),
             attachments: [...checked.accepted.map((entry) => entry.upload), ...current.attachments],
             quote: current.quote,
-            quoteSource: current.quoteSource
+            quoteSource: current.quoteSource,
+            references: union(taken.references, current.references)
         },
         rejected: checked.rejected
     };
