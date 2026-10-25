@@ -391,6 +391,7 @@ export default {
         continue: 'Doorgaan',
         continueHint: 'Ga verder met de gestopte beurt',
         send: 'Versturen',
+        sendActions: 'Meer verzendopties',
         clear: {
             title: 'Thread wissen?',
             description: 'Er loopt een turn.',

@@ -35,6 +35,8 @@ exports[`the public API . exports these names 1`] = `
   "type CommandLookMatch",
   "type CommandName",
   "type ComposerDictationProps",
+  "type ComposerSendAction",
+  "type ComposerSendDraft",
   "type ComposerSlotProps",
   "type FileRef",
   "type HostMenuAction",

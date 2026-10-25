@@ -9,6 +9,8 @@ export {
     type TimelineFind,
     type ComposerDictationProps,
     type ComposerSlotProps,
+    type ComposerSendAction,
+    type ComposerSendDraft,
     type SubagentSlotProps,
     type ThreadCard,
     type VisualHost,

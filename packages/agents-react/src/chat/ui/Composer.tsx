@@ -44,7 +44,7 @@ import { usePromptHistory } from './composer/use-prompt-history';
 import { usePromptHold } from './composer/use-prompt-hold';
 import { surfacePartOf } from './composer/surface';
 import { useTakeBack } from './composer/use-take-back';
-import { useHostExtraPrompts, useHostSendDelivery } from '../../host-hooks';
+import { useHostComposerSendActions, useHostExtraPrompts, useHostSendDelivery } from '../../host-hooks';
 
 interface ComposerProps {
     chatId: string;
@@ -121,6 +121,7 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
     // The stopped turn something went out for, since the chat takes a moment to answer and Continue must not stand there meanwhile.
     const [sentFor, setSentFor] = useState<string | null>(null);
     const extraPrompts = useHostExtraPrompts(scope.id, chatId);
+    const sendActions = useHostComposerSendActions(scope.id, chatId);
     const { submit, continueTurn, restoreStashed, toggleStash } = useComposerSubmit({
         chatId,
         writable,
@@ -336,7 +337,16 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
                                 onContinue:
                                     continuable !== null && continuable !== sentFor && empty && writable && pending.length === 0 && extraPrompts.length === 0
                                         ? continueTurn
-                                        : null
+                                        : null,
+                                actions: sendActions,
+                                draft: {
+                                    scopeId: scope.id,
+                                    chatId,
+                                    text: withQuote(draft.quote, draft.text.trim()),
+                                    provider: info.provider,
+                                    selection: info.selection,
+                                    runtimeMode: info.runtimeMode
+                                }
                             }}
                             dictationToolbar={setDictationToolbar}
                             onFiles={(picked) => {

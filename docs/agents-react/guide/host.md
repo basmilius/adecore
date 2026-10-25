@@ -81,6 +81,7 @@ export function Workspace() {
 | `useResumeAtReset(scopeId)`        | `true`                                             | Whether a chat may go on by itself once the limit it stopped on lifts.                                 |
 | `useComposerPlaceholder(scopeId, chatId)` | The chat's own                              | The first words of an empty composer.                                                                  |
 | `ComposerSlot`                     | Nothing                                            | A control of your own in the composer's row, with `insert(text)` to type into the draft.               |
+| `useComposerSendActions(scopeId, chatId)` | Send alone                                  | Actions of your own behind a chevron on the send button, each `run` with the draft. See below.         |
 | `SubagentSlot`                     | One flyout                                         | Chips of your own for a chat's subagents over the composer.                                            |
 | `useThreadCards(scopeId, chatId)`  | No cards                                           | Cards of your own between the messages, each `{ id, at, render }`.                                     |
 | `useReplyAuthor(scopeId, chatId)`  | The agent is named for screen readers only         | A header over each reply: `{ name, mark? }`.                                                           |
@@ -141,6 +142,17 @@ function InsertSelection({ disabled, insert }: ComposerSlotProps) {
 }
 
 const CHAT_HOST: Partial<ChatHost> = { ComposerSlot: InsertSelection };
+```
+
+`useComposerSendActions` answers `ComposerSendAction`s (`{ id, label, icon?, disabled?, run(draft) }`), drawn in order in a menu that a chevron on the send button opens; an empty array leaves the send button as it was. A pick calls `run` with a `ComposerSendDraft`: `{ scopeId, chatId, text, provider, selection, runtimeMode }`, where `text` is what Send would send, trimmed and with its quote, and empty when nothing is written. The chevron opens on an empty box too, so an action may fall back to something of its own, such as the last message. The draft stays in the box. Return the same array while nothing changed.
+
+```tsx
+import { Repeat } from 'lucide-react';
+import type { ChatHost, ComposerSendAction } from '@adecore/agents-react';
+
+const REPEAT: readonly ComposerSendAction[] = [{ id: 'repeat', label: 'Repeat…', icon: Repeat, run: (draft) => openRoutineDialog(draft.chatId, draft.text) }];
+
+const CHAT_HOST: Partial<ChatHost> = { useComposerSendActions: () => REPEAT };
 ```
 
 ## Visuals

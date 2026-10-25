@@ -16,7 +16,7 @@ import type {
 } from '@adecore/agent-contracts';
 import { createPage } from '@adecore/editor/testing';
 import { Menu } from '@adecore/ui';
-import { ChatHostProvider, type ChatActions, type ChatHost, type ChatToast } from '../../host';
+import { ChatHostProvider, type ChatActions, type ChatHost, type ChatToast, type ComposerSendAction, type ComposerSendDraft } from '../../host';
 import { ChatScopeContext, type ChatScope } from '../../scope';
 import { useChats } from '../../state/chats';
 import { useProvidersStore } from '../../state/providers';
@@ -417,6 +417,73 @@ describe('sending', () => {
         await composer.press('Enter', { shiftKey: true });
         expect(composer.sent).toEqual([]);
         expect(composer.text()).toBe('First\n');
+    });
+});
+
+describe("the host's send actions", () => {
+    const later: ComposerSendAction = { id: 'later', label: 'Send later', run: () => {} };
+
+    function hostWith(actions: readonly ComposerSendAction[], asked: Array<[string, string]> = []): Partial<ChatHost> {
+        return {
+            useComposerSendActions: (scopeId, chatId) => {
+                asked.push([scopeId, chatId]);
+                return actions;
+            }
+        };
+    }
+
+    async function menuRows(composer: Mounted): Promise<HTMLElement[]> {
+        const popup = composer.propsOf('SendButton', 'MenuPopup') as { children: ReactNode };
+        const drawn = await composer.draw(<Menu.Root>{popup.children}</Menu.Root>);
+        return [...drawn.querySelectorAll<HTMLElement>('[role="menuitem"]')];
+    }
+
+    test('without any, Send stands alone', async () => {
+        for (const host of [{}, hostWith([])]) {
+            const composer = await mount({ host });
+            expect(composer.byLabel('Send')).not.toBeNull();
+            expect(composer.byLabel('More send options')).toBeNull();
+        }
+    });
+
+    test('a chevron beside Send lists them in order, and a pick hands the draft over and keeps it', async () => {
+        const asked: Array<[string, string]> = [];
+        const ran: Array<[string, ComposerSendDraft]> = [];
+        const actions: ComposerSendAction[] = [
+            { id: 'repeat', label: 'Repeat…', run: (draft) => ran.push(['repeat', draft]) },
+            { id: 'off', label: 'Not now', disabled: true, run: (draft) => ran.push(['off', draft]) }
+        ];
+        const composer = await mount({ host: hostWith(actions, asked) });
+        expect(asked[0]).toEqual([SCOPE_ID, CHAT]);
+        expect(composer.byLabel('More send options')?.getAttribute('aria-haspopup')).toBe('menu');
+        await composer.type('  Check the build  ');
+        const rows = await menuRows(composer);
+        expect(rows.map((row) => row.textContent?.trim())).toEqual(['Repeat…', 'Not now']);
+        expect(rows[1]!.getAttribute('aria-disabled')).toBe('true');
+        await composer.click(rows[0]!);
+        expect(ran).toEqual([
+            [
+                'repeat',
+                {
+                    scopeId: SCOPE_ID,
+                    chatId: CHAT,
+                    text: 'Check the build',
+                    provider: 'claude',
+                    selection: { model: 'model', options: {} },
+                    runtimeMode: 'supervised'
+                }
+            ]
+        ]);
+        expect(composer.sent).toEqual([]);
+        expect(composer.text()).toBe('  Check the build  ');
+    });
+
+    test('the chevron opens on an empty box, and not while the composer takes no input', async () => {
+        const empty = await mount({ host: hostWith([later]) });
+        expect((empty.byLabel('Send') as HTMLButtonElement).disabled).toBe(true);
+        expect((empty.byLabel('More send options') as HTMLButtonElement).disabled).toBe(false);
+        const readOnly = await mount({ host: hostWith([later]), readOnly: true });
+        expect((readOnly.byLabel('More send options') as HTMLButtonElement).disabled).toBe(true);
     });
 });
 

@@ -7,7 +7,7 @@
  */
 import type { ProviderPlatform } from '@adecore/agent-contracts';
 import { referablesOfChats, type Referables } from './chat/chat-references';
-import { useChatHost, type ChatHost, type CommandLook } from './host';
+import { useChatHost, type ChatHost, type CommandLook, type ComposerSendAction } from './host';
 
 export function useHostCodeMode(): 'light' | 'dark' {
     return useChatHost().code.useMode();
@@ -99,6 +99,14 @@ export function useHostResumeAtReset(...args: Parameters<ChatHost['useResumeAtRe
 
 export function useHostComposerPlaceholder(...args: Parameters<ChatHost['useComposerPlaceholder']>): ReturnType<ChatHost['useComposerPlaceholder']> {
     return useChatHost().useComposerPlaceholder(...args);
+}
+
+const NO_SEND_ACTIONS: readonly ComposerSendAction[] = [];
+const noSendActions = (): readonly ComposerSendAction[] => NO_SEND_ACTIONS;
+
+export function useHostComposerSendActions(scopeId: string, chatId: string): readonly ComposerSendAction[] {
+    const useSendActions = useChatHost().useComposerSendActions ?? noSendActions;
+    return useSendActions(scopeId, chatId);
 }
 
 export function useHostThreadCards(...args: Parameters<ChatHost['useThreadCards']>): ReturnType<ChatHost['useThreadCards']> {

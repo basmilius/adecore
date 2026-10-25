@@ -1,14 +1,16 @@
-import { useRef, type Ref } from 'react';
+import { useRef, useState, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowUp, Play, Plus, Square } from 'lucide-react';
+import clsx from 'clsx';
+import { ArrowUp, ChevronDown, Play, Plus, Square } from 'lucide-react';
 import type { ChatInfo } from '@adecore/agent-contracts';
-import { Button, ErrorBoundary, Icon, Tooltip, type Shortcut } from '@adecore/ui';
-import { useChatHost } from '../../../host';
+import { Button, ErrorBoundary, Icon, Menu, Tooltip, type Shortcut } from '@adecore/ui';
+import { useChatHost, type ComposerSendAction, type ComposerSendDraft } from '../../../host';
 import { useChatScope } from '../../../scope';
 import { useProviders } from '../../../state/providers';
 import { useAccountChoice } from '../../account-choice';
 import type { StashedPrompt } from '../../stash';
 import { composerStopLabel } from '../../subagent-list';
+import { HostMenuItems } from '../HostMenuItems';
 import { StashPicker } from '../Pickers';
 import { RunSettings } from '../RunSettings';
 import type { ChatControls } from './use-chat-controls';
@@ -22,6 +24,64 @@ interface SendProps {
     onSend(alternate: boolean): void;
     /* Set when a person stopped the last turn and the box is empty: Continue stands where the send button would. */
     onContinue: (() => void) | null;
+    /* The host's own, behind a chevron on the send button; empty draws the send button alone. */
+    actions: readonly ComposerSendAction[];
+    draft: ComposerSendDraft;
+}
+
+interface SendButtonProps {
+    send: SendProps;
+    /* The chevron only follows whether the box takes input: an action may want an empty draft, such as to reuse the last message. */
+    writable: boolean;
+}
+
+/* The send button, split with a chevron that opens the host's send actions when it has any. */
+function SendButton({ send, writable }: SendButtonProps) {
+    const { t } = useTranslation('agent-chat');
+    const [box, setBox] = useState<HTMLDivElement | null>(null);
+    const split = send.actions.length > 0;
+    const button = (
+        <Tooltip label={send.label} kbd={send.kbd} name>
+            <button
+                className={clsx(
+                    'flex h-9 w-9 shrink-0 items-center justify-center bg-accent text-accent-text hover:brightness-90 disabled:opacity-50 disabled:hover:brightness-100',
+                    split ? 'focus-visible:-outline-offset-2' : 'rounded-full'
+                )}
+                disabled={send.disabled}
+                onClick={(event) => send.onSend(event.altKey)}
+            >
+                <Icon icon={ArrowUp} size={16} />
+            </button>
+        </Tooltip>
+    );
+    if (!split) {
+        return button;
+    }
+    const { draft } = send;
+    return (
+        // One round shape that clips both halves, the way a split button of the library draws its frame.
+        <div ref={setBox} className="flex h-9 shrink-0 overflow-clip rounded-full">
+            {button}
+            <Menu.Root>
+                <Tooltip label={t('composer.sendActions')} name>
+                    <Menu.Trigger
+                        render={
+                            <button
+                                type="button"
+                                className='relative flex h-9 w-6 shrink-0 items-center justify-center bg-accent text-accent-text before:absolute before:inset-y-0 before:left-0 before:my-auto before:h-4 before:w-px before:bg-current/30 before:content-[""] hover:brightness-90 focus-visible:-outline-offset-2 disabled:opacity-50 disabled:hover:brightness-100'
+                            />
+                        }
+                        disabled={!writable}
+                    >
+                        <Icon icon={ChevronDown} size={14} />
+                    </Menu.Trigger>
+                </Tooltip>
+                <Menu.Popup anchor={box} side="top" sideOffset={8} align="end" className="min-w-48">
+                    <HostMenuItems actions={send.actions.map((action) => ({ ...action, run: () => action.run(draft) }))} />
+                </Menu.Popup>
+            </Menu.Root>
+        </div>
+    );
 }
 
 interface ComposerControlsProps {
@@ -140,17 +200,7 @@ export function ComposerControls({
                         </Button>
                     </Tooltip>
                 )}
-                {send.onContinue === null && send.visible && (
-                    <Tooltip label={send.label} kbd={send.kbd} name>
-                        <button
-                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-accent-text hover:brightness-90 disabled:opacity-50 disabled:hover:brightness-100"
-                            disabled={send.disabled}
-                            onClick={(event) => send.onSend(event.altKey)}
-                        >
-                            <Icon icon={ArrowUp} size={16} />
-                        </button>
-                    </Tooltip>
-                )}
+                {send.onContinue === null && send.visible && <SendButton send={send} writable={writable} />}
             </div>
         </div>
     );
