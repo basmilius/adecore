@@ -8,8 +8,10 @@
     --skill: #9333ea;
     --skill-soft: #f7eeff;
     /* One color per agent CLI, so a bar, a dot and a legend row all name the same provider. Apple's
-       system orange and teal; Gemini and Copilot are reserved for the day their transcripts are read. */
+       system orange and teal, and purple for Claude through an API key so it reads apart from Claude Code;
+       Gemini and Copilot are reserved for the day their transcripts are read. */
     --chart-claude: #ff9500;
+    --chart-claude-api: #af52de;
     --chart-codex: #30b0c7;
     --chart-gemini: #3b82f6;
     --chart-copilot: #64748b;
@@ -37,6 +39,7 @@
     --skill: #c084fc;
     --skill-soft: #2f2350;
     --chart-claude: #ff9f0a;
+    --chart-claude-api: #bf5af2;
     --chart-codex: #40c8e0;
     --chart-gemini: #60a5fa;
     --chart-copilot: #94a3b8;
@@ -70,6 +73,7 @@
     --color-skill: var(--skill);
     --color-skill-soft: var(--skill-soft);
     --color-chart-claude: var(--chart-claude);
+    --color-chart-claude-api: var(--chart-claude-api);
     --color-chart-codex: var(--chart-codex);
     --color-chart-gemini: var(--chart-gemini);
     --color-chart-copilot: var(--chart-copilot);

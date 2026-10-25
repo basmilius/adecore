@@ -15,6 +15,7 @@ describe('CliMark', () => {
         const grok = renderToStaticMarkup(createElement(CliMark, { kind: 'grok' }));
         expect(grok).toContain('text-chart-grok');
         expect(grok).toContain('aria-label="Grok"');
+        expect(renderToStaticMarkup(createElement(CliMark, { kind: 'anthropic-claude-api' }))).toContain('text-chart-claude-api');
     });
 
     test('a CLI this version has no mark for falls back to a muted bot', () => {
