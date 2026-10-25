@@ -69,7 +69,6 @@ The views of a chat: the thread, the composer, messages, diffs, subagents, limit
 | [`chat/ui/AnsiOutput`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/AnsiOutput.tsx) | `AnsiOutput` |
 | [`chat/ui/BookmarkSubmenu`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/BookmarkSubmenu.tsx) | `BookmarkSubmenu` |
 | [`chat/ui/ChatActivity`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/ChatActivity.tsx) | `ChatActivity`, `StatusIcon` |
-| [`chat/ui/ChatReferenceChip`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/ChatReferenceChip.tsx) | `ChatReferenceChip` |
 | [`chat/ui/CodeBlock`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/CodeBlock.tsx) | `CodeBlock` |
 | [`chat/ui/Composer`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/Composer.tsx) | `Composer` |
 | [`chat/ui/ComposerInput`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/ComposerInput.tsx) | `ComposerInputHandle`, `ComposerInput`, `InputSelection` |

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { NOW, PICTURE, chatInfo, chatItems } from '../shared/agents-data.ts';
 import { AgentDemo } from '../shared/agents.tsx';
 import { DEMO_CHAT } from '../shared/agents-host.ts';
-import { ChatActivity, StatusIcon, AccountPill, ChatReferenceChip, ImageThumb, UploadThumb, WelcomeGreeting } from '@adecore/agents-react/chat/ui';
+import { ChatActivity, StatusIcon, AccountPill, ImageThumb, UploadThumb, WelcomeGreeting } from '@adecore/agents-react/chat/ui';
 import type { StatusWord } from '@adecore/agents-react/chat';
 
 const WORDS: StatusWord[] = ['running', 'paused', 'done', 'failed', 'cancelled'];
@@ -46,10 +46,6 @@ export default function ChatPartsDemo() {
                 </Row>
                 <Row label="AccountPill">
                     <AccountPill chatId={DEMO_CHAT} />
-                </Row>
-                <Row label="ChatReferenceChip">
-                    <ChatReferenceChip chatId="chat-release" />
-                    <ChatReferenceChip chatId="chat-gone" onRemove={() => undefined} />
                 </Row>
                 <Row label="UploadThumb, ImageThumb">
                     <UploadThumb upload={PICTURE} />

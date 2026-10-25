@@ -1,4 +1,4 @@
-import { FileText, Frame, Globe, MessageSquare, PenTool, Smartphone, StickyNote, Terminal, Type, Workflow, type LucideIcon } from 'lucide-react';
+import { Database, FileText, Frame, Globe, MessageSquare, PenTool, Smartphone, StickyNote, Terminal, Type, Workflow, type LucideIcon } from 'lucide-react';
 import type { ReferableKind } from '../chat-references';
 
 /* The mark of what a `#` points at, in the picker and on its chip. */
@@ -12,5 +12,6 @@ export const REFERENCE_ICONS: Record<ReferableKind, LucideIcon> = {
     diagram: Workflow,
     browser: Globe,
     device: Smartphone,
-    file: FileText
+    file: FileText,
+    database: Database
 };

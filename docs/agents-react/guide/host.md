@@ -60,7 +60,8 @@ export function Workspace() {
 | `useTimelineFind(options)`         | No find in a thread                                | Find in a thread: you get the rows and refs, you hand back a `TimelineFind` with the bar to draw.      |
 | `dictation`                        | `PlainTextarea`, no dictation button               | A `Textarea` for written answers, and an editor extension plus a control for the composer.             |
 | `prompts`                          | No prompts of your own                             | Approvals or questions of your own beside a chat's. See [Prompts](/agents-react/chat/prompts#prompts-of-your-own). |
-| `useReferableChats()`              | No chats in the `@` picker                         | Other chats a message may point at, as `{ id, title }`.                                                |
+| `useReferableChats()`              | No chats in the `#` picker                         | Other chats a message may point at, as `{ id, title }`.                                                |
+| `useReferables(scopeId, chatId)`   | The chats of `useReferableChats`                   | What a message may point at with `#`, as `Referables`: `items`, each a `Referable` with `id`, `name`, a `ReferableKind`, an optional `detail` and its `group` (`canvas` or `views`), and `chatsOnly` when only chats are offered. |
 | `openLogin(scopeId, kind, accountId, name)` | No log in button                          | Runs a CLI's own login somewhere a command can run, such as a terminal.                                |
 | `useLoginBlocked(scopeId)`         | Login is always possible                           | Why a login cannot start right now, or `null`.                                                         |
 | `runProviderCommand(scopeId, kind, command)` | Install page offers Copy only     | Runs an install or sign-in command from a CLI's install page where a person sees it, such as a new terminal on the scope's machine. |

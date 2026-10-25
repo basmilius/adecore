@@ -6,7 +6,7 @@ export interface ProjectChat {
     title: string;
 }
 
-export type ReferableKind = 'canvas' | 'chat' | 'terminal' | 'note' | 'text' | 'drawing' | 'diagram' | 'browser' | 'device' | 'file';
+export type ReferableKind = 'canvas' | 'chat' | 'terminal' | 'note' | 'text' | 'drawing' | 'diagram' | 'browser' | 'device' | 'file' | 'database';
 
 /* What a message may point at with `#`, under the name it has right now. */
 export interface Referable {

@@ -366,7 +366,8 @@ export default {
                 diagram: 'diagram',
                 browser: 'browser',
                 device: 'device',
-                file: 'file'
+                file: 'file',
+                database: 'table'
             }
         },
         queue: {
