@@ -18,6 +18,9 @@ function call(id: string): TimelineRow {
 function visual(id: string): TimelineRow {
     return { kind: 'visual', id, visual: { id } as ChatVisual };
 }
+function card(id: string): TimelineRow {
+    return { kind: 'app-card', id, card: { id, at: 0, render: () => null } };
+}
 
 describe('the gaps a row wears', () => {
     test('a question makes room for the answer under it', () => {
@@ -38,6 +41,12 @@ describe('the gaps a row wears', () => {
     test('the row under a visual gets the block gap', () => {
         expect(rowRhythm(prose('a1'), visual('v1'))).toBe('pt-(--chat-block-gap)');
         expect(rowRhythm(visual('v1'), prose('a1'))).toBe('');
+    });
+
+    test('the row under an app card gets the block gap, as under a visual', () => {
+        expect(rowRhythm(prose('a1'), card('c1'))).toBe('pt-(--chat-block-gap)');
+        expect(rowRhythm(call('w1'), card('c1'))).toBe('pt-(--chat-block-gap)');
+        expect(rowRhythm(card('c1'), call('w1'))).toBe('pt-(--chat-block-gap)');
     });
 
     // A question already carries the gap before it, and the row after one is its answer.
