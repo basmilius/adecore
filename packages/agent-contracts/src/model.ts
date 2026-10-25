@@ -179,24 +179,33 @@ export const ProviderInfoSchema = z.object({
 export type ProviderInfo = z.infer<typeof ProviderInfoSchema>;
 
 // The CLIs of the labs that train their own frontier models; a picker lists them before every other provider.
-export const FRONTIER_PROVIDER_KINDS: ReadonlySet<AgentKind> = new Set(['anthropic-claude-api', 'claude', 'codex']);
+export const FRONTIER_PROVIDER_KINDS: ReadonlySet<AgentKind> = new Set(['claude', 'codex']);
 
-export interface FrontierGroups<T> {
+// Providers billed per key rather than a CLI's own sign-in; a picker lists them last. Named, since an agent of
+// the ACP registry has no terminal either.
+export const API_PROVIDER_KINDS: ReadonlySet<AgentKind> = new Set(['anthropic-claude-api', 'nanogpt']);
+
+export type ProviderPickerGroup = 'frontier' | 'others' | 'api';
+
+export interface ProviderPickerGroups<T> {
     frontier: T[];
     others: T[];
+    api: T[];
+}
+
+export function providerGroupOf(kind: AgentKind): ProviderPickerGroup {
+    return FRONTIER_PROVIDER_KINDS.has(kind) ? 'frontier' : API_PROVIDER_KINDS.has(kind) ? 'api' : 'others';
 }
 
 let nameCollator: Intl.Collator | null = null;
 
-/* The frontier providers and the rest, each by name. Names are proper names, so the runtime locale sorts them. */
-export function groupProvidersByFrontier<T extends { kind: AgentKind; name: string }>(providers: readonly T[]): FrontierGroups<T> {
+/* The providers in the three groups of a picker, each by name. Names are proper names, so the runtime locale sorts them. */
+export function pickerGroupsOf<T extends { kind: AgentKind; name: string }>(providers: readonly T[]): ProviderPickerGroups<T> {
     nameCollator ??= new Intl.Collator(undefined, { sensitivity: 'base' });
     const collator = nameCollator;
-    const byName = (a: T, b: T): number => collator.compare(a.name, b.name);
-    return {
-        frontier: providers.filter((provider) => FRONTIER_PROVIDER_KINDS.has(provider.kind)).sort(byName),
-        others: providers.filter((provider) => !FRONTIER_PROVIDER_KINDS.has(provider.kind)).sort(byName)
-    };
+    const sorted = [...providers].sort((a, b) => collator.compare(a.name, b.name));
+    const inGroup = (group: ProviderPickerGroup): T[] => sorted.filter((provider) => providerGroupOf(provider.kind) === group);
+    return { frontier: inGroup('frontier'), others: inGroup('others'), api: inGroup('api') };
 }
 
 export const ProviderListResultSchema = z.object({

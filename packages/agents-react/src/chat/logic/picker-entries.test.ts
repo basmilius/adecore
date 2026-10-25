@@ -1,25 +1,28 @@
 import { describe, expect, test } from 'bun:test';
 import type { ModelInfo, ProviderInfo } from '@adecore/agent-contracts';
-import { favoritesFirst, inPickerOrder, pickerEntriesOf, searchModels, separatesFrontier, shortlistOf, wantsModelSearch } from './picker-entries';
+import { favoritesFirst, inPickerOrder, pickerEntriesOf, searchModels, separatesGroups, shortlistOf, wantsModelSearch } from './picker-entries';
 
 const model = (slug: string, extra: Partial<ModelInfo> = {}): ModelInfo => ({ slug, name: slug, legacy: false, isDefault: false, options: [], ...extra });
 const provider = (models: ModelInfo[]): ProviderInfo => ({ kind: 'claude', name: 'Claude Code', version: '1.0.0', models }) as ProviderInfo;
 
 describe('inPickerOrder', () => {
-    test('lists the frontier labs first and a separator only where they end', () => {
+    test('lists the frontier labs, the rest and the API providers, with a separator only where a group ends', () => {
         const ordered = inPickerOrder([
+            { kind: 'nanogpt', name: 'NanoGPT' },
             { kind: 'grok', name: 'Grok' },
             { kind: 'codex', name: 'Codex' },
+            { kind: 'anthropic-claude-api', name: 'Claude API' },
             { kind: 'antigravity', name: 'Antigravity' },
             { kind: 'claude', name: 'Claude Code' }
         ]).map((entry) => entry.kind);
-        expect(ordered).toEqual(['claude', 'codex', 'antigravity', 'grok']);
-        expect(ordered.map((kind, i) => separatesFrontier(ordered[i - 1], kind))).toEqual([false, false, true, false]);
+        expect(ordered).toEqual(['claude', 'codex', 'antigravity', 'grok', 'anthropic-claude-api', 'nanogpt']);
+        expect(ordered.map((kind, i) => separatesGroups(ordered[i - 1], kind))).toEqual([false, false, true, false, true, false]);
     });
 
-    test('puts no separator above a list without frontier labs', () => {
-        expect(separatesFrontier(undefined, 'grok')).toBe(false);
-        expect(separatesFrontier('copilot', 'grok')).toBe(false);
+    test('puts no separator above the first provider or inside a group', () => {
+        expect(separatesGroups(undefined, 'grok')).toBe(false);
+        expect(separatesGroups('copilot', 'grok')).toBe(false);
+        expect(separatesGroups('claude', 'nanogpt')).toBe(true);
     });
 });
 

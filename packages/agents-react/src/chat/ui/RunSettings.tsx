@@ -27,7 +27,7 @@ import type { AccountChoice } from '../account-choice';
 import { modelName, shortModelName } from '../../agents/model-name';
 import { ModelMarks } from './ModelMarks';
 import { SessionLine } from './SessionLine';
-import { favoritesFirst, inPickerOrder, searchModels, separatesFrontier, shortlistOf, wantsModelSearch } from '../logic/picker-entries';
+import { favoritesFirst, inPickerOrder, searchModels, separatesGroups, shortlistOf, wantsModelSearch } from '../logic/picker-entries';
 import { favoriteModelsOf, toggleFavoriteModel, useChatPreferences } from '../preferences';
 import { CONTEXT_OPTION, contextFraction, contextSegments, orderOptions, type ContextPart } from '../logic/context-usage';
 import { RUNTIME_MODES } from '../runtime-modes';
@@ -294,7 +294,7 @@ export function RunSettings({
     const modelGroups = (groups: typeof live) =>
         groups.map(({ entry, models }, i) => (
             <Fragment key={entry.kind}>
-                {separatesFrontier(groups[i - 1]?.entry.kind, entry.kind) && <Menu.Separator />}
+                {separatesGroups(groups[i - 1]?.entry.kind, entry.kind) && <Menu.Separator />}
                 <Menu.Group>
                     {grouped && (
                         <Menu.GroupLabel className="flex items-center gap-1.5">
@@ -375,7 +375,7 @@ export function RunSettings({
                     <Menu.RadioGroup value={chosenModel} onValueChange={chooseModel}>
                         {found.map(({ entry, models }, i) => (
                             <Fragment key={entry.kind}>
-                                {separatesFrontier(found[i - 1]?.entry.kind, entry.kind) && <Menu.Separator />}
+                                {separatesGroups(found[i - 1]?.entry.kind, entry.kind) && <Menu.Separator />}
                                 <Menu.Group>
                                     {grouped && (
                                         <Menu.GroupLabel className="flex items-center gap-1.5">

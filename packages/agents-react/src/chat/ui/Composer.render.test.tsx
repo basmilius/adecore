@@ -1074,11 +1074,13 @@ describe('stepping the reasoning effort', () => {
 });
 
 describe('the model menu', () => {
-    test('lists the frontier labs first by name, and the other providers by name under a separator', async () => {
+    test('lists the frontier labs, the other providers and the API providers, each by name and apart from the next', async () => {
         const composer = await mount({
             otherProviders: [
+                { kind: 'nanogpt', name: 'NanoGPT' },
                 { kind: 'grok', name: 'Grok' },
                 { kind: 'codex', name: 'Codex' },
+                { kind: 'anthropic-claude-api', name: 'Claude API' },
                 { kind: 'antigravity', name: 'Antigravity' }
             ]
         });
@@ -1088,6 +1090,6 @@ describe('the model menu', () => {
         const drawn = await composer.draw(<Menu.Root>{rest!.props.children[0]}</Menu.Root>);
         const list = drawn.querySelector('[role="group"]')!;
         const sequence = [...list.children].map((node) => (node.getAttribute('role') === 'separator' ? '--' : node.firstElementChild?.textContent));
-        expect(sequence).toEqual(['Claude Code', 'Codex', '--', 'Antigravity', 'Grok']);
+        expect(sequence).toEqual(['Claude Code', 'Codex', '--', 'Antigravity', 'Grok', '--', 'Claude API', 'NanoGPT']);
     });
 });

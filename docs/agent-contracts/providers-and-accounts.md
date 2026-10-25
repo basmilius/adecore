@@ -84,13 +84,13 @@ resumeCommandFor('example-cli {flags} --resume {id}', "it's-1", ['--read-only'])
 // example-cli --read-only --resume 'it'\''s-1'
 ```
 
-`groupProvidersByFrontier(providers)` splits a list into `FrontierGroups`, `{ frontier, others }`, each sorted by name. A picker lists the frontier group first, with a separator before the others. `FRONTIER_PROVIDER_KINDS` holds the kinds of the frontier group: `anthropic-claude-api`, `claude` and `codex`. Anything with a `kind` and a `name` goes in, so a host can order its `provider.list` reply the same way.
+`pickerGroupsOf(providers)` splits a list into `ProviderPickerGroups`, `{ frontier, others, api }`, each sorted by name. A picker lists them in that order, with a separator between two groups that are not empty. `FRONTIER_PROVIDER_KINDS` holds the kinds of the frontier group (`claude` and `codex`), and `API_PROVIDER_KINDS` those of the providers billed per key (`anthropic-claude-api` and `nanogpt`); every other kind, an agent of the ACP registry too, is in `others`. `providerGroupOf(kind)` names the `ProviderPickerGroup` of one kind, which is how a list in that order knows where to draw a separator. Anything with a `kind` and a `name` goes in, so a host can order its `provider.list` reply the same way.
 
 ```ts
-import { groupProvidersByFrontier } from '@adecore/agent-contracts/model';
+import { pickerGroupsOf } from '@adecore/agent-contracts/model';
 
-const { frontier, others } = groupProvidersByFrontier(providers);
-const ordered = [...frontier, ...others];
+const { frontier, others, api } = pickerGroupsOf(providers);
+const ordered = [...frontier, ...others, ...api];
 ```
 
 ## Runtime modes

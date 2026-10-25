@@ -10,7 +10,7 @@ import { useChatHost } from '../../host';
 import { ChatScopeContext } from '../../scope';
 import { useReportedModels } from '../../state/chats';
 import { ModelMarks } from './ModelMarks';
-import { inPickerOrder, pickerEntriesOf, separatesFrontier, type PickerEntry } from '../logic/picker-entries';
+import { inPickerOrder, pickerEntriesOf, separatesGroups, type PickerEntry } from '../logic/picker-entries';
 import { favoriteModelsOf, toggleFavoriteModel, useChatPreferences } from '../preferences';
 import { forgetStashed, STASH_SHORTCUT, useStash, type StashedPrompt } from '../stash';
 import { Button, Icon, IconButton, Menu, Popover, Tooltip } from '@adecore/ui';
@@ -192,7 +192,7 @@ export function ModelPicker({
                             const header = grouped && (before === undefined || before.kind === 'legacy' || before.provider.kind !== entry.provider.kind);
                             return (
                                 <div key={`all-${entry.provider.kind}`}>
-                                    {separatesFrontier(kindBefore(i), entry.provider.kind) && <Menu.Separator />}
+                                    {separatesGroups(kindBefore(i), entry.provider.kind) && <Menu.Separator />}
                                     {header && (
                                         <Menu.Label className="flex items-center gap-1.5">
                                             <AgentIcon kind={entry.provider.kind} size={12} />
@@ -248,7 +248,7 @@ export function ModelPicker({
                         const starred = starredHere(entry);
                         return (
                             <div key={`${entry.provider.kind}/${entry.model.slug}`}>
-                                {separatesFrontier(kindBefore(i), entry.provider.kind) && <Menu.Separator />}
+                                {separatesGroups(kindBefore(i), entry.provider.kind) && <Menu.Separator />}
                                 {first && (
                                     <Menu.Label className="flex items-center gap-1.5">
                                         <AgentIcon kind={entry.provider.kind} size={12} />

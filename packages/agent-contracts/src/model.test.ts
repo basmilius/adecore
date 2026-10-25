@@ -1,26 +1,28 @@
 import { describe, expect, test } from 'bun:test';
-import { groupProvidersByFrontier, ProviderInstallSchema } from './model.ts';
+import { pickerGroupsOf, ProviderInstallSchema } from './model.ts';
 
-describe('groupProvidersByFrontier', () => {
+describe('pickerGroupsOf', () => {
     const provider = (kind: string, name: string) => ({ kind, name });
 
-    test('puts the frontier labs first and every group in order of name', () => {
-        const groups = groupProvidersByFrontier([
+    test('puts the frontier labs first and the API providers last, every group in order of name', () => {
+        const groups = pickerGroupsOf([
             provider('grok', 'Grok'),
             provider('codex', 'Codex'),
             provider('copilot', 'GitHub Copilot'),
             provider('claude', 'Claude Code'),
             provider('nanogpt', 'NanoGPT'),
             provider('anthropic-claude-api', 'Claude API'),
+            provider('kimi', 'Kimi'),
             provider('antigravity', 'Antigravity')
         ]);
-        expect(groups.frontier.map((entry) => entry.name)).toEqual(['Claude API', 'Claude Code', 'Codex']);
-        expect(groups.others.map((entry) => entry.name)).toEqual(['Antigravity', 'GitHub Copilot', 'Grok', 'NanoGPT']);
+        expect(groups.frontier.map((entry) => entry.name)).toEqual(['Claude Code', 'Codex']);
+        expect(groups.others.map((entry) => entry.name)).toEqual(['Antigravity', 'GitHub Copilot', 'Grok', 'Kimi']);
+        expect(groups.api.map((entry) => entry.name)).toEqual(['Claude API', 'NanoGPT']);
     });
 
     test('sorts regardless of case and leaves the list it was given alone', () => {
         const providers = [provider('apple', 'b'), provider('acp-agent', 'A')];
-        expect(groupProvidersByFrontier(providers)).toEqual({ frontier: [], others: [provider('acp-agent', 'A'), provider('apple', 'b')] });
+        expect(pickerGroupsOf(providers)).toEqual({ frontier: [], others: [provider('acp-agent', 'A'), provider('apple', 'b')], api: [] });
         expect(providers[0]!.name).toBe('b');
     });
 });

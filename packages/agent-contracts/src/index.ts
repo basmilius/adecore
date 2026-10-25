@@ -303,8 +303,11 @@ export {
     ProviderInfoSchema,
     type ProviderInfo,
     FRONTIER_PROVIDER_KINDS,
-    type FrontierGroups,
-    groupProvidersByFrontier,
+    API_PROVIDER_KINDS,
+    type ProviderPickerGroup,
+    type ProviderPickerGroups,
+    providerGroupOf,
+    pickerGroupsOf,
     ProviderListResultSchema,
     type ProviderListResult,
     resumeCommandFor

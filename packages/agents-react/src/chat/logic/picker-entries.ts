@@ -1,15 +1,15 @@
-import { FRONTIER_PROVIDER_KINDS, groupProvidersByFrontier, type AgentKind, type ModelInfo, type ProviderInfo } from '@adecore/agent-contracts';
+import { pickerGroupsOf, providerGroupOf, type AgentKind, type ModelInfo, type ProviderInfo } from '@adecore/agent-contracts';
 import { nameCollator } from '@adecore/ui/format';
 
-/* The providers in the order a picker lists them: the frontier labs first, then the rest, each by name. */
+/* The providers in the order a picker lists them: the frontier labs, the rest, then the API providers, each by name. */
 export function inPickerOrder<T extends { kind: AgentKind; name: string }>(providers: readonly T[]): T[] {
-    const groups = groupProvidersByFrontier(providers);
-    return [...groups.frontier, ...groups.others];
+    const groups = pickerGroupsOf(providers);
+    return [...groups.frontier, ...groups.others, ...groups.api];
 }
 
-/* Whether a separator goes between two providers next to each other in that order: where the frontier labs end. */
-export function separatesFrontier(previous: AgentKind | undefined, kind: AgentKind): boolean {
-    return previous !== undefined && FRONTIER_PROVIDER_KINDS.has(previous) && !FRONTIER_PROVIDER_KINDS.has(kind);
+/* Whether a separator goes between two providers next to each other in that order: where one group ends. */
+export function separatesGroups(previous: AgentKind | undefined, kind: AgentKind): boolean {
+    return previous !== undefined && providerGroupOf(previous) !== providerGroupOf(kind);
 }
 
 /*
