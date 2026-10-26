@@ -17,8 +17,9 @@ use crate::protocol::*;
 use crate::quoting::{Dialect, mysql_string_literal};
 use crate::splitter::{escapes_read_only, split_statements};
 use crate::sql::{
-    DEFAULT_EXECUTE_CELL_LIMIT, DEFAULT_EXECUTE_LIMIT, MAX_LIMIT, Param, bare_condition, cell_sql, conflict, count_sql, export_query, fragment, page_sql,
-    paging, paging_with, pick_row_key, plan_apply, resolve_cell_limit, resolve_max_bytes, rows_sql, single_statement,
+    DEFAULT_EXECUTE_CELL_LIMIT, DEFAULT_EXECUTE_LIMIT, Paging, Param, PlannedStatement, bare_condition, cell_sql, conflict, count_sql, export_query, fragment,
+    page_sql, paging, paging_with, pick_row_key, plan_apply, resolve_cell_limit, resolve_limit, resolve_max_bytes, rows_sql, single_statement, sort_tables,
+    table_kind,
 };
 use crate::tunnel::Tunnel as LocalTunnel;
 
@@ -182,6 +183,11 @@ fn text_at(row: &Row, index: usize) -> Option<String> {
 
 fn number_at(row: &Row, index: usize) -> Option<i64> {
     text_at(row, index).and_then(|text| text.parse().ok())
+}
+
+/// The kind a `TABLE_TYPE` of `information_schema.TABLES` names.
+fn kind_at(row: &Row, index: usize) -> TableKind {
+    table_kind(text_at(row, index).unwrap_or_default().contains("VIEW"))
 }
 
 fn my_value(param: &Param) -> MyValue {
@@ -405,17 +411,29 @@ fn result_columns(columns: &[Column]) -> Vec<ResultColumn> {
 
 type ResultSet = (Vec<ResultColumn>, Vec<Vec<Cell>>, bool);
 
+/// The next result set of a procedure call carries its own columns.
+fn starts_another_set(expected: Option<&Arc<[Column]>>, row: &Row) -> bool {
+    expected.is_some_and(|expected| !Arc::ptr_eq(expected, &row.columns()))
+}
+
+fn row_cells(row: Row, columns: &[Column], cell_limit: usize) -> Vec<Cell> {
+    row.unwrap()
+        .into_iter()
+        .zip(columns)
+        .map(|(value, column)| cell_of(value, column, cell_limit))
+        .collect()
+}
+
 /// Reads at most `limit` rows of the current result set, and no more than the budget holds, and notes whether another
 /// one waited behind them.
 async fn read_set<P: Protocol>(result: &mut QueryResult<'_, '_, P>, limit: usize, cell_limit: usize, budget: &mut ByteBudget) -> Result<ResultSet> {
     let columns: Vec<Column> = result.columns_ref().to_vec();
-    let columns_arc = result.columns();
+    let expected = result.columns();
     let mut rows = Vec::new();
     let mut has_more = false;
 
     while let Some(row) = result.next().await? {
-        // The next result set of a procedure call carries its own columns.
-        if columns_arc.as_ref().is_some_and(|expected| !Arc::ptr_eq(expected, &row.columns())) {
+        if starts_another_set(expected.as_ref(), &row) {
             break;
         }
 
@@ -424,12 +442,7 @@ async fn read_set<P: Protocol>(result: &mut QueryResult<'_, '_, P>, limit: usize
             break;
         }
 
-        let cells: Vec<Cell> = row
-            .unwrap()
-            .into_iter()
-            .enumerate()
-            .map(|(index, value)| cell_of(value, &columns[index], cell_limit))
-            .collect();
+        let cells = row_cells(row, &columns, cell_limit);
 
         if !budget.admit(&cells, rows.is_empty()) {
             has_more = true;
@@ -462,7 +475,7 @@ async fn write_export<P: Protocol>(
     let mut exporter = Exporter::new(params.format, DIALECT, result_columns(&columns), params.header.unwrap_or(true), table_name);
 
     while let Some(row) = result.next().await? {
-        if expected.as_ref().is_some_and(|expected| !Arc::ptr_eq(expected, &row.columns())) {
+        if starts_another_set(expected.as_ref(), &row) {
             break;
         }
 
@@ -473,13 +486,7 @@ async fn write_export<P: Protocol>(
             return Err(DatabaseError::cancelled());
         }
 
-        let cells: Vec<Cell> = row
-            .unwrap()
-            .into_iter()
-            .enumerate()
-            .map(|(index, value)| cell_of(value, &columns[index], usize::MAX))
-            .collect();
-        exporter.push(&cells);
+        exporter.push(&row_cells(row, &columns, usize::MAX));
 
         if exporter.is_full() {
             file.write_all(&exporter.take()).await?;
@@ -567,18 +574,13 @@ impl MysqlEngine {
         config: &MysqlConfig,
         tunnel: Option<LocalTunnel>,
     ) -> Result<(MysqlEngine, ServerInfo, MysqlCanceller)> {
-        let version: Option<String> = connection
-            .query_first("SELECT VERSION()")
-            .await
-            .map_err(|e| DatabaseError::connect_failed(e.to_string()))?;
+        let connect_failed = |e: mysql_async::Error| DatabaseError::connect_failed(e.to_string());
+        let version: Option<String> = connection.query_first("SELECT VERSION()").await.map_err(connect_failed)?;
         let version = version.unwrap_or_default();
         let flavor = if version.contains("MariaDB") { Flavor::Mariadb } else { Flavor::Mysql };
 
         if config.read_only {
-            connection
-                .query_drop("SET SESSION TRANSACTION READ ONLY")
-                .await
-                .map_err(|e| DatabaseError::connect_failed(e.to_string()))?;
+            connection.query_drop("SET SESSION TRANSACTION READ ONLY").await.map_err(connect_failed)?;
         }
 
         let canceller = MysqlCanceller::new(opts, connection.id());
@@ -645,21 +647,16 @@ impl MysqlEngine {
 
     /// Ends a unit of work that did `outcome`, undoing it when committing fails too.
     async fn conclude<T>(&mut self, nested: bool, savepoint: &str, outcome: Result<T>) -> Result<T> {
-        match outcome {
-            Ok(value) => match self.end_unit(nested, savepoint, true).await {
-                Ok(()) => Ok(value),
-                Err(error) => {
-                    let _ = self.end_unit(nested, savepoint, false).await;
+        let committed = match outcome {
+            Ok(value) => self.end_unit(nested, savepoint, true).await.map(|()| value),
+            Err(error) => Err(error),
+        };
 
-                    Err(error)
-                }
-            },
-            Err(error) => {
-                let _ = self.end_unit(nested, savepoint, false).await;
-
-                Err(error)
-            }
+        if committed.is_err() {
+            let _ = self.end_unit(nested, savepoint, false).await;
         }
+
+        committed
     }
 
     pub async fn transaction(&mut self, action: TransactionAction) -> Result<TransactionResult> {
@@ -706,11 +703,7 @@ impl MysqlEngine {
         let mut tables: Vec<TableInfo> = rows
             .iter()
             .map(|row| {
-                let kind = if text_at(row, 1).unwrap_or_default().contains("VIEW") {
-                    TableKind::View
-                } else {
-                    TableKind::Table
-                };
+                let kind = kind_at(row, 1);
                 let comment = text_at(row, 3).filter(|comment| !comment.is_empty() && kind == TableKind::Table);
 
                 TableInfo {
@@ -722,12 +715,7 @@ impl MysqlEngine {
             })
             .collect();
 
-        tables.sort_by(|left, right| {
-            left.name
-                .to_lowercase()
-                .cmp(&right.name.to_lowercase())
-                .then_with(|| left.name.cmp(&right.name))
-        });
+        sort_tables(&mut tables);
 
         Ok(TablesResult { tables })
     }
@@ -745,12 +733,7 @@ impl MysqlEngine {
             return Err(DatabaseError::query_failed(format!("The table or view \"{table}\" does not exist in \"{schema}\".")).with_sql_state("42S02"));
         };
 
-        let kind = if text_at(&kind_row, 0).unwrap_or_default().contains("VIEW") {
-            TableKind::View
-        } else {
-            TableKind::Table
-        };
-
+        let kind = kind_at(&kind_row, 0);
         let column_rows: Vec<Row> = self
             .connection
             .exec(
@@ -978,8 +961,14 @@ impl MysqlEngine {
 
     pub async fn rows(&mut self, params: RowsParams) -> Result<RowsResult> {
         let page = paging(params.limit, params.offset, params.cell_limit, params.max_bytes)?;
-        let started = Instant::now();
         let sql = rows_sql(DIALECT, &params.schema, &params.table, fragment(&params.r#where), fragment(&params.order_by));
+
+        self.read_paged(sql, &page).await
+    }
+
+    /// Runs a statement whose last two placeholders are the limit and the offset of the page.
+    async fn read_paged(&mut self, sql: String, page: &Paging) -> Result<RowsResult> {
+        let started = Instant::now();
         let bound = Params::Positional(vec![MyValue::UInt(page.limit as u64 + 1), MyValue::UInt(page.offset)]);
         let mut result = self.connection.exec_iter(sql, bound).await?;
         let (columns, rows, has_more) = read_set(&mut result, page.limit, page.cell_limit, &mut ByteBudget::new(page.max_bytes)).await?;
@@ -1033,7 +1022,7 @@ impl MysqlEngine {
         Ok(ApplyResult { affected })
     }
 
-    async fn run_planned(&mut self, planned: &[crate::sql::PlannedStatement]) -> Result<u64> {
+    async fn run_planned(&mut self, planned: &[PlannedStatement]) -> Result<u64> {
         let mut affected = 0;
 
         for (index, statement) in planned.iter().enumerate() {
@@ -1051,11 +1040,7 @@ impl MysqlEngine {
     }
 
     pub async fn execute(&mut self, params: ExecuteParams, cancelled: Arc<AtomicBool>) -> Result<ExecuteResult> {
-        let limit = match params.limit {
-            None => DEFAULT_EXECUTE_LIMIT,
-            Some(limit) if (1..=MAX_LIMIT).contains(&limit) => limit as usize,
-            Some(_) => return Err(DatabaseError::invalid_request(format!("The limit must be between 1 and {MAX_LIMIT}."))),
-        };
+        let limit = resolve_limit(params.limit, DEFAULT_EXECUTE_LIMIT)?;
         let cell_limit = resolve_cell_limit(params.cell_limit, DEFAULT_EXECUTE_CELL_LIMIT)?;
         // One budget for the whole script, since all of its results travel in one response.
         let mut budget = ByteBudget::new(resolve_max_bytes(params.max_bytes)?);
@@ -1139,18 +1124,7 @@ impl MysqlEngine {
             self.connection.query_drop(format!("USE {}", DIALECT.quote_ident(schema))).await?;
         }
 
-        let started = Instant::now();
-        let bound = Params::Positional(vec![MyValue::UInt(page.limit as u64 + 1), MyValue::UInt(page.offset)]);
-        let mut result = self.connection.exec_iter(page_sql(DIALECT, &statement), bound).await?;
-        let (columns, rows, has_more) = read_set(&mut result, page.limit, page.cell_limit, &mut ByteBudget::new(page.max_bytes)).await?;
-        result.drop_result().await?;
-
-        Ok(RowsResult {
-            columns,
-            rows,
-            has_more,
-            elapsed_ms: elapsed_ms(started.elapsed()),
-        })
+        self.read_paged(page_sql(DIALECT, &statement), &page).await
     }
 
     pub async fn export(&mut self, params: ExportParams, cancelled: Arc<AtomicBool>) -> Result<ExportResult> {

@@ -175,7 +175,6 @@ fn read_container(entry: &Json) -> Option<Inspected> {
     })
 }
 
-/// Parses the JSON array `docker inspect` prints.
 pub fn parse_inspect(text: &str) -> Result<Vec<Inspected>> {
     let parsed: Json = serde_json::from_str(text).map_err(|e| DatabaseError::internal(format!("Could not read the output of docker inspect: {e}.")))?;
 

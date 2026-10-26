@@ -1,6 +1,6 @@
 use crate::cells::{MAX_SAFE_INTEGER, from_hex};
 use crate::error::{DatabaseError, ErrorCode, Result};
-use crate::protocol::{BinaryValue, ColumnInfo, EditValue, ExportSource, RowChange, RowKey, TableStructure, Value};
+use crate::protocol::{BinaryValue, ColumnInfo, EditValue, ExportSource, RowChange, RowKey, TableInfo, TableKind, TableStructure, Value};
 use crate::quoting::Dialect;
 use crate::splitter::{first_keyword, split_statements, top_level_words};
 
@@ -70,20 +70,30 @@ pub fn paging(limit: i64, offset: i64, cell_limit: Option<i64>, max_bytes: Optio
 }
 
 pub fn paging_with(limit: i64, offset: i64, cell_limit: Option<i64>, max_bytes: Option<i64>, default_cell_limit: usize) -> Result<Paging> {
-    if !(1..=MAX_LIMIT).contains(&limit) {
-        return Err(DatabaseError::invalid_request(format!("The limit must be between 1 and {MAX_LIMIT}.")));
-    }
+    let limit = check_limit(limit)?;
 
     if offset < 0 {
         return Err(DatabaseError::invalid_request("The offset must not be negative."));
     }
 
     Ok(Paging {
-        limit: limit as usize,
+        limit,
         offset: offset as u64,
         cell_limit: resolve_cell_limit(cell_limit, default_cell_limit)?,
         max_bytes: resolve_max_bytes(max_bytes)?,
     })
+}
+
+fn check_limit(limit: i64) -> Result<usize> {
+    if !(1..=MAX_LIMIT).contains(&limit) {
+        return Err(DatabaseError::invalid_request(format!("The limit must be between 1 and {MAX_LIMIT}.")));
+    }
+
+    Ok(limit as usize)
+}
+
+pub fn resolve_limit(limit: Option<i64>, default: usize) -> Result<usize> {
+    limit.map_or(Ok(default), check_limit)
 }
 
 pub fn resolve_cell_limit(cell_limit: Option<i64>, default: usize) -> Result<usize> {
@@ -102,7 +112,6 @@ pub fn resolve_max_bytes(max_bytes: Option<i64>) -> Result<usize> {
     }
 }
 
-/// The SQL of a page of rows.
 pub fn rows_sql(dialect: Dialect, schema: &str, table: &str, filter: Option<&str>, order_by: Option<&str>) -> String {
     let mut sql = select_sql(dialect, schema, table, filter, order_by);
     sql.push_str(" LIMIT ? OFFSET ?");
@@ -408,6 +417,20 @@ pub fn plan_apply(dialect: Dialect, structure: &TableStructure, changes: &[RowCh
     }
 
     Ok(planned)
+}
+
+/// Orders tables by name without regard to case, and by case where only that differs.
+pub fn sort_tables(tables: &mut [TableInfo]) {
+    tables.sort_by(|left, right| {
+        left.name
+            .to_lowercase()
+            .cmp(&right.name.to_lowercase())
+            .then_with(|| left.name.cmp(&right.name))
+    });
+}
+
+pub fn table_kind(is_view: bool) -> TableKind {
+    if is_view { TableKind::View } else { TableKind::Table }
 }
 
 pub fn conflict(index: usize, affected: u64) -> DatabaseError {

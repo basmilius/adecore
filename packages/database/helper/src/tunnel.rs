@@ -211,13 +211,9 @@ impl Tunnel {
     }
 
     async fn listen(spec: CommandSpec) -> Result<Tunnel> {
-        let listener = TcpListener::bind(("127.0.0.1", 0))
-            .await
-            .map_err(|e| DatabaseError::tunnel_failed(format!("Could not open a local port for the tunnel: {e}.")))?;
-        let port = listener
-            .local_addr()
-            .map_err(|e| DatabaseError::tunnel_failed(format!("Could not open a local port for the tunnel: {e}.")))?
-            .port();
+        let unopened = |e: std::io::Error| DatabaseError::tunnel_failed(format!("Could not open a local port for the tunnel: {e}."));
+        let listener = TcpListener::bind(("127.0.0.1", 0)).await.map_err(unopened)?;
+        let port = listener.local_addr().map_err(unopened)?.port();
         let failures = Arc::new(Failures::default());
         let server = tokio::spawn(serve(listener, spec, failures.clone()));
 
@@ -301,14 +297,13 @@ async fn carry(socket: TcpStream, spec: Arc<CommandSpec>, failures: Arc<Failures
         _ = forward_output(&mut stdout, &mut writer, &received) => Ended::Process,
     };
 
-    if matches!(ended, Ended::Client) {
-        // The last thing a client sends (COM_QUIT) may still sit in the pipe; closing the input lets the process pass it on and end by itself.
-        drop(stdin);
-        let _ = tokio::time::timeout(EXIT_GRACE, child.wait()).await;
-    }
-
-    if matches!(ended, Ended::Process) && received.load(Ordering::Relaxed) == 0 {
-        match tokio::time::timeout(EXIT_GRACE, child.wait()).await {
+    match ended {
+        Ended::Client => {
+            // The last thing a client sends (COM_QUIT) may still sit in the pipe; closing the input lets the process pass it on and end by itself.
+            drop(stdin);
+            let _ = tokio::time::timeout(EXIT_GRACE, child.wait()).await;
+        }
+        Ended::Process if received.load(Ordering::Relaxed) == 0 => match tokio::time::timeout(EXIT_GRACE, child.wait()).await {
             Ok(Ok(status)) if !status.success() => {
                 let said = tokio::time::timeout(EXIT_GRACE, errors)
                     .await
@@ -324,7 +319,8 @@ async fn carry(socket: TcpStream, spec: Arc<CommandSpec>, failures: Arc<Failures
             }
             Ok(Err(e)) => failures.record(format!("Could not wait for {}: {e}.", spec.program)),
             _ => {}
-        }
+        },
+        Ended::Process => {}
     }
 
     let _ = writer.shutdown().await;

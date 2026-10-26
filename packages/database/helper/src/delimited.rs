@@ -12,7 +12,6 @@ const BYTE_ORDER_MARK: [u8; 3] = [0xEF, 0xBB, 0xBF];
 /// A TSV field that is exactly this stands for NULL.
 const NULL_MARKER: &str = "\\N";
 
-/// One line of the file with the fields as text.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Line {
     pub number: u64,
@@ -86,7 +85,6 @@ impl DelimitedReader {
         })
     }
 
-    /// The next line, or `None` at the end of the file.
     pub fn next_line(&mut self) -> Result<Option<Line>> {
         let more = self
             .reader
@@ -101,27 +99,26 @@ impl DelimitedReader {
             Some(position) => self.lines.line_at(position.byte())?,
             None => 0,
         };
-        let mut fields = Vec::with_capacity(self.record.len());
-
-        for field in self.record.iter() {
-            let text = std::str::from_utf8(field).map_err(|_| DatabaseError::file_failed(format!("Line {number} is not valid UTF-8.")))?;
-
-            fields.push(text.to_string());
-        }
+        let fields = self
+            .record
+            .iter()
+            .map(|field| std::str::from_utf8(field).map(str::to_string))
+            .collect::<std::result::Result<_, _>>()
+            .map_err(|_| DatabaseError::file_failed(format!("Line {number} is not valid UTF-8.")))?;
 
         Ok(Some(Line { number, fields }))
     }
 
     /// What a field stands for: `None` for NULL, else its text with TSV escapes undone.
     pub fn value_of(&self, field: &str) -> Option<String> {
-        if field.is_empty() {
+        if field.is_empty() || field == NULL_MARKER {
             return None;
         }
 
-        match self.format {
-            DelimitedFormat::Csv => (field != NULL_MARKER).then(|| field.to_string()),
-            DelimitedFormat::Tsv => (field != NULL_MARKER).then(|| unescape_tsv(field)),
-        }
+        Some(match self.format {
+            DelimitedFormat::Csv => field.to_string(),
+            DelimitedFormat::Tsv => unescape_tsv(field),
+        })
     }
 }
 

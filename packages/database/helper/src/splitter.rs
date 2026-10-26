@@ -25,19 +25,16 @@ pub fn split_statements(sql: &str, dialect: Dialect) -> Vec<String> {
             }
             b'[' if dialect == Dialect::Sqlite => {
                 has_content = true;
-                i = bytes[i..]
-                    .iter()
-                    .position(|&candidate| candidate == b']')
-                    .map_or(bytes.len(), |offset| i + offset + 1);
+                i = skip_past(bytes, i, b']');
             }
-            b'-' if bytes.get(i + 1) == Some(&b'-') && is_line_comment_start(bytes, i, dialect) => {
-                i = skip_line(bytes, i);
+            b'-' if is_line_comment(bytes, i, dialect) => {
+                i = skip_past(bytes, i, b'\n');
             }
             b'#' if dialect == Dialect::Mysql => {
-                i = skip_line(bytes, i);
+                i = skip_past(bytes, i, b'\n');
             }
             b'/' if bytes.get(i + 1) == Some(&b'*') => {
-                i = find(bytes, i + 2, b"*/").map_or(bytes.len(), |end| end + 2);
+                i = skip_block_comment(bytes, i);
             }
             b';' => {
                 if trigger.splits_here() {
@@ -54,10 +51,7 @@ pub fn split_statements(sql: &str, dialect: Dialect) -> Vec<String> {
             }
             _ if is_word_byte(byte) => {
                 has_content = true;
-                let end = bytes[i..]
-                    .iter()
-                    .position(|&candidate| !is_word_byte(candidate))
-                    .map_or(bytes.len(), |offset| i + offset);
+                let end = word_end(bytes, i);
 
                 if dialect == Dialect::Sqlite {
                     trigger.word(&sql[i..end]);
@@ -96,28 +90,22 @@ pub fn top_level_words(sql: &str, dialect: Dialect) -> Vec<String> {
                 i = skip_quoted(bytes, i, dialect);
             }
             b'[' if dialect == Dialect::Sqlite => {
-                i = bytes[i..]
-                    .iter()
-                    .position(|&candidate| candidate == b']')
-                    .map_or(bytes.len(), |offset| i + offset + 1);
+                i = skip_past(bytes, i, b']');
             }
-            b'-' if bytes.get(i + 1) == Some(&b'-') && is_line_comment_start(bytes, i, dialect) => {
-                i = skip_line(bytes, i);
+            b'-' if is_line_comment(bytes, i, dialect) => {
+                i = skip_past(bytes, i, b'\n');
             }
             b'#' if dialect == Dialect::Mysql => {
-                i = skip_line(bytes, i);
+                i = skip_past(bytes, i, b'\n');
             }
             b'/' if dialect == Dialect::Mysql && bytes.get(i + 1) == Some(&b'*') && bytes.get(i + 2) == Some(&b'!') => {
-                i += 3;
-                while bytes.get(i).is_some_and(u8::is_ascii_digit) {
-                    i += 1;
-                }
+                i = skip_digits(bytes, i + 3);
             }
             b'*' if dialect == Dialect::Mysql && bytes.get(i + 1) == Some(&b'/') => {
                 i += 2;
             }
             b'/' if bytes.get(i + 1) == Some(&b'*') => {
-                i = find(bytes, i + 2, b"*/").map_or(bytes.len(), |end| end + 2);
+                i = skip_block_comment(bytes, i);
             }
             b'(' => {
                 depth += 1;
@@ -128,10 +116,7 @@ pub fn top_level_words(sql: &str, dialect: Dialect) -> Vec<String> {
                 i += 1;
             }
             _ if is_word_byte(byte) => {
-                let end = bytes[i..]
-                    .iter()
-                    .position(|&candidate| !is_word_byte(candidate))
-                    .map_or(bytes.len(), |offset| i + offset);
+                let end = word_end(bytes, i);
 
                 if depth == 0 {
                     words.push(sql[i..end].to_uppercase());
@@ -156,9 +141,9 @@ pub fn first_keyword(sql: &str) -> String {
     while i < bytes.len() {
         match bytes[i] {
             b' ' | b'\t' | b'\r' | b'\n' | b'(' => i += 1,
-            b'-' if bytes.get(i + 1) == Some(&b'-') => i = skip_line(bytes, i),
-            b'#' => i = skip_line(bytes, i),
-            b'/' if bytes.get(i + 1) == Some(&b'*') => i = find(bytes, i + 2, b"*/").map_or(bytes.len(), |end| end + 2),
+            b'-' if bytes.get(i + 1) == Some(&b'-') => i = skip_past(bytes, i, b'\n'),
+            b'#' => i = skip_past(bytes, i, b'\n'),
+            b'/' if bytes.get(i + 1) == Some(&b'*') => i = skip_block_comment(bytes, i),
             _ => break,
         }
     }
@@ -212,37 +197,24 @@ fn mysql_tokens(sql: &str) -> Vec<String> {
                 tokens.push(sql[i + 1..inner_end].to_uppercase());
                 i = end;
             }
-            b'-' if bytes.get(i + 1) == Some(&b'-') && is_line_comment_start(bytes, i, Dialect::Mysql) => {
-                i = skip_line(bytes, i);
+            b'-' if is_line_comment(bytes, i, Dialect::Mysql) => {
+                i = skip_past(bytes, i, b'\n');
             }
             b'#' => {
-                i = skip_line(bytes, i);
+                i = skip_past(bytes, i, b'\n');
             }
             b'/' if bytes.get(i + 1) == Some(&b'*') => {
-                let marker = match (bytes.get(i + 2), bytes.get(i + 3)) {
-                    (Some(b'!' | b'+'), _) => Some(3),
-                    (Some(b'M'), Some(b'!')) => Some(4),
-                    _ => None,
+                i = match (bytes.get(i + 2), bytes.get(i + 3)) {
+                    (Some(b'!' | b'+'), _) => skip_digits(bytes, i + 3),
+                    (Some(b'M'), Some(b'!')) => skip_digits(bytes, i + 4),
+                    _ => skip_block_comment(bytes, i),
                 };
-
-                match marker {
-                    Some(length) => {
-                        i += length;
-                        while bytes.get(i).is_some_and(u8::is_ascii_digit) {
-                            i += 1;
-                        }
-                    }
-                    None => i = find(bytes, i + 2, b"*/").map_or(bytes.len(), |end| end + 2),
-                }
             }
             b'*' if bytes.get(i + 1) == Some(&b'/') => {
                 i += 2;
             }
             _ if is_word_byte(byte) => {
-                let end = bytes[i..]
-                    .iter()
-                    .position(|&candidate| !is_word_byte(candidate))
-                    .map_or(bytes.len(), |offset| i + offset);
+                let end = word_end(bytes, i);
                 tokens.push(sql[i..end].to_uppercase());
                 i = end;
             }
@@ -260,27 +232,44 @@ fn is_word_byte(byte: u8) -> bool {
     byte.is_ascii_alphanumeric() || byte == b'_' || byte == b'$' || byte >= 0x80
 }
 
-/// MySQL wants whitespace after the dashes; SQLite does not.
-fn is_line_comment_start(bytes: &[u8], at: usize, dialect: Dialect) -> bool {
-    match dialect {
-        Dialect::Sqlite => true,
-        Dialect::Mysql => bytes.get(at + 2).is_none_or(|next| next.is_ascii_whitespace() || next.is_ascii_control()),
-    }
-}
-
-fn skip_line(bytes: &[u8], at: usize) -> usize {
+fn word_end(bytes: &[u8], at: usize) -> usize {
     bytes[at..]
         .iter()
-        .position(|&candidate| candidate == b'\n')
+        .position(|&candidate| !is_word_byte(candidate))
+        .map_or(bytes.len(), |offset| at + offset)
+}
+
+/// Whether `--` starts a comment at `at`. MySQL wants whitespace after the dashes; SQLite does not.
+fn is_line_comment(bytes: &[u8], at: usize, dialect: Dialect) -> bool {
+    bytes.get(at + 1) == Some(&b'-')
+        && match dialect {
+            Dialect::Sqlite => true,
+            Dialect::Mysql => bytes.get(at + 2).is_none_or(|next| next.is_ascii_whitespace() || next.is_ascii_control()),
+        }
+}
+
+/// The index after the first `end` from `at` on, or the end of the input when there is none.
+fn skip_past(bytes: &[u8], at: usize, end: u8) -> usize {
+    bytes[at..]
+        .iter()
+        .position(|&candidate| candidate == end)
         .map_or(bytes.len(), |offset| at + offset + 1)
 }
 
-fn find(bytes: &[u8], from: usize, needle: &[u8]) -> Option<usize> {
+fn skip_digits(bytes: &[u8], mut at: usize) -> usize {
+    while bytes.get(at).is_some_and(u8::is_ascii_digit) {
+        at += 1;
+    }
+
+    at
+}
+
+/// The index after the `*/` that closes the comment opened at `at`, or the end of the input.
+fn skip_block_comment(bytes: &[u8], at: usize) -> usize {
     bytes
-        .get(from..)?
-        .windows(needle.len())
-        .position(|window| window == needle)
-        .map(|offset| from + offset)
+        .get(at + 2..)
+        .and_then(|rest| rest.windows(2).position(|window| window == b"*/"))
+        .map_or(bytes.len(), |offset| at + 2 + offset + 2)
 }
 
 /// Returns the index after the closing quote, or the end of the input for an unterminated one.

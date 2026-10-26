@@ -12,7 +12,6 @@ impl Dialect {
         }
     }
 
-    /// A `schema.table` pair, both quoted.
     pub fn qualified(self, schema: &str, table: &str) -> String {
         format!("{}.{}", self.quote_ident(schema), self.quote_ident(table))
     }

@@ -1,15 +1,18 @@
 //! Writes the rows of a query to a file in one of the export formats.
 
+use std::borrow::Cow;
 use std::fs::{File, OpenOptions};
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
+use crate::cells::to_hex;
 use crate::error::{DatabaseError, Result};
 use crate::protocol::{Cell, CellObject, FileFormat, ResultColumn, ValueKind};
-use crate::quoting::Dialect;
+use crate::quoting::{Dialect, mysql_string_literal};
 
 const FLUSH_AT: usize = 64 * 1024;
+const BUFFER_CAPACITY: usize = FLUSH_AT + 4096;
 
 /// Tells apart the partial files of the exports of this helper, so two exports to one path never share one.
 static NEXT_PARTIAL: AtomicU64 = AtomicU64::new(0);
@@ -96,7 +99,7 @@ impl Exporter {
             dialect,
             columns,
             insert_head,
-            buffer: Vec::with_capacity(FLUSH_AT + 4096),
+            buffer: Vec::with_capacity(BUFFER_CAPACITY),
             rows: 0,
             bytes: 0,
         };
@@ -130,7 +133,7 @@ impl Exporter {
     pub fn take(&mut self) -> Vec<u8> {
         self.bytes += self.buffer.len() as u64;
 
-        std::mem::replace(&mut self.buffer, Vec::with_capacity(FLUSH_AT + 4096))
+        std::mem::replace(&mut self.buffer, Vec::with_capacity(BUFFER_CAPACITY))
     }
 
     pub fn finish(&mut self) {
@@ -185,18 +188,14 @@ impl Exporter {
             return;
         }
 
-        let text = plain_text(cell);
-
-        for character in text.chars() {
-            match character {
-                '\t' => self.buffer.extend_from_slice(b"\\t"),
-                '\n' => self.buffer.extend_from_slice(b"\\n"),
-                '\r' => self.buffer.extend_from_slice(b"\\r"),
-                '\\' => self.buffer.extend_from_slice(b"\\\\"),
-                other => {
-                    let mut encoded = [0u8; 4];
-                    self.buffer.extend_from_slice(other.encode_utf8(&mut encoded).as_bytes());
-                }
+        // The escaped characters are ASCII, which never occurs inside a multi-byte UTF-8 character.
+        for byte in plain_text(cell).bytes() {
+            match byte {
+                b'\t' => self.buffer.extend_from_slice(b"\\t"),
+                b'\n' => self.buffer.extend_from_slice(b"\\n"),
+                b'\r' => self.buffer.extend_from_slice(b"\\r"),
+                b'\\' => self.buffer.extend_from_slice(b"\\\\"),
+                other => self.buffer.push(other),
             }
         }
     }
@@ -242,14 +241,14 @@ impl Exporter {
 }
 
 /// The text of a cell as a file shows it: binary values as lowercase hex.
-fn plain_text(cell: &Cell) -> String {
+fn plain_text(cell: &Cell) -> Cow<'_, str> {
     match cell {
-        Cell::Null => String::new(),
-        Cell::Bool(value) => value.to_string(),
-        Cell::Number(number) => number.to_string(),
-        Cell::Text(text) => text.clone(),
-        Cell::Object(CellObject::Binary { hex, .. }) => hex.clone(),
-        Cell::Object(CellObject::LongText { preview, .. }) => preview.clone(),
+        Cell::Null => Cow::Borrowed(""),
+        Cell::Bool(value) => Cow::Owned(value.to_string()),
+        Cell::Number(number) => Cow::Owned(number.to_string()),
+        Cell::Text(text) => Cow::Borrowed(text),
+        Cell::Object(CellObject::Binary { hex, .. }) => Cow::Borrowed(hex),
+        Cell::Object(CellObject::LongText { preview, .. }) => Cow::Borrowed(preview),
     }
 }
 
@@ -281,9 +280,9 @@ fn is_plain_number(text: &str) -> bool {
 fn string_literal(dialect: Dialect, text: &str) -> String {
     match dialect {
         // A SQLite string literal ends at a NUL, so such text goes in as the bytes it is made of.
-        Dialect::Sqlite if text.contains('\0') => format!("CAST(X'{}' AS TEXT)", text.bytes().map(|byte| format!("{byte:02x}")).collect::<String>()),
+        Dialect::Sqlite if text.contains('\0') => format!("CAST(X'{}' AS TEXT)", to_hex(text.as_bytes())),
         Dialect::Sqlite => format!("'{}'", text.replace('\'', "''")),
-        Dialect::Mysql => format!("'{}'", text.replace('\\', "\\\\").replace('\'', "''").replace('\0', "\\0")),
+        Dialect::Mysql => mysql_string_literal(text).replace('\0', "\\0"),
     }
 }
 

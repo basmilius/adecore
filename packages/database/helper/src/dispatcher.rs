@@ -29,6 +29,11 @@ fn to_json<T: Serialize>(value: T) -> Result<String> {
     serde_json::to_string(&value).map_err(|e| DatabaseError::internal(format!("Could not serialize the result: {e}.")))
 }
 
+/// A future that answers at once, for a request refused before it reached a session.
+fn refused(id: &str, error: DatabaseError) -> ResponseFuture {
+    Box::pin(std::future::ready(response_line(id, Err(error))))
+}
+
 /// The id of the request a session is executing right now, if any.
 type Slot = Arc<Mutex<Option<String>>>;
 
@@ -43,6 +48,19 @@ struct RequestState {
     slot: Slot,
     gate: Gate,
     canceller: Arc<Canceller>,
+}
+
+impl RequestState {
+    fn on(handle: &SessionHandle, id: String) -> Arc<RequestState> {
+        Arc::new(RequestState {
+            id,
+            cancelled: Arc::new(AtomicBool::new(false)),
+            finished: AtomicBool::new(false),
+            slot: handle.slot.clone(),
+            gate: handle.gate.clone(),
+            canceller: handle.canceller.clone(),
+        })
+    }
 }
 
 struct Command {
@@ -64,40 +82,25 @@ type Running = Arc<Mutex<HashMap<String, Arc<RequestState>>>>;
 type Sessions = Arc<Mutex<HashMap<String, Arc<SessionHandle>>>>;
 
 /// Routes requests to sessions. Requests on one session queue up in the order they were submitted.
+#[derive(Default)]
 pub struct Dispatcher {
     sessions: Sessions,
     running: Running,
     counter: AtomicU64,
 }
 
-impl Default for Dispatcher {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl Dispatcher {
     pub fn new() -> Self {
-        Dispatcher {
-            sessions: Sessions::default(),
-            running: Arc::new(Mutex::new(HashMap::new())),
-            counter: AtomicU64::new(0),
-        }
+        Self::default()
     }
 
     /// Takes one line of input. Everything that fixes the order of requests happens here, before the
     /// future is polled; the future resolves to the line that answers.
     pub fn submit(self: &Arc<Self>, line: &str) -> ResponseFuture {
-        let request = match Request::parse(line) {
+        let Request { id, call } = match Request::parse(line) {
             Ok(request) => request,
-            Err(failure) => {
-                let answer = response_line(&failure.id, Err(failure.error));
-
-                return Box::pin(async move { answer });
-            }
+            Err(failure) => return refused(&failure.id, failure.error),
         };
-
-        let Request { id, call } = request;
 
         match call {
             Call::Open(params) => {
@@ -118,12 +121,6 @@ impl Dispatcher {
     }
 
     fn enqueue(&self, id: String, call: Call) -> ResponseFuture {
-        let fail = |error: DatabaseError, id: String| -> ResponseFuture {
-            let answer = response_line(&id, Err(error));
-
-            Box::pin(async move { answer })
-        };
-
         let session = call.session().unwrap_or_default().to_string();
         let is_close = matches!(call, Call::Close(_));
 
@@ -138,23 +135,16 @@ impl Dispatcher {
         };
 
         let Some(handle) = handle else {
-            return fail(DatabaseError::unknown_session(&session), id);
+            return refused(&id, DatabaseError::unknown_session(&session));
         };
 
-        let state = Arc::new(RequestState {
-            id: id.clone(),
-            cancelled: Arc::new(AtomicBool::new(false)),
-            finished: AtomicBool::new(false),
-            slot: handle.slot.clone(),
-            gate: handle.gate.clone(),
-            canceller: handle.canceller.clone(),
-        });
+        let state = RequestState::on(&handle, id.clone());
 
         {
             let mut running = locked(&self.running);
 
             if running.contains_key(&id) {
-                return fail(DatabaseError::invalid_request(format!("The request id \"{id}\" is already in use.")), id);
+                return refused(&id, DatabaseError::invalid_request(format!("The request id \"{id}\" is already in use.")));
             }
 
             running.insert(id.clone(), state.clone());
@@ -174,7 +164,7 @@ impl Dispatcher {
         {
             locked(&self.running).remove(&id);
 
-            return fail(DatabaseError::unknown_session(&session), id);
+            return refused(&id, DatabaseError::unknown_session(&session));
         }
 
         Box::pin(async move {
@@ -222,9 +212,9 @@ impl Dispatcher {
             return to_json(CancelResult { cancelled: false });
         };
 
-        match reach(&state) {
-            Reach::Finished => to_json(CancelResult { cancelled: false }),
-            Reach::Queued => to_json(CancelResult { cancelled: true }),
+        let cancelled = match reach(&state) {
+            Reach::Finished => false,
+            Reach::Queued => true,
             Reach::Running(killer) => {
                 kill(killer).await;
 
@@ -232,9 +222,11 @@ impl Dispatcher {
                     tokio::spawn(repeat_cancel(self.running.clone(), state));
                 }
 
-                to_json(CancelResult { cancelled: true })
+                true
             }
-        }
+        };
+
+        to_json(CancelResult { cancelled })
     }
 
     /// Stops what is running, then closes every session. Meant for the end of the input.
@@ -251,17 +243,9 @@ impl Dispatcher {
 
         for handle in handles {
             let (reply, answer) = oneshot::channel();
-            let state = Arc::new(RequestState {
-                id: String::new(),
-                cancelled: Arc::new(AtomicBool::new(false)),
-                finished: AtomicBool::new(false),
-                slot: handle.slot.clone(),
-                gate: handle.gate.clone(),
-                canceller: handle.canceller.clone(),
-            });
             let command = Command {
                 id: String::new(),
-                state,
+                state: RequestState::on(&handle, String::new()),
                 call: Call::Close(SessionParams { session: String::new() }),
                 reply,
             };
@@ -332,7 +316,7 @@ async fn repeat_cancel(running: Running, state: Arc<RequestState>) {
     }
 }
 
-/// Frees the slot and takes the request out of the running list. Returns whether it was cancelled by then.
+/// Returns whether the request was cancelled by the time it finished.
 fn finish(state: &RequestState, running: &Running) -> bool {
     let mut slot = locked(&state.slot);
     *slot = None;

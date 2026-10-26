@@ -16,8 +16,8 @@ use crate::protocol::*;
 use crate::quoting::Dialect;
 use crate::splitter::{first_keyword, split_statements, top_level_words};
 use crate::sql::{
-    DEFAULT_EXECUTE_CELL_LIMIT, DEFAULT_EXECUTE_LIMIT, MAX_LIMIT, Param, cell_sql, conflict, count_sql, export_query, fragment, page_sql, paging, paging_with,
-    pick_row_key, plan_apply, resolve_cell_limit, resolve_max_bytes, rows_sql, single_statement,
+    DEFAULT_EXECUTE_CELL_LIMIT, DEFAULT_EXECUTE_LIMIT, Paging, Param, cell_sql, conflict, count_sql, export_query, fragment, page_sql, paging, paging_with,
+    pick_row_key, plan_apply, resolve_cell_limit, resolve_limit, resolve_max_bytes, rows_sql, single_statement, sort_tables, table_kind,
 };
 
 const DIALECT: Dialect = Dialect::Sqlite;
@@ -48,9 +48,10 @@ fn sql_values(params: &[Param]) -> Vec<SqlValue> {
 }
 
 impl SqliteEngine {
-    /// Opens the file. Blocks, so call it where blocking is fine.
+    /// Blocks, so call it where blocking is fine.
     pub fn open(config: &SqliteConfig) -> Result<(SqliteEngine, ServerInfo)> {
         let path = Path::new(&config.path);
+        let connect_failed = |e: rusqlite::Error| DatabaseError::connect_failed(e.to_string());
 
         if !path.is_absolute() {
             return Err(DatabaseError::invalid_request("The path of a SQLite database must be absolute."));
@@ -72,21 +73,14 @@ impl SqliteEngine {
             return Err(DatabaseError::connect_failed(format!("The database file \"{}\" does not exist.", config.path)));
         }
 
-        let connection = Connection::open_with_flags(path, flags).map_err(|e| DatabaseError::connect_failed(e.to_string()))?;
-        connection
-            .busy_timeout(BUSY_TIMEOUT)
-            .map_err(|e| DatabaseError::connect_failed(e.to_string()))?;
+        let connection = Connection::open_with_flags(path, flags).map_err(connect_failed)?;
+        connection.busy_timeout(BUSY_TIMEOUT).map_err(connect_failed)?;
 
         if config.read_only {
-            connection
-                .execute_batch("PRAGMA query_only = 1")
-                .map_err(|e| DatabaseError::connect_failed(e.to_string()))?;
+            connection.execute_batch("PRAGMA query_only = 1").map_err(connect_failed)?;
         }
 
-        let version: String = connection
-            .query_row("SELECT sqlite_version()", [], |row| row.get(0))
-            .map_err(|e| DatabaseError::connect_failed(e.to_string()))?;
-
+        let version: String = connection.query_row("SELECT sqlite_version()", [], |row| row.get(0)).map_err(connect_failed)?;
         let interrupt = Arc::new(connection.get_interrupt_handle());
 
         Ok((
@@ -156,7 +150,8 @@ impl SqliteEngine {
         let paging = paging_with(params.limit, params.offset, params.cell_limit, params.max_bytes, DEFAULT_EXECUTE_CELL_LIMIT)?;
         let statement = single_statement(&params.sql, DIALECT, &["SELECT", "WITH"], "A page")?;
 
-        self.run(move |connection| read_page(connection, &statement, &paging)).await
+        self.run(move |connection| read_paged(connection, &page_sql(DIALECT, &statement), &paging))
+            .await
     }
 
     pub async fn transaction(&self, action: TransactionAction) -> Result<TransactionResult> {
@@ -189,9 +184,7 @@ impl SqliteEngine {
 
 fn list_schemas(connection: &Connection) -> Result<SchemasResult> {
     let mut statement = connection.prepare("PRAGMA database_list")?;
-    let names = statement
-        .query_map([], |row| row.get::<_, String>(1))?
-        .collect::<std::result::Result<Vec<_>, _>>()?;
+    let names = statement.query_map([], |row| row.get::<_, String>(1))?.collect::<rusqlite::Result<Vec<_>>>()?;
 
     Ok(SchemasResult {
         schemas: names
@@ -214,19 +207,14 @@ fn list_tables(connection: &Connection, schema: &str) -> Result<TablesResult> {
 
             Ok(TableInfo {
                 name: row.get(0)?,
-                kind: if kind == "view" { TableKind::View } else { TableKind::Table },
+                kind: table_kind(kind == "view"),
                 row_estimate: None,
                 comment: None,
             })
         })?
-        .collect::<std::result::Result<Vec<_>, _>>()?;
+        .collect::<rusqlite::Result<Vec<_>>>()?;
 
-    tables.sort_by(|left, right| {
-        left.name
-            .to_lowercase()
-            .cmp(&right.name.to_lowercase())
-            .then_with(|| left.name.cmp(&right.name))
-    });
+    sort_tables(&mut tables);
 
     Ok(TablesResult { tables })
 }
@@ -258,8 +246,7 @@ fn table_structure(connection: &Connection, schema: &str, table: &str) -> Result
         )));
     };
 
-    let kind = if kind_name == "view" { TableKind::View } else { TableKind::Table };
-
+    let kind = table_kind(kind_name == "view");
     let raw_columns = {
         let mut statement = connection.prepare(&format!("PRAGMA {quoted_schema}.table_xinfo({quoted_table})"))?;
         statement
@@ -273,7 +260,7 @@ fn table_structure(connection: &Connection, schema: &str, table: &str) -> Result
                     hidden: row.get(6)?,
                 })
             })?
-            .collect::<std::result::Result<Vec<_>, _>>()?
+            .collect::<rusqlite::Result<Vec<_>>>()?
     };
 
     let without_rowid = kind == TableKind::Table && is_without_rowid(connection, &quoted_schema, &quoted_table);
@@ -332,11 +319,9 @@ fn table_structure(connection: &Connection, schema: &str, table: &str) -> Result
         foreign_keys: read_foreign_keys(connection, schema, &quoted_schema, &quoted_table)?,
         // SQLite keeps its checks only inside the DDL, so they are left out rather than guessed.
         checks: None,
-        triggers: if kind == TableKind::View {
-            None
-        } else {
-            Some(read_triggers(connection, &quoted_schema, table)?)
-        },
+        triggers: (kind != TableKind::View)
+            .then(|| read_triggers(connection, &quoted_schema, table))
+            .transpose()?,
         ddl,
     })
 }
@@ -347,7 +332,7 @@ fn read_triggers(connection: &Connection, quoted_schema: &str, table: &str) -> R
     ))?;
     let triggers = statement
         .query_map([table], |row| Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?)))?
-        .collect::<std::result::Result<Vec<_>, _>>()?;
+        .collect::<rusqlite::Result<Vec<_>>>()?;
 
     Ok(triggers
         .into_iter()
@@ -381,8 +366,7 @@ fn trigger_shape(sql: &str) -> (String, String) {
 fn is_without_rowid(connection: &Connection, quoted_schema: &str, quoted_table: &str) -> bool {
     connection
         .query_row(&format!("PRAGMA {quoted_schema}.table_list({quoted_table})"), [], |row| row.get::<_, i64>(4))
-        .map(|without_rowid| without_rowid == 1)
-        .unwrap_or(false)
+        .is_ok_and(|without_rowid| without_rowid == 1)
 }
 
 /// The indexes of a table, and the columns of the unique ones that can pick out a row.
@@ -405,7 +389,7 @@ fn read_indexes(connection: &Connection, quoted_schema: &str, quoted_table: &str
                     partial: row.get::<_, i64>(4)? != 0,
                 })
             })?
-            .collect::<std::result::Result<Vec<_>, _>>()?
+            .collect::<rusqlite::Result<Vec<_>>>()?
     };
 
     // SQLite lists the newest index first.
@@ -418,7 +402,7 @@ fn read_indexes(connection: &Connection, quoted_schema: &str, quoted_table: &str
         let mut statement = connection.prepare(&format!("PRAGMA {quoted_schema}.index_info({})", DIALECT.quote_ident(&index.name)))?;
         let parts = statement
             .query_map([], |row| row.get::<_, Option<String>>(2))?
-            .collect::<std::result::Result<Vec<_>, _>>()?;
+            .collect::<rusqlite::Result<Vec<_>>>()?;
         let complete = parts.iter().all(Option::is_some);
         let columns: Vec<String> = parts.into_iter().flatten().collect();
 
@@ -460,7 +444,7 @@ fn read_foreign_keys(connection: &Connection, schema: &str, quoted_schema: &str,
                     on_delete: row.get(6)?,
                 })
             })?
-            .collect::<std::result::Result<Vec<_>, _>>()?
+            .collect::<rusqlite::Result<Vec<_>>>()?
     };
 
     let mut ids: Vec<i64> = raw.iter().map(|key| key.id).collect();
@@ -498,7 +482,7 @@ fn primary_key_of(connection: &Connection, quoted_schema: &str, table: &str) -> 
     let mut statement = connection.prepare(&format!("PRAGMA {quoted_schema}.table_info({})", DIALECT.quote_ident(table)))?;
     let mut primary = statement
         .query_map([], |row| Ok((row.get::<_, i64>(5)?, row.get::<_, String>(1)?)))?
-        .collect::<std::result::Result<Vec<_>, _>>()?;
+        .collect::<rusqlite::Result<Vec<_>>>()?;
 
     primary.retain(|(order, _)| *order > 0);
     primary.sort_by_key(|(order, _)| *order);
@@ -614,9 +598,15 @@ fn kind_of_cell(cell: &Cell) -> Option<ValueKind> {
 
 fn read_rows(connection: &Connection, params: &RowsParams) -> Result<RowsResult> {
     let page = paging(params.limit, params.offset, params.cell_limit, params.max_bytes)?;
-    let started = Instant::now();
     let sql = rows_sql(DIALECT, &params.schema, &params.table, fragment(&params.r#where), fragment(&params.order_by));
-    let mut statement = connection.prepare(&sql)?;
+
+    read_paged(connection, &sql, &page)
+}
+
+/// Runs a statement whose last two placeholders are the limit and the offset of the page.
+fn read_paged(connection: &Connection, sql: &str, page: &Paging) -> Result<RowsResult> {
+    let started = Instant::now();
+    let mut statement = connection.prepare(sql)?;
     let bound = [Param::Int(page.limit as i64 + 1), Param::Int(page.offset as i64)];
     let (columns, rows, has_more) = read_result_rows(&mut statement, &bound, page.limit, page.cell_limit, &mut ByteBudget::new(page.max_bytes))?;
 
@@ -655,7 +645,7 @@ fn read_cell(connection: &Connection, params: &CellParams) -> Result<CellResult>
 
 fn apply_changes(connection: &Connection, read_only: bool, params: &ApplyParams) -> Result<ApplyResult> {
     if read_only {
-        return Err(DatabaseError::new(ErrorCode::ReadOnly, "The connection is read only."));
+        return Err(DatabaseError::read_only());
     }
 
     let structure = table_structure(connection, &params.schema, &params.table)?;
@@ -689,11 +679,7 @@ fn apply_changes(connection: &Connection, read_only: bool, params: &ApplyParams)
 }
 
 fn execute_script(connection: &Connection, params: &ExecuteParams, cancelled: &AtomicBool) -> Result<ExecuteResult> {
-    let limit = match params.limit {
-        None => DEFAULT_EXECUTE_LIMIT,
-        Some(limit) if (1..=MAX_LIMIT).contains(&limit) => limit as usize,
-        Some(_) => return Err(DatabaseError::invalid_request(format!("The limit must be between 1 and {MAX_LIMIT}."))),
-    };
+    let limit = resolve_limit(params.limit, DEFAULT_EXECUTE_LIMIT)?;
     let cell_limit = resolve_cell_limit(params.cell_limit, DEFAULT_EXECUTE_CELL_LIMIT)?;
     // One budget for the whole script, since all of its results travel in one response.
     let mut budget = ByteBudget::new(resolve_max_bytes(params.max_bytes)?);
@@ -755,20 +741,6 @@ fn run_statement(connection: &Connection, sql: &str, limit: usize, cell_limit: u
         sql: sql.to_string(),
         affected,
         last_insert_id: inserted.then(|| insert_id(i128::from(connection.last_insert_rowid()))),
-        elapsed_ms: elapsed_ms(started.elapsed()),
-    })
-}
-
-fn read_page(connection: &Connection, statement: &str, page: &crate::sql::Paging) -> Result<RowsResult> {
-    let started = Instant::now();
-    let mut prepared = connection.prepare(&page_sql(DIALECT, statement))?;
-    let bound = [Param::Int(page.limit as i64 + 1), Param::Int(page.offset as i64)];
-    let (columns, rows, has_more) = read_result_rows(&mut prepared, &bound, page.limit, page.cell_limit, &mut ByteBudget::new(page.max_bytes))?;
-
-    Ok(RowsResult {
-        columns,
-        rows,
-        has_more,
         elapsed_ms: elapsed_ms(started.elapsed()),
     })
 }

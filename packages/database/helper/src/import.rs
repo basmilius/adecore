@@ -6,45 +6,32 @@ use crate::delimited::DelimitedReader;
 use crate::error::{DatabaseError, Result};
 use crate::protocol::{ImportParams, SampleParams, SampleResult, TableStructure};
 use crate::quoting::Dialect;
-use crate::sql::MAX_LIMIT;
+use crate::sql::resolve_limit;
 
-const DEFAULT_SAMPLE_LIMIT: i64 = 20;
+const DEFAULT_SAMPLE_LIMIT: usize = 20;
 const MAX_ROWS_PER_INSERT: usize = 1000;
 const MAX_PARAMS_PER_INSERT: usize = 8000;
 
 /// The first lines of a file, as text, for a form that maps its columns.
 pub fn sample(params: &SampleParams) -> Result<SampleResult> {
-    let limit = match params.limit {
-        None => DEFAULT_SAMPLE_LIMIT,
-        Some(limit) if (1..=MAX_LIMIT).contains(&limit) => limit,
-        Some(_) => return Err(DatabaseError::invalid_request(format!("The limit must be between 1 and {MAX_LIMIT}."))),
-    };
+    let limit = resolve_limit(params.limit, DEFAULT_SAMPLE_LIMIT)?;
     let mut reader = DelimitedReader::open(&params.path, params.format)?;
     let mut columns = Vec::new();
 
     if params.header
         && let Some(header) = reader.next_line()?
     {
-        columns = header
-            .fields
-            .iter()
-            .map(|field| reader.value_of(field).unwrap_or_else(|| field.clone()))
-            .collect();
+        columns = shown(&reader, header.fields);
     }
 
     let mut rows: Vec<Vec<String>> = Vec::new();
 
-    while rows.len() < limit as usize {
+    while rows.len() < limit {
         let Some(line) = reader.next_line()? else {
             break;
         };
 
-        rows.push(
-            line.fields
-                .iter()
-                .map(|field| reader.value_of(field).unwrap_or_else(|| field.clone()))
-                .collect(),
-        );
+        rows.push(shown(&reader, line.fields));
     }
 
     let width = rows.iter().map(Vec::len).max().unwrap_or(0).max(columns.len());
@@ -58,6 +45,11 @@ pub fn sample(params: &SampleParams) -> Result<SampleResult> {
     }
 
     Ok(SampleResult { columns, rows })
+}
+
+/// The fields as a sample shows them: escapes undone, and a NULL as it is written.
+fn shown(reader: &DelimitedReader, fields: Vec<String>) -> Vec<String> {
+    fields.into_iter().map(|field| reader.value_of(&field).unwrap_or(field)).collect()
 }
 
 /// A line of the file reduced to the mapped fields, in the order of `ImportPlan::names`.
@@ -118,7 +110,6 @@ impl ImportPlan {
     }
 }
 
-/// Reads the lines of an import file in batches.
 pub struct ImportReader {
     reader: DelimitedReader,
     plan: ImportPlan,
