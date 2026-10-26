@@ -22,7 +22,6 @@ export class CloserTracker {
         }
     }
 
-    /* The closer that sits at `offset`, which a Tab there steps over. */
     isCloserAt(offset: number): boolean {
         return this.marks.some((mark) => mark.close === offset);
     }

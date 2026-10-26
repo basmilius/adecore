@@ -163,7 +163,7 @@ function sameSelections(left: readonly Selection[], right: readonly Selection[])
 }
 
 function trailingBlankLength(text: string): number {
-    return text.match(/[\t ]*$/)?.[0].length ?? 0;
+    return /[\t ]*$/.exec(text)![0].length;
 }
 
 function changesText(rope: TextRope, edit: TextEdit): boolean {
@@ -998,10 +998,10 @@ export class DocumentModel {
             return null;
         }
         const wrapped = surround(selected, text);
-        const reversed = selection.anchor > selection.head;
-        const start = 1;
         const end = 1 + wrapped.inner.length;
-        return { from, to, text: wrapped.text, anchor: reversed ? end : start, head: reversed ? start : end };
+        return selection.anchor > selection.head
+            ? { from, to, text: wrapped.text, anchor: end, head: 1 }
+            : { from, to, text: wrapped.text, anchor: 1, head: end };
     }
 
     /* A closer alone on its line goes back to the indentation of the line its opener is on. */
@@ -1012,7 +1012,7 @@ export class DocumentModel {
         if (!/^[\t ]*$/.test(before)) {
             return null;
         }
-        const indent = whitespaceOf(this.getLine(this.rope.lineAt(opener)).text);
+        const indent = whitespaceOf(this.lineOf(opener).text);
         if (indent === before) {
             return null;
         }
@@ -1063,8 +1063,7 @@ export class DocumentModel {
             return false;
         }
         const text = this.getText();
-        const scanned = scanBrackets(text.slice(0, offset) + opener + text.slice(offset), language);
-        return scanned.pairs.has(offset);
+        return scanBrackets(text.slice(0, offset) + opener + text.slice(offset), language).pairs.has(offset);
     }
 
     /*
@@ -1072,8 +1071,7 @@ export class DocumentModel {
      * property or method after `->` or `?->`, or a `)` or `]`.
      */
     private endsOperand(offset: number): boolean {
-        const line = this.rope.lineBounds(this.rope.lineAt(offset));
-        const before = this.slice(line.start, offset);
+        const before = this.slice(this.boundsOf(offset).start, offset);
         if (/[)\]]$/.test(before)) {
             return true;
         }
@@ -1142,9 +1140,8 @@ export class DocumentModel {
         );
     }
 
-    /* The visual column of an offset, with tabs going to the next tab stop. */
     private columnOf(offset: number, tabSize: number): number {
-        return indentationColumn(this.slice(this.rope.lineBounds(this.rope.lineAt(offset)).start, offset), tabSize);
+        return indentationColumn(this.slice(this.boundsOf(offset).start, offset), tabSize);
     }
 
     private moveToLineEdge(
@@ -1175,12 +1172,12 @@ export class DocumentModel {
      * text to the first character, and from the first character or inside the indentation to the start.
      */
     private homeOffset(offset: number, tabSize: number, visualLine: VisualLineOf | undefined): number {
-        const line = this.getLine(this.rope.lineAt(offset));
+        const line = this.lineOf(offset);
         const row = visualLine?.(offset) ?? line;
-        if (row.start > line.start) {
-            return offset > row.start ? row.start : Math.max(this.firstNonSpace(line), line.start);
-        }
         const indent = this.firstNonSpace(line);
+        if (row.start > line.start) {
+            return offset > row.start ? row.start : Math.max(indent, line.start);
+        }
         if (offset === line.start) {
             return this.offsetAtColumn(line, this.smartIndentColumn(line.start, tabSize), tabSize);
         }
@@ -1220,12 +1217,9 @@ export class DocumentModel {
      * the way, and a stop at the end of the text sends the next one past them.
      */
     private endOffset(offset: number, visualLine: VisualLineOf | undefined): number {
-        const line = this.getLine(this.rope.lineAt(offset));
+        const line = this.lineOf(offset);
         const row = visualLine?.(offset) ?? line;
-        let end = row.end;
-        if (offset === row.end && offset < this.rope.length) {
-            end = line.end;
-        }
+        const end = offset === row.end && offset < this.rope.length ? line.end : row.end;
         let target = end;
         for (let at = end - 1; at >= line.start; at--) {
             if (at > line.start && visualLine !== undefined && visualLine(at).start === at) {
@@ -1419,7 +1413,7 @@ export class DocumentModel {
             if (command === 'indent') {
                 return { from: line.start, to: line.start, text: indentation };
             }
-            const length = line.text.startsWith('\t') ? 1 : Math.min(line.text.match(/^ */)?.[0].length ?? 0, tabSize);
+            const length = line.text.startsWith('\t') ? 1 : Math.min(/^ */.exec(line.text)![0].length, tabSize);
             return { from: line.start, to: line.start + length, text: '' };
         });
         return this.applyEdits(edits, { source: 'command' });
@@ -1610,10 +1604,10 @@ export class DocumentModel {
             this.selections.map((selection) => {
                 const { from, to } = rangeOf(selection);
                 if (mode === 'below') {
-                    const end = this.rope.lineBounds(this.rope.lineAt(selection.head)).end;
+                    const end = this.boundsOf(selection.head).end;
                     return planEnter(source, end, end, { ...options, reach });
                 }
-                const before = this.slice(this.rope.lineBounds(this.rope.lineAt(from)).start, from);
+                const before = this.slice(this.boundsOf(from).start, from);
                 if (mode === 'split' && /^[\t ]*$/.test(before)) {
                     const start = from - before.length;
                     return { from: start, to: start, text: before + this.newlineAt(this.rope.lineAt(from)), caret: before.length };
@@ -1700,7 +1694,7 @@ export class DocumentModel {
             return true;
         }
         const closer = index.pairs.get(offset);
-        const indentAt = (at: number): number => whitespaceOf(this.getLine(this.rope.lineAt(at)).text).length;
+        const indentAt = (at: number): number => whitespaceOf(this.lineOf(at).text).length;
         if (closer === undefined || indentAt(closer) >= indentAt(offset)) {
             return false;
         }
@@ -1833,10 +1827,11 @@ export class DocumentModel {
 
     /* Backspace inside the indentation of a line goes back to the previous tab stop, and at the start of a line joins it with the one above. */
     private backspaceStart(offset: number, tabSize: number): number {
-        const line = this.rope.lineBounds(this.rope.lineAt(offset));
+        const index = this.rope.lineAt(offset);
+        const line = this.rope.lineBounds(index);
         if (offset === line.start && line.start > 0) {
             // Joining with the line above also takes the whitespace that trails it.
-            const previous = this.getLine(this.rope.lineAt(offset) - 1);
+            const previous = this.getLine(index - 1);
             return previous.end - trailingBlankLength(previous.text);
         }
         const prefix = this.slice(line.start, offset);
@@ -1876,7 +1871,15 @@ export class DocumentModel {
         return first.next > first.end ? this.slice(first.end, first.next) : '\n';
     }
 
-    /* Whether the character at `offset` is preceded by an odd number of backslashes. */
+    private lineOf(offset: number): DocumentLine {
+        return this.rope.getLine(this.rope.lineAt(offset));
+    }
+
+    private boundsOf(offset: number): Omit<DocumentLine, 'text'> {
+        return this.rope.lineBounds(this.rope.lineAt(offset));
+    }
+
+    /* Preceded by an odd number of backslashes. */
     private escaped(offset: number): boolean {
         let count = 0;
         while (offset > 0 && this.rope.charAt(--offset) === '\\') {
@@ -1907,7 +1910,7 @@ export class DocumentModel {
         if (this.rope.charAt(from) === ';') {
             return from;
         }
-        const line = this.getLine(this.rope.lineAt(from));
+        const line = this.lineOf(from);
         const prefix = this.slice(line.start, from).trimEnd();
         if (!prefix || /[([,=:+\-*/%&|!?]$/.test(prefix)) {
             return undefined;
@@ -1957,7 +1960,7 @@ export class DocumentModel {
         if (word !== null) {
             return word;
         }
-        const line = this.getLine(this.rope.lineAt(at));
+        const line = this.lineOf(at);
         return line.start === line.end ? { from: 0, to: length } : { from: line.start, to: line.end };
     }
 
@@ -2081,14 +2084,13 @@ export class DocumentModel {
         return this.expandSelection(ranges);
     }
 
-    /* The range when it holds the stretch and is larger than it, else null. */
     private largerRange(range: OffsetRange | null, from: number, to: number): OffsetRange | null {
         return range !== null && range.from <= from && range.to >= to && (range.from < from || range.to > to) ? range : null;
     }
 
     private lexicalExpansion(selection: Selection, from: number, to: number): OffsetRange | undefined {
-        const first = this.getLine(this.rope.lineAt(from));
-        const last = this.getLine(this.rope.lineAt(to));
+        const first = this.lineOf(from);
+        const last = this.lineOf(to);
         const candidates = [
             this.wordRange(selection.head),
             { from: first.start, to: last.end },
@@ -2132,7 +2134,6 @@ export class DocumentModel {
         this.occurrencesExhausted = notFound;
     }
 
-    /* Whether a range touches a selection that is already there. */
     private overlapsSelection(from: number, to: number): boolean {
         return this.selections.some((selection) => {
             const range = rangeOf(selection);
@@ -2178,10 +2179,8 @@ export class DocumentModel {
 
     /* Takes the newest caret away, or the selection when there is one caret. */
     private unselectOccurrence(): boolean {
-        const changed =
-            this.selections.length > 1
-                ? this.changeSelections(this.selections.slice(0, -1))
-                : this.changeSelections([{ anchor: this.selections[0]!.head, head: this.selections[0]!.head }]);
+        const head = this.selections[0]!.head;
+        const changed = this.changeSelections(this.selections.length > 1 ? this.selections.slice(0, -1) : [{ anchor: head, head }]);
         this.occurrenceSession = undefined;
         this.occurrencesExhausted = false;
         return changed;

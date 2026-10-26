@@ -1,4 +1,5 @@
 import type { EditSource } from './edit-source.ts';
+import { whitespaceOf } from './line-text.ts';
 
 const JSX_LANGUAGES = /^(typescriptreact|javascriptreact|tsx|jsx|javascript|js|mjs|cjs)$/i;
 const NAME = /[\w$.:-]/;
@@ -354,7 +355,6 @@ export function jsxChildren(text: string): (offset: number) => boolean {
     return (offset) => insideAny(scanner.children, offset);
 }
 
-/* Whether a language is one whose scripts can hold JSX. */
 export function hasJsx(language: string): boolean {
     return JSX_LANGUAGES.test(language);
 }
@@ -383,8 +383,7 @@ export function markupGuard(source: EditSource, language: string): (line: number
         const ranges = jsxRanges(source.slice(0, source.line(source.lineCount - 1).end));
         return (line) => {
             const bounds = source.line(line);
-            const start = bounds.start + (/^[\t ]*/.exec(bounds.text)?.[0].length ?? 0);
-            return insideAny(ranges, start);
+            return insideAny(ranges, bounds.start + whitespaceOf(bounds.text).length);
         };
     }
     return () => false;

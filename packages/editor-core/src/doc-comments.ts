@@ -72,7 +72,6 @@ export function findDocComments(text: string, language: string, limit = MAX_DOC_
         if (range.kind !== 'comment' || commentRole((from, to) => text.slice(from, to), range.from, range.to) === undefined) {
             continue;
         }
-        // Three stars or more is a banner, not a comment about the code under it.
         if (text[range.from + 3] === '*' || bodies.some(([from, to]) => range.from >= from && range.from < to)) {
             continue;
         }

@@ -37,6 +37,7 @@ const markupLanguages = /^(html|xml|svg|vue|svelte|astro|mdx|jsx|tsx|javascriptr
 const voidElements = /^(area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)$/i;
 const trailingOperator = /(?:=>|&&|\|\||\?\?|[=*%?|&]|(?<!\+)\+|(?<!-)-)$/;
 const lookBack = 50;
+export const caseLabel = /^(?:case\b[^]*|default)\s*:$/;
 /* The longest text a JSX attribute is looked for in on an Enter. */
 const jsxScanLimit = 2_000_000;
 /* How far past the caret a comment is searched for its end. */
@@ -51,7 +52,7 @@ function escapeForPattern(text: string): string {
 }
 
 /*
- * Whether the code before `end` leaves its statement open: after the parenthesis of a braceless
+ * Whether the code in `text` leaves its statement open: after the parenthesis of a braceless
  * `if` or `for`, after `else`, `=>` or a binary operator. Languages with braces only.
  */
 export function continues(text: string, context: TypingContext, language: string): boolean {
@@ -68,6 +69,12 @@ export function continues(text: string, context: TypingContext, language: string
     return trailingOperator.test(text);
 }
 
+export function lineContinues(source: EditSource, language: string, index: number): boolean {
+    const line = source.line(index);
+    const text = line.text.trimEnd();
+    return text.length > 0 && continues(text, source.context(line.start + text.length), language);
+}
+
 class Enter {
     private readonly source: EditSource;
     private readonly options: EnterOptions;
@@ -80,11 +87,9 @@ class Enter {
     plan(from: number, to: number): EnterPlan {
         const { source, options } = this;
         const index = source.lineAt(from);
-        const line = source.line(index);
-        const before = source.slice(line.start, from);
-        const leading = whitespaceOf(before);
-        const newline = source.newline(index);
         if (!options.smart) {
+            const leading = whitespaceOf(source.slice(source.line(index).start, from));
+            const newline = source.newline(index);
             return { from, to, text: newline + leading, caret: newline.length + leading.length };
         }
         const context = source.context(from);
@@ -126,9 +131,7 @@ class Enter {
     }
 
     private lineContinues(index: number): boolean {
-        const line = this.source.line(index);
-        const text = line.text.trimEnd();
-        return text.length > 0 && continues(text, this.source.context(line.start + text.length), this.options.language);
+        return lineContinues(this.source, this.options.language, index);
     }
 
     private inCode(from: number, to: number, lineContext: TypingContext, index: number): EnterPlan {
@@ -245,7 +248,7 @@ class Enter {
             return /(?::|[|>][+-]?)$/.test(trimmed) && !trimmed.trimStart().startsWith('#');
         }
         if (isBraced(language)) {
-            return (context.bracket === undefined || context.bracket.close === '}') && /^(?:case\b[^]*|default)\s*:$/.test(trimmed.trimStart());
+            return (context.bracket === undefined || context.bracket.close === '}') && caseLabel.test(trimmed.trimStart());
         }
         return false;
     }

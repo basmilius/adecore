@@ -1,18 +1,4 @@
-import {
-    hasBlockComments,
-    hasDashComments,
-    hasHashComments,
-    hashNeedsWordStart,
-    hasMarkupComments,
-    hasSlashComments,
-    isPhp,
-    isScript,
-    isWordCharacter,
-    openers,
-    startsExpression,
-    startsExpressionAfter,
-    startsWord
-} from './lexical.ts';
+import { isWordCharacter, lexerRules, type LexerRules as Rules, openers, startsExpression, startsExpressionAfter, startsWord } from './lexical.ts';
 import { scanPhpMarkup } from './php-markup.ts';
 import type { DocumentLine } from './rope.ts';
 
@@ -55,17 +41,6 @@ export interface TypingContext {
     phpClose?: number;
 }
 
-interface Rules {
-    script: boolean;
-    php: boolean;
-    hash: boolean;
-    hashAtWordStart: boolean;
-    dash: boolean;
-    slash: boolean;
-    block: boolean;
-    markup: boolean;
-}
-
 const PHP_HEREDOC = /^<<<[ \t]*(["']?)([A-Za-z_]\w*)\1[ \t]*$/;
 const PHP_OPEN = /<\?(?:php\b|=)/;
 const PHP_INITIAL_LINES = 64;
@@ -79,19 +54,6 @@ const blockWords = /^(else|try|finally|do)$/;
 
 function initial(): TypingContext {
     return { mode: 'code', escaped: false, inClass: false, expression: true, word: '' };
-}
-
-function rulesOf(language: string): Rules {
-    return {
-        script: isScript(language),
-        php: isPhp(language),
-        hash: hasHashComments(language),
-        hashAtWordStart: hashNeedsWordStart(language),
-        dash: hasDashComments(language),
-        slash: hasSlashComments(language),
-        block: hasBlockComments(language),
-        markup: hasMarkupComments(language)
-    };
 }
 
 function scanComment(state: TypingContext, text: string, at: number, end: number): number {
@@ -240,7 +202,9 @@ function stepScript(state: TypingContext, text: string, at: number, end: number,
     if (state.mode === 'block-comment') {
         return scanComment(state, text, at, end);
     }
-    return state.mode === 'code' ? scanCode(state, (scriptRules ??= rulesOf('javascript')), text, at, end, offset) : scanLiteral(state, text, at, end, offset);
+    return state.mode === 'code'
+        ? scanCode(state, (scriptRules ??= lexerRules('javascript')), text, at, end, offset)
+        : scanLiteral(state, text, at, end, offset);
 }
 
 const scriptLexer = { initial, step: stepScript };
@@ -362,7 +326,7 @@ export class TypingContexts {
             this.language = id;
             this.states = [this.initialState(id)];
         }
-        const rules = rulesOf(id);
+        const rules = lexerRules(id);
         while (this.states.length <= line) {
             const previous = this.states.at(-1)!;
             const source = this.line(this.states.length - 1);

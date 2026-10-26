@@ -1,5 +1,6 @@
 import { bracketRole, commentRole } from './fold-roles.ts';
 import { openers } from './lexical.ts';
+import { whitespaceOf } from './line-text.ts';
 import type { DocumentLine } from './rope.ts';
 
 /* A bracket pair, string or block comment. `inner*` is the range without its delimiters. */
@@ -164,7 +165,7 @@ function indentationFolds(lineCount: number, getLine: (line: number) => Document
         if (!text.trim()) {
             continue;
         }
-        const indent = indentationColumn(text.match(/^[\t ]*/)?.[0] ?? '', tabSize);
+        const indent = indentationColumn(whitespaceOf(text), tabSize);
         while (headers.length > 0 && indent <= headers.at(-1)!.indent) {
             close(headers.pop()!, previous!.line);
         }

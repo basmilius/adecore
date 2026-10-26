@@ -1,18 +1,4 @@
-import {
-    hasBlockComments,
-    hasDashComments,
-    hasHashComments,
-    hashNeedsWordStart,
-    hasMarkupComments,
-    hasSlashComments,
-    isPhp,
-    isScript,
-    isWordCharacter,
-    openers,
-    startsExpressionAfter,
-    startsExpressionAt,
-    startsWord
-} from './lexical.ts';
+import { isWordCharacter, lexerRules, type LexerRules, openers, startsExpressionAfter, startsExpressionAt, startsWord } from './lexical.ts';
 
 export interface BracketIndex {
     /* Both directions: an opener maps to its closer and the closer back to the opener. */
@@ -44,17 +30,6 @@ export interface BracketState {
     stack: OpenBracket | undefined;
 }
 
-export interface BracketRules {
-    script: boolean;
-    hash: boolean;
-    hashAtWordStart: boolean;
-    dash: boolean;
-    phpAttributes: boolean;
-    slash: boolean;
-    block: boolean;
-    markup: boolean;
-}
-
 export interface BracketVisitor {
     open(at: number, depth: number): void;
     /* `depth` counts the opener it closes. */
@@ -65,19 +40,6 @@ export interface BracketVisitor {
 
 export function initialBracketState(): BracketState {
     return { mode: 'code', quote: '', inClass: false, expression: true, stack: undefined };
-}
-
-export function bracketRules(language: string): BracketRules {
-    return {
-        script: isScript(language),
-        hash: hasHashComments(language),
-        hashAtWordStart: hashNeedsWordStart(language),
-        dash: hasDashComments(language),
-        phpAttributes: isPhp(language),
-        slash: hasSlashComments(language),
-        block: hasBlockComments(language),
-        markup: hasMarkupComments(language)
-    };
 }
 
 export function sameBracketState(left: BracketState, right: BracketState): boolean {
@@ -119,7 +81,7 @@ function commentEnd(state: BracketState, text: string, at: number, to: number, t
  * Lexes `text` from `from` to `to`, continuing `state`, and reports every bracket of the code at its offset plus
  * `offset`. A piece has to end at a line break or the end of the text, as nothing here looks past one.
  */
-export function lexBrackets(state: BracketState, rules: BracketRules, text: string, from: number, to: number, offset: number, visitor: BracketVisitor): void {
+export function lexBrackets(state: BracketState, rules: LexerRules, text: string, from: number, to: number, offset: number, visitor: BracketVisitor): void {
     for (let at = from; at < to; at++) {
         const char = text[at]!;
         if (state.mode !== 'code') {
@@ -186,7 +148,7 @@ export function lexBrackets(state: BracketState, rules: BracketRules, text: stri
         } else if (
             (rules.slash && char === '/' && next === '/') ||
             (rules.dash && char === '-' && next === '-') ||
-            (rules.hash && char === '#' && !(rules.phpAttributes && next === '[') && (!rules.hashAtWordStart || startsWord(text, at)))
+            (rules.hash && char === '#' && !(rules.php && next === '[') && (!rules.hashAtWordStart || startsWord(text, at)))
         ) {
             state.mode = 'line-comment';
         } else if (rules.block && char === '/' && next === '*') {
@@ -237,7 +199,7 @@ export function scanBrackets(text: string, language = 'typescript'): BracketInde
     const pairs = new Map<number, number>();
     const unmatched = new Set<number>();
     let open: number[] = [];
-    lexBrackets(initialBracketState(), bracketRules(language), text, 0, text.length, 0, {
+    lexBrackets(initialBracketState(), lexerRules(language), text, 0, text.length, 0, {
         open(at) {
             open.push(at);
         },

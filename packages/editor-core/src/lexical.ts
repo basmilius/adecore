@@ -17,7 +17,7 @@ export function startsWord(text: string, at: number): boolean {
  */
 interface LanguageRules {
     slash: boolean;
-    /* `any` is a comment wherever it stands, `boundary` only at the start of a word, as in shell and YAML. */
+    /* `any` is a comment wherever it stands, `boundary` only at the start of a word, which keeps `$#` and `${#list}` in shell code. */
     hash: false | 'any' | 'boundary';
     dash: boolean;
     block: boolean;
@@ -54,6 +54,32 @@ function rulesOf(language: string): LanguageRules {
     return languageRules.get(language.toLowerCase()) ?? NO_RULES;
 }
 
+/* What the bracket and typing lexers read of a language, looked up once per scan. */
+export interface LexerRules {
+    script: boolean;
+    php: boolean;
+    hash: boolean;
+    hashAtWordStart: boolean;
+    dash: boolean;
+    slash: boolean;
+    block: boolean;
+    markup: boolean;
+}
+
+export function lexerRules(language: string): LexerRules {
+    const rules = rulesOf(language);
+    return {
+        script: isScript(language),
+        php: isPhp(language),
+        hash: hasHashComments(language),
+        hashAtWordStart: rules.hash === 'boundary',
+        dash: rules.dash,
+        slash: rules.slash,
+        block: rules.block,
+        markup: rules.markup
+    };
+}
+
 export function isScript(language: string): boolean {
     return /^(typescript|javascript|typescriptreact|javascriptreact|tsx|jsx|ts|js|vue)$/i.test(language);
 }
@@ -66,28 +92,6 @@ export function hasHashComments(language: string): boolean {
     return rulesOf(language).hash !== false;
 }
 
-/* Whether a `#` only starts a comment at the start of a word, which keeps `$#` and `${#list}` in shell code. */
-export function hashNeedsWordStart(language: string): boolean {
-    return rulesOf(language).hash === 'boundary';
-}
-
-export function hasDashComments(language: string): boolean {
-    return rulesOf(language).dash;
-}
-
-export function hasBlockComments(language: string): boolean {
-    return rulesOf(language).block;
-}
-
-export function hasSlashComments(language: string): boolean {
-    return rulesOf(language).slash;
-}
-
-export function hasMarkupComments(language: string): boolean {
-    return rulesOf(language).markup;
-}
-
-/* Languages whose blocks are in braces: where a statement can be left open and a `case` label opens a block. */
 export function isBraced(language: string): boolean {
     return rulesOf(language).braced;
 }

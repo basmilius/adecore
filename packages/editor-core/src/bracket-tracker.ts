@@ -1,13 +1,5 @@
-import {
-    type BracketMatch,
-    type BracketRules,
-    type BracketState,
-    type BracketVisitor,
-    bracketRules,
-    initialBracketState,
-    lexBrackets,
-    sameBracketState
-} from './brackets.ts';
+import { type BracketMatch, type BracketState, type BracketVisitor, initialBracketState, lexBrackets, sameBracketState } from './brackets.ts';
+import { lexerRules, type LexerRules } from './lexical.ts';
 import type { TextRope } from './rope.ts';
 import type { DocumentChange } from './types.ts';
 
@@ -57,7 +49,7 @@ export class BracketTracker {
     private readonly text: () => BracketText;
     private readonly stretchLength: number;
     private language = '';
-    private rules: BracketRules = bracketRules('');
+    private rules: LexerRules = lexerRules('');
     private checkpoints: Checkpoint[] = [];
     /* The first stale checkpoint: what comes before it is proven, and so is its state. */
     private proven = 0;
@@ -151,7 +143,7 @@ export class BracketTracker {
             return;
         }
         this.language = language;
-        this.rules = bracketRules(language);
+        this.rules = lexerRules(language);
         this.checkpoints = [{ line: 0, state: initialBracketState(), low: 0, stale: true }];
         this.proven = 0;
     }

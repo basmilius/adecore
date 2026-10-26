@@ -1,6 +1,6 @@
 import type { EditPlan, EditSource } from './edit-source.ts';
 import { commentSyntax } from './languages.ts';
-import { continues } from './enter.ts';
+import { caseLabel, lineContinues } from './enter.ts';
 import { indentsByBrackets } from './lexical.ts';
 import { isBlank, rangeOf, whitespaceOf } from './line-text.ts';
 import { markupGuard } from './markup-regions.ts';
@@ -203,17 +203,15 @@ export function planToggleCase(source: EditSource, selections: readonly Selectio
     const result: Selection[] = [];
     let delta = 0;
     for (const [index, target] of targets.entries()) {
-        const context: TypingContext = source.context(target.from);
-        const inString = context.mode === 'quote' || context.mode === 'template';
-        const converted = convertCase(texts[index]!, lower, inString);
+        const { mode } = source.context(target.from);
+        const converted = convertCase(texts[index]!, lower, mode === 'quote' || mode === 'template');
         if (converted !== texts[index]) {
             edits.push({ from: target.from, to: target.to, text: converted });
         }
         const selection = selections[index]!;
-        const reversed = selection.anchor > selection.head;
         const start = target.from + delta;
-        const end = target.from + delta + converted.length;
-        result.push(target.word || !reversed ? { anchor: start, head: end } : { anchor: end, head: start });
+        const end = start + converted.length;
+        result.push(target.word || selection.anchor <= selection.head ? { anchor: start, head: end } : { anchor: end, head: start });
         delta += converted.length - texts[index]!.length;
     }
     if (targets.every((target) => target.from === target.to)) {
@@ -235,8 +233,6 @@ function frames(context: TypingContext): Frame[] {
     }
     return result;
 }
-
-const caseLabel = /^(?:case\b[^]*|default)\s*:$/;
 
 /*
  * Sets the indentation of the lines to what their brackets say: a line is one level in from the line
@@ -292,16 +288,10 @@ function targetIndent(source: EditSource, options: LineCommandOptions, line: num
         }
     }
     const previous = previousCodeLine(source, line);
-    if (previous !== null && source.context(source.line(previous).start).bracket === context.bracket && lineContinues(source, options, previous)) {
+    if (previous !== null && source.context(source.line(previous).start).bracket === context.bracket && lineContinues(source, options.language, previous)) {
         return isContinuation(source, options, previous) ? indentOf(previous) : indentOf(previous) + options.unit;
     }
     return base;
-}
-
-function lineContinues(source: EditSource, options: LineCommandOptions, line: number): boolean {
-    const bounds = source.line(line);
-    const text = bounds.text.trimEnd();
-    return text.length > 0 && continues(text, source.context(bounds.start + text.length), options.language);
 }
 
 /* Whether the line goes on with a statement the line before it left open. */
@@ -310,7 +300,7 @@ function isContinuation(source: EditSource, options: LineCommandOptions, line: n
     return (
         previous !== null &&
         source.context(source.line(previous).start).bracket === source.context(source.line(line).start).bracket &&
-        lineContinues(source, options, previous)
+        lineContinues(source, options.language, previous)
     );
 }
 

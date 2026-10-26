@@ -1,5 +1,5 @@
 import type { EditPlan, EditSource } from './edit-source.ts';
-import { indentText, isBlank, whitespaceOf } from './line-text.ts';
+import { indentText, isBlank, rangeOf, whitespaceOf } from './line-text.ts';
 import { mapOffset } from './offsets.ts';
 import { indentationColumn } from './structure.ts';
 import type { Selection, TextEdit } from './types.ts';
@@ -78,12 +78,7 @@ function reindent(source: EditSource, from: number, text: string, options: Paste
  * the line it lands on, when it lands in code and not in a string, a comment or a heredoc.
  */
 export function planPaste(source: EditSource, selections: readonly Selection[], text: string, options: PasteOptions): EditPlan {
-    const ordered = selections.map((selection, index) => ({
-        from: Math.min(selection.anchor, selection.head),
-        to: Math.max(selection.anchor, selection.head),
-        index
-    }));
-    ordered.sort((left, right) => left.from - right.from);
+    const ordered = selections.map((selection, index) => ({ ...rangeOf(selection), index })).sort((left, right) => left.from - right.from);
     const segments = perCaretLines(text, selections.length);
     const newline = text.includes('\r\n') ? '\r\n' : '\n';
     const edits: TextEdit[] = [];

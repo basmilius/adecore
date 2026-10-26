@@ -1,5 +1,5 @@
-import { isImportLine, rangeOf, textStart } from './lexical-folds.ts';
-import { isBlank } from './line-text.ts';
+import { isImportLine, rangeOf } from './lexical-folds.ts';
+import { isBlank, textStart } from './line-text.ts';
 import type { DocumentLine } from './rope.ts';
 import type { FoldHints, FoldRangeHint, FoldRole, FoldingRange } from './structure.ts';
 

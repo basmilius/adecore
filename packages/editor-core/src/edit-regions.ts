@@ -1,5 +1,6 @@
 import type { EditSource } from './edit-source.ts';
 import { type EditRegion, vueRegionAt } from './languages.ts';
+import { textStart } from './line-text.ts';
 import { hasJsx, jsxChildren } from './markup-regions.ts';
 
 export type EditRegions = (line: number, offset?: number) => EditRegion | null;
@@ -16,8 +17,7 @@ export function phpTagAt(source: EditSource, offset: number): boolean {
 }
 
 function firstContent(source: EditSource, line: number): number {
-    const bounds = source.line(line);
-    return bounds.start + bounds.text.length - bounds.text.trimStart().length;
+    return textStart(source.line(line));
 }
 
 function mixedPhpLine(source: EditSource, line: number): boolean {
@@ -29,8 +29,7 @@ function mixedPhpLine(source: EditSource, line: number): boolean {
             return true;
         }
         const at = bounds.start + match.index;
-        const context = source.context(at);
-        const { mode, embedded } = context;
+        const { mode, embedded } = source.context(at);
         if (match[0] === '?>') {
             if (mode !== 'html' && embedded === undefined) {
                 return true;

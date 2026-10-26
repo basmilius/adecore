@@ -1,4 +1,5 @@
 import { commentSyntax } from './languages.ts';
+import { textStart } from './line-text.ts';
 import type { FoldRole, FoldingRange } from './structure.ts';
 import type { DocumentLine } from './rope.ts';
 
@@ -46,11 +47,6 @@ function bracketDelta(text: string): number {
         }
     }
     return depth;
-}
-
-/* The offset of the first character of a line that is not indentation. */
-export function textStart(line: DocumentLine): number {
-    return line.start + (line.text.length - line.text.trimStart().length);
 }
 
 /* A fold of whole lines, from the end of the first to the end of the last. */

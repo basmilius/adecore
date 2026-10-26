@@ -50,8 +50,11 @@ function markdownFolds(lineCount: number, getLine: (line: number) => DocumentLin
     }
     flushTable(lineCount - 1);
     for (const [index, heading] of headings.entries()) {
-        const next = headings.slice(index + 1).find((candidate) => candidate.level <= heading.level);
-        let end = (next?.line ?? lineCount) - 1;
+        let next = index + 1;
+        while (next < headings.length && headings[next]!.level > heading.level) {
+            next++;
+        }
+        let end = (headings[next]?.line ?? lineCount) - 1;
         while (end > heading.line && getLine(end).text.trim() === '') {
             end--;
         }

@@ -1,8 +1,14 @@
+import type { DocumentLine } from './rope.ts';
 import type { Selection } from './types.ts';
 
 /* The spaces and tabs a line starts with. */
 export function whitespaceOf(text: string): string {
     return /^[\t ]*/.exec(text)![0];
+}
+
+/* The offset of the first character of a line that is not indentation. */
+export function textStart(line: DocumentLine): number {
+    return line.start + (line.text.length - line.text.trimStart().length);
 }
 
 export function isBlank(text: string): boolean {
