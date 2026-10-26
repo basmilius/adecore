@@ -6,11 +6,8 @@ import { isBlock, type TimelineRow } from '../../logic/timeline';
 export const FOLLOW_THRESHOLD_PX = 40;
 
 /*
- * The gaps a row wears for where it sits: a question is followed by its answer gap, and a seam where
- * the list rhythm of tool lines meets the block rhythm of prose gets the block gap. A visual and an
- * app's card have no margin of their own like prose does, so the row under one takes the block gap
- * too. A question already carries the gap before it, and the row after one is the answer, so neither
- * takes a seam.
+ * A seam where tool lines meet prose gets the block gap, and so does the row under a visual or an app's
+ * card, which have no margin of their own. A question and the answer after it never take a seam.
  */
 export function rowRhythm(row: TimelineRow, previous: TimelineRow | null): string {
     const question = row.kind === 'user';

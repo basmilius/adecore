@@ -284,11 +284,8 @@ function Writing() {
 }
 
 /*
- * A reply. A word at a time, it follows the text as it arrives. A block at a time, the blocks that
- * closed are drawn and fade in as they land, with "Writing…" where the next one will stand. Whole,
- * it says it is being written and fades in once it is done. Only a row that saw the reply being
- * written fades anything: an old reply scrolled back into view just stands there. A `#Name` it
- * spells for a view, node or chat of the project is a chip that opens it.
+ * A reply, streamed a word, a block or the whole of it at a time. Only a row that saw the reply being
+ * written fades anything in: an old reply scrolled back into view just stands there.
  */
 export function AssistantRow({ chatId, item: derived }: { chatId: string; item: ChatAssistantItem }) {
     const item = useCurrentItem(chatId, derived);

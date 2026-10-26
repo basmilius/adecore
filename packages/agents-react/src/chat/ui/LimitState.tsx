@@ -71,11 +71,8 @@ function ResumeAtResetToggle({ chatId, info }: { chatId: string; info: ChatInfo 
 }
 
 /*
- * Another account of the chat's CLI that has room: the one with the least of its session spent, and
- * beside it a menu of every account with room, for a person whose companies each pay for their own
- * work. Only ever offered, since going on there spends someone's other plan, and nothing is
- * remembered: the next limit suggests the one with the most room again. An account that reads the
- * chat's conversation takes it over; any other goes on in a fork, which then opens the way a fork does.
+ * Another account of the chat's CLI with room, only ever offered since it spends someone's other plan, and
+ * never remembered. One that reads the chat's conversation takes it over; any other goes on in a fork.
  */
 function ContinueOn({ chatId, info, choice }: { chatId: string; info: ChatInfo; choice: AccountChoice }) {
     const host = useChatHost();

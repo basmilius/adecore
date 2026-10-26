@@ -2,13 +2,9 @@
 const THEME_ATTRIBUTES = ['class', 'style', 'data-theme'];
 
 /*
- * Calls `changed` after the root of `owner` or its body changes a theme attribute, at most once a
- * frame, for whatever resolves the theme's tokens into colors of its own. A stylesheet that changes
- * changes no attribute, so an app that rewrites its palette that way touches the root's `style` as
- * well, the signal the terminal follows too. Returns what stops it.
- *
- * Any change of those attributes counts, also one that leaves every token as it was (a dialog that
- * locks the scroll writes the root's `style`), so a caller compares what it reads with what it drew.
+ * Calls `changed` at most once a frame after the root or body of `owner` changes a theme attribute. An app
+ * that rewrites its palette through a stylesheet touches the root's `style` as well, as the terminal expects.
+ * Any change counts, also one that leaves every token alone, so a caller compares what it reads with what it drew.
  */
 export function watchTheme(owner: Document, changed: () => void): () => void {
     const view = owner.defaultView ?? window;
