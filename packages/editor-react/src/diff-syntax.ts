@@ -15,6 +15,38 @@ export interface DiffSyntaxSources {
     locate(side: DiffSourceSide, index: number): { readonly block: number; readonly line: number } | undefined;
 }
 
+/* Calls `refresh` once per frame while tokens arrive, or in a microtask where the window draws no frames. */
+export function repaintOnTokens(ownerWindow: Window | null | undefined, tokens: DiffSourceTokens | undefined, refresh: () => void): () => void {
+    let pending = false;
+    let stopped = false;
+    let frame: number | undefined;
+    const schedule = (): void => {
+        if (pending) {
+            return;
+        }
+        pending = true;
+        const paint = (): void => {
+            pending = false;
+            if (!stopped) {
+                refresh();
+            }
+        };
+        if (ownerWindow?.requestAnimationFrame !== undefined) {
+            frame = ownerWindow.requestAnimationFrame(paint);
+        } else {
+            queueMicrotask(paint);
+        }
+    };
+    const stop = tokens?.subscribe(schedule);
+    return () => {
+        stopped = true;
+        stop?.();
+        if (frame !== undefined) {
+            ownerWindow?.cancelAnimationFrame?.(frame);
+        }
+    };
+}
+
 function canTokenize(source: readonly string[]): boolean {
     if (source.length > 20000) {
         return false;

@@ -1,11 +1,12 @@
 import { splitLines } from '@adecore/merge';
 import type { GitBlameCommit, GitBlameResult } from './host-types.ts';
 import type { EditorCodeVision, EditorCodeVisionEntry, EditorRect } from '@adecore/editor';
-import type { DocumentSymbolResult } from '@adecore/lsp';
+import type { DocumentSymbolResult, Location } from '@adecore/lsp';
 import type { EditorLanguage } from './editor-language.ts';
 import { type CodeAuthorship, authorsText, authorshipOf, mapBlame } from './code-authors.ts';
 import { type CodeVisionDeclaration, declarationsOf, usagesText } from './code-vision-model.ts';
 import { realTimers, type Timers } from './timers.ts';
+import { placeKey } from './unique.ts';
 
 const REFERENCES = 'textDocument/references';
 /* Lines asked about above and below what is in view, so a little scrolling stays inside what is counted. */
@@ -268,6 +269,6 @@ export class CodeVisionFeature {
 }
 
 /* The places a server named, each counted once however many ways it was reached. */
-function distinctPlaces(locations: readonly { uri: string; range: { start: { line: number; character: number } } }[]): number {
-    return new Set(locations.map((location) => `${location.uri}\0${location.range.start.line}\0${location.range.start.character}`)).size;
+function distinctPlaces(locations: readonly Location[]): number {
+    return new Set(locations.map(placeKey)).size;
 }

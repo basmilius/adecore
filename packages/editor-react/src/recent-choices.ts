@@ -41,8 +41,3 @@ export function recentChoicesOf(languageId: string): RecentChoices {
     }
     return store;
 }
-
-/* For a test that must not hear the choices an earlier one made. */
-export function forgetRecentChoices(): void {
-    stores.clear();
-}

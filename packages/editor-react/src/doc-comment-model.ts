@@ -157,7 +157,7 @@ export function decodeEntities(text: string): string {
     });
 }
 
-function dedent(text: string): string {
+export function dedent(text: string): string {
     const lines = text.replace(/^\n+|\s+$/g, '').split('\n');
     const indents = lines.filter((line) => line.trim() !== '').map((line) => line.length - line.trimStart().length);
     const common = indents.length === 0 ? 0 : Math.min(...indents);

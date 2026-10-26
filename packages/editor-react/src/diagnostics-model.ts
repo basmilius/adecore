@@ -30,7 +30,6 @@ export function markerOf(diagnostic: Diagnostic): EditorMarker {
     };
 }
 
-/* A diagnostic that names no severity counts as an error. */
 export function problemCountsOf(diagnostics: readonly Diagnostic[]): ProblemCounts {
     const count = (severity: number): number => diagnostics.filter((diagnostic) => (diagnostic.severity ?? 1) === severity).length;
     return { error: count(1), warning: count(2), info: count(3) };
@@ -38,6 +37,10 @@ export function problemCountsOf(diagnostics: readonly Diagnostic[]): ProblemCoun
 
 export function comparePositions(left: EditorPosition, right: EditorPosition): number {
     return left.line === right.line ? left.character - right.character : left.line - right.line;
+}
+
+export function sameRange(left: EditorRange, right: EditorRange): boolean {
+    return comparePositions(left.start, right.start) === 0 && comparePositions(left.end, right.end) === 0;
 }
 
 /* Where an insertion of `text` at `start` ends, counting a line break of any kind once. */

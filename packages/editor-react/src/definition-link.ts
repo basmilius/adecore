@@ -5,6 +5,28 @@ import { locationsOf } from './hover-content.ts';
 import { lineTextOf } from './line-text.ts';
 import { wordRangeAt } from './rename-model.ts';
 
+/* Reports the Mod key going down and up, from the window since the editor only says where the pointer is. */
+export function followModKey(apple: boolean, onHeld: (held: boolean) => void): () => void {
+    if (typeof window === 'undefined') {
+        return () => {};
+    }
+    const modKey = apple ? 'Meta' : 'Control';
+    const keys = (event: KeyboardEvent): void => {
+        if (event.key === modKey) {
+            onHeld(event.type === 'keydown');
+        }
+    };
+    const lost = (): void => onHeld(false);
+    window.addEventListener('keydown', keys);
+    window.addEventListener('keyup', keys);
+    window.addEventListener('blur', lost);
+    return () => {
+        window.removeEventListener('keydown', keys);
+        window.removeEventListener('keyup', keys);
+        window.removeEventListener('blur', lost);
+    };
+}
+
 /*
  * The name under the pointer drawn as a link while Cmd (Ctrl elsewhere) is held and a server knows where it
  * is defined, which is what a Mod+click on it follows. The editor only says where the pointer is, so the
@@ -28,25 +50,9 @@ export class DefinitionLinkFeature {
                 this.update();
             }),
             editor.onTextChange(() => this.clear()),
-            editor.onViewChange(() => this.clear())
+            editor.onViewChange(() => this.clear()),
+            followModKey(language.apple, (held) => this.setModHeld(held))
         ];
-        if (typeof window !== 'undefined') {
-            const modKey = language.apple ? 'Meta' : 'Control';
-            const keys = (event: KeyboardEvent): void => {
-                if (event.key === modKey) {
-                    this.setModHeld(event.type === 'keydown');
-                }
-            };
-            const lost = (): void => this.setModHeld(false);
-            window.addEventListener('keydown', keys);
-            window.addEventListener('keyup', keys);
-            window.addEventListener('blur', lost);
-            offs.push(() => {
-                window.removeEventListener('keydown', keys);
-                window.removeEventListener('keyup', keys);
-                window.removeEventListener('blur', lost);
-            });
-        }
         language.onDispose(() => {
             for (const off of offs) {
                 off();

@@ -1,4 +1,5 @@
-import type { FocusEvent, MouseEvent } from 'react';
+import { useLayoutEffect, type FocusEvent, type MouseEvent } from 'react';
+import type { EditorLanguage } from './editor-language.ts';
 
 /*
  * The handlers for a popup list whose rows the keyboard never enters: the text it belongs to keeps the
@@ -14,4 +15,12 @@ export function keepFocusOutOfList(focusBack: () => void): {
         onMouseDown: (event) => event.preventDefault(),
         onFocus: () => focusBack()
     };
+}
+
+/* The focus stays in the text, so the input is what names the popup's list and its active option. */
+export function useInputPopup(language: EditorLanguage, controls: string, activeDescendant: string | undefined): void {
+    useLayoutEffect(() => {
+        language.editor.setInputPopup({ controls, activeDescendant });
+        return () => language.editor.setInputPopup(null);
+    }, [language, controls, activeDescendant]);
 }

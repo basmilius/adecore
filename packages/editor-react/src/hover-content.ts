@@ -1,5 +1,5 @@
-import type { EditorRange } from '@adecore/editor';
 import type { Hover, Location, LocationLink, MarkedString, NavigationResult } from '@adecore/lsp';
+import { dedent } from './doc-comment-model.ts';
 
 export interface SignatureBlock {
     readonly language: string;
@@ -75,15 +75,6 @@ export function locationsOf(result: NavigationResult): Location[] {
     }
     const list = Array.isArray(result) ? (result as (Location | LocationLink)[]) : [result];
     return list.map((entry) => (isLink(entry) ? { uri: entry.targetUri, range: entry.targetSelectionRange } : entry));
-}
-
-export function sameRange(left: EditorRange, right: EditorRange): boolean {
-    return (
-        left.start.line === right.start.line &&
-        left.start.character === right.start.character &&
-        left.end.line === right.end.line &&
-        left.end.character === right.end.character
-    );
 }
 
 /* One `@tag` of a docblock, the way a server writes it into a hover: `_@since_ 1.0` or `*@param* `name` - what it is`. */
@@ -174,13 +165,6 @@ function decodeEntities(text: string): string {
         .replace(/&quot;/g, '"')
         .replace(/&#0?39;/g, "'")
         .replace(/&amp;/g, '&');
-}
-
-function dedent(text: string): string {
-    const lines = text.replace(/^\n+|\s+$/g, '').split('\n');
-    const indents = lines.filter((line) => line.trim() !== '').map((line) => line.length - line.trimStart().length);
-    const common = indents.length === 0 ? 0 : Math.min(...indents);
-    return lines.map((line) => line.slice(common)).join('\n');
 }
 
 /*

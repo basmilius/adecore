@@ -314,13 +314,16 @@ export class CodeActionsFeature {
         if (found === null) {
             return null;
         }
-        const notes = [
-            ...(found.hiddenLines > 0 ? [this.say('moreLines', { count: found.hiddenLines })] : []),
-            ...(found.otherFiles > 0 ? [this.say('otherFiles', { count: found.otherFiles })] : []),
-            ...(found.moves > 0 ? [this.say('moves', { count: found.moves })] : []),
-            ...((found.creates ?? 0) > 0 ? [this.say('creates', { count: found.creates })] : []),
-            ...((found.deletes ?? 0) > 0 ? [this.say('deletes', { count: found.deletes })] : [])
-        ];
+        const counts = {
+            moreLines: found.hiddenLines,
+            otherFiles: found.otherFiles,
+            moves: found.moves,
+            creates: found.creates ?? 0,
+            deletes: found.deletes ?? 0
+        };
+        const notes = Object.entries(counts)
+            .filter(([, count]) => count > 0)
+            .map(([key, count]) => this.say(key, { count }));
         return { removed: found.removed, added: found.added, note: notes.length === 0 ? null : notes.join(' · ') };
     }
 

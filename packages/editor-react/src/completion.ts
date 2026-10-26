@@ -1,10 +1,11 @@
 import { SnippetTransformQueueError } from './snippet-transform-queue.ts';
 import { KEY_PRIORITY } from './key-priority.ts';
 import { SnippetTransformError } from './snippet-transform-client.ts';
-import { MAX_TRANSFORM_JOBS, MAX_TRANSFORM_WORK, type SnippetTransformJob } from './snippet-transform-protocol.ts';
+import { MAX_TRANSFORM_JOBS, MAX_TRANSFORM_WORK } from './snippet-transform-protocol.ts';
+import { jobTable } from './snippet-field-transforms.ts';
 import { fileUriToPath, StaleResultError, type CompletionContext, type CompletionItem } from '@adecore/lsp';
 import type { EditorContentChange, EditorPosition, EditorRange, EditorTextChange } from '@adecore/editor';
-import { comparePositions, shiftPosition } from './diagnostics-model.ts';
+import { comparePositions, sameRange, shiftPosition } from './diagnostics-model.ts';
 import type { EditorLanguage } from './editor-language.ts';
 import {
     completionDocsOf,
@@ -28,7 +29,7 @@ import { createSnippetResolver } from './snippet-variables.ts';
 import { wordRangeAt } from './rename-model.ts';
 import { RecentChoices, recentChoicesOf } from './recent-choices.ts';
 import { shikiLanguageOf } from './language-ids.ts';
-import { textBeforeOf } from './line-text.ts';
+import { lineTextOf, textBeforeOf } from './line-text.ts';
 import { isEmptyRange } from './proposal-model.ts';
 import { isShortcut } from './shortcut-keys.ts';
 import type { CompletionRow, CompletionView } from './popups.ts';
@@ -202,14 +203,7 @@ export class CompletionFeature {
                 return false;
             }
             const selections = editor.getSelections();
-            return (
-                selections.length === acceptedSelections.length &&
-                selections.every(
-                    (range, index) =>
-                        comparePositions(range.start, acceptedSelections[index]!.start) === 0 &&
-                        comparePositions(range.end, acceptedSelections[index]!.end) === 0
-                )
-            );
+            return selections.length === acceptedSelections.length && selections.every((range, index) => sameRange(range, acceptedSelections[index]!));
         };
         recentChoicesOf(this.language.languageId).record(entry.item);
         let item = this.resolved.get(entry.item) ?? entry.item;
@@ -241,10 +235,10 @@ export class CompletionFeature {
         let characters = 0;
         let ranges = 0;
         const now = new Date();
-        const template = item.insertTextFormat === 2 ? compileSnippet(item.textEdit?.newText ?? item.insertText ?? item.label) : undefined;
+        const template = item.insertTextFormat === 2 ? compileSnippet(source) : undefined;
         const finishes = new Map<Insertion, (values: readonly string[]) => Insertion>();
         const renderAt = (position: EditorPosition, selection: EditorRange): Insertion => {
-            const line = editor.textInRange({ start: { line: position.line, character: 0 }, end: { line: position.line, character: Number.MAX_SAFE_INTEGER } });
+            const line = lineTextOf(editor, position.line);
             const word = wordRangeAt(line, position);
             const resolver = createSnippetResolver(
                 {
@@ -257,7 +251,7 @@ export class CompletionFeature {
                     currentWord: word === null ? '' : editor.textInRange(word),
                     cursorIndex: Math.max(
                         0,
-                        carets.findIndex((range) => comparePositions(range.start, selection.start) === 0 && comparePositions(range.end, selection.end) === 0)
+                        carets.findIndex((range) => sameRange(range, selection))
                     ),
                     cursorCount: carets.length,
                     folder: project.host.folder,
@@ -283,8 +277,7 @@ export class CompletionFeature {
                         template,
                         variableTransforms,
                         resolve: resolver,
-                        indentationBefore:
-                            editStart === undefined ? undefined : editor.textInRange({ start: { line: editStart.line, character: 0 }, end: editStart })
+                        indentationBefore: editStart === undefined ? undefined : textBeforeOf(editor, editStart)
                     }
                 );
                 return commit === undefined ? insertion : { ...insertion, text: insertion.text + commit };
@@ -331,20 +324,8 @@ export class CompletionFeature {
                 }
             );
             const drafts = [...mirrored.map((edit) => instances.get(edit)!), main];
-            const jobs: SnippetTransformJob[] = [];
-            const keys = new Map<string, number>();
-            const slots = drafts.map((draft) =>
-                (draft.variableTransforms ?? []).map((job) => {
-                    const key = JSON.stringify(job);
-                    let slot = keys.get(key);
-                    if (slot === undefined) {
-                        slot = jobs.length;
-                        keys.set(key, slot);
-                        jobs.push(job);
-                    }
-                    return slot;
-                })
-            );
+            const { jobs, slotOf } = jobTable();
+            const slots = drafts.map((draft) => (draft.variableTransforms ?? []).map(slotOf));
             if (jobs.length > MAX_TRANSFORM_JOBS || jobs.reduce((sum, job) => sum + job.value.length, 0) > MAX_TRANSFORM_WORK) {
                 throw new CompletionLimitError();
             }

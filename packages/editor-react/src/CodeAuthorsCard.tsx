@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { GitCommitHorizontal, User, Users } from 'lucide-react';
 import { Button, Icon, Popover, Separator, Tooltip, useNow } from '@adecore/ui';
@@ -34,10 +33,8 @@ export function LatestCommit({ commit }: { commit: GitBlameCommit }) {
 export function CodeAuthorsCard({ language, view }: { language: EditorLanguage; view: AuthorsView }) {
     const { t } = useTranslation('editor');
     const { authors, uncommittedLines, latest } = view.authorship;
-    const anchor = useMemo(() => {
-        const { left, top, right, bottom } = view.anchor;
-        return { getBoundingClientRect: () => new DOMRect(left, top, right - left, bottom - top) };
-    }, [view.anchor]);
+    const { left, top, right, bottom } = view.anchor;
+    const anchor = { getBoundingClientRect: () => new DOMRect(left, top, right - left, bottom - top) };
 
     return (
         <Popover.Root open onOpenChange={(open, details) => !open && language.codeVision.closeAuthors(details.reason === 'escape-key')}>

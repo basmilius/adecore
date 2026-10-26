@@ -2,7 +2,7 @@ import { labelCollator } from '@adecore/ui/format';
 import type { SnippetTransformJob } from './snippet-transform-protocol.ts';
 import type { EditorContentChange, EditorPosition, EditorRange } from '@adecore/editor';
 import { applyCompletionDefaults, type CompletionItem, type CompletionResult, type MarkupContent } from '@adecore/lsp';
-import { comparePositions } from './diagnostics-model.ts';
+import { comparePositions, sameRange } from './diagnostics-model.ts';
 import { escapeMarkdown, isEmptyHover, splitSignatures, type HoverText } from './hover-content.ts';
 import type { CompletionDocs } from './popups.ts';
 import { compileSnippet, parseSnippet, tabOrder, type SnippetField, type SnippetStop, type SnippetTemplate, type SnippetVariableResolver } from './snippet.ts';
@@ -365,7 +365,7 @@ export function mirroredInsertions(
     const replaced = text({ start: caret, end: insertion.range.end });
     return carets.flatMap((other): EditorContentChange[] => {
         const at = includeSelections ? other.end : other.start;
-        if (comparePositions(other.start, primary.start) === 0 && comparePositions(other.end, primary.end) === 0) {
+        if (sameRange(other, primary)) {
             return [];
         }
         if ((!includeSelections && comparePositions(other.start, other.end) !== 0) || at.character < before) {

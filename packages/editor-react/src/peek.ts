@@ -8,6 +8,7 @@ import type { PeekView } from './popups.ts';
 import { isShortcut } from './shortcut-keys.ts';
 import { messageOf } from './error-message.ts';
 import { realTimers, revealRow, type Timers } from './timers.ts';
+import { placeKey, uniqueBy } from './unique.ts';
 
 const TOAST_ID = 'language-peek';
 /* The block as the panel draws it: a hatched band, the header, eight lines of code and a hatched band, until the editor has measured it. */
@@ -19,10 +20,6 @@ const KINDS = {
     references: { method: 'textDocument/references', unavailable: 'unavailable', none: 'none' },
     definitions: { method: 'textDocument/definition', unavailable: 'unavailableDefinition', none: 'noDefinition' }
 } as const;
-
-function placeKey(location: Location): string {
-    return `${location.uri}\0${location.range.start.line}\0${location.range.start.character}`;
-}
 
 /*
  * The references of the name at the caret, between the lines of the file under the line it is on. The
@@ -92,15 +89,7 @@ export class PeekFeature {
             return;
         }
         const { targets } = found;
-        const seen = new Set<string>();
-        const unique = found.locations.filter((location) => {
-            const key = placeKey(location);
-            if (seen.has(key)) {
-                return false;
-            }
-            seen.add(key);
-            return true;
-        });
+        const unique = uniqueBy(found.locations, placeKey);
         if (unique.length === 0) {
             this.tell(this.say(KINDS[kind].none));
             return;

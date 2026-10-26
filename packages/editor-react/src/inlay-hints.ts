@@ -1,5 +1,7 @@
 import type { Editor, EditorInlayClick, EditorInlayHint, EditorPosition, EditorRange } from '@adecore/editor';
 import type { Command, InlayHint, InlayHintLabelPart, Location, MarkupContent, TextEdit } from '@adecore/lsp';
+import { followModKey } from './definition-link.ts';
+import { comparePositions } from './diagnostics-model.ts';
 import type { EditorLanguage } from './editor-language.ts';
 import { hoverTextOf, isEmptyHover, type HoverText } from './hover-content.ts';
 import { SHOW_DELAY_MS } from './hover.ts';
@@ -17,16 +19,12 @@ const DOUBLE_PRESS_MS = 500;
 /* Lines asked for above and below what is in view, so a little scrolling stays inside what is already drawn. */
 const MARGIN_LINES = 60;
 
-/* A hint's label is a string or a list of parts, which are read as one text. */
 export function hintLabelOf(hint: InlayHint): string {
     return typeof hint.label === 'string' ? hint.label : hint.label.map((part) => part.value).join('');
 }
 
-/* The hints worth drawing, in the order of the text. */
 export function drawableHints(hints: readonly InlayHint[]): InlayHint[] {
-    return hints
-        .filter((hint) => hintLabelOf(hint) !== '')
-        .sort((left, right) => left.position.line - right.position.line || left.position.character - right.position.character);
+    return hints.filter((hint) => hintLabelOf(hint) !== '').sort((left, right) => comparePositions(left.position, right.position));
 }
 
 /* A hint as the editor draws it: a label with parts keeps them apart so each can be pointed at. */
@@ -41,18 +39,12 @@ export function editorHintOf(hint: InlayHint, id: string): EditorInlayHint {
     };
 }
 
-export function editorHintsOf(hints: readonly InlayHint[]): EditorInlayHint[] {
-    return drawableHints(hints).map((hint, index) => editorHintOf(hint, `hint-${index}`));
-}
-
-/* The lines in view with a margin of lines around them, from the start of the first to the end of the last. */
 export function withMargin(visible: EditorRange, endOfDocument: EditorPosition, endOfLine: (line: number) => EditorPosition): EditorRange {
     const first = Math.max(0, visible.start.line - MARGIN_LINES);
     const last = Math.min(endOfDocument.line, visible.end.line + MARGIN_LINES);
     return { start: { line: first, character: 0 }, end: last === endOfDocument.line ? endOfDocument : endOfLine(last) };
 }
 
-/* Whether what was asked for already holds every line in view. */
 export function covers(asked: EditorRange, visible: EditorRange): boolean {
     return asked.start.line <= visible.start.line && asked.end.line >= visible.end.line;
 }
@@ -66,7 +58,6 @@ export function tooltipTextOf(tooltip: string | MarkupContent | undefined): Hove
     return isEmptyHover(text) ? null : text;
 }
 
-/* One part of a hint's label, or null for a hint whose label is a string. */
 export function partOf(hint: InlayHint, index: number | null): InlayHintLabelPart | null {
     return index === null || typeof hint.label === 'string' ? null : (hint.label[index] ?? null);
 }
@@ -100,8 +91,7 @@ export function editsFit(editor: Editor, edits: readonly TextEdit[]): boolean {
         position.character >= 0 &&
         position.line <= end.line &&
         position.character <= lineTextOf(editor, position.line).length;
-    const before = (left: EditorPosition, right: EditorPosition): boolean =>
-        left.line < right.line || (left.line === right.line && left.character <= right.character);
+    const before = (left: EditorPosition, right: EditorPosition): boolean => comparePositions(left, right) <= 0;
     const ordered = [...edits].sort((left, right) => (before(left.range.start, right.range.start) ? -1 : 1));
     return ordered.every((edit, index) => {
         const next = ordered[index + 1];
@@ -131,7 +121,6 @@ export function actionOf(hint: InlayHint, click: Pick<EditorInlayClick, 'part' |
     return part?.command === undefined ? null : { kind: 'run', command: part.command };
 }
 
-/* A hint on screen and what has become known of it. */
 interface Entry {
     readonly id: string;
     hint: InlayHint;
@@ -144,17 +133,12 @@ interface Entry {
 
 /*
  * Types and parameter names the servers infer, asked for the lines in view and a margin around them. The
- * last ones stay until the answer comes, so nothing blinks while typing; scrolling asks again only once the
- * view leaves the lines that were asked for.
+ * last ones stay until the answer comes, so nothing blinks while typing.
  *
- * A hint can be acted on with the pointer. The server is asked to resolve a hint as the pointer arrives, and
- * resting on it for the hover delay shows its tooltip. Mod+click on a part follows its place, a click on a
- * part runs its command and a double click inserts its text edits as one undo step, never together with the
- * command: when a hint has both, the command waits for the double press interval. A press on a hint that
- * offers nothing (yet) moves the caret as beside the text. A finger has no hover, so a tap shows the
- * tooltip and does nothing more. All of it is for the pointer: the hints are not part
- * of the text and stay out of the keyboard's way, and Quick Info on the caret shows the tooltip of a hint that
- * sits there.
+ * Mod+click on a part follows its place, a click runs its command and a double click inserts its text edits
+ * as one undo step, never together with the command. A press on a hint that offers nothing (yet) moves the
+ * caret; a tap only shows the tooltip. The hints stay out of the keyboard's way: Quick Info on the caret
+ * shows the tooltip of a hint that sits there.
  */
 export class InlayHintsFeature {
     private readonly language: EditorLanguage;
@@ -222,23 +206,7 @@ export class InlayHintsFeature {
         if (editor.onInlayClick !== undefined) {
             offs.push(editor.onInlayClick((click) => this.pressed(click)));
         }
-        if (typeof window !== 'undefined') {
-            const modKey = language.apple ? 'Meta' : 'Control';
-            const keys = (event: KeyboardEvent): void => {
-                if (event.key === modKey) {
-                    this.setModHeld(event.type === 'keydown');
-                }
-            };
-            const lost = (): void => this.setModHeld(false);
-            window.addEventListener('keydown', keys);
-            window.addEventListener('keyup', keys);
-            window.addEventListener('blur', lost);
-            offs.push(() => {
-                window.removeEventListener('keydown', keys);
-                window.removeEventListener('keyup', keys);
-                window.removeEventListener('blur', lost);
-            });
-        }
+        offs.push(followModKey(language.apple, (held) => this.setModHeld(held)));
         language.onDispose(() => {
             for (const off of offs) {
                 off();
@@ -261,7 +229,7 @@ export class InlayHintsFeature {
 
     /* The tooltip of a hint that sits at a position, as a card; false when there is none. This is how the keyboard reaches it. */
     async showTooltipAt(position: EditorPosition): Promise<boolean> {
-        const found = [...this.entries].find(([, entry]) => entry.epoch === this.epoch && sameSpot(entry.hint.position, position));
+        const found = [...this.entries].find(([, entry]) => entry.epoch === this.epoch && comparePositions(entry.hint.position, position) === 0);
         if (found === undefined) {
             return false;
         }
@@ -454,8 +422,4 @@ export class InlayHintsFeature {
             });
         }
     }
-}
-
-function sameSpot(left: EditorPosition, right: EditorPosition): boolean {
-    return left.line === right.line && left.character === right.character;
 }

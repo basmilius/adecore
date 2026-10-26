@@ -1,7 +1,9 @@
 import { findDocComments, type DocComment, type EditorPosition, type EditorRange, type EditorReplacement, type EditorTrackedRange } from '@adecore/editor';
+import { comparePositions } from './diagnostics-model.ts';
 import { KEY_PRIORITY } from './key-priority.ts';
 import type { EditorLanguage } from './editor-language.ts';
 import { parseDocComment, type ParsedDocComment } from './doc-comment-model.ts';
+import { lineTextOf } from './line-text.ts';
 import { isShortcut } from './shortcut-keys.ts';
 import { realTimers, type Timers } from './timers.ts';
 
@@ -43,7 +45,7 @@ function touches(range: EditorRange, comment: DocComment): boolean {
     if (range.end.line < comment.startLine || range.start.line > comment.endLine) {
         return false;
     }
-    const empty = range.start.line === range.end.line && range.start.character === range.end.character;
+    const empty = comparePositions(range.start, range.end) === 0;
     if (!empty && range.end.line === comment.startLine && range.end.character === 0) {
         return false;
     }
@@ -52,14 +54,18 @@ function touches(range: EditorRange, comment: DocComment): boolean {
 
 /* The first words of what a comment says, to tell its row from the others for a person who hears it. */
 function summaryOf(body: string): string {
-    const lead = body.split('\n').findIndex((line) => /^\s*@/.test(line));
-    const text = (lead === -1 ? body : body.split('\n').slice(0, lead).join('\n')).replace(/[`*_#>[\]()]/g, ' ');
-    const words = text.split(/\s+/).filter((word) => word !== '');
-    return words.slice(0, SUMMARY_WORDS).join(' ');
+    const lines = body.split('\n');
+    const lead = lines.findIndex((line) => /^\s*@/.test(line));
+    const text = (lead === -1 ? body : lines.slice(0, lead).join('\n')).replace(/[`*_#>[\]()]/g, ' ');
+    return text
+        .split(/\s+/)
+        .filter((word) => word !== '')
+        .slice(0, SUMMARY_WORDS)
+        .join(' ');
 }
 
 function samePlace(range: EditorRange | null, position: EditorPosition): boolean {
-    return range !== null && range.start.line === position.line && range.start.character === position.character;
+    return range !== null && comparePositions(range.start, position) === 0;
 }
 
 /*
@@ -131,10 +137,7 @@ export class RenderedDocsFeature {
             }
             this.timers.clear(this.settleTimer);
             this.timers.clear(this.caretTimer);
-            for (const override of this.overrides) {
-                override.tracked.dispose();
-            }
-            this.overrides = [];
+            this.clearOverrides();
             editor.setReplacements?.([], OWNER);
             editor.setGutterMarkers([], OWNER);
             this.containers.clear();
@@ -171,18 +174,16 @@ export class RenderedDocsFeature {
     /* Switches the comment the caret is in between formatted and source. False when the caret is in none. */
     toggle(): boolean {
         this.settle();
-        const comment = this.at(this.language.editor.getCaret().line);
-        if (!this.enabled || comment === undefined || !this.canRender(comment)) {
-            return false;
-        }
-        this.setRendered(comment, !this.wantsRendered(comment));
-        return true;
+        return this.switch(this.at(this.language.editor.getCaret().line));
     }
 
     /* Switches the comment that starts on a line, which is what its gutter button does. */
     toggleAt(startLine: number): boolean {
         this.settle();
-        const comment = this.comments.find((candidate) => candidate.startLine === startLine);
+        return this.switch(this.comments.find((candidate) => candidate.startLine === startLine));
+    }
+
+    private switch(comment: DocComment | undefined): boolean {
         if (!this.enabled || comment === undefined || !this.canRender(comment)) {
             return false;
         }
@@ -290,7 +291,7 @@ export class RenderedDocsFeature {
         if (line < 0) {
             return;
         }
-        const text = editor.textInRange({ start: { line, character: 0 }, end: { line, character: Number.MAX_SAFE_INTEGER } });
+        const text = lineTextOf(editor, line);
         const character = line > comment.endLine ? (/^[ \t]*/.exec(text)?.[0].length ?? 0) : text.length;
         const place = { line, character };
         editor.setSelections(selections.map((range) => (touches(range, comment) ? { start: place, end: place } : range)));
@@ -352,7 +353,7 @@ export class RenderedDocsFeature {
     }
 
     private parse(comment: DocComment): ParsedDocComment {
-        const key = `${comment.body}`;
+        const key = comment.body;
         let result = this.parsed.get(key);
         if (result === undefined) {
             if (this.parsed.size >= MAX_PARSED) {

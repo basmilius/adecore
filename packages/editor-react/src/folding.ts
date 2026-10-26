@@ -1,4 +1,4 @@
-import type { EditorFoldHints, EditorFoldRangeHint, EditorFoldSymbol } from '@adecore/editor';
+import type { EditorFoldRangeHint, EditorFoldSymbol } from '@adecore/editor';
 import type { DocumentSymbolResult, FoldingRange } from '@adecore/lsp';
 import type { EditorLanguage } from './editor-language.ts';
 import { Refresher } from './refresher.ts';
@@ -90,7 +90,6 @@ export class FoldingFeature {
     }
 
     private publish(): void {
-        const hints: EditorFoldHints = { symbols: this.symbols, ranges: this.ranges };
-        this.language.editor.setFoldHints(hints);
+        this.language.editor.setFoldHints({ symbols: this.symbols, ranges: this.ranges });
     }
 }

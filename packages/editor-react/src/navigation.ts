@@ -7,6 +7,7 @@ import { rangeHolds } from './diagnostics-model.ts';
 import { placesOfName } from './symbol-links.ts';
 import { isShortcut } from './shortcut-keys.ts';
 import { messageOf } from './error-message.ts';
+import { placeKey, uniqueBy } from './unique.ts';
 
 export type NavigationKind = 'definition' | 'declaration' | 'typeDefinition' | 'implementation';
 
@@ -34,23 +35,15 @@ const TOAST_ID = 'language-navigation';
 
 /* The places of a result, each once: the two servers of a Vue file may both know the same one. `target` is the whole declaration when the server gave it. */
 export function uniquePlaces(result: NavigationResult): { location: Location; target: Range | null }[] {
-    const seen = new Set<string>();
     const list = result === null ? [] : Array.isArray(result) ? (result as (Location | LocationLink)[]) : [result];
-    return list
-        .map((entry) =>
+    return uniqueBy(
+        list.map((entry) =>
             'targetUri' in entry
                 ? { location: { uri: entry.targetUri, range: entry.targetSelectionRange }, target: entry.targetRange as Range | null }
                 : { location: entry, target: null }
-        )
-        .filter(({ location }) => {
-            const { start } = location.range;
-            const key = `${location.uri}\0${start.line}\0${start.character}`;
-            if (seen.has(key)) {
-                return false;
-            }
-            seen.add(key);
-            return true;
-        });
+        ),
+        ({ location }) => placeKey(location)
+    );
 }
 
 /* The places of a result, each once. */

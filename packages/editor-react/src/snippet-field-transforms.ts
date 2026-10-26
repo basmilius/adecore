@@ -15,6 +15,23 @@ export interface FieldTransformTarget {
     readonly order: readonly number[];
     readonly ancestors?: readonly symbol[];
 }
+/* Each distinct job once, so a transform that several ranges share is computed once; `slotOf` is its index in `jobs`. */
+export function jobTable(): { readonly jobs: SnippetTransformJob[]; readonly slotOf: (job: SnippetTransformJob) => number } {
+    const jobs: SnippetTransformJob[] = [];
+    const keys = new Map<string, number>();
+    const slotOf = (job: SnippetTransformJob): number => {
+        const key = JSON.stringify(job);
+        let slot = keys.get(key);
+        if (slot === undefined) {
+            slot = jobs.length;
+            keys.set(key, slot);
+            jobs.push(job);
+        }
+        return slot;
+    };
+    return { jobs, slotOf };
+}
+
 interface Entry {
     readonly targets: FieldTransformTarget[];
     readonly current: () => boolean;
@@ -54,19 +71,8 @@ export class SnippetFieldTransforms {
         });
         const entry: Entry = { targets, current, done, finish, cancelled: false };
         this.entries.add(entry);
-        const jobs: SnippetTransformJob[] = [],
-            keys = new Map<string, number>();
-        const slots = targets.map((target) => {
-            const job = { ...target.transform, value: target.value },
-                key = JSON.stringify(job);
-            let slot = keys.get(key);
-            if (slot === undefined) {
-                slot = jobs.length;
-                keys.set(key, slot);
-                jobs.push(job);
-            }
-            return slot;
-        });
+        const { jobs, slotOf } = jobTable();
+        const slots = targets.map((target) => slotOf({ ...target.transform, value: target.value }));
         const valid = (): boolean => !entry.cancelled && entry.current() && targets.every((target) => this.editor.textInRange(target.range) === target.value);
         void this.lease
             .request(jobs, { kind: 'exit', current: valid })

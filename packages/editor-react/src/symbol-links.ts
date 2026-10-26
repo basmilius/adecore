@@ -1,4 +1,5 @@
 import type { Location, SymbolInformation, WorkspaceSymbol, WorkspaceSymbolResult } from '@adecore/lsp';
+import { uniqueBy } from './unique.ts';
 
 /* The classes a name in a signature has: a pointer and an underline on hover, and the accent only then, so the signature stays calm. */
 export const SYMBOL_LINK_CLASS = 'cursor-pointer hover:text-accent hover:underline';
@@ -54,19 +55,12 @@ export function placesOfName(result: WorkspaceSymbolResult, name: string, fileTe
             candidates = named;
         }
     }
-    const seen = new Set<string>();
-    return candidates
-        .map((symbol): Location =>
+    return uniqueBy(
+        candidates.map((symbol): Location =>
             'range' in symbol.location
                 ? symbol.location
                 : { uri: symbol.location.uri, range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } } }
-        )
-        .filter((location) => {
-            const key = `${location.uri}\0${location.range.start.line}`;
-            if (seen.has(key)) {
-                return false;
-            }
-            seen.add(key);
-            return true;
-        });
+        ),
+        (location) => `${location.uri}\0${location.range.start.line}`
+    );
 }

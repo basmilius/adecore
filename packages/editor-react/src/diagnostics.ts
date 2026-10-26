@@ -2,9 +2,18 @@ import type { Diagnostic } from '@adecore/lsp';
 import { KEY_PRIORITY } from './key-priority.ts';
 import type { EditorContentChange, EditorPosition, EditorReveal } from '@adecore/editor';
 import type { EditorLanguage } from './editor-language.ts';
-import { sameRange } from './hover-content.ts';
 import { isShortcut } from './shortcut-keys.ts';
-import { comparePositions, markerOf, neighborProblem, problemCountsOf, problemsAt, severityOf, shiftRange, type Problem } from './diagnostics-model.ts';
+import {
+    comparePositions,
+    markerOf,
+    neighborProblem,
+    problemCountsOf,
+    problemsAt,
+    sameRange,
+    severityOf,
+    shiftRange,
+    type Problem
+} from './diagnostics-model.ts';
 
 export interface ProblemCounts {
     readonly error: number;

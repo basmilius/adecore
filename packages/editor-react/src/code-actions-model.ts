@@ -1,5 +1,6 @@
 import { applyTextEdits, type CodeAction, type Command, type Diagnostic, type Range, type WorkspaceEdit } from '@adecore/lsp';
 import { comparePositions } from './diagnostics-model.ts';
+import { uniqueBy } from './unique.ts';
 import { resourceOperationsOf, textEntriesOf } from './workspace-edit.ts';
 
 export type ActionGroup = 'quickfix' | 'rewrite' | 'extract' | 'inline' | 'move' | 'refactor' | 'source' | 'other';
@@ -58,15 +59,7 @@ export function actionsOf(result: readonly (CodeAction | Command)[] | null, orde
 
 /* Entries from several requests as one list: the same order as a single answer, and an id of its own for each row. Two actions with a title and kind alike are one. */
 export function mergeEntries(lists: readonly (readonly ActionEntry[])[]): ActionEntry[] {
-    const seen = new Set<string>();
-    const unique = lists.flat().filter((entry) => {
-        const key = `${entry.action.kind ?? ''}\0${entry.action.title}`;
-        if (seen.has(key)) {
-            return false;
-        }
-        seen.add(key);
-        return true;
-    });
+    const unique = uniqueBy(lists.flat(), (entry) => `${entry.action.kind ?? ''}\0${entry.action.title}`);
     return inGroupOrder(unique, ACTION_GROUPS).map((entry, index) => ({ ...entry, id: String(index) }));
 }
 

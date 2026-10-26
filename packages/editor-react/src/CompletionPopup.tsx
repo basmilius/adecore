@@ -4,19 +4,13 @@ import { useTranslation } from 'react-i18next';
 import { formatShortcut } from '@adecore/ui';
 import type { EditorRect } from '@adecore/editor';
 import type { EditorLanguage } from './editor-language.ts';
-import { kindLetterOf, kindToneOf, rowWindow, type KindTone } from './completion-model.ts';
+import { kindLetterOf, kindToneOf, rowWindow } from './completion-model.ts';
 import { SourceLine, SymbolSections } from './HoverSections.tsx';
 import { PathText } from './PathText.tsx';
-import { keepFocusOutOfList } from './popup-focus.ts';
+import { keepFocusOutOfList, useInputPopup } from './popup-focus.ts';
 import { placeBeside, placePopup } from './popup-placement.ts';
 import type { CompletionView } from './popups.ts';
-
-const TONES: Record<KindTone, string> = {
-    callable: 'bg-accent-soft text-accent',
-    value: 'bg-status-running/15 text-status-running',
-    type: 'bg-status-idle/15 text-status-idle',
-    other: 'bg-surface-hover text-text-muted'
-};
+import { TONE_CLASSES } from './symbol-picker-model.ts';
 
 /* The label with the characters that match what was typed set apart. */
 function MarkedLabel({ label, matches }: { label: string; matches: readonly number[] }) {
@@ -122,11 +116,7 @@ export function CompletionPopup({ language, view, rect }: { language: EditorLang
     const optionId = (index: number): string => `${listId}-option-${index}`;
     const activeId = view.active >= first && view.active < last ? optionId(view.active) : undefined;
 
-    // The focus stays in the text, so the input is what names the list and its active option.
-    useLayoutEffect(() => {
-        language.editor.setInputPopup({ controls: listId, activeDescendant: activeId });
-        return () => language.editor.setInputPopup(null);
-    }, [language, listId, activeId]);
+    useInputPopup(language, listId, activeId);
 
     return createPortal(
         <>
@@ -171,7 +161,7 @@ export function CompletionPopup({ language, view, rect }: { language: EditorLang
                                 onClick={() => void language.completion.accept(false, index)}
                             >
                                 <span
-                                    className={`grid size-4 shrink-0 place-items-center rounded-sm font-mono text-xs leading-none font-semibold ${TONES[kindToneOf(row.kind)]}`}
+                                    className={`grid size-4 shrink-0 place-items-center rounded-sm font-mono text-xs leading-none font-semibold ${TONE_CLASSES[kindToneOf(row.kind)]}`}
                                 >
                                     {kindLetterOf(row.kind)}
                                 </span>

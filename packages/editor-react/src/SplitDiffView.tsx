@@ -4,7 +4,7 @@ import { parseChord } from '@adecore/editor/keymap';
 import type { EditorLineHighlight } from '@adecore/editor';
 import type { DiffSplit } from '@adecore/merge';
 import type { DiffViewProps } from './DiffView.tsx';
-import type { DiffSourceSide } from './diff-syntax.ts';
+import { repaintOnTokens, type DiffSourceSide } from './diff-syntax.ts';
 import { DiffOverlays, type MountedDiff } from './diff-overlays.tsx';
 import { wordMarks } from './diff-wordmarks.ts';
 import { RowHost, LineActionHost } from './row-host.ts';
@@ -252,35 +252,7 @@ export function SplitDiffView({
             }
         };
         refresh();
-        const ownerWindow = oldElement.current?.ownerDocument.defaultView;
-        let frame: number | undefined;
-        let pending = false;
-        let stopped = false;
-        const schedule = (): void => {
-            if (pending) {
-                return;
-            }
-            pending = true;
-            const paint = (): void => {
-                pending = false;
-                if (!stopped) {
-                    refresh();
-                }
-            };
-            if (ownerWindow?.requestAnimationFrame !== undefined) {
-                frame = ownerWindow.requestAnimationFrame(paint);
-            } else {
-                queueMicrotask(paint);
-            }
-        };
-        const stop = tokens?.subscribe(schedule);
-        return () => {
-            stopped = true;
-            stop?.();
-            if (frame !== undefined) {
-                ownerWindow?.cancelAnimationFrame?.(frame);
-            }
-        };
+        return repaintOnTokens(oldElement.current?.ownerDocument.defaultView, tokens, refresh);
     }, [mounted, engine, display, tokens]);
     useLayoutEffect(() => {
         if (mounted === null || mounted.old.engine !== engine) {
@@ -306,32 +278,29 @@ export function SplitDiffView({
             data-scroll={fill || height > limit}
             style={{ height: fill ? '100%' : Math.min(height, limit) }}
         >
-            {SIDES.map((side) => (
-                <div
-                    key={side}
-                    className="adecore-editor-diff-side"
-                    data-side={side}
-                    role="group"
-                    aria-label={t(`diff.${side}Side`)}
-                    onWheelCapture={() => {
-                        mounted?.drive(side);
-                    }}
-                    onFocusCapture={() => {
-                        mounted?.drive(side);
-                    }}
-                    onPointerDownCapture={() => {
-                        mounted?.drive(side);
-                    }}
-                    onKeyDownCapture={() => {
-                        mounted?.drive(side);
-                    }}
-                >
-                    <div ref={side === 'old' ? oldElement : newElement} className="adecore-editor-diff-surface" />
-                    {mounted !== null && mounted[side].engine === engine && (
-                        <DiffOverlays mounted={mounted[side]} display={display[side]} unfold={unfold} blocked={blocked} />
-                    )}
-                </div>
-            ))}
+            {SIDES.map((side) => {
+                const drive = (): void => {
+                    mounted?.drive(side);
+                };
+                return (
+                    <div
+                        key={side}
+                        className="adecore-editor-diff-side"
+                        data-side={side}
+                        role="group"
+                        aria-label={t(`diff.${side}Side`)}
+                        onWheelCapture={drive}
+                        onFocusCapture={drive}
+                        onPointerDownCapture={drive}
+                        onKeyDownCapture={drive}
+                    >
+                        <div ref={side === 'old' ? oldElement : newElement} className="adecore-editor-diff-surface" />
+                        {mounted !== null && mounted[side].engine === engine && (
+                            <DiffOverlays mounted={mounted[side]} display={display[side]} unfold={unfold} blocked={blocked} />
+                        )}
+                    </div>
+                );
+            })}
         </div>
     );
 }

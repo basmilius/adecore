@@ -20,7 +20,6 @@ export interface HoverView {
     /* While the pointer stays in this range the card stays, so moving along a word does not make it blink. */
     readonly subject: EditorRange;
     readonly problems: readonly Problem[];
-    /* What the servers say about the symbol, and where it is defined. */
     readonly info: HoverInfo | null;
 }
 
@@ -29,13 +28,12 @@ export interface HoverInfo {
     readonly definition: Location | null;
     /* The name under the pointer, which a signature's own symbol is told by. */
     readonly word: string;
-    /* How many other places use the symbol, once a server has counted them. */
+    /* How many other places use the symbol; null until a server has counted them. */
     readonly references: number | null;
-    /* Only the text: no footer for the definition and the references, which a card made of someone else's words has none of. */
+    /* Only the text, without the footer for the definition and the references. */
     readonly plain?: boolean;
 }
 
-/* One line of the suggestions list. */
 export interface CompletionRow {
     readonly label: string;
     readonly kind: number | undefined;
@@ -56,7 +54,6 @@ export interface CompletionDocs {
     readonly text: HoverText;
 }
 
-/* The suggestions while a word is being typed. */
 export interface CompletionView {
     /* The start of the word, which the list is placed under. */
     readonly anchor: EditorPosition;
@@ -65,7 +62,6 @@ export interface CompletionView {
     /* Whether the documentation of the active row is shown beside the list. */
     readonly detailsOpen: boolean;
     readonly docs: CompletionDocs | null;
-    /* The server the suggestions came from. */
     readonly server: string;
     /* The shiki id of the file's language, for the signature in the documentation. */
     readonly highlightLanguage: string;

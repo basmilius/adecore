@@ -1,4 +1,4 @@
-import { useEffect, useId, useLayoutEffect, useRef, type ReactNode, type Ref } from 'react';
+import { useEffect, useId, useRef, type ReactNode, type Ref } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronLeft, ChevronRight, X } from 'lucide-react';
@@ -16,6 +16,7 @@ import { PathText } from './PathText.tsx';
 import { Preview } from './PeekPanel.tsx';
 import type { CallHierarchyView } from './popups.ts';
 import { SymbolBadge } from './SymbolPicker.tsx';
+import { useInputPopup } from './popup-focus.ts';
 
 const INDENT = 14;
 const BASE_INDENT = 8;
@@ -118,11 +119,7 @@ function Tree({ language, view }: { language: EditorLanguage; view: CallHierarch
         activeRow.current?.scrollIntoView({ block: 'nearest' });
     }, [view.active]);
 
-    // The focus stays in the text, so the input is what names the tree and its active row.
-    useLayoutEffect(() => {
-        language.editor.setInputPopup({ controls: treeId, activeDescendant: activeId });
-        return () => language.editor.setInputPopup(null);
-    }, [language, treeId, activeId]);
+    useInputPopup(language, treeId, activeId);
 
     return (
         <div id={treeId} role="tree" aria-label={t('language.callHierarchy.label')} className="w-1/2 shrink-0 overflow-y-auto border-r border-border py-1">

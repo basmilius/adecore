@@ -62,6 +62,14 @@ export function letterOfKind(kind: number): string {
 
 export type SymbolTone = 'callable' | 'value' | 'type' | 'other';
 
+/* The badge colors of a tone, shared by the symbol picker and the suggestions list. */
+export const TONE_CLASSES: Record<SymbolTone, string> = {
+    callable: 'bg-accent-soft text-accent',
+    value: 'bg-status-running/15 text-status-running',
+    type: 'bg-status-idle/15 text-status-idle',
+    other: 'bg-surface-hover text-text-muted'
+};
+
 const TONES: Record<SymbolGroup, SymbolTone> = {
     namespaces: 'other',
     classes: 'type',

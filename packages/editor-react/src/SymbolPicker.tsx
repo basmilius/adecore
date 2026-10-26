@@ -8,30 +8,14 @@ import { formatNumber } from '@adecore/ui/format';
 import type { EditorLanguage } from './editor-language.ts';
 import { basenameOf } from './paths.ts';
 import type { SymbolsView } from './popups.ts';
-import {
-    filterEntries,
-    groupEntries,
-    letterOfKind,
-    modeOf,
-    toneOfKind,
-    type SymbolEntry,
-    type SymbolTone,
-    type WorkspaceEntry
-} from './symbol-picker-model.ts';
-
-const TONES: Record<SymbolTone, string> = {
-    callable: 'bg-accent-soft text-accent',
-    value: 'bg-status-running/15 text-status-running',
-    type: 'bg-status-idle/15 text-status-idle',
-    other: 'bg-surface-hover text-text-muted'
-};
+import { filterEntries, groupEntries, letterOfKind, modeOf, toneOfKind, type SymbolEntry, TONE_CLASSES, type WorkspaceEntry } from './symbol-picker-model.ts';
 
 const SEARCH_DELAY_MS = 200;
 
 /* The letter badge of a symbol kind, tinted by what the symbol is. */
 export function SymbolBadge({ kind }: { kind: number }) {
     return (
-        <span className={`grid size-4 shrink-0 place-items-center rounded-sm font-mono text-xs font-semibold ${TONES[toneOfKind(kind)]}`}>
+        <span className={`grid size-4 shrink-0 place-items-center rounded-sm font-mono text-xs font-semibold ${TONE_CLASSES[toneOfKind(kind)]}`}>
             {letterOfKind(kind)}
         </span>
     );

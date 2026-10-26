@@ -6,7 +6,7 @@ import { diffDisplay, diffSplit, type DiffDocument, type DiffDisplay } from '@ad
 import { wordMarks } from './diff-wordmarks.ts';
 import { DiffOverlays, type MountedDiff } from './diff-overlays.tsx';
 import { SplitDiffView } from './SplitDiffView.tsx';
-import type { DiffSourceTokens } from './diff-syntax.ts';
+import { repaintOnTokens, type DiffSourceTokens } from './diff-syntax.ts';
 import { LineActionHost, RowHost } from './row-host.ts';
 import { DEFAULT_UNFOLD_LIMITS, expandDiff, type DiffLimits } from './diff-expansion.ts';
 
@@ -182,35 +182,7 @@ function UnifiedDiffView({
             });
         };
         refresh();
-        const ownerWindow = element.current?.ownerDocument.defaultView;
-        let pending = false;
-        let stopped = false;
-        let frame: number | undefined;
-        const schedule = (): void => {
-            if (pending) {
-                return;
-            }
-            pending = true;
-            const paint = (): void => {
-                pending = false;
-                if (!stopped) {
-                    refresh();
-                }
-            };
-            if (ownerWindow?.requestAnimationFrame !== undefined) {
-                frame = ownerWindow.requestAnimationFrame(paint);
-            } else {
-                queueMicrotask(paint);
-            }
-        };
-        const stop = tokens?.subscribe(schedule);
-        return () => {
-            stopped = true;
-            stop?.();
-            if (frame !== undefined) {
-                ownerWindow?.cancelAnimationFrame?.(frame);
-            }
-        };
+        return repaintOnTokens(element.current?.ownerDocument.defaultView, tokens, refresh);
     }, [mounted, engine, tokens, display]);
     useLayoutEffect(() => {
         if (mounted !== null && mounted.engine === engine) {

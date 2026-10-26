@@ -16,17 +16,13 @@ function overlaps(edits: readonly TextEdit[]): boolean {
 }
 
 /*
- * Formatting while typing: after a person types one of the characters the server named in
- * `firstTriggerCharacter` and `moreTriggerCharacter`, the server is asked what to change around the caret, and its
- * edits are applied.
+ * Formatting while typing: after one of the server's trigger characters is typed, the server is asked what
+ * to change around the caret, and its edits join the undo step of the typed character.
  *
- * Only typing counts: one change that is the trigger character alone, the closer the editor moved back to its
- * opener's indentation, or a line break with its indentation for `\n`, which the editor reports as typed though
- * Enter runs as a command. A character the editor types over an existing closer changes no text and asks nothing. A paste, undo, a completion or an external change does not ask, and neither does a
- * second caret, a read-only editor or a snippet session, whose tab stops an edit could move. An answer is applied
- * only while the text is exactly what it was asked about, and the caret where it was.
- *
- * The edits join the undo step of the typed character, so one undo takes both back. Off by default; a host enables it explicitly with `configure(true)`.
+ * Only typing counts: the trigger character alone, the closer the editor moved back to its opener's
+ * indentation, or a line break with its indentation for `\n`. A paste, undo, a completion, an external change,
+ * a second caret, a read-only editor or a snippet session (whose tab stops an edit could move) asks nothing.
+ * An answer is applied only while the text and the caret are what it was asked about. Off until `configure(true)`.
  */
 export class FormatOnTypeFeature {
     private readonly language: EditorLanguage;

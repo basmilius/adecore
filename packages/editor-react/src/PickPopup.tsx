@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import type { EditorRect } from '@adecore/editor';
 import type { EditorLanguage } from './editor-language.ts';
 import { PathText } from './PathText.tsx';
-import { keepFocusOutOfList } from './popup-focus.ts';
+import { keepFocusOutOfList, useInputPopup } from './popup-focus.ts';
 import { placePopup } from './popup-placement.ts';
 import type { PickPreview, PickView } from './popups.ts';
 
@@ -74,11 +74,7 @@ export function PickPopup({ language, view, rect }: { language: EditorLanguage; 
     }
     const activeId = optionIds.get(view.active);
 
-    // The focus stays in the text, so the input is what names the list and its active option.
-    useLayoutEffect(() => {
-        language.editor.setInputPopup({ controls: listId, activeDescendant: activeId });
-        return () => language.editor.setInputPopup(null);
-    }, [language, listId, activeId]);
+    useInputPopup(language, listId, activeId);
 
     return createPortal(
         <div

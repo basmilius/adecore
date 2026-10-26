@@ -6,15 +6,13 @@ import { realTimers, type Timers } from './timers.ts';
 import { KEY_PRIORITY } from './key-priority.ts';
 import { MAX_TRANSFORM_CHARACTERS, type SnippetTransformJob } from './snippet-transform-protocol.ts';
 import type { EditorContentChange, EditorPosition, EditorRange, EditorTextChange } from '@adecore/editor';
-import { comparePositions, rangeHolds, shiftPosition } from './diagnostics-model.ts';
+import { comparePositions, endOfInsertion, rangeHolds, sameRange, shiftPosition } from './diagnostics-model.ts';
 import type { EditorLanguage } from './editor-language.ts';
+import { textBeforeOf } from './line-text.ts';
 import type { SnippetField, SnippetStop, SnippetTransform } from './snippet.ts';
 
 export function positionInInsertion(start: EditorPosition, text: string, offset: number): EditorPosition {
-    const lines = text.slice(0, offset).split(/\r\n|\r|\n/);
-    return lines.length === 1
-        ? { line: start.line, character: start.character + offset }
-        : { line: start.line + lines.length - 1, character: lines[lines.length - 1]!.length };
+    return endOfInsertion(start, text.slice(0, offset));
 }
 
 interface SessionRange extends EditorRange {
@@ -239,14 +237,7 @@ export class SnippetFeature {
             off();
         }
         const now = this.language.editor.getSelections();
-        return (
-            valid &&
-            current() &&
-            now.length === selections.length &&
-            now.every(
-                (range, index) => comparePositions(range.start, selections[index]!.start) === 0 && comparePositions(range.end, selections[index]!.end) === 0
-            )
-        );
+        return valid && current() && now.length === selections.length && now.every((range, index) => sameRange(range, selections[index]!));
     }
 
     get isActive(): boolean {
@@ -433,7 +424,7 @@ export class SnippetFeature {
         );
     }
 
-    private fieldOf(frame: Frame): Frame['instances'][number]['fields'][number] | undefined {
+    private fieldOf(frame: Frame): Field | undefined {
         return frame.instances.at(-1)?.fields.find((field) => field.index === frame.order[frame.current]);
     }
 
@@ -578,7 +569,7 @@ export class SnippetFeature {
         const groups: { change: EditorContentChange; targets: { target: FieldTransformTarget; text: string }[] }[] = [];
         let characters = 0;
         for (const [index, target] of targets.entries()) {
-            const before = editor.textInRange({ start: { line: target.range.start.line, character: 0 }, end: target.range.start });
+            const before = textBeforeOf(editor, target.range.start);
             const prefix = /^[\t ]*/.exec(before)?.[0] ?? '';
             const value = values[index]!;
             let newlines = 0;
@@ -671,10 +662,7 @@ export class SnippetFeature {
             ])
         );
         const map = <Range extends EditorRange>(range: Range, parent?: (target: FieldTransformTarget) => boolean): Range => {
-            const tracked =
-                'order' in range
-                    ? (range as Range & SessionRange)
-                    : captured.find((candidate) => comparePositions(candidate.start, range.start) === 0 && comparePositions(candidate.end, range.end) === 0);
+            const tracked = 'order' in range ? (range as Range & SessionRange) : captured.find((candidate) => sameRange(candidate, range));
             let { start, end } = range;
             for (const change of changes) {
                 const peers = peersOf.get(change)!;
@@ -767,10 +755,7 @@ export class SnippetFeature {
                                     : comparePositions(edit.range.start, range.end) < 0 && comparePositions(range.start, edit.range.end) < 0)
                         )
                 );
-                field.primary = Math.max(
-                    0,
-                    field.ranges.findIndex((range) => range === primary)
-                );
+                field.primary = Math.max(0, field.ranges.indexOf(primary!));
                 field.ranges = field.ranges.map((range) => {
                     const replacement = this.detached?.ranges.get(range.id);
                     if (replacement !== undefined) {
@@ -825,14 +810,7 @@ export class SnippetFeature {
             return;
         }
         const extras = new Set(
-            change.changes.filter((change) =>
-                this.extras.some(
-                    (extra) =>
-                        comparePositions(extra.range.start, change.range.start) === 0 &&
-                        comparePositions(extra.range.end, change.range.end) === 0 &&
-                        extra.text === change.text
-                )
-            )
+            change.changes.filter((change) => this.extras.some((extra) => sameRange(extra.range, change.range) && extra.text === change.text))
         );
         for (const frame of this.frames) {
             if (!this.mapFrame(frame, change.changes, extras)) {
