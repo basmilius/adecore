@@ -22,12 +22,15 @@ function kindOf(base: readonly string[], ours: readonly string[], theirs: readon
     if (same(ours, theirs)) {
         return same(base, ours) ? 'stable' : 'both';
     }
+
     if (same(base, ours)) {
         return 'theirs';
     }
+
     if (same(base, theirs)) {
         return 'ours';
     }
+
     return 'conflict';
 }
 
@@ -54,9 +57,11 @@ export function splitBlocks(base: readonly string[], ours: readonly string[], th
 
     const push = (baseEnd: number, ourEnd: number, theirEnd: number): void => {
         const stretch = { base: base.slice(baseAt, baseEnd), ours: ours.slice(ourAt, ourEnd), theirs: theirs.slice(theirAt, theirEnd) };
+
         if (stretch.base.length > 0 || stretch.ours.length > 0 || stretch.theirs.length > 0) {
             blocks.push({ kind: kindOf(stretch.base, stretch.ours, stretch.theirs), ...stretch });
         }
+
         baseAt = baseEnd;
         ourAt = ourEnd;
         theirAt = theirEnd;
@@ -64,19 +69,24 @@ export function splitBlocks(base: readonly string[], ours: readonly string[], th
 
     while (ourNext < ourChanges.length || theirNext < theirChanges.length) {
         const start = Math.min(ourChanges[ourNext]?.baseStart ?? Infinity, theirChanges[theirNext]?.baseStart ?? Infinity);
+
         if (start > baseAt) {
             const length = start - baseAt;
             push(start, ourAt + length, theirAt + length);
         }
+
         let end = baseAt;
         let ourGrowth = 0;
         let theirGrowth = 0;
+
         /* The stretch grows while a change of either side reaches into it: two changes that overlap
            in the base are one thing a person has to look at, however far apart they started. */
         for (let taken = true; taken;) {
             taken = false;
+
             const reaches = (change: Change | undefined): boolean =>
                 change !== undefined && change.baseStart <= end && (change.baseStart < end || end === baseAt);
+
             while (reaches(ourChanges[ourNext])) {
                 const change = ourChanges[ourNext]!;
                 end = Math.max(end, change.baseEnd);
@@ -84,6 +94,7 @@ export function splitBlocks(base: readonly string[], ours: readonly string[], th
                 ourNext += 1;
                 taken = true;
             }
+
             while (reaches(theirChanges[theirNext])) {
                 const change = theirChanges[theirNext]!;
                 end = Math.max(end, change.baseEnd);
@@ -92,8 +103,11 @@ export function splitBlocks(base: readonly string[], ours: readonly string[], th
                 taken = true;
             }
         }
+
         push(end, ourAt + (end - baseAt) + ourGrowth, theirAt + (end - baseAt) + theirGrowth);
     }
+
     push(base.length, ours.length, theirs.length);
+
     return blocks;
 }

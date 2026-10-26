@@ -39,24 +39,31 @@ function extend(left: readonly string[], right: readonly string[], reach: Int32A
         if (work !== undefined && work.remaining-- <= 0) {
             return null;
         }
+
         const down = cameDown(reach, offset, diagonal, distance);
         let x = down ? reach[offset + diagonal + 1]! : reach[offset + diagonal - 1]! + 1;
         let y = x - diagonal;
+
         while (x < left.length && y < right.length) {
             if (work !== undefined && work.remaining-- <= 0) {
                 return null;
             }
+
             if (left[x] !== right[y]) {
                 break;
             }
+
             x += 1;
             y += 1;
         }
+
         reach[offset + diagonal] = x;
+
         if (x >= left.length && y >= right.length) {
             return true;
         }
     }
+
     return false;
 }
 
@@ -66,15 +73,18 @@ function backtrack(left: readonly string[], right: readonly string[], saved: rea
     let x = left.length;
     let y = right.length;
     const states = Array.from({ length: Math.min(distance, STRIDE) + 1 }, () => new Int32Array(2 * offset + 1));
+
     for (let step = distance; step > 0;) {
         // The states the rounds from the saved one below this step started in, walked again.
         const first = Math.floor((step - 1) / STRIDE) * STRIDE;
         states[0]!.set(saved[first / STRIDE]!);
+
         for (let round = first; round < step; round += 1) {
             const next = states[round - first + 1]!;
             next.set(states[round - first]!);
             extend(left, right, next, offset, round);
         }
+
         for (; step > first; step -= 1) {
             const state = states[step - first]!;
             const diagonal = x - y;
@@ -87,6 +97,7 @@ function backtrack(left: readonly string[], right: readonly string[], saved: rea
             y = prevY;
         }
     }
+
     return moves.reverse();
 }
 
@@ -102,18 +113,23 @@ function walk(left: readonly string[], right: readonly string[], maxWork?: numbe
     const saved: Int32Array[] = [];
     // Replay visits each earlier round once; reserve half the budget for backtracking.
     const work = maxWork === undefined ? undefined : { remaining: Math.floor(maxWork / 2) };
+
     for (let distance = 0; distance <= limit; distance += 1) {
         if (distance % STRIDE === 0) {
             saved.push(reach.slice());
         }
+
         const complete = extend(left, right, reach, offset, distance, work);
+
         if (complete === null) {
             return { moves: null, limited: true };
         }
+
         if (complete) {
             return { moves: backtrack(left, right, saved, distance, offset), limited: false };
         }
     }
+
     return { moves: null, limited: false };
 }
 
@@ -121,11 +137,13 @@ function walk(left: readonly string[], right: readonly string[], maxWork?: numbe
 function changesOf(moves: readonly Move[]): Change[] {
     const changes: Change[] = [];
     let current: Change | null = null;
+
     for (const move of moves) {
         // A delete moves along the base side and so raises the diagonal; an insert lowers it.
         const deleted = move.x - move.y > move.prevX - move.prevY;
         const editX = deleted ? move.prevX + 1 : move.prevX;
         const editY = deleted ? move.prevY : move.prevY + 1;
+
         if (current !== null && current.baseEnd === move.prevX && current.otherEnd === move.prevY) {
             current.baseEnd = editX;
             current.otherEnd = editY;
@@ -133,17 +151,21 @@ function changesOf(moves: readonly Move[]): Change[] {
             if (current !== null) {
                 changes.push(current);
             }
+
             current = { baseStart: move.prevX, baseEnd: editX, otherStart: move.prevY, otherEnd: editY };
         }
+
         // What follows the edit is a run of equal lines, which ends the stretch.
         if (move.x !== editX || move.y !== editY) {
             changes.push(current);
             current = null;
         }
     }
+
     if (current !== null) {
         changes.push(current);
     }
+
     return changes;
 }
 
@@ -154,20 +176,27 @@ export function diffLines(base: readonly string[], other: readonly string[]): Ch
 
 export function diffChanges(base: readonly string[], other: readonly string[], maxWork?: number): { changes: Change[]; limited: boolean } {
     let prefix = 0;
+
     while (prefix < base.length && prefix < other.length && base[prefix] === other[prefix]) {
         prefix += 1;
     }
+
     let suffix = 0;
+
     while (suffix < base.length - prefix && suffix < other.length - prefix && base[base.length - 1 - suffix] === other[other.length - 1 - suffix]) {
         suffix += 1;
     }
+
     const left = base.slice(prefix, base.length - suffix);
     const right = other.slice(prefix, other.length - suffix);
+
     if (left.length === 0 && right.length === 0) {
         return { changes: [], limited: false };
     }
+
     const { moves, limited } = left.length === 0 || right.length === 0 ? { moves: null, limited: false } : walk(left, right, maxWork);
     const changes = moves === null ? [{ baseStart: 0, baseEnd: left.length, otherStart: 0, otherEnd: right.length }] : changesOf(moves);
+
     return {
         changes: changes.map((change) => ({
             baseStart: change.baseStart + prefix,

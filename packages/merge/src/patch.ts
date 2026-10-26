@@ -5,6 +5,7 @@ import { lineMatcher } from './text.ts';
 export function missingSides(patch: string): { old: boolean; new: boolean } {
     const start = patch.search(/^@@/m);
     const header = start === -1 ? patch : patch.slice(0, start);
+
     return { old: /^--- \/dev\/null$/m.test(header), new: /^\+\+\+ \/dev\/null$/m.test(header) };
 }
 
@@ -15,41 +16,52 @@ export function patchFits(patch: string, oldText: string, newText: string, ignor
     if (parsePatch(patch).partial) {
         return false;
     }
+
     const oldLines = oldText.split('\n');
     const newLines = newText.split('\n');
     const same = lineMatcher(ignoreWhitespace);
     let oldAt = -1;
     let newAt = -1;
     let hunks = 0;
+
     for (const line of patch.split('\n')) {
         const header = HUNK_HEADER.exec(line);
+
         if (header) {
             hunks += 1;
             oldAt = Number(header[1]) - (header[2] === '0' ? 0 : 1);
             newAt = Number(header[3]) - (header[4] === '0' ? 0 : 1);
+
             continue;
         }
+
         if (oldAt === -1) {
             continue;
         }
+
         const body = line.slice(1);
+
         if (line.startsWith(' ')) {
             if (!same(body, oldLines[oldAt]) || !same(body, newLines[newAt])) {
                 return false;
             }
+
             oldAt += 1;
             newAt += 1;
         } else if (line.startsWith('-')) {
             if (!same(body, oldLines[oldAt])) {
                 return false;
             }
+
             oldAt += 1;
         } else if (line.startsWith('+')) {
             if (!same(body, newLines[newAt])) {
                 return false;
             }
+
             newAt += 1;
         }
     }
+
     return hunks > 0;
 }

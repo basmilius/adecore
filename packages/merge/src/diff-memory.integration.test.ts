@@ -22,6 +22,7 @@ for (const [length, count] of [
             const changes = diffLines(left, right);
             console.log(JSON.stringify({ allocated, count: changes.length }));
         `;
+
         const result = JSON.parse(execFileSync(process.execPath, ['--eval', script], { encoding: 'utf8' }));
         expect(result.allocated).toBeGreaterThan(0);
         expect(result.allocated).toBeLessThan(20 * 1024 * 1024);

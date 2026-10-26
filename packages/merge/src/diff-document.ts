@@ -45,6 +45,7 @@ function snapshotsFit(parsed: ParsedPatch, contents: { old: string; new: string 
     if (parsed.partial || parsed.hunks.length === 0) {
         return false;
     }
+
     const oldLines = rawLines(contents.old);
     const newLines = rawLines(contents.new);
     const oldShape = shapeOf(contents.old);
@@ -52,39 +53,50 @@ function snapshotsFit(parsed: ParsedPatch, contents: { old: string; new: string 
     const same = lineMatcher(ignoreWhitespace);
     let oldAt = 0;
     let newAt = 0;
+
     const gapFits = (oldEnd: number, newEnd: number): boolean => {
         if (oldEnd - oldAt !== newEnd - newAt) {
             return false;
         }
+
         while (oldAt < oldEnd && newAt < newEnd) {
             if (!same(oldLines[oldAt]!, newLines[newAt]!)) {
                 return false;
             }
+
             oldAt += 1;
             newAt += 1;
         }
+
         return true;
     };
+
     for (const hunk of parsed.hunks) {
         if (hunk.oldStart + hunk.oldCount > oldLines.length || hunk.newStart + hunk.newCount > newLines.length || !gapFits(hunk.oldStart, hunk.newStart)) {
             return false;
         }
+
         for (const line of hunk.lines) {
             if (line.kind !== 'insert') {
                 if (!same(line.text, oldLines[oldAt]!) || Boolean(line.noNewline) !== (oldAt === oldLines.length - 1 && !oldShape.finalNewline)) {
                     return false;
                 }
+
                 oldAt += 1;
             }
+
             if (line.kind !== 'delete') {
                 if (!same(line.text, newLines[newAt]!) || Boolean(line.noNewline) !== (newAt === newLines.length - 1 && !newShape.finalNewline)) {
                     return false;
                 }
+
                 newAt += 1;
             }
         }
     }
+
     const endShown = oldAt === oldLines.length && newAt === newLines.length;
+
     return gapFits(oldLines.length, newLines.length) && (oldShape.finalNewline === newShape.finalNewline || endShown);
 }
 
@@ -100,20 +112,26 @@ export function diffDocument(parsed: ParsedPatch, contents: { old: string; new: 
             partial: false
         };
     }
+
     const old: string[] = [];
     const fresh: string[] = [];
+
     const offsets = parsed.hunks.map((hunk) => {
         const offset = { old: old.length, new: fresh.length };
+
         for (const line of hunk.lines) {
             if (line.kind !== 'insert') {
                 old.push(sourceText(line));
             }
+
             if (line.kind !== 'delete') {
                 fresh.push(sourceText(line));
             }
         }
+
         return offset;
     });
+
     return { hunks: parsed.hunks, sides: { old, new: fresh }, offsets, snapshots: false, ignoreWhitespace, partial: true };
 }
 
@@ -129,10 +147,12 @@ function hunkRows(document: DiffDocument, index: number, layout: 'unified' | 'sp
     const rows: DiffLineRow[] = [];
     const deletes: DiffLineRow[] = [];
     const inserts: DiffLineRow[] = [];
+
     const flush = (): void => {
         for (let pair = 0; pair < Math.max(deletes.length, inserts.length); pair++) {
             const old = deletes[pair];
             const fresh = inserts[pair];
+
             rows.push({
                 kind: 'line',
                 change: old && fresh ? 'pair' : old ? 'delete' : 'insert',
@@ -142,12 +162,15 @@ function hunkRows(document: DiffDocument, index: number, layout: 'unified' | 'sp
                 ...newline(old?.noNewline === 'old', fresh?.noNewline === 'new')
             });
         }
+
         deletes.length = 0;
         inserts.length = 0;
     };
+
     for (const line of hunk.lines) {
         const old = line.kind === 'insert' ? undefined : { index: offset.old + oldAt, number: hunk.oldStart + oldAt + 1 };
         const fresh = line.kind === 'delete' ? undefined : { index: offset.new + newAt, number: hunk.newStart + newAt + 1 };
+
         const row: DiffLineRow = {
             kind: 'line',
             change: line.kind,
@@ -156,8 +179,10 @@ function hunkRows(document: DiffDocument, index: number, layout: 'unified' | 'sp
             ...(fresh ? { new: fresh } : {}),
             ...newline(Boolean(old && line.noNewline), Boolean(fresh && line.noNewline))
         };
+
         oldAt += old ? 1 : 0;
         newAt += fresh ? 1 : 0;
+
         if (layout === 'unified') {
             rows.push(row);
         } else if (line.kind === 'context') {
@@ -167,29 +192,37 @@ function hunkRows(document: DiffDocument, index: number, layout: 'unified' | 'sp
             (line.kind === 'delete' ? deletes : inserts).push(row);
         }
     }
+
     flush();
+
     return rows;
 }
 
 export function diffRows(document: DiffDocument, layout: 'unified' | 'split', unfolded: ReadonlyMap<number, number> = new Map()): DiffRow[] {
     const rows: DiffRow[] = [];
+
     const gap = (id: number, oldStart: number, newStart: number, oldCount: number, newCount: number, position: 'before' | 'between' | 'after'): void => {
         if (oldCount <= 0 && newCount <= 0) {
             return;
         }
+
         oldCount = Math.max(0, oldCount);
         newCount = Math.max(0, newCount);
         const unfoldable = document.snapshots && oldCount === newCount;
         const amount = unfolded.get(id) ?? 0;
+
         const count = unfoldable
             ? Math.min(oldCount, amount === Number.POSITIVE_INFINITY ? oldCount : Number.isFinite(amount) ? Math.max(0, Math.floor(amount)) : 0)
             : 0;
+
         const leading = position === 'before' ? 0 : count;
         const trailing = position === 'after' ? 0 : Math.min(count, oldCount - leading);
+
         const context = (from: number, to: number): void => {
             for (let line = from; line < to; line++) {
                 const old = oldStart + line;
                 const fresh = newStart + line;
+
                 rows.push({
                     kind: 'line',
                     change: 'context',
@@ -202,7 +235,9 @@ export function diffRows(document: DiffDocument, layout: 'unified' | 'split', un
                 });
             }
         };
+
         context(0, leading);
+
         if (oldCount - leading - trailing > 0 || newCount - leading - trailing > 0) {
             rows.push({
                 kind: 'gap',
@@ -214,20 +249,27 @@ export function diffRows(document: DiffDocument, layout: 'unified' | 'split', un
                 unfoldable
             });
         }
+
         context(oldCount - trailing, oldCount);
     };
+
     let oldAt = 0;
     let newAt = 0;
+
     for (const [index, hunk] of document.hunks.entries()) {
         gap(index, oldAt, newAt, hunk.oldStart - oldAt, hunk.newStart - newAt, index === 0 ? 'before' : 'between');
+
         for (const row of hunkRows(document, index, layout)) {
             rows.push(row);
         }
+
         oldAt = hunk.oldStart + hunk.oldCount;
         newAt = hunk.newStart + hunk.newCount;
     }
+
     if (document.snapshots) {
         gap(document.hunks.length, oldAt, newAt, document.sides.old.length - oldAt, document.sides.new.length - newAt, 'after');
     }
+
     return rows;
 }

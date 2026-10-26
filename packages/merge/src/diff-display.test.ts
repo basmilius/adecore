@@ -68,6 +68,7 @@ describe('diffDisplay', () => {
             [2, 1, 4],
             [4, 2, 2]
         ]);
+
         const expanded = diffDisplay(document, new Map([[1, Infinity]]));
         expect(expanded.text).toBe('b\nB\nc\nd\ne\nf\ng\nG');
         expect(expanded.rows.map((row) => (row.new ?? row.old)!.number)).toEqual([2, 2, 3, 4, 5, 6, 7, 7]);
@@ -76,6 +77,7 @@ describe('diffDisplay', () => {
 
     test('retains source numbers across partial hunks without inventing hidden text', () => {
         const document = diffDocument(parsePatch('@@ -20,1 +30,1 @@\n-old\n+new\n@@ -70,1 +80,1 @@\n-left\n+right\n'), undefined);
+
         const display = diffDisplay(
             document,
             new Map([
@@ -83,6 +85,7 @@ describe('diffDisplay', () => {
                 [1, Infinity]
             ])
         );
+
         expect(display.text).toBe('old\nnew\nleft\nright');
         expect(display.rows.map((row) => (row.new ?? row.old)!.number)).toEqual([20, 30, 70, 80]);
         expect(display.gaps.every((gap) => !gap.row.unfoldable)).toBe(true);

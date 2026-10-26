@@ -16,28 +16,35 @@ export function diffSplit(document: DiffDocument, unfolded?: ReadonlyMap<number,
     const old = { lines: [] as string[], rows: [] as DiffLineRow[], gaps: [] as DiffDisplay['gaps'][number][] };
     const fresh = { lines: [] as string[], rows: [] as DiffLineRow[], gaps: [] as DiffDisplay['gaps'][number][] };
     const aligned: DiffSplitRow[] = [];
+
     for (const row of diffRows(document, 'split', unfolded)) {
         if (row.kind === 'gap') {
             old.gaps.push({ before: old.lines.length, row });
             fresh.gaps.push({ before: fresh.lines.length, row });
             aligned.push({ kind: 'gap', row });
+
             continue;
         }
+
         const entry = {
             kind: 'line' as const,
             row,
             old: row.old === undefined ? undefined : old.lines.length,
             new: row.new === undefined ? undefined : fresh.lines.length
         };
+
         if (row.old !== undefined) {
             old.lines.push(document.sides.old[row.old.index]!);
             old.rows.push({ ...row, new: undefined, noNewline: row.noNewline === 'new' ? undefined : row.noNewline });
         }
+
         if (row.new !== undefined) {
             fresh.lines.push(document.sides.new[row.new.index]!);
             fresh.rows.push({ ...row, old: undefined, noNewline: row.noNewline === 'old' ? undefined : row.noNewline });
         }
+
         aligned.push(entry);
     }
+
     return { old: { ...old, text: old.lines.join('\n') }, new: { ...fresh, text: fresh.lines.join('\n') }, aligned };
 }

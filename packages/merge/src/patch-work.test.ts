@@ -3,6 +3,7 @@ import { diffDocument, diffRows, patchOf } from './index.ts';
 
 function fixture(size: number, every: number) {
     const lines = Array.from({ length: size }, (_, index) => `line ${index}`);
+
     return { old: lines.join('\n'), new: lines.map((line, index) => (index % every === 0 ? `changed ${index}` : line)).join('\n') };
 }
 
@@ -19,6 +20,7 @@ test('a sufficient work budget preserves existing patches for adds, deletes, chu
         { old: 'old\nshared\n', new: 'new\nshared\n' },
         { old: 'shared\nold', new: 'shared\nnew' }
     ];
+
     for (const { old, new: fresh } of sources) {
         expect(patchOf(old, fresh, 3, { maxWork: 10_000_000 })).toEqual(patchOf(old, fresh));
     }
@@ -47,19 +49,24 @@ test('a coarse 1000-line rewrite retains the same selectable rows as an exact ca
 
 test('increasing the budget never increases the changed extent and keeps an exact result once reached', () => {
     const sources = [fixture(100, 2), fixture(2200, 11), { old: 'a\nb\na\nb', new: 'b\na\nb\na' }];
+
     for (const { old, new: fresh } of sources) {
         const exact = patchOf(old, fresh);
         let previous = Infinity;
         let reached = false;
+
         for (const maxWork of [0, 1, 10, 100, 1000, 10000, 100000, 2_000_000]) {
             const patch = patchOf(old, fresh, 3, { maxWork });
             expect(changedLines(patch)).toBeLessThanOrEqual(previous);
             previous = changedLines(patch);
+
             if (reached) {
                 expect(patch).toEqual(exact);
             }
+
             reached ||= patch.hunks.every((hunk) => !hunk.coarse);
         }
+
         expect(reached).toBe(true);
     }
 });

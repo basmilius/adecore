@@ -4,6 +4,7 @@ import { diffDocument, diffRows, parsePatch, patchOf, type DiffDocument } from '
 function reconstructed(document: DiffDocument, side: 'old' | 'new'): readonly string[] {
     const collapsed = diffRows(document, 'split');
     const expanded = new Map(collapsed.filter((row) => row.kind === 'gap').map((row) => [row.id, Infinity]));
+
     return diffRows(document, 'split', expanded).flatMap((row) => (row.kind === 'line' && row[side] ? [document.sides[side][row[side]!.index]!] : []));
 }
 
@@ -26,6 +27,7 @@ describe('patchOf', () => {
 
     test('places a repeated blank at the beginning of an inserted function', () => {
         const patch = patchOf('one\n\ntwo\n', 'one\n\nnew function\n\ntwo\n', 0);
+
         expect(patch.hunks[0]).toMatchObject({
             oldStart: 1,
             newStart: 1,
@@ -79,20 +81,25 @@ describe('patchOf', () => {
 
     test('serialized patches and both row sides round-trip varied empty lines and endings', () => {
         const sources = ['', 'a', '\n', 'a\nb', 'a\n\nb', 'a\nb\n\nc', '\na\n\n', 'a\n\na\n\nb'];
+
         for (const before of sources) {
             for (const after of sources) {
                 for (const oldEnding of ['', '\n', '\r\n']) {
                     for (const newEnding of ['', '\n', '\r\n']) {
                         const contents = { old: before + oldEnding, new: after + newEnding };
+
                         for (const context of [0, 1, 3]) {
                             const patch = patchOf(contents.old, contents.new, context);
                             const parsed = parsePatch(patch.text);
                             expect(parsed.hunks).toEqual(patch.hunks);
                             expect(parsed.partial).toBe(false);
+
                             if (patch.hunks.length === 0) {
                                 expect(contents.old).toBe(contents.new);
+
                                 continue;
                             }
+
                             const document = diffDocument(parsed, contents);
                             expect(document.snapshots).toBe(true);
                             expect(reconstructed(document, 'old')).toEqual(document.sides.old);

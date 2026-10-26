@@ -66,6 +66,7 @@ describe('diffDocument', () => {
     test('normalizes CRLF for display after checking the raw patch data', () => {
         const parsed = parsePatch('@@ -1 +1 @@\n-old\r\n+new\r\n');
         const contents = { old: 'old\r\n', new: 'new\r\n' };
+
         expect(diffDocument(parsed, contents)).toMatchObject({
             snapshots: true,
             sides: { old: ['old'], new: ['new'] },
@@ -123,11 +124,13 @@ describe('diffDocument', () => {
     ] as const)('supports additions and deletions with empty ranges: %s', (patch, contents) => {
         const document = diffDocument(parsePatch(patch), contents);
         expect(document.snapshots).toBe(true);
+
         const all = new Map(
             diffRows(document, 'split')
                 .filter((row) => row.kind === 'gap')
                 .map((row) => [row.id, Infinity])
         );
+
         expect(shown(document, diffRows(document, 'split', all), 'old')).toEqual(document.sides.old);
         expect(shown(document, diffRows(document, 'split', all), 'new')).toEqual(document.sides.new);
     });
@@ -144,6 +147,7 @@ describe('diffRows', () => {
 
     test('unfolds toward a hunk at the start and end of the file', () => {
         const document = diffDocument(parsePatch(PATCH), CONTENTS);
+
         expect(
             diffRows(
                 document,
@@ -164,6 +168,7 @@ describe('diffRows', () => {
 
     test('unfolds both edges of an interior gap without duplicate lines', () => {
         const document = diffDocument(parsePatch('@@ -1 +1 @@\n-a\n+A\n@@ -7 +7 @@\n-g\n+G\n'), { old: 'a\nb\nc\nd\ne\nf\ng\n', new: 'A\nb\nc\nd\ne\nf\nG\n' });
+
         expect(diffRows(document, 'split', new Map([[1, 1]]))).toMatchObject([
             { kind: 'line', change: 'pair' },
             { kind: 'line', old: { number: 2 } },

@@ -32,6 +32,7 @@ function runIn(outer: readonly string[], inner: readonly string[]): number {
             return start;
         }
     }
+
     return -1;
 }
 
@@ -43,11 +44,15 @@ function covers(base: readonly string[], outer: readonly string[], inner: readon
     if (inner.length === 0) {
         return false;
     }
+
     const start = runIn(outer, inner);
+
     if (start < 0) {
         return false;
     }
+
     const added = [...outer.slice(0, start), ...outer.slice(start + inner.length)];
+
     return added.every((line) => !base.includes(line) || inner.includes(line));
 }
 
@@ -60,12 +65,15 @@ export function wandLines(block: MergeBlock): string[] | null {
     if (block.kind !== 'conflict') {
         return autoLines(block);
     }
+
     if (same(block.ours, block.theirs) || covers(block.base, block.ours, block.theirs)) {
         return [...block.ours];
     }
+
     if (covers(block.base, block.theirs, block.ours)) {
         return [...block.theirs];
     }
+
     return null;
 }
 
@@ -76,12 +84,15 @@ export function wandLines(block: MergeBlock): string[] | null {
  */
 export function fingerprint(block: MergeBlock): string {
     let hash = 0x811c9dc5;
+
     for (const line of [...block.ours, '\u0000', ...block.theirs]) {
         for (let index = 0; index < line.length; index += 1) {
             hash = Math.imul(hash ^ line.charCodeAt(index), 0x01000193);
         }
+
         hash = Math.imul(hash ^ 0x0a, 0x01000193);
     }
+
     return (hash >>> 0).toString(16).padStart(8, '0');
 }
 
@@ -106,13 +117,17 @@ export interface MergeDraft {
 export function draftOf(blocks: readonly MergeBlock[], answered: ReadonlyMap<number, readonly string[]> = new Map()): MergeDraft {
     const lines: string[] = [];
     const spans: MergeSpan[] = [];
+
     for (const [index, block] of blocks.entries()) {
         const from = lines.length;
+
         // One push per line: a block of a few hundred thousand lines is more arguments than V8 takes in one call.
         for (const line of answered.get(index) ?? autoLines(block) ?? block.ours) {
             lines.push(line);
         }
+
         spans.push({ block: index, kind: block.kind, from, to: lines.length });
     }
+
     return { lines, spans };
 }

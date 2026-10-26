@@ -8,39 +8,52 @@ import { joinLines, shapeOf, splitLines } from './text.ts';
 function rebuild(base: readonly string[], other: readonly string[]): string[] {
     const out: string[] = [];
     let at = 0;
+
     for (const change of diffLines(base, other)) {
         out.push(...base.slice(at, change.baseStart));
         out.push(...other.slice(change.otherStart, change.otherEnd));
         at = change.baseEnd;
     }
+
     out.push(...base.slice(at));
+
     return out;
 }
 
 /* A deterministic shuffle of a file: some lines dropped, some changed, some added. */
 function mutate(lines: readonly string[], seed: number): string[] {
     let state = seed;
+
     const random = (): number => {
         state = (state + 0x6d2b79f5) | 0;
         let value = Math.imul(state ^ (state >>> 15), 1 | state);
         value = (value + Math.imul(value ^ (value >>> 7), 61 | value)) ^ value;
+
         return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
     };
+
     const out: string[] = [];
+
     for (const line of lines) {
         const roll = random();
+
         if (roll < 0.15) {
             continue;
         }
+
         if (roll < 0.3) {
             out.push(`${line}-changed`);
+
             continue;
         }
+
         if (roll < 0.4) {
             out.push('inserted');
         }
+
         out.push(line);
     }
+
     return out;
 }
 
@@ -59,6 +72,7 @@ describe('diffLines', () => {
 
     test('the changes rebuild the other side', () => {
         const base = Array.from({ length: 60 }, (_, index) => `line ${index}`);
+
         for (let seed = 1; seed <= 20; seed += 1) {
             const other = mutate(base, seed);
             expect(rebuild(base, other)).toEqual(other);
@@ -68,20 +82,26 @@ describe('diffLines', () => {
     /* How many lines a shortest edit script deletes and inserts, by the longest common subsequence. */
     const shortest = (base: readonly string[], other: readonly string[]): number => {
         let previous = new Int32Array(other.length + 1);
+
         for (const line of base) {
             const row = new Int32Array(other.length + 1);
+
             for (let index = 0; index < other.length; index += 1) {
                 row[index + 1] = line === other[index] ? previous[index]! + 1 : Math.max(previous[index + 1]!, row[index]!);
             }
+
             previous = row;
         }
+
         return base.length + other.length - 2 * previous[other.length]!;
     };
+
     const edits = (base: readonly string[], other: readonly string[]): number =>
         diffLines(base, other).reduce((sum, change) => sum + change.baseEnd - change.baseStart + change.otherEnd - change.otherStart, 0);
 
     test('a long way apart the changes still rebuild the other side, by a shortest script', () => {
         const base = Array.from({ length: 1200 }, (_, index) => `line ${index % 97}`);
+
         for (let seed = 1; seed <= 4; seed += 1) {
             const other = mutate(base, seed);
             expect(rebuild(base, other)).toEqual(other);
@@ -159,6 +179,7 @@ describe('wandLines', () => {
             { ours: ['const text = `', 'a  b', '`;'], theirs: ['const text = `', 'a b', '`;'] },
             { ours: ['paragraph  '], theirs: ['paragraph'] }
         ];
+
         for (const { ours, theirs } of cases) {
             expect(wandLines({ kind: 'conflict', base: ['old'], ours, theirs })).toBeNull();
         }

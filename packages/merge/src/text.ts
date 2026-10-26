@@ -10,6 +10,7 @@ export interface TextShape {
 /* The line ending a file uses, by the first one in it, and whether it ends on one. */
 export function shapeOf(text: string): TextShape {
     const line = text.indexOf('\n');
+
     return {
         eol: line > 0 && text[line - 1] === '\r' ? '\r\n' : '\n',
         finalNewline: text === '' || text.endsWith('\n')
@@ -21,10 +22,13 @@ export function splitLines(text: string): string[] {
     if (text === '') {
         return [];
     }
+
     const lines = text.split(/\r\n|\n/);
+
     if (lines[lines.length - 1] === '') {
         lines.pop();
     }
+
     return lines;
 }
 
@@ -33,10 +37,13 @@ export function rawLines(text: string): string[] {
     if (text === '') {
         return [];
     }
+
     const lines = text.split('\n');
+
     if (text.endsWith('\n')) {
         lines.pop();
     }
+
     return lines;
 }
 

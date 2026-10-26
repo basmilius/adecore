@@ -18,6 +18,7 @@ export function diffDisplay(document: DiffDocument, unfolded?: ReadonlyMap<numbe
     const lines: string[] = [];
     const rows: DiffLineRow[] = [];
     const gaps: DiffDisplayGap[] = [];
+
     for (const row of diffRows(document, 'unified', unfolded)) {
         if (row.kind === 'gap') {
             gaps.push({ before: lines.length, row });
@@ -27,5 +28,6 @@ export function diffDisplay(document: DiffDocument, unfolded?: ReadonlyMap<numbe
             rows.push(row);
         }
     }
+
     return { text: lines.join('\n'), lines, rows, gaps };
 }
