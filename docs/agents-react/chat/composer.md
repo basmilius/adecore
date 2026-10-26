@@ -22,6 +22,14 @@ import { Composer } from '@adecore/agents-react/chat/ui';
 
 `info` is the chat's `ChatInfo` from the store, which the composer reads its model, queue and limits from. It reads the CLIs from the scope, so a chat that has not spoken yet can still move to another CLI's model.
 
+## A prompt in a form
+
+`PromptEditor` is the composer's editor as a form field, for a prompt written now and sent later (a scheduled task, a template): the same `@`, `$`, `/` and `#` pickers and chips, without a chat behind it. The host hands in the CLI's `skills`, the `cwd` `@` searches and the `referables` `#` offers, and keeps the `PromptDraft` it gets back. `promptPicks(draft, referables)` turns what was picked into the `ChatSendExtras` a send takes once the prompt goes out.
+
+```tsx
+<PromptEditor value={draft} onChange={setDraft} label="Prompt" placeholder="What should the agent do?" skills={skills} cwd={folder} referables={referables} />
+```
+
 ## Sending
 
 `onSend(text, extras)` gets the trimmed text and `ChatSendExtras`: the `mentions`, `skills` and referenced `chats` picked, and the `attachments` as uploads. A quote becomes a Markdown quote above the text. The paths and skill names are also in the text; the lists are what the thread draws as chips.

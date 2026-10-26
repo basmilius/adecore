@@ -80,6 +80,7 @@ The views of a chat: the thread, the composer, messages, diffs, subagents, limit
 | [`chat/ui/LimitState`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/LimitState.tsx) | `LimitDock`, `LimitPill` |
 | [`chat/ui/Markdown`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/Markdown.tsx) | `ReplyMarkdown`, `MessageMarkdown`, `Markdown` |
 | [`chat/ui/Pickers`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/Pickers.tsx) | `ModelPicker` |
+| [`chat/ui/PromptEditor`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/PromptEditor.tsx) | `PromptEditor` |
 | [`chat/ui/ResumeCompactionDock`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/ResumeCompactionDock.tsx) | `ResumeCompactionDock` |
 | [`chat/ui/SubagentControls`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/SubagentControls.tsx) | `SubagentTitleCrumb`, `SubagentBreadcrumb` |
 | [`chat/ui/SubagentInfo`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/SubagentInfo.tsx) | `SubagentInfo` |
@@ -91,6 +92,7 @@ The views of a chat: the thread, the composer, messages, diffs, subagents, limit
 | [`chat/ui/VisualFrame`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/VisualFrame.tsx) | `VisualPageFrame`, `VisualPageFrameProps` |
 | [`chat/ui/Welcome`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/Welcome.tsx) | `WelcomeGreeting` |
 | [`chat/ui/composer/editor`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/composer/editor.ts) | `externalChange`, `composerEditorExtensions` |
+| [`chat/ui/composer/prompt-picks`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/composer/prompt-picks.ts) | `promptPicks` |
 | [`chat/ui/diff-syntax`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/diff-syntax.ts) | `createDiffSyntaxRuntime`, `diffSyntaxRuntime`, `DiffSyntaxRuntime`, `DiffSyntaxRuntimeOptions`, `DiffSyntaxSession`, `DiffSyntaxMapping`, `DiffSourceTokenSession`, `diffSourceTokens` |
 | [`chat/ui/diff-theme`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/diff-theme.ts) | `useDiffTheme` |
 | [`chat/ui/diff/diff-props`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/diff/diff-props.ts) | `UnifiedDiffProps` |
