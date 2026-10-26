@@ -10,9 +10,11 @@ export class ScriptedTransport implements LspTransport {
 
     send(message: RpcMessage): void {
         this.sent.push(message);
+
         if ('method' in message && message.method === 'initialize' && 'id' in message && this.autoInitialize) {
             queueMicrotask(() => this.emit({ jsonrpc: '2.0', id: message.id, result: { capabilities: this.autoInitialize } }));
         }
+
         if ('method' in message && message.method === 'shutdown' && 'id' in message) {
             queueMicrotask(() => this.emit({ jsonrpc: '2.0', id: message.id, result: null }));
         }
@@ -20,6 +22,7 @@ export class ScriptedTransport implements LspTransport {
 
     onMessage(listener: (message: unknown) => void) {
         this.messages.add(listener);
+
         return {
             dispose: () => {
                 this.messages.delete(listener);
@@ -29,6 +32,7 @@ export class ScriptedTransport implements LspTransport {
 
     onClose(listener: (error?: Error) => void) {
         this.closes.add(listener);
+
         return {
             dispose: () => {
                 this.closes.delete(listener);
@@ -78,6 +82,7 @@ export async function sessionWith(capabilities: ServerCapabilities = {}, options
     transport.autoInitialize = { textDocumentSync: 2, ...capabilities };
     const session = new LspSession(transport, options);
     await session.initialize();
+
     return { transport, session };
 }
 

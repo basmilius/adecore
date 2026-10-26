@@ -15,22 +15,28 @@ function slashed(path: string): string {
     if (!isWindowsPath(path)) {
         return path;
     }
+
     const forward = path.replaceAll('\\', '/');
+
     return /^[a-z]:/.test(forward) ? `${forward[0]!.toUpperCase()}${forward.slice(1)}` : forward;
 }
 
 function relativeTo(root: string, path: string): string | null {
     const prefix = root.endsWith('/') ? root : `${root}/`;
+
     return path.startsWith(prefix) ? path.slice(prefix.length) : null;
 }
 
 /* A pattern with the folder it is relative to, or null for a relative pattern whose base is no folder of this machine. */
 function patternOf(watcher: FileSystemWatcher): { base: string | undefined; pattern: string } | null {
     const { globPattern } = watcher;
+
     if (typeof globPattern === 'string') {
         return { base: undefined, pattern: globPattern };
     }
+
     const base = fileUriToPath(typeof globPattern.baseUri === 'string' ? globPattern.baseUri : globPattern.baseUri.uri);
+
     return base === null ? null : { base: slashed(base), pattern: globPattern.pattern };
 }
 
@@ -43,19 +49,25 @@ export function watchesFile(watchers: readonly FileSystemWatcher[], root: string
     const path = slashed(changed);
     const inProject = relativeTo(slashed(root), path);
     const segments = (inProject ?? path).split('/');
+
     return watchers.some((watcher) => {
         if (((watcher.kind ?? EVERY_CHANGE) & (1 << (type - 1))) === 0) {
             return false;
         }
+
         const parts = patternOf(watcher);
+
         if (parts === null) {
             return false;
         }
+
         const { base, pattern } = parts;
         const subject = pattern.startsWith('/') || /^[A-Za-z]:\//.test(pattern) ? path : base === undefined ? inProject : relativeTo(base, path);
+
         if (subject === null || !globMatch(subject, pattern)) {
             return false;
         }
+
         return SPARING_FOLDERS.every((folder) => !segments.includes(folder) || pattern.includes(folder));
     });
 }

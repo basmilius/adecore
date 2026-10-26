@@ -106,6 +106,7 @@ interface MutableCreate {
 /* The key a URI is known by: a folder spelled with a trailing slash is the same folder, except the root. */
 function keyOf(uri: string): string {
     const root = /^[^/:]+:\/\/[^/]*\/+$/.test(uri);
+
     return root ? uri : uri.replace(/\/+$/, '');
 }
 
@@ -116,10 +117,12 @@ function isUnder(uri: string, folder: string): boolean {
 function ancestorsOf(uri: string): string[] {
     const found: string[] = [];
     let end = uri.lastIndexOf('/');
+
     while (end > 0) {
         found.push(uri.slice(0, end));
         end = uri.lastIndexOf('/', end - 1);
     }
+
     return found;
 }
 
@@ -153,33 +156,42 @@ export async function planWorkspaceOperations(edit: WorkspaceEdit, source: Works
 
     const probe = (uri: string): Promise<Probe> => {
         let found = probes.get(uri);
+
         if (found === undefined) {
             found = (async () => {
                 const text = await source.read(uri);
+
                 return { text, exists: text !== null ? true : source.exists === undefined ? null : await source.exists(uri) };
             })();
+
             probes.set(uri, found);
         }
+
         return found;
     };
 
     const folderAt = (uri: string): Promise<boolean> => {
         let found = folders.get(uri);
+
         if (found === undefined) {
             found = source.isFolder === undefined ? Promise.resolve(true) : source.isFolder(uri);
             folders.set(uri, found);
         }
+
         return found;
     };
 
     const originOf = (uri: string): string => {
         let origin = uri;
+
         for (let i = moves.length - 1; i >= 0; i--) {
             const move = moves[i]!;
+
             if (origin === move.newUri || isUnder(origin, move.newUri)) {
                 origin = move.oldUri + origin.slice(move.newUri.length);
             }
         }
+
         return origin;
     };
 
@@ -187,32 +199,40 @@ export async function planWorkspaceOperations(edit: WorkspaceEdit, source: Works
         if (overlay.has(uri)) {
             return overlay.get(uri)!;
         }
+
         for (const ancestor of ancestorsOf(uri)) {
             if (overlay.has(ancestor)) {
                 const node = overlay.get(ancestor)!;
+
                 if (node === null || node.kind === 'text') {
                     return null;
                 }
+
                 break;
             }
         }
+
         const origin = originOf(uri);
         const found = await probe(origin);
         let node: Node | null = null;
+
         if (found.text !== null) {
             node = { kind: 'text', text: found.text.text, version: found.text.version, open: found.text.open, readUri: origin, create: null };
         } else if (found.exists !== false) {
             node = { kind: found.exists === null ? 'maybe' : 'other', text: '', version: null, open: false, readUri: origin, create: null };
         }
+
         if (node !== null) {
             overlay.set(uri, node);
         }
+
         return node;
     };
 
     const demand = (kind: ResourceOperationKind, uri: string): void => {
         if (!source.operations.includes(kind)) {
             const verb = kind === 'create' ? 'Creating' : kind === 'rename' ? 'Moving' : 'Deleting';
+
             throw new LspError(`${verb} ${uri} is not supported here`);
         }
     };
@@ -229,29 +249,37 @@ export async function planWorkspaceOperations(edit: WorkspaceEdit, source: Works
         if ('textDocument' in change) {
             return { ...change, textDocument: { ...change.textDocument, uri: keyOf(change.textDocument.uri) } };
         }
+
         if (change.kind === 'rename') {
             return { ...change, oldUri: keyOf(change.oldUri), newUri: keyOf(change.newUri) };
         }
+
         return { ...change, uri: keyOf(change.uri) };
     };
 
     for (const original of documentChangesOf(edit)) {
         const change = keyed(original);
+
         if ('textDocument' in change) {
             const { uri, version } = change.textDocument;
             const node = await lookup(uri);
+
             if (node === null || node.kind !== 'text') {
                 throw new LspError(`${uri} cannot be read as text`);
             }
+
             if (version !== null && node.create === null) {
                 if (!node.open) {
                     throw new LspError(`The version of ${uri} cannot be checked because no editor holds it`, ErrorCodes.ContentModified);
                 }
+
                 if (node.version !== null && node.version !== version) {
                     throw new LspError(`Workspace edit version mismatch: ${uri}`, ErrorCodes.ContentModified);
                 }
             }
+
             const after = applyTextEdits(node.text, change.edits);
+
             if (node.create !== null) {
                 node.create.text = after;
             } else {
@@ -266,21 +294,26 @@ export async function planWorkspaceOperations(edit: WorkspaceEdit, source: Works
                     open: node.open
                 });
             }
+
             node.text = after;
         } else if (change.kind === 'create') {
             demand('create', change.uri);
             const found = await lookup(change.uri);
             const there = found?.kind === 'maybe' ? null : found;
             const overwrite = change.options?.overwrite === true;
+
             if (there !== null && !overwrite) {
                 if (change.options?.ignoreIfExists === true) {
                     continue;
                 }
+
                 throw new LspError(`${change.uri} already exists`);
             }
+
             if (there !== null && there.kind === 'other') {
                 throw new LspError(`${change.uri} already exists and is not a text file`);
             }
+
             const made: MutableCreate = { kind: 'create', uri: change.uri, text: '', overwrite: there !== null };
             steps.push(made);
             overlay.set(change.uri, { kind: 'text', text: '', version: null, open: false, readUri: null, create: made });
@@ -288,53 +321,69 @@ export async function planWorkspaceOperations(edit: WorkspaceEdit, source: Works
             demand('rename', change.oldUri);
             const { oldUri, newUri } = change;
             const from = await lookup(oldUri);
+
             if (from === null) {
                 throw new LspError(`${oldUri} does not exist`);
             }
+
             if (oldUri === newUri) {
                 continue;
             }
+
             const target = await lookup(newUri);
             const taken = target?.kind === 'maybe' ? null : target;
             const overwrite = change.options?.overwrite === true;
+
             if (taken !== null && !overwrite) {
                 if (change.options?.ignoreIfExists === true) {
                     continue;
                 }
+
                 throw new LspError(`${newUri} already exists`);
             }
+
             const carried: Array<[string, Node | null]> = [];
+
             for (const [key, node] of overlay) {
                 if (key !== oldUri && isUnder(key, oldUri)) {
                     carried.push([newUri + key.slice(oldUri.length), node]);
                 }
             }
+
             forget(newUri);
             forget(oldUri);
             overlay.set(oldUri, null);
             overlay.set(newUri, from);
+
             for (const [key, node] of carried) {
                 overlay.set(key, node);
             }
+
             moves.push({ oldUri, newUri });
             steps.push({ kind: 'rename', oldUri, newUri, overwrite: taken !== null });
         } else {
             demand('delete', change.uri);
             const found = await lookup(change.uri);
+
             if (found === null) {
                 if (change.options?.ignoreIfNotExists === true) {
                     continue;
                 }
+
                 throw new LspError(`${change.uri} does not exist`);
             }
+
             const recursive = change.options?.recursive === true;
+
             if (found.kind !== 'text' && !recursive && (await folderAt(found.readUri ?? change.uri))) {
                 throw new LspError(`${change.uri} is a folder, or cannot be told from one, and is only deleted with recursive set`);
             }
+
             forget(change.uri);
             overlay.set(change.uri, null);
             steps.push({ kind: 'delete', uri: change.uri, recursive });
         }
     }
+
     return { steps: steps.map((step) => (step.kind === 'create' ? { ...step } : step)) };
 }

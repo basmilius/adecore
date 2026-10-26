@@ -66,6 +66,7 @@ export class JsonRpcConnection {
     constructor(transport: LspTransport, timeoutMs = 30_000) {
         this.transport = transport;
         this.timeoutMs = timeoutMs;
+
         this.subscriptions = [
             transport.onMessage((message) => {
                 void this.receive(message).catch((error) => this.reportError(error));
@@ -82,20 +83,27 @@ export class JsonRpcConnection {
         if (this.closed) {
             return Promise.reject(new LspError('LSP connection is closed'));
         }
+
         if (options.signal?.aborted) {
             return Promise.reject(cancelledError());
         }
+
         const id = ++this.nextId;
+
         return new Promise<T>((resolve, reject) => {
             let timer: ReturnType<typeof setTimeout> | undefined;
+
             const cancel = (error: LspError): void => {
                 if (!this.pending.has(id)) {
                     return;
                 }
+
                 this.settle(id, undefined, error);
                 void this.notify('$/cancelRequest', { id }).catch((failure) => this.reportError(failure));
             };
+
             const abort = (): void => cancel(cancelledError());
+
             this.pending.set(id, {
                 resolve: (value) => resolve(value as T),
                 reject,
@@ -104,11 +112,14 @@ export class JsonRpcConnection {
                     options.signal?.removeEventListener('abort', abort);
                 }
             });
+
             options.signal?.addEventListener('abort', abort, { once: true });
             const timeout = options.timeoutMs ?? this.timeoutMs;
+
             if (timeout > 0) {
                 timer = setTimeout(() => cancel(new LspError(`LSP request timed out: ${method}`, ErrorCodes.RequestCancelled)), timeout);
             }
+
             void this.send({ jsonrpc: '2.0', id, method, params }).catch((error) => this.settle(id, undefined, error));
         });
     }
@@ -121,7 +132,9 @@ export class JsonRpcConnection {
         if (this.handlers.has(method)) {
             throw new Error(`LSP request handler already registered: ${method}`);
         }
+
         this.handlers.set(method, handler);
+
         return {
             dispose: () => {
                 if (this.handlers.get(method) === handler) {
@@ -135,9 +148,11 @@ export class JsonRpcConnection {
         const listeners = this.notifications.get(method) ?? new Set<NotificationHandler>();
         this.notifications.set(method, listeners);
         listeners.add(listener);
+
         return {
             dispose: () => {
                 listeners.delete(listener);
+
                 if (listeners.size === 0) {
                     this.notifications.delete(method);
                 }
@@ -147,6 +162,7 @@ export class JsonRpcConnection {
 
     onError(listener: (error: Error) => void): Disposable {
         this.errors.add(listener);
+
         return {
             dispose: () => {
                 this.errors.delete(listener);
@@ -156,9 +172,11 @@ export class JsonRpcConnection {
 
     onClose(listener: (error?: Error) => void): Disposable {
         this.closes.add(listener);
+
         if (this.closed) {
             listener();
         }
+
         return {
             dispose: () => {
                 this.closes.delete(listener);
@@ -168,6 +186,7 @@ export class JsonRpcConnection {
 
     reportError(error: unknown): void {
         const normalized = asError(error);
+
         for (const listener of this.errors) {
             try {
                 listener(normalized);
@@ -187,19 +206,25 @@ export class JsonRpcConnection {
             if (this.closed) {
                 throw new LspError('LSP connection is closed');
             }
+
             await this.transport.send(message);
         });
+
         this.sendQueue = sent.catch((error) => this.finish(asError(error)));
+
         return sent;
     }
 
     private settle(id: RequestId, result?: unknown, error?: unknown): void {
         const request = this.pending.get(id);
+
         if (!request) {
             return;
         }
+
         this.pending.delete(id);
         request.cleanup();
+
         if (error !== undefined) {
             request.reject(error);
         } else {
@@ -211,21 +236,27 @@ export class JsonRpcConnection {
         if (this.closed) {
             return;
         }
+
         if (!value || typeof value !== 'object' || !('jsonrpc' in value) || value.jsonrpc !== '2.0') {
             throw new LspError('Invalid JSON-RPC message', ErrorCodes.InvalidRequest);
         }
+
         const message = value as RpcMessage;
+
         if ('method' in message) {
             if (typeof message.method !== 'string') {
                 throw new LspError('Invalid JSON-RPC method', ErrorCodes.InvalidRequest);
             }
+
             if ('id' in message) {
                 if (typeof message.id !== 'number' && typeof message.id !== 'string') {
                     throw new LspError('Invalid request id', ErrorCodes.InvalidRequest);
                 }
+
                 await this.handleRequest(message);
             } else if (message.method === '$/cancelRequest') {
                 const id = (message.params as { id?: RequestId } | undefined)?.id;
+
                 if (id !== undefined) {
                     this.incoming.get(id)?.abort();
                 }
@@ -254,18 +285,24 @@ export class JsonRpcConnection {
     private async handleRequest(message: RpcRequest): Promise<void> {
         const controller = new AbortController();
         this.incoming.set(message.id, controller);
+
         try {
             const handler = this.handlers.get(message.method);
+
             if (!handler) {
                 throw new LspError(`Unsupported server request: ${message.method}`, ErrorCodes.MethodNotFound);
             }
+
             const result = await handler(message.params, controller.signal);
+
             if (controller.signal.aborted) {
                 throw cancelledError();
             }
+
             await this.send({ jsonrpc: '2.0', id: message.id, result: result ?? null });
         } catch (error) {
             const failure = error instanceof LspError ? error : new LspError(asError(error).message);
+
             if (!this.closed) {
                 await this.send({ jsonrpc: '2.0', id: message.id, error: { code: failure.code, message: failure.message, data: failure.data } });
             }
@@ -278,18 +315,24 @@ export class JsonRpcConnection {
         if (this.closed) {
             return;
         }
+
         this.closed = true;
+
         for (const id of [...this.pending.keys()]) {
             this.settle(id, undefined, error ?? new LspError('LSP connection closed'));
         }
+
         for (const controller of this.incoming.values()) {
             controller.abort();
         }
+
         this.incoming.clear();
+
         // A transport that is closed already calls back from inside the constructor, before the subscriptions exist.
         for (const subscription of this.subscriptions ?? []) {
             subscription.dispose();
         }
+
         for (const listener of this.closes) {
             try {
                 listener(error);
@@ -297,9 +340,11 @@ export class JsonRpcConnection {
                 this.reportError(failure);
             }
         }
+
         this.handlers.clear();
         this.notifications.clear();
         this.closes.clear();
+
         if (error) {
             this.reportError(error);
         }

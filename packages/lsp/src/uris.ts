@@ -11,12 +11,16 @@ export function isWindowsPath(path: string): boolean {
 export function pathToFileUri(path: string): string {
     const windows = isWindowsPath(path);
     const normalized = windows ? path.replaceAll('\\', '/') : path;
+
     if (windows && normalized.startsWith('//')) {
         const [host = '', ...segments] = normalized.slice(2).split('/');
+
         return `file://${encodeURIComponent(host)}/${segments.map(encodeURIComponent).join('/')}`;
     }
+
     const rooted = normalized.startsWith('/') ? normalized : `/${normalized}`;
     const segments = rooted.split('/').map((segment, index) => (index === 1 && isWindowsDrive(segment) ? segment : encodeURIComponent(segment)));
+
     return `file://${segments.join('/')}`;
 }
 
@@ -24,22 +28,27 @@ export function pathToFileUri(path: string): string {
 export function fileUriToPath(uri: string): string | null {
     let url: URL;
     let path: string;
+
     try {
         url = new URL(uri);
         path = decodeURIComponent(url.pathname);
     } catch {
         return null;
     }
+
     if (url.protocol !== 'file:') {
         return null;
     }
+
     // A server in the URI names a UNC share, which only Windows reads as a path.
     if (url.hostname !== '' && url.hostname !== 'localhost') {
         return `\\\\${url.hostname}${path.replaceAll('/', '\\')}`;
     }
+
     if (/^\/[A-Za-z]:/.test(path)) {
         return path.slice(1).replaceAll('/', '\\');
     }
+
     return path;
 }
 
@@ -49,8 +58,10 @@ export function fileUriToPath(uri: string): string | null {
  */
 export function fileUriKey(uri: string): string {
     const path = fileUriToPath(uri);
+
     if (path === null || !/^[A-Za-z]:\\/.test(path)) {
         return uri;
     }
+
     return pathToFileUri(`${path[0]!.toUpperCase()}${path.slice(1)}`);
 }

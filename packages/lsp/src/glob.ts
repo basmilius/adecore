@@ -7,11 +7,14 @@ function escapeRegex(char: string): string {
 function compileGlob(pattern: string): RegExp | null {
     let expression = '';
     let depth = 0;
+
     for (let i = 0; i < pattern.length; i++) {
         const char = pattern[i];
+
         if (char === '*') {
             if (pattern[i + 1] === '*') {
                 i++;
+
                 if (pattern[i + 1] === '/') {
                     expression += '(?:.*/)?';
                     i++;
@@ -25,6 +28,7 @@ function compileGlob(pattern: string): RegExp | null {
             expression += '[^/]';
         } else if (char === '[') {
             const close = pattern.indexOf(']', i + 2);
+
             if (close === -1) {
                 expression += '\\[';
             } else {
@@ -44,6 +48,7 @@ function compileGlob(pattern: string): RegExp | null {
             expression += escapeRegex(char);
         }
     }
+
     try {
         return new RegExp(`^${expression}$`);
     } catch {
@@ -56,5 +61,6 @@ export function globMatch(path: string, pattern: string): boolean {
     if (!compiled.has(pattern)) {
         compiled.set(pattern, compileGlob(pattern));
     }
+
     return compiled.get(pattern)?.test(path) ?? false;
 }

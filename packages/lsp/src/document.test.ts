@@ -33,6 +33,7 @@ describe('versioned language documents', () => {
                 }
             }
         ]);
+
         await document.updateText('🙂\r\nfinal');
         expect(document.version).toBe(3);
         await session.shutdown();
@@ -41,10 +42,12 @@ describe('versioned language documents', () => {
     it('forwards incremental changes as they are and raises the version once per call', async () => {
         const { session, transport } = await sessionWith();
         const document = session.openDocument({ uri: 'file:///main.ts', languageId: 'typescript', text: 'abc' });
+
         const changes = [
             { range: { start: { line: 0, character: 1 }, end: { line: 0, character: 2 } }, text: 'XY' },
             { range: { start: { line: 0, character: 3 }, end: { line: 0, character: 3 } }, text: '!' }
         ];
+
         await document.applyChanges(changes);
         expect(document.text).toBe('aXY!c');
         expect(document.version).toBe(2);
@@ -53,6 +56,7 @@ describe('versioned language documents', () => {
             method: 'textDocument/didChange',
             params: { textDocument: { uri: document.uri, version: 2 }, contentChanges: changes }
         });
+
         await document.applyChanges([{ text: 'aXY!c' }]);
         expect(document.version).toBe(3);
         await session.shutdown();
@@ -73,9 +77,11 @@ describe('versioned language documents', () => {
         const { session, transport } = await sessionWith();
         const document = session.openDocument({ uri: 'file:///main.ts', languageId: 'typescript', text: 'a😀b' });
         await document.updateText('a😁b');
+
         expect(transport.sent.at(-1)).toMatchObject({
             params: { contentChanges: [{ text: '😁', range: { start: { line: 0, character: 1 }, end: { line: 0, character: 3 } } }] }
         });
+
         await session.shutdown();
     });
 
@@ -84,6 +90,7 @@ describe('versioned language documents', () => {
         const document = session.openDocument({ uri: 'file:///main.ts', languageId: 'typescript', text: 'old' });
         await document.applyChanges([{ range: { start: { line: 0, character: 0 }, end: { line: 0, character: 3 } }, text: 'new' }]);
         await document.save();
+
         expect(transport.sent).toContainEqual({
             jsonrpc: '2.0',
             method: 'textDocument/didChange',
@@ -99,7 +106,9 @@ describe('versioned language documents', () => {
         const typed = 'const typed = 50;'.repeat(3).slice(0, 50);
         const updates = [...typed].map((_, index) => document.updateText(typed.slice(0, index + 1)));
         await Promise.all(updates);
+
         const changes = () => transport.sent.filter((message) => 'method' in message && message.method === 'textDocument/didChange');
+
         expect(changes()).toEqual([
             {
                 jsonrpc: '2.0',
@@ -107,6 +116,7 @@ describe('versioned language documents', () => {
                 params: { textDocument: { uri: document.uri, version: 51 }, contentChanges: [{ text: typed }] }
             }
         ]);
+
         await document.updateText('');
         expect(changes()).toHaveLength(2);
         expect(changes()[1]).toMatchObject({ params: { textDocument: { version: 52 }, contentChanges: [{ text: '' }] } });
@@ -118,6 +128,7 @@ describe('versioned language documents', () => {
             { textDocumentSync: { openClose: true, change: 1, save: true }, hoverProvider: true },
             { fullSyncDelayMs: 60_000 }
         );
+
         const document = session.openDocument({ uri: 'file:///main.ts', languageId: 'typescript', text: 'a' });
         const typing = [document.updateText('ab'), document.updateText('abc')];
         const hover = document.hover(origin);
@@ -192,9 +203,11 @@ describe('versioned language documents', () => {
         await rejected;
         transport.respond('textDocument/hover', { contents: 'stale' });
         expect(item).toBeTruthy();
+
         if (item) {
             await expect(document.resolveCompletion(item)).rejects.toBeInstanceOf(StaleResultError);
         }
+
         expect(transport.request('completionItem/resolve')).toBeUndefined();
         await session.shutdown();
     });
@@ -235,10 +248,12 @@ describe('versioned language documents', () => {
         transport.emit({ jsonrpc: '2.0', method: 'textDocument/publishDiagnostics', params: { uri: document.uri, version: 2, diagnostics: [diagnostic] } });
         await document.close();
         transport.emit({ jsonrpc: '2.0', method: 'textDocument/publishDiagnostics', params: { uri: document.uri, version: 2, diagnostics: [diagnostic] } });
+
         expect(observed).toEqual([
             { uri: document.uri, version: 2, diagnostics: [diagnostic] },
             { uri: document.uri, diagnostics: [] }
         ]);
+
         await session.shutdown();
     });
 
@@ -302,6 +317,7 @@ describe('versioned language documents', () => {
         expect(await resolved).toMatchObject({ command: { title: '1 reference' } });
         await session.shutdown();
     });
+
     it('asks for the selection ranges around positions and refuses when the server has none', async () => {
         const { session, transport } = await sessionWith({ selectionRangeProvider: true });
         const document = session.openDocument({ uri: 'file:///main.ts', languageId: 'typescript', text: 'x' });
@@ -343,6 +359,7 @@ describe('versioned language documents', () => {
         const prepared = document.prepareCallHierarchy(origin);
         await flush();
         expect(transport.request('textDocument/prepareCallHierarchy').params).toEqual({ textDocument: { uri: document.uri }, position: origin });
+
         const item = {
             name: 'run',
             kind: 12 as const,
@@ -351,6 +368,7 @@ describe('versioned language documents', () => {
             selectionRange: { start: origin, end: origin },
             data: 7
         };
+
         transport.respond('textDocument/prepareCallHierarchy', [item]);
         expect(await prepared).toEqual([item]);
         const incoming = document.incomingCalls(item);
@@ -379,6 +397,7 @@ describe('versioned language documents', () => {
         const { session, transport } = await sessionWith({
             documentOnTypeFormattingProvider: { firstTriggerCharacter: '}', moreTriggerCharacter: [';', '\n'] }
         });
+
         const initialize = transport.request('initialize').params as { capabilities: { textDocument: { onTypeFormatting: unknown } } };
         expect(initialize.capabilities.textDocument.onTypeFormatting).toEqual({ dynamicRegistration: true });
         expect(session.providerOptions('textDocument/onTypeFormatting')).toEqual({ firstTriggerCharacter: '}', moreTriggerCharacter: [';', '\n'] });
@@ -386,18 +405,22 @@ describe('versioned language documents', () => {
         const position = { line: 0, character: 1 };
         const edits = document.onTypeFormatting(position, ';', { tabSize: 4, insertSpaces: true });
         await flush();
+
         expect(transport.request('textDocument/onTypeFormatting').params).toEqual({
             textDocument: { uri: document.uri },
             position,
             ch: ';',
             options: { tabSize: 4, insertSpaces: true }
         });
+
         const result = [{ range: { start: origin, end: origin }, newText: '  ' }];
         transport.respond('textDocument/onTypeFormatting', result);
         expect(await edits).toEqual(result);
+
         const stale = rejecting(document.onTypeFormatting(position, ';', { tabSize: 4, insertSpaces: true }), (error) =>
             expect(error).toBeInstanceOf(StaleResultError)
         );
+
         await flush();
         await document.updateText('xy');
         await stale;

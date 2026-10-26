@@ -12,6 +12,7 @@ describe('the filters of a file operation', () => {
             { scheme: 'file', pattern: { glob: '**/*.php', matches: 'file' as const } },
             { scheme: 'file', pattern: { glob: '**', matches: 'folder' as const } }
         ];
+
         expect(renamesTaken(filters, [user, models])).toEqual([
             { oldUri: user.oldUri, newUri: user.newUri },
             { oldUri: models.oldUri, newUri: models.newUri }
@@ -47,6 +48,7 @@ describe('telling a server about renamed files', () => {
             willDelete: true,
             didDelete: true
         });
+
         await session.shutdown();
     });
 
@@ -56,11 +58,13 @@ describe('telling a server about renamed files', () => {
         const session = new LspSession(transport, { resourceOperations: ['create', 'rename', 'delete'] });
         await session.initialize();
         const { capabilities } = transport.request('initialize').params as { capabilities: { workspace: Record<string, unknown> } };
+
         expect(capabilities.workspace.workspaceEdit).toEqual({
             documentChanges: true,
             resourceOperations: ['create', 'rename', 'delete'],
             failureHandling: 'abort'
         });
+
         await session.shutdown();
     });
 
@@ -68,6 +72,7 @@ describe('telling a server about renamed files', () => {
         const { transport, session } = await sessionWith({
             workspace: { fileOperations: { willRename: { filters: [{ scheme: 'file', pattern: { glob: '**/*.php', matches: 'file' } }] } } }
         });
+
         const asked = session.willRenameFiles([user, { ...user, oldUri: 'file:///work/a.txt', newUri: 'file:///work/b.txt' }]);
         await flush();
         expect(transport.request('workspace/willRenameFiles').params).toEqual({ files: [{ oldUri: user.oldUri, newUri: user.newUri }] });
@@ -81,6 +86,7 @@ describe('telling a server about renamed files', () => {
     it('takes the filters of a registration too, and lets go of them again', async () => {
         const { transport, session } = await sessionWith({});
         expect(await session.willRenameFiles([user])).toBeNull();
+
         transport.emit({
             jsonrpc: '2.0',
             id: 200,
@@ -89,15 +95,18 @@ describe('telling a server about renamed files', () => {
                 registrations: [{ id: 'rename', method: 'workspace/willRenameFiles', registerOptions: { filters: [{ pattern: { glob: '**/*.php' } }] } }]
             }
         });
+
         await flush();
         expect(session.fileOperationFilters('willRename')).toHaveLength(1);
         expect(session.fileOperationFilters('didRename')).toEqual([]);
+
         transport.emit({
             jsonrpc: '2.0',
             id: 201,
             method: 'client/unregisterCapability',
             params: { unregisterations: [{ id: 'rename', method: 'workspace/willRenameFiles' }] }
         });
+
         await flush();
         expect(session.fileOperationFilters('willRename')).toEqual([]);
         await session.shutdown();
@@ -106,11 +115,13 @@ describe('telling a server about renamed files', () => {
     it('notifies only of what its filters take', async () => {
         const { transport, session } = await sessionWith({ workspace: { fileOperations: { didRename: { filters: [{ pattern: { glob: '**/*.php' } }] } } } });
         await session.didRenameFiles([user, models]);
+
         expect(transport.sent).toContainEqual({
             jsonrpc: '2.0',
             method: 'workspace/didRenameFiles',
             params: { files: [{ oldUri: user.oldUri, newUri: user.newUri }] }
         });
+
         await session.didRenameFiles([models]);
         expect(transport.sent.filter((message) => 'method' in message && message.method === 'workspace/didRenameFiles')).toHaveLength(1);
         await session.shutdown();
@@ -120,6 +131,7 @@ describe('telling a server about renamed files', () => {
 describe('telling a server about created and deleted files', () => {
     const made = { uri: 'file:///work/src/Models/Post.php', directory: false };
     const folder = { uri: 'file:///work/src/Models', directory: true };
+
     const kinds = [
         { name: 'create', taken: createsTaken, will: 'willCreateFiles', did: 'didCreateFiles', ask: 'willCreate', tell: 'didCreate' },
         { name: 'delete', taken: deletesTaken, will: 'willDeleteFiles', did: 'didDeleteFiles', ask: 'willDelete', tell: 'didDelete' }
@@ -138,6 +150,7 @@ describe('telling a server about created and deleted files', () => {
             const { transport, session } = await sessionWith({
                 workspace: { fileOperations: { [kind.ask]: { filters: [{ pattern: { glob: '**/*.php', matches: 'file' } }] } } }
             });
+
             const asked = session[kind.will]([made, folder, { uri: 'file:///work/a.txt', directory: false }]);
             await flush();
             expect(transport.request(`workspace/${kind.will}`).params).toEqual({ files: [{ uri: made.uri }] });
@@ -152,6 +165,7 @@ describe('telling a server about created and deleted files', () => {
             const { transport, session } = await sessionWith({ workspace: { fileOperations: { [kind.ask]: { filters: [{ pattern: { glob: '**' } }] } } } });
             await session[kind.did]([made]);
             expect(transport.sent.filter((message) => 'method' in message && message.method === `workspace/${kind.did}`)).toHaveLength(0);
+
             transport.emit({
                 jsonrpc: '2.0',
                 id: 300,
@@ -160,6 +174,7 @@ describe('telling a server about created and deleted files', () => {
                     registrations: [{ id: kind.tell, method: `workspace/${kind.did}`, registerOptions: { filters: [{ pattern: { glob: '**/*.php' } }] } }]
                 }
             });
+
             await flush();
             await session[kind.did]([made, folder]);
             expect(transport.sent).toContainEqual({ jsonrpc: '2.0', method: `workspace/${kind.did}`, params: { files: [{ uri: made.uri }] } });

@@ -9,9 +9,11 @@ describe('Content-Length framing', () => {
         const decoder = new ContentLengthDecoder();
         const bytes = new Uint8Array([...encodeMessage(hello), ...encodeMessage({ ...hello, method: 'second' })]);
         const messages: unknown[] = [];
+
         for (let i = 0; i < bytes.length; i += 7) {
             messages.push(...decoder.accept(bytes.subarray(i, i + 7)));
         }
+
         expect(messages).toEqual([hello, { ...hello, method: 'second' }]);
         expect(decoder.accept(bytes)).toHaveLength(2);
     });
@@ -33,22 +35,26 @@ function fakeStream() {
     const closeListeners = new Set<(error?: Error) => void>();
     const written: Uint8Array[] = [];
     let closed = false;
+
     const stream: ByteStream = {
         write: (chunk) => {
             written.push(chunk);
         },
         onData: (listener) => {
             dataListeners.add(listener);
+
             return { dispose: () => dataListeners.delete(listener) };
         },
         onClose: (listener) => {
             closeListeners.add(listener);
+
             return { dispose: () => closeListeners.delete(listener) };
         },
         close: () => {
             closed = true;
         }
     };
+
     return {
         stream,
         written,
@@ -160,6 +166,7 @@ describe('WebSocket transport', () => {
         socket.bufferedAmount = 9 * 1024 * 1024;
         // A stopped clock, so a slow runner cannot reach the deadline while the send is held on purpose.
         setSystemTime(new Date(0));
+
         try {
             const sending = transport.send(hello);
             await new Promise((resolve) => setTimeout(resolve, 30));
@@ -169,6 +176,7 @@ describe('WebSocket transport', () => {
         } finally {
             setSystemTime();
         }
+
         expect(socket.sent.map((data) => JSON.parse(data))).toEqual([hello]);
 
         const stuck = new FakeSocket();

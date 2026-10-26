@@ -7,6 +7,7 @@ const a = 'file:///work/a.ts';
 const b = 'file:///work/b.ts';
 const c = 'file:///work/c.ts';
 const dir = 'file:///work/dir';
+
 const insert = (text: string) => ({ range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } }, newText: text });
 
 interface Rig {
@@ -24,23 +25,27 @@ function rig(
 ): Rig {
     const reads: string[] = [];
     const probes: string[] = [];
+
     const source: WorkspaceEditSource = {
         operations,
         read: async (uri) => {
             reads.push(uri);
             const file = files[uri];
+
             return file === undefined ? null : { text: file.text ?? '', version: file.version ?? null, open: file.open ?? false };
         },
         ...(knowsExists
             ? {
                   exists: async (uri: string) => {
                       probes.push(uri);
+
                       return others.includes(uri);
                   }
               }
             : {}),
         ...(folders === undefined ? {} : { isFolder: async (uri: string) => folders.includes(uri) })
     };
+
     return { source, reads, probes };
 }
 
@@ -50,12 +55,14 @@ async function refusal(edit: WorkspaceEdit, source: WorkspaceEditSource): Promis
     } catch (error) {
         return error as LspError;
     }
+
     throw new Error('Expected the plan to be refused');
 }
 
 describe('planning text edits', () => {
     it('plans the edits of legacy changes without a version check and reads each file once', async () => {
         const { source, reads } = rig({ [a]: { text: 'one', version: 4, open: true } });
+
         const plan = await planWorkspaceOperations(
             {
                 documentChanges: [
@@ -65,6 +72,7 @@ describe('planning text edits', () => {
             },
             source
         );
+
         expect(plan.steps).toMatchObject([
             { kind: 'edits', uri: a, readUri: a, before: 'one', after: 'xone', version: 4, open: true },
             { kind: 'edits', uri: a, before: 'xone', after: 'yxone' }
@@ -102,6 +110,7 @@ describe('planning text edits', () => {
 describe('planning a create', () => {
     it('makes a file that is not there and collects the later edits in its text', async () => {
         const { source } = rig({});
+
         const plan = await planWorkspaceOperations(
             {
                 documentChanges: [
@@ -112,11 +121,13 @@ describe('planning a create', () => {
             },
             source
         );
+
         expect(plan.steps).toEqual([{ kind: 'create', uri: a, text: 'say hello', overwrite: false }]);
     });
 
     it('does not check the version of a file it makes', async () => {
         const { source } = rig({});
+
         const plan = await planWorkspaceOperations(
             {
                 documentChanges: [
@@ -126,12 +137,14 @@ describe('planning a create', () => {
             },
             source
         );
+
         expect(plan.steps).toEqual([{ kind: 'create', uri: a, text: 'x', overwrite: false }]);
     });
 
     it('refuses an existing file by default and edits it after an ignored create', async () => {
         const { source } = rig({ [a]: { text: 'old' } });
         expect((await refusal({ documentChanges: [{ kind: 'create', uri: a }] }, source)).message).toContain('already exists');
+
         const left = await planWorkspaceOperations(
             {
                 documentChanges: [
@@ -141,18 +154,22 @@ describe('planning a create', () => {
             },
             source
         );
+
         expect(left.steps).toMatchObject([{ kind: 'edits', before: 'old', after: 'xold' }]);
     });
 
     it('plans each combination of overwrite and ignoreIfExists for a create', async () => {
         const there = rig({ [a]: { text: 'old' } }).source;
         const missing = rig({}).source;
+
         const plan = async (source: WorkspaceEditSource, options: { overwrite?: boolean; ignoreIfExists?: boolean }) =>
             (await planWorkspaceOperations({ documentChanges: [{ kind: 'create', uri: a, options }] }, source)).steps;
+
         expect(await plan(there, { overwrite: true })).toEqual([{ kind: 'create', uri: a, text: '', overwrite: true }]);
         expect(await plan(there, { overwrite: true, ignoreIfExists: true })).toEqual([{ kind: 'create', uri: a, text: '', overwrite: true }]);
         expect(await plan(there, { ignoreIfExists: true })).toEqual([]);
         expect(await plan(there, { overwrite: false, ignoreIfExists: false }).catch((error: LspError) => error.message)).toContain('already exists');
+
         for (const options of [{ overwrite: true }, { ignoreIfExists: true }, { overwrite: true, ignoreIfExists: true }, {}]) {
             expect(await plan(missing, options)).toEqual([{ kind: 'create', uri: a, text: '', overwrite: false }]);
         }
@@ -160,6 +177,7 @@ describe('planning a create', () => {
 
     it('keeps the text edits after an overwriting create as the new text of the file', async () => {
         const { source } = rig({ [a]: { text: 'old' } });
+
         const plan = await planWorkspaceOperations(
             {
                 documentChanges: [
@@ -169,6 +187,7 @@ describe('planning a create', () => {
             },
             source
         );
+
         expect(plan.steps).toEqual([{ kind: 'create', uri: a, text: 'fresh', overwrite: true }]);
     });
 
@@ -186,6 +205,7 @@ describe('planning a create', () => {
 describe('planning a rename', () => {
     it('reads the edits that follow a rename from where the file stood', async () => {
         const { source, reads } = rig({ [a]: { text: 'one' } });
+
         const plan = await planWorkspaceOperations(
             {
                 documentChanges: [
@@ -196,6 +216,7 @@ describe('planning a rename', () => {
             },
             source
         );
+
         expect(plan.steps).toMatchObject([
             { kind: 'edits', uri: a, readUri: a, after: '1one' },
             { kind: 'rename', oldUri: a, newUri: b, overwrite: false },
@@ -206,6 +227,7 @@ describe('planning a rename', () => {
 
     it('moves the files under a renamed folder along', async () => {
         const { source } = rig({ [`${dir}/x.ts`]: { text: 'x' } }, [dir]);
+
         const plan = await planWorkspaceOperations(
             {
                 documentChanges: [
@@ -215,11 +237,13 @@ describe('planning a rename', () => {
             },
             source
         );
+
         expect(plan.steps).toMatchObject([{ kind: 'rename' }, { kind: 'edits', uri: 'file:///work/moved/x.ts', readUri: `${dir}/x.ts`, after: 'yx' }]);
     });
 
     it('refuses edits to the old place after a rename, and a source that is not there', async () => {
         const { source } = rig({ [a]: { text: 'one' } });
+
         const after = await refusal(
             {
                 documentChanges: [
@@ -229,6 +253,7 @@ describe('planning a rename', () => {
             },
             source
         );
+
         expect(after.message).toContain('cannot be read as text');
         expect((await refusal({ documentChanges: [{ kind: 'rename', oldUri: c, newUri: b, options: { ignoreIfExists: true } }] }, source)).message).toContain(
             'does not exist'
@@ -243,13 +268,16 @@ describe('planning a rename', () => {
     it('plans each combination of overwrite and ignoreIfExists for a rename', async () => {
         const there = rig({ [a]: { text: 'a' }, [b]: { text: 'b' } }).source;
         const free = rig({ [a]: { text: 'a' } }).source;
+
         const plan = async (source: WorkspaceEditSource, options: { overwrite?: boolean; ignoreIfExists?: boolean }) =>
             (await planWorkspaceOperations({ documentChanges: [{ kind: 'rename', oldUri: a, newUri: b, options }] }, source)).steps;
+
         const replaced = [{ kind: 'rename' as const, oldUri: a, newUri: b, overwrite: true }];
         expect(await plan(there, { overwrite: true })).toEqual(replaced);
         expect(await plan(there, { overwrite: true, ignoreIfExists: true })).toEqual(replaced);
         expect(await plan(there, { ignoreIfExists: true })).toEqual([]);
         expect(await plan(there, { overwrite: false, ignoreIfExists: false }).catch((error: LspError) => error.message)).toContain('already exists');
+
         for (const options of [{ overwrite: true }, { ignoreIfExists: true }, { overwrite: true, ignoreIfExists: true }]) {
             expect(await plan(free, options)).toEqual([{ kind: 'rename', oldUri: a, newUri: b, overwrite: false }]);
         }
@@ -263,6 +291,7 @@ describe('planning a rename', () => {
 
     it('moves a file the plan makes, with the text collected so far', async () => {
         const { source } = rig({});
+
         const plan = await planWorkspaceOperations(
             {
                 documentChanges: [
@@ -273,6 +302,7 @@ describe('planning a rename', () => {
             },
             source
         );
+
         expect(plan.steps).toEqual([
             { kind: 'create', uri: a, text: 'x', overwrite: false },
             { kind: 'rename', oldUri: a, newUri: b, overwrite: false }
@@ -290,6 +320,7 @@ describe('planning a delete', () => {
         const { source } = rig({ [a]: { text: 'one' } });
         const plan = await planWorkspaceOperations({ documentChanges: [{ kind: 'delete', uri: a }] }, source);
         expect(plan.steps).toEqual([{ kind: 'delete', uri: a, recursive: false }]);
+
         const later = await refusal(
             {
                 documentChanges: [
@@ -299,6 +330,7 @@ describe('planning a delete', () => {
             },
             source
         );
+
         expect(later.message).toContain('cannot be read as text');
     });
 
@@ -322,6 +354,7 @@ describe('planning a delete', () => {
 
     it('refuses edits to a file under a deleted folder', async () => {
         const { source } = rig({ [`${dir}/x.ts`]: { text: 'x' } }, [dir]);
+
         const error = await refusal(
             {
                 documentChanges: [
@@ -331,6 +364,7 @@ describe('planning a delete', () => {
             },
             source
         );
+
         expect(error.message).toContain('cannot be read as text');
     });
 
@@ -343,19 +377,23 @@ describe('planning a delete', () => {
 describe('planning against a source that cannot say what exists', () => {
     it('plans a rename of something it has no text for, onto a target as no overwrite', async () => {
         const { source } = rig({}, [], ['create', 'rename', 'delete'], undefined, false);
+
         const plan = await planWorkspaceOperations(
             { documentChanges: [{ kind: 'rename', oldUri: dir, newUri: `${dir}2`, options: { overwrite: true } }] },
             source
         );
+
         expect(plan.steps).toEqual([{ kind: 'rename', oldUri: dir, newUri: `${dir}2`, overwrite: false }]);
     });
 
     it('passes ignoreIfNotExists on to the host for a recursive delete of something it has no text for', async () => {
         const { source } = rig({}, [], ['delete'], undefined, false);
+
         const plan = await planWorkspaceOperations(
             { documentChanges: [{ kind: 'delete', uri: b, options: { ignoreIfNotExists: true, recursive: true } }] },
             source
         );
+
         expect(plan.steps).toEqual([{ kind: 'delete', uri: b, recursive: true }]);
     });
 
@@ -393,6 +431,7 @@ describe('planning with a version the source cannot report', () => {
 describe('planning with folders spelled with a trailing slash', () => {
     it('keeps a deleted folder deleted for the files under it, whichever way it was spelled', async () => {
         const { source } = rig({ [`${dir}/x.ts`]: { text: 'x' } }, [dir]);
+
         const error = await refusal(
             {
                 documentChanges: [
@@ -402,11 +441,13 @@ describe('planning with folders spelled with a trailing slash', () => {
             },
             source
         );
+
         expect(error.message).toContain('cannot be read as text');
     });
 
     it('keeps a folder and a sibling that shares its prefix apart', async () => {
         const { source } = rig({ [`${dir}c/x.ts`]: { text: 'x' } }, [dir]);
+
         const plan = await planWorkspaceOperations(
             {
                 documentChanges: [
@@ -416,11 +457,13 @@ describe('planning with folders spelled with a trailing slash', () => {
             },
             source
         );
+
         expect(plan.steps.map((step) => step.kind)).toEqual(['delete', 'edits']);
     });
 
     it('moves the files under a folder renamed with a trailing slash', async () => {
         const { source } = rig({ [`${dir}/x.ts`]: { text: 'x' } }, [dir]);
+
         const plan = await planWorkspaceOperations(
             {
                 documentChanges: [
@@ -430,6 +473,7 @@ describe('planning with folders spelled with a trailing slash', () => {
             },
             source
         );
+
         expect(plan.steps[1]).toMatchObject({ kind: 'edits', readUri: `${dir}/x.ts` });
     });
 });

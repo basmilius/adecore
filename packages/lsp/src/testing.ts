@@ -39,39 +39,50 @@ export class FakeLanguageServer {
 
     constructor(transport: LspTransport, options: FakeLanguageServerOptions = {}) {
         this.connection = new JsonRpcConnection(transport, 0);
+
         transport.onMessage((message) => {
             const { method, params, id } = message as ReceivedMessage;
+
             if (typeof method === 'string') {
                 this.received.push({ method, params, id });
             }
         });
+
         this.connection.onRequest('initialize', () =>
             options.silent
                 ? new Promise<never>(() => undefined)
                 : { capabilities: options.capabilities ?? { textDocumentSync: 2 }, serverInfo: options.serverInfo }
         );
+
         this.connection.onRequest('shutdown', () => {
             this.shutdownRequested = true;
+
             return null;
         });
+
         this.connection.onNotification('exit', () => {
             this.exited = true;
         });
+
         this.connection.onNotification('textDocument/didOpen', (params) => {
             const { textDocument } = params as { textDocument: { uri: string; languageId: string; text: string; version: number } };
             this.documents.set(textDocument.uri, { languageId: textDocument.languageId, text: textDocument.text, version: textDocument.version });
         });
+
         this.connection.onNotification('textDocument/didChange', (params) => {
             const { textDocument, contentChanges } = params as { textDocument: { uri: string; version: number }; contentChanges: ContentChange[] };
             const document = this.documents.get(textDocument.uri);
+
             if (document) {
                 document.text = applyContentChanges(document.text, contentChanges);
                 document.version = textDocument.version;
             }
         });
+
         this.connection.onNotification('textDocument/didClose', (params) => {
             this.documents.delete((params as { textDocument: { uri: string } }).textDocument.uri);
         });
+
         for (const [method, handler] of Object.entries(options.handlers ?? {})) {
             this.connection.onRequest(method, handler);
         }

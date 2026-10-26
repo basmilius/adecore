@@ -115,10 +115,13 @@ function matches(options: ProviderOptions, document?: Pick<DocumentItem, 'uri' |
     if (options.documentSelector == null) {
         return true;
     }
+
     if (!document) {
         return options.documentSelector.length > 0;
     }
+
     const url = new URL(document.uri);
+
     return options.documentSelector.some(
         (filter) =>
             (!filter.language || filter.language === document.languageId) &&
@@ -132,18 +135,23 @@ function offersMethod(method: string, options: ProviderOptions): boolean {
     if (method.endsWith('/resolve')) {
         return options.resolveProvider === true;
     }
+
     if (method === 'textDocument/prepareRename') {
         return options.prepareProvider === true;
     }
+
     if (method === 'textDocument/semanticTokens/full/delta') {
         return typeof options.full === 'object' && options.full.delta === true;
     }
+
     if (method === 'textDocument/semanticTokens/full') {
         return !!options.full;
     }
+
     if (method === 'textDocument/semanticTokens/range') {
         return !!options.range;
     }
+
     return true;
 }
 
@@ -166,54 +174,75 @@ export class LspSession {
         this.options = options;
         this.connection = new JsonRpcConnection(transport, options.timeoutMs);
         this.configuration = options.configuration ?? {};
+
         this.connection.onClose(() => {
             this.phase = 'closed';
+
             for (const document of [...this.documents.values()]) {
                 document.disconnect();
             }
         });
+
         this.connection.onNotification('textDocument/publishDiagnostics', (params) => {
             const diagnostics = params as PublishDiagnosticsParams;
             const document = this.documents.get(fileUriKey(diagnostics.uri));
+
             if (!document || document.isClosed || (diagnostics.version !== undefined && diagnostics.version !== document.version)) {
                 return;
             }
+
             this.emitDiagnostics({ ...diagnostics, uri: document.uri });
         });
+
         this.connection.onRequest('workspace/configuration', async (params) => {
             const { items } = params as { items: ConfigurationItem[] };
+
             return Promise.all(items.map((item) => (options.onConfiguration ? options.onConfiguration(item) : this.readConfiguration(item.section))));
         });
+
         this.connection.onRequest('workspace/workspaceFolders', () => this.workspaceFolders);
+
         this.connection.onRequest(
             'workspace/applyEdit',
             (params) => options.onApplyEdit?.(params as ApplyWorkspaceEditParams) ?? { applied: false, failureReason: 'No workspace edit handler is attached' }
         );
+
         this.connection.onRequest(
             'window/showMessageRequest',
             (params) => options.onShowMessage?.(params as Parameters<NonNullable<LspSessionOptions['onShowMessage']>>[0]) ?? null
         );
+
         this.connection.onRequest('window/workDoneProgress/create', () => null);
+
         this.connection.onRequest('client/registerCapability', (params) => {
             const { registrations } = params as { registrations: Registration[] };
+
             for (const registration of registrations) {
                 this.registrations.set(registration.id, registration);
             }
+
             this.emitCapabilities();
+
             return null;
         });
+
         this.connection.onRequest('client/unregisterCapability', (params) => {
             // The misspelled field is part of the LSP 3.17 wire protocol.
             const { unregisterations } = params as { unregisterations: { id: string; method: string }[] };
+
             for (const registration of unregisterations) {
                 this.registrations.delete(registration.id);
             }
+
             this.emitCapabilities();
+
             return null;
         });
+
         for (const method of REFRESH_REQUESTS) {
             this.connection.onRequest(method, () => {
                 this.emitCapabilities();
+
                 return null;
             });
         }
@@ -233,6 +262,7 @@ export class LspSession {
 
     get syncOptions(): TextDocumentSyncOptions {
         const sync = this.serverCapabilities.textDocumentSync;
+
         return typeof sync === 'number' ? { openClose: sync !== 0, change: sync } : (sync ?? {});
     }
 
@@ -240,10 +270,13 @@ export class LspSession {
         if (this.initialized) {
             return this.initialized;
         }
+
         if (this.phase !== 'new') {
             return Promise.reject(new LspError(`Cannot initialize a ${this.phase} session`));
         }
+
         this.phase = 'initializing';
+
         this.initialized = (async () => {
             try {
                 const result = await this.connection.request<InitializeResult>('initialize', {
@@ -254,33 +287,43 @@ export class LspSession {
                     capabilities: clientCapabilities(this.options),
                     initializationOptions: this.options.initializationOptions
                 });
+
                 if (result.capabilities.positionEncoding && result.capabilities.positionEncoding !== 'utf-16') {
                     throw new LspError(`Unsupported server position encoding: ${result.capabilities.positionEncoding}`);
                 }
+
                 this.serverCapabilities = result.capabilities;
                 this.serverInfo = result.serverInfo;
                 await this.connection.notify('initialized', {});
                 this.phase = 'ready';
+
                 if (this.options.configuration !== undefined) {
                     await this.connection.notify('workspace/didChangeConfiguration', { settings: this.configuration });
                 }
+
                 this.emitCapabilities();
+
                 return result;
             } catch (error) {
                 await this.connection.close();
+
                 throw error;
             }
         })();
+
         return this.initialized;
     }
 
     openDocument(item: DocumentItem): LspDocument {
         this.assertReady();
+
         if (this.documents.has(fileUriKey(item.uri))) {
             throw new LspError(`Document already open: ${item.uri}`);
         }
+
         const document = new LspDocument(this, item);
         this.documents.set(fileUriKey(item.uri), document);
+
         return document;
     }
 
@@ -292,17 +335,21 @@ export class LspSession {
     providerOptions(method: string, document?: Pick<DocumentItem, 'uri' | 'languageId'>): ProviderOptions | undefined {
         const name = REGISTRATION_METHODS[method] ?? method;
         const candidates: ProviderOptions[] = [];
+
         for (const registration of this.registrations.values()) {
             if (registration.method === name && matches(registration.registerOptions ?? {}, document)) {
                 candidates.push(registration.registerOptions ?? {});
             }
         }
+
         const provider = this.serverCapabilities[PROVIDERS[method]];
+
         if (provider === true) {
             candidates.push({});
         } else if (provider && typeof provider === 'object' && matches(provider as ProviderOptions, document)) {
             candidates.push(provider as ProviderOptions);
         }
+
         return candidates.find((options) => offersMethod(method, options));
     }
 
@@ -312,11 +359,13 @@ export class LspSession {
 
     request<T = unknown>(method: string, params?: unknown, options?: RequestOptions): Promise<T> {
         this.assertReady();
+
         return this.connection.request<T>(method, params, options);
     }
 
     notify(method: string, params?: unknown): Promise<void> {
         this.assertReady();
+
         return this.connection.notify(method, params);
     }
 
@@ -324,6 +373,7 @@ export class LspSession {
         if (!this.supports('workspace/executeCommand')) {
             return Promise.reject(new LspError('Server does not support commands', ErrorCodes.MethodNotFound));
         }
+
         return this.request('workspace/executeCommand', typeof command === 'string' ? { command, arguments: args } : command, options);
     }
 
@@ -331,6 +381,7 @@ export class LspSession {
         if (!this.supports('workspace/symbol')) {
             return Promise.reject(new LspError('Server does not support workspace symbols', ErrorCodes.MethodNotFound));
         }
+
         return this.request('workspace/symbol', { query }, options);
     }
 
@@ -338,6 +389,7 @@ export class LspSession {
         if (!this.supports('workspaceSymbol/resolve')) {
             return Promise.reject(new LspError('Server does not support workspace symbol resolution', ErrorCodes.MethodNotFound));
         }
+
         return this.request('workspaceSymbol/resolve', symbol, options);
     }
 
@@ -364,6 +416,7 @@ export class LspSession {
 
     onDiagnostics(listener: (params: PublishDiagnosticsParams) => void): Disposable {
         this.diagnosticListeners.add(listener);
+
         return {
             dispose: () => {
                 this.diagnosticListeners.delete(listener);
@@ -387,6 +440,7 @@ export class LspSession {
     fileOperationFilters(operation: FileOperation): FileOperationFilter[] {
         const fileOperations = (this.serverCapabilities.workspace as { fileOperations?: Record<string, ProviderOptions> } | undefined)?.fileOperations;
         const method = `workspace/${operation}Files`;
+
         return [
             ...(fileOperations?.[operation]?.filters ?? []),
             ...[...this.registrations.values()]
@@ -428,6 +482,7 @@ export class LspSession {
     /* Registrations and the refresh requests of the server both land here, since each can change what a document may ask. */
     onCapabilitiesChanged(listener: () => void): Disposable {
         this.capabilityListeners.add(listener);
+
         return {
             dispose: () => {
                 this.capabilityListeners.delete(listener);
@@ -437,6 +492,7 @@ export class LspSession {
 
     shutdown(): Promise<void> {
         this.shutdownPromise ??= this.stop();
+
         return this.shutdownPromise;
     }
 
@@ -445,6 +501,7 @@ export class LspSession {
         if (this.documents.get(fileUriKey(document.uri)) !== document) {
             return;
         }
+
         this.documents.delete(fileUriKey(document.uri));
         this.emitDiagnostics({ uri: document.uri, diagnostics: [] });
     }
@@ -474,6 +531,7 @@ export class LspSession {
             if (this.phase === 'initializing') {
                 await this.initialized;
             }
+
             if (this.phase === 'ready') {
                 this.phase = 'closing';
                 await Promise.all([...this.documents.values()].map((document) => document.close()));
@@ -490,16 +548,21 @@ export class LspSession {
         if (!section) {
             return this.configuration;
         }
+
         if (Object.hasOwn(this.configuration, section)) {
             return this.configuration[section];
         }
+
         let result: unknown = this.configuration;
+
         for (const key of section.split('.')) {
             if (!result || typeof result !== 'object' || !Object.hasOwn(result, key)) {
                 return null;
             }
+
             result = (result as Record<string, unknown>)[key];
         }
+
         return result ?? null;
     }
 
@@ -526,6 +589,7 @@ export class LspSession {
 function clientCapabilities(options: LspSessionOptions): object {
     const dynamic = { dynamicRegistration: true };
     const symbolKind = { valueSet: Array.from({ length: 26 }, (_, index) => index + 1) };
+
     return {
         general: { positionEncodings: ['utf-16'] },
         workspace: {

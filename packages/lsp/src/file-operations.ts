@@ -18,19 +18,25 @@ export interface DeletedFile extends FileDelete {
 
 function filterTakes(filter: FileOperationFilter, uri: string, directory: boolean): boolean {
     const { matches, glob, options } = filter.pattern;
+
     if (matches !== undefined && (matches === 'folder') !== directory) {
         return false;
     }
+
     let url: URL;
+
     try {
         url = new URL(uri);
     } catch {
         return false;
     }
+
     if (filter.scheme !== undefined && filter.scheme !== url.protocol.slice(0, -1)) {
         return false;
     }
+
     const path = decodeURIComponent(url.pathname);
+
     return options?.ignoreCase === true ? globMatch(path.toLowerCase(), glob.toLowerCase()) : globMatch(path, glob);
 }
 

@@ -36,6 +36,7 @@ describe('JSON-RPC lifecycle', () => {
 
     it('times out with a wire cancellation and rejects pending requests on close', async () => {
         jest.useFakeTimers();
+
         try {
             const transport = new ScriptedTransport();
             const rpc = new JsonRpcConnection(transport, 10);
@@ -56,6 +57,7 @@ describe('JSON-RPC lifecycle', () => {
         const transport = new ScriptedTransport();
         const rpc = new JsonRpcConnection(transport, 0);
         const spy = jest.spyOn(globalThis, 'setTimeout');
+
         try {
             const request = rpc.request('forever');
             await flush();
@@ -65,20 +67,26 @@ describe('JSON-RPC lifecycle', () => {
         } finally {
             spy.mockRestore();
         }
+
         await rpc.close();
     });
 
     it('handles incoming requests, unknown methods and server cancellation', async () => {
         const transport = new ScriptedTransport();
         const rpc = new JsonRpcConnection(transport);
+
         let finish: (value: unknown) => void = () => undefined;
+
         let signal: AbortSignal | undefined;
+
         rpc.onRequest('slow-server-request', (_params, incomingSignal) => {
             signal = incomingSignal;
+
             return new Promise((resolve) => {
                 finish = resolve;
             });
         });
+
         transport.emit({ jsonrpc: '2.0', id: 'missing', method: 'unknown' });
         transport.emit({ jsonrpc: '2.0', id: 'slow', method: 'slow-server-request' });
         transport.emit({ jsonrpc: '2.0', method: '$/cancelRequest', params: { id: 'slow' } });
@@ -92,9 +100,11 @@ describe('JSON-RPC lifecycle', () => {
 
     it('rejects all pending work when a transport send fails', async () => {
         const transport = new ScriptedTransport();
+
         transport.send = () => {
             throw new Error('Socket failed');
         };
+
         const rpc = new JsonRpcConnection(transport);
         const closed = jest.fn();
         rpc.onClose(closed);

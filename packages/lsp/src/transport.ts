@@ -17,9 +17,11 @@ class TransportEvents {
 
     onMessage(listener: (message: unknown) => void): Disposable {
         this.messages.add(listener);
+
         for (const message of this.backlog.splice(0)) {
             listener(message);
         }
+
         return {
             dispose: () => {
                 this.messages.delete(listener);
@@ -29,9 +31,11 @@ class TransportEvents {
 
     onClose(listener: (error?: Error) => void): Disposable {
         this.closes.add(listener);
+
         if (this.closed) {
             listener(this.error);
         }
+
         return {
             dispose: () => {
                 this.closes.delete(listener);
@@ -43,10 +47,13 @@ class TransportEvents {
         if (this.closed) {
             return;
         }
+
         if (this.messages.size === 0) {
             this.backlog.push(message);
+
             return;
         }
+
         for (const listener of this.messages) {
             listener(message);
         }
@@ -56,12 +63,15 @@ class TransportEvents {
         if (this.closed) {
             return;
         }
+
         this.closed = true;
         this.error = error;
         this.backlog = [];
+
         for (const listener of this.closes) {
             listener(error);
         }
+
         this.closes.clear();
         this.messages.clear();
     }
@@ -71,12 +81,15 @@ function concat(chunks: readonly Uint8Array[], size: number): Uint8Array {
     if (chunks.length === 1) {
         return chunks[0];
     }
+
     const joined = new Uint8Array(size);
     let offset = 0;
+
     for (const chunk of chunks) {
         joined.set(chunk, offset);
         offset += chunk.length;
     }
+
     return joined;
 }
 
@@ -89,6 +102,7 @@ function indexOfHeaderEnd(bytes: Uint8Array): number {
             return i;
         }
     }
+
     return -1;
 }
 
@@ -109,39 +123,50 @@ export class ContentLengthDecoder {
         this.chunks.push(chunk);
         this.size += chunk.length;
         const messages: unknown[] = [];
+
         while (true) {
             if (this.length === null) {
                 const buffer = concat(this.chunks, this.size);
                 this.chunks = [buffer];
                 const boundary = indexOfHeaderEnd(buffer);
+
                 if (boundary < 0) {
                     if (buffer.length > MAX_HEADER_BYTES) {
                         throw new Error('LSP header is too large');
                     }
+
                     break;
                 }
+
                 const header = this.utf8.decode(buffer.subarray(0, boundary));
                 const match = /^Content-Length:\s*(\d+)\s*$/im.exec(header);
+
                 if (!match || boundary > MAX_HEADER_BYTES) {
                     throw new Error('Invalid LSP Content-Length header');
                 }
+
                 const length = Number(match[1]);
+
                 if (!length || length > this.maxMessageBytes) {
                     throw new Error('LSP message is too large');
                 }
+
                 this.length = length;
                 this.chunks = [buffer.subarray(boundary + 4)];
                 this.size = buffer.length - boundary - 4;
             }
+
             if (this.size < this.length) {
                 break;
             }
+
             const buffer = concat(this.chunks, this.size);
             messages.push(JSON.parse(this.utf8.decode(buffer.subarray(0, this.length))));
             this.chunks = [buffer.subarray(this.length)];
             this.size = buffer.length - this.length;
             this.length = null;
         }
+
         return messages;
     }
 }
@@ -155,6 +180,7 @@ export function encodeMessage(message: RpcMessage): Uint8Array {
     const framed = new Uint8Array(header.length + body.length);
     framed.set(header, 0);
     framed.set(body, header.length);
+
     return framed;
 }
 
@@ -170,6 +196,7 @@ export interface ByteStream {
 export function createStreamTransport(stream: ByteStream, options: { maxMessageBytes?: number } = {}): LspTransport {
     const events = new TransportEvents();
     const decoder = new ContentLengthDecoder(options.maxMessageBytes);
+
     stream.onData((chunk) => {
         try {
             for (const message of decoder.accept(chunk)) {
@@ -180,7 +207,9 @@ export function createStreamTransport(stream: ByteStream, options: { maxMessageB
             void Promise.resolve(stream.close()).catch(() => undefined);
         }
     });
+
     stream.onClose((error) => events.finish(error));
+
     return {
         onMessage: (listener) => events.onMessage(listener),
         onClose: (listener) => events.onClose(listener),
@@ -188,6 +217,7 @@ export function createStreamTransport(stream: ByteStream, options: { maxMessageB
             if (events.closed) {
                 throw new Error('LSP stream is closed');
             }
+
             await stream.write(encodeMessage(message));
         },
         async close() {
@@ -201,6 +231,7 @@ export function createStreamTransport(stream: ByteStream, options: { maxMessageB
 export function createMemoryTransportPair(): [LspTransport, LspTransport] {
     const left = new TransportEvents();
     const right = new TransportEvents();
+
     const end = (inbox: TransportEvents, outbox: TransportEvents): LspTransport => ({
         onMessage: (listener) => inbox.onMessage(listener),
         onClose: (listener) => inbox.onClose(listener),
@@ -208,6 +239,7 @@ export function createMemoryTransportPair(): [LspTransport, LspTransport] {
             if (inbox.closed || outbox.closed) {
                 throw new Error('LSP transport is closed');
             }
+
             const copy: unknown = JSON.parse(JSON.stringify(message));
             queueMicrotask(() => outbox.receive(copy));
         },
@@ -216,6 +248,7 @@ export function createMemoryTransportPair(): [LspTransport, LspTransport] {
             outbox.finish();
         }
     });
+
     return [end(left, right), end(right, left)];
 }
 
@@ -236,24 +269,30 @@ export async function connectWebSocket(url: string, options: WebSocketTransportO
     if (options.signal?.aborted) {
         throw new Error('WebSocket connection cancelled');
     }
+
     const timeoutMs = options.timeoutMs ?? 10_000;
     const socket = options.createWebSocket ? options.createWebSocket(url, options.protocols) : new WebSocket(url, options.protocols);
     const events = new TransportEvents();
+
     socket.addEventListener('message', (event) => {
         try {
             if (typeof event.data !== 'string') {
                 throw new Error('LSP WebSocket expects JSON text frames');
             }
+
             events.receive(JSON.parse(event.data));
         } catch (error) {
             events.finish(asError(error));
             socket.close(1003, 'Invalid JSON message');
         }
     });
+
     socket.addEventListener('close', (event) => events.finish(event.code === 1000 ? undefined : new Error(`LSP WebSocket closed (${event.code})`)));
     socket.addEventListener('error', () => events.finish(new Error('LSP WebSocket failed')));
+
     await new Promise<void>((resolve, reject) => {
         const timer = setTimeout(() => fail(new Error('LSP WebSocket connection timed out')), timeoutMs);
+
         const cleanup = (): void => {
             clearTimeout(timer);
             socket.removeEventListener('open', open);
@@ -261,37 +300,48 @@ export async function connectWebSocket(url: string, options: WebSocketTransportO
             socket.removeEventListener('close', closed);
             options.signal?.removeEventListener('abort', abort);
         };
+
         const fail = (reason: Error): void => {
             cleanup();
             socket.close();
             reject(reason);
         };
+
         const open = (): void => {
             cleanup();
             resolve();
         };
+
         const failed = (): void => fail(new Error('LSP WebSocket connection failed'));
+
         const closed = (): void => fail(new Error('LSP WebSocket closed before opening'));
+
         const abort = (): void => fail(new Error('LSP WebSocket connection cancelled'));
+
         socket.addEventListener('open', open, { once: true });
         socket.addEventListener('error', failed, { once: true });
         socket.addEventListener('close', closed, { once: true });
         options.signal?.addEventListener('abort', abort, { once: true });
     });
+
     return {
         onMessage: (listener) => events.onMessage(listener),
         onClose: (listener) => events.onClose(listener),
         async send(message) {
             const deadline = Date.now() + timeoutMs;
+
             while (!events.closed && socket.readyState === 1 && socket.bufferedAmount > MAX_SOCKET_BUFFER_BYTES) {
                 if (Date.now() >= deadline) {
                     throw new Error('LSP WebSocket send buffer is full');
                 }
+
                 await new Promise((resolve) => setTimeout(resolve, DRAIN_POLL_MS));
             }
+
             if (events.closed || socket.readyState !== 1) {
                 throw new Error('LSP WebSocket is closed');
             }
+
             socket.send(JSON.stringify(message));
         },
         close() {

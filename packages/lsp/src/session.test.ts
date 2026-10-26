@@ -20,26 +20,32 @@ describe('capabilities and server requests', () => {
     it('advertises completion modes and list defaults only when the consumer supports them', async () => {
         const transport = new ScriptedTransport();
         transport.autoInitialize = {};
+
         const session = new LspSession(transport, {
             snippetSupport: true,
             insertTextModes: [1, 2],
             completionItemDefaults: ['commitCharacters', 'editRange', 'insertTextFormat', 'insertTextMode']
         });
+
         await session.initialize();
         const initialize = transport.request('initialize').params as { capabilities: { textDocument: { completion: unknown } } };
+
         expect(initialize.capabilities.textDocument.completion).toMatchObject({
             insertTextMode: 1,
             completionItem: { snippetSupport: true, insertTextModeSupport: { valueSet: [1, 2] } },
             completionList: { itemDefaults: ['commitCharacters', 'editRange', 'insertTextFormat', 'insertTextMode'] }
         });
+
         await session.shutdown();
     });
 
     it('keeps optional completion capabilities absent by default', async () => {
         const { session, transport } = await sessionWith({});
+
         const initialize = transport.request('initialize').params as {
             capabilities: { textDocument: { completion: { completionItem: Record<string, unknown>; completionList?: unknown } } };
         };
+
         expect(initialize.capabilities.textDocument.completion.completionItem.insertTextModeSupport).toBeUndefined();
         expect(initialize.capabilities.textDocument.completion.completionList).toBeUndefined();
         await session.shutdown();
@@ -54,9 +60,11 @@ describe('capabilities and server requests', () => {
 
     it('negotiates semantic occurrence kinds, hierarchical symbols, folding and code lenses', async () => {
         const { session, transport } = await sessionWith({ documentHighlightProvider: true, documentSymbolProvider: true });
+
         const initialize = transport.request('initialize').params as {
             capabilities: { textDocument: Record<string, unknown>; workspace: Record<string, unknown> };
         };
+
         expect(initialize.capabilities.textDocument.documentHighlight).toEqual({ dynamicRegistration: true });
         expect(initialize.capabilities.textDocument.documentSymbol).toMatchObject({ dynamicRegistration: true, hierarchicalDocumentSymbolSupport: true });
         expect(initialize.capabilities.textDocument.foldingRange).toMatchObject({ dynamicRegistration: true });
@@ -65,14 +73,17 @@ describe('capabilities and server requests', () => {
         const document = session.openDocument({ uri: 'file:///symbols.ts', languageId: 'typescript', text: 'let x = 1; x++;' });
         const highlights = document.documentHighlights({ line: 0, character: 4 });
         await flush();
+
         expect(transport.request('textDocument/documentHighlight').params).toEqual({
             textDocument: { uri: document.uri },
             position: { line: 0, character: 4 }
         });
+
         const result: DocumentHighlight[] = [
             { range: { start: { line: 0, character: 4 }, end: { line: 0, character: 5 } }, kind: 3 },
             { range: { start: { line: 0, character: 11 }, end: { line: 0, character: 12 } }, kind: 2 }
         ];
+
         transport.respond('textDocument/documentHighlight', result);
         expect(await highlights).toEqual(result);
         await session.shutdown();
@@ -104,6 +115,7 @@ describe('capabilities and server requests', () => {
         const document = session.openDocument({ uri: 'file:///symbols.ts', languageId: 'typescript', text: 'x' });
         await expect(document.documentHighlights(origin)).rejects.toMatchObject({ code: -32601 });
         expect(transport.request('textDocument/documentHighlight')).toBeUndefined();
+
         transport.emit({
             jsonrpc: '2.0',
             id: 140,
@@ -115,16 +127,19 @@ describe('capabilities and server requests', () => {
                 ]
             }
         });
+
         await flush();
         expect(session.supports('textDocument/documentHighlight', document)).toBe(true);
         expect(session.supports('textDocument/documentSymbol', document)).toBe(true);
         expect(session.supports('textDocument/documentHighlight', { uri: 'file:///x.php', languageId: 'php' })).toBe(false);
+
         transport.emit({
             jsonrpc: '2.0',
             id: 141,
             method: 'client/unregisterCapability',
             params: { unregisterations: [{ id: 'highlight', method: 'textDocument/documentHighlight' }] }
         });
+
         await flush();
         expect(session.supports('textDocument/documentHighlight', document)).toBe(false);
         expect(session.supports('textDocument/documentSymbol', document)).toBe(true);
@@ -136,6 +151,7 @@ describe('capabilities and server requests', () => {
         const initialize = transport.request('initialize').params as { capabilities: { workspace: Record<string, unknown> } };
         expect(initialize.capabilities.workspace.didChangeWatchedFiles).toEqual({ dynamicRegistration: true, relativePatternSupport: true });
         expect(session.watchedFiles()).toEqual([]);
+
         transport.emit({
             jsonrpc: '2.0',
             id: 150,
@@ -151,22 +167,27 @@ describe('capabilities and server requests', () => {
                 ]
             }
         });
+
         await flush();
         expect(session.watchedFiles().map((watcher) => watcher.globPattern)).toEqual(['**/*.php', '**/tsconfig.json', '**/eslint.config.*']);
+
         transport.emit({
             jsonrpc: '2.0',
             id: 151,
             method: 'client/unregisterCapability',
             params: { unregisterations: [{ id: 'watch-a', method: 'workspace/didChangeWatchedFiles' }] }
         });
+
         await flush();
         expect(session.watchedFiles().map((watcher) => watcher.globPattern)).toEqual(['**/eslint.config.*']);
         await session.didChangeWatchedFiles([{ uri: 'file:///work/Generated.php', type: 1 }]);
+
         expect(transport.sent).toContainEqual({
             jsonrpc: '2.0',
             method: 'workspace/didChangeWatchedFiles',
             params: { changes: [{ uri: 'file:///work/Generated.php', type: 1 }] }
         });
+
         await session.shutdown();
     });
 
@@ -194,6 +215,7 @@ describe('capabilities and server requests', () => {
         const { session, transport } = await sessionWith({ hoverProvider: true });
         const ts = { uri: 'file:///src/test.ts', languageId: 'typescript' };
         const php = { uri: 'file:///src/test.php', languageId: 'php' };
+
         transport.emit({
             jsonrpc: '2.0',
             id: 100,
@@ -213,17 +235,20 @@ describe('capabilities and server requests', () => {
                 ]
             }
         });
+
         await flush();
         expect(session.supports('textDocument/formatting', php)).toBe(true);
         expect(session.supports('textDocument/formatting', ts)).toBe(false);
         expect(session.supports('textDocument/semanticTokens/full/delta', ts)).toBe(true);
         expect(session.supports('textDocument/semanticTokens/range', ts)).toBe(false);
+
         transport.emit({
             jsonrpc: '2.0',
             id: 101,
             method: 'client/unregisterCapability',
             params: { unregisterations: [{ id: 'format-php', method: 'textDocument/formatting' }] }
         });
+
         await flush();
         expect(session.supports('textDocument/formatting', php)).toBe(false);
         expect(session.supports('textDocument/hover', ts)).toBe(true);
@@ -247,12 +272,14 @@ describe('capabilities and server requests', () => {
         await session.setConfiguration({ typescript: { format: { tabSize: 2 } } });
         const progress = jest.fn();
         session.onProgress(progress);
+
         transport.emit({
             jsonrpc: '2.0',
             id: 'config',
             method: 'workspace/configuration',
             params: { items: [{ section: 'typescript.format' }, { section: 'missing' }] }
         });
+
         transport.emit({ jsonrpc: '2.0', id: 'edit', method: 'workspace/applyEdit', params: { edit: { changes: {} } } });
         transport.emit({ jsonrpc: '2.0', method: '$/progress', params: { token: 1, value: { kind: 'begin', title: 'Indexing' } } });
         await flush();

@@ -68,12 +68,15 @@ export class LspDocument {
         this.languageId = item.languageId;
         this.content = new TextMirror(item.text);
         this.revision = item.version ?? 1;
+
         if (!Number.isSafeInteger(this.revision) || this.revision < 0) {
             throw new LspError('Invalid document version');
         }
+
         this.ready = session.syncOptions.openClose
             ? session.notify('textDocument/didOpen', { textDocument: { ...item, version: this.revision } })
             : Promise.resolve();
+
         this.synced = this.ready;
         void this.ready.catch((error) => session.connection.reportError(error));
     }
@@ -94,9 +97,11 @@ export class LspDocument {
     updateText(text: string): Promise<void> {
         this.assertOpen();
         const current = this.content.text;
+
         if (text === current) {
             return this.synced;
         }
+
         return this.applyChanges([minimalChange(current, text)]);
     }
 
@@ -108,24 +113,32 @@ export class LspDocument {
     applyChanges(changes: readonly ContentChange[]): Promise<void> {
         this.assertOpen();
         const kind = this.session.syncOptions.change ?? 0;
+
         if (!kind) {
             return Promise.reject(new LspError('Server did not negotiate document changes', ErrorCodes.MethodNotFound));
         }
+
         try {
             this.content.applyChanges(changes);
         } catch (error) {
             return Promise.reject(error);
         }
+
         const version = ++this.revision;
         this.cancelRequests();
+
         if (kind === 1) {
             return this.queueFullText();
         }
+
         const contentChanges = changes.map((change) => ({ ...change }));
+
         this.synced = this.synced.then(() =>
             this.session.connection.notify('textDocument/didChange', { textDocument: { uri: this.uri, version }, contentChanges })
         );
+
         void this.synced.catch((error) => this.session.connection.reportError(error));
+
         return this.synced;
     }
 
@@ -138,6 +151,7 @@ export class LspDocument {
         await this.synced;
         this.assertCurrent(version);
         const save = this.session.syncOptions.save;
+
         if (save) {
             await this.session.notify('textDocument/didSave', {
                 textDocument: { uri: this.uri },
@@ -282,12 +296,15 @@ export class LspDocument {
         if (this.closePromise) {
             return this.closePromise;
         }
+
         if (this.closed) {
             return Promise.resolve();
         }
+
         this.closed = true;
         this.cancelRequests();
         this.sendFullText?.();
+
         this.closePromise = this.synced
             .then(async () => {
                 if (!this.session.connection.isClosed && this.session.syncOptions.openClose) {
@@ -295,6 +312,7 @@ export class LspDocument {
                 }
             })
             .finally(() => this.session.forgetDocument(this));
+
         return this.closePromise;
     }
 
@@ -312,29 +330,39 @@ export class LspDocument {
 
     private resolve<T extends object>(method: string, item: T, options?: DocumentRequestOptions): Promise<T> {
         const version = this.resultVersions.get(item);
+
         if (version !== undefined && version !== this.version) {
             return Promise.reject(new StaleResultError(this.uri));
         }
+
         return this.perform(method, item, options);
     }
 
     private async perform<T>(method: string, params: unknown, options: DocumentRequestOptions = {}): Promise<T> {
         this.assertOpen();
+
         if (!this.session.supports(method, this)) {
             throw new LspError(`Server does not support ${method}`, ErrorCodes.MethodNotFound);
         }
+
         const version = this.version;
         const controller = new AbortController();
+
         if (options.cancelPrevious !== false) {
             this.latest.get(method)?.abort();
         }
+
         this.latest.set(method, controller);
         this.inFlight.add(controller);
+
         const abort = (): void => controller.abort();
+
         options.signal?.addEventListener('abort', abort, { once: true });
+
         if (options.signal?.aborted) {
             abort();
         }
+
         try {
             this.sendFullText?.();
             await this.synced;
@@ -342,13 +370,16 @@ export class LspDocument {
             const result = await this.session.request<T>(method, params, { signal: controller.signal, timeoutMs: options.timeoutMs });
             this.assertCurrent(version);
             this.remember(result, version);
+
             return result;
         } catch (error) {
             this.assertCurrent(version);
+
             throw error;
         } finally {
             options.signal?.removeEventListener('abort', abort);
             this.inFlight.delete(controller);
+
             if (this.latest.get(method) === controller) {
                 this.latest.delete(method);
             }
@@ -360,7 +391,9 @@ export class LspDocument {
         if (!result || typeof result !== 'object') {
             return;
         }
+
         this.resultVersions.set(result, version);
+
         if (Array.isArray(result)) {
             for (const item of result) {
                 this.remember(item, version);
@@ -387,17 +420,21 @@ export class LspDocument {
         if (this.sendFullText) {
             return this.synced;
         }
+
         const due = new Promise<void>((resolve) => {
             const timer = setTimeout(resolve, this.session.options.fullSyncDelayMs ?? FULL_SYNC_DELAY_MS);
+
             this.sendFullText = () => {
                 clearTimeout(timer);
                 resolve();
             };
         });
+
         this.synced = this.synced
             .then(() => due)
             .then(async () => {
                 this.sendFullText = undefined;
+
                 if (!this.session.connection.isClosed) {
                     await this.session.connection.notify('textDocument/didChange', {
                         textDocument: { uri: this.uri, version: this.revision },
@@ -405,7 +442,9 @@ export class LspDocument {
                     });
                 }
             });
+
         void this.synced.catch((error) => this.session.connection.reportError(error));
+
         return this.synced;
     }
 

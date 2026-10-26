@@ -9,10 +9,12 @@ describe('Vue bridge', () => {
         const bridge = bridgeVueTypeScript(vue.session, ts.session);
         vue.transport.emit({ jsonrpc: '2.0', method: 'tsserver/request', params: [[7, '_vue:projectInfo', { file: '/work/app.vue' }]] });
         await flush();
+
         expect(ts.transport.request('workspace/executeCommand')?.params).toEqual({
             command: 'typescript.tsserverRequest',
             arguments: ['_vue:projectInfo', { file: '/work/app.vue' }, { isAsync: false, lowPriority: true }]
         });
+
         ts.transport.respond('workspace/executeCommand', { body: { configFileName: '/work/tsconfig.json' } });
         await flush();
         expect(vue.transport.sent).toContainEqual({ jsonrpc: '2.0', method: 'tsserver/response', params: [[7, { configFileName: '/work/tsconfig.json' }]] });

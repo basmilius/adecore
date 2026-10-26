@@ -30,6 +30,7 @@ describe('content changes', () => {
             { range: { start: { line: 1, character: 0 }, end: { line: 1, character: 3 } }, text: '2\n3' },
             { range: { start: { line: 2, character: 0 }, end: { line: 2, character: 1 } }, text: 'three' }
         ]);
+
         expect(text).toBe('one\n2\nthree');
         expect(applyContentChanges('x', [{ text: 'whole' }])).toBe('whole');
     });
@@ -48,11 +49,15 @@ describe('content changes', () => {
     it('round-trips random edits through the minimal change', () => {
         const alphabet = ['a', 'b', '\n', '\r\n', '🙂', 'é', ' '];
         let seed = 7;
+
         const next = (limit: number): number => {
             seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+
             return seed % limit;
         };
+
         const random = (): string => Array.from({ length: next(12) }, () => alphabet[next(alphabet.length)]).join('');
+
         for (let i = 0; i < 300; i++) {
             const before = random();
             const after = random();
@@ -79,22 +84,27 @@ describe('workspace edit planning', () => {
 
     it('finds every position the way offsetAt does, line endings and the end of the text included', () => {
         const text = 'ab\r\n\rc\n\n🙂d\r';
+
         for (let line = 0; line <= 6; line++) {
             for (let character = 0; character <= 3; character++) {
                 const position = { line, character };
                 let expected: string;
+
                 try {
                     const offset = offsetAt(text, position);
                     expected = `${text.slice(0, offset)}|${text.slice(offset)}`;
                 } catch (e) {
                     expected = String(e);
                 }
+
                 let received: string;
+
                 try {
                     received = applyTextEdits(text, [{ range: { start: position, end: position }, newText: '|' }]);
                 } catch (e) {
                     received = String(e);
                 }
+
                 expect(received).toBe(expected);
             }
         }
@@ -112,6 +122,7 @@ describe('workspace edit planning', () => {
         expect(() => applyTextEdits('old', [edit, edit])).toThrow('overlap');
         expect(() => applyTextEdits('x', [edit])).toThrow('outside');
         const snapshots = new Map([['file:///a', { text: 'old', version: 3 }]]);
+
         expect(() => planWorkspaceEdit({ documentChanges: [{ textDocument: { uri: 'file:///a', version: 2 }, edits: [edit] }] }, snapshots)).toThrow(
             'version mismatch'
         );
@@ -122,6 +133,7 @@ describe('workspace edit planning', () => {
     it('edits a Windows file however the server writes its drive, under the URI the snapshot has', () => {
         const edit = { range: { start: origin, end: { line: 0, character: 3 } }, newText: 'new' };
         const snapshots = new Map([['file:///C:/work/a.ts', { text: 'old', version: 1 }]]);
+
         expect(planWorkspaceEdit({ changes: { 'file:///c%3A/work/a.ts': [edit] } }, snapshots)).toEqual([
             { uri: 'file:///C:/work/a.ts', version: 1, before: 'old', text: 'new' }
         ]);
@@ -132,6 +144,7 @@ describe('workspace edit planning', () => {
         const snapshots = new Map([['file:///a.php', { text: 'class A {}', version: 4 }]]);
         const write = { range: { start: origin, end: origin }, newText: 'interface B {}' };
         const implement = { range: { start: { line: 0, character: 7 }, end: { line: 0, character: 7 } }, newText: ' implements B' };
+
         expect(
             planWorkspaceEdit(
                 {

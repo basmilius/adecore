@@ -8,6 +8,7 @@ async function connect(options: ConstructorParameters<typeof FakeLanguageServer>
     const server = new FakeLanguageServer(serverSide, options);
     const session = new LspSession(clientSide, { timeoutMs: 0 });
     await session.initialize();
+
     return { server, session };
 }
 
@@ -15,10 +16,12 @@ describe('a session against the fake language server', () => {
     it('keeps the server copy of a document equal to ours through incremental changes', async () => {
         const { server, session } = await connect();
         const document = session.openDocument({ uri: 'file:///a.ts', languageId: 'typescript', text: 'const a = 1;\nconst b = 2;\n' });
+
         await document.applyChanges([
             { range: { start: { line: 0, character: 10 }, end: { line: 0, character: 11 } }, text: '10' },
             { range: { start: { line: 1, character: 0 }, end: { line: 1, character: 0 } }, text: '// two\n' }
         ]);
+
         await document.updateText('const a = 10;\n// two\nconst b = 3;\n');
         await flush();
         expect(server.documents.get('file:///a.ts')).toEqual({ languageId: 'typescript', text: 'const a = 10;\n// two\nconst b = 3;\n', version: 3 });

@@ -6,8 +6,10 @@ import { TextMirror } from './text-mirror.ts';
 /* A fixed generator, so a failing sequence can be replayed. */
 function seeded(seed: number): () => number {
     let state = seed;
+
     return () => {
         state = (state * 1_103_515_245 + 12_345) % 2_147_483_648;
+
         return state / 2_147_483_648;
     };
 }
@@ -16,21 +18,25 @@ const PIECES = ['a', 'b', '\r', '\n', '\r\n', '🙂'];
 
 function randomText(random: () => number, length: number): string {
     let text = '';
+
     for (let i = 0; i < length; i++) {
         text += PIECES[Math.floor(random() * PIECES.length)];
     }
+
     return text;
 }
 
 /* An offset between the two halves of a CRLF has no position, so it moves to before the pair. */
 function randomOffset(random: () => number, text: string): number {
     const offset = Math.floor(random() * (text.length + 1));
+
     return text[offset - 1] === '\r' && text[offset] === '\n' ? offset - 1 : offset;
 }
 
 function randomChange(random: () => number, text: string): ContentChange {
     const one = randomOffset(random, text);
     const two = randomOffset(random, text);
+
     return {
         range: { start: positionAt(text, Math.min(one, two)), end: positionAt(text, Math.max(one, two)) },
         text: randomText(random, Math.floor(random() * 4))
@@ -40,9 +46,11 @@ function randomChange(random: () => number, text: string): ContentChange {
 describe('text mirror', () => {
     it('keeps the text and its lines as applyContentChanges does, across every kind of line break', () => {
         const random = seeded(58);
+
         for (let round = 0; round < 200; round++) {
             let expected = randomText(random, Math.floor(random() * 12));
             const mirror = new TextMirror(expected);
+
             for (let step = 0; step < 30; step++) {
                 const changes = [randomChange(random, expected)];
                 const middle = applyContentChanges(expected, changes);
@@ -69,6 +77,7 @@ describe('text mirror', () => {
     it('changes nothing when one entry does not fit, also after the entries before it', () => {
         const mirror = new TextMirror('one\r\ntwo');
         const fits = { range: { start: { line: 0, character: 0 }, end: { line: 1, character: 0 } }, text: '' };
+
         expect(() => mirror.applyChanges([fits, { range: { start: { line: 1, character: 0 }, end: { line: 1, character: 0 } }, text: 'x' }])).toThrow(
             'outside the document'
         );
