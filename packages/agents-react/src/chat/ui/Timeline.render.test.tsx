@@ -176,6 +176,7 @@ interface Setup {
     statusOnly?: boolean;
     info?: ChatInfo;
     onLayout?(host: HTMLElement): void;
+    onContentHeight?(height: number): void;
 }
 
 const NO_HOST: Partial<ChatHost> = {};
@@ -234,6 +235,8 @@ async function mounted(layout: Layout, activeTurnId: string | null, run: (mount:
         value: () => ({ x: 0, y: 0, top: 0, left: 0, right: VIEWPORT.width, bottom: VIEWPORT.height, ...VIEWPORT }),
         configurable: true
     });
+    // No styles at all here, so a padding reads as nothing.
+    page.window.getComputedStyle ??= () => ({}) as CSSStyleDeclaration;
     page.window.requestAnimationFrame = () => 0;
     page.window.cancelAnimationFrame = () => {};
     (page.window as unknown as { ResizeObserver: unknown }).ResizeObserver = ManualResizeObserver;
@@ -264,7 +267,7 @@ async function mounted(layout: Layout, activeTurnId: string | null, run: (mount:
                                     setup.onLayout?.(page.host);
                                 }}
                             >
-                                <Timeline chatId="chat" composer={<div data-composer />} />
+                                <Timeline chatId="chat" composer={<div data-composer />} onContentHeight={setup.onContentHeight} />
                             </Profiler>
                         </div>
                     </ChatScopeContext.Provider>
@@ -579,6 +582,22 @@ for (const cached of [true, false]) {
         );
     });
 }
+
+test("the thread's height reaches its host only once its rows are laid out, and again when one grows", async () => {
+    const heights: number[] = [];
+    await mounted(
+        { rowHeights: [60, 90, 120], composerHeight: 80 },
+        null,
+        async ({ resizeRow }) => {
+            expect(heights.at(-1)).toBe(270);
+            await resizeRow(2, 200);
+            expect(heights.at(-1)).toBe(350);
+        },
+        { onContentHeight: (height) => heights.push(height) }
+    );
+    // Never the estimate of the rows before they were measured.
+    expect(heights.every((height) => height === 270 || height === 350)).toBe(true);
+});
 
 test('cached history remains visible when a later failed status arrives', async () => {
     await mounted({ rowHeights: [60, 60, 60, 60, 60, 60], composerHeight: 80 }, null, async ({ page }) => {

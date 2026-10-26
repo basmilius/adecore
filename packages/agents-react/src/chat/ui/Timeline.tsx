@@ -180,8 +180,21 @@ const ThreadRow = memo(function ThreadRow({ row, previous, index, top, measure, 
 /*
  * `overlay` stands in the thread's place and ends where the composer starts, so the thread keeps
  * where it was underneath and the composer stays in reach for the prompts it answers.
+ * `onContentHeight` hears what the thread's rows and its padding take, without the composer, once
+ * the rows in view are laid out at their real heights, for a host that sizes its frame to the thread.
+ * Rows out of view still count at an estimate, so a frame up to the viewport's height gets it exact.
  */
-export function Timeline({ chatId, composer, overlay }: { chatId: string; composer?: ReactNode; overlay?: ReactNode }) {
+export function Timeline({
+    chatId,
+    composer,
+    overlay,
+    onContentHeight
+}: {
+    chatId: string;
+    composer?: ReactNode;
+    overlay?: ReactNode;
+    onContentHeight?: (height: number) => void;
+}) {
     const host = useChatHost();
     const { fork } = host;
     const { t } = useTranslation('agent-chat');
@@ -406,6 +419,14 @@ export function Timeline({ chatId, composer, overlay }: { chatId: string; compos
             setMeasuredThread(keyOf(chatId));
         }
     }, [initialLayout, empty, loadingHistory, frame.height, virtualRows, virtualizer, rows.length, keyOf, chatId]);
+    useLayoutEffect(() => {
+        const thread = threadRef.current;
+        if (onContentHeight === undefined || initialLayout || empty || loadingHistory || thread === null) {
+            return;
+        }
+        const style = getComputedStyle(thread);
+        onContentHeight(totalSize + (Number.parseFloat(style.paddingTop) || 0) + (Number.parseFloat(style.paddingBottom) || 0));
+    }, [onContentHeight, initialLayout, empty, loadingHistory, totalSize]);
     useLayoutEffect(() => {
         const element = scrollRef.current;
         if (!followRef.current || element === null) {
