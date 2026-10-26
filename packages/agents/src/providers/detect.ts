@@ -27,7 +27,7 @@ export async function detectCli(
         if ((await code) !== 0) {
             return { installed: false, version: null };
         }
-        const version = /\d+\.\d+\.\d+/.exec(output)?.[0] ?? output.trim() ?? null;
+        const version = /\d+\.\d+\.\d+/.exec(output)?.[0] ?? output.trim();
         return { installed: true, version };
     } catch {
         return { installed: false, version: null };

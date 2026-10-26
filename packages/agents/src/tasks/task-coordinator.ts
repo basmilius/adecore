@@ -99,11 +99,9 @@ export function resultOfTurn(turn: ChatTurnItem, items: readonly ChatItem[], at:
 /*
  * Settles tasks from what children do and does nothing else: it writes the task store and owes wakes
  * in the outbox, never starts a turn, since it runs inside the broadcast of the child it heard. A chat
- * child settles when a turn ends with none of its own tasks still open or waiting to wake it, no goal
- * still active and no work of its CLI's still running in the background, or once the commands it runs
- * there outlast their limit;
- * an agent that is not a chat, which the host tells it about, settles only on `done`, or fails when it
- * ends without one.
+ * child settles when a turn ends with no task of its own open or waiting to wake it, no active goal and
+ * no background work running, or once its background commands outlast their limit. An agent that is
+ * not a chat settles only on `done`, or fails when it ends without one.
  */
 export class TaskCoordinator {
     private readonly deps: TaskCoordinatorDeps;
@@ -164,14 +162,9 @@ export class TaskCoordinator {
      * which says how that kind of agent reports back.
      */
     agentEnded(childId: string, text: string): void {
-        if (this.stopped) {
-            return;
+        if (this.deps.placed(childId)) {
+            this.failed(childId, text);
         }
-        const task = this.localTask(childId);
-        if (!task || !this.deps.placed(childId)) {
-            return;
-        }
-        this.settle(task, 'failed', { text, source: 'exit', at: this.deps.now() });
     }
 
     startFailed(childId: string, error: unknown): void {
@@ -241,7 +234,7 @@ export class TaskCoordinator {
      * gets a turn of its own that names it; the turn that was in its way answers the person who sent it,
      * not the task, and nothing settles while that turn is still owed. A turn after it answers too, as the
      * one the CLI opens about work that turn left running. A child opened with its task has no turn of that
-     * kind, so its first turn settles it, as it always did.
+     * kind, so its first turn settles it.
      */
     private answers(items: readonly ChatItem[], turn: ChatTurnItem, task: Task): boolean {
         if ((turn.taskIds ?? []).includes(task.id)) {
@@ -275,7 +268,7 @@ export class TaskCoordinator {
             this.settle(task, 'failed', { ...result, text: `${result.text}\n\n${goalLostNote(goal.objective)}`, source: 'exit' });
             return;
         }
-        // A turn a person stopped or that failed ends the task as it always did, whatever still runs beside it.
+        // A turn a person stopped or that failed ends the task, whatever still runs beside it.
         if (turn.state === 'done' && this.heldInBackground(chatId, task, items)) {
             this.track(
                 this.deps.tasks.holdBackground(task.id, {
@@ -309,13 +302,14 @@ export class TaskCoordinator {
         if (background.itemIds.length === 0 && this.deps.limit.owed(task.id)) {
             return;
         }
+        const rowOf = (id: string): ChatItem | undefined => items.find((item) => item.id === id);
         const lost = background.itemIds.filter((id) => {
-            const item = items.find((item) => item.id === id);
+            const item = rowOf(id);
             return !item || (item.kind === 'subagent' ? item.status !== 'done' : item.kind !== 'tool' || item.state !== 'done');
         });
         if (lost.length > 0 || background.commands.length > 0) {
             const names = lost.map((id) => {
-                const row = items.find((item) => item.id === id);
+                const row = rowOf(id);
                 return row?.kind === 'subagent' ? row.description || row.toolUseId : row?.kind === 'tool' ? row.name : id;
             });
             this.settle(task, 'failed', {
@@ -326,7 +320,7 @@ export class TaskCoordinator {
             return;
         }
         const reports = background.itemIds.flatMap((id) => {
-            const row = items.find((item) => item.id === id);
+            const row = rowOf(id);
             const report = row?.kind === 'subagent' ? row.result : row?.kind === 'tool' ? row.output : null;
             return report ? [report] : [];
         });

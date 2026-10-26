@@ -98,7 +98,6 @@ export function claudeEnv(selection: ModelSelection): Record<string, string> {
     return selection.options.contextWindow === '200k' ? { CLAUDE_CODE_AUTO_COMPACT_WINDOW: '200000' } : {};
 }
 
-// What the CLI can do, as far as a client has to know.
 export const CLAUDE_CAPABILITIES: ProviderCapabilities = {
     chat: true,
     terminal: true,

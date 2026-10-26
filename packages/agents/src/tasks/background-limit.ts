@@ -57,13 +57,14 @@ export async function restartBackgroundLimits(outbox: RestartedOutbox, now: numb
 
 /* The `background-limit` entries of a host's outbox, one per task at most, as the coordinator owes and drops them. */
 export function backgroundLimits(outbox: Pick<TaskOutbox, 'list' | 'enqueue' | 'remove'>): TaskCoordinatorDeps['limit'] {
+    const limitOf = (entry: AnyOutboxEntry, taskId: string): boolean => isBackgroundLimit(entry) && entry.payload.taskId === taskId;
     return {
-        owed: (taskId) => outbox.list().some((entry) => isBackgroundLimit(entry) && entry.payload.taskId === taskId),
+        owed: (taskId) => outbox.list().some((entry) => limitOf(entry, taskId)),
         owe: (task, commands, at) =>
             outbox.enqueue(task.projectId, task.childId, { kind: 'background-limit', payload: { taskId: task.id, commands: [...commands] } }, at),
         lapse: async (taskId) => {
             for (const entry of outbox.list()) {
-                if (isBackgroundLimit(entry) && entry.payload.taskId === taskId) {
+                if (limitOf(entry, taskId)) {
                     await outbox.remove(entry.id);
                 }
             }

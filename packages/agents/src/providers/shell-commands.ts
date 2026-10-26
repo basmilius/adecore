@@ -5,8 +5,7 @@ const REFUSED = new Set(['|', '>', '<', '$', '`', '(', ')', '{', '}', '*', '?', 
 /*
  * Whether a shell command line is only simple commands, joined by `&&`, `||`, `;` or newlines, each of
  * which starts with one of `allowed`. Anything the tokenizer cannot prove simple answers false, so a
- * true is safe to act on without a person: a pipe, a redirect, an expansion, a subshell, a background
- * `&`, an unquoted glob or an unbalanced quote all refuse the whole line.
+ * true is safe to act on without a person.
  */
 export function isOnlyCommands(command: string, allowed: readonly string[]): boolean {
     let word = '';

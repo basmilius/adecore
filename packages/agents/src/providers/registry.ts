@@ -61,7 +61,6 @@ export interface ProviderRegistryOptions {
     commands?: Partial<Record<AgentKind, string>>;
     // How to probe; a test answers without spawning anything.
     detect?: (command: string) => Promise<CliDetection>;
-    // The environment a probe runs in.
     env?: Record<string, string | undefined>;
 }
 

@@ -44,7 +44,6 @@ export function codexServiceTier(selection: ModelSelection): string | null {
     return selection.options.serviceTier === true ? CODEX_PRIORITY_TIER : null;
 }
 
-// What the app-server can do, as far as a client has to know.
 export const CODEX_CAPABILITIES: ProviderCapabilities = {
     chat: true,
     terminal: true,

@@ -17,6 +17,7 @@ import { DEFAULT_CODEX_CLIENT, type CodexClientInfo } from '../../chat/codex-tra
 import { ClientSinks } from '../../client-sinks.ts';
 import { errorText } from '../../error-text.ts';
 import type { AgentEvent, AgentSink } from '../../events.ts';
+import { Serializer } from '../../serializer.ts';
 import type { ChatProvider } from '../provider.ts';
 import {
     accountEnv,
@@ -138,7 +139,8 @@ export class ProviderAccountsService implements AccountLaunches {
     private readonly now: () => number;
     private readonly sleep: (ms: number) => Promise<void>;
     private readonly watches = new Map<string, LoginWatch>();
-    private writes: Promise<unknown> = Promise.resolve();
+    // One change of the file at a time: a create and a save both read what the other just wrote.
+    private readonly writes = new Serializer();
     private readonly sinks = new ClientSinks<AgentEvent>();
     private readonly listeners = new Set<() => void>();
     // When a CLI last started under each account, by id; kept in memory, so a restart forgets it.
@@ -312,7 +314,7 @@ export class ProviderAccountsService implements AccountLaunches {
 
     /* Answers at once; an account that changed reads `checking` until its CLI answered, which arrives as `accounts.changed`. */
     save(accounts: ProviderAccountMap): Promise<ProviderAccounts> {
-        return this.serial(() => this.commit(accounts, this.folderExists));
+        return this.writes.run(() => this.commit(accounts, this.folderExists));
     }
 
     /*
@@ -320,7 +322,7 @@ export class ProviderAccountsService implements AccountLaunches {
      * Codex account is a shadow home over the CLI's own folder, so its threads go on under the other.
      */
     create(payload: ProviderAccountCreatePayload): Promise<ProviderAccountCreateResult> {
-        return this.serial(async () => {
+        return this.writes.run(async () => {
             const { kind, label, color } = payload;
             const provider = this.providers.get(kind);
             if (provider.home === undefined) {
@@ -393,13 +395,6 @@ export class ProviderAccountsService implements AccountLaunches {
 
     private accountProviders(): AccountProviders {
         return { kinds: this.kinds(), get: (kind) => this.providers.get(kind) };
-    }
-
-    /* One change of the file at a time: a create and a save both read what the other just wrote. */
-    private serial<T>(work: () => Promise<T>): Promise<T> {
-        const next = this.writes.then(work);
-        this.writes = next.catch(() => undefined);
-        return next;
     }
 
     private async commit(accounts: ProviderAccountMap, isDirectory: (path: string) => boolean): Promise<ProviderAccounts> {

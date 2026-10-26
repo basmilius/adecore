@@ -108,9 +108,7 @@ export class AcpAgentState {
         if (!this.options.adoptModels || info.models === null) {
             return;
         }
-        const adopted: Adopted = { defaultModel: info.models.current, models: adoptableModels(info), options: effortOption(info) };
-        const changed = this.adopt(adopted);
-        this.settle(changed);
+        this.settle(this.adopt({ defaultModel: info.models.current, models: adoptableModels(info), options: effortOption(info) }));
     }
 
     commandsListed(commands: readonly string[]): void {

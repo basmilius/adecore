@@ -13,6 +13,7 @@ import {
 } from '../../chat/acp-protocol.ts';
 import type { SpawnChatProcess } from '../../chat/chat-process.ts';
 import { JsonRpcError, JsonRpcTransport, type JsonRpcFrame } from '../../chat/json-rpc-transport.ts';
+import { definedEnv } from './launch.ts';
 import { ASK_TIMEOUT_MS, type AccountReading } from './status.ts';
 
 /* The clock the probe's deadline runs on; a test hands in one it moves itself. */
@@ -43,10 +44,6 @@ const REAL_TIMER: ProbeTimer = {
     setTimeout: (run, ms) => setTimeout(run, ms),
     clearTimeout: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>)
 };
-
-function definedEnv(env: Record<string, string | undefined>): Record<string, string> {
-    return Object.fromEntries(Object.entries(env).filter((entry): entry is [string, string] => entry[1] !== undefined));
-}
 
 function withDeadline<T>(work: Promise<T>, ms: number, timer: ProbeTimer, message: string): Promise<T> {
     return new Promise((resolve, reject) => {
