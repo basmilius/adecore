@@ -523,6 +523,17 @@ describe('the live thought', () => {
         expect(rows[3]).toMatchObject({ id: 'live-thought-k1', item: { id: 'k1' }, at: 3000 });
     });
 
+    test('stands over the running call where a group of finished calls separates it from the thought', () => {
+        expect(kinds([running, asked, thought('k1'), call('r1', 'done'), call('r2', 'done'), call('b1', 'running')])).toEqual([
+            'user',
+            'thinking',
+            'work-group',
+            'live-thought',
+            'work-live',
+            'working'
+        ]);
+    });
+
     test('is left out where the thought stands right above the call', () => {
         expect(kinds([running, asked, thought('k1'), call('b1', 'running')])).toEqual(['user', 'thinking', 'work-live', 'working']);
     });

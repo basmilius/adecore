@@ -458,7 +458,7 @@ function withLiveThought(rows: TimelineRow[], items: readonly ChatItem[]): Timel
     const index = rows.findIndex((row) => row.kind === 'work-live' && after.has(row.tool.id));
     const call = rows[index];
     const shownAt = rows.findIndex((row) => row.kind === 'thinking' && row.id === thought.id);
-    const inSight = shownAt !== -1 && shownAt < index && !rows.slice(shownAt + 1, index).some((row) => row.kind === 'work');
+    const inSight = shownAt !== -1 && shownAt < index && !rows.slice(shownAt + 1, index).some((row) => row.kind === 'work' || row.kind === 'work-group');
     if (call?.kind !== 'work-live' || inSight) {
         return rows;
     }
