@@ -70,11 +70,12 @@ export interface WorkflowAgentPreview {
 
 /* The CLI's previews start with a markdown heading as often as not, which says nothing on one line. */
 function firstLine(text: string | undefined): string | null {
-    const line = text
-        ?.split('\n')
-        .map((part) => part.replace(/^#+\s*/, '').trim())
-        .find((part) => part !== '');
-    return line === undefined ? null : line;
+    return (
+        text
+            ?.split('\n')
+            .map((part) => part.replace(/^#+\s*/, '').trim())
+            .find((part) => part !== '') ?? null
+    );
 }
 
 /* The second line of an agent: what it does while at work, what it answered once it stopped, what it was asked before. */
@@ -143,6 +144,5 @@ function metaLiteral(script: string): string | null {
 export function workflowDescription(input: unknown): string | null {
     const script = typeof input === 'object' && input !== null && 'script' in input ? input.script : undefined;
     const meta = typeof script === 'string' ? metaLiteral(script) : null;
-    const found = meta === null ? undefined : DESCRIPTION.exec(meta)?.[2]?.replace(/\\(.)/g, '$1').trim();
-    return found ? found : null;
+    return (meta === null ? undefined : DESCRIPTION.exec(meta)?.[2]?.replace(/\\(.)/g, '$1').trim()) || null;
 }

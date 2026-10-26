@@ -2,11 +2,7 @@ import type { ChatBookmark } from '@adecore/agent-contracts';
 import type { TimelineRow } from './timeline';
 import { DEFAULT_READING_WIDTH, readingMeasure } from '../reading-width';
 
-/*
- * The strip at the left edge of a chat view with a tick per message a person sent, as numbers: which
- * rows get a tick, where the ticks go in the height the strip has, which messages are on screen, and
- * which one a pointer means. The component only draws what comes out of here.
- */
+// The strip of ticks at the left edge of a chat view, as numbers; the component only draws what comes out of here.
 
 /* A message the person sent, a turn the machine opened with the results of tasks, or any other message with a bookmark on it. */
 export type TickKind = 'person' | 'wake' | 'bookmark';

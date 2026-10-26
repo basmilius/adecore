@@ -2,15 +2,8 @@ import type { TimelineRow } from './timeline';
 import { stripAnsi } from './ansi';
 
 /*
- * What a row of the thread puts on the clipboard. An answer is markdown on the wire and rendered
- * text on the screen, so copying it as text has to undo the marks the renderer swallowed; the
- * source itself stays available as "Copy as Markdown".
- */
-
-/*
- * The marks that only exist to be rendered come off, what they marked stays. `_` is left alone on
- * purpose: it is a letter in half the identifiers an agent writes, and no italic is worth mangling
- * `file_path`.
+ * An answer is markdown on the wire and rendered text on screen, so a copy as text undoes the marks the
+ * renderer swallowed. `_` stays: it is a letter in half the identifiers an agent writes (`file_path`).
  */
 export function stripMarkdown(text: string): string {
     return text

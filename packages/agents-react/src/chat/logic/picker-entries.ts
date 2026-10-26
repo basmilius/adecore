@@ -148,8 +148,5 @@ export function pickerEntriesOf(
         }
         return [...rowsOf(entry, shortlist), { kind: 'all', provider: entry, count: models.length, open: false }];
     });
-    if (legacy.length === 0) {
-        return live;
-    }
-    return legacyOpen ? [...live, { kind: 'legacy', count: legacy.length }, ...legacy] : [...live, { kind: 'legacy', count: legacy.length }];
+    return legacy.length === 0 ? live : [...live, { kind: 'legacy', count: legacy.length }, ...(legacyOpen ? legacy : [])];
 }

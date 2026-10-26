@@ -476,8 +476,8 @@ function chunksByTurn(items: ChatItem[]): TurnChunk[] {
     const byTurn = new Map<string, ChatItem[]>();
     for (const item of items) {
         if (item.turnId === null) {
-            const last = chunks[chunks.length - 1];
-            if (last && last.turnId === null) {
+            const last = chunks.at(-1);
+            if (last?.turnId === null) {
                 last.items.push(item);
             } else {
                 chunks.push({ turnId: null, items: [item] });
@@ -527,14 +527,15 @@ export function deriveTimelineRows(items: ChatItem[], options: TimelineOptions):
         const work = rowsForItems(rest, options, children);
         // The closing answer stays visible; the work after the last input folds behind the label.
         const finalAssistant = lastAssistantRow(work);
-        const before = finalAssistant ? work.slice(0, work.indexOf(finalAssistant)) : work;
+        const closing = finalAssistant ? work.indexOf(finalAssistant) : work.length;
+        const before = work.slice(0, closing);
         // Images remain a turn's visible result, and a workflow or a background subagent may still be running after its turn ends.
         const standing = before.filter(
             (row) => isImageRow(row) || (row.kind === 'workflow' && row.tool.state === 'running') || (row.kind === 'subagent' && row.item.status === 'running')
         );
-        const folded = before.filter((row) => !standing.includes(row));
+        const folded = before.length - standing.length;
         const expanded = options.expandedTurns.has(turnId);
-        if (folded.length > 0) {
+        if (folded > 0) {
             const tools = rest.filter(
                 (item): item is ChatToolItem => item.kind === 'tool' && parentOf(item) === null && handbackReportOf(item) === null && !isImageGeneration(item)
             );
@@ -544,7 +545,7 @@ export function deriveTimelineRows(items: ChatItem[], options: TimelineOptions):
                 turn,
                 label: turnLabel(turn, chunk.items),
                 work: summarizeTurn(tools, options.commandLooks),
-                hiddenCount: folded.length,
+                hiddenCount: folded,
                 expanded
             });
         }
@@ -553,9 +554,7 @@ export function deriveTimelineRows(items: ChatItem[], options: TimelineOptions):
         if (changed) {
             rows.push(changed);
         }
-        if (finalAssistant) {
-            rows.push(...work.slice(work.indexOf(finalAssistant)));
-        }
+        rows.push(...work.slice(closing));
         if (options.forkedTurns?.has(turnId) === true) {
             rows.push({ kind: 'forks', id: `forks-${turnId}`, turnId });
         }

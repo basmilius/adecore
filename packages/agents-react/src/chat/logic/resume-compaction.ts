@@ -55,11 +55,8 @@ function offerableTurn({ info, compaction, items, dismissedTurnId }: OfferInput)
     if (turn === null || turn.endedAt === null || turn.id === dismissedTurnId) {
         return null;
     }
-    /*
-     * `contextTokens` keeps the old number until the next request, so without this the offer would
-     * come straight back after a compaction. A native compaction is a turn without a message of the
-     * person, which is why this looks at the turn and not at the last thing that was said.
-     */
+    // `contextTokens` keeps the old number until the next request, so the offer would return right after
+    // a compaction. A native one is a turn without a message of the person, hence the look at the turn.
     if (items.some((item) => item.kind === 'compaction' && item.turnId === turn.id)) {
         return null;
     }
