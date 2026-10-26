@@ -625,6 +625,11 @@ export class ChatCore {
      * read leaves its list out rather than the thread.
      */
     async attachWithBookmarks(chatId: string, clientId: string, historyLimit?: number, since?: number): Promise<ChatAttachResult> {
+        // A client that only watches a chat sends no create, so a chat on disk nobody loaded since the host started is loaded for it.
+        await this.loaded(chatId);
+        if (!this.chats.has(chatId) && (await this.store?.has(chatId)) === true) {
+            await this.create({ chatId });
+        }
         this.require(chatId);
         const unreadable = (what: string) => (e: unknown) => {
             console.error(`The ${what} of chat ${chatId} could not be read:`, errorText(e));

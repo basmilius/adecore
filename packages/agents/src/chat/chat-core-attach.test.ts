@@ -53,6 +53,25 @@ class SlowVisuals extends VisualStore {
     }
 }
 
+test('a client attaches to a chat on disk that nobody loaded since the host started', async () => {
+    const home = await mkdtemp(join(tmpdir(), 'adecore-attach-'));
+    const attachments = new AttachmentStore(home);
+    const before = new ChatCore({ attachments, store: new ChatStore(home, { attachments }), providers });
+    const after = new ChatCore({ attachments, store: new ChatStore(home, { attachments }), providers });
+    try {
+        await before.create({ chatId: 'chat', cwd: home });
+        await before.addNote('chat', 'info', 'Written before the restart');
+        await before.persisted('chat');
+        await before.shutdown();
+        const attached = await after.attachWithBookmarks('chat', 'client');
+        expect(attached.items.map((item) => (item.kind === 'note' ? item.text : item.kind))).toEqual(['Written before the restart']);
+        await expect(after.attachWithBookmarks('never', 'client')).rejects.toThrow('No chat never');
+    } finally {
+        await after.shutdown();
+        await rm(home, { recursive: true, force: true });
+    }
+});
+
 test('a bookmark made while the visuals are read reaches the client that attaches', async () => {
     const home = await mkdtemp(join(tmpdir(), 'adecore-attach-'));
     const attachments = new AttachmentStore(home);
