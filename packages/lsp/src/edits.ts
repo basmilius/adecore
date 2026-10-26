@@ -16,10 +16,10 @@ export interface PlannedDocumentEdit {
     created?: true;
 }
 
-const CR = 13;
-const LF = 10;
+export const CR = 13;
+export const LF = 10;
 
-function checkPosition(position: Position): void {
+export function checkPosition(position: Position): void {
     if (!Number.isInteger(position.line) || !Number.isInteger(position.character) || position.line < 0 || position.character < 0) {
         throw new LspError('Invalid edit position');
     }
@@ -220,6 +220,11 @@ function planCreate(change: CreateFile, snapshots: KeyedSnapshots, planned: Map<
     }
 }
 
+/* The changes of an edit in order, with the older `changes` map read as unversioned text edits. */
+export function documentChangesOf(edit: WorkspaceEdit): NonNullable<WorkspaceEdit['documentChanges']> {
+    return edit.documentChanges ?? Object.entries(edit.changes ?? {}).map(([uri, edits]) => ({ textDocument: { uri, version: null }, edits }));
+}
+
 /*
  * Plans text edits and created files in memory, in the order the edit gives them. `snapshots` holds the
  * files that are there; a file the edit creates is absent from it. A rename or delete needs the host's own handling and is refused.
@@ -227,8 +232,7 @@ function planCreate(change: CreateFile, snapshots: KeyedSnapshots, planned: Map<
 export function planWorkspaceEdit(edit: WorkspaceEdit, snapshots: ReadonlyMap<string, DocumentSnapshot>): PlannedDocumentEdit[] {
     const keyed: KeyedSnapshots = new Map([...snapshots].map(([uri, snapshot]) => [fileUriKey(uri), { uri, snapshot }]));
     const planned = new Map<string, PlannedDocumentEdit>();
-    const changes = edit.documentChanges ?? Object.entries(edit.changes ?? {}).map(([uri, edits]) => ({ textDocument: { uri, version: null }, edits }));
-    for (const change of changes) {
+    for (const change of documentChangesOf(edit)) {
         if ('kind' in change) {
             if (change.kind !== 'create') {
                 throw new LspError(`A host file-operation handler is required for ${change.kind}`);

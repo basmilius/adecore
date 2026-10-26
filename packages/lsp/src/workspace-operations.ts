@@ -1,5 +1,5 @@
 import { ErrorCodes, LspError } from './connection.ts';
-import { applyTextEdits } from './edits.ts';
+import { applyTextEdits, documentChangesOf } from './edits.ts';
 import type { TextEdit, WorkspaceEdit } from './protocol.ts';
 
 type DocumentChange = NonNullable<WorkspaceEdit['documentChanges']>[number];
@@ -235,8 +235,7 @@ export async function planWorkspaceOperations(edit: WorkspaceEdit, source: Works
         return { ...change, uri: keyOf(change.uri) };
     };
 
-    const changes = edit.documentChanges ?? Object.entries(edit.changes ?? {}).map(([uri, edits]) => ({ textDocument: { uri, version: null }, edits }));
-    for (const original of changes) {
+    for (const original of documentChangesOf(edit)) {
         const change = keyed(original);
         if ('textDocument' in change) {
             const { uri, version } = change.textDocument;

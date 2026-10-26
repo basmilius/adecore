@@ -1,8 +1,6 @@
 import { LspError } from './connection.ts';
+import { CR, LF, checkPosition } from './edits.ts';
 import type { ContentChange, Position } from './protocol.ts';
-
-const CR = 13;
-const LF = 10;
 
 /* Past this many lines a spread into `splice` could exceed the engine's argument limit. */
 const SPREAD_LIMIT = 10_000;
@@ -111,9 +109,7 @@ export class TextMirror {
     }
 
     private lineAt(position: Position): string {
-        if (!Number.isInteger(position.line) || !Number.isInteger(position.character) || position.line < 0 || position.character < 0) {
-            throw new LspError('Invalid edit position');
-        }
+        checkPosition(position);
         const line = this.lines[position.line];
         if (line === undefined) {
             throw new LspError('Edit line is outside the document');

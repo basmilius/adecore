@@ -397,44 +397,32 @@ export class LspSession {
 
     /* What the server would change before these files move, or null when it takes none of them or has nothing to say. */
     async willRenameFiles(files: readonly RenamedFile[], options?: RequestOptions): Promise<WorkspaceEdit | null> {
-        const taken = renamesTaken(this.fileOperationFilters('willRename'), files);
-        return taken.length === 0 || this.phase !== 'ready' ? null : this.request<WorkspaceEdit | null>('workspace/willRenameFiles', { files: taken }, options);
+        return this.askBefore('willRename', renamesTaken(this.fileOperationFilters('willRename'), files), options);
     }
 
     /* Tells the server which of these files moved, those its filters take. */
     async didRenameFiles(files: readonly RenamedFile[]): Promise<void> {
-        const taken = renamesTaken(this.fileOperationFilters('didRename'), files);
-        if (taken.length > 0 && this.phase === 'ready') {
-            await this.notify('workspace/didRenameFiles', { files: taken });
-        }
+        await this.tellAfter('didRename', renamesTaken(this.fileOperationFilters('didRename'), files));
     }
 
     /* What the server would change before these files are made, or null when it takes none of them or has nothing to say. */
     async willCreateFiles(files: readonly CreatedFile[], options?: RequestOptions): Promise<WorkspaceEdit | null> {
-        const taken = createsTaken(this.fileOperationFilters('willCreate'), files);
-        return taken.length === 0 || this.phase !== 'ready' ? null : this.request<WorkspaceEdit | null>('workspace/willCreateFiles', { files: taken }, options);
+        return this.askBefore('willCreate', createsTaken(this.fileOperationFilters('willCreate'), files), options);
     }
 
     /* Tells the server which of these files were made, those its filters take. */
     async didCreateFiles(files: readonly CreatedFile[]): Promise<void> {
-        const taken = createsTaken(this.fileOperationFilters('didCreate'), files);
-        if (taken.length > 0 && this.phase === 'ready') {
-            await this.notify('workspace/didCreateFiles', { files: taken });
-        }
+        await this.tellAfter('didCreate', createsTaken(this.fileOperationFilters('didCreate'), files));
     }
 
     /* What the server would change before these files are deleted, or null when it takes none of them or has nothing to say. */
     async willDeleteFiles(files: readonly DeletedFile[], options?: RequestOptions): Promise<WorkspaceEdit | null> {
-        const taken = deletesTaken(this.fileOperationFilters('willDelete'), files);
-        return taken.length === 0 || this.phase !== 'ready' ? null : this.request<WorkspaceEdit | null>('workspace/willDeleteFiles', { files: taken }, options);
+        return this.askBefore('willDelete', deletesTaken(this.fileOperationFilters('willDelete'), files), options);
     }
 
     /* Tells the server which of these files were deleted, those its filters take. */
     async didDeleteFiles(files: readonly DeletedFile[]): Promise<void> {
-        const taken = deletesTaken(this.fileOperationFilters('didDelete'), files);
-        if (taken.length > 0 && this.phase === 'ready') {
-            await this.notify('workspace/didDeleteFiles', { files: taken });
-        }
+        await this.tellAfter('didDelete', deletesTaken(this.fileOperationFilters('didDelete'), files));
     }
 
     /* Registrations and the refresh requests of the server both land here, since each can change what a document may ask. */
@@ -464,6 +452,20 @@ export class LspSession {
     private assertReady(): void {
         if (this.phase !== 'ready') {
             throw new LspError(`LSP session is ${this.phase}; await initialize() first`, ErrorCodes.ServerNotInitialized);
+        }
+    }
+
+    private async askBefore(
+        operation: 'willRename' | 'willCreate' | 'willDelete',
+        files: readonly object[],
+        options?: RequestOptions
+    ): Promise<WorkspaceEdit | null> {
+        return files.length === 0 || this.phase !== 'ready' ? null : this.request<WorkspaceEdit | null>(`workspace/${operation}Files`, { files }, options);
+    }
+
+    private async tellAfter(operation: 'didRename' | 'didCreate' | 'didDelete', files: readonly object[]): Promise<void> {
+        if (files.length > 0 && this.phase === 'ready') {
+            await this.notify(`workspace/${operation}Files`, { files });
         }
     }
 

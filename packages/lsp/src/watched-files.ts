@@ -1,6 +1,6 @@
 import { globMatch } from './glob.ts';
 import type { FileSystemWatcher } from './protocol.ts';
-import { fileUriToPath } from './uris.ts';
+import { fileUriToPath, isWindowsPath } from './uris.ts';
 
 /* A change of a file as the protocol numbers it: created, changed, deleted. */
 export type FileChangeType = 1 | 2 | 3;
@@ -12,7 +12,7 @@ const SPARING_FOLDERS = ['node_modules', 'vendor', '.git'];
 
 /* A Windows path with forward slashes and its drive in capitals, so it compares with a pattern and a root however it was written. A POSIX path is left alone, a backslash being part of a name there. */
 function slashed(path: string): string {
-    if (!/^[A-Za-z]:[\\/]/.test(path) && !path.startsWith('\\\\')) {
+    if (!isWindowsPath(path)) {
         return path;
     }
     const forward = path.replaceAll('\\', '/');

@@ -34,17 +34,21 @@ function filterTakes(filter: FileOperationFilter, uri: string, directory: boolea
     return options?.ignoreCase === true ? globMatch(path.toLowerCase(), glob.toLowerCase()) : globMatch(path, glob);
 }
 
+function anyTakes(filters: readonly FileOperationFilter[], uri: string, directory: boolean): boolean {
+    return filters.some((filter) => filterTakes(filter, uri, directory));
+}
+
 /* The renames a server asked to hear about, by the filters it registered. A rename is matched on the place it leaves. */
 export function renamesTaken(filters: readonly FileOperationFilter[], files: readonly RenamedFile[]): FileRename[] {
-    return files.filter((file) => filters.some((filter) => filterTakes(filter, file.oldUri, file.directory))).map(({ oldUri, newUri }) => ({ oldUri, newUri }));
+    return files.filter((file) => anyTakes(filters, file.oldUri, file.directory)).map(({ oldUri, newUri }) => ({ oldUri, newUri }));
 }
 
 /* The files made that a server asked to hear about, by the filters it registered. */
 export function createsTaken(filters: readonly FileOperationFilter[], files: readonly CreatedFile[]): FileCreate[] {
-    return files.filter((file) => filters.some((filter) => filterTakes(filter, file.uri, file.directory))).map(({ uri }) => ({ uri }));
+    return files.filter((file) => anyTakes(filters, file.uri, file.directory)).map(({ uri }) => ({ uri }));
 }
 
 /* The files deleted that a server asked to hear about, by the filters it registered. A folder is matched as one, not by what was in it. */
 export function deletesTaken(filters: readonly FileOperationFilter[], files: readonly DeletedFile[]): FileDelete[] {
-    return files.filter((file) => filters.some((filter) => filterTakes(filter, file.uri, file.directory))).map(({ uri }) => ({ uri }));
+    return files.filter((file) => anyTakes(filters, file.uri, file.directory)).map(({ uri }) => ({ uri }));
 }

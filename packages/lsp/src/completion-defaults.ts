@@ -6,12 +6,10 @@ function validRange(range: Range, singleLine = true): boolean {
     }
     const { start, end } = range;
     return (
-        start !== undefined &&
-        start !== null &&
         typeof start === 'object' &&
-        end !== undefined &&
-        end !== null &&
+        start !== null &&
         typeof end === 'object' &&
+        end !== null &&
         [start.line, start.character, end.line, end.character].every((value) => Number.isSafeInteger(value) && value >= 0) &&
         (!singleLine || start.line === end.line) &&
         (start.line < end.line || (start.line === end.line && start.character <= end.character))

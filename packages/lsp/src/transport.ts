@@ -95,6 +95,7 @@ function indexOfHeaderEnd(bytes: Uint8Array): number {
 /* Reads `Content-Length` framed messages, the way a language server speaks over stdio. */
 export class ContentLengthDecoder {
     private readonly maxMessageBytes: number;
+    private readonly utf8 = new TextDecoder();
     private chunks: Uint8Array[] = [];
     private size = 0;
     private length: number | null = null;
@@ -119,7 +120,7 @@ export class ContentLengthDecoder {
                     }
                     break;
                 }
-                const header = new TextDecoder().decode(buffer.subarray(0, boundary));
+                const header = this.utf8.decode(buffer.subarray(0, boundary));
                 const match = /^Content-Length:\s*(\d+)\s*$/im.exec(header);
                 if (!match || boundary > MAX_HEADER_BYTES) {
                     throw new Error('Invalid LSP Content-Length header');
@@ -136,7 +137,7 @@ export class ContentLengthDecoder {
                 break;
             }
             const buffer = concat(this.chunks, this.size);
-            messages.push(JSON.parse(new TextDecoder().decode(buffer.subarray(0, this.length))));
+            messages.push(JSON.parse(this.utf8.decode(buffer.subarray(0, this.length))));
             this.chunks = [buffer.subarray(this.length)];
             this.size = buffer.length - this.length;
             this.length = null;
@@ -145,9 +146,12 @@ export class ContentLengthDecoder {
     }
 }
 
+let utf8: TextEncoder | undefined;
+
 export function encodeMessage(message: RpcMessage): Uint8Array {
-    const body = new TextEncoder().encode(JSON.stringify(message));
-    const header = new TextEncoder().encode(`Content-Length: ${body.length}\r\n\r\n`);
+    utf8 ??= new TextEncoder();
+    const body = utf8.encode(JSON.stringify(message));
+    const header = utf8.encode(`Content-Length: ${body.length}\r\n\r\n`);
     const framed = new Uint8Array(header.length + body.length);
     framed.set(header, 0);
     framed.set(body, header.length);

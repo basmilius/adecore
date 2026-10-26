@@ -2,10 +2,14 @@ function isWindowsDrive(segment: string): boolean {
     return /^[A-Za-z]:$/.test(segment);
 }
 
+/* A path with a drive or a UNC share. A backslash separates only in such a path; in a POSIX one it is part of a name. */
+export function isWindowsPath(path: string): boolean {
+    return /^[A-Za-z]:[\\/]/.test(path) || path.startsWith('\\\\');
+}
+
 /* An absolute path, POSIX, with a Windows drive or UNC, as the `file:` URI a language server names it by. */
 export function pathToFileUri(path: string): string {
-    // A backslash separates only in a Windows path; in a POSIX one it is part of a name.
-    const windows = /^[A-Za-z]:[\\/]/.test(path) || path.startsWith('\\\\');
+    const windows = isWindowsPath(path);
     const normalized = windows ? path.replaceAll('\\', '/') : path;
     if (windows && normalized.startsWith('//')) {
         const [host = '', ...segments] = normalized.slice(2).split('/');
