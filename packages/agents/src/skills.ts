@@ -3,7 +3,8 @@ import { open, readdir, readFile, realpath, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, join, parse } from 'node:path';
 import type { AgentKind, ChatSkill, ChatSkillSource } from '@adecore/agent-contracts';
-import { isNotFound } from './fs.ts';
+import { wait } from './async.ts';
+import { hasErrorCode, isNotFound } from './fs.ts';
 
 export interface SkillRoot {
     dir: string;
@@ -62,7 +63,6 @@ const HEAD_BYTES = 64 * 1024;
 const MAX_DESCRIPTION = 1024;
 
 export interface SkillRootOptions {
-    // The person's home directory; a test points it at a temporary tree.
     home?: string;
     // Where Claude Code keeps its own configuration, when it is not `<home>/.claude`.
     claudeConfigDir?: string;
@@ -182,15 +182,11 @@ export async function skillRootsFor(kind: AgentKind, cwd: string, options: Skill
 
 /* Too many files open, in this process or on the system: it says nothing about the path that was asked for. */
 function isBusy(e: unknown): boolean {
-    return typeof e === 'object' && e !== null && 'code' in e && (e.code === 'EMFILE' || e.code === 'ENFILE');
-}
-
-function sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+    return hasErrorCode(e, 'EMFILE', 'ENFILE');
 }
 
 /* Runs `operation` again a few times while the process is short of file handles, and throws if it still is. */
-export async function whileBusy<T>(operation: () => Promise<T>, wait: (ms: number) => Promise<void> = sleep): Promise<T> {
+export async function whileBusy<T>(operation: () => Promise<T>, sleep: (ms: number) => Promise<void> = wait): Promise<T> {
     for (let attempt = 1; ; attempt++) {
         try {
             return await operation();
@@ -198,7 +194,7 @@ export async function whileBusy<T>(operation: () => Promise<T>, wait: (ms: numbe
             if (!isBusy(e) || attempt > BUSY_RETRIES) {
                 throw e;
             }
-            await wait(BUSY_RETRY_MS * attempt);
+            await sleep(BUSY_RETRY_MS * attempt);
         }
     }
 }
@@ -352,7 +348,6 @@ export async function discoverSkills(kind: AgentKind, cwd: string, options: Skil
     return scanSkillRoots(await skillRootsFor(kind, cwd, options));
 }
 
-// How long a scan stays good; a skill written mid-session shows up on the next look.
 const CACHE_TTL_MS = 30_000;
 
 /* The skills of one CLI in one folder, scanned at most once per half minute. There is no watcher. */

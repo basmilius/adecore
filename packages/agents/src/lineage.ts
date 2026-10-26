@@ -60,9 +60,10 @@ export class AgentLineageStore {
     descendants(nodeId: string): string[] {
         const found: string[] = [];
         const seen = new Set([nodeId]);
+        const entries = this.opened.all();
         for (let i = -1; i < found.length; i++) {
             const parent = i === -1 ? nodeId : found[i]!;
-            for (const entry of this.opened.all()) {
+            for (const entry of entries) {
                 if (entry.openedBy === parent && openedByAgent(entry) && entry.endedAt === undefined && !seen.has(entry.nodeId)) {
                     seen.add(entry.nodeId);
                     found.push(entry.nodeId);
@@ -103,7 +104,8 @@ export class AgentLineageStore {
 
     /* The nodes of this project whose opener it no longer places, and that no cascade ended yet. */
     orphans(projectId: string, ids: ReadonlySet<string>): Array<{ nodeId: string; openedBy: string }> {
-        return [...this.opened.all()]
+        return this.opened
+            .all()
             .filter(
                 (entry) =>
                     entry.projectId === projectId && openedByAgent(entry) && entry.endedAt === undefined && ids.has(entry.nodeId) && !ids.has(entry.openedBy)
@@ -122,7 +124,7 @@ export class AgentLineageStore {
         return this.opened.get(nodeId)?.peer ?? null;
     }
 
-    /* How deep a node sits. A node nobody wrote down is one a person made, which is where a chain starts. */
+    /* A node nobody wrote down is one a person made, which is where a chain starts. */
     depthOf(nodeId: string): number {
         return this.opened.get(nodeId)?.depth ?? 0;
     }
@@ -157,12 +159,16 @@ export class AgentLineageStore {
     }
 
     forksOf(nodeId: string): string[] {
-        return [...this.opened.all()].filter((entry) => entry.relation === 'fork' && entry.openedBy === nodeId).map((entry) => entry.nodeId);
+        return this.opened
+            .all()
+            .filter((entry) => entry.relation === 'fork' && entry.openedBy === nodeId)
+            .map((entry) => entry.nodeId);
     }
 
     /* The forks of this project whose node is gone, read before `prune` forgets them. */
     forksLeaving(projectId: string, ids: ReadonlySet<string>): string[] {
-        return [...this.opened.all()]
+        return this.opened
+            .all()
             .filter((entry) => entry.projectId === projectId && entry.relation === 'fork' && !ids.has(entry.nodeId))
             .map((entry) => entry.nodeId);
     }

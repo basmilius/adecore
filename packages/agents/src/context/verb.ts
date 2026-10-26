@@ -182,9 +182,6 @@ export function createVerbRegistry<Call extends VerbCallBase>(options: { cli: st
      */
     const dryRunVerbs: string[] = [];
 
-    /* What a refusal over arguments points at; for an action `name` is both words, which is what `help` takes. */
-    const usageLinesOf = (name: string, usage: string): string[] => [`usage\t${name}\t${usage}`, `detail\t${cli} help ${name}`];
-
     /* One set of arguments parsed and run. `name` is what a refusal calls it, so `view new` refuses under both its words. */
     const runArgs = async <Positionals extends z.ZodType, Flags extends z.ZodObject>(
         name: string,
@@ -193,7 +190,7 @@ export function createVerbRegistry<Call extends VerbCallBase>(options: { cli: st
         argv: readonly string[],
         call: Call
     ): Promise<string[]> => {
-        const usageLines = usageLinesOf(name, usage);
+        const usageLines = [`usage\t${name}\t${usage}`, `detail\t${cli} help ${name}`];
         const { values, switches } = flagsOf(spec);
         const parsed = parseArgv(argv, values, switches);
         if (!parsed.ok) {

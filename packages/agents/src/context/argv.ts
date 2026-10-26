@@ -6,8 +6,7 @@ export type ParsedArgv =
  * Splits the words after a verb into positionals, `--flag value` pairs (`--flag=value` too, for a
  * value that itself starts with `--`) and the switches the verb declared. Anything not declared a
  * switch takes a value, so a flag that lost its argument is refused instead of swallowing the next
- * word, and a flag given twice is refused rather than one of the two silently winning. A name that is
- * both a switch and a flag is on when written bare and takes a value only after `=` (`--state=full`).
+ * word. A name that is both a switch and a flag takes a value only after `=` (`--state=full`).
  */
 export function parseArgv(argv: readonly string[], known: readonly string[], switches: readonly string[] = []): ParsedArgv {
     const positionals: string[] = [];

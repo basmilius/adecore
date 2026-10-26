@@ -1,6 +1,7 @@
 import { renameSync, writeFileSync } from 'node:fs';
 import { open, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
+import { wait } from './async.ts';
 
 // Windows can refuse a rename while a watcher or an indexer holds the target; a few short retries cover it.
 const RENAME_RETRIES = 5;
@@ -11,8 +12,12 @@ function sleepSync(ms: number): void {
     Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
 
+export function hasErrorCode(e: unknown, ...codes: string[]): boolean {
+    return typeof e === 'object' && e !== null && 'code' in e && codes.includes(e.code as string);
+}
+
 function isTransient(e: unknown): boolean {
-    return typeof e === 'object' && e !== null && 'code' in e && (e.code === 'EPERM' || e.code === 'EBUSY' || e.code === 'EACCES');
+    return hasErrorCode(e, 'EPERM', 'EBUSY', 'EACCES');
 }
 
 // Two writes of the same file in flight at once (a fire-and-forget save next to an awaited one) must not share a temp name.
@@ -71,7 +76,7 @@ export async function writeAtomic(target: string, content: string | Uint8Array, 
             if (!isTransient(e) || attempt >= RENAME_RETRIES) {
                 throw e;
             }
-            await new Promise((resolve) => setTimeout(resolve, RENAME_RETRY_MS));
+            await wait(RENAME_RETRY_MS);
         }
     }
     if (options.durable) {
@@ -105,7 +110,7 @@ export function writeAtomicSync(target: string, content: string | Uint8Array, mo
 }
 
 export function isNotFound(e: unknown): boolean {
-    return typeof e === 'object' && e !== null && 'code' in e && e.code === 'ENOENT';
+    return hasErrorCode(e, 'ENOENT');
 }
 
 // Bun on Windows fails a forced rm with EFAULT while another delete of the same file is pending; it goes either way.
@@ -113,7 +118,7 @@ export async function removeFile(path: string, remove: (path: string, options: {
     try {
         await remove(path, { force: true });
     } catch (e) {
-        if (!(typeof e === 'object' && e !== null && 'code' in e && e.code === 'EFAULT')) {
+        if (!hasErrorCode(e, 'EFAULT')) {
             throw e;
         }
     }

@@ -37,10 +37,9 @@ const FileSchema = z.object({ notices: z.array(NoticeSchema).min(1) });
 type NoticeFile = z.infer<typeof FileSchema>;
 
 /*
- * The messages waiting for each node, held until that node's agent has a moment to hear them, under
- * `<dataDir>/notices`. On disk because the receiver may well be a node nobody has mounted yet, and a
- * host that restarts must not lose what was left for it. Delivered once, whichever channel gets there
- * first.
+ * The messages waiting for each node, held until that node's agent has a moment to hear them. On disk
+ * because the receiver may well be a node nobody has mounted yet, and a host that restarts must not
+ * lose what was left for it.
  */
 export class NoticeStore {
     readonly dir: string;
