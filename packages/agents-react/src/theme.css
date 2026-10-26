@@ -288,6 +288,9 @@
 .composer-input .cm-editor .cm-scroller .cm-content { padding: 18px 14px 6px 20px; caret-color: var(--text); }
 .composer-input .cm-scroller .cm-content .cm-line { padding: 0; }
 .composer-input .cm-scroller .cm-content .cm-placeholder { color: var(--text-faint); }
+/* The same editor as a form field (`PromptEditor`): the field's inset, and room for a few lines before it scrolls. */
+.composer-input.prompt-editor .cm-editor { max-height: 240px; }
+.composer-input.prompt-editor .cm-editor .cm-scroller .cm-content { min-height: 80px; padding: 6px 10px; }
 .composer-hints, .composer-hints-extra { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
 /* The joiner starts with its own comma, so it sits against the lead without the gap. */
 .composer-hints-extra { margin-left: -8px; }

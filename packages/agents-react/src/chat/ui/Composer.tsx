@@ -190,7 +190,6 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
         history,
         noteKey: files.noteKey,
         toggleStash,
-        setText: (next) => box.setText(next),
         submit
     });
 

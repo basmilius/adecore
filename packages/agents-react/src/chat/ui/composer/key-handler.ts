@@ -26,7 +26,6 @@ interface KeyHandlerInput {
     history: PromptHistory;
     noteKey(e: KeyboardEvent): void;
     toggleStash(): void;
-    setText(next: string): void;
     submit(how: ComposerSend): void;
 }
 
@@ -50,19 +49,14 @@ function indentInFence(e: KeyboardEvent, view: EditorView): boolean {
 }
 
 /* The keys an open picker takes: the arrows walk it, and Tab (or Enter, outside the commands) picks. */
-function pickInMenu(e: KeyboardEvent, { menus, setText }: KeyHandlerInput): boolean {
+export function pickInMenu(e: KeyboardEvent, menus: ComposerMenus): boolean {
     const { activeIndex } = menus;
     if (menus.commandMenuOpen) {
         if (menus.moveInMenu(e.key, menus.commands.length)) {
             return true;
         }
         if (e.key === 'Tab') {
-            const chosen = menus.commands[activeIndex]!;
-            if (chosen.skill) {
-                menus.chooseSkill(chosen.name);
-            } else {
-                setText(`/${chosen.name} `);
-            }
+            menus.completeCommand(menus.commands[activeIndex]!);
             return true;
         }
     }
@@ -167,7 +161,7 @@ export function composerKeyHandler(input: KeyHandlerInput): (e: KeyboardEvent, v
             input.toggleStash();
             return true;
         }
-        if (pickInMenu(e, input)) {
+        if (pickInMenu(e, input.menus)) {
             return true;
         }
         if (e.key === 'Tab' && !e.altKey && !e.metaKey && !e.ctrlKey && indentInFence(e, view)) {
