@@ -1,6 +1,6 @@
 import { PROTOCOL_VERSION, type DatabaseError, type DatabaseErrorCode, type DatabaseRequest, type DatabaseResponse } from '../protocol/index.ts';
 import type { DatabaseHost, DatabaseHostOptions, HelperProcess } from './types.ts';
-import { parseRequest } from './validate.ts';
+import { isDict, parseRequest } from './validate.ts';
 
 const DEFAULT_READY_TIMEOUT_MS = 10000;
 
@@ -48,8 +48,6 @@ const parseLine = (line: string): unknown => {
         return undefined;
     }
 };
-
-const isDict = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /* Settles when every promise has, or after the grace period; a helper that hangs must not hold up an app that quits. */
 const settleWithin = async (promises: readonly Promise<unknown>[]): Promise<void> => {

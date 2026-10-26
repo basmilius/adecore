@@ -1,5 +1,5 @@
 import { formatBytes, formatNumeral } from '@adecore/ui/format';
-import type { BinaryValue, Cell, EditValue, ValueKind } from '../protocol/index.ts';
+import type { Cell, EditValue, ValueKind } from '../protocol/index.ts';
 import { isNumericKind } from '../sql.ts';
 import type { GridColumn } from './types.ts';
 
@@ -111,8 +111,7 @@ export const copyTextOf = (cell: Shown): string => {
 /* An edit as a cell, so the grid draws a pending value the way it draws a loaded one. */
 export const shownOfEdit = (value: EditValue): Shown => {
     if (value !== null && typeof value === 'object' && value.kind === 'binary') {
-        const binary = value as BinaryValue;
-        return { kind: 'binary', hex: binary.hex, length: binary.hex.length / 2 };
+        return { kind: 'binary', hex: value.hex, length: value.hex.length / 2 };
     }
     return value as Shown;
 };

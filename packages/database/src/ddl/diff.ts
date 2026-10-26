@@ -2,6 +2,7 @@ import { sameDefinition } from './column.ts';
 import type { Dialect } from './dialect.ts';
 import type { ColumnDraft, ForeignKeyDraft, IndexDraft, TableDraft } from './draft.ts';
 import type { TableOptions } from './parse.ts';
+import { sameList } from '../same-list.ts';
 
 export interface KeptColumn {
     readonly original: ColumnDraft;
@@ -40,8 +41,6 @@ export interface TableDiff {
     readonly addedForeignKeys: readonly ForeignKeyDraft[];
     readonly optionsChanged: boolean;
 }
-
-const sameList = (left: readonly string[], right: readonly string[]): boolean => left.length === right.length && left.every((name, at) => name === right[at]);
 
 /* The positions of a longest run that already is in order: those columns can stay where they are. */
 const longestRun = (positions: readonly number[]): ReadonlySet<number> => {

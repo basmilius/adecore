@@ -13,7 +13,6 @@ export interface SchemaPickerProps {
     ref?: Ref<HTMLButtonElement>;
 }
 
-/* Picks the schema the console's statements run in. */
 export function SchemaPicker({ schemas, value, onValueChange, disabled, className, ref }: SchemaPickerProps) {
     const { t } = useTranslation('database');
     return (

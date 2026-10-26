@@ -49,7 +49,6 @@ export interface TableTransfer {
     readonly notice: TransferNotice | null;
     readonly importDraft: ImportDraft | null;
     exportAs(format: FileFormat): void;
-    /* Stops the export that is running. */
     cancelExport(): void;
     dismiss(): void;
     chooseImportFile(): void;

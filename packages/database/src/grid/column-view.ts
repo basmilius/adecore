@@ -7,9 +7,11 @@ export interface ColumnView {
 
 export const NO_COLUMN_VIEW: ColumnView = { hidden: new Set(), pinned: [] };
 
+const shownPins = (count: number, view: ColumnView): number[] => view.pinned.filter((index) => index < count && !view.hidden.has(index));
+
 /* The columns to draw as indexes: the pinned ones first in pin order, then the rest as they come, hidden ones left out. */
 export const displayOrder = (count: number, view: ColumnView): number[] => {
-    const pinned = view.pinned.filter((index) => index < count && !view.hidden.has(index));
+    const pinned = shownPins(count, view);
     const rest: number[] = [];
     for (let i = 0; i < count; i++) {
         if (!view.hidden.has(i) && !pinned.includes(i)) {
@@ -32,4 +34,4 @@ export const togglePin = (view: ColumnView, index: number): ColumnView => ({
 });
 
 /* How many of the first columns of `displayOrder` are pinned. */
-export const pinnedCount = (count: number, view: ColumnView): number => view.pinned.filter((index) => index < count && !view.hidden.has(index)).length;
+export const pinnedCount = (count: number, view: ColumnView): number => shownPins(count, view).length;

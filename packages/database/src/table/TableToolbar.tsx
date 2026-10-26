@@ -18,6 +18,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { Button, ButtonGroup, Icon, IconButton, Menu, Separator } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
+import { EXPORT_FORMATS } from '../export-formats.ts';
 import type { Engine, FileFormat } from '../protocol/index.ts';
 import { CommandField } from './CommandField.tsx';
 import type { Chip, CommandColumn } from './command-field.ts';
@@ -31,8 +32,6 @@ export interface TransferMenu {
     /* Left out where rows cannot be added. */
     onImport?(): void;
 }
-
-const EXPORT_FORMATS: readonly FileFormat[] = ['csv', 'tsv', 'json', 'sql'];
 
 export interface TableToolbarProps {
     /* The app's own content before the command field, such as where the table is, with a separator after it and after the field. */

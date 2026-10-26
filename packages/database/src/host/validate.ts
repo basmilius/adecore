@@ -23,7 +23,7 @@ const fail = (message: string): never => {
     throw new InvalidRequest(message);
 };
 
-const isDict = (value: unknown): value is Dict => typeof value === 'object' && value !== null && !Array.isArray(value);
+export const isDict = (value: unknown): value is Dict => typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const isRequestId = (value: unknown): value is string => typeof value === 'string' && value.length > 0 && value.length <= MAX_ID_LENGTH;
 
@@ -253,6 +253,19 @@ const cellLimit = (params: Dict): void => optional(params, 'cellLimit', 'params'
 
 const maxBytes = (params: Dict): void => optional(params, 'maxBytes', 'params', (limit, name) => integer(limit, name, 1, MAX_BYTES));
 
+const rowLimit = (params: Dict): void => optional(params, 'limit', 'params', (limit, name) => integer(limit, name, 1, MAX_LIMIT));
+
+const pageWindow = (params: Dict): void => {
+    integer(params.offset, 'params.offset', 0, Number.MAX_SAFE_INTEGER);
+    integer(params.limit, 'params.limit', 1, MAX_LIMIT);
+    cellLimit(params);
+    maxBytes(params);
+};
+
+const connectionParams = (input: unknown): void => connection(shape(input, 'params', ['connection']).connection, 'params.connection');
+
+const sessionParams = (input: unknown): void => filledText(shape(input, 'params', ['session']).session, 'params.session');
+
 const table = (params: Dict): void => {
     filledText(params.session, 'params.session');
     filledText(params.schema, 'params.schema');
@@ -262,10 +275,10 @@ const table = (params: Dict): void => {
 const TARGET = ['session', 'schema', 'table'];
 
 const PARAMS: { readonly [M in DatabaseMethod]: (input: unknown) => void } = {
-    open: (input) => connection(shape(input, 'params', ['connection']).connection, 'params.connection'),
-    test: (input) => connection(shape(input, 'params', ['connection']).connection, 'params.connection'),
-    close: (input) => filledText(shape(input, 'params', ['session']).session, 'params.session'),
-    schemas: (input) => filledText(shape(input, 'params', ['session']).session, 'params.session'),
+    open: connectionParams,
+    test: connectionParams,
+    close: sessionParams,
+    schemas: sessionParams,
     tables: (input) => {
         const params = shape(input, 'params', ['session', 'schema']);
         filledText(params.session, 'params.session');
@@ -277,10 +290,7 @@ const PARAMS: { readonly [M in DatabaseMethod]: (input: unknown) => void } = {
         table(params);
         optional(params, 'where', 'params', anyText);
         optional(params, 'orderBy', 'params', anyText);
-        integer(params.offset, 'params.offset', 0, Number.MAX_SAFE_INTEGER);
-        integer(params.limit, 'params.limit', 1, MAX_LIMIT);
-        cellLimit(params);
-        maxBytes(params);
+        pageWindow(params);
     },
     count: (input) => {
         const params = shape(input, 'params', TARGET, ['where']);
@@ -309,7 +319,7 @@ const PARAMS: { readonly [M in DatabaseMethod]: (input: unknown) => void } = {
         filledText(params.session, 'params.session');
         filledText(params.sql, 'params.sql');
         optional(params, 'schema', 'params', filledText);
-        optional(params, 'limit', 'params', (limit, name) => integer(limit, name, 1, MAX_LIMIT));
+        rowLimit(params);
         cellLimit(params);
         maxBytes(params);
     },
@@ -318,10 +328,7 @@ const PARAMS: { readonly [M in DatabaseMethod]: (input: unknown) => void } = {
         filledText(params.session, 'params.session');
         filledText(params.sql, 'params.sql');
         optional(params, 'schema', 'params', filledText);
-        integer(params.offset, 'params.offset', 0, Number.MAX_SAFE_INTEGER);
-        integer(params.limit, 'params.limit', 1, MAX_LIMIT);
-        cellLimit(params);
-        maxBytes(params);
+        pageWindow(params);
     },
     transaction: (input) => {
         const params = shape(input, 'params', ['session', 'action']);
@@ -342,7 +349,7 @@ const PARAMS: { readonly [M in DatabaseMethod]: (input: unknown) => void } = {
         absolutePath(params.path, 'params.path');
         oneOf(DELIMITED_FORMATS)(params.format, 'params.format');
         flag(params.header, 'params.header');
-        optional(params, 'limit', 'params', (limit, name) => integer(limit, name, 1, MAX_LIMIT));
+        rowLimit(params);
     },
     import: (input) => {
         const params = shape(input, 'params', [...TARGET, 'path', 'format', 'header', 'columns']);

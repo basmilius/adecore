@@ -11,7 +11,6 @@ export interface CopyAsMenuProps {
     onCopy(format: CopyFormat): void;
 }
 
-/* The "Copy as" submenu of the grid's context menu. */
 export function CopyAsMenu({ disabled, formats, onCopy }: CopyAsMenuProps) {
     const { t } = useTranslation('database');
     return (

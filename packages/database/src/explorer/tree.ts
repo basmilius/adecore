@@ -142,7 +142,6 @@ export type TableEntry =
 
 export interface EntryRow extends RowBase {
     readonly kind: 'entry';
-    /* The table the entry belongs to. */
     readonly ref: TableRef;
     readonly entry: TableEntry;
 }
@@ -262,7 +261,6 @@ export interface TreeInput {
     folders?(connectionId: string): readonly ExplorerFolder[];
 }
 
-/* The schemas a list shows. */
 export const visibleSchemas = (schemas: readonly SchemaInfo[], showSystemSchemas: boolean): readonly SchemaInfo[] =>
     showSystemSchemas ? schemas : schemas.filter((schema) => !schema.system);
 

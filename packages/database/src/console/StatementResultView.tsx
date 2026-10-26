@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Banner, ButtonGroup, ContextMenu, Icon, IconButton, Menu, Spinner } from '@adecore/ui';
 import { formatDecimal, formatNumber } from '@adecore/ui/format';
 import type { DatabaseNotice } from '../actions.ts';
+import { EXPORT_FORMATS } from '../export-formats.ts';
 import { DataGrid } from '../grid/DataGrid.tsx';
 import { previewValueOf } from '../grid/focused-value.ts';
 import type { FocusedCell, GridMenuContext, GridRow } from '../grid/types.ts';
@@ -16,8 +17,6 @@ import { ValuePanel } from '../value/ValuePanel.tsx';
 
 /* What "Copy as SQL INSERT" names the table of a result that comes from no table. */
 const RESULT_TABLE = 'result';
-
-const EXPORT_FORMATS: readonly FileFormat[] = ['csv', 'tsv', 'json', 'sql'];
 
 /* Paging through the rows of a statement that reads, one page at a time. */
 export interface ResultPager {

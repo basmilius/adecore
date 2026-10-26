@@ -29,6 +29,7 @@ import { RecordView } from '../grid/RecordView.tsx';
 import { ValueDock } from '../grid/ValueDock.tsx';
 import { valueOfCell, type EditValue, type RowChange, type TableStructure, type Value } from '../protocol/index.ts';
 import type { SqlTarget } from '../sql.ts';
+import { parseStoredSize } from '../stored-size.ts';
 import { useSchemaChange } from '../use-schema-change.ts';
 import { useStableCallback } from '../use-stable-callback.ts';
 import {
@@ -77,15 +78,6 @@ import { useTableTransfer, type TransferNotice } from './useTableTransfer.ts';
 /* Where the width of the record view is kept, in pixels, for every table. */
 export const RECORD_WIDTH_KEY = 'database:record-view';
 const RECORD_WIDTH = 360;
-
-const parseRecordWidth = (raw: string | null | undefined): number | null => {
-    try {
-        const value: unknown = JSON.parse(raw ?? 'null');
-        return typeof value === 'number' && Number.isFinite(value) && value > 0 ? Math.round(value) : null;
-    } catch {
-        return null;
-    }
-};
 
 export interface TableViewProps {
     connection: Connection;
@@ -197,7 +189,7 @@ function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defa
     const [discard, setDiscard] = useState<{ run(): void } | null>(null);
     const [focus, setFocus] = useState<FocusedCell | null>(null);
     const [recordOpen, setRecordOpen] = useState(false);
-    const [recordWidth, setRecordWidth] = useState(() => parseRecordWidth(storage?.get(RECORD_WIDTH_KEY)));
+    const [recordWidth, setRecordWidth] = useState(() => parseStoredSize(storage?.get(RECORD_WIDTH_KEY), Number.MIN_VALUE));
     const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null);
     const [columnRequest, setColumnRequest] = useState<ColumnRequest | null>(null);
     const [range, setRange] = useState<RangeBlock | null>(null);

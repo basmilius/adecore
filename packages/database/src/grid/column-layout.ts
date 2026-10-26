@@ -1,5 +1,6 @@
 import type { ColumnView } from './column-view.ts';
 import { MAX_RESIZED_WIDTH, MIN_COLUMN_WIDTH } from './layout.ts';
+import { sameList } from '../same-list.ts';
 
 /* What a person did to the columns of a grid, by column name so it outlives a change of the column order. */
 export interface GridLayout {
@@ -9,8 +10,6 @@ export interface GridLayout {
     /* In the order they were pinned. */
     readonly pinned: readonly string[];
 }
-
-export const NO_GRID_LAYOUT: GridLayout = { widths: {}, hidden: [], pinned: [] };
 
 export interface ColumnState {
     readonly resized: Readonly<Record<number, number>>;
@@ -58,8 +57,6 @@ export const captureLayout = (columns: readonly { readonly name: string }[], sta
         pinned: namesOf(state.view.pinned)
     };
 };
-
-const sameList = (a: readonly string[], b: readonly string[]): boolean => a.length === b.length && a.every((item, index) => item === b[index]);
 
 export const sameLayout = (a: GridLayout, b: GridLayout): boolean => {
     const names = Object.keys(a.widths);

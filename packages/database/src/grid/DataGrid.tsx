@@ -133,14 +133,11 @@ const signatureOf = (columns: readonly GridColumn[]): string => columns.map((col
 
 const textOf = (view: CellView): string => (view.suffix === undefined ? view.text : `${view.text} ${view.suffix}`);
 
+const columnTexts = (column: GridColumn, index: number, rows: readonly GridRow[], notation: NumberNotation): string[] =>
+    rows.map((row) => textOf(cellView(row.cells[index] ?? null, column.kind, columnNotation(column, notation))));
+
 const estimateWidths = (columns: readonly GridColumn[], rows: readonly GridRow[], notation: NumberNotation): number[] =>
-    columns.map((column, index) =>
-        estimateColumnWidth(
-            column.name,
-            rows.slice(0, 50).map((row) => textOf(cellView(row.cells[index] ?? null, column.kind, columnNotation(column, notation)))),
-            column.primaryKey === true
-        )
-    );
+    columns.map((column, index) => estimateColumnWidth(column.name, columnTexts(column, index, rows.slice(0, 50), notation), column.primaryKey === true));
 
 /*
  * The table of the table view and of the console, and of any rows an app has on its own: it needs no
@@ -457,11 +454,12 @@ export function DataGrid({
 
     const followCell = (cell: FocusedCell): boolean => onFollow !== undefined && (canFollow?.(cell) ?? true);
 
+    const menuCell: CellPosition | null = menuTarget === null || menuTarget.column === null ? null : { row: menuTarget.row, column: menuTarget.column };
+
     const commitValue = (value: EditValue): void => {
-        const position = menuTarget === null || menuTarget.column === null ? null : { row: menuTarget.row, column: menuTarget.column };
-        const row = position === null ? undefined : rows[position.row];
-        if (position !== null && row !== undefined && canEdit(position)) {
-            onCommit?.(row.key, position.column, value);
+        const row = menuCell === null ? undefined : rows[menuCell.row];
+        if (menuCell !== null && row !== undefined && canEdit(menuCell)) {
+            onCommit?.(row.key, menuCell.column, value);
         }
     };
 
@@ -512,8 +510,8 @@ export function DataGrid({
     };
 
     const copyCell = (): void => {
-        if (menuTarget !== null && menuTarget.column !== null && rows[menuTarget.row] !== undefined) {
-            void copyOne(menuTarget.row, menuTarget.column);
+        if (menuCell !== null && rows[menuCell.row] !== undefined) {
+            void copyOne(menuCell.row, menuCell.column);
         }
     };
 
@@ -634,14 +632,7 @@ export function DataGrid({
     const fitColumn = (index: number): void => {
         const column = columns[index];
         if (column !== undefined) {
-            resizeColumn(
-                index,
-                fitColumnWidth(
-                    column.name,
-                    rows.map((row) => textOf(cellView(row.cells[index] ?? null, column.kind, columnNotation(column, notation)))),
-                    column.primaryKey === true
-                )
-            );
+            resizeColumn(index, fitColumnWidth(column.name, columnTexts(column, index, rows, notation), column.primaryKey === true));
         }
     };
 
@@ -752,10 +743,9 @@ export function DataGrid({
     });
 
     const menuRow = menuTarget === null ? undefined : rows[menuTarget.row];
-    const menuCell: CellPosition | null = menuTarget === null || menuTarget.column === null ? null : { row: menuTarget.row, column: menuTarget.column };
     const settable = menuCell !== null && canEdit(menuCell);
-    const nullable = menuCell !== null && columns[menuCell.column]?.nullable !== false;
     const menuColumn = menuCell === null ? undefined : columns[menuCell.column];
+    const nullable = menuColumn?.nullable !== false;
     const hasDefault = menuColumn !== undefined && ((menuColumn.defaultValue ?? null) !== null || menuColumn.autoIncrement === true);
     const menuContext: GridMenuContext | null =
         menuRow === undefined || menuTarget === null

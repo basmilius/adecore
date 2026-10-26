@@ -24,6 +24,7 @@ export const NUMERIC_TEXT = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/;
 
 /* Whether a value of this kind is a number, which a grid aligns against the end of its cell. */
 export const isNumericKind = (kind: ValueKind): boolean => NUMERIC_KINDS.has(kind);
+
 const ORDER_ITEM = /\s*(`(?:[^`]|``)+`|"(?:[^"]|"")+"|[A-Za-z_][\w$]*)(?:\s+(asc|desc))?\s*(,|$)/iy;
 
 const markOf = (engine: Engine): string => (engine === 'mysql' ? '`' : '"');

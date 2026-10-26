@@ -9,6 +9,7 @@ import type { DatabaseNotice } from '../actions.ts';
 import { useDatabaseAction, useDatabaseClient, useDatabaseFiles, useDatabaseNotice, useDatabaseStorage } from '../client-context.ts';
 import type { FileFormat, RowsResult, SchemaInfo, StatementResult } from '../protocol/index.ts';
 import { splitStatements, statementAt } from '../sql-split.ts';
+import { parseStoredSize } from '../stored-size.ts';
 import { DestructiveDialog } from './DestructiveDialog.tsx';
 import type { QueryConsoleEditorHandle, QueryConsoleEditorProps, QueryConsoleRunScope } from './editor-slot.ts';
 import { findDestructive, type DestructiveStatement } from './destructive.ts';
@@ -71,15 +72,6 @@ export const RESULTS_HEIGHT_KEY = 'database:console-results';
 /* The results and the editor never shrink below these; the results start at half the console. */
 const MIN_RESULTS_HEIGHT = 96;
 const MIN_EDITOR_HEIGHT = 120;
-
-const parseHeight = (raw: string | null | undefined): number | null => {
-    try {
-        const value: unknown = JSON.parse(raw ?? 'null');
-        return typeof value === 'number' && Number.isFinite(value) && value >= MIN_RESULTS_HEIGHT ? Math.round(value) : null;
-    } catch {
-        return null;
-    }
-};
 
 /* The app's editor as an element of its own, so it gets its props the way `SqlEditor` does and not during the console's render. */
 function AppEditor({ render, ...editor }: QueryConsoleEditorProps & { render(editor: QueryConsoleEditorProps): ReactNode }) {
@@ -186,7 +178,7 @@ export function QueryConsole({
     const [notice, setNotice] = useState<DatabaseNotice | null>(null);
     // Closed until the first run, so the editor has the whole height before anything ran.
     const [resultsOpen, setResultsOpen] = useState(false);
-    const [resultsHeight, setResultsHeight] = useState(() => parseHeight(storage?.get(RESULTS_HEIGHT_KEY)));
+    const [resultsHeight, setResultsHeight] = useState(() => parseStoredSize(storage?.get(RESULTS_HEIGHT_KEY), MIN_RESULTS_HEIGHT));
     const { startResize } = useColumnResize(resultsPane, {
         size: resultsHeight ?? MIN_RESULTS_HEIGHT,
         min: MIN_RESULTS_HEIGHT,
