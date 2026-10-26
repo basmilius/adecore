@@ -129,11 +129,11 @@ export const ChatUiAnswerSchema = ChatUiChoiceOriginSchema.extend({
 });
 export type ChatUiAnswer = z.infer<typeof ChatUiAnswerSchema>;
 
-// A message typed while a turn was running; the daemon sends it when that turn settles.
 /* The reply a quoted passage was taken from, so a client can lead the reader back to it. */
 export const ChatQuoteSourceSchema = z.object({ itemId: z.string().min(1).max(256) });
 export type ChatQuoteSource = z.infer<typeof ChatQuoteSourceSchema>;
 
+// A message typed while a turn was running; the daemon sends it when that turn settles.
 export const ChatQueuedMessageSchema = z.object({
     id: z.string().min(1),
     // Older saved queues have no reserved turn yet; draining them still mints one.
@@ -518,14 +518,14 @@ export const ChatSubagentUsageSchema = z.object({
 });
 export type ChatSubagentUsage = z.infer<typeof ChatSubagentUsageSchema>;
 
+// The `origin` of a subagent row a host opened with a task of its own rather than the CLI with its tool; a legacy spelling that stored threads carry.
+export const HOST_TASK_ORIGIN = 'ruimte';
+
 /*
  * One agent the agent delegated to, foreground or background. Its own work stays in the thread as
  * ordinary items that carry `parentToolUseId`, so streaming keeps working; the timeline gathers
  * them under this row. `result` is the report it ended with, as markdown.
  */
-// The `origin` of a subagent row a host opened with a task of its own rather than the CLI with its tool; a legacy spelling that stored threads carry.
-export const HOST_TASK_ORIGIN = 'ruimte';
-
 export const ChatSubagentItemSchema = z.object({
     ...base,
     kind: z.literal('subagent'),

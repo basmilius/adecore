@@ -1,4 +1,4 @@
-const graphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+let graphemes: Intl.Segmenter | undefined;
 
 /*
  * The longest start of `text` that fits in `max` UTF-16 units, the measure a schema's `max` counts in,
@@ -9,6 +9,7 @@ export function clipText(text: string, max: number): string {
     if (text.length <= max) {
         return text;
     }
+    graphemes ??= new Intl.Segmenter(undefined, { granularity: 'grapheme' });
     let end = 0;
     for (const { segment } of graphemes.segment(text)) {
         if (end + segment.length > max) {
