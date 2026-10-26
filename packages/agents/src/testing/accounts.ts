@@ -41,8 +41,10 @@ export async function testAccounts(options: {
         prepareShadow: async () => ({ linked: [], unshared: [], sharedLogin: false }),
         secrets: memorySecrets()
     });
+
     // Written and not saved, so an account whose folder is already gone is there the way a person left it.
     await writeAccounts(accountsPath(options.home), options.accounts);
     await service.load();
+
     return service;
 }

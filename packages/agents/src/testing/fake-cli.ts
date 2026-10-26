@@ -44,40 +44,49 @@ export interface InProcessCli {
 export function inProcess(cli: FakeCli): InProcessCli {
     const started: StartedFake[] = [];
     let nextPid = 900_000;
+
     const spawn = (options: ChatSpawnOptions): ChatProcess => {
         const encoder = new TextEncoder();
         const chunks: Uint8Array[] = [];
         let stderrController: ReadableStreamDefaultController<Uint8Array> | null = null;
+
         const stderr = new ReadableStream<Uint8Array>({
             start: (controller) => {
                 stderrController = controller;
             }
         });
+
         const deferred: Array<() => void> = [];
         let ended = false;
         let exitCode: number | null = null;
         let inputClosed = false;
         let pending = '';
         let wake: (() => void) | null = null;
+
         let settleExited: (code: number | null) => void = () => undefined;
+
         const exited = new Promise<number | null>((resolve) => {
             settleExited = resolve;
         });
+
         const nudge = (): void => {
             const waiting = wake;
             wake = null;
             waiting?.();
         };
+
         const exit = (code: number | null): void => {
             if (ended) {
                 return;
             }
+
             ended = true;
             exitCode = code;
             // A pipe closes with the process that held it.
             stderrController?.close();
             nudge();
         };
+
         const program = cli({
             argv: options.command.slice(1),
             cwd: options.cwd,
@@ -85,6 +94,7 @@ export function inProcess(cli: FakeCli): InProcessCli {
                 if (ended) {
                     return;
                 }
+
                 chunks.push(encoder.encode(`${JSON.stringify(frame)}\n`));
                 nudge();
             },
@@ -98,6 +108,7 @@ export function inProcess(cli: FakeCli): InProcessCli {
                 deferred.push(work);
             }
         });
+
         const stdout = new ReadableStream<Uint8Array>(
             {
                 pull: async (controller) => {
@@ -106,11 +117,15 @@ export function inProcess(cli: FakeCli): InProcessCli {
                             wake = resolve;
                         });
                     }
+
                     const chunk = chunks.shift();
+
                     if (chunk) {
                         controller.enqueue(chunk);
+
                         return;
                     }
+
                     controller.close();
                     options.onExit(exitCode);
                     settleExited(exitCode);
@@ -118,21 +133,26 @@ export function inProcess(cli: FakeCli): InProcessCli {
             },
             { highWaterMark: 0 }
         );
+
         const stdin = {
             write: (chunk: string): number => {
                 if (ended || inputClosed) {
                     return 0;
                 }
+
                 pending += chunk;
                 let newline = pending.indexOf('\n');
+
                 while (newline >= 0 && !ended) {
                     const line = pending.slice(0, newline);
                     pending = pending.slice(newline + 1);
                     newline = pending.indexOf('\n');
+
                     if (line.trim() !== '') {
                         program.onLine(line);
                     }
                 }
+
                 return chunk.length;
             },
             flush: (): number => 0,
@@ -140,9 +160,11 @@ export function inProcess(cli: FakeCli): InProcessCli {
             end: (): number => {
                 inputClosed = true;
                 exit(0);
+
                 return 0;
             }
         };
+
         started.push({
             argv: options.command.slice(1),
             runLater: () => {
@@ -153,6 +175,7 @@ export function inProcess(cli: FakeCli): InProcessCli {
             crash: (code) => exit(code),
             exited
         });
+
         return {
             pid: nextPid++,
             stdin,
@@ -162,6 +185,7 @@ export function inProcess(cli: FakeCli): InProcessCli {
             kill: () => exit(null)
         };
     };
+
     return { spawn, started };
 }
 
@@ -181,19 +205,24 @@ export async function runOverStdio(cli: FakeCli): Promise<void> {
             setImmediate(work);
         }
     });
+
     const decoder = new TextDecoder();
     let buffered = '';
+
     for await (const chunk of process.stdin as AsyncIterable<Uint8Array>) {
         buffered += decoder.decode(chunk, { stream: true });
         let newline = buffered.indexOf('\n');
+
         while (newline >= 0) {
             const line = buffered.slice(0, newline);
             buffered = buffered.slice(newline + 1);
             newline = buffered.indexOf('\n');
+
             if (line.trim() !== '') {
                 program.onLine(line);
             }
         }
     }
+
     process.exit(0);
 }

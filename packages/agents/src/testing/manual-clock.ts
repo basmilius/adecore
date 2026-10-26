@@ -13,6 +13,7 @@ export class ManualClock implements OutboxClock {
     setTimeout(run: () => void, ms: number): unknown {
         const id = this.nextId++;
         this.timers.push({ at: this.time + ms, run, id });
+
         return id;
     }
 
@@ -24,6 +25,7 @@ export class ManualClock implements OutboxClock {
         this.time += ms;
         const due = this.timers.filter((timer) => timer.at <= this.time);
         this.timers = this.timers.filter((timer) => timer.at > this.time);
+
         for (const timer of due) {
             timer.run();
         }

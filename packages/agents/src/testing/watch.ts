@@ -17,6 +17,7 @@ export class FakeDirectoryWatcher implements DirectoryWatcher {
         if (this.closed) {
             return;
         }
+
         this.listener(event, filename);
     }
 
@@ -41,12 +42,14 @@ export class FakeWatch implements WatchSeams {
     readonly watch: WatchDirectory = (path, options, listener) => {
         const watcher = new FakeDirectoryWatcher(path, options.recursive, listener);
         this.watchers.push(watcher);
+
         return watcher;
     };
 
     readonly schedule = (callback: () => unknown, _ms: number): (() => void) => {
         const id = this.nextId++;
         this.due.set(id, callback);
+
         return () => {
             this.due.delete(id);
         };
@@ -63,9 +66,11 @@ export class FakeWatch implements WatchSeams {
     /* The one open watcher on `path`, which a test that emits on it expects to exist. */
     on(path: string): FakeDirectoryWatcher {
         const [watcher, ...rest] = this.openOn(path);
+
         if (!watcher || rest.length > 0) {
             throw new Error(`Expected one open watcher on ${path}, found ${rest.length + (watcher ? 1 : 0)}`);
         }
+
         return watcher;
     }
 
@@ -85,6 +90,7 @@ export class EventLog<T> {
         this.events.push(event);
         const ready = this.waiters.filter((waiter) => waiter.check(this.events));
         this.waiters = this.waiters.filter((waiter) => !ready.includes(waiter));
+
         for (const waiter of ready) {
             waiter.resolve();
         }
@@ -94,6 +100,7 @@ export class EventLog<T> {
         if (check(this.events)) {
             return Promise.resolve();
         }
+
         return new Promise((resolve) => {
             this.waiters.push({ check, resolve });
         });
