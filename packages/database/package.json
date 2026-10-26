@@ -75,7 +75,7 @@
   },
   "devDependencies": {
     "@adecore/ui": "workspace:*",
-    "@happy-dom/global-registrator": "^20.14.6",
+    "@happy-dom/global-registrator": "^21.0.4",
     "@types/bun": "^1.4.4",
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",
