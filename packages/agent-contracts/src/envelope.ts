@@ -47,6 +47,7 @@ function toResult<T>(parsed: z.ZodSafeParseResult<T>): ParseResult<T> {
     if (parsed.success) {
         return { ok: true, value: parsed.data };
     }
+
     return { ok: false, message: z.prettifyError(parsed.error) };
 }
 

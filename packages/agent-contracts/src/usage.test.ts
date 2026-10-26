@@ -3,6 +3,7 @@ import { evenPace, type UsageWindow } from './usage.ts';
 
 describe('the even pace of a window', () => {
     const HOUR = 3_600_000;
+
     const window = (used: number, extra: Partial<UsageWindow> = {}): UsageWindow => ({
         id: 'session',
         kind: 'session',

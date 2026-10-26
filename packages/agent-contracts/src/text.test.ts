@@ -31,9 +31,11 @@ describe('appendToolOutput', () => {
 
     test('keeps the last units of a long output', () => {
         let output: string | null = null;
+
         for (let i = 0; i < 2000; i++) {
             output = appendToolOutput(output, `${String(i).padStart(4, '0')}${'x'.repeat(95)}\n`);
         }
+
         expect(output!.length).toBe(TOOL_OUTPUT_TAIL);
         expect(output!.endsWith(`1999${'x'.repeat(95)}\n`)).toBe(true);
     });

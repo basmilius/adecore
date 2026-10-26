@@ -9,14 +9,18 @@ export function clipText(text: string, max: number): string {
     if (text.length <= max) {
         return text;
     }
+
     graphemes ??= new Intl.Segmenter(undefined, { granularity: 'grapheme' });
     let end = 0;
+
     for (const { segment } of graphemes.segment(text)) {
         if (end + segment.length > max) {
             break;
         }
+
         end += segment.length;
     }
+
     return text.slice(0, end);
 }
 
@@ -27,12 +31,16 @@ export const TOOL_OUTPUT_TAIL = 64 * 1024;
 export function appendToolOutput(output: string | null, text: string): string {
     const whole = (output ?? '') + text;
     let start = whole.length - TOOL_OUTPUT_TAIL;
+
     if (start <= 0) {
         return whole;
     }
+
     const unit = whole.charCodeAt(start);
+
     if (unit >= 0xdc00 && unit <= 0xdfff) {
         start += 1;
     }
+
     return whole.slice(start);
 }

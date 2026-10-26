@@ -17,6 +17,7 @@ export const AgentKindSchema = z
     .min(1)
     .max(AGENT_KIND_MAX_LENGTH)
     .regex(/^[a-z][a-z0-9-]*$/);
+
 export type AgentKind = KnownAgentKind | (string & {});
 
 export function isKnownAgentKind(kind: string): kind is KnownAgentKind {

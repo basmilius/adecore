@@ -155,6 +155,7 @@ export const ProviderInstallSchema = z.object({
     signIn: z.array(z.unknown()).transform((ways) =>
         ways.flatMap((way) => {
             const parsed = ProviderSignInSchema.safeParse(way);
+
             return parsed.success ? [parsed.data] : [];
         })
     )
@@ -204,7 +205,9 @@ export function pickerGroupsOf<T extends { kind: AgentKind; name: string }>(prov
     nameCollator ??= new Intl.Collator(undefined, { sensitivity: 'base' });
     const collator = nameCollator;
     const sorted = [...providers].sort((a, b) => collator.compare(a.name, b.name));
+
     const inGroup = (group: ProviderPickerGroup): T[] => sorted.filter((provider) => providerGroupOf(provider.kind) === group);
+
     return { frontier: inGroup('frontier'), others: inGroup('others'), api: inGroup('api') };
 }
 
@@ -220,6 +223,7 @@ export type ProviderListResult = z.infer<typeof ProviderListResultSchema>;
  */
 export function resumeCommandFor(template: string, agentSessionId: string, flags: string[] = []): string {
     const id = `'${agentSessionId.replaceAll("'", `'\\''`)}'`;
+
     return template
         .split(' ')
         .flatMap((word) => (word === '{flags}' ? flags : [word.replace('{id}', id)]))

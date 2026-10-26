@@ -63,17 +63,21 @@ function clampHeight(height: number): number {
 export function visualFrameHeight(visual: Pick<ChatVisual, 'maxHeight' | 'heights'>, width: number): number | undefined {
     let below: VisualHeight | undefined;
     let above: VisualHeight | undefined;
+
     for (const measured of visual.heights ?? []) {
         if (measured[0] <= width && (below === undefined || measured[0] > below[0])) {
             below = measured;
         }
+
         if (measured[0] >= width && (above === undefined || measured[0] < above[0])) {
             above = measured;
         }
     }
+
     if (below === undefined && above === undefined) {
         return undefined;
     }
+
     return clampHeight(Math.min(Math.max(below?.[1] ?? 0, above?.[1] ?? 0), visual.maxHeight));
 }
 
@@ -174,8 +178,10 @@ function webUrl(value: unknown): string | undefined {
     if (typeof value !== 'string') {
         return undefined;
     }
+
     try {
         const url = new (globalThis as unknown as { URL: UrlParser }).URL(value);
+
         return url.protocol === 'http:' || url.protocol === 'https:' ? url.href : undefined;
     } catch {
         return undefined;
@@ -190,7 +196,9 @@ export function parseVisualMessage(data: unknown): VisualMessage | undefined {
     if (!isRecord(data) || data.jsonrpc !== '2.0' || typeof data.method !== 'string') {
         return undefined;
     }
+
     const params = isRecord(data.params) ? data.params : {};
+
     switch (data.method) {
         case VISUAL_BRIDGE_METHODS.sandboxProxyReady:
             return { method: data.method };
@@ -200,15 +208,19 @@ export function parseVisualMessage(data: unknown): VisualMessage | undefined {
             if (params.theme !== 'light' && params.theme !== 'dark') {
                 return undefined;
             }
+
             const styles = isRecord(params.styles) ? params.styles : {};
+
             return { method: data.method, theme: { appearance: params.theme, variables: cleanVisualVariables(styles.variables) } };
         }
         case VISUAL_BRIDGE_METHODS.sizeChanged: {
             const height = sizeOf(params.height);
             const width = sizeOf(params.width);
+
             if (height === undefined) {
                 return undefined;
             }
+
             return width === undefined ? { method: data.method, height } : { method: data.method, width, height };
         }
         case VISUAL_BRIDGE_METHODS.viewportReady:
@@ -217,26 +229,33 @@ export function parseVisualMessage(data: unknown): VisualMessage | undefined {
             if (data.params === null) {
                 return { method: data.method, viewport: null };
             }
+
             const top = sizeOf(params.top);
             const height = sizeOf(params.height);
+
             return top !== undefined && height !== undefined && height > 0 ? { method: data.method, viewport: { top, height } } : undefined;
         }
         case VISUAL_BRIDGE_METHODS.scrollRequest: {
             if (typeof params.by === 'number' && Number.isFinite(params.by)) {
                 return { method: data.method, request: { by: Math.max(-100_000, Math.min(params.by, 100_000)) } };
             }
+
             const top = sizeOf(params.to);
+
             if (top !== undefined) {
                 return { method: data.method, request: { to: top } };
             }
+
             return params.edge === 'start' || params.edge === 'end' ? { method: data.method, request: { edge: params.edge } } : undefined;
         }
         case VISUAL_BRIDGE_METHODS.openLink: {
             const url = webUrl(params.url);
             const id = data.id;
+
             if (url === undefined || !(typeof id === 'string' || (typeof id === 'number' && Number.isFinite(id)))) {
                 return undefined;
             }
+
             return { method: data.method, id, url };
         }
         default:
@@ -377,14 +396,17 @@ const MAX_VALUE_LENGTH = 512;
 /* The variables of a theme a page may be given, from anything: the names it may hold and the values that cannot break out of their rule. */
 export function cleanVisualVariables(input: unknown): Record<string, string> {
     const clean: Record<string, string> = {};
+
     if (!isRecord(input)) {
         return clean;
     }
+
     for (const [name, value] of Object.entries(input)) {
         if (VARIABLE_NAME.test(name) && typeof value === 'string' && value.length <= MAX_VALUE_LENGTH && !UNSAFE_VALUE.test(value) && value.trim() !== '') {
             clean[name] = value.trim();
         }
     }
+
     return clean;
 }
 
@@ -421,6 +443,7 @@ const BASE_CSS = [
 
 function rootRule(theme: VisualTheme): string {
     const declarations = Object.entries(theme.variables).map(([name, value]) => `${name}:${value};`);
+
     return `:root{color-scheme:${theme.appearance};\n${declarations.join('\n')}\n}`;
 }
 
@@ -445,6 +468,7 @@ function bootstrapScript(): string {
         sizeChanged: VISUAL_BRIDGE_METHODS.sizeChanged,
         openLink: VISUAL_BRIDGE_METHODS.openLink
     };
+
     return `(function () {
 var script = document.currentScript;
 var style = script && script.previousElementSibling;
@@ -540,6 +564,7 @@ if (framed && typeof ResizeObserver === 'function') {
 
 function bootstrapMarkup(viewport: boolean): string {
     const theme = `${rootRule(VISUAL_DARK_THEME)}\n@media (prefers-color-scheme: light){\n${rootRule(VISUAL_LIGHT_THEME)}\n}\n${BASE_CSS}`;
+
     return [
         // Always first: the stored file is UTF-8 whatever the page declares, and the first charset wins.
         '<meta charset="utf-8">',
@@ -564,41 +589,56 @@ function commentEnd(html: string, from: number): number {
     if (html.startsWith('>', from)) {
         return from + 1;
     }
+
     if (html.startsWith('->', from)) {
         return from + 2;
     }
+
     const ends = [html.indexOf('-->', from), html.indexOf('--!>', from)].filter((index) => index >= 0);
+
     if (ends.length === 0) {
         return html.length;
     }
+
     const end = Math.min(...ends);
+
     return end + (html.startsWith('-->', end) ? 3 : 4);
 }
 
 // Past the `>` of a tag, skipping a quoted attribute value, which may hold one.
 function tagEnd(html: string, from: number): number {
     let at = from;
+
     while (at < html.length) {
         const char = html[at];
+
         if (char === '>') {
             return at + 1;
         }
+
         at++;
+
         if (char !== '=') {
             continue;
         }
+
         while (at < html.length && /\s/.test(html[at]!)) {
             at++;
         }
+
         const quote = html[at];
+
         if (quote === '"' || quote === "'") {
             const close = html.indexOf(quote, at + 1);
+
             if (close < 0) {
                 return html.length;
             }
+
             at = close + 1;
         }
     }
+
     return html.length;
 }
 
@@ -606,9 +646,11 @@ function rawTextEnd(html: string, name: string, from: number): number {
     if (name === 'plaintext') {
         return html.length;
     }
+
     const close = new RegExp(`</${name}[\\s/>]`, 'gi');
     close.lastIndex = from;
     const found = close.exec(html);
+
     return found === null ? html.length : tagEnd(html, found.index + 2);
 }
 
@@ -618,15 +660,20 @@ function rawTextEnd(html: string, name: string, from: number): number {
  */
 function* tokens(html: string): Generator<Token> {
     let at = 0;
+
     while (at < html.length) {
         const open = html.indexOf('<', at);
+
         if (open < 0) {
             yield { kind: 'text', name: '', start: at, end: html.length };
+
             return;
         }
+
         const next = html[open + 1] ?? '';
         let token: Token | null = null;
         let resume = 0;
+
         if (html.startsWith('<!--', open)) {
             token = { kind: 'comment', name: '', start: open, end: commentEnd(html, open + 4) };
         } else if (next === '!' || next === '?') {
@@ -639,21 +686,26 @@ function* tokens(html: string): Generator<Token> {
         } else if (/[a-z]/i.test(next)) {
             const name = /^<([a-z][^\s/>]*)/i.exec(html.slice(open, open + 64))![1]!.toLowerCase();
             token = { kind: 'start', name, start: open, end: tagEnd(html, open + 1 + name.length) };
+
             if (RAW_TEXT.has(name)) {
                 resume = rawTextEnd(html, name, token.end);
             }
         }
+
         if (token === null) {
             // A `<` that opens nothing is text, which goes on to the next `<`.
             const following = html.indexOf('<', open + 1);
             const end = following < 0 ? html.length : following;
             yield { kind: 'text', name: '', start: at, end };
             at = end;
+
             continue;
         }
+
         if (open > at) {
             yield { kind: 'text', name: '', start: at, end: open };
         }
+
         yield token;
         at = Math.max(token.end, resume);
     }
@@ -672,20 +724,25 @@ function bootstrapPlace(html: string): { at: number; head: boolean } {
         if (token.kind === 'comment' || token.kind === 'doctype' || (token.kind === 'text' && BLANK.test(html.slice(token.start, token.end)))) {
             continue;
         }
+
         if (token.kind === 'start' && token.name === 'html') {
             continue;
         }
+
         if (token.kind === 'start' && token.name === 'head') {
             return { at: token.end, head: true };
         }
+
         return { at: token.start, head: false };
     }
+
     return { at: html.length, head: false };
 }
 
 // Whether the page sets its own viewport, outside a template.
 function hasViewport(html: string): boolean {
     let templates = 0;
+
     for (const token of tokens(html)) {
         if (token.name === 'template') {
             templates = Math.max(0, templates + (token.kind === 'start' ? 1 : token.kind === 'end' ? -1 : 0));
@@ -695,6 +752,7 @@ function hasViewport(html: string): boolean {
             }
         }
     }
+
     return false;
 }
 
@@ -706,11 +764,13 @@ function hasViewport(html: string): boolean {
 export function injectVisualBootstrap(html: string): string {
     const place = bootstrapPlace(html);
     const bootstrap = bootstrapMarkup(!hasViewport(html));
+
     return html.slice(0, place.at) + (place.head ? bootstrap : `<head>${bootstrap}</head>`) + html.slice(place.at);
 }
 
 function hostPageScript(): string {
     const methods = { ready: VISUAL_BRIDGE_METHODS.sandboxProxyReady, resource: VISUAL_BRIDGE_METHODS.sandboxResourceReady };
+
     return `(function () {
 if (window.parent === window) { return; }
 var methods = ${inlineJson(methods)};

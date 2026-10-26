@@ -4,6 +4,7 @@ import { ProviderAccountIdSchema } from './provider-accounts.ts';
 /* The providers whose usage the daemon reads: the CLIs' own records, and the log a host keeps of what it calls itself. A subset of `AgentKindSchema`: it grows with the readers. */
 export const UsageProviderSchema = z.enum(['claude', 'codex', 'nanogpt', 'grok', 'copilot', 'anthropic-claude-api']);
 export type UsageProvider = z.infer<typeof UsageProviderSchema>;
+
 export const USAGE_PROVIDERS = UsageProviderSchema.options;
 
 export const UsageResolutionSchema = z.enum(['hour', 'day']);
@@ -194,8 +195,10 @@ export function evenPace(window: UsageWindow, now: number): EvenPace | null {
     if (window.resetsAt === null || window.durationMs === null || window.durationMs <= 0) {
         return null;
     }
+
     const percent = Math.round(Math.min(1, Math.max(0, 1 - (window.resetsAt - now) / window.durationMs)) * 100);
     const used = Math.round(window.used * 100);
+
     return { percent, standing: used > percent ? 'ahead' : used < percent ? 'behind' : 'even' };
 }
 

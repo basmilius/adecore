@@ -60,18 +60,23 @@ const IMAGE_MIME_BY_EXTENSION = new Map([
     ['webp', 'image/webp'],
     ['gif', 'image/gif']
 ]);
+
 const IMAGE_MIME_TYPES = new Set(IMAGE_MIME_BY_EXTENSION.values());
 
 // A generic MIME type from Finder may still name a picture; a declared PDF must stay a PDF.
 export function attachmentImageMime({ name, mime }: { name: string; mime: string }): string | null {
     const type = mime.split(';')[0]!.trim().toLowerCase();
+
     if (IMAGE_MIME_TYPES.has(type)) {
         return type;
     }
+
     if (type !== '' && type !== 'application/octet-stream' && type !== 'binary/octet-stream') {
         return null;
     }
+
     const dot = name.lastIndexOf('.');
+
     return dot < 0 ? null : (IMAGE_MIME_BY_EXTENSION.get(name.slice(dot + 1).toLowerCase()) ?? null);
 }
 
@@ -733,6 +738,7 @@ export function activeSubagents(items: readonly ChatItem[]): ChatSubagentItem[] 
     const lastMessageAt = lastMessage < 0 ? null : items[lastMessage]!.createdAt;
     const rows = items.flatMap((item, index) => (item.kind === 'subagent' ? [{ item, index }] : []));
     const turns = new Set(rows.flatMap(({ item }) => (item.status === 'running' && item.turnId !== null ? [item.turnId] : [])));
+
     return rows
         .filter(
             ({ item, index }) =>
@@ -824,14 +830,17 @@ export const ChatAttachPayloadSchema = ChatTargetPayloadSchema.extend({
     // The last seq this client saw; honored when the daemon still holds everything after it.
     since: z.number().int().nonnegative().optional()
 });
+
 export const ChatHistoryPayloadSchema = ChatTargetPayloadSchema.extend({
     cursor: z.string().min(1).max(128),
     limit: z.number().int().min(1).max(100).optional()
 });
+
 export const ChatHistoryPageSchema = z.object({
     start: z.number().int().nonnegative(),
     cursor: z.string().nullable()
 });
+
 export const ChatHistoryResultSchema = z.object({ items: z.array(ChatItemSchema), history: ChatHistoryPageSchema });
 export type ChatHistoryResult = z.infer<typeof ChatHistoryResultSchema>;
 
@@ -1159,6 +1168,8 @@ export function generatedImageAttachment(item: ChatItem): ChatAttachment | null 
     if (item.kind !== 'tool' || item.name !== 'ImageGeneration') {
         return null;
     }
+
     const parsed = GeneratedImageInputSchema.safeParse(item.input);
+
     return parsed.success ? (parsed.data.attachment ?? null) : null;
 }

@@ -31,6 +31,7 @@ describe('agent kind', () => {
         ]) {
             expect(AgentKindSchema.safeParse(kind).success).toBe(false);
         }
+
         expect(AgentKindSchema.safeParse('a'.repeat(AGENT_KIND_MAX_LENGTH)).success).toBe(true);
         expect(AgentKindSchema.safeParse(42).success).toBe(false);
     });

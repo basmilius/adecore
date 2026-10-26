@@ -44,20 +44,26 @@ const declaredNames = (declaration: Declaration): string[] => {
 /* What an entry file names, values and types alike, from its export lists and its exported declarations. */
 const namesIn = (file: string): string[] => {
     const program = parseSync(file, readFileSync(join(HERE, file), 'utf8')).program;
+
     return program.body.flatMap((statement: Statement) => {
         if (statement.type === 'ExportNamedDeclaration' && statement.declaration) {
             return declaredNames(statement.declaration);
         }
+
         if (statement.type === 'ExportNamedDeclaration') {
             const typeOnly = statement.exportKind === 'type';
+
             return statement.specifiers.map((specifier) => {
                 const exported = specifier.exported.type === 'Identifier' ? specifier.exported.name : String(specifier.exported.value);
+
                 return typeOnly || specifier.exportKind === 'type' ? `type ${exported}` : exported;
             });
         }
+
         if (statement.type === 'ExportAllDeclaration') {
             return [`* from ${statement.source.value}`];
         }
+
         return [];
     });
 };

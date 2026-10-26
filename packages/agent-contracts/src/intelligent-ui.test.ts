@@ -10,11 +10,13 @@ afterEach(() => setSystemTime());
 test('future UI components stay open on the chat wire and legacy decoders retain the reply', () => {
     const text = '```ui\n<Summary>Readable</Summary>\n```';
     const block = compileUi(text, { id: 'reply', final: true })[0];
+
     const future = {
         ...block,
         catalogVersion: 999,
         nodes: [{ ...block.nodes[0], type: 'FutureWidget', props: { future: true }, expressions: { future: { kind: 'future' } } }]
     };
+
     const reply = { id: 'reply', kind: 'assistant', createdAt: 1, turnId: null, text, streaming: false, ui: [future] };
     const parsed = ChatAssistantItemSchema.parse(reply);
     expect(parsed.ui?.[0].nodes[0].type).toBe('FutureWidget');
@@ -31,10 +33,12 @@ test('future UI components stay open on the chat wire and legacy decoders retain
 test('a frozen block reads with or without the places looked up beside it', () => {
     const older = { authorChatId: 'chat', blocks: { block: { revision: 'r1', readings: {}, fallback: 'Text' } } };
     expect(ChatUiQueryStateSchema.parse(older) as unknown).toEqual(older);
+
     const places = {
         found: { state: 'found', address: 'Domplein 1, Utrecht', lat: 52.0907, lon: 5.1214, label: 'Domplein, Utrecht' },
         missing: { state: 'missing', address: 'Nowhere 1', code: 'place-not-found', reason: 'No match for this address.' }
     };
+
     const newer = { authorChatId: 'chat', blocks: { block: { revision: 'r1', readings: {}, fallback: 'Text', places } } };
     expect(ChatUiQueryStateSchema.parse(newer) as unknown).toEqual(newer);
     expect(ChatUiPlaceReadingSchema.safeParse({ state: 'found', address: 'x', lat: 91, lon: 5 }).success).toBe(false);

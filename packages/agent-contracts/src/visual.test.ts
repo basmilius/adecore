@@ -45,9 +45,11 @@ describe('ChatVisualSchema and the wire', () => {
 
     test('accepts opt-in layouts without adding a field to older visuals', () => {
         expect(ChatVisualSchema.parse(visual)).not.toHaveProperty('layout');
+
         for (const layout of ['inline', 'wide'] as const) {
             expect(ChatVisualsEventSchema.parse({ chatId: 'chat-1', visuals: [{ ...visual, layout }] }).visuals[0]?.layout).toBe(layout);
         }
+
         expect(ChatVisualSchema.safeParse({ ...visual, layout: 'fullscreen' }).success).toBe(false);
     });
 
@@ -107,9 +109,11 @@ describe('the bridge', () => {
             viewport: { top: 4200, height: 700 }
         });
         expect(parseVisualMessage(visualViewportMessage(null))).toEqual({ method: VISUAL_BRIDGE_METHODS.viewportChanged, viewport: null });
+
         for (const request of [{ by: -55 }, { to: 3200 }, { edge: 'end' as const }]) {
             expect(parseVisualMessage(visualScrollMessage(request))).toEqual({ method: VISUAL_BRIDGE_METHODS.scrollRequest, request });
         }
+
         expect(parseVisualMessage(visualProxyReadyMessage())).toEqual({ method: 'ui/notifications/sandbox-proxy-ready' });
         expect(parseVisualMessage(visualResourceReadyMessage('<p>hi</p>'))).toEqual({ method: 'ui/notifications/sandbox-resource-ready', html: '<p>hi</p>' });
         expect(parseVisualMessage(visualHostContextMessage(theme))).toEqual({ method: 'ui/notifications/host-context-changed', theme });
@@ -138,6 +142,7 @@ describe('the bridge', () => {
         for (const data of [null, 'ui/open-link', [], { method: 'ui/notifications/sandbox-proxy-ready' }, { jsonrpc: '2.0', method: 'ui/other' }]) {
             expect(parseVisualMessage(data)).toBeUndefined();
         }
+
         expect(parseVisualMessage({ jsonrpc: '2.0', method: 'ui/notifications/sandbox-resource-ready' })).toBeUndefined();
         expect(parseVisualMessage({ jsonrpc: '2.0', method: 'ui/notifications/host-context-changed', params: { theme: 'sepia' } })).toBeUndefined();
     });
@@ -162,6 +167,7 @@ describe('the bridge', () => {
                 expect(parseVisualMessage({ jsonrpc: '2.0', method: VISUAL_BRIDGE_METHODS.viewportChanged, params })).toBeUndefined();
             }
         }
+
         for (const params of [{ by: NaN }, { to: -1 }, { by: '20' }, { edge: 'elsewhere' }]) {
             expect(parseVisualMessage({ jsonrpc: '2.0', method: VISUAL_BRIDGE_METHODS.scrollRequest, params })).toBeUndefined();
         }
@@ -169,10 +175,13 @@ describe('the bridge', () => {
 
     test('opens only http and https links, and only on a request with an id', () => {
         const request = (url: unknown, id: unknown = 1) => parseVisualMessage({ jsonrpc: '2.0', id, method: 'ui/open-link', params: { url } });
+
         expect(request('http://example.com')).toEqual({ method: 'ui/open-link', id: 1, url: 'http://example.com/' });
+
         for (const url of ['javascript:alert(1)', 'file:///etc/hosts', 'mailto:a@example.com', '/relative', 'not a url', 42]) {
             expect(request(url)).toBeUndefined();
         }
+
         expect(request('https://example.com', null)).toBeUndefined();
         expect(request('https://example.com', Number.NaN)).toBeUndefined();
     });
@@ -184,6 +193,7 @@ describe('the theme', () => {
             expect(Object.keys(theme.variables).sort()).toEqual([...VISUAL_THEME_VARIABLES].sort());
             expect(cleanVisualVariables(theme.variables)).toEqual({ ...theme.variables });
         }
+
         expect(VISUAL_LIGHT_THEME.appearance).toBe('light');
         expect(VISUAL_DARK_THEME.appearance).toBe('dark');
     });
@@ -222,9 +232,11 @@ describe('the theme', () => {
         expect(VISUAL_PAGE_RULES).toContain('16 MiB');
         expect(VISUAL_LAYOUT_GUIDE).toContain('768px');
         expect(VISUAL_LAYOUT_GUIDE).toContain('wide layout');
+
         for (const name of VISUAL_THEME_VARIABLES) {
             expect(VISUAL_THEME_GUIDE).toContain(name);
         }
+
         expect(`${VISUAL_PAGE_RULES}${VISUAL_LAYOUT_GUIDE}${VISUAL_THEME_GUIDE}`).not.toMatch(/[–—]/);
     });
 });
@@ -235,12 +247,14 @@ function around(html: string): { before: string; after: string } {
     const start = result.indexOf(META);
     const end = result.indexOf('</script>', start) + '</script>'.length;
     expect(start).toBeGreaterThanOrEqual(0);
+
     return { before: result.slice(0, start), after: result.slice(end) };
 }
 
 describe('injectVisualBootstrap', () => {
     test('goes at the very start of the head, after a doctype and an html tag', () => {
         const page = '<!DOCTYPE html>\n<html lang="en">\n<head data-x="a>b">\n<title>Chart</title>\n</head><body></body></html>';
+
         expect(around(page)).toEqual({
             before: '<!DOCTYPE html>\n<html lang="en">\n<head data-x="a>b">',
             after: '\n<title>Chart</title>\n</head><body></body></html>'
@@ -345,30 +359,38 @@ function boot(options: { hash?: string; framed?: boolean; another?: boolean } = 
     const posted: unknown[] = [];
     const parent = { postMessage: (data: unknown, origin: string) => posted.push({ data, origin }) };
     const listeners = new Map<string, (event: unknown) => void>();
+
     const window: Record<string, unknown> = {
         addEventListener: (type: string, listener: (event: unknown) => void) => listeners.set(type, listener),
         matchMedia: () => ({ matches: false })
     };
+
     window.parent = options.framed === false ? window : parent;
     const hash = options.hash ?? '';
     const location = { hash, href: `https://sandbox.example/host.html${hash}` };
     const replaced: string[] = [];
     const history = { state: null, replaceState: (_state: unknown, _title: string, url: string) => replaced.push(url) };
     const root = { box: { width: 600.4, height: 120 }, getBoundingClientRect: () => root.box };
+
     const document = {
         currentScript: script,
         documentElement: root,
         baseURI: 'https://sandbox.example/host.html',
         querySelector: () => (options.another ? {} : style)
     };
+
     const resized: Array<() => void> = [];
+
     class FakeResizeObserver {
         constructor(callback: () => void) {
             resized.push(callback);
         }
+
         observe(): void {}
     }
+
     const frames: Array<() => void> = [];
+
     new Function('window', 'document', 'location', 'history', 'ResizeObserver', 'requestAnimationFrame', source)(
         window,
         document,
@@ -377,6 +399,7 @@ function boot(options: { hash?: string; framed?: boolean; another?: boolean } = 
         FakeResizeObserver,
         (callback: () => void) => frames.push(callback)
     );
+
     return {
         css,
         style,
@@ -448,6 +471,7 @@ describe('the bootstrap script', () => {
         listener(first);
         expect(first.prevented).toBe(true);
         listener(click([element('svg:a'), element('a', { 'xlink:href': 'http://example.com/svg' })]));
+
         expect(page.posted).toEqual([
             { data: visualOpenLinkRequest(1, 'https://example.com/docs'), origin: '*' },
             { data: visualOpenLinkRequest(2, 'http://example.com/svg'), origin: '*' }
@@ -457,6 +481,7 @@ describe('the bootstrap script', () => {
     test('leaves untrusted clicks, links within the page and other schemes alone', () => {
         const page = boot();
         const listener = page.listeners.get('click')!;
+
         const events = [
             click([element('A', { href: 'https://example.com' })], false),
             click([element('A', { href: '#section' })]),
@@ -465,10 +490,12 @@ describe('the bootstrap script', () => {
             click([element('A')]),
             click([element('DIV')])
         ];
+
         for (const event of events) {
             listener(event);
             expect(event.prevented).toBe(false);
         }
+
         expect(page.posted).toEqual([]);
     });
 
@@ -495,6 +522,7 @@ describe('the bootstrap script', () => {
         page.root.box = { width: 600, height: 340.5 };
         page.resize();
         page.flush();
+
         expect(page.posted).toEqual([
             { data: visualSizeChangedMessage({ width: 601, height: 120 }), origin: '*' },
             { data: visualSizeChangedMessage({ width: 600, height: 341 }), origin: '*' }
@@ -517,6 +545,7 @@ function host(options: { framed?: boolean } = {}) {
     const posted: unknown[] = [];
     const parent = { postMessage: (data: unknown, origin: string) => posted.push({ data, origin }) };
     const listeners: Array<(event: unknown) => void> = [];
+
     const window: Record<string, unknown> = {
         addEventListener: (type: string, listener: (event: unknown) => void) => {
             if (type === 'message') {
@@ -524,9 +553,11 @@ function host(options: { framed?: boolean } = {}) {
             }
         }
     };
+
     window.parent = options.framed === false ? window : parent;
     const written: string[] = [];
     const installed: string[] = [];
+
     const document = {
         open: () => written.push('open'),
         write: (html: string) => written.push(`write ${html}`),
@@ -534,8 +565,11 @@ function host(options: { framed?: boolean } = {}) {
         createElement: () => ({ textContent: '' }),
         head: { appendChild: (script: { textContent: string }) => installed.push(script.textContent) }
     };
+
     new Function('window', 'document', source)(window, document);
+
     const send = (data: unknown, source: unknown = parent): void => listeners.forEach((listener) => listener({ source, data }));
+
     return { posted, listeners, written, installed, send };
 }
 

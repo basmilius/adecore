@@ -15,6 +15,7 @@ describe('pickerGroupsOf', () => {
             provider('kimi', 'Kimi'),
             provider('antigravity', 'Antigravity')
         ]);
+
         expect(groups.frontier.map((entry) => entry.name)).toEqual(['Claude Code', 'Codex']);
         expect(groups.others.map((entry) => entry.name)).toEqual(['Antigravity', 'GitHub Copilot', 'Grok', 'Kimi']);
         expect(groups.api.map((entry) => entry.name)).toEqual(['Claude API', 'NanoGPT']);
@@ -34,6 +35,7 @@ describe('ProviderInstallSchema', () => {
             commands: { darwin: 'brew install agent' },
             signIn: [{ kind: 'command', command: 'agent login' }, { kind: 'passkey', origin: 'https://example.com' }, { kind: 'chat' }]
         });
+
         expect(install.signIn).toEqual([{ kind: 'command', command: 'agent login' }, { kind: 'chat' }]);
     });
 
