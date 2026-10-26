@@ -33,10 +33,12 @@ describe('adding a caret above or below', () => {
         const model = new DocumentModel(text);
         model.setSelections([{ anchor: 9, head: 9 }]);
         model.execute('addCaretBelow');
+
         model.setSelections([
             { anchor: 9, head: 9 },
             { anchor: 16, head: 16 }
         ]);
+
         model.execute('addCaretAbove');
         expect(heads(model)).toEqual([9, 16, 2]);
     });
@@ -54,6 +56,7 @@ describe('adding a caret above or below', () => {
         const model = new DocumentModel('abcdef\nab\nabcdef');
         model.setSelections([{ anchor: 3, head: 5 }]);
         model.execute('addCaretBelow');
+
         expect(model.getSelections()).toEqual([
             { anchor: 3, head: 5 },
             { anchor: 13, head: 15 }
@@ -64,10 +67,12 @@ describe('adding a caret above or below', () => {
         const model = new DocumentModel('ab\ncd');
         model.setSelections([{ anchor: 4, head: 4 }]);
         expect(model.execute('addCaretBelow')).toBe(false);
+
         model.setSelections([
             { anchor: 1, head: 1 },
             { anchor: 4, head: 4 }
         ]);
+
         expect(model.execute('addCaretBelow')).toBe(false);
         expect(heads(model)).toEqual([1, 4]);
     });

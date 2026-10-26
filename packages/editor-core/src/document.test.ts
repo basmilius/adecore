@@ -4,26 +4,33 @@ import { DocumentModel } from './document.ts';
 describe('simultaneous document transactions', () => {
     it('applies original-coordinate edits and maps independent carets', () => {
         const model = new DocumentModel('alpha beta gamma');
+
         model.setSelections([
             { anchor: 5, head: 5 },
             { anchor: 10, head: 10 }
         ]);
+
         model.applyEdits([
             { from: 6, to: 10, text: 'B' },
             { from: 0, to: 5, text: 'A' }
         ]);
+
         expect(model.getText()).toBe('A B gamma');
+
         expect(model.getSelections()).toEqual([
             { anchor: 1, head: 1 },
             { anchor: 3, head: 3 }
         ]);
+
         expect(model.getSnapshot().revision).toBe(1);
         expect(model.undo()).toBe(true);
         expect(model.getText()).toBe('alpha beta gamma');
+
         expect(model.getSelections()).toEqual([
             { anchor: 5, head: 5 },
             { anchor: 10, head: 10 }
         ]);
+
         expect(model.redo()).toBe(true);
         expect(model.getText()).toBe('A B gamma');
         expect(model.getSnapshot().revision).toBe(3);
@@ -32,22 +39,26 @@ describe('simultaneous document transactions', () => {
     it('maps an endpoint through all adjacent edits with right affinity', () => {
         const model = new DocumentModel('ab');
         model.setSelections([{ anchor: 1, head: 1 }]);
+
         model.applyEdits([
             { from: 0, to: 1, text: 'XX' },
             { from: 1, to: 1, text: 'Y' }
         ]);
+
         expect(model.getText()).toBe('XXYb');
         expect(model.getSelections()).toEqual([{ anchor: 3, head: 3 }]);
     });
 
     it('rejects overlapping, out-of-bounds and surrogate-splitting edits atomically', () => {
         const model = new DocumentModel('a😀bc');
+
         expect(() =>
             model.applyEdits([
                 { from: 0, to: 3, text: '' },
                 { from: 1, to: 4, text: '' }
             ])
         ).toThrow(RangeError);
+
         expect(() => model.applyEdits([{ from: 6, to: 6, text: '' }])).toThrow(RangeError);
         expect(() => model.applyEdits([{ from: 2, to: 2, text: 'x' }])).toThrow(RangeError);
         expect(model.getText()).toBe('a😀bc');
@@ -56,11 +67,14 @@ describe('simultaneous document transactions', () => {
 
     it('deduplicates identical edits and prevents conflicting insertions', () => {
         const model = new DocumentModel('ab');
+
         model.applyEdits([
             { from: 1, to: 1, text: 'X' },
             { from: 1, to: 1, text: 'X' }
         ]);
+
         expect(model.getText()).toBe('aXb');
+
         expect(() =>
             model.applyEdits([
                 { from: 0, to: 0, text: 'x' },
@@ -74,10 +88,12 @@ describe('simultaneous document transactions', () => {
         const selection = { anchor: -1, head: 2 };
         model.setSelections([selection, { anchor: 0, head: 3 }, { anchor: 99, head: 99 }]);
         selection.head = 5;
+
         expect(model.getSelections()).toEqual([
             { anchor: 0, head: 3 },
             { anchor: 5, head: 5 }
         ]);
+
         const snapshot = model.getSnapshot();
         (snapshot.selections[0] as { head: number }).head = 5;
         expect(model.getSelections()[0]!.head).toBe(3);
@@ -158,10 +174,12 @@ describe('editing commands', () => {
 
     it('deletes overlapping word ranges once for multiple carets', () => {
         const model = new DocumentModel('foobar');
+
         model.setSelections([
             { anchor: 2, head: 2 },
             { anchor: 4, head: 4 }
         ]);
+
         model.execute('deleteWordLeft');
         expect(model.getText()).toBe('ar');
         expect(model.getSelections()).toEqual([{ anchor: 0, head: 0 }]);
@@ -200,10 +218,12 @@ describe('editing commands', () => {
 
     it('inserts newline with existing indentation and extra block indent at multiple carets', () => {
         const model = new DocumentModel('  {\n  x\n  }');
+
         model.setSelections([
             { anchor: 3, head: 3 },
             { anchor: 7, head: 7 }
         ]);
+
         model.execute('insertNewline', { tabSize: 2 });
         expect(model.getText()).toBe('  {\n    \n  x\n  \n  }');
         model.undo();
@@ -232,12 +252,15 @@ describe('editing commands', () => {
 
     it('duplicates disjoint line blocks and maps all caret offsets', () => {
         const model = new DocumentModel('aa\nbb\ncc\ndd');
+
         model.setSelections([
             { anchor: 1, head: 1 },
             { anchor: 7, head: 7 }
         ]);
+
         model.execute('duplicateLine');
         expect(model.getText()).toBe('aa\naa\nbb\ncc\ncc\ndd');
+
         expect(model.getSelections()).toEqual([
             { anchor: 4, head: 4 },
             { anchor: 13, head: 13 }
@@ -278,16 +301,20 @@ describe('editing commands', () => {
 
     it('moves disjoint blocks independently and respects boundaries', () => {
         const model = new DocumentModel('a\nb\nc\nd');
+
         model.setSelections([
             { anchor: 2, head: 2 },
             { anchor: 6, head: 6 }
         ]);
+
         model.execute('moveLineUp');
         expect(model.getText()).toBe('b\na\nd\nc');
+
         expect(model.getSelections()).toEqual([
             { anchor: 0, head: 0 },
             { anchor: 4, head: 4 }
         ]);
+
         model.setSelections([{ anchor: 0, head: 0 }]);
         expect(model.execute('moveLineUp')).toBe(false);
     });
@@ -296,24 +323,29 @@ describe('editing commands', () => {
         const model = new DocumentModel('hello\nhi\nhello hello');
         model.setSelections([{ anchor: 4, head: 4 }]);
         model.execute('addCaretBelow');
+
         expect(model.getSelections()).toEqual([
             { anchor: 4, head: 4 },
             { anchor: 8, head: 8 }
         ]);
+
         model.setSelections([{ anchor: 1, head: 1 }]);
         model.execute('selectNextOccurrence');
         model.execute('selectNextOccurrence');
         model.execute('selectNextOccurrence');
+
         expect(model.getSelections()).toEqual([
             { anchor: 0, head: 5 },
             { anchor: 9, head: 14 },
             { anchor: 15, head: 20 }
         ]);
+
         expect(model.execute('selectNextOccurrence')).toBe(false);
     });
 
     it('round-trips many independent edits through undo and redo', () => {
         const model = new DocumentModel('0123456789');
+
         for (let round = 0; round < 50; round++) {
             const before = model.getText();
             const at = (round * 7) % (before.length + 1);
@@ -334,13 +366,16 @@ describe('content edits', () => {
     it('reports simultaneous edits last to first, in the positions of the text before them', () => {
         const model = new DocumentModel('one\ntwo\nthree');
         let seen: unknown;
+
         model.subscribe((snapshot) => {
             seen = snapshot.contentEdits;
         });
+
         model.applyEdits([
             { from: 0, to: 3, text: 'a\nb' },
             { from: 8, to: 13, text: 'x' }
         ]);
+
         expect(seen).toEqual([
             { start: { line: 2, column: 0 }, end: { line: 2, column: 5 }, text: 'x' },
             { start: { line: 0, column: 0 }, end: { line: 0, column: 3 }, text: 'a\nb' }
@@ -351,9 +386,11 @@ describe('content edits', () => {
         const model = new DocumentModel('hello world');
         model.applyEdits([{ from: 5, to: 5, text: ',' }], { historyGroup: 'g' });
         let seen: unknown;
+
         model.subscribe((snapshot) => {
             seen = snapshot.contentEdits;
         });
+
         model.undo();
         expect(seen).toEqual([{ start: { line: 0, column: 5 }, end: { line: 0, column: 6 }, text: '' }]);
     });
@@ -365,10 +402,12 @@ describe('listeners', () => {
         const failure = new Error('listener failed');
         const reported = spyOn(console, 'error').mockImplementation(() => undefined);
         const heard: string[] = [];
+
         try {
             model.subscribe(() => {
                 throw failure;
             });
+
             model.subscribe((snapshot) => heard.push(snapshot.text));
             expect(model.applyEdits([{ from: 3, to: 3, text: '!' }])).toBe(true);
             expect(model.undo()).toBe(true);
@@ -384,16 +423,19 @@ describe('listeners', () => {
 it('commits final positional selections with multiline edits and restores them on redo', () => {
     const model = new DocumentModel('barfoo');
     model.setSelections([{ anchor: 0, head: 3 }]);
+
     model.applyEdits([{ from: 3, to: 6, text: '-foo\nnext' }], {
         selectionPositions: [
             { anchor: { line: 0, column: 0 }, head: { line: 0, column: 3 } },
             { anchor: { line: 1, column: 0 }, head: { line: 1, column: 4 } }
         ]
     });
+
     const expected = [
         { anchor: 0, head: 3 },
         { anchor: 8, head: 12 }
     ];
+
     expect(model.getSelections()).toEqual(expected);
     model.undo();
     expect(model.getSelections()).toEqual([{ anchor: 0, head: 3 }]);
@@ -404,6 +446,7 @@ it('commits final positional selections with multiline edits and restores them o
 it('ignores positional selections when the edits cancel out', () => {
     const model = new DocumentModel('xay');
     model.setSelections([{ anchor: 0, head: 0 }]);
+
     const changed = model.applyEdits(
         [
             { from: 1, to: 1, text: 'a' },
@@ -411,6 +454,7 @@ it('ignores positional selections when the edits cancel out', () => {
         ],
         { selectionPositions: [{ anchor: { line: 0, column: 3 }, head: { line: 0, column: 3 } }] }
     );
+
     expect(changed).toBe(false);
     expect(model.getText()).toBe('xay');
     expect(model.getSelections()).toEqual([{ anchor: 0, head: 0 }]);

@@ -100,14 +100,17 @@ interface Header {
 /* Clamped to 1 through 16, with 4 for anything that is not a finite number. */
 export function tabWidth(options: { tabSize?: number }): number {
     const requested = options.tabSize ?? 4;
+
     return Number.isFinite(requested) ? Math.max(1, Math.min(16, Math.trunc(requested))) : 4;
 }
 
 export function indentationColumn(text: string, tabSize: number): number {
     let column = 0;
+
     for (const character of text) {
         column += character === '\t' ? tabSize - (column % tabSize) : 1;
     }
+
     return column;
 }
 
@@ -115,25 +118,31 @@ export function indentationColumn(text: string, tabSize: number): number {
 export function scanStructure(text: string): StructureRange[] {
     const result: StructureRange[] = [];
     const stack: { from: number; closer: string }[] = [];
+
     for (let offset = 0; offset < text.length; offset++) {
         const character = text[offset]!;
+
         if (character === '/' && text[offset + 1] === '/') {
             const end = text.indexOf('\n', offset + 2);
             offset = end === -1 ? text.length : end;
         } else if (character === '/' && text[offset + 1] === '*') {
             const end = text.indexOf('*/', offset + 2);
+
             if (end === -1) {
                 break;
             }
+
             result.push({ from: offset, to: end + 2, innerFrom: offset + 2, innerTo: end, kind: 'comment' });
             offset = end + 1;
         } else if (character === '"' || character === "'" || character === '`') {
             const start = offset;
+
             for (offset++; offset < text.length; offset++) {
                 if (text[offset] === '\\') {
                     offset++;
                 } else if (text[offset] === character) {
                     result.push({ from: start, to: offset + 1, innerFrom: start + 1, innerTo: offset, kind: 'string' });
+
                     break;
                 } else if (character !== '`' && (text[offset] === '\n' || text[offset] === '\r')) {
                     break;
@@ -146,6 +155,7 @@ export function scanStructure(text: string): StructureRange[] {
             result.push({ from: opener.from, to: offset + 1, innerFrom: opener.from + 1, innerTo: offset, kind: 'bracket' });
         }
     }
+
     return result.sort((left, right) => left.from - right.from || right.to - left.to);
 }
 
@@ -162,21 +172,28 @@ function indentationFolds(lineCount: number, getLine: (line: number) => Document
 
     for (let line = 0; line < lineCount; line++) {
         const text = getLine(line).text;
+
         if (!text.trim()) {
             continue;
         }
+
         const indent = indentationColumn(whitespaceOf(text), tabSize);
+
         while (headers.length > 0 && indent <= headers.at(-1)!.indent) {
             close(headers.pop()!, previous!.line);
         }
+
         if (previous && indent > previous.indent) {
             headers.push(previous);
         }
+
         previous = { line, indent };
     }
+
     while (headers.length > 0) {
         close(headers.pop()!, previous!.line);
     }
+
     return folds;
 }
 
@@ -191,12 +208,15 @@ export function deriveFoldingRanges(
 ): FoldingRange[] {
     const minimum = Number.isFinite(options.minLines) ? Math.max(1, Math.trunc(options.minLines!)) : 1;
     const result: FoldingRange[] = [];
+
     for (const range of ranges) {
         if (range.kind === 'string' || (range.kind === 'bracket' ? options.brackets === false : options.comments === false)) {
             continue;
         }
+
         const startLine = lineAt(range.from);
         const endLine = lineAt(range.to - 1);
+
         if (endLine - startLine >= minimum) {
             const role =
                 slice === undefined
@@ -204,29 +224,36 @@ export function deriveFoldingRanges(
                     : range.kind === 'comment'
                       ? commentRole(slice, range.from, range.to)
                       : bracketRole(slice, range.from, options.language ?? '');
+
             result.push({ from: range.from, to: range.to, startLine, endLine, kind: range.kind, ...(role === undefined ? {} : { role }) });
         }
     }
+
     if (options.indentation) {
         // One push per fold: a long file has more of them than V8 takes as arguments in one call.
         for (const fold of indentationFolds(lineCount, getLine, tabWidth(options), minimum)) {
             result.push(fold);
         }
     }
+
     result.sort((left, right) => left.startLine - right.startLine || right.endLine - left.endLine);
+
     return dedupeFoldingRanges(result);
 }
 
 /* Of ranges that span the same lines, sorted outermost first, the first stays and takes the role of a later one when it has none. */
 export function dedupeFoldingRanges(sorted: readonly FoldingRange[]): FoldingRange[] {
     const unique: FoldingRange[] = [];
+
     for (const range of sorted) {
         const last = unique.at(-1);
+
         if (last === undefined || range.startLine !== last.startLine || range.endLine !== last.endLine) {
             unique.push(range);
         } else if (last.role === undefined && range.role !== undefined) {
             last.role = range.role;
         }
     }
+
     return unique;
 }

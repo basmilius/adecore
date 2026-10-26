@@ -6,10 +6,12 @@ import { TextRope } from './rope.ts';
 
 function random(seed: number): () => number {
     let state = seed;
+
     return () => {
         state = (state + 0x6d2b79f5) | 0;
         let value = Math.imul(state ^ (state >>> 15), 1 | state);
         value = (value + Math.imul(value ^ (value >>> 7), 61 | value)) ^ value;
+
         return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
     };
 }
@@ -47,30 +49,36 @@ const PIECES = [
 
 function piece(next: () => number, length: number): string {
     let text = '';
+
     for (let index = 0; index < length; index++) {
         text += PIECES[Math.floor(next() * PIECES.length)];
     }
+
     return text;
 }
 
 /* Sorted by where they start, without the ones that overlap one before them. */
 function apart<Edit extends { from: number; to: number }>(edits: Edit[]): Edit[] {
     const kept: Edit[] = [];
+
     for (const edit of edits.sort((left, right) => left.from - right.from)) {
         if (kept.length === 0 || edit.from >= kept.at(-1)!.to) {
             kept.push(edit);
         }
     }
+
     return kept;
 }
 
 /* Each bracket of the text as `scanBrackets` sees it, against what `match` says. */
 function expectSameAsScan(text: string, match: (offset: number) => unknown, language: string): void {
     const index = scanBrackets(text, language);
+
     for (let offset = 0; offset < text.length; offset++) {
         if (!/[()[\]{}]/.test(text[offset]!)) {
             continue;
         }
+
         const expected = index.pairs.has(offset) ? { mate: index.pairs.get(offset) } : index.unmatched.has(offset) ? { mate: undefined } : undefined;
         expect([offset, match(offset)]).toEqual([offset, expected]);
     }
@@ -79,8 +87,10 @@ function expectSameAsScan(text: string, match: (offset: number) => unknown, lang
 /* A rope that counts the characters the tracker reads, which is the work an edit costs it. */
 function counted(rope: () => TextRope): { text: () => BracketText; read: () => number } {
     let read = 0;
+
     const text = (): BracketText => {
         const current = rope();
+
         return {
             get length() {
                 return current.length;
@@ -94,15 +104,18 @@ function counted(rope: () => TextRope): { text: () => BracketText; read: () => n
             slice: (from, to) => {
                 const slice = current.slice(from, to);
                 read += slice.length;
+
                 return slice;
             }
         };
     };
+
     return {
         text,
         read: () => {
             const result = read;
             read = 0;
+
             return result;
         }
     };
@@ -115,11 +128,14 @@ describe('the bracket tracker', () => {
             let rope = TextRope.from(piece(next, 1500));
             // Stretches of a few lines, so the edits cross and drop checkpoints all the time.
             const tracker = new BracketTracker(() => rope, 48);
+
             for (let step = 0; step < 80; step++) {
                 const length = rope.length;
+
                 const edits = apart(
                     Array.from({ length: 1 + Math.floor(next() * 4) }, () => {
                         const from = Math.floor(next() * (length + 1));
+
                         return {
                             from,
                             to: Math.min(length, from + Math.floor(next() * (step % 9 === 0 ? 400 : 6))),
@@ -127,23 +143,29 @@ describe('the bracket tracker', () => {
                         };
                     })
                 );
+
                 const before = rope;
+
                 for (const edit of [...edits].reverse()) {
                     rope = rope.replace(edit.from, edit.to, edit.text);
                 }
+
                 tracker.edited(
                     before,
                     rope,
                     edits.map((edit) => ({ from: edit.from, to: edit.to, insertedLength: edit.text.length }))
                 );
+
                 // Queries in between leave checkpoints behind for the next edits to move, drop and prove again.
                 for (let query = 0; query < 3; query++) {
                     tracker.match(Math.floor(next() * rope.length), language);
                 }
+
                 if (step % 10 === 0) {
                     expectSameAsScan(rope.slice(), (offset) => tracker.match(offset, language), language);
                 }
             }
+
             expectSameAsScan(rope.slice(), (offset) => tracker.match(offset, language), language);
         });
     }
@@ -163,7 +185,9 @@ describe('matchBracket', () => {
     it('follows edits, undo and redo of a document', () => {
         const body = Array.from({ length: 800 }, (_, line) => `    call(${line}, [a, { b: "}" }]); // )`).join('\n');
         const document = new DocumentModel(`function outer() {\n${body}\n}\n`);
+
         const expectSame = (): void => expectSameAsScan(document.getText(), (offset) => document.matchBracket(offset), 'typescript');
+
         expectSame();
         const middle = document.getLine(300).start + 4;
         document.applyEdits([{ from: middle, to: middle, text: '/*' }]);
@@ -196,6 +220,7 @@ describe('the work of an edit', () => {
         let caret = rope.lineBounds(50_000).start + lines[50_000]!.indexOf('(');
         expect(tracker.match(caret, 'typescript')).toEqual({ mate: caret + 12 });
         reads.read();
+
         for (let key = 0; key < 20; key++) {
             const before = rope;
             rope = rope.replace(caret, caret, 'x');
@@ -204,6 +229,7 @@ describe('the work of an edit', () => {
             expect(tracker.match(caret, 'typescript')).toEqual({ mate: caret + 12 });
             expect(reads.read()).toBeLessThan(20_000);
         }
+
         expect(rope.length).toBeGreaterThan(5_000_000);
     });
 
@@ -215,6 +241,7 @@ describe('the work of an edit', () => {
         expect(tracker.match(brace, 'typescript')).toEqual({ mate: rope.length - 1 });
         expect(tracker.match(rope.length - 1, 'typescript')).toEqual({ mate: brace });
         reads.read();
+
         for (let key = 0; key < 20; key++) {
             const before = rope;
             rope = rope.replace(brace - 2, brace - 2, 'x');

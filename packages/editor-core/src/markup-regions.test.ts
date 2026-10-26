@@ -7,6 +7,7 @@ function autoIndent(text: string, language: string): string {
     const model = new DocumentModel(text);
     model.execute('selectAll');
     model.execute('autoIndentLines', { language });
+
     return model.getText();
 }
 
@@ -24,6 +25,7 @@ describe('Auto-indent Lines leaves markup and literals alone', () => {
             ');',
             '}'
         ].join('\n');
+
         expect(autoIndent(source, 'tsx')).toBe(
             [
                 'function App() {',
@@ -68,6 +70,7 @@ describe('Auto-indent Lines leaves markup and literals alone', () => {
             '}',
             '</style>'
         ].join('\n');
+
         expect(autoIndent(source, 'vue')).toBe(
             [
                 '<template>',
@@ -109,6 +112,7 @@ describe('Auto-indent Lines leaves markup and literals alone', () => {
             '   <b>x</b>',
             '<?php } ?>'
         ].join('\n');
+
         expect(autoIndent(source, 'php')).toBe(
             [
                 '<?php',

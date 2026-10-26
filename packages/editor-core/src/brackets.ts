@@ -46,20 +46,25 @@ export function sameBracketState(left: BracketState, right: BracketState): boole
     if (left.mode !== right.mode || left.quote !== right.quote || left.inClass !== right.inClass || left.expression !== right.expression) {
         return false;
     }
+
     let one = left.stack;
     let other = right.stack;
+
     while (one !== other) {
         if (one === undefined || other === undefined || one.close !== other.close || one.template !== other.template || one.depth !== other.depth) {
             return false;
         }
+
         one = one.previous;
         other = other.previous;
     }
+
     return true;
 }
 
 function isSpace(character: string): boolean {
     const code = character.charCodeAt(0);
+
     return code === 32 || (code >= 9 && code <= 13) || (code > 127 && /\s/.test(character));
 }
 
@@ -70,10 +75,13 @@ function isCloser(character: string): boolean {
 /* Where a comment that runs to `terminator` ends in `text`, or `to` when it goes on past it. */
 function commentEnd(state: BracketState, text: string, at: number, to: number, terminator: string): number {
     const end = text.indexOf(terminator, at);
+
     if (end < 0 || end + terminator.length > to) {
         return to;
     }
+
     state.mode = 'code';
+
     return end + terminator.length - 1;
 }
 
@@ -84,22 +92,28 @@ function commentEnd(state: BracketState, text: string, at: number, to: number, t
 export function lexBrackets(state: BracketState, rules: LexerRules, text: string, from: number, to: number, offset: number, visitor: BracketVisitor): void {
     for (let at = from; at < to; at++) {
         const char = text[at]!;
+
         if (state.mode !== 'code') {
             switch (state.mode) {
                 case 'line-comment': {
                     const end = text.indexOf('\n', at);
+
                     if (end < 0 || end >= to) {
                         return;
                     }
+
                     state.mode = 'code';
                     at = end;
+
                     continue;
                 }
                 case 'block-comment':
                     at = commentEnd(state, text, at, to, '*/');
+
                     continue;
                 case 'markup-comment':
                     at = commentEnd(state, text, at, to, '-->');
+
                     continue;
                 case 'string':
                     if (char === '\\') {
@@ -107,6 +121,7 @@ export function lexBrackets(state: BracketState, rules: LexerRules, text: string
                     } else if (char === state.quote || (rules.script && (char === '\n' || char === '\r'))) {
                         state.mode = 'code';
                     }
+
                     continue;
                 case 'template':
                     if (char === '\\') {
@@ -122,6 +137,7 @@ export function lexBrackets(state: BracketState, rules: LexerRules, text: string
                         state.expression = true;
                         visitor.open(offset + at, depth);
                     }
+
                     continue;
                 case 'regex':
                     if (char === '\\') {
@@ -133,15 +149,19 @@ export function lexBrackets(state: BracketState, rules: LexerRules, text: string
                     } else if ((char === '/' && !state.inClass) || char === '\n' || char === '\r') {
                         state.mode = 'code';
                     }
+
                     continue;
             }
+
             continue;
         }
 
         if (isSpace(char)) {
             continue;
         }
+
         const next = text[at + 1];
+
         if (rules.markup && char === '<' && text.startsWith('<!--', at)) {
             state.mode = 'markup-comment';
             at += 3;
@@ -171,22 +191,28 @@ export function lexBrackets(state: BracketState, rules: LexerRules, text: string
             visitor.open(offset + at, depth);
         } else if (isCloser(char)) {
             const open = state.stack;
+
             if (open?.close === char) {
                 state.stack = open.previous;
+
                 if (open.template) {
                     state.mode = 'template';
                 }
+
                 visitor.close(offset + at, open.depth);
             } else {
                 state.stack = undefined;
                 visitor.mismatch(offset + at);
             }
+
             state.expression = false;
         } else if (isWordCharacter(char)) {
             const start = at;
+
             while (at + 1 < to && isWordCharacter(text[at + 1]!)) {
                 at++;
             }
+
             state.expression = startsExpressionAt(text, start, at + 1);
         } else {
             state.expression = startsExpressionAfter(char);
@@ -199,6 +225,7 @@ export function scanBrackets(text: string, language = 'typescript'): BracketInde
     const pairs = new Map<number, number>();
     const unmatched = new Set<number>();
     let open: number[] = [];
+
     lexBrackets(initialBracketState(), lexerRules(language), text, 0, text.length, 0, {
         open(at) {
             open.push(at);
@@ -210,15 +237,19 @@ export function scanBrackets(text: string, language = 'typescript'): BracketInde
         },
         mismatch(at) {
             unmatched.add(at);
+
             // A mismatched closer keeps a distant opener from claiming it later.
             for (const abandoned of open) {
                 unmatched.add(abandoned);
             }
+
             open = [];
         }
     });
+
     for (const at of open) {
         unmatched.add(at);
     }
+
     return { pairs, unmatched };
 }

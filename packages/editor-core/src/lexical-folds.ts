@@ -9,6 +9,7 @@ const IMPORT_WORDS = new Map<string, RegExp>();
 function register(languages: string, words: string): void {
     // The word must stand alone, and `import(` and `import.meta` are expressions and not an import.
     const pattern = new RegExp(`^(?:${words})\\b(?![(.=,;:])`);
+
     for (const language of languages.split(' ')) {
         IMPORT_WORDS.set(language, pattern);
     }
@@ -18,6 +19,7 @@ register(
     'typescript javascript typescriptreact javascriptreact tsx jsx ts js mjs cjs mts cts vue svelte astro java kotlin scala groovy go swift dart haskell elm',
     'import'
 );
+
 register('python py', 'import|from');
 register('php rust rs perl', 'use');
 register('csharp cs', 'using');
@@ -39,6 +41,7 @@ export interface LexicalFoldOptions {
 
 function bracketDelta(text: string): number {
     let depth = 0;
+
     for (const character of text) {
         if (character === '{' || character === '(' || character === '[') {
             depth++;
@@ -46,6 +49,7 @@ function bracketDelta(text: string): number {
             depth--;
         }
     }
+
     return depth;
 }
 
@@ -81,50 +85,64 @@ export function lexicalFolds(lineCount: number, getLine: (line: number) => Docum
     let importEnd = -1;
     let commentStart = -1;
     let commentEnd = -1;
+
     const flushImports = (): void => {
         if (importStart !== -1 && importEnd > importStart) {
             result.push(rangeOf(importStart, importEnd, getLine, 'imports', 'imports'));
         }
+
         importStart = -1;
     };
+
     const flushComments = (): void => {
         if (commentStart !== -1 && commentEnd > commentStart) {
             result.push(rangeOf(commentStart, commentEnd, getLine, 'line-comments'));
         }
+
         commentStart = -1;
     };
+
     for (let line = 0; line < lineCount; line++) {
         const text = getLine(line).text;
         const trimmed = text.trimStart();
         const isRegionMarker = options.regions !== false && (REGION_START.test(text) || REGION_END.test(text));
+
         if (isRegionMarker) {
             flushComments();
+
             if (REGION_START.test(text)) {
                 regions.push(line);
             } else {
                 const start = regions.pop();
+
                 if (start !== undefined && line > start) {
                     result.push(rangeOf(start, line, getLine, 'region', 'region'));
                 }
             }
+
             continue;
         }
+
         if (marker !== null && trimmed.startsWith(marker)) {
             commentStart = commentStart === -1 ? line : commentStart;
             commentEnd = line;
         } else {
             flushComments();
         }
+
         if (words === undefined) {
             continue;
         }
+
         if (words.test(trimmed)) {
             let last = line;
             let depth = bracketDelta(text);
+
             while (depth > 0 && last + 1 < lineCount) {
                 last++;
                 depth += bracketDelta(getLine(last).text);
             }
+
             importStart = importStart === -1 ? line : importStart;
             importEnd = last;
             line = last;
@@ -132,7 +150,9 @@ export function lexicalFolds(lineCount: number, getLine: (line: number) => Docum
             flushImports();
         }
     }
+
     flushComments();
     flushImports();
+
     return result;
 }

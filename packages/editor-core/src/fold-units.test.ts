@@ -5,7 +5,9 @@ import type { CommandOptions } from './types.ts';
 // Lines 1 to 3 are one collapsed fold: `function a() {` with its body and its closer.
 const TEXT = ['one', 'function a() {', '    body();', '}', 'two', 'three'].join('\n');
 const FOLD = { first: 1, last: 3 };
+
 const lineSpan: NonNullable<CommandOptions['lineSpan']> = (line) => (line >= FOLD.first && line <= FOLD.last ? FOLD : { first: line, last: line });
+
 const options: CommandOptions = { lineSpan, language: 'typescript' };
 
 function model(text = TEXT): DocumentModel {
@@ -50,12 +52,14 @@ describe('line commands on a collapsed fold', () => {
         let moves: readonly { from: number; to: number }[] = [];
         target.execute('moveLineUp', { ...options, onLinesMoved: (reported) => (moves = reported) });
         expect(target.getText()).toBe(['function a() {', '    body();', '}', 'one', 'two', 'three'].join('\n'));
+
         expect(moves).toEqual([
             { from: 1, to: 0 },
             { from: 2, to: 1 },
             { from: 3, to: 2 },
             { from: 0, to: 3 }
         ]);
+
         expect(target.positionAt(target.getPrimary().head).line).toBe(0);
     });
 

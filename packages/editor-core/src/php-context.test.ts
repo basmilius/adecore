@@ -4,6 +4,7 @@ import { TypingContexts } from './typing-context.ts';
 
 function initialMode(text: string): string {
     const model = new DocumentModel(text);
+
     return new TypingContexts((line) => model.getLine(line)).at(0, 0, 'php').mode;
 }
 
@@ -61,10 +62,13 @@ test('comments after leading blank lines use PHP markup markers', () => {
 test('PHP initial-state inference stays within its line and character limits', () => {
     const model = new DocumentModel('\n'.repeat(65) + '<div>');
     const reads: number[] = [];
+
     const contexts = new TypingContexts((line) => {
         reads.push(line);
+
         return model.getLine(line);
     });
+
     expect(contexts.at(0, 0, 'php').mode).toBe('code');
     expect(reads.every((line) => line < 64)).toBe(true);
     expect(initialMode(' '.repeat(65536) + '<div>')).toBe('code');

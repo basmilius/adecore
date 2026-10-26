@@ -5,10 +5,13 @@ describe('many carets', () => {
     it('type at 20,000 carets in a fraction of the time it took to compare every caret with every other', () => {
         const lines = Array.from({ length: 100_000 }, (_, line) => `    const value${line} = compute(alpha, beta);`);
         const document = new DocumentModel(lines.join('\n'));
+
         const carets = Array.from({ length: 20_000 }, (_, index) => {
             const offset = document.getLine(index * 5).start + 10;
+
             return { anchor: offset, head: offset };
         });
+
         document.setSelections(carets);
         const started = performance.now();
         document.typeText('x', { language: 'typescript' });

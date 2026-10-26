@@ -156,6 +156,7 @@ const identifier = /[\p{L}\p{N}\p{M}\p{Pc}$]/u;
 /* What can follow `->`: the first letter of a member name, or the `{` of a dynamic one. */
 const arrowContinues = /^[\p{L}_{]/u;
 const wordCommand = /^(select|delete)?(word|camel)(Left|Right)$/i;
+
 let graphemes: Intl.Segmenter | undefined;
 
 function sameSelections(left: readonly Selection[], right: readonly Selection[]): boolean {
@@ -173,51 +174,65 @@ function changesText(rope: TextRope, edit: TextEdit): boolean {
 /* Merges the carets' edits into one simultaneous batch and works out where each caret lands in the result. */
 function selectionTransaction(plans: readonly SelectionEdit[]): SelectionTransaction {
     const edits: TextEdit[] = [];
+
     for (const plan of plans.filter((candidate) => !candidate.skip).sort((left, right) => left.from - right.from || left.to - right.to)) {
         const previous = edits.at(-1);
+
         if (previous?.from !== plan.from || previous.to !== plan.to || previous.text !== plan.text) {
             edits.push(plan);
         }
     }
+
     // What the edits before each one add to the text, so a caret finds its shift by a binary search.
     const shifts = [0];
+
     for (const edit of edits) {
         shifts.push(shifts.at(-1)! + edit.text.length - (edit.to - edit.from));
     }
+
     const selections = plans.map((plan) => {
         let low = 0;
         let high = edits.length;
+
         while (low < high) {
             const middle = (low + high) >>> 1;
+
             if (edits[middle]!.from < plan.from) {
                 low = middle + 1;
             } else {
                 high = middle;
             }
         }
+
         const delta = shifts[low]!;
+
         return { anchor: plan.from + delta + plan.anchor, head: plan.from + delta + plan.head };
     });
+
     return { edits, selections };
 }
 
 function splitsCluster(rope: TextRope, offset: number): boolean {
     const before = rope.charAt(offset - 1);
+
     // One read of the rope settles most offsets, which follow neither a `\r` nor the first half of a surrogate pair.
     if (before === '\r') {
         return rope.charAt(offset) === '\n';
     }
+
     return /[\ud800-\udbff]/.test(before) && splitsSurrogate(rope, offset);
 }
 
 /* Clamps to the document and moves back off the middle of a surrogate pair or a CRLF. */
 function offsetIn(rope: TextRope, value: number): number {
     const offset = clampInteger(value, rope.length);
+
     return splitsCluster(rope, offset) ? offset - 1 : offset;
 }
 
 function step(rope: TextRope, offset: number, direction: -1 | 1): number {
     const next = clampInteger(offset + direction, rope.length);
+
     return splitsCluster(rope, next) ? next + direction : next;
 }
 
@@ -230,25 +245,33 @@ function deletionStep(rope: TextRope, offset: number, direction: -1 | 1): number
     const scalar = step(rope, offset, direction);
     const current = rope.charAt(direction < 0 ? offset - 1 : offset);
     const following = rope.charAt(direction < 0 ? offset : offset + 1);
+
     if (current === '\n' || current === '\r') {
         return scalar;
     }
+
     if (isAsciiOrEmpty(current) && isAsciiOrEmpty(following)) {
         return scalar;
     }
+
     const line = rope.getLine(rope.lineAt(offset));
     let previous = line.start;
     graphemes ??= new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+
     for (const segment of graphemes.segment(line.text)) {
         const at = line.start + segment.index;
+
         if (direction < 0 && at >= offset) {
             return previous;
         }
+
         if (direction > 0 && at > offset) {
             return at;
         }
+
         previous = at;
     }
+
     return direction < 0 ? previous : line.end;
 }
 
@@ -258,14 +281,19 @@ function deletionStep(rope: TextRope, offset: number, direction: -1 | 1): number
  */
 function normalizeSelections(rope: TextRope, selections: readonly Selection[]): Selection[] {
     const input = selections.length > 0 ? selections : [{ anchor: 0, head: 0 }];
+
     const clamped = input.map((raw) => {
         const anchor = offsetIn(rope, raw.anchor);
+
         return { anchor, head: raw.head === raw.anchor ? anchor : offsetIn(rope, raw.head) };
     });
+
     const order = clamped.map((selection, index) => ({ ...rangeOf(selection), index })).sort((left, right) => left.from - right.from);
     const groups: { from: number; to: number; last: number }[] = [];
+
     for (const { from, to, index } of order) {
         const group = groups.at(-1);
+
         if (group !== undefined && from <= group.to) {
             group.to = Math.max(group.to, to);
             group.last = Math.max(group.last, index);
@@ -273,19 +301,23 @@ function normalizeSelections(rope: TextRope, selections: readonly Selection[]): 
             groups.push({ from, to, last: index });
         }
     }
+
     return groups
         .sort((left, right) => left.last - right.last)
         .map((group) => {
             const selection = clamped[group.last]!;
+
             return selection.anchor > selection.head ? { anchor: group.to, head: group.from } : { anchor: group.from, head: group.to };
         });
 }
 
 function inverseChanges(changes: readonly DocumentChange[]): DocumentChange[] {
     let delta = 0;
+
     return changes.map((change) => {
         const from = change.from + delta;
         delta += change.insertedLength - (change.to - change.from);
+
         return { from, to: from + change.insertedLength, insertedLength: change.to - change.from };
     });
 }
@@ -299,14 +331,17 @@ function range(first: number, last: number): number[] {
 /* Runs of consecutive line numbers, from a sorted list. */
 function blocks(indices: readonly number[]): LineBlock[] {
     const result: LineBlock[] = [];
+
     for (const index of indices) {
         const previous = result.at(-1);
+
         if (previous && previous.last + 1 === index) {
             previous.last = index;
         } else {
             result.push({ first: index, last: index });
         }
     }
+
     return result;
 }
 
@@ -316,20 +351,25 @@ function indentStopLength(prefix: string, tabSize: number): number {
     const target = Math.floor((column - 1) / tabSize) * tabSize;
     let width = 0;
     let length = 0;
+
     while (length < prefix.length) {
         const next = width + (prefix[length] === '\t' ? tabSize - (width % tabSize) : 1);
+
         if (next > target) {
             break;
         }
+
         width = next;
         length++;
     }
+
     return length;
 }
 
 function positionIn(rope: TextRope, offset: number): Position {
     const line = rope.lineAt(offset);
     const bounds = rope.lineBounds(line);
+
     return { line, column: Math.min(offset, bounds.end) - bounds.start };
 }
 
@@ -345,9 +385,11 @@ function editsOf(rope: TextRope, edits: readonly TextEdit[]): ContentEdit[] {
  */
 function stretchEdits(before: TextRope, after: TextRope, transactions: readonly (readonly DocumentChange[])[]): ContentEdit[] {
     const stretch = stretchOf(before, after, transactions);
+
     if (stretch === undefined) {
         return [];
     }
+
     return [
         { start: positionIn(before, stretch.from), end: positionIn(before, stretch.to), text: after.slice(stretch.from, stretch.from + stretch.insertedLength) }
     ];
@@ -358,24 +400,31 @@ function stretchOf(before: TextRope, after: TextRope, transactions: readonly (re
     let length = before.length;
     let prefix = Number.POSITIVE_INFINITY;
     let suffix = Number.POSITIVE_INFINITY;
+
     for (const changes of transactions) {
         let delta = 0;
+
         for (const change of changes) {
             prefix = Math.min(prefix, change.from);
             suffix = Math.min(suffix, length - change.to);
             delta += change.insertedLength - (change.to - change.from);
         }
+
         length += delta;
     }
+
     if (!Number.isFinite(prefix)) {
         return undefined;
     }
+
     const kept = Math.min(Math.max(0, suffix), before.length - prefix, after.length - prefix);
     const oldEnd = before.length - kept;
     const newEnd = after.length - kept;
+
     if (oldEnd === prefix && newEnd === prefix) {
         return undefined;
     }
+
     return { from: prefix, to: oldEnd, insertedLength: newEnd - prefix };
 }
 
@@ -384,7 +433,9 @@ function occurrenceSelection(match: OffsetRange, shift: number): Selection {
     if (shift === 0) {
         return { anchor: match.to, head: match.from };
     }
+
     const caret = Math.min(match.from + shift, match.to);
+
     return { anchor: caret === match.to ? match.from : match.to, head: caret };
 }
 
@@ -477,6 +528,7 @@ export class DocumentModel {
         const rope = this.rope;
         const cache = this.textCache;
         let text: string | undefined;
+
         return {
             // Bound to this version's rope, so a retained snapshot keeps its own text however the document moves on.
             get text() {
@@ -501,9 +553,11 @@ export class DocumentModel {
         this.selectionHistory = [];
         this.statementClosers.clear();
         this.arrows.clear();
+
         if (sameSelections(this.selections, normalized)) {
             return;
         }
+
         this.selections = normalized;
         this.closers.prune(this.selections);
         this.emit();
@@ -511,6 +565,7 @@ export class DocumentModel {
 
     subscribe(listener: (snapshot: EditorSnapshot) => void): Disposable {
         this.listeners.add(listener);
+
         return {
             dispose: () => {
                 this.listeners.delete(listener);
@@ -526,31 +581,40 @@ export class DocumentModel {
         if (options.expectedRevision !== undefined && options.expectedRevision !== this.revision) {
             return false;
         }
+
         const unique = this.validateEdits(edits);
         const changed = unique.filter((edit) => changesText(this.rope, edit));
         // Sparse edits keep structural sharing; dense edits avoid rescanning a leaf for each replacement.
         const rebuild = changed.length >= 256 && changed.length * ROPE_CHUNK_SIZE >= this.rope.length;
         let next = rebuild ? this.rope.rebuild(changed) : this.rope;
+
         if (!rebuild) {
             for (let index = changed.length - 1; index >= 0; index--) {
                 const edit = changed[index]!;
                 next = next.replace(edit.from, edit.to, edit.text);
             }
         }
+
         const map = offsetMapper(unique);
+
         const at = (position: Position): number => {
             const line = next.lineBounds(position.line);
+
             return offsetIn(next, line.start + clampInteger(position.column, line.end - line.start));
         };
+
         // Several edits can cancel each other out, like moving a character and moving it back.
         const unchanged =
             next === this.rope || (changed.length > 1 && next.length === this.rope.length && next.equalsRange(this.rope, changed[0]!.from, changed.at(-1)!.to));
+
         if (unchanged) {
             if (options.selections) {
                 this.setSelections(options.selections);
             }
+
             return false;
         }
+
         const nextSelections =
             options.selections ??
             options.selectionPositions?.map((selection) => ({ anchor: at(selection.anchor), head: at(selection.head) })) ??
@@ -570,30 +634,37 @@ export class DocumentModel {
         this.revision++;
         const after = this.state();
         const last = this.undoStack.at(-1);
+
         const joinsGroup =
             options.historyGroup &&
             this.groupOpen &&
             last?.group === options.historyGroup &&
             last.after.rope === before.rope &&
             sameSelections(last.after.selections, before.selections);
+
         const joinsPrevious = options.joinPrevious === true && last !== undefined && last.after.rope === before.rope;
+
         if (last !== undefined && (joinsGroup || joinsPrevious)) {
             last.after = after;
             last.changes.push(changes);
         } else {
             this.undoStack.push({ before, after, group: options.historyGroup, changes: [changes] });
         }
+
         if (this.undoStack.length > historyLimit) {
             this.undoStack.shift();
         }
+
         this.groupOpen = Boolean(options.historyGroup) && !joinsPrevious;
         this.redoStack = [];
+
         this.emit(
             [changes],
             options.source ?? 'external',
             () => (rebuild ? stretchEdits(previous, next, [changes]) : editsOf(previous, changed)),
             options.typed
         );
+
         return true;
     }
 
@@ -604,21 +675,27 @@ export class DocumentModel {
 
     undo(): boolean {
         const entry = this.undoStack.pop();
+
         if (!entry) {
             return false;
         }
+
         this.redoStack.push(entry);
         this.restore(entry.before, [...entry.changes].reverse().map(inverseChanges));
+
         return true;
     }
 
     redo(): boolean {
         const entry = this.redoStack.pop();
+
         if (!entry) {
             return false;
         }
+
         this.undoStack.push(entry);
         this.restore(entry.after, entry.changes);
+
         return true;
     }
 
@@ -629,6 +706,7 @@ export class DocumentModel {
     /* A column past the end of its line lands on the end of the line, before the line break. */
     offsetAt(position: Position): number {
         const line = this.rope.lineBounds(position.line);
+
         return offsetIn(this.rope, line.start + clampInteger(position.column, line.end - line.start));
     }
 
@@ -646,9 +724,11 @@ export class DocumentModel {
         if (match.revision !== this.revision || (options.expectedRevision !== undefined && options.expectedRevision !== this.revision)) {
             return false;
         }
+
         if (this.slice(match.from, match.to) !== match.text) {
             return false;
         }
+
         return this.applyEdits(
             [{ from: match.from, to: match.to, text: replacementText(this.getText(), match, replacement, options.literal, options.preserveCase) }],
             {
@@ -664,12 +744,14 @@ export class DocumentModel {
         if (options.expectedRevision !== undefined && options.expectedRevision !== this.revision) {
             return 0;
         }
+
         return this.replaceMatches(this.find(query, options), replacement, options);
     }
 
     /* Commits retained search results as one undo step; one stale result refuses the entire batch. */
     replaceMatches(matches: readonly FindMatch[], replacement: string, options: ReplaceOptions = {}): number {
         const revision = this.revision;
+
         if (
             matches.length === 0 ||
             (options.expectedRevision !== undefined && options.expectedRevision !== revision) ||
@@ -677,42 +759,58 @@ export class DocumentModel {
         ) {
             return 0;
         }
+
         const ranges = new Set<string>();
+
         for (const match of matches) {
             const key = `${match.from}:${match.to}`;
+
             if (ranges.has(key)) {
                 throw new RangeError('Search matches must have unique ranges.');
             }
+
             ranges.add(key);
         }
+
         const text = this.getText();
+
         const edits = matches.map((match) => ({
             from: match.from,
             to: match.to,
             text: replacementText(text, match, replacement, options.literal, options.preserveCase)
         }));
+
         return this.applyEdits(edits, { source: 'command', ...options, expectedRevision: revision }) ? matches.length : 0;
     }
 
     getFoldingRanges(options: FoldingOptions = {}): FoldingRange[] {
         const ranges = options.brackets === false && options.comments === false ? [] : this.structure();
+
         const lineAt = (offset: number): number => this.rope.lineAt(offset);
+
         const getLine = (line: number): DocumentLine => this.getLine(line);
+
         const slice = (from: number, to: number): string => this.slice(from, to);
+
         const derived = deriveFoldingRanges(ranges, lineAt, this.getLineCount(), getLine, options, slice);
+
         if (options.language === undefined) {
             return derived;
         }
+
         const minimum = options.minLines === undefined ? 1 : Math.max(1, Math.trunc(options.minLines) || 1);
+
         // Listed first, so a fold that spans the same lines as a bracket pair is the import list and not the pair.
         const merged = [
             ...lexicalFolds(this.getLineCount(), getLine, options.language, options),
             ...blockFolds(this.getLineCount(), getLine, options.language),
             ...derived
         ].filter((range) => range.endLine - range.startLine >= minimum);
+
         merged.sort((left, right) => left.startLine - right.startLine || right.endLine - left.endLine);
         const unique = dedupeFoldingRanges(merged);
         markFileHeader(unique, getLine, this.getLineCount(), options.language);
+
         return options.hints === undefined ? unique : applyFoldHints(unique, options.hints, lineAt, getLine, slice, minimum);
     }
 
@@ -726,17 +824,22 @@ export class DocumentModel {
         if (options.expectedRevision !== undefined && options.expectedRevision !== this.revision) {
             return false;
         }
+
         if (!text) {
             return false;
         }
+
         const arrows = this.arrows;
         this.arrows = new Set();
+
         if (arrows.size > 0 && text !== '>' && !arrowContinues.test(text)) {
             this.takeBackArrows();
         }
+
         const language = options.language ?? 'typescript';
         const single = text.length === 1;
         const pairing = options.autoClosingPairs !== false && single && !isPlainText(language);
+
         const input: TypingInput = {
             text,
             language,
@@ -748,21 +851,26 @@ export class DocumentModel {
             overArrows: text === '>' ? arrows : new Set(),
             dedent: options.smartEnter !== false
         };
+
         const plans = this.selections.map((selection) => this.planTyping(selection, input));
         const transaction = selectionTransaction(plans);
         const textChanges = transaction.edits.some((edit) => changesText(this.rope, edit));
         const appliedRevision = this.revision + Number(textChanges);
+
         const changed = this.applySelectionEdits(
             plans,
             { source: 'input', historyGroup: options.historyGroup ?? 'typing', expectedRevision: options.expectedRevision },
             transaction
         );
+
         this.statementClosers.clear();
+
         if (this.revision === appliedRevision) {
             this.rememberStatementClosers(plans, transaction, language);
             this.rememberPairs(plans, transaction);
             this.completeArrows(plans, transaction);
         }
+
         return changed || plans.some((plan) => plan.consumed);
     }
 
@@ -779,11 +887,15 @@ export class DocumentModel {
     /* Adds the `>` after every `-` that became an arrow, as its own undo step, so the first undo leaves the `-` that was typed. */
     private completeArrows(plans: readonly SelectionEdit[], transaction: SelectionTransaction): void {
         const at = transaction.selections.flatMap((selection, index) => (plans[index]?.arrow ? [selection.head] : [])).sort((left, right) => left - right);
+
         if (at.length === 0) {
             return;
         }
+
         const moved = (offset: number): number => offset + at.filter((inserted) => inserted <= offset).length;
+
         const selections = this.selections.map((selection) => ({ anchor: moved(selection.anchor), head: moved(selection.head) }));
+
         if (
             this.applyEdits(
                 at.map((offset) => ({ from: offset, to: offset, text: '>' })),
@@ -800,12 +912,14 @@ export class DocumentModel {
      */
     paste(text: string, options: CommandOptions & { wholeLines?: boolean } = {}): boolean {
         const tabSize = tabWidth(options);
+
         const plan = planPaste(this.editSource(options.language ?? 'typescript'), this.selections, text.replace(/\r\n|\r|\n/g, this.newlineAt(0)), {
             tabSize,
             insertSpaces: options.insertSpaces !== false,
             wholeLines: options.wholeLines === true,
             reindent: options.indentOnPaste !== false
         });
+
         return this.applyEdits(plan.edits, { source: 'input', selections: plan.selections });
     }
 
@@ -814,46 +928,62 @@ export class DocumentModel {
         if (command === 'undo') {
             return this.undo();
         }
+
         if (command === 'redo') {
             return this.redo();
         }
+
         if (command === 'selectAll') {
             return this.changeSelections([{ anchor: 0, head: this.rope.length }]);
         }
+
         if (command === 'expandSelection') {
             return this.expandSelection();
         }
+
         if (command === 'shrinkSelection') {
             return this.shrinkSelection();
         }
+
         if (command === 'smartHome' || command === 'smartEnd' || command === 'selectSmartHome' || command === 'selectSmartEnd') {
             return this.moveToLineEdge(command, tabWidth(options), options.visualLine);
         }
+
         const wordMatch = wordCommand.exec(command);
+
         if (wordMatch) {
             const camel = wordMatch[2]!.toLowerCase() === 'camel' || options.camelCase === true;
+
             return this.moveByWord(wordMatch[1] as 'select' | 'delete' | undefined, wordMatch[3] === 'Left' ? -1 : 1, camel, options.lineSpan);
         }
+
         if (command === 'addCaretAbove' || command === 'addCaretBelow') {
             return this.addCaret(command === 'addCaretAbove' ? -1 : 1, options.lineSpan);
         }
+
         if (command === 'selectNextOccurrence') {
             return this.selectNextOccurrence();
         }
+
         if (command === 'unselectOccurrence') {
             return this.unselectOccurrence();
         }
+
         if (command === 'selectAllOccurrences') {
             return this.selectAllOccurrences();
         }
+
         if (command === 'addCaretPerSelectedLine') {
             return this.addCaretPerSelectedLine();
         }
+
         const tabSize = tabWidth(options);
         const language = options.language ?? 'typescript';
         const unit = options.insertSpaces === false ? '\t' : ' '.repeat(tabSize);
+
         if (command === 'smartBackspace' || command === 'deleteForward') {
             const pairing = options.autoClosingPairs !== false && !isPlainText(language);
+
             return this.deleteCharacter(
                 command === 'smartBackspace',
                 { tabSize, unit },
@@ -861,34 +991,45 @@ export class DocumentModel {
                 language
             );
         }
+
         const enter = { language, unit, tabSize, smart: options.smartEnter !== false, reach: true };
+
         if (command === 'insertNewline' || command === 'startNewLine' || command === 'splitLine') {
             return this.insertNewline(enter, command === 'insertNewline' ? 'enter' : command === 'startNewLine' ? 'below' : 'split');
         }
+
         if (command === 'startNewLineBefore') {
             return this.startNewLineBefore(unit);
         }
+
         if (command === 'joinLines' || command === 'toggleCase' || command === 'autoIndentLines') {
             return this.editLines(command, { language, unit });
         }
+
         if (command === 'insertTab') {
             return this.insertTab(tabSize, options);
         }
+
         if (command === 'toggleLineComment' || command === 'toggleBlockComment') {
             return this.toggleComment(command, tabSize, options, language);
         }
+
         if (command === 'indent' || command === 'outdent') {
             return this.changeLineIndentation(command, tabSize, options);
         }
+
         if (command === 'duplicateLine') {
             return this.duplicate(options.lineSpan);
         }
+
         if (command === 'deleteLine') {
             return this.deleteLines(this.selectedLines(options.lineSpan));
         }
+
         if (command === 'moveLineUp' || command === 'moveLineDown') {
             return this.moveLines(this.selectedLines(options.lineSpan), command === 'moveLineUp' ? -1 : 1, options);
         }
+
         return false;
     }
 
@@ -896,25 +1037,33 @@ export class DocumentModel {
     private validateEdits(edits: readonly TextEdit[]): TextEdit[] {
         const sorted = [...edits].sort((left, right) => left.from - right.from || left.to - right.to);
         const unique: TextEdit[] = [];
+
         for (const edit of sorted) {
             if (!Number.isInteger(edit.from) || !Number.isInteger(edit.to) || edit.from < 0 || edit.to < edit.from || edit.to > this.rope.length) {
                 throw new RangeError('Edit offsets must be ordered integers inside the document.');
             }
+
             if (typeof edit.text !== 'string') {
                 throw new TypeError('Edit text must be a string.');
             }
+
             if (splitsSurrogate(this.rope, edit.from) || splitsSurrogate(this.rope, edit.to)) {
                 throw new RangeError('Edit boundaries cannot split a UTF-16 surrogate pair.');
             }
+
             const previous = unique.at(-1);
+
             if (previous && edit.from === previous.from && edit.to === previous.to && edit.text === previous.text) {
                 continue;
             }
+
             if (previous && (edit.from < previous.to || (edit.from === previous.from && edit.to === previous.to))) {
                 throw new RangeError('Simultaneous edits must not overlap.');
             }
+
             unique.push({ ...edit });
         }
+
         return unique;
     }
 
@@ -924,10 +1073,13 @@ export class DocumentModel {
         const after = this.rope.charAt(to);
         const quote = isQuote(text);
         const pairing = quote ? input.quotes : input.brackets;
+
         if (text === '>' && from === to && input.overArrows.has(from)) {
             return { from, to, text: '', anchor: 0, head: 0, skip: true, consumed: true };
         }
+
         const pendingClosers = this.statementClosers.get(from);
+
         if (input.brackets && smartSemicolon && from === to && pendingClosers?.language === language && pendingClosers.text.startsWith(text)) {
             return { from, to, text: '', anchor: 0, head: 0, skip: true, consumed: true, completedClosers: pendingClosers.text.slice(1) };
         }
@@ -935,21 +1087,26 @@ export class DocumentModel {
         const arrow = text === '-' && input.smartArrow && from === to;
         const needsContext = text.length === 1 && (/[()[\]{}'"`<]/.test(text) || (text === ';' && smartSemicolon) || arrow);
         const context = needsContext ? this.typingContext(from, language) : undefined;
+
         if (arrow && context?.mode === 'code' && context.embedded === undefined && context.word !== 'control-close' && this.endsOperand(from)) {
             return { from, to, text, anchor: 1, head: 1, arrow: true };
         }
+
         const insideQuote =
             context &&
             (((context.mode === 'quote' || context.mode === 'template') && context.quote === text && !context.escaped) ||
                 (context.mode === 'html' && context.markup === 'value' && context.markupQuote === text));
+
         if (pairing && from === to && after === text && (quote ? insideQuote : context?.mode === 'code' && context.bracket?.close === text)) {
             return { from, to, text: '', anchor: 1, head: 1, skip: true };
         }
 
         if (text === ';' && from === to && smartSemicolon && context?.mode === 'code') {
             const end = this.semicolonTarget(from, context);
+
             if (end !== undefined) {
                 const existing = this.rope.charAt(end) === ';';
+
                 return {
                     from: end,
                     to: end,
@@ -964,6 +1121,7 @@ export class DocumentModel {
 
         if (from !== to && input.surround && (pairs[text] !== undefined || text === '<')) {
             const wrapped = this.surroundSelection(selection, input, context);
+
             if (wrapped) {
                 return wrapped;
             }
@@ -975,10 +1133,12 @@ export class DocumentModel {
 
         if (input.dedent && from === to && /[)\]}]/.test(text) && context?.mode === 'code' && context.bracket?.close === text) {
             const dedented = this.dedentCloser(from, text, context.bracket.at);
+
             if (dedented) {
                 return dedented;
             }
         }
+
         return { from, to, text, anchor: text.length, head: text.length };
     }
 
@@ -987,18 +1147,24 @@ export class DocumentModel {
         const { text, language } = input;
         const { from, to } = rangeOf(selection);
         const selected = this.slice(from, to);
+
         if (input.quotes && isQuote(text) && selected.length === 1) {
             const swapped = swapQuotes(this.editSource(language), from, text);
+
             if (swapped) {
                 return { from: swapped.from, to: swapped.to, text: swapped.text, anchor: swapped.caret, head: swapped.caret };
             }
         }
+
         const inCommentOrString = context !== undefined && context.mode !== 'code';
+
         if (replacesComparison(text, selected, inCommentOrString)) {
             return null;
         }
+
         const wrapped = surround(selected, text);
         const end = 1 + wrapped.inner.length;
+
         return selection.anchor > selection.head
             ? { from, to, text: wrapped.text, anchor: end, head: 1 }
             : { from, to, text: wrapped.text, anchor: 1, head: end };
@@ -1009,13 +1175,17 @@ export class DocumentModel {
         const index = this.rope.lineAt(offset);
         const line = this.rope.lineBounds(index);
         const before = this.slice(line.start, offset);
+
         if (!/^[\t ]*$/.test(before)) {
             return null;
         }
+
         const indent = whitespaceOf(this.lineOf(opener).text);
+
         if (indent === before) {
             return null;
         }
+
         return { from: line.start, to: offset, text: indent + closer, anchor: indent.length + 1, head: indent.length + 1 };
     }
 
@@ -1023,16 +1193,20 @@ export class DocumentModel {
         if (context?.mode === 'html') {
             return context.markup === 'equals' && (opener === '"' || opener === "'") && (!after || /[\s>/]/u.test(after));
         }
+
         const interpolation = this.isInterpolation(offset, opener, context);
         const quote = isQuote(opener);
         const scriptEnd = context?.embedded !== undefined && /^<\/script(?=[\s/>]|$)/i.test(this.slice(offset, offset + 9));
         const followedByTerminator = quote ? !identifier.test(after) && after !== opener : !after || scriptEnd || /[\s)\]}>,;:]/u.test(after);
+
         if (context?.mode !== 'code' && !interpolation) {
             return false;
         }
+
         if (!followedByTerminator && !(interpolation && after === '`')) {
             return false;
         }
+
         if (quote) {
             // A quote after a word is an apostrophe or the end of a string, not the start of one.
             return (
@@ -1041,6 +1215,7 @@ export class DocumentModel {
                 !this.completesTripleQuote(offset, opener, input.language)
             );
         }
+
         return !this.hasMatch(offset, opener, input.language, context);
     }
 
@@ -1053,16 +1228,22 @@ export class DocumentModel {
     private hasMatch(offset: number, opener: string, language: string, context?: TypingContext): boolean {
         if (context?.embedded === 'javascript' && context.embedStart !== undefined) {
             const source = this.scriptSource(context.embedStart, matchScanLimit).text;
+
             if (source === undefined) {
                 return false;
             }
+
             const at = offset - context.embedStart;
+
             return scanBrackets(source.slice(0, at) + opener + source.slice(at), 'javascript').pairs.has(at);
         }
+
         if (this.rope.length > matchScanLimit) {
             return false;
         }
+
         const text = this.getText();
+
         return scanBrackets(text.slice(0, offset) + opener + text.slice(offset), language).pairs.has(offset);
     }
 
@@ -1072,14 +1253,19 @@ export class DocumentModel {
      */
     private endsOperand(offset: number): boolean {
         const before = this.slice(this.boundsOf(offset).start, offset);
+
         if (/[)\]]$/.test(before)) {
             return true;
         }
+
         const name = /[\p{L}_][\p{L}\p{N}_]*$/u.exec(before);
+
         if (name === null) {
             return false;
         }
+
         const ahead = before.slice(0, name.index);
+
         return ahead.endsWith('$') || ahead.endsWith('->');
     }
 
@@ -1087,10 +1273,13 @@ export class DocumentModel {
     private rememberStatementClosers(plans: readonly SelectionEdit[], transaction: SelectionTransaction, language: string): void {
         for (const [index, selection] of transaction.selections.entries()) {
             const closers = plans[index]?.completedClosers;
+
             if (!closers) {
                 continue;
             }
+
             const caretIsThere = this.selections.some((current) => current.anchor === selection.anchor && current.head === selection.head);
+
             if (caretIsThere && closers.length > (this.statementClosers.get(selection.head)?.text.length ?? 0)) {
                 this.statementClosers.set(selection.head, { text: closers, language });
             }
@@ -1113,27 +1302,34 @@ export class DocumentModel {
         if (this.selections.some((selection) => selection.anchor !== selection.head)) {
             return this.changeLineIndentation('indent', tabSize, options);
         }
+
         const tabOut = options.tabOutOfClosers !== false;
         // A caret further along a line stands where the spaces of the carets before it moved it to.
         const moved = new Map<number, number>();
         const widths = new Map<Selection, number>();
+
         for (const selection of [...this.selections].sort((left, right) => left.head - right.head)) {
             if (tabOut && this.closers.isCloserAt(selection.head)) {
                 continue;
             }
+
             const line = this.rope.lineAt(selection.head);
             const column = this.columnOf(selection.head, tabSize) + (moved.get(line) ?? 0);
             const width = tabSize - (column % tabSize);
             widths.set(selection, width);
             moved.set(line, (moved.get(line) ?? 0) + width);
         }
+
         return this.applySelectionEdits(
             this.selections.map((selection) => {
                 const offset = selection.head;
+
                 if (tabOut && this.closers.isCloserAt(offset)) {
                     return { from: offset, to: offset, text: '', anchor: 1, head: 1, skip: true };
                 }
+
                 const text = options.insertSpaces === false ? '\t' : ' '.repeat(widths.get(selection)!);
+
                 return { from: offset, to: offset, text, anchor: text.length, head: text.length };
             }),
             { source: 'command' }
@@ -1151,9 +1347,11 @@ export class DocumentModel {
     ): boolean {
         const home = command.endsWith('Home');
         const select = command.startsWith('select');
+
         return this.changeSelections(
             this.selections.map((selection) => {
                 const head = home ? this.homeOffset(selection.head, tabSize, visualLine) : this.endOffset(selection.head, visualLine);
+
                 return { anchor: select ? selection.anchor : head, head };
             })
         );
@@ -1162,6 +1360,7 @@ export class DocumentModel {
     /* The first character on a line that is not a space or a tab, or -1 when there is none. */
     private firstNonSpace(line: DocumentLine): number {
         const found = line.text.search(/[^ \t]/);
+
         return found === -1 ? -1 : line.start + found;
     }
 
@@ -1175,12 +1374,15 @@ export class DocumentModel {
         const line = this.lineOf(offset);
         const row = visualLine?.(offset) ?? line;
         const indent = this.firstNonSpace(line);
+
         if (row.start > line.start) {
             return offset > row.start ? row.start : Math.max(indent, line.start);
         }
+
         if (offset === line.start) {
             return this.offsetAtColumn(line, this.smartIndentColumn(line.start, tabSize), tabSize);
         }
+
         return indent !== -1 && indent < offset ? indent : line.start;
     }
 
@@ -1189,10 +1391,12 @@ export class DocumentModel {
         for (let index = this.rope.lineAt(offset); index >= 0; index--) {
             const line = this.getLine(index);
             const indent = this.firstNonSpace(line);
+
             if (indent !== -1) {
                 return indentationColumn(line.text.slice(0, indent - line.start), tabSize);
             }
         }
+
         return 0;
     }
 
@@ -1201,13 +1405,17 @@ export class DocumentModel {
         if (column <= 0) {
             return line.start;
         }
+
         let width = 0;
+
         for (let index = 0; index < line.text.length && width < column; index++) {
             width += line.text[index] === '\t' ? tabSize - (width % tabSize) : 1;
+
             if (width >= column) {
                 return line.start + index + 1;
             }
         }
+
         return line.end;
     }
 
@@ -1221,34 +1429,45 @@ export class DocumentModel {
         const row = visualLine?.(offset) ?? line;
         const end = offset === row.end && offset < this.rope.length ? line.end : row.end;
         let target = end;
+
         for (let at = end - 1; at >= line.start; at--) {
             if (at > line.start && visualLine !== undefined && visualLine(at).start === at) {
                 target = end;
+
                 break;
             }
+
             const character = this.rope.charAt(at);
+
             if (character !== ' ' && character !== '\t') {
                 break;
             }
+
             target = at;
         }
+
         return target === end || target === offset ? end : target;
     }
 
     private moveByWord(mode: 'select' | 'delete' | undefined, direction: -1 | 1, camel: boolean, span?: LineSpanOf): boolean {
         if (mode === 'delete') {
             const stops = direction === 1 ? DELETE_FORWARD : DELETE_BACKWARD;
+
             return this.deleteRanges(
                 this.selections.map((selection) => {
                     const head = selection.head === selection.anchor ? this.caretStop(selection.head, direction, stops, camel) : selection.anchor;
+
                     return { from: Math.min(selection.head, head), to: Math.max(selection.head, head), text: '' };
                 })
             );
         }
+
         const stops = direction === 1 ? MOVE_FORWARD : MOVE_BACKWARD;
+
         return this.changeSelections(
             this.selections.map((selection) => {
                 const head = this.foldedStop(selection.head, direction, this.caretStop(selection.head, direction, stops, camel), span);
+
                 return { anchor: mode === 'select' ? selection.anchor : head, head };
             })
         );
@@ -1261,20 +1480,26 @@ export class DocumentModel {
     private caretStop(offset: number, direction: -1 | 1, stops: CaretStops, camel: boolean): number {
         const line = this.rope.lineAt(offset);
         const edge = direction === 1 ? this.nextLineStop(line, offset, stops.line) : this.previousLineStop(line, offset, stops.line);
+
         if (offset === edge) {
             return offset;
         }
+
         const isStop = (position: number): boolean =>
             ((stops.word !== 'start' && isWordBoundary(this.rope, position, camel, false)) ||
                 (stops.word !== 'end' && isWordBoundary(this.rope, position, camel, true))) &&
             !splitsCluster(this.rope, position);
+
         let position = offset + direction;
+
         while (direction === 1 ? position < edge : position > edge) {
             if (isStop(position)) {
                 break;
             }
+
             position += direction;
         }
+
         return position;
     }
 
@@ -1287,21 +1512,29 @@ export class DocumentModel {
         if (span === undefined) {
             return stop;
         }
+
         const fold = (position: number): { from: number; to: number; next: number } | null => {
             const { first, last } = span(this.rope.lineAt(position));
+
             if (last === first) {
                 return null;
             }
+
             return { from: this.rope.lineBounds(first).end, to: this.rope.lineBounds(last).end, next: this.rope.lineBounds(last).next };
         };
+
         const current = direction === 1 ? fold(offset) : fold(offset - 1);
+
         if (direction === 1 && current !== null && current.from <= offset && offset < current.to) {
             return current.next > current.to ? current.next : offset;
         }
+
         if (direction === -1 && current !== null && current.from <= offset - 1 && offset - 1 < current.to) {
             return current.from;
         }
+
         const landing = fold(stop);
+
         return landing !== null && landing.from < stop && stop <= landing.to ? landing.from : stop;
     }
 
@@ -1309,10 +1542,13 @@ export class DocumentModel {
         if (line + 1 >= this.rope.lineCount) {
             return this.rope.length;
         }
+
         const atEnd = offset === this.rope.lineBounds(line).end;
+
         if (!atEnd && stop !== 'start') {
             return this.rope.lineBounds(line).end;
         }
+
         return stop === 'end' ? this.rope.lineBounds(line + 1).end : this.rope.lineBounds(line + 1).start;
     }
 
@@ -1320,10 +1556,13 @@ export class DocumentModel {
         if (line === 0) {
             return 0;
         }
+
         const atStart = offset === this.rope.lineBounds(line).start;
+
         if (!atStart && stop !== 'end') {
             return this.rope.lineBounds(line).start;
         }
+
         return stop === 'start' ? this.rope.lineBounds(line - 1).start : this.rope.lineBounds(line - 1).end;
     }
 
@@ -1336,33 +1575,42 @@ export class DocumentModel {
         const session = this.cloneSession;
         const frames = session !== undefined && session.signature === this.occurrenceSignature() ? session.frames : [];
         const top = frames.at(-1);
+
         if (top !== undefined && top.direction !== direction) {
             const taken = new Set(top.carets.map((clone) => `${clone.selection.anchor}:${clone.selection.head}`));
             const kept = this.selections.filter((selection) => !taken.has(`${selection.anchor}:${selection.head}`));
             frames.pop();
             const changed = this.changeSelections(kept.length > 0 ? kept : this.selections.slice(0, 1));
             this.cloneSession = { signature: this.occurrenceSignature(), frames };
+
             return changed;
         }
+
         const sources = top === undefined ? this.selections.map((selection) => this.cloneSource(selection)) : top.carets;
         const clones: CaretClone[] = [];
+
         for (const source of sources) {
             const clone = this.cloneOnto(source, direction, [...this.selections, ...clones.map((added) => added.selection)], span);
+
             if (clone !== null) {
                 clones.push(clone);
             }
         }
+
         if (clones.length === 0) {
             return false;
         }
+
         const changed = this.changeSelections([...this.selections, ...clones.map((clone) => clone.selection)]);
         frames.push({ direction, carets: clones });
         this.cloneSession = { signature: this.occurrenceSignature(), frames };
+
         return changed;
     }
 
     private cloneSource(selection: Selection): CaretClone {
         const { from, to } = rangeOf(selection);
+
         return {
             selection,
             caretColumn: this.positionAt(selection.head).column,
@@ -1378,70 +1626,90 @@ export class DocumentModel {
         const startLine = this.rope.lineAt(from);
         const endLine = this.rope.lineAt(to);
         const caretLine = this.rope.lineAt(selection.head);
+
         for (let shift = direction; ; shift += direction) {
             const line = caretLine + shift;
+
             if (line < 0 || line >= this.getLineCount()) {
                 return null;
             }
+
             if (span !== undefined && span(line).first !== line) {
                 continue;
             }
+
             const start = this.offsetAt({ line: startLine + shift, column: source.startColumn });
             const end = this.offsetAt({ line: endLine + shift, column: source.endColumn });
+
             if (from !== to && start === end) {
                 continue;
             }
+
             const caret = this.offsetAt({ line, column: source.caretColumn });
             const cloned = from === to ? { anchor: caret, head: caret } : selection.head === to ? { anchor: start, head: end } : { anchor: end, head: start };
             const range = rangeOf(cloned);
+
             if (
                 existing.some((other) => {
                     const taken = rangeOf(other);
+
                     return range.from === range.to && taken.from === taken.to ? range.from === taken.from : range.from < taken.to && range.to > taken.from;
                 })
             ) {
                 return null;
             }
+
             return { ...source, selection: cloned };
         }
     }
 
     private changeLineIndentation(command: 'indent' | 'outdent', tabSize: number, options: CommandOptions): boolean {
         const indentation = options.insertSpaces === false ? '\t' : ' '.repeat(tabSize);
+
         const edits = this.selectedLines().map((index) => {
             const line = this.getLine(index);
+
             if (command === 'indent') {
                 return { from: line.start, to: line.start, text: indentation };
             }
+
             const length = line.text.startsWith('\t') ? 1 : Math.min(/^ */.exec(line.text)![0].length, tabSize);
+
             return { from: line.start, to: line.start + length, text: '' };
         });
+
         return this.applyEdits(edits, { source: 'command' });
     }
 
     private toggleComment(command: 'toggleLineComment' | 'toggleBlockComment', tabSize: number, options: CommandOptions, language: string): boolean {
         const commentOptions = { language, tabSize, insertSpaces: options.insertSpaces !== false, lineToken: options.commentToken, lineSpan: options.lineSpan };
         const source = this.editSource(language);
+
         const plan: EditPlan | null =
             command === 'toggleLineComment'
                 ? planLineComments(source, this.selections, commentOptions)
                 : planBlockComment(source, this.selections, commentOptions);
+
         return plan !== null && this.applyEdits(plan.edits, { source: 'command', selections: plan.selections });
     }
 
     /* The lines the carets and selections touch, sorted. */
     private selectedLines(span?: LineSpanOf): number[] {
         const indices = new Set<number>();
+
         for (const selection of this.selections) {
             let { first, last } = this.touchedLines(selection);
+
             if (span) {
                 first = span(first).first;
                 last = Math.max(last, span(last).last);
             }
+
             for (let line = first; line <= last; line++) {
                 indices.add(line);
             }
         }
+
         return [...indices].sort((left, right) => left - right);
     }
 
@@ -1450,6 +1718,7 @@ export class DocumentModel {
         const { from, to } = rangeOf(selection);
         const first = this.rope.lineAt(from);
         const last = this.rope.lineAt(to);
+
         return { first, last: last > first && this.rope.lineBounds(last).start === to ? last - 1 : last };
     }
 
@@ -1457,56 +1726,72 @@ export class DocumentModel {
     private duplicate(span?: LineSpanOf): boolean {
         const carets = this.selections.filter((selection) => selection.anchor === selection.head);
         const lines = new Set<number>();
+
         for (const caret of carets) {
             const line = this.rope.lineAt(caret.head);
             const { first, last } = span ? span(line) : { first: line, last: line };
+
             for (let index = first; index <= last; index++) {
                 lines.add(index);
             }
         }
+
         const groups = blocks([...lines].sort((left, right) => left - right));
+
         interface Copy {
             at: number;
             text: string;
             /* Where each selection that rides on this copy stands once `shift` characters went in before it. */
             select(shift: number): Selection[];
         }
+
         const copies: Copy[] = [];
+
         for (const selection of this.selections) {
             const { from, to } = rangeOf(selection);
+
             if (from !== to) {
                 const text = this.slice(from, to);
                 copies.push({ at: to, text, select: (shift) => [{ anchor: to + shift, head: to + shift + text.length }] });
             }
         }
+
         for (const group of groups) {
             const first = this.rope.lineBounds(group.first);
             const last = this.rope.lineBounds(group.last);
             const text = last.next > last.end ? this.slice(first.start, last.next) : this.newlineAt(group.last) + this.slice(first.start, last.end);
+
             const riders = carets.filter((caret) => {
                 const line = this.rope.lineAt(caret.head);
+
                 return line >= group.first && line <= group.last;
             });
+
             copies.push({
                 at: last.next,
                 text,
                 select: (shift) => riders.map((caret) => ({ anchor: caret.anchor + shift + text.length, head: caret.head + shift + text.length }))
             });
         }
+
         copies.sort((left, right) => left.at - right.at);
         const edits: TextEdit[] = [];
         const selections: Selection[] = [];
         let shift = 0;
+
         for (const copy of copies) {
             selections.push(...copy.select(shift));
             const previous = edits.at(-1);
+
             if (previous?.from === copy.at) {
                 previous.text += copy.text;
             } else {
                 edits.push({ from: copy.at, to: copy.at, text: copy.text });
             }
+
             shift += copy.text.length;
         }
+
         return this.applyEdits(edits, { source: 'command', selections });
     }
 
@@ -1514,24 +1799,31 @@ export class DocumentModel {
     private deleteLines(indices: readonly number[]): boolean {
         const groups = blocks(indices);
         const columns = new Map<number, number>();
+
         for (const selection of this.selections) {
             columns.set(this.rope.lineAt(selection.head), this.positionAt(selection.head).column);
         }
+
         const edits = groups.map((block) => {
             let from = this.rope.lineBounds(block.first).start;
             const to = this.rope.lineBounds(block.last).next;
+
             // The last line has no break of its own, so the one before it goes too.
             if (block.last === this.getLineCount() - 1 && block.first > 0) {
                 from = this.rope.lineBounds(block.first - 1).end;
             }
+
             return { from, to, text: '' };
         });
+
         const selections: Selection[] = [];
         let removed = 0;
+
         for (const [position, block] of groups.entries()) {
             const edit = edits[position]!;
             const column = Math.max(0, ...[...columns].filter(([line]) => line >= block.first && line <= block.last).map(([, value]) => value));
             const target = block.last + 1 < this.getLineCount() ? block.last + 1 : block.first - 1;
+
             if (target >= 0) {
                 const bounds = this.rope.lineBounds(target);
                 const start = bounds.start - (block.last + 1 < this.getLineCount() ? edit.to - edit.from : 0) - removed;
@@ -1540,19 +1832,24 @@ export class DocumentModel {
             } else {
                 selections.push({ anchor: 0, head: 0 });
             }
+
             removed += edit.to - edit.from;
         }
+
         return this.applyEdits(edits, { source: 'command', selections });
     }
 
     private moveLines(indices: readonly number[], direction: -1 | 1, options: CommandOptions): boolean {
         const span: LineSpanOf = options.lineSpan ?? ((line) => ({ first: line, last: line }));
         const groups = blocks(indices).filter((block) => (direction === -1 ? block.first > 0 : block.last < this.getLineCount() - 1));
+
         if (groups.length === 0) {
             return false;
         }
+
         const targets = new Map<number, { start: number; end: number; next: number }>();
         const moves: { from: number; to: number }[] = [];
+
         const edits = groups.map((block) => {
             const own = range(block.first, block.last);
             // The line it swaps with is a whole row of the screen, so a collapsed fold is never cut in two.
@@ -1564,6 +1861,7 @@ export class DocumentModel {
             let at = this.rope.lineBounds(first).start;
             const from = at;
             const parts: string[] = [];
+
             for (const [index, original] of order.entries()) {
                 const line = this.getLine(original);
                 // Each line keeps the line break of the slot it moves into, so mixed LF and CRLF stay where they were.
@@ -1571,55 +1869,78 @@ export class DocumentModel {
                 const ending = this.slice(slot.end, slot.next);
                 parts.push(line.text, ending);
                 targets.set(original, { start: at, end: at + line.text.length, next: at + line.text.length + ending.length });
+
                 if (original !== first + index) {
                     moves.push({ from: original, to: first + index });
                 }
+
                 at += line.text.length + ending.length;
             }
+
             return { from, to: this.rope.lineBounds(last).next, text: parts.join('') };
         });
+
         const mapOffsetThroughMove = (offset: number, from: number, to: number): number => {
             const line = this.rope.lineAt(offset);
+
             if (to > from && offset === to && line > 0 && this.rope.lineBounds(line).start === to) {
                 return (targets.get(line - 1) ?? this.rope.lineBounds(line - 1)).next;
             }
+
             const target = targets.get(line);
+
             return target ? Math.min(target.end, target.start + offset - this.rope.lineBounds(line).start) : offset;
         };
+
         const selections = this.selections.map((selection) => {
             const { from, to } = rangeOf(selection);
+
             return { anchor: mapOffsetThroughMove(selection.anchor, from, to), head: mapOffsetThroughMove(selection.head, from, to) };
         });
+
         const changed = this.applyEdits(edits, { source: 'command', selections });
+
         if (changed) {
             options.onLinesMoved?.(moves);
         }
+
         return changed;
     }
 
     /* Enter, or the same Enter from the end of the line (`below`) or with the caret left in front of the break (`split`). */
     private insertNewline(options: EnterOptions, mode: 'enter' | 'below' | 'split'): boolean {
         const source = this.editSource(options.language);
+
         const plan = (reach: boolean): EnterPlan[] =>
             this.selections.map((selection) => {
                 const { from, to } = rangeOf(selection);
+
                 if (mode === 'below') {
                     const end = this.boundsOf(selection.head).end;
+
                     return planEnter(source, end, end, { ...options, reach });
                 }
+
                 const before = this.slice(this.boundsOf(from).start, from);
+
                 if (mode === 'split' && /^[\t ]*$/.test(before)) {
                     const start = from - before.length;
+
                     return { from: start, to: start, text: before + this.newlineAt(this.rope.lineAt(from)), caret: before.length };
                 }
+
                 const planned = planEnter(source, from, to, { ...options, reach });
+
                 return mode === 'split' ? { ...planned, caret: from - planned.from } : planned;
             });
+
         let plans = plan(true);
         const sorted = [...plans].sort((left, right) => left.from - right.from);
+
         if (sorted.some((current, index) => index > 0 && current.from < sorted[index - 1]!.to)) {
             plans = plan(false);
         }
+
         return this.applySelectionEdits(
             plans.map((entry) => ({ from: entry.from, to: entry.to, text: entry.text, anchor: entry.caret, head: entry.caret })),
             { source: 'command', typed: mode === 'enter' }
@@ -1634,6 +1955,7 @@ export class DocumentModel {
                 const line = this.rope.lineBounds(index);
                 const text = this.getLine(index).text;
                 const indent = whitespaceOf(text) + (/^[\t ]*[)\]}]/.test(text) ? unit : '');
+
                 return { from: line.start, to: line.start, text: indent + this.newlineAt(index), anchor: indent.length, head: indent.length };
             }),
             { source: 'command' }
@@ -1642,16 +1964,20 @@ export class DocumentModel {
 
     private editLines(command: 'joinLines' | 'toggleCase' | 'autoIndentLines', options: { language: string; unit: string }): boolean {
         const source = this.editSource(options.language);
+
         const plan: EditPlan | null =
             command === 'joinLines'
                 ? planJoinLines(source, this.selections, options)
                 : command === 'toggleCase'
                   ? planToggleCase(source, this.selections)
                   : planAutoIndent(source, this.selectedLines(), options);
+
         if (plan === null) {
             return false;
         }
+
         const edits = [...plan.edits].sort((left, right) => left.from - right.from);
+
         // Without a plan of its own the selections keep their start in front of the indentation that goes in at it.
         const selections =
             plan.selections.length > 0
@@ -1660,8 +1986,10 @@ export class DocumentModel {
                       const { from, to } = rangeOf(selection);
                       const start = mapOffset(from, edits, from !== to);
                       const end = mapOffset(to, edits);
+
                       return selection.anchor <= selection.head ? { anchor: start, head: end } : { anchor: end, head: start };
                   });
+
         return this.applyEdits(plan.edits, { source: 'command', selections });
     }
 
@@ -1685,19 +2013,26 @@ export class DocumentModel {
      */
     private isUnclosedBrace(offset: number, language: string): boolean {
         const context = isPhp(language) ? this.typingContext(offset, language) : undefined;
+
         const index =
             context?.embedded === 'javascript' && context.embedStart !== undefined ? this.scriptBracketIndex(context.embedStart) : this.bracketIndex(language);
+
         if (index === undefined) {
             return false;
         }
+
         if (index.unmatched.has(offset)) {
             return true;
         }
+
         const closer = index.pairs.get(offset);
+
         const indentAt = (at: number): number => whitespaceOf(this.lineOf(at).text).length;
+
         if (closer === undefined || indentAt(closer) >= indentAt(offset)) {
             return false;
         }
+
         return [...index.unmatched].some((at) => at < offset && this.rope.charAt(at) === '{');
     }
 
@@ -1705,34 +2040,45 @@ export class DocumentModel {
         if (this.scriptCache?.revision !== this.revision) {
             this.scriptCache = { revision: this.revision, sources: new Map() };
         }
+
         const cached = this.scriptCache.sources.get(start);
+
         if (cached !== undefined && (cached.text !== undefined || cached.limit >= limit)) {
             return cached.text !== undefined && cached.text.length > limit ? { limit } : cached;
         }
+
         const end = Math.min(this.rope.length, start + limit + 11);
         let work = bracketScanLimit;
+
         const prepared = scriptSource(this.slice(start, end), start, end === this.rope.length, (at) => {
             const position = this.positionAt(at);
             work -= position.column + 1;
+
             return work < 0 ? null : this.typingContext(at, 'php');
         });
+
         const result = { limit, text: prepared !== undefined && prepared.length <= limit ? prepared : undefined };
         this.scriptCache.sources.set(start, result);
+
         return result;
     }
 
     private scriptBracketIndex(start: number): BracketIndex | undefined {
         const source = this.scriptSource(start, bracketScanLimit);
+
         if (source.text === undefined) {
             return undefined;
         }
+
         if (source.index === undefined) {
             const index = scanBrackets(source.text, 'javascript');
+
             source.index = {
                 pairs: new Map([...index.pairs].map(([from, to]) => [from + start, to + start])),
                 unmatched: new Set([...index.unmatched].map((at) => at + start))
             };
         }
+
         return source.index;
     }
 
@@ -1741,12 +2087,16 @@ export class DocumentModel {
         if (this.rope.length > bracketScanLimit) {
             return undefined;
         }
+
         const cache = this.bracketCache;
+
         if (cache?.revision === this.revision && cache.language === language) {
             return cache.index;
         }
+
         const index = scanBrackets(this.getText(), language);
         this.bracketCache = { revision: this.revision, language, index };
+
         return index;
     }
 
@@ -1759,6 +2109,7 @@ export class DocumentModel {
         return this.deleteRanges(
             this.selections.map((selection) => {
                 let { from, to } = rangeOf(selection);
+
                 if (from === to) {
                     if (!backwards) {
                         to = deletionStep(this.rope, to, 1);
@@ -1771,6 +2122,7 @@ export class DocumentModel {
                         return this.unindent(from, indent, language) ?? { from: this.backspaceStart(from, indent.tabSize), to, text: '' };
                     }
                 }
+
                 return { from, to, text: '' };
             })
         );
@@ -1784,29 +2136,40 @@ export class DocumentModel {
     private unindent(offset: number, indent: { tabSize: number; unit: string }, language: string): TextEdit | null {
         const index = this.rope.lineAt(offset);
         const line = this.rope.lineBounds(index);
+
         if (!/^[\t ]*$/.test(this.slice(line.start, offset))) {
             return null;
         }
+
         const proper = properIndent(this.editSource(language), index, { language, unit: indent.unit });
+
         if (proper === null) {
             return null;
         }
+
         let end = offset;
+
         while (end < line.end && /[\t ]/.test(this.rope.charAt(end))) {
             end++;
         }
+
         if (indentationColumn(this.slice(line.start, end), indent.tabSize) > indentationColumn(proper, indent.tabSize)) {
             return { from: line.start, to: end, text: proper };
         }
+
         if (index === 0) {
             return { from: 0, to: end, text: '' };
         }
+
         const previous = this.getLine(index - 1);
         const start = previous.end - trailingBlankLength(previous.text);
+
         if (start !== previous.start || start === 0) {
             const before = this.slice(previous.start, start);
+
             return { from: start, to: end, text: before === '' ? '' : spacingBetween(before, this.slice(end, line.end).trimEnd()) };
         }
+
         return { from: start, to: end, text: proper };
     }
 
@@ -1814,14 +2177,19 @@ export class DocumentModel {
     private isEmptyPair(offset: number, language: string): boolean {
         const opener = this.rope.charAt(offset - 1);
         const closer = this.rope.charAt(offset);
+
         if (!closer || pairs[opener] !== closer || this.escaped(offset - 1)) {
             return false;
         }
+
         const context = this.typingContext(offset - 1, language);
+
         if (context.mode === 'html' && context.markup === 'equals' && (opener === '"' || opener === "'")) {
             const inside = this.typingContext(offset, language);
+
             return inside.mode === 'html' && inside.markup === 'value' && inside.markupQuote === opener;
         }
+
         return context.mode === 'code' || this.isInterpolation(offset - 1, opener, context);
     }
 
@@ -1829,45 +2197,57 @@ export class DocumentModel {
     private backspaceStart(offset: number, tabSize: number): number {
         const index = this.rope.lineAt(offset);
         const line = this.rope.lineBounds(index);
+
         if (offset === line.start && line.start > 0) {
             // Joining with the line above also takes the whitespace that trails it.
             const previous = this.getLine(index - 1);
+
             return previous.end - trailingBlankLength(previous.text);
         }
+
         const prefix = this.slice(line.start, offset);
+
         if (prefix.length > 0 && /^[\t ]+$/.test(prefix)) {
             return line.start + indentStopLength(prefix, tabSize);
         }
+
         return deletionStep(this.rope, offset, -1);
     }
 
     private deleteRanges(ranges: TextEdit[]): boolean {
         ranges.sort((left, right) => left.from - right.from);
         const merged: TextEdit[] = [];
+
         for (const range of ranges) {
             const previous = merged.at(-1);
+
             if (previous && range.from <= previous.to) {
                 previous.to = Math.max(previous.to, range.to);
             } else {
                 merged.push({ ...range });
             }
         }
+
         return this.applyEdits(merged, { source: 'command' });
     }
 
     private applySelectionEdits(plans: readonly SelectionEdit[], options: DocumentEditOptions, transaction = selectionTransaction(plans)): boolean {
         const before = this.getSelections();
         const changed = this.applyEdits(transaction.edits, { ...options, selections: transaction.selections });
+
         return changed || !sameSelections(before, this.selections);
     }
 
     /* The line break of a line, or the document's first one for the last line, which has none. */
     private newlineAt(index: number): string {
         const line = this.rope.lineBounds(index);
+
         if (line.next > line.end) {
             return this.slice(line.end, line.next);
         }
+
         const first = this.rope.lineBounds(0);
+
         return first.next > first.end ? this.slice(first.end, first.next) : '\n';
     }
 
@@ -1882,14 +2262,17 @@ export class DocumentModel {
     /* Preceded by an odd number of backslashes. */
     private escaped(offset: number): boolean {
         let count = 0;
+
         while (offset > 0 && this.rope.charAt(--offset) === '\\') {
             count++;
         }
+
         return count % 2 === 1;
     }
 
     private typingContext(offset: number, language: string): TypingContext {
         const position = this.positionAt(offset);
+
         return this.typingContexts.at(position.line, position.column, language);
     }
 
@@ -1907,41 +2290,55 @@ export class DocumentModel {
                 return undefined;
             }
         }
+
         if (this.rope.charAt(from) === ';') {
             return from;
         }
+
         const line = this.lineOf(from);
         const prefix = this.slice(line.start, from).trimEnd();
+
         if (!prefix || /[([,=:+\-*/%&|!?]$/.test(prefix)) {
             return undefined;
         }
+
         let target = from;
         let bracket = context.bracket;
+
         while (target < line.end) {
             const character = this.rope.charAt(target);
+
             if (character === ' ' || character === '\t') {
                 target++;
+
                 continue;
             }
+
             if ((character !== ')' && character !== ']') || bracket?.close !== character) {
                 break;
             }
+
             target++;
             bracket = bracket.previous;
         }
+
         if (target === from || !/[)\]]/.test(this.slice(from, target))) {
             return undefined;
         }
+
         const after = this.rope.charAt(target);
+
         if (target !== line.end && after !== ';' && after !== '}' && this.slice(target, target + 2) !== '//') {
             return undefined;
         }
+
         // Whitespace after the expression stays after its terminator.
         if (after !== ';') {
             while (target > from && /[\t ]/.test(this.rope.charAt(target - 1))) {
                 target--;
             }
         }
+
         return target;
     }
 
@@ -1953,42 +2350,57 @@ export class DocumentModel {
     wordSelectionAt(offset: number, camel = false): { from: number; to: number } | null {
         const length = this.rope.length;
         const at = offset >= length ? length - 1 : offset;
+
         if (at < 0) {
             return null;
         }
+
         const word = this.identifierRunAt(at, camel);
+
         if (word !== null) {
             return word;
         }
+
         const line = this.lineOf(at);
+
         return line.start === line.end ? { from: 0, to: length } : { from: line.start, to: line.end };
     }
 
     /* The identifier, or its camel hump, that an offset is in or at the end of; null when it is on something else. */
     private identifierRunAt(offset: number, camel: boolean): { from: number; to: number } | null {
         const length = this.rope.length;
+
         const isWord = (at: number): boolean => at >= 0 && at < length && identifier.test(this.slice(at, step(this.rope, at, 1)));
+
         let at = offset;
+
         if (at > 0 && !isWord(at) && isWord(at - 1)) {
             at--;
         }
+
         if (!isWord(at)) {
             return null;
         }
+
         if (camel) {
             let start = at;
             let end = at + 1;
+
             while (start > 0 && isWord(start - 1) && !isHumpBoundary(this.rope, start, true)) {
                 start--;
             }
+
             while (end < length && isWord(end) && !isHumpBoundary(this.rope, end, false)) {
                 end++;
             }
+
             if (start + 1 < end) {
                 return { from: start, to: end };
             }
         }
+
         const word = this.wordRange(at);
+
         return word.from === word.to ? null : word;
     }
 
@@ -1997,14 +2409,17 @@ export class DocumentModel {
         if (offset === 0) {
             return 0;
         }
+
         const line = this.rope.lineAt(offset);
         const minimum = line > 0 ? this.rope.lineBounds(line - 1).end : 0;
         let found = offset - 1;
+
         for (; found > minimum; found--) {
             if (isWordBoundary(this.rope, found, camel, true) || this.isBetweenBrackets(found)) {
                 break;
             }
         }
+
         return found;
     }
 
@@ -2013,20 +2428,25 @@ export class DocumentModel {
         if (offset >= this.rope.length - 1) {
             return offset;
         }
+
         const line = this.rope.lineAt(offset);
         let found = offset + 1;
         let maximum = this.rope.lineBounds(line).end;
+
         if (found > maximum) {
             if (line + 1 >= this.rope.lineCount) {
                 return offset;
             }
+
             maximum = this.rope.lineBounds(line + 1).end;
         }
+
         for (; found < maximum; found++) {
             if (isWordBoundary(this.rope, found, camel, false) || this.isBetweenBrackets(found)) {
                 break;
             }
         }
+
         return found;
     }
 
@@ -2037,20 +2457,27 @@ export class DocumentModel {
     private wordRange(offset: number): { from: number; to: number } {
         let from = offset;
         let to = offset;
+
         while (from > 0) {
             const previous = step(this.rope, from, -1);
+
             if (!identifier.test(this.slice(previous, from))) {
                 break;
             }
+
             from = previous;
         }
+
         while (to < this.rope.length) {
             const next = step(this.rope, to, 1);
+
             if (!identifier.test(this.slice(to, next))) {
                 break;
             }
+
             to = next;
         }
+
         return { from, to };
     }
 
@@ -2059,19 +2486,25 @@ export class DocumentModel {
         const selections = this.selections.map((selection, index) => {
             const { from, to } = rangeOf(selection);
             const candidate = this.largerRange(given[index] ?? null, from, to) ?? this.lexicalExpansion(selection, from, to);
+
             if (!candidate) {
                 return selection;
             }
+
             return selection.anchor > selection.head ? { anchor: candidate.to, head: candidate.from } : { anchor: candidate.from, head: candidate.to };
         });
+
         const normalized = normalizeSelections(this.rope, selections);
+
         if (sameSelections(this.selections, normalized)) {
             return false;
         }
+
         this.selectionHistory.push(this.selections.map((selection) => ({ ...selection })));
         this.selections = normalized;
         this.groupOpen = false;
         this.emit();
+
         return true;
     }
 
@@ -2091,18 +2524,22 @@ export class DocumentModel {
     private lexicalExpansion(selection: Selection, from: number, to: number): OffsetRange | undefined {
         const first = this.lineOf(from);
         const last = this.lineOf(to);
+
         const candidates = [
             this.wordRange(selection.head),
             { from: first.start, to: last.end },
             { from: first.start, to: last.next },
             { from: 0, to: this.rope.length }
         ];
+
         if (first.start === last.start) {
             candidates.push({ from: first.start + whitespaceOf(first.text).length, to: first.end - trailingBlankLength(first.text) });
         }
+
         for (const range of this.structure()) {
             candidates.push({ from: range.innerFrom, to: range.innerTo }, range);
         }
+
         return candidates
             .filter((range) => range.from <= from && range.to >= to && (range.from < from || range.to > to))
             .sort((left, right) => left.to - left.from - (right.to - right.from))[0];
@@ -2110,12 +2547,15 @@ export class DocumentModel {
 
     private shrinkSelection(): boolean {
         const previous = this.selectionHistory.pop();
+
         if (!previous) {
             return false;
         }
+
         this.selections = previous;
         this.groupOpen = false;
         this.emit();
+
         return true;
     }
 
@@ -2126,6 +2566,7 @@ export class DocumentModel {
 
     private repeatedOccurrence(): { wholeWord: boolean; notFound: boolean } | null {
         const session = this.occurrenceSession;
+
         return session !== undefined && session.signature === this.occurrenceSignature() ? session : null;
     }
 
@@ -2137,6 +2578,7 @@ export class DocumentModel {
     private overlapsSelection(from: number, to: number): boolean {
         return this.selections.some((selection) => {
             const range = rangeOf(selection);
+
             return from === to && range.from === range.to ? from === range.from : from < range.to && to > range.from;
         });
     }
@@ -2152,28 +2594,39 @@ export class DocumentModel {
         const wholeWord = repeated?.wholeWord === true;
         const primary = this.selections.at(-1)!;
         const { from, to } = rangeOf(primary);
+
         if (from === to) {
             const word = this.identifierRunAt(primary.head, false);
+
             if (word === null) {
                 return false;
             }
+
             const changed = this.changeSelections([...this.selections.slice(0, -1), { anchor: word.from, head: word.to }]);
             this.rememberOccurrence(true, false);
+
             return changed;
         }
+
         const needle = this.slice(from, to);
         const start = notFoundBefore ? 0 : to;
         const match = this.find(needle, { caseSensitive: true, wholeWord }).find((candidate) => candidate.from >= start);
+
         if (match === undefined) {
             this.rememberOccurrence(wholeWord, true);
+
             return false;
         }
+
         if (this.overlapsSelection(match.from, match.to)) {
             this.rememberOccurrence(wholeWord, notFoundBefore);
+
             return false;
         }
+
         const changed = this.changeSelections([...this.selections, occurrenceSelection(match, primary.head - from)]);
         this.rememberOccurrence(wholeWord, false);
+
         return changed;
     }
 
@@ -2183,6 +2636,7 @@ export class DocumentModel {
         const changed = this.changeSelections(this.selections.length > 1 ? this.selections.slice(0, -1) : [{ anchor: head, head }]);
         this.occurrenceSession = undefined;
         this.occurrencesExhausted = false;
+
         return changed;
     }
 
@@ -2191,22 +2645,29 @@ export class DocumentModel {
         const primary = this.selections.at(-1)!;
         let { from, to } = rangeOf(primary);
         let wholeWord = false;
+
         if (from === to) {
             const word = this.identifierRunAt(primary.head, false);
+
             if (word === null) {
                 return false;
             }
+
             ({ from, to } = word);
             wholeWord = true;
         }
+
         // The word that was only a caret gets selected forward, so its caret is at its end.
         const shift = wholeWord ? to - from : primary.head - from;
         const matches = this.find(this.slice(from, to), { caseSensitive: true, wholeWord });
+
         if (matches.length === 0) {
             return false;
         }
+
         const changed = this.changeSelections(matches.map((match) => occurrenceSelection(match, shift)));
         this.rememberOccurrence(wholeWord, false);
+
         return changed;
     }
 
@@ -2214,21 +2675,26 @@ export class DocumentModel {
     private addCaretPerSelectedLine(): boolean {
         const forward = this.selections.at(-1)!.head >= this.selections.at(-1)!.anchor;
         const carets: Selection[] = [];
+
         for (const selection of this.selections) {
             const { first, last } = this.touchedLines(selection);
+
             for (let line = first; line <= last; line++) {
                 const end = this.rope.lineBounds(line).end;
                 carets.push({ anchor: end, head: end });
             }
         }
+
         // The primary caret is the one at the end the selection was dragged to.
         const primary = forward ? carets.pop() : carets.shift();
+
         return this.changeSelections(primary === undefined ? carets : [...carets, primary]);
     }
 
     private changeSelections(selections: readonly Selection[]): boolean {
         const before = this.getSelections();
         this.setSelections(selections);
+
         return !sameSelections(before, this.selections);
     }
 
@@ -2270,17 +2736,21 @@ export class DocumentModel {
         typed?: boolean
     ): void {
         const snapshot = this.getSnapshot();
+
         if (changes) {
             snapshot.changes = changes.map((transaction) => transaction.map((change) => ({ ...change })));
             snapshot.source = source;
+
             if (typed) {
                 snapshot.typed = true;
             }
+
             if (contentEdits) {
                 let edits: ContentEdit[] | undefined;
                 Object.defineProperty(snapshot, 'contentEdits', { get: () => (edits ??= contentEdits()), enumerable: true });
             }
         }
+
         for (const listener of this.listeners) {
             try {
                 listener(snapshot);

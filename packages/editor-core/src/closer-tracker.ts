@@ -17,6 +17,7 @@ export class CloserTracker {
 
     add(open: number, close: number): void {
         this.marks.push({ open, close });
+
         if (this.marks.length > maxMarks) {
             this.marks.shift();
         }
@@ -30,6 +31,7 @@ export class CloserTracker {
         this.marks = this.marks.flatMap((mark) => {
             const open = mapThrough(mark.open, edits);
             const close = mapThrough(mark.close, edits);
+
             return open === null || close === null ? [] : [{ open, close }];
         });
     }
@@ -46,14 +48,18 @@ export class CloserTracker {
 /* Null when an edit replaced the character at `offset`. */
 function mapThrough(offset: number, edits: readonly TextEdit[]): number | null {
     let delta = 0;
+
     for (const edit of edits) {
         if (offset < edit.from) {
             break;
         }
+
         if (offset < edit.to) {
             return null;
         }
+
         delta += edit.text.length - (edit.to - edit.from);
     }
+
     return offset + delta;
 }

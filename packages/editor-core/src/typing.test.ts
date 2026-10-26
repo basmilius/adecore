@@ -5,21 +5,27 @@ import { DocumentModel, type TypeTextOptions } from './document.ts';
 function parse(source: string): { text: string; anchor: number; head: number } {
     const open = source.indexOf('«');
     const close = source.indexOf('»');
+
     if (open >= 0 && close >= 0) {
         return { text: source.slice(0, open) + source.slice(open + 1, close) + source.slice(close + 1), anchor: open, head: close - 1 };
     }
+
     const caret = source.indexOf('¦');
+
     return { text: source.replace('¦', ''), anchor: caret, head: caret };
 }
 
 function render(model: DocumentModel): string {
     const { anchor, head } = model.getSelections()[0]!;
     const text = model.getText();
+
     if (anchor === head) {
         return text.slice(0, head) + '¦' + text.slice(head);
     }
+
     const from = Math.min(anchor, head);
     const to = Math.max(anchor, head);
+
     return `${text.slice(0, from)}«${text.slice(from, to)}»${text.slice(to)}`;
 }
 
@@ -121,19 +127,25 @@ describe('pairing', () => {
 
     it('types the third quote of a Python docstring as it is', () => {
         const model = new DocumentModel();
+
         for (const character of '"""') {
             model.typeText(character, { language: 'python' });
         }
+
         expect(model.getText()).toBe('"""');
         model.typeText('x', { language: 'python' });
+
         for (const character of '"""') {
             model.typeText(character, { language: 'python' });
         }
+
         expect(model.getText()).toBe('"""x"""');
         const single = new DocumentModel();
+
         for (const character of "'''") {
             single.typeText(character, { language: 'python' });
         }
+
         expect(single.getText()).toBe("'''");
         type("x = ''¦", "'", "x = '''¦", { language: 'python' });
     });
@@ -211,9 +223,11 @@ describe('the arrow of PHP', () => {
         const initial = parse(OPEN + source);
         const model = new DocumentModel(initial.text);
         model.setSelections([{ anchor: initial.anchor, head: initial.head }]);
+
         for (const key of keys) {
             model.typeText(key, { language: 'php', ...options });
         }
+
         return { model, shown: () => render(model).slice(OPEN.length) };
     }
 
@@ -294,10 +308,12 @@ describe('the arrow of PHP', () => {
 
     it('decides for every caret on its own', () => {
         const model = new DocumentModel(`${OPEN}$a\n1`);
+
         model.setSelections([
             { anchor: OPEN.length + 2, head: OPEN.length + 2 },
             { anchor: OPEN.length + 4, head: OPEN.length + 4 }
         ]);
+
         model.typeText('-', { language: 'php' });
         expect(model.getText()).toBe(`${OPEN}$a->\n1-`);
         model.typeText('b', { language: 'php' });
@@ -318,6 +334,7 @@ describe('backspace in the indentation of a bracketed language', () => {
         const model = new DocumentModel(initial.text);
         model.setSelections([{ anchor: initial.anchor, head: initial.head }]);
         model.execute('smartBackspace', { language, tabSize: 4 });
+
         return render(model).slice(open.length);
     }
 
@@ -386,6 +403,7 @@ describe('PHP markup attribute quotes', () => {
 
     it('keeps pairing, step-over and backspace correct after undo and redo', () => {
         const source = '<div title=>';
+
         for (const action of ['type', 'backspace']) {
             const model = new DocumentModel(source);
             const at = source.indexOf('>');
@@ -395,6 +413,7 @@ describe('PHP markup attribute quotes', () => {
             expect(model.undo()).toBe(true);
             expect(model.getText()).toBe(source);
             expect(model.redo()).toBe(true);
+
             if (action === 'type') {
                 model.typeText('"', { language: 'php' });
                 expect(model.getText()).toBe('<div title="">');
@@ -410,6 +429,7 @@ describe('PHP markup attribute quotes', () => {
         for (const source of ['<p>don¦t</p>', '<!-- title=¦ -->', '<style>title=¦</style>', '<div title=value¦>', '<div title=¦word>']) {
             type(source, "'", source.replace('¦', "'¦"), { language: 'php' });
         }
+
         type('<div title=¦>', '"', '<div title="¦>', { language: 'php', autoClosingQuotes: false });
         type('<div title=¦>', '`', '<div title=`¦>', { language: 'php' });
         type('<div title=¦>', '(', '<div title=(¦>', { language: 'php' });
@@ -419,10 +439,12 @@ describe('PHP markup attribute quotes', () => {
     it('pairs independently at several attribute carets', () => {
         const source = '<div title=>\n<a href=>';
         const model = new DocumentModel(source);
+
         model.setSelections([
             { anchor: 11, head: 11 },
             { anchor: source.length - 1, head: source.length - 1 }
         ]);
+
         model.typeText('"', { language: 'php' });
         expect(model.getText()).toBe('<div title="">\n<a href="">');
         model.execute('smartBackspace', { language: 'php' });
@@ -440,6 +462,7 @@ describe('JavaScript typing within PHP script elements', () => {
         ]) {
             type(source, '(', source.replace('¦', '(¦)'), { language: 'php' });
         }
+
         type("<script>s = '<?= $x ?>¦';</script>", "'", "<script>s = '<?= $x ?>'¦;</script>", { language: 'php' });
         type('<script>t = `<?= $a ?>¦`</script>', '`', '<script>t = `<?= $a ?>`¦</script>', { language: 'php' });
         type('<script>f¦)</script>', '(', '<script>f(¦)</script>', { language: 'php' });
@@ -470,10 +493,12 @@ describe('JavaScript typing within PHP script elements', () => {
 
     it('invalidates script context when openers and closers change and history restores them', () => {
         const model = new DocumentModel('<div>\ncall\n</div>');
+
         model.applyEdits([
             { from: 0, to: 5, text: '<script>' },
             { from: 11, to: 17, text: '</script>' }
         ]);
+
         const at = model.getLine(1).end;
         model.setSelections([{ anchor: at, head: at }]);
         model.typeText('(', { language: 'php' });
@@ -524,6 +549,7 @@ describe('pairing is scoped to the current PHP script body', () => {
             type(source, '(', source.replace('¦', '(¦)'), { language: 'php' });
         }
     });
+
     it('finds an existing closer despite a large unrelated HTML prefix', () => {
         const source = '<p>' + 'x'.repeat(450000) + '</p>\n<script>call¦)</script>';
         type(source, '(', source.replace('¦', '(¦'), { language: 'php' });

@@ -20,6 +20,7 @@ export function indentText(width: number, options: { tabSize: number; insertSpac
     if (options.insertSpaces) {
         return ' '.repeat(width);
     }
+
     return '\t'.repeat(Math.floor(width / options.tabSize)) + ' '.repeat(width % options.tabSize);
 }
 

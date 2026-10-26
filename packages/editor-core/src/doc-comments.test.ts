@@ -57,6 +57,7 @@ describe('finding documentation comments', () => {
         const text = ['<template>', '  <div />', '</template>', '<script setup lang="ts">', DOC, 'let a = 1;', '</script>', '<style>', DOC, '</style>'].join(
             '\n'
         );
+
         const found = findDocComments(text, 'vue');
         expect(found).toHaveLength(1);
         expect(found[0]!.startLine).toBe(4);

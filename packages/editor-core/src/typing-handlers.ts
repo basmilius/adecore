@@ -18,12 +18,15 @@ export function isQuote(character: string): boolean {
 function quotesIn(body: string, selected: string, typed: string): { index: number; escaped: boolean }[] {
     const found: { index: number; escaped: boolean }[] = [];
     let escaped = false;
+
     for (let index = 0; index < body.length; index++) {
         const character = body[index]!;
+
         if (escaped) {
             if (character === selected || character === typed) {
                 found.push({ index, escaped: true });
             }
+
             escaped = false;
         } else if (character === '\\') {
             escaped = true;
@@ -31,6 +34,7 @@ function quotesIn(body: string, selected: string, typed: string): { index: numbe
             found.push({ index, escaped: false });
         }
     }
+
     return found;
 }
 
@@ -39,9 +43,12 @@ function stringAround(source: EditSource, offset: number, quote: string): { star
     const line = source.line(source.lineAt(offset));
     const before = source.context(offset);
     const after = source.context(offset + 1);
+
     const inString = (mode: string): boolean => mode === 'quote' || mode === 'template';
+
     if (before.mode === 'code' && inString(after.mode) && after.quote === quote) {
         const text = source.slice(offset + 1, line.end);
+
         for (let at = 0; at < text.length; at++) {
             if (text[at] === '\\') {
                 at++;
@@ -49,20 +56,26 @@ function stringAround(source: EditSource, offset: number, quote: string): { star
                 return { start: offset, end: offset + 1 + at };
             }
         }
+
         return null;
     }
+
     if (inString(before.mode) && before.quote === quote && !before.escaped && after.mode === 'code') {
         const text = source.slice(line.start, offset);
+
         for (let at = text.length - 1; at >= 0; at--) {
             let slashes = 0;
+
             while (at - slashes - 1 >= 0 && text[at - slashes - 1] === '\\') {
                 slashes++;
             }
+
             if (text[at] === quote && slashes % 2 === 0) {
                 return { start: line.start + at, end: offset };
             }
         }
     }
+
     return null;
 }
 
@@ -72,24 +85,33 @@ function stringAround(source: EditSource, offset: number, quote: string): { star
  */
 export function swapQuotes(source: EditSource, offset: number, typed: string): HandlerEdit | null {
     const selected = source.charAt(offset);
+
     if (selected === typed || !isQuote(selected) || !isQuote(typed)) {
         return null;
     }
+
     const span = stringAround(source, offset, selected);
+
     if (!span) {
         return null;
     }
+
     const body = source.slice(span.start + 1, span.end);
     const inside = quotesIn(body, selected, typed);
     const interpolated = selected === '`' && body.includes('${');
+
     if (interpolated && inside.length > 0) {
         return null;
     }
+
     let rewritten = body;
+
     if (!interpolated) {
         let shift = 0;
+
         for (const { index, escaped } of inside) {
             const character = body[index]!;
+
             if (character === typed && !escaped) {
                 rewritten = rewritten.slice(0, index + shift) + '\\' + rewritten.slice(index + shift);
                 shift++;
@@ -99,7 +121,9 @@ export function swapQuotes(source: EditSource, offset: number, typed: string): H
             }
         }
     }
+
     const text = typed + rewritten + typed;
+
     return { from: span.start, to: span.end + 1, text, caret: offset === span.start ? 1 : text.length };
 }
 
@@ -118,6 +142,7 @@ export function matchingDelimiter(character: string): string {
 
 function similarDelimiters(left: string, right: string): boolean {
     const bracket = (character: string): boolean => /[([{<]/.test(character);
+
     return (bracket(left) && bracket(right)) || (isQuote(left) && isQuote(right));
 }
 
@@ -127,9 +152,11 @@ function similarDelimiters(left: string, right: string): boolean {
  */
 export function surround(selected: string, typed: string): { text: string; inner: string } {
     let inner = selected;
+
     if (selected.length > 1) {
         const first = selected[0]!;
         const last = selected.at(-1)!;
+
         if (
             similarDelimiters(first, typed) &&
             last === matchingDelimiter(first) &&
@@ -139,5 +166,6 @@ export function surround(selected: string, typed: string): { text: string; inner
             inner = selected.slice(1, -1);
         }
     }
+
     return { text: typed + inner + matchingDelimiter(typed), inner };
 }

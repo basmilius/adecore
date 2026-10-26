@@ -13,6 +13,7 @@ describe('word boundaries', () => {
             expect(isHumpBoundary(text, offset, true), `${text}:${offset}`).toBe(true);
             expect(isWordBoundary(text, offset, true, true)).toBe(true);
         }
+
         expect(isWordBoundary('fooBar', 3, false, true)).toBe(false);
         expect(isWordBoundary('foo_bar', 3, true, false)).toBe(true);
         expect(isWordBoundary('foo_bar', 3, true, true)).toBe(false);

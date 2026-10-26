@@ -5,10 +5,12 @@ function walk(text: string, start: number, command: 'wordLeft' | 'wordRight', st
     const model = new DocumentModel(text);
     model.setSelections([{ anchor: start, head: start }]);
     const stops: number[] = [];
+
     for (let i = 0; i < steps; i++) {
         model.execute(command);
         stops.push(model.getPrimary().head);
     }
+
     return stops;
 }
 

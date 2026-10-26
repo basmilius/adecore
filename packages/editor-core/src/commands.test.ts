@@ -48,10 +48,12 @@ describe('smart and camel movement', () => {
         const model = new DocumentModel('a😀\r\nb');
         caret(model, 4);
         expect(model.getSelections()[0]!.head).toBe(3);
+
         for (let i = 0; i < 8; i++) {
             model.execute('wordRight');
             expect([2, 4]).not.toContain(model.getSelections()[0]!.head);
         }
+
         for (let i = 0; i < 8; i++) {
             model.execute('selectWordLeft');
             expect([2, 4]).not.toContain(model.getSelections()[0]!.head);
@@ -80,33 +82,42 @@ describe('pairing, smart deletion and newline', () => {
 
     it('wraps multiple directional selections and preserves their contents through history', () => {
         const model = new DocumentModel('one 😀two');
+
         model.setSelections([
             { anchor: 3, head: 0 },
             { anchor: 4, head: 9 }
         ]);
+
         model.typeText('[');
         expect(model.getText()).toBe('[one] [😀two]');
+
         expect(model.getSelections()).toEqual([
             { anchor: 4, head: 1 },
             { anchor: 7, head: 12 }
         ]);
+
         model.undo();
+
         expect(model.getSelections()).toEqual([
             { anchor: 3, head: 0 },
             { anchor: 4, head: 9 }
         ]);
+
         model.redo();
         expect(model.getText()).toBe('[one] [😀two]');
     });
 
     it('maps a skipped closer alongside a second caret inserting a pair', () => {
         const model = new DocumentModel('"" \n');
+
         model.setSelections([
             { anchor: 1, head: 1 },
             { anchor: 4, head: 4 }
         ]);
+
         model.typeText('"');
         expect(model.getText()).toBe('"" \n""');
+
         expect(model.getSelections()).toEqual([
             { anchor: 2, head: 2 },
             { anchor: 5, head: 5 }
@@ -176,10 +187,12 @@ describe('pairing, smart deletion and newline', () => {
         model.execute('smartBackspace', { tabSize: 4, language: 'python' });
         expect(model.getText()).toBe('text');
         model.setText('      x');
+
         model.setSelections([
             { anchor: 2, head: 2 },
             { anchor: 4, head: 4 }
         ]);
+
         model.execute('smartBackspace', { language: 'python' });
         expect(model.getText()).toBe('  x');
         expect(model.getSelections()).toEqual([{ anchor: 0, head: 0 }]);
@@ -189,16 +202,20 @@ describe('pairing, smart deletion and newline', () => {
 
     it('creates an indented blank line between a pair with CRLF and tabs at multiple carets', () => {
         const model = new DocumentModel('\t{}\r\n[]');
+
         model.setSelections([
             { anchor: 2, head: 2 },
             { anchor: 6, head: 6 }
         ]);
+
         model.execute('insertNewline', { insertSpaces: false });
         expect(model.getText()).toBe('\t{\r\n\t\t\r\n\t}\r\n[\r\n\t\r\n]');
+
         expect(model.getSelections()).toEqual([
             { anchor: 6, head: 6 },
             { anchor: 16, head: 16 }
         ]);
+
         model.undo();
         expect(model.getText()).toBe('\t{}\r\n[]');
         model.redo();
@@ -211,28 +228,35 @@ describe('selection expansion and line blocks', () => {
         const model = new DocumentModel('call(😀, e\u0301clair)\r\n');
         caret(model, 11);
         const selections = [model.getSelections()];
+
         while (model.execute('expandSelection')) {
             selections.push(model.getSelections());
         }
+
         expect(model.getText().slice(selections[1]![0]!.anchor, selections[1]![0]!.head)).toBe('e\u0301clair');
         expect(selections.some((value) => model.slice(value[0]!.anchor, value[0]!.head) === '😀, e\u0301clair')).toBe(true);
         expect(selections.some((value) => model.slice(value[0]!.anchor, value[0]!.head) === '(😀, e\u0301clair)')).toBe(true);
         expect(model.getSelections()).toEqual([{ anchor: 0, head: model.getLength() }]);
+
         for (let i = selections.length - 2; i >= 0; i--) {
             expect(model.execute('shrinkSelection')).toBe(true);
             expect(model.getSelections()).toEqual(selections[i]);
         }
+
         expect(model.execute('shrinkSelection')).toBe(false);
         expect(model.getRevision()).toBe(0);
     });
 
     it('grows to the ranges it is given, keeps the direction, falls back to the lexical rule for a selection without a usable one and shrinks the same way', () => {
         const model = new DocumentModel('one two three four');
+
         model.setSelections([
             { anchor: 1, head: 1 },
             { anchor: 15, head: 14 }
         ]);
+
         const before = model.getSelections();
+
         // A range that is no larger than the selection is not taken for it.
         expect(
             model.expandSelectionTo([
@@ -240,10 +264,12 @@ describe('selection expansion and line blocks', () => {
                 { from: 14, to: 15 }
             ])
         ).toBe(true);
+
         expect(model.getSelections()).toEqual([
             { anchor: 0, head: 7 },
             { anchor: 18, head: 14 }
         ]);
+
         expect(model.execute('shrinkSelection')).toBe(true);
         expect(model.getSelections()).toEqual(before);
         expect(model.execute('shrinkSelection')).toBe(false);
@@ -251,10 +277,12 @@ describe('selection expansion and line blocks', () => {
 
     it('restores multiple reversed selections and invalidates expansion history after an edit or explicit selection', () => {
         const model = new DocumentModel('fn(one, two)');
+
         model.setSelections([
             { anchor: 5, head: 4 },
             { anchor: 10, head: 9 }
         ]);
+
         const before = model.getSelections();
         model.execute('expandSelection');
         model.execute('expandSelection');
@@ -282,18 +310,23 @@ describe('selection expansion and line blocks', () => {
 
     it('moves only affected blocks while preserving mixed newline slots and Unicode columns', () => {
         const model = new DocumentModel('a\r\n😀b\nc\r\nd');
+
         model.setSelections([
             { anchor: 5, head: 5 },
             { anchor: 11, head: 11 }
         ]);
+
         model.execute('moveLineUp');
         expect(model.getText()).toBe('😀b\r\na\nd\r\nc');
+
         expect(model.getSelections()).toEqual([
             { anchor: 2, head: 2 },
             { anchor: 8, head: 8 }
         ]);
+
         model.execute('moveLineDown');
         expect(model.getText()).toBe('a\r\n😀b\nc\r\nd');
+
         expect(model.getSelections()).toEqual([
             { anchor: 5, head: 5 },
             { anchor: 11, head: 11 }
@@ -326,10 +359,12 @@ describe('Tab', () => {
 
     it('inserts at every caret and indents the lines when there is a selection', () => {
         const model = new DocumentModel('a\nbc');
+
         model.setSelections([
             { anchor: 1, head: 1 },
             { anchor: 4, head: 4 }
         ]);
+
         model.execute('insertTab', { tabSize: 2 });
         expect(model.getText()).toBe('a \nbc  ');
         model.setText('one\ntwo');
@@ -411,12 +446,15 @@ describe('delete line and duplicate', () => {
 
     it('deletes the lines of every caret and puts each on the line after its block', () => {
         const model = new DocumentModel('a1\nb2\nc3\nd4\ne5');
+
         model.setSelections([
             { anchor: 1, head: 1 },
             { anchor: 10, head: 10 }
         ]);
+
         model.execute('deleteLine');
         expect(model.getText()).toBe('b2\nc3\ne5');
+
         expect(model.getSelections()).toEqual([
             { anchor: 1, head: 1 },
             { anchor: 7, head: 7 }
@@ -435,12 +473,15 @@ describe('delete line and duplicate', () => {
 
     it('duplicates the selection of every caret and the line of a caret without one', () => {
         const model = new DocumentModel('ab cd\nef');
+
         model.setSelections([
             { anchor: 0, head: 2 },
             { anchor: 6, head: 6 }
         ]);
+
         model.execute('duplicateLine');
         expect(model.getText()).toBe('abab cd\nef\nef');
+
         expect(model.getSelections()).toEqual([
             { anchor: 2, head: 4 },
             { anchor: 11, head: 11 }
@@ -459,10 +500,12 @@ describe('delete line and duplicate', () => {
 describe('Tab with several carets on one line', () => {
     it('puts every caret on a tab stop of its own, counting the spaces the carets before it added', () => {
         const model = new DocumentModel('xy');
+
         model.setSelections([
             { anchor: 1, head: 1 },
             { anchor: 2, head: 2 }
         ]);
+
         model.execute('insertTab', { tabSize: 4 });
         expect(model.getText()).toBe('x   y   ');
         expect(model.getSelections().map((selection) => selection.head)).toEqual([4, 8]);

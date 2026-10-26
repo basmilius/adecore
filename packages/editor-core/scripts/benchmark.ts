@@ -12,6 +12,7 @@ const collect = (globalThis as { gc?: () => void }).gc;
 function measure(operation: () => void): number {
     const started = performance.now();
     operation();
+
     return performance.now() - started;
 }
 
@@ -34,9 +35,11 @@ function benchmarkSource(sizeMiB: number): void {
     let text = line.repeat(Math.ceil((sizeMiB * megabyte) / line.length));
     const heapBefore = heapUsed();
     let model!: DocumentModel;
+
     const constructMs = measure(() => {
         model = new DocumentModel(text);
     });
+
     const length = model.getLength();
     const lines = model.getLineCount();
     text = '';
@@ -49,9 +52,11 @@ function benchmarkSource(sizeMiB: number): void {
             checksum += model.offsetAt(position) + model.getLine(position.line).text.length;
         }
     });
+
     model.subscribe((snapshot) => {
         checksum += snapshot.revision;
     });
+
     const cursorMs = measure(() => {
         for (let index = 0; index < 10000; index++) {
             const offset = (index * 7919) % length;
@@ -62,14 +67,17 @@ function benchmarkSource(sizeMiB: number): void {
     collect?.();
     const heapBeforeEdits = heapUsed();
     const editTimes: number[] = [];
+
     for (let index = 0; index < 1000; index++) {
         const from = model.getLine((index * 7919) % (lines - 1)).start + 1;
+
         editTimes.push(
             measure(() => {
                 model.applyEdits([{ from, to: from, text: 'x' }]);
             })
         );
     }
+
     collect?.();
     const historyHeap = heapUsed() - heapBeforeEdits;
 
@@ -77,16 +85,20 @@ function benchmarkSource(sizeMiB: number): void {
         for (let index = 0; index < 200; index++) {
             model.undo();
         }
+
         for (let index = 0; index < 200; index++) {
             model.redo();
         }
     });
+
     const flattenMs = measure(() => {
         checksum += model.getSnapshot().text.length;
     });
+
     const searchMs = measure(() => {
         checksum += model.find('entry').length;
     });
+
     const foldMs = measure(() => {
         checksum += model.getFoldingRanges().length;
     });
@@ -95,6 +107,7 @@ function benchmarkSource(sizeMiB: number): void {
     expectEqual(model.getLineCount(), lines, 'line count after the edits');
     expectEqual(model.getRevision(), 1400, 'revision');
     editTimes.sort((left, right) => left - right);
+
     console.log(
         JSON.stringify({
             sizeMiB,
@@ -119,12 +132,15 @@ function benchmarkSource(sizeMiB: number): void {
 
 function benchmarkLongLine(): void {
     const model = new DocumentModel('a'.repeat(4 * megabyte));
+
     const readMs = measure(() => {
         model.getLine(0);
     });
+
     const wordMs = measure(() => {
         model.execute('wordRight');
     });
+
     console.log(JSON.stringify({ longLineMiB: 4, longLineReadMs: rounded(readMs), longWordMs: rounded(wordMs) }));
 }
 
@@ -136,7 +152,9 @@ console.log(
         forcedGC: Boolean(collect)
     })
 );
+
 for (const sizeMiB of [1, 10, 25]) {
     benchmarkSource(sizeMiB);
 }
+
 benchmarkLongLine();

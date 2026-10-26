@@ -33,12 +33,15 @@ register(
     'typescript javascript typescriptreact javascriptreact tsx jsx ts js mjs cjs mts cts java c cpp c++ csharp cs go rust rs swift kotlin kt scala dart php scss less zig groq json jsonc json5 prisma astro svelte objective-c objc glsl hlsl proto protobuf hcl terraform',
     cLike
 );
+
 register('css', { line: null, block: slashStar });
 register('html xml svg xsl markdown md mdx vue', markup);
+
 register(
     'python py yaml yml shellscript shell sh bash zsh fish toml ruby rb perl r make makefile docker dockerfile dotenv ignore nix graphql powershell ps1 properties julia jl elixir ex exs coffeescript coffee cmake',
     hash
 );
+
 register('ini', { line: ';', block: null });
 register('sql', { line: '--', block: slashStar });
 register('lua', { line: '--', block: { open: '--[[', close: ']]' } });
@@ -48,18 +51,23 @@ register('plaintext text txt log', none);
 /* An id nothing knows has no comment syntax, which toggling a comment answers by doing nothing. */
 export function commentSyntax(language: string, region?: EditRegion | null): CommentSyntax {
     const id = language.toLowerCase();
+
     if (region === 'mixed') {
         return none;
     }
+
     if (region === 'jsx') {
         return { line: null, block: { open: '{/*', close: '*/}' } };
     }
+
     if (id === 'vue' || (id === 'php' && region !== null && region !== undefined)) {
         if (region === 'script') {
             return cLike;
         }
+
         return region === 'style' ? { line: null, block: slashStar } : markup;
     }
+
     return syntaxes.get(id) ?? none;
 }
 
@@ -71,14 +79,17 @@ export function isPlainText(language: string): boolean {
 /* The region of a `.vue` file a line is in, from the top-level tags above it. */
 export function vueRegionAt(lineText: (line: number) => string, line: number): VueRegion | null {
     let region: VueRegion | null = null;
+
     for (let index = 0; index <= line; index++) {
         const text = lineText(index);
         const open = /^<(template|script|style)\b/.exec(text);
+
         if (open) {
             region = open[1] as VueRegion;
         } else if (/^<\/(template|script|style)\s*>/.test(text) && index < line) {
             region = null;
         }
     }
+
     return region;
 }

@@ -11,28 +11,36 @@ export function replaceWithCaseRespect(replacement: string, found: string): stri
     if (found === '' || replacement === '') {
         return replacement;
     }
+
     const [firstFound] = found;
     const [firstReplacement] = replacement;
     const head = upper.test(firstFound!) ? firstReplacement!.toUpperCase() : firstReplacement!.toLowerCase();
     const replacementTail = replacement.slice(firstReplacement!.length);
+
     if (replacementTail === '') {
         return head;
     }
+
     const foundTail = found.slice(firstFound!.length);
+
     if (foundTail === '') {
         return head + replacementTail;
     }
+
     const replacementCase = letterCase(replacementTail);
     const foundCase = letterCase(foundTail);
     // A tail without letters, like `x2`, follows the first letter of the match.
     const tailUpper = foundCase.hasLetters ? foundCase.upper : upper.test(firstFound!);
     const tailLower = foundCase.hasLetters ? foundCase.lower : lower.test(firstFound!);
+
     if (tailUpper && (replacementCase.lower || !replacementCase.upper)) {
         return head + replacementTail.toUpperCase();
     }
+
     if (tailLower && (replacementCase.lower || replacementCase.upper)) {
         return head + replacementTail.toLowerCase();
     }
+
     return head + replacementTail;
 }
 
@@ -41,16 +49,20 @@ function letterCase(text: string): { upper: boolean; lower: boolean; hasLetters:
     let allUpper = true;
     let allLower = true;
     let hasLetters = false;
+
     for (const character of text) {
         if (!letter.test(character)) {
             continue;
         }
+
         hasLetters = true;
         allUpper &&= upper.test(character);
         allLower &&= lower.test(character);
+
         if (!allUpper && !allLower) {
             break;
         }
     }
+
     return { upper: allUpper, lower: allLower, hasLetters };
 }

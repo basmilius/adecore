@@ -40,93 +40,128 @@ class JsxScanner {
         let at = from;
         let previous = '';
         let word = '';
+
         while (at < text.length) {
             if (--this.budget < 0) {
                 return -1;
             }
+
             const char = text[at]!;
             const next = text[at + 1];
+
             if (/\s/.test(char)) {
                 at++;
+
                 continue;
             }
+
             if (char === '/' && next === '/') {
                 const end = text.indexOf('\n', at);
                 at = end < 0 ? text.length : end;
+
                 continue;
             }
+
             if (char === '/' && next === '*') {
                 const end = text.indexOf('*/', at + 2);
                 at = end < 0 ? text.length : end + 2;
+
                 continue;
             }
+
             if (char === '"' || char === "'") {
                 at = this.quoted(at);
                 previous = char;
                 word = '';
+
                 continue;
             }
+
             if (char === '`') {
                 at = this.template(at);
+
                 if (at < 0) {
                     return -1;
                 }
+
                 previous = char;
                 word = '';
+
                 continue;
             }
+
             const expressionStart = previous === '' || EXPRESSION_STARTS.includes(previous) || EXPRESSION_KEYWORDS.test(word);
+
             if (char === '/' && expressionStart) {
                 at = this.regex(at);
                 previous = '/';
                 word = '';
+
                 continue;
             }
+
             if (char === '<' && expressionStart && next !== undefined && START_OF_NAME.test(next)) {
                 const end = this.element(at, true);
+
                 if (end >= 0) {
                     at = end;
                     previous = ')';
                     word = '';
+
                     continue;
                 }
             }
+
             const closes = CLOSERS[char];
+
             if (closes !== undefined) {
                 const end = this.code(at + 1, closes);
+
                 if (end < 0) {
                     return -1;
                 }
+
                 at = end;
                 previous = closes;
                 word = '';
+
                 continue;
             }
+
             if (char === '}' || char === ')' || char === ']') {
                 if (closer === char) {
                     return at + 1;
                 }
+
                 if (closer !== null) {
                     return -1;
                 }
+
                 at++;
                 previous = char;
                 word = '';
+
                 continue;
             }
+
             if (/[\w$]/.test(char)) {
                 const start = at;
+
                 while (at < text.length && /[\w$]/.test(text[at]!)) {
                     at++;
                 }
+
                 word = text.slice(start, at);
                 previous = word.slice(-1);
+
                 continue;
             }
+
             previous = char;
             word = '';
             at++;
         }
+
         return closer === null ? text.length : -1;
     }
 
@@ -134,15 +169,18 @@ class JsxScanner {
         const { text } = this;
         const quote = text[from]!;
         let at = from + 1;
+
         while (at < text.length && text[at] !== quote && text[at] !== '\n') {
             at += text[at] === '\\' ? 2 : 1;
         }
+
         return Math.min(text.length, at + 1);
     }
 
     private template(from: number): number {
         const { text } = this;
         let at = from + 1;
+
         while (at < text.length) {
             if (text[at] === '\\') {
                 at += 2;
@@ -150,6 +188,7 @@ class JsxScanner {
                 return at + 1;
             } else if (text[at] === '$' && text[at + 1] === '{') {
                 at = this.code(at + 2, '}');
+
                 if (at < 0) {
                     return -1;
                 }
@@ -157,6 +196,7 @@ class JsxScanner {
                 at++;
             }
         }
+
         return text.length;
     }
 
@@ -164,8 +204,10 @@ class JsxScanner {
         const { text } = this;
         let at = from + 1;
         let inClass = false;
+
         while (at < text.length && text[at] !== '\n') {
             const char = text[at]!;
+
             if (char === '\\') {
                 at++;
             } else if (char === '[') {
@@ -175,8 +217,10 @@ class JsxScanner {
             } else if (char === '/' && !inClass) {
                 return at + 1;
             }
+
             at++;
         }
+
         return from + 1;
     }
 
@@ -187,15 +231,19 @@ class JsxScanner {
         this.depth++;
         const end = this.parseElement(from);
         this.depth--;
+
         if (end < 0) {
             this.children.length = children;
+
             if (previousEnd !== undefined) {
                 this.children[children - 1]!.to = previousEnd;
             }
         }
+
         if (end >= 0 && outermost && this.depth === 0) {
             this.ranges.push({ from, to: end });
         }
+
         return end;
     }
 
@@ -203,7 +251,9 @@ class JsxScanner {
         if (!this.collectChildren || from >= to) {
             return;
         }
+
         const previous = this.children.at(-1);
+
         if (previous !== undefined && previous.to === from) {
             previous.to = to;
         } else {
@@ -213,72 +263,100 @@ class JsxScanner {
 
     private skipSpace(from: number): number {
         let at = from;
+
         while (at < this.text.length && /\s/.test(this.text[at]!)) {
             at++;
         }
+
         return at;
     }
 
     private parseElement(from: number): number {
         const { text } = this;
         let at = from + 1;
+
         while (at < text.length && NAME.test(text[at]!)) {
             at++;
         }
+
         const name = text.slice(from + 1, at);
+
         for (;;) {
             at = this.skipSpace(at);
             const char = text[at];
+
             if (char === undefined || --this.budget < 0) {
                 return -1;
             }
+
             if (char === '/' && text[at + 1] === '/') {
                 const end = text.indexOf('\n', at + 2);
+
                 if (end < 0) {
                     return -1;
                 }
+
                 at = end + 1;
+
                 continue;
             }
+
             if (char === '/' && text[at + 1] === '*') {
                 const end = text.indexOf('*/', at + 2);
+
                 if (end < 0) {
                     return -1;
                 }
+
                 at = end + 2;
+
                 continue;
             }
+
             if (char === '/' && text[at + 1] === '>') {
                 return at + 2;
             }
+
             if (char === '>') {
                 at++;
+
                 break;
             }
+
             if (char === '{') {
                 at = this.code(at + 1, '}');
+
                 if (at < 0) {
                     return -1;
                 }
+
                 continue;
             }
+
             if (!/[A-Za-z_$]/.test(char)) {
                 return -1;
             }
+
             while (at < text.length && NAME.test(text[at]!)) {
                 at++;
             }
+
             at = this.skipSpace(at);
+
             if (text[at] !== '=') {
                 continue;
             }
+
             at = this.skipSpace(at + 1);
             const value = text[at];
+
             if (value === '"' || value === "'") {
                 const close = text.indexOf(value, at + 1);
+
                 if (close < 0) {
                     return -1;
                 }
+
                 this.values.push({ from: at, to: close + 1 });
                 at = close + 1;
             } else if (value === '{') {
@@ -288,34 +366,43 @@ class JsxScanner {
             } else {
                 return -1;
             }
+
             if (at < 0) {
                 return -1;
             }
         }
+
         for (;;) {
             const start = at;
+
             while (at < text.length && text[at] !== '<' && text[at] !== '{') {
                 at++;
             }
+
             this.child(start, text[at] === '<' ? at + 1 : at);
+
             if (at >= text.length || --this.budget < 0) {
                 return -1;
             }
+
             if (text[at] === '{') {
                 this.child(at, at + 1);
                 const from = at;
                 at = this.code(at + 1, '}');
+
                 if (at >= 0 && /^\{\s*\/\*/.test(text.slice(from, from + 20))) {
                     this.child(from + 1, at);
                 }
             } else if (text[at + 1] === '/') {
                 const closing = /^<\/\s*([\w$.:-]*)\s*>/.exec(text.slice(at, at + 200));
+
                 return closing !== null && closing[1] === name ? at + closing[0].length : -1;
             } else if (START_OF_NAME.test(text[at + 1] ?? '')) {
                 at = this.parseElement(at);
             } else {
                 return -1;
             }
+
             if (at < 0) {
                 return -1;
             }
@@ -327,6 +414,7 @@ class JsxScanner {
 export function jsxRanges(text: string): { from: number; to: number }[] {
     const scanner = new JsxScanner(text);
     scanner.scan();
+
     return scanner.ranges;
 }
 
@@ -334,9 +422,11 @@ export function jsxRanges(text: string): { from: number; to: number }[] {
 function insideAny(ranges: readonly { from: number; to: number }[], offset: number): boolean {
     let low = 0;
     let high = ranges.length - 1;
+
     while (low <= high) {
         const middle = (low + high) >> 1;
         const range = ranges[middle]!;
+
         if (offset < range.from) {
             high = middle - 1;
         } else if (offset >= range.to) {
@@ -345,6 +435,7 @@ function insideAny(ranges: readonly { from: number; to: number }[], offset: numb
             return true;
         }
     }
+
     return false;
 }
 
@@ -352,6 +443,7 @@ function insideAny(ranges: readonly { from: number; to: number }[], offset: numb
 export function jsxChildren(text: string): (offset: number) => boolean {
     const scanner = new JsxScanner(text, true);
     scanner.scan();
+
     return (offset) => insideAny(scanner.children, offset);
 }
 
@@ -363,6 +455,7 @@ export function hasJsx(language: string): boolean {
 export function isJsxAttributeValue(text: string, offset: number): boolean {
     const scanner = new JsxScanner(text);
     scanner.scan();
+
     return scanner.values.some((value) => value.from === offset);
 }
 
@@ -373,18 +466,24 @@ export function isJsxAttributeValue(text: string, offset: number): boolean {
  */
 export function markupGuard(source: EditSource, language: string): (line: number) => boolean {
     const id = language.toLowerCase();
+
     if (id === 'vue') {
         return (line) => {
             const region = source.region(line);
+
             return (region !== 'script' && region !== 'style') || /^\s*<\/?(?:script|style|template)\b/.test(source.line(line).text);
         };
     }
+
     if (hasJsx(id)) {
         const ranges = jsxRanges(source.slice(0, source.line(source.lineCount - 1).end));
+
         return (line) => {
             const bounds = source.line(line);
+
             return insideAny(ranges, bounds.start + whitespaceOf(bounds.text).length);
         };
     }
+
     return () => false;
 }

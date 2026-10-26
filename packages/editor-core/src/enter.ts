@@ -28,9 +28,11 @@ export interface EnterPlan {
 }
 
 const concatenation = new Map<string, string>();
+
 for (const id of 'typescript javascript typescriptreact javascriptreact tsx jsx ts js java csharp cs kotlin scala dart swift go groovy'.split(' ')) {
     concatenation.set(id, '+');
 }
+
 concatenation.set('php', '.');
 
 const markupLanguages = /^(html|xml|svg|vue|svelte|astro|mdx|jsx|tsx|javascriptreact|typescriptreact)$/i;
@@ -57,21 +59,26 @@ function escapeForPattern(text: string): string {
  */
 export function continues(text: string, context: TypingContext, language: string): boolean {
     const effectiveLanguage = context.embedded ?? language;
+
     if (!isBraced(effectiveLanguage) || context.mode !== 'code') {
         return false;
     }
+
     if (context.word === 'control-close' || context.word === 'else' || context.word === 'do') {
         return true;
     }
+
     if (isPhp(effectiveLanguage) && /(?<!\.)\.$/.test(text)) {
         return true;
     }
+
     return trailingOperator.test(text);
 }
 
 export function lineContinues(source: EditSource, language: string, index: number): boolean {
     const line = source.line(index);
     const text = line.text.trimEnd();
+
     return text.length > 0 && continues(text, source.context(line.start + text.length), language);
 }
 
@@ -87,12 +94,16 @@ class Enter {
     plan(from: number, to: number): EnterPlan {
         const { source, options } = this;
         const index = source.lineAt(from);
+
         if (!options.smart) {
             const leading = whitespaceOf(source.slice(source.line(index).start, from));
             const newline = source.newline(index);
+
             return { from, to, text: newline + leading, caret: newline.length + leading.length };
         }
+
         const context = source.context(from);
+
         return this.inLiteral(from, to, context, index) ?? this.inCode(from, to, context, index);
     }
 
@@ -101,12 +112,15 @@ class Enter {
         if (context.mode === 'block-comment') {
             return this.inBlockComment(from, to, context, index);
         }
+
         if (from !== to) {
             return null;
         }
+
         if (context.mode === 'line-comment') {
             return this.inLineComment(from, context, index);
         }
+
         return context.mode === 'quote' ? this.inString(from, context, index) : null;
     }
 
@@ -115,9 +129,11 @@ class Enter {
         const line = this.source.line(index);
         const own = whitespaceOf(line.text);
         const previous = this.previousCodeLine(index);
+
         if (previous === null || depth > lookBack || !this.lineContinues(previous)) {
             return own;
         }
+
         return this.baseIndent(previous, depth + 1);
     }
 
@@ -127,6 +143,7 @@ class Enter {
                 return candidate;
             }
         }
+
         return null;
     }
 
@@ -152,15 +169,19 @@ class Enter {
         const next = source.charAt(afterWhitespace);
         const base = context.mode === 'code' ? this.baseIndent(index) : leading;
         const start = leading.length < before.length ? base : leading;
+
         const plain = (indent: string): EnterPlan => ({ from, to: afterWhitespace, text: newline + indent, caret: newline.length + indent.length });
 
         if (context.mode === 'code' || (isPhp(language) && context.mode === 'html')) {
             const tag = this.openTag(trimmed, index);
+
             if (tag) {
                 const inner = start + unit;
+
                 if (new RegExp(`^</${escapeForPattern(tag)}\\s*>`, 'i').test(source.slice(afterWhitespace, line.end))) {
                     return { from, to: afterWhitespace, text: newline + inner + newline + start, caret: newline.length + inner.length };
                 }
+
                 return plain(inner);
             }
         }
@@ -170,13 +191,17 @@ class Enter {
         }
 
         const opener = openers[last] !== undefined && context.bracket?.close === openers[last] && context.bracket.at === line.start + trimmed.length - 1;
+
         if (opener) {
             const inner = start + unit;
+
             if (next === openers[last]) {
                 return { from, to: afterWhitespace, text: newline + inner + newline + start, caret: newline.length + inner.length };
             }
+
             const closing =
                 last === '{' && source.unclosedBrace(context.bracket!.at) ? this.closeBrace(from, afterWhitespace, line, rest, newline, start, inner) : null;
+
             return closing ?? plain(inner);
         }
 
@@ -187,8 +212,10 @@ class Enter {
         if (continues(trimmed, context, language)) {
             const previous = this.previousCodeLine(index);
             const continued = previous !== null && this.lineContinues(previous);
+
             return plain(continued ? leading : start + unit);
         }
+
         return plain(start);
     }
 
@@ -203,53 +230,69 @@ class Enter {
         inner: string
     ): EnterPlan | null {
         const tail = rest.trimStart();
+
         if (tail === '' || /^[)\];,%<?]/.test(tail)) {
             const text = newline + inner + newline + base + '}';
+
             return { from, to: afterWhitespace, text, caret: newline.length + inner.length };
         }
+
         if (!this.options.reach) {
             return null;
         }
+
         const text = newline + inner + tail.trimEnd() + newline + base + '}';
+
         return { from, to: line.end, text, caret: newline.length + inner.length };
     }
 
     /* The name of the tag the text ends in, when it is an open tag with children to come. */
     private openTag(trimmed: string, index: number): string | null {
         const { language } = this.options;
+
         if (!markupLanguages.test(language) && !isPhp(language)) {
             return null;
         }
+
         if (/^vue$/i.test(language) && this.source.region(index) === 'script') {
             return null;
         }
+
         const match = /(?:^|[^\w$)\]])<([A-Za-z][\w:.-]*)(?:\s(?:[^<>]|=>)*)?>$/.exec(trimmed);
+
         if (!match || trimmed.endsWith('/>') || (voidElements.test(match[1]!) && !/^xml$/i.test(language))) {
             return null;
         }
+
         if (isPhp(language)) {
             const offset = this.source.line(index).start + trimmed.indexOf('<', match.index);
             // Only earlier tags establish this opener's region; its content can be script or style.
             const regions = editRegions(this.source, language);
+
             if (regions(index, offset) !== 'template') {
                 return null;
             }
         }
+
         return match[1]!;
     }
 
     /* Python's `def f():`, a YAML `key:` and a `case x:`. */
     private opensIndentedBlock(trimmed: string, context: TypingContext): boolean {
         const { language } = this.options;
+
         if (/^(python|py)$/i.test(language)) {
             return trimmed.endsWith(':') && context.bracket === undefined;
         }
+
         if (/^(yaml|yml)$/i.test(language)) {
             return /(?::|[|>][+-]?)$/.test(trimmed) && !trimmed.trimStart().startsWith('#');
         }
+
         if (isBraced(language)) {
             return (context.bracket === undefined || context.bracket.close === '}') && caseLabel.test(trimmed.trimStart());
         }
+
         return false;
     }
 
@@ -258,7 +301,9 @@ class Enter {
         if (!/^(yaml|yml)$/i.test(this.options.language)) {
             return start;
         }
+
         const dashes = /^[\t ]*(?:- +)+/.exec(text)?.[0];
+
         return dashes ? start + ' '.repeat(dashes.length - whitespaceOf(text).length) : start;
     }
 
@@ -269,35 +314,46 @@ class Enter {
         const syntax = commentSyntax(options.language, source.region(index));
         // A hash comment of a language that has both, as in PHP, continues with its own marker.
         const token = commentStart !== undefined && hasHashComments(options.language) && source.charAt(commentStart) === '#' ? '#' : syntax.line;
+
         if (commentStart === undefined || commentStart < line.start || token === null) {
             return null;
         }
+
         const marker = new RegExp(`^${escapeForPattern(token)}${token === '//' ? '[/!]?' : token === '#' ? '#*' : ''}`).exec(
             source.slice(commentStart, line.end)
         )?.[0];
+
         if (marker === undefined || from < commentStart + marker.length) {
             return null;
         }
+
         const rest = source.slice(from, line.end);
         const textStart = from + whitespaceOf(rest).length;
+
         if (textStart >= line.end) {
             return null;
         }
+
         const newline = source.newline(index);
         const leading = whitespaceOf(source.slice(line.start, from));
+
         if (source.slice(textStart, textStart + token.length) === token) {
             return { from, to: textStart, text: newline + leading, caret: newline.length + leading.length };
         }
+
         const code = source.slice(line.start, commentStart);
         const onlyComment = isIndentOnly(code);
         let spacing = ' ';
+
         if (onlyComment) {
             const gap = whitespaceOf(source.slice(commentStart + marker.length, line.end));
             spacing = gap === '' ? ' ' : gap;
         } else if (source.charAt(from) === ' ') {
             spacing = '';
         }
+
         const text = newline + leading + marker + spacing;
+
         return { from, to: textStart, text, caret: text.length };
     }
 
@@ -305,21 +361,28 @@ class Enter {
         const { source, options } = this;
         const operator = concatenation.get(context.embedded ?? options.language.toLowerCase());
         const quote = context.quote;
+
         if (operator === undefined || (quote !== '"' && quote !== "'")) {
             return null;
         }
+
         const line = source.line(index);
         const opener = this.stringStart(line, from, quote);
+
         if (opener !== null && (this.isModulePath(line, opener, index) || this.isMarkupAttribute(opener))) {
             return null;
         }
+
         let at = from;
+
         if (context.escaped) {
             at += /^(?:u[0-9a-fA-F]{4}|x[0-9a-fA-F]{2}|.)/.exec(source.slice(from, line.end))?.[0].length ?? 0;
         }
+
         if (!this.closesOnLine(at, quote, line)) {
             return null;
         }
+
         const newline = source.newline(index);
         const previous = this.previousCodeLine(index);
         const leading = whitespaceOf(line.text);
@@ -327,14 +390,17 @@ class Enter {
         const indent = continued ? leading : leading + options.unit;
         const text = `${quote} ${operator}${newline}${indent}${quote}`;
         const rest = source.slice(at, line.end);
+
         return { from: at, to: at + whitespaceOf(rest).length, text, caret: text.length };
     }
 
     /* Where the string the caret is in opened, when it opened on this line. */
     private stringStart(line: DocumentLine, from: number, quote: string): number | null {
         let open: { at: number; quote: string } | null = null;
+
         for (let at = line.start; at < from; at++) {
             const char = this.source.charAt(at);
+
             if (open === null) {
                 if (char === '"' || char === "'" || char === '`') {
                     open = { at, quote: char };
@@ -345,28 +411,34 @@ class Enter {
                 open = null;
             }
         }
+
         return open?.quote === quote ? open.at : null;
     }
 
     /* A path an import, a `require` or an `export ... from` names, where a break and a concatenation would name another file. */
     private isModulePath(line: DocumentLine, opener: number, index: number): boolean {
         const before = this.source.slice(line.start, opener).trimEnd();
+
         if (/(?:^|[^\w$.])(?:import|from|require|require_once|include|include_once)\s*\(?$/.test(before)) {
             return true;
         }
+
         return /^go$/i.test(this.options.language) && before === '' && this.inGoImportBlock(index);
     }
 
     private inGoImportBlock(index: number): boolean {
         for (let candidate = index - 1; candidate >= 0 && candidate >= index - lookBack; candidate--) {
             const text = this.source.line(candidate).text.trim();
+
             if (/^import\s*\($/.test(text)) {
                 return true;
             }
+
             if (text.startsWith(')')) {
                 return false;
             }
         }
+
         return false;
     }
 
@@ -375,12 +447,15 @@ class Enter {
         if (!hasJsx(this.options.language)) {
             return false;
         }
+
         const last = this.source.line(this.source.lineCount - 1).end;
+
         return last <= jsxScanLimit && isJsxAttributeValue(this.source.slice(0, last), opener);
     }
 
     private closesOnLine(from: number, quote: string, line: DocumentLine): boolean {
         const text = this.source.slice(from, line.end);
+
         for (let at = 0; at < text.length; at++) {
             if (text[at] === '\\') {
                 at++;
@@ -388,6 +463,7 @@ class Enter {
                 return true;
             }
         }
+
         return false;
     }
 
@@ -395,9 +471,11 @@ class Enter {
         const { source, options } = this;
         const syntax = commentSyntax(options.language, source.region(index));
         const open = context.commentStart;
+
         if (syntax.block?.open !== '/*' || open === undefined || from < open + 2) {
             return null;
         }
+
         const startIndex = source.lineAt(open);
         const startLine = source.line(startIndex);
         const line = source.line(index);
@@ -416,12 +494,16 @@ class Enter {
             const star = onOpener || onStar ? this.starPrefix(line, lead, onStar, isDoc) : whitespaceOf(line.text);
             const tail = source.slice(textStart, line.end).trimEnd();
             const closer = `${newline}${lead} */`;
+
             if (options.reach) {
                 const text = newline + star + tail + closer;
+
                 return { from, to: line.end, text, caret: newline.length + star.length };
             }
+
             return { from, to: textStart, text: newline + star, caret: newline.length + star.length };
         }
+
         if (
             isDoc &&
             onOpener &&
@@ -431,14 +513,19 @@ class Enter {
         ) {
             // Nothing left to say after the caret: the closer gets a line of its own, under the opener's star.
             const star = this.starPrefix(line, lead, false, isDoc);
+
             return { from, to: line.end, text: `${newline}${star}${newline}${lead} */`, caret: newline.length + star.length };
         }
+
         const second = source.line(startIndex + 1).text.trimStart();
         const continuesStars = onOpener ? isDoc : second.startsWith('*') && !second.startsWith('*/');
+
         if (!continuesStars) {
             return null;
         }
+
         const star = this.starPrefix(line, lead, onStar, isDoc);
+
         return { from, to: textStart, text: newline + star, caret: newline.length + star.length };
     }
 
@@ -446,6 +533,7 @@ class Enter {
     private commentLead(code: string): string {
         const indent = whitespaceOf(code);
         const gap = indentationColumn(code, this.options.tabSize) - indentationColumn(indent, this.options.tabSize);
+
         return indent + ' '.repeat(gap);
     }
 
@@ -454,7 +542,9 @@ class Enter {
         if (!onStar) {
             return `${lead} * `;
         }
+
         const inside = /^\*([\t ]*)/.exec(line.text.trimStart())?.[1] ?? '';
+
         return `${whitespaceOf(line.text)}*${isDoc && inside !== '' ? inside : ' '}`;
     }
 
@@ -462,9 +552,11 @@ class Enter {
     private closingOf(open: number, from: number): number | null {
         const text = this.source.slice(from, from + commentReach);
         const close = text.indexOf('*/');
+
         if (close < 0) {
             return null;
         }
+
         return this.source.slice(open + 2, from + close).includes('/*') ? null : from + close;
     }
 }

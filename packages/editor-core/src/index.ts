@@ -5,6 +5,7 @@ export { findMatches, iterateMatches, findMatchFrom, replacementText, type FindM
 export { indentationColumn } from './structure.ts';
 export { findDocComments, MAX_DOC_COMMENTS, type DocComment } from './doc-comments.ts';
 export type { FoldHints, FoldRangeHint, FoldRole, FoldSymbolHint, FoldingOptions, FoldingRange } from './structure.ts';
+
 export type {
     ChangeSource,
     CommandOptions,
@@ -18,4 +19,5 @@ export type {
     Selection,
     TextEdit
 } from './types.ts';
+
 export { changedSpan, changedSpans, type TextSpan } from './text-span.ts';

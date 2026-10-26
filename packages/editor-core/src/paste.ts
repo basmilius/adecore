@@ -23,7 +23,9 @@ function perCaretLines(text: string, carets: number): string[] | null {
     if (carets < 2) {
         return null;
     }
+
     const lines = linesOf(text);
+
     return lines.length === carets ? lines : null;
 }
 
@@ -36,9 +38,11 @@ function perCaretLines(text: string, carets: number): string[] | null {
 function reindent(source: EditSource, from: number, text: string, options: PasteOptions): string {
     const newline = text.includes('\r\n') ? '\r\n' : '\n';
     const lines = text.split(/\r?\n/);
+
     if (lines.length < 2) {
         return text;
     }
+
     const line = source.line(source.lineAt(from));
     const before = source.slice(line.start, from);
     const caretColumn = indentationColumn(before, options.tabSize);
@@ -50,25 +54,32 @@ function reindent(source: EditSource, from: number, text: string, options: Paste
     const widths = lines.map((entry) => (isBlank(entry) ? null : indentationColumn(whitespaceOf(entry), options.tabSize)));
     const measured = widths.filter((width, index): width is number => width !== null && !(anchored && index === 0));
     const trailingBreak = isBlank(lines.at(-1)!);
+
     if (measured.length > 0) {
         // A reduce, not a spread: a paste of a few hundred thousand lines is more arguments than V8 takes in one call.
         const delta = target - measured.reduce((least, width) => Math.min(least, width));
+
         for (const [index, entry] of lines.entries()) {
             const width = widths[index];
+
             if (width === null || width === undefined || (anchored && index === 0)) {
                 continue;
             }
+
             // The first line follows the indentation already in front of the caret.
             const indent = Math.max(0, width + delta - (index === 0 ? caretColumn : 0));
+
             if (indent !== width) {
                 lines[index] = indentText(indent, options) + entry.slice(whitespaceOf(entry).length);
             }
         }
     }
+
     if (trailingBreak) {
         // What follows the paste stays under the indentation of the line it was on.
         lines[lines.length - 1] = whitespaceOf(before);
     }
+
     return lines.join(newline);
 }
 
@@ -82,20 +93,26 @@ export function planPaste(source: EditSource, selections: readonly Selection[], 
     const segments = perCaretLines(text, selections.length);
     const newline = text.includes('\r\n') ? '\r\n' : '\n';
     const edits: TextEdit[] = [];
+
     if (options.wholeLines && selections.every((selection) => selection.anchor === selection.head)) {
         const lineEdits = new Map<number, string>();
+
         for (const [position, { from }] of ordered.entries()) {
             const start = source.line(source.lineAt(from)).start;
             const piece = segments?.[position] ?? text;
             lineEdits.set(start, (lineEdits.get(start) ?? '') + (/\r?\n$/.test(piece) ? piece : piece + newline));
         }
+
         for (const [start, insert] of lineEdits) {
             edits.push({ from: start, to: start, text: insert });
         }
+
         return { edits, selections: selections.map((selection) => ({ anchor: mapOffset(selection.anchor, edits), head: mapOffset(selection.head, edits) })) };
     }
+
     const carets: Selection[] = new Array<Selection>(selections.length);
     let shift = 0;
+
     for (const [position, { from, to, index }] of ordered.entries()) {
         const piece = segments?.[position] ?? text;
         const inserted = options.reindent && segments === null && source.context(from).mode === 'code' ? reindent(source, from, piece, options) : piece;
@@ -104,5 +121,6 @@ export function planPaste(source: EditSource, selections: readonly Selection[], 
         carets[index] = { anchor: head, head };
         shift += inserted.length - (to - from);
     }
+
     return { edits, selections: carets };
 }

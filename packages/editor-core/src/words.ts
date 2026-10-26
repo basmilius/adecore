@@ -35,11 +35,13 @@ export function isHumpBoundary(text: WordText, offset: number, isStart: boolean)
     if (offset <= 0 || offset >= text.length) {
         return false;
     }
+
     const previous = characterAt(text, offset - 1);
     const current = characterAt(text, offset);
     const next = characterAt(text, offset + 1);
     const hump = isStart ? current : previous;
     const neighbor = isStart ? previous : current;
+
     return (
         ((lower.test(previous) || digit.test(previous)) && upper.test(current)) ||
         (neighbor === '_' && hump !== '_') ||
@@ -53,30 +55,38 @@ export function isWordBoundary(text: WordText, offset: number, camel: boolean, i
     if (offset < 0 || offset > text.length) {
         return false;
     }
+
     const previous = characterAt(text, offset - 1);
     const current = characterAt(text, offset);
     const word = isStart ? current : previous;
     const neighbor = isStart ? previous : current;
+
     if (identifierPart.test(word)) {
         if (!identifierPart.test(neighbor)) {
             return true;
         }
+
         if (camel && isHumpBoundary(text, offset, isStart)) {
             return true;
         }
     }
+
     return isPunctuation(word) && !isPunctuation(neighbor);
 }
 
 /* The next stop in `direction`, never inside a surrogate pair or between CR and LF. Written here, not ported. */
 export function wordBoundary(text: WordText, offset: number, direction: -1 | 1, camel = true): number {
     let position = offset + direction;
+
     while (position > 0 && position < text.length) {
         const splitsLineBreak = text.charAt(position - 1) === '\r' && text.charAt(position) === '\n';
+
         if (!splitsSurrogate(text, position) && !splitsLineBreak && isWordBoundary(text, position, camel, direction === -1)) {
             return position;
         }
+
         position += direction;
     }
+
     return Math.max(0, Math.min(text.length, position));
 }

@@ -107,6 +107,7 @@ describe('replacing a searched batch without running its query again', () => {
     it('rejects the entire batch when one result is stale or has different text', () => {
         const model = new DocumentModel('cat cat');
         const matches = model.find('cat');
+
         for (const invalid of [
             { ...matches[1]!, revision: 1 },
             { ...matches[1]!, text: 'dog' }
@@ -115,6 +116,7 @@ describe('replacing a searched batch without running its query again', () => {
             expect(model.getText()).toBe('cat cat');
             expect(model.getSnapshot().canUndo).toBe(false);
         }
+
         expect(model.replaceMatches(matches, 'entry', { expectedRevision: 1 })).toBe(0);
         model.typeText('!');
         expect(model.replaceMatches(matches, 'entry')).toBe(0);
@@ -148,11 +150,13 @@ describe('lexical and indentation folds', () => {
     it('derives nested multiline bracket and comment folds while ignoring quoted and commented braces', () => {
         const model = new DocumentModel('function x() {\r\n  const s = "}"; // {\r\n  [\r\n    1, 2\r\n  ]\r\n  /* {\r\n     } */\r\n}\r\n');
         const folds = model.getFoldingRanges();
+
         expect(folds.map(({ startLine, endLine, kind }) => ({ startLine, endLine, kind }))).toEqual([
             { startLine: 0, endLine: 7, kind: 'bracket' },
             { startLine: 2, endLine: 4, kind: 'bracket' },
             { startLine: 5, endLine: 6, kind: 'comment' }
         ]);
+
         expect(model.slice(folds[0]!.from, folds[0]!.to).startsWith('{')).toBe(true);
         expect(model.getFoldingRanges({ brackets: false }).map((fold) => fold.kind)).toEqual(['comment']);
         expect(model.getFoldingRanges({ minLines: 3 })).toHaveLength(1);
@@ -170,10 +174,12 @@ describe('lexical and indentation folds', () => {
     it('derives indentation folds with visual tabs, blank lines and nested blocks', () => {
         const model = new DocumentModel('outer:\n\tfirst\n\tinner:\n\t\tchild\n\n\tlast\nnext\n');
         const folds = model.getFoldingRanges({ indentation: true, tabSize: 4 });
+
         expect(folds.map(({ startLine, endLine, kind }) => ({ startLine, endLine, kind }))).toEqual([
             { startLine: 0, endLine: 5, kind: 'indentation' },
             { startLine: 2, endLine: 3, kind: 'indentation' }
         ]);
+
         model.applyEdits([{ from: 0, to: 0, text: '\n' }]);
         expect(model.getFoldingRanges({ indentation: true })[0]!.startLine).toBe(1);
     });

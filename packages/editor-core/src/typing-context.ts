@@ -45,6 +45,7 @@ const PHP_HEREDOC = /^<<<[ \t]*(["']?)([A-Za-z_]\w*)\1[ \t]*$/;
 const PHP_OPEN = /<\?(?:php\b|=)/;
 const PHP_INITIAL_LINES = 64;
 const PHP_INITIAL_CHARACTERS = 64 * 1024;
+
 // Quoted PHP tags within a bare code fragment must not turn its prelude into output.
 const PHP_FRAGMENT_START =
     /^(?:[$'"#]|\/[/*]|(?:abstract|class|const|declare|echo|enum|final|for|foreach|function|if|include(?:_once)?|interface|namespace|print|readonly|require(?:_once)?|return|switch|throw|trait|try|use|while)\b|[A-Za-z_]\w*\s*(?:\(|::))/;
@@ -58,16 +59,20 @@ function initial(): TypingContext {
 
 function scanComment(state: TypingContext, text: string, at: number, end: number): number {
     const close = state.mode === 'block-comment' ? '*/' : '-->';
+
     if (at + close.length <= end && text.startsWith(close, at)) {
         state.mode = 'code';
         state.commentStart = undefined;
+
         return at + close.length - 1;
     }
+
     return at;
 }
 
 function scanLiteral(state: TypingContext, text: string, at: number, end: number, offset: number): number {
     const char = text[at];
+
     if (state.escaped) {
         state.escaped = false;
     } else if (char === '\\') {
@@ -86,18 +91,21 @@ function scanLiteral(state: TypingContext, text: string, at: number, end: number
         state.mode = 'code';
         state.expression = true;
         state.word = '';
+
         return at + 1;
     } else if (char === state.quote) {
         state.mode = 'code';
         state.expression = false;
         state.quote = undefined;
     }
+
     return at;
 }
 
 function openComment(state: TypingContext, mode: 'line-comment' | 'block-comment' | 'html-comment', start: number, resume: number): number {
     state.mode = mode;
     state.commentStart = start;
+
     return resume;
 }
 
@@ -108,48 +116,64 @@ function scanCode(state: TypingContext, rules: Rules, text: string, at: number, 
     if (/\s/u.test(char)) {
         return at;
     }
+
     if (rules.markup && text.startsWith('<!--', at)) {
         return openComment(state, 'html-comment', offset + at, at + 3);
     }
+
     if (rules.hash && char === '#' && !(rules.php && next === '[') && (!rules.hashAtWordStart || startsWord(text, at))) {
         return openComment(state, 'line-comment', offset + at, at);
     }
+
     if ((rules.dash && char === '-' && next === '-') || (rules.slash && char === '/' && next === '/')) {
         return openComment(state, 'line-comment', offset + at, at + 1);
     }
+
     if (rules.block && char === '/' && next === '*') {
         return openComment(state, 'block-comment', offset + at, at + 1);
     }
+
     if (rules.php && char === '<' && text.startsWith('<<<', at)) {
         const opener = PHP_HEREDOC.exec(text.slice(at));
+
         if (opener !== null) {
             state.mode = 'heredoc';
             state.quote = opener[2];
+
             return text.length;
         }
     }
+
     if (rules.php && char === '?' && next === '>') {
         state.phpClose = offset + at + 2;
         state.mode = 'html';
+
         return at + 1;
     }
+
     if (char === '"' || char === "'" || char === '`') {
         state.mode = rules.script && char === '`' ? 'template' : 'quote';
         state.quote = char;
         state.escaped = false;
         state.word = '';
+
         return at;
     }
+
     if (rules.script && char === '/' && state.expression) {
         state.mode = 'regex';
         state.inClass = false;
         state.escaped = false;
+
         return at;
     }
+
     if ((char === '+' || char === '-') && next === char) {
         state.word = '';
+
         return at + 1;
     }
+
     if (openers[char]) {
         state.bracket = {
             at: offset + at,
@@ -158,15 +182,18 @@ function scanCode(state: TypingContext, rules: Rules, text: string, at: number, 
             control: char === '(' && controlWords.test(state.word),
             block: char === '{' && (!state.expression || state.word === 'control-close' || blockWords.test(state.word))
         };
+
         state.expression = true;
         state.word = '';
     } else if (/[)\]}]/.test(char)) {
         closeBracket(state, char);
     } else if (isWordCharacter(char)) {
         const from = at;
+
         while (at + 1 < end && isWordCharacter(text[at + 1])) {
             at++;
         }
+
         const word = text.slice(from, at + 1);
         state.word = word === 'await' && state.word === 'for' ? 'for-await' : word;
         state.expression = startsExpression(word);
@@ -174,21 +201,27 @@ function scanCode(state: TypingContext, rules: Rules, text: string, at: number, 
         state.expression = startsExpressionAfter(char);
         state.word = '';
     }
+
     return at;
 }
 
 function closeBracket(state: TypingContext, char: string): void {
     const bracket = state.bracket;
+
     if (bracket?.close !== char) {
         state.bracket = undefined;
         state.expression = false;
+
         return;
     }
+
     state.bracket = bracket.previous;
+
     if (bracket.template) {
         state.mode = 'template';
         state.quote = '`';
     }
+
     state.expression = Boolean(bracket.control || bracket.block);
     state.word = bracket.control ? 'control-close' : '';
 }
@@ -199,9 +232,11 @@ function stepScript(state: TypingContext, text: string, at: number, end: number,
     if (state.mode === 'line-comment') {
         return at;
     }
+
     if (state.mode === 'block-comment') {
         return scanComment(state, text, at, end);
     }
+
     return state.mode === 'code'
         ? scanCode(state, (scriptRules ??= lexerRules('javascript')), text, at, end, offset)
         : scanLiteral(state, text, at, end, offset);
@@ -216,6 +251,7 @@ function normalizeLine(state: TypingContext, multilineQuotes: boolean): void {
         state.commentStart = undefined;
         state.expression = true;
     }
+
     state.escaped = false;
 }
 
@@ -223,13 +259,16 @@ function normalizeLine(state: TypingContext, multilineQuotes: boolean): void {
 function scan(text: string, end: number, start: TypingContext, rules: Rules, offset: number): TypingContext {
     // An embedded lexer must not mutate the script state cached at the line start.
     const state = { ...start, embed: start.embed === undefined ? undefined : { ...start.embed } };
+
     for (let at = 0; at < end; at++) {
         if (state.mode === 'line-comment') {
             // A PHP line comment ends at its line break and at a closing tag.
             const tag = rules.php ? text.indexOf('?>', at) : -1;
+
             if (tag < 0 || tag >= end) {
                 break;
             }
+
             state.phpClose = offset + tag + 2;
             state.mode = 'html';
             state.commentStart = undefined;
@@ -238,9 +277,11 @@ function scan(text: string, end: number, start: TypingContext, rules: Rules, off
             at = scanPhpMarkup(state, text, at, end, offset, scriptLexer);
         } else if (state.mode === 'heredoc') {
             const closing = new RegExp(`^[\\t ]*${state.quote}(?![\\w])`).exec(text);
+
             if (closing === null) {
                 break;
             }
+
             state.mode = 'code';
             state.quote = undefined;
             state.expression = false;
@@ -253,6 +294,7 @@ function scan(text: string, end: number, start: TypingContext, rules: Rules, off
             at = scanLiteral(state, text, at, end, offset);
         }
     }
+
     return state;
 }
 
@@ -288,6 +330,7 @@ export class TypingContexts {
 
     invalidate(line = 0): void {
         this.states.length = Math.min(this.states.length, Math.max(1, line + 1));
+
         if (line <= this.decidingLine) {
             this.language = '';
         }
@@ -296,54 +339,71 @@ export class TypingContexts {
     private initialState(language: string): TypingContext {
         const state = initial();
         this.decidingLine = 0;
+
         if (language !== 'php') {
             return state;
         }
+
         let remaining = PHP_INITIAL_CHARACTERS;
+
         for (let line = 0; line < PHP_INITIAL_LINES && remaining > 0; line++) {
             this.decidingLine = line;
             const source = this.line(line);
             const sample = source.text.slice(0, remaining);
             remaining -= sample.length;
             const text = sample.trimStart();
+
             if (text !== '') {
                 const open = PHP_OPEN.exec(text);
+
                 if (/^<(?![?<])/.test(text) || (open !== null && open.index > 0 && !PHP_FRAGMENT_START.test(text))) {
                     state.mode = 'html';
                 }
+
                 return state;
             }
+
             if (source.end === source.next) {
                 break;
             }
         }
+
         return state;
     }
 
     at(line: number, column: number, language: string): TypingContext {
         const id = language.toLowerCase();
+
         if (this.language !== id) {
             this.language = id;
             this.states = [this.initialState(id)];
         }
+
         const rules = lexerRules(id);
+
         while (this.states.length <= line) {
             const previous = this.states.at(-1)!;
             const source = this.line(this.states.length - 1);
             const next = scan(source.text, source.text.length, previous, rules, source.start);
+
             // A PHP island's source newlines are not newlines in the emitted script.
             if (next.mode === 'html' && next.embed !== undefined && next.phpClose !== source.end) {
                 normalizeLine(next.embed, false);
             }
+
             next.phpClose = undefined;
             normalizeLine(next, /^(php|rust|rs)$/i.test(id));
+
             if (next.mode === 'html' && next.markup === 'value' && next.markupQuote === undefined) {
                 next.markup = 'tag';
             }
+
             this.states.push(sameState(next, previous) ? previous : next);
         }
+
         const source = this.line(line);
         const state = scan(source.text, column, this.states[line], rules, source.start);
+
         return state.mode === 'html' && state.embed !== undefined ? { ...state.embed, markup: 'raw', element: 'script', embedded: 'javascript' } : state;
     }
 }

@@ -4,9 +4,11 @@ import type { CommandOptions } from './types.ts';
 
 function marked(text: string): { text: string; offset: number } {
     const offset = text.indexOf('¦');
+
     if (offset < 0) {
         throw new Error('Caret marker is missing.');
     }
+
     return { text: text.replace('¦', ''), offset };
 }
 
@@ -201,9 +203,11 @@ describe('Enter after an opener', () => {
     it('closes a brace that took the closer of a block around it', () => {
         enter('function a() {\n    if (x) {¦\n}', 'function a() {\n    if (x) {\n        ¦\n    }\n}');
         enter('class A {\n    a() {¦\n}', 'class A {\n    a() {\n        ¦\n    }\n}');
+
         enter('<?php\n\nclass A\n{\n    public function a()\n    {¦\n}', '<?php\n\nclass A\n{\n    public function a()\n    {\n        ¦\n    }\n}', {
             language: 'php'
         });
+
         enter('impl A {\n    fn a() {¦\n}', 'impl A {\n    fn a() {\n        ¦\n    }\n}', { language: 'rust' });
     });
 
@@ -306,10 +310,12 @@ describe('Enter in general', () => {
 
     it('replaces a selection and every caret', () => {
         const model = new DocumentModel('a(b)\nc(d)');
+
         model.setSelections([
             { anchor: 2, head: 2 },
             { anchor: 7, head: 7 }
         ]);
+
         model.execute('insertNewline', { language: 'typescript' });
         expect(model.getText()).toBe('a(\n    b)\nc(\n    d)');
         const selected = new DocumentModel('foo(bar)');
@@ -320,10 +326,12 @@ describe('Enter in general', () => {
 
     it('does not let two carets on one line overlap their edits', () => {
         const model = new DocumentModel('{ a, b');
+
         model.setSelections([
             { anchor: 1, head: 1 },
             { anchor: 4, head: 4 }
         ]);
+
         model.execute('insertNewline', { language: 'typescript' });
         expect(model.getText()).toBe('{\n    a,\nb');
     });
@@ -340,9 +348,11 @@ describe('Enter continues code comments inside embedded markup', () => {
     it('continues the comment in a JSX callback', () => {
         enter('const view = <Foo onClick={() => { // note¦ more\n}} />;', 'const view = <Foo onClick={() => { // note\n//¦more\n}} />;', { language: 'tsx' });
     });
+
     it('continues the star prefix within a JSX child comment', () => {
         enter('const view = <div>{/*\n * foo¦\n */}</div>;', 'const view = <div>{/*\n * foo\n * ¦\n */}</div>;', { language: 'tsx' });
     });
+
     it('continues a PHP comment on the opening-tag line', () => {
         enter('<?php // header¦ text\n$value = 1;', '<?php // header\n//¦text\n$value = 1;', { language: 'php' });
     });
@@ -355,29 +365,35 @@ describe('Enter in PHP markup', () => {
         enter('<div>\n    <span>¦</span>\n</div>', '<div>\n    <span>\n        ¦\n    </span>\n</div>', { language: 'php' });
         enter('<?php if ($value): ?>\n<div>¦</div>\n<?php endif; ?>', '<?php if ($value): ?>\n<div>\n    ¦\n</div>\n<?php endif; ?>', { language: 'php' });
     });
+
     it('uses the context before a script or style opener', () => {
         enter('<script>¦</script>', '<script>\n    ¦\n</script>', { language: 'php' });
         enter('<style>¦</style>', '<style>\n    ¦\n</style>', { language: 'php' });
     });
+
     it('keeps void and self-closing tags at their current indentation', () => {
         enter('<br>¦', '<br>\n¦', { language: 'php' });
         enter('<div>\n    <img src="icon.svg">¦\n</div>', '<div>\n    <img src="icon.svg">\n    ¦\n</div>', { language: 'php' });
         enter('<component />¦', '<component />\n¦', { language: 'php' });
     });
+
     it('leaves PHP strings, heredocs and HTML comments under their existing rules', () => {
         enter('<?php\n$value = "<div>¦";', '<?php\n$value = "<div>" .\n    "¦";', { language: 'php' });
         enter('<?php\n$value = <<<HTML\n<div>¦\nHTML;', '<?php\n$value = <<<HTML\n<div>\n¦\nHTML;', { language: 'php' });
         enter('<!-- <div>¦', '<!-- <div>\n¦', { language: 'php' });
     });
+
     it('does not treat tags in raw script or style content as markup openers', () => {
         enter('<script>\n"<div>¦\n</script>', '<script>\n"<div>\n¦\n</script>', { language: 'php' });
         enter('<style>\n.box::after { content: "<div>¦\n</style>', '<style>\n.box::after { content: "<div>\n¦\n</style>', { language: 'php' });
     });
+
     it('keeps existing HTML, JSX and Vue tag behavior', () => {
         for (const language of ['html', 'tsx', 'vue']) {
             enter('<div>¦</div>', '<div>\n    ¦\n</div>', { language });
         }
     });
+
     it('reads only the needed PHP markup context with a large unrelated suffix', () => {
         const initial = marked('<div>¦</div>\n' + 'x'.repeat(2_000_001));
         const model = new DocumentModel(initial.text);
@@ -396,6 +412,7 @@ describe('Enter within PHP script elements', () => {
         enter('<script>\nlet value = "ab¦cd";\n</script>', '<script>\nlet value = "ab" +\n    "¦cd";\n</script>', { language: 'php' });
         enter('<script>\n    call(¦)\n</script>', '<script>\n    call(\n        ¦\n    )\n</script>', { language: 'php' });
     });
+
     it('continues script comments and keeps PHP concatenation within PHP islands', () => {
         enter('<script>\n// note¦ more\n</script>', '<script>\n// note\n// ¦more\n</script>', { language: 'php' });
         enter('<script>\n<?php $value = "ab¦cd"; ?>\n</script>', '<script>\n<?php $value = "ab" .\n    "¦cd"; ?>\n</script>', { language: 'php' });
@@ -406,6 +423,7 @@ describe('brace completion is scoped to the current PHP script body', () => {
     it('ignores a backtick in preceding HTML', () => {
         enter('<p>`</p>\n<script>\n    if (ready) {¦\n</script>', '<p>`</p>\n<script>\n    if (ready) {\n        ¦\n    }\n</script>', { language: 'php' });
     });
+
     it('ignores PHP strings within a script string', () => {
         enter(
             "<script>\nconst value = '<?php $s = \"'\"; ?>';\n    if (ready) {¦\n</script>",
@@ -413,6 +431,7 @@ describe('brace completion is scoped to the current PHP script body', () => {
             { language: 'php' }
         );
     });
+
     it('ignores a raw closing tag within PHP code', () => {
         enter(
             '<script>\n<?php $s = "</script>"; ?>\n    if (ready) {¦\n</script>',
@@ -420,6 +439,7 @@ describe('brace completion is scoped to the current PHP script body', () => {
             { language: 'php' }
         );
     });
+
     it('keeps scripts separate', () => {
         enter(
             '<script>const value = `unfinished</script>\n<script>\n    if (ready) {¦\n</script>',

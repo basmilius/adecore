@@ -3,22 +3,28 @@ import { DocumentModel, type TypeTextOptions } from './document.ts';
 
 function marked(text: string): { text: string; offset: number } {
     const offset = text.indexOf('¦');
+
     if (offset < 0) {
         throw new Error('Caret marker is missing.');
     }
+
     return { text: text.replace('¦', ''), offset };
 }
+
 function at(text: string): DocumentModel {
     const initial = marked(text);
     const model = new DocumentModel(initial.text);
     model.setSelections([{ anchor: initial.offset, head: initial.offset }]);
+
     return model;
 }
+
 function expectMarked(model: DocumentModel, text: string): void {
     const expected = marked(text);
     expect(model.getText()).toBe(expected.text);
     expect(model.getSelections()).toEqual([{ anchor: expected.offset, head: expected.offset }]);
 }
+
 function type(source: string, character: string, expected: string, options: TypeTextOptions = {}): void {
     const model = at(source);
     model.typeText(character, options);
@@ -66,18 +72,22 @@ describe('lexical pairing contexts', () => {
 
     it('chooses independently for code, a comment and a string at multiple carets', () => {
         const model = new DocumentModel('value = \n// comment \n"text "');
+
         model.setSelections([
             { anchor: 8, head: 8 },
             { anchor: 20, head: 20 },
             { anchor: 27, head: 27 }
         ]);
+
         model.typeText('(', { language: 'typescript' });
         expect(model.getText()).toBe('value = ()\n// comment (\n"text ("');
+
         expect(model.getSelections()).toEqual([
             { anchor: 9, head: 9 },
             { anchor: 23, head: 23 },
             { anchor: 31, head: 31 }
         ]);
+
         model.undo();
         expect(model.getText()).toBe('value = \n// comment \n"text "');
         model.redo();
@@ -162,13 +172,16 @@ describe('smart semicolon boundaries', () => {
 
     it('deduplicates shared semicolon targets without shifting later carets twice', () => {
         const model = new DocumentModel('foo(inner(1))\nbar(2) // note');
+
         model.setSelections([
             { anchor: 11, head: 11 },
             { anchor: 12, head: 12 },
             { anchor: 19, head: 19 }
         ]);
+
         model.typeText(';', { language: 'typescript' });
         expect(model.getText()).toBe('foo(inner(1));\nbar(2); // note');
+
         expect(model.getSelections()).toEqual([
             { anchor: 14, head: 14 },
             { anchor: 22, head: 22 }
@@ -177,11 +190,13 @@ describe('smart semicolon boundaries', () => {
 
     it('keeps per-caret crossed-closer markers attached after shared targets merge', () => {
         const model = new DocumentModel('foo(inner(1))\nvalues[2] // note');
+
         model.setSelections([
             { anchor: 11, head: 11 },
             { anchor: 12, head: 12 },
             { anchor: 22, head: 22 }
         ]);
+
         model.typeText(';', { language: 'typescript' });
         expect(model.getText()).toBe('foo(inner(1));\nvalues[2]; // note');
         model.typeText(')', { language: 'typescript' });

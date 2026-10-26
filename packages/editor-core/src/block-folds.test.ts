@@ -8,6 +8,7 @@ function folds(text: string, language: string) {
 describe('Markdown folds', () => {
     it('folds front matter, code fences and tables', () => {
         const text = '---\ntitle: a\n---\n\n```ts\nconst a = 1;\n```\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\ntext';
+
         expect(folds(text, 'markdown')).toEqual([
             ['block', 'front-matter', 0, 2],
             ['block', 'code-fence', 4, 6],
@@ -17,6 +18,7 @@ describe('Markdown folds', () => {
 
     it('folds the section under a heading up to the next heading of its level or above', () => {
         const text = '# One\n\nintro\n\n## Two\n\nbody\n\n### Three\n\ndeep\n\n## Four\n\nlast\n';
+
         expect(folds(text, 'markdown')).toEqual([
             ['section', null, 0, 14],
             ['section', null, 4, 10],
@@ -38,6 +40,7 @@ describe('Markdown folds', () => {
 describe('PHP folds', () => {
     it('folds a heredoc and a nowdoc up to their closing line', () => {
         const text = "<?php\n$a = <<<EOT\n    one\n    two\nEOT;\n$b = <<<'RAW'\n    x\n    y\nRAW;\n";
+
         expect(folds(text, 'php')).toEqual([
             ['block', 'heredoc', 1, 4],
             ['block', 'heredoc', 5, 8]

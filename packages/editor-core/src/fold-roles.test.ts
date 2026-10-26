@@ -53,6 +53,7 @@ describe('literals', () => {
     it('reads an object after an equals sign, a colon, an open parenthesis or return, and an array the same', () => {
         const text =
             'const a = {\n    b: [\n        1,\n    ],\n    c: {\n        d: 1,\n    },\n};\nrun({\n    e: 1,\n});\nfunction f() {\n    return [\n        1,\n    ];\n}';
+
         expect(roles(text, 'typescript')).toEqual([
             [0, 7, 'object-literal'],
             [1, 3, 'array-literal'],
@@ -93,6 +94,7 @@ describe('literals', () => {
 describe('hints of a language server', () => {
     const text =
         'class A {\n    run(\n        x: number,\n    ) {\n        return 1;\n    }\n}\nfunction f() {\n    g();\n}\nconst h = () => {\n    i();\n};\nconst o = 3;';
+
     const offsetOf = (line: number, column: number): number => new DocumentModel(text).offsetAt({ line, column });
 
     it('names the body a symbol has, between the brackets', () => {
@@ -105,6 +107,7 @@ describe('hints of a language server', () => {
                 { from: offsetOf(13, 0), to: offsetOf(13, 12), body: 'value' }
             ]
         };
+
         expect(roles(text, 'typescript', hints)).toEqual([
             [0, 6, 'class-body'],
             [1, 3, null],
@@ -124,6 +127,7 @@ describe('hints of a language server', () => {
     it('adds the ranges the text has no fold for, one per line they start on', () => {
         const html = '<ul>\n    <li>a</li>\n</ul>\n<div>\n    <p>\n        b\n    </p>\n</div>';
         const model = new DocumentModel(html);
+
         const hints: FoldHints = {
             ranges: [
                 { from: model.offsetAt({ line: 0, column: 0 }), to: model.offsetAt({ line: 1, column: 0 }) },
@@ -131,6 +135,7 @@ describe('hints of a language server', () => {
                 { from: model.offsetAt({ line: 4, column: 0 }), to: model.offsetAt({ line: 5, column: 0 }) }
             ]
         };
+
         expect(roles(html, 'html', hints)).toEqual([
             [0, 1, 'tag'],
             [3, 6, 'tag'],
@@ -148,13 +153,16 @@ describe('hints of a language server', () => {
     it('takes where a server hides from and shows again from, on its own range and on the fold the text has of the same lines', () => {
         const source = '<?php\nuse A;\nuse B;\nuse C;\n\nfunction f() {\n    a();\n    b();\n}';
         const model = new DocumentModel(source);
+
         const at = (line: number, column: number) => model.offsetAt({ line, column });
+
         const hints: FoldHints = {
             ranges: [
                 { from: at(1, 0), to: at(3, 0), kind: 'imports', head: at(1, 3), tail: at(3, 5) },
                 { from: at(5, 0), to: at(8, 0), head: at(5, 14), tail: at(8, 0) }
             ]
         };
+
         const ranges = model.getFoldingRanges({ language: 'php', hints });
         expect(ranges.find((range) => range.startLine === 1)).toMatchObject({ endLine: 3, role: 'imports', head: at(1, 3), tail: at(3, 5) });
         expect(ranges.find((range) => range.startLine === 5)).toMatchObject({ kind: 'bracket', head: at(5, 14), tail: at(8, 0) });
@@ -164,12 +172,14 @@ describe('hints of a language server', () => {
     it('reads the kinds a server gives a range', () => {
         const source = "import a from 'a';\nimport b from 'b';\n\n/**\n * Doc.\n */\n// region\nx;\n// endregion";
         const model = new DocumentModel(source);
+
         const hints: FoldHints = {
             ranges: [
                 { from: 0, to: model.offsetAt({ line: 1, column: 0 }), kind: 'imports' },
                 { from: model.offsetAt({ line: 3, column: 0 }), to: model.offsetAt({ line: 5, column: 0 }), kind: 'comment' }
             ]
         };
+
         expect(roles(source, 'python', hints)).toEqual([
             [0, 1, 'imports'],
             [3, 5, 'doc-comment'],

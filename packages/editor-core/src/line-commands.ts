@@ -25,9 +25,11 @@ function shiftBefore(offset: number, edits: readonly TextEdit[]): number {
 function skipWhitespace(source: EditSource, from: number): number {
     const last = source.line(source.lineCount - 1).end;
     let offset = from;
+
     while (offset < last && /\s/.test(source.charAt(offset))) {
         offset++;
     }
+
     return offset;
 }
 
@@ -36,6 +38,7 @@ export function spacingBetween(previous: string, next: string): string {
     if (next === '' || /^[)\],;]/.test(next) || /^\.(?![.\d])/.test(next) || /[([]$/.test(previous)) {
         return '';
     }
+
     return ' ';
 }
 
@@ -52,9 +55,11 @@ function endComment(source: EditSource, options: LineCommandOptions, line: numbe
     const bounds = source.line(line);
     const syntax = commentSyntax(options.language, source.region(line));
     const context = source.context(bounds.end);
+
     if (context.mode !== 'line-comment' || context.commentStart === undefined || context.commentStart < bounds.start || syntax.line === null) {
         return null;
     }
+
     return { start: context.commentStart, marker: syntax.line };
 }
 
@@ -65,19 +70,25 @@ function joinAfter(source: EditSource, options: LineCommandOptions, index: numbe
     const trimmedEnd = left.start + left.text.trimEnd().length;
     const nextLine = source.line(source.lineAt(next));
     const content = source.slice(next, nextLine.end).trimEnd();
+
     if (isBlank(left.text)) {
         return { from: left.start, to: nextLine.start, text: '', caret: whitespaceOf(nextLine.text).length };
     }
+
     const comment = endComment(source, options, index);
+
     if (comment) {
         const marker = comment.marker.trimEnd();
+
         if (content.startsWith(marker)) {
             const rest = content.slice(marker.length);
             const dropped = next + marker.length + (rest.startsWith(' ') ? 1 : 0);
             const remainder = rest.startsWith(' ') ? rest.slice(1) : rest;
+
             return { from: trimmedEnd, to: dropped, text: remainder === '' ? '' : ' ', caret: 0 };
         }
     }
+
     return { from: trimmedEnd, to: next, text: spacingBetween(source.slice(left.start, trimmedEnd), content), caret: 0 };
 }
 
@@ -91,72 +102,96 @@ export function planJoinLines(source: EditSource, selections: readonly Selection
         first: number;
         count: number;
     }
+
     const ranges: Range[] = [];
+
     for (const selection of selections) {
         const { from, to } = rangeOf(selection);
         const first = source.lineAt(from);
         let last = from === to ? first + 1 : source.lineAt(to);
+
         if (from !== to && last > first && source.line(last).start === to) {
             last--;
         }
+
         if (last >= source.lineCount) {
             continue;
         }
+
         const previous = ranges.at(-1);
+
         if (previous && first <= previous.first + previous.count) {
             previous.count = Math.max(previous.count, last - previous.first);
         } else {
             ranges.push({ first, count: last - first });
         }
     }
+
     const edits: TextEdit[] = [];
     const carets: { at: number; extra: number }[] = [];
+
     for (const range of ranges) {
         let line = range.first;
+
         for (let done = 0; done < range.count && line < source.lineCount - 1; done++) {
             const join = joinAfter(source, options, line);
+
             if (!join) {
                 break;
             }
+
             const comment = endComment(source, options, line);
             const nextStart = skipWhitespace(source, source.line(line).end);
             const nextLine = source.line(source.lineAt(nextStart));
+
             const converts =
                 comment !== null &&
                 !isBlank(source.slice(source.line(line).start, comment.start)) &&
                 !source.slice(nextStart, nextLine.end).startsWith(comment.marker.trimEnd()) &&
                 commentSyntax(options.language, source.region(line)).block?.open === '/*';
+
             if (converts) {
                 const body = source.slice(comment.start + comment.marker.length, join.from);
+
                 if (!body.includes('*/')) {
                     edits.push({ from: comment.start, to: comment.start + comment.marker.length, text: '/*' });
                     const closing = (body.startsWith(' ') && !body.endsWith(' ') ? ' ' : '') + '*/';
                     edits.push({ from: join.from, to: join.to, text: closing + join.text });
                     carets.push({ at: join.from, extra: closing.length });
                     line = source.lineAt(nextStart);
+
                     continue;
                 }
             }
+
             edits.push({ from: join.from, to: join.to, text: join.text });
             carets.push({ at: join.from, extra: join.caret });
             line = source.lineAt(nextStart);
         }
     }
+
     if (edits.length === 0) {
         return null;
     }
+
     edits.sort((left, right) => left.from - right.from);
+
     const result = selections.map((selection) => {
         const { from, to } = rangeOf(selection);
+
         if (from !== to) {
             const end = mapOffset(to, edits);
+
             return { anchor: end, head: end };
         }
+
         const line = source.line(source.lineAt(from));
         const caret = carets.find((entry) => entry.at >= line.start && entry.at <= line.end);
         const base = caret ? caret.at + shiftBefore(caret.at, edits) + caret.extra : mapOffset(from, edits);
+
         return { anchor: base, head: base };
     });
+
     return { edits, selections: result };
 }
 
@@ -166,21 +201,26 @@ function wordAround(source: EditSource, offset: number): { from: number; to: num
     const column = offset - line.start;
     let from = column;
     let to = column;
+
     while (from > 0 && identifier.test(line.text[from - 1]!)) {
         from--;
     }
+
     while (to < line.text.length && identifier.test(line.text[to]!)) {
         to++;
     }
+
     return { from: line.start + from, to: line.start + to };
 }
 
 /* A string escape such as `\n` stays as written. */
 function convertCase(text: string, lower: boolean, inString: boolean): string {
     const convert = (part: string): string => (lower ? part.toLowerCase() : part.toUpperCase());
+
     if (!inString) {
         return convert(text);
     }
+
     return text
         .split(/(\\(?:u\{[0-9a-fA-F]+\}|u[0-9a-fA-F]{4}|x[0-9a-fA-F]{2}|.))/)
         .map((part, index) => (index % 2 === 1 ? part : convert(part)))
@@ -195,28 +235,35 @@ function convertCase(text: string, lower: boolean, inString: boolean): string {
 export function planToggleCase(source: EditSource, selections: readonly Selection[]): EditPlan | null {
     const targets = selections.map((selection) => {
         const { from, to } = rangeOf(selection);
+
         return from === to ? { ...wordAround(source, from), word: true } : { from, to, word: false };
     });
+
     const texts = targets.map((target) => source.slice(target.from, target.to));
     const lower = texts.some((text) => text !== text.toLowerCase());
     const edits: TextEdit[] = [];
     const result: Selection[] = [];
     let delta = 0;
+
     for (const [index, target] of targets.entries()) {
         const { mode } = source.context(target.from);
         const converted = convertCase(texts[index]!, lower, mode === 'quote' || mode === 'template');
+
         if (converted !== texts[index]) {
             edits.push({ from: target.from, to: target.to, text: converted });
         }
+
         const selection = selections[index]!;
         const start = target.from + delta;
         const end = start + converted.length;
         result.push(target.word || selection.anchor <= selection.head ? { anchor: start, head: end } : { anchor: end, head: start });
         delta += converted.length - texts[index]!.length;
     }
+
     if (targets.every((target) => target.from === target.to)) {
         return null;
     }
+
     return { edits, selections: result };
 }
 
@@ -228,9 +275,11 @@ interface Frame {
 /* The brackets still open at the start of a line, innermost first. */
 function frames(context: TypingContext): Frame[] {
     const result: Frame[] = [];
+
     for (let bracket = context.bracket; bracket; bracket = bracket.previous) {
         result.push({ opener: bracket.at, closer: bracket.close });
     }
+
     return result;
 }
 
@@ -244,32 +293,42 @@ export function planAutoIndent(source: EditSource, lines: readonly number[], opt
     if (!indentsByBrackets(options.language)) {
         return null;
     }
+
     const indents = new Map<number, string>();
+
     const indentOf = (line: number): string => indents.get(line) ?? whitespaceOf(source.line(line).text);
+
     const edits: TextEdit[] = [];
     const isMarkup = markupGuard(source, options.language);
+
     for (const line of lines) {
         const bounds = source.line(line);
         const context = source.context(bounds.start);
+
         if (isBlank(bounds.text) || context.mode !== 'code' || isMarkup(line)) {
             continue;
         }
+
         const target = targetIndent(source, options, line, context, indentOf);
         indents.set(line, target);
         const current = whitespaceOf(bounds.text);
+
         if (current !== target) {
             edits.push({ from: bounds.start, to: bounds.start + current.length, text: target });
         }
     }
+
     return edits.length === 0 ? null : { edits, selections: [] };
 }
 
 /* The indentation the brackets give a line, or null where they say nothing: outside code, in markup and in a language that is not bracketed. */
 export function properIndent(source: EditSource, line: number, options: LineCommandOptions): string | null {
     const context = source.context(source.line(line).start);
+
     if (!indentsByBrackets(options.language) || context.mode !== 'code' || markupGuard(source, options.language)(line)) {
         return null;
     }
+
     return targetIndent(source, options, line, context, (index) => whitespaceOf(source.line(index).text));
 }
 
@@ -277,26 +336,34 @@ function targetIndent(source: EditSource, options: LineCommandOptions, line: num
     const text = source.line(line).text.trimStart();
     const open = frames(context);
     const innermost = open[0];
+
     if (innermost && text.startsWith(innermost.closer)) {
         return indentOf(source.lineAt(innermost.opener));
     }
+
     let base = innermost ? indentOf(source.lineAt(innermost.opener)) + options.unit : '';
+
     if (innermost?.closer === '}' && !caseLabel.test(text)) {
         const label = openCaseLabel(source, line, context.bracket);
+
         if (label !== null) {
             base = indentOf(label) + options.unit;
         }
     }
+
     const previous = previousCodeLine(source, line);
+
     if (previous !== null && source.context(source.line(previous).start).bracket === context.bracket && lineContinues(source, options.language, previous)) {
         return isContinuation(source, options, previous) ? indentOf(previous) : indentOf(previous) + options.unit;
     }
+
     return base;
 }
 
 /* Whether the line goes on with a statement the line before it left open. */
 function isContinuation(source: EditSource, options: LineCommandOptions, line: number): boolean {
     const previous = previousCodeLine(source, line);
+
     return (
         previous !== null &&
         source.context(source.line(previous).start).bracket === source.context(source.line(line).start).bracket &&
@@ -310,6 +377,7 @@ function previousCodeLine(source: EditSource, line: number): number | null {
             return candidate;
         }
     }
+
     return null;
 }
 
@@ -319,6 +387,7 @@ function within(bracket: TypingContext['bracket'], outer: TypingContext['bracket
         if (current === outer) {
             return true;
         }
+
         if (!current) {
             return false;
         }
@@ -329,16 +398,21 @@ function within(bracket: TypingContext['bracket'], outer: TypingContext['bracket
 function openCaseLabel(source: EditSource, line: number, block: TypingContext['bracket']): number | null {
     for (let candidate = line - 1; candidate >= 0 && candidate >= line - 200; candidate--) {
         const bounds = source.line(candidate);
+
         if (isBlank(bounds.text)) {
             continue;
         }
+
         const state = source.context(bounds.start).bracket;
+
         if (!within(state, block)) {
             return null;
         }
+
         if (state === block && caseLabel.test(bounds.text.trim())) {
             return candidate;
         }
     }
+
     return null;
 }

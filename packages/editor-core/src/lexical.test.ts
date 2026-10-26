@@ -8,6 +8,7 @@ function contextAt(text: string, language: string): ReturnType<TypingContexts['a
     const model = new DocumentModel(text);
     const contexts = new TypingContexts((line) => model.getLine(line));
     const { line, column } = model.positionAt(text.length);
+
     return contexts.at(line, column, language);
 }
 
@@ -15,6 +16,7 @@ function typeAtEnd(text: string, character: string, language: string): string {
     const model = new DocumentModel(text);
     model.setSelections([{ anchor: text.length, head: text.length }]);
     model.typeText(character, { language });
+
     return model.getText();
 }
 
@@ -61,6 +63,7 @@ describe('comment syntax by language', () => {
             expect(contextAt('x // note ', language).mode).toBe('line-comment');
             expect(contextAt('x /* note ', language).mode).toBe('block-comment');
         }
+
         expect(contextAt('# note ', 'php').mode).toBe('line-comment');
         expect(contextAt('<!-- note ', 'html').mode).toBe('html-comment');
         expect(contextAt('x // note ', 'html').mode).toBe('code');

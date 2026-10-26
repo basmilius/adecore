@@ -12,10 +12,12 @@ describe('select next occurrence', () => {
         model.execute('selectNextOccurrence');
         expect(model.getSelections()).toEqual([{ anchor: 0, head: 3 }]);
         model.execute('selectNextOccurrence');
+
         expect(model.getSelections()).toEqual([
             { anchor: 0, head: 3 },
             { anchor: 11, head: 14 }
         ]);
+
         model.execute('selectNextOccurrence');
         expect(model.getPrimary()).toEqual({ anchor: 19, head: 22 });
     });
@@ -52,6 +54,7 @@ describe('select next occurrence', () => {
         const model = new DocumentModel('ab ab ab');
         model.setSelections([{ anchor: 2, head: 0 }]);
         model.execute('selectNextOccurrence');
+
         expect(model.getSelections()).toEqual([
             { anchor: 2, head: 0 },
             { anchor: 5, head: 3 }
@@ -79,6 +82,7 @@ describe('select all occurrences', () => {
         const model = new DocumentModel('foo foobar foo');
         model.setSelections([{ anchor: 1, head: 1 }]);
         model.execute('selectAllOccurrences');
+
         expect(model.getSelections()).toEqual([
             { anchor: 0, head: 3 },
             { anchor: 11, head: 14 }

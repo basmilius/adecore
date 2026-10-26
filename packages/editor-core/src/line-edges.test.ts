@@ -4,6 +4,7 @@ import type { CommandOptions } from './types.ts';
 
 function press(model: DocumentModel, command: 'smartHome' | 'smartEnd' | 'selectSmartHome' | 'selectSmartEnd', options: CommandOptions = {}): number {
     model.execute(command, options);
+
     return model.getPrimary().head;
 }
 
@@ -53,6 +54,7 @@ describe('Home', () => {
 
 describe('Home and End on a wrapped line', () => {
     const text = 'aaaa bbbb cccc dddd';
+
     const rows: CommandOptions = {
         visualLine: (offset) => (offset < 10 ? { start: 0, end: 10 } : { start: 10, end: 19 })
     };

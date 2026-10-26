@@ -4,10 +4,12 @@ import type { Selection } from './types.ts';
 
 function random(seed: number): () => number {
     let state = seed;
+
     return () => {
         state = (state + 0x6d2b79f5) | 0;
         let value = Math.imul(state ^ (state >>> 15), 1 | state);
         value = (value + Math.imul(value ^ (value >>> 7), 61 | value)) ^ value;
+
         return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
     };
 }
@@ -17,15 +19,20 @@ function mergedOneByOne(text: string, selections: readonly Selection[]): Selecti
     const clamp = (value: number): number => {
         const offset = Math.max(0, Math.min(text.length, Math.trunc(value)));
         const splits = /[\ud800-\udbff]/.test(text.charAt(offset - 1)) && /[\udc00-\udfff]/.test(text.charAt(offset));
+
         return splits || (text.charAt(offset - 1) === '\r' && text.charAt(offset) === '\n') ? offset - 1 : offset;
     };
+
     const result: Selection[] = [];
+
     for (const raw of selections) {
         let selection = { anchor: clamp(raw.anchor), head: clamp(raw.head) };
         let from = Math.min(selection.anchor, selection.head);
         let to = Math.max(selection.anchor, selection.head);
+
         for (let index = result.length - 1; index >= 0; index--) {
             const other = result[index]!;
+
             if (from <= Math.max(other.anchor, other.head) && to >= Math.min(other.anchor, other.head)) {
                 from = Math.min(from, other.anchor, other.head);
                 to = Math.max(to, other.anchor, other.head);
@@ -33,8 +40,10 @@ function mergedOneByOne(text: string, selections: readonly Selection[]): Selecti
                 selection = selection.anchor > selection.head ? { anchor: to, head: from } : { anchor: from, head: to };
             }
         }
+
         result.push(selection);
     }
+
     return result;
 }
 
@@ -43,11 +52,14 @@ describe('many carets', () => {
         const next = random(42);
         const text = 'ab\r\ncd😀ef\n'.repeat(20);
         const document = new DocumentModel(text);
+
         for (let round = 0; round < 300; round++) {
             const selections = Array.from({ length: 1 + Math.floor(next() * 12) }, () => {
                 const anchor = Math.floor(next() * (text.length + 4)) - 2;
+
                 return { anchor, head: next() < 0.5 ? anchor : anchor + Math.floor(next() * 9) - 4 };
             });
+
             document.setSelections(selections);
             expect(document.getSelections()).toEqual(mergedOneByOne(text, selections));
         }

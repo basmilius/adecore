@@ -20,10 +20,12 @@ describe('import folds', () => {
 
     it('reads the words of each language', () => {
         expect(folds('use App\\A;\nuse App\\B;\n\nclass C {}', 'php')).toEqual([['imports', 0, 1]]);
+
         expect(folds('import os\nfrom . import x\nfrom a import (\n    b,\n)\n\nx = 1', 'python')).toEqual([
             ['imports', 0, 4],
             ['bracket', 2, 4]
         ]);
+
         expect(folds('use std::io;\nuse std::fs;\nfn main() {}', 'rust')).toEqual([['imports', 0, 1]]);
     });
 
@@ -51,6 +53,7 @@ describe('comment run folds', () => {
 describe('region folds', () => {
     it('folds from a region line to its end line, nested ones too', () => {
         const text = '// region outer\nconst a = 1;\n// region inner\nconst b = 2;\n// endregion\nconst c = 3;\n// endregion\n';
+
         expect(folds(text, 'typescript')).toEqual([
             ['region', 0, 6],
             ['region', 2, 4]

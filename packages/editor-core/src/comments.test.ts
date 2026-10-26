@@ -6,22 +6,29 @@ import type { CommandOptions, EditorCommand } from './types.ts';
 function parse(source: string): { text: string; selections: { anchor: number; head: number }[] } {
     const open = source.indexOf('[');
     const close = source.indexOf(']');
+
     if (open >= 0 && close >= 0) {
         const text = source.slice(0, open) + source.slice(open + 1, close) + source.slice(close + 1);
+
         return { text, selections: [{ anchor: open, head: close - 1 }] };
     }
+
     const caret = source.indexOf('¦');
+
     return { text: source.replace('¦', ''), selections: [{ anchor: caret, head: caret }] };
 }
 
 function render(model: DocumentModel): string {
     const [selection] = model.getSelections();
     const text = model.getText();
+
     if (selection!.anchor === selection!.head) {
         return text.slice(0, selection!.head) + '¦' + text.slice(selection!.head);
     }
+
     const from = Math.min(selection!.anchor, selection!.head);
     const to = Math.max(selection!.anchor, selection!.head);
+
     return `${text.slice(0, from)}[${text.slice(from, to)}]${text.slice(to)}`;
 }
 
@@ -34,6 +41,7 @@ function run(command: EditorCommand, source: string, expected: string, options: 
 }
 
 const line = (source: string, expected: string, options: CommandOptions = {}): void => run('toggleLineComment', source, expected, options);
+
 const block = (source: string, expected: string, options: CommandOptions = {}): void => run('toggleBlockComment', source, expected, options);
 
 describe('line comments', () => {
@@ -83,10 +91,12 @@ describe('line comments', () => {
 
     it('moves every caret that is alone on its lines', () => {
         const model = new DocumentModel('a\nb\nc\nd');
+
         model.setSelections([
             { anchor: 0, head: 0 },
             { anchor: 4, head: 4 }
         ]);
+
         model.execute('toggleLineComment');
         expect(model.getText()).toBe('// a\nb\n// c\nd');
         expect(model.getSelections().map((selection) => selection.head)).toEqual([6, 13]);
@@ -122,7 +132,9 @@ describe('line comments', () => {
 
     it('picks the markers of a Vue region by the line', () => {
         const file = '<template>\n  <div />\n</template>\n<script setup>\nfoo()\n</script>\n<style>\na {}\n</style>';
+
         const at = (text: string): string => file.replace(text, `${text}¦`);
+
         line(at('<div />'), file.replace('<div />', '<!-- <div /> -->').replace('</template>', '</template>¦'), { language: 'vue' });
         line(at('foo()'), file.replace('foo()', '// foo()').replace('</script>', '</script¦>'), { language: 'vue' });
         line(at('a {}'), file.replace('a {}', '/* a {} */').replace('</style>', '</style>¦'), { language: 'vue' });
@@ -169,6 +181,7 @@ describe('comments in embedded markup', () => {
         const model = new DocumentModel(source.replace('¦', ''));
         model.setSelections([{ anchor: at, head: at }]);
         model.execute(command, { language });
+
         return model;
     }
 
@@ -237,6 +250,7 @@ describe('comments in embedded markup', () => {
             const source = prefix + '\n¦<p>text</p>';
             expect(commented(source, 'php').getText()).toBe(source.replace('¦<p>text</p>', '<!-- <p>text</p> -->'));
         }
+
         const heredoc = '<?php\n$value = <<<HTML\n¦<script>\nHTML;';
         expect(commented(heredoc, 'php').getText()).toBe(heredoc.replace('¦', ''));
     });
@@ -281,6 +295,7 @@ describe('JSX line comment context remains stable across toggles', () => {
         model.execute('toggleLineComment', { language: 'tsx' });
         expect(model.getText()).toBe(source);
     });
+
     it('toggles all lines of a nested multiline opening tag with the first line marker', () => {
         const source = 'const view = <div>\n    <Foo\n        bar="x"\n    />\n</div>;';
         const model = new DocumentModel(source);
@@ -291,18 +306,22 @@ describe('JSX line comment context remains stable across toggles', () => {
         model.execute('toggleLineComment', { language: 'tsx' });
         expect(model.getText()).toBe(source);
     });
+
     it('preserves JavaScript markers across a complete return block', () => {
         const source = 'function view() {\n    return (\n        <div>\n            text\n        </div>\n    );\n}';
         const model = new DocumentModel(source);
         model.setSelections([{ anchor: model.getLine(1).start, head: model.getLine(5).end }]);
         model.execute('toggleLineComment', { language: 'tsx' });
+
         for (let line = 1; line <= 5; line++) {
             expect(model.getLine(line).text.trimStart().startsWith('//')).toBe(true);
         }
+
         model.setSelections([{ anchor: model.getLine(1).start, head: model.getLine(5).end }]);
         model.execute('toggleLineComment', { language: 'tsx' });
         expect(model.getText()).toBe(source);
     });
+
     it('keeps a self-closing element within JavaScript parentheses in script syntax', () => {
         const source = 'const view = <div>{items.map(item => (\n    <li />\n))}</div>;';
         const model = new DocumentModel(source);
@@ -317,11 +336,13 @@ describe('JSX attribute comments retain child context', () => {
     it('toggles a child after commenting an attribute and restores both', () => {
         const source = 'const view = <div>\n    <Foo\n        bar="x"\n    />\n    text\n</div>;';
         const model = new DocumentModel(source);
+
         const toggle = (line: number) => {
             const at = model.getLine(line).start;
             model.setSelections([{ anchor: at, head: at }]);
             model.execute('toggleLineComment', { language: 'tsx' });
         };
+
         toggle(2);
         const attributeComment = model.getText();
         expect(model.getLine(2).text).toBe('        // bar="x"');
@@ -332,6 +353,7 @@ describe('JSX attribute comments retain child context', () => {
         toggle(2);
         expect(model.getText()).toBe(source);
     });
+
     it('recognizes children around block comments between attributes', () => {
         const source = 'const view = <div>\n    <Foo\n        /* bar="x" */\n    />\n    text\n</div>;';
         const model = new DocumentModel(source);
@@ -356,10 +378,13 @@ describe('embedded selections keep their region boundaries', () => {
             expect(model.getSnapshot().canUndo).toBe(false);
         }
     });
+
     it('keeps a homogeneous PHP script-body selection reversible', () => {
         const source = '<script>\nrun();\nnext();\n</script>';
         const model = new DocumentModel(source);
+
         const select = () => model.setSelections([{ anchor: model.getLine(1).start, head: model.getLine(2).end }]);
+
         select();
         expect(model.execute('toggleLineComment', { language: 'php' })).toBe(true);
         expect(model.getText()).toBe('<script>\n// run();\n// next();\n</script>');
@@ -367,6 +392,7 @@ describe('embedded selections keep their region boundaries', () => {
         model.execute('toggleLineComment', { language: 'php' });
         expect(model.getText()).toBe(source);
     });
+
     it('leaves a Vue selection spanning template and script unchanged', () => {
         const source = '<template>\n<div />\n</template>\n<script>\nrun();\n</script>';
         const model = new DocumentModel(source);
@@ -374,10 +400,13 @@ describe('embedded selections keep their region boundaries', () => {
         expect(model.execute('toggleLineComment', { language: 'vue' })).toBe(false);
         expect(model.getText()).toBe(source);
     });
+
     it('retains Vue block delimiters while toggling their body', () => {
         const source = '<script>\nrun();\n</script>';
         const model = new DocumentModel(source);
+
         const select = () => model.setSelections([{ anchor: 0, head: model.getText().length }]);
+
         select();
         model.execute('toggleLineComment', { language: 'vue' });
         expect(model.getText()).toBe('<script>\n// run();\n</script>');
@@ -396,6 +425,7 @@ describe('PHP tag scans preserve comments and malformed input', () => {
         model.execute('toggleLineComment', { language: 'php' });
         expect(model.getLine(1).text).toBe('// run();');
     });
+
     it('keeps PHP expressions inside script attributes within the opening tag', () => {
         for (const expression of ['$nonce', '"?>"']) {
             const source = `<script <?= ${expression} ?>>\nrun();\n</script>`;
@@ -406,8 +436,10 @@ describe('PHP tag scans preserve comments and malformed input', () => {
             expect(model.getLine(1).text).toBe('// run();');
         }
     });
+
     it('skips every line of a multiline HTML comment without closing it early', () => {
         const source = '<!--\n<p>protected</p>\n-->\n<p>outside</p>';
+
         for (let line = 0; line < 3; line++) {
             const model = new DocumentModel(source);
             const at = model.getLine(line).start;
@@ -416,11 +448,13 @@ describe('PHP tag scans preserve comments and malformed input', () => {
             expect(model.getText()).toBe(source);
         }
     });
+
     it('still unwraps a complete one-line HTML comment', () => {
         const model = new DocumentModel('<!-- <p>text</p> -->');
         model.execute('toggleLineComment', { language: 'php' });
         expect(model.getText()).toBe('<p>text</p>');
     });
+
     it('does not close an HTML comment at a marker in a PHP string', () => {
         const source = '<!--\n<?php echo "-->"; ?>\n<p>protected</p>\n-->\n<p>outside</p>';
         const model = new DocumentModel(source);
@@ -432,6 +466,7 @@ describe('PHP tag scans preserve comments and malformed input', () => {
         model.execute('toggleLineComment', { language: 'php' });
         expect(model.getLine(4).text).toBe('<!-- <p>outside</p> -->');
     });
+
     it('does not close a raw script at a namespaced tag', () => {
         const model = new DocumentModel('<script>\n</script:other>\nrun();\n</script>');
         const at = model.getLine(2).start;
@@ -454,6 +489,7 @@ describe('PHP literal values stay unchanged by comment commands', () => {
     it('skips heredoc and nowdoc openers, bodies and indented closing labels', () => {
         for (const label of ['HTML', "'HTML'"]) {
             const source = `<?php\n$value = <<<${label}\n    <p>text</p>\n    HTML;\n$next = 1;`;
+
             for (let line = 1; line <= 3; line++) {
                 const model = new DocumentModel(source);
                 const at = model.getLine(line).start;
@@ -463,9 +499,11 @@ describe('PHP literal values stay unchanged by comment commands', () => {
             }
         }
     });
+
     it('skips multiline quoted-string openers, body and closing lines', () => {
         for (const quote of ['"', "'"]) {
             const source = `<?php\n$value = ${quote}first\nsecond\nlast${quote};\n$next = 1;`;
+
             for (let line = 1; line <= 3; line++) {
                 const model = new DocumentModel(source);
                 const at = model.getLine(line).start;
@@ -475,10 +513,13 @@ describe('PHP literal values stay unchanged by comment commands', () => {
             }
         }
     });
+
     it('comments neighboring code without changing a literal within a selection', () => {
         const source = '<?php\n$before = 1;\n$value = <<<HTML\n<p>text</p>\nHTML;\n$after = 2;';
         const model = new DocumentModel(source);
+
         const select = () => model.setSelections([{ anchor: model.getLine(1).start, head: model.getLine(5).end }]);
+
         select();
         model.execute('toggleLineComment', { language: 'php' });
         expect(model.getText()).toBe('<?php\n// $before = 1;\n$value = <<<HTML\n<p>text</p>\nHTML;\n// $after = 2;');
@@ -486,6 +527,7 @@ describe('PHP literal values stay unchanged by comment commands', () => {
         model.execute('toggleLineComment', { language: 'php' });
         expect(model.getText()).toBe(source);
     });
+
     it('refuses block-comment ranges whose endpoints are within a PHP literal', () => {
         for (const source of ['<?php\n$value = <<<HTML\nbody\nHTML;', '<?php\n$value = "first\nbody\nlast";']) {
             const model = new DocumentModel(source);
@@ -495,6 +537,7 @@ describe('PHP literal values stay unchanged by comment commands', () => {
             expect(model.getText()).toBe(source);
         }
     });
+
     it('refuses a block selection that ends inside a PHP literal', () => {
         const source = '<?php\n$value = <<<HTML\nbody\nHTML;';
         const model = new DocumentModel(source);
@@ -502,6 +545,7 @@ describe('PHP literal values stay unchanged by comment commands', () => {
         expect(model.execute('toggleBlockComment', { language: 'php' })).toBe(false);
         expect(model.getText()).toBe(source);
     });
+
     it('still toggles a complete single-line string assignment', () => {
         const source = '$value = "text";';
         const model = new DocumentModel(source);
@@ -604,6 +648,7 @@ test('a PHP closing-tag string in JavaScript does not disable script comments', 
 
 test('PHP comments leave multiline tag boundaries and attributes unchanged', () => {
     const source = '<div\n    title="first\nsecond"\n>\ntext\n</div>';
+
     for (let line = 0; line <= 3; line++) {
         const model = new DocumentModel(source);
         const bounds = model.getLine(line);
@@ -611,6 +656,7 @@ test('PHP comments leave multiline tag boundaries and attributes unchanged', () 
         expect(model.execute('toggleLineComment', { language: 'php' })).toBe(false);
         expect(model.getText()).toBe(source);
     }
+
     block('<div [title="x"]>', '<div [title="x"]>', { language: 'php' });
     block('[<div title="x]">', '[<div title="x]">', { language: 'php' });
     const model = new DocumentModel(source);
@@ -642,6 +688,7 @@ test('PHP and script block selections leave a partial line comment intact', () =
         expect(model.execute('toggleBlockComment', { language: 'php' })).toBe(false);
         expect(model.getText()).toBe(initial.text);
     }
+
     block('<?php\n[$a; // note]  ', '<?php\n[/* $a; // note */]  ', { language: 'php' });
 });
 

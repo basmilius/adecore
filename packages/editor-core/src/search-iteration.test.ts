@@ -70,6 +70,7 @@ for (const fixture of [
 test('iteration retains named, missing and multiline captures', () => {
     const iterator = iterateMatches('key=12\nother=x', '(?<key>\\w+)=(\\d+)?x?', 3, { regex: true });
     expect(iterator.next().value).toEqual({ from: 0, to: 6, text: 'key=12', captures: ['key', '12'], groups: { key: 'key' }, regex: true, revision: 3 });
+
     expect(iterator.next().value).toEqual({
         from: 7,
         to: 14,
@@ -79,6 +80,7 @@ test('iteration retains named, missing and multiline captures', () => {
         regex: true,
         revision: 3
     });
+
     expect(iterator.next().done).toBe(true);
 });
 
@@ -88,6 +90,7 @@ test('the eager search keeps validation while the iterator validates on first ad
         expect(() => iterator.next()).toThrow(RangeError);
         expect(() => findMatches('cat', 'cat', 0, options)).toThrow(RangeError);
     }
+
     expect(() => iterateMatches('cat', '(', 0, { regex: true }).next()).toThrow(SyntaxError);
     expect(() => findMatches('cat', '(', 0, { regex: true, maxResults: 0 })).toThrow(SyntaxError);
     expect(findMatches('cat', '', 0, { from: -1 })).toEqual([]);
@@ -104,8 +107,10 @@ for (const text of ['aaaa', 'a.b a?b a.b', '😀x\r\n😀', 'Cat cat cats']) {
                             const matches = findMatches(text, query, 4, options);
                             const position = Math.max(0, Math.min(text.length, Number.isFinite(offset) ? Math.trunc(offset) : 0));
                             const ordered = backwards ? matches.toReversed() : matches;
+
                             const expected =
                                 ordered.find((match) => (backwards ? match.to <= position : match.from >= position)) ?? (wrap ? (ordered[0] ?? null) : null);
+
                             expect(findMatchFrom(text, query, 4, offset, options)).toEqual(expected);
                         }
                     }
@@ -125,6 +130,7 @@ test('the cursor keeps the original nonoverlapping match grid and selection boun
 test('DocumentModel.findNext no longer collects every match through find', () => {
     const model = new DocumentModel('aa aa aa');
     const find = spyOn(model, 'find');
+
     try {
         expect(model.findNext('aa', 3)).toMatchObject({ from: 3, to: 5 });
         expect(model.findNext('aa', 6, { backwards: true })).toMatchObject({ from: 3, to: 5 });

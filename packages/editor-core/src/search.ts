@@ -47,33 +47,44 @@ export function findMatches(text: string, query: string, revision: number, optio
 /* Validation and regex execution start when the iterator advances. */
 export function* iterateMatches(text: string, query: string, revision: number, options: FindOptions = {}): Generator<FindMatch, void, unknown> {
     options = { ...options };
+
     if (!query && !options.regex) {
         return;
     }
+
     const from = options.from ?? 0;
     const to = options.to ?? text.length;
     const maximum = options.maxResults ?? Infinity;
+
     if (!Number.isInteger(from) || !Number.isInteger(to) || from < 0 || to < from || to > text.length) {
         throw new RangeError('Search bounds must be ordered offsets inside the document.');
     }
+
     if (maximum !== Infinity && (!Number.isInteger(maximum) || maximum < 0)) {
         throw new RangeError('maxResults must be a nonnegative integer.');
     }
+
     const source = options.regex ? query : query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const expression = new RegExp(source, `gmu${options.caseSensitive ? '' : 'i'}`);
     expression.lastIndex = from;
     let count = 0;
+
     while (count < maximum) {
         const match = expression.exec(text);
+
         if (!match || match.index > to) {
             break;
         }
+
         const end = match.index + match[0].length;
+
         const wholeWord =
             !options.wholeWord ||
             (!wordCharacter.test(characterBefore(text, match.index)) && !wordCharacter.test(String.fromCodePoint(text.codePointAt(end) ?? 0)));
+
         if (match.index >= from && end <= to && !splitsSurrogate(text, match.index) && !splitsSurrogate(text, end) && wholeWord) {
             count++;
+
             yield {
                 from: match.index,
                 to: end,
@@ -84,6 +95,7 @@ export function* iterateMatches(text: string, query: string, revision: number, o
                 revision
             };
         }
+
         if (!match[0].length) {
             expression.lastIndex = match.index + ((text.codePointAt(match.index) ?? 0) > 0xffff ? 2 : 1);
         }
@@ -96,12 +108,15 @@ export function findMatchFrom(text: string, query: string, revision: number, off
     let first: FindMatch | null = null;
     let last: FindMatch | null = null;
     let previous: FindMatch | null = null;
+
     for (const match of iterateMatches(text, query, revision, options)) {
         first ??= match;
         last = match;
+
         if (!options.backwards && match.from >= position) {
             return match;
         }
+
         if (options.backwards) {
             if (match.to <= position) {
                 previous = match;
@@ -110,6 +125,7 @@ export function findMatchFrom(text: string, query: string, revision: number, off
             }
         }
     }
+
     return options.backwards ? (previous ?? (options.wrap === false ? null : last)) : options.wrap === false ? null : first;
 }
 
@@ -118,59 +134,81 @@ export function replacementText(text: string, match: FindMatch, replacement: str
     if (maxCharacters !== Infinity && (!Number.isSafeInteger(maxCharacters) || maxCharacters < 0)) {
         throw new RangeError('The replacement character limit must be nonnegative.');
     }
+
     const expanded = literal || !match.regex ? replacement : expandPatterns(text, match, replacement, maxCharacters);
+
     if (expanded.length > maxCharacters) {
         throw new RangeError('Replacement output exceeds its character limit.');
     }
+
     const result = preserveCase ? replaceWithCaseRespect(expanded, match.text) : expanded;
+
     if (result.length > maxCharacters) {
         throw new RangeError('Replacement output exceeds its character limit.');
     }
+
     return result;
 }
 
 function expandPatterns(text: string, match: FindMatch, replacement: string, maxCharacters: number): string {
     const pieces: string[] = [];
+
     let characters = 0,
         cursor = 0;
+
     const append = (value: string): void => {
         characters += value.length;
+
         if (characters > maxCharacters) {
             throw new RangeError('Replacement output exceeds its character limit.');
         }
+
         pieces.push(value);
     };
+
     const expand = (token: string, group: string): string => {
         if (group === '$') {
             return '$';
         }
+
         if (group === '&') {
             return match.text;
         }
+
         if (group === '`') {
             return text.slice(0, match.from);
         }
+
         if (group === "'") {
             return text.slice(match.to);
         }
+
         if (group.startsWith('<')) {
             return match.groups ? (match.groups[group.slice(1, -1)] ?? '') : token;
         }
+
         const index = Number(group);
+
         if (index > 0 && index <= match.captures.length) {
             return match.captures[index - 1] ?? '';
         }
+
         const first = Number(group[0]);
+
         if (group.length === 2 && first > 0 && first <= match.captures.length) {
             return (match.captures[first - 1] ?? '') + group[1];
         }
+
         return token;
     };
+
     for (const found of replacement.matchAll(/\$(\$|&|`|'|\d{1,2}|<[^>]*>)/g)) {
         append(replacement.slice(cursor, found.index));
         append(expand(found[0], found[1]!));
         cursor = found.index + found[0].length;
     }
+
     append(replacement.slice(cursor));
+
     return pieces.join('');
 }

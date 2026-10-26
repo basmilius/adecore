@@ -5,17 +5,21 @@ import { TextRope } from './rope.ts';
 function referenceLines(text: string): { start: number; end: number; next: number; text: string }[] {
     const lines: { start: number; end: number; next: number; text: string }[] = [];
     let start = 0;
+
     for (const match of text.matchAll(/\r\n|\r|\n/g)) {
         lines.push({ start, end: match.index, next: match.index + match[0].length, text: text.slice(start, match.index) });
         start = match.index + match[0].length;
     }
+
     lines.push({ start, end: text.length, next: text.length, text: text.slice(start) });
+
     return lines;
 }
 
 function random(seed: number): () => number {
     return () => {
         seed = (Math.imul(seed, 1664525) + 1013904223) | 0;
+
         return (seed >>> 0) / 4294967296;
     };
 }
@@ -27,10 +31,12 @@ describe('persistent text and line index', () => {
         let rope = TextRope.from(text);
         const versions: { rope: TextRope; text: string }[] = [];
         const inserts = ['', '\r', '\n', '\t', '😀', 'e\u0301', 'x'.repeat(2500), '\r\n\tline\n'];
+
         for (let round = 0; round < 700; round++) {
             if (round % 50 === 0) {
                 versions.push({ rope, text });
             }
+
             const from = Math.floor(rand() * (text.length + 1));
             const to = Math.min(text.length, from + Math.floor(rand() * 3000));
             const insert = inserts[Math.floor(rand() * inserts.length)]!;
@@ -46,6 +52,7 @@ describe('persistent text and line index', () => {
             expect(rope.lineAt(offset)).toBe(lines.filter((candidate) => candidate.start <= offset).length - 1);
             expect(rope.slice(from - 10, from + 30)).toBe(text.slice(Math.max(0, from - 10), from + 30));
         }
+
         for (const version of versions) {
             expect(version.rope.slice()).toBe(version.text);
         }
@@ -108,10 +115,12 @@ describe('persistent text and line index', () => {
         expect(model.slice(2, 3)).toBe('\ud83d');
         expect(model.slice(-10, 2)).toBe('\r\n');
         expect(model.slice(6, 1)).toBe('');
+
         model.applyEdits([
             { from: 0, to: 2, text: '' },
             { from: 4, to: 6, text: '\n' }
         ]);
+
         expect(model.getLineCount()).toBe(2);
         expect(model.getLine(0).text).toBe('😀');
         model.undo();
@@ -126,6 +135,7 @@ describe('persistent text and line index', () => {
         model.applyEdits([{ from: 0, to: 0, text: '!' }]);
         const old = model.getSnapshot();
         const slice = spyOn(TextRope.prototype, 'slice');
+
         try {
             const seen: number[] = [];
             model.subscribe((snapshot) => seen.push(snapshot.revision));
@@ -175,34 +185,43 @@ describe('persistent text and line index', () => {
 
     it('recognizes collective no-ops without flattening unaffected text', () => {
         const model = new DocumentModel('a'.repeat(10000));
+
         expect(
             model.applyEdits([
                 { from: 0, to: 1, text: '' },
                 { from: 9999, to: 9999, text: 'a' }
             ])
         ).toBe(false);
+
         expect(model.getRevision()).toBe(0);
         expect(model.getSnapshot().canUndo).toBe(false);
+
         model.applyEdits([
             { from: 1, to: 1, text: 'x' },
             { from: 1, to: 2, text: 'y' }
         ]);
+
         expect(model.slice(0, 5)).toBe('axyaa');
     });
 
     it('keeps the 200-entry history bound and grouped edits with indexed lines', () => {
         const model = new DocumentModel('start\r\n');
+
         for (let i = 0; i < 230; i++) {
             model.applyEdits([{ from: 0, to: 0, text: `\t${i}😀\n` }]);
         }
+
         for (let i = 0; i < 200; i++) {
             expect(model.undo()).toBe(true);
         }
+
         expect(model.undo()).toBe(false);
         expect(model.getLineCount()).toBe(32);
+
         for (let i = 0; i < 200; i++) {
             expect(model.redo()).toBe(true);
         }
+
         expect(model.getLineCount()).toBe(232);
         expect(model.redo()).toBe(false);
     });
@@ -212,24 +231,31 @@ describe('persistent text and line index', () => {
         let text = '😀\r\n\tété\u0301\n'.repeat(500);
         const model = new DocumentModel(text);
         const inserts = ['', '\t', '😀', '\r\n', '\r', '\n', 'e\u0301\t𝒜'];
+
         const boundary = (offset: number): number =>
             /[\ud800-\udbff]/.test(text[offset - 1] ?? '') && /[\udc00-\udfff]/.test(text[offset] ?? '') ? offset - 1 : offset;
+
         for (let round = 0; round < 300; round++) {
             const split = Math.floor(text.length / 2);
             const from = boundary(Math.floor(rand() * split));
             const second = boundary(split + Math.floor(rand() * (text.length - split)));
+
             const edits = [
                 { from, to: boundary(Math.min(from + 5, second)), text: inserts[Math.floor(rand() * inserts.length)]! },
                 { from: second, to: boundary(Math.min(second + 3, text.length)), text: inserts[Math.floor(rand() * inserts.length)]! }
             ];
+
             const before = text;
+
             for (const edit of [...edits].reverse()) {
                 text = text.slice(0, edit.from) + edit.text + text.slice(edit.to);
             }
+
             const changed = model.applyEdits(edits);
             expect(changed).toBe(before !== text);
             expect(model.getText()).toBe(text);
             expect(model.getLineCount()).toBe(referenceLines(text).length);
+
             if (changed) {
                 model.undo();
                 expect(model.getText()).toBe(before);

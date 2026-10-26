@@ -10,11 +10,13 @@ it('pairs nested source while ignoring comments, strings, regexes and template t
     expect(index.pairs.get(source.indexOf('${') + 1)).toBe(source.indexOf('} }`'));
     expect(index.unmatched.size).toBe(0);
 });
+
 it('never creates crossing pairs through malformed nesting', () => {
     const index = scanBrackets('([)] {');
     expect(index.pairs.size).toBe(0);
     expect([...index.unmatched].sort((left, right) => left - right)).toEqual([0, 1, 2, 3, 5]);
 });
+
 it('ignores PHP hash comments but preserves attribute brackets', () => {
     const source = '# {\n#[Attribute] function f() { return "}"; }';
     const index = scanBrackets(source, 'php');

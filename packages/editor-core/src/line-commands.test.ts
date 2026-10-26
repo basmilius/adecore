@@ -6,21 +6,27 @@ import type { CommandOptions, EditorCommand } from './types.ts';
 function parse(source: string): { text: string; selection: { anchor: number; head: number } } {
     const open = source.indexOf('«');
     const close = source.indexOf('»');
+
     if (open >= 0 && close >= 0) {
         return { text: source.slice(0, open) + source.slice(open + 1, close) + source.slice(close + 1), selection: { anchor: open, head: close - 1 } };
     }
+
     const caret = source.indexOf('¦');
+
     return { text: source.replace('¦', ''), selection: { anchor: caret, head: caret } };
 }
 
 function render(model: DocumentModel): string {
     const selection = model.getSelections()[0]!;
     const text = model.getText();
+
     if (selection.anchor === selection.head) {
         return text.slice(0, selection.head) + '¦' + text.slice(selection.head);
     }
+
     const from = Math.min(selection.anchor, selection.head);
     const to = Math.max(selection.anchor, selection.head);
+
     return `${text.slice(0, from)}«${text.slice(from, to)}»${text.slice(to)}`;
 }
 
@@ -115,10 +121,12 @@ describe('toggle case', () => {
 
     it('has one answer for every caret', () => {
         const model = new DocumentModel('ab CD');
+
         model.setSelections([
             { anchor: 1, head: 1 },
             { anchor: 4, head: 4 }
         ]);
+
         model.execute('toggleCase');
         expect(model.getText()).toBe('ab cd');
     });
@@ -164,6 +172,7 @@ describe('joining code below comments in embedded markup', () => {
     it('converts the PHP opening-tag line comment before joining executable code', () => {
         run('joinLines', '<?php // note¦\n$value = 2;', '<?php /* note */¦ $value = 2;', { language: 'php' });
     });
+
     it('converts a JSX callback line comment before joining executable code', () => {
         run('joinLines', 'const view = <Foo onClick={() => { // note¦\nwork();\n}} />;', 'const view = <Foo onClick={() => { /* note */¦ work();\n}} />;', {
             language: 'tsx'

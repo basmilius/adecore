@@ -39,6 +39,7 @@ register(
     'typescript javascript typescriptreact javascriptreact tsx jsx ts js mjs cjs mts cts java c cpp c++ csharp cs go rust rs swift kotlin kt scala dart zig groq prisma astro svelte objective-c objc glsl hlsl proto protobuf scss less jsonc json5',
     { slash: true, block: true, braced: true }
 );
+
 register('php', { slash: true, hash: 'any', block: true, braced: true });
 register('vue', { slash: true, block: true, markup: true, braced: true });
 register('hcl terraform', { slash: true, hash: 'any', block: true, braced: true });
@@ -68,6 +69,7 @@ export interface LexerRules {
 
 export function lexerRules(language: string): LexerRules {
     const rules = rulesOf(language);
+
     return {
         script: isScript(language),
         php: isPhp(language),
@@ -107,9 +109,11 @@ export function hasSmartSemicolon(language: string): boolean {
 
 export function isWordCharacter(character: string): boolean {
     const code = character.charCodeAt(0);
+
     if (code < 128) {
         return (code >= 97 && code <= 122) || (code >= 65 && code <= 90) || (code >= 48 && code <= 57) || code === 95 || code === 36;
     }
+
     return /[\p{L}\p{N}_$]/u.test(character);
 }
 

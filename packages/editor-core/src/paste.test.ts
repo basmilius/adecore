@@ -5,6 +5,7 @@ import type { CommandOptions } from './types.ts';
 function parse(source: string): { text: string; carets: number[] } {
     const carets: number[] = [];
     let text = '';
+
     for (const character of source) {
         if (character === '¦') {
             carets.push(text.length);
@@ -12,6 +13,7 @@ function parse(source: string): { text: string; carets: number[] } {
             text += character;
         }
     }
+
     return { text, carets };
 }
 
@@ -22,9 +24,11 @@ function paste(source: string, pasted: string, expected: string, options: Comman
     model.paste(pasted, { language: 'typescript', ...options });
     const heads = model.getSelections().map((selection) => selection.head);
     let result = model.getText();
+
     for (const head of [...heads].sort((left, right) => right - left)) {
         result = result.slice(0, head) + '¦' + result.slice(head);
     }
+
     expect(result).toBe(expected);
 }
 
@@ -127,6 +131,7 @@ describe('paste that lands outside code', () => {
         paste('<?php\nfunction f() {\n    $a = <<<EOT\n  ¦\nEOT;\n}', block, '<?php\nfunction f() {\n    $a = <<<EOT\n  ' + block + '¦\nEOT;\n}', {
             language: 'php'
         });
+
         paste('<?php ?>\n<div>¦</div>', block, '<?php ?>\n<div>' + block + '¦</div>', { language: 'php' });
     });
 

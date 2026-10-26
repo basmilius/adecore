@@ -23,26 +23,34 @@ export function commentRole(slice: (from: number, to: number) => string, from: n
 export function bracketRole(slice: (from: number, to: number) => string, from: number, language: string): FoldRole | undefined {
     const opener = slice(from, from + 1);
     const before = slice(Math.max(0, from - LOOK_BEHIND), from);
+
     if (language.toLowerCase() === 'php') {
         return opener === '[' && before.endsWith('#') ? 'attribute' : undefined;
     }
+
     if (!SCRIPT_LANGUAGES.test(language) || (opener !== '{' && opener !== '[')) {
         return undefined;
     }
+
     const head = before.slice(before.lastIndexOf('\n') + 1);
     const trimmed = before.trimEnd();
     const previous = trimmed.at(-1);
+
     if (previous === undefined) {
         return undefined;
     }
+
     const arrow = trimmed.endsWith('=>');
     const value = (/[=:(,[?]/.test(previous) && !arrow) || VALUE_WORDS.test(trimmed) || (arrow && opener === '[');
+
     if (!value) {
         return undefined;
     }
+
     if (opener === '[') {
         return 'array-literal';
     }
+
     // A `case x: {` and a `type A = {` are a block and a type, not a value.
     return /^\s*(?:case\b|default\s*:|(?:export\s+)?(?:declare\s+)?(?:type|interface)\b)/.test(head) ? undefined : 'object-literal';
 }
@@ -53,20 +61,26 @@ export function bracketRole(slice: (from: number, to: number) => string, from: n
  */
 export function markFileHeader(ranges: FoldingRange[], getLine: (line: number) => DocumentLine, lineCount: number, language: string): void {
     const candidate = ranges.find((range) => (range.kind === 'comment' || range.kind === 'line-comments') && range.startLine <= HEADER_LINES);
+
     if (candidate === undefined) {
         return;
     }
+
     for (let line = 0; line < candidate.startLine; line++) {
         const text = getLine(line).text;
+
         if (!isBlank(text) && !(line === 0 && /^(#!|<\?php\s*$)/.test(text))) {
             return;
         }
     }
+
     if (candidate.from > textStart(getLine(candidate.startLine))) {
         return;
     }
+
     const next = candidate.endLine + 1 < lineCount ? getLine(candidate.endLine + 1).text : '';
     const attached = candidate.role === 'doc-comment' && !isBlank(next) && !isImportLine(language, next.trimStart());
+
     if (!attached) {
         candidate.role = 'file-header';
     }
@@ -77,12 +91,15 @@ function serverRole(kind: string | undefined, text: string): FoldRole | undefine
     if (kind === 'imports') {
         return 'imports';
     }
+
     if (kind === 'region') {
         return 'region';
     }
+
     if (kind === 'comment') {
         return text.startsWith('/**') ? 'doc-comment' : undefined;
     }
+
     return text.startsWith('<') ? 'tag' : undefined;
 }
 
@@ -100,31 +117,40 @@ export function applyFoldHints(
     minimum: number
 ): FoldingRange[] {
     const result = ranges.map((range) => ({ ...range }));
+
     for (const symbol of hints.symbols ?? []) {
         const startLine = lineAt(symbol.from);
         const endLine = lineAt(Math.max(symbol.from, symbol.to - 1));
         const body = bodyOf(result, symbol, startLine, endLine, slice);
+
         if (body !== undefined) {
             body.range.role = body.role;
         }
     }
+
     const starts = new Set(result.map((range) => range.startLine));
+
     for (const hint of hints.ranges ?? []) {
         const startLine = lineAt(hint.from);
         const endLine = lineAt(hint.to);
         const same = result.find((range) => range.startLine === startLine && range.endLine === endLine);
+
         // The text's own fold of the same lines keeps its kind and role, and takes where the server hides from and shows again from.
         if (same !== undefined) {
             Object.assign(same, edgesOf(hint));
+
             continue;
         }
+
         if (endLine - startLine < minimum || starts.has(startLine)) {
             continue;
         }
+
         starts.add(startLine);
         const role = serverRole(hint.kind, getLine(startLine).text.trimStart());
         result.push({ ...rangeOf(startLine, endLine, getLine, 'server', role), ...edgesOf(hint) });
     }
+
     return result.sort((left, right) => left.startLine - right.startLine || right.endLine - left.endLine);
 }
 
@@ -144,20 +170,26 @@ function bodyOf(
         .filter((range) => range.kind === 'bracket' && range.from >= symbol.from && range.to <= symbol.to && slice(range.from, range.from + 1) === '{')
         .filter((range) => /^[\s;,]*$/.test(slice(range.to, symbol.to)))
         .sort((left, right) => right.to - left.to || left.from - right.from)[0];
+
     const range =
         brace ??
         ranges
             .filter((candidate) => candidate.kind === 'indentation' && candidate.endLine === endLine && candidate.startLine >= startLine)
             .sort((left, right) => left.startLine - right.startLine)[0];
+
     if (range === undefined) {
         return undefined;
     }
+
     if (symbol.body === 'class') {
         return { range, role: 'class-body' };
     }
+
     if (symbol.body === 'value') {
         const signature = slice(symbol.from, range.from);
+
         return /=>|\bfunction\b/.test(signature) ? { range, role: 'function-body' } : undefined;
     }
+
     return { range, role: symbol.body === 'method' ? 'method-body' : 'function-body' };
 }

@@ -15,10 +15,12 @@ describe('incremental document change metadata', () => {
         model.undo();
         expect(model.getText()).toBe('e\u0301👨‍👩‍👧‍👦x');
     });
+
     it('emits simultaneous spans and sequential inverse spans for grouped undo', () => {
         const model = new DocumentModel('abcdef');
         const events: EditorSnapshot[] = [];
         model.subscribe((snapshot) => events.push(snapshot));
+
         model.applyEdits(
             [
                 { from: 1, to: 2, text: 'XY' },
@@ -26,16 +28,20 @@ describe('incremental document change metadata', () => {
             ],
             { historyGroup: 'typing', source: 'input' }
         );
+
         model.applyEdits([{ from: 5, to: 5, text: '!' }], { historyGroup: 'typing', source: 'input' });
         expect(model.getText()).toBe('aXYcd!f');
+
         expect(events[0].changes).toEqual([
             [
                 { from: 1, to: 2, insertedLength: 2 },
                 { from: 4, to: 5, insertedLength: 0 }
             ]
         ]);
+
         model.undo();
         expect(model.getText()).toBe('abcdef');
+
         expect(events[2].changes).toEqual([
             [{ from: 5, to: 6, insertedLength: 0 }],
             [
@@ -43,6 +49,7 @@ describe('incremental document change metadata', () => {
                 { from: 5, to: 5, insertedLength: 1 }
             ]
         ]);
+
         model.redo();
         expect(model.getText()).toBe('aXYcd!f');
         expect(events[3].changes).toEqual([events[0].changes![0], events[1].changes![0]]);
@@ -54,6 +61,7 @@ describe('incremental document change metadata', () => {
         const model = new DocumentModel('x'.repeat(1024 * 1024));
         const spy = spyOn(TextRope.prototype, 'slice');
         const changes: unknown[] = [];
+
         try {
             model.subscribe((snapshot) => changes.push(snapshot.changes));
             model.applyEdits([{ from: 0, to: model.getLength(), text: '' }]);
