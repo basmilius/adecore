@@ -18,6 +18,7 @@ function roundedRect(box: Rect, radius: number): string {
     const corner = Math.round(Math.min(radius, box.w / 2, box.h / 2));
     const right = box.x + box.w;
     const bottom = box.y + box.h;
+
     return [
         `M${box.x + corner} ${box.y}`,
         `H${right - corner}`,
@@ -37,6 +38,7 @@ export function shapePaths(shape: DiagramShape | undefined, box: Rect): ShapePat
     const bottom = box.y + box.h;
     const middleX = Math.round(box.x + box.w / 2);
     const middleY = Math.round(box.y + box.h / 2);
+
     switch (shape ?? 'rect') {
         case 'round':
             return { body: roundedRect(box, ROUND_RADIUS), detail: null };
@@ -50,6 +52,7 @@ export function shapePaths(shape: DiagramShape | undefined, box: Rect): ShapePat
             const ry = Math.round(lid / 2);
             const top = box.y + ry;
             const base = bottom - ry;
+
             return {
                 body: `M${box.x} ${top} A${rx} ${ry} 0 0 1 ${right} ${top} V${base} A${rx} ${ry} 0 0 1 ${box.x} ${base} Z`,
                 detail: `M${box.x} ${top} A${rx} ${ry} 0 0 0 ${right} ${top}`
@@ -77,11 +80,13 @@ export function textLinesOf(box: Pick<NodeBox, 'x' | 'y' | 'w' | 'h' | 'label' |
     const label = box.label.map((text, index) => ({ text, x, y: top + index * LABEL_LINE + 14, size: LABEL_SIZE, bold: true, muted: false }));
     const subTop = top + box.label.length * LABEL_LINE;
     const sub = box.sub.map((text, index) => ({ text, x, y: subTop + index * SUB_LINE + 12, size: SUB_SIZE, bold: false, muted: true }));
+
     return [...label, ...sub];
 }
 
 export function edgeLabelLinesOf(label: EdgeLabelBox): TextLine[] {
     const x = Math.round(label.x + label.w / 2);
+
     return label.lines.map((text, index) => ({
         text,
         x,
@@ -105,6 +110,7 @@ export function arrowHeadPath(points: readonly Point[]): string {
     const baseX = tip.x - ux * HEAD_LENGTH;
     const baseY = tip.y - uy * HEAD_LENGTH;
     const round = Math.round;
+
     return `M${tip.x} ${tip.y} L${round(baseX - uy * HEAD_WIDTH)} ${round(baseY + ux * HEAD_WIDTH)} L${round(baseX + uy * HEAD_WIDTH)} ${round(baseY - ux * HEAD_WIDTH)} Z`;
 }
 
@@ -112,8 +118,10 @@ export function dashOf(style: DiagramEdgeStyle | undefined): string | null {
     if (style === 'dashed') {
         return '8 6';
     }
+
     if (style === 'dotted') {
         return '2 5';
     }
+
     return null;
 }

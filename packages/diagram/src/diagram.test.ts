@@ -35,6 +35,7 @@ function graph(nodes: string[], edges: string[], direction: 'right' | 'down' = '
         groups: [],
         edges: edges.map((edge): DiagramEdge => {
             const [from, to] = edge.split('>') as [string, string];
+
             return { from, to };
         })
     };
@@ -74,15 +75,19 @@ function segmentsOf(points: readonly Point[]): [Point, Point][] {
 function crossingsOf(layout: DiagramLayout): number {
     let count = 0;
     const all = layout.edges.map((edge) => segmentsOf(edge.points));
+
     for (let i = 0; i < all.length; i++) {
         for (let j = i + 1; j < all.length; j++) {
             for (const [p0, p1] of all[i]!) {
                 for (const [q0, q1] of all[j]!) {
                     const pFlat = p0.y === p1.y;
+
                     if (pFlat === (q0.y === q1.y)) {
                         continue;
                     }
+
                     const [h0, h1, v0, v1] = pFlat ? [p0, p1, q0, q1] : [q0, q1, p0, p1];
+
                     if (v0.x > Math.min(h0.x, h1.x) && v0.x < Math.max(h0.x, h1.x) && h0.y > Math.min(v0.y, v1.y) && h0.y < Math.max(v0.y, v1.y)) {
                         count += 1;
                     }
@@ -90,6 +95,7 @@ function crossingsOf(layout: DiagramLayout): number {
             }
         }
     }
+
     return count;
 }
 
@@ -100,24 +106,31 @@ function withDirection(document: DiagramDocument, direction: 'right' | 'down'): 
 /* A small deterministic generator, so the graphs below are the same on every run. */
 function randomGraphs(count: number): DiagramDocument[] {
     let seed = 7;
+
     const next = (limit: number): number => {
         seed = (seed * 1103515245 + 12345) % 2147483648;
+
         return seed % limit;
     };
+
     return Array.from({ length: count }, (_, index) => {
         const size = 4 + next(10);
         const ids = Array.from({ length: size }, (_, i) => `n${i}`);
         const edges = Array.from({ length: size + next(size) }, () => `${ids[next(size)]}>${ids[next(size)]}`);
         const document = graph(ids, edges, index % 2 === 0 ? 'right' : 'down');
+
         document.nodes = document.nodes.map((node, i) => ({
             ...node,
             label: i % 3 === 0 ? `A longer label for node ${i} that has to wrap` : node.label,
             shape: (['rect', 'round', 'pill', 'diamond', 'cylinder'] as const)[next(5)]
         }));
+
         document.edges = document.edges.map((edge, i) => (i % 2 === 0 ? { ...edge, label: `edge ${i}` } : edge));
+
         if (size > 6) {
             document.groups = [{ id: 'g', label: 'Group', wraps: [ids[1]!, ids[2]!] }];
         }
+
         return document;
     });
 }
@@ -127,18 +140,22 @@ function expectReadable(document: DiagramDocument): void {
     const layout = layoutOf(document);
     const boxes = new Map(layout.nodes.map((box) => [box.id, box]));
     const labels = layout.edges.flatMap((edge) => (edge.label ? [edge.label] : []));
+
     for (const edge of layout.edges) {
         for (const box of layout.nodes) {
             if (box.id === edge.from || box.id === edge.to) {
                 continue;
             }
+
             for (const [start, end] of segmentsOf(edge.points)) {
                 expect({ edge: edge.index, node: box.id, cuts: cuts(start, end, box) }).toEqual({ edge: edge.index, node: box.id, cuts: false });
             }
         }
     }
+
     labels.forEach((label, index) => {
         expect(whole(label)).toBe(true);
+
         for (const box of layout.nodes) {
             expect({ label: label.lines.join(' '), node: box.id, overlaps: overlaps(label, box) }).toEqual({
                 label: label.lines.join(' '),
@@ -146,9 +163,11 @@ function expectReadable(document: DiagramDocument): void {
                 overlaps: false
             });
         }
+
         for (const group of layout.groups) {
             expect(overlaps(label, group.labelBox)).toBe(false);
         }
+
         for (const other of labels.slice(index + 1)) {
             expect({ label: label.lines.join(' '), other: other.lines.join(' '), overlaps: overlaps(label, other) }).toEqual({
                 label: label.lines.join(' '),
@@ -157,23 +176,28 @@ function expectReadable(document: DiagramDocument): void {
             });
         }
     });
+
     for (const group of layout.groups) {
         const wraps = new Set(document.groups.find((candidate) => candidate.id === group.id)!.wraps);
+
         for (const box of layout.nodes) {
             if (!wraps.has(box.id)) {
                 expect({ group: group.id, node: box.id, overlaps: overlaps(group, box) }).toEqual({ group: group.id, node: box.id, overlaps: false });
             }
         }
+
         for (const edge of layout.edges) {
             // An edge with an end inside the group crosses its border on the way; any other stays out of it.
             if (wraps.has(edge.from) || wraps.has(edge.to)) {
                 continue;
             }
+
             for (const [start, end] of segmentsOf(edge.points)) {
                 expect({ edge: edge.index, group: group.id, cuts: cuts(start, end, group) }).toEqual({ edge: edge.index, group: group.id, cuts: false });
             }
         }
     }
+
     expect(boxes.size).toBe(document.nodes.length);
 }
 
@@ -218,6 +242,7 @@ describe('layoutOf', () => {
     test('every coordinate is a whole number', () => {
         for (const direction of ['right', 'down'] as const) {
             const layout = layoutOf({ ...example, meta: { ...example.meta, direction } });
+
             const numbers = [
                 ...layout.nodes.flatMap((box) => [box.x, box.y, box.w, box.h]),
                 ...layout.groups.flatMap((box) => [box.x, box.y, box.w, box.h]),
@@ -230,6 +255,7 @@ describe('layoutOf', () => {
                 layout.bounds.w,
                 layout.bounds.h
             ];
+
             expect(numbers.every(Number.isInteger)).toBe(true);
         }
     });
@@ -322,12 +348,14 @@ describe('a readable layout', () => {
             const document = withDirection(fixture, direction);
             const layout = layoutOf(document);
             expect(layoutOf(JSON.parse(JSON.stringify(document)) as DiagramDocument)).toEqual(layout);
+
             const rects = [
                 ...layout.nodes,
                 ...layout.groups,
                 ...layout.groups.map((group) => group.labelBox),
                 ...layout.edges.flatMap((edge) => (edge.label ? [edge.label] : []))
             ];
+
             expect(rects.every(whole)).toBe(true);
             expect(layout.edges.every((edge) => edge.points.every((point) => Number.isInteger(point.x) && Number.isInteger(point.y)))).toBe(true);
         });
@@ -374,10 +402,12 @@ describe('a readable layout', () => {
             ...graph(['a'], []),
             nodes: [{ id: 'a', label: 'one two three four five six seven eight nine ten eleven twelve' }]
         };
+
         const layout = layoutOf(document);
         const lines = textLinesOf(layout.nodes[0]!);
         expect(lines.length).toBe(layout.nodes[0]!.label.length);
         const svg = toSvg(document, { layout });
+
         for (const line of lines) {
             expect(svg).toContain(`>${line.text}</text>`);
         }
@@ -385,10 +415,12 @@ describe('a readable layout', () => {
 
     test('a chain of thousands of nodes lays out to its last layer', () => {
         const ids = Array.from({ length: 3000 }, (_, i) => `n${i}`);
+
         const document = graph(
             ids,
             ids.slice(1).map((id, i) => `${ids[i]}>${id}`)
         );
+
         const layout = layoutOf(document);
         expect(layout.nodes.at(-1)!.layer).toBe(2999);
     });
@@ -413,6 +445,7 @@ describe('toSvg', () => {
             nodes: [...example.nodes, { id: 'bell', label: 'Bell\u0007', sub: 'sub\u001f' }],
             edges: [...example.edges, { from: 'bell', to: 'client', label: 'ring\u000b' }]
         });
+
         expect(svg).not.toMatch(/[^\t\n\r\u0020-\uFFFD]/);
         expect(svg).toContain('Daemon');
         expect(svg).toContain('Bell');
@@ -420,6 +453,7 @@ describe('toSvg', () => {
 
     test('every shape has an outline and only a cylinder has a lid', () => {
         const box = { x: 0, y: 0, w: 120, h: 60 };
+
         for (const shape of ['rect', 'round', 'pill', 'diamond', 'cylinder'] as const) {
             const paths = shapePaths(shape, box);
             expect(paths.body).toEndWith('Z');

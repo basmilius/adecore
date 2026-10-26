@@ -12,10 +12,13 @@ const document = DiagramDocumentSchema.parse({
     groups: [],
     edges: [{ from: 'draft', to: 'review' }]
 });
+
 const problem = diagramProblemIn(document);
+
 if (problem !== null) {
     throw new Error(problem);
 }
+
 const layout = layoutOf(document);
 console.log(readingOrder(document));
 console.log(toSvg(document, { layout }));

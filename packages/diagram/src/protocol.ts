@@ -83,6 +83,7 @@ export const EMPTY_DIAGRAM: DiagramDocument = { version: 1, rev: 0, meta: { titl
 /* One version so far, so reading is a parse. A file that is not a diagram at all reads as null. */
 export function migrateDiagram(value: unknown): DiagramDocument | null {
     const parsed = DiagramDocumentSchema.safeParse(value);
+
     return parsed.success ? parsed.data : null;
 }
 
@@ -95,35 +96,47 @@ export function diagramProblemIn(content: Pick<DiagramContent, 'nodes' | 'groups
     if (content.nodes.length > DIAGRAM_LIMITS.nodes) {
         return `A diagram holds at most ${DIAGRAM_LIMITS.nodes} nodes, and this one has ${content.nodes.length}`;
     }
+
     if (content.edges.length > DIAGRAM_LIMITS.edges) {
         return `A diagram holds at most ${DIAGRAM_LIMITS.edges} edges, and this one has ${content.edges.length}`;
     }
+
     // Nodes and groups share one namespace, so an id always says which box it means.
     const nodes = new Set<string>();
+
     for (const node of content.nodes) {
         if (nodes.has(node.id)) {
             return `Two nodes share the id "${node.id}"`;
         }
+
         nodes.add(node.id);
     }
+
     const groups = new Set<string>();
     const groupOf = new Map<string, string>();
+
     for (const group of content.groups) {
         if (nodes.has(group.id) || groups.has(group.id)) {
             return `The group id "${group.id}" is already taken`;
         }
+
         groups.add(group.id);
+
         for (const id of group.wraps) {
             if (!nodes.has(id)) {
                 return `The group "${group.id}" wraps "${id}", which is not a node`;
             }
+
             const other = groupOf.get(id);
+
             if (other !== undefined) {
                 return `The node "${id}" is in two groups, "${other}" and "${group.id}"`;
             }
+
             groupOf.set(id, group.id);
         }
     }
+
     for (const edge of content.edges) {
         for (const end of [edge.from, edge.to]) {
             if (!nodes.has(end)) {
@@ -131,5 +144,6 @@ export function diagramProblemIn(content: Pick<DiagramContent, 'nodes' | 'groups
             }
         }
     }
+
     return null;
 }

@@ -96,22 +96,27 @@ export function sizeOfNode(node: Pick<DiagramNode, 'label' | 'sub' | 'shape'>): 
     const sub = node.sub ? wrapText(node.sub, SUB_SIZE, false, maxWidth) : [];
     const textWidth = Math.max(widestLine(label, LABEL_SIZE, true), widestLine(sub, SUB_SIZE, false));
     const textHeight = label.length * LABEL_LINE + sub.length * SUB_LINE;
+
     if (diamond) {
         // A rhombus twice the size of a rectangle holds that rectangle with its corners on the outline.
         return { w: even(Math.max(DIAMOND_MIN.w, (textWidth + 16) * 2)), h: even(Math.max(DIAMOND_MIN.h, (textHeight + 8) * 2)), label, sub };
     }
+
     let h = textHeight + NODE_PADDING_Y * 2;
     // The round ends of a pill eat into the room of its outer lines.
     const paddingX = node.shape === 'pill' ? Math.max(NODE_PADDING_X, Math.round(h / 2) - 4) : NODE_PADDING_X;
+
     if (node.shape === 'cylinder') {
         h += CYLINDER_LID;
     }
+
     return { w: even(Math.max(NODE_MIN_WIDTH, textWidth + paddingX * 2)), h: even(h), label, sub };
 }
 
 /* The box of an edge's label before it is placed: wrapped narrower than a node, on a padding of its own. */
 function sizeOfEdgeLabel(text: string): { w: number; h: number; lines: string[] } {
     const lines = wrapText(text, SUB_SIZE, false, EDGE_LABEL_MAX_WIDTH);
+
     return {
         w: even(widestLine(lines, SUB_SIZE, false) + EDGE_LABEL_PADDING.x * 2),
         h: lines.length * SUB_LINE + EDGE_LABEL_PADDING.y * 2,
@@ -129,11 +134,13 @@ export function layersOf(nodes: readonly Pick<DiagramNode, 'id'>[], edges: reado
     const known = new Set(nodes.map((node) => node.id));
     const outgoing = new Map<string, string[]>(nodes.map((node) => [node.id, []]));
     const incoming = new Map<string, number>(nodes.map((node) => [node.id, 0]));
+
     for (const edge of edges) {
         // An edge to an id that is not there is refused before a layout is asked for; a loop has no direction to rank.
         if (!known.has(edge.from) || !known.has(edge.to) || edge.from === edge.to) {
             continue;
         }
+
         outgoing.get(edge.from)!.push(edge.to);
         incoming.set(edge.to, incoming.get(edge.to)! + 1);
     }
@@ -143,28 +150,37 @@ export function layersOf(nodes: readonly Pick<DiagramNode, 'id'>[], edges: reado
     const state = new Map<string, number>();
     const forward = new Map<string, string[]>(nodes.map((node) => [node.id, []]));
     const roots = [...nodes.filter((node) => incoming.get(node.id) === 0), ...nodes];
+
     for (const root of roots) {
         if (state.has(root.id)) {
             continue;
         }
+
         // Iterative, so a long chain written by an agent cannot run the stack out.
         const stack: { id: string; next: number }[] = [{ id: root.id, next: 0 }];
         state.set(root.id, ON_WALK);
+
         while (stack.length > 0) {
             const top = stack.at(-1)!;
             const targets = outgoing.get(top.id)!;
+
             if (top.next === targets.length) {
                 state.set(top.id, DONE);
                 stack.pop();
+
                 continue;
             }
+
             const target = targets[top.next]!;
             top.next += 1;
             const seen = state.get(target);
+
             if (seen === ON_WALK) {
                 continue;
             }
+
             forward.get(top.id)!.push(target);
+
             if (seen === undefined) {
                 state.set(target, ON_WALK);
                 stack.push({ id: target, next: 0 });
@@ -174,24 +190,30 @@ export function layersOf(nodes: readonly Pick<DiagramNode, 'id'>[], edges: reado
 
     // What is left is acyclic, so a topological pass settles every longest path.
     const remaining = new Map<string, number>(nodes.map((node) => [node.id, 0]));
+
     for (const targets of forward.values()) {
         for (const target of targets) {
             remaining.set(target, remaining.get(target)! + 1);
         }
     }
+
     const layers = new Map<string, number>(nodes.map((node) => [node.id, 0]));
     const ready = nodes.filter((node) => remaining.get(node.id) === 0).map((node) => node.id);
+
     for (let i = 0; i < ready.length; i++) {
         const id = ready[i]!;
+
         for (const target of forward.get(id)!) {
             layers.set(target, Math.max(layers.get(target)!, layers.get(id)! + 1));
             const left = remaining.get(target)! - 1;
             remaining.set(target, left);
+
             if (left === 0) {
                 ready.push(target);
             }
         }
     }
+
     return layers;
 }
 
@@ -217,22 +239,27 @@ function unionOf(rects: readonly Rect[]): Rect {
     if (rects.length === 0) {
         return { x: 0, y: 0, w: 0, h: 0 };
     }
+
     const left = Math.min(...rects.map((rect) => rect.x));
     const top = Math.min(...rects.map((rect) => rect.y));
     const right = Math.max(...rects.map((rect) => rect.x + rect.w));
     const bottom = Math.max(...rects.map((rect) => rect.y + rect.h));
+
     return { x: left, y: top, w: right - left, h: bottom - top };
 }
 
 /* Drops repeated corners and corners in the middle of a straight run. */
 function simplify(points: readonly Point[]): Point[] {
     const unique = points.filter((point, index) => index === 0 || point.x !== points[index - 1]!.x || point.y !== points[index - 1]!.y);
+
     return unique.filter((point, index) => {
         const before = unique[index - 1];
         const after = unique[index + 1];
+
         if (!before || !after) {
             return true;
         }
+
         return !((before.x === point.x && point.x === after.x) || (before.y === point.y && point.y === after.y));
     });
 }
@@ -244,14 +271,19 @@ function simplify(points: readonly Point[]): Point[] {
 function insetOf(shape: DiagramShape | undefined, box: Rect, offset: number, down: boolean): number {
     const away = Math.abs(offset);
     const half = box.h / 2;
+
     const rounded = (radius: number): number => {
         const straight = half - radius;
+
         if (away <= straight) {
             return 0;
         }
+
         const into = Math.min(radius, away - straight);
+
         return Math.round(radius - Math.sqrt(radius * radius - into * into));
     };
+
     switch (shape ?? 'rect') {
         case 'round':
             return rounded(Math.min(10, box.w / 2, half));
@@ -264,9 +296,11 @@ function insetOf(shape: DiagramShape | undefined, box: Rect, offset: number, dow
             if (!down) {
                 return 0;
             }
+
             const radiusX = Math.round(box.h / 2);
             const radiusY = Math.round(Math.round(box.w * 0.18) / 2);
             const share = Math.min(1, away / radiusX);
+
             return Math.round(radiusY - radiusY * Math.sqrt(1 - share * share));
         }
         default:
@@ -278,8 +312,10 @@ function insetOf(shape: DiagramShape | undefined, box: Rect, offset: number, dow
 function looseRoute(source: Rect, target: Rect, loop: boolean, down: boolean): Point[] {
     const from = center(source);
     const to = center(target);
+
     if (loop) {
         const right = source.x + source.w;
+
         return [
             { x: right, y: from.y - 6 },
             { x: right + LOOP, y: from.y - 6 },
@@ -287,11 +323,14 @@ function looseRoute(source: Rect, target: Rect, loop: boolean, down: boolean): P
             { x: right, y: from.y + 6 }
         ];
     }
+
     // A diagram that runs down leaves a box downwards whenever the two are stacked, as its laid-out
     // edges do; otherwise a dragged node's edges would come out of its side against the flow.
     const stacked = target.y >= source.y + source.h || target.y + target.h <= source.y;
+
     if (!(down && stacked) && target.x >= source.x + source.w) {
         const middle = Math.round((source.x + source.w + target.x) / 2);
+
         return simplify([
             { x: source.x + source.w, y: from.y },
             { x: middle, y: from.y },
@@ -299,8 +338,10 @@ function looseRoute(source: Rect, target: Rect, loop: boolean, down: boolean): P
             { x: target.x, y: to.y }
         ]);
     }
+
     if (!(down && stacked) && target.x + target.w <= source.x) {
         const middle = Math.round((target.x + target.w + source.x) / 2);
+
         return simplify([
             { x: source.x, y: from.y },
             { x: middle, y: from.y },
@@ -308,9 +349,11 @@ function looseRoute(source: Rect, target: Rect, loop: boolean, down: boolean): P
             { x: target.x + target.w, y: to.y }
         ]);
     }
+
     const middle = Math.round((from.y + to.y) / 2);
     const start = to.y < from.y ? source.y : source.y + source.h;
     const end = to.y < from.y ? target.y + target.h : target.y;
+
     return simplify([
         { x: from.x, y: start },
         { x: from.x, y: middle },
@@ -361,13 +404,16 @@ function unitsOf(nodes: readonly DiagramNode[], layers: ReadonlyMap<string, numb
     const units: Unit[] = [];
     const unitOf = new Map<string, number>();
     const unitOfNode = new Map<number, number>();
+
     nodes.forEach((node, index) => {
         if (node.pos) {
             return;
         }
+
         const size = sizes[index]!;
         unitOf.set(node.id, units.length);
         unitOfNode.set(index, units.length);
+
         units.push({
             layer: layers.get(node.id) ?? 0,
             node: index,
@@ -379,26 +425,33 @@ function unitsOf(nodes: readonly DiagramNode[], layers: ReadonlyMap<string, numb
             down: []
         });
     });
+
     return { units, unitOf, unitOfNode };
 }
 
 function bandsOf(groups: readonly DiagramGroup[], units: Unit[], unitOf: ReadonlyMap<string, number>, down: boolean) {
     const bands: Band[] = [];
     const bandOfGroup = new Map<number, number>();
+
     groups.forEach((group, groupIndex) => {
         const inside = group.wraps.flatMap((id) => {
             const unit = unitOf.get(id);
+
             return unit === undefined || units[unit]!.band >= 0 ? [] : [unit];
         });
+
         if (inside.length === 0) {
             return;
         }
+
         const first = Math.min(...inside.map((unit) => units[unit]!.layer));
         const last = Math.max(...inside.map((unit) => units[unit]!.layer));
         bandOfGroup.set(groupIndex, bands.length);
+
         for (const unit of inside) {
             units[unit]!.band = bands.length;
         }
+
         bands.push({
             group: groupIndex,
             first,
@@ -412,6 +465,7 @@ function bandsOf(groups: readonly DiagramGroup[], units: Unit[], unitOf: Readonl
             labelWidth: estimateTextWidth(group.label, SUB_SIZE, true)
         });
     });
+
     return { bands, bandOfGroup };
 }
 
@@ -422,114 +476,147 @@ function edgesOf(edges: readonly DiagramEdge[], units: Unit[], unitOf: ReadonlyM
     const loops: Loop[] = [];
     const loose: number[] = [];
     const lines: number[][] = [];
+
     edges.forEach((edge, index) => {
         if (!knownIds.has(edge.from) || !knownIds.has(edge.to)) {
             return;
         }
+
         const source = unitOf.get(edge.from);
         const target = unitOf.get(edge.to);
+
         if (source === undefined || target === undefined) {
             loose.push(index);
+
             return;
         }
+
         if (source === target) {
             loops.push({ edge: index, unit: source });
+
             return;
         }
+
         const reversed = units[source]!.layer > units[target]!.layer;
         const low = reversed ? target : source;
         const high = reversed ? source : target;
+
         if (units[low]!.layer === units[high]!.layer) {
             loose.push(index);
+
             return;
         }
+
         // A point of an edge between two members of one group belongs inside that group.
         const band = units[low]!.band >= 0 && units[low]!.band === units[high]!.band ? units[low]!.band : -1;
         const chain: number[] = [];
         const line: number[] = [];
         let previous = low;
+
         for (let layer = units[low]!.layer + 1; layer <= units[high]!.layer; layer++) {
             let next = high;
+
             if (layer < units[high]!.layer) {
                 next = units.length;
                 line.push(next);
                 units.push({ layer, node: -1, band, w: 0, h: 0, margin: DUMMY_MARGIN, line: lines.length, up: [], down: [] });
             }
+
             chain.push(hops.length);
             hops.push({ edge: index, from: previous, to: next });
             units[previous]!.down.push(next);
             units[next]!.up.push(previous);
             previous = next;
         }
+
         if (line.length > 0) {
             lines.push(line);
         }
+
         chains.push({ edge: index, hops: chain, reversed });
     });
+
     return { hops, chains, loops, loose, lines };
 }
 
 /* The top-level entries of every layer, with the members of each band filled in and its height measured. */
 function itemsOf(units: readonly Unit[], bands: readonly Band[], layerCount: number, down: boolean): number[][] {
     const items: number[][] = Array.from({ length: layerCount }, () => []);
+
     units.forEach((unit, index) => {
         if (unit.band < 0) {
             items[unit.layer]!.push(index);
+
             return;
         }
+
         const band = bands[unit.band]!;
         const slot = band.members[unit.layer - band.first]!;
+
         if (slot.length === 0) {
             items[unit.layer]!.push(bandCode(unit.band));
         }
+
         slot.push(index);
     });
+
     bands.forEach((band, index) => {
         band.members.forEach((slot, offset) => {
             if (slot.length === 0) {
                 items[band.first + offset]!.push(bandCode(index));
             }
         });
+
         const tallest = band.members.reduce((most, slot) => {
             const extent = slot.reduce(
                 (sum, unit, position) => sum + units[unit]!.h + (position > 0 ? units[slot[position - 1]!]!.margin + units[unit]!.margin : 0),
                 0
             );
+
             return Math.max(most, extent);
         }, 0);
+
         band.height = band.before + tallest + band.after;
+
         if (down) {
             // Running down, a group's label runs across the flow, so the group is at least as wide as it.
             band.height = Math.max(band.height, band.labelWidth + GROUP_LABEL_INSET * 2);
         }
     });
+
     return items;
 }
 
 /* Every hop leaves its box on the side facing the flow and enters on the side facing back. */
 function portsOf(units: readonly Unit[], top: readonly number[], hops: readonly Hop[], loops: readonly Loop[]): Ports {
     const middleOf = (unit: number): number => top[unit]! + units[unit]!.h / 2;
+
     const hopStart = new Array<number>(hops.length).fill(0);
     const hopEnd = new Array<number>(hops.length).fill(0);
     const loopStart = new Array<number>(loops.length).fill(0);
     const loopEnd = new Array<number>(loops.length).fill(0);
     const exits: Port[][] = units.map(() => []);
     const entries: Port[][] = units.map(() => []);
+
     hops.forEach((hop, index) => {
         exits[hop.from]!.push({ key: middleOf(hop.to), edge: hop.edge, order: 0, apply: (y) => (hopStart[index] = y) });
         entries[hop.to]!.push({ key: middleOf(hop.from), edge: hop.edge, order: 0, apply: (y) => (hopEnd[index] = y) });
     });
+
     loops.forEach((loop, index) => {
         const key = middleOf(loop.unit);
+
         exits[loop.unit]!.push(
             { key, edge: loop.edge, order: 0, apply: (y) => (loopStart[index] = y) },
             { key, edge: loop.edge, order: 1, apply: (y) => (loopEnd[index] = y) }
         );
     });
+
     const spread = (unit: number, ports: Port[]): void => {
         if (ports.length === 0) {
             return;
         }
+
         // In the order of the other ends, so two hops leaving one box do not cross on the way out.
         ports.sort((left, right) => left.key - right.key || left.edge - right.edge || left.order - right.order);
         const middle = middleOf(unit);
@@ -537,23 +624,29 @@ function portsOf(units: readonly Unit[], top: readonly number[], hops: readonly 
         const step = ports.length > 1 ? Math.min(PORT_GAP, Math.floor(room / (ports.length - 1))) : 0;
         ports.forEach((port, index) => port.apply(Math.round(middle + (index - (ports.length - 1) / 2) * step)));
     };
+
     units.forEach((_, unit) => {
         spread(unit, exits[unit]!);
         spread(unit, entries[unit]!);
     });
+
     const hasRoomAt = (unit: number, y: number): boolean =>
         units[unit]!.node >= 0 && y >= top[unit]! + PORT_INSET && y <= top[unit]! + units[unit]!.h - PORT_INSET;
+
     hops.forEach((hop, index) => {
         const gap = Math.abs(hopEnd[index]! - hopStart[index]!);
+
         if (gap === 0 || gap > SNAP) {
             return;
         }
+
         if (entries[hop.to]!.length === 1 && hasRoomAt(hop.to, hopStart[index]!)) {
             hopEnd[index] = hopStart[index]!;
         } else if (exits[hop.from]!.length === 1 && hasRoomAt(hop.from, hopEnd[index]!)) {
             hopStart[index] = hopEnd[index]!;
         }
     });
+
     return { hopStart, hopEnd, loopStart, loopEnd };
 }
 
@@ -580,11 +673,13 @@ function placeAlong(layering: Layering, edges: Edges, ports: Ports, labelSizes: 
     hops.forEach((hop, index) => hopsByLayer[units[hop.from]!.layer]!.push(index));
 
     const labelHop = new Map<number, number>();
+
     for (const chain of chains) {
         if (labelSizes[chain.edge]) {
             labelHop.set(chain.hops[Math.floor((chain.hops.length - 1) / 2)]!, chain.edge);
         }
     }
+
     const frameLabels = new Map<number, Rect>();
     const trackX = new Map<number, number>();
     const alongBefore = GROUP_PADDING + (down ? GROUP_LABEL_BAND : 0);
@@ -593,38 +688,49 @@ function placeAlong(layering: Layering, edges: Edges, ports: Ports, labelSizes: 
         for (const unit of byLayer[layer]!) {
             unitX[unit] = columnX[layer]! + Math.floor((columnWidth[layer]! - units[unit]!.w) / 2);
         }
+
         if (layer === layerCount - 1) {
             break;
         }
+
         const start = columnX[layer]! + columnWidth[layer]!;
         const channelHops: ChannelHop[] = hopsByLayer[layer]!.map((hop) => ({ hop, ya: ports.hopStart[hop]!, yb: ports.hopEnd[hop]! }));
         const channelLabels: ChannelLabel[] = [];
+
         for (const hop of hopsByLayer[layer]!) {
             const edge = labelHop.get(hop);
             const size = edge === undefined ? null : labelSizes[edge];
+
             if (edge !== undefined && size) {
                 const frame = flipSize(size, down);
                 channelLabels.push({ edge, hop, y: ports.hopStart[hop]!, along: frame.w, across: frame.h });
             }
         }
+
         loops.forEach((loop, index) => {
             const size = labelSizes[loop.edge];
+
             if (size && units[loop.unit]!.layer === layer) {
                 const frame = flipSize(size, down);
                 channelLabels.push({ edge: loop.edge, hop: -1, y: ports.loopEnd[index]!, along: frame.w, across: frame.h });
             }
         });
+
         channelLabels.sort((left, right) => left.edge - right.edge);
         const obstacles: { y: number; h: number }[] = [];
+
         for (const band of bands) {
             if (band.first > layer || band.last <= layer) {
                 continue;
             }
+
             // A group that runs through the channel crosses it with its two borders, and running right with its label band.
             obstacles.push({ y: band.top - 3, h: down ? 6 : GROUP_LABEL_BAND }, { y: band.top + band.height - 3, h: 6 });
         }
+
         const endsHere = bands.some((band) => band.last === layer);
         const startsNext = bands.some((band) => band.first === layer + 1);
+
         const channel = routeChannel({
             start,
             clearBefore: EDGE_CLEAR + (endsHere ? GROUP_PADDING : 0),
@@ -633,27 +739,34 @@ function placeAlong(layering: Layering, edges: Edges, ports: Ports, labelSizes: 
             labels: channelLabels,
             obstacles
         });
+
         channel.trackX.forEach((x, hop) => trackX.set(hop, x));
         channel.labels.forEach((rect, edge) => frameLabels.set(edge, rect));
         columnX[layer + 1] = start + channel.width;
     }
+
     return { columnX, columnWidth, unitX, trackX, frameLabels };
 }
 
 /* A label that no channel placed (a loop in the last layer, an edge with a pinned end) moves down until it is clear. */
 function settleLabels(edges: readonly EdgeRoute[], unplaced: ReadonlySet<number>, nodes: readonly NodeBox[], groups: readonly GroupBox[]): void {
     const settled = edges.flatMap((edge) => (edge.label && !unplaced.has(edge.index) ? [edge.label] : []));
+
     for (const edge of edges) {
         const label = edge.label;
+
         if (!label || !unplaced.has(edge.index)) {
             continue;
         }
+
         const taken = (): boolean =>
             [...nodes, ...groups.map((group) => group.labelBox)].some((box) => intersects(box, label)) ||
             settled.some((other) => intersects({ x: other.x - 4, y: other.y - 4, w: other.w + 8, h: other.h + 8 }, label));
+
         for (let step = 0; step < 1000 && taken(); step++) {
             label.y += 4;
         }
+
         settled.push(label);
     }
 }
@@ -678,43 +791,60 @@ export function layoutOf(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'gro
     const layering: Layering = { units, hops, bands, lines: graphEdges.lines, items };
     orderLayers(layering);
     const top = placeAcross(layering);
+
     const middleOf = (unit: number): number => top[unit]! + units[unit]!.h / 2;
+
     const ports = portsOf(units, top, hops, loops);
     const labelSizes = document.edges.map((edge) => (edge.label ? sizeOfEdgeLabel(edge.label) : null));
     const { columnX, columnWidth, unitX, trackX, frameLabels } = placeAlong(layering, graphEdges, ports, labelSizes, layerCount, down);
 
     const frameBoxOf = (unit: number): Rect => ({ x: unitX[unit]!, y: top[unit]!, w: units[unit]!.w, h: units[unit]!.h });
+
     const shapeOf = (unit: number): DiagramShape | undefined => document.nodes[units[unit]!.node]!.shape;
+
     const exitX = (unit: number, y: number): number => {
         const self = units[unit]!;
+
         if (self.node < 0) {
             return columnX[self.layer]! + columnWidth[self.layer]!;
         }
+
         const box = frameBoxOf(unit);
+
         return box.x + box.w - insetOf(shapeOf(unit), box, y - middleOf(unit), down);
     };
+
     const entryX = (unit: number, y: number): number => {
         const self = units[unit]!;
+
         if (self.node < 0) {
             return columnX[self.layer]!;
         }
+
         const box = frameBoxOf(unit);
+
         return box.x + insetOf(shapeOf(unit), box, y - middleOf(unit), down);
     };
+
     const toReal = (point: Point): Point => flipPoint(point, down);
+
     const labelOf = (edge: number, frame: Rect | undefined): EdgeLabelBox | null => {
         const size = labelSizes[edge];
+
         if (!size || !frame) {
             return null;
         }
+
         return { ...flip(frame, down), lines: size.lines };
     };
 
     const nodes: NodeBox[] = document.nodes.map((node, index) => {
         const size = sizes[index]!;
         const unit = unitOfNode.get(index);
+
         if (unit === undefined) {
             const [px, py] = node.pos!;
+
             return {
                 id: node.id,
                 x: Math.round(px),
@@ -727,27 +857,35 @@ export function layoutOf(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'gro
                 sub: size.sub
             };
         }
+
         return { id: node.id, ...flip(frameBoxOf(unit), down), layer: units[unit]!.layer, pinned: false, label: size.label, sub: size.sub };
     });
+
     const byId = new Map(nodes.map((box) => [box.id, box]));
 
     const routes: (EdgeRoute | undefined)[] = [];
     const unplaced = new Set<number>(loose);
+
     for (const chain of chains) {
         const points: Point[] = [];
+
         for (const index of chain.hops) {
             const hop = hops[index]!;
             const ya = ports.hopStart[index]!;
             const yb = ports.hopEnd[index]!;
             points.push({ x: exitX(hop.from, ya), y: ya });
+
             if (ya !== yb) {
                 const x = trackX.get(index)!;
                 points.push({ x, y: ya }, { x, y: yb });
             }
+
             points.push({ x: entryX(hop.to, yb), y: yb });
         }
+
         const ordered = chain.reversed ? simplify(points).reverse() : simplify(points);
         const edge = document.edges[chain.edge]!;
+
         routes[chain.edge] = {
             index: chain.edge,
             from: edge.from,
@@ -756,33 +894,42 @@ export function layoutOf(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'gro
             label: labelOf(chain.edge, frameLabels.get(chain.edge))
         };
     }
+
     loops.forEach((loop, index) => {
         const box = frameBoxOf(loop.unit);
         const reach = box.x + box.w + LOOP;
         const startY = ports.loopStart[index]!;
         const endY = ports.loopEnd[index]!;
+
         const points = [
             { x: exitX(loop.unit, startY), y: startY },
             { x: reach, y: startY },
             { x: reach, y: endY },
             { x: exitX(loop.unit, endY), y: endY }
         ];
+
         if (!frameLabels.has(loop.edge)) {
             unplaced.add(loop.edge);
         }
+
         const size = labelSizes[loop.edge];
+
         // In the last layer there is no channel to put a label in, so it sits beside the loop.
         const beside = (): Rect | undefined => {
             if (!size) {
                 return undefined;
             }
+
             const turned = flipSize(size, down);
+
             return { x: reach + 6, y: Math.round((startY + endY) / 2) - Math.floor(turned.h / 2), ...turned };
         };
+
         const frame = frameLabels.get(loop.edge) ?? beside();
         const edge = document.edges[loop.edge]!;
         routes[loop.edge] = { index: loop.edge, from: edge.from, to: edge.to, points: points.map(toReal), label: labelOf(loop.edge, frame) };
     });
+
     for (const index of loose) {
         const edge = document.edges[index]!;
         const source = byId.get(edge.from)!;
@@ -790,6 +937,7 @@ export function layoutOf(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'gro
         const points = looseRoute(source, target, edge.from === edge.to, down);
         const size = labelSizes[index];
         let label: EdgeLabelBox | null = null;
+
         if (size) {
             const at = Math.max(0, Math.floor((points.length - 2) / 2));
             const first = points[at]!;
@@ -797,14 +945,18 @@ export function layoutOf(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'gro
             const middle = { x: Math.round((first.x + second.x) / 2), y: Math.round((first.y + second.y) / 2) };
             label = { x: middle.x - size.w / 2, y: middle.y - size.h - 4, w: size.w, h: size.h, lines: size.lines };
         }
+
         routes[index] = { index, from: edge.from, to: edge.to, points, label };
     }
+
     const edges = routes.filter((route): route is EdgeRoute => route !== undefined);
 
     const alongBefore = GROUP_PADDING + (down ? GROUP_LABEL_BAND : 0);
+
     const groups: GroupBox[] = document.groups.flatMap((group, groupIndex) => {
         const rects: Rect[] = [];
         const bandIndex = bandOfGroup.get(groupIndex);
+
         if (bandIndex !== undefined) {
             const band = bands[bandIndex]!;
             const members = band.members.flat().filter((unit) => units[unit]!.node >= 0);
@@ -812,8 +964,10 @@ export function layoutOf(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'gro
             const alongEnd = Math.max(...members.map((unit) => unitX[unit]! + units[unit]!.w)) + GROUP_PADDING;
             rects.push(flip({ x: alongStart, y: band.top, w: alongEnd - alongStart, h: band.height }, down));
         }
+
         for (const id of group.wraps) {
             const box = byId.get(id);
+
             if (box?.pinned) {
                 rects.push({
                     x: box.x - GROUP_PADDING,
@@ -823,11 +977,14 @@ export function layoutOf(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'gro
                 });
             }
         }
+
         if (rects.length === 0) {
             return [];
         }
+
         const rect = unionOf(rects);
         const labelBox = { x: rect.x + GROUP_LABEL_INSET, y: rect.y + 4, w: estimateTextWidth(group.label, SUB_SIZE, true), h: SUB_LINE };
+
         return [{ id: group.id, ...rect, labelBox }];
     });
 
@@ -835,5 +992,6 @@ export function layoutOf(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'gro
     const corners = edges.flatMap((edge) => edge.points.map((point) => ({ ...point, w: 0, h: 0 })));
     const labels = edges.flatMap((edge) => (edge.label ? [edge.label] : []));
     const groupLabels = groups.map((group) => group.labelBox);
+
     return { nodes, groups, edges, bounds: unionOf([...nodes, ...groups, ...groupLabels, ...corners, ...labels]) };
 }

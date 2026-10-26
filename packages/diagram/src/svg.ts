@@ -41,6 +41,7 @@ export function toSvg(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'groups
     const w = layout.bounds.w + margin * 2;
     const h = layout.bounds.h + margin * 2;
     const parts: string[] = [];
+
     if (options.background) {
         parts.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${options.background}"/>`);
     }
@@ -48,6 +49,7 @@ export function toSvg(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'groups
     for (const box of layout.groups) {
         const group = groups.get(box.id)!;
         const tone = palette[group.tone ?? DEFAULT_GROUP_TONE];
+
         parts.push(
             `<rect x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}" rx="12" fill="none" stroke="${tone}" stroke-width="1" stroke-dasharray="6 4"/>`,
             `<text x="${box.labelBox.x}" y="${box.y + Math.round(GROUP_LABEL_BAND * 0.7)}" font-size="${SUB_SIZE}" font-weight="600" fill="${tone}">${escapeXml(group.label)}</text>`
@@ -58,12 +60,15 @@ export function toSvg(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'groups
         const edge = document.edges[route.index]!;
         const tone = palette[edge.tone ?? DEFAULT_EDGE_TONE];
         const dash = dashOf(edge.style);
+
         parts.push(
             `<path d="${edgePath(route.points)}" fill="none" stroke="${tone}" stroke-width="2" stroke-linejoin="round"${dash ? ` stroke-dasharray="${dash}"` : ''}/>`,
             `<path d="${arrowHeadPath(route.points)}" fill="${tone}"/>`
         );
+
         if (route.label) {
             const halo = options.background ? ` stroke="${options.background}" stroke-width="4" paint-order="stroke"` : '';
+
             for (const line of edgeLabelLinesOf(route.label)) {
                 parts.push(
                     `<text x="${line.x}" y="${line.y}" font-size="${line.size}" text-anchor="middle" fill="${tone}"${halo}>${escapeXml(line.text)}</text>`
@@ -77,9 +82,11 @@ export function toSvg(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'groups
         const tone = node.tone ?? DEFAULT_NODE_TONE;
         const paths = shapePaths(node.shape, box);
         parts.push(`<path d="${paths.body}" fill="${paper[tone]}" stroke="${palette[tone]}" stroke-width="2"/>`);
+
         if (paths.detail) {
             parts.push(`<path d="${paths.detail}" fill="none" stroke="${palette[tone]}" stroke-width="2"/>`);
         }
+
         for (const line of textLinesOf(box, node.shape)) {
             parts.push(
                 `<text x="${line.x}" y="${line.y}" font-size="${line.size}"${line.bold ? ' font-weight="600"' : ''} text-anchor="middle" fill="${line.muted ? palette.muted : palette.ink}">${escapeXml(line.text)}</text>`

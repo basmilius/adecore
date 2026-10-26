@@ -13,14 +13,19 @@ function nameOf(node: DiagramNode | undefined, id: string): string {
 export function readingOrder(document: Pick<DiagramDocument, 'nodes' | 'groups' | 'edges'>): string[] {
     const byId = new Map(document.nodes.map((node) => [node.id, node]));
     const layers = layersOf(document.nodes, document.edges);
+
     const nodes = document.nodes
         .map((node, index) => ({ node, index, layer: layers.get(node.id) ?? 0 }))
         .sort((left, right) => left.layer - right.layer || left.index - right.index)
         .map(({ node }) => (node.sub ? `${nameOf(node, node.id)} (${node.sub})` : nameOf(node, node.id)));
+
     const edges = document.edges.map((edge) => {
         const line = `${nameOf(byId.get(edge.from), edge.from)} -> ${nameOf(byId.get(edge.to), edge.to)}`;
+
         return edge.label ? `${line}: ${edge.label}` : line;
     });
+
     const groups = document.groups.map((group) => `${group.label || group.id} wraps: ${group.wraps.map((id) => nameOf(byId.get(id), id)).join(', ')}`);
+
     return [...nodes, ...edges, ...groups];
 }

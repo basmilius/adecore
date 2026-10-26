@@ -17,24 +17,31 @@ function ratioOf(char: string): number {
     if (NARROW.has(char)) {
         return 0.3;
     }
+
     if (SEMI.has(char)) {
         return 0.4;
     }
+
     if (WIDE_LOWER.has(char)) {
         return 0.86;
     }
+
     if (WIDE.has(char)) {
         return 1;
     }
+
     if (char >= 'a' && char <= 'z') {
         return 0.6;
     }
+
     if (char >= 'A' && char <= 'Z') {
         return 0.74;
     }
+
     if (char >= '0' && char <= '9') {
         return 0.64;
     }
+
     // CJK and everything after it is set on a full em; any other letter is taken as a wide Latin one.
     return char.codePointAt(0)! >= 0x2e80 ? 1 : 0.64;
 }
@@ -44,23 +51,29 @@ const REGULAR = 0.94;
 /* No DOM in this package, so text is estimated rather than measured, the same way on every machine. */
 export function estimateTextWidth(text: string, size: number, bold = false): number {
     let units = 0;
+
     for (const char of text) {
         units += ratioOf(char);
     }
+
     return Math.ceil(units * size * (bold ? 1 : REGULAR));
 }
 
 function breakWord(word: string, size: number, bold: boolean, maxWidth: number): string[] {
     const pieces: string[] = [];
     let piece = '';
+
     for (const char of word) {
         if (piece !== '' && estimateTextWidth(piece + char, size, bold) > maxWidth) {
             pieces.push(piece);
             piece = '';
         }
+
         piece += char;
     }
+
     pieces.push(piece);
+
     return pieces;
 }
 
@@ -69,12 +82,16 @@ export function wrapText(text: string, size: number, bold: boolean, maxWidth: nu
         .trim()
         .split(/\s+/)
         .filter((word) => word !== '');
+
     const lines: string[] = [];
     let line = '';
+
     for (const word of words) {
         const pieces = estimateTextWidth(word, size, bold) > maxWidth ? breakWord(word, size, bold, maxWidth) : [word];
+
         for (const piece of pieces) {
             const joined = line === '' ? piece : `${line} ${piece}`;
+
             if (line !== '' && estimateTextWidth(joined, size, bold) > maxWidth) {
                 lines.push(line);
                 line = piece;
@@ -83,7 +100,9 @@ export function wrapText(text: string, size: number, bold: boolean, maxWidth: nu
             }
         }
     }
+
     lines.push(line);
+
     return lines;
 }
 
