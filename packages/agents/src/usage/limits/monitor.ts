@@ -257,7 +257,6 @@ export class UsageMonitor {
     }
 
     private emit(): void {
-        const event: AgentEvent = { event: 'usage.limitsChanged', payload: this.snapshot() };
-        this.sinks.emit(event);
+        this.sinks.emit({ event: 'usage.limitsChanged', payload: this.snapshot() });
     }
 }

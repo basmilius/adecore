@@ -28,6 +28,20 @@ export function asObject(value: unknown): Record<string, unknown> | null {
     return typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : null;
 }
 
+/* A line or file of a transcript as a JSON object, or null for anything else. */
+export function parseObject(text: string): Record<string, unknown> | null {
+    try {
+        return asObject(JSON.parse(text));
+    } catch {
+        return null;
+    }
+}
+
+/* Whether a call moved any tokens at all; one that moved none is not a call worth a record. */
+export function countsTokens(totals: UsageTotals): boolean {
+    return totals.input + totals.cacheRead + totals.cacheWrite + totals.output !== 0;
+}
+
 export function asString(value: unknown): string {
     return typeof value === 'string' ? value : '';
 }

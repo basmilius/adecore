@@ -1,4 +1,4 @@
-import { asObject, asString, int, type UsageRecord } from '../record.ts';
+import { asObject, asString, countsTokens, int, parseObject, type UsageRecord } from '../record.ts';
 
 /* Only a line with this in it can carry counts, which keeps `JSON.parse` off about two thirds of them. */
 export function claudeMightCarryUsage(line: string): boolean {
@@ -11,13 +11,7 @@ export function claudeMightCarryUsage(line: string): boolean {
  * Anthropic's, so `input_tokens` already excludes what was read from or written to the cache.
  */
 export function parseClaudeLine(line: string): UsageRecord | null {
-    let parsed: unknown;
-    try {
-        parsed = JSON.parse(line);
-    } catch {
-        return null;
-    }
-    const record = asObject(parsed);
+    const record = parseObject(line);
     if (record === null || record.type !== 'assistant') {
         return null;
     }
@@ -45,7 +39,7 @@ export function parseClaudeLine(line: string): UsageRecord | null {
         output: int(usage.output_tokens),
         reasoning: outputDetails === null ? 0 : int(outputDetails.thinking_tokens)
     };
-    if (totals.input + totals.cacheRead + totals.cacheWrite + totals.output === 0) {
+    if (!countsTokens(totals)) {
         return null;
     }
     return {

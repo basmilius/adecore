@@ -1,5 +1,5 @@
 import { basename, dirname } from 'node:path';
-import { asObject, asString, int, type UsageRecord } from '../record.ts';
+import { asObject, asString, countsTokens, int, parseObject, type UsageRecord } from '../record.ts';
 
 /* The file Grok keeps the counts of a session in, beside its other files in the session's folder. */
 export const GROK_USAGE_FILE = 'usage.json';
@@ -29,7 +29,7 @@ function recordOf(counts: Record<string, unknown>, model: string, base: Omit<Usa
         output: int(counts.outputTokens),
         reasoning: int(counts.reasoningTokens)
     };
-    if (totals.input + totals.cacheRead + totals.cacheWrite + totals.output === 0) {
+    if (!countsTokens(totals)) {
         return null;
     }
     const ticks = int(counts.costUsdTicks);
@@ -49,13 +49,7 @@ function recordOf(counts: Record<string, unknown>, model: string, base: Omit<Usa
  * read as one, which leaves what the scanner held of it.
  */
 export function parseGrokUsage(text: string, path: string): UsageRecord[] | null {
-    let parsed: unknown;
-    try {
-        parsed = JSON.parse(text);
-    } catch {
-        return null;
-    }
-    const file = asObject(parsed);
+    const file = parseObject(text);
     if (file === null || !Array.isArray(file.turns)) {
         return null;
     }

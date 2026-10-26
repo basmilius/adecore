@@ -1,4 +1,4 @@
-import { asObject, asString, int, type UsageRecord } from '../record.ts';
+import { asObject, asString, int, parseObject, type UsageRecord } from '../record.ts';
 
 export function codexMightCarryUsage(line: string): boolean {
     return ['token_count', 'turn_context', 'session_meta', 'thread_settings_applied', 'token_usage_record', 'compacted'].some((type) => line.includes(type));
@@ -99,13 +99,7 @@ export function isForkOrSubagent(payload: Record<string, unknown>): boolean {
 /* Codex includes cache reads and writes in input_tokens. Compaction can appear separately from
    cumulative token_count events, so response identities prevent charging the same request twice. */
 export function parseCodexLine(line: string, state: CodexParserState): UsageRecord | null {
-    let parsed: unknown;
-    try {
-        parsed = JSON.parse(line);
-    } catch {
-        return null;
-    }
-    const record = asObject(parsed);
+    const record = parseObject(line);
     const payload = record === null ? null : asObject(record.payload);
     if (record === null || payload === null) {
         return null;

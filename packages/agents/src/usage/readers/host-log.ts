@@ -1,5 +1,5 @@
 import type { UsageProvider } from '@adecore/agent-contracts';
-import { asObject, asString, int, type UsageRecord } from '../record.ts';
+import { asString, countsTokens, int, parseObject, type UsageRecord } from '../record.ts';
 
 /*
  * One call to an API a host makes itself, a line of the usage log it keeps. Such an API has no CLI and so
@@ -32,13 +32,7 @@ export function hostLogMightCarryUsage(line: string): boolean {
 
 /* The provider is the root's, so one reader serves every API a host logs. */
 export function parseHostUsageLine(line: string, provider: UsageProvider): UsageRecord | null {
-    let parsed: unknown;
-    try {
-        parsed = JSON.parse(line);
-    } catch {
-        return null;
-    }
-    const entry = asObject(parsed);
+    const entry = parseObject(line);
     if (entry === null) {
         return null;
     }
@@ -56,7 +50,7 @@ export function parseHostUsageLine(line: string, provider: UsageProvider): Usage
         output: int(entry.output),
         reasoning: int(entry.reasoning)
     };
-    if (totals.input + totals.cacheRead + totals.cacheWrite + totals.output === 0) {
+    if (!countsTokens(totals)) {
         return null;
     }
     return {
