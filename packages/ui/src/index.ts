@@ -98,6 +98,7 @@ export { UI_NAMESPACE, UI_RESOURCES } from './locales.ts';
 export { matchScore } from './match.ts';
 export { isApplePlatform } from './platform.ts';
 export { prefetcher, type Loader, type WhenIdle } from './prefetch.ts';
+export { tintStyle } from './tint.ts';
 export { selectAllWithin, selectionWithin } from './selection.ts';
 export { EDIT_SHORTCUTS, KEY_SHORTCUTS, formatShortcut, isModHeld, matchesShortcut, shortcut, shortcutParts, type KeyLike, type Shortcut } from './shortcut.ts';
 export {

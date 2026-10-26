@@ -111,6 +111,7 @@ exports[`the public API . exports these names 1`] = `
   "splitPanes",
   "tabDropPreview",
   "tabGapAt",
+  "tintStyle",
   "type AccentSwatchesProps",
   "type AsyncAction",
   "type BannerProps",
