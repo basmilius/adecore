@@ -143,6 +143,7 @@ describe('the coordinator', () => {
     test('shutdown waits for the result wake even when the task record is already settled', async () => {
         const wake = Promise.withResolvers<void>();
         const waiting = Promise.withResolvers<void>();
+
         coordinator = new TaskCoordinator({
             tasks,
             now: () => 10,
@@ -159,6 +160,7 @@ describe('the coordinator', () => {
             commandsOf: () => [],
             limit: { owed: () => false, owe: async () => undefined, lapse: async () => undefined }
         });
+
         const task = await open('parent', 'child');
         threads.set('child', [turn('t1', 'done'), answer('t1', 'finished')]);
         ends('child', turn('t1', 'done'));
@@ -166,9 +168,11 @@ describe('the coordinator', () => {
         expect(tasks.get(task.id)?.status).toBe('done');
         coordinator.stop();
         let shutDown = false;
+
         const stopped = coordinator.settled().then(() => {
             shutDown = true;
         });
+
         await Promise.resolve();
         expect(shutDown).toBe(false);
         expect(owed).toEqual([]);
@@ -180,6 +184,7 @@ describe('the coordinator', () => {
     test('a new assignment ignores an old turn during a blocked task write', async () => {
         const gate = Promise.withResolvers<void>();
         const writing = Promise.withResolvers<void>();
+
         tasks = new TaskStore(home, {
             write: async (path, text) => {
                 writing.resolve();
@@ -187,6 +192,7 @@ describe('the coordinator', () => {
                 await writeAtomic(path, text);
             }
         });
+
         coordinator = makeCoordinator();
         const opening = tasks.open({ projectId: 'p', parentId: 'parent', childId: 'child', title: 'new', prompt: 'new work', requiresTaskTurn: true }, 10);
         const task = tasks.openFor('child')!;
@@ -316,6 +322,7 @@ describe('the coordinator', () => {
         const owedOnce = nextOwed();
         await coordinator.outlasted('chat-child', ['bun dev']);
         await owedOnce;
+
         expect(tasks.get(task.id)).toMatchObject({
             status: 'done',
             result: { text: 'the server runs\n\nThe task settled after 30 minutes while this still ran in the background: `bun dev`.', source: 'turn' }
@@ -365,11 +372,13 @@ describe('the coordinator', () => {
 
         test('settles with the result it is told and wakes the parent once, however often it is told', async () => {
             const task = await openRemote('chat-lead', 'chat-far');
+
             const settled = await Promise.all([
                 coordinator.settleFromElsewhere(task.id, REMOTE),
                 coordinator.settleFromElsewhere(task.id, REMOTE),
                 coordinator.settleFromElsewhere(task.id, { ...REMOTE, text: 'again' })
             ]);
+
             expect(settled.filter((entry) => entry !== null)).toHaveLength(1);
             expect(await coordinator.settleFromElsewhere(task.id, REMOTE)).toBeNull();
             expect(owed).toEqual([task.id]);

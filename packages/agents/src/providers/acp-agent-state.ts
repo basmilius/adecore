@@ -32,6 +32,7 @@ function capitalized(option: ModelOptionDescriptor): ModelOptionDescriptor {
     if (option.type !== 'select') {
         return option;
     }
+
     return {
         ...option,
         choices: option.choices.map((choice) => ({ ...choice, label: choice.label.charAt(0).toLocaleUpperCase('en') + choice.label.slice(1) }))
@@ -41,9 +42,11 @@ function capitalized(option: ModelOptionDescriptor): ModelOptionDescriptor {
 /* The reasoning effort a session offers, as the `effort` option the composer draws for every provider. */
 function effortOption(info: AcpSessionInfo): ModelOptionDescriptor[] {
     const level = info.thoughtLevel;
+
     if (level === null || !level.choices.some((choice) => choice.id === level.current)) {
         return [];
     }
+
     return [
         {
             id: 'effort',
@@ -62,6 +65,7 @@ function effortOption(info: AcpSessionInfo): ModelOptionDescriptor[] {
 /* Parses one stored part on its own, so a part a later version wrote differently costs only that part. */
 function storedPart<T>(schema: z.ZodType<T>, value: unknown): T | null {
     const parsed = schema.safeParse(value);
+
     return parsed.success ? parsed.data : null;
 }
 
@@ -99,6 +103,7 @@ export class AcpAgentState {
 
     onChange(listener: () => void): () => void {
         this.listeners.add(listener);
+
         return () => {
             this.listeners.delete(listener);
         };
@@ -108,18 +113,22 @@ export class AcpAgentState {
         if (!this.options.adoptModels || info.models === null) {
             return;
         }
+
         this.settle(this.adopt({ defaultModel: info.models.current, models: adoptableModels(info), options: effortOption(info) }));
     }
 
     commandsListed(commands: readonly string[]): void {
         const names = [...new Set(commands)].sort();
+
         if (this.commands !== null && JSON.stringify(names) === JSON.stringify(this.commands)) {
             return;
         }
+
         this.commands = names;
         const changed = this.refresh();
         // The commands are saved even when the capabilities stay, so a restart knows them too.
         this.save();
+
         if (changed) {
             this.notify();
         }
@@ -129,25 +138,31 @@ export class AcpAgentState {
         if (this.reportsContext) {
             return;
         }
+
         this.reportsContext = true;
         this.settle(this.refresh());
     }
 
     private restore(): void {
         let stored: unknown;
+
         try {
             stored = this.options.store?.load();
         } catch {
             return;
         }
+
         if (typeof stored !== 'object' || stored === null) {
             return;
         }
+
         const record = stored as Record<string, unknown>;
         const adopted = storedPart(AdoptedSchema, record.models);
+
         if (adopted !== null && this.options.adoptModels) {
             this.adopt(adopted);
         }
+
         this.reportsContext = record.reportsContext === true;
         this.commands = storedPart(z.array(z.string()), record.commands);
         this.refresh();
@@ -156,6 +171,7 @@ export class AcpAgentState {
     /* What the agent showed it can do, under what the host set itself. */
     private learned(): Partial<ProviderCapabilities> {
         const commands = this.commands ?? [];
+
         return {
             ...(this.reportsContext ? { reportsContextWindow: true } : {}),
             ...(commands.includes('compact') ? { compaction: 'prompt' as const } : {}),
@@ -166,14 +182,19 @@ export class AcpAgentState {
     /* Lays what the agent showed over the capabilities, in place; answers whether they changed. */
     private refresh(): boolean {
         const next: ProviderCapabilities = { ...this.options.base, ...this.learned(), ...this.options.overrides };
+
         if (JSON.stringify(next) === JSON.stringify(this.capabilities)) {
             return false;
         }
+
         const capabilities = this.capabilities as Partial<ProviderCapabilities>;
+
         for (const key of Object.keys(capabilities) as Array<keyof ProviderCapabilities>) {
             delete capabilities[key];
         }
+
         Object.assign(capabilities, next);
+
         return true;
     }
 
@@ -182,7 +203,9 @@ export class AcpAgentState {
         if (!adopted.models.some((model) => model.slug === adopted.defaultModel)) {
             return false;
         }
+
         this.adopted = adopted;
+
         return this.options.catalog.adopt(adopted.models, adopted.defaultModel, adopted.options.map(capitalized));
     }
 

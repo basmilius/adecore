@@ -35,9 +35,11 @@ export class ModelCatalog {
         if (timeOf(data) < this.shippedAt) {
             return false;
         }
+
         const changed = JSON.stringify(data) !== JSON.stringify(this.data);
         this.data = data;
         this.hostWindows = undefined;
+
         return changed;
     }
 
@@ -55,24 +57,31 @@ export class ModelCatalog {
         if (models.length === 0 || !models.some((model) => model.slug === defaultModel)) {
             return false;
         }
+
         const base = this.profileOf(this.data.defaultModel) ?? { options: [], contextWindowTokens: {} };
         const replaced = new Set(options.map((option) => option.id));
         this.hostWindows ??= base.contextWindowTokens;
         const profile = { ...base, contextWindowTokens: this.hostWindows, options: [...base.options.filter((option) => !replaced.has(option.id)), ...options] };
+
         const profileName = (window: number | undefined): string => (window === undefined ? ADOPTED_PROFILE : `${ADOPTED_PROFILE}-${window}`);
+
         const profiles: Record<string, ModelCatalogProfile> = {};
+
         for (const model of models) {
             profiles[profileName(model.contextWindow)] =
                 model.contextWindow === undefined ? profile : { ...profile, contextWindowTokens: { '*': model.contextWindow } };
         }
+
         const data: ModelCatalogInput = {
             ...(this.data.updatedAt === undefined ? {} : { updatedAt: this.data.updatedAt }),
             defaultModel,
             profiles,
             models: models.map((model) => ({ slug: model.slug, name: model.name, profile: profileName(model.contextWindow) }))
         };
+
         const changed = JSON.stringify(data) !== JSON.stringify(this.data);
         this.data = data;
+
         return changed;
     }
 
@@ -98,6 +107,7 @@ export class ModelCatalog {
     /* Accepts a slug or an alias; unknown models answer null so the caller can decide what to do. */
     resolveModel(name: string): string | null {
         const model = this.data.models.find((entry) => entry.slug === name || entry.aliases?.includes(name));
+
         return model?.slug ?? null;
     }
 
@@ -105,8 +115,10 @@ export class ModelCatalog {
     normalize(selection: Partial<ModelSelection> | undefined): ModelSelection {
         const model = (selection?.model && this.resolveModel(selection.model)) || this.defaultModel;
         const options: ModelSelection['options'] = {};
+
         for (const descriptor of this.profileOf(model)?.options ?? []) {
             const given = selection?.options?.[descriptor.id];
+
             if (descriptor.type === 'select') {
                 options[descriptor.id] =
                     typeof given === 'string' && descriptor.choices.some((choice) => choice.id === given) ? given : descriptor.defaultChoice;
@@ -114,20 +126,25 @@ export class ModelCatalog {
                 options[descriptor.id] = typeof given === 'boolean' ? given : descriptor.defaultValue;
             }
         }
+
         return { model, options };
     }
 
     contextWindowFor(selection: ModelSelection): number | null {
         const profile = this.profileOf(selection.model);
+
         if (!profile) {
             return null;
         }
+
         const chosen = selection.options.contextWindow;
+
         return (typeof chosen === 'string' ? profile.contextWindowTokens[chosen] : undefined) ?? profile.contextWindowTokens['*'] ?? null;
     }
 
     private profileOf(slug: string): ModelCatalogProfile | undefined {
         const model = this.data.models.find((entry) => entry.slug === slug);
+
         return model ? this.data.profiles[model.profile] : undefined;
     }
 }

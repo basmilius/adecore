@@ -102,11 +102,14 @@ function slugOf(label: string): string {
 
 function sensitiveNames(entry: unknown): string[] {
     const variables = typeof entry === 'object' && entry !== null ? (entry as { env?: unknown }).env : undefined;
+
     if (!Array.isArray(variables)) {
         return [];
     }
+
     return variables.flatMap((variable: unknown) => {
         const { name, sensitive } = (variable ?? {}) as { name?: unknown; sensitive?: unknown };
+
         return sensitive === true && typeof name === 'string' ? [name] : [];
     });
 }
@@ -182,11 +185,14 @@ export class ProviderAccountsService implements AccountLaunches {
         const loginCommands: Partial<Record<AgentKind, string>> = {};
         const chatLogins: AgentKind[] = [];
         const silentLogins: AgentKind[] = [];
+
         for (const kind of this.kinds()) {
             const provider = this.providers.get(kind);
             const home = provider.home;
+
             if (home?.loginCommand !== undefined) {
                 loginCommands[kind] = home.loginCommand;
+
                 if (provider.askAccount === undefined && !this.asksEveryKind && !ASKED_KINDS.includes(kind)) {
                     silentLogins.push(kind);
                 }
@@ -194,6 +200,7 @@ export class ProviderAccountsService implements AccountLaunches {
                 chatLogins.push(kind);
             }
         }
+
         return {
             accounts: this.accounts,
             statuses: Object.entries(this.accounts).map(([id, account]) => this.statusOf(id, account)),
@@ -215,44 +222,59 @@ export class ProviderAccountsService implements AccountLaunches {
      */
     envFor(kind: AgentKind, id: string | undefined, baseEnv: Env): Env {
         const key = id ?? kind;
+
         const refuse = (why: string): AccountError =>
             new AccountError('account-unavailable', `The account '${this.labelOf(key)}' is not available on this machine: ${why}.`);
+
         const provider = this.providers.get(kind);
+
         const variables = (account: ProviderAccount): Record<string, string> => {
             const { values, missing } = this.variablesOf(key, account);
+
             if (missing !== null) {
                 throw refuse(`the keychain does not give the value of ${missing}`);
             }
+
             return values;
         };
+
         if (isDefaultAccountOf(kind, id)) {
             const account = this.accounts[kind] ?? { kind };
+
             // Only a start that names it: every turn of a chat on the default account asks with none.
             if (id !== undefined && account.enabled === false) {
                 throw refuse('it is turned off');
             }
+
             return accountEnv(kind, account, provider, baseEnv, variables(account));
         }
+
         const account = this.accounts[key];
+
         if (account === undefined) {
             throw refuse('no account on it has that id');
         }
+
         if (account.kind !== kind) {
             throw refuse(
                 `it is an account of ${isOfferedKind(account.kind, this.kinds()) ? this.providers.get(account.kind).name : account.kind}, not of ${provider.name}`
             );
         }
+
         if (account.enabled === false) {
             throw refuse('it is turned off');
         }
+
         if (provider.home === undefined || account.home === undefined) {
             throw refuse(`${provider.name} has no setting for its config folder`);
         }
+
         for (const folder of [account.home, account.shadowHome]) {
             if (folder !== undefined && !this.folderExists(expandHome(folder, this.env))) {
                 throw refuse(`its folder ${folder} is missing`);
             }
         }
+
         return accountEnv(key, account, provider, baseEnv, variables(account));
     }
 
@@ -269,12 +291,15 @@ export class ProviderAccountsService implements AccountLaunches {
         const toId = to ?? kind;
         const fromAccount = this.accounts[fromId];
         const toAccount = this.accounts[toId];
+
         if (fromId === toId) {
             return true;
         }
+
         if (fromAccount === undefined || toAccount === undefined || fromAccount.kind !== kind) {
             return false;
         }
+
         return canContinue({ id: fromId, account: fromAccount }, { id: toId, account: toAccount }, this.accountProviders(), this.env);
     }
 
@@ -294,6 +319,7 @@ export class ProviderAccountsService implements AccountLaunches {
     /* Told whenever the accounts or what their CLIs said changed, after the clients were. */
     listen(listener: () => void): () => void {
         this.listeners.add(listener);
+
         return () => {
             this.listeners.delete(listener);
         };
@@ -325,9 +351,11 @@ export class ProviderAccountsService implements AccountLaunches {
         return this.writes.run(async () => {
             const { kind, label, color } = payload;
             const provider = this.providers.get(kind);
+
             if (provider.home === undefined) {
                 throw new InvalidAccountError(`${provider.name} has no setting for its config folder, so it only has its default account`);
             }
+
             const id = this.mintId(kind, label);
             const folder = join(this.accountsFolder(), id);
             await mkdir(this.accountsFolder(), { recursive: true, mode: 0o700 });
@@ -336,6 +364,7 @@ export class ProviderAccountsService implements AccountLaunches {
             const account: ProviderAccount = { kind, label, ...(color === undefined ? {} : { color }), ...folders };
             await this.prepare(id, kind, account);
             const snapshot = await this.commit({ ...this.accounts, [id]: account }, (path) => path === folder || this.folderExists(path));
+
             return { ...snapshot, id };
         });
     }
@@ -349,40 +378,51 @@ export class ProviderAccountsService implements AccountLaunches {
         if (this.accounts[id] === undefined) {
             throw new AccountError('account-unavailable', `The account '${id}' is not available on this machine: no account on it has that id.`);
         }
+
         const deadline = this.now() + LOGIN_WATCH_MS;
         const running = this.watches.get(id);
+
         if (running !== undefined) {
             running.deadline = deadline;
+
             return running.done;
         }
+
         const watch: LoginWatch = { deadline, done: Promise.resolve() };
         watch.done = this.runWatch(id, watch).finally(() => this.watches.delete(id));
         this.watches.set(id, watch);
+
         return watch.done;
     }
 
     /* Asks every CLI again, and answers once they all did. */
     async refresh(): Promise<ProviderAccounts> {
         await this.queue(true);
+
         return this.snapshot();
     }
 
     private folderOf(kind: AgentKind, id: string | undefined, folder: typeof accountFolder): string | null {
         const key = id ?? kind;
         const account = this.accounts[key];
+
         if (account === undefined || account.kind !== kind) {
             return null;
         }
+
         return folder(key, account, this.providers.get(kind), this.env);
     }
 
     private async runWatch(id: string, watch: LoginWatch): Promise<void> {
         while (this.now() < watch.deadline) {
             await this.sleep(LOGIN_POLL_MS);
+
             if (this.accounts[id] === undefined) {
                 return;
             }
+
             await this.queue(true, id);
+
             if (this.states.get(id)?.status.state === 'ready') {
                 return;
             }
@@ -400,26 +440,33 @@ export class ProviderAccountsService implements AccountLaunches {
     private async commit(accounts: ProviderAccountMap, isDirectory: (path: string) => boolean): Promise<ProviderAccounts> {
         const stored = acceptAccounts(accounts, this.stored, this.accountProviders(), this.env, isDirectory, this.host);
         const { writes, removals } = this.planSecrets(stored);
+
         for (const [key, value] of writes) {
             await this.requireSecrets().write(key, value);
             this.secretValues.set(key, value);
         }
+
         await writeAccounts(this.path, stored);
         this.stored = stored;
         this.accounts = wireAccounts(stored, this.kinds());
+
         for (const key of removals) {
             this.secretValues.delete(key);
             await this.secrets?.remove(key).catch((e: unknown) => console.error(`Could not remove ${key} from the keychain:`, errorText(e)));
         }
+
         const rewritten = new Set([...writes.keys()].map((key) => key.slice(0, key.indexOf('/'))));
+
         for (const id of this.states.keys()) {
             // A new secret can be a new login, which the account as the file holds it does not show.
             if (this.accounts[id] === undefined || rewritten.has(id)) {
                 this.states.delete(id);
             }
         }
+
         this.emit();
         void this.queue(false);
+
         return this.snapshot();
     }
 
@@ -430,41 +477,55 @@ export class ProviderAccountsService implements AccountLaunches {
     private planSecrets(stored: StoredAccounts): { writes: Map<string, string>; removals: string[] } {
         const writes = new Map<string, string>();
         const kept = new Set<string>();
+
         for (const [id, entry] of Object.entries(stored)) {
             const kind = (entry as { kind: string }).kind;
+
             if (!isOfferedKind(kind, this.kinds())) {
                 for (const name of sensitiveNames(entry)) {
                     kept.add(secretKey(id, name));
                 }
+
                 continue;
             }
+
             const account = entry as ProviderAccount;
+
             if (account.env === undefined) {
                 continue;
             }
+
             const had = new Set(sensitiveNames(this.stored[id]));
+
             const variables = account.env.map((variable): ProviderAccountVariable => {
                 if (!variable.sensitive) {
                     return { name: variable.name, value: variable.value, sensitive: false };
                 }
+
                 const key = secretKey(id, variable.name);
                 this.requireSecrets();
+
                 if (variable.value !== '') {
                     writes.set(key, variable.value);
                 } else if (variable.valueRedacted !== true || !had.has(variable.name)) {
                     throw new InvalidAccountError(`${id}: ${variable.name} has no value`);
                 }
+
                 kept.add(key);
+
                 return { name: variable.name, value: '', sensitive: true, valueRedacted: true };
             });
+
             const { env: _env, ...rest } = account;
             stored[id] = variables.length === 0 ? rest : { ...rest, env: variables };
         }
+
         const removals = Object.entries(this.stored).flatMap(([id, entry]) =>
             sensitiveNames(entry)
                 .map((name) => secretKey(id, name))
                 .filter((key) => !kept.has(key))
         );
+
         return { writes, removals };
     }
 
@@ -472,6 +533,7 @@ export class ProviderAccountsService implements AccountLaunches {
         if (this.secrets === null) {
             throw new SecretsUnavailableError();
         }
+
         return this.secrets;
     }
 
@@ -479,11 +541,14 @@ export class ProviderAccountsService implements AccountLaunches {
         if (this.secrets === null) {
             return;
         }
+
         for (const [id, entry] of Object.entries(this.stored)) {
             for (const name of sensitiveNames(entry)) {
                 const key = secretKey(id, name);
+
                 try {
                     const value = await this.secrets.read(key);
+
                     if (value !== null) {
                         this.secretValues.set(key, value);
                     }
@@ -497,13 +562,17 @@ export class ProviderAccountsService implements AccountLaunches {
     /* The variables of an account as a CLI gets them, and the first sensitive one the keychain did not give. */
     private variablesOf(id: string, account: ProviderAccount): { values: Record<string, string>; missing: string | null } {
         const values: Record<string, string> = {};
+
         for (const variable of account.env ?? []) {
             const value = variable.sensitive ? this.secretValues.get(secretKey(id, variable.name)) : variable.value;
+
             if (value === undefined) {
                 return { values, missing: variable.name };
             }
+
             values[variable.name] = value;
         }
+
         return { values, missing: null };
     }
 
@@ -514,11 +583,15 @@ export class ProviderAccountsService implements AccountLaunches {
     /* A free id for a new account; a folder a removed account left behind is never handed to another. */
     private mintId(kind: AgentKind, label: string): string {
         const base = `${kind}_${slugOf(label) || 'account'}`.slice(0, 60).replace(/-+$/, '');
+
         const taken = (id: string): boolean => this.accounts[id] !== undefined || this.stored[id] !== undefined || existsSync(join(this.accountsFolder(), id));
+
         let id = base;
+
         for (let suffix = 2; taken(id); suffix += 1) {
             id = `${base}-${suffix}`;
         }
+
         return id;
     }
 
@@ -526,14 +599,17 @@ export class ProviderAccountsService implements AccountLaunches {
     private queue(force: boolean, only?: string): Promise<void> {
         const pass = this.passes.then(() => this.runAll(force, only));
         this.passes = pass.catch((e: unknown) => console.error('Could not check the provider accounts:', errorText(e)));
+
         return this.passes;
     }
 
     private statusOf(id: string, account: ProviderAccount): ProviderAccountStatus {
         const state = this.states.get(id);
+
         if (state !== undefined && state.drawnFor === JSON.stringify(account)) {
             return state.status;
         }
+
         return this.status(id, account, 'checking', { checkedAt: 0 });
     }
 
@@ -545,6 +621,7 @@ export class ProviderAccountsService implements AccountLaunches {
     ): ProviderAccountStatus {
         const provider = isOfferedKind(account.kind, this.kinds()) ? this.providers.get(account.kind) : null;
         const folder = provider === null ? '' : accountFolder(id, account, provider, this.env);
+
         return {
             id,
             kind: account.kind,
@@ -562,19 +639,25 @@ export class ProviderAccountsService implements AccountLaunches {
 
     private async runAll(force: boolean, only: string | undefined): Promise<void> {
         const installed = await this.providers.list();
+
         const due = Object.entries(this.accounts).filter(([id, account]) => {
             if (only !== undefined && id !== only) {
                 return false;
             }
+
             const state = this.states.get(id);
+
             return force || state === undefined || state.drawnFor !== JSON.stringify(account) || this.now() >= state.nextAt;
         });
+
         const results = await Promise.all(due.map(async ([id, account]) => ({ id, account, status: await this.check(id, account, installed) })));
         let changed = false;
+
         for (const { id, account, status } of results) {
             if (this.accounts[id] === undefined) {
                 continue;
             }
+
             const before = this.states.get(id);
             const drawnFor = JSON.stringify(account);
             const failed = status.state === 'failed';
@@ -583,6 +666,7 @@ export class ProviderAccountsService implements AccountLaunches {
             // An account a save changed read `checking` since, whatever it read before.
             changed ||= before === undefined || before.drawnFor !== drawnFor || !sameStatus(before.status, status);
         }
+
         if (changed) {
             this.emit();
         }
@@ -590,45 +674,58 @@ export class ProviderAccountsService implements AccountLaunches {
 
     private async check(id: string, account: ProviderAccount, installed: ProviderInfo[]): Promise<ProviderAccountStatus> {
         const kind = account.kind;
+
         if (!isOfferedKind(kind, this.kinds())) {
             return this.status(id, account, 'unavailable', { message: `This version of ${this.host.name} does not know this CLI` });
         }
+
         const provider = this.providers.get(kind);
         const isDefault = isDefaultAccount(id, account);
+
         if (!isDefault && provider.home === undefined) {
             return this.status(id, account, 'unavailable', {
                 message: `${provider.name} has no setting for its config folder, so it only has its default account`
             });
         }
+
         if (account.enabled === false || this.providers.enabled?.(kind) === false) {
             return this.status(id, account, 'disabled');
         }
+
         if (installed.find((info) => info.kind === kind)?.installed !== true) {
             return this.status(id, account, 'not-found');
         }
+
         if (provider.home === undefined) {
             return this.status(id, account, 'ready');
         }
+
         const folders = isDefault
             ? []
             : [account.home, account.shadowHome].filter((folder) => folder !== undefined).map((folder) => expandHome(folder, this.env));
+
         for (const folder of folders) {
             if (!this.folderExists(folder)) {
                 return this.status(id, account, 'folder-missing', { message: `${folder} does not exist` });
             }
         }
+
         try {
             const message = await this.prepare(id, kind, account);
             const { values, missing } = this.variablesOf(id, account);
+
             if (missing !== null) {
                 throw new Error(`The keychain does not give the value of ${missing}`);
             }
+
             // A CLI that signs in from its chat has no command that says who is signed in; its chat asks when it must.
             if (provider.home.loginCommand === undefined) {
                 return this.status(id, account, 'ready', { message });
             }
+
             const env = accountEnv(id, account, provider, this.env, values);
             const reading = await (provider.askAccount ? provider.askAccount(provider.command, env) : this.ask(kind, provider.command, env));
+
             return this.status(id, account, reading.signedIn ? 'ready' : 'signed-out', {
                 email: reading.email,
                 plan: reading.plan,
@@ -650,20 +747,26 @@ export class ProviderAccountsService implements AccountLaunches {
         if (isDefaultAccount(id, account) || account.home === undefined) {
             return null;
         }
+
         const home = expandHome(account.home, this.env);
         await this.install?.(kind, home).catch((e: unknown) => console.error(`Could not install hooks in ${home}:`, errorText(e)));
+
         if (account.shadowHome === undefined) {
             return null;
         }
+
         const report = await this.prepareShadow(home, expandHome(account.shadowHome, this.env));
+
         if (report.sharedLogin) {
             throw new Error('auth.json in the shadow home is a link, so this account would sign in as another one');
         }
+
         return report.unshared.length > 0 ? `Not shared with ${home}: ${report.unshared.join(', ')}` : null;
     }
 
     private emit(): void {
         this.sinks.emit({ event: 'accounts.changed', payload: this.snapshot() });
+
         for (const listener of this.listeners) {
             listener();
         }

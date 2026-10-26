@@ -24,13 +24,16 @@ describe('ProviderRegistry.add and remove', () => {
 
     function learning(kind: string): { provider: ChatProvider; learn(): void } {
         const listeners = new Set<() => void>();
+
         const provider: ChatProvider = {
             ...unofferedProvider(kind),
             onChange: (listener) => {
                 listeners.add(listener);
+
                 return () => listeners.delete(listener);
             }
         };
+
         return {
             provider,
             learn: () => {

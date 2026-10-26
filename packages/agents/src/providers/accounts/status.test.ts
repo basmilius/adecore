@@ -13,6 +13,7 @@ describe('readClaudeAuthStatus', () => {
             orgName: 'Example',
             subscriptionType: 'max'
         });
+
         expect(readClaudeAuthStatus(output)).toEqual({ signedIn: true, email: 'bas@example.com', plan: 'max', organization: 'Example' });
     });
 

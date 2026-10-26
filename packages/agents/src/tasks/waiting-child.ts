@@ -29,12 +29,14 @@ export function chatRequests(chats: Pick<ChatCore, 'get' | 'answer'>): ChatReque
             // The projector writes each under the kind it is.
             const thread = chats.get(nodeId)?.thread;
             const item = thread?.get(`question-${requestId}`) ?? thread?.get(`approval-${requestId}`);
+
             return item?.kind === 'question' || item?.kind === 'approval' ? item : null;
         },
         waiting: (nodeId) => (chats.get(nodeId)?.thread.list() ?? []).filter(isPendingRequest),
         answer: (nodeId, requestId, answers) => {
             try {
                 chats.answer(nodeId, requestId, answers);
+
                 return true;
             } catch {
                 return false;
@@ -86,16 +88,22 @@ export class WaitingObserver {
         if (this.stopped || event.event !== 'chat.event') {
             return;
         }
+
         const { chatId, event: chatEvent } = event.payload;
+
         if (chatEvent.type !== 'item' || !isPendingRequest(chatEvent.item)) {
             return;
         }
+
         const task = this.deps.openTask(chatId);
         const key = `${chatId}\n${chatEvent.item.requestId}`;
+
         if (task === undefined || this.owed.has(key)) {
             return;
         }
+
         this.owed.add(key);
+
         void this.deps
             .enqueue(
                 task.projectId,
@@ -120,16 +128,19 @@ const NOTE_QUESTION_LENGTH = 200;
 
 function quotedShort(text: string): string {
     const line = oneLine(text);
+
     return JSON.stringify(line.length > NOTE_QUESTION_LENGTH ? `${clipText(line, NOTE_QUESTION_LENGTH - 1)}…` : line);
 }
 
 /* One question as the parent's CLI reads it, with the choices it may pick from. */
 function questionLine(question: ChatQuestionItem['questions'][number]): string {
     const choices = question.choices.map((choice) => (choice.description === '' ? choice.label : `${choice.label} (${choice.description})`));
+
     const how =
         choices.length === 0
             ? 'answer in your own words'
             : `choices: ${choices.join(' | ')}; ${question.multiSelect ? 'pick one or more' : 'pick one'}, or answer in your own words`;
+
     return `- question ${question.id}: ${quoted(question.question)} (${how})`;
 }
 
@@ -146,9 +157,12 @@ export interface WaitingWords {
 function answerCall(cli: string, childId: string, item: ChatQuestionItem): string {
     if (item.questions.length === 1) {
         const multi = item.questions[0]!.multiSelect ? ', several labels in one --answer separated by a comma' : '';
+
         return `${cli} answer ${childId} ${item.requestId} --answer '<a choice label as written, or your own words>'${multi}`;
     }
+
     const shape = Object.fromEntries(item.questions.map((question) => [question.id, '...']));
+
     return `${cli} answer ${childId} ${item.requestId} --answers '${JSON.stringify(shape)}', one answer per question id`;
 }
 
@@ -158,8 +172,10 @@ function answerCall(cli: string, childId: string, item: ChatQuestionItem): strin
  */
 export function waitingTexts(child: { id: string; title: string }, item: WaitingRequest, words: WaitingWords): { note: string; preamble: string } {
     const who = `${child.title} (node ${child.id})`;
+
     if (item.kind === 'approval') {
         const what = item.description === null ? item.toolName : `${item.toolName}: ${item.description}`;
+
         return {
             note: `${who} waits for a person to approve ${what}`,
             preamble: [
@@ -168,11 +184,14 @@ export function waitingTexts(child: { id: string; title: string }, item: Waiting
             ].join('\n')
         };
     }
+
     const asked = item.questions.length === 1 ? quotedShort(item.questions[0]!.question) : `${item.questions.length} questions`;
+
     const how = [
         ...item.questions.map(questionLine),
         `A person can answer it in that node, and this chat with ${answerCall(words.cli, child.id, item)}. Whoever answers first wins; the verb refuses a question that was answered already.`
     ];
+
     return {
         note: [`${who} waits for an answer to ${asked}`, '', ...how].join('\n'),
         preamble: [
@@ -197,9 +216,11 @@ export function deliverWaitingHandler(deps: DeliverWaitingDeps) {
     return async (entry: DeliverWaitingEntry): Promise<OutboxOutcome> => {
         const { childId, requestId } = entry.payload;
         const item = deps.request(childId, requestId);
+
         if (!isPendingRequest(item)) {
             return;
         }
+
         const texts = waitingTexts({ id: childId, title: deps.titleFor(childId) ?? childId }, item, deps.words);
         await deps.deliver(entry.target, { noteId: waitingNoteId(childId, requestId), from: childId, ...texts });
     };

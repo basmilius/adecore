@@ -39,6 +39,7 @@ export function defaultCodexHome(env: Record<string, string | undefined> = proce
 /* Idempotent: a file that already says the same is left alone. */
 export async function installCodexRules(path: string, rules: CodexRules): Promise<CodexRulesResult> {
     const text = codexRulesText(rules);
+
     try {
         if ((await readFile(path, 'utf8')) === text) {
             return 'unchanged';
@@ -48,7 +49,9 @@ export async function installCodexRules(path: string, rules: CodexRules): Promis
             throw new Error(`Cannot read ${path}: ${errorText(e)}`);
         }
     }
+
     await mkdir(dirname(path), { recursive: true });
     await writeAtomic(path, text, 0o644);
+
     return 'written';
 }

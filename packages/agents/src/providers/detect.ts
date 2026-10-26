@@ -18,16 +18,21 @@ export async function detectCli(
 ): Promise<CliDetection> {
     try {
         let exited: (code: number | null) => void = () => undefined;
+
         const code = new Promise<number | null>((resolve) => {
             exited = resolve;
         });
+
         const proc = spawn({ command: [command, ...flags, '--version'], cwd: process.cwd(), env: definedEnv(env), onExit: (exitCode) => exited(exitCode) });
         proc.stdin.end();
         const output = await new Response(proc.stdout).text();
+
         if ((await code) !== 0) {
             return { installed: false, version: null };
         }
+
         const version = /\d+\.\d+\.\d+/.exec(output)?.[0] ?? output.trim();
+
         return { installed: true, version };
     } catch {
         return { installed: false, version: null };

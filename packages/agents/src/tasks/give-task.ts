@@ -29,24 +29,32 @@ export interface GiveTaskDeps {
 export function giveTaskHandler(deps: GiveTaskDeps) {
     return async (entry: GiveTaskEntry): Promise<OutboxOutcome> => {
         const task = deps.tasks.get(entry.payload.taskId);
+
         // Settled or cancelled before the turn could open, or a node the project no longer places.
         if (!task || task.status !== 'open' || !deps.placed(task.childId)) {
             return;
         }
+
         const chat = await deps.chat(task.childId);
+
         if (chat === null) {
             throw new Error(`${task.childId} has no chat to open a turn in`);
         }
+
         // The turn names the task, so a restart between opening it and dropping this entry gives it once.
         if (chat.items().some((item) => item.kind === 'turn' && (item.taskIds ?? []).includes(task.id))) {
             await chat.persist?.();
+
             return;
         }
+
         const from = deps.titleFor(task.parentId) ?? task.parentId;
         const text = deps.assignment?.(task) ?? task.prompt;
+
         if (!chat.wake({ text, label: task.title, note: taskNote(from), taskIds: [task.id] })) {
             return 'wait';
         }
+
         await chat.persist?.();
     };
 }

@@ -85,10 +85,14 @@ export interface TaskWiring {
 export function wireTasks(deps: TaskWiringDeps): TaskWiring {
     const now = deps.now ?? Date.now;
     const { chats, outbox } = deps;
+
     const enqueue = (projectId: string, target: string, work: TaskWork, notBefore?: number): Promise<void> =>
         outbox.enqueue(projectId, target, work, notBefore);
+
     const limit = backgroundLimits(outbox);
+
     const owesGiveTask = (taskId: string): boolean => outbox.list().some((entry) => isGiveTask(entry) && entry.payload.taskId === taskId);
+
     const coordinator = new TaskCoordinator({
         tasks: deps.tasks,
         now,
@@ -102,15 +106,18 @@ export function wireTasks(deps: TaskWiringDeps): TaskWiring {
         ...(deps.retryAt ? { retryAt: deps.retryAt } : {}),
         afterBackgroundWork: (chatId) => {
             const chat = chats.get(chatId);
+
             if (!chat?.running) {
                 return 'gone';
             }
+
             return reportsOnBackgroundWork(chat.info.provider) ? 'reports' : 'silent';
         },
         commandsOf: (chatId) => chats.get(chatId)?.info.background ?? [],
         activeGoal: (chatId) => {
             const chat = chats.get(chatId);
             const goal = chat?.info.goal;
+
             return chat && goal?.status === 'active' ? { objective: goal.objective, running: chat.running } : null;
         },
         limit
@@ -118,10 +125,12 @@ export function wireTasks(deps: TaskWiringDeps): TaskWiring {
 
     deps.tasks.onChange((task: Task) => {
         deps.changed?.(task);
+
         // A cancelled task owes no wake of its own, but it may be the last of a team whose held results now go out.
         if (task.status === 'cancelled' && task.batchId !== undefined) {
             outbox.wake(task.parentId);
         }
+
         // However a task ended, the limit on its child's background commands has nothing left to settle.
         if (task.status !== 'open' && limit.owed(task.id)) {
             void limit.lapse(task.id).catch((e: unknown) => console.error(`Dropping the limit of task ${task.id} failed:`, errorText(e)));
@@ -129,10 +138,12 @@ export function wireTasks(deps: TaskWiringDeps): TaskWiring {
     });
 
     const requests = chatRequests(chats);
+
     const waiting = new WaitingObserver({
         // A child on another machine asks its questions there.
         openTask: (childId) => {
             const task = deps.tasks.openFor(childId);
+
             return task?.machine === undefined ? task : undefined;
         },
         enqueue,
@@ -142,6 +153,7 @@ export function wireTasks(deps: TaskWiringDeps): TaskWiring {
     chats.observe((event) => {
         coordinator.chatEvent(event);
         waiting.chatEvent(event);
+
         if (event.event === 'chat.event' && chats.get(event.payload.chatId)?.info.activeTurnId === null) {
             outbox.wake(event.payload.chatId);
         }
@@ -155,12 +167,15 @@ export function wireTasks(deps: TaskWiringDeps): TaskWiring {
         if (task.requiresTaskTurn === true && deps.placed(task.childId) && !owesGiveTask(task.id)) {
             await enqueue(task.projectId, task.childId, { kind: 'give-task', payload: { taskId: task.id } });
         }
+
         const stored = await chats.storedBackground(task.childId);
         const storedWork = stored.items.length > 0 || stored.commands.length > 0;
+
         // A goal still active went down with the CLI, which its child's last turn settles on.
         if (!deps.placed(task.childId) || (task.background === undefined && task.requiresTaskTurn !== true && !storedWork && !stored.goal)) {
             return;
         }
+
         if (task.background === undefined && stored.turnId !== null && storedWork) {
             await deps.tasks.holdBackground(task.id, {
                 turnId: stored.turnId,
@@ -168,9 +183,12 @@ export function wireTasks(deps: TaskWiringDeps): TaskWiring {
                 commands: stored.commands
             });
         }
+
         const chat = await loadChat({ chats, placed: deps.placed }, task.childId);
+
         if (chat && chat.info.activeTurnId === null) {
             const last = chat.thread.list().findLast((item) => item.kind === 'turn');
+
             if (last?.kind === 'turn') {
                 coordinator.chatEvent({ event: 'chat.event', payload: { chatId: task.childId, event: { type: 'item', item: last } } });
             }
@@ -184,6 +202,7 @@ export function wireTasks(deps: TaskWiringDeps): TaskWiring {
                 if (task.status !== 'open') {
                     continue;
                 }
+
                 // One child whose record this version cannot read must not keep every later task from recovering.
                 try {
                     await recoverOpen(task);
@@ -191,7 +210,9 @@ export function wireTasks(deps: TaskWiringDeps): TaskWiring {
                     console.error(`Recovering task ${task.id} failed:`, errorText(e));
                 }
             }
+
             await coordinator.settled();
+
             for (const task of deps.tasks.all()) {
                 if (
                     task.status !== 'open' &&
@@ -209,6 +230,7 @@ export function wireTasks(deps: TaskWiringDeps): TaskWiring {
                 // The record first: the handler reads what the task asks from it, and a restart in between still owes the turn.
                 const task = await deps.tasks.open({ ...record, requiresTaskTurn: true }, now());
                 await enqueue(task.projectId, task.childId, { kind: 'give-task', payload: { taskId: task.id } });
+
                 return task;
             },
             chatState: (nodeId) => targets.chat(nodeId),

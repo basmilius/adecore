@@ -46,23 +46,28 @@ export interface TaskCoordinatorDeps {
 function answerOf(items: readonly ChatItem[], turnId: string): string | null {
     for (let i = items.length - 1; i >= 0; i--) {
         const item = items[i]!;
+
         if (item.kind === 'assistant' && item.turnId === turnId && !item.parentToolUseId) {
             const text = readableAssistantText(item).trim();
+
             if (text !== '') {
                 return text;
             }
         }
     }
+
     return null;
 }
 
 function lastNote(items: readonly ChatItem[], turnId: string, levels: readonly string[]): string | null {
     for (let i = items.length - 1; i >= 0; i--) {
         const item = items[i]!;
+
         if (item.kind === 'note' && item.turnId === turnId && levels.includes(item.level)) {
             return item.text;
         }
     }
+
     return null;
 }
 
@@ -87,12 +92,15 @@ export function resultOfTurn(turn: ChatTurnItem, items: readonly ChatItem[], at:
     if (turn.state === 'done') {
         return { status: 'done', result: { text: answerOf(items, turn.id) ?? 'It ended its turn without an answer.', source: 'turn', at } };
     }
+
     if (turn.state === 'aborted') {
         const text = abortedByMachine(turn, items)
             ? (lastNote(items, turn.id, ['warning']) ?? 'The machine stopped it.')
             : 'It was stopped before it finished.';
+
         return { status: 'failed', result: { text, source: 'turn', at } };
     }
+
     return { status: 'failed', result: { text: lastNote(items, turn.id, ['error']) ?? 'Its turn ended in an error.', source: 'turn', at } };
 }
 
@@ -121,6 +129,7 @@ export class TaskCoordinator {
         while (this.pending.size > 0) {
             await Promise.allSettled([...this.pending]);
         }
+
         await this.deps.tasks.settled();
     }
 
@@ -131,9 +140,11 @@ export class TaskCoordinator {
      */
     async settleFromElsewhere(taskId: string, result: TaskResult, status: 'done' | 'failed' = 'done'): Promise<Task | null> {
         const task = this.deps.tasks.get(taskId);
+
         if (task?.machine === undefined || task.status !== 'open') {
             return null;
         }
+
         return this.settleNow(task, status, result);
     }
 
@@ -141,10 +152,13 @@ export class TaskCoordinator {
         if (this.stopped || event.event !== 'chat.event') {
             return;
         }
+
         const { chatId, event: chatEvent } = event.payload;
+
         if (this.deps.loading?.(chatId)) {
             return;
         }
+
         if (chatEvent.type === 'item' && chatEvent.item.kind === 'turn' && chatEvent.item.state === 'running') {
             this.turnStarted(chatId);
         } else if (chatEvent.type === 'item' && chatEvent.item.kind === 'turn') {
@@ -179,9 +193,11 @@ export class TaskCoordinator {
     /* `done` from the child itself, which wins over whatever else was about to settle it. */
     async done(childId: string, text: string): Promise<Task | null> {
         const task = this.localTask(childId);
+
         if (!task) {
             return null;
         }
+
         return this.settleNow(task, 'done', { text, source: 'done', at: this.deps.now() });
     }
 
@@ -193,17 +209,23 @@ export class TaskCoordinator {
     async outlasted(childId: string, commands: readonly string[], cause: 'limit' | 'restart' = 'limit'): Promise<Task | null> {
         const task = this.localTask(childId);
         const items = this.deps.chatItems(childId);
+
         if (this.stopped || !task || items === null || this.delegating(childId)) {
             return null;
         }
+
         const last = items.findLast((item): item is ChatTurnItem => item.kind === 'turn');
+
         if (!last || last.state === 'running' || !this.answers(items, last, task)) {
             return null;
         }
+
         const { status, result } = resultOfTurn(last, items, this.deps.now());
+
         if (cause === 'restart') {
             return this.settleNow(task, 'failed', { ...result, text: `${result.text}\n\n${restartedNote(commands)}`, source: 'exit' });
         }
+
         return this.settleNow(task, status, { ...result, text: `${result.text}\n\n${outlastedNote(commands)}` });
     }
 
@@ -217,15 +239,18 @@ export class TaskCoordinator {
     /* The open task a chat here works on; one whose child runs on another machine is settled from there. */
     private localTask(childId: string): Task | undefined {
         const task = this.deps.tasks.openFor(childId);
+
         return task?.machine === undefined ? task : undefined;
     }
 
     /* An open task of this child that nothing can carry any more. */
     private failed(childId: string, text: string): void {
         const task = this.localTask(childId);
+
         if (!task || this.stopped) {
             return;
         }
+
         this.settle(task, 'failed', { text, source: 'exit', at: this.deps.now() });
     }
 
@@ -240,34 +265,46 @@ export class TaskCoordinator {
         if ((turn.taskIds ?? []).includes(task.id)) {
             return true;
         }
+
         if (this.deps.owedTurn(task.id)) {
             return false;
         }
+
         const own = items.findIndex((item) => item.kind === 'turn' && (item.taskIds ?? []).includes(task.id));
+
         return own === -1 ? task.requiresTaskTurn !== true && turn.createdAt >= task.createdAt : own < items.findIndex((item) => item.id === turn.id);
     }
 
     private turnEnded(chatId: string, turn: ChatTurnItem): void {
         const task = this.localTask(chatId);
         const items = this.deps.chatItems(chatId);
+
         if (!task || items === null || !this.answers(items, turn, task) || this.delegating(chatId)) {
             return;
         }
+
         const paused = this.pauseFor(chatId, turn, items);
+
         if (paused !== null) {
             this.hold(task, paused);
+
             return;
         }
+
         // A goal holds the task with no limit, and the parent sleeps on through the turns its CLI opens toward it.
         const goal = turn.state === 'done' ? (this.deps.activeGoal?.(chatId) ?? null) : null;
+
         if (goal?.running === true) {
             return;
         }
+
         if (goal !== null) {
             const { result } = resultOfTurn(turn, items, this.deps.now());
             this.settle(task, 'failed', { ...result, text: `${result.text}\n\n${goalLostNote(goal.objective)}`, source: 'exit' });
+
             return;
         }
+
         // A turn a person stopped or that failed ends the task, whatever still runs beside it.
         if (turn.state === 'done' && this.heldInBackground(chatId, task, items)) {
             this.track(
@@ -278,21 +315,27 @@ export class TaskCoordinator {
                 }),
                 `Saving the background work of task ${task.id} failed`
             );
+
             return;
         }
+
         if (task.background?.turnId === turn.id) {
             const after = this.deps.afterBackgroundWork(chatId);
+
             if (after === 'reports') {
                 return;
             }
+
             if (after === 'gone') {
                 this.settleGone(task, task.background, turn, items);
+
                 return;
             }
         } else if (turn.state === 'done' && this.deps.limit.owed(task.id) && this.deps.afterBackgroundWork(chatId) === 'gone') {
             // After a restart nothing here remembers the turn was held, but the limit it owes does, and that settles it.
             return;
         }
+
         const { status, result } = resultOfTurn(turn, items, this.deps.now());
         this.settle(task, status, result);
     }
@@ -302,28 +345,38 @@ export class TaskCoordinator {
         if (background.itemIds.length === 0 && this.deps.limit.owed(task.id)) {
             return;
         }
+
         const rowOf = (id: string): ChatItem | undefined => items.find((item) => item.id === id);
+
         const lost = background.itemIds.filter((id) => {
             const item = rowOf(id);
+
             return !item || (item.kind === 'subagent' ? item.status !== 'done' : item.kind !== 'tool' || item.state !== 'done');
         });
+
         if (lost.length > 0 || background.commands.length > 0) {
             const names = lost.map((id) => {
                 const row = rowOf(id);
+
                 return row?.kind === 'subagent' ? row.description || row.toolUseId : row?.kind === 'tool' ? row.name : id;
             });
+
             this.settle(task, 'failed', {
                 text: `The agent ended before its background work completed: ${[...names, ...background.commands].join(', ')}. This work will not send a result.`,
                 source: 'exit',
                 at: this.deps.now()
             });
+
             return;
         }
+
         const reports = background.itemIds.flatMap((id) => {
             const row = rowOf(id);
             const report = row?.kind === 'subagent' ? row.result : row?.kind === 'tool' ? row.output : null;
+
             return report ? [report] : [];
         });
+
         this.settle(task, 'done', {
             text: reports.join('\n\n') || resultOfTurn(turn, items, this.deps.now()).result.text,
             source: 'turn',
@@ -341,17 +394,22 @@ export class TaskCoordinator {
             if (this.deps.limit.owed(task.id)) {
                 void this.deps.limit.lapse(task.id).catch((e: unknown) => console.error(`Dropping the limit of task ${task.id} failed:`, errorText(e)));
             }
+
             return true;
         }
+
         const commands = this.deps.commandsOf(chatId);
+
         if (commands.length === 0) {
             return false;
         }
+
         if (!this.deps.limit.owed(task.id)) {
             void this.deps.limit
                 .owe(task, commands.map(commandLabel), this.deps.now() + BACKGROUND_COMMAND_LIMIT_MS)
                 .catch((e: unknown) => console.error(`Owing the limit of task ${task.id} failed:`, errorText(e)));
         }
+
         return true;
     }
 
@@ -361,19 +419,24 @@ export class TaskCoordinator {
      */
     private pauseFor(chatId: string, turn: ChatTurnItem, items: readonly ChatItem[]): NonNullable<Task['paused']> | null {
         const limit = turn.state === 'error' ? turn.limit : undefined;
+
         if (limit?.kind === 'usage') {
             return { kind: 'usage', ...(limit.resetsAt === undefined ? {} : { until: limit.resetsAt }) };
         }
+
         if (limit?.kind === 'overload') {
             const at = this.deps.retryAt?.(chatId, turn, items) ?? null;
+
             return at === null ? null : { kind: 'overload', until: at };
         }
+
         return null;
     }
 
     /* A child that took up work again is no longer waiting out a limit. */
     private turnStarted(chatId: string): void {
         const task = this.localTask(chatId);
+
         if (task?.paused !== undefined) {
             this.hold(task, null);
         }
@@ -386,10 +449,13 @@ export class TaskCoordinator {
     private recheck(chatId: string): void {
         const task = this.localTask(chatId);
         const items = this.deps.chatItems(chatId);
+
         if (!task || items === null || this.delegating(chatId)) {
             return;
         }
+
         const last = items.findLast((item): item is ChatTurnItem => item.kind === 'turn');
+
         if (last && last.state !== 'running' && last.createdAt >= task.createdAt) {
             this.turnEnded(chatId, last);
         }
@@ -411,13 +477,17 @@ export class TaskCoordinator {
 
     private async settleNow(task: Task, status: 'done' | 'failed', result: TaskResult): Promise<Task | null> {
         const settled = await this.deps.tasks.settle(task.id, status, result, this.deps.now());
+
         if (!settled) {
             return null;
         }
+
         await this.deps.oweWake(settled);
+
         if (status === 'failed') {
             this.deps.alert(settled.childId, `Task failed: ${settled.title}`, clipText(result.text, 500));
         }
+
         return settled;
     }
 }

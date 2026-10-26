@@ -26,12 +26,15 @@ export function isDefaultAccount(id: string, account: Pick<ProviderAccount, 'kin
 
 export function expandHome(path: string, env: Env): string {
     const home = homeFolder(env);
+
     if (path === '~') {
         return home;
     }
+
     if (path.startsWith('~/') || (process.platform === 'win32' && path.startsWith('~\\'))) {
         return join(home, path.slice(2));
     }
+
     return resolve(path);
 }
 
@@ -55,34 +58,45 @@ export function accountProblem(
     if (isOfferedKind(id, kinds) && id !== account.kind) {
         return `"${id}" is the id of the default ${id} account`;
     }
+
     const variables = variablesProblem(account.env ?? [], reserved);
+
     if (variables !== null) {
         return variables;
     }
+
     if (isDefaultAccount(id, account)) {
         return account.home !== undefined || account.shadowHome !== undefined ? 'The default account uses the folder of the CLI itself' : null;
     }
+
     if (provider.home === undefined) {
         return null;
     }
+
     if (account.home === undefined) {
         return 'An account needs a config folder';
     }
+
     if (!isRootedPath(account.home)) {
         return 'A config folder is an absolute path or starts with ~';
     }
+
     if (account.shadowHome === undefined) {
         return null;
     }
+
     if (account.kind !== 'codex') {
         return 'Only a Codex account has a shadow home';
     }
+
     if (!isRootedPath(account.shadowHome)) {
         return 'A shadow home is an absolute path or starts with ~';
     }
+
     if (expandHome(account.shadowHome, env) === expandHome(account.home, env)) {
         return 'The shadow home has to be another folder than the config folder';
     }
+
     return null;
 }
 
@@ -90,6 +104,7 @@ export function accountProblem(
 export function folderVariablesOf(providers: AccountProviders): string[] {
     return providers.kinds.flatMap((kind) => {
         const home = providers.get(kind).home;
+
         return home === undefined ? [] : [home.env];
     });
 }
@@ -97,12 +112,15 @@ export function folderVariablesOf(providers: AccountProviders): string[] {
 /* The map with a default account for every CLI the host offers, those first and in catalog order. */
 export function withDefaults(accounts: ProviderAccountMap, kinds: readonly AgentKind[]): ProviderAccountMap {
     const complete: ProviderAccountMap = {};
+
     for (const kind of kinds) {
         complete[kind] = accounts[kind] ?? { kind };
     }
+
     for (const [id, account] of Object.entries(accounts)) {
         complete[id] ??= account;
     }
+
     return complete;
 }
 
@@ -111,6 +129,7 @@ export function defaultFolder(provider: ChatProvider, env: Env): string {
     if (provider.home === undefined) {
         return '';
     }
+
     return env[provider.home.env] ?? join(homeFolder(env), provider.home.fallback);
 }
 
@@ -119,6 +138,7 @@ export function accountFolder(id: string, account: ProviderAccount, provider: Ch
     if (isDefaultAccount(id, account) || provider.home === undefined || account.home === undefined) {
         return defaultFolder(provider, env);
     }
+
     return expandHome(account.shadowHome ?? account.home, env);
 }
 
@@ -127,6 +147,7 @@ export function transcriptFolder(id: string, account: ProviderAccount, provider:
     if (isDefaultAccount(id, account) || provider.home === undefined || account.home === undefined) {
         return defaultFolder(provider, env);
     }
+
     return expandHome(account.home, env);
 }
 
@@ -139,14 +160,19 @@ export function transcriptFolder(id: string, account: ProviderAccount, provider:
  */
 export function accountEnv(id: string, account: ProviderAccount, provider: ChatProvider, baseEnv: Env, variables: Record<string, string> = {}): Env {
     const withVariables = (env: Env): Env => (Object.keys(variables).length === 0 ? env : { ...env, ...variables });
+
     if (isDefaultAccount(id, account) || provider.home === undefined || account.home === undefined) {
         return withVariables(baseEnv);
     }
+
     const env = { ...baseEnv };
+
     for (const name of provider.home.loginEnv) {
         delete env[name];
     }
+
     env[provider.home.env] = accountFolder(id, account, provider, baseEnv);
+
     return withVariables(env);
 }
 
@@ -163,11 +189,15 @@ export function canContinue(from: NamedAccount, to: NamedAccount, providers: Acc
     if (from.id === to.id) {
         return true;
     }
+
     const kind = from.account.kind;
+
     if (kind !== to.account.kind || !isOfferedKind(kind, providers.kinds)) {
         return false;
     }
+
     const provider = providers.get(kind);
+
     return transcriptFolder(from.id, from.account, provider, env) === transcriptFolder(to.id, to.account, provider, env);
 }
 
@@ -179,17 +209,23 @@ export function readAccount(id: string, raw: unknown, providers: AccountProvider
     if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
         return null;
     }
+
     const kind = (raw as { kind?: unknown }).kind;
+
     if (typeof kind !== 'string' || kind === '') {
         return null;
     }
+
     if (!isOfferedKind(kind, providers.kinds)) {
         return isOfferedKind(id, providers.kinds) ? null : raw;
     }
+
     const parsed = ProviderAccountSchema.safeParse(raw);
     const reserved = { host, folderVariables: folderVariablesOf(providers) };
+
     if (!parsed.success || accountProblem(id, parsed.data, providers.get(kind), env, reserved, providers.kinds) !== null) {
         return null;
     }
+
     return parsed.data;
 }

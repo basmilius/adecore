@@ -34,28 +34,37 @@ export type StoredAccounts = Record<string, unknown>;
 /* Every entry that does not parse is dropped on its own; a file that is not JSON at all reads as none. */
 export async function readAccounts(path: string, providers: AccountProviders, env: Env, host: AccountsHost = DEFAULT_ACCOUNTS_HOST): Promise<StoredAccounts> {
     let parsed: unknown;
+
     try {
         parsed = JSON.parse(await readFile(path, 'utf8'));
     } catch (e) {
         if (isNotFound(e) || e instanceof SyntaxError) {
             return {};
         }
+
         throw e;
     }
+
     const entries = typeof parsed === 'object' && parsed !== null ? (parsed as { accounts?: unknown }).accounts : null;
+
     if (typeof entries !== 'object' || entries === null || Array.isArray(entries)) {
         return {};
     }
+
     const stored: StoredAccounts = {};
+
     for (const [id, raw] of Object.entries(entries)) {
         if (!ProviderAccountIdSchema.safeParse(id).success) {
             continue;
         }
+
         const account = readAccount(id, raw, providers, env, host);
+
         if (account !== null) {
             stored[id] = account;
         }
     }
+
     return stored;
 }
 
@@ -66,9 +75,11 @@ export async function writeAccounts(path: string, stored: StoredAccounts): Promi
 /* What a client reads of an entry of a kind it may not know either: the fields this version knows. */
 function wireAccount(entry: unknown): ProviderAccount {
     const parsed = ProviderAccountSchema.safeParse(entry);
+
     if (!parsed.success) {
         return { kind: String((entry as { kind?: unknown }).kind) };
     }
+
     return parsed.data.env === undefined ? parsed.data : { ...parsed.data, env: redactVariables(parsed.data.env) };
 }
 
@@ -84,6 +95,7 @@ export class InvalidAccountError extends CodedError<'invalid-account'> {
 
 function storedFolders(entry: unknown): Pick<ProviderAccount, 'home' | 'shadowHome'> {
     const parsed = ProviderAccountSchema.safeParse(entry);
+
     return parsed.success ? { home: parsed.data.home, shadowHome: parsed.data.shadowHome } : {};
 }
 
@@ -102,18 +114,23 @@ function linkProblem(
     if (isDefaultAccount(id, account) || provider.home === undefined || account.home === undefined) {
         return null;
     }
+
     const was = storedFolders(before);
+
     if (was.home === account.home && was.shadowHome === account.shadowHome) {
         return null;
     }
+
     for (const folder of [account.home, account.shadowHome]) {
         if (folder !== undefined && !isDirectory(expandHome(folder, env))) {
             return `${folder} is not a folder on this machine`;
         }
     }
+
     if (accountFolder(id, account, provider, env) === defaultFolder(provider, env)) {
         return `${defaultFolder(provider, env)} is the folder of the default ${provider.name} account`;
     }
+
     return null;
 }
 
@@ -133,23 +150,31 @@ export function acceptAccounts(
 ): StoredAccounts {
     const stored: StoredAccounts = {};
     const reserved = { host, folderVariables: folderVariablesOf(providers) };
+
     for (const [id, account] of Object.entries(withDefaults(saved, providers.kinds))) {
         if (!isOfferedKind(account.kind, providers.kinds)) {
             if (isOfferedKind(id, providers.kinds)) {
                 throw new InvalidAccountError(`"${id}" is the id of the default ${id} account`);
             }
+
             const kept = before[id];
             const keptKind = typeof kept === 'object' && kept !== null ? (kept as { kind?: unknown }).kind : undefined;
             stored[id] = keptKind === account.kind ? kept : account;
+
             continue;
         }
+
         const provider = providers.get(account.kind);
+
         const problem =
             accountProblem(id, account, provider, env, reserved, providers.kinds) ?? linkProblem(id, account, before[id], provider, env, isDirectory);
+
         if (problem !== null) {
             throw new InvalidAccountError(`${id}: ${problem}`);
         }
+
         stored[id] = account;
     }
+
     return stored;
 }

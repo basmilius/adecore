@@ -87,25 +87,31 @@ export class ProviderRegistry {
      */
     add(provider: ChatProvider): void {
         const index = this.providers.findIndex((entry) => entry.kind === provider.kind);
+
         if (index === -1) {
             this.providers.push(provider);
         } else {
             this.unfollow(this.providers[index]!);
             this.providers[index] = provider;
         }
+
         this.cache.delete(provider.kind);
+
         if (this.listeners.size > 0) {
             this.follow(provider);
         }
+
         this.changed(provider.kind);
     }
 
     /* Stops offering a kind; a record that names it gets the stand-in `get` answers for a kind the host does not offer. */
     remove(kind: AgentKind): void {
         const index = this.providers.findIndex((entry) => entry.kind === kind);
+
         if (index === -1) {
             return;
         }
+
         this.unfollow(this.providers[index]!);
         this.providers.splice(index, 1);
         this.cache.delete(kind);
@@ -144,11 +150,13 @@ export class ProviderRegistry {
      */
     async oneShotProvider(preferred?: AgentKind): Promise<ChatProvider | null> {
         const order = preferred ? [this.get(preferred), ...this.providers] : this.providers;
+
         for (const provider of order) {
             if (provider.oneShotArgs && (await this.detection(provider)).installed) {
                 return provider;
             }
         }
+
         return null;
     }
 
@@ -170,13 +178,17 @@ export class ProviderRegistry {
                 this.follow(provider);
             }
         }
+
         this.listeners.add(listener);
+
         return () => {
             this.listeners.delete(listener);
+
             if (this.listeners.size === 0) {
                 for (const stop of this.stops.values()) {
                     stop();
                 }
+
                 this.stops.clear();
             }
         };
@@ -214,17 +226,23 @@ export class ProviderRegistry {
         if (provider.enabled?.() === false) {
             return DISABLED;
         }
+
         const cached = this.cache.get(provider.kind);
+
         if (cached && Date.now() - cached.at < DETECTION_TTL_MS) {
             return cached.detection;
         }
+
         const command = this.commands[provider.kind] ?? provider.command[0]!;
         const detection = this.detect ? await this.detect(command) : await provider.detect(command, this.env);
+
         // Turned off while the probe ran.
         if (provider.enabled?.() === false) {
             return DISABLED;
         }
+
         this.cache.set(provider.kind, { at: Date.now(), detection });
+
         return detection;
     }
 }

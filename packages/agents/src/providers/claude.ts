@@ -35,6 +35,7 @@ export function claudeRuntimeMode(mode: string): RuntimeMode | undefined {
     if (mode === 'default') {
         return 'supervised';
     }
+
     return (Object.keys(PERMISSION_MODE) as RuntimeMode[]).find((key) => PERMISSION_MODE[key] === mode);
 }
 
@@ -55,12 +56,15 @@ export function claudeArgs(launch: ClaudeLaunch): string[] {
         ...(launch.folders ?? []).map((folder) => `--add-dir=${folder}`),
         ...(launch.projectConfig === false ? CLAUDE_WITHOUT_PROJECT_CONFIG_ARGS : [])
     ];
+
     const contextWindow = launch.selection.options.contextWindow;
     args.push('--model', `${launch.selection.model}${contextWindow === '1m' ? '[1m]' : ''}`);
     const effort = launch.selection.options.effort;
+
     if (typeof effort === 'string' && FLAG_EFFORTS.has(effort)) {
         args.push('--effort', effort);
     }
+
     /*
      * Fast mode has no flag of its own; the CLI reads it from the settings blob, which is also the
      * opt-in the init frame asks for (without it the frame answers `sdk_opt_in_required`). It only
@@ -72,19 +76,25 @@ export function claudeArgs(launch: ClaudeLaunch): string[] {
         ...(launch.selection.options.fastMode === true ? { fastMode: true } : {}),
         ...(launch.selection.options.contextWindow === '200k' ? { autoCompactEnabled: true } : {})
     };
+
     if (Object.keys(settings).length > 0) {
         args.push('--settings', JSON.stringify(settings));
     }
+
     const permissionMode = PERMISSION_MODE[launch.runtimeMode];
+
     if (permissionMode) {
         args.push('--permission-mode', permissionMode);
     }
+
     if (permissionMode === 'bypassPermissions') {
         args.push('--allow-dangerously-skip-permissions');
     }
+
     if (launch.resume) {
         args.push('--resume', launch.resume);
     }
+
     return args;
 }
 

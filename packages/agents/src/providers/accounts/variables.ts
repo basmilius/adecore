@@ -59,18 +59,23 @@ function isPrintableAscii(value: string): boolean {
 /* What is wrong with the variables of an account, or null when nothing is. A secret that is only redacted is judged by the service. */
 export function variablesProblem(variables: readonly ProviderAccountVariable[], reserved: ReservedVariables): string | null {
     const seen = new Set<string>();
+
     for (const variable of variables) {
         if (seen.has(variable.name)) {
             return `${variable.name} is set twice`;
         }
+
         seen.add(variable.name);
+
         if (isReservedName(variable.name, reserved)) {
             return `${variable.name} is set by ${reserved.host.name} itself`;
         }
+
         if (variable.sensitive && !isPrintableAscii(variable.value)) {
             return `The value of ${variable.name} can only hold printable ASCII characters`;
         }
     }
+
     return null;
 }
 
@@ -89,6 +94,7 @@ const NOT_FOUND = 44;
 
 async function run(args: string[], stdin?: string): Promise<{ code: number; stdout: string; stderr: string }> {
     const { exitCode, stdout, stderr } = await runProcess(['security', ...args], { ...(stdin === undefined ? {} : { stdin }) });
+
     return { code: exitCode ?? 1, stdout, stderr };
 }
 
@@ -101,24 +107,29 @@ export function keychainSecrets(service: string): SecretStore {
     return {
         read: async (key) => {
             const { code, stdout, stderr } = await run(['find-generic-password', '-s', service, '-a', key, '-w']);
+
             if (code === NOT_FOUND) {
                 return null;
             }
+
             if (code !== 0) {
                 throw new Error(`The keychain did not give ${key}: ${stderr.trim()}`);
             }
+
             return stdout.endsWith('\n') ? stdout.slice(0, -1) : stdout;
         },
         write: async (key, value) => {
             const hex = Buffer.from(value, 'utf8').toString('hex');
             const quoted = `"${key.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`;
             const { code, stderr } = await run(['-i'], `add-generic-password -U -s ${service} -a ${quoted} -X ${hex}\n`);
+
             if (code !== 0) {
                 throw new Error(`The keychain did not take ${key}: ${stderr.trim()}`);
             }
         },
         remove: async (key) => {
             const { code, stderr } = await run(['delete-generic-password', '-s', service, '-a', key]);
+
             if (code !== 0 && code !== NOT_FOUND) {
                 throw new Error(`The keychain did not remove ${key}: ${stderr.trim()}`);
             }

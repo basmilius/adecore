@@ -37,6 +37,7 @@ function fixture(tasks: Task[], chat: { items?: ChatItem[]; busy?: boolean; deli
     const woken: string[][] = [];
     const marked: string[] = [];
     const dropped: string[] = [];
+
     const wake: WakeChat | null =
         chat === null
             ? null
@@ -46,7 +47,9 @@ function fixture(tasks: Task[], chat: { items?: ChatItem[]; busy?: boolean; deli
                       if (chat.busy === true) {
                           return false;
                       }
+
                       woken.push(request.taskIds);
+
                       if (chat.deliveryPending !== undefined) {
                           (chat.items ??= []).push({
                               id: `wake-${woken.length}`,
@@ -61,12 +64,15 @@ function fixture(tasks: Task[], chat: { items?: ChatItem[]; busy?: boolean; deli
                               costUsd: 0
                           });
                       }
+
                       return true;
                   }
               };
+
     const openBatches = (): string[] => [
         ...new Set(tasks.flatMap((candidate) => (candidate.status === 'open' && candidate.batchId !== undefined ? [candidate.batchId] : [])))
     ];
+
     const handler = wakeParentHandler({
         tasks: {
             pendingWake: () => tasks.filter((candidate) => candidate.status !== 'open' && candidate.wake === 'pending'),
@@ -75,6 +81,7 @@ function fixture(tasks: Task[], chat: { items?: ChatItem[]; busy?: boolean; deli
             openBatches: () => openBatches(),
             markWoken: async (ids) => {
                 marked.push(...ids);
+
                 for (const candidate of tasks) {
                     if (ids.includes(candidate.id)) {
                         candidate.wake = 'sent';
@@ -87,6 +94,7 @@ function fixture(tasks: Task[], chat: { items?: ChatItem[]; busy?: boolean; deli
         },
         chat: async () => wake
     });
+
     return { handler, woken, marked, dropped };
 }
 
@@ -153,6 +161,7 @@ test('a wake is marked only after its parent turn is durably saved, including a 
     const saved = Promise.withResolvers<void>();
     let fail = true;
     let turns = 0;
+
     const handler = wakeParentHandler({
         tasks: {
             pendingWake: () => (candidate.wake === 'pending' ? [candidate] : []),
@@ -167,6 +176,7 @@ test('a wake is marked only after its parent turn is durably saved, including a 
             items: () => items,
             wake: (wake) => {
                 turns += 1;
+
                 items.push({
                     id: 'durable-turn',
                     kind: 'turn',
@@ -177,16 +187,19 @@ test('a wake is marked only after its parent turn is durably saved, including a 
                     state: 'running',
                     costUsd: 0
                 });
+
                 return true;
             },
             persist: async () => {
                 await saved.promise;
+
                 if (fail) {
                     throw new Error('disk full');
                 }
             }
         })
     });
+
     const first = handler(entry);
     await Promise.resolve();
     expect(candidate.wake).toBe('pending');
@@ -212,12 +225,15 @@ test('an unacknowledged wake remains pending through repeated recovery and only 
         endedAt: null,
         costUsd: 0
     };
+
     const items: ChatItem[] = [turn];
     const candidate = task('a');
     const { handler, marked, woken } = fixture([candidate], { items });
+
     for (let restart = 0; restart < 3; restart++) {
         expect(await handler(entry)).toBe('wait');
     }
+
     turn.state = 'error';
     expect(await handler(entry)).toBe('wait');
     expect(marked).toEqual([]);
@@ -240,9 +256,11 @@ test('saving a newly opened wake does not consume its result, and a later acknow
     expect(woken).toEqual([['a']]);
     expect(await handler(entry)).toBe('wait');
     const turn = items[0]!;
+
     if (turn.kind !== 'turn') {
         throw new Error('No wake turn');
     }
+
     turn.deliveryPending = false;
     turn.state = 'error';
     expect(await handler(entry)).toBeUndefined();
@@ -266,6 +284,7 @@ test('a failed unacknowledged attempt can be delivered once after a new user tur
             costUsd: 0
         }
     ];
+
     const { handler, marked, woken } = fixture([task('a')], { items, deliveryPending: false });
     expect(await handler(entry)).toBe('wait');
     items.push({ id: 'user', kind: 'turn', turnId: 'user', createdAt: 3, state: 'done', origin: 'user', endedAt: 4, costUsd: 0 });

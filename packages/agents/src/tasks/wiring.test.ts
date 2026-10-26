@@ -33,6 +33,7 @@ function until(check: () => boolean): Promise<void> {
     if (check()) {
         return Promise.resolve();
     }
+
     return new Promise((resolve) => {
         watchers.push({ check, resolve });
     });
@@ -60,6 +61,7 @@ beforeEach(async () => {
     watchers = [];
     unreadable = new Set();
     const chats = host.chats;
+
     wiring = wireTasks({
         tasks,
         // A child whose record this version cannot read, as after a downgrade, fails where the real store would.
@@ -82,6 +84,7 @@ beforeEach(async () => {
         words: { app: 'Motion', cli: 'motion-context' },
         now: () => clock.now()
     });
+
     worker = new OutboxWorker({ store: outbox, clock, handlers: wiring.handlers, onParked: (entry, error) => wiring.onParked(entry, error) });
     worker.start();
     host.chats.observe(() => queueMicrotask(look));
@@ -110,11 +113,13 @@ test('a chat child settles its task on the end of its turn, and the parent is wo
     await worker.settled();
     expect(tasks.get(task.id)).toMatchObject({ status: 'done', result: { text: 'echo: fix the lexer', source: 'turn' }, wake: 'sent' });
     expect(turnsOf('lead')).toHaveLength(1);
+
     // The fake CLI echoes what it was sent, which is the prompt the wake gave it.
     const heard = host.chats
         .get('lead')!
         .thread.list()
         .find((item) => item.kind === 'assistant');
+
     expect(heard?.kind === 'assistant' ? heard.text : '').toStartWith(
         `echo: A task you gave has settled. Its result:\n\n## Lexer (node child, task ${task.id}): done`
     );
@@ -161,12 +166,14 @@ test('done from the child wins, and an agent that is not a chat fails its task w
 test('a terminal parent gets no note about a waiting child and is never woken, and no chat is made under its id', async () => {
     const task = await wiring.verbs.open({ projectId: 'project', parentId: 'term', childId: 'child', title: 'Cleanup', prompt: 'clean up' });
     await host.chats.send('child', 'tool: rm -rf build');
+
     await until(() =>
         host.chats
             .get('child')!
             .thread.list()
             .some((item) => item.kind === 'approval' && item.decision === 'pending')
     );
+
     const spawned = claude.started.length;
 
     clock.advance(15_000);
@@ -177,6 +184,7 @@ test('a terminal parent gets no note about a waiting child and is never woken, a
         .get('child')!
         .thread.list()
         .find((item) => item.kind === 'approval');
+
     host.chats.approve('child', approval?.kind === 'approval' ? approval.requestId : '', 'allow');
     await until(() => tasks.get(task.id)?.wake === 'none');
     await worker.settled();
@@ -201,13 +209,16 @@ test('a task whose child runs on another machine wakes the parent once, from the
         prompt: 'fix the lexer',
         machine: 'machine-b'
     });
+
     await host.chats.send('child', 'tool: rm -rf build');
+
     await until(() =>
         host.chats
             .get('child')!
             .thread.list()
             .some((item) => item.kind === 'approval' && item.decision === 'pending')
     );
+
     clock.advance(15_000);
     await worker.settled();
     expect(turnsOf('lead')).toHaveLength(0);
@@ -231,6 +242,7 @@ test('a task whose child runs on another machine wakes the parent once, from the
 test('recovery goes on past a task whose child cannot be read, and still owes the turn of a later task', async () => {
     unreadable.add('broken');
     await tasks.open({ projectId: 'project', parentId: 'lead', childId: 'broken', title: 'Broken', prompt: 'never read', requiresTaskTurn: true }, clock.now());
+
     const later = await tasks.open(
         { projectId: 'project', parentId: 'lead', childId: 'child', title: 'Docs', prompt: 'write the docs', requiresTaskTurn: true },
         clock.now()

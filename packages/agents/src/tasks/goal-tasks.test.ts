@@ -30,6 +30,7 @@ function until(check: () => boolean): Promise<void> {
     if (check()) {
         return Promise.resolve();
     }
+
     return new Promise((resolve) => {
         watchers.push({ check, resolve });
     });
@@ -48,6 +49,7 @@ beforeEach(async () => {
     dataDir = await mkdtemp(join(tmpdir(), 'agents-goal-tasks-'));
     const claude = inProcess(fakeClaude);
     codex = inProcess(fakeCodex);
+
     host = await AgentHost.open({
         dataDir,
         env: { HOME: dataDir, PATH: process.env.PATH },
@@ -56,11 +58,13 @@ beforeEach(async () => {
         codexCommand: ['codex'],
         spawn: (options) => (options.command[0] === 'codex' ? codex.spawn(options) : claude.spawn(options))
     });
+
     tasks = new TaskStore(dataDir);
     await tasks.load();
     const outbox = new OutboxStore<TaskWork>({ dataDir, work: WorkSchema });
     await outbox.load();
     watchers = [];
+
     wiring = wireTasks({
         tasks,
         chats: host.chats,
@@ -75,12 +79,14 @@ beforeEach(async () => {
         alert: () => undefined,
         words: { app: 'Motion', cli: 'motion-context' }
     });
+
     worker = new OutboxWorker({
         store: outbox,
         clock: new ManualClock(),
         handlers: wiring.handlers,
         onParked: (entry, error) => wiring.onParked(entry, error)
     });
+
     worker.start();
     host.chats.observe(() => queueMicrotask(look));
     tasks.onChange(() => queueMicrotask(look));
@@ -111,6 +117,7 @@ async function later(): Promise<void> {
     for (const started of codex.started) {
         started.runLater();
     }
+
     await Promise.resolve();
 }
 
@@ -118,6 +125,7 @@ async function openGoal(objective: string): Promise<Task> {
     const task = await wiring.verbs.open({ projectId: 'project', parentId: 'lead', childId: 'child', title: 'Goal', prompt: `/goal ${objective}` });
     await host.chats.send('child', `/goal ${objective}`);
     await until(() => host.chats.get('child')?.info.goal?.status === 'active');
+
     return task;
 }
 

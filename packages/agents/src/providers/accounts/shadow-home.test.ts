@@ -34,6 +34,7 @@ describe('prepareShadowHome', () => {
         expect(report.sharedLogin).toBe(false);
         expect(await readlink(join(shadow, 'sessions'))).toBe(join(home, 'sessions'));
         expect(await readFile(join(shadow, 'config.toml'), 'utf8')).toContain('cli_auth_credentials_store');
+
         for (const name of ['auth.json', 'models_cache.json', 'state_5.sqlite-wal', 'app-server-daemon']) {
             expect(lstat(join(shadow, name))).rejects.toThrow();
         }

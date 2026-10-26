@@ -10,8 +10,10 @@ import { hostUsageLine } from '../usage/readers/host-log.ts';
  */
 export function writeAcpUsage(folder: string, report: AcpUsageReport, at: number): void {
     const { sessionId, cwd, model, ...tokens } = report;
+
     try {
         mkdirSync(folder, { recursive: true, mode: 0o700 });
+
         appendFileSync(
             join(folder, `${encodeURIComponent(sessionId === '' ? 'session' : sessionId)}.jsonl`),
             hostUsageLine({ at, model, session: sessionId, cwd, ...tokens }),

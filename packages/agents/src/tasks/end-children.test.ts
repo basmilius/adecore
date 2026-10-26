@@ -5,21 +5,27 @@ import type { AnyOutboxEntry } from './task-work.ts';
 function fakeDeps(tree: Record<string, string[]>, entries: AnyOutboxEntry[] = [], extra: Partial<EndChildrenDeps> = {}) {
     const calls: string[] = [];
     const ended = new Set<string>();
+
     const descendants = (nodeId: string): string[] => {
         const found: string[] = [];
+
         const walk = (id: string): void => {
             for (const child of tree[id] ?? []) {
                 if (!ended.has(child)) {
                     found.push(child);
                 }
             }
+
             for (const child of tree[id] ?? []) {
                 walk(child);
             }
         };
+
         walk(nodeId);
+
         return found.filter((id) => !ended.has(id));
     };
+
     const deps: EndChildrenDeps = {
         lineage: {
             descendants,
@@ -32,6 +38,7 @@ function fakeDeps(tree: Record<string, string[]>, entries: AnyOutboxEntry[] = []
         tasks: {
             cancelOpen: async (ids, reason) => {
                 calls.push(`cancel ${[...ids].join(',')} (${reason})`);
+
                 return [];
             },
             dropWake: async (id) => {
@@ -55,6 +62,7 @@ function fakeDeps(tree: Record<string, string[]>, entries: AnyOutboxEntry[] = []
         },
         ...extra
     };
+
     return { calls, deps };
 }
 
@@ -83,6 +91,7 @@ describe('ending a node and the ones it opened', () => {
             notBefore: 0,
             payload: { turnId: 't', attempt: 2 }
         };
+
         const other: AnyOutboxEntry = { ...resume, id: 'resume-2', target: 'stranger' };
         // A message or a task that reached the outbox before the stop would start the CLI again on its own.
         const message: AnyOutboxEntry = { ...resume, kind: 'deliver-message', id: 'message-1', target: 'grandchild', payload: { from: 'lead' } };
@@ -91,6 +100,7 @@ describe('ending a node and the ones it opened', () => {
         const limit: AnyOutboxEntry = { ...resume, kind: 'resume-limit', id: 'limit-1', target: 'child', payload: { turnId: 't' } };
         const { calls, deps } = fakeDeps({ lead: ['child'], child: ['grandchild'] }, [resume, other, message, task, limit]);
         await endChildren(deps).handler(entry(['child']));
+
         expect(calls).toEqual([
             'mark child,grandchild',
             'remove resume-1',
@@ -102,6 +112,7 @@ describe('ending a node and the ones it opened', () => {
             'stop grandchild (stopped)',
             'stop child (stopped)'
         ]);
+
         // Run again after a restart halfway, it ends the same nodes out of what the entry held.
         calls.length = 0;
         await endChildren(deps).handler(entry(['child']));
@@ -133,6 +144,7 @@ describe('ending a node and the ones it opened', () => {
                 calls.push(`clean up ${ids.join(',')}`);
             }
         });
+
         await endChildren(deps).end(['lead'], 'stopped from the list');
         expect(calls).toEqual(['mark lead', 'cancel lead (stopped from the list)', 'drop wake lead', 'stop lead (stopped from the list)', 'clean up lead']);
     });

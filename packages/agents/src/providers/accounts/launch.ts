@@ -37,19 +37,23 @@ export function launchEnv(accounts: AccountLaunches | null, kind: AgentKind, acc
     if (accounts !== null) {
         return accounts.envFor(kind, account, baseEnv);
     }
+
     if (isDefaultAccountOf(kind, account)) {
         return baseEnv;
     }
+
     throw new AccountError('account-unavailable', `The account '${account}' is not available on this machine: it keeps no accounts.`);
 }
 
 /* An environment without its unset variables, which is what a spawned process is given. */
 export function definedEnv(env: Env): Record<string, string> {
     const defined: Record<string, string> = {};
+
     for (const [key, value] of Object.entries(env)) {
         if (value !== undefined) {
             defined[key] = value;
         }
     }
+
     return defined;
 }

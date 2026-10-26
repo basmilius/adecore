@@ -21,16 +21,21 @@ export function backgroundLimitHandler(deps: BackgroundLimitDeps) {
         if (deps.tasks.get(entry.payload.taskId)?.status !== 'open') {
             return;
         }
+
         const chat = await loadChat(deps, entry.target);
+
         if (chat === null) {
             return;
         }
+
         if (chat.info.activeTurnId !== null) {
             return 'wait';
         }
+
         if (runningInBackground(chat.thread.list()).length > 0) {
             return;
         }
+
         // A child whose process went since the limit started runs nothing any more; what it ran then is what the parent is told.
         const running = (chat.info.background ?? []).map(commandLabel);
         await deps.coordinator.outlasted(entry.target, running.length > 0 ? running : entry.payload.commands, entry.payload.restarted ? 'restart' : 'limit');
@@ -58,6 +63,7 @@ export async function restartBackgroundLimits(outbox: RestartedOutbox, now: numb
 /* The `background-limit` entries of a host's outbox, one per task at most, as the coordinator owes and drops them. */
 export function backgroundLimits(outbox: Pick<TaskOutbox, 'list' | 'enqueue' | 'remove'>): TaskCoordinatorDeps['limit'] {
     const limitOf = (entry: AnyOutboxEntry, taskId: string): boolean => isBackgroundLimit(entry) && entry.payload.taskId === taskId;
+
     return {
         owed: (taskId) => outbox.list().some((entry) => limitOf(entry, taskId)),
         owe: (task, commands, at) =>

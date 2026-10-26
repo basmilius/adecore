@@ -13,13 +13,17 @@ type Frame = { method?: string; params?: Record<string, unknown> };
 function recorded(cli: FakeCli) {
     const sent: Frame[] = [];
     const folders: string[] = [];
+
     let heard: () => void = () => undefined;
+
     const firstFrame = new Promise<void>((resolve) => {
         heard = resolve;
     });
+
     const fake = inProcess((io) => {
         folders.push(io.cwd);
         const program = cli(io);
+
         return {
             onLine: (line) => {
                 sent.push(JSON.parse(line) as Frame);
@@ -28,12 +32,14 @@ function recorded(cli: FakeCli) {
             }
         };
     });
+
     return { fake, sent, folders, firstFrame, methods: () => sent.flatMap((frame) => (frame.method ? [frame.method] : [])) };
 }
 
 function probe(cli: FakeCli, extra: { timer?: ManualClock; onSession?(info: AcpSessionInfo): void; onCommands?(commands: string[]): void } = {}) {
     const run = recorded(cli);
     const reading = askAcpAccount({ name: 'Fake', command: ['fake-acp'], env: { HOME: '/home/fake', UNSET: undefined }, spawn: run.fake.spawn, ...extra });
+
     return { ...run, reading };
 }
 
@@ -78,6 +84,7 @@ describe('askAcpAccount', () => {
                 io.exit(1);
             }
         }));
+
         await expect(run.reading).rejects.toThrow('initialize failed: Fake exited');
         expect(existsSync(run.folders[0]!)).toBe(false);
     });

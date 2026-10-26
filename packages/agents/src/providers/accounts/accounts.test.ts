@@ -6,6 +6,7 @@ import { accountEnv, accountFolder, accountProblem, canContinue, readAccount, wi
 
 // Windows reads the home from USERPROFILE and joins with backslashes.
 const HOME = process.platform === 'win32' ? 'C:\\Users\\bas' : '/home/bas';
+
 const env = {
     HOME,
     USERPROFILE: HOME,
@@ -15,6 +16,7 @@ const env = {
     OPENAI_API_KEY: 'sk-oai',
     CODEX_API_KEY: 'ck'
 };
+
 const providerOf: AccountProviders = { kinds: KNOWN_AGENT_KINDS, get: providerFor };
 const claude = providerFor('claude');
 const codex = providerFor('codex');

@@ -28,6 +28,7 @@ describe('ModelCatalog', () => {
                 { slug: 'b/two', name: 'Two', profile: 'plain' }
             ]
         });
+
         expect(own.list().map((model) => model.vendor)).toEqual(['Acme', undefined]);
         expect('vendor' in own.list()[1]!).toBe(false);
         expect(catalog.list().some((model) => model.vendor !== undefined)).toBe(false);
@@ -44,12 +45,14 @@ describe('ModelCatalog', () => {
                 { slug: 'c/three', name: 'Three', profile: 'plain' }
             ]
         });
+
         expect(own.list().map((model) => model.tools)).toEqual([true, false, undefined]);
         expect('tools' in own.list()[2]!).toBe(false);
     });
 
     test('fast mode is an option of the models that offer it, off by default', () => {
         const options = (slug: string) => catalog.list().find((model) => model.slug === slug)?.options ?? [];
+
         expect(options('claude-opus-5').find((option) => option.id === 'fastMode')).toMatchObject({ type: 'boolean', defaultValue: false });
         expect(options('claude-sonnet-5').some((option) => option.id === 'fastMode')).toBe(false);
         expect(catalog.normalize({ model: 'opus' }).options.fastMode).toBe(false);
@@ -75,6 +78,7 @@ describe('ModelCatalog', () => {
 
 describe('minimum CLI version', () => {
     const shipped = ModelCatalogDataSchema.parse(claudeManifest);
+
     const withMinimum = (minCliVersion: string): ModelCatalogData => ({
         ...shipped,
         models: shipped.models.map((model, i) => (i === 0 ? { ...model, minCliVersion } : model))
@@ -94,6 +98,7 @@ describe('minimum CLI version', () => {
 
 describe('a catalog swapped in while the host runs', () => {
     const shipped = ModelCatalogDataSchema.parse(claudeManifest);
+
     const withModel = (updatedAt: string): ModelCatalogData => ({
         ...shipped,
         updatedAt,
@@ -131,6 +136,7 @@ describe('claudeArgs', () => {
             runtimeMode: 'full-access',
             resume: 'abc'
         });
+
         expect(args.slice(args.indexOf('--model'))).toEqual([
             '--model',
             'claude-opus-5[1m]',
@@ -181,8 +187,10 @@ describe('claudeArgs', () => {
         const settingsOf = (options: Record<string, string | boolean>): string | undefined => {
             const args = claudeArgs({ selection: { model: 'claude-opus-5-5', options }, runtimeMode: 'auto', resume: null });
             expect(args.filter((arg) => arg === '--settings').length).toBeLessThanOrEqual(1);
+
             return args.includes('--settings') ? args[args.indexOf('--settings') + 1] : undefined;
         };
+
         expect(settingsOf({ contextWindow: '200k' })).toBe('{"autoCompactEnabled":true}');
         expect(settingsOf({ contextWindow: '200k', fastMode: true })).toBe('{"fastMode":true,"autoCompactEnabled":true}');
         expect(settingsOf({ contextWindow: '1m' })).toBeUndefined();
@@ -190,9 +198,11 @@ describe('claudeArgs', () => {
 
     test('every mode lets the allowed tools through without a prompt, each in the form that swallows no argument', () => {
         const selection = { model: 'claude-sonnet-5', options: {} };
+
         for (const runtimeMode of ['supervised', 'auto-accept-edits', 'auto', 'full-access'] as const) {
             expect(claudeArgs({ selection, runtimeMode, resume: null, allowedTools: ['Bash(tool *)'] })).toContain('--allowedTools=Bash(tool *)');
         }
+
         expect(claudeArgs({ selection, runtimeMode: 'auto', resume: null }).some((arg) => arg.startsWith('--allowedTools'))).toBe(false);
     });
 
@@ -218,6 +228,7 @@ test('an adopted model that names its context window has that size, and one that
         profiles: { agent: { options: [], contextWindowTokens: { '*': 64000 } } },
         models: [{ slug: 'default', name: 'Default', profile: 'agent' }]
     });
+
     catalog.adopt(
         [
             { slug: 'wide', name: 'Wide', contextWindow: 256000 },
@@ -225,6 +236,7 @@ test('an adopted model that names its context window has that size, and one that
         ],
         'wide'
     );
+
     expect(catalog.contextWindowFor(catalog.normalize({ model: 'wide' }))).toBe(256000);
     expect(catalog.contextWindowFor(catalog.normalize({ model: 'plain' }))).toBe(64000);
     catalog.adopt([{ slug: 'plain', name: 'Plain' }], 'plain');

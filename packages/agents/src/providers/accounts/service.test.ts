@@ -15,6 +15,7 @@ const HOME = process.platform === 'win32' ? 'C:\\Users\\bas' : '/home/bas';
 const NOWHERE = resolve('/nowhere');
 const env = { HOME, USERPROFILE: HOME, ANTHROPIC_API_KEY: 'sk-ant' };
 const installed = new Set<AgentKind>(['claude', 'codex', 'copilot']);
+
 const providers = {
     list: async () => [...installed].map((kind) => ({ kind, installed: true }) as ProviderInfo),
     get: (kind: AgentKind) => providerFor(kind)
@@ -48,14 +49,17 @@ describe('ProviderAccountsService', () => {
                 const folder = kind === 'claude' ? askedEnv.CLAUDE_CONFIG_DIR : askedEnv.CODEX_HOME;
                 asked.push({ kind, folder, apiKey: askedEnv.ANTHROPIC_API_KEY });
                 const answer = answers[folder ?? kind] ?? { signedIn: false, email: null, plan: null, organization: null };
+
                 if (answer instanceof Error) {
                     throw answer;
                 }
+
                 return answer;
             },
             folderExists: (path) => folders.has(path),
             prepareShadow: async (home, shadow) => {
                 shadows.push(`${home} <- ${shadow}`);
+
                 return shadowReport;
             },
             install: async (kind, folder) => {
@@ -67,12 +71,15 @@ describe('ProviderAccountsService', () => {
                 clock += ms;
             }
         });
+
         await service.load();
+
         service.subscribe('client', (event: AgentEvent) => {
             if (event.event === 'accounts.changed') {
                 events.push(event.payload);
             }
         });
+
         return service;
     };
 
@@ -102,6 +109,7 @@ describe('ProviderAccountsService', () => {
         expect(before.statuses.every((status) => status.state === 'checking')).toBe(true);
 
         const after = await service.refresh();
+
         expect(stateOf(after, 'claude')).toMatchObject({
             state: 'ready',
             email: 'work@example.com',
@@ -232,11 +240,13 @@ describe('ProviderAccountsService', () => {
         const service = await make();
         await service.save({ claude: { kind: 'claude', enabled: false } });
         let refusal: unknown = null;
+
         try {
             service.envFor('claude', 'claude', env);
         } catch (e) {
             refusal = e;
         }
+
         expect(refusal).toMatchObject({ code: 'account-unavailable', message: expect.stringContaining('it is turned off') });
         expect(service.envFor('claude', undefined, env)).toBe(env);
         await service.save({ claude: { kind: 'claude' } });
@@ -247,21 +257,26 @@ describe('ProviderAccountsService', () => {
     test('refuses an account it cannot start, and never falls back on the default one', async () => {
         const service = await make();
         folders.add(join(HOME, '.claude_gone'));
+
         await service.save({
             claude_personal: { kind: 'claude', label: 'Personal', home: '~/.claude_personal' },
             claude_gone: { kind: 'claude', label: 'Gone', home: '~/.claude_gone' },
             claude_off: { kind: 'claude', home: '~/.claude_personal', enabled: false },
             codex_personal: { kind: 'codex', home: '~/.codex_personal' }
         });
+
         folders.delete(join(HOME, '.claude_gone'));
+
         const refusal = (kind: AgentKind, id: string): unknown => {
             try {
                 service.envFor(kind, id, env);
             } catch (e) {
                 return e;
             }
+
             return null;
         };
+
         expect(refusal('claude', 'claude_gone')).toMatchObject({
             code: 'account-unavailable',
             message: "The account 'Gone' is not available on this machine: its folder ~/.claude_gone is missing."
@@ -273,10 +288,12 @@ describe('ProviderAccountsService', () => {
 
     test('tells which accounts can go on with a conversation', async () => {
         const service = await make();
+
         await service.save({
             claude_personal: { kind: 'claude', home: '~/.claude_personal' },
             codex_personal: { kind: 'codex', home: '~/.codex', shadowHome: '~/.codex_personal' }
         });
+
         expect(service.canContinue('claude', undefined, 'claude')).toBe(true);
         expect(service.canContinue('claude', undefined, 'claude_personal')).toBe(false);
         expect(service.canContinue('codex', undefined, 'codex_personal')).toBe(true);
@@ -286,10 +303,12 @@ describe('ProviderAccountsService', () => {
 
     test('tells a client where each account writes its conversations, so it can say which can go on with one', async () => {
         const service = await make();
+
         await service.save({
             claude_personal: { kind: 'claude', home: '~/.claude_personal' },
             codex_personal: { kind: 'codex', home: '~/.codex', shadowHome: '~/.codex_personal' }
         });
+
         const snapshot = service.snapshot();
         expect(stateOf(snapshot, 'claude_personal')?.transcripts).toBe(join(HOME, '.claude_personal'));
         expect(stateOf(snapshot, 'codex_personal')?.home).toBe(join(HOME, '.codex_personal'));
@@ -302,10 +321,12 @@ describe('ProviderAccountsService', () => {
         const folder = join(dir, 'accounts', 'claude_personal');
         expect(created.id).toBe('claude_personal');
         expect(created.accounts.claude_personal).toEqual({ kind: 'claude', label: 'Personal', color: 'green', home: folder });
+
         // Windows has no mode bits; the profile's ACL keeps the folder the person's there.
         if (process.platform !== 'win32') {
             expect((await stat(folder)).mode & 0o777).toBe(0o700);
         }
+
         expect(installs).toContain(`claude ${folder}`);
         const file = JSON.parse(await readFile(join(dir, 'providers.json'), 'utf8'));
         expect(file.accounts.claude_personal.home).toBe(folder);
@@ -346,12 +367,14 @@ describe('ProviderAccountsService', () => {
         await expect(service.save({ codex_same: { kind: 'codex', home: '~/.codex_personal', shadowHome: '~/.codex' } })).rejects.toThrow(
             'the default Codex account'
         );
+
         const saved = await service.save({ claude_personal: { kind: 'claude', home: '~/.claude_personal' } });
         expect(saved.accounts.claude_personal?.home).toBe('~/.claude_personal');
     });
 
     test('keeps a plain variable in the file and a sensitive one only in the keychain', async () => {
         const service = await make();
+
         const saved = await service.save({
             claude_personal: {
                 kind: 'claude',
@@ -362,6 +385,7 @@ describe('ProviderAccountsService', () => {
                 ]
             }
         });
+
         const redacted = { name: 'ANTHROPIC_API_KEY', value: '', sensitive: true, valueRedacted: true };
         expect(saved.accounts.claude_personal?.env).toEqual([{ name: 'ANTHROPIC_BASE_URL', value: 'https://proxy.example', sensitive: false }, redacted]);
         expect(saved.secretsAvailable).toBe(true);
@@ -407,12 +431,16 @@ describe('ProviderAccountsService', () => {
     test('refuses a redacted secret it never had, a reserved name and a name set twice', async () => {
         const service = await make();
         const home = '~/.claude_personal';
+
         const refused = (variables: NonNullable<ProviderAccounts['accounts'][string]['env']>) =>
             service.save({ claude_personal: { kind: 'claude', home, env: variables } });
+
         await expect(refused([{ name: 'ANTHROPIC_API_KEY', value: '', sensitive: true, valueRedacted: true }])).rejects.toThrow('has no value');
+
         for (const name of ['HOME', 'PATH', 'HOST_CONTEXT_URL', 'CLAUDE_CONFIG_DIR', 'CODEX_HOME']) {
             await expect(refused([{ name, value: 'x', sensitive: false }])).rejects.toThrow(`${name} is set by Host itself`);
         }
+
         await expect(
             refused([
                 { name: 'A', value: '1', sensitive: false },
@@ -429,6 +457,7 @@ describe('ProviderAccountsService', () => {
         await expect(service.save({ claude: { kind: 'claude', env: [{ name: 'ANTHROPIC_API_KEY', value: 'sk', sensitive: true }] } })).rejects.toMatchObject({
             code: 'secrets-unavailable'
         });
+
         const saved = await service.save({ claude: { kind: 'claude', env: [{ name: 'DISABLE_TELEMETRY', value: '1', sensitive: false }] } });
         expect(saved.accounts.claude?.env).toHaveLength(1);
     });
@@ -442,9 +471,11 @@ describe('ProviderAccountsService', () => {
 
     test('refuses a start whose secret the keychain does not give', async () => {
         const service = await make();
+
         await service.save({
             claude_personal: { kind: 'claude', home: '~/.claude_personal', env: [{ name: 'ANTHROPIC_API_KEY', value: 'sk-mine', sensitive: true }] }
         });
+
         secrets?.values.clear();
         const later = await make();
         expect(() => later.envFor('claude', 'claude_personal', env)).toThrow('the keychain does not give the value of ANTHROPIC_API_KEY');
@@ -464,15 +495,19 @@ describe('ProviderAccountsService', () => {
         const start = clock;
         let checks = 0;
         const ask = answers;
+
         answers = new Proxy(ask, {
             get: (target, key) => {
                 if (key === join(HOME, '.claude_personal')) {
                     checks += 1;
+
                     return checks >= 3 ? { signedIn: true, email: 'me@example.com', plan: 'pro', organization: null } : undefined;
                 }
+
                 return target[key as string];
             }
         });
+
         await service.watchLogin('claude_personal');
         expect(checks).toBe(3);
         expect(clock - start).toBe(9_000);
@@ -508,11 +543,13 @@ describe('ProviderAccountsService kinds', () => {
 
 describe('ProviderAccountsService for a CLI that signs in from its chat', () => {
     const acme = { ...providerFor('claude'), kind: 'acme', name: 'Acme', home: { env: 'ACME_HOME', fallback: '.acme', loginEnv: [] } };
+
     const withAcme = {
         list: async () => (['claude', 'acme'] as AgentKind[]).map((kind) => ({ kind, installed: true }) as ProviderInfo),
         get: (kind: AgentKind) => (kind === 'acme' ? acme : providerFor(kind)),
         kinds: (): AgentKind[] => ['claude', 'acme']
     };
+
     let dir: string;
     let asked: AgentKind[];
 
@@ -524,12 +561,15 @@ describe('ProviderAccountsService for a CLI that signs in from its chat', () => 
             secrets: null,
             ask: async (kind) => {
                 asked.push(kind);
+
                 return { signedIn: true, email: null, plan: null, organization: null };
             },
             folderExists: () => true,
             prepareShadow: async () => ({ linked: [], unshared: [], sharedLogin: false })
         });
+
         await service.load();
+
         return service;
     };
 
@@ -566,7 +606,9 @@ describe('ProviderAccountsService for a CLI that signs in from its chat', () => 
 describe('ProviderAccountsService for a CLI with a reader of its own', () => {
     const reading = { signedIn: true, email: null, plan: null, organization: null };
     const askedBy: string[] = [];
+
     const home = (kind: string) => ({ env: `${kind.toUpperCase()}_HOME`, fallback: `.${kind}`, loginEnv: [], loginCommand: `${kind} login` });
+
     const reader = {
         ...providerFor('claude'),
         kind: 'reader',
@@ -574,16 +616,20 @@ describe('ProviderAccountsService for a CLI with a reader of its own', () => {
         home: home('reader'),
         askAccount: async (_command: readonly string[], askedEnv: Record<string, string | undefined>) => {
             askedBy.push(`reader ${askedEnv.READER_HOME}`);
+
             return reading;
         }
     };
+
     const silent = { ...providerFor('claude'), kind: 'silent', name: 'Silent', home: home('silent') };
     const kinds: AgentKind[] = ['claude', 'reader', 'silent'];
+
     const withReaders = {
         list: async () => kinds.map((kind) => ({ kind, installed: true }) as ProviderInfo),
         get: (kind: AgentKind) => (kind === 'reader' ? reader : kind === 'silent' ? silent : providerFor(kind)),
         kinds: () => kinds
     };
+
     let dir: string;
 
     beforeEach(async () => {
@@ -605,15 +651,19 @@ describe('ProviderAccountsService for a CLI with a reader of its own', () => {
             folderExists: () => true,
             prepareShadow: async () => ({ linked: [], unshared: [], sharedLogin: false })
         });
+
         await service.load();
+
         return service;
     };
 
     test('asks the provider before the host', async () => {
         const service = await make(async () => {
             askedBy.push('host');
+
             return reading;
         });
+
         await service.save({ reader_work: { kind: 'reader', home: '~/.reader_work' } });
         await service.refresh();
         expect(service.snapshot().statuses.find((status) => status.id === 'reader_work')).toMatchObject({ state: 'ready' });

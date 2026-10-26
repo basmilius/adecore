@@ -40,6 +40,7 @@ export class TaskStore {
     /* Told about every task that is written, after it is on disk. */
     onChange(listener: TaskListener): () => void {
         this.listeners.add(listener);
+
         return () => {
             this.listeners.delete(listener);
         };
@@ -72,7 +73,9 @@ export class TaskStore {
             settledAt: null,
             wake: 'pending'
         };
+
         await this.write(task);
+
         return task;
     }
 
@@ -88,9 +91,11 @@ export class TaskStore {
 
     async holdBackground(id: string, background: NonNullable<Task['background']>): Promise<void> {
         const task = this.get(id);
+
         if (!task || task.status !== 'open' || JSON.stringify(task.background) === JSON.stringify(background)) {
             return;
         }
+
         await this.write({ ...task, background });
     }
 
@@ -122,46 +127,57 @@ export class TaskStore {
      */
     async settle(id: string, status: 'done' | 'failed' | 'cancelled', result: TaskResult | null, now: number): Promise<Task | null> {
         const task = this.tasks.get(id);
+
         if (!task || task.status !== 'open') {
             return null;
         }
+
         const { paused: _paused, ...open } = task;
         const settled: Task = { ...open, status, result, settledAt: now, wake: status === 'cancelled' ? 'none' : task.wake };
         await this.write(settled);
+
         return settled;
     }
 
     /* Holds an open task while its child waits out a limit, or lets it go on with null; false when it was not open. */
     async pause(id: string, paused: NonNullable<Task['paused']> | null): Promise<boolean> {
         const task = this.tasks.get(id);
+
         if (!task || task.status !== 'open') {
             return false;
         }
+
         if (JSON.stringify(task.paused ?? null) === JSON.stringify(paused)) {
             return true;
         }
+
         const { paused: _was, ...rest } = task;
         await this.write(paused === null ? rest : { ...rest, paused });
+
         return true;
     }
 
     /* Cancels the open tasks of these children, with the reason as the result; a cancelled task wakes nobody. */
     async cancelOpen(childIds: ReadonlySet<string>, reason: string, now: number): Promise<Task[]> {
         const cancelled: Task[] = [];
+
         for (const task of this.sorted()) {
             if (task.status === 'open' && childIds.has(task.childId)) {
                 const settled = await this.settle(task.id, 'cancelled', { text: reason, source: 'exit', at: now }, now);
+
                 if (settled) {
                     cancelled.push(settled);
                 }
             }
         }
+
         return cancelled;
     }
 
     async markWoken(ids: readonly string[]): Promise<void> {
         for (const id of ids) {
             const task = this.tasks.get(id);
+
             if (task && task.wake === 'pending') {
                 await this.write({ ...task, wake: 'sent' });
             }
@@ -178,12 +194,14 @@ export class TaskStore {
      */
     readyWake(parentId: string): Task[] {
         const open = new Set(this.openBatches(parentId));
+
         return this.pendingWake(parentId).filter((task) => task.batchId === undefined || !open.has(task.batchId));
     }
 
     /* The batches of this parent with a task still open, oldest first. */
     openBatches(parentId: string): string[] {
         const ids = this.ofParent(parentId).flatMap((task) => (task.status === 'open' && task.batchId !== undefined ? [task.batchId] : []));
+
         return [...new Set(ids)];
     }
 
@@ -194,6 +212,7 @@ export class TaskStore {
     async dropWake(parentId: string): Promise<void> {
         for (const { id } of this.ofParent(parentId)) {
             const task = this.tasks.get(id);
+
             if (task && task.wake === 'pending') {
                 await this.write({ ...task, wake: 'none' });
             }
@@ -206,21 +225,27 @@ export class TaskStore {
      */
     async prune(projectId: string, ids: ReadonlySet<string>, now: number): Promise<Task[]> {
         const cancelled: Task[] = [];
+
         for (const task of this.sorted()) {
             if (task.projectId !== projectId) {
                 continue;
             }
+
             if (!ids.has(task.parentId)) {
                 await this.tasks.remove(task.id);
+
                 continue;
             }
+
             if (!ids.has(task.childId) && task.status === 'open') {
                 const settled = await this.settle(task.id, 'cancelled', null, now);
+
                 if (settled) {
                     cancelled.push(settled);
                 }
             }
         }
+
         return cancelled;
     }
 
@@ -233,6 +258,7 @@ export class TaskStore {
         const write = this.writeNow(task);
         this.writes.add(write);
         void write.finally(() => this.writes.delete(write)).catch(() => undefined);
+
         return write;
     }
 
@@ -241,9 +267,11 @@ export class TaskStore {
         if (!(await this.tasks.write(task))) {
             return;
         }
+
         for (const listener of this.listeners) {
             listener(task);
         }
+
         this.sinks.emit({ event: 'task.changed', payload: { task } });
     }
 }

@@ -65,19 +65,24 @@ export function endChildren(deps: EndChildrenDeps): EndChildren {
     const end = async (nodeIds: readonly string[], reason: string): Promise<void> => {
         await lineage.markEnded(nodeIds);
         const ended = new Set(nodeIds);
+
         for (const owed of outbox.list()) {
             if (reviving.has(owed.kind) && ended.has(owed.target)) {
                 await outbox.remove(owed.id);
             }
         }
+
         await tasks.cancelOpen(ended, reason, now());
+
         // A stopped chat that gave tasks of its own is not woken about them either.
         for (const nodeId of nodeIds) {
             await tasks.dropWake(nodeId);
         }
+
         for (const nodeId of [...nodeIds].reverse()) {
             await deps.stop(nodeId, reason);
         }
+
         await deps.ended?.(nodeIds);
     };
 
@@ -85,13 +90,17 @@ export function endChildren(deps: EndChildrenDeps): EndChildren {
         owe: async (target, named) => {
             const nodeIds = named === undefined ? lineage.descendants(target) : [...named];
             const projectId = nodeIds.map((id) => lineage.projectOf(id)).find((id) => id !== null) ?? null;
+
             if (nodeIds.length === 0 || projectId === null) {
                 return 0;
             }
+
             const owed = outbox.list().some((entry) => entry.kind === 'end-children' && entry.target === target);
+
             if (!owed) {
                 await outbox.enqueue(projectId, target, { kind: 'end-children', payload: { nodeIds } });
             }
+
             return nodeIds.length;
         },
         handler: (entry) => end([...new Set([...entry.payload.nodeIds, ...lineage.descendants(entry.target)])], deps.reason),

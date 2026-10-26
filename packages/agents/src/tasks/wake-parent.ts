@@ -13,9 +13,11 @@ const decoder = new TextDecoder();
 /* The first `bytes` of a text without cutting a character in half, and whether anything was left off. */
 function cutAt(text: string, bytes: number): { text: string; cut: boolean } {
     const encoded = encoder.encode(text);
+
     if (encoded.length <= bytes) {
         return { text, cut: false };
     }
+
     return { text: decoder.decode(encoded.slice(0, bytes)).replace(/\uFFFD$/, ''), cut: true };
 }
 
@@ -26,24 +28,30 @@ function cutAt(text: string, bytes: number): { text: string; cut: boolean } {
  */
 export function wakePrompt(tasks: readonly Task[], teamsOut = 0, restOf?: (childId: string) => string): string {
     const head = tasks.length === 1 ? 'A task you gave has settled. Its result:' : `${tasks.length} tasks you gave have settled. Their results:`;
+
     const sections = tasks.map((task) => {
         const { text, cut } = cutAt(task.result?.text ?? '', RESULT_PREVIEW_BYTES);
         const lines = [`## ${task.title} (node ${task.childId}, task ${task.id}): ${task.status}`, '', text === '' ? '(no result text)' : text];
+
         if (cut) {
             const rest = restOf === undefined ? '' : ` ${restOf(task.childId)}`;
             lines.push('', `[The result was cut at ${RESULT_PREVIEW_BYTES / 1024} KiB.${rest}]`);
         }
+
         return lines.join('\n');
     });
+
     const together = tasks.some((task) => task.batchId !== undefined)
         ? ['The tasks of one team call come in together, once every one of them has settled.']
         : [];
+
     const out =
         teamsOut === 0
             ? []
             : [
                   `${teamsOut === 1 ? 'A team you gave is' : `${teamsOut} teams you gave are`} still out: you are woken with all of a team's results once its last task settles.`
               ];
+
     return [head, ...sections, ...together, ...out].join('\n\n');
 }
 
@@ -70,6 +78,7 @@ function deliveryBlocked(items: readonly ChatItem[], tasks: readonly Task[]): bo
 function deliveryPending(items: readonly ChatItem[], tasks: readonly Task[]): boolean {
     return tasks.some((task) => {
         const turn = items.findLast((item) => item.kind === 'turn' && item.taskIds?.includes(task.id));
+
         return turn?.kind === 'turn' && turn.deliveryPending;
     });
 }
@@ -90,34 +99,47 @@ export function wakeParentHandler(deps: WakeParentDeps) {
     return async (entry: WakeParentEntry): Promise<OutboxOutcome> => {
         const parentId = entry.target;
         const pending = deps.tasks.pendingWake(parentId);
+
         if (pending.length === 0) {
             return;
         }
+
         const held = (): OutboxOutcome => (deps.tasks.readyWake(parentId).length < deps.tasks.pendingWake(parentId).length ? 'wait' : undefined);
+
         // Nothing to say yet, so the chat is not loaded from disk for it.
         if (deps.tasks.readyWake(parentId).length === 0) {
             return held();
         }
+
         const chat = await deps.chat(parentId);
+
         if (chat === null) {
             await deps.tasks.dropWake(parentId);
+
             return;
         }
+
         const items = chat.items();
         const named = new Set(items.flatMap((item) => (item.kind === 'turn' && !item.deliveryPending ? (item.taskIds ?? []) : [])));
         const already = deps.tasks.pendingWake(parentId).filter((task) => named.has(task.id));
+
         if (already.length > 0) {
             await chat.persist?.();
             await deps.tasks.markWoken(already.map((task) => task.id));
         }
+
         const tasks = deps.tasks.readyWake(parentId).filter((task) => !named.has(task.id));
+
         if (tasks.length === 0) {
             return held();
         }
+
         if (deliveryBlocked(items, tasks)) {
             return 'wait';
         }
+
         const teamsOut = deps.tasks.openBatches(parentId).length;
+
         if (
             !chat.wake({
                 text: wakePrompt(tasks, teamsOut, deps.restOf),
@@ -128,11 +150,15 @@ export function wakeParentHandler(deps: WakeParentDeps) {
         ) {
             return 'wait';
         }
+
         await chat.persist?.();
+
         if (deliveryPending(chat.items(), tasks)) {
             return 'wait';
         }
+
         await deps.tasks.markWoken(tasks.map((task) => task.id));
+
         return held();
     };
 }

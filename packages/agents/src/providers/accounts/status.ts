@@ -21,14 +21,17 @@ export type AskAccount = (kind: AgentKind, command: readonly string[], env: Reco
 /* `claude auth status --json`, as Claude Code 2.1.282 prints it: `loggedIn`, `email`, `orgName`, `subscriptionType`. */
 export function readClaudeAuthStatus(output: string): AccountReading {
     let status: unknown;
+
     try {
         status = JSON.parse(output);
     } catch {
         throw new Error('Claude Code did not say who is signed in');
     }
+
     if (!isRecord(status) || typeof status.loggedIn !== 'boolean') {
         throw new Error('Claude Code did not say who is signed in');
     }
+
     return {
         signedIn: status.loggedIn,
         email: text(status.email),
@@ -46,10 +49,13 @@ export function readCodexAccount(answer: unknown): AccountReading {
     if (!isRecord(answer)) {
         throw new Error('Codex did not say who is signed in');
     }
+
     const account = answer.account;
+
     if (!isRecord(account)) {
         return { signedIn: answer.requiresOpenaiAuth === false, email: null, plan: null, organization: null };
     }
+
     return { signedIn: true, email: text(account.email), plan: text(account.planType), organization: null };
 }
 
@@ -59,6 +65,7 @@ async function askClaude(command: readonly string[], env: Record<string, string 
         timeoutMs: ASK_TIMEOUT_MS,
         timeoutMessage: 'Claude Code did not answer in time'
     });
+
     // Signed out exits 1 and still prints the status, so the output decides and the exit code does not.
     return readClaudeAuthStatus(stdout);
 }
@@ -71,14 +78,17 @@ async function askCodex(command: readonly string[], env: Record<string, string |
         onFrame: () => undefined,
         onExit: () => undefined
     });
+
     try {
         await withTimeout(
             transport.request('initialize', { clientInfo: client, capabilities: { experimentalApi: true } }),
             ASK_TIMEOUT_MS,
             'Codex did not answer in time'
         );
+
         transport.notify('initialized', {});
         const answer = await withTimeout(transport.request('account/read', { refreshToken: false }), ASK_TIMEOUT_MS, 'Codex did not answer in time');
+
         return readCodexAccount(answer);
     } finally {
         transport.end();
@@ -95,9 +105,11 @@ export function askAccountAs(client: CodexClientInfo): AskAccount {
         if (kind === 'claude') {
             return askClaude(command, env);
         }
+
         if (kind === 'codex') {
             return askCodex(command, env, client);
         }
+
         return Promise.reject(new Error(`${kind} cannot say who is signed in`));
     };
 }

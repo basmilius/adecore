@@ -30,8 +30,10 @@ export function codexThreadOptions(runtimeMode: RuntimeMode): CodexThreadOptions
 
 export function codexRuntimeMode(approvalPolicy: string, sandbox: string): RuntimeMode | undefined {
     const names: Record<string, string> = { readOnly: 'read-only', workspaceWrite: 'workspace-write', dangerFullAccess: 'danger-full-access' };
+
     return (Object.keys(THREAD_OPTIONS) as RuntimeMode[]).find((mode) => {
         const options = THREAD_OPTIONS[mode];
+
         return options.approvalPolicy === approvalPolicy && options.sandbox === (names[sandbox] ?? sandbox);
     });
 }

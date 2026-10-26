@@ -9,6 +9,7 @@ describe('codex catalog', () => {
         const models = codex.list();
         expect(models.filter((model) => model.isDefault).map((model) => model.slug)).toEqual(['gpt-6-astra']);
         expect(models.find((model) => model.slug === 'gpt-5.6-sol')?.options[0]).toMatchObject({ id: 'effort', type: 'select', defaultChoice: 'low' });
+
         for (const [alias, slug] of [
             ['sol', 'gpt-6.1-sol'],
             ['luna', 'gpt-6-luna']
@@ -19,6 +20,7 @@ describe('codex catalog', () => {
             });
             expect(codex.normalize({ model: slug, options: { effort: 'max' } }).options.effort).toBe('max');
         }
+
         expect(models.find((model) => model.slug === 'gpt-5.6-terra')).toMatchObject({ legacy: true, badge: 'retiring' });
         expect(codex.normalize({ model: 'gpt-5.6-terra', options: { effort: 'high' } }).model).toBe('gpt-5.6-terra');
         expect(codex.normalize({ model: 'astra', options: { effort: 'ultra', contextWindow: '1m' } })).toEqual({
@@ -40,7 +42,9 @@ describe('codexServiceTier', () => {
 
     test('the models the app-server gives a tier carry the option; spark does not', () => {
         const codex = new ProviderRegistry({ detect: async () => ({ installed: true, version: '0.153.4' }) }).catalogFor('codex');
+
         const options = (slug: string) => codex.list().find((model) => model.slug === slug)?.options ?? [];
+
         expect(options('gpt-6-astra').find((option) => option.id === 'serviceTier')).toMatchObject({ type: 'boolean', defaultValue: false });
         expect(options('gpt-5.3-codex-spark').some((option) => option.id === 'serviceTier')).toBe(false);
     });

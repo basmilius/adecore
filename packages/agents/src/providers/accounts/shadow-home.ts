@@ -40,11 +40,13 @@ type Existing = { kind: 'missing' } | { kind: 'link'; target: string } | { kind:
 async function existing(path: string): Promise<Existing> {
     try {
         const stats = await lstat(path);
+
         return stats.isSymbolicLink() ? { kind: 'link', target: await readlink(path) } : { kind: 'real' };
     } catch (e) {
         if (isNotFound(e)) {
             return { kind: 'missing' };
         }
+
         throw e;
     }
 }
@@ -57,23 +59,30 @@ async function existing(path: string): Promise<Existing> {
 export async function prepareShadowHome(home: string, shadow: string): Promise<ShadowHomeReport> {
     const shared = resolve(home);
     const own = resolve(shadow);
+
     if (shared === own) {
         throw new ShadowHomeError('The shadow home has to be another folder than the config folder');
     }
+
     for (const folder of SHARED_FOLDERS) {
         await mkdir(join(shared, folder), { recursive: true });
     }
+
     const report: ShadowHomeReport = { linked: [], unshared: [], sharedLogin: false };
+
     for (const name of PRIVATE_ENTRIES) {
         if ((await existing(join(own, name))).kind === 'link') {
             report.sharedLogin = true;
         }
     }
+
     const names = (await readdir(shared)).filter((name) => !PRIVATE_ENTRIES.has(name) && !LOCAL_ENTRIES.has(name) && !isJournal(name));
+
     for (const name of names.sort()) {
         const target = join(shared, name);
         const link = join(own, name);
         const found = await existing(link);
+
         if (found.kind === 'missing') {
             await symlink(target, link);
             report.linked.push(name);
@@ -81,5 +90,6 @@ export async function prepareShadowHome(home: string, shadow: string): Promise<S
             report.unshared.push(name);
         }
     }
+
     return report;
 }

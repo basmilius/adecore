@@ -6,6 +6,7 @@ function answering(output: string, seen: ChatSpawnOptions[]): SpawnChatProcess {
     return (options) => {
         seen.push(options);
         queueMicrotask(() => options.onExit(0));
+
         return {
             pid: 1,
             stdin: { write: () => true, flush: () => undefined, end: () => undefined },

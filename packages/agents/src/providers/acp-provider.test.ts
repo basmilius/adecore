@@ -25,11 +25,13 @@ test('a provider spec becomes a chat provider whose backend speaks ACP', async (
         catalog,
         capabilities: { reportsCost: true }
     });
+
     expect(provider.command).toEqual(['example', 'agent', 'stdio']);
     expect(provider.capabilities).toEqual({ ...ACP_CAPABILITIES, reportsCost: true });
     expect(provider.resumeCommand).toBe('');
     expect(() => provider.firstPromptArgs('hello')).toThrow('Example is only available as a chat.');
     const fake = inProcess(fakeAcp);
+
     const backend = provider.createBackend(
         {
             command: provider.command,
@@ -46,6 +48,7 @@ test('a provider spec becomes a chat provider whose backend speaks ACP', async (
         },
         { onEvent: () => undefined }
     );
+
     await backend.start();
     expect(fake.started[0]?.argv).toEqual(['agent', 'stdio']);
     await backend.dispose();
@@ -53,6 +56,7 @@ test('a provider spec becomes a chat provider whose backend speaks ACP', async (
 
 function launchOn(provider: ReturnType<typeof createAcpProvider>, model: string, spawn: BackendLaunch['spawn']): BackendLaunch {
     const selection = provider.catalog.normalize({ model });
+
     return {
         command: provider.command,
         cwd: '/tmp',
@@ -89,8 +93,10 @@ test('takes the models a session reports, so a later chat can pick one', async (
     ]);
 
     const sent: string[] = [];
+
     const second = inProcess((io) => {
         const program = fakeAcp(io);
+
         return {
             onLine: (line) => {
                 sent.push(line);
@@ -98,6 +104,7 @@ test('takes the models a session reports, so a later chat can pick one', async (
             }
         };
     });
+
     const events: BackendEvent[] = [];
     const chat = provider.createBackend(launchOn(provider, 'fake-large', second.spawn), { onEvent: (event) => events.push(event) });
     await chat.start();
@@ -120,12 +127,14 @@ test('takes the reasoning effort a session reports as the effort option, with it
         },
         models: [{ slug: 'default', name: 'Default', profile: 'agent' }]
     });
+
     const provider = createAcpProvider({ kind: 'example', name: 'Example', command: 'example', catalog: withEffort });
     const fake = inProcess(fakeAcpWith({ reasoningEffort: 'accept' }));
     const backend = provider.createBackend(launchOn(provider, 'default', fake.spawn), { onEvent: () => undefined });
     await backend.start();
     await backend.dispose();
     const small = provider.catalog.list().find((model) => model.slug === 'fake-small');
+
     expect(small?.options).toEqual([
         { id: 'fast', label: 'Fast', type: 'boolean', defaultValue: false },
         {
@@ -164,10 +173,13 @@ const TURN_USAGE = { totalTokens: 1500, inputTokens: 1100, outputTokens: 400, ca
 /* One turn of a provider on a fake agent that reports `TURN_USAGE`. */
 async function oneTurn(provider: ReturnType<typeof createAcpProvider>): Promise<void> {
     const fake = inProcess(fakeAcpWith({ turnUsage: TURN_USAGE }));
+
     let done: () => void = () => undefined;
+
     const ended = new Promise<void>((resolve) => {
         done = resolve;
     });
+
     const backend = provider.createBackend(launchOn(provider, 'fake-small', fake.spawn), {
         onEvent: (event) => {
             if (event.type === 'turn.done') {
@@ -175,6 +187,7 @@ async function oneTurn(provider: ReturnType<typeof createAcpProvider>): Promise<
             }
         }
     });
+
     await backend.start();
     backend.sendTurn({ promptId: 'p-1', text: 'hello', preamble: null, attachments: [], mentions: [], skills: [] });
     await ended;
@@ -183,6 +196,7 @@ async function oneTurn(provider: ReturnType<typeof createAcpProvider>): Promise<
 
 test('logs the usage a turn reports to the folder the host names, for the scanner to read as a host log', async () => {
     const base = await mkdtemp(join(tmpdir(), 'acp-usage-'));
+
     try {
         const folder = join(base, 'example-usage');
         const provider = createAcpProvider({ kind: 'example', name: 'Example', command: 'example', catalog: agentDefault(), usageLog: folder });
@@ -190,6 +204,7 @@ test('logs the usage a turn reports to the folder the host names, for the scanne
         // The root's provider is whichever the host logs the agent under; any the usage page knows will do here.
         const scanner = new UsageScanner(join(base, 'home'), [{ provider: 'nanogpt', path: folder }]);
         await scanner.scan();
+
         expect(scanner.records()).toMatchObject([
             { model: 'fake-small', cwd: '/tmp', totals: { calls: 1, input: 100, cacheRead: 1000, cacheWrite: 0, output: 400, reasoning: 0 } }
         ]);
@@ -201,6 +216,7 @@ test('logs the usage a turn reports to the folder the host names, for the scanne
 
 test('logs nothing for an agent whose own usage files are read', async () => {
     const base = await mkdtemp(join(tmpdir(), 'acp-usage-'));
+
     try {
         const folder = join(base, 'grok-usage');
         await oneTurn(createAcpProvider({ kind: 'grok', name: 'Grok', command: 'grok', catalog: agentDefault(), usageLog: folder }));
@@ -213,6 +229,7 @@ test('logs nothing for an agent whose own usage files are read', async () => {
 /* A store in memory, as a host keeps one in a file. */
 function memoryStore(initial?: unknown): { load(): unknown; save(value: unknown): void; saved: unknown[] } {
     const saved: unknown[] = initial === undefined ? [] : [initial];
+
     return {
         saved,
         load: () => saved.at(-1),
@@ -228,6 +245,7 @@ async function oneSession(provider: ReturnType<typeof createAcpProvider>, option
     const backend = provider.createBackend(launchOn(provider, provider.catalog.defaultModel, fake.spawn), { onEvent: (event) => events.push(event) });
     await backend.start();
     await backend.dispose();
+
     return events;
 }
 
@@ -258,6 +276,7 @@ test('writes the effort names a store kept in lowercase with a capital, and keep
             { id: 'max', label: 'max' }
         ]
     };
+
     const provider = createAcpProvider({
         kind: 'example',
         name: 'Example',
@@ -265,6 +284,7 @@ test('writes the effort names a store kept in lowercase with a capital, and keep
         catalog: agentDefault(),
         catalogStore: memoryStore({ models: { defaultModel: 'kept', models: [{ slug: 'kept', name: 'Kept' }], options: [effort] } })
     });
+
     expect(provider.catalog.list()[0]?.options).toContainEqual({
         ...effort,
         choices: [
@@ -282,7 +302,9 @@ test('starts from its own catalog when the store holds nothing it can read or ca
         catalog: agentDefault(),
         catalogStore: memoryStore({ models: { defaultModel: 'gone', models: [{ slug: 'other', name: 'Other' }], options: [] } })
     });
+
     expect(garbage.catalog.list().map((model) => model.slug)).toEqual(['default']);
+
     const failing = createAcpProvider({
         kind: 'example',
         name: 'Example',
@@ -295,6 +317,7 @@ test('starts from its own catalog when the store holds nothing it can read or ca
             save: () => undefined
         }
     });
+
     expect(failing.catalog.list().map((model) => model.slug)).toEqual(['default']);
 });
 
@@ -334,6 +357,7 @@ test('reports the context window once the agent sent one in a usage update, and 
     expect(changes).toBe(1);
     const restarted = createAcpProvider({ kind: 'example', name: 'Example', command: 'example', catalog: agentDefault(), catalogStore: store });
     expect(restarted.capabilities.reportsContextWindow).toBe(true);
+
     const overridden = createAcpProvider({
         kind: 'example',
         name: 'Example',
@@ -342,6 +366,7 @@ test('reports the context window once the agent sent one in a usage update, and 
         catalogStore: store,
         capabilities: { reportsContextWindow: false }
     });
+
     expect(overridden.capabilities.reportsContextWindow).toBe(false);
 });
 

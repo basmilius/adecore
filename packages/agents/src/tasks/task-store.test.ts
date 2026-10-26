@@ -24,14 +24,17 @@ const WRITTEN = {
 
 test('a task an older daemon wrote reads back whole, and settling it writes the fields it always had, in the order of the schema', async () => {
     await mkdir(join(home, 'tasks'), { recursive: true });
+
     for (const [id, text] of Object.entries(WRITTEN)) {
         await writeFile(join(home, 'tasks', `${id}.json`), text);
     }
+
     const store = new TaskStore(home);
     await store.load();
     expect(store.ofProject('project-1')).toEqual(Object.values(WRITTEN).map((text) => JSON.parse(text)));
 
     await store.settle('task-0a1b2c3d4e5f', 'failed', { text: 'stopped', source: 'exit', at: 3000 }, 3000);
+
     expect(await readFile(join(home, 'tasks', 'task-0a1b2c3d4e5f.json'), 'utf8')).toBe(
         '{"id":"task-0a1b2c3d4e5f","projectId":"project-1","parentId":"chat-lead","childId":"chat-a","title":"Lexer","prompt":"fix the lexer","batchId":"batch-1","status":"failed","result":{"text":"stopped","source":"exit","at":3000},"createdAt":1000,"settledAt":3000,"wake":"pending"}'
     );
@@ -51,7 +54,9 @@ test('a new task is written in the shape an older daemon reads, and every client
 
 test('a task that settles while the wakes of its parent are dropped stays settled', async () => {
     const store = new TaskStore(home);
+
     const record = (childId: string) => ({ projectId: 'p', parentId: 'lead', childId, title: childId, prompt: 'Go' });
+
     const first = await store.open(record('a'), 1);
     const second = await store.open(record('b'), 2);
 

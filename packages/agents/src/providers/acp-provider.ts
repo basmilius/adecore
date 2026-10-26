@@ -72,15 +72,19 @@ export function createAcpProvider(spec: AcpProviderSpec): ChatProvider {
         base: ACP_CAPABILITIES,
         overrides: spec.capabilities ?? {}
     });
+
     const onSession = (info: AcpSessionInfo): void => {
         state.session(info);
         spec.onSession?.(info);
     };
+
     const onCommands = (commands: string[]): void => {
         state.commandsListed(commands);
         spec.onCommands?.(commands);
     };
+
     const usageLog = spec.usageLog === undefined || OWN_USAGE_FILES.has(spec.kind) ? null : spec.usageLog;
+
     const onUsage =
         usageLog === null
             ? spec.onUsage
@@ -88,6 +92,7 @@ export function createAcpProvider(spec: AcpProviderSpec): ChatProvider {
                   writeAcpUsage(usageLog, report, Date.now());
                   spec.onUsage?.(report);
               };
+
     return {
         kind: spec.kind,
         name: spec.name,

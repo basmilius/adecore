@@ -41,6 +41,7 @@ function until(check: () => boolean): Promise<void> {
     if (check()) {
         return Promise.resolve();
     }
+
     return new Promise((resolve) => {
         watchers.push({ check, resolve });
     });
@@ -57,6 +58,7 @@ function look(): void {
 
 beforeEach(async () => {
     dataDir = await mkdtemp(join(tmpdir(), 'agents-relocate-wake-'));
+
     host = await AgentHost.open({
         dataDir,
         env: { HOME: dataDir, PATH: process.env.PATH },
@@ -64,11 +66,13 @@ beforeEach(async () => {
         command: ['claude'],
         spawn: inProcess(fakeClaude).spawn
     });
+
     tasks = new TaskStore(dataDir);
     await tasks.load();
     const outbox = new OutboxStore<Work>({ dataDir, work: WorkSchema });
     await outbox.load();
     watchers = [];
+
     wiring = wireTasks({
         tasks,
         chats: host.chats,
@@ -83,7 +87,9 @@ beforeEach(async () => {
         alert: () => undefined,
         words: { app: 'Motion', cli: 'motion-context' }
     });
+
     const chatFor = chatOpener({ chats: host.chats, placed: () => true });
+
     worker = new OutboxWorker({
         store: outbox,
         clock: new ManualClock(),
@@ -100,6 +106,7 @@ beforeEach(async () => {
             throw new Error(`Parked ${entry.kind}: ${String(error)}`);
         }
     });
+
     worker.start();
     host.chats.observe(() => queueMicrotask(look));
     tasks.onChange(() => queueMicrotask(look));
@@ -136,10 +143,12 @@ test.each([
         await until(() => tasks.get(task.id)?.status === 'done');
         await worker.settled();
         expect(turnsOf('lead')).toHaveLength(1);
+
         if (fails) {
             throw new Error('the files stayed');
         }
     });
+
     await (fails ? expect(moving).rejects.toThrow('the files stayed') : moving);
 
     await until(() => turnsOf('lead').some((turn) => (turn.taskIds ?? []).includes(task.id)));
@@ -157,10 +166,12 @@ test.each([
         await worker.enqueue('project', 'lead', { kind: 'deliver-message', payload: { from: 'child' } });
         await worker.settled();
         expect(turnsOf('lead')).toHaveLength(1);
+
         if (fails) {
             throw new Error('the files stayed');
         }
     });
+
     await (fails ? expect(moving).rejects.toThrow('the files stayed') : moving);
 
     await until(() => turnsOf('lead').some((turn) => turn.messageFrom?.includes('child')));

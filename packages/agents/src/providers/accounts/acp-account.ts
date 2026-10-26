@@ -53,17 +53,21 @@ export async function askAcpAccount(probe: AcpAccountProbe): Promise<AccountRead
     // An agent may list its commands before it answers with the session's id.
     const listed = new Map<string, string[]>();
     let sessionId: string | null = null;
+
     const noteCommands = (frame: JsonRpcFrame): void => {
         const update = frame.method === 'session/update' && (frame.id === undefined || frame.id === null) ? sessionUpdateOf(frame.params) : null;
+
         if (update === null || update.commands === null) {
             return;
         }
+
         if (sessionId === null) {
             listed.set(update.sessionId, update.commands);
         } else if (update.sessionId === sessionId) {
             probe.onCommands?.(update.commands);
         }
     };
+
     try {
         const started = new JsonRpcTransport({
             command: [...probe.command],
@@ -81,7 +85,9 @@ export async function askAcpAccount(probe: AcpAccountProbe): Promise<AccountRead
             },
             onExit: () => undefined
         });
+
         transport = started;
+
         const reading = async (): Promise<AccountReading> => {
             const capabilities = parseInitialize(
                 await started.request('initialize', {
@@ -90,33 +96,44 @@ export async function askAcpAccount(probe: AcpAccountProbe): Promise<AccountRead
                     clientInfo: { name: client.name, title: client.title ?? client.name, version: client.version }
                 })
             );
+
             if (capabilities.protocolVersion !== ACP_PROTOCOL_VERSION) {
                 throw new Error(`${probe.name} speaks ACP version ${capabilities.protocolVersion}; only version ${ACP_PROTOCOL_VERSION} is supported`);
             }
+
             let result: unknown;
+
             try {
                 result = await started.request('session/new', { cwd: folder, mcpServers: [] });
             } catch (error) {
                 if (error instanceof JsonRpcError && error.code === ACP_AUTH_REQUIRED) {
                     return SIGNED_OUT;
                 }
+
                 throw error;
             }
+
             sessionId = sessionIdOf(result);
+
             if (sessionId === null) {
                 throw new Error(`${probe.name} opened a session without an id`);
             }
+
             probe.onSession?.(parseSessionInfo(result, sessionId, capabilities.agent));
             const commands = listed.get(sessionId);
+
             if (commands !== undefined) {
                 probe.onCommands?.(commands);
             }
+
             if (capabilities.closeSession) {
                 // The answer is known by now; an agent that cannot close it keeps an empty session, nothing worse.
                 await started.request('session/close', { sessionId }).catch(() => undefined);
             }
+
             return SIGNED_IN;
         };
+
         return await withDeadline(reading(), probe.timeoutMs ?? ASK_TIMEOUT_MS, `${probe.name} did not answer in time`, probe.timer);
     } finally {
         await transport?.dispose();
@@ -129,6 +146,7 @@ function refuseRequest(transport: JsonRpcTransport, frame: JsonRpcFrame): void {
     if (frame.id === undefined || frame.id === null || !transport.alive) {
         return;
     }
+
     try {
         transport.respondError(frame.id as number | string, -32601, `Method not found: ${String(frame.method)}`);
     } catch {

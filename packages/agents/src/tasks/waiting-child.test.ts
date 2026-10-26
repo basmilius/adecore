@@ -8,6 +8,7 @@ import type { DeliverWaitingEntry } from './task-work.ts';
 test('a long question in a waiting note is cut between two characters', () => {
     // The emoji straddles the 199th unit, where the note cuts to make room for the ellipsis.
     const question = `${'q'.repeat(198)}😀 and the rest of it`;
+
     const item: ChatQuestionItem = {
         id: 'question-r1',
         kind: 'question',
@@ -18,6 +19,7 @@ test('a long question in a waiting note is cut between two characters', () => {
         answers: null,
         state: 'pending'
     };
+
     const { note } = waitingTexts({ id: 'child', title: 'Child' }, item, { app: 'Ruimte', cli: 'ruimte-context' });
     expect(note.split('\n')[0]).toBe(`Child (node child) waits for an answer to ${JSON.stringify(`${'q'.repeat(198)}…`)}`);
 });
@@ -59,12 +61,14 @@ test('the note names the waiting child and opens no turn in its parent', async (
         persist: () => undefined,
         persistSoon: () => undefined
     });
+
     const handler = deliverWaitingHandler({
         request: () => pendingQuestion(),
         titleFor: () => 'Child',
         deliver: (_chatId, delivery) => Promise.resolve(parent.deliverNote(delivery)),
         words: { app: 'Ruimte', cli: 'ruimte-context' }
     });
+
     await handler({ id: 'e1', kind: 'deliver-waiting', target: 'parent', payload: { childId: 'child', requestId: 'r1' } } as DeliverWaitingEntry);
     expect(parent.thread.get(waitingNoteId('child', 'r1'))).toMatchObject({ kind: 'note', from: 'child' });
     expect(parent.info.activeTurnId).toBeNull();
