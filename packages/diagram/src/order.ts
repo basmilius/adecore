@@ -197,9 +197,8 @@ export function orderLayers(layering: Layering): void {
 
     items.forEach((_, layer) => flatten(layer));
     // A band's first layer always holds a member, which is what made it the first.
-    const firstSeen = bands.map((band, index) => [band.first, position[band.members[0]![0]!]!, index] as const);
-    firstSeen
-        .slice()
+    bands
+        .map((band, index) => [band.first, position[band.members[0]![0]!]!, index] as const)
         .sort((left, right) => left[0] - right[0] || left[1] - right[1] || left[2] - right[2])
         .forEach(([, , band], rank) => {
             bands[band]!.rank = rank;

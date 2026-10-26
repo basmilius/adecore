@@ -196,12 +196,16 @@ export function layersOf(nodes: readonly Pick<DiagramNode, 'id'>[], edges: reado
 }
 
 /* The layout works in the frame of a diagram that runs to the right; one that runs down is that frame mirrored across the diagonal. */
-function flip<T extends Rect>(box: T): T {
-    return { ...box, x: box.y, y: box.x, w: box.h, h: box.w };
+function flip<T extends Rect>(box: T, down: boolean): T {
+    return down ? { ...box, x: box.y, y: box.x, w: box.h, h: box.w } : box;
 }
 
-function flipPoint(point: Point): Point {
-    return { x: point.y, y: point.x };
+function flipSize(size: { w: number; h: number }, down: boolean): { w: number; h: number } {
+    return down ? { w: size.h, h: size.w } : { w: size.w, h: size.h };
+}
+
+function flipPoint(point: Point, down: boolean): Point {
+    return down ? { x: point.y, y: point.x } : point;
 }
 
 /* Rounded, because a diagram lays its boxes and its lines out on a whole-pixel grid. */
@@ -368,8 +372,7 @@ function unitsOf(nodes: readonly DiagramNode[], layers: ReadonlyMap<string, numb
             layer: layers.get(node.id) ?? 0,
             node: index,
             band: -1,
-            w: down ? size.h : size.w,
-            h: down ? size.w : size.h,
+            ...flipSize(size, down),
             margin: NODE_MARGIN,
             line: -1,
             up: [],
@@ -600,13 +603,15 @@ function placeAlong(layering: Layering, edges: Edges, ports: Ports, labelSizes: 
             const edge = labelHop.get(hop);
             const size = edge === undefined ? null : labelSizes[edge];
             if (edge !== undefined && size) {
-                channelLabels.push({ edge, hop, y: ports.hopStart[hop]!, along: down ? size.h : size.w, across: down ? size.w : size.h });
+                const frame = flipSize(size, down);
+                channelLabels.push({ edge, hop, y: ports.hopStart[hop]!, along: frame.w, across: frame.h });
             }
         }
         loops.forEach((loop, index) => {
             const size = labelSizes[loop.edge];
             if (size && units[loop.unit]!.layer === layer) {
-                channelLabels.push({ edge: loop.edge, hop: -1, y: ports.loopEnd[index]!, along: down ? size.h : size.w, across: down ? size.w : size.h });
+                const frame = flipSize(size, down);
+                channelLabels.push({ edge: loop.edge, hop: -1, y: ports.loopEnd[index]!, along: frame.w, across: frame.h });
             }
         });
         channelLabels.sort((left, right) => left.edge - right.edge);
@@ -696,13 +701,13 @@ export function layoutOf(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'gro
         const box = frameBoxOf(unit);
         return box.x + insetOf(shapeOf(unit), box, y - middleOf(unit), down);
     };
-    const toReal = (point: Point): Point => (down ? flipPoint(point) : point);
+    const toReal = (point: Point): Point => flipPoint(point, down);
     const labelOf = (edge: number, frame: Rect | undefined): EdgeLabelBox | null => {
         const size = labelSizes[edge];
         if (!size || !frame) {
             return null;
         }
-        return { ...(down ? flip(frame) : frame), lines: size.lines };
+        return { ...flip(frame, down), lines: size.lines };
     };
 
     const nodes: NodeBox[] = document.nodes.map((node, index) => {
@@ -722,9 +727,7 @@ export function layoutOf(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'gro
                 sub: size.sub
             };
         }
-        const frame = frameBoxOf(unit);
-        const box = down ? flip(frame) : frame;
-        return { id: node.id, ...box, layer: units[unit]!.layer, pinned: false, label: size.label, sub: size.sub };
+        return { id: node.id, ...flip(frameBoxOf(unit), down), layer: units[unit]!.layer, pinned: false, label: size.label, sub: size.sub };
     });
     const byId = new Map(nodes.map((box) => [box.id, box]));
 
@@ -769,16 +772,14 @@ export function layoutOf(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'gro
         }
         const size = labelSizes[loop.edge];
         // In the last layer there is no channel to put a label in, so it sits beside the loop.
-        const frame =
-            frameLabels.get(loop.edge) ??
-            (size
-                ? {
-                      x: reach + 6,
-                      y: Math.round((startY + endY) / 2) - Math.floor((down ? size.w : size.h) / 2),
-                      w: down ? size.h : size.w,
-                      h: down ? size.w : size.h
-                  }
-                : undefined);
+        const beside = (): Rect | undefined => {
+            if (!size) {
+                return undefined;
+            }
+            const turned = flipSize(size, down);
+            return { x: reach + 6, y: Math.round((startY + endY) / 2) - Math.floor(turned.h / 2), ...turned };
+        };
+        const frame = frameLabels.get(loop.edge) ?? beside();
         const edge = document.edges[loop.edge]!;
         routes[loop.edge] = { index: loop.edge, from: edge.from, to: edge.to, points: points.map(toReal), label: labelOf(loop.edge, frame) };
     });
@@ -809,8 +810,7 @@ export function layoutOf(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'gro
             const members = band.members.flat().filter((unit) => units[unit]!.node >= 0);
             const alongStart = Math.min(...band.members[0]!.map((unit) => unitX[unit]!)) - alongBefore;
             const alongEnd = Math.max(...members.map((unit) => unitX[unit]! + units[unit]!.w)) + GROUP_PADDING;
-            const frame = { x: alongStart, y: band.top, w: alongEnd - alongStart, h: band.height };
-            rects.push(down ? flip(frame) : frame);
+            rects.push(flip({ x: alongStart, y: band.top, w: alongEnd - alongStart, h: band.height }, down));
         }
         for (const id of group.wraps) {
             const box = byId.get(id);

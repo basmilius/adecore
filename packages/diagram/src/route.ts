@@ -1,13 +1,14 @@
+import { intersects } from '@adecore/drawing';
 import type { Point, Rect } from './layout.ts';
 
-export const TRACK_GAP = 12;
+const TRACK_GAP = 12;
 /* Space between the lane of labels and the first track. */
 const LANE_GAP = 12;
 /* Space between two labels side by side in a lane. */
 const LABEL_GAP = 8;
 /* How far a label keeps from the line it belongs to. */
 const LABEL_OFFSET = 4;
-export const MIN_CHANNEL = 64;
+const MIN_CHANNEL = 64;
 /* Two horizontal lines closer than this read as one. */
 const COLLINEAR = 4;
 /* Two vertical ranges closer than this need tracks of their own. */
@@ -48,10 +49,6 @@ export interface ChannelResult {
     labels: Map<number, Rect>;
 }
 
-function overlaps(left: Rect, right: Rect): boolean {
-    return left.x < right.x + right.w && right.x < left.x + left.w && left.y < right.y + right.h && right.y < left.y + left.h;
-}
-
 function inflate(rect: Rect, by: number): Rect {
     return { x: rect.x - by, y: rect.y - by, w: rect.w + by * 2, h: rect.h + by * 2 };
 }
@@ -60,7 +57,7 @@ function inflate(rect: Rect, by: number): Rect {
  * How badly two orthogonal polylines get in each other's way: a crossing counts once, a stretch where
  * they run on top of each other counts four times, since that is the one a reader cannot follow.
  */
-export function conflictsOf(left: readonly Point[], right: readonly Point[]): number {
+function conflictsOf(left: readonly Point[], right: readonly Point[]): number {
     let total = 0;
     for (let i = 1; i < left.length; i++) {
         const a0 = left[i - 1]!;
@@ -172,7 +169,7 @@ export function routeChannel(input: ChannelInput): ChannelResult {
     const touches = (x0: number, x1: number, y0: number, y1: number, rect: Rect): boolean =>
         x1 >= rect.x - 3 && x0 <= rect.x + rect.w + 3 && y1 >= rect.y - 3 && y0 <= rect.y + rect.h + 3;
     const blocked = (zone: Zone, rect: Rect): boolean =>
-        placed.some((other) => other.zone === zone && overlaps(inflate(other.rect, 4), rect)) ||
+        placed.some((other) => other.zone === zone && intersects(inflate(other.rect, 4), rect)) ||
         input.obstacles.some((obstacle) => obstacle.y < rect.y + rect.h && rect.y < obstacle.y + obstacle.h);
     const onLine = (zone: Zone, rect: Rect, label: ChannelLabel): boolean =>
         input.hops.some((hop) => {
