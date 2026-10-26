@@ -11,56 +11,45 @@ import { useAsyncAction } from './useAsyncAction.ts';
 export interface PromptDialogProps {
     open: boolean;
     title: string;
-    /* The mark beside the title, for a dialog that names the thing it is about. */
     titleIcon?: LucideIcon;
     description?: ReactNode;
-    /* A one line field the answer is typed in; without it the dialog is a confirm and nothing else. */
+    /* Without it the dialog is a confirm and nothing else. */
     field?: {
-        /* Drawn above the field. Without one only a screen reader hears the name, from `ariaLabel`. */
+        /* Without one only a screen reader hears the name, from `ariaLabel`. */
         label?: string;
         ariaLabel?: string;
         initial?: string;
         placeholder?: string;
-        /* A branch, a path or anything else read back letter by letter. */
         mono?: boolean;
         maxLength?: number;
     };
-    /* A second, taller field under it, for the body of a pull request. */
+    /* A second, taller field under it. */
     area?: { label: string; initial?: string; placeholder?: string };
     confirmLabel: string;
-    /* What the button says while the step runs, for one slow enough that a quiet button is not enough. */
     confirmBusyLabel?: string;
     confirmIcon?: LucideIcon;
     danger?: boolean;
-    /* The caller runs the step somewhere else and says when it is busy; a step this dialog awaits says so itself. */
+    /* For a step the caller runs elsewhere; a step this dialog awaits says so itself. */
     busy?: boolean;
-    /* Lets the field be confirmed empty, for a list that may be cleared or a name with a default. */
     allowEmpty?: boolean;
     /* A reason this question cannot be answered at all, beside the one an empty field is. */
     confirmDisabled?: boolean;
-    /* A second way out next to the confirm, such as merging before removing. */
     secondary?: { label: string; onClick(): void };
-    /* Over another dialog, so what is under it is dimmed a second time. */
     nested?: boolean;
-    /* Whatever this question needs beyond a field, between the description and the buttons. */
+    /* Between the description and the buttons. */
     children?: ReactNode;
-    /* Told what was typed. A rejection stays on screen as the reason and leaves the dialog open. */
+    /* A rejection stays on screen as the reason and leaves the dialog open. */
     onConfirm(value: string, body: string): void | Promise<unknown>;
-    /* What the failure line reads when the rejection carries no sentence of its own. */
+    /* For a rejection that carries no sentence of its own. */
     fallbackMessage?: string;
-    /* Only ever told `false`: Cancel, Escape or a click outside. The dialog never closes itself. */
+    /* Only ever told `false`: the dialog never closes itself. */
     onOpenChange(open: boolean): void;
-    /* Extra on the popup. */
+    /* On the popup. */
     className?: string;
     ref?: Ref<HTMLDivElement>;
 }
 
-/*
- * The one dialog a question is asked in: a name to type, or a warning to agree with. Every confirm
- * and every rename shares it, so none of them grows a layout of its own. It never closes itself,
- * because what a confirm leads to is the caller's business: an action that asks a second question
- * would be shut out by a close of its own.
- */
+/* It never closes itself: an action that asks a second question would be shut out by a close of its own. */
 export function PromptDialog({
     open,
     title,
@@ -85,9 +74,7 @@ export function PromptDialog({
     ref
 }: PromptDialogProps) {
     const { t } = useTranslation('ui');
-    /* The dialog stays mounted between questions, so every opening starts from what it was handed.
-       The token is what it was handed, so a new question resets the fields in the same render that
-       shows it and not in a second one after. */
+    /* The dialog stays mounted between questions; a new question resets the fields in the render that shows it. */
     const token = open ? `${field?.initial ?? ''}\u0000${area?.initial ?? ''}` : '';
     const [draft, setDraft] = useState({ token, value: field?.initial ?? '', body: area?.initial ?? '' });
     const step = useAsyncAction(fallbackMessage);
@@ -95,8 +82,7 @@ export function PromptDialog({
         setDraft({ token, value: field?.initial ?? '', body: area?.initial ?? '' });
         step.clear();
     }
-    const value = draft.value;
-    const body = draft.body;
+    const { value, body } = draft;
     const working = busy || step.busy;
     const setValue = (next: string): void => setDraft({ ...draft, value: next });
     const setBody = (next: string): void => setDraft({ ...draft, body: next });

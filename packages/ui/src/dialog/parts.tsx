@@ -5,10 +5,9 @@ import { useRender } from '@base-ui/react/use-render';
 import { withClass } from '../class-name.ts';
 import { useDialogLayer } from '../dialog-layer.ts';
 
-/* Whether the dialog is open, for its popup to decide whether it stacks over another one. */
 const DialogOpenContext = createContext(false);
 
-/* A question or a form of a few fields. Every one is as wide as the others, whatever it asks. */
+/* Every question is as wide as the others, whatever it asks. */
 const SIZE = {
     sm: 'w-[420px] p-5'
 } as const;
@@ -42,19 +41,12 @@ export type DialogPopupProps = ComponentProps<typeof BaseDialog.Popup> & {
     size?: keyof typeof SIZE;
     /* Always over another dialog. A dialog that opens while another one is up stacks by itself. */
     nested?: boolean;
-    /* The dim behind the dialog. Off for a dialog that leaves what is under it as it is. */
     backdrop?: boolean;
-    /* Extra on the backdrop, such as the heavier dim a picture needs. */
     backdropClassName?: string;
-    /* Keeps the popup in the document while it is closed. */
     keepMounted?: boolean;
 };
 
-/*
- * The portal, the backdrop and the popup of a dialog in one part. A dialog that opens while another
- * one is up, such as one from the menu bar over a settings dialog, takes the nested steps and a
- * backdrop of its own, or the one underneath stays on top and keeps taking clicks.
- */
+/* The portal, the backdrop and the popup of a dialog in one part; `useDialogLayer` says whether it stacks. */
 export function DialogPopup({ size, nested = false, backdrop = true, backdropClassName, keepMounted, className, ...props }: DialogPopupProps) {
     const stacked = useDialogLayer(useContext(DialogOpenContext)) || nested;
     return (
@@ -85,7 +77,7 @@ export type DialogDescriptionProps = ComponentProps<typeof BaseDialog.Descriptio
     size?: keyof typeof DESCRIPTION;
 };
 
-/* The sentence under the title, which is also what a screen reader reads as the dialog's description. It carries no margin. */
+/* What a screen reader reads as the dialog's description. It carries no margin. */
 export function DialogDescription({ size = 'sm', className, ...props }: DialogDescriptionProps) {
     return <BaseDialog.Description className={withClass(DESCRIPTION[size], className)} {...props} />;
 }
@@ -94,14 +86,14 @@ export type DialogTextProps = useRender.ComponentProps<'p'> & {
     size?: keyof typeof DESCRIPTION;
 };
 
-/* A further line in the style of the description that is not the dialog's description: a warning, a note under a choice. */
+/* Styled as the description without being the dialog's description. */
 export function DialogText({ size = 'sm', render, className, ref, ...props }: DialogTextProps) {
     return useRender({ render, ref, defaultTagName: 'p', props: { ...props, className: clsx(DESCRIPTION[size], className) } });
 }
 
 export type DialogFooterProps = useRender.ComponentProps<'div'>;
 
-/* The buttons at the foot of a dialog, the main action last and so on the right. */
+/* The main action goes last, and so on the right. */
 export function DialogFooter({ render, className, ref, ...props }: DialogFooterProps) {
     return useRender({
         render,

@@ -14,7 +14,7 @@ export interface MiddleTruncateProps {
 
 let canvas: HTMLCanvasElement | null = null;
 
-/* How wide a text is drawn in the face of `element`, or null where the page cannot tell (no canvas). */
+/* Null where the page has no canvas. */
 function textMeasure(element: HTMLElement): ((text: string) => number) | null {
     const view = element.ownerDocument.defaultView;
     canvas ??= element.ownerDocument.createElement('canvas');
@@ -34,11 +34,7 @@ function sameCut(first: MiddleCut | null, second: MiddleCut | null): boolean {
     return first?.head === second?.head && first?.tail === second?.tail;
 }
 
-/*
- * A path or a branch name on one line that keeps its start and its end and cuts the middle. It asks
- * for the width of the whole text and measures what it gets. The part it cuts stays in the element
- * at no width, so selecting, copying and finding read the whole text.
- */
+/* The part it cuts stays in the element at no width, so selecting, copying and finding read the whole text. */
 export function MiddleTruncate({ text, tooltip = true, className, ref }: MiddleTruncateProps) {
     const [element, setElement] = useState<HTMLSpanElement | null>(null);
     const [cut, setCut] = useState<MiddleCut | null>(null);

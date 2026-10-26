@@ -20,25 +20,20 @@ type PositionerProps = ComponentProps<typeof BaseMenu.Positioner>;
 
 type Placement = Pick<PositionerProps, PlacementKey>;
 
-/*
- * A menu hangs under its trigger, lined up with its start, unless there is no room. A context menu
- * opens at the pointer, which its positioner already knows. A submenu sits beside its row, pulled
- * up by the popup's own padding so its first row lines up with the row that opened it.
- */
+/* A context menu opens at the pointer, which its positioner already knows. A submenu is pulled up by the popup's padding so its first row lines up with the row that opened it. */
 const PLACEMENT: Record<MenuKind, Placement> = {
     menu: { side: 'bottom', align: 'start', sideOffset: 6 },
     context: {},
     submenu: { sideOffset: 4, alignOffset: -4 }
 };
 
-/* The label above a group of rows. It takes the line height of the row it sits in. */
+/* It takes the line height of the row it sits in. */
 export const MENU_LABEL = 'px-2.5 pt-1.5 pb-0.5 text-xs/[inherit] text-text-faint';
 
 /* A trailing hint in a row: what the item does to something else, never a shortcut. A shortcut stays a `Kbd`, which `.menu-item` already pushes to the right. */
 const MENU_HINT = 'ml-auto pl-3 text-xs/[inherit] text-text-faint';
 
-/* The hairline between two groups of rows. It runs the whole width of the popup, which is what the
-   negative margin buys back from its 4px of padding, and it is softer than a border a surface ends with. */
+/* The negative margin buys back the popup's 4px of padding, so the line runs its whole width. */
 const MENU_SEPARATOR = '-mx-1 my-1 h-px bg-border-soft';
 
 export function MenuRoot(props: ComponentProps<typeof BaseMenu.Root>) {
@@ -71,11 +66,6 @@ export const ContextMenuTrigger = BaseContextMenu.Trigger;
 
 export type MenuPopupProps = ComponentProps<typeof BaseMenu.Popup> & Placement;
 
-/*
- * The shell every menu is drawn in: the portal, the layer it sits on and the gap to its trigger are
- * decided once. The popup scrolls inside the room the window leaves it; `className` adds a minimum
- * width or a layout of its own, such as a grid of swatches.
- */
 export function MenuPopup({ className, ...props }: MenuPopupProps) {
     const defaults = PLACEMENT[useContext(MenuKindContext)];
     const [placement, popupProps] = splitPlacement(props);
@@ -97,11 +87,7 @@ export function MenuPopup({ className, ...props }: MenuPopupProps) {
 }
 
 type ItemLook = {
-    /*
-     * Leaves the row out: no padding, highlight or indicator, only what makes it an item (the arrow
-     * keys, typeahead, closing the menu). For an icon button, a swatch, a link or a segment inside a
-     * menu, which draws itself and its own highlight.
-     */
+    /* Keeps only the item's behavior, for a swatch, a link or a segment that draws itself and its own highlight. */
     unstyled?: boolean;
 };
 
@@ -120,11 +106,7 @@ export interface MenuCheckProps {
     ref?: Ref<HTMLSpanElement>;
 }
 
-/*
- * The slot before the label of a row that can be checked, in a menu or a list that reads as one. It
- * is one line of the row tall, so a row with a second line keeps the tick beside its first. Radio and
- * checkbox items draw it themselves; a plain row that shows a state hands it `checked`.
- */
+/* One line of the row tall, so a row with a second line keeps the tick beside its first. */
 export function MenuCheck({ kind, checked, className, ref }: MenuCheckProps) {
     const tick = <Icon icon={Check} size={kind === 'radio' ? 14 : 12} />;
     const indicator =
@@ -149,20 +131,21 @@ type Indicator = {
 
 type MenuCheckboxItemProps = ComponentProps<typeof BaseMenu.CheckboxItem> & ItemLook & Indicator & { children?: ReactNode };
 
-/* A row that is on or off. The box before its label is part of it. */
-export function MenuCheckboxItem({ unstyled = false, indicator = 'start', className, children, ...props }: MenuCheckboxItemProps) {
-    if (unstyled) {
-        return (
-            <BaseMenu.CheckboxItem className={className} {...props}>
-                {children}
-            </BaseMenu.CheckboxItem>
-        );
-    }
-    return (
-        <BaseMenu.CheckboxItem className={withClass('menu-item', className)} {...props}>
-            {indicator === 'start' && <MenuCheck kind="checkbox" />}
+const checkRow = (kind: MenuCheckProps['kind'], unstyled: boolean, indicator: Indicator['indicator'], children: ReactNode) =>
+    unstyled ? (
+        children
+    ) : (
+        <>
+            {indicator === 'start' && <MenuCheck kind={kind} />}
             {children}
-            {indicator === 'end' && <MenuCheck kind="checkbox" className="ml-auto" />}
+            {indicator === 'end' && <MenuCheck kind={kind} className="ml-auto" />}
+        </>
+    );
+
+export function MenuCheckboxItem({ unstyled = false, indicator = 'start', className, children, ...props }: MenuCheckboxItemProps) {
+    return (
+        <BaseMenu.CheckboxItem className={unstyled ? className : withClass('menu-item', className)} {...props}>
+            {checkRow('checkbox', unstyled, indicator, children)}
         </BaseMenu.CheckboxItem>
     );
 }
@@ -171,20 +154,10 @@ export const MenuRadioGroup = BaseMenu.RadioGroup;
 
 type MenuRadioItemProps = ComponentProps<typeof BaseMenu.RadioItem> & ItemLook & Indicator & { children?: ReactNode };
 
-/* One of several. The tick before its label is part of it. */
 export function MenuRadioItem({ unstyled = false, indicator = 'start', className, children, ...props }: MenuRadioItemProps) {
-    if (unstyled) {
-        return (
-            <BaseMenu.RadioItem className={className} {...props}>
-                {children}
-            </BaseMenu.RadioItem>
-        );
-    }
     return (
-        <BaseMenu.RadioItem className={withClass('menu-item', className)} {...props}>
-            {indicator === 'start' && <MenuCheck kind="radio" />}
-            {children}
-            {indicator === 'end' && <MenuCheck kind="radio" className="ml-auto" />}
+        <BaseMenu.RadioItem className={unstyled ? className : withClass('menu-item', className)} {...props}>
+            {checkRow('radio', unstyled, indicator, children)}
         </BaseMenu.RadioItem>
     );
 }
@@ -206,10 +179,7 @@ export function MenuSubmenuTrigger({ className, children, chevron = true, ...pro
 
 export type MenuRowProps = useRender.ComponentProps<'div'>;
 
-/*
- * A row with buttons at its end that reads as one row. Its first item is the row, every `RowAction`
- * and `RowSubmenuTrigger` after it an item of its own, so the arrow keys reach each.
- */
+/* Its first item is the row, every `RowAction` and `RowSubmenuTrigger` after it an item of its own, so the arrow keys reach each. */
 export function MenuRow({ render, className, ref, ...props }: MenuRowProps) {
     return useRender({ render, ref, defaultTagName: 'div', props: { role: 'group', ...props, className: clsx('menu-row', className) } });
 }
@@ -237,10 +207,7 @@ export function MenuRowAction({ icon, label, iconClassName, className, ...props 
 
 export type MenuRowSubmenuTriggerProps = Omit<ComponentProps<typeof BaseMenu.SubmenuTrigger>, 'children' | 'label'> & RowButton;
 
-/*
- * A button in a `Menu.Row` that opens a submenu, inside a `Menu.SubmenuRoot`. It has no tooltip: the
- * submenu opens on the same hover and says what the button holds.
- */
+/* No tooltip: the submenu opens on the same hover and says what the button holds. */
 export function MenuRowSubmenuTrigger({ icon, label, iconClassName, className, ...props }: MenuRowSubmenuTriggerProps) {
     return (
         <BaseMenu.SubmenuTrigger className={withClass('menu-item menu-row-action', className)} aria-label={label} {...props}>

@@ -5,10 +5,7 @@ import { withClass } from '../class-name.ts';
 import { splitPlacement, type PlacementKey } from '../placement.ts';
 import { renderPositioner } from '../popup-layer.ts';
 
-/*
- * The surface a popup is drawn on. `menu` is the padded card menus use, `picker` a card whose
- * content runs to its edges (a search field on top of a list), and `plain` leaves the surface to the caller.
- */
+/* `picker` is a card whose content runs to its edges, `plain` leaves the surface to the caller. */
 const POPUP_VARIANT = {
     menu: 'menu-popup',
     picker: 'picker-popup',
@@ -34,7 +31,6 @@ export type PopoverPopupProps = ComponentProps<typeof BasePopover.Popup> &
         variant?: PopupVariant;
     };
 
-/* The portal, the positioner and the popup of a popover: under its trigger and lined up with its start unless it says otherwise. */
 export function PopoverPopup({ variant = 'menu', side = 'bottom', align = 'start', sideOffset = 8, className, ...props }: PopoverPopupProps) {
     const [placement, popupProps] = splitPlacement(props);
     return (

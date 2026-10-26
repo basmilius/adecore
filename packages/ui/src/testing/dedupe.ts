@@ -3,11 +3,10 @@ import { dirname, join, sep } from 'node:path';
 import { Glob, plugin } from 'bun';
 
 /*
- * A preload for `bun test` in an app that links a checkout of this library: what `resolve.dedupe`
- * does for Vite. The checkout has node_modules of its own, and a second React, i18next or Base UI
- * breaks every hook, every word and every compound part. Bun has no dedupe and its resolve hook never
- * sees a package import, so every file of these packages in the checkout loads as a stand-in for the
- * same file in the app's copy. Does nothing once the library is installed from the registry.
+ * What `resolve.dedupe` does for Vite, for `bun test` in an app that links a checkout: a second React,
+ * i18next or Base UI breaks every hook, word and compound part. Bun has no dedupe and its resolve hook
+ * never sees a package import, so each file of these packages in the checkout loads as a stand-in for
+ * the app's copy.
  *
  * CodeMirror and Lezer reject an extension, a facet or a node prop made by another copy, and the chat
  * views take both from the app; shiki is in the list for the highlighter an app hands them.
@@ -69,7 +68,6 @@ const checkoutFolders = (): string[] => {
     return [library];
 };
 
-/* The packages a name of the list stands for in a folder: itself, or every package of the scope for `@scope/*`. */
 const namesIn = (folder: string, pattern: string): string[] => {
     if (!pattern.endsWith('/*')) {
         return [pattern];
@@ -83,7 +81,7 @@ const namesIn = (folder: string, pattern: string): string[] => {
         : [];
 };
 
-/* The copy of a package that `from` resolves to, walking up the node_modules folders as Node does. */
+/* Walks up the node_modules folders as Node does. */
 const copyFrom = (from: string, name: string): string | null => {
     for (let folder = from; ; folder = dirname(folder)) {
         const candidate = join(folder, 'node_modules', name);

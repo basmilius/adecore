@@ -9,11 +9,7 @@ function onEmptyLine(event: Event): boolean {
     return event.composedPath().some((node) => node instanceof HTMLElement && node.dataset.emptyLine === 'true');
 }
 
-/*
- * Keeps a line under every open directory that is known to be empty, and keeps the line out of
- * reach: a pointer on it does nothing and a key passes it. Returns what to call with every key the
- * tree hears, after anything that notes where focus was.
- */
+/* A pointer on a line does nothing and a key passes it. Call what it returns with every key the tree hears, after anything that notes where focus was. */
 export function useEmptyLines(model: FileTree, frame: HTMLElement | null, emptyLabel: FileTreeEmptyLabel | undefined): (event: KeyboardEvent) => void {
     const latest = useRef(emptyLabel);
     const reconcile = useRef<(() => void) | undefined>(undefined);

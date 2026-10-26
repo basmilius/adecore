@@ -6,11 +6,7 @@ export type KeyValueListRootProps = useRender.ComponentProps<'dl'> & {
     divided?: boolean;
 };
 
-/*
- * The names take the width of the widest one, up to two fifths of the list, and a longer name wraps
- * there. Every item is a subgrid of the list, so the names line up across rows and a hairline runs
- * under both columns.
- */
+/* Every item is a subgrid of the list, so the names line up across rows and a hairline runs under both columns. */
 export function KeyValueListRoot({ divided = false, render, className, ref, ...props }: KeyValueListRootProps) {
     return useRender({
         render,

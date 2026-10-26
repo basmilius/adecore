@@ -1,20 +1,20 @@
 import type { PointerEvent as ReactPointerEvent, RefObject } from 'react';
 
-/* Which edge the column hangs from, and with it the axis the drag runs along. A column pinned to
-   the window's right edge grows as the pointer moves left; one that starts at its own left edge
-   grows as it moves right, and the same holds for a row between `top` and `bottom`. */
+/* The edge the column hangs from, and with it the axis the drag runs along. A column pinned to the right edge grows as the pointer moves left. */
 export type ColumnEdge = 'left' | 'right' | 'top' | 'bottom';
 
 export interface ColumnResizeOptions {
-    /* What the column is wide, or the row is tall, right now, in whole pixels. */
+    /* In whole pixels. */
     size: number;
     min: number;
     from: ColumnEdge;
     /* Read at drag time, so a window resize between two drags is taken into account. */
     max?(): number;
-    /* Where the dragged size goes; called on every move, so the column follows the pointer. */
+    /* Called on every move. */
     onSize(size: number): void;
 }
+
+const DRAG_ENDS = ['pointerup', 'pointercancel', 'lostpointercapture'] as const;
 
 export interface ColumnResize {
     startResize(event: ReactPointerEvent<HTMLElement>): void;
@@ -25,13 +25,11 @@ export const clampColumnSize = (options: Pick<ColumnResizeOptions, 'min' | 'max'
     return Math.max(options.min, Math.min(Math.round(size), max));
 };
 
-/* Where the pointer sits on the axis this edge belongs to. */
 const along = (from: ColumnEdge, event: { clientX: number; clientY: number }): number => (from === 'left' || from === 'right' ? event.clientX : event.clientY);
 
 /*
- * One resizable column or row: a handle that drags the size its owner keeps. The handle takes the
- * pointer capture, so the drag survives leaving the few pixels it is wide, and `[data-resizing]` on
- * the column turns off any transition on that size for as long as it lasts.
+ * The handle takes the pointer capture, so the drag survives leaving the few pixels it is wide, and
+ * `[data-resizing]` on the column turns off any transition on that size for as long as it lasts.
  */
 export const useColumnResize = (ref: RefObject<HTMLElement | null>, options: ColumnResizeOptions): ColumnResize => {
     const startResize = (event: ReactPointerEvent<HTMLElement>): void => {
@@ -50,9 +48,9 @@ export const useColumnResize = (ref: RefObject<HTMLElement | null>, options: Col
         };
         const onUp = (): void => {
             handle.removeEventListener('pointermove', onMove);
-            handle.removeEventListener('pointerup', onUp);
-            handle.removeEventListener('pointercancel', onUp);
-            handle.removeEventListener('lostpointercapture', onUp);
+            for (const type of DRAG_ENDS) {
+                handle.removeEventListener(type, onUp);
+            }
             if (handle.hasPointerCapture(event.pointerId)) {
                 handle.releasePointerCapture(event.pointerId);
             }
@@ -60,9 +58,9 @@ export const useColumnResize = (ref: RefObject<HTMLElement | null>, options: Col
         };
         handle.setPointerCapture(event.pointerId);
         handle.addEventListener('pointermove', onMove);
-        handle.addEventListener('pointerup', onUp);
-        handle.addEventListener('pointercancel', onUp);
-        handle.addEventListener('lostpointercapture', onUp);
+        for (const type of DRAG_ENDS) {
+            handle.addEventListener(type, onUp);
+        }
     };
 
     return { startResize };

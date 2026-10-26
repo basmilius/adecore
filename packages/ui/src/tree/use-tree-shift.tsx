@@ -5,7 +5,6 @@ const HIDE_AFTER = 900;
 
 const NEAR_BOTTOM = 16;
 
-/* Where a tree draws its rows, and how far a row reaches past the edge it may use. */
 export interface TreeShiftSource {
     /* The node whose changes add, remove or rename rows; null while the tree has not drawn it yet. */
     root(frame: HTMLElement): ParentNode | null;
@@ -14,11 +13,7 @@ export interface TreeShiftSource {
     need(row: HTMLElement, shift: number, gap: number, range: Range): number | null;
 }
 
-/*
- * Rows that are wider than the tree slide sideways together, by a shift every row reads from the
- * frame's `--adecore-tree-shift`, with a thin bar that shows while a person scrolls or nears it. A
- * shift instead of a scroll keeps every row's background and the vertical scroll where they are.
- */
+/* A shift every row reads from `--adecore-tree-shift` instead of a scroll keeps every row's background and the vertical scroll where they are. */
 export function useTreeShift(source: TreeShiftSource, resetKey?: string): { attach(node: HTMLElement | null): void; bar: ReactElement } {
     const [frame, setFrame] = useState<HTMLElement | null>(null);
     const [track, setTrack] = useState<HTMLDivElement | null>(null);
@@ -143,7 +138,7 @@ export function useTreeShift(source: TreeShiftSource, resetKey?: string): { atta
     return { attach: setFrame, bar };
 }
 
-/* The rows of `Tree.Root`: everything a row holds slides, so a row reaches as far as its last part. */
+/* Everything a row of `Tree.Root` holds slides, so a row reaches as far as its last part. */
 export const TREE_ROWS: TreeShiftSource = {
     root: (frame) => frame,
     rows: (root) => [...root.querySelectorAll<HTMLElement>('.adecore-tree-row')],

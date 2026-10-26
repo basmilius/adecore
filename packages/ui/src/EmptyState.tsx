@@ -8,21 +8,20 @@ import { Spinner } from './Spinner.tsx';
 const ICON_SIZE = 20;
 
 export interface EmptyStateProps {
-    /* A Lucide icon, or a mark of another kind (a provider's logo) that takes a `size`. */
+    /* A Lucide icon, or a mark of another kind that takes a `size`. */
     icon?: LucideIcon | ReactElement<{ size?: number }>;
-    /* A `Spinner` in place of the icon, for a state that is still loading. */
+    /* A `Spinner` in place of the icon. */
     busy?: boolean;
-    /* A heading above the sentence, for a state that is an outcome rather than a list with nothing in it. */
+    /* For a state that is an outcome rather than a list with nothing in it. */
     title?: ReactNode;
-    /* One sentence. What is missing, and what puts something there. */
+    /* One sentence: what is missing, and what puts something there. */
     children: ReactNode;
-    /* The button or the shortcut that fills the space; kept to one. */
+    /* Kept to one. */
     action?: ReactNode;
     className?: string;
     ref?: Ref<HTMLDivElement>;
 }
 
-/* What a list, a canvas or a thread shows before it holds anything. */
 export function EmptyState({ icon, busy = false, title, children, action, className, ref }: EmptyStateProps) {
     return (
         <div ref={ref} className={clsx('flex flex-col items-center justify-center gap-2 px-6 py-8 text-center', className)}>

@@ -7,11 +7,8 @@ const WORD_PARTS = new Set<Intl.DateTimeFormatPartTypes>(['month', 'weekday', 'd
 const toDate = (at: Date | number): Date => (typeof at === 'number' ? new Date(at) : at);
 
 /*
- * A date written the way the region writes one, with its words in the language the interface is in.
- * Both formatters get the same options and the same instant, so every part the region asks for has
- * one to lift the word from, whatever order the two put them in: `19 Sep` in English against a Dutch
- * region, `19 sep` once the interface is Dutch too, and a clock that reads `08:05` wherever the
- * region does not say AM.
+ * The region's notation with the language's words: `19 Sep` in English against a Dutch region. Both
+ * formatters get the same options and instant, so every word part has one to lift, whatever the order.
  */
 export const formatDateTime = (at: Date | number, options: Intl.DateTimeFormatOptions): string => {
     const date = toDate(at);
@@ -35,11 +32,31 @@ const DAY_CLOCK: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', 
 const DAY_CLOCK_WITH_YEAR: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' };
 const NUMERIC_DATE: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'numeric', day: 'numeric' };
 
+const zonedSpecs = new WeakMap<Intl.DateTimeFormatOptions, Map<string, Intl.DateTimeFormatOptions>>();
+
+/* One options object per zone, so the formatter cached on it is built once (`dateFormatter`). */
+const zoned = (options: Intl.DateTimeFormatOptions, timeZone: string | undefined): Intl.DateTimeFormatOptions => {
+    if (timeZone === undefined) {
+        return options;
+    }
+    let byZone = zonedSpecs.get(options);
+    if (byZone === undefined) {
+        byZone = new Map();
+        zonedSpecs.set(options, byZone);
+    }
+    let spec = byZone.get(timeZone);
+    if (spec === undefined) {
+        spec = { ...options, timeZone };
+        byZone.set(timeZone, spec);
+    }
+    return spec;
+};
+
 /*
- * `08:05`, or `08:05 AM` in a region that counts to twelve. The clock functions below take the `timeZone`
- * to write in, such as `UTC` for a moment whose parts are given and mean the same wall clock anywhere.
+ * `08:05`, or `08:05 AM` in a region that counts to twelve. A `timeZone` such as `UTC` writes a moment
+ * whose parts are given and mean the same wall clock anywhere.
  */
-export const formatClock = (at: Date | number, timeZone?: string): string => formatDateTime(at, timeZone === undefined ? CLOCK : { ...CLOCK, timeZone });
+export const formatClock = (at: Date | number, timeZone?: string): string => formatDateTime(at, zoned(CLOCK, timeZone));
 
 /* A time far enough off that its day is part of the answer: `Sat 08:05`. */
 export const formatWeekdayClock = (at: Date | number): string => formatDateTime(at, WEEKDAY_CLOCK);
@@ -51,27 +68,24 @@ export const formatHour = (at: Date | number): string => formatDateTime(at, HOUR
 export const formatWeekday = (at: Date | number, width: 'short' | 'long' = 'short'): string => formatDateTime(at, width === 'long' ? WEEKDAY_LONG : WEEKDAY);
 
 /* `19 Sep`, the short date a row falls back to once "days ago" stops meaning anything. */
-export const formatDay = (at: Date | number, timeZone?: string): string => formatDateTime(at, timeZone === undefined ? DAY : { ...DAY, timeZone });
+export const formatDay = (at: Date | number, timeZone?: string): string => formatDateTime(at, zoned(DAY, timeZone));
 
 /* The same date with the year, for anything older than the one we are in. */
-export const formatDayWithYear = (at: Date | number, timeZone?: string): string =>
-    formatDateTime(at, timeZone === undefined ? DAY_WITH_YEAR : { ...DAY_WITH_YEAR, timeZone });
+export const formatDayWithYear = (at: Date | number, timeZone?: string): string => formatDateTime(at, zoned(DAY_WITH_YEAR, timeZone));
 
 /* `Sat 19 Sep`. */
 export const formatWeekdayDay = (at: Date | number): string => formatDateTime(at, WEEKDAY_DAY);
 
 /* `19 Sep, 08:05`: a moment that is not today, to the minute. */
-export const formatDayClock = (at: Date | number, timeZone?: string): string =>
-    formatDateTime(at, timeZone === undefined ? DAY_CLOCK : { ...DAY_CLOCK, timeZone });
+export const formatDayClock = (at: Date | number, timeZone?: string): string => formatDateTime(at, zoned(DAY_CLOCK, timeZone));
 
-/* `19 Sep 2026, 08:05`: the same moment with the year, for one that is not in the year we are in. */
-export const formatDayClockWithYear = (at: Date | number, timeZone?: string): string =>
-    formatDateTime(at, timeZone === undefined ? DAY_CLOCK_WITH_YEAR : { ...DAY_CLOCK_WITH_YEAR, timeZone });
+/* `19 Sep 2026, 08:05`: the same moment with the year. */
+export const formatDayClockWithYear = (at: Date | number, timeZone?: string): string => formatDateTime(at, zoned(DAY_CLOCK_WITH_YEAR, timeZone));
 
 /* All numbers, as a form would print it: `19-9-2026` here, `9/19/2026` in the United States. */
 export const formatNumericDate = (at: Date | number): string => formatDateTime(at, NUMERIC_DATE);
 
-/* Whether two instants fall on the same day of the same year, in the zone of whoever is reading. */
+/* In the zone of whoever is reading. */
 export const isSameDay = (a: Date | number, b: Date | number): boolean => {
     const left = toDate(a);
     const right = toDate(b);

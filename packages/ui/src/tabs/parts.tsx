@@ -5,7 +5,6 @@ import {
     useContext,
     useEffect,
     useLayoutEffect,
-    useMemo,
     useRef,
     useState,
     type ComponentProps,
@@ -41,7 +40,6 @@ const InMenuContext = createContext(false);
 const TAB =
     'relative flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap text-xs font-medium text-text-muted hover:text-text data-[active]:text-text data-[disabled]:opacity-50 after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 data-[active]:after:bg-text';
 
-/* The button that opens the tabs that do not fit reads as one more tab, at the very end of the strip. */
 const MORE = clsx(TAB, 'ml-auto data-[popup-open]:text-text');
 
 /* A tab as a key in a bar, for tabs that share a toolbar with buttons and must not read as the tabs of a pane under it. */
@@ -73,15 +71,13 @@ export function TabsRoot({ value, defaultValue = 0, onValueChange, ...props }: T
     useLayoutEffect(() => {
         latest.current = onValueChange;
     });
-    const selection = useMemo(() => {
-        const select = (next: TabsValue): void => {
-            if (!controlled) {
-                setOwn(next);
-            }
-            latest.current?.(next);
-        };
-        return { value: current, select };
-    }, [controlled, current]);
+    const select = (next: TabsValue): void => {
+        if (!controlled) {
+            setOwn(next);
+        }
+        latest.current?.(next);
+    };
+    const selection = { value: current, select };
     return (
         <SelectionContext value={selection}>
             <BaseTabs.Root value={current} onValueChange={(next) => selection.select(next)} {...props} />
@@ -108,9 +104,8 @@ const sameIndices = (left: readonly number[] | null, right: readonly number[]): 
     left !== null && left.length === right.length && left.every((index, at) => index === right[at]);
 
 /*
- * The tabs that fit, and a menu at the end of the strip with the ones that do not. Every tab is measured
- * in a row nobody sees, so the strip knows what fits before it draws. The tabs are the direct children,
- * since the menu repeats what a tab holds.
+ * Every tab is measured in a row nobody sees, so the strip knows what fits before it draws. The tabs
+ * are the direct children, since the menu repeats what a tab holds.
  */
 export function TabsList({ className, children, start, end, after, variant = 'line', overflow = 'menu', ...props }: TabsListProps) {
     const style = STYLES[variant];
@@ -123,7 +118,6 @@ export function TabsList({ className, children, start, end, after, variant = 'li
     const beside = useRef<HTMLDivElement>(null);
     const list = useRef<HTMLDivElement>(null);
     const scrolls = overflow === 'scroll';
-    // Which edges of a scrolling row still hide a tab, where it fades out.
     const [edges, setEdges] = useState({ start: false, end: false });
     // Null until the first measure, which runs before the first paint.
     const [shown, setShown] = useState<number[] | null>(null);
@@ -298,17 +292,9 @@ export function TabsTab({ className, onClose, pinned = false, children, ...props
     const { t } = useTranslation('ui');
     const tab = STYLES[useContext(VariantContext)].tab;
 
-    if (pinned) {
+    if (pinned || onClose === undefined) {
         return (
-            <BaseTabs.Tab className={withClass(tab, className)} data-pinned="" {...props}>
-                {children}
-            </BaseTabs.Tab>
-        );
-    }
-
-    if (onClose === undefined) {
-        return (
-            <BaseTabs.Tab className={withClass(tab, className)} {...props}>
+            <BaseTabs.Tab className={withClass(tab, className)} data-pinned={pinned ? '' : undefined} {...props}>
                 {children}
             </BaseTabs.Tab>
         );
@@ -371,7 +357,7 @@ export type TabsCountProps = Omit<useRender.ComponentProps<'span'>, 'children'> 
     value: number;
 };
 
-/* How much a tab holds, after its label. Nothing at zero: an empty view needs no number to say so. */
+/* Nothing at zero: an empty view needs no number to say so. */
 export function TabsCount({ value, render, className, ref, ...props }: TabsCountProps) {
     const inMenu = useContext(InMenuContext);
     const element = useRender({

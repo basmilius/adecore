@@ -41,9 +41,8 @@ const measureHints = (apple: boolean): PlacedHint[] => {
 };
 
 /*
- * Every visible button's shortcut, under the button, for as long as the modifier is held on its own.
- * Mounted once; the listener sits on the window in the capture phase so a terminal that keeps a key to
- * itself still takes the hints down. An embedded page (`<webview>`) has the keyboard to itself and shows none.
+ * The listener sits on the window in the capture phase so a terminal that keeps a key to itself still
+ * takes the hints down. An embedded page (`<webview>`) has the keyboard to itself and shows none.
  */
 export function ShortcutHints() {
     const [shown, setShown] = useState(false);

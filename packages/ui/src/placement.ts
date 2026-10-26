@@ -14,7 +14,6 @@ const PLACEMENT_KEYS = [
 
 export type PlacementKey = (typeof PLACEMENT_KEYS)[number];
 
-/* Splits a popup part's props into what goes to the positioner and what goes to the popup. */
 export function splitPlacement<Props extends Partial<Record<PlacementKey, unknown>>>(props: Props): [Pick<Props, PlacementKey>, Omit<Props, PlacementKey>] {
     const placement: Record<string, unknown> = {};
     const rest: Record<string, unknown> = { ...props };

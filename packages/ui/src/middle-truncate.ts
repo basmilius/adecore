@@ -8,9 +8,8 @@ export interface MiddleCut {
 export const MIDDLE_ELLIPSIS = '…';
 
 /*
- * The head and tail of `text` that keep the most of it around an ellipsis within `width`, or null
- * when the whole text fits. The tail gets the odd character, since the end of a path or a branch is
- * what tells two of them apart. Code points, never UTF-16 units, so a cut never halves a character.
+ * Null when the whole text fits. The tail gets the odd character, since the end of a path is what tells
+ * two of them apart. Code points, never UTF-16 units, so a cut never halves a character.
  */
 export function fitMiddle(text: string, width: number, measure: (text: string) => number): MiddleCut | null {
     if (measure(text) <= width) {

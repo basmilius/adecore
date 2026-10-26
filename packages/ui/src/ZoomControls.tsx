@@ -32,7 +32,6 @@ export interface ZoomControlsProps {
     zoom: number;
     onZoomChange(zoom: number): void;
     onFitAll(): void;
-    /* The percentages in the menu under the readout. */
     presets?: readonly number[];
     labels?: ZoomLabels;
     shortcuts?: { zoomReset?: Shortcut; fitAll?: Shortcut };
@@ -50,7 +49,6 @@ function MenuIcon({ icon }: { icon: LucideIcon }) {
     );
 }
 
-/* The zoom group of a dock: out, the readout with its presets, in, and fit everything. */
 export function ZoomControls({
     zoom,
     onZoomChange,

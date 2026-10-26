@@ -8,7 +8,6 @@ import { Icon } from './Icon.tsx';
 export interface Choice<Value extends string | number> {
     value: Value;
     title: string;
-    /* One line under the title that says what picking it means. */
     description: string;
     icon?: LucideIcon;
     disabled?: boolean;
@@ -18,15 +17,13 @@ export interface ChoiceCardsProps<Value extends string | number> {
     value: Value;
     onValueChange(value: Value): void;
     choices: readonly Choice<Value>[];
-    /* What the group picks, read by a screen reader since the row has no visible heading of its own. */
+    /* Read by a screen reader, since the row has no visible heading of its own. */
     label: string;
-    /* Side by side at the same width, or one under the other for choices whose descriptions run long. */
     orientation?: 'horizontal' | 'vertical';
-    /* A set number of columns, filled row by row, for more choices than one row has room for; takes the place of `orientation`. */
+    /* Filled row by row; takes the place of `orientation`. */
     columns?: number;
-    /* Where the radio stands in a card: after the text, or before the icon and the title. */
     radio?: 'start' | 'end';
-    /* What the checked choice still asks for, such as a folder or an address, right under its card; only a vertical group without columns has room for it. */
+    /* What the checked choice still asks for, under its card; only a vertical group without columns has room for it. */
     detail?: ReactNode;
     disabled?: boolean;
     className?: string;
@@ -68,11 +65,6 @@ function ChoiceCard<Value extends string | number>({ choice, radio }: { choice: 
     );
 }
 
-/*
- * One of a few options, each a card that says what it means, for a choice that deserves more than a
- * select: the cards stand side by side at the same width, one under the other or in a set number of
- * columns, and the arrow keys move between them.
- */
 export function ChoiceCards<Value extends string | number>({
     value,
     onValueChange,

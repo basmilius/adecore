@@ -13,7 +13,6 @@ const isShown = (line: ReactNode): boolean => line !== undefined && line !== nul
 
 export type FieldHintProps = useRender.ComponentProps<'p'>;
 
-/* The line under a field that says what goes in it. */
 export function FieldHint({ render, className, ref, ...props }: FieldHintProps) {
     return useRender({
         render,
@@ -25,7 +24,7 @@ export function FieldHint({ render, className, ref, ...props }: FieldHintProps) 
 
 export type FormErrorProps = useRender.ComponentProps<'p'>;
 
-/* What went wrong in a dialog or a form. An alert, so a screen reader hears it arrive. */
+/* An alert, so a screen reader hears it arrive. */
 export function FormError({ render, className, ref, ...props }: FormErrorProps) {
     return useRender({
         render,
@@ -60,24 +59,16 @@ export interface FieldProps {
     hint?: ReactNode;
     /* Shown under the control and marks it invalid; null or empty shows nothing. */
     error?: ReactNode;
-    /*
-     * For what a `<label>` cannot point at: a `Segmented`, a `Select`, cards to choose from, a path
-     * in a box with a button beside it. The label then names a group around it, which the hint and
-     * the error describe.
-     */
+    /* For what a `<label>` cannot point at, such as a `Segmented`: the label then names a group around it. */
     group?: boolean;
-    /* `horizontal` puts the label in a column of its own beside the control, for a form in a dialog where a stack of fields would scroll. */
     orientation?: 'vertical' | 'horizontal';
     className?: string;
     ref?: Ref<HTMLDivElement>;
-    /* The control. An `Input` or a `TextArea` connects to the label and the lines under it by itself, unless the field is a `group`. */
+    /* An `Input` or a `TextArea` connects to the label and the lines under it by itself, unless the field is a `group`. */
     children: ReactNode;
 }
 
-/*
- * A labelled control, or a labelled group, with an optional hint and error under it, stacked 6px apart.
- * Beside each other the label column is 112px, so the controls of every field in a form line up.
- */
+/* Horizontal, the label column is 112px, so the controls of every field in a form line up. */
 export function Field({ label, hint, error, group = false, orientation = 'vertical', className, ref, children }: FieldProps) {
     const horizontal = orientation === 'horizontal';
     const id = useId();

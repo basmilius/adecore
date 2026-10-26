@@ -4,14 +4,11 @@ import { useRender } from '@base-ui/react/use-render';
 import { SectionLabel } from './SectionLabel.tsx';
 
 export type PanelHeaderProps = useRender.ComponentProps<'header'> & {
-    /* The panel's name, as a section label first on the bar. Left out when the caller lays out the name itself. */
+    /* Left out when the caller lays out the name itself. */
     title?: ReactNode;
 };
 
-/*
- * The bar across the top of a side panel, as tall as a 48px toolbar beside it: the panel's name,
- * its own controls, and a close button last.
- */
+/* As tall as a 48px toolbar beside it. */
 export function PanelHeader({ title, render, className, ref, children, ...props }: PanelHeaderProps) {
     return useRender({
         render,

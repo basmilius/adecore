@@ -2,11 +2,7 @@ import { Suspense, lazy, useState, useSyncExternalStore, type ComponentProps, ty
 import { noteLanding } from './lazy-landings.ts';
 import { prefetcher } from './prefetch.ts';
 
-/*
- * A module's component, loaded once and kept. `React.lazy` suspends for a tick even on a module the
- * prefetcher already has, which shows the fallback and mounts a dialog already open; a component
- * that is here is drawn straight away instead.
- */
+/* `React.lazy` suspends for a tick even on a module the prefetcher already has, which mounts a dialog already open; a component here draws at once. */
 export class LoadedComponent<Component> {
     current: Component | null = null;
     private readonly listeners = new Set<() => void>();
@@ -38,11 +34,7 @@ export class LoadedComponent<Component> {
 
 const openErrorListeners = new Set<(error: unknown) => void>();
 
-/*
- * Tells `listener` when a module that `lazyNamed` or `lazyDialog` loads for a render fails to load,
- * which is a load a person waits on. A failed prefetch never reaches it, not even one of the same
- * module at the same moment, so an app can answer the one without being woken by the other.
- */
+/* Only a load for a render, which a person waits on; a failed prefetch never reaches it, not even one of the same module at the same moment. */
 export function onLazyOpenError(listener: (error: unknown) => void): () => void {
     openErrorListeners.add(listener);
     return () => {
@@ -65,11 +57,7 @@ async function open<Component>(loaded: LoadedComponent<Component>): Promise<{ de
 /* A lazy component, with `preload` to have its module before the first render, so that render never suspends. */
 export type LazyComponent<Props> = ComponentType<Props> & { readonly preload: () => Promise<void> };
 
-/*
- * `React.lazy` for a module that exports its component by name, `default` included. Every module
- * loaded through here, or through `lazyDialog`, registers with `prefetcher`, which loads it ahead of
- * its first opening once the app calls `prefetcher.prefetchEverything()`.
- */
+/* Registers with `prefetcher`, like `lazyDialog`, so `prefetcher.prefetchEverything()` loads it ahead of its first opening. */
 export function lazyNamed<Module extends Record<Name, ComponentType<any>>, Name extends keyof Module>(
     load: () => Promise<Module>,
     name: Name
@@ -100,10 +88,7 @@ function useOpenedOnce(open: boolean): boolean {
     return opened || open;
 }
 
-/*
- * A dialog that keeps its own open state. Once its module is here, prefetched or opened, it stays
- * mounted closed, so its first opening animates like every other; before that, opening loads it.
- */
+/* Once its module is here it stays mounted closed, so its first opening animates like every other. */
 export function lazyDialog<Module extends Record<Name, ComponentType>, Name extends keyof Module, State>(
     load: () => Promise<Module>,
     name: Name,

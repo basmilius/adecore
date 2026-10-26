@@ -21,10 +21,7 @@ export function directoryOfEmptyLine(path: string): string {
     return path.slice(0, -EMPTY_LINE_NAME.length);
 }
 
-/*
- * The lines to add and the ones to take away: an open directory whose label is not undefined and
- * that holds nothing besides its own line gets one, every other line the wrapper added goes.
- */
+/* An open, labeled directory that holds nothing besides its own line gets one; every other line the wrapper added goes. */
 export function emptyLineChanges(
     rows: readonly FileTreeVisibleRow[],
     labelOf: FileTreeEmptyLabel,
@@ -52,10 +49,7 @@ export function emptyLineChanges(
     };
 }
 
-/*
- * Where an arrow, Home or End goes instead when the row it would land on is a line: past it, or
- * nowhere (the focused path itself) where nothing lies past it. Null when no line is in the way.
- */
+/* Past the line the key would land on, or the focused path itself where nothing lies past it. Null when no line is in the way. */
 export function pastEmptyLine(model: FileTree, key: string): string | null {
     const index = model.getFocusedIndex();
     const focused = model.getFocusedPath();

@@ -21,7 +21,6 @@ export interface SliderProps {
     ref?: Ref<HTMLDivElement>;
 }
 
-/* A number picked along a range: the label and the value on one line, the track under them. */
 export function Slider({ value, onValueChange, min, max, step = 1, decimals = placesOf(step), unit, label, disabled, className, ref }: SliderProps) {
     const labelId = useId();
     const reading = formatFixed(value, decimals);

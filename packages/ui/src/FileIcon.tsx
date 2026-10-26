@@ -11,10 +11,8 @@ export interface FileIconProps {
 }
 
 /*
- * The icon a file gets in a file tree, drawn anywhere else the same file's name shows up. It is the
- * one place the library steps outside Lucide. The glyphs are Seti's, and so are their colors, because
- * a TypeScript blue or a Vue green is the mark of the file type, not a theme choice. Decorative like
- * every other icon here, so the name beside it does the reading.
+ * The one place the library steps outside Lucide. The glyphs are Seti's, and so are their colors: a
+ * TypeScript blue is the mark of the file type, not a theme choice. Decorative like every other icon here.
  */
 export function FileIcon({ path, size = 16, className, ref }: FileIconProps) {
     // Before the browser paints, so a `<use>` never points at a symbol that is not in the document yet.

@@ -21,22 +21,13 @@ export interface BannerProps {
     message: ReactNode;
     /* The buttons that answer the line. */
     children?: ReactNode;
-    /*
-     * `overlay` floats the glass strip centered along the top of the positioned parent; `inline` stands
-     * in the flow and fills its row. Under `overlay` a `className` replaces the overlay position instead
-     * of adding to it, so its utilities never meet the component's own.
-     */
+    /* Under `overlay` a `className` replaces the overlay position instead of adding to it, so its utilities never meet the component's own. */
     placement?: 'overlay' | 'inline';
     className?: string;
     ref?: Ref<HTMLDivElement>;
 }
 
-/*
- * The strip over a view: one line and the buttons that answer it. It is where anything that waits
- * for a person goes (a conflict, a failure, a request), because a corner toast is read after the fact
- * and a decision has to be where the eyes already are. One at a time: the slot is one row and the
- * caller picks what stands in it. Inline, it is a notice that belongs to the page it stands in.
- */
+/* Where anything that waits for a person goes: a corner toast is read after the fact, and a decision has to be where the eyes already are. */
 export function Banner({ icon, tone, message, children, placement = 'overlay', className, ref }: BannerProps) {
     const line = (
         <>

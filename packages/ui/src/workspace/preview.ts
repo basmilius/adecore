@@ -10,11 +10,7 @@ export const BODY_RADIUS = 4;
 /* The stroke is centered on the path, so the path runs half of it inside the box to keep the outer edge on it. */
 export const DROP_STROKE = 2;
 
-/*
- * What the drop preview draws, in the grid's coordinates. A tab and a plain rectangle are the same
- * shape: a tab standing on a body, where the rectangle's tab has no height. `x` and `y` are the
- * top left of the outline's box, which for a tab is the cell with its bar.
- */
+/* In the grid's coordinates. A rectangle is a tab with no height standing on a body; for a tab, the box is the cell with its bar. */
 export interface DropPreviewShape {
     x: number;
     y: number;
@@ -22,7 +18,6 @@ export interface DropPreviewShape {
     height: number;
     /* The part of the box above the body that the tab stands in; 0 for a rectangle. */
     barHeight: number;
-    /* The tab's left edge and the top of its box, in the same coordinates as `x` and `y`. */
     tabLeft: number;
     tabWidth: number;
     tabTop: number;
@@ -33,15 +28,12 @@ function coordinate(value: number): string {
     return String(Math.round(value * 100) / 100 + 0);
 }
 
-/*
- * The preview for a split or a trade: the rectangle as a tab with no height, parked just inside its
- * top left corner so the corner keeps its radius. It is where a tab target grows out of the rectangle.
- */
+/* The tab with no height parks just inside the top left corner, so the corner keeps its radius and a tab target grows out of it. */
 export function rectDropPreview({ x, y, width, height }: SplitRect): DropPreviewShape {
     return { x, y, width, height, barHeight: 0, tabLeft: x + BODY_RADIUS, tabWidth: 0, tabTop: y, radius: TAB_RADIUS };
 }
 
-/* The preview for a tab: the tab and the body of the cell it lands in, `origin` being the cell's top left in the grid. */
+/* `origin` is the cell's top left in the grid. */
 export function tabDropPreview(drop: TabDrop, origin: { x: number; y: number }): DropPreviewShape {
     return {
         x: origin.x,
@@ -75,10 +67,8 @@ export function sameDropPreview(left: DropPreviewShape | null, right: DropPrevie
 }
 
 /*
- * The outline of a tab grown into the body under it, as one closed path so no line runs between the
- * two. The commands are the same whatever the numbers are (an arc of radius 0 is a straight line), so
- * the browser can move one outline into another with a transition on `d`. `inset` is how far the
- * path runs inside the box, which is half the stroke, so the outer edge of the line is on the box.
+ * One closed path, so no line runs between tab and body. The commands are the same whatever the
+ * numbers (an arc of radius 0 is a straight line), so a transition on `d` can move one outline into another.
  */
 export function dropPreviewPath({ x, y, width, height, barHeight, tabLeft, tabWidth, tabTop, radius }: DropPreviewShape, inset = DROP_STROKE / 2): string {
     const left = inset;

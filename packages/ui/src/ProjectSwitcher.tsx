@@ -12,12 +12,12 @@ export interface ProjectSwitcherItem {
     icon?: ReactNode;
     /* The folder or other details, shown in a tooltip so the row stays on one line. */
     description?: ReactNode;
-    /* A machine or workspace name at the end of the row. */
+    /* At the end of the row. */
     hint?: ReactNode;
     disabled?: boolean;
     /* A stale or disconnected project can still be selected to try opening it. */
     muted?: boolean;
-    /* Menu items for the submenu beside this project's row. */
+    /* For the submenu beside this project's row. */
     actions?: ReactNode;
 }
 
@@ -26,11 +26,11 @@ export interface ProjectSwitcherProps<Item extends ProjectSwitcherItem = Project
     projects: readonly Item[];
     recentProjects?: readonly Item[];
     onSelect(project: Item, event: MouseEvent<HTMLElement>): void;
-    /* Before the current project's icon, such as the machine it runs on. */
+    /* Before the current project's icon. */
     leading?: ReactNode;
-    /* Menu items in a group of their own between the open projects and Recent projects. */
+    /* A group of their own between the open projects and Recent projects. */
     before?: ReactNode;
-    /* Menu items in one group with Recent projects, such as opening a folder or creating a project. */
+    /* In one group with Recent projects. */
     children?: ReactNode;
     /* What the trigger reads while `current` is null; next to a current project, it comes before that name in the accessible name. */
     label?: string;
@@ -83,7 +83,7 @@ export function ProjectSwitcher<Item extends ProjectSwitcherItem>({
     );
 }
 
-/* The rows of the popup, apart from it so they render without an open menu. */
+/* Apart from the popup, so the rows render without an open menu. */
 export function ProjectSwitcherGroups<Item extends ProjectSwitcherItem>({
     projects,
     recentProjects = [],

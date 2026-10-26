@@ -14,21 +14,17 @@ const PICKED_RING = {
 } as const;
 
 export interface ColorSwatchProps extends ComponentProps<'button'> {
-    /* Any CSS color. Without one the swatch is an outlined circle: "no color", or the button that opens the rest of a palette. */
+    /* Without one the swatch is an outlined circle: "no color", or the button that opens the rest of a palette. */
     color?: string;
     picked?: boolean;
-    /* On the surface behind a popup, or inside the popup itself. */
     on?: keyof typeof PICKED_RING;
-    /* Whether a picked swatch draws its tick. Off where the ring alone marks it, such as on a swatch of two tones, where a tick reads as a glitch. */
+    /* Off where the ring alone marks a pick, such as on a swatch of two tones, where a tick reads as a glitch. */
     tick?: boolean;
-    /* Another element to be the swatch, such as a menu trigger, or `<Menu.Item unstyled />` so the row's padding and highlight stay off it. */
+    /* Such as `<Menu.Item unstyled />`, so the row's padding and highlight stay off it. */
     render?: useRender.RenderProp;
 }
 
-/*
- * One color, drawn as the color itself. Its name belongs in a tooltip, so the circle carries a tick
- * alone when it is picked. Children replace the tick, such as the ellipsis of a "more colors" swatch.
- */
+/* Its name belongs in a tooltip. Children replace the tick, such as the ellipsis of a "more colors" swatch. */
 export function ColorSwatch({ color, picked = false, on = 'surface', tick = true, render, className, style, ref, children, ...props }: ColorSwatchProps) {
     return useRender({
         render: render ?? <button type="button" />,

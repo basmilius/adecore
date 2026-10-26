@@ -1,7 +1,6 @@
 /*
- * One shortcut, written once. The same value decides whether a key event is the shortcut and how the
- * shortcut is printed. `mod` is Cmd on macOS and Ctrl everywhere else; `ctrl` and `meta` name the
- * physical key and exist for the few shortcuts that differ per platform on purpose.
+ * `mod` is Cmd on macOS and Ctrl everywhere else; `ctrl` and `meta` name the physical key, for the few
+ * shortcuts that differ per platform on purpose.
  */
 export interface Shortcut {
     mod: boolean;
@@ -14,7 +13,6 @@ export interface Shortcut {
     key: string;
 }
 
-/* What a shortcut is matched against. A real `KeyboardEvent` satisfies it, a test writes one by hand. */
 export type KeyLike = Pick<KeyboardEvent, 'metaKey' | 'ctrlKey' | 'altKey' | 'shiftKey' | 'key' | 'code'>;
 
 /* Matched on the physical key: Shift turns `[` into `{` and Option turns most keys into a dead key. */
@@ -113,7 +111,7 @@ const KEY_LABELS: Record<string, { apple: string; other: string }> = {
     ArrowDown: { apple: '↓', other: '↓' }
 };
 
-/* The modifiers and the key as separate caps, in the order the platform prints them. */
+/* In the order the platform prints them. */
 export const shortcutParts = (target: Shortcut, apple: boolean): string[] => {
     const parts: string[] = [];
     if (apple) {
@@ -171,5 +169,4 @@ export const KEY_SHORTCUTS = {
     rename: /* @__PURE__ */ shortcut('F2')
 } as const;
 
-/* Whether the platform's own modifier is down during a pointer gesture: Cmd on macOS, Ctrl elsewhere. */
 export const isModHeld = (event: Pick<KeyLike, 'metaKey' | 'ctrlKey'>, apple: boolean): boolean => (apple ? event.metaKey : event.ctrlKey);

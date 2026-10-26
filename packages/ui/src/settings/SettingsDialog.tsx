@@ -17,14 +17,12 @@ export interface SettingsSectionEntry {
     id: string;
     icon: LucideIcon;
     label: string;
-    /* One line under the pane title that says what the pane is about. */
     description: string;
     /* Rendered in a `LazyBoundary`, so a lazy component loads when its section is opened. */
     pane: ComponentType;
     /* A list beside a detail that scrolls on its own (`MasterDetail`), instead of one padded column. */
     split?: boolean;
-    /* A block above the pane that runs to its edges, with the title bar floating over its top. Loads with
-       the pane; a `split` section draws none. */
+    /* Runs to the pane's edges, with the title bar floating over its top; a `split` section draws none. */
     hero?: ComponentType;
 }
 
@@ -43,7 +41,7 @@ export interface SettingsSearchResult {
 
 export interface SettingsSearch {
     find(query: string): readonly SettingsSearchResult[];
-    /* The shortcut that focuses the field, as it is printed. */
+    /* The printed shortcut that focuses the field. */
     hint?: string;
     /* Focuses and selects the field each time it grows. */
     focusAt?: number;
@@ -53,10 +51,8 @@ export interface SettingsDialogProps {
     open: boolean;
     onOpenChange(open: boolean): void;
     section: string;
-    /* A tab or a section picked, or a search result with the row it leads to. */
     onNavigate(next: { section: string; target?: string | null }): void;
     groups: readonly SettingsGroupEntry[];
-    /* At the foot of the navigation, under the groups. */
     footer?: readonly SettingsSectionEntry[];
     /* Under the footer sections, past a hairline: a section whose tab the app draws itself (a `Tabs.Tab`
        with the section's id as its value), such as an account. */
@@ -65,7 +61,7 @@ export interface SettingsDialogProps {
     /* The row a search result jumped to, lit until `onTargetShown`. */
     target?: string | null;
     onTargetShown?(): void;
-    /* Extra on the popup. */
+    /* On the popup. */
     className?: string;
     ref?: Ref<HTMLDivElement>;
 }
@@ -183,7 +179,6 @@ interface SearchResultsProps {
     onPick(result: SettingsSearchResult): void;
 }
 
-/* In place of the navigation while a query is typed: the panes and rows that match, each a jump to where it lives. */
 function SearchResults({ search, query, labelOf, onPick }: SearchResultsProps) {
     const { t, i18n } = useTranslation('ui');
     // The language is a dependency the linter cannot see; every result reads its words off i18next.
@@ -211,7 +206,7 @@ function SearchResults({ search, query, labelOf, onPick }: SearchResultsProps) {
     );
 }
 
-/* Sections on the left, one pane on the right. A pane mounts only while its section is open. */
+/* A pane mounts only while its section is open. */
 export function SettingsDialog({
     open,
     onOpenChange,

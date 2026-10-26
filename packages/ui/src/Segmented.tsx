@@ -9,7 +9,7 @@ export interface SegmentedOption<T extends string> {
     id: T;
     label: string;
     icon?: LucideIcon;
-    /* Dims the option and takes it out of the tab order and the arrow keys; the rest of the group stays usable. */
+    /* Takes the option out of the tab order and the arrow keys; the rest of the group stays usable. */
     disabled?: boolean;
 }
 
@@ -17,14 +17,13 @@ export interface SegmentedProps<T extends string> {
     value: T;
     onValueChange(id: T): void;
     options: readonly SegmentedOption<T>[];
-    /* The accessible name of the group. */
     label: string;
     disabled?: boolean;
-    /* `vertical` stacks the options in a column as wide as its container, for labels too long to stand side by side. */
+    /* `vertical` is as wide as its container, for labels too long to stand side by side. */
     orientation?: 'horizontal' | 'vertical';
-    /* 32 pixels high at `md` and 28 at `sm`, the heights of `Input`, `Select` and `Button`. */
+    /* The heights of `Input`, `Select` and `Button`. */
     size?: 'md' | 'sm';
-    /* Draws every option with an icon as a square, the label as its accessible name and its tooltip. One without an icon keeps its label. */
+    /* An option with an icon draws as a square, its label as its accessible name and tooltip. One without an icon keeps its label. */
     iconOnly?: boolean;
     className?: string;
     ref?: Ref<HTMLDivElement>;
@@ -35,10 +34,7 @@ const SIZE = {
     sm: { track: 'rounded-md', row: 'min-h-7', option: 'min-h-6 rounded-sm px-2.5 py-0.5', square: 'size-6 rounded-sm', icon: 12 }
 } as const;
 
-/*
- * One of a few options side by side in one sunken track, the picked one lifted out of it. A radio
- * group: one tab stop, and the arrows pick and focus the next option, around the ends.
- */
+/* A radio group: one tab stop, and the arrows pick and focus the next option, around the ends. */
 export function Segmented<T extends string>({
     value,
     onValueChange,
@@ -55,7 +51,7 @@ export function Segmented<T extends string>({
     const sizing = SIZE[size];
     const stop = segmentedStop(options, value);
 
-    function move(event: KeyboardEvent<HTMLButtonElement>, index: number) {
+    const move = (event: KeyboardEvent<HTMLButtonElement>, index: number): void => {
         const next = segmentedTarget(options, index, event.key);
         if (next === null) {
             return;
@@ -63,7 +59,7 @@ export function Segmented<T extends string>({
         event.preventDefault();
         onValueChange(options[next]!.id);
         event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="radio"]')[next]?.focus();
-    }
+    };
 
     return (
         <div

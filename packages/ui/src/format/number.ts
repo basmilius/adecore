@@ -6,7 +6,6 @@ const ONE_DECIMAL: Intl.NumberFormatOptions = { maximumFractionDigits: 1 };
 /* A count as a region groups one: `1,234,567` there, `1.234.567` here. */
 export const formatNumber = (value: number): string => numberFormatter(WHOLE).format(Math.round(value));
 
-/* The same, to one decimal, where the fraction is the part that means something. */
 export const formatDecimal = (value: number): string => numberFormatter(ONE_DECIMAL).format(value);
 
 /* One options object per key, so the formatter cached on it is built once (`numberFormatter`). */
@@ -38,9 +37,8 @@ const MAX_FRACTION_DIGITS = 100;
 const NUMERAL = /^[+-]?\d+(?:\.(\d+))?$/;
 
 /*
- * A numeral as a database writes it (`12900`, `-0.50`, `9007199254740993`), in the region's notation
- * with every digit kept: a decimal or a big integer arrives as text, and a float would round it.
- * Text that is no plain numeral, such as `NaN` or `1e999`, comes back as it is.
+ * A numeral as a database writes it (`12900`, `-0.50`, `9007199254740993`) with every digit kept: a
+ * decimal or a big integer arrives as text, and a float would round it. Anything else comes back as it is.
  */
 export const formatNumeral = (numeral: string | number): string => {
     const text = typeof numeral === 'number' ? String(numeral) : numeral.trim();
@@ -56,33 +54,16 @@ export const formatNumeral = (numeral: string | number): string => {
 /* Percent as Activity Monitor writes it: a decimal under ten, where the difference still shows. */
 export const formatPercent = (value: number): string => `${value < 10 ? formatDecimal(value) : formatNumber(value)}%`;
 
-/*
- * The option objects a money formatter is cached on, one per currency and precision. The cache is
- * keyed on the object itself, so building a fresh one per call would build a fresh formatter too.
- */
-const moneySpecs = new Map<string, Intl.NumberFormatOptions>();
-
-const moneySpec = (currency: string, maximumFractionDigits: number | undefined): Intl.NumberFormatOptions => {
-    const key = `${currency}|${maximumFractionDigits ?? ''}`;
-    const known = moneySpecs.get(key);
-    if (known !== undefined) {
-        return known;
-    }
-    // Narrow, or a Dutch region writes a dollar amount as `US$ 5.480,96`, which is a currency lesson
-    // nobody asked for in a table of prices.
-    const spec: Intl.NumberFormatOptions = {
-        style: 'currency',
-        currency,
-        currencyDisplay: 'narrowSymbol',
-        ...(maximumFractionDigits ? { maximumFractionDigits } : {})
-    };
-    moneySpecs.set(key, spec);
-    return spec;
-};
+/* Narrow, or a Dutch region writes a dollar amount as `US$ 5.480,96`. */
+const moneySpec = specCache((key: `${string}|${number | ''}`) => {
+    const [currency, digits] = key.split('|');
+    const maximumFractionDigits = Number(digits);
+    return { style: 'currency', currency, currencyDisplay: 'narrowSymbol', ...(maximumFractionDigits ? { maximumFractionDigits } : {}) };
+});
 
 /* An amount in the currency it is already in, as a bank statement would print it. */
 export const formatMoney = (value: number, currency: string, maximumFractionDigits?: number): string =>
-    numberFormatter(moneySpec(currency, maximumFractionDigits)).format(value);
+    numberFormatter(moneySpec(`${currency}|${maximumFractionDigits ?? ''}`)).format(value);
 
 const SIGNIFICANT_MONEY: Intl.NumberFormatOptions = { style: 'currency', currency: 'USD', currencyDisplay: 'narrowSymbol', maximumSignificantDigits: 3 };
 

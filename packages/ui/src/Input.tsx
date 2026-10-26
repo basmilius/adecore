@@ -5,17 +5,15 @@ import { fieldControlProps, useFieldControl } from './field-context.ts';
 import { Icon } from './Icon.tsx';
 
 export interface InputProps extends Omit<ComponentProps<'input'>, 'size'> {
-    /* `sm` is the height of a small button: a row of tools, or a name typed in place of the label it renames. */
+    /* `sm` is the height of a small button. */
     size?: 'md' | 'sm';
-    /* A branch, a path or anything else read back letter by letter. */
     mono?: boolean;
-    /* Drawn in front of the text, such as a magnifier on a search field. `className` then goes to the box around the icon and the input; `ref` stays on the input. */
+    /* `className` then goes to the box around the icon and the input; `ref` stays on the input. */
     icon?: LucideIcon;
-    /* Drawn after the text inside the field, such as a count of matches and an `IconButton` that clears it. `className` then goes to the box, as with `icon`. */
+    /* Inside the field, after the text. `className` then goes to the box, as with `icon`. */
     end?: ReactNode;
 }
 
-/* The one text input: one border and one focus ring at the one height or the compact one. */
 export function Input({ size = 'md', mono = false, icon, end, className, id, ...props }: InputProps) {
     const field = useFieldControl();
     const small = size === 'sm';
@@ -50,17 +48,15 @@ export function Input({ size = 'md', mono = false, icon, end, className, id, ...
 }
 
 export interface TextAreaProps extends ComponentProps<'textarea'> {
-    /* `sm` is the type and the padding of a small input: a commit message or a note in a narrow panel. */
+    /* `sm` is the type and the padding of a small input. */
     size?: 'md' | 'sm';
-    /* `vertical` gives it a handle to drag it taller, for a draft of a few sentences. */
     resize?: 'none' | 'vertical';
-    /* A command or anything else read back letter by letter. */
     mono?: boolean;
     /* `bare` drops the border, the ground and the focus outline, for a field inside a card that draws all three around it. */
     variant?: 'field' | 'bare';
 }
 
-/* A field of a few lines: a commit message, the body of a pull request, a note. At least 64px tall; `rows` makes it taller. */
+/* At least 64px tall; `rows` makes it taller. */
 export function TextArea({ size = 'md', resize = 'none', mono = false, variant = 'field', className, id, ...props }: TextAreaProps) {
     const field = useFieldControl();
     return (

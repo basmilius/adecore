@@ -1,9 +1,6 @@
-/*
- * The clipboard, as the app uses it. A browser hands text over only to a document that is focused
- * and allowed, and there is nothing a person can do about a refusal, so both sides stay quiet.
- */
+/* A browser hands text over only to a focused, allowed document, and a person can do nothing about a refusal, so both sides stay quiet. */
 
-/* Resolves to whether the text got there, for a caller that tells the person; it never rejects. */
+/* Never rejects. */
 export const copyText = async (text: string): Promise<boolean> => {
     try {
         if (!navigator.clipboard) {

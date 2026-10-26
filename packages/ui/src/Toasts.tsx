@@ -27,10 +27,7 @@ const TONE = {
 /* The box is as tall as the title's own line, so what sits beside the title centers on that line. */
 const TITLE_LINE = 'flex h-(--text-sm--line-height) shrink-0 items-center';
 
-/*
- * How long the offer in a toast still stands, drawn from the timer that takes the toast away: the
- * ring starts as far along as that timer already is, so both end together. With motion off it stays full.
- */
+/* Starts as far along as the timer that takes the toast away, so both end together. With motion off it stays full. */
 function TimerRing({ deadline, onDismiss }: { deadline: ToastDeadline; onDismiss(): void }) {
     const { t } = useTranslation('ui');
     const lifetime = deadline.end - deadline.start;
@@ -85,8 +82,7 @@ function ToastCard<T extends Toast>({ toast, footer, onDismiss }: { toast: T; fo
             </span>
             <div className="flex min-w-0 grow flex-col gap-1">
                 <span className="text-sm break-words text-text">{toast.title}</span>
-                {/* Wraps rather than clips: the line under the title is the one that says what went
-                   wrong, and a reason cut off at the card's edge is no reason at all. */}
+                {/* Wraps rather than clips: a reason cut off at the card's edge is no reason at all. */}
                 {toast.description !== undefined && toast.description !== '' && (
                     <span className="text-xs break-words text-pretty text-text-muted">{toast.description}</span>
                 )}
@@ -122,17 +118,12 @@ function ToastCard<T extends Toast>({ toast, footer, onDismiss }: { toast: T; fo
 
 export interface ToastsProps<T extends Toast> {
     store: ToastStoreHook<T>;
-    /* Drawn under the description, for what only the app knows how to offer, such as copying a command's output. */
+    /* Drawn under the description. */
     footer?: (toast: T) => ReactNode;
     className?: string;
     ref?: Ref<HTMLDivElement>;
 }
 
-/*
- * Bottom right, over everything: what an action is doing while it runs and how it went when it is
- * over, and a deletion that can still be taken back. A success takes itself away after four seconds,
- * a deletion after eight, and a failure waits to be read.
- */
 export function Toasts<T extends Toast>({ store, footer, className, ref }: ToastsProps<T>) {
     // Through `useStore`: the compiler takes a call of the prop itself for a plain function and would skip it on a later draw.
     const toasts = useStore(store, (state) => state.toasts);

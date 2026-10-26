@@ -27,15 +27,14 @@ export type FileTreeRootProps = useRender.ComponentProps<'div'> & {
     onExpandedPathsChange?(paths: readonly string[]): void;
     renderControl?(row: FileTreeVisibleRow): ReactNode;
     renderDecoration?(row: FileTreeVisibleRow): ReactNode;
-    /* `after-status` draws the decoration after the engine's git status column instead of between the name and that column. */
     decorationOrder?: FileTreeDecorationOrder;
-    /* A Lucide icon in place of the row's own glyph (the file icon, or a directory's chevron); undefined keeps that glyph. */
+    /* In place of the row's own glyph (the file icon, or a directory's chevron); undefined keeps that glyph. */
     rowIcon?(row: FileTreeVisibleRow): LucideIcon | undefined;
-    /* As tall as its rows, up to the height its container leaves it, instead of filling that container. */
+    /* As tall as its rows, up to the height its container leaves it. */
     fitContent?: boolean;
-    /* Marks where this occurs in every name, ignoring case, such as the query a list was filtered by. */
+    /* Marks where this occurs in every name, ignoring case. */
     highlight?: string;
-    /* The line under an open directory with nothing in it; undefined draws none, such as while its children still load. */
+    /* The line under an open, empty directory; undefined draws none, such as while its children still load. */
     emptyLabel?: FileTreeEmptyLabel;
     treeProps?: Omit<PierreProps, 'model'>;
 };

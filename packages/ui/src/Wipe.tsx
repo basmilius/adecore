@@ -18,12 +18,7 @@ export interface WipeProps {
     ref?: Ref<HTMLDivElement>;
 }
 
-/*
- * Two versions of one picture in one frame: `before` left of the split and `after` right of it, with a
- * handle between them a person drags or moves with the arrow keys. It fills the positioned element it
- * sits in. The handle is a line with a round knob on it, or the plain line, which is dragged anywhere
- * along its height.
- */
+/* It fills the positioned element it sits in. A plain line handle is dragged anywhere along its height. */
 export function Wipe({ value: split, onValueChange: onSplit, before, after, label, handle = 'knob', className, ref }: WipeProps) {
     const frame = useRef<HTMLDivElement>(null);
     const percent = `${split * 100}%`;

@@ -4,22 +4,16 @@ import clsx from 'clsx';
 const LIST_WIDTHS = { 280: 'w-70', 320: 'w-80', 340: 'w-85' } as const;
 
 export interface MasterDetailProps {
-    /* The column on the left, usually `MasterItem`s under their own headers. */
+    /* Usually `MasterItem`s under their own headers. */
     list: ReactNode;
     listWidth: keyof typeof LIST_WIDTHS;
-    /* Names the list for a screen reader. */
     listLabel: string;
     detail: ReactNode;
     className?: string;
     ref?: Ref<HTMLDivElement>;
 }
 
-/*
- * A list beside the detail of what is picked in it, for a pane of many things of one kind (accounts,
- * devices, shortcut categories). Each side scrolls on its own, and the detail takes the rest of the
- * width, like a single-column pane. Its section must be `split`, so the dialog hands the pane its whole height
- * instead of a padded scrolling column.
- */
+/* Its section must be `split`, so the dialog hands the pane its whole height instead of a padded scrolling column. */
 export function MasterDetail({ list, listWidth, listLabel, detail, className, ref }: MasterDetailProps) {
     return (
         <div ref={ref} className={clsx('flex min-h-0 min-w-0 grow border-t border-border max-[640px]:flex-col', className)}>
@@ -47,7 +41,6 @@ export interface MasterItemProps {
     ref?: Ref<HTMLButtonElement>;
 }
 
-/* One row of the list. The picked one is lifted a shade. */
 export function MasterItem({ selected, onSelect, children, className, ref }: MasterItemProps) {
     return (
         <button

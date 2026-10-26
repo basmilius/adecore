@@ -29,9 +29,8 @@ export interface Port {
 export type FileTreeRowIcon = (row: FileTreeVisibleRow) => LucideIcon | undefined;
 
 /*
- * The rows of the mounted window, read from the spacer beta.6 puts above it (its first index times the
- * row height), so a scroll frame copies those and not every visible row. The whole list stands in when
- * the spacer is missing or the model already moved past what is mounted.
+ * Read from the spacer beta.6 puts above the mounted window, so a scroll frame copies those rows and not
+ * every visible one. The whole list stands in when the spacer is missing or the model moved past it.
  */
 function mountedRows(model: FileTree, shadow: ShadowRoot, elements: readonly HTMLElement[]): FileTreeVisibleRow[] {
     const spacer = shadow.querySelector<HTMLElement>('[data-file-tree-virtualized-sticky-offset]');
@@ -47,13 +46,10 @@ function mountedRows(model: FileTree, shadow: ShadowRoot, elements: readonly HTM
     return elements.every((element) => element.dataset.itemPath === undefined || paths.has(element.dataset.itemPath)) ? rows : visibleRows(model);
 }
 
-/* Where a row's own decoration goes: between the name and the engine's git status column, or after that column. */
+/* Relative to the engine's git status column. */
 export type FileTreeDecorationOrder = 'before-status' | 'after-status';
 
-/*
- * Lines the ports up with their rows: every size first, then the spaces they reserve, then every offset,
- * then the ports, so a pass forces two layouts at most however many rows are mounted.
- */
+/* Every size first, then the spaces, then every offset, then the ports, so a pass forces two layouts at most. */
 export function positionPorts(ports: Iterable<Port>, order: FileTreeDecorationOrder = 'before-status'): void {
     const spaced = [...ports].map((port) => ({
         port,
@@ -103,7 +99,7 @@ function setSpace(row: HTMLElement, name: string, space: number): void {
 export interface FileTreeSlotOptions {
     order: FileTreeDecorationOrder;
     rowIcon?: FileTreeRowIcon;
-    /* What to mark in every name; empty marks nothing. */
+    /* Empty marks nothing. */
     highlight: string;
     emptyLabel?: FileTreeEmptyLabel;
 }
@@ -188,9 +184,9 @@ export function useFileTreeSlots(model: FileTree, frame: HTMLElement | null, lab
             dropIcon(port);
         };
         const clearPort = (port: Port): void => {
-            port.rowElement.style.removeProperty('--adecore-tree-control-space');
-            port.rowElement.style.removeProperty('--adecore-tree-decoration-space');
-            port.rowElement.style.removeProperty('--adecore-tree-status-space');
+            for (const name of ['--adecore-tree-control-space', '--adecore-tree-decoration-space', '--adecore-tree-status-space']) {
+                port.rowElement.style.removeProperty(name);
+            }
             delete port.rowElement.dataset.ownIcon;
             dropPort(port);
         };

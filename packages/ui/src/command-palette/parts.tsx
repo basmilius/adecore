@@ -33,11 +33,7 @@ type DialogProps = Pick<ComponentProps<typeof DialogRoot>, 'open' | 'defaultOpen
 
 export type CommandPaletteRootProps<ItemValue> = AutocompleteProps<ItemValue> & DialogProps;
 
-/*
- * A dialog around a list that is always open. `open` and its handlers are the dialog's; the rest
- * is Base UI's autocomplete, so the query, the items and their filter work as in a combobox. The
- * first row is highlighted and stays so while the pointer leaves the list, which is what Enter runs.
- */
+/* `open` and its handlers are the dialog's; the rest is Base UI's autocomplete. The first row stays highlighted while the pointer leaves the list, which is what Enter runs. */
 export function CommandPaletteRoot<ItemValue>({
     open,
     defaultOpen,
@@ -59,8 +55,7 @@ export function CommandPaletteRoot<ItemValue>({
     const [focusHighlight, setFocusHighlight] = useState(false);
     /*
      * Base UI moves the highlight to the first row for a typed query only. For a query the app sets,
-     * the list is empty for one commit that is never painted: Base UI drops the highlight then and
-     * puts it on the first row of what comes back.
+     * the list is empty for one unpainted commit, so Base UI highlights the first row of what comes back.
      */
     const [settledValue, setSettledValue] = useState(value);
     const resetting = value !== undefined && value !== settledValue;
@@ -132,10 +127,7 @@ export type CommandPalettePopupProps = Omit<DialogPopupProps, 'size'> & {
     size?: keyof typeof SIZE;
 };
 
-/*
- * The dialog's surface. It hangs from a fixed line near the top instead of the middle: the list
- * changes height with every key, and a centered popup would walk up and down the screen.
- */
+/* It hangs from a fixed line near the top: the list changes height with every key, and a centered popup would walk up and down. */
 export function CommandPalettePopup({ size = 'md', initialFocus, className, ...props }: CommandPalettePopupProps) {
     const { t } = useTranslation('ui');
     const refs = useContext(PaletteRefsContext);
@@ -162,7 +154,7 @@ export type CommandPaletteInputProps = Omit<ComponentProps<typeof Autocomplete.I
     className?: string;
 };
 
-/* The field across the top. It keeps the keys while the arrows move the highlight; a control beside it should not take the focus on a click. */
+/* It keeps the keys while the arrows move the highlight; a control beside it should not take the focus on a click. */
 export function CommandPaletteInput({ leading, trailing, escapeHint = true, mono = false, className, ref, ...props }: CommandPaletteInputProps) {
     const refs = useContext(PaletteRefsContext);
     return (
@@ -180,7 +172,7 @@ export function CommandPaletteInput({ leading, trailing, escapeHint = true, mono
     );
 }
 
-/* The rows. It scrolls on its own, so the field and the footer stay put. */
+/* It scrolls on its own, so the field and the footer stay put. */
 export function CommandPaletteList({ className, ref, onFocus, ...props }: ComponentProps<typeof Autocomplete.List>) {
     const { t } = useTranslation('ui');
     const refs = useContext(PaletteRefsContext);
@@ -205,7 +197,6 @@ export function CommandPaletteList({ className, ref, onFocus, ...props }: Compon
 
 export type CommandPaletteFooterProps = useRender.ComponentProps<'div'>;
 
-/* Under the list: the keys that work here, a count, an action that leaves the palette. */
 export function CommandPaletteFooter({ render, className, ref, ...props }: CommandPaletteFooterProps) {
     return useRender({
         render,

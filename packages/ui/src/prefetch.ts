@@ -4,9 +4,8 @@ export type Loader = () => Promise<unknown>;
 export type WhenIdle = (run: () => void) => void;
 
 /*
- * Loads lazy modules ahead of their first opening, one per idle moment and never two at once, so
- * the first open resolves from the module cache. A loader registered while everything is on
- * joins the end, which is how a lazy surface inside another lazy one gets its turn.
+ * One module per idle moment and never two at once. A loader registered while everything is on joins
+ * the end, which is how a lazy surface inside another lazy one gets its turn.
  */
 export class Prefetcher {
     private readonly registered: Loader[] = [];
@@ -36,7 +35,6 @@ export class Prefetcher {
         }
     }
 
-    /* Loads this one module, ahead of whatever is registered. */
     prefetch(load: Loader): Promise<void> {
         if (!this.allowed()) {
             return Promise.resolve();
@@ -114,5 +112,4 @@ const whenIdle: WhenIdle = (run) => {
 /* Not in every DOM typing yet, and only Chromium reports it. */
 const savesData = (): boolean => (navigator as { connection?: { saveData?: boolean } }).connection?.saveData === true;
 
-/* The one every `lazyNamed` and `lazyDialog` registers with. */
 export const prefetcher = /* @__PURE__ */ new Prefetcher(whenIdle, () => !savesData());

@@ -7,34 +7,29 @@ import { useMeasuredWidth } from './useMeasuredWidth.ts';
 export interface SegmentBarPart {
     /* Its length, in the unit of the bar's `range`. */
     value: number;
-    /* Where it starts, in the unit of the bar's `range`. Defaults to the end of the part before, or 0 for the first;
-       a later start leaves the stretch in between empty. Parts stay in order. */
+    /* Defaults to the end of the part before, or 0 for the first; a later start leaves the stretch in between empty. Parts stay in order. */
     start?: number;
     /* Drawn in the part where there is room for it, and always read by a screen reader. */
     label?: string;
-    /* Any CSS color, such as `var(--positive)`, in place of the theme's. It wins over the accent of `current`. */
+    /* Any CSS color. It wins over the accent of `current`. */
     color?: string;
-    /* The part a person is at, such as the section under the playhead. */
     current?: boolean;
 }
 
 export interface SegmentBarProps {
     parts: readonly SegmentBarPart[];
-    /* The stretch the bar shows, in the unit of the parts: the rest of a whole, or the visible part of a zoomed timeline.
-       Defaults to 0 up to the end of the last part. */
+    /* Defaults to 0 up to the end of the last part. */
     range?: readonly [from: number, to: number];
-    /* `md` draws each label in its part, `sm` is a thin bar that shows its labels only as a tooltip. */
+    /* `sm` is a thin bar that shows its labels only as a tooltip. */
     size?: 'sm' | 'md';
-    /* Makes every part a button, which calls this with its index in `parts`. */
+    /* Makes every part a button. */
     onSelect?(index: number): void;
-    /* The accessible name of the whole. */
     label?: string;
     className?: string;
     ref?: Ref<HTMLOListElement>;
 }
 
-/* A whole split into parts, each as wide as it lasts, so they compare at a glance. A part starts exactly at its
-   place; the gap between two parts that touch comes out of the one before. */
+/* A part starts exactly at its place; the gap between two parts that touch comes out of the one before. */
 export function SegmentBar({ parts, range, size = 'md', onSelect, label, className, ref }: SegmentBarProps) {
     const [measure, width] = useMeasuredWidth();
     const rootRef = mergeRefs(ref, measure);

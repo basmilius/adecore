@@ -6,11 +6,7 @@ const MINUTE = 60 * SECOND;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 
-/*
- * How long something took, at the coarsest unit that still says something. The units are English
- * abbreviations, the way the rest of the interface is written; only the number bends to the region,
- * which is what `1,5 h` against `1.5 h` is about.
- */
+/* At the coarsest unit that still says something. The units stay English; only the number bends to the region (`1,5 h`). */
 export const formatDuration = (ms: number): string => {
     const seconds = Math.max(0, Math.round(ms / SECOND));
     if (seconds < 60) {
@@ -59,11 +55,7 @@ export const formatCountdown = (ms: number): string => {
     return `${formatNumber(Math.max(1, Math.round(left / MINUTE)))}m`;
 };
 
-/*
- * How long something has been running, to two units and no space to spare: `12s`, `2m 5s`, `3h 20m`.
- * A call that took a fraction of a second still took some, so anything above zero reads as at least
- * `1s`; only a clock that runs ahead of the start comes out as `0s`.
- */
+/* `12s`, `2m 5s`, `3h 20m`. Anything above zero reads as at least `1s`; only a clock that runs ahead of the start comes out as `0s`. */
 export const formatElapsedShort = (ms: number): string => {
     const seconds = ms <= 0 ? 0 : Math.max(1, Math.round(ms / SECOND));
     if (seconds < 60) {

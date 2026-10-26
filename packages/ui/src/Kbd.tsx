@@ -6,7 +6,7 @@ import { formatShortcut, shortcutParts, type Shortcut } from './shortcut.ts';
 /* A shortcut chip on the surface it sits on: in a tooltip, in a palette's footer, in a line of help. */
 const INLINE_KBD = 'rounded-sm bg-surface-sunken px-[5px] py-px font-sans text-xs/[inherit] text-text-muted';
 
-/* One key, drawn as a cap. A settings page prints a shortcut key by key, so a gesture can stand beside it. */
+/* A settings page prints a shortcut key by key, so a gesture can stand beside it. */
 const KEY_CAP = 'inline-grid place-items-center rounded-md border border-b-2 border-border-strong bg-surface-hover bg-clip-padding font-sans text-text';
 
 /* `sm` fits inside a small field, as the hint of the key that focuses it. */
@@ -16,16 +16,12 @@ export interface KbdProps {
     /* Printed the way this platform writes it. Without one, the children are printed as they are (`↑`, `Esc`). */
     shortcut?: Shortcut;
     children?: ReactNode;
-    /*
-     * Where the shortcut is printed. In a menu row the `.menu-item kbd` rule dresses it, as the
-     * quiet hint at the end of the row; anywhere else it is a chip on the surface it sits on.
-     */
+    /* In a menu row the `.menu-item kbd` rule dresses it; anywhere else it is a chip on the surface it sits on. */
     variant?: 'menu' | 'inline';
     className?: string;
     ref?: Ref<HTMLElement>;
 }
 
-/* A shortcut as this platform prints it: `⌘K` on macOS, `Ctrl+K` elsewhere. */
 export function Kbd({ shortcut, children, variant = 'menu', className, ref }: KbdProps) {
     return (
         <kbd ref={ref} className={clsx(variant === 'inline' && INLINE_KBD, className)}>
@@ -58,7 +54,6 @@ export interface KeysProps {
     ref?: Ref<HTMLSpanElement>;
 }
 
-/* A shortcut as one cap per key, `⌘` and `K`, plus the pointer gesture it goes with. */
 export function Keys({ shortcut, then, size = 'md', className, ref }: KeysProps) {
     const parts = [...shortcutParts(shortcut, isApplePlatform()), ...(then ? [then] : [])];
     return (

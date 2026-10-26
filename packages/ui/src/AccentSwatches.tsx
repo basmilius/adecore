@@ -21,9 +21,8 @@ export interface AccentSwatchesProps<Id extends string> {
 }
 
 /*
- * An accent, a few colors at a time. A palette is more than a settings row can carry, so the list
- * behind them holds all of them, the featured ones included; the trigger wears the chosen color
- * itself whenever that color is not one of the few. A value that is no accent at all picks nothing.
+ * The list behind the featured swatches holds every accent, the featured ones included; its trigger
+ * wears the chosen color whenever that is not one of the few. A value that is no accent picks nothing.
  */
 export function AccentSwatches<Id extends string>({ value, onValueChange, label, accents, featured, labelOf, className, ref }: AccentSwatchesProps<Id>) {
     const { t } = useTranslation('ui');

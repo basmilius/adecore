@@ -6,7 +6,7 @@ export interface MeterProps {
     value: number | null;
     min?: number;
     max?: number;
-    /* Values drawn as lines across the track, such as a target or a limit. */
+    /* Drawn as lines across the track, such as a target or a limit. */
     marks?: readonly number[];
     label: string;
     /* The value in words for a screen reader, such as "-18.2 LUFS". Left out, it reads the number. */
@@ -16,7 +16,6 @@ export interface MeterProps {
     ref?: Ref<HTMLDivElement>;
 }
 
-/* A level against a scale: how full it is, and where a target or a limit sits on the same scale. */
 export function Meter({ value, min = 0, max = 100, marks = [], label, valueText, className, ref }: MeterProps) {
     const fractionOf = (level: number): number => (max > min ? Math.min(1, Math.max(0, (level - min) / (max - min))) : 0);
 

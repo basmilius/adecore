@@ -7,18 +7,13 @@ import { startInputModality } from './modality.ts';
 import { TooltipProvider } from './Tooltip.tsx';
 
 export interface UIProviderProps {
-    /* The app's i18next instance. The library's `ui` namespace is added to it, in every language it ships. */
+    /* The library's `ui` namespace is added to it, in every language it ships. */
     i18n: I18n;
-    /* Where the formatters read the language and the region a person set. Without one they write English in the region of that language. */
+    /* Without one the formatters write English in the region of that language. */
     formatSource?: FormatSource;
     children: ReactNode;
 }
 
-/*
- * Everything the library needs from an app, once, around the whole tree: its words in the app's
- * i18next, the source of the formatters, the shared tooltip delay and the note of which input device
- * is in use. Mount it above the first component of the library.
- */
 export function UIProvider({ i18n, formatSource, children }: UIProviderProps) {
     const [handed, setHanded] = useState<{ i18n: I18n | null; source: FormatSource | undefined }>({ i18n: null, source: undefined });
     // In render and not in an effect, so the first child already reads the words and the region.

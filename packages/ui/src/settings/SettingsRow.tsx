@@ -11,15 +11,15 @@ const TARGET_MS = 1600;
 export interface SettingsRowProps {
     label: ReactNode;
     description?: ReactNode;
-    /* The control, aligned right; it carries its own accessible name. */
+    /* It carries its own accessible name. */
     control?: ReactNode;
-    /* Content under the label line that needs the whole width, like a list of swatches. */
+    /* Under the label line, at the whole width. */
     children?: ReactNode;
-    /* Where the row only shows state, its whole line reads a shade softer. */
+    /* For a row that only shows state. */
     muted?: boolean;
-    /* Before the label, held to its first line (`TopIcon`) or a tile of its own. */
+    /* Held to the label's first line (`TopIcon`) or a tile of its own. */
     leading?: ReactNode;
-    /* A row that only makes sense under the one above it steps in. */
+    /* For a row that only makes sense under the one above it. */
     indent?: boolean;
     /* The id a search result names to lead here. */
     searchId?: string;
@@ -34,7 +34,7 @@ export interface TopIconProps {
     ref?: Ref<HTMLSpanElement>;
 }
 
-/* An icon beside text that may wrap: the box is one line of `text-sm` high, so the icon sits on the first line. */
+/* The box is one line of `text-sm` high, so the icon sits on the first line of text that may wrap. */
 export function TopIcon({ icon, size = 16, className, ref }: TopIconProps) {
     return (
         <span ref={ref} className="flex h-5.5 shrink-0 items-center">
@@ -43,10 +43,7 @@ export function TopIcon({ icon, size = 16, className, ref }: TopIconProps) {
     );
 }
 
-/*
- * One setting: what it is on the left, the control on the right. Where the two do not fit side by
- * side (a tablet, a narrow window) the control wraps under the label instead of widening the dialog.
- */
+/* Where label and control do not fit side by side, the control wraps under the label instead of widening the dialog. */
 export function SettingsRow({ label, description, control, children, muted = false, leading, indent = false, searchId, className, ref }: SettingsRowProps) {
     const row = useRef<HTMLDivElement>(null);
     const { target, shown } = useSettingsTarget();

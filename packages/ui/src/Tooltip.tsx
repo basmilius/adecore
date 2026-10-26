@@ -25,16 +25,14 @@ export interface TooltipProps {
     kbd?: Shortcut | string;
     side?: TooltipSide;
     sideOffset?: number;
-    /* Makes the label the accessible name of the trigger as well: what an icon-only button needs,
-       and the way to keep the name and the tooltip from ever saying two different things. */
+    /* Makes the label the accessible name of the trigger as well, so the name and the tooltip never say two different things. */
     name?: boolean;
-    /* Keeps the hint closed, for a trigger that only needs one some of the time. */
     disabled?: boolean;
-    /* The trigger element. Its own children and handlers are kept; Base UI merges the tooltip props in. */
+    /* Its own children and handlers are kept; Base UI merges the tooltip props in. */
     children?: ReactElement<Record<string, unknown>>;
 }
 
-/* A hint on hover and on keyboard focus. Every hint in an app is one of these, never a `title`. */
+/* Every hint in an app is one of these, never a `title`. */
 export function Tooltip({ label, open, onOpenChange, anchor, kbd, side = 'top', sideOffset = 6, name = false, disabled = false, children }: TooltipProps) {
     // Held Cmd (Ctrl off macOS) prints this shortcut under the trigger (`ShortcutHints`).
     const hintRef = (element: HTMLElement | null) => {

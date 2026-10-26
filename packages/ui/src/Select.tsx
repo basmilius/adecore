@@ -41,10 +41,7 @@ function Row<T extends string>({ item, picked }: { item: SelectItem<T>; picked: 
     );
 }
 
-/* The one select. A Base UI `Select` in the popup style the menus use, so a settings field and a
-   picker in a toolbar read the same. Base UI brings the keyboard along (arrows,
-   Home and End, typeahead, Enter, Escape), which a hand-rolled listbox would have to repeat.
-   A long list can ask for a search field, which swaps in a combobox with the same trigger and rows. */
+/* A long list can ask for a search field, which swaps in a combobox with the same trigger and rows. */
 export function Select<T extends string>(props: SelectProps<T>) {
     const { searchable, items } = props;
     const count = items.length > 0 && isGroup(items[0]!) ? (items as SelectGroup<T>[]).reduce((sum, group) => sum + group.items.length, 0) : items.length;

@@ -24,11 +24,7 @@ export const shortcutHintTargets = (): ReadonlyMap<Element, HintTarget> => targe
 
 export type HoldKey = Pick<KeyboardEvent, 'key' | 'metaKey' | 'ctrlKey' | 'altKey' | 'shiftKey' | 'repeat'>;
 
-/*
- * Whether the hints are up: the platform's modifier (Cmd on macOS, Ctrl elsewhere) held on its own for
- * `HINT_DELAY_MS`. Any other key, the modifier coming up or the caller cancelling takes them down, so
- * a shortcut pressed in passing never flashes them.
- */
+/* The platform's modifier held on its own for `HINT_DELAY_MS`; any other key takes the hints down, so a shortcut pressed in passing never flashes them. */
 export class ModifierHold {
     private readonly apple: boolean;
     private readonly onChange: (shown: boolean) => void;

@@ -9,15 +9,14 @@ import { errorMessageOf, errorReport, shouldReset, type ResetKeys } from './erro
 import { Icon } from './Icon.tsx';
 
 export interface ErrorBoundaryProps {
-    /* What failed, as the first line of the message: "Could not show this view". */
+    /* The first line of the message: "Could not show this view". */
     label: string;
-    /* What the children draw from; the boundary tries again when one of them changes. */
     resetKeys?: ResetKeys;
-    /* A small surface, so its message drops the icon and the spacing. */
+    /* Drops the icon and the spacing, for a small surface. */
     compact?: boolean;
-    /* The last resort has nothing around it to fall back to, so it offers a reload as well. */
+    /* For the last resort, which has nothing around it to fall back to. */
     reload?: boolean;
-    /* The box of the message; by default it covers the positioned parent. */
+    /* By default the message covers the positioned parent. */
     className?: string;
     children: ReactNode;
 }
@@ -68,11 +67,7 @@ function ErrorFallback({ label, error, componentStack, compact, reload, classNam
     );
 }
 
-/*
- * Keeps a render failure to the subtree it happened in. Without one React unmounts the whole tree,
- * and whatever lives in it (an embedded page, a running terminal) goes down with it. Key it so it
- * resets only while it holds an error: `resetKeys` for what the children draw from.
- */
+/* Without one React unmounts the whole tree, and whatever lives in it (an embedded page, a running terminal) goes down with it. */
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     override state: ErrorBoundaryState = CLEAR;
 

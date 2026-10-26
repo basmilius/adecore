@@ -17,7 +17,7 @@ export interface RelativeTimeProps {
     ref?: Ref<HTMLElement>;
 }
 
-/* A moment as its age, `3m ago`, counting on while it is on screen, with the exact time on hover and on keyboard focus. */
+/* Counts on while it is on screen, with the exact time on hover and on keyboard focus. */
 export function RelativeTime({ at, tooltip = true, tooltipSide, className, ref }: RelativeTimeProps) {
     // The formatters read the locale from a module, not from an input, so a compiled render would keep its first words.
     'use no memo';

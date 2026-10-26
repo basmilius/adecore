@@ -1,18 +1,13 @@
 import { useSyncExternalStore } from 'react';
 import { FORMAT_LANGUAGE, FORMAT_SYSTEM } from './regions.ts';
 
-/*
- * Where the formatters read what a person set. The app owns both settings and hands them over once,
- * before the first render; the language writes the words and the region writes the notation.
- */
+/* The app hands it over once, before the first render; the language writes the words and the region writes the notation. */
 export interface FormatSource {
-    /* The language the interface is written in right now, such as `en` or `nl`. */
     language(): string;
     /* A region tag such as `nl-NL`, or `FORMAT_LANGUAGE` or `FORMAT_SYSTEM`. */
     region(): string;
     /* The system's own locale when a shell can read it; a browser tab falls back on `navigator`. */
     systemLocale?(): string | undefined;
-    /* Calls back whenever the language or the region may have changed. */
     subscribe(onChange: () => void): () => void;
 }
 
@@ -25,19 +20,16 @@ export const setFormatSource = (next: FormatSource): FormatSource => {
     return previous;
 };
 
-/* Where a language comes from when nothing else says: the country most of its speakers are in. */
+/* The country most of a language's speakers are in. */
 const LANGUAGE_REGIONS: Record<string, string> = { en: 'en-US', nl: 'nl-NL' };
 
-/* The one locale to fall back on, so a format never depends on which machine ran the test. */
+/* So a format never depends on which machine ran the test. */
 export const FALLBACK_LOCALE = 'en-US';
 
-/* A month and a weekday are words, so they come from the language the interface is in, while the
-   order, the separators and the clock come from the region. English words in a Dutch notation is
-   what a Dutch Mac running an English app should read like, and both halves are a person's to set. */
+/* A month and a weekday are words, so they come from the language; the order, the separators and the clock come from the region. */
 export const wordLocale = (): string => source.language();
 
-/* A tag `Intl` will take, or nothing. macOS hands out locales with overrides attached, and a
-   formatter built on one it does not know throws where a number was meant to go. */
+/* macOS hands out locales with overrides attached, and a formatter built on one `Intl` does not know throws. */
 const usable = (tag: string | undefined): string | null => {
     if (tag === undefined || tag === '') {
         return null;
@@ -50,10 +42,8 @@ const usable = (tag: string | undefined): string | null => {
 };
 
 /*
- * What the operating system was set to read numbers and dates in. In a desktop shell Chromium's own
- * locale is the language of the app bundle, so an English bundle on a Dutch Mac would still hand back
- * `en-US` and write `08:00 AM`; the shell reads the system's region instead and passes it in
- * (`systemLocale`). A browser has no such thing, so there the language is the best there is.
+ * In a desktop shell Chromium's locale is the language of the app bundle, so an English bundle on a
+ * Dutch Mac would write `08:00 AM`; the shell passes the system's region in instead (`systemLocale`).
  */
 export const systemLocale = (): string => {
     const fromShell = usable(source.systemLocale?.());
@@ -66,11 +56,7 @@ export const systemLocale = (): string => {
     return usable(navigator.languages?.[0] ?? navigator.language) ?? FALLBACK_LOCALE;
 };
 
-/*
- * The region a language brings with it. The system's own when it already speaks that language, so
- * Dutch in Belgium keeps writing dates the Belgian way, and the country the language is most spoken
- * in when it does not.
- */
+/* The system's own region when it already speaks the language, so Dutch in Belgium keeps writing dates the Belgian way. */
 const regionOfLanguage = (): string => {
     const language = source.language();
     const system = systemLocale();
@@ -84,14 +70,12 @@ const resolve = (region: string): string => {
     return region === FORMAT_SYSTEM ? systemLocale() : region;
 };
 
-/* The locale every formatter in this folder is built on. Read outside React as well, so it is a
-   plain function over the source rather than a hook. */
+/* Read outside React as well, so it is a plain function rather than a hook. */
 export const formatLocale = (): string => resolve(source.region());
 
 const subscribe = (onChange: () => void): (() => void) => source.subscribe(onChange);
 
-/* What a component calls to draw again once the region changes. The value is the locale, which a
-   caller may use or ignore; subscribing is the point. */
+/* Subscribing is the point: a component draws again once the region changes. */
 export const useFormatLocale = (): string => useSyncExternalStore(subscribe, formatLocale, formatLocale);
 
 interface Cached<T> {
@@ -127,8 +111,7 @@ export const numberFormatter = (options: Intl.NumberFormatOptions): Intl.NumberF
 export const dateFormatter = (options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat =>
     cacheFor(dates, options, formatLocale(), (locale, spec) => new Intl.DateTimeFormat(locale, spec));
 
-/* The same date, written in the language the words come from. Never shown whole: only its month,
-   weekday, era and day period are lifted out of it. */
+/* Never shown whole: only its month, weekday, era and day period are lifted out of it. */
 export const wordFormatter = (options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat =>
     cacheFor(words, options, wordLocale(), (locale, spec) => new Intl.DateTimeFormat(locale, spec));
 
@@ -142,28 +125,20 @@ export const nameCollator = (options: Intl.CollatorOptions): Intl.Collator =>
 
 const collators = new Map<string, Intl.Collator>();
 
-/*
- * How two labels a person reads are put in order. Labels are words, so the language writes them and
- * the language sorts them: Dutch puts Tekening after Terminal where English puts Drawing before it.
- * Keyed on the locale rather than on an options object, since there are no options to key on.
- */
+/* Labels are words, so the language sorts them: Dutch puts Tekening after Terminal where English puts Drawing before it. */
 export const labelCollator = (): Intl.Collator => {
     const locale = wordLocale();
-    const held = collators.get(locale);
-    if (held !== undefined) {
-        return held;
+    let collator = collators.get(locale);
+    if (collator === undefined) {
+        collator = new Intl.Collator(locale, { sensitivity: 'base', numeric: true });
+        collators.set(locale, collator);
     }
-    const collator = new Intl.Collator(locale, { sensitivity: 'base', numeric: true });
-    collators.set(locale, collator);
     return collator;
 };
 
 let nameCollators: { loose: Intl.Collator; exact: Intl.Collator } | null = null;
 
-/*
- * The order of names that are no words, such as files: the runtime's own locale, numbers by value and
- * case only to break a tie. It is what `localeCompare` did, which built a collator on every call.
- */
+/* For names that are no words, such as files: what `localeCompare` did, without a collator built on every call. */
 export const nameOrder = (left: string, right: string): number => {
     nameCollators ??= { loose: new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }), exact: new Intl.Collator() };
     return nameCollators.loose.compare(left, right) || nameCollators.exact.compare(left, right);

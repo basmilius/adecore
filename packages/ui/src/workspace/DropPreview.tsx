@@ -9,11 +9,7 @@ export interface DropPreviewProps {
     ref?: Ref<SVGSVGElement>;
 }
 
-/*
- * The outline `SplitView` draws where a drag would land, for an app with a drag layer of its own. It
- * fills its nearest positioned ancestor. One shape moves into the next as a transition of its path,
- * and the first shape after a null appears in place.
- */
+/* For an app with a drag layer of its own. It fills its nearest positioned ancestor; the first shape after a null appears in place. */
 export function DropPreview({ shape, className, ref }: DropPreviewProps) {
     if (shape === null) {
         return null;

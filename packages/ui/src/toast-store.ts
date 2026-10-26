@@ -4,7 +4,6 @@ import type { Shortcut } from './shortcut.ts';
 // How long a toast that went well stays up; a failure waits for the person instead.
 export const SUCCESS_MS = 4000;
 
-// How long a deletion can still be taken back.
 export const UNDO_MS = 8000;
 
 // `setTimeout` fires at once past this, so a longer lifetime, `Infinity` too, is a toast that stays.
@@ -20,30 +19,28 @@ export interface ToastAction {
     shortcut?: Shortcut;
 }
 
-/* When a toast that goes by itself started counting and when it goes, as epoch milliseconds. */
+/* Epoch milliseconds. */
 export interface ToastDeadline {
     start: number;
     end: number;
 }
 
-/* How far into its lifetime a toast is at `now`, held inside that lifetime. */
 export const elapsedOf = (deadline: ToastDeadline, now: number): number => Math.min(Math.max(now - deadline.start, 0), deadline.end - deadline.start);
 
 /* An app that carries more on a toast extends this and hands its own type to `createToastStore`. */
 export interface Toast {
     id: string;
     title: string;
-    /* The line under the title, often the one that says why something stopped. */
     description?: string;
     kind: ToastKind;
     action?: ToastAction;
-    /* More than one thing to do about it, such as looking at what went wrong or trying again; drawn after `action`, in order. */
+    /* Drawn after `action`, in order. */
     actions?: ToastAction[];
     /* A success that waits to be dismissed, for news that lands while nobody is looking yet. */
     persist?: boolean;
     /* Milliseconds until the toast takes itself away, whatever its kind; over the kind's own lifetime and `persist`. Zero or less is ignored. */
     lifetime?: number;
-    /* Runs once the toast is gone, whether it ran out or was dismissed. */
+    /* Whether it ran out or was dismissed. */
     onClose?: () => void;
     /* Set by the store from the timer that takes the toast away, so what counts down on screen is that timer. */
     deadline?: ToastDeadline;
@@ -63,10 +60,7 @@ export interface ToastStore<T extends Toast = Toast> {
 
 export type ToastStoreHook<T extends Toast = Toast> = UseBoundStore<StoreApi<ToastStore<T>>>;
 
-/*
- * The one place an app says how something went that no surface on screen shows. A long action keeps
- * one id from progress to its outcome, so a person never watches two cards for one thing.
- */
+/* A long action keeps one id from progress to its outcome, so a person never watches two cards for one thing. */
 export const createToastStore = <T extends Toast = Toast>(): ToastStoreHook<T> => {
     const timers = new Map<string, ReturnType<typeof setTimeout>>();
     let counter = 0;
@@ -77,10 +71,7 @@ export const createToastStore = <T extends Toast = Toast>(): ToastStoreHook<T> =
             timers.delete(id);
         };
 
-        /*
-         * A toast that went well takes itself away, and so does the offer to undo; a failure and a running
-         * action stay, unless the toast names a lifetime of its own.
-         */
+        // A failure and a running action stay, unless the toast names a lifetime of its own.
         const schedule = (id: string, toast: Pick<Toast, 'kind' | 'persist' | 'lifetime'>): ToastDeadline | undefined => {
             stop(id);
             const { kind, persist } = toast;

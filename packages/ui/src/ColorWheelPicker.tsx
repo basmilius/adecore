@@ -15,13 +15,12 @@ const EDGE = 7;
 export interface ColorWheelPickerProps<Id extends string> {
     value: Id;
     onValueChange(id: Id): void;
-    /* The one under the pointer or the focus while the wheel is open, so the caller can show it before it is picked; null once none is looked at. */
+    /* The one under the pointer or the focus while the wheel is open; null once none is looked at. */
     onPreviewChange?(id: Id | null): void;
-    /* The accessible name of the trigger and of the wheel; the row the picker stands in usually carries the visible one. */
+    /* The accessible name; the row the picker stands in usually carries the visible one. */
     label: string;
-    /* The swatches round the wheel, a ring at a time from the outside in, each in its own order from the top. */
+    /* From the outside in, each ring in its own order from the top. */
     rings: readonly (readonly Id[])[];
-    /* The one in the middle, if any. */
     center?: Id;
     /* Any CSS background, a gradient too. */
     colorOf(id: Id): string;
@@ -38,7 +37,7 @@ interface Spot<Id> {
     top: number;
 }
 
-/* Every swatch's top left corner in whole pixels, the rings evenly apart from the outer one to the middle, and the size of the wheel. */
+/* Top left corners in whole pixels, the rings evenly apart from the outer one to the middle. */
 function layout<Id>(rings: readonly (readonly Id[])[], center: Id | undefined): { size: number; spots: Spot<Id>[] } {
     const outer = rings[0]?.length ?? 0;
     const radius = Math.max(MIN_RADIUS, outer > 1 ? Math.ceil((SWATCH_SIZE + MIN_GAP) / (2 * Math.sin(Math.PI / outer))) : 0);
@@ -62,11 +61,8 @@ const STEPS: Record<string, (index: number, count: number) => number> = {
 };
 
 /*
- * A color picked from a wheel behind a trigger that holds the one in use and lines up with a select.
- * While the wheel is open the swatch under the pointer or the focus is reported as a preview, so the
- * caller can show it in place; its name stands under the wheel, which is why a swatch carries no
- * tooltip. The wheel is one tab stop: the arrows walk it in its order and only Enter, Space or a click
- * picks. Every preview ends with null, after a pick as well as on closing without one or on going away while open.
+ * The looked-at swatch's name stands under the wheel, so a swatch carries no tooltip. Only Enter, Space
+ * or a click picks. Every preview ends with null: after a pick, on closing, or on going away while open.
  */
 export function ColorWheelPicker<Id extends string>({
     value,
@@ -100,8 +96,7 @@ export function ColorWheelPicker<Id extends string>({
         preview.current.looking = id !== null;
         onPreviewChange?.(id);
     };
-    // A picker taken away while a color is previewed (its dialog closed under it) gets no close of its
-    // popover, so it ends the preview itself rather than leave the caller showing a color nobody picked.
+    // A picker taken away while a color is previewed gets no close of its popover, so it ends the preview itself.
     useEffect(
         () => () => {
             if (preview.current.looking) {

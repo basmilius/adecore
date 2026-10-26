@@ -38,24 +38,21 @@ const barsOf = (levels: readonly number[], duration: number, from: number, to: n
 };
 
 export interface WaveformProps {
-    /* The loudness as samples spread evenly over the duration, from 0 for silence to 1 for the loudest, at any rate. */
+    /* Samples spread evenly over the duration, from 0 for silence to 1 for the loudest, at any rate. */
     levels: readonly number[];
-    /* In seconds. */
+    /* In seconds, as are all times here. */
     duration: number;
-    /* The stretch it shows, in seconds, such as the visible part of a zoomed timeline. Defaults to the whole. */
+    /* Defaults to the whole. */
     range?: readonly [from: number, to: number];
-    /* How far it has played, in seconds. Left out, the waveform draws no playhead. */
+    /* Left out, the waveform draws no playhead. */
     value?: number;
-    /* Seeks to a time in seconds. Without it the waveform only shows. */
+    /* Without it the waveform only shows. */
     onValueChange?(value: number): void;
-    /* The time a drag lets go at, and the one a key moved to: where a player resumes what it held during the drag. */
+    /* Where a drag lets go and where a key moved to. */
     onValueCommitted?(value: number): void;
-    /* How far an arrow key moves the playhead, in seconds. */
     step?: number;
-    /* Hears a key before the waveform does. A key it calls `preventDefault` on, the waveform leaves alone and lets
-       bubble, for a player around it that binds the key to something else. */
+    /* Runs first; a key it calls `preventDefault` on, the waveform leaves alone and lets bubble. */
     onKeyDown?(e: KeyboardEvent<HTMLDivElement>): void;
-    /* Times in seconds drawn as lines through the waveform, such as cuts. */
     marks?: readonly number[];
     label: string;
     /* Its height, which the waveform fills. */
@@ -63,7 +60,6 @@ export interface WaveformProps {
     ref?: Ref<HTMLDivElement>;
 }
 
-/* The loudness of a piece of audio over time, played up to the playhead, where a press or a drag seeks. */
 export function Waveform({
     levels,
     duration,
@@ -88,7 +84,10 @@ export function Waveform({
     const bars = barsOf(levels, duration, from, to, count);
 
     const positionOf = (time: number): number => (span > 0 ? (time - from) / span : 0);
-    const inView = (time: number): boolean => positionOf(time) >= 0 && positionOf(time) <= 1;
+    const inView = (time: number): boolean => {
+        const position = positionOf(time);
+        return position >= 0 && position <= 1;
+    };
     const clamp = (time: number): number => Math.min(duration, Math.max(0, time));
 
     const seekAt = (e: PointerEvent<HTMLDivElement>): void => {

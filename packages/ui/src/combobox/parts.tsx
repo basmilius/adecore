@@ -12,7 +12,7 @@ import { splitPlacement, type PlacementKey } from '../placement.ts';
 import { renderPositioner } from '../popup-layer.ts';
 import type { Shortcut } from '../shortcut.ts';
 
-/* A line in the list instead of rows: nothing found, a search still running. It takes no room while it has nothing to say. */
+/* It takes no room while it has nothing to say. */
 const LIST_NOTE = 'text-center text-xs text-text-faint not-empty:px-3 not-empty:py-4';
 
 /* The field keeps free text: Base UI's autocomplete, whose suggestions only offer text, rather than its combobox, which holds a value. */
@@ -27,7 +27,6 @@ export type ComboboxInputProps = Omit<ComponentProps<typeof Autocomplete.Input>,
     icon?: LucideIcon;
 };
 
-/* The field the suggestions open under, drawn as the library's `Input`. */
 export function ComboboxInput({ size = 'md', mono = false, icon, className, id, ...props }: ComboboxInputProps) {
     const field = useFieldControl();
     const small = size === 'sm';
@@ -61,7 +60,6 @@ type Placement = Pick<ComponentProps<typeof Autocomplete.Positioner>, PlacementK
 
 export type ComboboxPopupProps = ComponentProps<typeof Autocomplete.Popup> & Placement;
 
-/* The portal, the positioner and the menu surface of the suggestions: under the field and at least as wide as it. */
 export function ComboboxPopup({ side = 'bottom', align = 'start', sideOffset = 6, className, ...props }: ComboboxPopupProps) {
     const [placement, popupProps] = splitPlacement(props);
     return (
@@ -79,24 +77,18 @@ export function ComboboxList(props: ComponentProps<typeof Autocomplete.List>) {
 }
 
 export type ComboboxItemProps = ComponentProps<typeof Autocomplete.Item> & {
-    /* Before the label, such as a 14px icon or a file's mark. */
     icon?: ReactNode;
-    /* Beside the label and the first to give way when the row is narrow, such as the folder a file sits in. */
+    /* The first to give way when the row is narrow. */
     hint?: ReactNode;
-    /* A second line under the label. */
     description?: ReactNode;
-    /* At the end of the row, before the shortcut: a state, a count, a reference. */
+    /* Before the shortcut. */
     trailing?: ReactNode;
     shortcut?: Shortcut;
-    /* Leaves the row out: only what makes it an option (the highlight, Enter, the click) stays, for a row that lays out itself, such as lines of source. */
+    /* Keeps only what makes it an option, for a row that lays out itself. */
     unstyled?: boolean;
 };
 
-/*
- * One suggestion. Its children are the label. `onClick` runs for a click and for Enter on the
- * highlighted row; Base UI clicks the row for Enter, so a modifier held with Enter is read in the
- * field's `onKeyDown` instead.
- */
+/* Base UI clicks the row for Enter, so a modifier held with Enter is read in the field's `onKeyDown` instead. */
 export function ComboboxItem({ icon, hint, description, trailing, shortcut, unstyled = false, className, children, ...props }: ComboboxItemProps) {
     if (unstyled) {
         return (
@@ -141,7 +133,7 @@ export function ComboboxEmpty({ className, ...props }: ComponentProps<typeof Aut
     return <Autocomplete.Empty className={withClass(LIST_NOTE, className)} {...props} />;
 }
 
-/* A line read out as it changes, such as a search that is still running or how many it found. It stays mounted; only its children come and go. */
+/* Read out as it changes. It stays mounted; only its children come and go. */
 export function ComboboxStatus({ className, ...props }: ComponentProps<typeof Autocomplete.Status>) {
     return <Autocomplete.Status className={withClass(LIST_NOTE, className)} {...props} />;
 }

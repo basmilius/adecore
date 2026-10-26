@@ -20,29 +20,26 @@ const HEADED_EXTRA = 32;
 const BARE_EXTRA = 10;
 
 export interface IconPickerProps {
-    /* Every icon on offer by its name, in the order of the grid, or in groups under a heading each. The name is also its tooltip. */
+    /* By name, in the order of the grid, or in groups under a heading each. The name is also its tooltip. */
     icons: IconPickerIcons;
-    /* The name of the icon as it stands, or null for none. */
     value: string | null;
     onValueChange(name: string): void;
-    /* More words a search finds an icon by, beside its name and its group's label, by icon name. */
+    /* By icon name: more words a search finds it by, beside its name and its group's label. */
     keywords?: Readonly<Record<string, readonly string[]>>;
-    /* A search field on top of the grid. On by default for groups, off for a flat set. */
+    /* On by default for groups, off for a flat set. */
     searchable?: boolean;
-    /* The grid as a scroll area this many rows high, with room for a heading. Without it the grid is as tall as its icons. */
+    /* The grid as a scroll area this many rows high. Without it the grid is as tall as its icons. */
     rows?: number;
     disabled?: boolean;
-    /* Clearing the icon. A surface that falls back to a default of its own offers that instead. */
     onClear?: () => void;
-    /* The label above the trigger. A surface that also takes an image calls this something else, or the two read as one list. */
     label?: string;
-    /* Leaves the label out of sight, for a row that names the control beside it; it still names the trigger. */
+    /* It still names the trigger. */
     hideLabel?: boolean;
     className?: string;
     ref?: Ref<HTMLDivElement>;
 }
 
-/* A heading is stuck while its group runs past the top of the scroll area, and only then draws a line under it. */
+/* Only a stuck heading draws a line under it. */
 const markStuckHeadings = (area: HTMLElement): void => {
     const top = area.scrollTop;
     for (const heading of area.querySelectorAll<HTMLElement>('[data-icon-heading]')) {
@@ -52,11 +49,7 @@ const markStuckHeadings = (area: HTMLElement): void => {
     }
 };
 
-/*
- * The mark a thing wears, one of a set of Lucide icons, behind a trigger drawn like a field. The
- * popover holds a search over the grid. The grid is one tab stop: arrows move the focus and only
- * Enter, Space or a click chooses, since a caller may save every choice at once.
- */
+/* The grid is one tab stop: arrows move the focus and only Enter, Space or a click chooses, since a caller may save every choice at once. */
 export function IconPicker({
     icons,
     value,
@@ -168,7 +161,7 @@ interface IconPickerPanelProps {
     onClear: (() => void) | undefined;
 }
 
-/* What the popover holds. It mounts on every open, so a search and the focus start over each time. */
+/* It mounts on every open, so a search and the focus start over each time. */
 function IconPickerPanel({ id, name, sections, headed, value, keywords, searchable, rows, disabled, onChoose, onClear }: IconPickerPanelProps) {
     const { t } = useTranslation('ui');
     const input = useRef<HTMLInputElement>(null);

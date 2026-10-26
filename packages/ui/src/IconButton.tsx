@@ -20,19 +20,18 @@ export interface IconButtonProps extends Omit<ComponentProps<'button'>, 'childre
     kbd?: Shortcut | string;
     tooltipSide?: TooltipSide;
     size?: IconButtonSize;
-    /* A toggle that is on, drawn as a pressed key. Use `aria-pressed` instead where the button is a real toggle. */
+    /* Drawn as a pressed key. Use `aria-pressed` instead where the button is a real toggle. */
     active?: boolean;
-    /* A `Spinner` in place of the icon, for a step that is running. */
+    /* A `Spinner` in place of the icon. */
     busy?: boolean;
-    /* Classes for the icon rather than the button: a tone of its own, a turn, a fill. The size stays the button's. */
+    /* For the icon rather than the button. The size stays the button's. */
     iconClassName?: string;
     /* Drawn after the icon: a count, or a word beside it together with `w-auto`. */
     children?: ReactNode;
-    /* Another element to be the button, such as a menu trigger: `render={<Menu.Trigger />}`. */
     render?: useRender.RenderProp;
 }
 
-/* Every button that is an icon and no word. A square, and the one place the icon inside it is sized. */
+/* The one place the icon inside an icon button is sized. */
 export function IconButton({
     icon,
     label,

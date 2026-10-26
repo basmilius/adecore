@@ -12,26 +12,20 @@ export interface SplitButtonProps extends Omit<ComponentProps<'button'>, 'ref'> 
     size?: ButtonSize;
     /* The hint on the action half. */
     tooltip?: ReactNode;
-    /* The rows of the menu the chevron opens: `Menu.Item`, `Menu.Separator` and the rest of a menu's parts. */
+    /* The rows of the menu the chevron opens. */
     menu: ReactNode;
     /* The accessible name of the chevron, and its hint unless `menuTooltip` says something else. */
     menuLabel: string;
     menuTooltip?: ReactNode;
     menuDisabled?: boolean;
-    /* Where the menu lines up under the whole control. */
     menuAlign?: MenuPopupProps['align'];
-    /* A width or a layout of the menu's own, such as `w-72`. */
     menuClassName?: string;
     /* On the box around both halves; every other prop goes to the action half. */
     className?: string;
     ref?: ComponentProps<'span'>['ref'];
 }
 
-/*
- * A primary action and a chevron that opens a menu of related ones, drawn as one button with a short
- * line between the halves. Each half is a button of its own, so each takes the focus, can be disabled
- * and carries its own hint; the menu hangs under the whole control.
- */
+/* Each half is a button of its own, so each takes the focus, can be disabled and carries its own hint; the menu hangs under the whole control. */
 export function SplitButton({
     variant = 'secondary',
     size = 'md',

@@ -15,11 +15,7 @@ export type TextMenuProps = ComponentProps<'div'> & {
     items?: ReactNode;
 };
 
-/*
- * A block of text and the menu that belongs to it: Copy for what is selected inside it, Select all
- * for the whole of it, on Cmd+A as well. Anywhere text can be selected a right-click has to offer
- * to copy it, and an app that draws every menu itself offers nothing at all without one of these.
- */
+/* An app that draws every menu itself offers no Copy on a right-click without one of these. */
 export function TextMenu({ children, items, ref, ...rest }: TextMenuProps) {
     const { t } = useTranslation('ui');
     const host = useRef<HTMLDivElement>(null);

@@ -9,14 +9,14 @@ export interface IconPickerGroup {
 
 export type IconPickerIcons = Readonly<Record<string, LucideIcon>> | readonly IconPickerGroup[];
 
-/* A group as the grid draws it: a flat set of icons is one group without a heading. */
+/* A flat set of icons is one section without a heading. */
 export interface IconSection {
     id: string;
     label: string | null;
     icons: readonly (readonly [name: string, glyph: LucideIcon])[];
 }
 
-/* Where a cell sits on the screen, in the units of `getBoundingClientRect`. */
+/* In the units of `getBoundingClientRect`. */
 export interface IconCellBox {
     left: number;
     top: number;
@@ -46,24 +46,16 @@ export const filterSections = (sections: readonly IconSection[], query: string, 
     });
 };
 
-/* The one icon the grid's tab stop sits on: the one last focused, else the chosen one, else the first, as long as the search shows it. */
-export const tabStopOf = (visible: readonly string[], focused: string | null, value: string | null): string | null => {
-    if (focused !== null && visible.includes(focused)) {
-        return focused;
-    }
-    if (value !== null && visible.includes(value)) {
-        return value;
-    }
-    return visible[0] ?? null;
-};
+/* The one last focused, else the chosen one, else the first, as long as the search shows it. */
+export const tabStopOf = (visible: readonly string[], focused: string | null, value: string | null): string | null =>
+    [focused, value].find((name) => name !== null && visible.includes(name)) ?? visible[0] ?? null;
 
 /* Rows lie a few pixels apart at least, so a rounding difference between two cells of one row is no new row. */
 const SAME_ROW = 2;
 
 /*
- * The cell a key moves the focus to, or null for a key the grid leaves alone. Up and down go by what
- * the eye sees: the nearest cell in the next row drawn, which may belong to another group. At an edge
- * the focus stays, so the key never scrolls the grid instead.
+ * Null for a key the grid leaves alone. Up and down go to the nearest cell in the next row drawn, which
+ * may belong to another group. At an edge the focus stays, so the key never scrolls the grid instead.
  */
 export const cellForKey = (key: string, boxes: readonly IconCellBox[], from: number): number | null => {
     const last = boxes.length - 1;
@@ -108,5 +100,5 @@ export const cellForKey = (key: string, boxes: readonly IconCellBox[], from: num
     return nearest;
 };
 
-/* Escape empties a search that holds text and goes no further; on an empty one it is left to whatever else hears it, such as a dialog. */
+/* On an empty search Escape is left to whatever else hears it, such as a dialog. */
 export const escapeClearsSearch = (key: string, query: string): boolean => key === 'Escape' && query !== '';

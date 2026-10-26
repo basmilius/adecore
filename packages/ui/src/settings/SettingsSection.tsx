@@ -6,20 +6,19 @@ import { Icon } from '../Icon.tsx';
 export interface SettingsSectionProps {
     title?: string;
     description?: ReactNode;
-    /* Drawn before the title, muted, for a pane whose sections are kinds of thing. */
+    /* For a pane whose sections are kinds of thing. */
     icon?: LucideIcon;
-    /* A tag on the header line, after the action, such as where the settings apply. */
+    /* On the header line, after the action. */
     tag?: ReactNode;
-    /* A small control on the header line, aligned right. */
     action?: ReactNode;
-    /* A note under the card, in the faint color. */
+    /* A note under the card. */
     footer?: ReactNode;
     children: ReactNode;
     className?: string;
     ref?: Ref<HTMLElement>;
 }
 
-/* A titled group of rows in one card; rows divide themselves with a hairline. Without a title it is the card alone. */
+/* Rows divide themselves with a hairline. Without a title it is the card alone. */
 export function SettingsSection({ title, description, icon, tag, action, footer, children, className, ref }: SettingsSectionProps) {
     const hasHeader = title !== undefined || description !== undefined || tag !== undefined || action !== undefined;
     return (

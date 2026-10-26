@@ -6,19 +6,13 @@ import type { Shortcut } from './shortcut.ts';
 export interface TileProps extends Omit<ComponentProps<'button'>, 'title'> {
     icon: ReactNode;
     title: string;
-    /* One short line under the title: where it acts, or why it waits. */
     description?: ReactNode;
     shortcut?: Shortcut;
     /* The one tile a screen leads with. */
     primary?: boolean;
-    /* `sm` for a narrow column like the sidebar. */
     size?: 'md' | 'sm';
 }
 
-/*
- * One thing to start with, as a card that is a button: a start screen and the empty places of an app
- * use it, so a place to begin looks the same wherever it is offered.
- */
 export function Tile({ icon, title, description, shortcut, primary = false, size = 'md', className, type = 'button', ...rest }: TileProps) {
     return (
         <button

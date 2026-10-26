@@ -15,15 +15,9 @@ export interface SlidingColumnProps {
     gap?: number;
     bounds: { min: number; max(): number };
     onWidthChange(width: number): void;
-    /*
-     * The width lands without the motion, for a column whose place is being restored as the page
-     * loads; only what a person does afterwards should animate.
-     */
+    /* For a column whose place is restored as the page loads; only what a person does afterwards should animate. */
     instant?: boolean;
-    /*
-     * The column takes the keyboard itself, for a panel with shortcuts of its own. It is focusable
-     * by script alone, so opening something in it hands it the keys without a click first.
-     */
+    /* For a panel with shortcuts of its own. Focusable by script alone, so opening something in it hands it the keys without a click. */
     body?: {
         ref: RefObject<HTMLDivElement | null>;
         onKeyDown(event: ReactKeyboardEvent<HTMLDivElement>): void;
@@ -35,16 +29,13 @@ export interface SlidingColumnProps {
 }
 
 /*
- * A panel that slides in and out along the right edge. The outer column is 0 wide and inert while
- * closed; the contents sit in an inner column of the stored width, so they do not reflow while it
- * moves, and they stay mounted until the slide is over, so a close plays out. The left edge is the
- * drag handle.
+ * The contents sit in an inner column of the stored width, so they do not reflow while the outer one
+ * moves, and stay mounted until the slide is over, so a close plays out.
  */
 export function SlidingColumn({ open, width, gap = 0, bounds, onWidthChange, instant = false, body, className, ref, children }: SlidingColumnProps) {
     /* Closed and done animating. */
     const [settled, setSettled] = useState(!open);
-    /* A width that lands without a transition fires no `transitionend`, so the motion it would have
-       ended is over in the same commit that starts it. */
+    /* A width that lands without a transition fires no `transitionend`. */
     if (instant && settled !== !open) {
         setSettled(!open);
     }
