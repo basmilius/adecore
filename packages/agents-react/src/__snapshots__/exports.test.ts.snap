@@ -329,6 +329,7 @@ exports[`the public API ./providers exports these names 1`] = `
   "ACCOUNT_TONE_CLASSES",
   "AccountDot",
   "AgentIcon",
+  "AgentModelLabel",
   "CliMark",
   "CliTile",
   "ModelOptionControl",

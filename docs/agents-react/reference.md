@@ -140,6 +140,7 @@ The CLIs and their accounts: marks, model names, the providers pane and its part
 | --- | --- |
 | [`agents/AccountDot`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/agents/AccountDot.tsx) | `AccountDot` |
 | [`agents/AgentIcon`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/agents/AgentIcon.tsx) | `AgentIcon` |
+| [`agents/AgentModelLabel`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/agents/AgentModelLabel.tsx) | `AgentModelLabel` |
 | [`agents/ModelOptionControl`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/agents/ModelOptionControl.tsx) | `ModelOptionControl` |
 | [`agents/ProviderLogo`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/agents/ProviderLogo.tsx) | `ProviderLogo` |
 | [`agents/accounts`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/agents/accounts.ts) | `AccountEntry`, `accountsOfKind`, `ACCOUNT_TONE_CLASSES`, `accountStatusLine`, `canContinueOn`, `AccountTone` |
