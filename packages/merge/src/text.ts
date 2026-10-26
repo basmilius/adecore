@@ -28,6 +28,25 @@ export function splitLines(text: string): string[] {
     return lines;
 }
 
+/* The lines of a file split on `\n` alone, so a `\r` stays part of its line. */
+export function rawLines(text: string): string[] {
+    if (text === '') {
+        return [];
+    }
+    const lines = text.split('\n');
+    if (text.endsWith('\n')) {
+        lines.pop();
+    }
+    return lines;
+}
+
+/* Git's --ignore-all-space may show either side's spacing, so a shown line matches by its non-space characters. */
+export function lineMatcher(ignoreWhitespace: boolean): (shown: string, actual: string | undefined) => boolean {
+    return ignoreWhitespace
+        ? (shown, actual) => actual !== undefined && shown.replace(/\s+/g, '') === actual.replace(/\s+/g, '')
+        : (shown, actual) => shown === actual;
+}
+
 export function joinLines(lines: readonly string[], shape: TextShape): string {
     return lines.length === 0 ? '' : lines.join(shape.eol) + (shape.finalNewline ? shape.eol : '');
 }

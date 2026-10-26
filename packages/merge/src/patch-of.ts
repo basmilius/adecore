@@ -1,17 +1,6 @@
 import { diffChanges, type Change } from './diff.ts';
 import type { Hunk, ParsedPatch, PatchLine } from './patch-parser.ts';
-import { shapeOf } from './text.ts';
-
-function fileLines(text: string): string[] {
-    if (text === '') {
-        return [];
-    }
-    const lines = text.split('\n');
-    if (text.endsWith('\n')) {
-        lines.pop();
-    }
-    return lines;
-}
+import { rawLines, shapeOf } from './text.ts';
 
 function keysOf(lines: readonly string[], finalNewline: boolean): string[] {
     return lines.map((line, index) => `${index === lines.length - 1 && !finalNewline ? 'unterminated:' : 'terminated:'}${line}`);
@@ -53,8 +42,8 @@ export function patchOf(oldText: string, newText: string, context = 3, options?:
     if (maxWork !== undefined && (!Number.isSafeInteger(maxWork) || maxWork < 0)) {
         throw new RangeError('Patch work budget must be a nonnegative safe integer.');
     }
-    const old = fileLines(oldText);
-    const fresh = fileLines(newText);
+    const old = rawLines(oldText);
+    const fresh = rawLines(newText);
     const oldShape = shapeOf(oldText);
     const newShape = shapeOf(newText);
     const oldKeys = keysOf(old, oldShape.finalNewline);

@@ -1,5 +1,5 @@
 import type { Hunk, ParsedPatch, PatchLine } from './patch-parser.ts';
-import { shapeOf, splitLines, type TextShape } from './text.ts';
+import { lineMatcher, rawLines, shapeOf, splitLines, type TextShape } from './text.ts';
 
 export interface DiffLineRef {
     readonly index: number;
@@ -45,21 +45,11 @@ function snapshotsFit(parsed: ParsedPatch, contents: { old: string; new: string 
     if (parsed.partial || parsed.hunks.length === 0) {
         return false;
     }
-    const rawLines = (text: string): string[] => {
-        if (text === '') {
-            return [];
-        }
-        const lines = text.split('\n');
-        if (text.endsWith('\n')) {
-            lines.pop();
-        }
-        return lines;
-    };
     const oldLines = rawLines(contents.old);
     const newLines = rawLines(contents.new);
     const oldShape = shapeOf(contents.old);
     const newShape = shapeOf(contents.new);
-    const same = (left: string, right: string): boolean => (ignoreWhitespace ? left.replace(/\s+/g, '') === right.replace(/\s+/g, '') : left === right);
+    const same = lineMatcher(ignoreWhitespace);
     let oldAt = 0;
     let newAt = 0;
     const gapFits = (oldEnd: number, newEnd: number): boolean => {
@@ -228,14 +218,14 @@ export function diffRows(document: DiffDocument, layout: 'unified' | 'split', un
     };
     let oldAt = 0;
     let newAt = 0;
-    document.hunks.forEach((hunk, index) => {
+    for (const [index, hunk] of document.hunks.entries()) {
         gap(index, oldAt, newAt, hunk.oldStart - oldAt, hunk.newStart - newAt, index === 0 ? 'before' : 'between');
         for (const row of hunkRows(document, index, layout)) {
             rows.push(row);
         }
         oldAt = hunk.oldStart + hunk.oldCount;
         newAt = hunk.newStart + hunk.newCount;
-    });
+    }
     if (document.snapshots) {
         gap(document.hunks.length, oldAt, newAt, document.sides.old.length - oldAt, document.sides.new.length - newAt, 'after');
     }

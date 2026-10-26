@@ -14,7 +14,7 @@ export interface MergeBlock {
     theirs: string[];
 }
 
-function same(left: readonly string[], right: readonly string[]): boolean {
+export function same(left: readonly string[], right: readonly string[]): boolean {
     return left.length === right.length && left.every((line, index) => line === right[index]);
 }
 

@@ -1,4 +1,5 @@
 import { parsePatch } from './patch-parser.ts';
+import { lineMatcher } from './text.ts';
 
 /* Which side a patch says the file is missing on, read from its header so no line of the file can pass for it. */
 export function missingSides(patch: string): { old: boolean; new: boolean } {
@@ -9,16 +10,14 @@ export function missingSides(patch: string): { old: boolean; new: boolean } {
 
 const HUNK_HEADER = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/;
 
-/* Git's --ignore-all-space may show either side's spacing on a context line. A patch cut off before its hunks end fits nothing. */
+/* A patch cut off before its hunks end fits nothing. */
 export function patchFits(patch: string, oldText: string, newText: string, ignoreWhitespace: boolean): boolean {
     if (parsePatch(patch).partial) {
         return false;
     }
     const oldLines = oldText.split('\n');
     const newLines = newText.split('\n');
-    const same = ignoreWhitespace
-        ? (shown: string, actual: string | undefined): boolean => actual !== undefined && shown.replace(/\s+/g, '') === actual.replace(/\s+/g, '')
-        : (shown: string, actual: string | undefined): boolean => shown === actual;
+    const same = lineMatcher(ignoreWhitespace);
     let oldAt = -1;
     let newAt = -1;
     let hunks = 0;

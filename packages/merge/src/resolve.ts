@@ -1,9 +1,9 @@
-import type { MergeBlock } from './blocks.ts';
+import { same, type MergeBlock } from './blocks.ts';
 
 export type MergeSide = 'ours' | 'theirs';
 
 export function sideLines(block: MergeBlock, side: MergeSide): string[] {
-    return side === 'ours' ? [...block.ours] : [...block.theirs];
+    return [...block[side]];
 }
 
 /* Both sides, one after the other, for the conflict where the two additions both belong. */
@@ -40,8 +40,11 @@ function runIn(outer: readonly string[], inner: readonly string[]): number {
  * what `outer` adds is one `inner` deleted, and taking `outer` would put it back.
  */
 function covers(base: readonly string[], outer: readonly string[], inner: readonly string[]): boolean {
+    if (inner.length === 0) {
+        return false;
+    }
     const start = runIn(outer, inner);
-    if (inner.length === 0 || start < 0) {
+    if (start < 0) {
         return false;
     }
     const added = [...outer.slice(0, start), ...outer.slice(start + inner.length)];
@@ -57,10 +60,7 @@ export function wandLines(block: MergeBlock): string[] | null {
     if (block.kind !== 'conflict') {
         return autoLines(block);
     }
-    if (block.ours.length === block.theirs.length && block.ours.every((line, index) => line === block.theirs[index])) {
-        return [...block.ours];
-    }
-    if (covers(block.base, block.ours, block.theirs)) {
+    if (same(block.ours, block.theirs) || covers(block.base, block.ours, block.theirs)) {
         return [...block.ours];
     }
     if (covers(block.base, block.theirs, block.ours)) {
