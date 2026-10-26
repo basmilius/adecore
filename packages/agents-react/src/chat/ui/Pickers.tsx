@@ -34,6 +34,8 @@ interface ModelPickerProps {
     side?: 'top' | 'bottom';
     /* `chip` names the provider beside the model on a secondary button, for a picker that sits in a card or a form. */
     trigger?: 'plain' | 'chip';
+    /* The chip's height: `sm` in a card, `md` beside the fields of a form. */
+    chipSize?: 'sm' | 'md';
     /* Where the focus goes when the popup closes; by default back to the trigger. */
     finalFocus?: RefObject<HTMLElement | null>;
     /* A note under the list, such as what picking an agent here does. */
@@ -55,6 +57,7 @@ export function ModelPicker({
     kbd = '/model',
     side = 'top',
     trigger = 'plain',
+    chipSize = 'sm',
     finalFocus,
     footer
 }: ModelPickerProps) {
@@ -150,7 +153,7 @@ export function ModelPicker({
         <Popover.Root open={open} onOpenChange={setOpen}>
             <Tooltip label={owner ? `${owner.name} · ${current}` : t('pickers.model.choose')} kbd={kbd ?? undefined}>
                 {trigger === 'chip' ? (
-                    <Popover.Trigger render={<Button variant="secondary" size="sm" className="min-w-0 shrink gap-1.5" />}>
+                    <Popover.Trigger render={<Button variant="secondary" size={chipSize} className="min-w-0 shrink gap-1.5" />}>
                         {chip.mark === 'logo' ? <ProviderLogo provider={provider as UsageProvider} size={12} /> : <AgentIcon kind={provider} size={12} />}
                         <span className="truncate">{chip.name}</span>
                         <span className="max-w-32 truncate text-text-muted">{chip.model}</span>
