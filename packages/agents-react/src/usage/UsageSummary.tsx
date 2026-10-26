@@ -1,9 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import type { UsageTotals } from '@adecore/agent-contracts';
 import type { UsageMetric } from '../state/usage';
-import { ProviderLogo } from '../agents/ProviderLogo';
 import { totalTokensOf } from '@adecore/agent-contracts';
-import { formatCount, formatTokens, PROVIDER_COLORS, PROVIDER_LABELS } from './format';
+import { ChartLogo } from './ChartLogo';
+import { formatCount, formatTokens, PROVIDER_LABELS } from './format';
 import { useMoney } from './money';
 import type { ProviderTotal } from './summary';
 
@@ -35,9 +35,7 @@ export function UsageSummary({ metric, costUsd, totals, sessions, providers }: U
             <div className="flex flex-col gap-2">
                 {providers.map((provider) => (
                     <div key={provider.provider} className="flex items-center gap-2 text-xs">
-                        <span style={{ color: PROVIDER_COLORS[provider.provider] }}>
-                            <ProviderLogo provider={provider.provider} />
-                        </span>
+                        <ChartLogo provider={provider.provider} />
                         <span className="text-text">{PROVIDER_LABELS[provider.provider]}</span>
                         <span className="ml-auto tabular-nums text-text-muted">
                             {money(provider.costUsd)} · {formatTokens(totalTokensOf(provider.totals))}

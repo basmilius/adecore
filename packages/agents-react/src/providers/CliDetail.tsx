@@ -5,14 +5,14 @@ import { AccountDot } from '../agents/AccountDot';
 import { ModelOptionControl } from '../agents/ModelOptionControl';
 import { carryOptions } from '../agents/model-options';
 import { optionWord } from '../agents/option-words';
-import { ACCOUNT_TONE_CLASSES, accountName, accountStatusLine, type AccountEntry, type AccountLogin } from '../agents/accounts';
+import { ACCOUNT_TONE_CLASSES, accountName, accountStatusLine, offeredAccounts, type AccountEntry, type AccountLogin } from '../agents/accounts';
 import { accountFor, forgetChatSelection, rememberChatAccount, rememberChatSelection, selectionFor, useChatPreferences } from '../chat/preferences';
 import { useChatScope } from '../scope';
 import { providerAbilities } from './provider-abilities';
 import { DetailHeader, SettingsRow, SettingsSection } from '@adecore/ui/settings';
 import { Button, Icon, Select } from '@adecore/ui';
 import { CliTile } from './parts';
-import { useProviderAccountsStore } from '../state/provider-accounts';
+import { knownAccounts, useProviderAccounts } from '../state/provider-accounts';
 
 const PROVIDER_DEFAULT = '';
 
@@ -53,10 +53,9 @@ export function CliDetail({ provider, entries, defaults, login, onAddAccount, on
     const preferences = useChatPreferences();
     const selection = selectionFor(preferences, provider.kind);
     const model = provider.models.find((entry) => entry.slug === selection?.model);
-    const machineAccounts = useProviderAccountsStore((s) => (s.byScope[scopeId]?.loaded ? s.byScope[scopeId].accounts : undefined));
+    const machineAccounts = useProviderAccounts(knownAccounts);
     const picked = accountFor(preferences, scopeId, provider.kind, machineAccounts) ?? provider.kind;
-    // An account that is off is out of every picker, unless it is the one picked already.
-    const choosable = (entries ?? []).filter((entry) => entry.account.enabled !== false || entry.id === picked);
+    const choosable = offeredAccounts(entries ?? [], picked);
     const canAddAccount = login !== null;
 
     return (

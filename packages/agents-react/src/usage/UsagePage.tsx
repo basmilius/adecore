@@ -8,7 +8,7 @@ import { useChatHost } from '../host';
 import { useChatScope } from '../scope';
 import { useProvidersStore } from '../state/providers';
 import { askedKey, summaryPayload, USAGE_PERIODS, useUsage, useUsageStore, type UsageMetric, type UsagePeriod } from '../state/usage';
-import type { ChatTransport } from '../transport';
+import { whenOpen, type ChatTransport } from '../transport';
 import { formatClock, formatCount, formatDate, formatTokens, PROVIDER_LABELS } from './format';
 import { useMoney } from './money';
 import { deriveUsage, labelEveryFor } from './summary';
@@ -66,16 +66,8 @@ function HostAgents() {
  */
 function useSummary(scopeId: string, transport: ChatTransport, period: UsagePeriod, account: string | null): () => void {
     useEffect(() => {
-        const subscribe = (): void => void transport.request('usage.subscribe', {}).catch(() => undefined);
-        if (transport.status === 'open') {
-            subscribe();
-        }
         // A host knows its followers per link, so every connection has to be told again, on a reconnect and on a move to another host.
-        const off = transport.subscribeStatus((status) => {
-            if (status === 'open') {
-                subscribe();
-            }
-        });
+        const off = whenOpen(transport, () => void transport.request('usage.subscribe', {}).catch(() => undefined));
         return () => {
             off();
             void transport.request('usage.unsubscribe', {}).catch(() => undefined);
@@ -93,17 +85,10 @@ function useSummary(scopeId: string, transport: ChatTransport, period: UsagePeri
     }, [transport, scopeId, period, account]);
 
     useEffect(() => {
-        if (transport.status === 'open') {
-            load();
-        }
+        // Until the other host answers there is nothing to ask, and what is on screen is the host that left.
+        const offStatus = whenOpen(transport, load);
         // A scan that found something is the sign to ask again; nothing else changes the numbers.
         const offChanged = transport.on('usage.changed', load);
-        // Until the other host answers there is nothing to ask, and what is on screen is the host that left.
-        const offStatus = transport.subscribeStatus((status) => {
-            if (status === 'open') {
-                load();
-            }
-        });
         return () => {
             offChanged();
             offStatus();

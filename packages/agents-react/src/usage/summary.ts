@@ -1,5 +1,5 @@
 import type { UsageProvider, UsageSummaryResult, UsageTotals } from '@adecore/agent-contracts';
-import type { UsageMetric } from '../state/usage';
+import { dayOf, type UsageMetric } from '../state/usage';
 import { EMPTY_TOTALS, USAGE_PROVIDERS, addTotals, totalTokensOf } from '@adecore/agent-contracts';
 
 /* One bar of the chart, what each provider put in this slot, and the height of the stack. */
@@ -38,24 +38,20 @@ export interface DerivedUsage {
     cacheSavingsUsd: number;
 }
 
-function pad(value: number): string {
-    return String(value).padStart(2, '0');
-}
-
 /*
  * Every slot the period has, whether anything happened in it or not: an empty day keeps its place on
  * the axis, so a gap in the work reads as a gap and not as a shorter week.
  */
 export function enumerateSlots(summary: Pick<UsageSummaryResult, 'from' | 'to' | 'resolution'>): string[] {
     if (summary.resolution === 'hour') {
-        return Array.from({ length: 24 }, (_, hour) => `${summary.to}T${pad(hour)}`);
+        return Array.from({ length: 24 }, (_, hour) => `${summary.to}T${String(hour).padStart(2, '0')}`);
     }
     const slots: string[] = [];
     const at = new Date(`${summary.from}T00:00:00`);
     const end = new Date(`${summary.to}T00:00:00`);
     // A calendar loop rather than adding milliseconds, since a day is 23 or 25 hours long twice a year.
     while (at <= end && slots.length < 400) {
-        slots.push(`${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}`);
+        slots.push(dayOf(at));
         at.setDate(at.getDate() + 1);
     }
     return slots;

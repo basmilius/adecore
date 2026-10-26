@@ -5,13 +5,13 @@ import type { UsageProvider } from '@adecore/agent-contracts';
 import { AccountDot } from '../agents/AccountDot';
 import { Button, Icon, SectionLabel, Segmented, Tooltip, useNow } from '@adecore/ui';
 import { useChatHost } from '../host';
-import { PROVIDER_COLORS, PROVIDER_LABELS } from './format';
+import { ChartLogo } from './ChartLogo';
+import { PROVIDER_LABELS } from './format';
 import { accountNote, checkedLabel, hasSeveralAccounts, isSignedOut, type LimitAccount } from './limit-groups';
 import { WindowBar } from './LimitsList';
 import { useLimitGroups, useUsageLimits } from './limits';
-import { useProviderAccountsStore } from '../state/provider-accounts';
+import { useProviderAccounts } from '../state/provider-accounts';
 import { useChatScope } from '../scope';
-import { ProviderLogo } from '../agents/ProviderLogo';
 import { useHostLoginBlocked } from '../host-hooks';
 
 const MINUTE_MS = 60_000;
@@ -57,9 +57,7 @@ function LimitCard({ account, named, now, login }: { account: LimitAccount; name
     return (
         <div className="flex min-w-0 flex-col gap-3.5 rounded-xl border border-border bg-surface bg-clip-padding px-4 py-3.5">
             <p className="flex min-w-0 items-center gap-2 text-xs font-medium">
-                <span className="shrink-0" style={{ color: PROVIDER_COLORS[account.kind] }}>
-                    <ProviderLogo provider={account.kind} />
-                </span>
+                <ChartLogo provider={account.kind} className="shrink-0" />
                 <span className="shrink-0">{PROVIDER_LABELS[account.kind]}</span>
                 {named && (
                     <>
@@ -100,7 +98,7 @@ export function UsageLimits() {
     const groups = useLimitGroups(limits);
     const now = useNow(MINUTE_MS);
     const scopeId = useChatScope().id;
-    const loginCommands = useProviderAccountsStore((s) => s.byScope[scopeId]?.accounts?.loginCommands);
+    const loginCommands = useProviderAccounts((row) => row.accounts?.loginCommands);
     const { openLogin } = host;
     const blocked = useHostLoginBlocked(scopeId);
     const [filter, setFilter] = useState<Filter>('all');

@@ -6,8 +6,8 @@ import type { UsageModel, UsageProject, UsageProvider, UsageSummaryResult } from
 import { EmptyState, Icon, SectionLabel, Segmented, Tooltip } from '@adecore/ui';
 import { useChatScope } from '../scope';
 import type { UsageMetric } from '../state/usage';
-import { ProviderLogo } from '../agents/ProviderLogo';
 import { USAGE_PROVIDERS, totalTokensOf } from '@adecore/agent-contracts';
+import { ChartLogo } from './ChartLogo';
 import { useModelName } from '../agents/model-name';
 import { formatCount, formatTokens, PROVIDER_COLORS, PROVIDER_LABELS, shortPath, slotLabel } from './format';
 import { useMoney } from './money';
@@ -33,9 +33,7 @@ function barWidth(value: number, top: number): number {
 function ProviderMark({ provider }: { provider: UsageProvider }) {
     return (
         <Tooltip label={PROVIDER_LABELS[provider]}>
-            <span style={{ color: PROVIDER_COLORS[provider] }}>
-                <ProviderLogo provider={provider} />
-            </span>
+            <ChartLogo provider={provider} />
         </Tooltip>
     );
 }

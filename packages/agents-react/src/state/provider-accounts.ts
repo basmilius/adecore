@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { ProviderAccounts } from '@adecore/agent-contracts';
 import { useChatScope } from '../scope';
-import type { ChatTransport } from '../transport';
+import { whenOpen, type ChatTransport } from '../transport';
 
 export interface ProviderAccountsRow {
     /* Null until the host answered, and for a host too old to keep accounts. */
@@ -74,14 +74,7 @@ export function watchProviderAccounts(scopeId: string, transport: ChatTransport)
             changes += 1;
             store.set(scopeId, accounts);
         }),
-        transport.subscribeStatus((status) => {
-            if (status === 'open') {
-                load();
-            }
-        })
+        whenOpen(transport, load)
     ];
-    if (transport.status === 'open') {
-        load();
-    }
     return () => off.forEach((stop) => stop());
 }

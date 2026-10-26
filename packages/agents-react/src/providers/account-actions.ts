@@ -4,14 +4,10 @@ import { accountFor, readChatPreferences, rememberChatAccount } from '../chat/pr
 import type { ChatHost } from '../host';
 import type { ChatScope } from '../scope';
 import { providerAccountsOf, useProviderAccountsStore } from '../state/provider-accounts';
-import type { ChatTransport } from '../transport';
+import { errorMessage, type ChatTransport } from '../transport';
 
 function words(key: string, values?: Record<string, string>): string {
     return i18next.t(`agent-providers:${key}`, values);
-}
-
-function reason(e: unknown): string {
-    return e instanceof Error ? e.message : String(e);
 }
 
 function linkTo(scope: ChatScope): ChatTransport {
@@ -27,7 +23,7 @@ export async function saveAccounts(scope: ChatScope, host: Pick<ChatHost, 'notif
         useProviderAccountsStore.getState().set(scope.id, await linkTo(scope).request('accounts.save', { accounts }));
         return true;
     } catch (e) {
-        host.notify({ id: `providers-save-${scope.id}`, kind: 'error', title: words('account.saveFailed'), description: reason(e) });
+        host.notify({ id: `providers-save-${scope.id}`, kind: 'error', title: words('account.saveFailed'), description: errorMessage(e) });
         return false;
     }
 }
@@ -54,8 +50,7 @@ export async function removeAccount(scope: ChatScope, host: Pick<ChatHost, 'noti
 
 /* An account in a folder the host makes for it; answers its id. Throws what the host said, for the form to show. */
 export async function createAccount(scope: ChatScope, kind: AgentKind, label: string, color: string): Promise<string> {
-    const created = await linkTo(scope).request('accounts.create', { kind, label, color });
-    const { id, ...accounts } = created;
+    const { id, ...accounts } = await linkTo(scope).request('accounts.create', { kind, label, color });
     useProviderAccountsStore.getState().set(scope.id, accounts);
     return id;
 }

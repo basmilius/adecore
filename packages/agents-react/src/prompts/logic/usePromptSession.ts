@@ -1,4 +1,5 @@
 import { useRef, useState, type MouseEvent } from 'react';
+import { errorMessage } from '../../transport';
 import { emptyPromptDraft, type PromptDraft } from './prompts';
 
 interface PromptSessionOptions<T> {
@@ -60,11 +61,7 @@ export function usePromptSession<T>({ prompts, idOf, pick, disabled }: PromptSes
 
     const finish = (id: string) => {
         setCompleted((current) => [...current, id]);
-        setDrafts((current) => {
-            const next = { ...current };
-            delete next[id];
-            return next;
-        });
+        setDrafts(({ [id]: _gone, ...rest }) => rest);
     };
     const act = async (prompt: T, send: () => Promise<void>): Promise<'sent' | 'failed' | 'busy'> => {
         if (busy.current || disabled) {
@@ -79,7 +76,7 @@ export function usePromptSession<T>({ prompts, idOf, pick, disabled }: PromptSes
             finish(id);
             return 'sent';
         } catch (cause) {
-            setError({ id, message: cause instanceof Error ? cause.message : String(cause) });
+            setError({ id, message: errorMessage(cause) });
             return 'failed';
         } finally {
             busy.current = false;

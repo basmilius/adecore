@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
 import type { UsageLimitsSnapshot } from '@adecore/agent-contracts';
 import { useChatScope, type ChatScope } from '../scope';
-import { useProviderAccountsStore } from '../state/provider-accounts';
+import { useProviderAccounts } from '../state/provider-accounts';
 import { useUsage, useUsageStore } from '../state/usage';
+import { whenOpen } from '../transport';
 import { limitGroups, type LimitGroup } from './limit-groups';
 
 interface Hold {
@@ -18,21 +19,13 @@ const holds = new Map<string, Hold>();
 function hold(scope: ChatScope): Hold {
     const link = scope.transport;
     const scopeId = scope.id;
-    const ask = (): void => {
+    const offStatus = whenOpen(link, () => {
         link.request('usage.limits', {})
             .then((snapshot) => useUsageStore.getState().setLimits(scopeId, snapshot))
             .catch(() => undefined);
-    };
-    if (link.status === 'open') {
-        ask();
-    }
+    });
     // A running turn reports its own numbers, which is what keeps a bar moving between reads.
     const offChanged = link.on('usage.limitsChanged', (snapshot) => useUsageStore.getState().setLimits(scopeId, snapshot));
-    const offStatus = link.subscribeStatus((status) => {
-        if (status === 'open') {
-            ask();
-        }
-    });
     return {
         readers: 0,
         release: () => {
@@ -65,7 +58,6 @@ export function useUsageLimits(): UsageLimitsSnapshot | null {
 
 /* The snapshot per CLI and account, with the accounts of the same host it is read from. */
 export function useLimitGroups(limits: UsageLimitsSnapshot | null): LimitGroup[] {
-    const { id } = useChatScope();
-    const accounts = useProviderAccountsStore((s) => s.byScope[id]?.accounts ?? null);
+    const accounts = useProviderAccounts((row) => row.accounts);
     return limits === null ? [] : limitGroups(limits, accounts);
 }

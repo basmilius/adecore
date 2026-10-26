@@ -6,8 +6,8 @@ import { limitsAccountId } from '../agents/account-limits';
 import { AccountDot } from '../agents/AccountDot';
 import { Tooltip } from '@adecore/ui';
 import { formatClock, formatWeekdayClock, isSameDay, formatCountdown, formatPercent } from '@adecore/ui/format';
-import { ProviderLogo } from '../agents/ProviderLogo';
-import { PROVIDER_COLORS, PROVIDER_LABELS } from './format';
+import { ChartLogo } from './ChartLogo';
+import { PROVIDER_LABELS } from './format';
 import { accountNote, evenPace, explain, isSignedOut, nextReset, paceText, type LimitAccount, type LimitGroup, type PaceStanding } from './limit-groups';
 
 /* Red where a window is nearly spent, amber where it is worth knowing; room to spare is not news and takes the text color. */
@@ -118,9 +118,7 @@ export function LimitsList({ limits, now, compact = false }: LimitsListProps) {
                 return (
                     <div key={limitsAccountId(provider)} className="flex flex-col gap-2">
                         <p className="flex items-center gap-2 text-xs font-medium">
-                            <span style={{ color: PROVIDER_COLORS[provider.kind] }}>
-                                <ProviderLogo provider={provider.kind} />
-                            </span>
+                            <ChartLogo provider={provider.kind} />
                             {PROVIDER_LABELS[provider.kind]}
                             {provider.plan !== null && <span className="text-text-muted">· {provider.plan}</span>}
                         </p>
@@ -214,9 +212,7 @@ export function AccountLimitsList({ groups, now }: { groups: readonly LimitGroup
             {groups.map((group) => (
                 <Fragment key={group.kind}>
                     <p className="col-span-full mt-3 flex items-center gap-2 font-medium first:mt-0">
-                        <span style={{ color: PROVIDER_COLORS[group.kind] }}>
-                            <ProviderLogo provider={group.kind} />
-                        </span>
+                        <ChartLogo provider={group.kind} />
                         {PROVIDER_LABELS[group.kind]}
                     </p>
                     {group.accounts.map((account) => (

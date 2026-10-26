@@ -12,6 +12,7 @@ import { DetailHeader, SettingsRow, SettingsSection } from '@adecore/ui/settings
 import { Button, FormError, Icon, Input } from '@adecore/ui';
 import { CliTile } from './parts';
 import { providerAccountsOf } from '../state/provider-accounts';
+import { errorMessage } from '../transport';
 
 interface AddAccountFormProps {
     provider: ProviderInfo;
@@ -56,7 +57,7 @@ export function AddAccountForm({ provider, entries, login, onCancel, onAdded }: 
                 onAdded(await createAccount(scope, provider.kind, label, color), label, true);
             }
         } catch (e) {
-            setError(e instanceof Error ? e.message : String(e));
+            setError(errorMessage(e));
             setBusy(false);
         }
     };
