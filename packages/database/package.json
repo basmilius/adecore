@@ -74,7 +74,7 @@
     "react-i18next": "^17.0.15"
   },
   "devDependencies": {
-    "@adecore/ui": "^0.14.0",
+    "@adecore/ui": "workspace:*",
     "@happy-dom/global-registrator": "^20.14.6",
     "@types/bun": "^1.4.4",
     "@types/node": "^24.19.2",

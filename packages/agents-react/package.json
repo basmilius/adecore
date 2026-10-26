@@ -101,7 +101,7 @@
         "react-i18next": "^17.0.15"
     },
     "devDependencies": {
-        "@adecore/ui": "^0.15.0",
+        "@adecore/ui": "workspace:*",
         "@types/bun": "^1.4.4",
         "@types/react": "^19.3.0",
         "@types/react-dom": "^19.3.0",
