@@ -115,8 +115,10 @@ function touched(edit: DrawingEdit): number {
 function idProblems(byId: ReadonlyMap<string, DrawingElement>, edit: DrawingEdit): DrawingEditProblem[] {
     const problems: DrawingEditProblem[] = [];
     const named = new Set<string>();
+
     const check = (id: string, path: (string | number)[]): void => {
         const element = byId.get(id);
+
         if (element === undefined) {
             problems.push({ path, message: `the drawing has no element ${id}` });
         } else if (element.locked === true) {
@@ -124,21 +126,27 @@ function idProblems(byId: ReadonlyMap<string, DrawingElement>, edit: DrawingEdit
         } else if (named.has(id)) {
             problems.push({ path, message: `${id} is named twice in this edit` });
         }
+
         named.add(id);
     };
+
     edit.update?.forEach((patch, i) => check(patch.id, ['update', i, 'id']));
     edit.remove?.forEach((id, i) => check(id, ['remove', i]));
+
     return problems;
 }
 
 /* The problems of fields a patch sets that its element's kind does not have. */
 function kindProblems(byId: ReadonlyMap<string, DrawingElement>, edit: DrawingEdit): DrawingEditProblem[] {
     const shared = new Set(Object.keys(placed));
+
     return (edit.update ?? []).flatMap((patch, i) => {
         const element = byId.get(patch.id);
+
         if (element === undefined) {
             return [];
         }
+
         return Object.keys(patch)
             .filter((key) => key !== 'id' && !shared.has(key) && !KIND_FIELDS[element.kind].includes(key))
             .map((key) => ({ path: ['update', i, key], message: `${patch.id} is a ${element.kind}, which has no field ${key}` }));
@@ -147,6 +155,7 @@ function kindProblems(byId: ReadonlyMap<string, DrawingElement>, edit: DrawingEd
 
 function created(element: NewDrawingElement, mint: DrawingEditMint): DrawingElement {
     const base = { stroke: 'ink' as const, strokeWidth: 2 as const, ...element, id: mint.id(), seed: mint.seed() };
+
     return DrawingElementSchema.parse(base.kind === 'text' || base.kind === 'note' ? { size: 20, ...base } : base);
 }
 
@@ -159,42 +168,56 @@ export function applyDrawingEdit(elements: readonly DrawingElement[], edit: Draw
     if (touched(edit) > DRAWING_EDIT_LIMITS.perEdit) {
         return { ok: false, problems: [{ path: [], message: `an edit touches at most ${DRAWING_EDIT_LIMITS.perEdit} elements; split it` }] };
     }
+
     const byId = new Map(elements.map((element) => [element.id, element]));
     const problems = [...idProblems(byId, edit), ...kindProblems(byId, edit)];
     const patches = new Map((edit.update ?? []).map((patch) => [patch.id, patch]));
     const removed = new Set(edit.remove ?? []);
     const next: DrawingElement[] = [];
+
     for (const element of elements) {
         if (removed.has(element.id)) {
             continue;
         }
+
         const patch = patches.get(element.id);
+
         if (patch === undefined) {
             next.push(element);
+
             continue;
         }
+
         const parsed = DrawingElementSchema.safeParse({ ...element, ...patch });
+
         if (!parsed.success) {
             const index = edit.update!.indexOf(patch);
+
             problems.push(
                 ...parsed.error.issues.map((issue) => ({
                     path: ['update', index, ...issue.path.map((key) => (typeof key === 'number' ? key : String(key)))],
                     message: issue.message
                 }))
             );
+
             continue;
         }
+
         next.push(parsed.data);
     }
+
     const added = (edit.add ?? []).map((element) => created(element, mint));
+
     if (next.length + added.length > DRAWING_EDIT_LIMITS.elements) {
         problems.push({
             path: ['add'],
             message: `a drawing holds at most ${DRAWING_EDIT_LIMITS.elements} elements, and this edit would leave it at ${next.length + added.length}`
         });
     }
+
     if (problems.length > 0) {
         return { ok: false, problems };
     }
+
     return { ok: true, elements: [...next, ...added], added: added.map((element) => element.id) };
 }

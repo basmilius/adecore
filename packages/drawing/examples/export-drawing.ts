@@ -21,5 +21,6 @@ const document = DrawingDocumentSchema.parse({
         }
     ]
 });
+
 console.log(readingOrder(document.elements));
 console.log(toSvg(document.elements, { palette: DEFAULT_PALETTE }));

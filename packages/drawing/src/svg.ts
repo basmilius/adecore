@@ -80,6 +80,7 @@ function round(value: number): number {
 function transformOf(element: DrawingElement): string {
     // After the translate the paths are in the element's own frame, so its center is half its size.
     const turn = element.angle ? ` rotate(${round((element.angle * 180) / Math.PI)} ${round(element.w / 2)} ${round(element.h / 2)})` : '';
+
     return `translate(${round(element.x)} ${round(element.y)})${turn}`;
 }
 
@@ -90,22 +91,28 @@ function textSvg(element: WrittenElement, options: PaintOptions): string {
     const frame = writingFrameOf(element);
     const dx = frame.x + (element.align === 'center' ? frame.w / 2 : element.align === 'right' ? frame.w : 0);
     const measure = options.measure?.(element) ?? approximateMeasure(element.size, element.font);
+
     const lines = linesOf(element, measure)
         .map((line, index) => `<tspan x="${round(dx)}" y="${round(frame.y + (index + 0.8) * element.size * LINE_HEIGHT)}">${escapeXml(line)}</tspan>`)
         .join('');
+
     return `<text font-family="${escapeXml(family)}" font-size="${element.size}" fill="${options.palette[element.stroke]}" text-anchor="${anchor}">${lines}</text>`;
 }
 
 function pathSvg(path: ElementPath, element: DrawingElement, options: PaintOptions): string {
     const note = element.kind === 'note';
+
     if (path.role === 'stroke') {
         const dash = path.dash ? ` stroke-dasharray="${path.dash.join(' ')}"` : '';
         const line = note ? (options.edge ?? DEFAULT_EDGE)[element.fillColor ?? element.stroke] : options.palette[element.stroke];
+
         return `<path d="${path.d}" fill="none" stroke="${line}" stroke-width="${path.strokeWidth}" stroke-linecap="round"${dash}/>`;
     }
+
     // A note is filled with its paper, which is a palette of pale sheets of its own.
     const fill = note ? (options.paper ?? DEFAULT_PAPER) : options.palette;
     const color = path.role === 'ink' ? options.palette[element.stroke] : fill[element.fillColor ?? element.stroke];
+
     // A hachure fill is a bundle of lines, so it arrives as a stroke with its own width.
     return path.strokeWidth > 0 && path.role === 'fill' && element.fill === 'hachure'
         ? `<path d="${path.d}" fill="none" stroke="${color}" stroke-width="${path.strokeWidth}"/>`
@@ -119,8 +126,10 @@ function elementSvg(element: DrawingElement, options: PaintOptions): string {
             : pathsOfElement(element)
                   .map((path) => pathSvg(path, element, options))
                   .join('');
+
     // The paper is drawn first and the note's own words go on top of it.
     const written = element.kind === 'note' ? textSvg(element, options) : '';
+
     return `<g transform="${transformOf(element)}">${body}${written}</g>`;
 }
 
@@ -138,5 +147,6 @@ export function toSvg(elements: readonly DrawingElement[], options: SvgOptions =
     const h = round(bounds.h + margin * 2);
     const paper = options.background ? `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${options.background}"/>` : '';
     const body = elements.map((element) => elementSvg(element, paint)).join('');
+
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="${x} ${y} ${w} ${h}">${paper}${body}</svg>`;
 }

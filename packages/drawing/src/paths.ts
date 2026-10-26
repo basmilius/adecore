@@ -34,9 +34,11 @@ function dashOf(element: DrawingElement): number[] | null {
     if (element.strokeStyle === 'dashed') {
         return [element.strokeWidth * 4, element.strokeWidth * 4];
     }
+
     if (element.strokeStyle === 'dotted') {
         return [element.strokeWidth, element.strokeWidth * 3];
     }
+
     return null;
 }
 
@@ -66,6 +68,7 @@ function optionsOf(element: DrawingElement): Options {
 // Rough has no rounded-rectangle primitive.
 function roundedRectPath(w: number, h: number, radius: number): string {
     const corner = Math.min(radius, w / 2, h / 2);
+
     return `M ${corner} 0 L ${w - corner} 0 Q ${w} 0 ${w} ${corner} L ${w} ${h - corner} Q ${w} ${h} ${w - corner} ${h} L ${corner} ${h} Q 0 ${h} 0 ${h - corner} L 0 ${corner} Q 0 0 ${corner} 0 Z`;
 }
 
@@ -73,12 +76,15 @@ function outlineToPath(outline: readonly (readonly number[])[]): string {
     if (outline.length === 0) {
         return '';
     }
+
     const [first, ...rest] = outline;
+
     return `M ${first![0]} ${first![1]} ${rest.map((point) => `L ${point[0]} ${point[1]}`).join(' ')} Z`;
 }
 
 function freehandOutline(element: DrawingElement & { kind: 'freehand' }): string {
     const points = element.points.map(([x, y, pressure]) => [x, y, pressure ?? 0.5] as [number, number, number]);
+
     const outline = getStroke(points, {
         size: element.strokeWidth * 4 + 2,
         thinning: 0.6,
@@ -87,6 +93,7 @@ function freehandOutline(element: DrawingElement & { kind: 'freehand' }): string
         // A pressure of exactly 0.5 on every point is a mouse; the stroke gets its taper from speed.
         simulatePressure: element.points.every((point) => point[2] === undefined)
     });
+
     return outlineToPath(outline);
 }
 
@@ -102,20 +109,25 @@ export function pathsOfElement(element: DrawingElement): ElementPath[] {
     if (element.kind === 'text') {
         return [];
     }
+
     // A note is a sheet of paper, not a drawn shape: no wobble, and an edge of its own paper color.
     if (element.kind === 'note') {
         const sheet = roundedRectPath(element.w, element.h, NOTE_RADIUS);
+
         return [
             { d: sheet, role: 'fill', strokeWidth: 0, dash: null },
             { d: sheet, role: 'stroke', strokeWidth: element.strokeWidth, dash: null }
         ];
     }
+
     if (element.kind === 'freehand') {
         return [{ d: freehandOutline(element), role: 'ink', strokeWidth: 0, dash: null }];
     }
+
     const options = optionsOf(element);
     const dash = dashOf(element);
     const generator = drawingGenerator();
+
     const drawable = (() => {
         switch (element.kind) {
             case 'rect':
@@ -141,21 +153,26 @@ export function pathsOfElement(element: DrawingElement): ElementPath[] {
                 );
         }
     })();
+
     const paths: ElementPath[] = generator.toPaths(drawable).map((path) => ({
         d: path.d,
         role: path.fill === FILL || path.stroke === FILL ? 'fill' : 'stroke',
         strokeWidth: path.strokeWidth,
         dash: path.stroke === STROKE ? dash : null
     }));
+
     if (element.kind !== 'line') {
         return paths;
     }
+
     const points = element.points.map(([x, y]) => ({ x, y }));
     const size = arrowHeadSize(element.strokeWidth);
+
     const heads: [Point, Point][] = [
         ...(element.arrowEnd ? arrowHead(points.at(-1)!, points.at(-2)!, size) : []),
         ...(element.arrowStart ? arrowHead(points[0]!, points[1]!, size) : [])
     ];
+
     // The head is always solid: a dashed arrow still points at something.
     return heads.length === 0 ? paths : [...paths, { d: linesToPath(heads), role: 'stroke', strokeWidth: element.strokeWidth, dash: null }];
 }

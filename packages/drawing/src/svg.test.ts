@@ -83,6 +83,7 @@ describe('paths', () => {
                 [10, 10]
             ]
         });
+
         expect(paths).toHaveLength(1);
         expect(paths[0]!.role).toBe('ink');
         expect(paths[0]!.d.startsWith('M ')).toBe(true);
@@ -122,6 +123,7 @@ describe('a sticky note', () => {
             paper: { ...palette, yellow: 'var(paper-yellow)' },
             edge: { ...palette, yellow: 'var(edge-yellow)' }
         });
+
         expect(svg).toContain('fill="var(paper-yellow)"');
         expect(svg).toContain('stroke="var(edge-yellow)"');
         expect(svg).toContain('buy milk');
@@ -170,9 +172,11 @@ describe('toSvg', () => {
 
     test('a rotated element away from the origin lands where the canvas draws it', () => {
         const turned: DrawingElement = { ...rect('a', 200, 120), angle: Math.PI / 3 };
+
         const [, tx, ty, degrees, cx, cy] = toSvg([turned], { palette })
             .match(/translate\(([-\d.]+) ([-\d.]+)\) rotate\(([-\d.]+) ([-\d.]+) ([-\d.]+)\)/)!
             .map(Number);
+
         const corner = rotatePoint({ x: 0, y: 0 }, { x: cx, y: cy }, (degrees * Math.PI) / 180);
         const expected = rotatePoint({ x: 200, y: 120 }, { x: 250, y: 150 }, Math.PI / 3);
         expect(corner.x + tx).toBeCloseTo(expected.x, 1);
@@ -194,6 +198,7 @@ describe('readingOrder', () => {
     test('a staircase of texts reads the same whatever order they were drawn in', () => {
         const stairs = [text('A', 'A', 300, 0), text('B', 'B', 200, 20), text('C', 'C', 100, 40), text('D', 'D', 0, 60)];
         const orders = [stairs, [...stairs].reverse(), [stairs[2]!, stairs[0]!, stairs[3]!, stairs[1]!]];
+
         for (const order of orders) {
             expect(readingOrder(order)).toEqual(['B', 'A', 'D', 'C']);
         }
@@ -212,6 +217,7 @@ describe('readingOrder', () => {
             text('label-b', 'Daemon', 310, 20),
             line('arrow', [100, 30], [300, 30])
         ];
+
         expect(readingOrder(elements).at(-1)).toBe('Client -> Daemon');
     });
 

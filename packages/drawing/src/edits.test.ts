@@ -8,6 +8,7 @@ const locked: DrawingElement = { ...rect, id: 'frame', locked: true };
 
 function counter(): DrawingEditMint {
     let next = 0;
+
     return { id: () => `new-${++next}`, seed: () => 7 };
 }
 
@@ -22,6 +23,7 @@ describe('applyDrawingEdit', () => {
             },
             counter()
         );
+
         expect(outcome).toEqual({
             ok: true,
             added: ['new-1'],
@@ -43,6 +45,7 @@ describe('applyDrawingEdit', () => {
             { update: [{ id: 'box', text: 'no' }, { id: 'gone' }, { id: 'frame', x: 4 }], remove: ['box'] },
             counter()
         );
+
         expect(outcome).toEqual({
             ok: false,
             problems: [

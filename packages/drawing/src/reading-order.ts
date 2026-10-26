@@ -17,31 +17,40 @@ function labelInside(element: DrawingElement, elements: readonly DrawingElement[
         if (candidate.kind !== 'text' || candidate.id === element.id) {
             continue;
         }
+
         const center = centerOf(boundsOf(candidate));
+
         if (hitsElement({ ...element, fill: 'solid' }, center, 0)) {
             return labelOf(candidate);
         }
     }
+
     return null;
 }
 
 /* What an arrow points at: the text at that end, or the shape there and the text it holds. */
 function labelAt(point: Point, elements: readonly DrawingElement[], arrowId: string): string | null {
     let best: { label: string; distance: number } | null = null;
+
     for (const element of elements) {
         if (element.id === arrowId || element.kind === 'line' || element.kind === 'freehand') {
             continue;
         }
+
         const center = centerOf(boundsOf(element));
         const distance = Math.hypot(center.x - point.x, center.y - point.y);
+
         if (distance > LABEL_REACH && !hitsElement({ ...element, fill: 'solid' }, point, LABEL_REACH)) {
             continue;
         }
+
         const label = labelOf(element) ?? labelInside(element, elements);
+
         if (label && (!best || distance < best.distance)) {
             best = { label, distance };
         }
     }
+
     return best?.label ?? null;
 }
 
@@ -53,29 +62,37 @@ export function readingOrder(elements: readonly DrawingElement[]): string[] {
     // A row is measured from its top text, so a staircase of texts cannot chain into one long line.
     const rows: DrawingElement[][] = [];
     const labeled = elements.filter((element) => labelOf(element) !== null).sort((left, right) => left.y - right.y || left.x - right.x);
+
     for (const element of labeled) {
         const row = rows.at(-1);
+
         if (row && element.y - row[0]!.y <= ROW_TOLERANCE) {
             row.push(element);
         } else {
             rows.push([element]);
         }
     }
+
     const texts = rows.flatMap((row) => row.sort((left, right) => left.x - right.x || left.y - right.y)).map((element) => labelOf(element)!);
 
     const arrows: string[] = [];
+
     for (const element of elements) {
         if (element.kind !== 'line' || (!element.arrowEnd && !element.arrowStart)) {
             continue;
         }
+
         const points = absolutePoints(element);
         const from = labelAt(points[0]!, elements, element.id);
         const to = labelAt(points.at(-1)!, elements, element.id);
+
         if (!from || !to || from === to) {
             continue;
         }
+
         // An arrow that only has a head at its start reads the other way around.
         arrows.push(element.arrowEnd ? `${from} -> ${to}` : `${to} -> ${from}`);
     }
+
     return [...texts, ...arrows];
 }

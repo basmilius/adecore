@@ -32,10 +32,12 @@ export function rotatePoint(point: Point, around: Point, angle: number): Point {
     if (angle === 0) {
         return point;
     }
+
     const cos = Math.cos(angle);
     const sin = Math.sin(angle);
     const dx = point.x - around.x;
     const dy = point.y - around.y;
+
     return { x: around.x + dx * cos - dy * sin, y: around.y + dx * sin + dy * cos };
 }
 
@@ -48,16 +50,19 @@ export function unionOf(rects: readonly Rect[]): Rect | null {
     if (rects.length === 0) {
         return null;
     }
+
     let left = Infinity;
     let top = Infinity;
     let right = -Infinity;
     let bottom = -Infinity;
+
     for (const rect of rects) {
         left = Math.min(left, rect.x, rect.x + rect.w);
         top = Math.min(top, rect.y, rect.y + rect.h);
         right = Math.max(right, rect.x, rect.x + rect.w);
         bottom = Math.max(bottom, rect.y, rect.y + rect.h);
     }
+
     return { x: left, y: top, w: right - left, h: bottom - top };
 }
 
@@ -78,15 +83,18 @@ function cornersOf(rect: Rect): Point[] {
 export function drawnBoundsOf(element: DrawingElement): Rect {
     const rect = boundsOf(element);
     const angle = element.angle ?? 0;
+
     if (angle === 0) {
         return rect;
     }
+
     const center = centerOf(rect);
     const corners = cornersOf(rect).map((corner) => rotatePoint(corner, center, angle));
     const xs = corners.map((corner) => corner.x);
     const ys = corners.map((corner) => corner.y);
     const left = Math.min(...xs);
     const top = Math.min(...ys);
+
     return { x: left, y: top, w: Math.max(...xs) - left, h: Math.max(...ys) - top };
 }
 
@@ -111,10 +119,13 @@ function distanceToSegment(point: Point, a: Point, b: Point): number {
     const dx = b.x - a.x;
     const dy = b.y - a.y;
     const length = dx * dx + dy * dy;
+
     if (length === 0) {
         return Math.hypot(point.x - a.x, point.y - a.y);
     }
+
     const along = Math.max(0, Math.min(1, ((point.x - a.x) * dx + (point.y - a.y) * dy) / length));
+
     return Math.hypot(point.x - (a.x + along * dx), point.y - (a.y + along * dy));
 }
 
@@ -122,6 +133,7 @@ export function absolutePoints(element: DrawingElement): Point[] {
     if (element.kind !== 'line' && element.kind !== 'freehand') {
         return [];
     }
+
     return element.points.map(([x, y]) => ({ x: element.x + x, y: element.y + y }));
 }
 
@@ -140,13 +152,16 @@ function cornersOfDiamond(rect: Rect): Point[] {
 
 function insidePolygon(point: Point, polygon: readonly Point[]): boolean {
     let inside = false;
+
     for (let i = 0, previous = polygon.length - 1; i < polygon.length; previous = i++) {
         const corner = polygon[i]!;
         const before = polygon[previous]!;
+
         if (corner.y > point.y !== before.y > point.y && point.x < ((before.x - corner.x) * (point.y - corner.y)) / (before.y - corner.y) + corner.x) {
             inside = !inside;
         }
     }
+
     return inside;
 }
 
@@ -158,6 +173,7 @@ function nearPolyline(point: Point, points: readonly Point[], tolerance: number)
     if (points.length === 1) {
         return Math.hypot(point.x - points[0]!.x, point.y - points[0]!.y) <= tolerance;
     }
+
     return points.slice(0, -1).some((from, index) => distanceToSegment(point, from, points[index + 1]!) <= tolerance);
 }
 
@@ -173,6 +189,7 @@ export function hitsElement(element: DrawingElement, point: Point, tolerance: nu
     const local = toLocal(element, point);
     const rect = boundsOf(element);
     const reach = Math.max(tolerance, element.strokeWidth);
+
     switch (element.kind) {
         // Both are their own sheet: anywhere on it is on them.
         case 'text':
@@ -182,6 +199,7 @@ export function hitsElement(element: DrawingElement, point: Point, tolerance: nu
             return isFilled(element) ? insideRect(local, rect) : nearPolygon(local, cornersOf(rect), reach);
         case 'diamond': {
             const corners = cornersOfDiamond(rect);
+
             return isFilled(element) ? insidePolygon(local, corners) : nearPolygon(local, corners, reach);
         }
         case 'ellipse': {
@@ -189,9 +207,11 @@ export function hitsElement(element: DrawingElement, point: Point, tolerance: nu
             const rx = Math.max(rect.w / 2, 0.01);
             const ry = Math.max(rect.h / 2, 0.01);
             const distance = Math.hypot((local.x - center.x) / rx, (local.y - center.y) / ry);
+
             if (isFilled(element)) {
                 return distance <= 1;
             }
+
             return Math.abs(distance - 1) <= reach / Math.min(rx, ry);
         }
         case 'line':
@@ -203,10 +223,12 @@ export function hitsElement(element: DrawingElement, point: Point, tolerance: nu
 export function elementAt(elements: readonly DrawingElement[], point: Point, tolerance: number): DrawingElement | undefined {
     for (let i = elements.length - 1; i >= 0; i--) {
         const element = elements[i]!;
+
         if (!element.locked && hitsElement(element, point, tolerance)) {
             return element;
         }
     }
+
     return undefined;
 }
 
@@ -217,6 +239,7 @@ export function elementsIn(elements: readonly DrawingElement[], rect: Rect): Dra
 export function handlePoint(rect: Rect, handle: ResizeHandle): Point {
     const x = handle.includes('w') ? rect.x : handle.includes('e') ? rect.x + rect.w : rect.x + rect.w / 2;
     const y = handle.startsWith('n') ? rect.y : handle.startsWith('s') ? rect.y + rect.h : rect.y + rect.h / 2;
+
     return { x, y };
 }
 
@@ -226,40 +249,50 @@ export function handlePoint(rect: Rect, handle: ResizeHandle): Point {
  */
 export function resizeRect(rect: Rect, handle: ResizeHandle, point: Point, aspect = false): Rect {
     let { x, y, w, h } = rect;
+
     if (handle.includes('w')) {
         w = rect.x + rect.w - point.x;
         x = point.x;
     }
+
     if (handle.includes('e')) {
         w = point.x - rect.x;
     }
+
     if (handle.startsWith('n')) {
         h = rect.y + rect.h - point.y;
         y = point.y;
     }
+
     if (handle.startsWith('s')) {
         h = point.y - rect.y;
     }
+
     if (aspect && rect.w > 0 && rect.h > 0) {
         const ratio = rect.h / rect.w;
         // A side handle moves one dimension, which sets the other; a corner follows the smaller pull.
         const width = handle === 'e' || handle === 'w' ? w : handle === 'n' || handle === 's' ? h / ratio : Math.abs(w) < Math.abs(h / ratio) ? w : h / ratio;
         const height = width * ratio;
+
         if (handle.includes('w')) {
             x = rect.x + rect.w - width;
         }
+
         if (handle.startsWith('n')) {
             y = rect.y + rect.h - height;
         }
+
         w = width;
         h = height;
     }
+
     return { x, y, w, h };
 }
 
 export function scaleElement(element: DrawingElement, from: Rect, to: Rect): DrawingElement {
     const scaleX = from.w === 0 ? 1 : to.w / from.w;
     const scaleY = from.h === 0 ? 1 : to.h / from.h;
+
     const placed = {
         ...element,
         x: to.x + (element.x - from.x) * scaleX,
@@ -267,22 +300,27 @@ export function scaleElement(element: DrawingElement, from: Rect, to: Rect): Dra
         w: element.w * scaleX,
         h: element.h * scaleY
     };
+
     if (placed.kind === 'line') {
         return { ...placed, points: placed.points.map(([x, y]) => [x * scaleX, y * scaleY] as [number, number]) };
     }
+
     if (placed.kind === 'freehand') {
         return { ...placed, points: placed.points.map(([x, y, pressure]) => [x * scaleX, y * scaleY, pressure] as [number, number, number?]) };
     }
+
     if (placed.kind === 'text') {
         // From here on the box is the person's, so typing no longer refits it.
         return { ...placed, sized: true };
     }
+
     return placed;
 }
 
 export function arrowHead(tip: Point, from: Point, size: number): [Point, Point][] {
     const angle = Math.atan2(tip.y - from.y, tip.x - from.x);
     const spread = Math.PI / 7;
+
     return [
         [tip, { x: tip.x - size * Math.cos(angle - spread), y: tip.y - size * Math.sin(angle - spread) }],
         [tip, { x: tip.x - size * Math.cos(angle + spread), y: tip.y - size * Math.sin(angle + spread) }]

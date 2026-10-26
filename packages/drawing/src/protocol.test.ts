@@ -76,6 +76,7 @@ describe('the drawing document', () => {
                 }
             ]
         };
+
         expect(migrateDrawing(JSON.parse(JSON.stringify(document)))).toEqual(document);
     });
 

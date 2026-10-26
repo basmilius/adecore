@@ -109,6 +109,7 @@ export const EMPTY_DRAWING: DrawingDocument = { version: 1, rev: 0, elements: []
 /* One version so far, so reading is a parse. A file that is not a drawing at all reads as null. */
 export function migrateDrawing(value: unknown): DrawingDocument | null {
     const parsed = DrawingDocumentSchema.safeParse(value);
+
     return parsed.success ? parsed.data : null;
 }
 
@@ -118,11 +119,14 @@ export function migrateDrawing(value: unknown): DrawingDocument | null {
  */
 export function duplicateElementIdIn(elements: DrawingElement[]): string | null {
     const seen = new Set<string>();
+
     for (const element of elements) {
         if (seen.has(element.id)) {
             return element.id;
         }
+
         seen.add(element.id);
     }
+
     return null;
 }

@@ -31,37 +31,49 @@ export type MeasureLine = (line: string) => number;
 /* A measure for where no font exists, such as on a server: most faces average a glyph a little over half its size wide. */
 export function approximateMeasure(size: number, font: DrawingFont | undefined): MeasureLine {
     const glyph = fontOf(font) === 'mono' ? 0.6 : 0.55;
+
     return (line) => line.length * size * glyph;
 }
 
 function wrapParagraph(paragraph: string, maxWidth: number, measure: MeasureLine): string[] {
     const lines: string[] = [];
     let line = '';
+
     const push = (): void => {
         lines.push(line);
         line = '';
     };
+
     for (const word of paragraph.split(' ')) {
         const candidate = line === '' ? word : `${line} ${word}`;
+
         if (measure(candidate) <= maxWidth) {
             line = candidate;
+
             continue;
         }
+
         if (line !== '') {
             push();
         }
+
         if (measure(word) <= maxWidth) {
             line = word;
+
             continue;
         }
+
         for (const glyph of word) {
             if (line !== '' && measure(line + glyph) > maxWidth) {
                 push();
             }
+
             line += glyph;
         }
     }
+
     lines.push(line);
+
     return lines;
 }
 
@@ -74,6 +86,7 @@ export function linesOf(element: WrittenElement, measure: MeasureLine): string[]
     if (element.kind === 'note') {
         return wrapLines(element.text, writingFrameOf(element).w, measure);
     }
+
     return element.sized ? wrapLines(element.text, element.w, measure) : element.text.split('\n');
 }
 

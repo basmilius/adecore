@@ -128,6 +128,7 @@ describe('boxes', () => {
 
     test('scaling a line takes its points along', () => {
         const scaled = scaleElement(line('a'), { x: 0, y: 0, w: 100, h: 100 }, { x: 0, y: 0, w: 200, h: 100 });
+
         expect(scaled.kind === 'line' && scaled.points).toEqual([
             [0, 0],
             [200, 100]
@@ -148,6 +149,7 @@ describe('boxes', () => {
             text: 'hi',
             size: 20
         };
+
         const scaled = scaleElement(text, { x: 0, y: 0, w: 80, h: 24 }, { x: 0, y: 0, w: 160, h: 24 });
         expect(scaled.kind === 'text' && scaled.sized).toBe(true);
         expect(scaled.w).toBe(160);
