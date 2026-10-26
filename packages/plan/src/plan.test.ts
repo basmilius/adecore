@@ -28,6 +28,7 @@ const NOW = '2026-09-16T14:30:00Z';
 
 function counterMint(): () => string {
     let next = 0;
+
     return () => `m${++next}`;
 }
 
@@ -53,6 +54,7 @@ function applied(result: PlanApplied | PlanRefusal): PlanApplied {
     if (!result.ok) {
         throw new Error(`Refused ${result.code}: ${result.message}`);
     }
+
     return result;
 }
 
@@ -70,6 +72,7 @@ describe('who may set a step', () => {
         { checks: 'agent', agent: undefined, person: 'step-locked' },
         { checks: 'person', agent: 'person-only', person: undefined }
     ];
+
     for (const row of rows) {
         for (const actor of ['agent', 'person'] as const) {
             test(`${row.checks} step set by the ${actor}`, () => {
@@ -79,12 +82,14 @@ describe('who may set a step', () => {
                 expect(codeOf(canApply(op, actor, plan))).toBe(expected);
                 const result = apply(plan, [op], actor);
                 expect(codeOf(result)).toBe(expected);
+
                 if (result.ok) {
                     expect(stepIn(result.plan, 'a')).toMatchObject({ state: 'done', by: actor, at: NOW });
                     expect(result.plan.rev).toBe(4);
                 }
             });
         }
+
         test(`a plan whose default is ${row.checks} applies it to steps without their own checks`, () => {
             const plan = planOf([step('a')], { checks: row.checks });
             const op: PlanOp = { op: 'set', ids: ['a'], state: 'done' };
@@ -127,6 +132,7 @@ describe('who may set a step', () => {
         const plan = planOf([step('a', { checks: 'person' }), step('b', { state: 'failed', by: 'person', at: NOW }), step('c'), step('d')], {
             checks: 'anyone'
         });
+
         expect(codeOf(apply(plan, [{ op: 'edit', id: 'a', title: 'Renamed' }], 'agent'))).toBe('person-only');
         expect(codeOf(apply(plan, [{ op: 'edit', id: 'b', title: 'Renamed' }], 'agent'))).toBe('set-by-person');
         expect(codeOf(apply(plan, [{ op: 'edit', id: 'a', title: 'Step a' }], 'agent'))).toBeUndefined();
@@ -175,6 +181,7 @@ describe('who may set a step', () => {
 
     test('a person only checks off, notes and unlocks', () => {
         const plan = planOf([step('a'), step('b')]);
+
         const structural: PlanOp[] = [
             { op: 'add', type: 'step', title: 'New' },
             { op: 'edit', id: 'a', title: 'Renamed' },
@@ -183,6 +190,7 @@ describe('who may set a step', () => {
             { op: 'meta', status: 'Busy' },
             { op: 'set', ids: ['a'], state: 'done', next: 'b' }
         ];
+
         for (const op of structural) {
             expect(codeOf(apply(plan, [op], 'person'))).toBe('op-not-allowed');
         }
@@ -190,6 +198,7 @@ describe('who may set a step', () => {
 
     test('a batch is all or nothing', () => {
         const plan = planOf([step('a'), step('b', { checks: 'person' })]);
+
         const result = apply(
             plan,
             [
@@ -198,6 +207,7 @@ describe('who may set a step', () => {
             ],
             'agent'
         );
+
         expect(codeOf(result)).toBe('person-only');
         expect(stepIn(plan, 'a').state).toBeUndefined();
     });
@@ -245,6 +255,7 @@ describe('removing', () => {
                 items: [step('grid', { steps: [step('zone'), step('focus', { steps: [step('deep', { state: 'failed', by: 'person', at: NOW })] })] })]
             }
         ]);
+
         expect(codeOf(apply(plan, [{ op: 'remove', id: 'focus' }], 'agent'))).toBe('set-by-person');
         expect(codeOf(apply(plan, [{ op: 'remove', id: 'grid' }], 'agent'))).toBe('set-by-person');
         expect(codeOf(apply(plan, [{ op: 'remove', id: 'split' }], 'agent'))).toBe('set-by-person');
@@ -272,6 +283,7 @@ describe('deleting a plan', () => {
         const stamped = planOf([
             { type: 'section', id: 's', title: 'S', items: [step('a', { steps: [step('b', { state: 'done', by: 'person', at: NOW })] })] }
         ]);
+
         expect(codeOf(canDeletePlan(stamped, 'agent'))).toBe('set-by-person');
         expect(codeOf(canDeletePlan(planOf([step('a', { state: 'done', by: 'agent', at: NOW }), step('b', { checks: 'person' })]), 'agent'))).toBeUndefined();
     });
@@ -280,6 +292,7 @@ describe('deleting a plan', () => {
 describe('minting ids', () => {
     test('a mintId that keeps giving a taken id is refused, not thrown', () => {
         const plan = planOf([step('a')]);
+
         const result = applyPlanOps(
             plan,
             [
@@ -288,6 +301,7 @@ describe('minting ids', () => {
             ],
             { actor: 'agent', now: NOW, mintId: () => 'x' }
         );
+
         expect(codeOf(result)).toBe('duplicate-id');
     });
 
@@ -299,6 +313,7 @@ describe('minting ids', () => {
                 { type: 'step', title: 'Two' }
             ]
         };
+
         expect(codeOf(createPlan(draft, { id: 'plan-1', now: NOW, mintId: () => 'x' }))).toBe('duplicate-id');
     });
 
@@ -344,15 +359,18 @@ describe('structure', () => {
     test('a person-only gate stays protected after its first child, including insertion after that child', () => {
         const original = planOf([step('gate', { checks: 'person' }), step('b')]);
         const expanded = applied(apply(original, [{ op: 'add', type: 'step', id: 'review', title: 'Review', under: 'gate', checks: 'person' }], 'agent')).plan;
+
         const ops: PlanOp[] = [
             { op: 'add', type: 'step', title: 'Agent task', under: 'gate', checks: 'agent' },
             { op: 'add', type: 'step', title: 'Agent task', after: 'review', checks: 'agent' },
             { op: 'move', id: 'b', under: 'gate' },
             { op: 'move', id: 'b', after: 'review' }
         ];
+
         for (const op of ops) {
             expect(codeOf(apply(expanded, [op], 'agent'))).toBe('person-only');
         }
+
         expect(codeOf(apply(expanded, [{ op: 'add', type: 'step', title: 'Second review', after: 'review', checks: 'person' }], 'agent'))).toBeUndefined();
     });
 
@@ -384,6 +402,7 @@ describe('structure', () => {
 
     test('edits and clears text and meta', () => {
         const plan = planOf([step('a', { description: 'Old' })], { status: 'Busy' });
+
         const result = applied(
             apply(
                 plan,
@@ -394,15 +413,18 @@ describe('structure', () => {
                 'agent'
             )
         ).plan;
+
         expect(stepIn(result, 'a')).toEqual({ type: 'step', id: 'a', title: 'New' });
         expect(result.meta).toEqual({ title: 'Plan', kind: 'steps', checks: 'anyone', summary: 'About' });
     });
 
     const nested = (levels: number): PlanStep => {
         let current = step(`l${levels}`);
+
         for (let level = levels - 1; level >= 1; level--) {
             current = step(`l${level}`, { steps: [current] });
         }
+
         return current;
     };
 
@@ -410,13 +432,16 @@ describe('structure', () => {
         expect(validatePlan(planOf([nested(5)])).ok).toBe(true);
         expect(codeOf(validatePlan(planOf([nested(6)])))).toBe('plan-too-deep');
         expect(codeOf(apply(planOf([nested(5)]), [{ op: 'add', type: 'step', title: 'Deeper', under: 'l5' }], 'agent'))).toBe('plan-too-deep');
+
         const draft = (levels: number): PlanDraft => ({ meta: { title: 'Deep' }, items: [nested(levels)] as PlanDraft['items'] });
+
         expect(createPlan(draft(5), { id: 'p', now: NOW }).ok).toBe(true);
         expect(codeOf(createPlan(draft(6), { id: 'p', now: NOW }))).toBe('plan-too-deep');
     });
 
     test('300 items are allowed and 301 are refused', () => {
         const items = (count: number): PlanItem[] => Array.from({ length: count }, (_, index) => step(`s${index}`));
+
         expect(validatePlan(planOf(items(300))).ok).toBe(true);
         expect(codeOf(validatePlan(planOf(items(301))))).toBe('plan-too-large');
         expect(codeOf(apply(planOf(items(300)), [{ op: 'add', type: 'text', title: 'One more' }], 'agent'))).toBe('plan-too-large');
@@ -482,6 +507,7 @@ describe('derived state', () => {
         for (const state of ['open', 'active', 'done', 'failed', 'blocked', 'warning'] as const) {
             expect(deriveState([state])).toBe(state);
         }
+
         expect(deriveState(['skipped'])).toBe('done');
         expect(deriveState(['info'])).toBe('done');
     });
@@ -496,10 +522,13 @@ describe('derived state', () => {
         const warned = step('a', {
             steps: [step('b', { steps: [step('c', { state: 'done' }), step('d', { state: 'warning' })] }), step('e', { state: 'info' })]
         });
+
         expect(stepState(warned)).toBe('warning');
+
         const informed = step('a', {
             steps: [step('b', { steps: [step('c', { state: 'info' }), step('d', { state: 'skipped' })] }), step('e', { state: 'done' })]
         });
+
         expect(stepState(informed)).toBe('done');
         const unfinished = step('a', { steps: [step('b', { steps: [step('c', { state: 'warning' }), step('d')] }), step('e', { state: 'info' })] });
         expect(stepState(unfinished)).toBe('active');
@@ -509,6 +538,7 @@ describe('derived state', () => {
         const tree = step('a', {
             steps: [step('b', { steps: [step('c', { state: 'done' }), step('d', { state: 'skipped' })] }), step('e', { state: 'done' })]
         });
+
         expect(stepState(tree)).toBe('done');
         const open = step('a', { steps: [step('b', { steps: [step('c'), step('d', { state: 'skipped' })] }), step('e', { state: 'skipped' })] });
         expect(stepState(open)).toBe('open');
@@ -520,6 +550,7 @@ describe('derived state', () => {
             step('a', { steps: [step('b', { state: 'done' }), step('c', { state: 'failed' })] }),
             step('d', { state: 'active' })
         ]);
+
         expect(progress).toEqual({ total: 3, open: 0, active: 1, done: 1, failed: 1, skipped: 0, blocked: 0, warning: 0, info: 0, finished: 2 });
     });
 
@@ -537,6 +568,7 @@ describe('derived state', () => {
             step('e', { state: 'failed' }),
             step('f')
         ];
+
         expect(progressText(planOf(items, { kind: 'test' }))).toBe('5 of 6 run, 1 passed, 2 warnings, 1 info, 1 failed');
         expect(progressText(planOf(items))).toBe('4 of 6 done, 2 with warnings, 1 with info, 1 failed');
         expect(progressText(planOf([step('a', { state: 'warning' }), step('b', { state: 'done' })], { kind: 'test' }))).toBe('2 of 2 run, 1 passed, 1 warning');
@@ -568,9 +600,11 @@ describe('a new plan', () => {
                 }
             ]
         });
+
         if (!parsed.ok) {
             throw new Error(parsed.message);
         }
+
         const result = applied(createPlan(parsed.draft, { id: 'plan-9', now: NOW, mintId: counterMint(), meta: { title: 'Flag' } }));
         expect(result.minted).toEqual(['m1', 'm2']);
         expect(result.plan).toEqual({
@@ -669,7 +703,9 @@ describe('plan read', () => {
             id: 'plan-2c1d',
             meta: { title: 'Split placement', kind: 'steps' as const, checks: 'anyone' as const }
         };
+
         const text = renderPlanText(EXAMPLE, { others: [other], formatTime: (at) => at.slice(11, 16) });
+
         expect(text).toBe(
             [
                 'Plan "Test the split placement" (plan-7f3a, test, rev 14): 4 of 8 run, 2 passed, 1 failed, 1 skipped',
@@ -718,6 +754,7 @@ describe('markdown', () => {
                 '* [~] Tag'
             ].join('\n')
         );
+
         expect(parsed).toEqual({
             ok: true,
             draft: {
@@ -752,6 +789,7 @@ describe('markdown', () => {
 
     test('reads and writes the warning and info markers', () => {
         const parsed = parsePlanMarkdown('- [w] Loads\n    > Slow on a cold start.\n- [W] Saves\n- [i] Syncs\n- [I] Exports');
+
         expect(parsed).toEqual({
             ok: true,
             draft: {
@@ -763,6 +801,7 @@ describe('markdown', () => {
                 ]
             }
         });
+
         const plan = planOf([step('a', { title: 'Loads', state: 'warning', note: 'Slow on a cold start.' }), step('b', { title: 'Syncs', state: 'info' })]);
         expect(planToMarkdown(plan)).toBe('# Plan\n\n- [w] Loads\n    > Slow on a cold start.\n- [i] Syncs\n');
     });
@@ -772,9 +811,11 @@ describe('markdown', () => {
         delete source.meta.status;
         const markdown = planToMarkdown(source);
         const parsed = parsePlanMarkdown(markdown);
+
         if (!parsed.ok) {
             throw new Error(parsed.message);
         }
+
         const again = applied(createPlan(parsed.draft, { id: source.id, now: NOW, meta: { kind: 'test' } })).plan;
         expect(withoutIds(again)).toEqual(withoutIds(source));
         expect(planToMarkdown(again)).toBe(markdown);
@@ -800,16 +841,20 @@ describe('markdown', () => {
         'plain words',
         '**bold** words'
     ];
+
     const TITLES = ['Heads up', 'a**b', 'a\\b', '*', '**', 'x * y', 'C:\\path\\**', 'ends in \\'];
 
     const roundTrip = (draft: PlanDraft): { source: unknown; again: unknown; markdown: string } => {
         const source = applied(createPlan(draft, { id: 'plan-1', now: NOW, mintId: counterMint() })).plan;
         const markdown = planToMarkdown(source);
         const parsed = parsePlanMarkdown(markdown);
+
         if (!parsed.ok) {
             throw new Error(`${parsed.message}\n${markdown}`);
         }
+
         const again = applied(createPlan(parsed.draft, { id: 'plan-1', now: NOW, mintId: counterMint() })).plan;
+
         return { source: withoutIds(source), again: withoutIds(again), markdown };
     };
 
@@ -855,50 +900,69 @@ describe('markdown', () => {
 
     test('goes out and back in whatever Markdown the text of a plan holds', () => {
         let state = 7;
+
         const random = (): number => {
             state = (state + 0x6d2b79f5) | 0;
             let value = Math.imul(state ^ (state >>> 15), 1 | state);
             value = (value + Math.imul(value ^ (value >>> 7), 61 | value)) ^ value;
+
             return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
         };
+
         const pick = <T>(from: readonly T[]): T => from[Math.floor(random() * from.length)]!;
+
         const prose = (): string => {
             const lines = Array.from({ length: 1 + Math.floor(random() * 4) }, () => pick(RISKY));
+
             // A blank line only between two lines of text, where it stands for a paragraph break.
             return lines.flatMap((line, index) => (index > 0 && random() < 0.3 ? ['', line] : [line])).join('\n');
         };
+
         const maybe = <T>(value: () => T): T | undefined => (random() < 0.5 ? value() : undefined);
+
         const leaf = (): PlanDraftStep => {
             const description = maybe(prose);
             const note = maybe(prose);
             const state = maybe(() => pick(['done', 'failed', 'active', 'skipped', 'blocked', 'warning', 'info'] as const));
+
             return { type: 'step', title: pick(TITLES), ...(description ? { description } : {}), ...(note ? { note } : {}), ...(state ? { state } : {}) };
         };
+
         const stepTree = (depth: number): PlanDraftStep => {
             const step = leaf();
+
             if (depth < 3 && random() < 0.3) {
                 delete step.state;
                 step.steps = Array.from({ length: 1 + Math.floor(random() * 2) }, () => stepTree(depth + 1));
             }
+
             return step;
         };
+
         const text = (): PlanDraftText => {
             const description = maybe(prose);
+
             return { type: 'text', title: pick(TITLES), ...(description ? { description } : {}) };
         };
+
         const items = (): (PlanDraftStep | PlanDraftText)[] =>
             Array.from({ length: 1 + Math.floor(random() * 3) }, () => (random() < 0.25 ? text() : stepTree(1)));
+
         for (let round = 0; round < 200; round += 1) {
             const summary = maybe(prose);
             const draftItems: PlanDraftItem[] = [...items()];
+
             for (let count = Math.floor(random() * 3); count > 0; count -= 1) {
                 const description = maybe(prose);
                 draftItems.push({ type: 'section', title: pick(TITLES), ...(description ? { description } : {}), items: items() });
             }
+
             if (random() < 0.5) {
                 draftItems.push(...items());
             }
+
             const { source, again, markdown } = roundTrip({ meta: { title: pick(TITLES), ...(summary ? { summary } : {}) }, items: draftItems });
+
             if (!Bun.deepEquals(again, source)) {
                 throw new Error(`Round ${round} came back different:\n${markdown}`);
             }

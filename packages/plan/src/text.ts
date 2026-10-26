@@ -23,9 +23,11 @@ export interface PlanTextOptions {
 
 function localTime(at: string): string {
     const date = new Date(at);
+
     if (Number.isNaN(date.getTime())) {
         return '';
     }
+
     return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 }
 
@@ -43,8 +45,11 @@ function counter(progress: PlanProgress): string {
 
 export function progressText(plan: Pick<Plan, 'meta' | 'items'>): string {
     const progress = planProgress(plan.items);
+
     const extra = (count: number, label: string): string[] => (count > 0 ? [`${count} ${label}`] : []);
+
     const unfinished = [...extra(progress.failed, 'failed'), ...extra(progress.skipped, 'skipped'), ...extra(progress.blocked, 'blocked')];
+
     if (plan.meta.kind === 'test') {
         return [
             `${progress.finished} of ${progress.total} run`,
@@ -54,6 +59,7 @@ export function progressText(plan: Pick<Plan, 'meta' | 'items'>): string {
             ...unfinished
         ].join(', ');
     }
+
     // In a steps plan a warning or info is still done; the extras say which of the done steps to read.
     return [
         `${progress.done + progress.warning + progress.info} of ${progress.total} done`,
@@ -76,52 +82,66 @@ export function renderPlanText(plan: Plan, options: PlanTextOptions = {}): strin
     const formatTime = options.formatTime ?? localTime;
     const lines = [`Plan "${plan.meta.title}" (${plan.id}, ${plan.meta.kind}, rev ${plan.rev}): ${progressText(plan)}`];
     const second: string[] = [];
+
     if (plan.meta.summary) {
         second.push(`Summary: ${oneLine(plan.meta.summary)}`);
     }
+
     if (plan.meta.status) {
         second.push(`Status: ${plan.meta.status}`);
     }
+
     const active = leafSteps(plan.items).filter((step) => step.state === 'active');
+
     if (active.length > 0) {
         second.push(`Now: ${active.map((step) => `"${step.title}" [${step.id}]`).join(', ')}`);
     }
+
     if (options.others?.length) {
         const others = options.others.map((other) => `${other.id} "${other.meta.title}" (${other.meta.kind}, ${counter(planProgress(other.items))})`);
         second.push(`Also in this chat: ${others.join(', ')}`);
     }
+
     if (second.length > 0) {
         lines.push(sentences(second));
     }
 
     const stepLine = (step: PlanStep, number: string, indent: string): void => {
         let line = `${indent}${PLAN_STATE_MARKERS[stepState(step)]} ${number} ${step.title} [${step.id}]`;
+
         if (isParentStep(step)) {
             line += ` ${counter(planProgress(step.steps!))}`;
         } else {
             const notes: string[] = [];
             const checks = effectiveChecks(plan, step);
+
             if (checks !== 'anyone') {
                 notes.push(`${checks}-only`);
             } else if (step.unlocked) {
                 notes.push('unlocked');
             }
+
             if (step.by === 'person' && step.state !== undefined) {
                 const time = step.at ? formatTime(step.at) : '';
                 notes.push(time ? `set by a person ${time}` : 'set by a person');
             }
+
             if (notes.length > 0) {
                 line += ` ${notes.join(', ')}`;
             }
         }
+
         if (step.note) {
             line += `: "${oneLine(step.note)}"`;
         }
+
         lines.push(line, ...descriptionLines(step.description, `${indent}  `));
         step.steps?.forEach((child, index) => stepLine(child, `${number}.${index + 1}`, `${indent}  `));
     };
+
     const itemLines = (items: readonly PlanItem[], indent: string): void => {
         let number = 0;
+
         for (const item of items) {
             if (item.type === 'text') {
                 lines.push(`${indent}${item.title} [${item.id}]${item.description ? `: ${oneLine(item.description)}` : ''}`);
@@ -133,6 +153,7 @@ export function renderPlanText(plan: Plan, options: PlanTextOptions = {}): strin
     };
 
     let loose: PlanItem[] = [];
+
     const flushLoose = (): void => {
         if (loose.length > 0) {
             lines.push('');
@@ -140,16 +161,21 @@ export function renderPlanText(plan: Plan, options: PlanTextOptions = {}): strin
             loose = [];
         }
     };
+
     for (const item of plan.items) {
         if (item.type !== 'section') {
             loose.push(item);
+
             continue;
         }
+
         flushLoose();
         const progress = planProgress(item.items);
         lines.push('', `## ${item.title} [${item.id}]${progress.total > 0 ? ` ${counter(progress)}` : ''}`, ...descriptionLines(item.description, '  '));
         itemLines(item.items, '  ');
     }
+
     flushLoose();
+
     return lines.join('\n');
 }

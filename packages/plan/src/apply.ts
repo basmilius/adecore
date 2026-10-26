@@ -47,6 +47,7 @@ const ID_BYTE_LIMIT = 256 - (256 % ID_ALPHABET.length);
 
 export function randomItemId(): string {
     let id = '';
+
     while (id.length < ID_LENGTH) {
         for (const byte of crypto.getRandomValues(new Uint8Array(ID_LENGTH))) {
             if (byte < ID_BYTE_LIMIT && id.length < ID_LENGTH) {
@@ -54,15 +55,19 @@ export function randomItemId(): string {
             }
         }
     }
+
     return id;
 }
 
 function issueMessage(error: z.ZodError): string {
     const issue = error.issues[0];
+
     if (!issue) {
         return 'The plan is not valid';
     }
+
     const path = issue.path.map((part) => (typeof part === 'number' ? `[${part}]` : `.${String(part)}`)).join('');
+
     return `${path ? `${path.replace(/^\./, '')}: ` : ''}${issue.message}`;
 }
 
@@ -72,12 +77,15 @@ function idMinter(taken: Set<string>, mintId: () => string, minted: string[]) {
     return (): string | PlanRefusal => {
         for (let attempt = 0; attempt < MINT_ATTEMPTS; attempt++) {
             const id = mintId();
+
             if (!taken.has(id)) {
                 taken.add(id);
                 minted.push(id);
+
                 return id;
             }
         }
+
         return refuse('duplicate-id', `mintId gave no id the plan does not already have in ${MINT_ATTEMPTS} tries`);
     };
 }
@@ -87,13 +95,17 @@ function setState(step: PlanStep, state: PlanStepState, actor: PlanActor, now: s
     if (actor === 'agent' && step.by === 'person' && step.state === state) {
         return;
     }
+
     step.state = state;
+
     // A person taking a mark away leaves nothing an agent has to respect, so a mis-click never locks the agent out.
     if (actor === 'person' && state === 'open') {
         delete step.by;
         delete step.at;
+
         return;
     }
+
     step.by = actor;
     step.at = now;
 }
@@ -115,16 +127,22 @@ function placeFor(
 ): { siblings: PlanItem[]; index: number; parent: PlanSection | PlanStep | null } | PlanRefusal {
     let parent: PlanSection | PlanStep | null = null;
     let siblings: PlanItem[] = plan.items;
+
     if (under !== undefined) {
         const location = locateItem(plan, under);
+
         if (!location) {
             return missingItem(under);
         }
+
         const target = location.item;
+
         if (target.type === 'text') {
             return refuse('plan-bad-position', `"${under}" is a text block, which holds no items`);
         }
+
         parent = target;
+
         if (target.type === 'section') {
             siblings = target.items;
         } else {
@@ -133,25 +151,33 @@ function placeFor(
         }
     } else if (after !== undefined) {
         const location = locateItem(plan, after);
+
         if (!location) {
             return missingItem(after);
         }
+
         parent = location.parent;
         siblings = location.siblings;
     }
+
     if (type === 'section' && parent !== null) {
         return refuse('plan-bad-position', 'A section only stands at the top of a plan');
     }
+
     if (type === 'text' && parent?.type === 'step') {
         return refuse('plan-bad-position', 'A step only holds steps, not a text block');
     }
+
     if (after === undefined) {
         return { siblings, index: siblings.length, parent };
     }
+
     const index = siblings.findIndex((item) => item.id === after);
+
     if (index === -1) {
         return refuse('plan-bad-position', `"${after}" is not directly under "${under}"`);
     }
+
     return { siblings, index: index + 1, parent };
 }
 
@@ -160,9 +186,11 @@ function becomeParent(parent: PlanSection | PlanStep | null, dropped: string[]):
     if (parent?.type !== 'step' || (parent.steps?.length ?? 0) !== 1) {
         return;
     }
+
     if (parent.state !== undefined) {
         dropped.push(parent.id);
     }
+
     delete parent.state;
     delete parent.by;
     delete parent.at;
@@ -178,107 +206,138 @@ function pruneEmptySteps(items: readonly PlanItem[]): void {
 
 function newItem(op: Extract<PlanOp, { op: 'add' }>, id: string): PlanItem {
     const base = { id, title: op.title, ...(op.description ? { description: op.description } : {}) };
+
     if (op.type === 'section') {
         return { type: 'section', ...base, items: [] };
     }
+
     if (op.type === 'text') {
         return { type: 'text', ...base };
     }
+
     return { type: 'step', ...base, ...(op.checks ? { checks: op.checks } : {}) };
 }
 
 function applyOne(plan: Plan, op: PlanOp, options: PlanApplyOptions, mint: () => string | PlanRefusal, dropped: string[]): PlanRefusal | null {
     const verdict = canApply(op, options.actor, plan);
+
     if (!verdict.ok) {
         return verdict;
     }
+
     const stepAt = (id: string): PlanStep => locateItem(plan, id)!.item as PlanStep;
+
     switch (op.op) {
         case 'set': {
             for (const id of op.ids) {
                 const step = stepAt(id);
                 setState(step, op.state, options.actor, options.now);
+
                 if (op.note !== undefined) {
                     setNote(step, op.note);
                 }
             }
+
             if (op.next !== undefined) {
                 setState(stepAt(op.next), 'active', options.actor, options.now);
             }
+
             return null;
         }
         case 'note':
             setNote(stepAt(op.id), op.text);
+
             return null;
         case 'unlock': {
             const roots = op.ids === 'all' ? plan.items : op.ids.map(stepAt);
+
             for (const step of allSteps(roots)) {
                 if (effectiveChecks(plan, step) === 'agent') {
                     step.unlocked = true;
                 }
             }
+
             return null;
         }
         case 'add': {
             const id = op.id ?? mint();
+
             if (typeof id !== 'string') {
                 return id;
             }
+
             if (op.id !== undefined && locateItem(plan, op.id)) {
                 return refuse('duplicate-id', `The plan already has an item "${op.id}"`);
             }
+
             if (op.checks !== undefined && op.type !== 'step') {
                 return refuse('plan-invalid', 'Only a step has checks');
             }
+
             const place = placeFor(plan, op.type, op.under, op.after);
+
             if ('ok' in place) {
                 return place;
             }
+
             place.siblings.splice(place.index, 0, newItem(op, id));
             becomeParent(place.parent, dropped);
+
             return null;
         }
         case 'edit': {
             const item = locateItem(plan, op.id)!.item;
+
             if (op.checks !== undefined && item.type !== 'step') {
                 return refuse('plan-invalid', 'Only a step has checks');
             }
+
             if (op.title !== undefined) {
                 item.title = op.title;
             }
+
             if (op.description === '') {
                 delete item.description;
             } else if (op.description !== undefined) {
                 item.description = op.description;
             }
+
             if (op.checks !== undefined && item.type === 'step') {
                 item.checks = op.checks;
             }
+
             return null;
         }
         case 'move': {
             const location = locateItem(plan, op.id)!;
+
             if (op.after === op.id || (op.under !== undefined && allItems([location.item]).some((item) => item.id === op.under))) {
                 return refuse('plan-bad-position', `"${op.id}" cannot move into itself`);
             }
+
             location.siblings.splice(location.index, 1);
             const place = placeFor(plan, location.item.type, op.under, op.after);
+
             if ('ok' in place) {
                 return place;
             }
+
             place.siblings.splice(place.index, 0, location.item);
             becomeParent(place.parent, dropped);
+
             return null;
         }
         case 'remove': {
             const location = locateItem(plan, op.id)!;
             location.siblings.splice(location.index, 1);
+
             return null;
         }
         case 'meta': {
             if (op.title !== undefined) {
                 plan.meta.title = op.title;
             }
+
             for (const key of ['summary', 'status'] as const) {
                 if (op[key] === '') {
                     delete plan.meta[key];
@@ -286,9 +345,11 @@ function applyOne(plan: Plan, op: PlanOp, options: PlanApplyOptions, mint: () =>
                     plan.meta[key] = op[key];
                 }
             }
+
             if (op.checks !== undefined) {
                 plan.meta.checks = op.checks;
             }
+
             return null;
         }
     }
@@ -301,39 +362,50 @@ function applyOne(plan: Plan, op: PlanOp, options: PlanApplyOptions, mint: () =>
  */
 export function applyPlanOps(plan: Plan, ops: readonly PlanOp[], options: PlanApplyOptions): PlanApplied | PlanRefusal {
     const parsedOps = z.array(PlanOpSchema).min(1).safeParse(ops);
+
     if (!parsedOps.success) {
         return refuse('plan-invalid', issueMessage(parsedOps.error));
     }
+
     const next = structuredClone(plan);
     const minted: string[] = [];
     const dropped: string[] = [];
     const taken = new Set(allItems(next.items).map((item) => item.id));
     const mint = idMinter(taken, options.mintId ?? randomItemId, minted);
+
     for (const op of parsedOps.data) {
         const problem = applyOne(next, op, options, mint, dropped);
+
         if (problem) {
             return problem;
         }
+
         for (const item of allItems(next.items)) {
             taken.add(item.id);
         }
     }
+
     pruneEmptySteps(next.items);
     next.rev = plan.rev + 1;
     const checked = validatePlan(next);
+
     if (!checked.ok) {
         return checked;
     }
+
     return { ok: true, plan: checked.plan, minted, dropped };
 }
 
 /* A plan as it is stored or sent: the schema, then the rules that need the whole tree. */
 export function validatePlan(value: unknown): { ok: true; plan: Plan } | PlanRefusal {
     const parsed = PlanSchema.safeParse(value);
+
     if (!parsed.success) {
         return refuse('plan-invalid', issueMessage(parsed.error));
     }
+
     const problem = structureProblem(parsed.data);
+
     return problem ?? { ok: true, plan: parsed.data };
 }
 
@@ -385,6 +457,7 @@ export type PlanDraft = z.infer<typeof PlanDraftSchema>;
 
 export function parsePlanDraft(value: unknown): { ok: true; draft: PlanDraft } | PlanRefusal {
     const parsed = PlanDraftSchema.safeParse(value);
+
     return parsed.success ? { ok: true, draft: parsed.data } : refuse('plan-invalid', issueMessage(parsed.error));
 }
 
@@ -399,14 +472,18 @@ export interface PlanCreateOptions {
 /* A new plan from an agent's draft: ids minted, states marked as the agent's, and the same rules as any later change. */
 export function createPlan(draft: PlanDraft, options: PlanCreateOptions): PlanApplied | PlanRefusal {
     const parsed = PlanDraftSchema.safeParse(draft);
+
     if (!parsed.success) {
         return refuse('plan-invalid', issueMessage(parsed.error));
     }
+
     const source = parsed.data;
     const title = options.meta?.title ?? source.meta?.title;
+
     if (!title) {
         return refuse('plan-invalid', 'A plan needs a title');
     }
+
     const meta: PlanMeta = {
         title,
         kind: options.meta?.kind ?? source.meta?.kind ?? 'steps',
@@ -414,66 +491,88 @@ export function createPlan(draft: PlanDraft, options: PlanCreateOptions): PlanAp
         ...(source.meta?.status ? { status: source.meta.status } : {}),
         checks: options.meta?.checks ?? source.meta?.checks ?? 'anyone'
     };
+
     const minted: string[] = [];
     const taken = new Set<string>();
+
     for (const item of allDraftItems(source.items)) {
         if (item.id !== undefined) {
             if (taken.has(item.id)) {
                 return refuse('duplicate-id', `Two items share the id "${item.id}"`);
             }
+
             taken.add(item.id);
         }
     }
+
     const mint = idMinter(taken, options.mintId ?? randomItemId, minted);
     // Minted up front so a refusal stops here; the tree below takes them in the same order, parents first.
     const fresh: string[] = [];
+
     for (const item of allDraftItems(source.items)) {
         if (item.id === undefined) {
             const id = mint();
+
             if (typeof id !== 'string') {
                 return id;
             }
+
             fresh.push(id);
         }
     }
+
     const nextId = (): string => fresh.shift()!;
+
     const described = <T extends { description?: string }>(value: T): T => {
         if (value.description === '') {
             delete value.description;
         }
+
         return value;
     };
+
     const toStep = (step: PlanDraftStep): PlanStep => {
         const { steps, state, note, ...rest } = step;
         const result: PlanStep = described({ ...rest, id: step.id ?? nextId() });
+
         if (steps && steps.length > 0) {
             result.steps = steps.map(toStep);
         }
+
         if (state !== undefined) {
             Object.assign(result, { state, by: 'agent', at: options.now });
         }
+
         if (note) {
             result.note = note;
         }
+
         return result;
     };
+
     const toText = (text: PlanDraftText): PlanText => described({ ...text, id: text.id ?? nextId() });
+
     const items = source.items.map((item): PlanItem => {
         if (item.type === 'section') {
             return described({ ...item, id: item.id ?? nextId(), items: item.items.map((child) => (child.type === 'text' ? toText(child) : toStep(child))) });
         }
+
         return item.type === 'text' ? toText(item) : toStep(item);
     });
+
     const plan: Plan = { id: options.id, rev: 0, createdAt: options.now, meta, items };
     const checked = validatePlan(plan);
+
     if (!checked.ok) {
         return checked;
     }
+
     for (const step of allSteps(checked.plan.items)) {
         if (step.state !== undefined && effectiveChecks(checked.plan, step) === 'person') {
             return refuse('person-only', `Only a person checks "${step.id}"`);
         }
     }
+
     return { ok: true, plan: checked.plan, minted, dropped: [] };
 }
 

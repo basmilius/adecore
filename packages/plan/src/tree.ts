@@ -45,9 +45,11 @@ function childrenOf(item: PlanItem): PlanItem[] {
     if (item.type === 'section') {
         return item.items;
     }
+
     if (item.type === 'step') {
         return item.steps ?? [];
     }
+
     return [];
 }
 
@@ -56,16 +58,21 @@ export function locateItem(plan: Pick<Plan, 'items'>, id: string): PlanLocation 
         for (let index = 0; index < siblings.length; index++) {
             const item = siblings[index]!;
             const itemDepth = item.type === 'step' ? depth + 1 : 0;
+
             if (item.id === id) {
                 return { item, siblings, index, parent, depth: itemDepth };
             }
+
             const found = search(childrenOf(item), item.type === 'text' ? null : item, item.type === 'step' ? itemDepth : depth);
+
             if (found) {
                 return found;
             }
         }
+
         return null;
     };
+
     return search(plan.items, null, 0);
 }
 
@@ -100,16 +107,20 @@ export function deriveState(states: readonly PlanStepState[]): PlanStepState {
     if (states.includes('failed')) {
         return 'failed';
     }
+
     if (states.includes('blocked')) {
         return 'blocked';
     }
+
     if (states.every(isFinishedOutcome)) {
         return states.includes('warning') ? 'warning' : 'done';
     }
+
     // A skipped step did not run, so next to open steps alone it moves nothing forward.
     if (states.some((state) => state === 'active' || state === 'done' || state === 'warning' || state === 'info')) {
         return 'active';
     }
+
     return 'open';
 }
 
@@ -135,14 +146,17 @@ export interface PlanProgress {
 
 export function planProgress(items: readonly PlanItem[]): PlanProgress {
     const progress: PlanProgress = { total: 0, open: 0, active: 0, done: 0, failed: 0, skipped: 0, blocked: 0, warning: 0, info: 0, finished: 0 };
+
     for (const step of leafSteps(items)) {
         const state = step.state ?? 'open';
         progress.total++;
         progress[state]++;
+
         if (state === 'failed' || isFinishedOutcome(state)) {
             progress.finished++;
         }
     }
+
     return progress;
 }
 
@@ -169,42 +183,56 @@ export function holdsPersonState(item: PlanItem): boolean {
 export function structureProblem(plan: Pick<Plan, 'items'>): PlanRefusal | null {
     const ids = new Set<string>();
     let count = 0;
+
     const walk = (items: readonly PlanItem[], depth: number, inside: 'top' | 'section' | 'step'): PlanRefusal | null => {
         for (const item of items) {
             count++;
+
             if (count > PLAN_LIMITS.items) {
                 return refuse('plan-too-large', `A plan holds at most ${PLAN_LIMITS.items} items`);
             }
+
             if (ids.has(item.id)) {
                 return refuse('duplicate-id', `Two items share the id "${item.id}"`);
             }
+
             ids.add(item.id);
+
             if (item.type === 'section' && inside !== 'top') {
                 return refuse('plan-bad-position', `The section "${item.id}" is not at the top of the plan; sections do not nest`);
             }
+
             if (item.type === 'text' && inside === 'step') {
                 return refuse('plan-bad-position', `The text block "${item.id}" is under a step; a step only holds steps`);
             }
+
             if (item.type === 'step') {
                 if (depth + 1 > PLAN_LIMITS.depth) {
                     return refuse('plan-too-deep', `The step "${item.id}" is ${depth + 1} levels deep; steps go at most ${PLAN_LIMITS.depth} levels deep`);
                 }
+
                 if (isParentStep(item) && (item.state !== undefined || item.by !== undefined || item.at !== undefined)) {
                     return refuse('plan-parent-state', `The step "${item.id}" has sub-steps, so its state follows from them`);
                 }
+
                 const problem = walk(item.steps ?? [], depth + 1, 'step');
+
                 if (problem) {
                     return problem;
                 }
             }
+
             if (item.type === 'section') {
                 const problem = walk(item.items, depth, 'section');
+
                 if (problem) {
                     return problem;
                 }
             }
         }
+
         return null;
     };
+
     return walk(plan.items, 0, 'top');
 }

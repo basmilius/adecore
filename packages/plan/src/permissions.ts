@@ -10,29 +10,37 @@ const AGENT_OPS: ReadonlySet<PlanOp['op']> = new Set(['set', 'note', 'add', 'edi
 
 function stepFor(plan: Plan, id: string, leaf: boolean): PlanStep | PlanRefusal {
     const location = locateItem(plan, id);
+
     if (!location) {
         return missingItem(id);
     }
+
     if (location.item.type !== 'step') {
         return refuse('plan-not-a-step', `"${id}" is a ${location.item.type}, not a step`);
     }
+
     if (leaf && isParentStep(location.item)) {
         return refuse('plan-parent-state', `The step "${id}" has sub-steps, so its state follows from them`);
     }
+
     return location.item;
 }
 
 function mayState(plan: Plan, step: PlanStep, state: PlanStepState, actor: PlanActor): PlanVerdict {
     const checks = effectiveChecks(plan, step);
+
     if (actor === 'person') {
         return checks === 'agent' ? refuse('step-locked', `Only the agent checks "${step.id}" until a person unlocks it`) : ALLOWED;
     }
+
     if (checks === 'person') {
         return refuse('person-only', `Only a person checks "${step.id}"`);
     }
+
     if (step.by === 'person' && step.state !== undefined && step.state !== state) {
         return refuse('set-by-person', `A person set "${step.id}" to ${step.state}; add a note or ask in the chat instead`);
     }
+
     return ALLOWED;
 }
 
@@ -42,15 +50,19 @@ function mayState(plan: Plan, step: PlanStep, state: PlanStepState, actor: PlanA
  */
 function mayHoldChildren(plan: Plan, under: string | undefined, after: string | undefined, added: readonly PlanChecks[]): PlanVerdict {
     const parent = under !== undefined ? locateItem(plan, under)?.item : after !== undefined ? locateItem(plan, after)?.parent : null;
+
     if (parent?.type !== 'step') {
         return ALLOWED;
     }
+
     if (!isParentStep(parent) && holdsPersonState(parent)) {
         return refuse('set-by-person', `A person set "${parent.id}" to ${parent.state}; a sub-step would take that state away`);
     }
+
     if (effectiveChecks(plan, parent) === 'person' && added.some((checks) => checks !== 'person')) {
         return refuse('person-only', `Only a person checks "${parent.id}", so a sub-step under it is one a person checks too`);
     }
+
     return ALLOWED;
 }
 
@@ -63,79 +75,102 @@ export function canApply(op: PlanOp, actor: PlanActor, plan: Plan): PlanVerdict 
     if (!(actor === 'person' ? PERSON_OPS : AGENT_OPS).has(op.op)) {
         return refuse('op-not-allowed', actor === 'person' ? `A person cannot ${op.op} in a plan` : `An agent cannot ${op.op} a plan`);
     }
+
     switch (op.op) {
         case 'set': {
             if (op.next !== undefined && actor === 'person') {
                 return refuse('op-not-allowed', 'Only the agent moves on to a next step');
             }
+
             const targets: [string, PlanStepState][] = op.ids.map((id) => [id, op.state]);
+
             if (op.next !== undefined) {
                 targets.push([op.next, 'active']);
             }
+
             for (const [id, state] of targets) {
                 const step = stepFor(plan, id, true);
+
                 if ('ok' in step) {
                     return step;
                 }
+
                 const verdict = mayState(plan, step, state, actor);
+
                 if (!verdict.ok) {
                     return verdict;
                 }
             }
+
             return ALLOWED;
         }
         case 'note': {
             const step = stepFor(plan, op.id, false);
+
             return 'ok' in step ? step : ALLOWED;
         }
         case 'unlock': {
             if (op.ids === 'all') {
                 return ALLOWED;
             }
+
             for (const id of op.ids) {
                 const step = stepFor(plan, id, false);
+
                 if ('ok' in step) {
                     return step;
                 }
             }
+
             return ALLOWED;
         }
         case 'add':
             return mayHoldChildren(plan, op.under, op.after, op.type === 'step' ? [op.checks ?? plan.meta.checks] : []);
         case 'edit': {
             const location = locateItem(plan, op.id);
+
             if (!location) {
                 return missingItem(op.id);
             }
+
             const item = location.item;
+
             if (item.type !== 'step') {
                 return ALLOWED;
             }
+
             // A new title would make a person's check or stamp stand for something they never saw.
             if (op.title !== undefined && op.title !== item.title) {
                 if (holdsPersonState(item)) {
                     return refuse('set-by-person', `A person checked "${op.id}" or a step under it, so its title stays`);
                 }
+
                 if (effectiveChecks(plan, item) === 'person') {
                     return refuse('person-only', `Only a person checks "${op.id}", so its title stays`);
                 }
             }
+
             if (op.checks === undefined) {
                 return ALLOWED;
             }
+
             if (item.unlocked && op.checks !== 'anyone') {
                 return refuse('unlocked-by-person', `A person unlocked "${op.id}", so anyone checks it`);
             }
+
             if (effectiveChecks(plan, item) === 'person' && op.checks !== 'person') {
                 return refuse('person-only', `Only a person checks "${op.id}", and that stays so`);
             }
+
             return ALLOWED;
         }
         case 'move': {
             const location = locateItem(plan, op.id);
+
             if (!location) {
                 return missingItem(op.id);
             }
+
             return mayHoldChildren(
                 plan,
                 op.under,
@@ -145,22 +180,28 @@ export function canApply(op: PlanOp, actor: PlanActor, plan: Plan): PlanVerdict 
         }
         case 'remove': {
             const location = locateItem(plan, op.id);
+
             if (!location) {
                 return missingItem(op.id);
             }
+
             if (holdsPersonState(location.item)) {
                 return refuse('set-by-person', `A person checked "${op.id}" or a step under it, so it stays`);
             }
+
             if (allSteps([location.item]).some((step) => effectiveChecks(plan, step) === 'person')) {
                 return refuse('person-only', `Only a person checks "${op.id}" or a step under it, so it stays`);
             }
+
             return ALLOWED;
         }
         case 'meta': {
             const inherits = allSteps(plan.items).some((step) => step.checks === undefined && !step.unlocked);
+
             if (op.checks !== undefined && op.checks !== 'person' && plan.meta.checks === 'person' && inherits) {
                 return refuse('person-only', 'Only a person checks the steps of this plan, and that stays so');
             }
+
             return ALLOWED;
         }
     }

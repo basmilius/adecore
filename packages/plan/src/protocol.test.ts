@@ -97,9 +97,11 @@ describe('operation and draft schemas', () => {
             { op: 'remove', id: 'confirm' },
             { op: 'meta', summary: '', status: '' }
         ];
+
         for (const operation of operations) {
             expect(PlanOpSchema.parse(operation)).toEqual(operation);
         }
+
         expect(PlanPersonOpSchema.safeParse(operations[4]).success).toBe(false);
         expect(PlanPersonOpSchema.parse(operations[2])).toEqual({ op: 'unlock', ids: 'all' });
         expect(PlanOpSchema.safeParse({ op: 'set', ids: [], state: 'done' }).success).toBe(false);
@@ -123,10 +125,13 @@ describe('operation and draft schemas', () => {
                 meta: { title: 'New' }
             }
         );
+
         expect(result.ok).toBe(true);
+
         if (!result.ok) {
             throw new Error(result.message);
         }
+
         expect(result.plan).toEqual({
             id: 'new-plan',
             rev: 0,

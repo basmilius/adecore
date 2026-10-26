@@ -51,37 +51,48 @@ function dropEscape(line: string): string {
  */
 export function planToMarkdown(plan: Plan): string {
     const blocks: string[] = [`# ${plan.meta.title}`];
+
     if (plan.meta.summary) {
         blocks.push(escapeText(plan.meta.summary));
     }
+
     const stepLines = (step: PlanStep, depth: number): string[] => {
         const indent = INDENT.repeat(depth);
         const inner = INDENT.repeat(depth + 1);
         const lines = [`${indent}- ${PLAN_STATE_MARKERS[stepState(step)]} ${step.title}`];
+
         for (const line of step.description?.split('\n') ?? []) {
             lines.push(line === '' ? '' : `${inner}${escapeLine(line)}`);
         }
+
         for (const line of step.note?.split('\n') ?? []) {
             lines.push(`${inner}> ${line}`);
         }
+
         for (const child of step.steps ?? []) {
             lines.push(...stepLines(child, depth + 1));
         }
+
         return lines;
     };
+
     const textBlock = (item: Extract<PlanItem, { type: 'text' }>): string => {
         const [first = '', ...rest] = item.description?.split('\n') ?? [];
+
         return [`> **${escapeBold(item.title)}**${first ? ` ${first}` : ''}`, ...rest.map((line) => `> ${escapeQuoted(line)}`)].join('\n');
     };
+
     const itemBlocks = (items: readonly PlanItem[]): string[] => {
         const result: string[] = [];
         let list: string[] = [];
+
         const flush = (): void => {
             if (list.length > 0) {
                 result.push(list.join('\n'));
                 list = [];
             }
         };
+
         for (const item of items) {
             if (item.type === 'step') {
                 list.push(...stepLines(item, 0));
@@ -90,11 +101,15 @@ export function planToMarkdown(plan: Plan): string {
                 result.push(textBlock(item));
             }
         }
+
         flush();
+
         return result;
     };
+
     let inSection = false;
     let loose: PlanItem[] = [];
+
     const flushLoose = (): void => {
         if (loose.length > 0) {
             // Only a rule brings the items after a section back to the top of the plan.
@@ -102,29 +117,38 @@ export function planToMarkdown(plan: Plan): string {
                 blocks.push('---');
                 inSection = false;
             }
+
             blocks.push(...itemBlocks(loose));
             loose = [];
         }
     };
+
     for (const item of plan.items) {
         if (item.type !== 'section') {
             loose.push(item);
+
             continue;
         }
+
         flushLoose();
         blocks.push(`## ${item.title}`);
+
         if (item.description) {
             blocks.push(escapeText(item.description));
         }
+
         blocks.push(...itemBlocks(item.items));
         inSection = true;
     }
+
     flushLoose();
+
     return `${blocks.join('\n\n')}\n`;
 }
 
 function indentOf(line: string): number {
     let width = 0;
+
     for (const char of line) {
         if (char === ' ') {
             width++;
@@ -134,6 +158,7 @@ function indentOf(line: string): number {
             break;
         }
     }
+
     return width;
 }
 
@@ -153,37 +178,50 @@ export function parsePlanMarkdown(markdown: string): { ok: true; draft: PlanDraf
     // The text the last line of prose went on and the blank lines since, so a paragraph break inside it stays.
     let continuing: object | null = null;
     let blanks = 0;
+
     const container = (): PlanDraftItem[] => (section ? section.items : draft.items) as PlanDraftItem[];
+
     const popTo = (indent: number): void => {
         while ((stack.at(-1)?.indent ?? -1) >= indent) {
             stack.pop();
         }
     };
+
     const lines = markdown.replace(/\r\n?/g, '\n').split('\n');
+
     for (let index = 0; index < lines.length; index++) {
         const raw = lines[index]!.trimEnd();
         const content = raw.trim();
         const indent = indentOf(raw);
+
         const invalid = (message: string): PlanRefusal => refuse('plan-invalid', `Line ${index + 1}: ${message}`);
+
         if (content === '') {
             text = null;
             blanks++;
+
             continue;
         }
+
         const previous = continuing;
         const gap = blanks;
         continuing = null;
         blanks = 0;
+
         const blanksBefore = (target: object): number => {
             continuing = target;
+
             return previous === target ? gap : 0;
         };
+
         const plain = dropEscape(content);
         const heading = /^(#{1,6})\s+(.*)$/.exec(content);
+
         if (heading && indent < 4) {
             text = null;
             stack = [];
             const title = heading[2]!.trim();
+
             if (heading[1] === '#' && draft.meta?.title === undefined && draft.items.length === 0 && !section) {
                 draft.meta = { ...draft.meta, title };
             } else if (heading[1] === '##') {
@@ -192,52 +230,70 @@ export function parsePlanMarkdown(markdown: string): { ok: true; draft: PlanDraf
             } else {
                 return invalid('only one "#" title before everything else and "##" sections are headings in a plan');
             }
+
             continue;
         }
+
         if (/^(-{3,}|\*{3,}|_{3,})$/.test(content) && indent < 4) {
             section = null;
             stack = [];
             text = null;
+
             continue;
         }
+
         const item = /^[-*+]\s+(?:\[(.)\]\s+)?(.*)$/.exec(content);
+
         if (item) {
             text = null;
             const marker = item[1];
+
             if (marker !== undefined && !(marker in MARKER_STATES)) {
                 return invalid(`"[${marker}]" is not a step marker`);
             }
+
             const title = item[2]!.trim();
+
             if (title === '') {
                 return invalid('a step needs a title');
             }
+
             const state = marker === undefined ? undefined : MARKER_STATES[marker];
             const step: PlanDraftStep = { type: 'step', title, ...(state ? { state } : {}) };
             popTo(indent);
             const parent = stack.at(-1)?.step;
+
             if (parent) {
                 parent.steps ??= [];
                 parent.steps.push(step);
             } else {
                 container().push(step);
             }
+
             stack.push({ indent, step });
+
             continue;
         }
+
         const quote = /^>\s?(.*)$/.exec(content);
         popTo(indent);
         const owner = stack.at(-1)?.step;
+
         if (owner && indent > 0) {
             if (quote) {
                 owner.note = appendLine(owner.note, quote[1]!);
             } else {
                 owner.description = appendLine(owner.description, plain, blanksBefore(owner));
             }
+
             continue;
         }
+
         stack = [];
+
         if (quote) {
             const titled = /^\*\*((?:\\.|[^\\])+?)\*\*\s*(.*)$/.exec(quote[1]!.trim());
+
             if (titled) {
                 const title = titled[1]!.trim().replace(/\\([\\*])/g, '$1');
                 text = { type: 'text', title, ...(titled[2] ? { description: titled[2] } : {}) };
@@ -247,18 +303,25 @@ export function parsePlanMarkdown(markdown: string): { ok: true; draft: PlanDraf
             } else {
                 return invalid('a text block starts with a bold title: > **Title** description');
             }
+
             continue;
         }
+
         if (!section && draft.items.length === 0) {
             draft.meta = { ...draft.meta, summary: appendLine(draft.meta?.summary, plain, blanksBefore(draft)) };
+
             continue;
         }
+
         if (section && section.items.length === 0) {
             section.description = appendLine(section.description, plain, blanksBefore(section));
+
             continue;
         }
+
         return invalid('this line is not a step, a section, a text block or a description');
     }
+
     // A parent's state follows from its children, so a marker on it says nothing.
     const clearParents = (items: readonly PlanDraftItem[]): void => {
         for (const entry of items) {
@@ -270,6 +333,8 @@ export function parsePlanMarkdown(markdown: string): { ok: true; draft: PlanDraf
             }
         }
     };
+
     clearParents(draft.items);
+
     return { ok: true, draft };
 }
