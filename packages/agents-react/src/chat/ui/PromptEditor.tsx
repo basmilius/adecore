@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, type SetStateAction } from 'react';
 import clsx from 'clsx';
+import { Surface } from '@adecore/ui';
 import type { ChatSkill } from '@adecore/agent-contracts';
 import type { Referables } from '../chat-references';
 import { ComposerInput, type ComposerInputHandle } from './ComposerInput';
@@ -96,27 +97,34 @@ export function PromptEditor({
     };
 
     return (
-        <div className={clsx('field h-auto overflow-hidden p-0 focus-ring-within', className)}>
-            <ComposerMenu menus={menus} />
-            <ComposerInput
-                ref={inputRef}
-                dictationToolbar={null}
-                className="composer-input prompt-editor select-text text-sm leading-normal text-text"
-                value={value.text}
-                placeholder={placeholder}
-                disabled={disabled}
-                tabbable
-                extensions={extensions}
-                aria={menus.inputAria}
-                onChange={(text, selection, state) => {
-                    setText(text);
-                    menus.setMenuIndex(0);
-                    menus.trackTriggers(text, selection, state);
-                }}
-                onSelectionChange={menus.trackTriggers}
-                onBlur={menus.close}
-                onKeyDown={onKeyDown}
-            />
+        <div className={clsx('relative', className)}>
+            {/* Over the form under the field, not inside it, so what a person types never moves while the picker opens and closes. */}
+            {menus.menuOpen && (
+                <Surface className="absolute inset-x-0 top-full z-50 mt-1 overflow-hidden rounded-lg bg-clip-padding *:border-b-0">
+                    <ComposerMenu menus={menus} />
+                </Surface>
+            )}
+            <div className="field h-auto overflow-hidden p-0 focus-ring-within">
+                <ComposerInput
+                    ref={inputRef}
+                    dictationToolbar={null}
+                    className="composer-input prompt-editor select-text text-sm leading-normal text-text"
+                    value={value.text}
+                    placeholder={placeholder}
+                    disabled={disabled}
+                    tabbable
+                    extensions={extensions}
+                    aria={menus.inputAria}
+                    onChange={(text, selection, state) => {
+                        setText(text);
+                        menus.setMenuIndex(0);
+                        menus.trackTriggers(text, selection, state);
+                    }}
+                    onSelectionChange={menus.trackTriggers}
+                    onBlur={menus.close}
+                    onKeyDown={onKeyDown}
+                />
+            </div>
         </div>
     );
 }
