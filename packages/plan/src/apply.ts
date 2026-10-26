@@ -87,14 +87,13 @@ function setState(step: PlanStep, state: PlanStepState, actor: PlanActor, now: s
     if (actor === 'agent' && step.by === 'person' && step.state === state) {
         return;
     }
+    step.state = state;
     // A person taking a mark away leaves nothing an agent has to respect, so a mis-click never locks the agent out.
     if (actor === 'person' && state === 'open') {
-        step.state = state;
         delete step.by;
         delete step.at;
         return;
     }
-    step.state = state;
     step.by = actor;
     step.at = now;
 }
@@ -212,7 +211,7 @@ function applyOne(plan: Plan, op: PlanOp, options: PlanApplyOptions, mint: () =>
             setNote(stepAt(op.id), op.text);
             return null;
         case 'unlock': {
-            const roots = op.ids === 'all' ? plan.items : op.ids.map((id) => stepAt(id));
+            const roots = op.ids === 'all' ? plan.items : op.ids.map(stepAt);
             for (const step of allSteps(roots)) {
                 if (effectiveChecks(plan, step) === 'agent') {
                     step.unlocked = true;

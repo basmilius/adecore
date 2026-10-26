@@ -155,7 +155,7 @@ export function parsePlanMarkdown(markdown: string): { ok: true; draft: PlanDraf
     let blanks = 0;
     const container = (): PlanDraftItem[] => (section ? section.items : draft.items) as PlanDraftItem[];
     const popTo = (indent: number): void => {
-        while (stack.length > 0 && stack[stack.length - 1]!.indent >= indent) {
+        while ((stack.at(-1)?.indent ?? -1) >= indent) {
             stack.pop();
         }
     };
@@ -214,7 +214,7 @@ export function parsePlanMarkdown(markdown: string): { ok: true; draft: PlanDraf
             const state = marker === undefined ? undefined : MARKER_STATES[marker];
             const step: PlanDraftStep = { type: 'step', title, ...(state ? { state } : {}) };
             popTo(indent);
-            const parent = stack[stack.length - 1]?.step;
+            const parent = stack.at(-1)?.step;
             if (parent) {
                 parent.steps ??= [];
                 parent.steps.push(step);
@@ -226,7 +226,7 @@ export function parsePlanMarkdown(markdown: string): { ok: true; draft: PlanDraf
         }
         const quote = /^>\s?(.*)$/.exec(content);
         popTo(indent);
-        const owner = stack[stack.length - 1]?.step;
+        const owner = stack.at(-1)?.step;
         if (owner && indent > 0) {
             if (quote) {
                 owner.note = appendLine(owner.note, quote[1]!);

@@ -44,16 +44,14 @@ function counter(progress: PlanProgress): string {
 export function progressText(plan: Pick<Plan, 'meta' | 'items'>): string {
     const progress = planProgress(plan.items);
     const extra = (count: number, label: string): string[] => (count > 0 ? [`${count} ${label}`] : []);
-    const warnings = progress.warning === 1 ? 'warning' : 'warnings';
+    const unfinished = [...extra(progress.failed, 'failed'), ...extra(progress.skipped, 'skipped'), ...extra(progress.blocked, 'blocked')];
     if (plan.meta.kind === 'test') {
         return [
             `${progress.finished} of ${progress.total} run`,
             `${progress.done} passed`,
-            ...extra(progress.warning, warnings),
+            ...extra(progress.warning, progress.warning === 1 ? 'warning' : 'warnings'),
             ...extra(progress.info, 'info'),
-            ...extra(progress.failed, 'failed'),
-            ...extra(progress.skipped, 'skipped'),
-            ...extra(progress.blocked, 'blocked')
+            ...unfinished
         ].join(', ');
     }
     // In a steps plan a warning or info is still done; the extras say which of the done steps to read.
@@ -61,9 +59,7 @@ export function progressText(plan: Pick<Plan, 'meta' | 'items'>): string {
         `${progress.done + progress.warning + progress.info} of ${progress.total} done`,
         ...extra(progress.warning, `with ${progress.warning === 1 ? 'a warning' : 'warnings'}`),
         ...extra(progress.info, 'with info'),
-        ...extra(progress.failed, 'failed'),
-        ...extra(progress.skipped, 'skipped'),
-        ...extra(progress.blocked, 'blocked')
+        ...unfinished
     ].join(', ');
 }
 
@@ -90,7 +86,7 @@ export function renderPlanText(plan: Plan, options: PlanTextOptions = {}): strin
     if (active.length > 0) {
         second.push(`Now: ${active.map((step) => `"${step.title}" [${step.id}]`).join(', ')}`);
     }
-    if (options.others && options.others.length > 0) {
+    if (options.others?.length) {
         const others = options.others.map((other) => `${other.id} "${other.meta.title}" (${other.meta.kind}, ${counter(planProgress(other.items))})`);
         second.push(`Also in this chat: ${others.join(', ')}`);
     }
