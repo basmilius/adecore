@@ -230,8 +230,7 @@ class SmartEditor implements Editor {
             return;
         }
         this.caretOffset = head;
-        const position = this.positionAt(head);
-        emit(this.carets, position);
+        emit(this.carets, this.positionAt(head));
     }
 
     getCaret(): EditorPosition {
@@ -607,13 +606,7 @@ class SmartEditor implements Editor {
     }
 
     private blockedByReadOnly(): boolean {
-        if (!this.settings.readOnly) {
-            return false;
-        }
-        if (this.settings.readOnlyReason) {
-            this.view.notify(this.settings.readOnlyReason);
-        }
-        return true;
+        return this.view.blockedByReadOnly();
     }
 
     onFind(listener: (state: EditorFindState) => void): () => void {

@@ -395,7 +395,6 @@ export interface LayoutConfig {
     replacements?: readonly BlockReplacement[];
 }
 
-/* Lines `first` through `last`, both included. */
 interface LineRange {
     first: number;
     last: number;
@@ -655,7 +654,12 @@ export class EditorLayout {
         for (const block of this.blocks) {
             const line = this.document.positionAt(block.at).line;
             const target = block.placement === 'above' ? above : below;
-            target.set(line, [...(target.get(line) ?? []), block]);
+            const list = target.get(line);
+            if (list === undefined) {
+                target.set(line, [block]);
+            } else {
+                list.push(block);
+            }
         }
         const folds = new Map<number, FoldState>();
         for (const fold of this.folds) {
@@ -952,7 +956,6 @@ export class EditorLayout {
         return this.rows[this.lineRows[Math.max(0, Math.min(this.lineRows.length - 1, line))]!]!;
     }
 
-    /* Whether a fold hides the line. */
     isHidden(line: number): boolean {
         const row = this.rowForLine(line);
         return row.kind === 'text' && line > row.line && line <= row.lastLine;

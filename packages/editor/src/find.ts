@@ -402,14 +402,7 @@ export class FindController {
                         }
                         this.pendingAnchor = undefined;
                         this.pendingStep = undefined;
-                        this.failed =
-                            error instanceof EditorSearchError
-                                ? error.kind === 'syntax'
-                                    ? 'invalid'
-                                    : error.kind === 'timeout' || error.kind === 'unavailable'
-                                      ? error.kind
-                                      : 'error'
-                                : 'error';
+                        this.failed = searchFailure(error);
                         this.regexCache = { revision, key, complete: false };
                         this.options?.changed();
                     });
@@ -594,8 +587,8 @@ export class FindController {
     }
 
     async replaceOne(replacement: string, preserveCase: boolean, canApply: () => boolean): Promise<boolean> {
-        const query = this.query,
-            mark = this.currentMark;
+        const query = this.query;
+        const mark = this.currentMark;
         if (query === null || mark === null || this.search === undefined || !canApply()) {
             return false;
         }
@@ -640,8 +633,7 @@ export class FindController {
             return changed;
         } catch (error) {
             if (valid()) {
-                const failure = searchFailure(error);
-                this.reportReplaceFailed(error instanceof EditorSearchError && error.kind === 'range' ? 'limit' : failure === 'invalid' ? 'error' : failure);
+                this.reportReplaceFailed(replaceFailure(error));
             }
             return false;
         } finally {
@@ -699,8 +691,7 @@ export class FindController {
             return count;
         } catch (error) {
             if (!this.disposed && epoch === this.epoch) {
-                const failure = searchFailure(error);
-                this.replaceFailed = error instanceof EditorSearchError && error.kind === 'range' ? 'limit' : failure === 'invalid' ? 'error' : failure;
+                this.replaceFailed = replaceFailure(error);
             }
             return 0;
         } finally {
@@ -726,4 +717,12 @@ function searchFailure(error: unknown): NonNullable<EditorFindState['failed']> {
               ? error.kind
               : 'error'
         : 'error';
+}
+
+function replaceFailure(error: unknown): NonNullable<EditorFindState['replaceFailed']> {
+    if (error instanceof EditorSearchError && error.kind === 'range') {
+        return 'limit';
+    }
+    const failure = searchFailure(error);
+    return failure === 'invalid' ? 'error' : failure;
 }

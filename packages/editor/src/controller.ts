@@ -119,6 +119,10 @@ export class InputController {
         this.options = options;
         this.gesture = new DoubleModifierGesture(options.apple ? 'Alt' : 'Control');
         const { model, input, viewport } = view;
+        const lineAt = (offset: number): { from: number; to: number } => {
+            const row = view.layout.rowForLine(model.positionAt(offset).line);
+            return row.kind === 'text' ? { from: model.getLine(row.line).start, to: model.getLine(row.lastLine).next } : { from: offset, to: offset };
+        };
         this.native = new NativeInput(input, model, {
             readOnly: () => view.settings.readOnly,
             replace: (text) => this.replaceSelections(text),
@@ -141,10 +145,7 @@ export class InputController {
             contentPoint: (x, y) => view.contentPoint(x, y),
             columnSelections: (from, to) => (sameCell(view.layout, from, to) ? null : columnSelections(view.layout, from, to)),
             visualLine: (offset) => view.layout.visualLine(offset),
-            lineAt: (offset) => {
-                const row = view.layout.rowForLine(model.positionAt(offset).line);
-                return row.kind === 'text' ? { from: model.getLine(row.line).start, to: model.getLine(row.lastLine).next } : { from: offset, to: offset };
-            },
+            lineAt,
             camelHumps: () => view.settings.smartKeys.camelHumps,
             columnMode: () => view.columnMode,
             selectionAt: (x, y) => (view.settings.readOnly ? null : view.selectionAtPoint(x, y)),
@@ -158,10 +159,7 @@ export class InputController {
             model,
             offsetAt: (x, y) => view.offsetAtPoint(x, y),
             camelHumps: () => view.settings.smartKeys.camelHumps,
-            lineAt: (offset) => {
-                const row = view.layout.rowForLine(model.positionAt(offset).line);
-                return row.kind === 'text' ? { from: model.getLine(row.line).start, to: model.getLine(row.lastLine).next } : { from: offset, to: offset };
-            },
+            lineAt,
             focus: () => view.focus()
         });
         this.subscription = model.subscribe(() => {
@@ -272,15 +270,8 @@ export class InputController {
         this.keyHandlers.clear();
     }
 
-    /* Tells a person why nothing happened, when the editor is read only and has said why. */
     private blockedByReadOnly(): boolean {
-        if (!this.view.settings.readOnly) {
-            return false;
-        }
-        if (this.view.settings.readOnlyReason) {
-            this.view.notify(this.view.settings.readOnlyReason);
-        }
-        return true;
+        return this.view.blockedByReadOnly();
     }
 
     private inputGroup(): string {
@@ -304,24 +295,25 @@ export class InputController {
             return;
         }
         const { model } = this.view;
-        for (const selection of model.getSelections()) {
-            this.view.ensureVisible(selection.head);
-        }
+        this.unfoldCarets();
         const replacement = replacementEdits(model.getSelections(), this.native.normalizeNewlines(text));
         this.applyEdits(replacement.edits, replacement.selections);
         this.view.revealCaret();
+    }
+
+    private unfoldCarets(): void {
+        for (const selection of this.view.model.getSelections()) {
+            this.view.ensureVisible(selection.head);
+        }
     }
 
     private paste(text: string): void {
         if (this.blockedByReadOnly()) {
             return;
         }
-        const { model } = this.view;
-        for (const selection of model.getSelections()) {
-            this.view.ensureVisible(selection.head);
-        }
+        this.unfoldCarets();
         this.historyGroup++;
-        model.paste(this.native.normalizeNewlines(text), { ...this.commandOptions(), wholeLines: text !== '' && text === lineClip });
+        this.view.model.paste(this.native.normalizeNewlines(text), { ...this.commandOptions(), wholeLines: text !== '' && text === lineClip });
         this.historyGroup++;
         this.view.revealCaret();
     }
@@ -402,7 +394,7 @@ export class InputController {
             return { line, character: column };
         });
         const chains = await provider(asked).catch(() => null);
-        if (model.getRevision() !== revision || JSON.stringify(model.getSelections()) !== JSON.stringify(selections)) {
+        if (model.getRevision() !== revision || selectionSignature(model.getSelections()) !== selectionSignature(selections)) {
             return;
         }
         if (chains === null) {
@@ -462,9 +454,7 @@ export class InputController {
         if (this.blockedByReadOnly()) {
             return;
         }
-        for (const selection of this.view.model.getSelections()) {
-            this.view.ensureVisible(selection.head);
-        }
+        this.unfoldCarets();
         // Every key goes through the model, which decides by the key before it too, as for the arrow of PHP.
         if (text.length === 1) {
             this.view.model.typeText(text, { ...this.commandOptions(), historyGroup: this.inputGroup() });

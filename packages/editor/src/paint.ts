@@ -295,7 +295,7 @@ export class RowPainter {
             chip.className = 'se-fold-chip';
             chip.textContent = '…';
             chip.tabIndex = -1;
-            const chipLeft = geometry.rowEnds[geometry.rowEnds.length - 1]! + FOLD_GAP;
+            const chipLeft = geometry.rowEnds.at(-1)! + FOLD_GAP;
             const chipWidth = Math.ceil(this.layout.metrics.charWidth) + FOLD_CHIP_PADDING;
             chip.style.left = `${chipLeft}px`;
             chip.style.top = `${(geometry.subRows - 1) * lineHeight}px`;
@@ -341,8 +341,7 @@ export class RowPainter {
             }
             replacement.render(element);
             this.code.append(element);
-            entry = { element, text: '', tokens: null, layoutVersion: 0, whitespace: false, folded: false, tail: '', tailTokens: null, revision };
-            this.rows.set(row.key, entry);
+            entry = this.hostEntry(row.key, element, revision);
         } else if (entry.revision !== revision) {
             entry.element.replaceChildren();
             replacement.render(entry.element);
@@ -352,10 +351,21 @@ export class RowPainter {
         entry.element.style.top = `${row.top}px`;
         entry.element.style.left = `${indent}px`;
         entry.element.style.width = `${Math.max(80, paint.viewportWidth - indent)}px`;
-        entry.element.style.height = '';
-        this.observer?.observe(entry.element);
-        const height = entry.element.getBoundingClientRect?.().height ?? 0;
-        return height > 0 && this.layout.setMeasuredHeight(row.key, height);
+        return this.measure(row.key, entry.element);
+    }
+
+    private hostEntry(key: string, element: HTMLElement, revision: number): PaintedRow {
+        const entry = { element, text: '', tokens: null, layoutVersion: 0, whitespace: false, folded: false, tail: '', tailTokens: null, revision };
+        this.rows.set(key, entry);
+        return entry;
+    }
+
+    /* Lets the host's content set the height, and returns whether that moved the layout. */
+    private measure(key: string, element: HTMLElement): boolean {
+        element.style.height = '';
+        this.observer?.observe(element);
+        const height = element.getBoundingClientRect?.().height ?? 0;
+        return height > 0 && this.layout.setMeasuredHeight(key, height);
     }
 
     private paintBlock(row: Extract<LayoutRow, { kind: 'block' }>, paint: RowPaint): boolean {
@@ -372,8 +382,7 @@ export class RowPainter {
             if (!widget.lens && !widget.fixed) {
                 this.observer?.observe(element);
             }
-            entry = { element, text: '', tokens: null, layoutVersion: 0, whitespace: false, folded: false, tail: '', tailTokens: null, revision };
-            this.rows.set(row.key, entry);
+            entry = this.hostEntry(row.key, element, revision);
         } else if (entry.revision !== revision) {
             entry.element.replaceChildren();
             this.fillBlock(entry.element, widget);
@@ -396,10 +405,7 @@ export class RowPainter {
             entry.element.style.height = `${row.height}px`;
             return false;
         }
-        entry.element.style.height = '';
-        this.observer?.observe(entry.element);
-        const height = entry.element.getBoundingClientRect?.().height ?? 0;
-        return height > 0 && this.layout.setMeasuredHeight(row.key, height);
+        return this.measure(row.key, entry.element);
     }
 
     private fillBlock(element: HTMLElement, widget: BlockWidget): void {
@@ -505,15 +511,14 @@ export function paintGutter(container: HTMLElement, layout: EditorLayout, rows: 
             }
             item.append(button);
         }
-        const sign = paint.highlights.get(row.line)?.sign;
-        if (sign) {
+        if (highlight?.sign) {
             const mark = document.createElement('span');
             mark.className = 'se-line-sign';
-            mark.textContent = sign;
+            mark.textContent = highlight.sign;
             if (label !== null) {
                 mark.setAttribute('aria-hidden', 'true');
             }
-            mark.style.color = colorValue(paint.highlights.get(row.line)!.color);
+            mark.style.color = colorValue(highlight.color);
             item.append(mark);
         }
         if (highlight?.bar !== undefined) {
@@ -604,7 +609,6 @@ export function paintOver(container: HTMLElement, layers: readonly { className: 
     container.replaceChildren(fragment);
 }
 
-/* The carets, above the text. */
 export function paintCarets(container: HTMLElement, carets: readonly (LayoutRect & { primary: boolean; drop?: boolean })[]): void {
     const document = container.ownerDocument;
     container.replaceChildren(
@@ -709,14 +713,15 @@ function appendTabSigns(element: HTMLElement, geometry: LineGeometry, lineHeight
         if (geometry.text[offsetOfStop(geometry, stop)] !== '\t') {
             continue;
         }
+        const row = rowOfStop(geometry, stop);
         const left = xOfStop(geometry, stop);
-        const right = rowOfStop(geometry, stop + 1) === rowOfStop(geometry, stop) ? xOfStop(geometry, stop + 1) : geometry.rowEnds[rowOfStop(geometry, stop)]!;
+        const right = rowOfStop(geometry, stop + 1) === row ? xOfStop(geometry, stop + 1) : geometry.rowEnds[row]!;
         if (right - left < 3) {
             continue;
         }
         const sign = arrowSign(document, right - left - 2, lineHeight, 'se-tab-sign');
         sign.style.left = `${left + 1}px`;
-        sign.style.top = `${rowOfStop(geometry, stop) * lineHeight}px`;
+        sign.style.top = `${row * lineHeight}px`;
         element.append(sign);
     }
 }

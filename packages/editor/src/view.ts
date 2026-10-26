@@ -76,6 +76,10 @@ function sameRect(left: EditorRect, right: EditorRect): boolean {
     return left.left === right.left && left.top === right.top && left.right === right.right && left.bottom === right.bottom;
 }
 
+function closestElement(target: EventTarget | null, selector: string): HTMLElement | null {
+    return (target as HTMLElement | null)?.closest?.<HTMLElement>(selector) ?? null;
+}
+
 function mapRange<Range extends { from: number; to: number }>(range: Range, map: (offset: number) => number): Range {
     return { ...range, from: map(range.from), to: map(range.to) };
 }
@@ -599,8 +603,7 @@ export class EditorView {
                 continue;
             }
             const line = this.model.positionAt(token.from).line;
-            const start = this.model.getLine(line).start;
-            const end = this.model.getLine(line).end;
+            const { start, end } = this.model.getLine(line);
             if (token.to > end) {
                 continue;
             }
@@ -634,6 +637,17 @@ export class EditorView {
         this.noticeTimer = setTimeout(() => {
             this.notice.hidden = true;
         }, NOTICE_MS);
+    }
+
+    /* Tells a person why nothing happened, when the editor is read only and has said why. */
+    blockedByReadOnly(): boolean {
+        if (!this.settings.readOnly) {
+            return false;
+        }
+        if (this.settings.readOnlyReason) {
+            this.notify(this.settings.readOnlyReason);
+        }
+        return true;
     }
 
     private foldName(line: number, collapsed: boolean): string {
@@ -1323,17 +1337,17 @@ export class EditorView {
         }
     }
 
-    private bracketAt(from: number, to: number, head: number): number | undefined {
-        if (to - from > 1) {
+    private bracketAt({ anchor, head }: EditorSelection): number | undefined {
+        if (Math.abs(head - anchor) > 1) {
             return undefined;
         }
-        const candidates = from !== to ? [from] : [head, head - 1];
+        const candidates = anchor !== head ? [Math.min(anchor, head)] : [head, head - 1];
         return candidates.find((at) => at >= 0 && /[()[\]{}]/.test(this.model.slice(at, at + 1)));
     }
 
     /* The offset a bracket at the caret pairs with, if it is one. */
     matchingBracket(selection: { anchor: number; head: number }): { at: number; mate: number | undefined } | null {
-        const at = this.bracketAt(Math.min(selection.anchor, selection.head), Math.max(selection.anchor, selection.head), selection.head);
+        const at = this.bracketAt(selection);
         return at === undefined ? null : { at, mate: this.model.matchBracket(at, this.settings.language)?.mate };
     }
 
@@ -1386,7 +1400,7 @@ export class EditorView {
 
     /* The offset of the character under a point of the page, or null over anything that is not text. */
     characterAtPoint(clientX: number, clientY: number, target: EventTarget | null): number | null {
-        if ((target as HTMLElement | null)?.closest?.('.se-inlay, .se-block, .se-line-action, .se-gutter, .se-sticky, .se-fold-chip, .se-overview')) {
+        if (closestElement(target, '.se-inlay, .se-block, .se-line-action, .se-gutter, .se-sticky, .se-fold-chip, .se-overview')) {
             return null;
         }
         const point = this.contentPoint(clientX, clientY);
@@ -1541,17 +1555,19 @@ export class EditorView {
         if (own !== null) {
             return own;
         }
+        return Math.min(this.nearestIndent(line, -1, GUIDE_SCAN_LINES), this.nearestIndent(line, 1, GUIDE_SCAN_LINES));
+    }
+
+    /* The indentation of the first line that is not blank within `reach` lines of `line` in `direction`, or 0. */
+    private nearestIndent(line: number, direction: -1 | 1, reach: number): number {
         const last = this.model.getLineCount() - 1;
-        const nearest = (direction: -1 | 1): number => {
-            for (let at = line + direction, steps = 0; at >= 0 && at <= last && steps < GUIDE_SCAN_LINES; at += direction, steps++) {
-                const indent = this.indentOf(at);
-                if (indent !== null) {
-                    return indent;
-                }
+        for (let at = line + direction, steps = 0; at >= 0 && at <= last && steps < reach; at += direction, steps++) {
+            const indent = this.indentOf(at);
+            if (indent !== null) {
+                return indent;
             }
-            return 0;
-        };
-        return Math.min(nearest(-1), nearest(1));
+        }
+        return 0;
     }
 
     /* The scope guide of the caret, worked out again only when the text or the caret's line is not the one it was for. */
@@ -1570,22 +1586,8 @@ export class EditorView {
         const indent = this.effectiveIndent(line);
         const count = this.model.getLineCount();
         const deeper = (at: number, column: number): boolean => at >= 0 && at < count && this.effectiveIndent(at) > column;
-        const next = (() => {
-            for (let at = line + 1; at < count && at < line + GUIDE_SCAN_LINES; at++) {
-                if (this.indentOf(at) !== null) {
-                    return this.indentOf(at)!;
-                }
-            }
-            return 0;
-        })();
-        const previous = (() => {
-            for (let at = line - 1; at >= 0 && at > line - GUIDE_SCAN_LINES; at--) {
-                if (this.indentOf(at) !== null) {
-                    return this.indentOf(at)!;
-                }
-            }
-            return 0;
-        })();
+        const next = this.nearestIndent(line, 1, GUIDE_SCAN_LINES - 1);
+        const previous = this.nearestIndent(line, -1, GUIDE_SCAN_LINES - 1);
         // A line that opens a block, or closes one, is at the edge of its guide: the one that sits at its own indentation.
         const opens = indent % size === 0 && (next > indent || previous > indent) && this.indentOf(line) !== null;
         const column = opens ? indent : indent > 0 ? Math.ceil(indent / size - 1) * size : -1;
@@ -1711,7 +1713,7 @@ export class EditorView {
 
     /* The hint, and the part of its label, an event happened on, or null anywhere else. */
     inlayAt(target: EventTarget | null): { id: string; part: number | null; element: HTMLElement } | null {
-        const element = (target as HTMLElement | null)?.closest?.<HTMLElement>('.se-inlay');
+        const element = closestElement(target, '.se-inlay');
         if (!element?.dataset.inlayId) {
             return null;
         }
@@ -2110,13 +2112,13 @@ export class EditorView {
         const lastRow = rows.at(-1);
         const firstLine = rows[0]?.line ?? 0;
         const lastLine = lastRow?.kind === 'text' ? lastRow.lastLine : (lastRow?.line ?? 0);
-        const highlighted = this.highlightedLines(firstLine, lastLine);
+        const highlighted = this.runLines(this.highlights, firstLine, lastLine);
         const shownFrom = this.model.offsetAt({ line: firstLine, column: 0 });
         const shownTo = lastLine + 1 < this.model.getLineCount() ? this.model.offsetAt({ line: lastLine + 1, column: 0 }) : this.model.getLength();
         paintGutter(this.gutterLines, this.layout, rows, {
             lineNumber: (line) => this.lineNumberLabel(line),
-            changes: this.changedLines(rows),
-            attribution: this.attributedLines(firstLine, lastLine),
+            changes: this.changedLines(firstLine, lastLine),
+            attribution: this.runLines(this.attribution, firstLine, lastLine),
             highlights: highlighted,
             activeLines: new Set(
                 selections
@@ -2201,7 +2203,7 @@ export class EditorView {
             if (index < selections.length - 1 && (selection.head < visibleFrom - 1 || selection.head > visibleTo + 1)) {
                 continue;
             }
-            const at = this.bracketAt(Math.min(selection.anchor, selection.head), Math.max(selection.anchor, selection.head), selection.head);
+            const at = this.bracketAt(selection);
             if (at === undefined) {
                 continue;
             }
@@ -2224,10 +2226,8 @@ export class EditorView {
                 }
             }
         }
-        const selected = selections.flatMap((selection) =>
-            selection.anchor === selection.head
-                ? []
-                : this.paintRectangles(Math.min(selection.anchor, selection.head), Math.max(selection.anchor, selection.head), rows)
+        const selected = selections.flatMap(({ anchor, head }) =>
+            anchor === head ? [] : this.paintRectangles(Math.min(anchor, head), Math.max(anchor, head), rows)
         );
         paintOverlays(this.overlays, { currentLine, selections: selected, focused, marks });
         paintOver(this.over, [
@@ -2320,12 +2320,8 @@ export class EditorView {
         return this.changeCache;
     }
 
-    /* How each line on screen differs. */
-    private changedLines(rows: readonly LayoutRow[]): Map<number, EditorChangeKind> {
+    private changedLines(first: number, last: number): Map<number, EditorChangeKind> {
         const { lines } = this.resolvedChanges();
-        const first = rows[0]?.line ?? 0;
-        const lastRow = rows.at(-1);
-        const last = lastRow?.kind === 'text' ? lastRow.lastLine : (lastRow?.line ?? 0);
         const visible = new Map<number, EditorChangeKind>();
         for (let line = first; line <= last; line++) {
             const kind = lines.get(line);
@@ -2436,14 +2432,8 @@ export class EditorView {
         this.render();
     }
 
-    private highlightedLines(first: number, last: number): Map<number, AttributedLines> {
-        return this.highlights.linesIn(
-            first,
-            last,
-            this.model.getLine(first).start,
-            this.model.getLine(last).end,
-            (offset) => this.model.positionAt(offset).line
-        );
+    private runLines(runs: AttributionRuns, first: number, last: number): Map<number, AttributedLines> {
+        return runs.linesIn(first, last, this.model.getLine(first).start, this.model.getLine(last).end, (offset) => this.model.positionAt(offset).line);
     }
 
     /* One box per row, so a row of the host's between two tinted lines stays clear. */
@@ -2489,16 +2479,6 @@ export class EditorView {
         );
     }
 
-    private attributedLines(first: number, last: number): Map<number, AttributedLines> {
-        return this.attribution.linesIn(
-            first,
-            last,
-            this.model.getLine(first).start,
-            this.model.getLine(last).end,
-            (offset) => this.model.positionAt(offset).line
-        );
-    }
-
     onAttributionHover(listener: (hover: { id: string; rect: EditorRect } | null) => void): () => void {
         return subscribe(this.attributionListeners, listener);
     }
@@ -2538,7 +2518,7 @@ export class EditorView {
         if (row.kind !== 'text') {
             return null;
         }
-        const bar = this.attributedLines(row.line, row.line).get(row.line);
+        const bar = this.runLines(this.attribution, row.line, row.line).get(row.line);
         if (bar === undefined) {
             return null;
         }
@@ -2557,7 +2537,7 @@ export class EditorView {
 
     /* A problem's tick says what the problem is when the pointer rests on it, and a press goes to it. The rest of the track lets the pointer through. */
     private wireOverview(): void {
-        const tickOf = (event: Event): HTMLElement | null => (event.target as HTMLElement | null)?.closest?.<HTMLElement>('.se-tick[data-offset]') ?? null;
+        const tickOf = (event: Event): HTMLElement | null => closestElement(event.target, '.se-tick[data-offset]');
         this.overview.addEventListener('pointerover', (event) => {
             const tick = tickOf(event);
             const title = tick?.getAttribute('data-title');
@@ -2769,10 +2749,8 @@ export class EditorView {
         return subscribe(this.gutterMarkerListeners, listener);
     }
 
-    /* The id of the host's gutter marker when the target is it. */
     gutterMarkerIdOf(target: EventTarget | null): string | null {
-        const button = (target as HTMLElement | null)?.closest?.<HTMLElement>('[data-gutter-marker]');
-        return button?.dataset.gutterMarker ?? null;
+        return closestElement(target, '[data-gutter-marker]')?.dataset.gutterMarker ?? null;
     }
 
     pressGutterMarker(id: string): void {
@@ -2792,20 +2770,19 @@ export class EditorView {
         return byLine;
     }
 
-    /* The line of the host's gutter button when the target is it. */
     gutterActionLineOf(target: EventTarget | null): number | null {
-        const button = (target as HTMLElement | null)?.closest?.('[data-gutter-action]');
-        return button ? Number((button as HTMLElement).dataset.gutterAction) : null;
+        const button = closestElement(target, '[data-gutter-action]');
+        return button ? Number(button.dataset.gutterAction) : null;
     }
 
     pressGutterAction(line: number): void {
         emit(this.gutterActionListeners, line);
     }
 
-    /* Whether a click at this point of the gutter is on a fold control, and which line it folds. */
+    /* The line a fold control in the gutter folds. */
     foldLineOf(target: EventTarget | null): number | null {
-        const button = (target as HTMLElement | null)?.closest?.('[data-fold-line]');
-        return button ? Number((button as HTMLElement).dataset.foldLine) : null;
+        const button = closestElement(target, '[data-fold-line]');
+        return button ? Number(button.dataset.foldLine) : null;
     }
 
     dispose(): void {
