@@ -31,10 +31,12 @@ test('a plain node names its maker without counting against what may open agents
 
 test('a record from before plain nodes were written down is an agent node', async () => {
     await store.put({ projectId: 'p1', nodeId: 'terminal-2', openedBy: 'other', depth: 1, agent: true });
+
     await writeFile(
         join(store.dir, 'terminal-7.json'),
         JSON.stringify({ projectId: 'p1', nodeId: 'terminal-7', openedBy: 'terminal-1', depth: 1, createdAt: 1 })
     );
+
     const restarted = new AgentLineageStore(home);
     await restarted.load();
     expect(restarted.openedCount('terminal-1')).toBe(1);
@@ -104,10 +106,12 @@ test('a fork keeps the depth of its original and lives on its own: no child, no 
 
 test('a rehomed fork leaves the old project, and keeps its dates, its original and its place after a reload', async () => {
     await mkdir(join(home, 'lineage'), { recursive: true });
+
     await writeFile(
         join(home, 'lineage', 'chat-b.json'),
         '{"projectId":"a","nodeId":"chat-b","openedBy":"chat-a","depth":1,"agent":true,"relation":"fork","createdAt":1000,"endedAt":2000}'
     );
+
     await store.load();
     expect(store.forksLeaving('a', new Set())).toEqual(['chat-b']);
 
@@ -160,6 +164,7 @@ test('a record an older host wrote reads back whole, and a new one is written in
     expect(restarted.endedAt('chat-2')).toBe(2000);
     expect(restarted.startedBy('chat-2')).toBe('chat-1');
     const written = JSON.parse(await readFile(join(home, 'lineage', 'chat-3.json'), 'utf8')) as { createdAt: number };
+
     expect(await readFile(join(home, 'lineage', 'chat-3.json'), 'utf8')).toBe(
         `{"projectId":"p1","nodeId":"chat-3","openedBy":"chat-1","depth":1,"agent":true,"ceiling":"auto","createdAt":${written.createdAt}}`
     );

@@ -7,9 +7,11 @@ import type { FramePort } from '@adecore/agent-contracts';
  */
 export function memoryPortPair(): [FramePort, FramePort] {
     const listeners: [Set<(frame: unknown) => void>, Set<(frame: unknown) => void>] = [new Set(), new Set()];
+
     const end = (own: number): FramePort => ({
         send: (frame) => {
             const copy = structuredClone(frame);
+
             queueMicrotask(() => {
                 for (const listener of listeners[1 - own]!) {
                     listener(copy);
@@ -18,10 +20,12 @@ export function memoryPortPair(): [FramePort, FramePort] {
         },
         onFrame: (listener) => {
             listeners[own]!.add(listener);
+
             return () => {
                 listeners[own]!.delete(listener);
             };
         }
     });
+
     return [end(0), end(1)];
 }

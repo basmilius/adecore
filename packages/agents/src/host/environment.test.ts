@@ -14,6 +14,7 @@ test('an app started from a Ruimte terminal hands its CLIs nothing of that sessi
         RUIMTE_HOME: '/home/person/.ruimte',
         UNSET: undefined
     });
+
     expect(env).toEqual({ HOME: '/home/person', PATH: '/usr/bin', RUIMTE_HOME: '/home/person/.ruimte' });
 });
 

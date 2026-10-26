@@ -35,6 +35,7 @@ export interface WriteAtomicOptions {
 
 async function writeFlushed(path: string, content: string | Uint8Array, mode: number): Promise<void> {
     const handle = await open(path, 'w', mode);
+
     try {
         await handle.writeFile(content);
         await handle.sync();
@@ -48,7 +49,9 @@ async function syncDirectory(path: string): Promise<void> {
     if (process.platform === 'win32') {
         return;
     }
+
     const handle = await open(path, 'r');
+
     try {
         await handle.sync();
     } finally {
@@ -63,22 +66,27 @@ async function syncDirectory(path: string): Promise<void> {
  */
 export async function writeAtomic(target: string, content: string | Uint8Array, mode = 0o600, options: WriteAtomicOptions = {}): Promise<void> {
     const temp = tempNameFor(target);
+
     if (options.durable) {
         await writeFlushed(temp, content, mode);
     } else {
         await writeFile(temp, content, { mode });
     }
+
     for (let attempt = 0; ; attempt++) {
         try {
             await rename(temp, target);
+
             break;
         } catch (e) {
             if (!isTransient(e) || attempt >= RENAME_RETRIES) {
                 throw e;
             }
+
             await wait(RENAME_RETRY_MS);
         }
     }
+
     if (options.durable) {
         await syncDirectory(dirname(target));
     }
@@ -93,11 +101,13 @@ export function replaceSync(temp: string, target: string): void {
     for (let attempt = 0; ; attempt++) {
         try {
             renameSync(temp, target);
+
             return;
         } catch (e) {
             if (!isTransient(e) || attempt >= RENAME_RETRIES) {
                 throw e;
             }
+
             sleepSync(RENAME_RETRY_MS);
         }
     }
@@ -127,6 +137,7 @@ export async function removeFile(path: string, remove: (path: string, options: {
 export async function fileExists(path: string): Promise<boolean> {
     try {
         await stat(path);
+
         return true;
     } catch {
         return false;

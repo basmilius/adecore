@@ -7,6 +7,7 @@ import { asError } from './error-text.ts';
 export function wait(ms: number, signal?: AbortSignal): Promise<void> {
     return new Promise((resolve) => {
         const timer = setTimeout(resolve, ms);
+
         signal?.addEventListener(
             'abort',
             () => {
@@ -32,6 +33,7 @@ const SYSTEM_TIMER: DeadlineTimer = {
 export function withDeadline<T>(promise: Promise<T>, ms: number, message: string, timer: DeadlineTimer = SYSTEM_TIMER): Promise<T> {
     return new Promise((resolve, reject) => {
         const handle = timer.setTimeout(() => reject(new Error(message)), ms);
+
         promise.then(
             (value) => {
                 timer.clearTimeout(handle);

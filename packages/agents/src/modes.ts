@@ -32,6 +32,7 @@ export function ceilingForOpening(opener: RuntimeMode, requested: RuntimeMode | 
             modeLines(opener)
         );
     }
+
     return opener;
 }
 

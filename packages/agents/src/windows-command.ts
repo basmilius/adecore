@@ -25,14 +25,19 @@ const CMD_SPECIAL = /([()\][%!^"`<>&|;, *?])/g;
  */
 export function spawnTarget(command: string, args: readonly string[], options: SpawnTargetOptions = {}): SpawnTarget {
     const { env = process.env, platform = process.platform, isFile = existingFile } = options;
+
     if (platform !== 'win32') {
         return { file: command, args: [...args] };
     }
+
     const resolved = findOnPath(command, env, isFile) ?? command;
+
     if (!/\.(cmd|bat)$/i.test(resolved)) {
         return { file: resolved, args: [...args] };
     }
+
     const line = [escapeForCmd(resolved), ...args.map((arg) => escapeForCmd(escapeForCmd(quoteArgument(arg))))].join(' ');
+
     return { file: variable(env, 'ComSpec') ?? 'cmd.exe', args: ['/d', '/s', '/c', `"${line}"`], windowsVerbatimArguments: true };
 }
 
@@ -41,27 +46,33 @@ function findOnPath(command: string, env: Record<string, string | undefined>, is
         .split(';')
         .map((extension) => extension.trim().toLowerCase())
         .filter((extension) => extension !== '');
+
     const hasExtension = extensions.includes(win32.extname(command).toLowerCase());
+
     const folders = /[\\/]/.test(command)
         ? ['']
         : (variable(env, 'PATH') ?? '')
               .split(';')
               .map((folder) => folder.trim().replace(/^"(.*)"$/, '$1'))
               .filter((folder) => folder !== '');
+
     for (const folder of folders) {
         const base = folder === '' ? command : win32.join(folder, command);
         const candidates = hasExtension ? [base] : extensions.map((extension) => `${base}${extension}`);
         const found = candidates.find((candidate) => isFile(candidate));
+
         if (found !== undefined) {
             return found;
         }
     }
+
     return null;
 }
 
 // Windows treats variable names case-insensitively, and an environment often carries `Path`.
 function variable(env: Record<string, string | undefined>, name: string): string | undefined {
     const key = Object.keys(env).find((candidate) => candidate.toUpperCase() === name.toUpperCase());
+
     return key === undefined ? undefined : env[key];
 }
 
@@ -70,6 +81,7 @@ function quoteArgument(arg: string): string {
     if (/[\r\n]/.test(arg)) {
         throw new Error('An argument to a batch file cannot hold a line break');
     }
+
     return `"${arg.replace(/(\\*)"/g, '$1$1\\"').replace(/(\\*)$/, '$1$1')}"`;
 }
 

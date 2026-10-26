@@ -9,9 +9,11 @@ export function describeError(error: unknown, debug: boolean): string {
     if (!(error instanceof Error)) {
         return String(error);
     }
+
     if (debug) {
         return error.stack ?? `${error.name}: ${error.message}`;
     }
+
     return error.message === '' ? error.name : error.message;
 }
 

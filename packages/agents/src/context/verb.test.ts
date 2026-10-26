@@ -6,6 +6,7 @@ const REFUSAL = 'refused\tcode\tmessage';
 
 function helpWith(topics?: readonly HelpTopic[]): Verb<VerbCallBase> {
     const { defineVerb, defineHelp } = createVerbRegistry<VerbCallBase>({ cli: 'test-context' });
+
     const read = defineVerb({
         name: 'read',
         usage: '<id>',
@@ -15,7 +16,9 @@ function helpWith(topics?: readonly HelpTopic[]): Verb<VerbCallBase> {
         flags: z.object({}),
         run: async () => []
     });
+
     const help: Verb<VerbCallBase> = defineHelp({ entries: () => [read, help], root: () => [], refusal: REFUSAL, topics });
+
     return help;
 }
 

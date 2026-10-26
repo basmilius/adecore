@@ -7,6 +7,7 @@ export { RecordDirectory, type RecordDirectoryOptions } from './record-directory
 export { runProcess, type ProcessResult, type RunProcessOptions } from './run-process.ts';
 export { Serializer, KeyedSerializer } from './serializer.ts';
 export { cleanTitle, readLines } from './title-file.ts';
+
 export {
     type DirectoryWatcher,
     type WatchSeams,

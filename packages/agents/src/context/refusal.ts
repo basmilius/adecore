@@ -20,6 +20,7 @@ function rows(code: string, message: string, lines: readonly string[]): string[]
 /* What a verb is refused with, whole: the `refused` row and what to do instead under it. */
 export function refusalBody(code: string, message: string, lines: readonly string[] = []): string {
     const [first, ...rest] = rows(code, message, lines);
+
     return [`refused\t${first}`, ...rest].join('\n');
 }
 
@@ -39,8 +40,10 @@ export function parseRefusalBody(text: string): ParsedRefusal | null {
     const [first = '', ...lines] = text.split('\n').filter((line) => line.trim() !== '');
     const parts = first.split('\t');
     const [code, message] = parts[0] === 'refused' ? parts.slice(1) : parts;
+
     if (!code || !message) {
         return null;
     }
+
     return { code, message, lines };
 }

@@ -100,6 +100,7 @@ describe('chatNoticeTargets', () => {
             ['chat-idle', session(null)],
             ['chat-busy', session('t1', [turn('t1')])]
         ]);
+
         const targets = chatNoticeTargets({ get: (id) => held.get(id), hasStored: async (id) => id === 'chat-cold' });
         expect(await targets.chat('chat-idle')).toBe('idle');
         expect(await targets.chat('chat-busy')).toBe('running');
@@ -112,6 +113,7 @@ describe('chatNoticeTargets', () => {
             ['chat-woken', session('t1', [turn('t1', ['chat-1'])])],
             ['chat-asked', session('t2', [turn('t2')])]
         ]);
+
         const targets = chatNoticeTargets({ get: (id) => held.get(id), hasStored: async () => false });
         expect(targets.fromMessage('chat-woken')).toBe(true);
         expect(targets.fromMessage('chat-asked')).toBe(false);
@@ -124,6 +126,7 @@ describe('showNotices', () => {
         has: () => Promise.resolve(has),
         note: (_id, text) => {
             lines.push(text);
+
             return Promise.resolve();
         }
     });

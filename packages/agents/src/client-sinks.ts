@@ -13,11 +13,13 @@ export class ClientSinks<TEvent> {
 
     subscribe(clientId: string, sink: (event: TEvent) => void): () => void {
         this.sinks.set(clientId, sink);
+
         return () => {
             // A client that subscribes again before it unsubscribes keeps its newer sink.
             if (this.sinks.get(clientId) !== sink) {
                 return;
             }
+
             this.sinks.delete(clientId);
             this.onRelease?.(clientId);
         };

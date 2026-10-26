@@ -16,8 +16,10 @@ function recorder<T>(calls: Call[], extra: Record<string, unknown> = {}): T {
         (name: string) =>
         (...args: unknown[]): string => {
             calls.push([name, ...args]);
+
             return `${name} result`;
         };
+
     return new Proxy(extra, {
         get: (target, name) => (name in target ? target[name as string] : method(String(name)))
     }) as T;
@@ -28,6 +30,7 @@ function chatsRig() {
     const preferences: Call[] = [];
     const chats = recorder<ChatCore>(calls, { composerPreferences: { set: (...args: unknown[]) => preferences.push(['set', ...args]) } });
     const providers = { list: async () => [{ kind: 'claude' }] } as unknown as ProviderRegistry;
+
     return { calls, preferences, handlers: chatHandlers(chats, providers) };
 }
 
@@ -61,6 +64,7 @@ describe('the handlers of a host', () => {
     test('send a message with only the extras the payload names', async () => {
         const { calls, handlers } = chatsRig();
         await handlers['chat.send']({ chatId: 'chat-1', text: 'hello', delivery: 'queue' }, 'client-1');
+
         expect(calls).toEqual([
             ['send', 'chat-1', 'hello', { delivery: 'queue', mentions: undefined, skills: undefined, chats: undefined, quoteSource: undefined }, undefined]
         ]);
@@ -74,9 +78,11 @@ describe('the handlers of a host', () => {
 
     test('refuse what only a host with more than chats can do', () => {
         const { handlers } = chatsRig();
+
         for (const type of ['chat.fork', 'chat.forkInfo', 'chat.summarize', 'chat.continueOn'] as const) {
             const handler = handlers[type] as () => unknown;
             expect(handler).toThrow(ChatError);
+
             try {
                 handler();
             } catch (e) {
@@ -88,10 +94,12 @@ describe('the handlers of a host', () => {
     test('hand the account and usage requests to their services', async () => {
         const calls: Call[] = [];
         const accounts = accountHandlers(recorder<ProviderAccountsService>(calls));
+
         const usage = usageHandlers(
             recorder<UsageService>(calls),
             recorder<UsageMonitor>(calls, { refresh: async (force: boolean) => calls.push(['refresh', force]) })
         );
+
         expect(await accounts['accounts.list']({}, 'client-1')).toBe('snapshot result' as never);
         expect(await accounts['accounts.watchLogin']({ id: 'work' }, 'client-1')).toEqual({});
         expect(await usage['usage.subscribe']({}, 'client-1')).toEqual({});

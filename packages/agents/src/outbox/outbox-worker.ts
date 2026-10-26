@@ -67,6 +67,7 @@ export class OutboxWorker<Work extends OutboxWorkShape> {
 
     stop(): void {
         this.started = false;
+
         if (this.timer !== null) {
             this.clock.clearTimeout(this.timer);
             this.timer = null;
@@ -87,11 +88,13 @@ export class OutboxWorker<Work extends OutboxWorkShape> {
     wake(target: string): void {
         this.wakes.set(target, (this.wakes.get(target) ?? 0) + 1);
         let woke = false;
+
         for (const entry of this.store.list()) {
             if (entry.target === target && this.waiting.delete(entry.id)) {
                 woke = true;
             }
         }
+
         if (woke) {
             queueMicrotask(() => this.drain());
         }
@@ -102,6 +105,7 @@ export class OutboxWorker<Work extends OutboxWorkShape> {
         if (this.isSettled()) {
             return Promise.resolve();
         }
+
         return new Promise((resolve) => {
             this.waiters.push(resolve);
         });
@@ -110,57 +114,76 @@ export class OutboxWorker<Work extends OutboxWorkShape> {
     private drain(): void {
         if (!this.started) {
             this.notifySettled();
+
             return;
         }
+
         const now = this.clock.now();
         const busy = new Set(this.running);
         let nextDue: number | null = null;
+
         const dueAt = (at: number): void => {
             nextDue = nextDue === null ? at : Math.min(nextDue, at);
         };
+
         for (const entry of this.store.list()) {
             // A waiting entry holds no lane. The resume of a chat must not queue behind a wake that waits for it.
             if (busy.has(entry.target) || this.waiting.has(entry.id)) {
                 continue;
             }
+
             // Nor does work due at a later time, which nothing owed before it has to wait for.
             if (entry.attempts === 0 && entry.notBefore > now) {
                 dueAt(entry.notBefore);
+
                 continue;
             }
+
             const lanes = this.store.lanesOf(entry);
+
             // Oldest first per target. A younger entry never overtakes one that waits out a retry.
             for (const lane of lanes) {
                 busy.add(lane);
             }
+
             // The other lanes only wait for work that is running; work that is merely owed there is what ending takes away.
             if (lanes.some((lane) => lane !== entry.target && this.running.has(lane))) {
                 continue;
             }
+
             if (entry.notBefore > now) {
                 dueAt(entry.notBefore);
+
                 continue;
             }
+
             void this.run(entry);
         }
+
         this.schedule(nextDue, now);
         this.notifySettled();
     }
 
     private async run(entry: OutboxEntryOf<Work>): Promise<void> {
         const lanes = this.store.lanesOf(entry);
+
         for (const lane of lanes) {
             this.running.add(lane);
         }
+
         const woken = this.wakes.get(entry.target) ?? 0;
+
         try {
             const outcome = await (this.handlers[entry.kind as Work['kind']] as (entry: OutboxEntryOf<Work>) => Promise<OutboxOutcome>)(entry);
+
             if (outcome === 'wait') {
                 if ((this.wakes.get(entry.target) ?? 0) === woken && this.store.has(entry.id)) {
                     this.waiting.add(entry.id);
                 }
+
                 return;
             }
+
             await this.store.remove(entry.id);
         } catch (e) {
             await this.failed(entry, e).catch((error: unknown) => console.error(`The outbox could not record a failed ${entry.kind}:`, errorText(error)));
@@ -168,18 +191,22 @@ export class OutboxWorker<Work extends OutboxWorkShape> {
             for (const lane of lanes) {
                 this.running.delete(lane);
             }
+
             this.drain();
         }
     }
 
     private async failed(entry: OutboxEntryOf<Work>, error: unknown): Promise<void> {
         const delay = RETRY_DELAYS_MS[entry.attempts];
+
         if (delay === undefined) {
             await this.store.remove(entry.id);
             console.error(`Gave up on ${entry.kind} for ${entry.target}:`, errorText(error));
             this.onParked(entry, error);
+
             return;
         }
+
         await this.store.update({ ...entry, attempts: entry.attempts + 1, notBefore: this.clock.now() + delay });
     }
 
@@ -188,6 +215,7 @@ export class OutboxWorker<Work extends OutboxWorkShape> {
             this.clock.clearTimeout(this.timer);
             this.timer = null;
         }
+
         if (nextDue !== null) {
             this.timer = this.clock.setTimeout(
                 () => {
@@ -201,6 +229,7 @@ export class OutboxWorker<Work extends OutboxWorkShape> {
 
     private isSettled(): boolean {
         const now = this.clock.now();
+
         return this.running.size === 0 && (!this.started || !this.store.list().some((entry) => entry.notBefore <= now && !this.waiting.has(entry.id)));
     }
 
@@ -208,8 +237,10 @@ export class OutboxWorker<Work extends OutboxWorkShape> {
         if (!this.isSettled()) {
             return;
         }
+
         const waiting = this.waiters;
         this.waiters = [];
+
         for (const resolve of waiting) {
             resolve();
         }

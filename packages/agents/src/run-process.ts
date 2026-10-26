@@ -26,11 +26,15 @@ const MAX_OUTPUT_BYTES = 16 * 1024 * 1024;
 export function runProcess(command: readonly string[], options: RunProcessOptions = {}): Promise<ProcessResult> {
     return new Promise((resolve, reject) => {
         const [executable, ...args] = command;
+
         if (executable === undefined) {
             reject(new Error('No command to run'));
+
             return;
         }
+
         const target = spawnTarget(executable, args, options.env === undefined ? {} : { env: options.env });
+
         const child = spawn(target.file, target.args, {
             ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
             ...(options.env === undefined ? {} : { env: options.env }),
@@ -40,60 +44,79 @@ export function runProcess(command: readonly string[], options: RunProcessOption
             detached: process.platform !== 'win32',
             windowsHide: true
         });
+
         const stdout: Buffer[] = [];
         const stderr: Buffer[] = [];
         let printed = 0;
         let settled = false;
         let timer: ReturnType<typeof setTimeout> | null = null;
+
         const settle = (): boolean => {
             if (settled) {
                 return false;
             }
+
             settled = true;
+
             if (timer !== null) {
                 clearTimeout(timer);
             }
+
             return true;
         };
+
         const end = (message: string): void => {
             if (!settle()) {
                 return;
             }
+
             const pid = child.pid;
+
             if (pid !== undefined) {
                 killProcessTree(pid, 'SIGTERM');
                 // Sent even when the command left in time: what it started may still ignore the SIGTERM.
                 setTimeout(() => killProcessTree(pid, 'SIGKILL'), KILL_GRACE_MS).unref?.();
             }
+
             reject(new Error(message));
         };
+
         const collect = (into: Buffer[]) => (chunk: Buffer) => {
             if (settled) {
                 return;
             }
+
             printed += chunk.length;
+
             if (printed > MAX_OUTPUT_BYTES) {
                 end(`${executable} printed more than ${MAX_OUTPUT_BYTES / 1024 / 1024} MB`);
+
                 return;
             }
+
             into.push(chunk);
         };
+
         child.stdout?.on('data', collect(stdout));
         child.stderr?.on('data', collect(stderr));
+
         if (options.timeoutMs !== undefined) {
             const message = options.timeoutMessage ?? `${executable} did not finish in time`;
             timer = setTimeout(() => end(message), options.timeoutMs);
         }
+
         child.on('error', (error) => {
             if (settle()) {
                 reject(error);
             }
         });
+
         child.on('close', (exitCode) => {
             if (settle()) {
                 resolve({ exitCode, stdout: Buffer.concat(stdout).toString('utf8'), stderr: Buffer.concat(stderr).toString('utf8') });
             }
         });
+
         if (options.stdin !== undefined && child.stdin) {
             child.stdin.on('error', () => undefined);
             child.stdin.end(options.stdin);

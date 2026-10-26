@@ -29,6 +29,7 @@ export const SYSTEM_WATCH: WatchSeams = {
     watch: (path, options, listener) => watch(path, options, listener),
     schedule: (callback, ms) => {
         const timer = setTimeout(callback, ms);
+
         return () => clearTimeout(timer);
     }
 };
@@ -46,11 +47,14 @@ export interface Settled {
  */
 export function settled(seams: WatchSeams, ms: number, run: () => unknown): Settled {
     let cancel: (() => void) | null = null;
+
     return {
         nudge: () => {
             cancel?.();
+
             cancel = seams.schedule(() => {
                 cancel = null;
+
                 return run();
             }, ms);
         },
@@ -92,11 +96,14 @@ export class PerClientWatches<TState> {
     remove(clientId: string, key: string): void {
         const watches = this.byClient.get(clientId);
         const state = watches?.get(key);
+
         if (!watches || state === undefined) {
             return;
         }
+
         this.stop(state);
         watches.delete(key);
+
         if (watches.size === 0) {
             this.byClient.delete(clientId);
         }
@@ -106,6 +113,7 @@ export class PerClientWatches<TState> {
         for (const state of this.byClient.get(clientId)?.values() ?? []) {
             this.stop(state);
         }
+
         this.byClient.delete(clientId);
     }
 }

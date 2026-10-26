@@ -42,6 +42,7 @@ export function chatHandlers(chats: ChatCore, providers: ProviderRegistry): { [T
         // What a chat the host starts on its own is made with, while this client is connected.
         'chat.setPreferences': (payload, clientId) => {
             chats.composerPreferences.set(clientId, payload);
+
             return {};
         },
         'chat.attach': (payload, clientId) => chats.attachWithBookmarks(payload.chatId, clientId, payload.historyLimit, payload.since),
@@ -49,18 +50,22 @@ export function chatHandlers(chats: ChatCore, providers: ProviderRegistry): { [T
         'chat.subagent': (payload, clientId) => chats.subagent(clientId, payload),
         'chat.stopSubagent': async (payload) => {
             await chats.stopSubagent(payload.chatId, payload.toolUseId);
+
             return {};
         },
         'chat.stopTask': async (payload) => {
             await chats.stopTask(payload.chatId, payload.taskId);
+
             return {};
         },
         'chat.goal': async (payload) => {
             await chats.goal(payload.chatId, payload.action);
+
             return {};
         },
         'chat.detach': (payload, clientId) => {
             chats.detach(payload.chatId, clientId);
+
             return {};
         },
         'chat.send': (payload) =>
@@ -83,15 +88,18 @@ export function chatHandlers(chats: ChatCore, providers: ProviderRegistry): { [T
         'chat.unqueue': (payload) => ({ message: chats.unqueue(payload.chatId, payload.messageId) }),
         'chat.sendNow': (payload) => {
             chats.sendNow(payload.chatId, payload.messageId);
+
             return {};
         },
         'skills.list': async (payload) => ({ skills: await chats.skills(payload.chatId) }),
         'chat.compact': (payload) => {
             chats.compact(payload.chatId);
+
             return {};
         },
         'chat.clear': async (payload) => {
             await chats.clear(payload.chatId, payload.force === true);
+
             return {};
         },
         'chat.turnDiff': async (payload) => ({ diff: await chats.turnDiff(payload.chatId, payload.turnId) }),
@@ -101,18 +109,22 @@ export function chatHandlers(chats: ChatCore, providers: ProviderRegistry): { [T
         'chat.continueOn': unsupported('continue a chat under another account'),
         'chat.cancel': (payload) => {
             chats.cancel(payload.chatId, payload.subagents === true);
+
             return {};
         },
         'chat.approve': (payload) => {
             chats.approve(payload.chatId, payload.requestId, payload.decision, payload.message);
+
             return {};
         },
         'chat.answer': (payload) => {
             chats.answer(payload.chatId, payload.requestId, payload.answers);
+
             return {};
         },
         'chat.dismiss': (payload) => {
             chats.dismiss(payload.chatId, payload.itemId);
+
             return {};
         },
         'chat.addBookmark': async (payload) => ({ bookmarks: await chats.addBookmark(payload.chatId, payload.itemId, payload.name) }),
@@ -121,10 +133,12 @@ export function chatHandlers(chats: ChatCore, providers: ProviderRegistry): { [T
         'chat.removeVisual': async (payload) => ({ visuals: await chats.removeVisual(payload.chatId, payload.visualId) }),
         'chat.kill': async (payload) => {
             await chats.kill(payload.chatId);
+
             return {};
         },
         'chat.restart': async (payload) => {
             await chats.restart(payload.chatId);
+
             return {};
         },
         'chat.list': () => ({ chats: chats.list() })
@@ -139,6 +153,7 @@ export function accountHandlers(accounts: ProviderAccountsService): { [T in Acco
         'accounts.create': (payload) => accounts.create(payload),
         'accounts.watchLogin': (payload) => {
             void accounts.watchLogin(payload.id);
+
             return {};
         }
     };
@@ -150,15 +165,18 @@ export function usageHandlers(usage: UsageService, limits: UsageMonitor): { [T i
         // While a client has the page open the host keeps scanning; every other client gets the event too.
         'usage.subscribe': (_payload, clientId) => {
             usage.follow(clientId);
+
             return {};
         },
         'usage.unsubscribe': (_payload, clientId) => {
             usage.unfollow(clientId);
+
             return {};
         },
         'usage.limits': () => limits.snapshot(),
         'usage.refreshLimits': async () => {
             await limits.refresh(true);
+
             return limits.snapshot();
         }
     };

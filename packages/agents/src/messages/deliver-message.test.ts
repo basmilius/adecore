@@ -26,19 +26,23 @@ const words = {
 /* A queue and a chat that writes down every turn it is woken for. */
 function fixture(waiting: Notice[], options: { placed?: boolean; chat?: boolean } = {}) {
     const woken: Parameters<WakeChat['wake']>[0][] = [];
+
     const chat: WakeChat = {
         items: () => [],
         wake: (wake) => {
             woken.push(wake);
+
             return true;
         }
     };
+
     const handler = deliverMessageHandler({
         notices: { waiting: () => waiting },
         chat: async () => (options.chat === false ? null : chat),
         placed: () => options.placed ?? true,
         words
     });
+
     return { woken, handler };
 }
 
@@ -51,14 +55,17 @@ describe('deliverMessageHandler', () => {
 
     test('waits while the chat is being moved to another folder, and wakes nobody yet', async () => {
         const woken: unknown[] = [];
+
         const chat: WakeChat = {
             items: () => [],
             relocating: () => true,
             wake: (wake) => {
                 woken.push(wake);
+
                 return true;
             }
         };
+
         const handler = deliverMessageHandler({ notices: { waiting: () => [notice('chat-1', 'Lead')] }, chat: async () => chat, placed: () => true, words });
         expect(await handler(entry)).toBe('wait');
         expect(woken).toEqual([]);

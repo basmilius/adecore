@@ -40,6 +40,7 @@ describe('the boundary of @adecore/agents', () => {
         const reaching = sources()
             .filter(({ path, text }) => modulesOf(text).some((specifier) => reachesOut(path, specifier)))
             .map(({ path }) => path);
+
         expect(reaching).toEqual([]);
     });
 
@@ -48,6 +49,7 @@ describe('the boundary of @adecore/agents', () => {
         const bunned = sources()
             .filter(({ path, text }) => !isTest(path) && usesBun(text))
             .map(({ path }) => path);
+
         expect(bunned).toEqual([]);
     });
 
@@ -63,6 +65,7 @@ describe('the boundary of @adecore/agents', () => {
                     )
             )
             .map(({ path }) => path);
+
         expect(reaching).toEqual([]);
     });
 

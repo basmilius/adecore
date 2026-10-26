@@ -7,6 +7,7 @@ import { writeAtomic } from './fs.ts';
 import { RecordDirectory, type RecordDirectoryOptions, recordFileName } from './record-directory.ts';
 
 const RecordSchema = z.object({ id: z.string(), text: z.string() });
+
 type Entry = z.infer<typeof RecordSchema>;
 
 let dir: string;
@@ -25,10 +26,12 @@ function gatedRemoval() {
     const gates: Array<() => void> = [];
     let pending = 0;
     let onStart: (() => void) | null = null;
+
     const remove = async (path: string): Promise<void> => {
         if (pending > 0) {
             throw Object.assign(new Error('a delete started while another was pending'), { code: 'EFAULT' });
         }
+
         pending++;
         started.push(path);
         onStart?.();
@@ -38,13 +41,16 @@ function gatedRemoval() {
         await promise;
         pending--;
     };
+
     const nextStart = (): Promise<void> =>
         new Promise((resolve) => {
             onStart = resolve;
         });
+
     const release = (): void => {
         gates.shift()?.();
     };
+
     return { remove, started, nextStart, release };
 }
 
@@ -77,10 +83,12 @@ test('a remove waits for a write of the same record that is still on its way', a
     const removal = gatedRemoval();
     const writing = Promise.withResolvers<void>();
     const written = Promise.withResolvers<void>();
+
     const records = directory({
         remove: removal.remove,
         write: () => {
             writing.resolve();
+
             return written.promise;
         }
     });
@@ -107,6 +115,7 @@ test('a remove waits for a write of the same record that is still on its way', a
 test('removes of different records do not wait on each other', async () => {
     const started: string[] = [];
     const { promise: held, resolve: letGo } = Promise.withResolvers<void>();
+
     const records = directory({
         remove: async (path) => {
             started.push(path);
@@ -139,13 +148,16 @@ test('a write a remove and a newer write overtook answers false, and the file ho
     const writing = Promise.withResolvers<void>();
     const held = Promise.withResolvers<void>();
     let writes = 0;
+
     const records = directory({
         write: async (path, text) => {
             writes++;
+
             if (writes === 1) {
                 writing.resolve();
                 await held.promise;
             }
+
             await writeAtomic(path, text);
         }
     });

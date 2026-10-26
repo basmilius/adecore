@@ -11,11 +11,13 @@ test('an opener hands down its own mode and refuses a wider one, naming what it 
     expect(ceilingForOpening('auto', undefined)).toBe('auto');
     expect(ceilingForOpening('auto', 'supervised')).toBe('auto');
     let refusal: unknown = null;
+
     try {
         ceilingForOpening('auto-accept-edits', 'full-access');
     } catch (e) {
         refusal = e;
     }
+
     expect(refusal).toBeInstanceOf(VerbRefusal);
     expect((refusal as VerbRefusal).code).toBe('mode-above-parent');
     expect((refusal as VerbRefusal).lines).toEqual(['mode\tyou\tauto-accept-edits', 'mode\tsupervised\tallowed', 'mode\tauto-accept-edits\tallowed']);

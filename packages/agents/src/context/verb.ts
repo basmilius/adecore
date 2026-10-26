@@ -145,6 +145,7 @@ function usageWithFlags(usage: string, detail: readonly string[]): string {
         .map((line) => line.split('\t'))
         .filter(([, syntax]) => !flagSpelled(usage, syntax!.split(' ')[0]!))
         .map(([, syntax, need]) => (need === 'required' ? syntax! : `[${syntax}]`));
+
     return [usage, ...missing].filter((part) => part !== '').join(' ');
 }
 
@@ -193,8 +194,10 @@ export function createVerbRegistry<Call extends VerbCallBase>(options: { cli: st
         const usageLines = [`usage\t${name}\t${usage}`, `detail\t${cli} help ${name}`];
         const { values, switches } = flagsOf(spec);
         const parsed = parseArgv(argv, values, switches);
+
         if (!parsed.ok) {
             const dryRunAsked = argv.some((word) => word === `--${DRY_RUN_FLAG}` || word.startsWith(`--${DRY_RUN_FLAG}=`));
+
             if (parsed.code === 'unknown-flag' && spec.dryRun !== true && dryRunAsked) {
                 throw new VerbRefusal(
                     'no-dry-run',
@@ -202,20 +205,27 @@ export function createVerbRegistry<Call extends VerbCallBase>(options: { cli: st
                     dryRunVerbs.map((verb) => `verb\t${verb}\ttakes --${DRY_RUN_FLAG}`)
                 );
             }
+
             throw new VerbRefusal(parsed.code, parsed.message, usageLines);
         }
+
         const positionals = spec.positionals.safeParse(parsed.positionals);
+
         if (!positionals.success) {
             throw new VerbRefusal('bad-arguments', issueMessage(positionals.error, 'argument'), usageLines);
         }
+
         const { [REVISION_FLAG]: revision, ...given } = parsed.flags;
         const flags = spec.flags.safeParse(given);
+
         if (!flags.success) {
             throw new VerbRefusal('bad-arguments', issueMessage(flags.error, 'flag'), usageLines);
         }
+
         if (revision !== undefined && !/^\d+$/.test(revision)) {
             throw new VerbRefusal('bad-arguments', `--${REVISION_FLAG} takes the whole number a list printed as revision`, usageLines);
         }
+
         return spec.run(
             { positionals: positionals.data, flags: flags.data, switches: parsed.switches, dryRun: parsed.switches.has(DRY_RUN_FLAG) },
             revision === undefined ? call : { ...call, expectedRevision: Number(revision) }
@@ -228,10 +238,13 @@ export function createVerbRegistry<Call extends VerbCallBase>(options: { cli: st
         spec: VerbSpec<Positionals, Flags, Call>
     ): Omit<Verb<Call>, 'served'> => {
         const { values, switches } = flagsOf(spec);
+
         if (spec.dryRun === true) {
             dryRunVerbs.push(name);
         }
+
         const usage = usageWithFlags(spec.usage, spec.detail);
+
         return {
             name,
             usage,
@@ -255,6 +268,7 @@ export function createVerbRegistry<Call extends VerbCallBase>(options: { cli: st
 
     const defineNoun = (spec: NounSpec<Call>): Noun<Call> => {
         const words = spec.actions.map((action) => action.word);
+
         return {
             served: 'noun',
             name: spec.name,
@@ -265,6 +279,7 @@ export function createVerbRegistry<Call extends VerbCallBase>(options: { cli: st
             async run(argv, call) {
                 const [word, ...rest] = argv;
                 const action = spec.actions.find((candidate) => candidate.word === word);
+
                 if (!action) {
                     throw new VerbRefusal(
                         'unknown-action',
@@ -272,6 +287,7 @@ export function createVerbRegistry<Call extends VerbCallBase>(options: { cli: st
                         [...spec.actions.map((candidate) => `usage\t${candidate.name}\t${candidate.usage}`), `detail\t${cli} help ${spec.name}`]
                     );
                 }
+
                 return action.run(rest, call);
             }
         };
@@ -279,6 +295,7 @@ export function createVerbRegistry<Call extends VerbCallBase>(options: { cli: st
 
     const defineHelp = (spec: HelpSpec<Call>): Verb<Call> => {
         const detailLines = (entry: VerbHelp): string[] => [`usage\t${entry.name}\t${entry.usage}`, `about\t${entry.summary}`, ...entry.detail, spec.refusal];
+
         const nounLines = (noun: Noun<Call>): string[] => [
             `usage\t${noun.name}\t${noun.usage}`,
             `about\t${noun.summary}`,
@@ -287,9 +304,11 @@ export function createVerbRegistry<Call extends VerbCallBase>(options: { cli: st
             `detail\t${cli} help ${noun.name} <action>\tone action in full`,
             spec.refusal
         ];
+
         const topics = spec.topics ?? [];
         const topicLines = topics.map((topic) => `topic\t${topic.name}\t${topic.summary}`);
         const topicPointer = topics.length > 0 ? [`detail\t${cli} help <topic>\tone topic in full`] : [];
+
         return defineVerb({
             name: 'help',
             usage: '[noun] [action]',
@@ -308,6 +327,7 @@ export function createVerbRegistry<Call extends VerbCallBase>(options: { cli: st
             flags: z.object({}),
             run: async ({ positionals: [name, actionWord] }) => {
                 const entries = spec.entries();
+
                 if (name === undefined) {
                     return [
                         ...summaryLines(entries),
@@ -320,16 +340,20 @@ export function createVerbRegistry<Call extends VerbCallBase>(options: { cli: st
                         spec.refusal
                     ];
                 }
+
                 const entry = entries.find((candidate) => candidate.name === name);
                 const topic = entry ? undefined : topics.find((candidate) => candidate.name === name);
+
                 if (topic) {
                     if (actionWord !== undefined) {
                         throw new VerbRefusal('bad-arguments', `${name} is a topic and has no actions; ${cli} help ${name} prints it`, [
                             `detail\t${cli} help ${name}\tthe topic in full`
                         ]);
                     }
+
                     return [`about\t${topic.summary}`, ...topic.body];
                 }
+
                 if (!entry) {
                     throw new VerbRefusal('unknown-verb', topics.length > 0 ? `${name} is not a verb, a noun or a topic` : `${name} is not a verb or a noun`, [
                         `detail\t${cli} help\tevery verb and noun, with what each takes`,
@@ -337,21 +361,27 @@ export function createVerbRegistry<Call extends VerbCallBase>(options: { cli: st
                         ...topicLines
                     ]);
                 }
+
                 if (entry.served !== 'noun') {
                     if (actionWord !== undefined) {
                         throw new VerbRefusal('bad-arguments', `${name} is a verb and has no actions; ${cli} help ${name} details it`, [
                             `detail\t${cli} help ${name}\tone verb in full`
                         ]);
                     }
+
                     return detailLines(entry);
                 }
+
                 if (actionWord === undefined) {
                     return nounLines(entry);
                 }
+
                 const action = entry.actions.find((candidate) => candidate.word === actionWord);
+
                 if (!action) {
                     throw new VerbRefusal('unknown-action', `${actionWord} is not an action of ${name}`, actionLines(entry));
                 }
+
                 return detailLines(action);
             }
         });
@@ -370,6 +400,7 @@ export function lengthOf(input: unknown): number {
     if (typeof input === 'string' || Array.isArray(input)) {
         return input.length;
     }
+
     return 0;
 }
 

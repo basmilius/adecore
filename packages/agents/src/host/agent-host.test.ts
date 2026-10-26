@@ -38,10 +38,13 @@ class Client {
 
     request(type: string, payload: unknown): Promise<ReplyOk | ReplyError> {
         const id = `r${this.nextId++}`;
+
         const reply = new Promise<ReplyOk | ReplyError>((resolve) => {
             this.waiting.set(id, resolve);
         });
+
         this.port.send({ id, type, payload });
+
         return reply;
     }
 
@@ -50,6 +53,7 @@ class Client {
         if (check()) {
             return Promise.resolve();
         }
+
         return new Promise((resolve) => {
             this.watchers.push({ check, resolve });
         });
@@ -57,10 +61,13 @@ class Client {
 
     private receive(raw: unknown): void {
         const parsed = parseServerFrame(raw);
+
         if (!parsed.ok) {
             throw new Error(`The host sent a frame off the wire: ${parsed.message}`);
         }
+
         const frame = parsed.value;
+
         if ('ok' in frame) {
             this.waiting.get(frame.id ?? '')?.(frame);
         } else {
@@ -69,6 +76,7 @@ class Client {
             this.events.push({ event: frame.event, payload: frame.payload });
             this.apply(frame.event, frame.payload);
         }
+
         for (const watcher of [...this.watchers]) {
             if (watcher.check()) {
                 this.watchers.splice(this.watchers.indexOf(watcher), 1);
@@ -81,11 +89,14 @@ class Client {
         if (event !== 'chat.event') {
             return;
         }
+
         const { event: chatEvent } = AGENT_EVENT_SCHEMAS['chat.event'].parse(payload);
+
         if (chatEvent.type === 'item') {
             this.items.set(chatEvent.item.id, chatEvent.item);
         } else if (chatEvent.type === 'delta') {
             const item = this.items.get(chatEvent.itemId);
+
             if (item?.kind === 'assistant') {
                 this.items.set(item.id, { ...item, text: item.text + chatEvent.text });
             }
@@ -103,6 +114,7 @@ let client: Client;
 beforeEach(async () => {
     dataDir = await mkdtemp(join(tmpdir(), 'agents-host-'));
     claude = inProcess(fakeClaude);
+
     host = await AgentHost.open({
         dataDir,
         env: { HOME: dataDir, PATH: process.env.PATH },
@@ -111,6 +123,7 @@ beforeEach(async () => {
         command: ['claude'],
         spawn: claude.spawn
     });
+
     const [renderer, utility] = memoryPortPair();
     host.connect(utility);
     client = new Client(renderer);
@@ -125,6 +138,7 @@ function ok(reply: ReplyOk | ReplyError): unknown {
     if (!reply.ok) {
         throw new Error(`${reply.error.code}: ${reply.error.message}`);
     }
+
     return reply.result;
 }
 
@@ -135,6 +149,7 @@ describe('AgentHost over a port', () => {
         ok(await client.request('chat.attach', { chatId: 'chat-1' }));
 
         expect(ok(await client.request('chat.send', { chatId: 'chat-1', text: 'hello there' }))).toMatchObject({ queued: false });
+
         await client.until(
             () => client.info?.activeTurnId === null && [...client.items.values()].some((item) => item.kind === 'turn' && item.state === 'done')
         );
@@ -152,10 +167,13 @@ describe('AgentHost over a port', () => {
         ok(await client.request('chat.create', { chatId: 'chat-two', provider: 'claude', cwd: dataDir }));
         ok(await client.request('chat.attach', { chatId: 'chat-two' }));
         ok(await client.request('chat.send', { chatId: 'chat-two', text: 'two subagents' }));
+
         const rows = () => [...client.items.values()].filter((item) => item.kind === 'subagent');
+
         await client.until(() => rows().length === 2 && rows().every((item) => item.status === 'running'));
         ok(await client.request('chat.stopSubagent', { chatId: 'chat-two', toolUseId: 'toolu_two_a' }));
         await client.until(() => client.items.has('stopped-toolu_two_a'));
+
         expect(rows().map((item) => [item.toolUseId, item.status])).toEqual([
             ['toolu_two_a', 'failed'],
             ['toolu_two_b', 'running']
@@ -200,6 +218,7 @@ describe('AgentHost over a port', () => {
     test('runs on a core of the app, whose hooks reach the CLI', async () => {
         class BriefedCore extends ChatCore {}
         await host.close();
+
         const briefed = await AgentHost.open({
             dataDir,
             env: { HOME: dataDir, PATH: process.env.PATH },
@@ -209,6 +228,7 @@ describe('AgentHost over a port', () => {
             spawn: claude.spawn,
             core: (options) => new BriefedCore({ ...options, hooks: { instructionsFor: (chatId) => `You are the agent of ${chatId}.` } })
         });
+
         host = briefed;
         expect(briefed.chats).toBeInstanceOf(BriefedCore);
         const [renderer, utility] = memoryPortPair();
@@ -226,6 +246,7 @@ describe('AgentHost over a port', () => {
     test('hands a chat the folders of its core, and a change starts the next turn in a new process', async () => {
         const reading: string[] = ['/brand/kit'];
         await host.close();
+
         host = await AgentHost.open({
             dataDir,
             env: { HOME: dataDir, PATH: process.env.PATH },
@@ -234,9 +255,11 @@ describe('AgentHost over a port', () => {
             spawn: claude.spawn,
             core: (options) => new ChatCore({ ...options, hooks: { foldersFor: () => [...reading] } })
         });
+
         const [renderer, utility] = memoryPortPair();
         host.connect(utility);
         client = new Client(renderer);
+
         const answered = (text: string): boolean => [...client.items.values()].some((item) => item.kind === 'assistant' && item.text === `echo: ${text}`);
 
         ok(await client.request('chat.create', { chatId: 'chat-5', provider: 'claude', cwd: dataDir }));
@@ -265,10 +288,13 @@ describe('AgentHost over a port', () => {
                 return args[0] === 'chat-broken' ? Promise.reject(new Error('The disk is full')) : super.write(...args);
             }
         }
+
         // A CLI whose process group outlives its closed input, as one running a dev server does, ends only on a signal.
         const signaled: string[] = [];
+
         const spawn: SpawnChatProcess = (options) => {
             const child = claude.spawn(options);
+
             return {
                 ...child,
                 stdin: { ...child.stdin, end: () => undefined },
@@ -278,7 +304,9 @@ describe('AgentHost over a port', () => {
                 }
             };
         };
+
         await host.close();
+
         host = await AgentHost.open({
             dataDir,
             env: { HOME: dataDir, PATH: process.env.PATH },
@@ -287,20 +315,24 @@ describe('AgentHost over a port', () => {
             spawn,
             core: (options) => new ChatCore({ ...options, store: new BrokenStore(dataDir) })
         });
+
         const [renderer, utility] = memoryPortPair();
         host.connect(utility);
         client = new Client(renderer);
         const launched = claude.started.length;
+
         for (const chatId of ['chat-broken', 'chat-fine']) {
             ok(await client.request('chat.create', { chatId, provider: 'claude', cwd: dataDir }));
             ok(await client.request('chat.send', { chatId, text: 'hello there' }));
         }
+
         await client.until(() => claude.started.length === launched + 2);
 
         const closed = await host.close().then(
             () => null,
             (e: unknown) => (e instanceof Error ? e.message : String(e))
         );
+
         expect(closed).toBe('The disk is full');
         expect(signaled).toEqual(['SIGTERM', 'SIGTERM']);
         host = await AgentHost.open({ dataDir, env: { HOME: dataDir, PATH: process.env.PATH }, background: false, command: ['claude'], spawn: claude.spawn });
@@ -311,6 +343,7 @@ describe('AgentHost over a port', () => {
             client.events
                 .filter((event) => event.event === 'chat.visuals' && (event.payload as ChatVisualsEvent).chatId === chatId)
                 .map((event) => (event.payload as ChatVisualsEvent).visuals);
+
         ok(await client.request('chat.create', { chatId: 'chat-7', provider: 'claude', cwd: dataDir }));
         ok(await client.request('chat.create', { chatId: 'chat-8', provider: 'claude', cwd: dataDir }));
         const before = await host.chats.publishVisual('chat-7', { title: 'Before attach', html: '<p>one</p>' });

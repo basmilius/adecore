@@ -36,18 +36,24 @@ export function deliverMessageHandler(deps: DeliverMessageDeps) {
         if (!deps.placed(entry.target)) {
             return;
         }
+
         const waiting = deps.notices.waiting(entry.target);
+
         // A turn opened for an earlier message took these along, or they went stale: nothing to wake anyone for.
         if (waiting.length === 0) {
             return;
         }
+
         const chat = await deps.chat(entry.target);
+
         if (chat === null) {
             return;
         }
+
         if (chat.relocating?.() === true) {
             return 'wait';
         }
+
         // No note and no preamble on the thread: a person read the message as it landed (`showNotices`),
         // and the label on the turn names who it came from.
         chat.wake({

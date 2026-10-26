@@ -40,18 +40,23 @@ export interface ChatDelivery {
  */
 export function turnFromMessage(items: readonly ChatItem[], activeTurnId: string | null): boolean {
     const from = activeTurnId === null ? items.findLastIndex((item) => item.kind === 'turn') : items.findIndex((item) => item.id === activeTurnId);
+
     for (let i = from; i >= 0; i--) {
         const turn = items[i]!;
+
         if (turn.kind !== 'turn') {
             continue;
         }
+
         if ((turn.messageFrom ?? []).length > 0) {
             return true;
         }
+
         if (turn.origin !== 'agent' || turn.taskIds !== undefined || turn.summaryFor !== undefined) {
             return false;
         }
     }
+
     return false;
 }
 
@@ -60,14 +65,17 @@ export function chatNoticeTargets(chats: Pick<ChatCore, 'get' | 'hasStored'>): C
     return {
         chat: async (id) => {
             const session = chats.get(id);
+
             if (session) {
                 return session.info.activeTurnId === null ? 'idle' : 'running';
             }
+
             // A chat nobody has loaded is idle: the turn opens on the thread the host reads back from disk.
             return (await chats.hasStored(id)) ? 'idle' : 'none';
         },
         fromMessage: (id) => {
             const session = chats.get(id);
+
             return session !== undefined && turnFromMessage(session.thread.list(), session.info.activeTurnId);
         }
     };
@@ -82,15 +90,19 @@ export function chatNoticeTargets(chats: Pick<ChatCore, 'get' | 'hasStored'>): C
 export async function deliverToChat(store: Pick<NoticeStore, 'put'>, targets: ChatNoticeTargets, notice: Omit<Notice, 'createdAt'>): Promise<ChatDelivery> {
     const waiting = await store.put(notice);
     const chat = await targets.chat(notice.targetId);
+
     if (chat === 'none') {
         return { outcome: 'no-chat', waiting };
     }
+
     if (chat === 'running') {
         return { outcome: 'in-turn', waiting };
     }
+
     if (targets.fromMessage(notice.from)) {
         return { outcome: 'from-message', waiting };
     }
+
     return { outcome: 'wake', waiting };
 }
 
@@ -110,6 +122,7 @@ export async function showNotices(store: Pick<NoticeStore, 'show'>, chat: Notice
     if (!(await chat.has(targetId))) {
         return;
     }
+
     for (const notice of await store.show(targetId)) {
         await chat.note(targetId, words.shown(notice));
     }

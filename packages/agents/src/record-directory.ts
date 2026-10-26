@@ -54,36 +54,48 @@ export class RecordDirectory<T> {
     /* Reads what an earlier run of the host wrote down. Call before anything can ask. */
     async load(): Promise<void> {
         let names: string[];
+
         try {
             names = await readdir(this.dir);
         } catch (e) {
             if (isNotFound(e)) {
                 return;
             }
+
             throw e;
         }
+
         for (const name of names) {
             if (!name.endsWith('.json')) {
                 continue;
             }
+
             const raw = await readFile(join(this.dir, name), 'utf8').catch(() => null);
+
             if (raw === null) {
                 continue;
             }
+
             let parsed: ReturnType<typeof this.schema.safeParse>;
+
             try {
                 parsed = this.schema.safeParse(JSON.parse(raw));
             } catch {
                 continue;
             }
+
             if (!parsed.success) {
                 continue;
             }
+
             const record = this.keep === null ? parsed.data : this.keep(parsed.data);
+
             if (record === null) {
                 await this.removeFile(join(this.dir, name));
+
                 continue;
             }
+
             this.records.set(this.idOf(record), record);
         }
     }
@@ -109,18 +121,23 @@ export class RecordDirectory<T> {
     write(record: T): Promise<boolean> {
         const id = this.idOf(record);
         this.records.set(id, record);
+
         return this.files.run(id, async () => {
             if (this.records.get(id) !== record) {
                 return false;
             }
+
             await mkdir(this.dir, { recursive: true, mode: 0o700 });
             await this.writeFile(this.pathOf(id), JSON.stringify(record));
+
             if (this.records.get(id) === record) {
                 return true;
             }
+
             if (!this.records.has(id)) {
                 await this.removeFile(this.pathOf(id));
             }
+
             return false;
         });
     }
@@ -128,6 +145,7 @@ export class RecordDirectory<T> {
     /* Forgets a record here and now; its file follows, after what is queued for it. */
     remove(id: string): Promise<void> {
         this.records.delete(id);
+
         return this.files.run(id, () => this.removeFile(this.pathOf(id)));
     }
 
@@ -136,6 +154,7 @@ export class RecordDirectory<T> {
             const id = this.idOf(listed);
             // Read again after each await: a record written meanwhile may no longer be one to drop.
             const current = this.records.get(id);
+
             if (current !== undefined && drop(current)) {
                 await this.remove(id);
             }

@@ -5,6 +5,7 @@ import { PerClientWatches, settled, supportsRecursive, SYSTEM_WATCH, type WatchS
 function manualSeams() {
     const waiting = new Map<number, { callback: () => unknown; ms: number }>();
     let next = 0;
+
     const seams: WatchSeams = {
         watch: () => {
             throw new Error('not watched in this test');
@@ -12,16 +13,20 @@ function manualSeams() {
         schedule: (callback, ms) => {
             const id = next++;
             waiting.set(id, { callback, ms });
+
             return () => waiting.delete(id);
         }
     };
+
     const runAll = (): void => {
         const due = [...waiting.values()];
         waiting.clear();
+
         for (const entry of due) {
             entry.callback();
         }
     };
+
     return { seams, waiting, runAll };
 }
 
@@ -37,9 +42,11 @@ describe('settled', () => {
     test('runs once after a burst, however many nudges it had', () => {
         const { seams, waiting, runAll } = manualSeams();
         let runs = 0;
+
         const burst = settled(seams, 150, () => {
             runs += 1;
         });
+
         burst.nudge();
         burst.nudge();
         burst.nudge();
@@ -54,9 +61,11 @@ describe('settled', () => {
     test('a stop drops the run that waits', () => {
         const { seams, waiting, runAll } = manualSeams();
         let runs = 0;
+
         const burst = settled(seams, 150, () => {
             runs += 1;
         });
+
         burst.nudge();
         burst.stop();
         expect(waiting.size).toBe(0);
@@ -66,9 +75,11 @@ describe('settled', () => {
 
     test('the system clock cancels what it scheduled', async () => {
         let ran = false;
+
         const cancel = SYSTEM_WATCH.schedule(() => {
             ran = true;
         }, 1);
+
         cancel();
         await new Promise((resolve) => setTimeout(resolve, 10));
         expect(ran).toBe(false);
@@ -95,9 +106,11 @@ describe('PerClientWatches', () => {
         const watches = new PerClientWatches<string>((state) => stopped.push(state));
         watches.put('window-1', '/a', 'watch-a');
         watches.put('window-1', '/b', 'watch-b');
+
         for (const [key] of watches.all('window-1')) {
             watches.remove('window-1', key);
         }
+
         expect(stopped).toEqual(['watch-a', 'watch-b']);
         watches.put('window-1', '/c', 'watch-c');
         watches.detachAll('window-1');

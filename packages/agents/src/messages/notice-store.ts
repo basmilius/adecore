@@ -50,6 +50,7 @@ export class NoticeStore {
     constructor(dataDir: string, now: () => number = Date.now) {
         this.dir = join(dataDir, 'notices');
         this.now = now;
+
         this.queues = new RecordDirectory({
             dir: this.dir,
             schema: FileSchema,
@@ -57,6 +58,7 @@ export class NoticeStore {
             // What went stale while the host was down is not delivered; a queue of nothing else goes.
             keep: (file) => {
                 const fresh = file.notices.filter((notice) => this.fresh(notice));
+
                 return fresh[0] === undefined ? null : { notices: fresh };
             }
         });
@@ -70,6 +72,7 @@ export class NoticeStore {
     async put(notice: Omit<Notice, 'createdAt'>): Promise<number> {
         const queue = [...this.waiting(notice.targetId), { ...notice, createdAt: this.now() }].slice(-MAX_NOTICES);
         await this.persist(notice.targetId, queue);
+
         return queue.length;
     }
 
@@ -81,10 +84,13 @@ export class NoticeStore {
      */
     take(targetId: string): Notice[] {
         const queue = this.waiting(targetId);
+
         if (queue.length === 0) {
             return [];
         }
+
         this.lastDrop = this.persist(targetId, []).catch((e) => console.error(`Dropping the messages of ${targetId} failed:`, errorText(e)));
+
         return queue;
     }
 
@@ -100,22 +106,27 @@ export class NoticeStore {
     async show(targetId: string): Promise<Notice[]> {
         const queue = this.waiting(targetId);
         const unshown = queue.filter((notice) => notice.shown !== true);
+
         if (unshown.length === 0) {
             return [];
         }
+
         await this.persist(
             targetId,
             queue.map((notice) => ({ ...notice, shown: true }))
         );
+
         return unshown;
     }
 
     /* What waits for a node, without taking it; the stale ones are already gone from the answer. */
     waiting(targetId: string): Notice[] {
         const file = this.queues.get(targetId);
+
         if (file === undefined) {
             return [];
         }
+
         return file.notices.filter((notice) => this.fresh(notice));
     }
 
@@ -132,8 +143,10 @@ export class NoticeStore {
     private async persist(targetId: string, queue: Notice[]): Promise<void> {
         if (queue.length === 0) {
             await this.queues.remove(targetId);
+
             return;
         }
+
         await this.queues.write({ notices: queue });
     }
 }

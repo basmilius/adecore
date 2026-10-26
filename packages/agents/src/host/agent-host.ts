@@ -53,34 +53,42 @@ export class AgentHost<Core extends ChatCore = ChatCore> {
     static async open<Core extends ChatCore = ChatCore>(options: AgentHostOptions<Core>): Promise<AgentHost<Core>> {
         const host = new AgentHost(options);
         await host.accounts.load();
+
         if (host.background) {
             host.wiring.start();
         }
+
         return host;
     }
 
     /* Serves one client over `port` until the returned function or `close` lets go of it. */
     connect(port: FramePort): () => void {
         const clientId = `port-${this.nextClient++}`;
+
         const releases = [
             port.onFrame((frame) => void this.receive(port, clientId, frame)),
             this.wiring.connect(clientId, (event) => port.send({ type: 'event', event: event.event, payload: event.payload }))
         ];
+
         const disconnect = (): void => {
             if (!this.connections.delete(disconnect)) {
                 return;
             }
+
             for (const release of releases) {
                 release();
             }
         };
+
         this.connections.add(disconnect);
+
         return disconnect;
     }
 
     /* Lets go of every client, writes every thread and ends every CLI; settles once they exited. */
     close(): Promise<void> {
         this.closing ??= this.shutDown();
+
         return this.closing;
     }
 
@@ -88,35 +96,47 @@ export class AgentHost<Core extends ChatCore = ChatCore> {
         for (const disconnect of [...this.connections]) {
             disconnect();
         }
+
         await this.wiring.stop();
     }
 
     private async receive(port: FramePort, clientId: string, frame: unknown): Promise<void> {
         const parsed = parseRequest(frame);
+
         if (!parsed.ok) {
             // The id when the frame carried a usable one, so the client can settle its promise.
             const id = typeof frame === 'object' && frame !== null && 'id' in frame && typeof frame.id === 'string' && frame.id !== '' ? frame.id : null;
             port.send(errorReply(id, 'bad-request', parsed.message));
+
             return;
         }
+
         const { id, type, payload } = parsed.value;
+
         if (!isAgentRequest(type)) {
             port.send(errorReply(id, 'unknown-request', `Unknown request type: ${type}`));
+
             return;
         }
+
         const checked = AGENT_REQUEST_SCHEMAS[type].payload.safeParse(payload);
+
         if (!checked.success) {
             port.send(errorReply(id, 'bad-request', `Invalid payload for ${type}`));
+
             return;
         }
+
         try {
             const handler = this.wiring.handlers[type] as AgentHandler<AgentRequestType>;
             port.send({ id, ok: true, result: await handler(checked.data as never, clientId) });
         } catch (e) {
             if (e instanceof CodedError) {
                 port.send(errorReply(id, e.code, e.message));
+
                 return;
             }
+
             console.error(`Handler for ${type} failed:`, errorText(e));
             port.send(errorReply(id, 'internal', 'Request failed'));
         }

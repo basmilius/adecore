@@ -24,6 +24,7 @@ describe('spawnTarget', () => {
             env: { Path: 'C:\\Tools;"C:\\Program Files\\Claude"', PATHEXT: '.COM;.EXE;.CMD' },
             isFile: files('C:\\Program Files\\Claude\\claude.exe', 'C:\\Program Files\\Claude\\claude.cmd')
         });
+
         expect(target).toEqual({ file: 'C:\\Program Files\\Claude\\claude.exe', args: ['--version'] });
     });
 
@@ -33,6 +34,7 @@ describe('spawnTarget', () => {
             env: { PATH: 'C:\\npm', ComSpec: 'C:\\Windows\\System32\\cmd.exe' },
             isFile: files('C:\\npm\\codex.cmd')
         });
+
         expect(target.file).toBe('C:\\Windows\\System32\\cmd.exe');
         expect(target.windowsVerbatimArguments).toBe(true);
         expect(target.args.slice(0, 3)).toEqual(['/d', '/s', '/c']);
@@ -71,6 +73,7 @@ describe('spawnTarget', () => {
 describe.skipIf(process.platform !== 'win32')('a batch file on Windows', () => {
     test('gets every argument as it was given', async () => {
         const folder = mkdtempSync(join(tmpdir(), 'windows-command-'));
+
         try {
             writeFileSync(join(folder, 'echo.js'), 'console.log(JSON.stringify(process.argv.slice(2)));\n');
             writeFileSync(join(folder, 'echo args.cmd'), `@"${process.execPath}" "%~dp0echo.js" %*\r\n`);

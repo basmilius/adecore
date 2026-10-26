@@ -67,6 +67,7 @@ async function installRulesIn(kind: AgentKind, folder: string, rules: CodexRules
     if (kind !== 'codex') {
         return;
     }
+
     const path = codexRulesPathIn(folder, rules);
     await installCodexRules(path, rules).catch((e: unknown) => console.error(`Could not write the codex rules in ${path}:`, errorText(e)));
 }
@@ -82,6 +83,7 @@ export function wireAgents<Core extends ChatCore = ChatCore>(options: AgentWirin
     const client = options.client ?? DEFAULT_CODEX_CLIENT;
     const codexRules = options.codexRules;
     const providers = new ProviderRegistry({ providers: [createClaudeProvider(options.claude), createCodexProvider({ client })], env, detect: options.detect });
+
     const accounts = new ProviderAccountsService({
         home: options.dataDir,
         providers,
@@ -90,15 +92,19 @@ export function wireAgents<Core extends ChatCore = ChatCore>(options: AgentWirin
         ...(options.accountsHost ? { host: options.accountsHost } : {}),
         ...(codexRules ? { install: (kind: AgentKind, folder: string) => installRulesIn(kind, folder, codexRules) } : {})
     });
+
     if (codexRules) {
         void installRulesIn('codex', defaultCodexHome(env), codexRules);
     }
+
     const nameOf = (kind: AgentKind | UsageProvider): string => providers.get(kind).name;
+
     const limits = new UsageMonitor({ providers, accounts: limitAccountsOf(accounts, nameOf, env), client });
     accounts.listen(() => limits.accountsChanged());
     const attachments = new AttachmentStore(options.dataDir);
     // Only without `core`, where `Core` is `ChatCore` itself.
     const core = options.core ?? ((coreOptions: ChatCoreOptions) => new ChatCore(coreOptions) as Core);
+
     const chats = core({
         providers,
         store: new ChatStore(options.dataDir, { attachments }),
@@ -116,6 +122,7 @@ export function wireAgents<Core extends ChatCore = ChatCore>(options: AgentWirin
         claudeTitles: new ClaudeTitleReader(),
         nameChat: (kind, input) => suggestChatTitle(providers, kind, input, definedEnv(env))
     });
+
     const usage = new UsageService({
         home: options.dataDir,
         knownProjects: () => Promise.resolve([]),
@@ -123,6 +130,7 @@ export function wireAgents<Core extends ChatCore = ChatCore>(options: AgentWirin
         sessionAccounts: () => chatSessionAccounts(chats.list()),
         accounts: () => usageAccountsOf(accounts, nameOf)
     });
+
     return {
         providers,
         accounts,
@@ -141,10 +149,12 @@ export function wireAgents<Core extends ChatCore = ChatCore>(options: AgentWirin
                 usage.subscribe(clientId, send),
                 limits.subscribe(clientId, send)
             ];
+
             return () => {
                 for (const release of releases) {
                     release();
                 }
+
                 chats.detachAll(clientId);
                 usage.unfollow(clientId);
             };

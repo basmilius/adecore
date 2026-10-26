@@ -7,6 +7,7 @@ import { runProcess } from './run-process.ts';
 function alive(pid: number): boolean {
     try {
         process.kill(pid, 0);
+
         return true;
     } catch {
         return false;
@@ -16,9 +17,11 @@ function alive(pid: number): boolean {
 // The process runs on the real clock while the deadlines are moved by hand, so this waits on the one the fake timers leave alone.
 async function until(done: () => boolean): Promise<void> {
     const deadline = Bun.nanoseconds() + 3e9;
+
     while (!done() && Bun.nanoseconds() < deadline) {
         await new Promise<void>((resolve) => setImmediate(resolve));
     }
+
     expect(done()).toBe(true);
 }
 
@@ -30,22 +33,28 @@ describe.skipIf(process.platform === 'win32')('runProcess', () => {
     test('a command past its deadline is sent a SIGTERM with what it started, and a SIGKILL after the grace', async () => {
         const folder = mkdtempSync(join(tmpdir(), 'run-process-'));
         const pidFile = join(folder, 'pid');
+
         try {
             jest.useFakeTimers();
+
             // Both ignore the SIGTERM, which the started sleep inherits.
             const running = runProcess(['sh', '-c', `trap '' TERM; sleep 60 & echo $! > ${pidFile}; wait`], {
                 timeoutMs: 1000,
                 timeoutMessage: 'too slow'
             }).catch((error: Error) => error);
+
             let started = 0;
+
             await until(() => {
                 try {
                     started = Number(readFileSync(pidFile, 'utf8'));
                 } catch {
                     return false;
                 }
+
                 return started > 0;
             });
+
             jest.advanceTimersByTime(1000);
             expect(((await running) as Error).message).toBe('too slow');
             expect(alive(started)).toBe(true);
@@ -66,12 +75,14 @@ describe.skipIf(process.platform === 'win32')('runProcess', () => {
 
     test('hands the command its input, its folder and its environment', async () => {
         const folder = mkdtempSync(join(tmpdir(), 'run-process-'));
+
         try {
             const result = await runProcess(['sh', '-c', 'cat; pwd; echo "$GREETING"'], {
                 stdin: 'piped\n',
                 cwd: folder,
                 env: { GREETING: 'hello', PATH: process.env.PATH }
             });
+
             expect(result.exitCode).toBe(0);
             const [input, cwd, greeting] = result.stdout.trimEnd().split('\n');
             expect(input).toBe('piped');

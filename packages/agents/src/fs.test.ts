@@ -23,6 +23,7 @@ describe('writeAtomic', () => {
 
         expect(await readFile(target, 'utf8')).toBe('{"rev":2}\n');
         expect(await readdir(dir)).toEqual(['project.json']);
+
         if (process.platform !== 'win32') {
             // A new file takes the mode it is created with, and the temp file is a new file.
             expect((await stat(target)).mode & 0o777).toBe(0o644);

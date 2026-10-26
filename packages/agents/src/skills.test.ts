@@ -31,6 +31,7 @@ beforeAll(async () => {
     const install = join(home, '.claude', 'plugins', 'cache', 'frontend-design');
     await writeSkill(join(install, 'skills'), 'frontend-design', '---\nname: frontend-design\ndescription: Visual design.\n---\n');
     await mkdir(join(home, '.claude', 'plugins'), { recursive: true });
+
     await writeFile(
         join(home, '.claude', 'plugins', 'installed_plugins.json'),
         JSON.stringify({ version: 2, plugins: { 'frontend-design@official': [{ scope: 'user', installPath: install }] } })
@@ -92,7 +93,9 @@ describe('discoverSkills', () => {
 
 describe('a bounded scan', () => {
     let tree = '';
+
     const skill = (name: string): string => `---\nname: ${name}\ndescription: ${name}.\n---\n`;
+
     const names = (skills: Array<{ name: string }>): string[] => skills.map((found) => found.name);
 
     beforeAll(async () => {
@@ -118,11 +121,13 @@ describe('a bounded scan', () => {
         const root = join(tree, 'shared');
         await writeSkill(root, 'review', skill('review'));
         await symlink(root, join(tree, 'shared-link'));
+
         const skills = await scanSkillRoots([
             { dir: root, source: 'user' },
             { dir: join(tree, 'shared-link'), source: 'plugin', prefix: 'linked' },
             { dir: join(tree, 'shared-link'), source: 'project' }
         ]);
+
         expect(skills).toEqual([
             { name: 'linked:review', description: 'review.', source: 'plugin' },
             { name: 'review', description: 'review.', source: 'user' }
@@ -132,14 +137,17 @@ describe('a bounded scan', () => {
     test('shows a skill two plugins link in under each of them', async () => {
         const shared = join(tree, 'plugin-shared');
         await writeSkill(shared, 'lint', skill('lint'));
+
         for (const plugin of ['one', 'two']) {
             await mkdir(join(tree, 'plugins', plugin), { recursive: true });
             await symlink(join(shared, 'lint'), join(tree, 'plugins', plugin, 'lint'));
         }
+
         const skills = await scanSkillRoots([
             { dir: join(tree, 'plugins', 'one'), source: 'plugin', prefix: 'one' },
             { dir: join(tree, 'plugins', 'two'), source: 'plugin', prefix: 'two' }
         ]);
+
         expect(names(skills)).toEqual(['one:lint', 'two:lint']);
     });
 
@@ -147,19 +155,23 @@ describe('a bounded scan', () => {
         const root = join(tree, 'passed');
         await writeSkill(join(root, 'node_modules'), 'bundled', skill('bundled'));
         await writeSkill(join(root, 'edge', 'below'), 'deeper', skill('deeper'));
+
         const skills = await scanSkillRoots([
             { dir: root, source: 'project', depth: 2 },
             { dir: join(root, 'node_modules'), source: 'user' },
             { dir: join(root, 'edge', 'below'), source: 'user' }
         ]);
+
         expect(names(skills)).toEqual(['bundled', 'deeper']);
     });
 
     test('looks at a bounded number of entries in one folder, by name', async () => {
         const root = join(tree, 'wide');
+
         for (const name of ['alpha', 'beta', 'gamma']) {
             await writeSkill(root, name, skill(name));
         }
+
         expect(names(await scanSkillRoots([{ dir: root, source: 'user' }], { directories: 10, skills: 10, entries: 2 }))).toEqual(['alpha', 'beta']);
     });
 
@@ -174,10 +186,12 @@ describe('a bounded scan', () => {
     test('keeps to the depth, and a deep tree hides none of the skills nearer the root', async () => {
         const root = join(tree, 'deep');
         let deep = join(root, 'a-tree');
+
         for (let level = 0; level < 8; level++) {
             await mkdir(join(deep, 'side'), { recursive: true });
             deep = join(deep, 'down');
         }
+
         await writeSkill(deep, 'too-deep', skill('too-deep'));
         await writeSkill(join(root, 'z-group'), 'near', skill('near'));
         expect(names(await scanSkillRoots([{ dir: root, source: 'user', depth: 5 }]))).toEqual(['near']);
@@ -189,9 +203,11 @@ describe('a bounded scan', () => {
 
     test('answers at most the skills its limit allows, each with a description of bounded length', async () => {
         const root = join(tree, 'many');
+
         for (const name of ['one', 'two', 'three']) {
             await writeSkill(root, name, `---\nname: ${name}\ndescription: ${'x'.repeat(5000)}\n---\n`);
         }
+
         const skills = await scanSkillRoots([{ dir: root, source: 'user' }], { directories: 10, skills: 2 });
         expect(skills).toHaveLength(2);
         expect(skills.every((found) => found.description.length === 1024)).toBe(true);
@@ -206,34 +222,45 @@ describe('a bounded scan', () => {
 
 describe('a scan short of file handles', () => {
     const busy = () => Object.assign(new Error('too many open files'), { code: 'EMFILE' });
+
     const noWait = async (): Promise<void> => {};
 
     test('tries again while the process has too many files open', async () => {
         let calls = 0;
+
         const answer = await whileBusy(async () => {
             calls++;
+
             if (calls < 3) {
                 throw busy();
             }
+
             return 'read';
         }, noWait);
+
         expect(answer).toBe('read');
         expect(calls).toBe(3);
     });
 
     test('reports a lack of file handles that lasts, and any other error at once', async () => {
         let calls = 0;
+
         const always = whileBusy(async () => {
             calls++;
+
             throw busy();
         }, noWait);
+
         await expect(always).rejects.toMatchObject({ code: 'EMFILE' });
         expect(calls).toBe(4);
         calls = 0;
+
         const missing = whileBusy(async () => {
             calls++;
+
             throw Object.assign(new Error('missing'), { code: 'ENOENT' });
         }, noWait);
+
         await expect(missing).rejects.toMatchObject({ code: 'ENOENT' });
         expect(calls).toBe(1);
     });
@@ -241,13 +268,16 @@ describe('a scan short of file handles', () => {
     test('runs at most so many at once and answers in order', async () => {
         let running = 0;
         let most = 0;
+
         const doubled = await mapLimited([1, 2, 3, 4, 5, 6, 7], 3, async (value) => {
             running++;
             most = Math.max(most, running);
             await Promise.resolve();
             running--;
+
             return value * 2;
         });
+
         expect(doubled).toEqual([2, 4, 6, 8, 10, 12, 14]);
         expect(most).toBe(3);
     });

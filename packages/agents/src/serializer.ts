@@ -9,6 +9,7 @@ export class Serializer {
     run<T>(work: () => Promise<T>): Promise<T> {
         const next = this.chain.then(work, work);
         this.chain = next.catch(() => undefined);
+
         return next;
     }
 
@@ -30,12 +31,14 @@ export class KeyedSerializer {
         const next = previous.then(work, work);
         const settled = next.catch(() => undefined);
         this.chains.set(key, settled);
+
         // A key whose chain ran out leaves nothing behind, or the map grows with every id ever written.
         void settled.then(() => {
             if (this.chains.get(key) === settled) {
                 this.chains.delete(key);
             }
         });
+
         return next;
     }
 }

@@ -46,6 +46,7 @@ describe('readLines', () => {
         const lines: string[] = [];
         const size = Buffer.byteLength(await Bun.file(path).text());
         const next = await readLines(path, from, size, chunkBytes, (line) => lines.push(line));
+
         return { lines, next };
     };
 

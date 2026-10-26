@@ -45,11 +45,13 @@ export class OutboxStore<Work extends OutboxWorkShape> {
 
     constructor(options: OutboxStoreOptions<Work>) {
         this.dir = join(options.dataDir, 'outbox');
+
         this.entries = new RecordDirectory<OutboxEntryOf<Work>>({
             dir: this.dir,
             schema: z.intersection(options.work, OutboxEntryFieldsSchema),
             idOf: (entry) => entry.id
         });
+
         this.lanes = options.lanesOf ?? ((entry) => [entry.target]);
         this.outlivesTarget = options.outlivesTarget ?? (() => false);
     }
@@ -70,7 +72,9 @@ export class OutboxStore<Work extends OutboxWorkShape> {
             attempts: 0,
             notBefore
         };
+
         await this.entries.write(entry);
+
         return entry;
     }
 
@@ -79,6 +83,7 @@ export class OutboxStore<Work extends OutboxWorkShape> {
         if (!this.entries.has(entry.id)) {
             return;
         }
+
         await this.entries.write(entry);
     }
 

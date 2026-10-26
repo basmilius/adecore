@@ -50,6 +50,7 @@ describe('NoticeStore', () => {
         for (let i = 0; i < MAX_NOTICES + 3; i++) {
             await store.put(left(`message ${i}`));
         }
+
         const queue = store.waiting('term-2');
         expect(queue).toHaveLength(MAX_NOTICES);
         expect(queue[0]?.text).toBe('message 3');
