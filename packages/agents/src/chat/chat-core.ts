@@ -960,6 +960,11 @@ export class ChatCore {
         return session.skills(() => this.skillIndex.list(session.info.provider, session.info.cwd));
     }
 
+    /* What a CLI would run as a skill in a folder before any chat of it exists there, such as for a prompt saved to send later. */
+    skillsIn(provider: AgentKind, cwd: string): Promise<ChatSkill[]> {
+        return this.skillIndex.list(provider, cwd);
+    }
+
     /* Ends the chat's CLI and keeps its conversation; the next message resumes it in a process that reads its skills and plugins again. */
     async restart(chatId: string): Promise<void> {
         const session = this.require(chatId);

@@ -668,4 +668,12 @@ describe('what a message pointed at', () => {
         expect(user && 'references' in user).toBe(false);
         await run.session.dispose();
     });
+
+    test('hands the CLI the files and skills a wake names, as a sent message would', async () => {
+        const run = rig();
+        run.session.wake({ text: 'Run again', label: 'Routine', taskIds: [], mentions: ['src/a.ts'], skills: ['report'] });
+        await flush();
+        expect(run.sent[0]).toMatchObject({ text: 'Run again', mentions: ['src/a.ts'], skills: ['report'] });
+        await run.session.dispose();
+    });
 });

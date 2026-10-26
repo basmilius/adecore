@@ -1078,9 +1078,19 @@ export class ChatSession {
      * turn carrying what woke it, so a turn it opens cannot itself wake anyone. A caller passes `note`
      * only when its news is not already written in the thread. Checked and opened in one step, so null
      * means a turn (or a shutdown) was in the way. Never through `send`, which would step on a turn
-     * with `origin: 'agent'` and close the wake it just made.
+     * with `origin: 'agent'` and close the wake it just made. `mentions` and `skills` reach a CLI that
+     * expands them itself, as a person's picks in a message do.
      */
-    wake(wake: { text: string; label: string; note?: string; taskIds: string[]; summaryFor?: string; messageFrom?: string[] }): string | null {
+    wake(wake: {
+        text: string;
+        label: string;
+        note?: string;
+        taskIds: string[];
+        summaryFor?: string;
+        messageFrom?: string[];
+        mentions?: string[];
+        skills?: string[];
+    }): string | null {
         if (this.frozen || this.relocating || this.thread.info.activeTurnId !== null || this.replacementWaits()) {
             return null;
         }
@@ -1112,7 +1122,7 @@ export class ChatSession {
         ]);
         this.options.persist();
         this.turnReady = this.checkpoint(turnId);
-        this.submit(turnId, { text: wake.text, preamble, attachments: [], mentions: [], skills: [] });
+        this.submit(turnId, { text: wake.text, preamble, attachments: [], mentions: wake.mentions ?? [], skills: wake.skills ?? [] });
         return turnId;
     }
 
