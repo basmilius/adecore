@@ -103,19 +103,12 @@ const sameEntry = (one: object | undefined, other: object): boolean =>
     one !== undefined && Object.entries(other).every(([key, value]) => same((one as Record<string, unknown>)[key], value));
 
 /*
- * What the parts tell the root: the series with their values, the axes with the room they need, the
- * markers and bands, and the formats of the axes. Each is a snapshot of its own that only changes
- * when what is in it does, so a part that registers the same values again changes nothing.
+ * What the parts tell the root. Each is a snapshot of its own that only changes when what is in it
+ * does, so a part that registers the same values again changes nothing.
  */
 export function createChartStore(): ChartStore {
     const listeners = new Set<() => void>();
-    let series: ReadonlyMap<string, SeriesEntry> = new Map();
     let axes: AxisSizes = { end: null };
-    let xAxes: ReadonlyMap<string, XAxisEntry> = new Map();
-    let yAxes: ReadonlyMap<YAxisSide, YAxisEntry> = new Map();
-    let markers: ReadonlyMap<string, MarkerEntry> = new Map();
-    let rules: ReadonlyMap<string, RuleEntry> = new Map();
-    let bands: ReadonlyMap<string, BandEntry> = new Map();
     let formats: ChartFormats = {};
 
     const emit = (): void => {
@@ -124,83 +117,60 @@ export function createChartStore(): ChartStore {
         }
     };
 
-    const updated = <Key, Entry extends object>(map: ReadonlyMap<Key, Entry>, id: Key, entry: Entry | null): ReadonlyMap<Key, Entry> | null => {
-        if (entry === null) {
-            if (!map.has(id)) {
-                return null;
+    const keyed = <Key, Entry extends object>() => {
+        let map: ReadonlyMap<Key, Entry> = new Map();
+        return {
+            get: (): ReadonlyMap<Key, Entry> => map,
+            set: (id: Key, entry: Entry | null): void => {
+                if (entry === null) {
+                    if (!map.has(id)) {
+                        return;
+                    }
+                    const next = new Map(map);
+                    next.delete(id);
+                    map = next;
+                } else if (sameEntry(map.get(id), entry)) {
+                    return;
+                } else {
+                    // A changed entry keeps its place, so a series keeps its color while its values change.
+                    map = new Map(map).set(id, entry);
+                }
+                emit();
             }
-            const next = new Map(map);
-            next.delete(id);
-            return next;
-        }
-        if (sameEntry(map.get(id), entry)) {
-            return null;
-        }
-        // A changed entry keeps its place, so a series keeps its color while its values change.
-        return new Map(map).set(id, entry);
+        };
     };
+    const series = keyed<string, SeriesEntry>();
+    const xAxes = keyed<string, XAxisEntry>();
+    const yAxes = keyed<YAxisSide, YAxisEntry>();
+    const markers = keyed<string, MarkerEntry>();
+    const rules = keyed<string, RuleEntry>();
+    const bands = keyed<string, BandEntry>();
 
     return {
         subscribe(listener) {
             listeners.add(listener);
             return () => listeners.delete(listener);
         },
-        series: () => series,
+        series: series.get,
         axes: () => axes,
-        xAxes: () => xAxes,
-        yAxes: () => yAxes,
-        markers: () => markers,
-        rules: () => rules,
-        bands: () => bands,
+        xAxes: xAxes.get,
+        yAxes: yAxes.get,
+        markers: markers.get,
+        rules: rules.get,
+        bands: bands.get,
         formats: () => formats,
-        setSeries(id, entry) {
-            const next = updated(series, id, entry);
-            if (next !== null) {
-                series = next;
-                emit();
-            }
-        },
+        setSeries: series.set,
         setAxis(axis, size) {
             if (axes[axis] !== size) {
                 axes = { ...axes, [axis]: size };
                 emit();
             }
         },
-        setXAxis(id, entry) {
-            const next = updated(xAxes, id, entry);
-            if (next !== null) {
-                xAxes = next;
-                emit();
-            }
-        },
-        setYAxis(side, entry) {
-            const next = updated(yAxes, side, entry);
-            if (next !== null) {
-                yAxes = next;
-                emit();
-            }
-        },
-        setRule(id, entry) {
-            const next = updated(rules, id, entry);
-            if (next !== null) {
-                rules = next;
-                emit();
-            }
-        },
-        setMarker(id, entry) {
-            const next = updated(markers, id, entry);
-            if (next !== null) {
-                markers = next;
-                emit();
-            }
-        },
-        setBand(id, entry) {
-            const next = updated(bands, id, entry);
-            if (next !== null) {
-                bands = next;
-                emit();
-            }
-        },
+        setXAxis: xAxes.set,
+        setYAxis: yAxes.set,
+        setRule: rules.set,
+        setMarker: markers.set,
+        setBand: bands.set,
         setFormat(axis, format) {
             if (formats[axis] !== format) {
                 formats = { ...formats, [axis]: format };

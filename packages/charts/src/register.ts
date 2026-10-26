@@ -25,9 +25,8 @@ const write = <Kind extends keyof Entries>(store: ChartStore, kind: Kind, id: st
 };
 
 /*
- * Tells the root about a part on every render, before paint, and takes it out on unmount. The store
- * ignores an entry equal to the one it holds, so a render that changes nothing costs nothing; the
- * removal stays apart from the update, or every update would move the part to the end.
+ * Tells the root about a part on every render, before paint, and takes it out on unmount. The removal
+ * stays apart from the update, or every update would move the part to the end.
  */
 export function useRegistration<Kind extends keyof Entries>(store: ChartStore, kind: Kind, id: string, entry: Entries[Kind]): void {
     useBeforePaint(() => {

@@ -20,7 +20,7 @@ import { LABEL_GAP as X_AXIS_GAP } from './axes.tsx';
 import { bandLayout, GROUP_GAP } from './band.ts';
 import { seriesColor } from './color.ts';
 import { ChartContext, GroupContext, type ChartContextValue } from './context.ts';
-import { containingIndex, moveIndex, nearestIndex, snapIndex } from './cursor.ts';
+import { containingIndex, keyIndexOf, moveIndex, nearestIndex, snapIndex } from './cursor.ts';
 import { useAlignedAxes } from './group-axes.ts';
 import { movePoint, nearestPoint, type PlacedPoint } from './points.ts';
 import { bucketStepOf, continuousXScale, extentOf, pointXScale, stackSeries, tickCount, yScaleOf } from './scale.ts';
@@ -243,7 +243,12 @@ export function ChartRoot<Row>({
     const members = new Map<string, string[]>();
     for (const [seriesId, entry] of series) {
         if (entry.kind === 'bar') {
-            members.set(entry.bars ?? '', [...(members.get(entry.bars ?? '') ?? []), seriesId]);
+            const ids = members.get(entry.bars ?? '');
+            if (ids === undefined) {
+                members.set(entry.bars ?? '', [seriesId]);
+            } else {
+                ids.push(seriesId);
+            }
         }
     }
     for (const ids of members.values()) {
@@ -303,7 +308,7 @@ export function ChartRoot<Row>({
     };
     const pixelOfX = (value: ChartX): number | null => {
         if (layout !== null) {
-            const index = xs.findIndex((key) => String(key) === String(value));
+            const index = keyIndexOf(xs, value);
             return index < 0 ? null : centerOf(index);
         }
         return typeof value === 'number' ? continuous!.at(value) : null;
@@ -347,8 +352,8 @@ export function ChartRoot<Row>({
         for (const range of bands.values()) {
             let inside: boolean;
             if (band) {
-                const from = xs.findIndex((key) => String(key) === String(range.from));
-                const to = xs.findIndex((key) => String(key) === String(range.to));
+                const from = keyIndexOf(xs, range.from);
+                const to = keyIndexOf(xs, range.to);
                 inside = from >= 0 && to >= 0 && index >= Math.min(from, to) && index <= Math.max(from, to);
             } else if (bucketStep > 0) {
                 inside = (at as number) < (range.to as number) && (at as number) + bucketStep > (range.from as number);
@@ -364,10 +369,15 @@ export function ChartRoot<Row>({
 
     const controlled = activeX !== undefined;
     const cursorX = controlled ? activeX : sharedCursor !== null ? sharedCursor.x : ownX;
-    const pointIndex = keys === null || cursorX === null ? -1 : keys.indexOf(String(cursorX));
-    const activeIndex = points ? (positions[pointIndex] == null ? -1 : pointIndex) : snapIndex(xs, xScale, cursorX, bucketStep);
-    const keyPoint = keys === null || keyX === null ? -1 : keys.indexOf(String(keyX));
-    const keyIndex = points ? (positions[keyPoint] == null ? -1 : keyPoint) : snapIndex(xs, xScale, keyX, bucketStep);
+    const indexAt = (value: ChartX | null): number => {
+        if (keys === null) {
+            return snapIndex(xs, xScale, value, bucketStep);
+        }
+        const index = value === null ? -1 : keys.indexOf(String(value));
+        return positions[index] == null ? -1 : index;
+    };
+    const activeIndex = indexAt(cursorX);
+    const keyIndex = indexAt(keyX);
     const from = keyIndex >= 0 ? keyIndex : activeIndex;
     const ownsCursor = controlled || sharedCursor === null || sharedCursor.owner === id;
     const setActiveX = (value: ChartX | null): void => {
@@ -486,8 +496,9 @@ export function ChartRoot<Row>({
             return;
         }
         setAnnounce(true);
-        setKeyX(keys === null ? xs[target]! : keys[target]!);
-        setActiveX(keys === null ? xs[target]! : keys[target]!);
+        const value = keys === null ? xs[target]! : keys[target]!;
+        setKeyX(value);
+        setActiveX(value);
         const box = scroller.current;
         if (box !== null && box.scrollWidth > box.clientWidth) {
             const center = centerOf(target);

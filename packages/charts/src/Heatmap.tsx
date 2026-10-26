@@ -6,6 +6,7 @@ import { formatNumber } from '@adecore/ui/format';
 import { colorOf } from './color.ts';
 import { FLOOR, heatMix, heatShare, moveCell, type HeatCell } from './heat.ts';
 import type { ChartColor } from './types.ts';
+import { tableClasses } from './values-table.ts';
 
 export type HeatmapCell = HeatCell;
 
@@ -95,6 +96,7 @@ export function Heatmap({
         return `${rows[cell.row]!.label}, ${columns[cell.column]!.label}, ${value === null ? t('noData') : `${valueLabel} ${format(value)}`}`;
     };
     const current = active !== null && active.row < rows.length && active.column < columns.length ? active : null;
+    const classes = tableClasses(table && shown);
 
     const activate = (cell: HeatCell | null): void => {
         setActive(cell);
@@ -222,18 +224,14 @@ export function Heatmap({
                             {shown ? t('values.hide') : t('values.show')}
                         </Button>
                     )}
-                    <div id={`${id}-table`} className={table && shown ? 'max-h-80 w-full overflow-auto rounded-md border border-border-soft' : 'sr-only'}>
-                        <table className={table && shown ? 'w-full border-collapse text-xs tabular-nums' : undefined}>
+                    <div id={`${id}-table`} className={classes.box}>
+                        <table className={classes.table}>
                             <caption className="sr-only">{t('values.caption', { label })}</caption>
-                            <thead className={table && shown ? 'sticky top-0 bg-surface-hover' : undefined}>
+                            <thead className={classes.head}>
                                 <tr>
                                     <td />
                                     {columns.map((column) => (
-                                        <th
-                                            key={column.key}
-                                            scope="col"
-                                            className={table && shown ? 'h-8 px-2 text-right font-medium whitespace-nowrap text-text-muted' : undefined}
-                                        >
+                                        <th key={column.key} scope="col" className={classes.column}>
                                             {column.label}
                                         </th>
                                     ))}
@@ -241,17 +239,14 @@ export function Heatmap({
                             </thead>
                             <tbody>
                                 {rows.map((row, rowIndex) => (
-                                    <tr key={row.key} className={table && shown ? 'border-t border-border-soft' : undefined}>
-                                        <th
-                                            scope="row"
-                                            className={table && shown ? 'h-8 px-2 text-left font-normal whitespace-nowrap text-text-muted' : undefined}
-                                        >
+                                    <tr key={row.key} className={classes.row}>
+                                        <th scope="row" className={classes.rowHeading}>
                                             {row.label}
                                         </th>
                                         {columns.map((column, columnIndex) => {
                                             const value = valueAt(rowIndex, columnIndex);
                                             return (
-                                                <td key={column.key} className={table && shown ? 'h-8 px-2 text-right whitespace-nowrap text-text' : undefined}>
+                                                <td key={column.key} className={classes.cell}>
                                                     {value === null ? '' : format(value)}
                                                 </td>
                                             );

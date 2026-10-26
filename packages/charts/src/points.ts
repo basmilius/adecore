@@ -1,5 +1,3 @@
-/* The pure geometry of a point chart: the nearest point, moving between points, the frontier and the end labels. */
-
 export interface PlacedPoint {
     readonly index: number;
     readonly x: number;

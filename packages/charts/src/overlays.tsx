@@ -6,6 +6,7 @@ import { Button, Icon, Surface, useContentSize } from '@adecore/ui';
 import { useChartContext, type ChartContextValue } from './context.ts';
 import type { SeriesEntry } from './store.ts';
 import type { ChartNote, ChartX } from './types.ts';
+import { tableClasses } from './values-table.ts';
 
 export interface ChartBucketValue {
     readonly label: string;
@@ -128,13 +129,16 @@ export function ChartTooltip<Row>({ total = false, format, children, placement =
     const write = format ?? chart.formatY;
     const position = chart.points ? chart.positions[activeIndex] : null;
     const pixel = chart.leftAxis + (position?.[0] ?? chart.centerOf(activeIndex)) - chart.scroll;
-    // The card hangs on the side with the most room, so it never covers the cursor and never runs off.
-    const right = pixel > chart.box / 2;
-    let place: CSSProperties = right
-        ? { right: Math.round(chart.box - pixel + OFFSET), maxWidth: Math.max(0, Math.round(pixel - OFFSET - EDGE)) }
-        : { left: Math.round(pixel + OFFSET), maxWidth: Math.max(0, Math.round(chart.box - pixel - OFFSET - EDGE)) };
-    place = { ...place, top: position === null || position === undefined ? chart.plot.top : Math.max(0, Math.round(position[1]) - OFFSET) };
-    if (placement !== 'cursor') {
+    let place: CSSProperties;
+    if (placement === 'cursor') {
+        // The card hangs on the side with the most room, so it never covers the cursor and never runs off.
+        place = {
+            ...(pixel > chart.box / 2
+                ? { right: Math.round(chart.box - pixel + OFFSET), maxWidth: Math.max(0, Math.round(pixel - OFFSET - EDGE)) }
+                : { left: Math.round(pixel + OFFSET), maxWidth: Math.max(0, Math.round(chart.box - pixel - OFFSET - EDGE)) }),
+            top: position === null || position === undefined ? chart.plot.top : Math.max(0, Math.round(position[1]) - OFFSET)
+        };
+    } else {
         const plotLeft = chart.leftAxis + Math.max(0, chart.plot.left - chart.scroll);
         const plotRight = Math.min(chart.box - chart.rightAxis, chart.leftAxis + chart.plot.right - chart.scroll);
         const reach = (chart.bucketAt(activeIndex)?.width ?? 2 * POINT_ROOM) / 2;
@@ -277,8 +281,7 @@ export function ChartTable({ toggle = true, open, defaultOpen = false, onOpenCha
                       }
                   ]
         );
-    const head = shown ? 'h-8 px-2 text-right font-medium whitespace-nowrap text-text-muted' : undefined;
-    const cell = shown ? 'h-8 px-2 text-right whitespace-nowrap text-text' : undefined;
+    const classes = tableClasses(shown);
     return createPortal(
         <div ref={ref} className={clsx('flex flex-col items-start gap-2', className)}>
             {toggle && (
@@ -286,15 +289,15 @@ export function ChartTable({ toggle = true, open, defaultOpen = false, onOpenCha
                     {shown ? t('values.hide') : t('values.show')}
                 </Button>
             )}
-            <div id={id} className={shown ? 'max-h-80 w-full overflow-auto rounded-md border border-border-soft' : 'sr-only'}>
-                <table className={shown ? 'w-full border-collapse text-xs tabular-nums' : undefined}>
+            <div id={id} className={classes.box}>
+                <table className={classes.table}>
                     <caption className="sr-only">{t('values.caption', { label: chart.label })}</caption>
-                    <thead className={shown ? 'sticky top-0 bg-surface-hover' : undefined}>
+                    <thead className={classes.head}>
                         <tr>
                             {grouped && <td />}
                             <td />
                             {columns.map((column, index) => (
-                                <th key={index} scope="col" className={head}>
+                                <th key={index} scope="col" className={classes.column}>
                                     {column}
                                 </th>
                             ))}
@@ -302,13 +305,13 @@ export function ChartTable({ toggle = true, open, defaultOpen = false, onOpenCha
                     </thead>
                     <tbody>
                         {rows.map((row) => (
-                            <tr key={row.key} className={shown ? 'border-t border-border-soft' : undefined}>
+                            <tr key={row.key} className={classes.row}>
                                 {grouped && <td className={shown ? 'h-8 px-2 text-text-muted' : undefined}>{row.group}</td>}
-                                <th scope="row" className={shown ? 'h-8 px-2 text-left font-normal whitespace-nowrap text-text-muted' : undefined}>
+                                <th scope="row" className={classes.rowHeading}>
                                     {row.label}
                                 </th>
                                 {row.cells.map((value, index) => (
-                                    <td key={index} className={cell}>
+                                    <td key={index} className={classes.cell}>
                                         {value}
                                     </td>
                                 ))}

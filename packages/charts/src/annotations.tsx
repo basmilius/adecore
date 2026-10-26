@@ -4,6 +4,7 @@ import clsx from 'clsx';
 import { xOf } from './access.ts';
 import { colorOf } from './color.ts';
 import { useChartContext } from './context.ts';
+import { keyIndexOf } from './cursor.ts';
 import { useRegistration } from './register.ts';
 import type { ChartColor, ChartXInput } from './types.ts';
 
@@ -117,8 +118,8 @@ export function ChartBand({ from, to, label, detail, tone = 'muted', className, 
         left = Math.max(plot.left, continuous.at(Math.min(start, end)));
         right = Math.min(plot.right, continuous.at(Math.max(start, end)));
     } else if (band !== null) {
-        const first = chart.xs.findIndex((key) => String(key) === String(start));
-        const last = chart.xs.findIndex((key) => String(key) === String(end));
+        const first = keyIndexOf(chart.xs, start);
+        const last = keyIndexOf(chart.xs, end);
         if (first >= 0 && last >= 0) {
             left = plot.left + band.lefts[Math.min(first, last)]!;
             right = plot.left + band.lefts[Math.max(first, last)]! + band.bucket;

@@ -45,6 +45,11 @@ export function containingIndex(xs: readonly number[], at: number, step?: number
     return at < xs[index]! + length ? index : -1;
 }
 
+/* The bucket of a band scale whose key reads as `x`; -1 for none. */
+export function keyIndexOf(xs: readonly ChartX[], x: ChartX): number {
+    return xs.findIndex((key) => String(key) === String(x));
+}
+
 /*
  * The bucket the cursor is on: the equal key on a band scale, the bucket the moment falls in on a time scale with
  * buckets of `step`, and the nearest otherwise.
@@ -54,7 +59,7 @@ export function snapIndex(xs: readonly ChartX[], scale: ChartXScale, x: ChartX |
         return -1;
     }
     if (scale === 'band') {
-        return xs.findIndex((key) => String(key) === String(x));
+        return keyIndexOf(xs, x);
     }
     if (typeof x !== 'number') {
         return -1;

@@ -201,8 +201,8 @@ export function ChartXAxis({
     const write = format ?? chart.formatX;
 
     useBeforePaint(() => {
-        // How many labels are placed depends on the widest, so measuring only the placed ones can flip between two sets
-        // forever. A band scale measures every label; the ticks of a continuous one only let the width grow per domain.
+        // Measuring only the placed labels can flip between two sets forever, since the widest decides how many are placed.
+        // A band scale measures every label; the ticks of a continuous one only let the width grow per domain.
         let width = Math.ceil(widestIn(continuous === null ? candidates.current : labels.current));
         if (continuous !== null) {
             width = grown.current.key === domainKey ? Math.max(width, grown.current.width) : width;

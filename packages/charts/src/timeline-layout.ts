@@ -44,7 +44,12 @@ export function timelineTree<Span extends TimelineSpan>(spans: readonly Span[]):
     const children = new Map<string | null, Span[]>();
     for (const span of spans) {
         const parent = span.parent !== undefined && span.parent !== null && span.parent !== span.id && known.has(span.parent) ? span.parent : null;
-        children.set(parent, [...(children.get(parent) ?? []), span]);
+        const siblings = children.get(parent);
+        if (siblings === undefined) {
+            children.set(parent, [span]);
+        } else {
+            siblings.push(span);
+        }
     }
     const rows: TimelineTreeRow<Span>[] = [];
     const placed = new Set<string>();

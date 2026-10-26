@@ -106,6 +106,9 @@ const pointsOf = (chart: ChartContextValue, values: readonly (number | null)[]):
         return pixel === null ? null : [chart.centerOf(index), pixel];
     });
 
+/* The pixel of zero, or of the lowest value when the axis starts above it. */
+const groundOf = (chart: ChartContextValue): number => chart.pixelOfY(Math.max(chart.y.domain[0], 0)) ?? chart.plot.bottom;
+
 /* A value between two gaps is no line at all, so it gets a dot of its own. */
 const lonePoints = (points: readonly Point[]): number[] =>
     points.flatMap((point, index) => (point !== null && points[index - 1] == null && points[index + 1] == null ? [index] : []));
@@ -287,7 +290,7 @@ export function ChartArea<Row>({
     });
     const stacked = chart.stacked.get(id);
     const tops = pointsOf(chart, stacked?.top ?? values);
-    const ground = chart.pixelOfY(Math.max(chart.y.domain[0], 0)) ?? chart.plot.bottom;
+    const ground = groundOf(chart);
     const fill = area<number>()
         .defined((index) => tops[index] !== null)
         .x((index) => tops[index]![0])
@@ -346,8 +349,8 @@ export function ChartBar<Row>({
     const labels = useRef<SVGGElement>(null);
     const [widths, setWidths] = useState<ReadonlyMap<string, number>>(() => new Map());
     const rows = chart.data as Row[];
-    const rowColors = typeof tone === 'function' ? rows.map((row, index) => colorOf(tone(row, index))!) : null;
-    const color = typeof tone === 'function' ? (rowColors?.[0] ?? null) : colorOf(tone);
+    const [color, rowColors] = tonesOf(chart, tone);
+    const labeled = valueLabels !== undefined && valueLabels !== false;
     useRegistration(chart.store, 'series', id, {
         kind: 'bar',
         label,
@@ -358,7 +361,7 @@ export function ChartBar<Row>({
         bars: bars?.id ?? null,
         curve: 'linear',
         icon: icon ?? null,
-        valueLabels: valueLabels !== undefined && valueLabels !== false,
+        valueLabels: labeled,
         dimOpacity
     });
     // A time scale learns how long a bucket is from the distance between two rows, so one row alone has no slot.
@@ -395,7 +398,7 @@ export function ChartBar<Row>({
         } else if (chart.activeIndex >= 0 && !focused) {
             alpha *= hoverOpacity;
         }
-        const text = valueLabels === undefined || valueLabels === false ? '' : writeValue(amount, rows[index]!, index);
+        const text = labeled ? writeValue(amount, rows[index]!, index) : '';
         return [{ index, column, y, height, alpha, outOfFocus, text }];
     });
     const labelTops = placeValueLabels(
@@ -418,7 +421,7 @@ export function ChartBar<Row>({
         <g ref={ref} className={clsx('pointer-events-none', className)}>
             <g
                 className={animate ? 'transition-[scale] duration-400 ease-out starting:scale-y-0 motion-reduce:transition-none' : undefined}
-                style={animate ? { transformOrigin: `0px ${chart.pixelOfY(Math.max(chart.y.domain[0], 0)) ?? chart.plot.bottom}px` } : undefined}
+                style={animate ? { transformOrigin: `0px ${groundOf(chart)}px` } : undefined}
             >
                 {drawn.map(({ index, column, y, height, alpha }) => {
                     const corner = bars?.stack === true ? 0 : Math.min(radius, Math.floor(column.width / 4));
@@ -436,8 +439,7 @@ export function ChartBar<Row>({
                 })}
             </g>
             <g ref={labels}>
-                {valueLabels !== undefined &&
-                    valueLabels !== false &&
+                {labeled &&
                     drawn.map(({ index, column, y, outOfFocus, text }, i) => {
                         const center = Math.round(column.x + column.width / 2);
                         const baseline = labelTops[i]!;

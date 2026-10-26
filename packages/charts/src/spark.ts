@@ -12,10 +12,7 @@ export interface SparkColumn {
     readonly zero: boolean;
 }
 
-/*
- * The columns of a sparkline on whole pixels, 2px apart, rounded by half their width. A column is 4px tall at least,
- * so the smallest count still reads as a bar; a zero keeps a one-pixel baseline, so a quiet day still shows.
- */
+/* The columns of a sparkline on whole pixels, 2px apart, rounded by half their width; a zero keeps a one-pixel baseline. */
 export function sparkColumns(values: readonly (number | null)[], width: number, height: number): SparkColumn[] {
     const high = Math.max(0, ...values.map((value) => value ?? 0));
     const step = values.length === 0 ? 0 : (width + GAP) / values.length;

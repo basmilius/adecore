@@ -14,7 +14,7 @@ export function heatStep(value: number | null, max: number, steps: number): numb
     return Math.min(steps, Math.max(1, Math.ceil((value / max) * steps)));
 }
 
-/* The percentage of the color in a step: from 15% for the first up to 100% for the last, 0 for an empty cell. */
+/* The percentage of the color in a step, up to 100 for the last; 0 for an empty cell. */
 export function heatShare(step: number, steps: number): number {
     if (step <= 0) {
         return 0;
@@ -22,7 +22,7 @@ export function heatShare(step: number, steps: number): number {
     return steps <= 1 ? 100 : Math.round(FLOOR + ((step - 1) / (steps - 1)) * (100 - FLOOR));
 }
 
-/* The percentage of the color in a cell: in `steps` shades when given, else from 15% up with the value, 0 for an empty cell. */
+/* The percentage of the color in a cell: in `steps` shades when given, else following the value; 0 for an empty cell. */
 export function heatMix(value: number | null, max: number, steps?: number): number {
     if (steps !== undefined) {
         return heatShare(heatStep(value, max, steps), steps);
