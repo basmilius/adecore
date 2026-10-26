@@ -1,5 +1,6 @@
 import { safeKey, UiBudget, UiFailure } from './budget.ts';
 import { parseUiExpression, type UiExpression } from './expression.ts';
+import { rethrowBudget } from './rethrow.ts';
 
 export interface UiDiagnostic {
     code: string;
@@ -94,9 +95,7 @@ class UiParser {
                     }
                 }
             } catch (error) {
-                if (error instanceof UiFailure && error.code === 'budget_exceeded') {
-                    throw error;
-                }
+                rethrowBudget(error);
                 this.diagnose(error, start);
                 if (this.position <= start) {
                     this.position = start + 1;
@@ -167,9 +166,7 @@ class UiParser {
                 const value = this.source.slice(valueStart, this.position).trim();
                 this.result.declarations[name] = parseUiExpression(value, this.budget);
             } catch (error) {
-                if (error instanceof UiFailure && error.code === 'budget_exceeded') {
-                    throw error;
-                }
+                rethrowBudget(error);
                 if (this.final || this.position < this.source.length) {
                     this.diagnose(error, start);
                 }
@@ -253,9 +250,7 @@ class UiParser {
                     return;
                 }
             } catch (error) {
-                if (error instanceof UiFailure && error.code === 'budget_exceeded') {
-                    throw error;
-                }
+                rethrowBudget(error);
                 this.diagnose(error, propStart, node.id);
                 node.invalid = true;
                 this.skipToken();
@@ -331,9 +326,7 @@ class UiParser {
                 try {
                     node.props[name] = parseUiExpression(`${value}${quote}`, this.budget);
                 } catch (error) {
-                    if (error instanceof UiFailure && error.code === 'budget_exceeded') {
-                        throw error;
-                    }
+                    rethrowBudget(error);
                 }
                 node.end = this.position;
                 return false;

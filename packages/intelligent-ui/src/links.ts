@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import type { UiLimits } from './budget.ts';
 import type { UiBlock } from './compiler.ts';
-import { evaluateUiBlock, type UiViewNode } from './runtime.ts';
+import { eachDrawnNode } from './inputs.ts';
+import { evaluateUiBlock } from './runtime.ts';
 import { uiValidatedState } from './query.ts';
 
 export const UiLinkTargetSchema = z.discriminatedUnion('type', [
@@ -37,18 +38,11 @@ export function uiLinkTargets(
 ): Record<string, UiLinkTarget> {
     const state = uiValidatedState(block, input, queries, limits);
     const targets: Record<string, UiLinkTarget> = Object.create(null);
-    const visit = (nodes: readonly UiViewNode[]) => {
-        for (const node of nodes) {
-            if (node.error || !node.complete) {
-                continue;
-            }
-            const checked = UiLinkTargetSchema.safeParse({ type: node.type, ...node.props });
-            if (checked.success) {
-                targets[node.id] = checked.data;
-            }
-            visit(node.children);
+    eachDrawnNode(evaluateUiBlock(block, state, limits).nodes, (node) => {
+        const checked = UiLinkTargetSchema.safeParse({ type: node.type, ...node.props });
+        if (checked.success) {
+            targets[node.id] = checked.data;
         }
-    };
-    visit(evaluateUiBlock(block, state, limits).nodes);
+    });
     return targets;
 }

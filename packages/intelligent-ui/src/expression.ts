@@ -34,6 +34,7 @@ const PRECEDENCE: Readonly<Record<string, number>> = {
     '%': 6
 };
 const HELPERS = new Set(['Count', 'Filter', 'Sum', 'Join', 'Round', 'Query', 'Set', 'Reset']);
+const ESCAPES: Readonly<Record<string, string>> = { n: '\n', r: '\r', t: '\t', b: '\b', f: '\f', '\\': '\\', '"': '"', "'": "'", '/': '/' };
 
 class ExpressionParser {
     private position = 0;
@@ -101,16 +102,7 @@ class ExpressionParser {
             result = this.expression(0, depth);
             this.take(')');
         } else if (token.value === '[') {
-            const items: UiExpression[] = [];
-            while (this.token.value !== ']') {
-                items.push(this.expression(0, depth));
-                if (this.token.value !== ',') {
-                    break;
-                }
-                this.take(',');
-            }
-            this.take(']');
-            result = { kind: 'array', items };
+            result = { kind: 'array', items: this.list(']', depth) };
         } else if (token.value === '{') {
             const entries: { key: string; value: UiExpression }[] = [];
             const keys = new Set<string>();
@@ -139,16 +131,7 @@ class ExpressionParser {
                 throw new UiFailure('refused_call', `Unknown helper @${name}.`);
             }
             this.take('(');
-            const args: UiExpression[] = [];
-            while (this.token.value !== ')') {
-                args.push(this.expression(0, depth));
-                if (this.token.value !== ',') {
-                    break;
-                }
-                this.take(',');
-            }
-            this.take(')');
-            result = { kind: 'call', name, args };
+            result = { kind: 'call', name, args: this.list(')', depth) };
         } else if (token.type === 'name' && ['true', 'false', 'null'].includes(token.value)) {
             result = { kind: 'literal', value: token.value === 'null' ? null : token.value === 'true' };
         } else if (token.type === 'name') {
@@ -172,6 +155,20 @@ class ExpressionParser {
             }
         }
         return result;
+    }
+
+    /* Expressions separated by commas up to `close`, which it takes too. */
+    private list(close: string, depth: number): UiExpression[] {
+        const items: UiExpression[] = [];
+        while (this.token.value !== close) {
+            items.push(this.expression(0, depth));
+            if (this.token.value !== ',') {
+                break;
+            }
+            this.take(',');
+        }
+        this.take(close);
+        return items;
     }
 
     private read(): Token {
@@ -198,7 +195,6 @@ class ExpressionParser {
                 }
                 if (character === '\\') {
                     character = this.source[this.position++];
-                    const escapes: Record<string, string> = { n: '\n', r: '\r', t: '\t', b: '\b', f: '\f', '\\': '\\', '"': '"', "'": "'", '/': '/' };
                     if (character === 'u') {
                         const hex = this.source.slice(this.position, this.position + 4);
                         if (!/^[a-f\d]{4}$/i.test(hex)) {
@@ -206,8 +202,8 @@ class ExpressionParser {
                         }
                         value += String.fromCharCode(Number.parseInt(hex, 16));
                         this.position += 4;
-                    } else if (Object.hasOwn(escapes, character)) {
-                        value += escapes[character];
+                    } else if (Object.hasOwn(ESCAPES, character)) {
+                        value += ESCAPES[character];
                     } else {
                         throw new UiFailure('invalid_expression', 'Invalid string escape.');
                     }

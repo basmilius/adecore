@@ -1,5 +1,6 @@
 import type { UiLimits } from './budget.ts';
 import type { UiBlock } from './compiler.ts';
+import { eachDrawnNode } from './inputs.ts';
 import { uiValidatedState } from './query.ts';
 import { evaluateUiBlock, type UiViewNode } from './runtime.ts';
 
@@ -30,18 +31,11 @@ export function uiPlaceQueries(
 ): Record<string, UiPlaceQuery> {
     const state = uiValidatedState(block, input, queries, limits);
     const places: Record<string, UiPlaceQuery> = Object.create(null);
-    const visit = (nodes: readonly UiViewNode[]) => {
-        for (const node of nodes) {
-            if (node.error || !node.complete) {
-                continue;
-            }
-            const { address } = node.props as { address?: string };
-            if (node.type === 'Place' && typeof address === 'string' && address.trim() !== '') {
-                places[node.id] = { address: address.trim(), name: nameOf(node) };
-            }
-            visit(node.children);
+    eachDrawnNode(evaluateUiBlock(block, state, limits).nodes, (node) => {
+        const { address } = node.props as { address?: string };
+        if (node.type === 'Place' && typeof address === 'string' && address.trim() !== '') {
+            places[node.id] = { address: address.trim(), name: nameOf(node) };
         }
-    };
-    visit(evaluateUiBlock(block, state, limits).nodes);
+    });
     return places;
 }

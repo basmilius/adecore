@@ -5,6 +5,7 @@ import { unreadableEventTime } from './event-warning.ts';
 import { uiNodeFallback, uiPlainText } from './fallback.ts';
 import { aliasedProp } from './prop-alias.ts';
 import { evaluateUiExpression, sameUiValue, type UiExpression, type UiValue } from './expression.ts';
+import { rethrowBudget } from './rethrow.ts';
 import { parseUiSyntax, uiDiagnostic, type UiDiagnostic, type UiSyntaxNode } from './syntax.ts';
 import { type z } from 'zod';
 
@@ -19,15 +20,20 @@ export const UI_HOST_LIMITS = { queries: 8, links: 64, places: 50, refreshMillis
 /* A Place that names an address, whose tag may hold quoted text with a `>` before it. */
 const ADDRESSED_PLACE = /<Place\b(?:[^>"']|"[^"]*"|'[^']*')*?\baddress\s*=/;
 
+let linkTag: RegExp | undefined;
+
 /* A cheap test for whether `text` may declare a query or name a link target, before anything is read for it. */
 export function uiMayReferenceHost(text: string): boolean {
     if (text.includes('@Query')) {
         return true;
     }
-    const links = Object.entries(UI_CATALOG)
-        .filter(([, entry]) => entry.group === 'links')
-        .map(([name]) => name);
-    return new RegExp(`<(?:${links.join('|')})\\b`).test(text) || ADDRESSED_PLACE.test(text);
+    linkTag ??= new RegExp(
+        `<(?:${Object.entries(UI_CATALOG)
+            .filter(([, entry]) => entry.group === 'links')
+            .map(([name]) => name)
+            .join('|')})\\b`
+    );
+    return linkTag.test(text) || ADDRESSED_PLACE.test(text);
 }
 
 /* The children of a Map as its fallback numbers them: each Place that drew, also inside a Show or an Each, in order, and anything else as it is. */
@@ -91,14 +97,7 @@ export interface UiCompileOptions {
     now?: () => number;
 }
 
-/* A spent budget ends the whole block; every other failure only marks the node or declaration it came from. */
-function rethrowBudget(error: unknown): void {
-    if (error instanceof UiFailure && error.code === 'budget_exceeded') {
-        throw error;
-    }
-}
-
-function isQuery(expression: UiExpression): boolean {
+function isQuery(expression: UiExpression): expression is Extract<UiExpression, { kind: 'call' }> {
     return expression.kind === 'call' && expression.name === 'Query';
 }
 
@@ -207,9 +206,10 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
             block.diagnostics.push(uiDiagnostic(error, start, end, nodeId));
         }
     };
+    const local = uiLocalState(block);
     // A pressed action must set the same value whatever state it is pressed in, so a choice can check it.
     const checkedAction = (action: UiExpression): UiExpression => {
-        uiActionTarget(action, uiLocalState(block));
+        uiActionTarget(action, local);
         if (action.kind === 'call' && action.name === 'Set' && !isConstant(action.args[1])) {
             throw new UiFailure('refused_action', '@Set in an action takes a literal value.');
         }
@@ -290,7 +290,7 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
                     node.props[key] = evaluateUiExpression(expression, {}, budget);
                 } else {
                     node.expressions[key] = expression;
-                    if ('binding' in entry && entry.binding === key && expression.kind === 'reference' && uiLocalState(block)(expression.name)) {
+                    if ('binding' in entry && entry.binding === key && expression.kind === 'reference' && local(expression.name)) {
                         node.bindings[key] = expression.name;
                     }
                 }
@@ -397,7 +397,7 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
         const declarations = Object.entries(syntax.declarations).sort(([, left], [, right]) => Number(isQuery(left)) - Number(isQuery(right)));
         for (const [name, expression] of declarations) {
             try {
-                if (expression.kind === 'call' && expression.name === 'Query') {
+                if (isQuery(expression)) {
                     block.queries[name] = compileQuery(expression, block, budget, options.querySchemas);
                 } else {
                     if (!isConstant(expression)) {

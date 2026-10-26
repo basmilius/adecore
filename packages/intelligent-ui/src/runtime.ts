@@ -135,7 +135,13 @@ export function evaluateUiBlock(block: UiBlock, state = new UiState(block), limi
     const budget = new UiBudget(limits);
     const result: UiEvaluation = { nodes: [], diagnostics: [] };
     const scope = state.scope();
+    const local = uiLocalState(block);
     let exhausted = false;
+    const report = (error: unknown, node: UiNode): void => {
+        if (result.diagnostics.length < budget.limits.diagnostics) {
+            result.diagnostics.push(uiDiagnostic(error, node.start, node.end, node.id));
+        }
+    };
     const children = (nodes: UiNode[], variables: Readonly<Record<string, UiValue>>, depth: number, suffix: string): UiViewNode[] => {
         const output: UiViewNode[] = [];
         for (const node of nodes) {
@@ -192,9 +198,7 @@ export function evaluateUiBlock(block: UiBlock, state = new UiState(block), limi
                 unreadable !== null &&
                 ![...block.diagnostics, ...result.diagnostics].some((item) => item.code === 'unreadable_time' && item.nodeId === node.id)
             ) {
-                if (result.diagnostics.length < budget.limits.diagnostics) {
-                    result.diagnostics.push(uiDiagnostic(unreadable, node.start, node.end, node.id));
-                }
+                report(unreadable, node);
             }
             if (node.type === 'Show') {
                 return props.when ? children(node.children, variables, depth + 1, suffix) : [];
@@ -217,7 +221,7 @@ export function evaluateUiBlock(block: UiBlock, state = new UiState(block), limi
             }
             const bindings: Record<string, UiBinding<unknown>> = Object.create(null);
             for (const [key, name] of Object.entries(node.bindings)) {
-                if (!('binding' in entry) || entry.binding !== key || !uiLocalState(block)(name)) {
+                if (!('binding' in entry) || entry.binding !== key || !local(name)) {
                     throw new UiFailure('refused_binding', 'The binding must target declared local input state.');
                 }
                 bindings[key] = {
@@ -236,7 +240,7 @@ export function evaluateUiBlock(block: UiBlock, state = new UiState(block), limi
             view.bindings = bindings;
             const action = actionProp === undefined ? undefined : node.expressions[actionProp];
             if (action) {
-                uiActionTarget(action, uiLocalState(block));
+                uiActionTarget(action, local);
                 view.onAction = () => {
                     if (!node.complete || props.disabled === true) {
                         return;
@@ -264,16 +268,7 @@ export function evaluateUiBlock(block: UiBlock, state = new UiState(block), limi
                     let kept = 0;
                     view.children = view.children.filter((child) => !kinds.includes(child.type) || ++kept <= limit.max!);
                     view.omitted = counted - limit.max;
-                    if (result.diagnostics.length < budget.limits.diagnostics) {
-                        result.diagnostics.push(
-                            uiDiagnostic(
-                                new UiFailure('too_many_children', `${node.type} shows its first ${limit.max} of ${kinds.join(' or ')}.`),
-                                node.start,
-                                node.end,
-                                node.id
-                            )
-                        );
-                    }
+                    report(new UiFailure('too_many_children', `${node.type} shows its first ${limit.max} of ${kinds.join(' or ')}.`), node);
                 }
             }
             return [view];
@@ -282,9 +277,7 @@ export function evaluateUiBlock(block: UiBlock, state = new UiState(block), limi
                 exhausted = true;
             }
             view.error = error instanceof UiFailure ? error.code : 'invalid_value';
-            if (result.diagnostics.length < budget.limits.diagnostics) {
-                result.diagnostics.push(uiDiagnostic(error, node.start, node.end, node.id));
-            }
+            report(error, node);
             return [view];
         }
     };
@@ -335,7 +328,6 @@ export function uiInputValues(block: UiBlock, state: UiState): Record<string, Ui
     return values;
 }
 
-/* The host supplies its stored block; client data can change only declared inputs and Button targets. */
 function hasError(nodes: readonly UiViewNode[]): boolean {
     return nodes.some((node) => node.error !== undefined || hasError(node.children));
 }
@@ -355,6 +347,7 @@ export function uiChoiceLabel(choice: UiViewNode): string | null {
     return labelText(choice.children).replace(/\s+/g, ' ').trim() || null;
 }
 
+/* The host supplies its stored block; client data can change only declared inputs and Button targets. */
 export function resolveUiChoice(
     block: UiBlock,
     choiceId: string,

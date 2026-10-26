@@ -11,6 +11,17 @@ export function uiCompiledNodes(nodes: readonly UiNode[], into = new Map<string,
     return into;
 }
 
+/* Every node that drew, parents first; a node that failed or never closed hides its children too. */
+export function eachDrawnNode(nodes: readonly UiViewNode[], visit: (node: UiViewNode) => void): void {
+    for (const node of nodes) {
+        if (node.error || !node.complete) {
+            continue;
+        }
+        visit(node);
+        eachDrawnNode(node.children, visit);
+    }
+}
+
 /* Whether a control's value is one its own visible options offer. */
 function offered(node: UiViewNode): boolean {
     if (node.type === 'Segmented' || node.type === 'Select') {
@@ -50,28 +61,21 @@ function actionValue(action: UiExpression, block: UiBlock): { target: string; va
 export function uiVisibleInputs(block: UiBlock, nodes: readonly UiViewNode[], scope: Readonly<Record<string, UiValue>>): Set<string> {
     const written = uiCompiledNodes(block.nodes);
     const inputs = new Set<string>();
-    const visit = (views: readonly UiViewNode[]) => {
-        for (const node of views) {
-            if (node.error || !node.complete) {
-                continue;
-            }
-            const source = written.get(node.sourceId ?? node.id);
-            if (source && offered(node)) {
-                for (const prop of Object.keys(node.bindings)) {
-                    if (source.bindings[prop]) {
-                        inputs.add(source.bindings[prop]);
-                    }
+    eachDrawnNode(nodes, (node) => {
+        const source = written.get(node.sourceId ?? node.id);
+        if (source && offered(node)) {
+            for (const prop of Object.keys(node.bindings)) {
+                if (source.bindings[prop]) {
+                    inputs.add(source.bindings[prop]);
                 }
             }
-            const actionProp = uiActionProp(node.type);
-            const action = source && actionProp ? source.expressions[actionProp] : undefined;
-            const pressed = action && node.props.disabled !== true ? actionValue(action, block) : undefined;
-            if (pressed && sameUiValue(pressed.value, scope[pressed.target])) {
-                inputs.add(pressed.target);
-            }
-            visit(node.children);
         }
-    };
-    visit(nodes);
+        const actionProp = uiActionProp(node.type);
+        const action = source && actionProp ? source.expressions[actionProp] : undefined;
+        const pressed = action && node.props.disabled !== true ? actionValue(action, block) : undefined;
+        if (pressed && sameUiValue(pressed.value, scope[pressed.target])) {
+            inputs.add(pressed.target);
+        }
+    });
     return inputs;
 }
