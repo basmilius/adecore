@@ -11,9 +11,11 @@ export const originOf = (url: string, schemes: readonly string[] = []): string |
     try {
         const parsed = new URL(url);
         const scheme = parsed.protocol.slice(0, -1);
+
         if (schemes.includes(scheme)) {
             return parsed.host ? `${scheme}://${parsed.host.toLowerCase()}` : null;
         }
+
         return parsed.origin === 'null' ? null : parsed.origin;
     } catch {
         return null;
@@ -38,6 +40,7 @@ export const appWindowNavigation = (url: string, appOrigin: string, schemes: rea
     if (isAppUrl(url, appOrigin, schemes)) {
         return 'allow';
     }
+
     return isWebLink(url) ? 'external' : 'refuse';
 };
 

@@ -16,6 +16,7 @@ export const PAGE_KEY_MS = 1000;
 export const createPageKeys = (now: () => number = Date.now) => {
     // One entry per key, so a held key that repeats before the menu answers the first still answers each.
     let seen: number[] = [];
+
     return {
         saw: (key: PageKey): void => {
             if (key.type === 'keyDown' && (key.meta || key.control)) {
@@ -25,6 +26,7 @@ export const createPageKeys = (now: () => number = Date.now) => {
         take: (): boolean => {
             const since = now() - PAGE_KEY_MS;
             seen = seen.filter((at) => at >= since);
+
             return seen.shift() !== undefined;
         }
     };

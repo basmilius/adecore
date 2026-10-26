@@ -32,7 +32,9 @@ export const createTheme = (options: ThemeOptions) => {
         if (!options.overlay) {
             return undefined;
         }
+
         const { color, symbolColor } = theme.overlay ?? options.overlay.colors[theme.resolved];
+
         return { height: options.overlay.height, color, symbolColor };
     };
 
@@ -41,13 +43,16 @@ export const createTheme = (options: ThemeOptions) => {
             current = theme;
             options.nativeTheme.themeSource = theme.followsSystem ? 'system' : theme.resolved;
             const overlay = platform === 'darwin' ? undefined : overlayOf(theme);
+
             for (const window of options.windows()) {
                 if (window.isDestroyed()) {
                     continue;
                 }
+
                 if (overlay) {
                     window.setTitleBarOverlay(overlay);
                 }
+
                 window.setBackgroundColor(theme.background);
             }
         },
@@ -57,10 +62,12 @@ export const createTheme = (options: ThemeOptions) => {
         /* The constructor options of a new window: its own chrome and the ground the others have. Dark until a page says otherwise. */
         windowOptions: (): BrowserWindowConstructorOptions => {
             const overlay = overlayOf(current ?? { resolved: 'dark' });
+
             const chrome: BrowserWindowConstructorOptions =
                 platform === 'darwin'
                     ? { titleBarStyle: 'hiddenInset', trafficLightPosition: options.trafficLights ?? { x: 17, y: 17 } }
                     : { titleBarStyle: 'hidden', ...(overlay ? { titleBarOverlay: overlay } : {}) };
+
             return { ...chrome, backgroundColor: current?.background ?? options.background };
         }
     };

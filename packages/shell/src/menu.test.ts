@@ -34,11 +34,13 @@ describe('menuTemplateOf', () => {
 
     test('draws every kind of node', () => {
         const ran: [string, boolean][] = [];
+
         const template = menuTemplateOf(spec, {
             platform: 'darwin',
             run: (id, byKey) => ran.push([id, byKey]),
             shellItem: (action, label) => (action === 'devtools' ? { label } : null)
         })!;
+
         expect(template).toHaveLength(1);
         expect(template[0]!.label).toBe('File');
         const items = submenuOf(template[0]);
@@ -51,6 +53,7 @@ describe('menuTemplateOf', () => {
         expect(submenuOf(items[6]).map((item) => item.label)).toEqual(['One']);
         click(items[0]!, true);
         click(items[2]!, false);
+
         expect(ran).toEqual([
             ['new', true],
             ['grid', false]
@@ -75,6 +78,7 @@ describe('menuTemplateOf', () => {
                 { id: 'odd', label: 'Odd', role: 'fileMenu', items: [] }
             ]
         } as unknown as MenuSpec;
+
         const template = menuTemplateOf(withRoles, { run: () => {}, shellItem: () => null })!;
         expect(template[0]).toMatchObject({ label: 'Window', role: 'window' });
         expect(submenuOf(template[0])).toEqual([{ role: 'minimize', label: 'Minimize' }]);
@@ -97,6 +101,7 @@ describe('staticMenuTemplate', () => {
             appItems: [{ label: 'About App…' }],
             quitItems: [{ label: 'Stop and Quit' }]
         });
+
         expect(template.map((menu) => menu.label ?? menu.role)).toEqual(['App', 'editMenu', 'View', 'windowMenu']);
         expect(submenuOf(template[0]).map((item) => item.label ?? item.role ?? item.type)).toEqual([
             'About App…',
@@ -138,6 +143,7 @@ describe('staticMenuTemplate', () => {
             fileItems: [{ label: 'New Window' }],
             quitItems: [{ label: 'Stop and Quit' }]
         });
+
         expect(template.map((menu) => menu.label ?? menu.role)).toEqual(['File', 'editMenu', 'View', 'windowMenu']);
         expect(submenuOf(template[0]).map((item) => item.label ?? item.role ?? item.type)).toEqual([
             'New Window',
@@ -146,6 +152,7 @@ describe('staticMenuTemplate', () => {
             'separator',
             'quit'
         ]);
+
         const withoutQuit = staticMenuTemplate({ appName: 'App', platform: 'linux', toggleDevTools: () => {}, fileItems: [{ label: 'New Window' }] });
         expect(submenuOf(withoutQuit[0]).map((item) => item.label ?? item.role ?? item.type)).toEqual(['New Window', 'separator', 'quit']);
     });
@@ -172,6 +179,7 @@ describe('createMenuCommands', () => {
     const fakeWindow = (minimized = false) => {
         const sent: unknown[][] = [];
         let shown = 0;
+
         const window: MenuWindow = {
             isMinimized: () => minimized,
             show: () => {
@@ -179,6 +187,7 @@ describe('createMenuCommands', () => {
             },
             webContents: { send: (...args) => void sent.push(args) }
         };
+
         return { window, sent, shown: () => shown };
     };
 

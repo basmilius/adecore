@@ -18,7 +18,9 @@ export const menuTemplateOf = <Action extends string>(spec: MenuSpec<Action>, op
     if (!Array.isArray(spec?.menus)) {
         return null;
     }
+
     const platform = options.platform ?? process.platform;
+
     const itemOf = (node: MenuNode<Action>): MenuItemConstructorOptions | null => {
         switch (node.kind) {
             case 'separator':
@@ -42,8 +44,10 @@ export const menuTemplateOf = <Action extends string>(spec: MenuSpec<Action>, op
                 };
         }
     };
+
     const itemsOf = (nodes: readonly MenuNode<Action>[]): MenuItemConstructorOptions[] =>
         nodes.map(itemOf).filter((item): item is MenuItemConstructorOptions => item !== null);
+
     return spec.menus.map((menu) => ({
         label: menu.label,
         ...(menu.role !== undefined && MENU_BAR_ROLES.includes(menu.role) ? { role: menu.role } : {}),
@@ -74,6 +78,7 @@ export const staticMenuTemplate = (options: StaticMenuOptions): MenuItemConstruc
     const appItems = options.appItems ?? [];
     const quitItems = options.quitItems ?? [];
     const fileItems = options.fileItems ?? [];
+
     const appMenu: MenuItemConstructorOptions =
         platform === 'darwin'
             ? {
@@ -93,7 +98,9 @@ export const staticMenuTemplate = (options: StaticMenuOptions): MenuItemConstruc
             : fileItems.length > 0 || quitItems.length > 0
               ? { label: 'File', submenu: [...withSeparator(fileItems), ...withSeparator(quitItems), { role: 'quit' }] }
               : { role: 'fileMenu' };
+
     const fileMenu: MenuItemConstructorOptions[] = platform === 'darwin' && fileItems.length > 0 ? [{ label: 'File', submenu: fileItems }] : [];
+
     const viewMenu: MenuItemConstructorOptions = {
         label: 'View',
         submenu: [
@@ -102,6 +109,7 @@ export const staticMenuTemplate = (options: StaticMenuOptions): MenuItemConstruc
             { role: 'togglefullscreen' }
         ]
     };
+
     return [appMenu, ...fileMenu, { role: 'editMenu' }, viewMenu, { role: 'windowMenu' }];
 };
 
@@ -130,9 +138,12 @@ export const createMenuCommands =
         if (byKey && !(options.keyBypassesPage?.() ?? false) && options.pageKeys.take()) {
             return;
         }
+
         const window = options.window();
+
         if (window?.isMinimized()) {
             window.show();
         }
+
         window?.webContents.send('menu:run', id);
     };

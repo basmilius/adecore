@@ -39,14 +39,17 @@ describe('fitBounds', () => {
 const memoryStorage = (text: string | null = null) => {
     const written: string[] = [];
     const storage: WindowStateStorage = { read: () => text, write: (next) => void written.push(next) };
+
     return { storage, written, last: () => JSON.parse(written.at(-1)!) as { version: number; windows: Record<string, unknown> } };
 };
 
 const fakeTimers = () => {
     let pending: (() => void) | null = null;
+
     return {
         setTimeout: (run: () => void) => {
             pending = run;
+
             return run;
         },
         clearTimeout: () => {
@@ -64,7 +67,9 @@ const fakeTimers = () => {
 const fakeWindow = (bounds: Rectangle) => {
     const listeners = new Map<string, (() => void)[]>();
     const state = { bounds, maximized: false, fullScreen: false, destroyed: false };
+
     const add = (event: string, listener: () => void) => listeners.set(event, [...(listeners.get(event) ?? []), listener]);
+
     const window = {
         getNormalBounds: () => state.bounds,
         isMaximized: () => state.maximized,
@@ -79,11 +84,13 @@ const fakeWindow = (bounds: Rectangle) => {
         on: add,
         once: add
     };
+
     const emit = (event: string): void => {
         for (const listener of listeners.get(event) ?? []) {
             listener();
         }
     };
+
     return { window: window as unknown as StateWindow, state, emit };
 };
 
@@ -91,6 +98,7 @@ const setup = (text: string | null = null) => {
     const memory = memoryStorage(text);
     const timers = fakeTimers();
     const windowState = createWindowState({ storage: memory.storage, displays: () => [LAPTOP, MONITOR], defaults: DEFAULTS, ...timers });
+
     return { windowState, timers, ...memory };
 };
 
@@ -137,6 +145,7 @@ describe('createWindowState', () => {
                 full: { x: 0, y: 25, width: 1200, height: 800, maximized: true, fullScreen: true }
             })
         );
+
         const wide = fakeWindow({ x: 0, y: 25, width: 1200, height: 800 });
         const full = fakeWindow({ x: 0, y: 25, width: 1200, height: 800 });
         windowState.track('wide', wide.window);
@@ -184,6 +193,7 @@ describe('createWindowState', () => {
     test('a file that does not parse, of another version or with a broken entry is read as far as it holds', () => {
         expect(setup('{').windowState.bounds('main')).toEqual(DEFAULTS);
         expect(setup(JSON.stringify({ version: 2, windows: { main: { x: 0, y: 25, width: 800, height: 600 } } })).windowState.bounds('main')).toEqual(DEFAULTS);
+
         const { windowState } = setup(
             saved({
                 broken: { x: 0, y: 25, width: 0, height: 600 },
@@ -191,6 +201,7 @@ describe('createWindowState', () => {
                 main: { x: 0, y: 25, width: 800, height: 600 }
             })
         );
+
         expect(windowState.bounds('broken')).toEqual(DEFAULTS);
         expect(windowState.bounds('half')).toEqual(DEFAULTS);
         expect(windowState.bounds('main')).toEqual({ x: 0, y: 25, width: 800, height: 600 });
@@ -216,28 +227,35 @@ describe('renameRetrying', () => {
 
     test('tries again while the target is held, as Windows refuses a rename then', () => {
         let attempts = 0;
+
         renameRetrying('a.tmp', 'a', () => {
             attempts++;
+
             if (attempts < 3) {
                 throw refusal('EPERM');
             }
         });
+
         expect(attempts).toBe(3);
     });
 
     test('gives up after a few tries, and at once on any other error', () => {
         let attempts = 0;
+
         expect(() =>
             renameRetrying('a.tmp', 'a', () => {
                 attempts++;
+
                 throw refusal('EBUSY');
             })
         ).toThrow('EBUSY');
         expect(attempts).toBe(6);
         attempts = 0;
+
         expect(() =>
             renameRetrying('a.tmp', 'a', () => {
                 attempts++;
+
                 throw refusal('ENOENT');
             })
         ).toThrow('ENOENT');

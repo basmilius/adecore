@@ -11,9 +11,11 @@ export const UPDATE_INTERVAL_MS = 60 * 60 * 1000;
  */
 export const describeUpdateError = (message: string): { code: UpdateErrorCode; detail: string | null } => {
     const first = message.split('\n')[0]?.trim();
+
     if (!first) {
         return { code: 'failed', detail: null };
     }
+
     return {
         code: first.startsWith('404') ? 'no-feed' : 'failed',
         detail: first.length > 200 ? `${first.slice(0, 200)}…` : first
@@ -69,7 +71,9 @@ export const createUpdater = (options: UpdaterOptions) => {
         if (!updater || state.status === 'checking' || state.status === 'downloading' || state.status === 'ready') {
             return;
         }
+
         options.beforeCheck?.();
+
         try {
             await updater.checkForUpdates();
         } catch (e) {
@@ -85,6 +89,7 @@ export const createUpdater = (options: UpdaterOptions) => {
             if (!options.packaged) {
                 return;
             }
+
             try {
                 const loaded = options.load();
                 // The page sends its preference before the first check, so nothing downloads for someone who turned it off.
@@ -94,11 +99,13 @@ export const createUpdater = (options: UpdaterOptions) => {
                 loaded.on('update-not-available', () => setState({ status: 'current', version: undefined, error: null, errorCode: null }));
                 loaded.on('download-progress', (progress) => setState({ status: 'downloading', percent: progress.percent }));
                 loaded.on('update-downloaded', (info) => setState({ status: 'ready', version: info.version, percent: 100 }));
+
                 loaded.on('error', (e) => {
                     installFailed();
                     const { code, detail } = describeUpdateError(e.message);
                     setState({ status: 'error', error: detail, errorCode: code });
                 });
+
                 updater = loaded;
                 setState({ status: 'idle' });
             } catch (e) {
@@ -112,6 +119,7 @@ export const createUpdater = (options: UpdaterOptions) => {
             if (!updater) {
                 return;
             }
+
             updater.autoDownload = autoDownload === true;
             timer ??= every(() => void check(), UPDATE_INTERVAL_MS);
         },
@@ -122,6 +130,7 @@ export const createUpdater = (options: UpdaterOptions) => {
             if (!updater) {
                 return;
             }
+
             try {
                 await updater.downloadUpdate();
             } catch (e) {
@@ -134,14 +143,18 @@ export const createUpdater = (options: UpdaterOptions) => {
             if (!updater || state.status !== 'ready') {
                 return false;
             }
+
             installing = true;
             options.onQuit?.(true);
+
             try {
                 updater.quitAndInstall();
+
                 return true;
             } catch (e) {
                 log('Update install failed', e);
                 installFailed();
+
                 return false;
             }
         }

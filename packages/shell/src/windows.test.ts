@@ -7,12 +7,14 @@ const DISPLAY = { workArea: { x: 0, y: 25, width: 2560, height: 1415 } };
 
 const memory = (text: string | null = null) => {
     let current = text;
+
     const storage: WindowStateStorage = {
         read: () => current,
         write: (next) => {
             current = next;
         }
     };
+
     return { storage, keys: () => (JSON.parse(current!) as { windows: (string | null)[] }).windows };
 };
 
@@ -20,14 +22,17 @@ type Listener = (...args: unknown[]) => void;
 
 const emitter = () => {
     const listeners = new Map<string, Listener[]>();
+
     const on = (event: string, listener: Listener) => {
         listeners.set(event, [...(listeners.get(event) ?? []), listener]);
     };
+
     const emit = (event: string, ...args: unknown[]): void => {
         for (const listener of listeners.get(event) ?? []) {
             listener(...args);
         }
     };
+
     return { on, once: on, emit };
 };
 
@@ -39,6 +44,7 @@ const preventable = () => {
             event.defaultPrevented = true;
         }
     };
+
     return event;
 };
 
@@ -50,12 +56,14 @@ const fakeWindow = (bounds: Rectangle) => {
     const sent: unknown[][] = [];
     const calls: string[] = [];
     const state = { destroyed: false, minimized: false, bounds };
+
     const contents = {
         id: nextId++,
         on: contentsEvents.on,
         send: (...args: unknown[]) => void sent.push(args),
         isDestroyed: () => state.destroyed
     };
+
     const window = {
         id: nextId++,
         webContents: contents,
@@ -77,14 +85,18 @@ const fakeWindow = (bounds: Rectangle) => {
         show: () => void calls.push('show'),
         focus: () => void calls.push('focus')
     };
+
     const close = (event = preventable()): void => {
         events.emit('close', event);
+
         if (event.defaultPrevented) {
             return;
         }
+
         state.destroyed = true;
         events.emit('closed');
     };
+
     return { window: window as unknown as BrowserWindow, contents: contents as unknown as WebContents, events, contentsEvents, sent, calls, state, close };
 };
 
@@ -92,14 +104,17 @@ type Fake = ReturnType<typeof fakeWindow>;
 
 const setup = (sessionText: string | null = null, stateText: string | null = null, platform: NodeJS.Platform = 'darwin') => {
     const session = memory(sessionText);
+
     const state = createWindowState({
         storage: memory(stateText).storage,
         displays: () => [DISPLAY],
         defaults: { width: 1440, height: 900 },
         setTimeout: () => null
     });
+
     const created: { key: string | null; bounds: Partial<Rectangle>; origin: WindowOrigin; state: string | null; fake: Fake }[] = [];
     const fronts: BrowserWindow[] = [];
+
     const windows = createWindows({
         state,
         session: session.storage,
@@ -107,6 +122,7 @@ const setup = (sessionText: string | null = null, stateText: string | null = nul
         create: (key, bounds, origin, state) => {
             const fake = fakeWindow({ x: bounds.x ?? 100, y: bounds.y ?? 100, width: bounds.width, height: bounds.height });
             created.push({ key, bounds, origin, state, fake });
+
             return fake.window;
         },
         onFront: (window) => {
@@ -114,6 +130,7 @@ const setup = (sessionText: string | null = null, stateText: string | null = nul
             fronts.push(window);
         }
     });
+
     return { windows, created, session, fronts };
 };
 
@@ -124,17 +141,21 @@ const fakeApp = () => {
     const events = emitter();
     let quits = 0;
     const app = { on: events.on, quit: () => void quits++ } as unknown as AttachedApp;
+
     const beforeQuit = () => {
         const event = preventable();
         events.emit('before-quit', event);
+
         return event;
     };
+
     return { app, events, beforeQuit, quits: () => quits };
 };
 
 /* A `setTimeout` that runs only when the test says so. */
 const manualTimer = () => {
     const pending: (() => void)[] = [];
+
     return {
         setTimeout: (run: () => void) => void pending.push(run),
         flush: () => {
@@ -148,13 +169,16 @@ const manualTimer = () => {
 const setupAttached = (platform: NodeJS.Platform = 'darwin') => {
     const timer = manualTimer();
     const session = memory();
+
     const state = createWindowState({
         storage: memory().storage,
         displays: () => [DISPLAY],
         defaults: { width: 1440, height: 900 },
         setTimeout: () => null
     });
+
     const created: { key: string | null; fake: Fake }[] = [];
+
     const windows = createWindows({
         state,
         session: session.storage,
@@ -163,9 +187,11 @@ const setupAttached = (platform: NodeJS.Platform = 'darwin') => {
         create: (key, bounds) => {
             const fake = fakeWindow({ x: 10, y: 40, width: bounds.width, height: bounds.height });
             created.push({ key, fake });
+
             return fake.window;
         }
     });
+
     return { windows, created, session, timer, ...fakeApp() };
 };
 
@@ -211,6 +237,7 @@ describe('createWindows', () => {
         expect(session.keys()).toEqual(['a', 'b']);
         const again = setup(session.storage.read());
         again.windows.restore();
+
         expect(again.created.map(({ key, state }) => [key, state])).toEqual([
             ['a', '["a","c"]'],
             ['b', null]
@@ -288,22 +315,27 @@ describe('createWindows', () => {
     test('a first window without bounds of its own opens where the one window of before stood', () => {
         const saved = JSON.stringify({ version: 1, windows: { main: { x: 300, y: 200, width: 1000, height: 700, maximized: false, fullScreen: false } } });
         const stateStorage = memory(saved);
+
         const state = createWindowState({
             storage: stateStorage.storage,
             displays: () => [DISPLAY],
             defaults: { width: 1440, height: 900 },
             setTimeout: () => null
         });
+
         const bounds: Partial<Rectangle>[] = [];
+
         const windows = createWindows({
             state,
             session: memory().storage,
             formerKey: 'main',
             create: (_key, given) => {
                 bounds.push(given);
+
                 return fakeWindow({ x: given.x ?? 100, y: given.y ?? 100, width: given.width, height: given.height }).window;
             }
         });
+
         windows.restore();
         windows.open('b');
         expect(bounds[0]).toEqual({ x: 300, y: 200, width: 1000, height: 700 });
@@ -388,7 +420,9 @@ describe('createWindows', () => {
         windows.open('b');
         const [a, b] = [created[0]!.fake, created[1]!.fake];
         const guest = { id: 999, once: (_event: string, listener: () => void) => void (guestDestroyed = listener) } as unknown as WebContents;
+
         let guestDestroyed = (): void => {};
+
         b.contentsEvents.emit('did-attach-webview', {}, guest);
         expect(windows.fromContents(a.contents)).toBe(a.window);
         expect(windows.fromContents(guest)).toBe(b.window);
@@ -411,21 +445,26 @@ describe('createWindows', () => {
 
     test('a window that shows another key keeps its bounds under the new one', () => {
         const stateStorage = memory();
+
         const state = createWindowState({
             storage: stateStorage.storage,
             displays: () => [DISPLAY],
             defaults: { width: 1440, height: 900 },
             setTimeout: () => null
         });
+
         let fake: Fake | null = null;
+
         const windows = createWindows({
             state,
             session: memory().storage,
             create: (_key, bounds) => {
                 fake = fakeWindow({ x: 10, y: 40, width: bounds.width, height: bounds.height });
+
                 return fake.window;
             }
         });
+
         const window = windows.open(null);
         windows.claim(window, 'a');
         fake!.close();
@@ -435,18 +474,23 @@ describe('createWindows', () => {
     test('attach answers a second instance, the dock icon, the quit and the last window', () => {
         const listeners = new Map<string, () => void>();
         let quits = 0;
+
         const app = {
             on: (event: string, listener: () => void) => void listeners.set(event, listener),
             quit: () => void quits++
         } as unknown as Parameters<ReturnType<typeof createWindows>['attach']>[0];
+
         const session = memory();
+
         const state = createWindowState({
             storage: memory().storage,
             displays: () => [DISPLAY],
             defaults: { width: 1440, height: 900 },
             setTimeout: () => null
         });
+
         const fakes: Fake[] = [];
+
         const windows = createWindows({
             state,
             session: session.storage,
@@ -454,9 +498,11 @@ describe('createWindows', () => {
             create: (_key, bounds) => {
                 const fake = fakeWindow({ x: 10, y: 40, width: bounds.width, height: bounds.height });
                 fakes.push(fake);
+
                 return fake.window;
             }
         });
+
         windows.attach(app);
         listeners.get('activate')!();
         listeners.get('second-instance')!();
@@ -482,9 +528,11 @@ describe('createWindows', () => {
         windows.restore();
         windows.open('a');
         expect(beforeQuit().defaultPrevented).toBe(false);
+
         for (const { fake } of created) {
             fake.close();
         }
+
         expect(session.keys()).toEqual([null, 'a']);
     });
 
@@ -519,14 +567,18 @@ describe('createWindows', () => {
         const { windows, created, session, app, events, beforeQuit } = setupAttached();
         windows.attach(app);
         let goes = false;
+
         events.on('before-quit', (event) => {
             if (goes) {
                 windows.quit();
+
                 return;
             }
+
             (event as ReturnType<typeof preventable>).preventDefault();
             windows.resume();
         });
+
         windows.open('a');
         windows.open('b');
         beforeQuit();
@@ -541,15 +593,19 @@ describe('createWindows', () => {
     test('confirmQuit holds the quit while it asks, once, and a no keeps the app as it was', async () => {
         const { windows, created, session, app, beforeQuit, quits, timer } = setupAttached();
         const asked: QuitRequest[] = [];
+
         let answer: (go: boolean) => void = () => {};
+
         windows.attach(app, {
             confirmQuit: (request) => {
                 asked.push(request);
+
                 return new Promise((resolve) => {
                     answer = resolve;
                 });
             }
         });
+
         windows.open('a');
         windows.open('b');
         expect(beforeQuit().defaultPrevented).toBe(true);
@@ -583,11 +639,13 @@ describe('createWindows', () => {
 
     test('a confirmQuit that throws lets the quit go ahead', async () => {
         const { windows, app, beforeQuit, quits, timer } = setupAttached();
+
         windows.attach(app, {
             confirmQuit: () => {
                 throw new Error('broken');
             }
         });
+
         beforeQuit();
         await settle();
         timer.flush();
@@ -615,12 +673,15 @@ describe('createWindows', () => {
     test('an install quits with its windows in the session, and asks confirmQuit as an update', async () => {
         const { windows, created, session, app, beforeQuit, timer, quits } = setupAttached();
         const asked: QuitRequest[] = [];
+
         windows.attach(app, {
             confirmQuit: (request) => {
                 asked.push(request);
+
                 return true;
             }
         });
+
         windows.open('a');
         windows.open('b');
         windows.quitForUpdate(true);
@@ -661,9 +722,11 @@ describe('createWindows', () => {
     test('on macOS the app stays when its last window closes, and that window leaves the session', () => {
         const listeners = new Map<string, () => void>();
         let quits = 0;
+
         const app = { on: (event: string, listener: () => void) => void listeners.set(event, listener), quit: () => void quits++ } as unknown as Parameters<
             ReturnType<typeof createWindows>['attach']
         >[0];
+
         const { windows, created, session } = setup();
         windows.attach(app);
         windows.open('a');

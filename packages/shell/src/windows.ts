@@ -71,19 +71,26 @@ const parseSession = (text: string | null): SessionWindow[] => {
     if (text === null) {
         return [];
     }
+
     try {
         const file = JSON.parse(text) as { version?: unknown; windows?: unknown; states?: unknown };
+
         if (file.version !== SESSION_VERSION || !Array.isArray(file.windows)) {
             return [];
         }
+
         const states: unknown[] = Array.isArray(file.states) ? file.states : [];
+
         const windows = file.windows.flatMap((key: unknown, index): SessionWindow[] => {
             if (key !== null && (typeof key !== 'string' || key === '')) {
                 return [];
             }
+
             const state = states[index];
+
             return [{ key, state: typeof state === 'string' ? state : null }];
         });
+
         // A key belongs to one window, so a file that lists one twice keeps the last.
         return windows.filter(({ key }, index) => key === null || windows.findLastIndex((other) => other.key === key) === index);
     } catch {
@@ -128,6 +135,7 @@ export const createWindows = (options: WindowsOptions) => {
         if (quitting) {
             return;
         }
+
         const shown = order.map((id) => entries.get(id));
         const keys = shown.map((entry) => entry?.key ?? null);
         const states = shown.map((entry) => entry?.state ?? null);
@@ -148,6 +156,7 @@ export const createWindows = (options: WindowsOptions) => {
         if (entry.key === key) {
             entry.key = null;
         }
+
         entry.held = entry.held.filter((other) => other !== key);
     };
 
@@ -157,20 +166,26 @@ export const createWindows = (options: WindowsOptions) => {
         if (window.isMinimized()) {
             window.restore();
         }
+
         window.show();
         window.focus();
     };
 
     const boundsFor = (key: string | null): Partial<Rectangle> & WindowSize => {
         const stateKey = key ?? UNKEYED_STATE;
+
         if (options.state.has(stateKey)) {
             return options.state.bounds(stateKey);
         }
+
         const front = focused();
+
         if (!front) {
             return options.state.bounds(options.formerKey !== undefined && options.state.has(options.formerKey) ? options.formerKey : stateKey);
         }
+
         const beside = front.getNormalBounds();
+
         return options.state.bounds(stateKey, { ...beside, x: beside.x + CASCADE, y: beside.y + CASCADE });
     };
 
@@ -182,11 +197,13 @@ export const createWindows = (options: WindowsOptions) => {
         entries.set(id, entry);
         toFront(id);
         options.state.track(() => entry.key ?? UNKEYED_STATE, window);
+
         // The order only decides which window comes back in front, so it is written with the next change rather than at every focus.
         window.on('focus', () => {
             toFront(id);
             options.onFront?.(window);
         });
+
         window.on('close', (event) => {
             if (quitsWithLastWindow && alive().length === 1) {
                 markQuit();
@@ -199,21 +216,27 @@ export const createWindows = (options: WindowsOptions) => {
                 }
             }
         });
+
         window.on('closed', () => {
             entries.delete(id);
             order = order.filter((other) => other !== id);
+
             for (const [guest, owner] of guestOwners) {
                 if (owner === id) {
                     guestOwners.delete(guest);
                 }
             }
+
             writeSession();
         });
+
         window.webContents.on('did-attach-webview', (_event, guest) => {
             guestOwners.set(guest.id, id);
             guest.once('destroyed', () => guestOwners.delete(guest.id));
         });
+
         writeSession();
+
         return window;
     };
 
@@ -225,10 +248,13 @@ export const createWindows = (options: WindowsOptions) => {
     const restore = (): void => {
         const windows = parseSession(options.session.read());
         started = true;
+
         if (windows.length === 0) {
             create(null, 'first');
+
             return;
         }
+
         for (const { key, state } of windows) {
             create(key, 'session', state);
         }
@@ -247,6 +273,7 @@ export const createWindows = (options: WindowsOptions) => {
         if (quitting && started && alive().length === 0) {
             restore();
         }
+
         resume();
     };
 
@@ -254,10 +281,13 @@ export const createWindows = (options: WindowsOptions) => {
         /* Raises the window that has the key, or opens one for it, at `at` when given. Null always opens a new window. */
         open: (key: string | null, at?: WindowPoint): BrowserWindow => {
             const holder = key === null ? null : holderOf(key);
+
             if (holder) {
                 raise(holder.window);
+
                 return holder.window;
             }
+
             return create(key, 'opened', null, at);
         },
 
@@ -270,16 +300,22 @@ export const createWindows = (options: WindowsOptions) => {
          */
         claim: (window: BrowserWindow, key: string | null): boolean => {
             const entry = entries.get(window.id);
+
             if (!entry) {
                 return false;
             }
+
             const holder = key === null ? null : holderOf(key);
+
             if (holder && holder !== entry) {
                 raise(holder.window);
+
                 return false;
             }
+
             entry.key = key;
             writeSession();
+
             return true;
         },
 
@@ -295,11 +331,14 @@ export const createWindows = (options: WindowsOptions) => {
          */
         move: (window: BrowserWindow, at?: WindowPoint): BrowserWindow | null => {
             const entry = entries.get(window.id);
+
             if (!entry || entry.key === null) {
                 return null;
             }
+
             const key = entry.key;
             release(entry, key);
+
             return create(key, 'opened', null, at);
         },
 
@@ -309,13 +348,17 @@ export const createWindows = (options: WindowsOptions) => {
          */
         hold: (window: BrowserWindow, keys: readonly string[]): string[] => {
             const entry = entries.get(window.id);
+
             if (!entry) {
                 return [];
             }
+
             entry.held = [...new Set(keys)].filter((key) => {
                 const holder = holderOf(key);
+
                 return holder === null || holder === entry;
             });
+
             return entry.held;
         },
 
@@ -325,11 +368,14 @@ export const createWindows = (options: WindowsOptions) => {
          */
         detach: (window: BrowserWindow, key: string, at?: WindowPoint): BrowserWindow | null => {
             const entry = entries.get(window.id);
+
             if (!entry || (entry.key !== key && !entry.held.includes(key))) {
                 return null;
             }
+
             release(entry, key);
             writeSession();
+
             return create(key, 'opened', null, at);
         },
 
@@ -339,17 +385,23 @@ export const createWindows = (options: WindowsOptions) => {
          */
         transfer: (key: string, window: BrowserWindow): boolean => {
             const target = entries.get(window.id);
+
             if (!target) {
                 return false;
             }
+
             const holder = holderOf(key);
+
             if (holder !== null && holder !== target) {
                 release(holder, key);
             }
+
             if (!target.held.includes(key)) {
                 target.held = [...target.held, key];
             }
+
             writeSession();
+
             return true;
         },
 
@@ -362,7 +414,9 @@ export const createWindows = (options: WindowsOptions) => {
                 if (window === except || window.isMinimized() || !window.isVisible()) {
                     return false;
                 }
+
                 const bounds = window.getBounds();
+
                 return point.x >= bounds.x && point.x < bounds.x + bounds.width && point.y >= bounds.y && point.y < bounds.y + bounds.height;
             })?.window ?? null,
 
@@ -372,9 +426,11 @@ export const createWindows = (options: WindowsOptions) => {
          */
         setState: (window: BrowserWindow, state: string | null): void => {
             const entry = entries.get(window.id);
+
             if (!entry || entry.state === state) {
                 return;
             }
+
             entry.state = state;
             writeSession();
         },
@@ -382,9 +438,11 @@ export const createWindows = (options: WindowsOptions) => {
         /* The window a page or a `<webview>` inside it belongs to, such as whose menu a guest opens. Not a check of who may speak for the app: that is `fromPage`. */
         fromContents: (contents: WebContents): BrowserWindow | null => {
             const guestOwner = guestOwners.get(contents.id);
+
             if (guestOwner !== undefined) {
                 return entries.get(guestOwner)?.window ?? null;
             }
+
             return pageWindow(contents);
         },
 
@@ -432,43 +490,57 @@ export const createWindows = (options: WindowsOptions) => {
             const { confirmQuit } = attachOptions;
             const platform = options.platform ?? process.platform;
             quitsWithLastWindow = platform !== 'darwin';
+
             app.on('second-instance', () => {
                 const window = focused();
+
                 if (window) {
                     raise(window);
                 } else if (started) {
                     restore();
                 }
             });
+
             app.on('activate', () => {
                 if (started && alive().length === 0) {
                     restore();
                 }
             });
+
             app.on('before-quit', (event) => {
                 if (confirmQuit === undefined || quitConfirmed) {
                     quitEvent = event;
+
                     return;
                 }
+
                 event.preventDefault();
+
                 if (confirming) {
                     return;
                 }
+
                 confirming = true;
+
                 void new Promise<boolean>((resolve) => resolve(confirmQuit({ update: installing })))
                     .catch(() => true)
                     .then((go) => {
                         confirming = false;
+
                         if (!go) {
                             stay();
+
                             return;
                         }
+
                         quitConfirmed = true;
                         // A quit asked from inside this event would be undone by the one still running, so it waits for a task of its own.
                         later(() => app.quit(), 0);
                     });
             });
+
             app.on('will-quit', () => options.state.flush());
+
             app.on('window-all-closed', () => {
                 if (quitsWithLastWindow) {
                     app.quit();

@@ -7,6 +7,7 @@ import { APP_SCHEME_PRIVILEGES, createAppScheme, segmentsOf } from './app-scheme
 const ROOT = mkdtempSync(join(tmpdir(), 'app-scheme-'));
 const PAGE = join(ROOT, 'page');
 const RENDER = join(ROOT, 'render');
+
 mkdirSync(join(PAGE, 'assets'), { recursive: true });
 mkdirSync(RENDER);
 writeFileSync(join(PAGE, 'index.html'), '<!doctype html><p>page</p>');

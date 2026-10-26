@@ -5,6 +5,7 @@ const COMMAND_T = { type: 'keyDown', meta: true, control: false };
 
 const at = (start: number) => {
     let time = start;
+
     return { now: () => time, pass: (ms: number) => (time += ms) };
 };
 

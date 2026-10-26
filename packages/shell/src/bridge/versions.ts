@@ -12,14 +12,18 @@ export const isVersion = (version: string): boolean => SEMVER.test(version);
 export const compareVersions = (a: string, b: string): number => {
     const left = SEMVER.exec(a);
     const right = SEMVER.exec(b);
+
     if (!left || !right) {
         return (left ? 1 : 0) - (right ? 1 : 0);
     }
+
     for (let i = 1; i <= 3; i++) {
         const difference = Number(left[i]) - Number(right[i]);
+
         if (difference !== 0) {
             return difference;
         }
     }
+
     return 0;
 };

@@ -98,27 +98,35 @@ const readWhole = async (file: string): Promise<Response> => new Response(new Ui
 /* The segments of a path as the URL carries them, decoded, or null when one could climb out or means nothing on its own. */
 export const segmentsOf = (pathname: string): string[] | null => {
     const path = pathname.replace(/^\/+/, '');
+
     if (path === '') {
         return [];
     }
+
     const segments: string[] = [];
+
     for (const raw of path.split('/')) {
         let segment: string;
+
         try {
             segment = decodeURIComponent(raw);
         } catch {
             return null;
         }
+
         if (segment === '' || segment === '.' || segment === '..' || /[/\\\0]/.test(segment)) {
             return null;
         }
+
         segments.push(segment);
     }
+
     return segments;
 };
 
 const isInside = (root: string, path: string): boolean => {
     const between = relative(root, path);
+
     return between !== '' && !between.startsWith('..') && !isAbsolute(between);
 };
 
@@ -140,36 +148,46 @@ export function createAppScheme(options: AppSchemeOptions): AppScheme {
 
     const serveFile = async (root: string, file: string, request: Request, headers: Record<string, string> = {}): Promise<Response> => {
         let found: string;
+
         try {
             const [realRoot, realFile] = await Promise.all([realpath(resolve(root)), realpath(resolve(file))]);
+
             if (!isInside(realRoot, realFile) || !(await stat(realFile)).isFile()) {
                 return notFound();
             }
+
             found = realFile;
         } catch {
             return notFound();
         }
+
         const response = await read(found, request);
         const merged = new Headers(response.headers);
         const type = CONTENT_TYPES[extname(found).toLowerCase()];
+
         if (type !== undefined) {
             merged.set('content-type', type);
         }
+
         for (const [name, value] of Object.entries(headers)) {
             merged.set(name, value);
         }
+
         return new Response(response.body, { status: response.status, statusText: response.statusText, headers: merged });
     };
 
     const serveFolder = (folder: SchemeFolder, request: Request, address: URL): Promise<Response> | Response => {
         const segments = segmentsOf(address.pathname);
+
         if (segments === null) {
             return notFound();
         }
+
         // A missing chunk with an extension stays a 404, so a stale one fails as a load error rather than as the page.
         const page = segments.length === 0 || (folder.routes === true && extname(segments.at(-1)!) === '');
         const file = page ? join(folder.root, 'index.html') : join(folder.root, ...segments);
         const headers = typeof folder.headers === 'function' ? folder.headers(file) : folder.headers;
+
         return serveFile(folder.root, file, request, headers);
     };
 
@@ -180,15 +198,19 @@ export function createAppScheme(options: AppSchemeOptions): AppScheme {
         privileged: { scheme, privileges: options.privileges ?? APP_SCHEME_PRIVILEGES },
         handle: async (request) => {
             let address: URL;
+
             try {
                 address = new URL(request.url);
             } catch {
                 return notFound();
             }
+
             const host = address.protocol === `${scheme}:` ? hosts.get(address.host.toLowerCase()) : undefined;
+
             if (host === undefined) {
                 return notFound();
             }
+
             return typeof host === 'function' ? host(request, address) : serveFolder(host, request, address);
         },
         serveFile,

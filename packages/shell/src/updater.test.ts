@@ -6,25 +6,31 @@ import { createUpdater, describeUpdateError, UPDATE_INTERVAL_MS } from './update
 const fakeUpdater = () => {
     const listeners = new Map<string, (...args: never[]) => void>();
     const calls: string[] = [];
+
     const fake = {
         autoDownload: true,
         on: (event: string, listener: (...args: never[]) => void) => {
             listeners.set(event, listener);
+
             return fake;
         },
         checkForUpdates: async () => {
             calls.push('check');
+
             return null;
         },
         downloadUpdate: async () => {
             calls.push('download');
+
             return [];
         },
         quitAndInstall: () => {
             calls.push('install');
         }
     };
+
     const emit = (event: string, ...args: unknown[]): void => (listeners.get(event) as (...args: unknown[]) => void)(...args);
+
     return { updater: fake as unknown as AppUpdater, fake, emit, calls };
 };
 
@@ -34,6 +40,7 @@ const setup = (packaged = true) => {
     const intervals: { run: () => void; ms: number }[] = [];
     const logged: string[] = [];
     let beforeChecks = 0;
+
     const updater = createUpdater({
         currentVersion: '1.0.0',
         packaged,
@@ -43,21 +50,25 @@ const setup = (packaged = true) => {
         log: (message) => void logged.push(message),
         setInterval: (run, ms) => intervals.push({ run, ms })
     });
+
     return { ...fake, updater, published, intervals, logged, beforeChecks: () => beforeChecks };
 };
 
 describe('createUpdater', () => {
     test('a checkout stays unsupported and never loads the updater', () => {
         let loads = 0;
+
         const updater = createUpdater({
             currentVersion: '1.0.0',
             packaged: false,
             load: () => {
                 loads++;
+
                 return fakeUpdater().updater;
             },
             publish: () => {}
         });
+
         updater.start();
         expect(updater.state()).toEqual({ status: 'unsupported', currentVersion: '1.0.0' });
         expect(loads).toBe(0);
@@ -130,10 +141,12 @@ describe('createUpdater', () => {
     test('a check waits while one runs, a download runs or a build is ready', async () => {
         const { updater, emit, calls } = setup();
         updater.start();
+
         for (const event of ['checking-for-update', 'download-progress', 'update-downloaded']) {
             emit(event, { version: '1.1.0', percent: 10 });
             await updater.check();
         }
+
         expect(calls).toEqual([]);
     });
 
@@ -157,6 +170,7 @@ describe('createUpdater', () => {
     test('says the app is about to quit, and that it stays when the install fails', () => {
         const quits: boolean[] = [];
         const fake = fakeUpdater();
+
         const updater = createUpdater({
             currentVersion: '1.0.0',
             packaged: true,
@@ -165,6 +179,7 @@ describe('createUpdater', () => {
             log: () => {},
             onQuit: (quitting) => void quits.push(quitting)
         });
+
         updater.start();
         fake.emit('update-downloaded', { version: '1.1.0' });
         updater.install();
@@ -174,9 +189,11 @@ describe('createUpdater', () => {
         fake.emit('error', new Error('later'));
         expect(quits).toEqual([true, false]);
         fake.emit('update-downloaded', { version: '1.1.0' });
+
         fake.fake.quitAndInstall = () => {
             throw new Error('busy');
         };
+
         expect(updater.install()).toBe(false);
         expect(quits).toEqual([true, false, true, false]);
     });
@@ -194,12 +211,15 @@ describe('createUpdater', () => {
     test('a failed check or download is logged, not thrown', async () => {
         const { updater, fake, logged } = setup();
         updater.start();
+
         fake.checkForUpdates = async () => {
             throw new Error('offline');
         };
+
         fake.downloadUpdate = async () => {
             throw new Error('offline');
         };
+
         await updater.check();
         await updater.download();
         expect(logged).toEqual(['Update check failed', 'Update download failed']);
@@ -208,6 +228,7 @@ describe('createUpdater', () => {
     test('an updater that fails to load leaves the app as it is', () => {
         const published: UpdateState[] = [];
         const logged: string[] = [];
+
         const updater = createUpdater({
             currentVersion: '1.0.0',
             packaged: true,
@@ -217,6 +238,7 @@ describe('createUpdater', () => {
             publish: (state) => void published.push(state),
             log: (message) => void logged.push(message)
         });
+
         updater.start();
         expect(updater.state().status).toBe('unsupported');
         expect(published).toEqual([]);

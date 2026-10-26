@@ -4,11 +4,13 @@ import { createTheme } from './theme.ts';
 
 const fakeWindow = (destroyed = false) => {
     const calls: unknown[][] = [];
+
     const window = {
         isDestroyed: () => destroyed,
         setTitleBarOverlay: (overlay: unknown) => void calls.push(['overlay', overlay]),
         setBackgroundColor: (color: string) => void calls.push(['background', color])
     };
+
     return { window: window as unknown as BrowserWindow, calls };
 };
 
@@ -30,6 +32,7 @@ describe('createTheme', () => {
 
     test('colors the native controls off macOS', () => {
         const one = fakeWindow();
+
         const theme = createTheme({
             nativeTheme: { themeSource: 'system' },
             windows: () => [one.window],
@@ -37,7 +40,9 @@ describe('createTheme', () => {
             overlay: OVERLAY,
             platform: 'linux'
         });
+
         theme.apply(LIGHT);
+
         expect(one.calls).toEqual([
             ['overlay', { height: 48, color: '#ffffff', symbolColor: '#18181b' }],
             ['background', '#fafafa']
@@ -46,12 +51,15 @@ describe('createTheme', () => {
 
     test('a new window opens dark on the default ground, and in the theme the others are in once a page reported one', () => {
         const theme = createTheme({ nativeTheme: { themeSource: 'system' }, windows: () => [], background: '#131316', overlay: OVERLAY, platform: 'linux' });
+
         expect(theme.windowOptions()).toEqual({
             titleBarStyle: 'hidden',
             titleBarOverlay: { height: 48, color: '#1b1b1f', symbolColor: '#ececf1' },
             backgroundColor: '#131316'
         });
+
         theme.apply(LIGHT);
+
         expect(theme.windowOptions()).toEqual({
             titleBarStyle: 'hidden',
             titleBarOverlay: { height: 48, color: '#ffffff', symbolColor: '#18181b' },
@@ -62,6 +70,7 @@ describe('createTheme', () => {
 
     test('the controls take the colors a page reports, on every window and on one opened later', () => {
         const one = fakeWindow();
+
         const theme = createTheme({
             nativeTheme: { themeSource: 'system' },
             windows: () => [one.window],
@@ -69,8 +78,10 @@ describe('createTheme', () => {
             overlay: OVERLAY,
             platform: 'win32'
         });
+
         const tinted = { ...LIGHT, background: '#f4efe6', overlay: { color: '#f4efe6', symbolColor: '#2b2118' } };
         theme.apply(tinted);
+
         expect(one.calls).toEqual([
             ['overlay', { height: 48, color: '#f4efe6', symbolColor: '#2b2118' }],
             ['background', '#f4efe6']
@@ -84,6 +95,7 @@ describe('createTheme', () => {
 
     test('without colors of its own a page gets the ones of its theme again', () => {
         const one = fakeWindow();
+
         const theme = createTheme({
             nativeTheme: { themeSource: 'system' },
             windows: () => [one.window],
@@ -91,6 +103,7 @@ describe('createTheme', () => {
             overlay: OVERLAY,
             platform: 'linux'
         });
+
         theme.apply({ ...LIGHT, overlay: { color: '#f4efe6', symbolColor: '#2b2118' } });
         theme.apply(LIGHT);
         expect(one.calls.at(-2)).toEqual(['overlay', { height: 48, color: '#ffffff', symbolColor: '#18181b' }]);
@@ -99,6 +112,7 @@ describe('createTheme', () => {
 
     test('only the two colors of a page are taken, and none without an overlay or on macOS', () => {
         const one = fakeWindow();
+
         const theme = createTheme({
             nativeTheme: { themeSource: 'system' },
             windows: () => [one.window],
@@ -106,6 +120,7 @@ describe('createTheme', () => {
             overlay: OVERLAY,
             platform: 'linux'
         });
+
         const overlay = { color: '#f4efe6', symbolColor: '#2b2118', height: 400 };
         theme.apply({ ...LIGHT, overlay });
         expect(one.calls[0]).toEqual(['overlay', { height: 48, color: '#f4efe6', symbolColor: '#2b2118' }]);
@@ -117,6 +132,7 @@ describe('createTheme', () => {
         expect(without.windowOptions()).toEqual({ titleBarStyle: 'hidden', backgroundColor: '#fafafa' });
 
         const mac = fakeWindow();
+
         const darwin = createTheme({
             nativeTheme: { themeSource: 'system' },
             windows: () => [mac.window],
@@ -124,6 +140,7 @@ describe('createTheme', () => {
             overlay: OVERLAY,
             platform: 'darwin'
         });
+
         darwin.apply({ ...LIGHT, overlay });
         expect(mac.calls).toEqual([['background', '#fafafa']]);
         expect(darwin.windowOptions()).toEqual({ titleBarStyle: 'hiddenInset', trafficLightPosition: { x: 17, y: 17 }, backgroundColor: '#fafafa' });
@@ -137,6 +154,7 @@ describe('createTheme', () => {
             trafficLights: { x: 20, y: 18 },
             platform: 'darwin'
         });
+
         expect(mac.windowOptions()).toEqual({ titleBarStyle: 'hiddenInset', trafficLightPosition: { x: 20, y: 18 }, backgroundColor: '#131316' });
         const linux = createTheme({ nativeTheme: { themeSource: 'system' }, windows: () => [], background: '#131316', platform: 'linux' });
         expect(linux.windowOptions()).toEqual({ titleBarStyle: 'hidden', backgroundColor: '#131316' });

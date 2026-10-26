@@ -37,12 +37,15 @@ export const fitBounds = (saved: Rectangle | null, displays: readonly WindowDisp
     if (saved) {
         const display = displays.find(({ workArea }) => {
             const shared = overlap(saved, workArea);
+
             return shared.width >= Math.min(VISIBLE_EDGE.width, saved.width) && shared.height >= Math.min(VISIBLE_EDGE.height, saved.height);
         });
+
         if (display) {
             const area = display.workArea;
             const width = Math.min(saved.width, area.width);
             const height = Math.min(saved.height, area.height);
+
             return {
                 x: Math.min(Math.max(saved.x, area.x), area.x + area.width - width),
                 y: Math.min(Math.max(saved.y, area.y), area.y + area.height - height),
@@ -51,6 +54,7 @@ export const fitBounds = (saved: Rectangle | null, displays: readonly WindowDisp
             };
         }
     }
+
     return { width: defaults.width, height: defaults.height };
 };
 
@@ -77,11 +81,13 @@ export function renameRetrying(from: string, to: string, rename: (from: string, 
     for (let attempt = 0; ; attempt++) {
         try {
             rename(from, to);
+
             return;
         } catch (e) {
             if (!isTransient(e) || attempt >= RENAME_RETRIES) {
                 throw e;
             }
+
             // A synchronous wait: the write runs in a timer of the main process and has no promise to wait on.
             Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, RENAME_RETRY_MS);
         }
@@ -120,21 +126,28 @@ const isSaved = (value: unknown): value is SavedWindow => {
     if (typeof value !== 'object' || value === null) {
         return false;
     }
+
     const saved = value as Record<string, unknown>;
+
     const whole = (key: string): boolean => Number.isInteger(saved[key]);
+
     return whole('x') && whole('y') && whole('width') && whole('height') && (saved.width as number) > 0 && (saved.height as number) > 0;
 };
 
 const parse = (text: string | null): Map<string, SavedWindow> => {
     const windows = new Map<string, SavedWindow>();
+
     if (text === null) {
         return windows;
     }
+
     try {
         const file = JSON.parse(text) as { version?: unknown; windows?: Record<string, unknown> };
+
         if (file.version !== FILE_VERSION || typeof file.windows !== 'object' || file.windows === null) {
             return windows;
         }
+
         for (const [key, value] of Object.entries(file.windows)) {
             if (isSaved(value)) {
                 windows.set(key, { ...value, maximized: value.maximized === true, fullScreen: value.fullScreen === true });
@@ -143,6 +156,7 @@ const parse = (text: string | null): Map<string, SavedWindow> => {
     } catch {
         // A file that does not parse is a first start: every window opens at its default.
     }
+
     return windows;
 };
 
@@ -159,6 +173,7 @@ export const createWindowState = (options: WindowStateOptions) => {
             cancel(timer);
             timer = null;
         }
+
         options.storage.write(`${JSON.stringify({ version: FILE_VERSION, windows: Object.fromEntries(windows) }, null, 2)}\n`);
     };
 
@@ -166,6 +181,7 @@ export const createWindowState = (options: WindowStateOptions) => {
         if (timer !== null) {
             cancel(timer);
         }
+
         timer = later(() => {
             timer = null;
             flush();
@@ -184,6 +200,7 @@ export const createWindowState = (options: WindowStateOptions) => {
         track: (key: string | (() => string), window: StateWindow): void => {
             const keyNow = typeof key === 'function' ? key : () => key;
             const last = windows.get(keyNow());
+
             window.once('ready-to-show', () => {
                 if (last?.fullScreen) {
                     window.setFullScreen(true);
@@ -191,25 +208,31 @@ export const createWindowState = (options: WindowStateOptions) => {
                     window.maximize();
                 }
             });
+
             const remember = (): boolean => {
                 if (window.isDestroyed()) {
                     return false;
                 }
+
                 const bounds = window.getNormalBounds();
                 windows.set(keyNow(), { ...bounds, maximized: window.isMaximized(), fullScreen: window.isFullScreen() });
+
                 return true;
             };
+
             const changed = (): void => {
                 if (remember()) {
                     schedule();
                 }
             };
+
             window.on('resize', changed);
             window.on('move', changed);
             window.on('maximize', changed);
             window.on('unmaximize', changed);
             window.on('enter-full-screen', changed);
             window.on('leave-full-screen', changed);
+
             window.on('close', () => {
                 remember();
                 flush();
