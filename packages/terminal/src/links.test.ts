@@ -11,6 +11,7 @@ function terminal() {
     let providers = 0;
     let selected = false;
     const options: { linkHandler: ILinkHandler | null } = { linkHandler: null };
+
     const term = {
         element,
         options,
@@ -18,6 +19,7 @@ function terminal() {
         loadAddon: (addon: ITerminalAddon) => addon.activate(term as unknown as Terminal),
         registerLinkProvider: () => {
             providers++;
+
             return {
                 dispose: () => {
                     providers--;
@@ -25,6 +27,7 @@ function terminal() {
             };
         }
     };
+
     return {
         term: term as unknown as Terminal,
         providers: () => providers,
@@ -64,18 +67,22 @@ describe('terminal web link callbacks', () => {
         const fixture = terminal();
         const opened: string[] = [];
         const dispose = bindTerminalLinks(fixture.term, () => ({ onOpenLink: (uri) => opened.push(uri) }));
+
         for (const uri of ['file:///tmp/file', 'javascript:alert(1)', 'data:text/html,test', 'https://']) {
             fixture.press();
             fixture.activate(uri);
         }
+
         fixture.select(true);
         fixture.press();
         fixture.activate('https://example.org');
         fixture.select(false);
+
         for (const event of [mouse('mouseup', { button: 1 }), mouse('mouseup', { button: 2 }), mouse('mouseup', { clientX: 30 })]) {
             fixture.press();
             fixture.activate('https://example.org', event);
         }
+
         fixture.press();
         fixture.term.element!.dispatchEvent(new Event('pointercancel'));
         fixture.activate('https://example.org');

@@ -23,6 +23,7 @@ describe('a pointer under a scaled ancestor', () => {
 describe('a fit to the host', () => {
     const terminalIn = (width: number, height: number) => {
         const host = { clientWidth: width, clientHeight: height, style: { setProperty: mock() } };
+
         return {
             element: { parentElement: host },
             rows: 10,

@@ -13,17 +13,22 @@ import type { Terminal } from '@xterm/xterm';
  */
 export const fitToHost = (term: Terminal, fit: FitAddon): boolean => {
     const host = term.element?.parentElement;
+
     if (!host || host.clientWidth === 0 || host.clientHeight === 0) {
         return false;
     }
+
     fit.fit();
+
     // The same private dimensions FitAddon itself divides by.
     const cellHeight: number = (term as unknown as { _core: { _renderService: { dimensions: { css: { cell: { height: number } } } } } })._core._renderService
         .dimensions.css.cell.height;
+
     if (cellHeight !== 0) {
         const slack = host.clientHeight - term.rows * cellHeight;
         host.style.setProperty('--term-offset', `${Math.max(0, Math.floor(slack / 2))}px`);
     }
+
     return true;
 };
 
@@ -45,6 +50,7 @@ export const unscaledPointer = (
 ): Pointer => {
     const scaleX = layout.width > 0 && rect.width > 0 ? rect.width / layout.width : 1;
     const scaleY = layout.height > 0 && rect.height > 0 ? rect.height / layout.height : 1;
+
     return {
         clientX: rect.left + (pointer.clientX - rect.left) / scaleX,
         clientY: rect.top + (pointer.clientY - rect.top) / scaleY
@@ -58,11 +64,14 @@ export const unscaledPointer = (
  */
 export const followAncestorScale = (term: Terminal): void => {
     const mouse = (term as unknown as { _core: { _mouseService?: MouseService } })._core._mouseService;
+
     if (!mouse) {
         return;
     }
+
     const unscaled = (pointer: Pointer, element: HTMLElement): Pointer =>
         unscaledPointer(pointer, element.getBoundingClientRect(), { width: element.offsetWidth, height: element.offsetHeight });
+
     const getCoords = mouse.getCoords.bind(mouse);
     const getMouseReportCoords = mouse.getMouseReportCoords.bind(mouse);
     mouse.getCoords = (event, element, ...rest) => getCoords(unscaled(event, element), element, ...rest);

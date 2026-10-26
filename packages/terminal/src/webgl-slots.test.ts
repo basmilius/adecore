@@ -9,6 +9,7 @@ const requestAll = (slots: WebglSlots, ids: string[]): void => {
 
 const fakeClock = (): { now: () => number; advance: (ms: number) => void } => {
     let time = 0;
+
     return {
         now: () => time,
         advance: (ms) => {
@@ -26,13 +27,17 @@ const roundRobin = (gap: number, duration: number): number[] => {
     const ids = ['a', 'b', 'c'];
     requestAll(slots, ids);
     const switches: number[] = [];
+
     for (let time = 0, turn = 0; time < duration; time += gap, turn++) {
         clock.advance(gap);
+
         if (switched(slots.touch(ids[turn % ids.length]!))) {
             switches.push(time + gap);
         }
+
         expect(slots.holders()).toHaveLength(2);
     }
+
     return switches;
 };
 
@@ -161,6 +166,7 @@ describe('WebglSlots', () => {
             const switches = roundRobin(gap, 20_000);
             atMostOnePerInterval(switches);
         }
+
         // Quiet enough between writes that a holder goes idle, so output still moves contexts.
         expect(roundRobin(1500, 20_000).length).toBeGreaterThan(0);
     });
@@ -187,10 +193,12 @@ describe('WebglSlots', () => {
     test('the default cap stays under what a browser keeps alive', () => {
         expect(DEFAULT_WEBGL_CONTEXTS).toBe(10);
         const slots = new WebglSlots();
+
         requestAll(
             slots,
             Array.from({ length: 20 }, (_, index) => `n${index}`)
         );
+
         expect(slots.holders()).toHaveLength(DEFAULT_WEBGL_CONTEXTS);
     });
 });

@@ -12,6 +12,7 @@ const brightKey = (name: AnsiName): BrightName => `bright${name[0]!.toUpperCase(
 /* xterm takes literal colors, so the tokens are resolved from the root on every theme change. */
 export const readTerminalTheme = (): ITheme => {
     const style = getComputedStyle(document.documentElement);
+
     const theme: ITheme = {
         background: token(style, '--term-bg'),
         foreground: token(style, '--term-fg'),
@@ -19,10 +20,12 @@ export const readTerminalTheme = (): ITheme => {
         cursorAccent: token(style, '--term-bg'),
         selectionBackground: token(style, '--selection')
     };
+
     for (const name of ANSI) {
         theme[name] = token(style, `--term-ansi-${name}`);
         theme[brightKey(name)] = token(style, `--term-ansi-bright-${name}`);
     }
+
     return theme;
 };
 

@@ -59,11 +59,13 @@ export class WebglSlots {
     /* A terminal that just became visible asks for a context. */
     request(id: string): SlotChange {
         const member = this.members.get(id);
+
         if (member) {
             this.bump(member, this.now());
         } else {
             this.members.set(id, { seq: ++this.stamp, activeAt: this.now(), holding: false, blocked: false });
         }
+
         return this.reconcile();
     }
 
@@ -72,21 +74,26 @@ export class WebglSlots {
         if (!this.members.delete(id)) {
             return nothing();
         }
+
         if (this.focusedId === id) {
             this.focusedId = null;
         }
+
         return this.reconcile();
     }
 
     focus(id: string): SlotChange {
         this.focusedId = id;
         const member = this.members.get(id);
+
         if (!member) {
             return nothing();
         }
+
         this.bump(member, this.now());
         // Focusing is how a terminal that lost its context asks for a new one.
         member.blocked = false;
+
         return this.reconcile();
     }
 
@@ -94,50 +101,65 @@ export class WebglSlots {
         if (this.focusedId !== id) {
             return nothing();
         }
+
         this.focusedId = null;
+
         return this.reconcile();
     }
 
     /* Output arrived, so this terminal is worth more than an idle one. */
     touch(id: string): SlotChange {
         const member = this.members.get(id);
+
         if (!member) {
             return nothing();
         }
+
         const now = this.now();
         this.bump(member, now);
+
         // A holder that climbs stays a holder; only a waiter can change who holds what.
         if (member.holding || now - this.outputSwitchedAt < OUTPUT_SWITCH_INTERVAL_MS) {
             return nothing();
         }
+
         const target = this.target();
+
         const evictsBusyHolder = [...this.members].some(
             ([other, entry]) => entry.holding && !target.has(other) && now - entry.activeAt < OUTPUT_SWITCH_INTERVAL_MS
         );
+
         // The waiter keeps its new rank; its next write tries again, and so does any request, focus or release.
         if (evictsBusyHolder) {
             return nothing();
         }
+
         const change = this.reconcile(target);
+
         if (change.granted.length > 0 || change.revoked.length > 0) {
             this.outputSwitchedAt = now;
         }
+
         return change;
     }
 
     /* The browser reported a context loss, free the slot and wait for a focus before asking again. */
     lost(id: string): SlotChange {
         const member = this.members.get(id);
+
         if (!member) {
             return nothing();
         }
+
         member.holding = false;
         member.blocked = true;
+
         return this.reconcile();
     }
 
     setCap(cap: number): SlotChange {
         this.cap = Math.max(1, cap);
+
         return this.reconcile();
     }
 
@@ -155,17 +177,20 @@ export class WebglSlots {
         if (id === this.focusedId) {
             return Number.MAX_SAFE_INTEGER;
         }
+
         return this.members.get(id)?.seq ?? -1;
     }
 
     private target(): Set<string> {
         const eligible = this.ranked().filter((id) => this.members.get(id)?.blocked !== true);
+
         return new Set(eligible.slice(0, this.cap));
     }
 
     private reconcile(target: Set<string> = this.target()): SlotChange {
         const granted: string[] = [];
         const revoked: string[] = [];
+
         for (const [id, member] of this.members) {
             if (target.has(id) && !member.holding) {
                 member.holding = true;
@@ -175,6 +200,7 @@ export class WebglSlots {
                 revoked.push(id);
             }
         }
+
         return { granted, revoked };
     }
 }

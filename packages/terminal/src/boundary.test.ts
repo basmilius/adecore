@@ -17,6 +17,7 @@ describe('the boundary of the package', () => {
         const naming = [...sources(), { path: 'README.md', text: readFileSync(join(ROOT, 'README.md'), 'utf8') }]
             .filter(({ path, text }) => path !== 'boundary.test.ts' && /ruimte|aftermotion|solvidi|command[ -]center/i.test(text))
             .map(({ path }) => path);
+
         expect(naming).toEqual([]);
     });
 

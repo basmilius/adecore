@@ -16,6 +16,7 @@ const hasWebgl2 = (): boolean => {
         webgl2Available = context !== null;
         context?.getExtension('WEBGL_lose_context')?.loseContext();
     }
+
     return webgl2Available;
 };
 
@@ -23,6 +24,7 @@ const hasWebgl2 = (): boolean => {
    (`xterm-link-layer`); the WebGL one is the nameless one. */
 const rendererCanvas = (term: Terminal): HTMLCanvasElement | null => {
     const canvases = term.element?.querySelectorAll<HTMLCanvasElement>('.xterm-screen canvas') ?? [];
+
     return [...canvases].filter((canvas) => canvas.classList.length === 0).at(-1) ?? null;
 };
 
@@ -47,13 +49,16 @@ class WebglBudget {
     register(id: string, term: Terminal, refit: () => void): () => void {
         const entry: Entry = { term, refit, addon: null, canvas: null, frame: null };
         this.entries.set(id, entry);
+
         if (hasWebgl2()) {
             this.apply(this.slots.request(id));
         }
+
         return () => {
             if (this.entries.get(id) !== entry) {
                 return;
             }
+
             this.entries.delete(id);
             // The context goes back before the next terminal asks for one, never after.
             this.drop(entry);
@@ -78,6 +83,7 @@ class WebglBudget {
     holders(): Terminal[] {
         return this.slots.holders().flatMap((id) => {
             const entry = this.entries.get(id);
+
             return entry ? [entry.term] : [];
         });
     }
@@ -87,6 +93,7 @@ class WebglBudget {
         for (const id of change.revoked) {
             this.unload(id);
         }
+
         for (const id of change.granted) {
             this.load(id);
         }
@@ -94,13 +101,16 @@ class WebglBudget {
 
     private load(id: string): void {
         const entry = this.entries.get(id);
+
         if (!entry || entry.addon) {
             return;
         }
+
         if (Addon === null) {
             addonLoad ??= import('@xterm/addon-webgl').then((module) => {
                 Addon = module.WebglAddon;
             });
+
             void addonLoad.then(
                 () => {
                     if (this.slots.holds(id)) {
@@ -109,8 +119,10 @@ class WebglBudget {
                 },
                 () => this.apply(this.slots.lost(id))
             );
+
             return;
         }
+
         try {
             const addon = new Addon();
             addon.onContextLoss(() => this.handleLoss(id));
@@ -126,9 +138,11 @@ class WebglBudget {
 
     private unload(id: string): void {
         const entry = this.entries.get(id);
+
         if (!entry?.addon) {
             return;
         }
+
         this.drop(entry);
         // The fit runs after the DOM renderer's repaint, on the cell size it measured.
         this.scheduleRefit(entry);
@@ -145,6 +159,7 @@ class WebglBudget {
             window.cancelAnimationFrame(entry.frame);
             entry.frame = null;
         }
+
         entry.addon?.dispose();
         entry.addon = null;
         // The browser counts the context until the canvas is collected, so it is lost by hand.
@@ -156,6 +171,7 @@ class WebglBudget {
         if (entry.frame !== null) {
             return;
         }
+
         entry.frame = window.requestAnimationFrame(() => {
             entry.frame = null;
             entry.refit();

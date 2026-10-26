@@ -108,10 +108,13 @@ export function TerminalView({
             },
             write: (data, done) => {
                 const current = live.current;
+
                 if (!current) {
                     return;
                 }
+
                 current.term.write(data, done);
+
                 if (current.webgl) {
                     // A terminal that is being written to outranks an idle one when contexts are scarce.
                     webglBudget.touch(current.id);
@@ -122,6 +125,7 @@ export function TerminalView({
             focus: () => {
                 const current = live.current;
                 current?.term.focus();
+
                 if (current?.webgl) {
                     webglBudget.focus(current.id);
                 }
@@ -129,6 +133,7 @@ export function TerminalView({
             blur: () => {
                 const current = live.current;
                 current?.term.blur();
+
                 if (current?.webgl) {
                     webglBudget.blur(current.id);
                 }
@@ -139,14 +144,18 @@ export function TerminalView({
             size: () => ({ cols: live.current?.term.cols ?? 80, rows: live.current?.term.rows ?? 24 }),
             visibleText: () => {
                 const term = live.current?.term;
+
                 if (!term) {
                     return '';
                 }
+
                 const buffer = term.buffer.active;
                 const lines: string[] = [];
+
                 for (let row = 0; row < term.rows; row++) {
                     lines.push(buffer.getLine(buffer.viewportY + row)?.translateToString(true) ?? '');
                 }
+
                 return lines.join('\n').replace(/\s+$/, '');
             },
             followGrid: (size) => live.current?.followGrid(size)
@@ -156,10 +165,13 @@ export function TerminalView({
 
     useEffect(() => {
         const host = hostRef.current;
+
         if (!host) {
             return;
         }
+
         const initial = latest.current;
+
         const term = new Terminal({
             theme: readTerminalTheme(),
             fontFamily: readTerminalFont(),
@@ -169,45 +181,55 @@ export function TerminalView({
             scrollback: 5000,
             macOptionIsMeta: true
         });
+
         const fit = new FitAddon();
         term.loadAddon(fit);
         term.open(host);
         const disposeLinks = bindTerminalLinks(term, () => latest.current);
+
         if (initial.scaledByAncestor) {
             followAncestorScale(term);
         }
+
         // The grid this terminal fits and the grid the program has. They part while another client sizes the
         // program; this one then draws that grid until a fit here claims it back. Null until a fit had room.
         let claimed: TerminalSize | null = fitToHost(term, fit) ? { cols: term.cols, rows: term.rows } : null;
         let shared = claimed;
+
         const drawShared = (): void => {
             if (shared !== null && (term.cols !== shared.cols || term.rows !== shared.rows)) {
                 term.resize(shared.cols, shared.rows);
             }
         };
+
         // A resize, a font change and a renderer swap all land here: WebGL and the DOM measure a glyph
         // differently, so a swap can change how many cells fit.
         const refit = (): void => {
             if (!fitToHost(term, fit)) {
                 return;
             }
+
             if (claimed === null || term.cols !== claimed.cols || term.rows !== claimed.rows) {
                 claimed = { cols: term.cols, rows: term.rows };
                 shared = claimed;
                 latest.current.onResize?.(claimed.cols, claimed.rows);
             }
+
             drawShared();
         };
 
         let theme = JSON.stringify(term.options.theme);
+
         const restyle = (size: number, height: number): void => {
             const next = readTerminalTheme();
             const nextKey = JSON.stringify(next);
+
             // A fresh theme object repaints every cell, so only a different one is handed over.
             if (nextKey !== theme) {
                 theme = nextKey;
                 term.options.theme = next;
             }
+
             term.options.fontFamily = readTerminalFont();
             term.options.fontSize = size;
             term.options.lineHeight = height;
@@ -217,6 +239,7 @@ export function TerminalView({
 
         const id = `terminal-${++terminals}`;
         let releaseWebgl: (() => void) | null = null;
+
         const current: Live = {
             term,
             restyle,
@@ -231,6 +254,7 @@ export function TerminalView({
             },
             setWebgl: (on) => {
                 current.webgl = on;
+
                 if (on && releaseWebgl === null) {
                     releaseWebgl = webglBudget.register(id, term, refit);
                 } else if (!on && releaseWebgl !== null) {
@@ -241,20 +265,24 @@ export function TerminalView({
             webgl: false,
             id
         };
+
         live.current = current;
 
         const data = term.onData((input) => latest.current.onData?.(input));
 
         let timer: number | null = null;
+
         const resizes = new ResizeObserver(() => {
             if (timer !== null) {
                 window.clearTimeout(timer);
             }
+
             timer = window.setTimeout(() => {
                 timer = null;
                 refit();
             }, RESIZE_DEBOUNCE_MS);
         });
+
         resizes.observe(host);
 
         const themes = new MutationObserver(() => restyle(latest.current.fontSize, latest.current.lineHeight));
@@ -264,6 +292,7 @@ export function TerminalView({
             if (timer !== null) {
                 window.clearTimeout(timer);
             }
+
             resizes.disconnect();
             themes.disconnect();
             data.dispose();
