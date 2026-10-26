@@ -51,9 +51,11 @@ function expectSuccess(result: CommandResult, what: string): void {
 /* Writes the definition when it differs and returns the one it replaces. */
 function writeDefinition(files: ServiceFiles, path: string, definition: string): string | null {
     const previous = files.read(path);
+
     if (previous !== definition) {
         files.write(path, definition);
     }
+
     return previous;
 }
 
@@ -81,7 +83,9 @@ export function launchdManager(options: LaunchdOptions): ServiceManager {
     const path = posix.join(options.home, 'Library', 'LaunchAgents', `${options.label}.plist`);
     const domain = `gui/${options.uid}`;
     const target = `${domain}/${options.label}`;
+
     const launchctl = (...args: string[]): CommandResult => options.run('/bin/launchctl', args);
+
     const isLoaded = (): boolean => launchctl('print', target).code === 0;
 
     const bootstrap = (): void => {
@@ -97,13 +101,16 @@ export function launchdManager(options: LaunchdOptions): ServiceManager {
             // launchd opens the log but makes no folder for it, and a job whose log cannot open never starts.
             options.files.makeDirectory(posix.dirname(options.logFile));
             const previous = writeDefinition(options.files, path, definition);
+
             return previous !== null && previous !== definition;
         },
         start() {
             if (isLoaded()) {
                 expectSuccess(launchctl('kickstart', target), 'launchctl kickstart');
+
                 return;
             }
+
             bootstrap();
         },
         async restart() {
@@ -112,6 +119,7 @@ export function launchdManager(options: LaunchdOptions): ServiceManager {
                 // bootout returns before the label is released; bootstrapping sooner fails with an I/O error.
                 await waitWhile(isLoaded, options.sleep);
             }
+
             bootstrap();
         },
         stop() {
@@ -137,6 +145,7 @@ export interface SystemdOptions {
 export function systemdManager(options: SystemdOptions): ServiceManager {
     const unit = options.unitName;
     const path = posix.join(options.configHome, 'systemd', 'user', unit);
+
     const systemctl = (...args: string[]): CommandResult => options.run('systemctl', ['--user', ...args]);
 
     const reload = (): void => {
@@ -150,11 +159,14 @@ export function systemdManager(options: SystemdOptions): ServiceManager {
         read: () => options.files.read(path),
         install(definition) {
             const previous = options.files.read(path);
+
             if (previous !== definition) {
                 options.files.write(path, definition);
                 reload();
             }
+
             expectSuccess(systemctl('enable', unit), 'systemctl enable');
+
             return previous !== null && previous !== definition;
         },
         start() {
@@ -200,8 +212,11 @@ export interface TaskSchedulerOptions {
 export function taskSchedulerManager(options: TaskSchedulerOptions): ServiceManager {
     const path = options.definitionFile;
     const name = options.taskName;
+
     const schtasks = (...args: string[]): CommandResult => options.run('schtasks.exe', args);
+
     const exists = (): boolean => schtasks('/Query', '/TN', name).code === 0;
+
     // schtasks writes the state in the language of the system; PowerShell names it the same everywhere.
     const isRunning = (): boolean =>
         options
@@ -216,11 +231,13 @@ export function taskSchedulerManager(options: TaskSchedulerOptions): ServiceMana
     // Before `/End`, which leaves what the task's cmd.exe started running without a parent to find it by.
     const endTree = (): void => {
         const marker = scheduledTaskMarker(name).replace(/'/g, "''");
+
         const script = [
             'Get-CimInstance Win32_Process -Filter "Name=\'cmd.exe\'"',
             `Where-Object { $_.CommandLine -and $_.CommandLine.Contains('${marker}') }`,
             'ForEach-Object { taskkill.exe /PID $_.ProcessId /T /F | Out-Null }'
         ].join(' | ');
+
         options.run('powershell.exe', ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')]);
     };
 
@@ -238,9 +255,11 @@ export function taskSchedulerManager(options: TaskSchedulerOptions): ServiceMana
             // cmd.exe appends to the log but makes no folder for it, and the task ends at once without one.
             options.files.makeDirectory(win32.dirname(options.logFile));
             const previous = writeDefinition(options.files, path, definition);
+
             if (previous !== definition || !exists()) {
                 expectSuccess(schtasks('/Create', '/TN', name, '/XML', path, '/F'), 'schtasks /Create');
             }
+
             return previous !== null && previous !== definition;
         },
         start: run,
@@ -251,6 +270,7 @@ export function taskSchedulerManager(options: TaskSchedulerOptions): ServiceMana
                 // A task that still counts as running ignores the next start.
                 await waitWhile(isRunning, options.sleep);
             }
+
             run();
         },
         stop() {

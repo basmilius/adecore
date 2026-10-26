@@ -20,12 +20,15 @@ export function platformServiceManager(platform: NodeJS.Platform, options: Platf
     if (platform === 'darwin') {
         return launchdManager(options.launchd);
     }
+
     if (platform === 'linux') {
         return systemdManager(options.systemd);
     }
+
     if (platform === 'win32' && options.taskScheduler !== undefined) {
         return taskSchedulerManager(options.taskScheduler);
     }
+
     return null;
 }
 
@@ -33,11 +36,14 @@ export function serviceDefinition(platform: NodeJS.Platform, spec: ServiceSpec):
     if (platform === 'darwin') {
         return launchAgentPlist(spec);
     }
+
     if (platform === 'linux') {
         return systemdUnit(spec);
     }
+
     if (platform === 'win32') {
         return scheduledTask(spec);
     }
+
     throw new Error(`Background services are unsupported on ${platform}.`);
 }

@@ -117,6 +117,7 @@ describe('the service of the npm package', () => {
         program: '/Users/bas/.worker/bin/worker',
         args: []
     };
+
     const NPM_LINUX: ServiceSpec = {
         ...LINUX,
         program: '/home/bas/.worker/bin/worker',
@@ -155,6 +156,7 @@ describe('the service of the npm package', () => {
             '<key>ProgramArguments</key>',
             `<key>Program</key>\n    <string>${NPM_MAC.program}</string>\n    <key>ProgramArguments</key>`
         );
+
         expect(definitionRunsProgram(plist, NPM_MAC.program)).toBe(true);
         expect(definitionRunsProgram(plist, '/bin/other')).toBe(false);
     });

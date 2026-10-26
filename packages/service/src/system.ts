@@ -6,6 +6,7 @@ import type { CommandResult, ServiceFiles } from './manager.js';
 /* The real launchctl, systemctl, loginctl and schtasks under a service manager, bounded so a hung one cannot hold up a quit. */
 export function runCommand(command: string, args: string[]): CommandResult {
     const result = spawnSync(command, args, { encoding: 'utf8', timeout: 15_000, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+
     return { code: result.status ?? 1, stdout: result.stdout ?? '', stderr: result.stderr || result.error?.message || '' };
 }
 

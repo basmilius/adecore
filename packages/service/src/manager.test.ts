@@ -7,27 +7,33 @@ function ok(stdout = ''): CommandResult {
 
 function fakeRunner(answers: Record<string, CommandResult | CommandResult[]> = {}) {
     const calls: string[] = [];
+
     const run = (command: string, args: string[]): CommandResult => {
         const line = [command, ...args].join(' ');
         calls.push(line);
         const answer = answers[line];
+
         if (Array.isArray(answer)) {
             return answer.shift() ?? ok();
         }
+
         return answer ?? ok();
     };
+
     return { calls, run };
 }
 
 function memoryFiles() {
     const files = new Map<string, string>();
     const directories = new Set<string>();
+
     const api: ServiceFiles = {
         read: (path) => files.get(path) ?? null,
         write: (path, text) => void files.set(path, text),
         remove: (path) => void files.delete(path),
         makeDirectory: (path) => void directories.add(path)
     };
+
     return { files, directories, api };
 }
 
@@ -41,6 +47,7 @@ describe('launchdManager', () => {
     test('installs the plist in LaunchAgents and nothing else', () => {
         const runner = fakeRunner();
         const disk = memoryFiles();
+
         const manager = launchdManager({
             label: 'com.example.worker',
             logFile: '/Users/bas/Library/Logs/Example/worker.log',
@@ -50,6 +57,7 @@ describe('launchdManager', () => {
             files: disk.api,
             sleep: noSleep
         });
+
         manager.install('<plist/>');
         expect(disk.files.get(PLIST)).toBe('<plist/>');
         expect(manager.isInstalled()).toBe(true);
@@ -58,6 +66,7 @@ describe('launchdManager', () => {
 
     test('makes the folder of the log, which launchd does not and refuses to start the job without', () => {
         const disk = memoryFiles();
+
         const manager = launchdManager({
             label: 'com.example.worker',
             logFile: '/Users/bas/Library/Logs/Example/worker.log',
@@ -67,12 +76,14 @@ describe('launchdManager', () => {
             files: disk.api,
             sleep: noSleep
         });
+
         manager.install('<plist/>');
         expect([...disk.directories]).toEqual(['/Users/bas/Library/Logs/Example']);
     });
 
     test('starts a job that is not loaded with bootstrap, and one that is with kickstart', () => {
         const runner = fakeRunner({ [PRINT]: [NOT_LOADED, ok()] });
+
         const manager = launchdManager({
             label: 'com.example.worker',
             logFile: '/Users/bas/Library/Logs/Example/worker.log',
@@ -82,6 +93,7 @@ describe('launchdManager', () => {
             files: memoryFiles().api,
             sleep: noSleep
         });
+
         manager.start();
         manager.start();
         expect(runner.calls).toEqual([PRINT, `/bin/launchctl bootstrap gui/501 ${PLIST}`, PRINT, '/bin/launchctl kickstart gui/501/com.example.worker']);
@@ -89,6 +101,7 @@ describe('launchdManager', () => {
 
     test('restarts with a bootout, waits until launchd let go of the label, then bootstraps', async () => {
         const runner = fakeRunner({ [PRINT]: [ok(), ok(), NOT_LOADED] });
+
         const manager = launchdManager({
             label: 'com.example.worker',
             logFile: '/Users/bas/Library/Logs/Example/worker.log',
@@ -98,6 +111,7 @@ describe('launchdManager', () => {
             files: memoryFiles().api,
             sleep: noSleep
         });
+
         await manager.restart();
         expect(runner.calls).toEqual([PRINT, '/bin/launchctl bootout gui/501/com.example.worker', PRINT, PRINT, `/bin/launchctl bootstrap gui/501 ${PLIST}`]);
     });
@@ -107,6 +121,7 @@ describe('launchdManager', () => {
             [PRINT]: NOT_LOADED,
             [`/bin/launchctl bootstrap gui/501 ${PLIST}`]: { code: 5, stdout: '', stderr: 'Bootstrap failed: 5: Input/output error' }
         });
+
         const manager = launchdManager({
             label: 'com.example.worker',
             logFile: '/Users/bas/Library/Logs/Example/worker.log',
@@ -116,12 +131,14 @@ describe('launchdManager', () => {
             files: memoryFiles().api,
             sleep: noSleep
         });
+
         expect(() => manager.start()).toThrow('launchctl bootstrap failed (5): Bootstrap failed: 5: Input/output error');
     });
 
     test('uninstall removes the plist and leaves a running job to stop', () => {
         const runner = fakeRunner();
         const disk = memoryFiles();
+
         const manager = launchdManager({
             label: 'com.example.worker',
             logFile: '/Users/bas/Library/Logs/Example/worker.log',
@@ -131,6 +148,7 @@ describe('launchdManager', () => {
             files: disk.api,
             sleep: noSleep
         });
+
         manager.install('<plist/>');
         manager.uninstall();
         expect(disk.files.size).toBe(0);
@@ -169,6 +187,7 @@ describe('systemdManager', () => {
 
     test('lingering is read from loginctl and only enabled when asked', () => {
         const runner = fakeRunner({ 'loginctl show-user bas --property=Linger --value': ok('no\n') });
+
         const manager = systemdManager({
             unitName: 'example-worker.service',
             configHome: '/home/bas/.config',
@@ -176,6 +195,7 @@ describe('systemdManager', () => {
             run: runner.run,
             files: memoryFiles().api
         });
+
         expect(manager.linger?.enabled()).toBe(false);
         expect(runner.calls).not.toContain('loginctl enable-linger bas');
         manager.linger?.enable();
@@ -189,8 +209,11 @@ describe('taskSchedulerManager', () => {
     const CREATE = `schtasks.exe /Create /TN Example Worker /XML ${FILE} /F`;
     const STATE = "powershell.exe -NoProfile -NonInteractive -Command (Get-ScheduledTask -TaskPath '\\' -TaskName 'Example Worker' -ErrorAction Stop).State";
     const MISSING: CommandResult = { code: 1, stdout: '', stderr: 'ERROR: The system cannot find the file specified.' };
+
     const isEndTree = (call: string): boolean => call.startsWith('powershell.exe -NoProfile -NonInteractive -EncodedCommand ');
+
     const END_TREE = 'end the tree';
+
     const named = (calls: string[]) => calls.map((call) => (isEndTree(call) ? END_TREE : call));
 
     const create = (runner: ReturnType<typeof fakeRunner>, disk = memoryFiles()) =>
@@ -231,6 +254,7 @@ describe('taskSchedulerManager', () => {
         const manager = create(runner);
         manager.start();
         manager.stop();
+
         expect(named(runner.calls)).toEqual([
             'schtasks.exe /Change /TN Example Worker /ENABLE',
             'schtasks.exe /Run /TN Example Worker',
@@ -243,6 +267,7 @@ describe('taskSchedulerManager', () => {
     test('restarts by ending the task, waiting until it no longer runs, then running it', async () => {
         const runner = fakeRunner({ [STATE]: [ok('Running\r\n'), ok('Running\r\n'), ok('Ready\r\n')] });
         await create(runner).restart();
+
         expect(named(runner.calls)).toEqual([
             STATE,
             END_TREE,

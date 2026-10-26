@@ -29,10 +29,13 @@ describe.skipIf(!enabled)('a scheduled task on Windows', () => {
         // Apart from the folder the task works in, so a report outlives a failed removal of that one.
         const reports = mkdtempSync(join(tmpdir(), 'task-reports-'));
         const steps: string[] = [];
+
         const step = (name: string): void => void steps.push(`${Date.now()} ${name}`);
+
         const logFile = join(folder, 'log folder', 'worker.log');
         const taskName = `adecore-test-${process.pid}`;
         const value = 'a b & c %PATH% ^d! "e"';
+
         writeFileSync(
             join(folder, 'worker.js'),
             [
@@ -44,6 +47,7 @@ describe.skipIf(!enabled)('a scheduled task on Windows', () => {
                 ''
             ].join('\n')
         );
+
         const manager = taskSchedulerManager({
             taskName,
             definitionFile: join(folder, 'task.xml'),
@@ -52,6 +56,7 @@ describe.skipIf(!enabled)('a scheduled task on Windows', () => {
             files: diskFiles,
             sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms))
         });
+
         const started = (): Array<{ pid: number; at: number; value: string; cwd: string }> => {
             try {
                 return readdirSync(reports).map((name) => JSON.parse(readFileSync(join(reports, name), 'utf8')));
@@ -59,11 +64,14 @@ describe.skipIf(!enabled)('a scheduled task on Windows', () => {
                 return [];
             }
         };
+
         const until = async (done: () => boolean, what: string): Promise<void> => {
             const deadline = Date.now() + 30_000;
+
             while (!done() && Date.now() < deadline) {
                 await new Promise((resolve) => setTimeout(resolve, 250));
             }
+
             if (!done()) {
                 const log = (() => {
                     try {
@@ -72,12 +80,15 @@ describe.skipIf(!enabled)('a scheduled task on Windows', () => {
                         return '(no log)';
                     }
                 })();
+
                 const query = runCommand('schtasks.exe', ['/Query', '/TN', taskName, '/V', '/FO', 'LIST']);
+
                 throw new Error(
                     `${what} did not happen.\nLog:\n${log}\nTask:\n${query.stdout}${query.stderr}\nSteps:\n${steps.join('\n')}\nStarted:\n${JSON.stringify(started())}\nProcesses:\n${processes()}`
                 );
             }
         };
+
         try {
             const definition = scheduledTask({
                 label: taskName,
@@ -89,6 +100,7 @@ describe.skipIf(!enabled)('a scheduled task on Windows', () => {
                 logFile,
                 user: `${process.env.USERDOMAIN}\\${process.env.USERNAME}`
             });
+
             expect(manager.install(definition)).toBe(false);
             expect(manager.isInstalled()).toBe(true);
 
@@ -116,17 +128,21 @@ describe.skipIf(!enabled)('a scheduled task on Windows', () => {
             manager.stop();
             manager.uninstall();
             step('uninstalled');
+
             // The ended task lets go of its working folder a moment later.
             await until(() => {
                 try {
                     rmSync(folder, { recursive: true, force: true });
+
                     return true;
                 } catch {
                     return false;
                 }
             }, 'Removing the folder');
+
             rmSync(reports, { recursive: true, force: true });
         }
+
         expect(manager.isInstalled()).toBe(false);
     }, 120_000);
 });

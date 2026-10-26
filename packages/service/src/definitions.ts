@@ -41,9 +41,11 @@ export function launchAgentPlist(spec: ServiceSpec): string {
         '    <key>EnvironmentVariables</key>',
         '    <dict>'
     ];
+
     for (const [name, value] of Object.entries(spec.environment)) {
         lines.push(`        <key>${xmlText(name)}</key>`, plistString(value, '        '));
     }
+
     lines.push(
         '    </dict>',
         '    <key>WorkingDirectory</key>',
@@ -62,15 +64,18 @@ export function launchAgentPlist(spec: ServiceSpec): string {
         '</plist>',
         ''
     );
+
     return lines.join('\n');
 }
 
 /* systemd expands `%` specifiers everywhere and `$` variables in a command line, so both are doubled; quotes keep a space in a path. */
 function unitWord(value: string, command: boolean): string {
     let escaped = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/%/g, '%%');
+
     if (command) {
         escaped = escaped.replace(/\$/g, '$$$$');
     }
+
     return `"${escaped}"`;
 }
 
@@ -93,6 +98,7 @@ export function systemdUnit(spec: ServiceSpec): string {
         'WantedBy=default.target',
         ''
     ];
+
     return lines.join('\n');
 }
 
@@ -101,12 +107,14 @@ function cmdArgument(arg: string): string {
     if (/[\r\n]/.test(arg)) {
         throw new Error('A scheduled task cannot pass on a line break');
     }
+
     return cmdEscaped(`"${arg.replace(/(\\*)"/g, '$1$1\\"').replace(/(\\*)$/, '$1$1')}"`);
 }
 
 function taskCommandLine(spec: ServiceSpec): string {
     const variables = Object.entries(spec.environment).map(([name, value]) => `set ${cmdEscaped(`"${name}=${value}"`)}`);
     const program = [cmdEscaped(spec.program), ...spec.args.map(cmdArgument)].join(' ');
+
     return `${scheduledTaskMarker(spec.label)}${[...variables, `${program} >>${cmdEscaped(spec.logFile)} 2>&1`].join(' && ')}`;
 }
 
@@ -118,7 +126,9 @@ export function scheduledTask(spec: ServiceSpec): string {
     if (spec.user === undefined || spec.user === '') {
         throw new Error('A scheduled task needs the user it starts for.');
     }
+
     const user = xmlText(spec.user);
+
     // No XML declaration: schtasks decodes the file itself and refuses one that names an encoding.
     const lines = [
         '<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">',
@@ -174,74 +184,94 @@ export function scheduledTask(spec: ServiceSpec): string {
         '</Task>',
         ''
     ];
+
     return lines.join('\r\n');
 }
 
 function scheduledTaskRunsProgram(definition: string, program: string): boolean {
     const exec = definition.match(/<Exec>[\s\S]*?<\/Exec>/g);
+
     if (exec?.length !== 1) {
         return false;
     }
+
     const args = /<Arguments>([^<]*)<\/Arguments>/.exec(exec[0])?.[1];
     const line = args === undefined ? undefined : /\/c "([\s\S]*)"$/.exec(xmlValue(args))?.[1];
+
     return line !== undefined && (line.split(' && ').at(-1) ?? '').startsWith(`${cmdEscaped(program)} `);
 }
 
 /* Only keys of the outer plist dictionary identify the executable; nested environment keys are data. */
 function launchAgentProgram(definition: string): string | null {
     const xml = definition.replace(/<!--[\s\S]*?-->/g, '');
+
     if (xml.includes('<!--')) {
         return null;
     }
+
     const entries = new Map<string, string>();
     let depth = 0;
     let key: string | null = null;
     let start = 0;
+
     const close = (end: number): void => {
         if (key !== null) {
             entries.set(key, xml.slice(start, end));
         }
     };
+
     for (const token of xml.matchAll(/<(\/?)(dict|array)\s*>|<key>([^<]*)<\/key>/g)) {
         if (token[3] !== undefined) {
             if (depth !== 1) {
                 continue;
             }
+
             close(token.index);
             key = token[3];
+
             if (entries.has(key)) {
                 return null;
             }
+
             start = token.index + token[0].length;
         } else if (token[1] === '') {
             depth++;
         } else {
             depth--;
+
             if (depth === 0) {
                 close(token.index);
                 const program = entries.get('Program');
+
                 return program !== undefined
                     ? (/^\s*<string>([^<]*)<\/string>\s*$/.exec(program)?.[1] ?? null)
                     : (/^\s*<array>\s*<string>([^<]*)<\/string>/.exec(entries.get('ProgramArguments') ?? '')?.[1] ?? null);
             }
         }
     }
+
     return null;
 }
 
 function systemdRunsProgram(definition: string, program: string): boolean {
     let service = false;
     let commands: string[] = [];
+
     for (const raw of definition.split('\n')) {
         const line = raw.trim();
+
         if (line.startsWith('#') || line.startsWith(';')) {
             continue;
         }
+
         if (/^\[.*\]$/.test(line)) {
             service = line === '[Service]';
+
             continue;
         }
+
         const command = service ? /^ExecStart\s*=\s*(.*)$/.exec(line)?.[1] : undefined;
+
         if (command !== undefined) {
             if (command === '') {
                 commands = [];
@@ -250,7 +280,9 @@ function systemdRunsProgram(definition: string, program: string): boolean {
             }
         }
     }
+
     const executable = unitWord(program, true);
+
     return commands.length > 0 && commands.every((command) => command === executable || command.startsWith(`${executable} `));
 }
 
@@ -259,5 +291,6 @@ export function definitionRunsProgram(definition: string, program: string): bool
     if (/<Task[\s>]/.test(definition)) {
         return scheduledTaskRunsProgram(definition, program);
     }
+
     return definition.trimStart().startsWith('<') ? launchAgentProgram(definition) === xmlText(program) : systemdRunsProgram(definition, program);
 }
