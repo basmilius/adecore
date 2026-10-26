@@ -84,7 +84,8 @@ function transformOf(element: DrawingElement): string {
 }
 
 function textSvg(element: WrittenElement, options: PaintOptions): string {
-    const family = options.fonts?.[fontOf(element.font)] ?? DEFAULT_FONT_STACKS[fontOf(element.font)];
+    const font = fontOf(element.font);
+    const family = options.fonts?.[font] ?? DEFAULT_FONT_STACKS[font];
     const anchor = element.align === 'center' ? 'middle' : element.align === 'right' ? 'end' : 'start';
     const frame = writingFrameOf(element);
     const dx = frame.x + (element.align === 'center' ? frame.w / 2 : element.align === 'right' ? frame.w : 0);

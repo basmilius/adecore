@@ -34,8 +34,7 @@ function labelAt(point: Point, elements: readonly DrawingElement[], arrowId: str
         }
         const center = centerOf(boundsOf(element));
         const distance = Math.hypot(center.x - point.x, center.y - point.y);
-        const inside = hitsElement({ ...element, fill: 'solid' }, point, LABEL_REACH);
-        if (!inside && distance > LABEL_REACH) {
+        if (distance > LABEL_REACH && !hitsElement({ ...element, fill: 'solid' }, point, LABEL_REACH)) {
             continue;
         }
         const label = labelOf(element) ?? labelInside(element, elements);

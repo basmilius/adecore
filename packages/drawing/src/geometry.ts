@@ -65,6 +65,15 @@ export function boundsOfElements(elements: readonly DrawingElement[]): Rect | nu
     return unionOf(elements.map(boundsOf));
 }
 
+function cornersOf(rect: Rect): Point[] {
+    return [
+        { x: rect.x, y: rect.y },
+        { x: rect.x + rect.w, y: rect.y },
+        { x: rect.x + rect.w, y: rect.y + rect.h },
+        { x: rect.x, y: rect.y + rect.h }
+    ];
+}
+
 /* The box around an element as it is drawn: the stored box, turned by its angle. */
 export function drawnBoundsOf(element: DrawingElement): Rect {
     const rect = boundsOf(element);
@@ -73,12 +82,7 @@ export function drawnBoundsOf(element: DrawingElement): Rect {
         return rect;
     }
     const center = centerOf(rect);
-    const corners = [
-        { x: rect.x, y: rect.y },
-        { x: rect.x + rect.w, y: rect.y },
-        { x: rect.x + rect.w, y: rect.y + rect.h },
-        { x: rect.x, y: rect.y + rect.h }
-    ].map((corner) => rotatePoint(corner, center, angle));
+    const corners = cornersOf(rect).map((corner) => rotatePoint(corner, center, angle));
     const xs = corners.map((corner) => corner.x);
     const ys = corners.map((corner) => corner.y);
     const left = Math.min(...xs);
@@ -121,7 +125,7 @@ export function absolutePoints(element: DrawingElement): Point[] {
     return element.points.map(([x, y]) => ({ x: element.x + x, y: element.y + y }));
 }
 
-function isFilled(element: DrawingElement): boolean {
+export function isFilled(element: DrawingElement): boolean {
     return element.fill !== undefined && element.fill !== 'none';
 }
 
@@ -174,15 +178,8 @@ export function hitsElement(element: DrawingElement, point: Point, tolerance: nu
         case 'text':
         case 'note':
             return insideRect(local, rect);
-        case 'rect': {
-            const corners = [
-                { x: rect.x, y: rect.y },
-                { x: rect.x + rect.w, y: rect.y },
-                { x: rect.x + rect.w, y: rect.y + rect.h },
-                { x: rect.x, y: rect.y + rect.h }
-            ];
-            return isFilled(element) ? insideRect(local, rect) : nearPolygon(local, corners, reach);
-        }
+        case 'rect':
+            return isFilled(element) ? insideRect(local, rect) : nearPolygon(local, cornersOf(rect), reach);
         case 'diamond': {
             const corners = cornersOfDiamond(rect);
             return isFilled(element) ? insidePolygon(local, corners) : nearPolygon(local, corners, reach);

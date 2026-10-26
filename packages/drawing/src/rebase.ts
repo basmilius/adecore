@@ -64,16 +64,16 @@ export function rebaseDrawingElements(base: readonly DrawingElement[], mine: rea
     const [leading, following] = mineLeads ? [mine, theirs] : [theirs, mine];
     const order = leading.map((element) => element.id).filter((id) => resolved.has(id));
     const placed = new Set(order);
-    following.forEach((element, i) => {
-        if (placed.has(element.id) || !resolved.has(element.id)) {
-            return;
+    // The last element before this one on the following side that has a place, which it goes just above.
+    let below: string | undefined;
+    for (const element of following) {
+        if (!placed.has(element.id) && resolved.has(element.id)) {
+            order.splice(below === undefined ? 0 : order.indexOf(below) + 1, 0, element.id);
+            placed.add(element.id);
         }
-        const below = following
-            .slice(0, i)
-            .map((candidate) => candidate.id)
-            .findLast((id) => placed.has(id));
-        order.splice(below === undefined ? 0 : order.indexOf(below) + 1, 0, element.id);
-        placed.add(element.id);
-    });
+        if (placed.has(element.id)) {
+            below = element.id;
+        }
+    }
     return { ok: true, elements: order.flatMap((id) => resolved.get(id) ?? []) };
 }

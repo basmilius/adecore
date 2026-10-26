@@ -3,9 +3,7 @@ import { z } from 'zod';
 export const DrawingFontSchema = z.enum(['hand', 'sans', 'mono']);
 export type DrawingFont = z.infer<typeof DrawingFontSchema>;
 
-/*
- * Palette names keep a document independent of the theme that renders it.
- */
+/* Palette names keep a document independent of the theme that renders it. */
 export const DrawingColorSchema = z.enum(['ink', 'muted', 'accent', 'red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink']);
 export type DrawingColor = z.infer<typeof DrawingColorSchema>;
 

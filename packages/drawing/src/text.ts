@@ -26,10 +26,6 @@ export function writingFrameOf(element: WrittenElement): { x: number; y: number;
     return element.kind === 'note' ? { x: NOTE_PADDING, y: NOTE_PADDING, w: Math.max(1, element.w - NOTE_PADDING * 2) } : { x: 0, y: 0, w: element.w };
 }
 
-export function textLines(text: string): string[] {
-    return text.split('\n');
-}
-
 export type MeasureLine = (line: string) => number;
 
 /* A measure for where no font exists, such as on a server: most faces average a glyph a little over half its size wide. */
@@ -70,7 +66,7 @@ function wrapParagraph(paragraph: string, maxWidth: number, measure: MeasureLine
 }
 
 export function wrapLines(text: string, maxWidth: number, measure: MeasureLine): string[] {
-    return textLines(text).flatMap((paragraph) => wrapParagraph(paragraph, maxWidth, measure));
+    return text.split('\n').flatMap((paragraph) => wrapParagraph(paragraph, maxWidth, measure));
 }
 
 // An unsized text element follows its content; once sized, its box controls wrapping.
@@ -78,7 +74,7 @@ export function linesOf(element: WrittenElement, measure: MeasureLine): string[]
     if (element.kind === 'note') {
         return wrapLines(element.text, writingFrameOf(element).w, measure);
     }
-    return element.sized ? wrapLines(element.text, element.w, measure) : textLines(element.text);
+    return element.sized ? wrapLines(element.text, element.w, measure) : element.text.split('\n');
 }
 
 /* Absent means hand: a drawing is written by hand unless it says otherwise. */

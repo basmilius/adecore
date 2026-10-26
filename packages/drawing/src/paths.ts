@@ -4,7 +4,7 @@ import { getStroke } from 'perfect-freehand';
 import rough from 'roughjs';
 import type { RoughGenerator } from 'roughjs/bin/generator.js';
 import type { Options } from 'roughjs/bin/core.js';
-import { arrowHead, arrowHeadSize, type Point } from './geometry.ts';
+import { arrowHead, arrowHeadSize, isFilled, type Point } from './geometry.ts';
 import { NOTE_RADIUS } from './text.ts';
 
 /*
@@ -40,7 +40,6 @@ function dashOf(element: DrawingElement): number[] | null {
     return null;
 }
 
-/* Architect, Artist, Cartoonist. Absent reads as Artist, which is what a hand-written file gets. */
 function roughnessOf(element: DrawingElement): Pick<Options, 'roughness' | 'bowing' | 'disableMultiStroke'> {
     switch (element.roughness ?? 1) {
         case 0:
@@ -58,7 +57,7 @@ function optionsOf(element: DrawingElement): Options {
         stroke: STROKE,
         strokeWidth: element.strokeWidth,
         ...roughnessOf(element),
-        ...(element.fill && element.fill !== 'none'
+        ...(isFilled(element)
             ? { fill: FILL, fillStyle: element.fill === 'solid' ? 'solid' : 'hachure', fillWeight: element.strokeWidth / 2, hachureGap: 8 }
             : {})
     };
@@ -111,11 +110,11 @@ export function pathsOfElement(element: DrawingElement): ElementPath[] {
             { d: sheet, role: 'stroke', strokeWidth: element.strokeWidth, dash: null }
         ];
     }
-    const options = optionsOf(element);
-    const dash = dashOf(element);
     if (element.kind === 'freehand') {
         return [{ d: freehandOutline(element), role: 'ink', strokeWidth: 0, dash: null }];
     }
+    const options = optionsOf(element);
+    const dash = dashOf(element);
     const generator = drawingGenerator();
     const drawable = (() => {
         switch (element.kind) {
