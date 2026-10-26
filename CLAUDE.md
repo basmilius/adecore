@@ -50,8 +50,6 @@ Bun workspaces: every package in `packages/`, published from its own folder with
 - The protocol is written in TypeScript (`src/protocol`) and mirrored by hand in `helper/src/protocol.rs`. `fixtures/protocol/*.json` are read by the tests on both sides; a change to a message changes the fixtures, both sides and `PROTOCOL_VERSION`.
 - The host registers no channel, like `shell`: the app checks the sender and calls `handle(request, owner)`. Ruimte runs it in its Bun daemon; an Electron app without a daemon runs it in a utility process.
 - `bun run --cwd packages/database helper:check`, `helper:test` and `helper:build` run cargo. `bun run test:helper` runs `helper.integration.test.ts`, joining the page, host and helper outside the default suite. Local runs skip without a compatible release build; CI sets `ADECORE_REQUIRE_DATABASE_HELPER=1` so a missing or incompatible helper fails. The MySQL tests of the helper run when `ADECORE_TEST_MYSQL_URL` is set; CI runs them against MariaDB and MySQL.
-- `examples/database` is a private Electron app over both sides. Bas starts it with `bun run --cwd examples/database start`.
-
 ## terminal
 
 - `TerminalView` is the terminal Ruimte builds by hand in `apps/client/src/terminal/xterm.ts`, `webgl-budget.ts` and `webgl-slots.ts`, lifted out so Ruimte can switch to it with no change in behavior. Ruimte is the reference: a change here keeps what its `TerminalBody`, `LaunchTerminal` and `LoginTerminal` would do on top of it, or it is a breaking change.

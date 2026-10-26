@@ -4,13 +4,12 @@
   "type": "module",
   "workspaces": [
     "packages/*",
-    "examples/*",
     "docs"
   ],
   "packageManager": "bun@1.4.0",
   "scripts": {
     "build": "bun scripts/build.ts",
-    "typecheck": "tsc -p tsconfig.scripts.json && bun run --filter './packages/*' --filter './examples/*' typecheck",
+    "typecheck": "tsc -p tsconfig.scripts.json && bun run --filter './packages/*' typecheck",
     "lint": "oxlint --deny-warnings && bun scripts/check-design-conventions.ts",
     "check": "bun run typecheck && bun run lint",
     "test": "bun test",
