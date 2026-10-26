@@ -25,9 +25,7 @@ function plistString(value: string, indent: string): string {
     return `${indent}<string>${xmlText(value)}</string>`;
 }
 
-/*
- * `ProcessType=Interactive` avoids launchd throttling during a handover to a background process.
- */
+/* `ProcessType=Interactive` avoids launchd throttling during a handover to a background process. */
 export function launchAgentPlist(spec: ServiceSpec): string {
     const lines = [
         '<?xml version="1.0" encoding="UTF-8"?>',
@@ -76,9 +74,7 @@ function unitWord(value: string, command: boolean): string {
     return `"${escaped}"`;
 }
 
-/*
- * User services stop at logout unless the caller explicitly enables lingering.
- */
+/* User services stop at logout unless the caller enables lingering. */
 export function systemdUnit(spec: ServiceSpec): string {
     const lines = [
         '[Unit]',
@@ -108,7 +104,6 @@ function cmdArgument(arg: string): string {
     return cmdEscaped(`"${arg.replace(/(\\*)"/g, '$1$1\\"').replace(/(\\*)$/, '$1$1')}"`);
 }
 
-/* The line cmd.exe runs: its title, the environment, the program and the log it appends to. */
 function taskCommandLine(spec: ServiceSpec): string {
     const variables = Object.entries(spec.environment).map(([name, value]) => `set ${cmdEscaped(`"${name}=${value}"`)}`);
     const program = [cmdEscaped(spec.program), ...spec.args.map(cmdArgument)].join(' ');
@@ -116,10 +111,8 @@ function taskCommandLine(spec: ServiceSpec): string {
 }
 
 /*
- * A scheduled task for one person, started at their logon in their own session without a stored
- * password, and run again every minute so it comes back after a crash: a second instance is ignored
- * while one runs. RestartOnFailure is left out, since it also starts a task a stop ended. A task carries no environment
- * of its own, so cmd.exe sets it and appends the output to the log.
+ * Started at the person's logon without a stored password, and run again every minute so it comes back
+ * after a crash. RestartOnFailure would also start a task a stop ended. cmd.exe sets the environment.
  */
 export function scheduledTask(spec: ServiceSpec): string {
     if (spec.user === undefined || spec.user === '') {
@@ -204,14 +197,17 @@ function launchAgentProgram(definition: string): string | null {
     let depth = 0;
     let key: string | null = null;
     let start = 0;
+    const close = (end: number): void => {
+        if (key !== null) {
+            entries.set(key, xml.slice(start, end));
+        }
+    };
     for (const token of xml.matchAll(/<(\/?)(dict|array)\s*>|<key>([^<]*)<\/key>/g)) {
         if (token[3] !== undefined) {
             if (depth !== 1) {
                 continue;
             }
-            if (key !== null) {
-                entries.set(key, xml.slice(start, token.index));
-            }
+            close(token.index);
             key = token[3];
             if (entries.has(key)) {
                 return null;
@@ -222,9 +218,7 @@ function launchAgentProgram(definition: string): string | null {
         } else {
             depth--;
             if (depth === 0) {
-                if (key !== null) {
-                    entries.set(key, xml.slice(start, token.index));
-                }
+                close(token.index);
                 const program = entries.get('Program');
                 return program !== undefined
                     ? (/^\s*<string>([^<]*)<\/string>\s*$/.exec(program)?.[1] ?? null)
@@ -260,9 +254,7 @@ function systemdRunsProgram(definition: string, program: string): boolean {
     return commands.length > 0 && commands.every((command) => command === executable || command.startsWith(`${executable} `));
 }
 
-/*
- * Callers sharing a service identity can check executable ownership before replacing its definition.
- */
+/* Callers sharing a service identity can check executable ownership before replacing its definition. */
 export function definitionRunsProgram(definition: string, program: string): boolean {
     if (/<Task[\s>]/.test(definition)) {
         return scheduledTaskRunsProgram(definition, program);

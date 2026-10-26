@@ -48,6 +48,21 @@ function expectSuccess(result: CommandResult, what: string): void {
     }
 }
 
+/* Writes the definition when it differs and returns the one it replaces. */
+function writeDefinition(files: ServiceFiles, path: string, definition: string): string | null {
+    const previous = files.read(path);
+    if (previous !== definition) {
+        files.write(path, definition);
+    }
+    return previous;
+}
+
+async function waitWhile(condition: () => boolean, sleep: (ms: number) => Promise<void>): Promise<void> {
+    for (let attempt = 0; attempt < 25 && condition(); attempt++) {
+        await sleep(200);
+    }
+}
+
 export interface LaunchdOptions {
     uid: number;
     home: string;
@@ -59,9 +74,8 @@ export interface LaunchdOptions {
 }
 
 /*
- * A plist in ~/Library/LaunchAgents, loaded with `launchctl bootstrap` into the person's GUI domain.
- * SMAppService (Electron's `agentService`) was the other way: it wants a plist that is sealed inside
- * the bundle, where the login shell's PATH and a log path in the home cannot be written.
+ * A plist in ~/Library/LaunchAgents, loaded into the person's GUI domain. Not SMAppService: it wants a
+ * plist sealed inside the bundle, where the login shell's PATH and a log path in the home cannot go.
  */
 export function launchdManager(options: LaunchdOptions): ServiceManager {
     const path = posix.join(options.home, 'Library', 'LaunchAgents', `${options.label}.plist`);
@@ -82,10 +96,7 @@ export function launchdManager(options: LaunchdOptions): ServiceManager {
         install(definition) {
             // launchd opens the log but makes no folder for it, and a job whose log cannot open never starts.
             options.files.makeDirectory(posix.dirname(options.logFile));
-            const previous = options.files.read(path);
-            if (previous !== definition) {
-                options.files.write(path, definition);
-            }
+            const previous = writeDefinition(options.files, path, definition);
             return previous !== null && previous !== definition;
         },
         start() {
@@ -99,9 +110,7 @@ export function launchdManager(options: LaunchdOptions): ServiceManager {
             if (isLoaded()) {
                 launchctl('bootout', target);
                 // bootout returns before the label is released; bootstrapping sooner fails with an I/O error.
-                for (let attempt = 0; attempt < 25 && isLoaded(); attempt++) {
-                    await options.sleep(200);
-                }
+                await waitWhile(isLoaded, options.sleep);
             }
             bootstrap();
         },
@@ -185,9 +194,8 @@ export interface TaskSchedulerOptions {
 }
 
 /*
- * A task in the person's own Task Scheduler library, registered with `schtasks` from a copy of the
- * definition on disk. Creating one for oneself takes no admin. The task runs again every minute, so
- * a stop also disables it, and a start enables it again.
+ * A task in the person's own Task Scheduler library, which takes no admin. The task runs again every
+ * minute, so a stop also disables it and a start enables it again.
  */
 export function taskSchedulerManager(options: TaskSchedulerOptions): ServiceManager {
     const path = options.definitionFile;
@@ -229,26 +237,19 @@ export function taskSchedulerManager(options: TaskSchedulerOptions): ServiceMana
         install(definition) {
             // cmd.exe appends to the log but makes no folder for it, and the task ends at once without one.
             options.files.makeDirectory(win32.dirname(options.logFile));
-            const previous = options.files.read(path);
-            if (previous !== definition) {
-                options.files.write(path, definition);
-            }
+            const previous = writeDefinition(options.files, path, definition);
             if (previous !== definition || !exists()) {
                 expectSuccess(schtasks('/Create', '/TN', name, '/XML', path, '/F'), 'schtasks /Create');
             }
             return previous !== null && previous !== definition;
         },
-        start() {
-            run();
-        },
+        start: run,
         async restart() {
             if (isRunning()) {
                 endTree();
                 schtasks('/End', '/TN', name);
                 // A task that still counts as running ignores the next start.
-                for (let attempt = 0; attempt < 25 && isRunning(); attempt++) {
-                    await options.sleep(200);
-                }
+                await waitWhile(isRunning, options.sleep);
             }
             run();
         },
