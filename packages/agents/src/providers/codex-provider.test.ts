@@ -21,6 +21,7 @@ describe('codex catalog', () => {
             expect(codex.normalize({ model: slug, options: { effort: 'max' } }).options.effort).toBe('max');
         }
 
+        expect(codex.normalize({ model: 'terra' })).toEqual({ model: 'gpt-6.1-terra', options: { effort: 'low', serviceTier: false } });
         expect(models.find((model) => model.slug === 'gpt-5.6-terra')).toMatchObject({ legacy: true, badge: 'retiring' });
         expect(codex.normalize({ model: 'gpt-5.6-terra', options: { effort: 'high' } }).model).toBe('gpt-5.6-terra');
         expect(codex.normalize({ model: 'astra', options: { effort: 'ultra', contextWindow: '1m' } })).toEqual({
