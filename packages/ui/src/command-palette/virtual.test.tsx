@@ -18,6 +18,17 @@ const GROUPS: Group[] = [
     { label: 'Second group', items: [{ label: 'Needle' }] }
 ];
 
+const heightOf = (element: HTMLElement): number => (element.getAttribute('role') === 'listbox' ? 256 : 32);
+
+// The DOM runner has no layout engine; the list needs a viewport and measurable rows. The virtualizer
+// measures its viewport by the client box and its rows by the offset box.
+const SIZES: Record<string, (element: HTMLElement) => number> = {
+    offsetHeight: heightOf,
+    clientHeight: heightOf,
+    offsetWidth: () => 576,
+    clientWidth: () => 576
+};
+
 const i18n = i18next.createInstance();
 
 await i18n.init({ lng: 'en', resources: {}, interpolation: { escapeValue: false } });
@@ -50,27 +61,19 @@ function type(input: HTMLInputElement, value: string): void {
 describe.skipIf(typeof document === 'undefined')('a virtual command palette', () => {
     let container: HTMLDivElement;
     let root: Root;
-    let height: PropertyDescriptor | undefined;
-    let width: PropertyDescriptor | undefined;
+    let saved: Map<string, PropertyDescriptor | undefined>;
 
     beforeEach(() => {
-        // The DOM runner has no layout engine; the list needs a viewport and measurable rows.
-        height = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetHeight');
-        width = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetWidth');
+        saved = new Map(Object.keys(SIZES).map((name) => [name, Object.getOwnPropertyDescriptor(HTMLElement.prototype, name)]));
 
-        Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
-            configurable: true,
-            get() {
-                return this.getAttribute('role') === 'listbox' ? 256 : 32;
-            }
-        });
-
-        Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {
-            configurable: true,
-            get() {
-                return 576;
-            }
-        });
+        for (const [name, size] of Object.entries(SIZES)) {
+            Object.defineProperty(HTMLElement.prototype, name, {
+                configurable: true,
+                get(this: HTMLElement) {
+                    return size(this);
+                }
+            });
+        }
 
         container = document.createElement('div');
         document.body.append(container);
@@ -81,16 +84,12 @@ describe.skipIf(typeof document === 'undefined')('a virtual command palette', ()
         await act(async () => root.unmount());
         container.remove();
 
-        if (height === undefined) {
-            delete (HTMLElement.prototype as { offsetHeight?: number }).offsetHeight;
-        } else {
-            Object.defineProperty(HTMLElement.prototype, 'offsetHeight', height);
-        }
-
-        if (width === undefined) {
-            delete (HTMLElement.prototype as { offsetWidth?: number }).offsetWidth;
-        } else {
-            Object.defineProperty(HTMLElement.prototype, 'offsetWidth', width);
+        for (const [name, descriptor] of saved) {
+            if (descriptor === undefined) {
+                delete (HTMLElement.prototype as unknown as Record<string, unknown>)[name];
+            } else {
+                Object.defineProperty(HTMLElement.prototype, name, descriptor);
+            }
         }
     });
 
