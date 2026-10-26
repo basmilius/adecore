@@ -45,6 +45,7 @@ pub struct MysqlEngine {
     connection: Conn,
     flavor: Flavor,
     read_only: bool,
+
     /// Kept so the listener and its processes live as long as the session.
     _tunnel: Option<LocalTunnel>,
 }
@@ -103,6 +104,7 @@ fn build_opts(config: &MysqlConfig, attempt: &TlsAttempt, tunnel: Option<&LocalT
         ),
         TlsAttempt::Verified => Some(verified_ssl(config)),
     };
+
     let (host, port) = address_of(config, tunnel);
 
     // Found rows rather than changed rows, so an update that sets the same values still counts as a hit.
@@ -439,6 +441,7 @@ async fn read_set<P: Protocol>(result: &mut QueryResult<'_, '_, P>, limit: usize
 
         if rows.len() == limit {
             has_more = true;
+
             break;
         }
 
@@ -446,6 +449,7 @@ async fn read_set<P: Protocol>(result: &mut QueryResult<'_, '_, P>, limit: usize
 
         if !budget.admit(&cells, rows.is_empty()) {
             has_more = true;
+
             break;
         }
 
@@ -509,10 +513,12 @@ fn default_expression(flavor: Flavor, raw: Option<String>, extra: &str, data_typ
     }
 
     let is_expression = extra.to_lowercase().contains("default_generated");
+
     let is_number = matches!(
         data_type,
         "tinyint" | "smallint" | "mediumint" | "int" | "bigint" | "decimal" | "float" | "double" | "year"
     ) && raw.parse::<f64>().is_ok();
+
     let is_bit_literal = data_type == "bit" && raw.starts_with("b'");
 
     Some(if is_expression || is_number || is_bit_literal {
@@ -537,6 +543,7 @@ fn foreign_key_action(action: Option<String>) -> Option<String> {
 impl MysqlEngine {
     pub async fn open(config: &MysqlConfig) -> Result<(MysqlEngine, ServerInfo, MysqlCanceller)> {
         let mut config = config.clone();
+
         let tunnel = match &config.tunnel {
             Some(tunnel) => {
                 config.socket = None;
@@ -545,6 +552,7 @@ impl MysqlEngine {
             }
             None => None,
         };
+
         let attempts = tls_attempts(&config);
         let last = attempts.len() - 1;
 
@@ -734,6 +742,7 @@ impl MysqlEngine {
         };
 
         let kind = kind_at(&kind_row, 0);
+
         let column_rows: Vec<Row> = self
             .connection
             .exec(
@@ -765,17 +774,21 @@ impl MysqlEngine {
 
         let (indexes, primary_key, unique_candidates) = self.read_indexes(&schema, &table).await?;
         let candidate_refs: Vec<&[String]> = unique_candidates.iter().map(Vec::as_slice).collect();
+
         let row_key = if kind == TableKind::View {
             None
         } else {
             pick_row_key(&columns, &primary_key, &candidate_refs)
         };
+
         let foreign_keys = self.read_foreign_keys(&schema, &table).await?;
+
         let (checks, triggers) = if kind == TableKind::View {
             (None, None)
         } else {
             (self.read_checks(&schema, &table).await, Some(self.read_triggers(&schema, &table).await?))
         };
+
         let ddl = self.read_ddl(&schema, &table, kind).await;
 
         Ok(TableStructure {
@@ -807,6 +820,7 @@ impl MysqlEngine {
                  WHERE t.TABLE_SCHEMA = ? AND t.TABLE_NAME = ? AND t.CONSTRAINT_TYPE = 'CHECK' ORDER BY c.CONSTRAINT_NAME"
             }
         };
+
         let rows: Vec<Row> = self.connection.exec(sql, (schema, table)).await.ok()?;
 
         Some(
@@ -886,11 +900,13 @@ impl MysqlEngine {
             .find(|index| index.name == "PRIMARY")
             .map(|index| index.columns.clone())
             .unwrap_or_default();
+
         let candidates = collected
             .iter()
             .filter(|index| index.unique && index.name != "PRIMARY" && index.complete)
             .map(|index| index.columns.clone())
             .collect();
+
         let indexes = collected
             .into_iter()
             .map(|index| IndexInfo {
@@ -930,6 +946,7 @@ impl MysqlEngine {
             {
                 last.columns.push(column);
                 last.referenced_columns.push(referenced_column);
+
                 continue;
             }
 
@@ -950,6 +967,7 @@ impl MysqlEngine {
     /// `None` when the server will not show the statement, which a lack of privileges can cause.
     async fn read_ddl(&mut self, schema: &str, table: &str, kind: TableKind) -> Option<String> {
         let keyword = if kind == TableKind::View { "VIEW" } else { "TABLE" };
+
         let row: Option<Row> = self
             .connection
             .query_first(format!("SHOW CREATE {keyword} {}", DIALECT.qualified(schema, table)))
@@ -1047,6 +1065,7 @@ impl MysqlEngine {
         // The server stops after limit + 1 rows, so a huge SELECT is never drained. Sent with the `USE` in one round trip,
         // which the server ends at the first statement that fails.
         let limit_sql = format!("SET SESSION sql_select_limit = {}", limit + 1);
+
         let prelude = match &params.schema {
             Some(schema) => format!("USE {}; {limit_sql}", DIALECT.quote_ident(schema)),
             None => limit_sql,
@@ -1078,6 +1097,7 @@ impl MysqlEngine {
 
             if cancelled.load(Ordering::SeqCst) {
                 results.push(StatementResult::cancelled(statement, 0.0));
+
                 break;
             }
 
@@ -1087,6 +1107,7 @@ impl MysqlEngine {
                     error: escape_refused(),
                     elapsed_ms: elapsed_ms(started.elapsed()),
                 });
+
                 break;
             }
 
@@ -1094,12 +1115,14 @@ impl MysqlEngine {
                 // The server may end an interrupted read without an error (`SLEEP` does), with only some of its rows.
                 Ok(StatementResult::Rows { .. }) if cancelled.load(Ordering::SeqCst) => {
                     results.push(StatementResult::cancelled(statement, elapsed_ms(started.elapsed())));
+
                     break;
                 }
                 Ok(result) => results.push(result),
                 Err(error) if error.connection_lost => return Err(error),
                 Err(error) if error.sql_state.as_deref() == Some(QUERY_INTERRUPTED_STATE) || cancelled.load(Ordering::SeqCst) => {
                     results.push(StatementResult::cancelled(statement, elapsed_ms(started.elapsed())));
+
                     break;
                 }
                 Err(error) => {
@@ -1108,6 +1131,7 @@ impl MysqlEngine {
                         error,
                         elapsed_ms: elapsed_ms(started.elapsed()),
                     });
+
                     break;
                 }
             }
@@ -1143,12 +1167,14 @@ impl MysqlEngine {
 
         let (mut partial, file) = PartialFile::create(&params.path)?;
         let file = tokio::fs::File::from_std(file);
+
         // A table is prepared, so its `where` and `orderBy` cannot end the statement and start another. A query is a statement
         // the person typed, and the server prepares only some of the statements an export takes, such as not every SHOW.
         let exporter = match &params.source {
             ExportSource::Table { .. } => write_export(self.connection.exec_iter(sql, ()).await?, file, &params, &table_name, &cancelled).await?,
             ExportSource::Query { .. } => write_export(self.connection.query_iter(sql).await?, file, &params, &table_name, &cancelled).await?,
         };
+
         partial.commit()?;
 
         Ok(ExportResult {
@@ -1190,6 +1216,7 @@ impl MysqlEngine {
             })
             .await
             .map_err(|e| DatabaseError::internal(format!("The import reader failed: {e}.")))?;
+
             reader = returned;
             let batch = batch?;
 
@@ -1211,6 +1238,7 @@ impl MysqlEngine {
 
     async fn insert_rows(&mut self, params: &ImportParams, names: &[String], rows: &[ImportRow]) -> Result<()> {
         let sql = insert_sql(DIALECT, &params.schema, &params.table, names, rows.len());
+
         let values: Vec<MyValue> = rows
             .iter()
             .flat_map(|row| row.values.iter())

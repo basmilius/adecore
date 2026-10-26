@@ -51,6 +51,7 @@ async fn main() {
             Ok(None) => break,
             Err(e) => {
                 eprintln!("adecore-database: could not read stdin: {e}");
+
                 break;
             }
         }

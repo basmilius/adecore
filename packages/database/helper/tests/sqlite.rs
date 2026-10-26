@@ -12,6 +12,7 @@ fn sqlite_config(path: &std::path::Path) -> Value {
 async fn seeded(client: &mut Client, directory: &tempfile::TempDir) -> (String, std::path::PathBuf) {
     let path = directory.path().join("shop.sqlite");
     let session = client.open(sqlite_config(&path)).await;
+
     let script = "\
         CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL UNIQUE, avatar BLOB, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, note TEXT);\
         CREATE TABLE orders (id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users ON DELETE CASCADE, total DECIMAL(10,2), qty INTEGER GENERATED ALWAYS AS (1 + 1) VIRTUAL);\
@@ -19,6 +20,7 @@ async fn seeded(client: &mut Client, directory: &tempfile::TempDir) -> (String, 
         CREATE TABLE pairs (a INTEGER NOT NULL, b INTEGER NOT NULL, label TEXT, PRIMARY KEY (a, b));\
         CREATE VIEW user_emails AS SELECT id, email FROM users;\
         INSERT INTO users (email, avatar) VALUES ('a@example.com', x'89504e470d0a1a0a'), ('b@example.com', NULL), ('c@example.com', NULL);";
+
     let result = client.ok("execute", json!({ "session": session, "sql": script })).await;
 
     for item in result["results"].as_array().unwrap() {
@@ -37,9 +39,11 @@ async fn opens_and_lists_schemas_and_tables() {
     assert_eq!(session, "s1");
 
     let schemas = client.ok("schemas", json!({ "session": session })).await;
+
     assert_eq!(schemas, json!({ "schemas": [{ "name": "main", "system": false }] }));
 
     let tables = client.ok("tables", json!({ "session": session, "schema": "main" })).await;
+
     let names: Vec<(&str, &str)> = tables["tables"]
         .as_array()
         .unwrap()
@@ -69,12 +73,14 @@ async fn reports_the_server_and_tests_a_connection() {
     let path = directory.path().join("t.sqlite");
 
     let tested = client.ok("test", json!({ "connection": sqlite_config(&path) })).await;
+
     assert_eq!(tested["server"]["flavor"], "sqlite");
     assert!(tested["server"]["version"].as_str().unwrap().starts_with('3'));
 
     let opened = client
         .ok("open", json!({ "connection": { "engine": "sqlite", "path": path.to_str().unwrap() } }))
         .await;
+
     assert_eq!(opened["server"]["flavor"], "sqlite");
 }
 
@@ -86,23 +92,29 @@ async fn refuses_bad_connections() {
     let relative = client
         .error("open", json!({ "connection": { "engine": "sqlite", "path": "relative.sqlite" } }))
         .await;
+
     assert_eq!(relative["code"], "invalid-request");
 
     let missing = directory.path().join("missing.sqlite");
+
     let error = client
         .error("open", json!({ "connection": { "engine": "sqlite", "path": missing.to_str().unwrap() } }))
         .await;
+
     assert_eq!(error["code"], "connect-failed");
     assert!(!missing.exists());
 
     let garbage = directory.path().join("garbage.sqlite");
     std::fs::write(&garbage, "this is not a database, not even close, but long enough to be read as a header").unwrap();
+
     let error = client
         .error("open", json!({ "connection": { "engine": "sqlite", "path": garbage.to_str().unwrap() } }))
         .await;
+
     assert_eq!(error["code"], "connect-failed");
 
     let error = client.error("schemas", json!({ "session": "s99" })).await;
+
     assert_eq!(error["code"], "unknown-session");
 }
 
@@ -132,6 +144,7 @@ async fn describes_a_table() {
     assert!(users["ddl"].as_str().unwrap().starts_with("CREATE TABLE users"));
 
     let orders = client.ok("structure", json!({ "session": session, "schema": "main", "table": "orders" })).await;
+
     assert_eq!(orders["columns"][2]["kind"], "decimal");
     assert_eq!(orders["columns"][3]["generated"], true);
     assert_eq!(
@@ -140,10 +153,12 @@ async fn describes_a_table() {
     );
 
     let loose = client.ok("structure", json!({ "session": session, "schema": "main", "table": "loose" })).await;
+
     assert_eq!(loose["primaryKey"], json!([]));
     assert_eq!(loose["rowKey"], Value::Null);
 
     let pairs = client.ok("structure", json!({ "session": session, "schema": "main", "table": "pairs" })).await;
+
     assert_eq!(pairs["primaryKey"], json!(["a", "b"]));
     assert_eq!(pairs["columns"][0]["autoIncrement"], false);
     assert_eq!(pairs["indexes"][0]["primary"], true);
@@ -151,6 +166,7 @@ async fn describes_a_table() {
     let view = client
         .ok("structure", json!({ "session": session, "schema": "main", "table": "user_emails" }))
         .await;
+
     assert_eq!(view["kind"], "view");
     assert_eq!(view["rowKey"], Value::Null);
     assert_eq!(view["columns"].as_array().unwrap().len(), 2);
@@ -158,18 +174,22 @@ async fn describes_a_table() {
     let missing = client
         .error("structure", json!({ "session": session, "schema": "main", "table": "nope" }))
         .await;
+
     assert_eq!(missing["code"], "query-failed");
 
     assert!(users.get("checks").is_none(), "SQLite keeps its checks only in the DDL");
     assert_eq!(users["triggers"], json!([]));
     assert!(view.get("triggers").is_none());
+
     client
         .ok(
             "execute",
             json!({ "session": session, "sql": "CREATE TRIGGER users_touch AFTER UPDATE OF email ON users BEGIN SELECT 1; END" }),
         )
         .await;
+
     let touched = client.ok("structure", json!({ "session": session, "schema": "main", "table": "users" })).await;
+
     assert_eq!(touched["triggers"], json!([{ "name": "users_touch", "timing": "AFTER", "event": "UPDATE" }]));
 }
 
@@ -187,17 +207,20 @@ async fn falls_back_to_a_unique_index_for_the_row_key() {
         .await;
 
     let keyed = client.ok("structure", json!({ "session": session, "schema": "main", "table": "keyed" })).await;
+
     assert_eq!(keyed["primaryKey"], json!([]));
     assert_eq!(keyed["rowKey"], json!(["code"]));
 
     let nullable = client
         .ok("structure", json!({ "session": session, "schema": "main", "table": "nullable_key" }))
         .await;
+
     assert_eq!(nullable["rowKey"], Value::Null);
 
     let partial = client
         .ok("structure", json!({ "session": session, "schema": "main", "table": "partial_key" }))
         .await;
+
     assert_eq!(partial["rowKey"], Value::Null);
 }
 
@@ -215,7 +238,9 @@ async fn reads_pages_of_rows() {
         .await;
 
     assert_eq!(page["hasMore"], true);
+
     let source = |column: &str| json!({ "schema": "main", "table": "users", "column": column });
+
     assert_eq!(
         page["columns"][0],
         json!({ "name": "id", "type": "INTEGER", "kind": "integer", "source": source("id") })
@@ -236,6 +261,7 @@ async fn reads_pages_of_rows() {
             json!({ "session": session, "schema": "main", "table": "users", "orderBy": "id", "offset": 2, "limit": 5 }),
         )
         .await;
+
     assert_eq!(last["hasMore"], false);
     assert_eq!(last["rows"].as_array().unwrap().len(), 1);
 
@@ -245,6 +271,7 @@ async fn reads_pages_of_rows() {
             json!({ "session": session, "schema": "main", "table": "users", "orderBy": "id", "offset": 0, "limit": 1, "cellLimit": 3 }),
         )
         .await;
+
     assert_eq!(first["rows"][0][2], json!({ "kind": "binary", "hex": "89504e", "length": 8 }));
 
     let whole = client
@@ -253,6 +280,7 @@ async fn reads_pages_of_rows() {
             json!({ "session": session, "schema": "main", "table": "users", "orderBy": "id", "offset": 0, "limit": 1 }),
         )
         .await;
+
     assert_eq!(whole["rows"][0][1], "a@example.com");
     assert_eq!(whole["rows"][0][2], json!({ "kind": "binary", "hex": "89504e470d0a1a0a", "length": 8 }));
 }
@@ -276,6 +304,7 @@ async fn validates_row_requests() {
             json!({ "session": session, "schema": "main", "table": "users", "where": "1 = 1); DROP TABLE users; --", "offset": 0, "limit": 5 }),
         )
         .await;
+
     assert_eq!(injected["code"], "query-failed");
 
     let stacked = client
@@ -284,9 +313,11 @@ async fn validates_row_requests() {
             json!({ "session": session, "schema": "main", "table": "users", "orderBy": "id; DROP TABLE users", "offset": 0, "limit": 5 }),
         )
         .await;
+
     assert_eq!(stacked["code"], "query-failed");
 
     let still_there = client.ok("count", json!({ "session": session, "schema": "main", "table": "users" })).await;
+
     assert_eq!(still_there["count"], 3);
 }
 
@@ -297,11 +328,13 @@ async fn counts_rows() {
     let (session, _) = seeded(&mut client, &directory).await;
 
     let all = client.ok("count", json!({ "session": session, "schema": "main", "table": "users" })).await;
+
     assert_eq!(all, json!({ "count": 3 }));
 
     let some = client
         .ok("count", json!({ "session": session, "schema": "main", "table": "users", "where": "id >= 2" }))
         .await;
+
     assert_eq!(some, json!({ "count": 2 }));
 }
 
@@ -335,12 +368,14 @@ async fn reads_a_whole_cell() {
             json!({ "session": session, "sql": "INSERT INTO loose VALUES (NULL, 'x'), (NULL, 'y')" }),
         )
         .await;
+
     let by_null = client
         .error(
             "cell",
             json!({ "session": session, "schema": "main", "table": "loose", "key": { "a": null }, "column": "b" }),
         )
         .await;
+
     assert_eq!(by_null["code"], "conflict");
 
     let one = client
@@ -349,6 +384,7 @@ async fn reads_a_whole_cell() {
             json!({ "session": session, "schema": "main", "table": "loose", "key": { "a": null, "b": "y" }, "column": "b" }),
         )
         .await;
+
     assert_eq!(one, json!({ "value": "y" }));
 }
 
@@ -364,7 +400,9 @@ async fn encodes_cells() {
             json!({ "session": session, "cellLimit": 5, "sql": "SELECT 9007199254740991 AS safe, 9007199254740993 AS big, -9007199254740993 AS small, 1.5 AS real, 1e999 AS inf, 'héllo wörld' AS long, x'0102030405060708' AS bin, NULL AS empty, 'ok' AS short" }),
         )
         .await;
+
     let row = &result["results"][0]["rows"][0];
+
     assert!(row.is_array(), "{result}");
 
     assert_eq!(row[0], json!(9007199254740991_i64));
@@ -396,6 +434,7 @@ async fn applies_changes_in_one_transaction() {
             ])),
         )
         .await;
+
     assert_eq!(applied, json!({ "affected": 3 }));
 
     let rows = client
@@ -404,7 +443,9 @@ async fn applies_changes_in_one_transaction() {
             json!({ "session": session, "schema": "main", "table": "users", "orderBy": "id", "offset": 0, "limit": 10 }),
         )
         .await;
+
     let emails: Vec<&str> = rows["rows"].as_array().unwrap().iter().map(|row| row[1].as_str().unwrap()).collect();
+
     assert_eq!(emails, vec!["a@example.com", "b2@example.com", "d@example.com"]);
     assert_eq!(rows["rows"][2][2], json!({ "kind": "binary", "hex": "00ff", "length": 2 }));
     assert!(rows["rows"][2][3].as_str().unwrap().starts_with("20"));
@@ -415,6 +456,7 @@ async fn applies_changes_in_one_transaction() {
             target(json!([{ "kind": "insert", "values": { "email": "e@example.com", "id": { "kind": "default" } } }])),
         )
         .await;
+
     assert_eq!(defaults["affected"], 1);
 
     let empty = client
@@ -423,6 +465,7 @@ async fn applies_changes_in_one_transaction() {
             json!({ "session": session, "schema": "main", "table": "loose", "changes": [{ "kind": "insert", "values": {} }] }),
         )
         .await;
+
     assert_eq!(empty["affected"], 1);
 }
 
@@ -446,6 +489,7 @@ async fn rolls_back_on_a_conflict() {
     assert_eq!(error["change"], 1);
 
     let count = client.ok("count", json!({ "session": session, "schema": "main", "table": "users" })).await;
+
     assert_eq!(count["count"], 3);
 
     let deleted = client
@@ -454,6 +498,7 @@ async fn rolls_back_on_a_conflict() {
             json!({ "session": session, "schema": "main", "table": "users", "changes": [{ "kind": "delete", "key": { "id": 999 } }] }),
         )
         .await;
+
     assert_eq!(deleted["code"], "conflict");
     assert_eq!(deleted["change"], 0);
 
@@ -463,6 +508,7 @@ async fn rolls_back_on_a_conflict() {
             json!({ "session": session, "schema": "main", "table": "users", "changes": [{ "kind": "insert", "values": { "email": "a@example.com" } }] }),
         )
         .await;
+
     assert_eq!(constraint["code"], "query-failed");
 
     client
@@ -471,6 +517,7 @@ async fn rolls_back_on_a_conflict() {
             json!({ "session": session, "schema": "main", "table": "users", "changes": [{ "kind": "delete", "key": { "id": 3 } }] }),
         )
         .await;
+
     assert_eq!(
         client.ok("count", json!({ "session": session, "schema": "main", "table": "users" })).await["count"],
         2
@@ -485,19 +532,23 @@ async fn rejects_changes_it_cannot_apply() {
     let on = |table: &str, changes: Value| json!({ "session": session, "schema": "main", "table": table, "changes": changes });
 
     let no_key = client.error("apply", on("loose", json!([{ "kind": "delete", "key": { "a": "x" } }]))).await;
+
     assert_eq!(no_key["code"], "no-row-key");
 
     let wrong_key = client
         .error("apply", on("users", json!([{ "kind": "delete", "key": { "email": "a@example.com" } }])))
         .await;
+
     assert_eq!(wrong_key["code"], "invalid-request");
 
     let unknown = client.error("apply", on("users", json!([{ "kind": "insert", "values": { "nope": 1 } }]))).await;
+
     assert_eq!(unknown["code"], "invalid-request");
 
     let generated = client
         .error("apply", on("orders", json!([{ "kind": "insert", "values": { "user_id": 1, "qty": 5 } }])))
         .await;
+
     assert_eq!(generated["code"], "invalid-request");
 
     let default_update = client
@@ -509,6 +560,7 @@ async fn rejects_changes_it_cannot_apply() {
             ),
         )
         .await;
+
     assert_eq!(default_update["code"], "unsupported");
 
     let bad_hex = client
@@ -520,9 +572,11 @@ async fn rejects_changes_it_cannot_apply() {
             ),
         )
         .await;
+
     assert_eq!(bad_hex["code"], "invalid-request");
 
     let malformed = client.error("apply", on("users", json!([{ "kind": "explode" }]))).await;
+
     assert_eq!(malformed["code"], "invalid-request");
 }
 
@@ -535,17 +589,20 @@ async fn read_only_connections_cannot_write() {
     let session = client
         .open(json!({ "engine": "sqlite", "path": path.to_str().unwrap(), "readOnly": true }))
         .await;
+
     let applied = client
         .error(
             "apply",
             json!({ "session": session, "schema": "main", "table": "users", "changes": [{ "kind": "delete", "key": { "id": 1 } }] }),
         )
         .await;
+
     assert_eq!(applied["code"], "read-only");
 
     let executed = client
         .ok("execute", json!({ "session": session, "sql": "DELETE FROM users; SELECT COUNT(*) FROM users" }))
         .await;
+
     assert_eq!(executed["results"].as_array().unwrap().len(), 1);
     assert_eq!(executed["results"][0]["kind"], "error");
     assert_eq!(executed["results"][0]["error"]["code"], "query-failed");
@@ -568,6 +625,7 @@ async fn executes_scripts_statement_by_statement() {
             json!({ "session": session, "limit": 2, "sql": "INSERT INTO loose VALUES ('a;b', 'c'); /* comment; */ UPDATE users SET note = 'x' WHERE id <= 2; SELECT id FROM users ORDER BY id; SELECT nope; SELECT 'never runs'" }),
         )
         .await;
+
     let items = result["results"].as_array().unwrap();
 
     assert_eq!(items.len(), 4);
@@ -585,6 +643,7 @@ async fn executes_scripts_statement_by_statement() {
     assert!(items[3]["elapsedMs"].is_number());
 
     let ddl = client.ok("execute", json!({ "session": session, "sql": "CREATE TABLE later (x)" })).await;
+
     assert_eq!(ddl["results"][0]["affected"], 0);
     assert_eq!(ddl["results"][0]["lastInsertId"], Value::Null);
 
@@ -594,7 +653,9 @@ async fn executes_scripts_statement_by_statement() {
             json!({ "session": session, "sql": "CREATE TABLE audit (note TEXT); CREATE TRIGGER users_audit AFTER INSERT ON users BEGIN INSERT INTO audit VALUES ('one'); INSERT INTO audit VALUES ('two'); END; INSERT INTO users (email) VALUES ('t@example.com'); SELECT COUNT(*) FROM audit" }),
         )
         .await;
+
     let items = trigger["results"].as_array().unwrap();
+
     assert_eq!(items.len(), 4);
     assert_eq!(items[3]["rows"], json!([[2]]));
 
@@ -602,7 +663,9 @@ async fn executes_scripts_statement_by_statement() {
         client.error("execute", json!({ "session": session, "sql": "SELECT 1", "limit": 10_001 })).await["code"],
         "invalid-request"
     );
+
     let empty = client.ok("execute", json!({ "session": session, "sql": " ; -- nothing\n" })).await;
+
     assert_eq!(empty["results"], json!([]));
 }
 
@@ -618,6 +681,7 @@ async fn names_where_result_columns_come_from() {
             json!({ "session": session, "sql": "SELECT * FROM orders o; SELECT u.email AS address, upper(u.email) AS shout, 1 AS one FROM users u; SELECT id FROM user_emails" }),
         )
         .await;
+
     let sources = |index: usize| -> Vec<Value> {
         result["results"][index]["columns"]
             .as_array()
@@ -626,6 +690,7 @@ async fn names_where_result_columns_come_from() {
             .map(|column| column.get("source").cloned().unwrap_or(Value::Null))
             .collect()
     };
+
     let source = |table: &str, column: &str| json!({ "schema": "main", "table": table, "column": column });
 
     assert_eq!(
@@ -647,6 +712,7 @@ async fn names_where_result_columns_come_from() {
             json!({ "session": session, "schema": "main", "table": "orders", "offset": 0, "limit": 1 }),
         )
         .await;
+
     assert_eq!(rows["columns"][1]["source"], source("orders", "user_id"));
 }
 
@@ -657,12 +723,14 @@ async fn cancels_a_long_query() {
     let (session, _) = seeded(&mut client, &directory).await;
 
     let id = client.next_id();
+
     let line = json!({
         "id": id,
         "method": "execute",
         "params": { "session": session, "sql": "WITH RECURSIVE forever(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM forever) SELECT COUNT(*) FROM forever" },
     })
     .to_string();
+
     let long = tokio::spawn(client.dispatcher.submit(&line));
 
     tokio::time::sleep(Duration::from_millis(300)).await;
@@ -672,15 +740,18 @@ async fn cancels_a_long_query() {
     let queued = tokio::spawn(client.dispatcher.submit(&queued_line));
 
     let cancelled = client.ok("cancel", json!({ "request": id })).await;
+
     assert_eq!(cancelled, json!({ "cancelled": true }));
 
     let answer: Value = serde_json::from_str(&tokio::time::timeout(Duration::from_secs(10), long).await.expect("the query stops").unwrap()).unwrap();
+
     assert_eq!(answer["id"], json!(id));
     assert_eq!(answer["result"]["results"].as_array().unwrap().len(), 1, "{answer}");
     assert_eq!(answer["result"]["results"][0]["error"]["code"], "cancelled");
     assert_eq!(answer["result"]["inTransaction"], false);
 
     let next: Value = serde_json::from_str(&queued.await.unwrap()).unwrap();
+
     assert_eq!(next["result"]["count"], 3, "the session serves the next request: {next}");
 
     assert_eq!(client.ok("cancel", json!({ "request": id })).await, json!({ "cancelled": false }));
@@ -694,12 +765,14 @@ async fn cancels_a_request_that_is_still_queued() {
     let (session, _) = seeded(&mut client, &directory).await;
 
     let blocker_id = client.next_id();
+
     let blocker_line = json!({
         "id": blocker_id,
         "method": "execute",
         "params": { "session": session, "sql": "WITH RECURSIVE forever(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM forever) SELECT COUNT(*) FROM forever" },
     })
     .to_string();
+
     let blocker = tokio::spawn(client.dispatcher.submit(&blocker_line));
     tokio::time::sleep(Duration::from_millis(200)).await;
 
@@ -712,6 +785,7 @@ async fn cancels_a_request_that_is_still_queued() {
 
     let waited: Value = serde_json::from_str(&waiting.await.unwrap()).unwrap();
     let blocked: Value = serde_json::from_str(&blocker.await.unwrap()).unwrap();
+
     assert_eq!(waited["error"]["code"], "cancelled");
     assert_eq!(
         blocked["result"]["results"][0]["error"]["code"], "cancelled",
@@ -730,6 +804,7 @@ async fn closes_sessions() {
     assert_eq!(client.error("schemas", json!({ "session": session })).await["code"], "unknown-session");
 
     let second = client.open(sqlite_config(&directory.path().join("shop.sqlite"))).await;
+
     assert_eq!(second, "s2");
 }
 
@@ -738,24 +813,29 @@ async fn answers_bad_lines() {
     let client = Client::new();
 
     let unknown = client.raw(r#"{"id":"r9","method":"drop-everything","params":{}}"#).await;
+
     assert_eq!(
         unknown,
         json!({ "id": "r9", "ok": false, "error": { "code": "invalid-request", "message": "Unknown method \"drop-everything\"." } })
     );
 
     let not_json = client.raw("this is not json").await;
+
     assert_eq!(not_json["id"], "");
     assert_eq!(not_json["error"]["code"], "invalid-request");
 
     let no_method = client.raw(r#"{"id":"r1"}"#).await;
+
     assert_eq!(no_method["id"], "r1");
     assert_eq!(no_method["error"]["code"], "invalid-request");
 
     let bad_params = client.raw(r#"{"id":"r2","method":"rows","params":{"session":"s1"}}"#).await;
+
     assert_eq!(bad_params["id"], "r2");
     assert_eq!(bad_params["error"]["code"], "invalid-request");
 
     let numeric_id = client.raw(r#"{"id":7,"method":"schemas","params":{"session":"s1"}}"#).await;
+
     assert_eq!(numeric_id["id"], "");
     assert_eq!(numeric_id["error"]["code"], "invalid-request");
 }
@@ -769,23 +849,28 @@ async fn cancelling_a_finished_request_leaves_the_session_alone() {
     let finished_id = client.next_id();
     let finished_line = json!({ "id": finished_id, "method": "count", "params": { "session": session, "schema": "main", "table": "users" } }).to_string();
     let finished: Value = serde_json::from_str(&client.dispatcher.submit(&finished_line).await).unwrap();
+
     assert_eq!(finished["ok"], true);
 
     let long_id = client.next_id();
+
     let long_line = json!({
         "id": long_id,
         "method": "execute",
         "params": { "session": session, "sql": "WITH RECURSIVE counting(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM counting WHERE x < 3000000) SELECT COUNT(*) FROM counting" },
     })
     .to_string();
+
     let long = tokio::spawn(client.dispatcher.submit(&long_line));
 
     for _ in 0..20 {
         assert_eq!(client.ok("cancel", json!({ "request": finished_id })).await, json!({ "cancelled": false }));
+
         tokio::time::sleep(Duration::from_millis(10)).await;
     }
 
     let answer: Value = serde_json::from_str(&long.await.unwrap()).unwrap();
+
     assert_eq!(answer["ok"], true, "{answer}");
     assert_eq!(answer["result"]["results"][0]["rows"], json!([[3_000_000]]));
 }
@@ -896,6 +981,7 @@ async fn sqlite_rolls_back_an_open_transaction_when_the_helper_closes() {
     let mut fresh = Client::new();
     let session = fresh.open(sqlite_config(&directory.path().join("scenario.sqlite"))).await;
     let count = fresh.ok("execute", json!({ "session": session, "sql": "SELECT COUNT(*) FROM t" })).await;
+
     assert_eq!(count["results"][0]["rows"], json!([[0]]));
 }
 
@@ -904,8 +990,10 @@ async fn sqlite_an_import_that_fails_on_its_release_leaves_nothing_to_commit() {
     let directory = tempfile::tempdir().unwrap();
     let mut client = Client::new();
     let mut db = scenario_db(&mut client, &directory).await;
+
     db.script("PRAGMA foreign_keys = ON; CREATE TABLE parent (id INTEGER PRIMARY KEY); CREATE TABLE child (id INTEGER PRIMARY KEY, parent_id INTEGER REFERENCES parent (id) DEFERRABLE INITIALLY DEFERRED)")
         .await;
+
     let path = directory.path().join("children.csv");
     std::fs::write(&path, "id,parent_id\n1,999\n").unwrap();
 
@@ -917,8 +1005,11 @@ async fn sqlite_an_import_that_fails_on_its_release_leaves_nothing_to_commit() {
     .await;
 
     let state = db.ok("execute", json!({ "sql": "SELECT COUNT(*) FROM child" })).await;
+
     assert_eq!(state["results"][0]["rows"], json!([[0]]));
     assert_eq!(state["inTransaction"], false);
+
     db.script("INSERT INTO parent VALUES (999)").await;
+
     assert_eq!(db.count("child").await, 0);
 }

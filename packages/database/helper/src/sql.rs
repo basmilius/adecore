@@ -25,6 +25,7 @@ pub enum Param {
 pub struct PlannedStatement {
     pub sql: String,
     pub params: Vec<Param>,
+
     /// An update or a delete must hit exactly one row; an insert has no such rule.
     pub expects_one_row: bool,
 }
@@ -167,6 +168,7 @@ pub fn export_query(dialect: Dialect, source: &ExportSource, table_name: Option<
         } => (select_sql(dialect, schema, table, fragment(r#where), fragment(order_by)), table.as_str()),
         ExportSource::Query { sql, .. } => (single_statement(sql, dialect, &EXPORT_KEYWORDS, "An export")?, "result"),
     };
+
     let name = table_name.filter(|name| !name.is_empty()).unwrap_or(default_name);
 
     Ok((sql, name.to_string()))
@@ -183,6 +185,7 @@ pub fn page_sql(dialect: Dialect, statement: &str) -> String {
     let words = top_level_words(statement, dialect);
     let ordered = words.windows(2).any(|pair| pair[0] == "ORDER" && pair[1] == "BY");
     let inside = ordered && !words.iter().any(|word| OWN_PAGING_WORDS.contains(&word.as_str()));
+
     let alias = match dialect {
         Dialect::Sqlite => "",
         Dialect::Mysql => " AS adecore_page",
@@ -220,6 +223,7 @@ pub fn bare_condition(text: &str) -> &str {
                 b'(' => depth += 1,
                 b')' => {
                     depth -= 1;
+
                     // The opening parenthesis closes before the end, so it does not wrap the whole condition.
                     if depth == 0 && i != bytes.len() - 1 {
                         return trimmed;
@@ -270,6 +274,7 @@ pub fn cell_sql(dialect: Dialect, schema: &str, table: &str, column: &str, key: 
     }
 
     let (condition, params) = key_condition(dialect, key)?;
+
     let sql = format!(
         "SELECT {} FROM {} WHERE {condition} LIMIT 2",
         dialect.quote_ident(column),
@@ -356,6 +361,7 @@ pub fn plan_apply(dialect: Dialect, structure: &TableStructure, changes: &[RowCh
                     }
                 } else {
                     let placeholders = vec!["?"; names.len()].join(", ");
+
                     format!("INSERT INTO {table} ({}) VALUES ({placeholders})", names.join(", "))
                 };
 
@@ -536,6 +542,7 @@ mod tests {
             page_sql(Dialect::Mysql, "SELECT id FROM orders WHERE id IN (SELECT id FROM a ORDER BY id)"),
             "SELECT * FROM (SELECT id FROM orders WHERE id IN (SELECT id FROM a ORDER BY id)\n) AS adecore_page LIMIT ? OFFSET ?"
         );
+
         for paged in [
             "ORDER BY id FOR UPDATE",
             "ORDER BY id LOCK IN SHARE MODE",
@@ -566,7 +573,9 @@ mod tests {
         assert!(paging(10, 0, Some(-1), None).is_err());
         assert!(paging(10, 0, None, Some(0)).is_err());
         assert!(paging(10, 0, None, Some(MAX_MAX_BYTES + 1)).is_err());
+
         let page = paging(10_000, 5, None, None).unwrap();
+
         assert_eq!((page.limit, page.offset, page.cell_limit, page.max_bytes), (10_000, 5, 1024, DEFAULT_MAX_BYTES));
         assert_eq!(paging(10, 0, None, Some(MAX_MAX_BYTES)).unwrap().max_bytes, MAX_MAX_BYTES as usize);
     }
@@ -604,6 +613,7 @@ mod tests {
             },
             RowChange::Delete { key },
         ];
+
         let planned = plan_apply(Dialect::Sqlite, &structure(Some(vec!["id"])), &changes).unwrap();
 
         assert_eq!(planned[0].sql, "INSERT INTO \"main\".\"users\" (\"name\") VALUES (?)");
@@ -668,6 +678,7 @@ mod tests {
         let mut wrong_key = IndexMap::new();
         wrong_key.insert("name".to_string(), text("x"));
         let wrong = vec![RowChange::Delete { key: wrong_key }];
+
         assert_eq!(
             plan_apply(Dialect::Sqlite, &structure(Some(vec!["id"])), &wrong).unwrap_err().code,
             ErrorCode::InvalidRequest
@@ -676,6 +687,7 @@ mod tests {
         let mut unknown = IndexMap::new();
         unknown.insert("nope".to_string(), EditValue::Value(Value::Null));
         let insert = vec![RowChange::Insert { values: unknown }];
+
         assert_eq!(
             plan_apply(Dialect::Sqlite, &structure(None), &insert).unwrap_err().code,
             ErrorCode::InvalidRequest
@@ -684,12 +696,14 @@ mod tests {
         let mut generated = IndexMap::new();
         generated.insert("total".to_string(), EditValue::Value(number(1)));
         let insert = vec![RowChange::Insert { values: generated }];
+
         assert_eq!(
             plan_apply(Dialect::Sqlite, &structure(None), &insert).unwrap_err().code,
             ErrorCode::InvalidRequest
         );
 
         let update = vec![RowChange::Update { key, values: IndexMap::new() }];
+
         assert_eq!(
             plan_apply(Dialect::Sqlite, &structure(Some(vec!["id"])), &update).unwrap_err().code,
             ErrorCode::InvalidRequest

@@ -72,8 +72,10 @@ async fn tunnels_through_ssh() {
                 json!({ "connection": ssh_config("127.0.0.1", 3306, "root", "", json!({ "kind": "ssh", "host": "adecore-no-such-host.invalid" })) }),
             )
             .await;
+
         assert_eq!(real["code"], "tunnel-failed", "{real}");
         assert!(!real["message"].as_str().unwrap().is_empty(), "{real}");
+
         eprintln!("real ssh said: {}", real["message"]);
     }
 
@@ -83,6 +85,7 @@ async fn tunnels_through_ssh() {
             json!({ "connection": ssh_config("127.0.0.1", 3306, "root", "", json!({ "kind": "ssh", "host": "-oProxyCommand=touch /tmp/adecore-pwned" })) }),
         )
         .await;
+
     assert_eq!(option["code"], "invalid-request");
     assert!(!Path::new("/tmp/adecore-pwned").exists());
 
@@ -96,6 +99,7 @@ async fn tunnels_through_ssh() {
             json!({ "connection": ssh_config("127.0.0.1", 3306, "root", "", json!({ "kind": "ssh", "host": "unreachable" })) }),
         )
         .await;
+
     assert_eq!(unreachable["code"], "tunnel-failed", "{unreachable}");
     assert_eq!(
         unreachable["message"],
@@ -107,12 +111,15 @@ async fn tunnels_through_ssh() {
     };
 
     let tunnel = json!({ "kind": "ssh", "host": "bastion", "port": 2222, "user": "deploy", "identityFile": "/tmp/key" });
+
     let tested = client
         .ok("test", json!({ "connection": ssh_config(&host, port, &user, &password, tunnel.clone()) }))
         .await;
+
     assert!(tested["server"]["version"].is_string(), "{tested}");
 
     let logged = std::fs::read_to_string(&log).unwrap();
+
     assert!(
         logged
             .lines()
@@ -121,9 +128,11 @@ async fn tunnels_through_ssh() {
     );
 
     let session = client.open(ssh_config(&host, port, &user, &password, tunnel)).await;
+
     let big = client
         .ok("execute", json!({ "session": session, "sql": "SELECT 1 AS one, REPEAT('y', 2000000) AS big" }))
         .await;
+
     assert_eq!(big["results"][0]["rows"][0][0], 1);
     assert_eq!(big["results"][0]["rows"][0][1]["length"], 2_000_000);
 
@@ -131,15 +140,20 @@ async fn tunnels_through_ssh() {
     let line = json!({ "id": id, "method": "execute", "params": { "session": session, "sql": "SELECT SLEEP(30)" } }).to_string();
     let sleeping = tokio::spawn(client.dispatcher.submit(&line));
     tokio::time::sleep(std::time::Duration::from_millis(700)).await;
+
     assert_eq!(client.ok("cancel", json!({ "request": id })).await, json!({ "cancelled": true }));
+
     let cancelled: Value = serde_json::from_str(&sleeping.await.unwrap()).unwrap();
+
     assert_eq!(cancelled["result"]["results"][0]["error"]["code"], "cancelled", "{cancelled}");
 
     client.ok("close", json!({ "session": session })).await;
     tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
+
     let leftovers = std::process::Command::new("pgrep")
         .args(["-f", &format!("{}/ssh", directory.path().display())])
         .output()
         .unwrap();
+
     assert!(!leftovers.status.success(), "closing the session ends the processes of its tunnel");
 }

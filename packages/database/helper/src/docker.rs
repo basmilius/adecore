@@ -16,8 +16,10 @@ pub struct Inspected {
     pub name: String,
     pub image: String,
     pub running: bool,
+
     /// Per container port: the bindings on the host as (host IP, host port), empty when the port is not published.
     pub ports: BTreeMap<u16, Vec<(String, u16)>>,
+
     pub environment: BTreeMap<String, String>,
     pub labels: BTreeMap<String, String>,
 }
@@ -134,6 +136,7 @@ fn read_container(entry: &Json) -> Option<Inspected> {
             let Some(port) = tcp_port(key) else {
                 continue;
             };
+
             let slot = ports.entry(port).or_default();
 
             for binding in bindings.as_array().into_iter().flatten() {

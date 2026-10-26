@@ -73,6 +73,7 @@ pub async fn pages_statements(db: &mut Db<'_>) {
     let first = db
         .ok("page", json!({ "sql": "SELECT id, label FROM items ORDER BY id;", "offset": 0, "limit": 2 }))
         .await;
+
     assert_eq!(first["rows"], json!([[1, "a"], [2, "b"]]));
     assert_eq!(first["hasMore"], true);
     assert_eq!(first["columns"][0]["name"], "id");
@@ -83,12 +84,14 @@ pub async fn pages_statements(db: &mut Db<'_>) {
     let exact = db
         .ok("page", json!({ "sql": "SELECT id FROM items ORDER BY id", "offset": 2, "limit": 3 }))
         .await;
+
     assert_eq!(exact["rows"], json!([[3], [4], [5]]));
     assert_eq!(exact["hasMore"], false);
 
     let last = db
         .ok("page", json!({ "sql": "SELECT id FROM items ORDER BY id", "offset": 4, "limit": 2 }))
         .await;
+
     assert_eq!(last["rows"], json!([[5]]));
     assert_eq!(last["hasMore"], false);
 
@@ -96,32 +99,40 @@ pub async fn pages_statements(db: &mut Db<'_>) {
     let newest = db
         .ok("page", json!({ "sql": "SELECT id FROM items ORDER BY id DESC", "offset": 0, "limit": 2 }))
         .await;
+
     assert_eq!(newest["rows"], json!([[5], [4]]));
     assert_eq!(newest["hasMore"], true);
+
     let older = db
         .ok(
             "page",
             json!({ "sql": "SELECT id FROM items ORDER BY id DESC -- newest first", "offset": 2, "limit": 2 }),
         )
         .await;
+
     assert_eq!(older["rows"], json!([[3], [2]]));
+
     let picked = db
         .ok(
             "page",
             json!({ "sql": "WITH picked AS (SELECT id, label FROM items) SELECT label FROM picked ORDER BY id DESC", "offset": 0, "limit": 3 }),
         )
         .await;
+
     assert_eq!(picked["rows"], json!([["e"], ["d"], ["c"]]));
+
     let limited = db
         .ok(
             "page",
             json!({ "sql": "SELECT id FROM items ORDER BY id DESC LIMIT 3", "offset": 1, "limit": 5 }),
         )
         .await;
+
     assert_eq!(limited["rows"], json!([[4], [3]]));
     assert_eq!(limited["hasMore"], false);
 
     let beyond = db.ok("page", json!({ "sql": "SELECT id FROM items", "offset": 50, "limit": 2 })).await;
+
     assert_eq!(beyond["rows"], json!([]));
     assert_eq!(beyond["hasMore"], false);
 
@@ -131,6 +142,7 @@ pub async fn pages_statements(db: &mut Db<'_>) {
             json!({ "sql": "-- the items\nSELECT id FROM items ORDER BY id -- newest last\n;", "offset": 0, "limit": 1 }),
         )
         .await;
+
     assert_eq!(commented["rows"], json!([[1]]));
     assert_eq!(commented["hasMore"], true);
 
@@ -140,6 +152,7 @@ pub async fn pages_statements(db: &mut Db<'_>) {
             json!({ "sql": "WITH picked AS (SELECT id FROM items) SELECT id FROM picked ORDER BY id", "offset": 0, "limit": 10 }),
         )
         .await;
+
     assert_eq!(with["rows"].as_array().unwrap().len(), 5);
 
     if db.mysql {
@@ -149,6 +162,7 @@ pub async fn pages_statements(db: &mut Db<'_>) {
                 json!({ "sql": "(SELECT id FROM items WHERE id = 1) UNION ALL (SELECT id FROM items WHERE id = 2)", "offset": 0, "limit": 10 }),
             )
             .await;
+
         assert_eq!(parenthesized["rows"].as_array().unwrap().len(), 2);
     }
 
@@ -156,6 +170,7 @@ pub async fn pages_statements(db: &mut Db<'_>) {
 
     for sql in [shown, "INSERT INTO items VALUES (9, 'z')", "SELECT 1; SELECT 2", "DELETE FROM items", "  ; "] {
         let error = db.error("page", json!({ "sql": sql, "offset": 0, "limit": 10 })).await;
+
         assert_eq!(error["code"], "unsupported", "{sql}: {error}");
     }
 
@@ -175,6 +190,7 @@ pub async fn pages_statements(db: &mut Db<'_>) {
             json!({ "sql": "SELECT label FROM items ORDER BY id", "offset": 0, "limit": 1, "cellLimit": 0 }),
         )
         .await;
+
     assert_eq!(cut["rows"][0][0], json!({ "kind": "longText", "preview": "", "length": 1 }));
 }
 
@@ -182,12 +198,15 @@ pub async fn pages_statements(db: &mut Db<'_>) {
 async fn measured(db: &mut Db<'_>, method: &str, params: Value) -> (usize, Value) {
     let params = db.with_target(params);
     let id = db.client.next_id();
+
     let line = db
         .client
         .dispatcher
         .submit(&json!({ "id": id, "method": method, "params": params }).to_string())
         .await;
+
     let response: Value = serde_json::from_str(&line).unwrap();
+
     assert_eq!(response["ok"], json!(true), "{method} failed: {}", response["error"]);
 
     (line.len(), response["result"].clone())
@@ -195,11 +214,13 @@ async fn measured(db: &mut Db<'_>, method: &str, params: Value) -> (usize, Value
 
 pub async fn bounds_responses_by_bytes(db: &mut Db<'_>) {
     const BOUND: usize = 16 * 1024 * 1024;
+
     let wide = if db.mysql {
         "REPEAT('x', 65536)"
     } else {
         "replace(hex(zeroblob(32768)), '0', 'x')"
     };
+
     db.script(&format!(
         "DROP TABLE IF EXISTS digits; DROP TABLE IF EXISTS numbers; DROP TABLE IF EXISTS wide; \
          CREATE TABLE digits (d INTEGER); INSERT INTO digits VALUES (0), (1), (2), (3), (4), (5), (6), (7), (8), (9); \
@@ -208,6 +229,7 @@ pub async fn bounds_responses_by_bytes(db: &mut Db<'_>) {
          CREATE TABLE wide (t MEDIUMTEXT); INSERT INTO wide VALUES ({wide})"
     ))
     .await;
+
     let cells: Vec<String> = (1..=20).map(|column| format!("w.t AS c{column}")).collect();
     let sql = format!("SELECT n.i, {} FROM numbers n CROSS JOIN wide w ORDER BY n.i", cells.join(", "));
 
@@ -215,17 +237,20 @@ pub async fn bounds_responses_by_bytes(db: &mut Db<'_>) {
     let (size, executed) = measured(db, "execute", json!({ "sql": sql, "limit": 500 })).await;
     let result = &executed["results"][0];
     let read = result["rows"].as_array().unwrap().len();
+
     assert!(size < BOUND, "{size} bytes");
     assert!(read > 1 && read < 500, "{read} rows");
     assert_eq!(result["hasMore"], true);
     assert_eq!(result["rows"][0][1].as_str().unwrap().len(), 65_536, "a cell stays whole");
 
     let (size, next) = measured(db, "page", json!({ "sql": sql, "offset": read, "limit": 500 })).await;
+
     assert!(size < BOUND, "{size} bytes");
     assert_eq!(next["rows"][0][0], json!(read), "the next page starts after the rows that fit");
     assert_eq!(next["hasMore"], true);
 
     let single = db.ok("page", json!({ "sql": sql, "offset": 0, "limit": 500, "maxBytes": 1 })).await;
+
     assert_eq!(single["rows"].as_array().unwrap().len(), 1, "the first row always fits");
     assert_eq!(single["hasMore"], true);
 
@@ -236,6 +261,7 @@ pub async fn bounds_responses_by_bytes(db: &mut Db<'_>) {
             json!({ "sql": format!("{sql}; SELECT i FROM numbers ORDER BY i"), "maxBytes": 100_000 }),
         )
         .await;
+
     assert_eq!(script["results"][0]["rows"].as_array().unwrap().len(), 1);
     assert_eq!(script["results"][1]["rows"], json!([[0]]));
     assert_eq!(script["results"][1]["hasMore"], true);
@@ -246,10 +272,14 @@ pub async fn bounds_responses_by_bytes(db: &mut Db<'_>) {
             json!({ "table": "numbers", "orderBy": "i", "offset": 0, "limit": 500, "maxBytes": 1000 }),
         )
         .await;
+
     let fitted = rows["rows"].as_array().unwrap().len();
+
     assert!(fitted > 1 && fitted < 30, "{fitted} rows");
     assert_eq!(rows["hasMore"], true);
+
     let all = db.ok("rows", json!({ "table": "numbers", "offset": 0, "limit": 500 })).await;
+
     assert_eq!(all["rows"].as_array().unwrap().len(), 500);
     assert_eq!(all["hasMore"], false);
 
@@ -278,6 +308,7 @@ pub async fn drives_transactions(db: &mut Db<'_>) {
     );
 
     let inside = db.ok("execute", json!({ "sql": "INSERT INTO items VALUES (10, 'x')" })).await;
+
     assert_eq!(inside["inTransaction"], true);
 
     let applied = db
@@ -286,6 +317,7 @@ pub async fn drives_transactions(db: &mut Db<'_>) {
             json!({ "table": "items", "changes": [{ "kind": "insert", "values": { "id": 11, "label": "y" } }] }),
         )
         .await;
+
     assert_eq!(applied["affected"], 1);
 
     let conflict = db
@@ -294,10 +326,12 @@ pub async fn drives_transactions(db: &mut Db<'_>) {
             json!({ "table": "items", "changes": [{ "kind": "insert", "values": { "id": 12, "label": "w" } }, { "kind": "update", "key": { "id": 999 }, "values": { "label": "q" } }] }),
         )
         .await;
+
     assert_eq!(conflict["code"], "conflict");
     assert_eq!(db.count("items").await, 7, "a failed apply undoes only itself");
 
     let selected = db.ok("execute", json!({ "sql": "SELECT nope" })).await;
+
     assert_eq!(selected["results"][0]["kind"], "error");
     assert_eq!(selected["inTransaction"], true, "an error does not end the transaction");
 
@@ -308,11 +342,13 @@ pub async fn drives_transactions(db: &mut Db<'_>) {
 
     db.ok("transaction", json!({ "action": "begin" })).await;
     db.script("INSERT INTO items VALUES (20, 'k')").await;
+
     assert_eq!(db.ok("transaction", json!({ "action": "commit" })).await, json!({ "active": false }));
     assert_eq!(db.count("items").await, 6);
 
     let begin = db.begin_sql();
     let begun = db.ok("execute", json!({ "sql": format!("{begin}; DELETE FROM items WHERE id = 20") })).await;
+
     assert_eq!(begun["inTransaction"], true, "SQL that begins a transaction is noticed");
     assert_eq!(db.ok("transaction", json!({ "action": "rollback" })).await, json!({ "active": false }));
     assert_eq!(db.count("items").await, 6);
@@ -320,21 +356,26 @@ pub async fn drives_transactions(db: &mut Db<'_>) {
     let ended = db
         .ok("execute", json!({ "sql": format!("{begin}; DELETE FROM items WHERE id = 20; COMMIT") }))
         .await;
+
     assert_eq!(ended["inTransaction"], false, "SQL that ends a transaction is noticed");
     assert_eq!(db.count("items").await, 5);
 
     let connection = db.connection.clone();
     let other = db.client.open(connection).await;
     db.ok("transaction", json!({ "session": other, "action": "begin" })).await;
+
     db.ok("execute", json!({ "session": other, "sql": "INSERT INTO items VALUES (30, 'gone')" }))
         .await;
+
     db.ok("close", json!({ "session": other })).await;
+
     assert_eq!(db.count("items").await, 5, "closing a session rolls its transaction back");
 }
 
 async fn seed_export(db: &mut Db<'_>) {
     db.script("DROP TABLE IF EXISTS exp; CREATE TABLE exp (id INTEGER PRIMARY KEY, name VARCHAR(50), note TEXT, data BLOB)")
         .await;
+
     db.ok(
         "apply",
         json!({ "table": "exp", "changes": [
@@ -357,6 +398,7 @@ pub async fn exports_every_format(db: &mut Db<'_>, directory: &Path) {
     let csv_path = directory.join("exp.csv");
     let csv = db.ok("export", export_params(&csv_path, "csv", source.clone())).await;
     let text = std::fs::read_to_string(&csv_path).unwrap();
+
     assert_eq!(
         text,
         "id,name,note,data\r\n1,Ada,plain,00ff10\r\n2,Grace,\"comma, \"\"quote\"\"\",\r\n3,Tab,\"a\tb\nline2 \\ back's\",\r\n"
@@ -371,8 +413,10 @@ pub async fn exports_every_format(db: &mut Db<'_>, directory: &Path) {
         "csv",
         json!({ "kind": "table", "schema": db.schema, "table": "exp", "where": "id > 1", "orderBy": "id DESC" }),
     );
+
     headerless["header"] = json!(false);
     db.ok("export", headerless).await;
+
     assert_eq!(
         std::fs::read_to_string(&csv_path).unwrap(),
         "3,Tab,\"a\tb\nline2 \\ back's\",\r\n2,Grace,\"comma, \"\"quote\"\"\",\r\n",
@@ -381,6 +425,7 @@ pub async fn exports_every_format(db: &mut Db<'_>, directory: &Path) {
 
     let tsv_path = directory.join("exp.tsv");
     db.ok("export", export_params(&tsv_path, "tsv", source.clone())).await;
+
     assert_eq!(
         std::fs::read_to_string(&tsv_path).unwrap(),
         "id\tname\tnote\tdata\n1\tAda\tplain\t00ff10\n2\tGrace\tcomma, \"quote\"\t\\N\n3\tTab\ta\\tb\\nline2 \\\\ back's\t\\N\n"
@@ -389,6 +434,7 @@ pub async fn exports_every_format(db: &mut Db<'_>, directory: &Path) {
     let json_path = directory.join("exp.json");
     db.ok("export", export_params(&json_path, "json", source.clone())).await;
     let parsed: Value = serde_json::from_str(&std::fs::read_to_string(&json_path).unwrap()).unwrap();
+
     assert_eq!(
         parsed,
         json!([
@@ -403,21 +449,26 @@ pub async fn exports_every_format(db: &mut Db<'_>, directory: &Path) {
     sql_params["tableName"] = json!("exp_copy");
     db.ok("export", sql_params).await;
     let dump = std::fs::read_to_string(&sql_path).unwrap();
+
     assert_eq!(dump.lines().count(), 4, "{dump}");
     assert!(dump.contains("exp_copy"));
 
     db.script("DROP TABLE IF EXISTS exp_copy; CREATE TABLE exp_copy (id INTEGER PRIMARY KEY, name VARCHAR(50), note TEXT, data BLOB)")
         .await;
+
     db.script(&dump).await;
+
     let original = db
         .ok("rows", json!({ "table": "exp", "orderBy": "id", "offset": 0, "limit": 10, "cellLimit": 1000 }))
         .await;
+
     let copy = db
         .ok(
             "rows",
             json!({ "table": "exp_copy", "orderBy": "id", "offset": 0, "limit": 10, "cellLimit": 1000 }),
         )
         .await;
+
     assert_eq!(original["rows"], copy["rows"], "the SQL export restores the rows exactly");
 
     let query_path = directory.join("query.csv");
@@ -425,23 +476,28 @@ pub async fn exports_every_format(db: &mut Db<'_>, directory: &Path) {
     let mut query_params = export_params(&query_path, "csv", by_query);
     query_params["header"] = json!(true);
     let queried = db.ok("export", query_params).await;
+
     assert_eq!(queried["rows"], 2);
     assert_eq!(std::fs::read_to_string(&query_path).unwrap(), "id,name\r\n1,Ada\r\n2,Grace\r\n");
 
     let default_name_path = directory.join("result.sql");
+
     db.ok(
         "export",
         export_params(&default_name_path, "sql", json!({ "kind": "query", "sql": "SELECT id FROM exp WHERE id = 1" })),
     )
     .await;
+
     assert!(std::fs::read_to_string(&default_name_path).unwrap().contains("result"));
 
     let empty_path = directory.join("empty.json");
+
     db.ok(
         "export",
         export_params(&empty_path, "json", json!({ "kind": "query", "sql": "SELECT id FROM exp WHERE id < 0" })),
     )
     .await;
+
     assert_eq!(
         serde_json::from_str::<Value>(&std::fs::read_to_string(&empty_path).unwrap()).unwrap(),
         json!([])
@@ -455,25 +511,30 @@ pub async fn export_failures_leave_nothing_behind(db: &mut Db<'_>, directory: &P
     std::fs::write(&target, "old").unwrap();
 
     let failing = export_params(&target, "csv", json!({ "kind": "query", "sql": "SELECT nope FROM exp" }));
+
     assert_eq!(db.error("export", failing).await["code"], "query-failed");
     assert_eq!(std::fs::read_to_string(&target).unwrap(), "old");
     assert!(!has_partial(directory, "kept.csv"));
 
     let missing = directory.join("no-such-folder").join("out.csv");
+
     let error = db
         .error("export", export_params(&missing, "csv", json!({ "kind": "query", "sql": "SELECT 1" })))
         .await;
+
     assert_eq!(error["code"], "file-failed", "{error}");
 
     let writing = db
         .error("export", export_params(&target, "csv", json!({ "kind": "query", "sql": "DELETE FROM exp" })))
         .await;
+
     assert_eq!(writing["code"], "unsupported");
     assert_eq!(db.count("exp").await, 3);
 
     let several = db
         .error("export", export_params(&target, "csv", json!({ "kind": "query", "sql": "SELECT 1; SELECT 2" })))
         .await;
+
     assert_eq!(several["code"], "unsupported");
 
     let relative = db
@@ -482,6 +543,7 @@ pub async fn export_failures_leave_nothing_behind(db: &mut Db<'_>, directory: &P
             json!({ "source": { "kind": "query", "sql": "SELECT 1" }, "format": "csv", "path": "relative.csv" }),
         )
         .await;
+
     assert_eq!(relative["code"], "invalid-request");
 
     let unknown_table = db
@@ -490,6 +552,7 @@ pub async fn export_failures_leave_nothing_behind(db: &mut Db<'_>, directory: &P
             export_params(&target, "csv", json!({ "kind": "table", "schema": db.schema, "table": "nope" })),
         )
         .await;
+
     assert_eq!(unknown_table["code"], "query-failed");
     assert!(!has_partial(directory, "kept.csv"));
     assert_eq!(std::fs::read_to_string(&target).unwrap(), "old");
@@ -499,19 +562,23 @@ pub async fn export_failures_leave_nothing_behind(db: &mut Db<'_>, directory: &P
 pub async fn cancels_an_export(db: &mut Db<'_>, directory: &Path, endless: &str) {
     let target = directory.join("endless.csv");
     let id = db.client.next_id();
+
     let line = json!({
         "id": id,
         "method": "export",
         "params": { "session": db.session, "source": { "kind": "query", "sql": endless }, "format": "csv", "path": target.to_str().unwrap() },
     })
     .to_string();
+
     let running = tokio::spawn(db.client.dispatcher.submit(&line));
 
     tokio::time::sleep(Duration::from_millis(700)).await;
+
     assert!(has_partial(directory, "endless.csv"), "rows are being written");
     assert_eq!(db.client.ok("cancel", json!({ "request": id })).await, json!({ "cancelled": true }));
 
     let answer: Value = serde_json::from_str(&tokio::time::timeout(Duration::from_secs(15), running).await.expect("the export stops").unwrap()).unwrap();
+
     assert_eq!(answer["error"]["code"], "cancelled", "{answer}");
     assert!(!has_partial(directory, "endless.csv"));
     assert!(!target.exists());
@@ -529,20 +596,24 @@ pub async fn cancels_a_script_after_a_write(db: &mut Db<'_>, endless: &str) {
 
     for (label, open) in [("z", true), ("y", false)] {
         let update = format!("UPDATE items SET label = '{label}' WHERE id = 1");
+
         let sql = if open {
             format!("{}; {update}; {endless}", db.begin_sql())
         } else {
             format!("{update}; {endless}")
         };
+
         let id = db.client.next_id();
         let line = json!({ "id": id, "method": "execute", "params": { "session": db.session, "schema": db.schema, "sql": sql } }).to_string();
         let running = tokio::spawn(db.client.dispatcher.submit(&line));
 
         tokio::time::sleep(Duration::from_millis(500)).await;
+
         assert_eq!(db.client.ok("cancel", json!({ "request": id })).await, json!({ "cancelled": true }));
 
         let answer: Value = serde_json::from_str(&tokio::time::timeout(Duration::from_secs(10), running).await.expect("the script stops").unwrap()).unwrap();
         let results = answer["result"]["results"].as_array().expect("a cancelled script answers its results");
+
         let [.., updated, stopped] = results.as_slice() else {
             panic!("{answer}");
         };
@@ -560,6 +631,7 @@ pub async fn cancels_a_script_after_a_write(db: &mut Db<'_>, endless: &str) {
     }
 
     let labels = db.script("SELECT label FROM items WHERE id = 1").await;
+
     assert_eq!(
         labels["results"][0]["rows"],
         json!([["y"]]),
@@ -599,6 +671,7 @@ pub async fn samples_files(db: &mut Db<'_>, directory: &Path) {
         .client
         .ok("sample", json!({ "path": path, "format": "csv", "header": true, "limit": 2 }))
         .await;
+
     assert_eq!(with_header["columns"], json!(["id", "email", "name"]));
     assert_eq!(
         with_header["rows"],
@@ -606,29 +679,35 @@ pub async fn samples_files(db: &mut Db<'_>, directory: &Path) {
     );
 
     let all = db.client.ok("sample", json!({ "path": path, "format": "csv", "header": true })).await;
+
     assert_eq!(all["rows"][2], json!(["3", "x@example.com", ""]), "a short line is padded");
 
     let without = db
         .client
         .ok("sample", json!({ "path": path, "format": "csv", "header": false, "limit": 1 }))
         .await;
+
     assert_eq!(without["columns"], json!(["column1", "column2", "column3"]));
     assert_eq!(without["rows"], json!([["id", "email", "name"]]));
 
     let tsv = write(directory, "people.tsv", "email\tname\nt@x\tTab\\there\nu@x\t\\N\n");
     let tabs = db.client.ok("sample", json!({ "path": tsv, "format": "tsv", "header": true })).await;
+
     assert_eq!(tabs["columns"], json!(["email", "name"]));
     assert_eq!(tabs["rows"], json!([["t@x", "Tab\there"], ["u@x", "\\N"]]));
 
     let missing = directory.join("missing.csv");
+
     let error = db
         .client
         .error("sample", json!({ "path": missing.to_str().unwrap(), "format": "csv", "header": true }))
         .await;
+
     assert_eq!(error["code"], "file-failed");
     assert!(error["message"].as_str().unwrap().contains("No such file or directory"), "{error}");
 
     let json_format = db.client.error("sample", json!({ "path": path, "format": "json", "header": true })).await;
+
     assert_eq!(json_format["code"], "invalid-request");
 }
 
@@ -640,17 +719,21 @@ pub async fn imports_files(db: &mut Db<'_>, directory: &Path) {
         "people.csv",
         "ignored,email,name,joined\r\n1,ada@example.com,Ada,2026-10-01\r\n2,grace@example.com,,\\N\r\n3,\"lin,us@example.com\",\"Li\"\"nus\",2026-10-02\r\n",
     );
+
     let columns = json!([null, "email", "name", "joined"]);
+
     let imported = db
         .ok(
             "import",
             json!({ "table": "people", "path": path, "format": "csv", "header": true, "columns": columns }),
         )
         .await;
+
     assert_eq!(imported["rows"], 3);
     assert!(imported["elapsedMs"].is_number());
 
     let rows = db.script("SELECT email, name, joined FROM people ORDER BY email").await;
+
     assert_eq!(
         rows["results"][0]["rows"],
         json!([
@@ -661,14 +744,18 @@ pub async fn imports_files(db: &mut Db<'_>, directory: &Path) {
     );
 
     let tsv = write(directory, "more.tsv", "email\tname\nt1@example.com\tTab\\there\nt2@example.com\t\\N\n");
+
     let tabs = db
         .ok(
             "import",
             json!({ "table": "people", "path": tsv, "format": "tsv", "header": true, "columns": ["email", "name"] }),
         )
         .await;
+
     assert_eq!(tabs["rows"], 2);
+
     let tab_rows = db.script("SELECT name FROM people WHERE email LIKE 't%' ORDER BY email").await;
+
     assert_eq!(tab_rows["results"][0]["rows"], json!([["Tab\there"], [null]]));
     assert_eq!(db.count("people").await, 5);
 
@@ -677,12 +764,14 @@ pub async fn imports_files(db: &mut Db<'_>, directory: &Path) {
         "duplicate.csv",
         "email,name\r\nnew1@example.com,A\r\nnew2@example.com,B\r\nada@example.com,C\r\n",
     );
+
     let error = db
         .error(
             "import",
             json!({ "table": "people", "path": duplicate, "format": "csv", "header": true, "columns": ["email", "name"] }),
         )
         .await;
+
     assert_eq!(error["code"], "query-failed", "{error}");
     assert!(error["message"].as_str().unwrap().starts_with("Line 4:"), "{error}");
     assert_eq!(db.count("people").await, 5, "a failed import leaves nothing behind");
@@ -694,12 +783,14 @@ pub async fn imports_files(db: &mut Db<'_>, directory: &Path) {
     }
 
     let big_path = write(directory, "big.csv", &big);
+
     let bulk = db
         .ok(
             "import",
             json!({ "table": "people", "path": big_path, "format": "csv", "header": true, "columns": ["email", "name"] }),
         )
         .await;
+
     assert_eq!(bulk["rows"], 2500);
     assert_eq!(db.count("people").await, 2505);
 
@@ -711,22 +802,26 @@ pub async fn imports_files(db: &mut Db<'_>, directory: &Path) {
     }
 
     let duplicate_path = write(directory, "big-duplicate.csv", &with_duplicate);
+
     let located = db
         .error(
             "import",
             json!({ "table": "people", "path": duplicate_path, "format": "csv", "header": true, "columns": ["email", "name"] }),
         )
         .await;
+
     assert!(located["message"].as_str().unwrap().starts_with("Line 1801:"), "{located}");
     assert_eq!(db.count("people").await, 2505);
 
     let ragged = write(directory, "ragged.csv", "email,name\nr1@example.com,A\nr2@example.com\n");
+
     let ragged_error = db
         .error(
             "import",
             json!({ "table": "people", "path": ragged, "format": "csv", "header": true, "columns": ["email", "name"] }),
         )
         .await;
+
     assert_eq!(ragged_error["code"], "file-failed");
     assert!(ragged_error["message"].as_str().unwrap().starts_with("Line 3 has 1 fields"), "{ragged_error}");
     assert_eq!(db.count("people").await, 2505);
@@ -737,21 +832,27 @@ pub async fn imports_files(db: &mut Db<'_>, directory: &Path) {
             json!({ "table": "people", "path": ragged, "format": "csv", "header": true, "columns": ["email", "nope"] }),
         )
         .await;
+
     assert_eq!(unknown["code"], "invalid-request");
+
     let unmapped = db
         .error(
             "import",
             json!({ "table": "people", "path": ragged, "format": "csv", "header": true, "columns": [null, null] }),
         )
         .await;
+
     assert_eq!(unmapped["code"], "invalid-request");
+
     let gone = directory.join("gone.csv");
+
     let missing = db
         .error(
             "import",
             json!({ "table": "people", "path": gone.to_str().unwrap(), "format": "csv", "header": true, "columns": ["email"] }),
         )
         .await;
+
     assert_eq!(missing["code"], "file-failed");
 }
 
@@ -761,20 +862,24 @@ pub async fn imports_inside_a_transaction(db: &mut Db<'_>, directory: &Path) {
     let params = json!({ "table": "people", "path": path, "format": "csv", "header": true, "columns": ["email", "name"] });
 
     db.ok("transaction", json!({ "action": "begin" })).await;
+
     assert_eq!(db.ok("import", params.clone()).await["rows"], 2);
     assert_eq!(db.count("people").await, 2);
 
     let failing = write(directory, "inside-bad.csv", "email,name\ni3@example.com,C\ni1@example.com,D\n");
+
     let error = db
         .error(
             "import",
             json!({ "table": "people", "path": failing, "format": "csv", "header": true, "columns": ["email", "name"] }),
         )
         .await;
+
     assert!(error["message"].as_str().unwrap().starts_with("Line 3:"), "{error}");
     assert_eq!(db.count("people").await, 2, "a failed import undoes only itself");
 
     let state = db.ok("execute", json!({ "sql": "SELECT 1" })).await;
+
     assert_eq!(state["inTransaction"], true, "the person's transaction is still open");
 
     assert_eq!(db.ok("transaction", json!({ "action": "rollback" })).await, json!({ "active": false }));
@@ -797,6 +902,7 @@ pub async fn read_only_sessions_refuse_imports(db: &mut Db<'_>, directory: &Path
             json!({ "session": session, "table": "people", "path": path, "format": "csv", "header": true, "columns": ["email"] }),
         )
         .await;
+
     assert_eq!(error["code"], "read-only", "{error}");
     assert_eq!(db.count("people").await, 0);
 

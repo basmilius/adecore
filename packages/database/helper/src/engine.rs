@@ -24,9 +24,11 @@ pub async fn connect(config: &ConnectionConfig) -> Result<(Engine, ServerInfo, C
     match config {
         ConnectionConfig::Sqlite(sqlite) => {
             let sqlite = sqlite.clone();
+
             let (engine, server) = tokio::task::spawn_blocking(move || SqliteEngine::open(&sqlite))
                 .await
                 .map_err(|e| DatabaseError::internal(format!("The SQLite worker failed: {e}.")))??;
+
             let canceller = Canceller::Sqlite(engine.interrupt_handle());
 
             Ok((Engine::Sqlite(engine), server, canceller))

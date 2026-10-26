@@ -171,6 +171,7 @@ impl SqliteEngine {
     /// Closing the connection rolls back what a transaction left open; doing it first keeps that visible.
     pub async fn close(self) {
         let connection = self.connection;
+
         let _ = tokio::task::spawn_blocking(move || {
             let connection = lock(&connection);
 
@@ -200,7 +201,9 @@ fn list_tables(connection: &Connection, schema: &str) -> Result<TablesResult> {
         "SELECT name, type FROM {}.sqlite_schema WHERE type IN ('table', 'view')",
         DIALECT.quote_ident(schema)
     );
+
     let mut statement = connection.prepare(&sql)?;
+
     let mut tables = statement
         .query_map([], |row| {
             let kind: String = row.get(1)?;
@@ -247,8 +250,10 @@ fn table_structure(connection: &Connection, schema: &str, table: &str) -> Result
     };
 
     let kind = table_kind(kind_name == "view");
+
     let raw_columns = {
         let mut statement = connection.prepare(&format!("PRAGMA {quoted_schema}.table_xinfo({quoted_table})"))?;
+
         statement
             .query_map([], |row| {
                 Ok(RawColumn {
@@ -270,6 +275,7 @@ fn table_structure(connection: &Connection, schema: &str, table: &str) -> Result
         .filter(|column| column.pk_order > 0)
         .map(|column| (column.pk_order, column.name.clone()))
         .collect();
+
     primary.sort_by_key(|(order, _)| *order);
     let primary_key: Vec<String> = primary.into_iter().map(|(_, name)| name).collect();
 
@@ -302,6 +308,7 @@ fn table_structure(connection: &Connection, schema: &str, table: &str) -> Result
 
     let (indexes, unique_candidates) = read_indexes(connection, &quoted_schema, &quoted_table)?;
     let candidate_refs: Vec<&[String]> = unique_candidates.iter().map(Vec::as_slice).collect();
+
     let row_key = if kind == TableKind::View {
         None
     } else {
@@ -330,6 +337,7 @@ fn read_triggers(connection: &Connection, quoted_schema: &str, table: &str) -> R
     let mut statement = connection.prepare(&format!(
         "SELECT name, sql FROM {quoted_schema}.sqlite_schema WHERE type = 'trigger' AND tbl_name = ?1 ORDER BY name"
     ))?;
+
     let triggers = statement
         .query_map([table], |row| Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?)))?
         .collect::<rusqlite::Result<Vec<_>>>()?;
@@ -338,6 +346,7 @@ fn read_triggers(connection: &Connection, quoted_schema: &str, table: &str) -> R
         .into_iter()
         .map(|(name, sql)| {
             let (timing, event) = trigger_shape(sql.as_deref().unwrap_or_default());
+
             TriggerInfo { name, timing, event }
         })
         .collect())
@@ -347,6 +356,7 @@ fn read_triggers(connection: &Connection, quoted_schema: &str, table: &str) -> R
 fn trigger_shape(sql: &str) -> (String, String) {
     let words = top_level_words(sql, DIALECT);
     let head: Vec<&str> = words.iter().map(String::as_str).take_while(|word| *word != "ON").collect();
+
     let timing = if head.contains(&"INSTEAD") {
         "INSTEAD OF"
     } else if head.contains(&"AFTER") {
@@ -354,6 +364,7 @@ fn trigger_shape(sql: &str) -> (String, String) {
     } else {
         "BEFORE"
     };
+
     let event = head
         .iter()
         .find(|word| matches!(**word, "INSERT" | "UPDATE" | "DELETE"))
@@ -380,6 +391,7 @@ fn read_indexes(connection: &Connection, quoted_schema: &str, quoted_table: &str
 
     let mut raw = {
         let mut statement = connection.prepare(&format!("PRAGMA {quoted_schema}.index_list({quoted_table})"))?;
+
         statement
             .query_map([], |row| {
                 Ok(RawIndex {
@@ -400,9 +412,11 @@ fn read_indexes(connection: &Connection, quoted_schema: &str, quoted_table: &str
 
     for index in raw {
         let mut statement = connection.prepare(&format!("PRAGMA {quoted_schema}.index_info({})", DIALECT.quote_ident(&index.name)))?;
+
         let parts = statement
             .query_map([], |row| row.get::<_, Option<String>>(2))?
             .collect::<rusqlite::Result<Vec<_>>>()?;
+
         let complete = parts.iter().all(Option::is_some);
         let columns: Vec<String> = parts.into_iter().flatten().collect();
 
@@ -433,6 +447,7 @@ fn read_foreign_keys(connection: &Connection, schema: &str, quoted_schema: &str,
 
     let raw = {
         let mut statement = connection.prepare(&format!("PRAGMA {quoted_schema}.foreign_key_list({quoted_table})"))?;
+
         statement
             .query_map([], |row| {
                 Ok(RawKey {
@@ -480,6 +495,7 @@ fn read_foreign_keys(connection: &Connection, schema: &str, quoted_schema: &str,
 
 fn primary_key_of(connection: &Connection, quoted_schema: &str, table: &str) -> Result<Vec<String>> {
     let mut statement = connection.prepare(&format!("PRAGMA {quoted_schema}.table_info({})", DIALECT.quote_ident(table)))?;
+
     let mut primary = statement
         .query_map([], |row| Ok((row.get::<_, i64>(5)?, row.get::<_, String>(1)?)))?
         .collect::<rusqlite::Result<Vec<_>>>()?;
@@ -505,6 +521,7 @@ fn result_columns(statement: &Statement<'_>) -> Vec<ResultColumn> {
         .zip(origins.iter())
         .map(|(column, origin)| {
             let declared = column.decl_type().unwrap_or_default();
+
             let source = match (origin.database_name(), origin.table_name(), origin.origin_name()) {
                 (Some(schema), Some(table), Some(name)) => ColumnSource::of(schema, table, name),
                 _ => None,
@@ -553,6 +570,7 @@ fn read_result_rows(
     while let Some(row) = rows.next()? {
         if cells.len() == limit {
             has_more = true;
+
             break;
         }
 
@@ -560,6 +578,7 @@ fn read_result_rows(
 
         if !budget.admit(&row, cells.is_empty()) {
             has_more = true;
+
             break;
         }
 
@@ -690,6 +709,7 @@ fn execute_script(connection: &Connection, params: &ExecuteParams, cancelled: &A
 
         if cancelled.load(Ordering::SeqCst) {
             results.push(StatementResult::cancelled(statement, 0.0));
+
             break;
         }
 
@@ -697,6 +717,7 @@ fn execute_script(connection: &Connection, params: &ExecuteParams, cancelled: &A
             Ok(result) => results.push(result),
             Err(error) if error.code == ErrorCode::Cancelled => {
                 results.push(StatementResult::cancelled(statement, elapsed_ms(started.elapsed())));
+
                 break;
             }
             Err(error) => {
@@ -705,6 +726,7 @@ fn execute_script(connection: &Connection, params: &ExecuteParams, cancelled: &A
                     error,
                     elapsed_ms: elapsed_ms(started.elapsed()),
                 });
+
                 break;
             }
         }
@@ -853,6 +875,7 @@ fn insert_batches(connection: &Connection, params: &ImportParams, names: &[Strin
 
 fn insert_rows(connection: &Connection, params: &ImportParams, names: &[String], rows: &[ImportRow]) -> Result<()> {
     let sql = insert_sql(DIALECT, &params.schema, &params.table, names, rows.len());
+
     let values: Vec<SqlValue> = rows
         .iter()
         .flat_map(|row| row.values.iter())
@@ -891,8 +914,10 @@ mod tests {
     fn reads_when_a_trigger_fires() {
         let shape = |sql: &str| {
             let (timing, event) = trigger_shape(sql);
+
             format!("{timing} {event}")
         };
+
         assert_eq!(shape("CREATE TRIGGER t AFTER INSERT ON a BEGIN SELECT 1; END"), "AFTER INSERT");
         assert_eq!(
             shape("CREATE TEMP TRIGGER IF NOT EXISTS \"after\" UPDATE OF b ON a BEGIN SELECT 1; END"),

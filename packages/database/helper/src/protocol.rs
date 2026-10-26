@@ -18,8 +18,10 @@ pub enum ConnectionConfig {
 #[serde(rename_all = "camelCase")]
 pub struct SqliteConfig {
     pub path: String,
+
     #[serde(default)]
     pub create: bool,
+
     #[serde(default)]
     pub read_only: bool,
 }
@@ -28,8 +30,10 @@ pub struct SqliteConfig {
 #[serde(rename_all = "lowercase")]
 pub enum TlsMode {
     Disable,
+
     #[default]
     Prefer,
+
     Require,
     Verify,
 }
@@ -43,10 +47,13 @@ pub struct MysqlConfig {
     pub user: String,
     pub password: Option<String>,
     pub database: Option<String>,
+
     #[serde(default)]
     pub tls: TlsMode,
+
     #[serde(default)]
     pub read_only: bool,
+
     #[serde(default)]
     pub tunnel: Option<Tunnel>,
 }
@@ -129,6 +136,7 @@ pub enum EditValue {
 pub enum CellObject {
     #[serde(rename = "binary")]
     Binary { hex: String, length: u64 },
+
     #[serde(rename = "longText")]
     LongText { preview: String, length: u64 },
 }
@@ -186,8 +194,10 @@ pub struct TableInfo {
 #[serde(rename_all = "camelCase")]
 pub struct ColumnInfo {
     pub name: String,
+
     #[serde(rename = "type")]
     pub column_type: String,
+
     pub kind: ValueKind,
     pub nullable: bool,
     pub default_value: Option<String>,
@@ -240,12 +250,15 @@ pub struct TableStructure {
     pub row_key: Option<Vec<String>>,
     pub indexes: Vec<IndexInfo>,
     pub foreign_keys: Vec<ForeignKeyInfo>,
+
     /// Left out on a view, and where the engine keeps no list of them: SQLite has its checks only inside the DDL.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub checks: Option<Vec<CheckInfo>>,
+
     /// Left out on a view.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub triggers: Option<Vec<TriggerInfo>>,
+
     pub ddl: Option<String>,
 }
 
@@ -260,9 +273,12 @@ pub struct ColumnSource {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ResultColumn {
     pub name: String,
+
     #[serde(rename = "type")]
     pub column_type: String,
+
     pub kind: ValueKind,
+
     /// Left out for an expression, an alias of one and, on MySQL, a derived table.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source: Option<ColumnSource>,
@@ -618,8 +634,10 @@ pub struct ContainerPort {
 pub struct SuggestedLogin {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub user: Option<String>,
+
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub password: Option<String>,
+
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub database: Option<String>,
 }

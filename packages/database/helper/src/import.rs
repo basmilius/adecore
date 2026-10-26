@@ -64,6 +64,7 @@ pub struct ImportRow {
 pub struct ImportPlan {
     /// The number of fields every line must have.
     pub fields: usize,
+
     /// The target columns, with the position of the field that fills each.
     pub mapped: Vec<(usize, String)>,
 }
@@ -264,10 +265,12 @@ mod tests {
             fields: 1,
             mapped: vec![(0, "a".to_string())],
         };
+
         let many = ImportPlan {
             fields: 100,
             mapped: (0..100).map(|i| (i, format!("c{i}"))).collect(),
         };
+
         let huge = ImportPlan {
             fields: 9000,
             mapped: (0..9000).map(|i| (i, format!("c{i}"))).collect(),
@@ -319,6 +322,7 @@ mod tests {
     #[test]
     fn samples_with_a_header() {
         let (_directory, path) = file("id,email\n1,a\n2,b\n3,c\n");
+
         let sample = sample(&SampleParams {
             path,
             format: DelimitedFormat::Csv,
@@ -334,6 +338,7 @@ mod tests {
     #[test]
     fn samples_without_a_header_and_pads_short_lines() {
         let (_directory, path) = file("1,a,x\n2\n");
+
         let sample = sample(&SampleParams {
             path,
             format: DelimitedFormat::Csv,
@@ -349,6 +354,7 @@ mod tests {
     #[test]
     fn samples_an_empty_file() {
         let (_directory, path) = file("");
+
         let sample = sample(&SampleParams {
             path,
             format: DelimitedFormat::Csv,

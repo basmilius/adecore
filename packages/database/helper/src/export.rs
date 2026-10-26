@@ -94,6 +94,7 @@ impl Exporter {
     pub fn new(format: FileFormat, dialect: Dialect, columns: Vec<ResultColumn>, header: bool, table_name: &str) -> Exporter {
         let names: Vec<String> = columns.iter().map(|column| dialect.quote_ident(&column.name)).collect();
         let insert_head = format!("INSERT INTO {} ({}) VALUES (", dialect.quote_ident(table_name), names.join(", "));
+
         let mut exporter = Exporter {
             format,
             dialect,
@@ -259,10 +260,12 @@ fn json_string(text: &str) -> String {
 /// Digits with an optional sign, fraction and exponent, which a SQL literal can leave unquoted.
 fn is_plain_number(text: &str) -> bool {
     let digits = text.strip_prefix(['-', '+']).unwrap_or(text);
+
     let (mantissa, exponent) = match digits.split_once(['e', 'E']) {
         Some((mantissa, exponent)) => (mantissa, Some(exponent)),
         None => (digits, None),
     };
+
     let (whole, fraction) = mantissa.split_once('.').unwrap_or((mantissa, ""));
     let all_digits = |part: &str| part.bytes().all(|byte| byte.is_ascii_digit());
 
@@ -477,9 +480,12 @@ mod tests {
 
         {
             let (partial, _) = PartialFile::create(target.to_str().unwrap()).unwrap();
+
             assert!(partial.partial_path().exists());
+
             let path = partial.partial_path().to_path_buf();
             drop(partial);
+
             assert!(!path.exists());
         }
 
@@ -508,6 +514,7 @@ mod tests {
         let (mut second, mut second_file) = PartialFile::create(target.to_str().unwrap()).unwrap();
 
         assert_ne!(first.partial_path(), second.partial_path());
+
         std::io::Write::write_all(&mut second_file, b"second").unwrap();
         second.commit().unwrap();
         std::io::Write::write_all(&mut first_file, b"first").unwrap();
@@ -527,6 +534,7 @@ mod tests {
                 .env("ADECORE_TEST_PARTIAL_SYMLINK_CHILD", "1")
                 .output()
                 .unwrap();
+
             assert!(
                 output.status.success(),
                 "{}\n{}",
@@ -534,20 +542,25 @@ mod tests {
                 String::from_utf8_lossy(&output.stderr)
             );
             assert!(String::from_utf8_lossy(&output.stdout).contains("1 passed"));
+
             return;
         }
 
         let directory = tempfile::tempdir().unwrap();
         let marker = directory.path().join("unrelated.txt");
         let target = directory.path().join("linked.csv");
+
         let collision = directory
             .path()
             .join(format!("linked.csv.{}-{}.partial", std::process::id(), NEXT_PARTIAL.load(Ordering::Relaxed)));
+
         std::fs::write(&marker, "must survive").unwrap();
         std::os::unix::fs::symlink(&marker, &collision).unwrap();
 
         let (mut partial, mut file) = PartialFile::create(target.to_str().unwrap()).unwrap();
+
         assert_ne!(partial.partial_path(), collision);
+
         std::io::Write::write_all(&mut file, b"exported").unwrap();
         partial.commit().unwrap();
 

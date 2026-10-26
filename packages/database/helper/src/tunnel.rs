@@ -86,6 +86,7 @@ pub fn docker_inspect_arguments(tunnel: &DockerTunnel) -> Vec<String> {
 
 pub fn docker_exec_command(tunnel: &DockerTunnel, port: u16) -> CommandSpec {
     let mut arguments = docker::context_arguments(tunnel.context.as_deref());
+
     arguments.extend([
         "exec".to_string(),
         "-i".to_string(),
@@ -167,9 +168,11 @@ impl Tunnel {
 
     async fn through_docker(tunnel: &DockerTunnel) -> Result<Tunnel> {
         let port = tunnel.port.unwrap_or(3306);
+
         let inspected = docker::stdout_of(&docker_inspect_arguments(tunnel))
             .await
             .map_err(DockerFailure::into_tunnel_error)?;
+
         let container = docker::parse_inspect(&inspected)?
             .into_iter()
             .next()
@@ -200,6 +203,7 @@ impl Tunnel {
     /// A published port lives on the machine of the daemon; for a remote daemon that is not this one.
     async fn is_remote_daemon(tunnel: &DockerTunnel) -> bool {
         let mut arguments = docker::context_arguments(tunnel.context.as_deref());
+
         arguments.extend([
             "context".to_string(),
             "inspect".to_string(),
@@ -250,6 +254,7 @@ async fn serve(listener: TcpListener, spec: CommandSpec, failures: Arc<Failures>
 enum Ended {
     /// The process closed its output: the far end hung up, or the process died.
     Process,
+
     /// The client closed its side.
     Client,
 }
@@ -373,6 +378,7 @@ mod tests {
             user: Some("deploy".to_string()),
             identity_file: Some("/Users/demo/.ssh/id_ed25519".to_string()),
         };
+
         let spec = ssh_command(&tunnel, "127.0.0.1", 3307);
 
         assert_eq!(

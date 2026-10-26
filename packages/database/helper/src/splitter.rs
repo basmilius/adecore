@@ -401,6 +401,7 @@ mod tests {
     #[test]
     fn keeps_sqlite_trigger_bodies_whole() {
         let sql = "CREATE TRIGGER t AFTER INSERT ON a BEGIN INSERT INTO b VALUES (CASE WHEN 1 THEN 2 END); UPDATE c SET x = 1; END; SELECT 1";
+
         assert_eq!(
             sqlite(sql),
             vec![

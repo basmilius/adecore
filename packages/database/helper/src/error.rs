@@ -25,10 +25,13 @@ pub enum ErrorCode {
 pub struct DatabaseError {
     pub code: ErrorCode,
     pub message: String,
+
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sql_state: Option<String>,
+
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub change: Option<usize>,
+
     /// The connection to the server is gone, so its session can answer nothing again.
     #[serde(skip)]
     pub connection_lost: bool,
@@ -89,16 +92,19 @@ impl DatabaseError {
 
     pub fn with_sql_state(mut self, sql_state: impl Into<String>) -> Self {
         self.sql_state = Some(sql_state.into());
+
         self
     }
 
     pub fn with_change(mut self, change: usize) -> Self {
         self.change = Some(change);
+
         self
     }
 
     fn lost(mut self) -> Self {
         self.connection_lost = true;
+
         self
     }
 }

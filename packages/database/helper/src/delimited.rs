@@ -57,6 +57,7 @@ pub struct DelimitedReader {
 impl DelimitedReader {
     pub fn open(path: &str, format: DelimitedFormat) -> Result<DelimitedReader> {
         let mut source = BufReader::new(File::open(path)?);
+
         let mut lines = LineCounter {
             file: BufReader::new(File::open(path)?),
             scanned: 0,
@@ -99,6 +100,7 @@ impl DelimitedReader {
             Some(position) => self.lines.line_at(position.byte())?,
             None => 0,
         };
+
         let fields = self
             .record
             .iter()

@@ -30,6 +30,7 @@ fn docker_config(container: &str, extra: Value) -> Value {
         "password": password(),
         "tunnel": { "kind": "docker", "container": container },
     });
+
     config.as_object_mut().unwrap().extend(extra.as_object().unwrap().clone());
 
     config
@@ -42,6 +43,7 @@ fn running(pattern: &str) -> bool {
 async fn works_through(container: &str, process: Option<&str>) -> Client {
     let mut client = Client::new();
     let tested = client.ok("test", json!({ "connection": docker_config(container, json!({})) })).await;
+
     assert!(tested["server"]["version"].as_str().is_some_and(|version| !version.is_empty()), "{tested}");
 
     let session = client
@@ -50,9 +52,11 @@ async fn works_through(container: &str, process: Option<&str>) -> Client {
             json!({ "host": "ignored.invalid", "port": 1, "socket": "/no/such.sock" }),
         ))
         .await;
+
     let answer = client
         .ok("execute", json!({ "session": session, "sql": "SELECT 7 AS n, REPEAT('x', 3000000) AS big" }))
         .await;
+
     assert_eq!(answer["results"][0]["rows"][0][0], 7);
     assert_eq!(
         answer["results"][0]["rows"][0][1]["length"], 3_000_000,
@@ -68,13 +72,16 @@ async fn works_through(container: &str, process: Option<&str>) -> Client {
     let started = Instant::now();
     let sleeping = tokio::spawn(client.dispatcher.submit(&line));
     tokio::time::sleep(Duration::from_millis(800)).await;
+
     assert_eq!(client.ok("cancel", json!({ "request": id })).await, json!({ "cancelled": true }));
 
     let cancelled: Value = serde_json::from_str(&tokio::time::timeout(Duration::from_secs(15), sleeping).await.expect("the query stops").unwrap()).unwrap();
+
     assert_eq!(cancelled["result"]["results"][0]["error"]["code"], "cancelled", "{cancelled}");
     assert!(started.elapsed() < Duration::from_secs(15));
 
     let after = client.ok("execute", json!({ "session": session, "sql": "SELECT 42" })).await;
+
     assert_eq!(after["results"][0]["rows"], json!([[42]]), "the session keeps working after a cancel");
 
     client.ok("close", json!({ "session": session })).await;
@@ -96,11 +103,13 @@ async fn connects_through_docker_exec_when_nothing_is_published() {
     let Some(container) = unpublished() else {
         return;
     };
+
     let pattern = format!("docker exec -i {container} bash -c");
 
     works_through(&container, Some(&pattern)).await;
 
     tokio::time::sleep(Duration::from_millis(1500)).await;
+
     assert!(!running(&pattern), "closing the session ends the processes of its tunnel");
 
     let listed = Command::new("docker")
@@ -130,15 +139,18 @@ async fn names_the_container_that_cannot_be_reached() {
     let Some(container) = published() else {
         return;
     };
+
     let mut client = Client::new();
 
     let missing = client
         .error("open", json!({ "connection": docker_config("adecore-no-such-container", json!({})) }))
         .await;
+
     assert_eq!(missing["code"], "tunnel-failed", "{missing}");
     assert!(missing["message"].as_str().unwrap().contains("No such container"), "{missing}");
 
     let stopped = "adecore-test-stopped";
+
     let image = String::from_utf8(
         Command::new("docker")
             .args(["inspect", "--format", "{{.Config.Image}}", &container])
@@ -147,7 +159,9 @@ async fn names_the_container_that_cannot_be_reached() {
             .stdout,
     )
     .unwrap();
+
     let _ = Command::new("docker").args(["rm", "-f", stopped]).output();
+
     assert!(
         Command::new("docker")
             .args(["create", "--name", stopped, image.trim()])
@@ -159,6 +173,7 @@ async fn names_the_container_that_cannot_be_reached() {
 
     let not_running = client.error("open", json!({ "connection": docker_config(stopped, json!({})) })).await;
     let _ = Command::new("docker").args(["rm", "-f", stopped]).output();
+
     assert_eq!(not_running["code"], "tunnel-failed", "{not_running}");
     assert!(not_running["message"].as_str().unwrap().contains("not running"), "{not_running}");
 
@@ -168,9 +183,11 @@ async fn names_the_container_that_cannot_be_reached() {
             json!({ "connection": docker_config(&container, json!({ "tunnel": { "kind": "docker", "container": container, "context": "adecore-no-such-context" } })) }),
         )
         .await;
+
     assert_eq!(unknown_context["code"], "tunnel-failed", "{unknown_context}");
 
     let option = client.error("open", json!({ "connection": docker_config("--help", json!({})) })).await;
+
     assert_eq!(option["code"], "invalid-request");
 }
 
@@ -179,9 +196,11 @@ async fn discovers_database_containers() {
     let (Some(with_port), Some(without_port)) = (published(), unpublished()) else {
         return;
     };
+
     let mut client = Client::new();
     let found = client.ok("discover", json!({ "kind": "docker" })).await;
     let containers = found["containers"].as_array().unwrap();
+
     let find = |name: &str| {
         containers
             .iter()
@@ -190,6 +209,7 @@ async fn discovers_database_containers() {
     };
 
     let first = find(&with_port);
+
     assert_eq!(first["engine"], "mysql");
     assert_eq!(first["id"].as_str().unwrap().len(), 12);
     assert!(first["image"].as_str().unwrap().contains("mariadb") || first["image"].as_str().unwrap().contains("mysql"));
@@ -199,6 +219,7 @@ async fn discovers_database_containers() {
     assert!(first["suggested"].is_object());
 
     let second = find(&without_port);
+
     assert_eq!(second["ports"][0], json!({ "container": 3306, "host": null }));
     assert_eq!(second["suggested"]["user"], "root");
     assert_eq!(second["suggested"]["password"], password());
@@ -211,5 +232,6 @@ async fn discovers_database_containers() {
     let bad_context = client
         .error("discover", json!({ "kind": "docker", "context": "adecore-no-such-context" }))
         .await;
+
     assert_eq!(bad_context["code"], "unsupported", "{bad_context}");
 }

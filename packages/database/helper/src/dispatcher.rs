@@ -43,8 +43,10 @@ type Gate = Arc<RwLock<()>>;
 struct RequestState {
     id: String,
     cancelled: Arc<AtomicBool>,
+
     /// Set under the lock of the slot, once the request will never run again.
     finished: AtomicBool,
+
     slot: Slot,
     gate: Gate,
     canceller: Arc<Canceller>,
@@ -190,6 +192,7 @@ impl Dispatcher {
                 gate: gate.clone(),
             }),
         );
+
         tokio::spawn(session_worker(
             Worker {
                 session: session.clone(),
@@ -243,6 +246,7 @@ impl Dispatcher {
 
         for handle in handles {
             let (reply, answer) = oneshot::channel();
+
             let command = Command {
                 id: String::new(),
                 state: RequestState::on(&handle, String::new()),
@@ -382,6 +386,7 @@ async fn session_worker(worker: Worker, mut engine: Engine, mut commands: mpsc::
         // Waits out a kill still on its way to the request before, which would otherwise stop this one. The slot is empty
         // until this request takes it, so no new kill can start in between.
         drop(gate.write().await);
+
         // A cancel sets its flag under the same lock, so a request is either cancelled here or found in the slot.
         let cancelled_while_queued = {
             let mut current = locked(&slot);
@@ -390,6 +395,7 @@ async fn session_worker(worker: Worker, mut engine: Engine, mut commands: mpsc::
                 true
             } else {
                 *current = Some(id.clone());
+
                 false
             }
         };
@@ -397,6 +403,7 @@ async fn session_worker(worker: Worker, mut engine: Engine, mut commands: mpsc::
         if cancelled_while_queued {
             finish(&state, &running);
             let _ = reply.send(Err(DatabaseError::cancelled()));
+
             continue;
         }
 
@@ -412,7 +419,9 @@ async fn session_worker(worker: Worker, mut engine: Engine, mut commands: mpsc::
             call,
             Call::Apply(_) | Call::Import(_) | Call::Export(_) | Call::Transaction(_) | Call::Execute(_)
         );
+
         let cancelled = state.cancelled.clone();
+
         let task = tokio::spawn(async move {
             let outcome = run_call(&mut engine, call, cancelled).await;
 
@@ -439,10 +448,12 @@ async fn session_worker(worker: Worker, mut engine: Engine, mut commands: mpsc::
             && error.connection_lost
         {
             locked(&sessions).remove(&session);
+
             let _ = reply.send(Err(DatabaseError::new(
                 ErrorCode::UnknownSession,
                 format!("The connection of session \"{session}\" was lost, so the session closed. {}", error.message),
             )));
+
             fail_queued(&mut commands, &running, || DatabaseError::unknown_session(&session));
             let _ = tokio::time::timeout(CLOSE_TIMEOUT, engine.close()).await;
 
@@ -506,11 +517,13 @@ mod tests {
         let directory = tempfile::tempdir().unwrap();
         let dispatcher = Arc::new(Dispatcher::new());
         let path = directory.path().join("gate.sqlite");
+
         let opened = answer(
             &dispatcher,
             serde_json::json!({ "id": "1", "method": "open", "params": { "connection": { "engine": "sqlite", "path": path.to_str().unwrap(), "create": true } } }),
         )
         .await;
+
         let session = opened["result"]["session"].as_str().unwrap().to_string();
         let gate = locked(&dispatcher.sessions)[&session].gate.clone();
         let held = gate.clone().try_read_owned().unwrap();
@@ -518,11 +531,14 @@ mod tests {
         let next = tokio::spawn(
             dispatcher.submit(&serde_json::json!({ "id": "2", "method": "execute", "params": { "session": session, "sql": "SELECT 1" } }).to_string()),
         );
+
         tokio::time::sleep(Duration::from_millis(100)).await;
+
         assert!(!next.is_finished(), "the next request waits for the kill");
 
         drop(held);
         let line: serde_json::Value = serde_json::from_str(&tokio::time::timeout(Duration::from_secs(5), next).await.unwrap().unwrap()).unwrap();
+
         assert_eq!(line["result"]["results"][0]["rows"], serde_json::json!([[1]]));
         assert!(gate.try_read_owned().is_ok(), "the gate is free again for the next kill");
     }
@@ -533,6 +549,7 @@ mod tests {
         let port = listener.local_addr().unwrap().port();
         let kills = Arc::new(AtomicU64::new(0));
         let counted = kills.clone();
+
         tokio::spawn(async move {
             while let Ok((stream, _)) = listener.accept().await {
                 counted.fetch_add(1, Ordering::SeqCst);
@@ -542,6 +559,7 @@ mod tests {
 
         let opts: mysql_async::Opts = mysql_async::OptsBuilder::default().ip_or_hostname("127.0.0.1").tcp_port(port).into();
         let dispatcher = Arc::new(Dispatcher::new());
+
         let state = Arc::new(RequestState {
             id: "r1".to_string(),
             cancelled: Arc::new(AtomicBool::new(false)),
@@ -550,6 +568,7 @@ mod tests {
             gate: Gate::default(),
             canceller: Arc::new(Canceller::Mysql(MysqlCanceller::new(opts, 7))),
         });
+
         locked(&dispatcher.running).insert("r1".to_string(), state);
 
         let cancelled = answer(
@@ -557,10 +576,12 @@ mod tests {
             serde_json::json!({ "id": "c1", "method": "cancel", "params": { "request": "r1" } }),
         )
         .await;
+
         assert_eq!(cancelled["result"], serde_json::json!({ "cancelled": true }));
 
         // Long enough for every repeat a SQLite cancel makes.
         tokio::time::sleep(CANCEL_RETRY_DELAY * (CANCEL_RETRIES + 5)).await;
+
         assert_eq!(kills.load(Ordering::SeqCst), 1);
     }
 }

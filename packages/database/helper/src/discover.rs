@@ -100,6 +100,7 @@ pub async fn discover(params: DiscoverParams) -> Result<DiscoverResult> {
         Some(Err(e)) => return Err(DatabaseError::unsupported(format!("Could not run docker: {e}."))),
         Some(Ok(output)) => output,
     };
+
     let text = String::from_utf8_lossy(&output.stdout);
 
     if !output.status.success() && text.trim().len() <= 2 {
@@ -123,6 +124,7 @@ mod tests {
 
     fn environment(entries: &[&str]) -> Inspected {
         let mut inspected = container(SAMPLE_INSPECT);
+
         inspected.environment = entries
             .iter()
             .filter_map(|entry| entry.split_once('='))

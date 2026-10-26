@@ -78,12 +78,14 @@ fn requests_parse_and_responses_round_trip() {
         }
 
         let parsed = Request::parse(&request).unwrap_or_else(|failure| panic!("{name} does not parse: {}", failure.error));
+
         assert_eq!(parsed.id, fixture["request"]["id"].as_str().unwrap(), "{name}");
 
         let outcome = if response["ok"] == Value::Bool(true) {
             Ok(round_trip_result(&parsed.call, &response["result"]))
         } else {
             let error: DatabaseError = serde_json::from_value(response["error"].clone()).unwrap();
+
             assert_eq!(serde_json::to_value(&error).unwrap(), response["error"], "{name}");
 
             Err(error)
@@ -122,6 +124,7 @@ fn requests_pick_the_right_call() {
         ("cancel", "Cancel"),
         ("close", "Close"),
     ];
+
     let all = fixtures();
 
     for (name, call) in expected {
@@ -135,6 +138,7 @@ fn requests_pick_the_right_call() {
 #[test]
 fn the_byte_limit_parses_from_the_fixtures() {
     let all = fixtures();
+
     let request = |name: &str| {
         let (_, fixture) = all.iter().find(|(candidate, _)| candidate == name).unwrap();
 
@@ -144,9 +148,11 @@ fn the_byte_limit_parses_from_the_fixtures() {
     let Call::Rows(rows) = request("rows") else {
         panic!("rows is not a rows call");
     };
+
     let Call::Execute(execute) = request("execute") else {
         panic!("execute is not an execute call");
     };
+
     let Call::Page(page) = request("page") else {
         panic!("page is not a page call");
     };
@@ -164,11 +170,14 @@ fn the_ready_line_has_the_agreed_shape() {
 #[test]
 fn tunnels_parse_from_the_open_fixtures() {
     let all = fixtures();
+
     let tunnel = |name: &str| {
         let (_, fixture) = all.iter().find(|(candidate, _)| candidate == name).unwrap();
+
         let Call::Open(open) = Request::parse(&fixture["request"].to_string()).unwrap().call else {
             panic!("{name} is not an open");
         };
+
         let ConnectionConfig::Mysql(config) = open.connection else {
             panic!("{name} is not MySQL");
         };

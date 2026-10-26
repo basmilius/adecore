@@ -27,6 +27,7 @@ impl Client {
     /// Sends a request and returns the whole response.
     pub async fn request(&mut self, method: &str, params: Value) -> Value {
         let id = self.next_id();
+
         self.raw(&json!({ "id": id, "method": method, "params": params }).to_string()).await
     }
 
@@ -37,6 +38,7 @@ impl Client {
     /// The result of a request that must succeed.
     pub async fn ok(&mut self, method: &str, params: Value) -> Value {
         let response = self.request(method, params).await;
+
         assert_eq!(response["ok"], json!(true), "{method} failed: {response}");
 
         response["result"].clone()
@@ -45,6 +47,7 @@ impl Client {
     /// The error code of a request that must fail.
     pub async fn error(&mut self, method: &str, params: Value) -> Value {
         let response = self.request(method, params).await;
+
         assert_eq!(response["ok"], json!(false), "{method} succeeded: {response}");
 
         response["error"].clone()

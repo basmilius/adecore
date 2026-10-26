@@ -20,6 +20,7 @@ fn speaks_the_protocol_over_stdio() {
 
     let mut ready = String::new();
     stdout.read_line(&mut ready).unwrap();
+
     assert_eq!(
         ready.trim_end(),
         format!(r#"{{"event":"ready","protocol":5,"version":"{}"}}"#, env!("CARGO_PKG_VERSION"))
@@ -31,6 +32,7 @@ fn speaks_the_protocol_over_stdio() {
     let mut answer = String::new();
     stdout.read_line(&mut answer).unwrap();
     let opened: Value = serde_json::from_str(&answer).unwrap();
+
     assert_eq!(opened["ok"], true);
     assert_eq!(opened["result"]["session"], "s1");
 
@@ -39,6 +41,7 @@ fn speaks_the_protocol_over_stdio() {
     drop(stdin);
 
     let mut rest = Vec::new();
+
     for line in stdout.lines() {
         rest.push(serde_json::from_str::<Value>(&line.unwrap()).unwrap());
     }
@@ -46,9 +49,11 @@ fn speaks_the_protocol_over_stdio() {
     assert_eq!(rest.len(), 2);
 
     let schemas = rest.iter().find(|line| line["id"] == "b").expect("the schemas answer arrives before the exit");
+
     assert_eq!(schemas["result"], json!({ "schemas": [{ "name": "main", "system": false }] }));
 
     let invalid = rest.iter().find(|line| line["id"] == "").expect("the bad line is answered");
+
     assert_eq!(invalid["error"]["code"], "invalid-request");
 
     assert!(child.wait().unwrap().success());
