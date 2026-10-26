@@ -480,7 +480,7 @@ describe('drawing for the host', () => {
 
                     return 0;
                 },
-                set: () => undefined,
+                set: () => {},
                 configurable: true
             });
         }

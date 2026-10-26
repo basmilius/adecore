@@ -65,11 +65,11 @@
         "@adecore/editor": "workspace:*",
         "@adecore/lsp": "workspace:*",
         "@adecore/merge": "workspace:*",
-        "lucide-react": "^1.47.0",
+        "lucide-react": "^1.61.0",
         "react-markdown": "^10.1.0",
         "remark-breaks": "^4.0.0",
         "remark-gfm": "^4.0.1",
-        "zustand": "^5.0.15"
+        "zustand": "^5.0.16"
     },
     "peerDependencies": {
         "@adecore/ui": "workspace:*",
@@ -80,7 +80,7 @@
     },
     "devDependencies": {
         "@adecore/ui": "workspace:*",
-        "@types/bun": "^1.4.2",
+        "@types/bun": "^1.4.4",
         "@types/react": "^19.3.0",
         "@types/react-dom": "^19.3.0",
         "typescript": "^7.0.2"

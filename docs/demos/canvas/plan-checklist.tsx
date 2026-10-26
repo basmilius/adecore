@@ -37,6 +37,10 @@ const DRAFT: PlanDraft = {
     ]
 };
 
+function nowIso(): string {
+    return new Date().toISOString();
+}
+
 function initialPlan(): Plan {
     const created = createPlan(DRAFT, { id: 'release', now: '2026-10-05T09:00:00.000Z' });
     if (!created.ok) {
@@ -51,7 +55,7 @@ export default function PlanChecklistDemo() {
     const [refusal, setRefusal] = useState<string | null>(null);
 
     function apply(ops: PlanOp[]) {
-        const result = applyPlanOps(plan, ops, { actor, now: new Date().toISOString() });
+        const result = applyPlanOps(plan, ops, { actor, now: nowIso() });
         if (result.ok) {
             setPlan(result.plan);
             setRefusal(null);

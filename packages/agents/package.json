@@ -83,11 +83,11 @@
     "dependencies": {
         "@adecore/agent-contracts": "workspace:*",
         "@adecore/intelligent-ui": "workspace:*",
-        "zod": "^4.6.5"
+        "zod": "^4.6.7"
     },
     "devDependencies": {
-        "@types/bun": "^1.4.2",
-        "@types/node": "^26.6.3",
+        "@types/bun": "^1.4.4",
+        "@types/node": "^26.6.5",
         "typescript": "^7.0.2"
     },
     "license": "FSL-1.1-MIT",

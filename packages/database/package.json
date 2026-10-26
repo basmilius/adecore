@@ -58,7 +58,7 @@
   "dependencies": {
     "@base-ui/react": "^1.9.0",
     "clsx": "^2.1.1",
-    "lucide-react": "^1.47.0"
+    "lucide-react": "^1.61.0"
   },
   "optionalDependencies": {
     "@adecore/database-darwin-arm64": "0.0.0",
@@ -74,16 +74,16 @@
     "react-i18next": "^17.0.15"
   },
   "devDependencies": {
-    "@adecore/ui": "workspace:*",
-    "@happy-dom/global-registrator": "^20.14.5",
-    "@types/bun": "^1.4.2",
-    "@types/node": "^24.13.6",
+    "@adecore/ui": "^0.14.0",
+    "@happy-dom/global-registrator": "^20.14.6",
+    "@types/bun": "^1.4.4",
+    "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "i18next": "^26.4.2",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0",
-    "react-i18next": "^17.0.15",
+    "i18next": "^26.5.11",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-i18next": "^17.1.9",
     "typescript": "^7.0.2"
   }
 }
