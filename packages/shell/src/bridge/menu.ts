@@ -1,8 +1,4 @@
-/*
- * The application menu, built by the page from what has the focus and drawn by the shell as a native
- * menu. The shell only knows these shapes; a click on a command comes back as its id, and the page
- * runs it.
- */
+/* The application menu, built by the page and drawn by the shell; a click on a command comes back as its id. */
 
 /* The native roles the shell accepts. Each still carries a label from the page, so the whole menu is
    in the language of the interface and not half in the system's. */

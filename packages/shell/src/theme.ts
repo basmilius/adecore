@@ -20,19 +20,14 @@ export interface ThemeOptions {
 }
 
 /*
- * The theme the pages report, applied to what only the shell can paint: the ground of every window, so
- * a reload or a resize never flashes the other theme, the native controls off macOS, and the
- * `prefers-color-scheme` Chromium answers, which follows the app instead of the system it runs on.
- * A new window opens in the theme the others are in.
+ * The theme the pages report, applied to what only the shell paints: every window's ground, so a reload
+ * never flashes the other theme, the native controls off macOS, and Chromium's `prefers-color-scheme`.
  */
 export const createTheme = (options: ThemeOptions) => {
     const platform = options.platform ?? process.platform;
     let current: ThemeState | null = null;
 
-    /*
-     * The colors a page reports win over the ones per theme, so the controls stay on its ground after it
-     * changed and a window opened later starts on it too. Only the two colors are taken from what crossed IPC.
-     */
+    // The colors a page reports win over the ones per theme. Only the two colors are taken from what crossed IPC.
     const overlayOf = (theme: Pick<ThemeState, 'resolved' | 'overlay'>) => {
         if (!options.overlay) {
             return undefined;

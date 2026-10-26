@@ -10,10 +10,8 @@ export const PAGE_KEY_MS = 1000;
 
 /*
  * Whether a menu item that Electron says its accelerator fired answers a key the page already had.
- * Electron says so for every pick that is not a mouse click, so an item picked through accessibility
- * or with the keyboard inside the menu reads as fired by its key as well, and a key sent to the app
- * while none of its windows is key reaches the menu without the page ever seeing it. Only a key with
- * Cmd or Ctrl counts, since the menu binds no other.
+ * Electron says so for every pick that is not a mouse click, such as through accessibility, so only
+ * a key the page saw counts. Only Cmd or Ctrl keys, since the menu binds no other.
  */
 export const createPageKeys = (now: () => number = Date.now) => {
     // One entry per key, so a held key that repeats before the menu answers the first still answers each.

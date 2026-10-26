@@ -3,11 +3,7 @@ import { extname, isAbsolute, join, relative, resolve } from 'node:path';
 import type { CustomScheme } from 'electron';
 import { appWindowNavigation, isAppSender, originOf, type NavigationVerdict, type SenderFrame } from './web-guards.ts';
 
-/*
- * Standard and secure give the page a real origin and a secure context (WebCrypto), fetch and CORS let it
- * load from the scheme and talk to a backend, streaming serves big files, the code cache keeps compiled
- * scripts between starts, and a service worker needs its own privilege.
- */
+/* Standard and secure give the page a real origin and a secure context (WebCrypto); a service worker needs its own privilege. */
 export const APP_SCHEME_PRIVILEGES: NonNullable<CustomScheme['privileges']> = {
     standard: true,
     secure: true,

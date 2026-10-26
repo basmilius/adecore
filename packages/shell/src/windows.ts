@@ -114,7 +114,15 @@ export const createWindows = (options: WindowsOptions) => {
     let installing = false;
     const later = options.setTimeout ?? ((run, ms) => setTimeout(run, ms));
 
-    const alive = (): Entry[] => [...entries.values()].filter((entry) => !entry.window.isDestroyed());
+    const isAlive = (entry: Entry | undefined): entry is Entry => entry !== undefined && !entry.window.isDestroyed();
+
+    const alive = (): Entry[] => [...entries.values()].filter(isAlive);
+
+    const frontToBack = (): Entry[] =>
+        order
+            .toReversed()
+            .map((id) => entries.get(id))
+            .filter(isAlive);
 
     const writeSession = (): void => {
         if (quitting) {
@@ -123,7 +131,7 @@ export const createWindows = (options: WindowsOptions) => {
         const shown = order.map((id) => entries.get(id));
         const keys = shown.map((entry) => entry?.key ?? null);
         const states = shown.map((entry) => entry?.state ?? null);
-        const file = states.some((state) => state !== null) ? { version: SESSION_VERSION, windows: keys, states } : { version: SESSION_VERSION, windows: keys };
+        const file = { version: SESSION_VERSION, windows: keys, ...(states.some((state) => state !== null) ? { states } : {}) };
         options.session.write(`${JSON.stringify(file, null, 2)}\n`);
     };
 
@@ -131,15 +139,7 @@ export const createWindows = (options: WindowsOptions) => {
         order = [...order.filter((other) => other !== id), id];
     };
 
-    const focused = (): BrowserWindow | null => {
-        for (let i = order.length - 1; i >= 0; i--) {
-            const entry = entries.get(order[i]!);
-            if (entry && !entry.window.isDestroyed()) {
-                return entry.window;
-            }
-        }
-        return null;
-    };
+    const focused = (): BrowserWindow | null => frontToBack()[0]?.window ?? null;
 
     const holderOf = (key: string): Entry | null => alive().find((entry) => entry.key === key || entry.held.includes(key)) ?? null;
 
@@ -357,19 +357,14 @@ export const createWindows = (options: WindowsOptions) => {
         holderOf: (key: string): BrowserWindow | null => holderOf(key)?.window ?? null,
 
         /* The app window under a point on the screen, the one last in front first, leaving out `except`. */
-        windowAt: (point: WindowPoint, except?: BrowserWindow): BrowserWindow | null => {
-            for (let i = order.length - 1; i >= 0; i--) {
-                const entry = entries.get(order[i]!);
-                if (!entry || entry.window.isDestroyed() || entry.window === except || entry.window.isMinimized() || !entry.window.isVisible()) {
-                    continue;
+        windowAt: (point: WindowPoint, except?: BrowserWindow): BrowserWindow | null =>
+            frontToBack().find(({ window }) => {
+                if (window === except || window.isMinimized() || !window.isVisible()) {
+                    return false;
                 }
-                const bounds = entry.window.getBounds();
-                if (point.x >= bounds.x && point.x < bounds.x + bounds.width && point.y >= bounds.y && point.y < bounds.y + bounds.height) {
-                    return entry.window;
-                }
-            }
-            return null;
-        },
+                const bounds = window.getBounds();
+                return point.x >= bounds.x && point.x < bounds.x + bounds.width && point.y >= bounds.y && point.y < bounds.y + bounds.height;
+            })?.window ?? null,
 
         /*
          * What a window's page keeps of itself across a quit, opaque to the shell, such as the tabs it
@@ -429,12 +424,9 @@ export const createWindows = (options: WindowsOptions) => {
         },
 
         /*
-         * What every app with this set of windows does with its app's events: a second instance raises
-         * the window in front, a click on the dock icon with no window open opens the last session's
-         * again, a quit that goes ahead keeps its windows in the session, pending bounds are written at
-         * quit, and off macOS the app quits with its last window while that window stays in the session.
-         * With `confirmQuit`, a quit waits for its answer. Call it before `app.whenReady()`, and
-         * `restore()` once ready.
+         * Follows the app's events: a second instance raises the window in front, the dock icon with no
+         * window reopens the last session, a quit keeps its windows in the session, and off macOS the app
+         * quits with its last window. Call it before `app.whenReady()`, and `restore()` once ready.
          */
         attach: (app: Pick<App, 'on' | 'quit'>, attachOptions: AttachOptions = {}): void => {
             const { confirmQuit } = attachOptions;

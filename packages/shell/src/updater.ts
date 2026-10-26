@@ -65,8 +65,7 @@ export const createUpdater = (options: UpdaterOptions) => {
     };
 
     const check = async (): Promise<void> => {
-        // Nothing to learn while a check or a download runs, and a build already waiting to be installed
-        // does not get better for being asked about again.
+        // Nothing to learn while a check or a download runs, or while a build waits to be installed.
         if (!updater || state.status === 'checking' || state.status === 'downloading' || state.status === 'ready') {
             return;
         }
@@ -88,8 +87,7 @@ export const createUpdater = (options: UpdaterOptions) => {
             }
             try {
                 const loaded = options.load();
-                // The page owns the preference and sends it before the first check, so nothing downloads
-                // behind the back of someone who turned it off.
+                // The page sends its preference before the first check, so nothing downloads for someone who turned it off.
                 loaded.autoDownload = false;
                 loaded.on('checking-for-update', () => setState({ status: 'checking', error: null, errorCode: null }));
                 loaded.on('update-available', (info) => setState({ status: 'available', version: info.version, error: null, errorCode: null }));

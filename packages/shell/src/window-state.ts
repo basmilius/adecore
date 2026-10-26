@@ -30,10 +30,8 @@ const overlap = (a: Rectangle, b: Rectangle): WindowSize => ({
 });
 
 /*
- * The bounds to open a window with. Saved bounds stand as long as a display still shows enough of them
- * to grab, shrunk to that display's work area; a display that was unplugged or rearranged since leaves
- * them off screen, and then the window opens at its default size, which Electron centers. Null bounds
- * mean nothing was saved.
+ * Saved bounds stand while a display still shows enough of them to grab, shrunk to its work area;
+ * otherwise, or for null, the window opens at its default size, which Electron centers.
  */
 export const fitBounds = (saved: Rectangle | null, displays: readonly WindowDisplay[], defaults: WindowSize): Partial<Rectangle> & WindowSize => {
     if (saved) {
@@ -148,10 +146,7 @@ const parse = (text: string | null): Map<string, SavedWindow> => {
     return windows;
 };
 
-/*
- * Keeps where each window stood, by a key the app chooses, so it opens there again: the size, the
- * place, maximized and full screen. Written a moment after a window stops moving and when it closes.
- */
+/* Keeps where each window stood by a key the app chooses, written a moment after it stops moving and when it closes. */
 export const createWindowState = (options: WindowStateOptions) => {
     const delayMs = options.delayMs ?? 500;
     const later = options.setTimeout ?? ((run, ms) => setTimeout(run, ms));
@@ -183,9 +178,8 @@ export const createWindowState = (options: WindowStateOptions) => {
             fitBounds(windows.get(key) ?? fallback, options.displays(), options.defaults),
 
         /*
-         * Follows a window from now on and, once it is ready to show, maximizes it or puts it in full
-         * screen as it was left. Call it right after constructing the window, before it is shown. A key
-         * given as a function is asked at every change, for a window that comes to show something else.
+         * Call right after constructing the window, before it is shown; it is maximized or put in full screen
+         * as it was left. A key given as a function is asked at every change, for a window that shows another.
          */
         track: (key: string | (() => string), window: StateWindow): void => {
             const keyNow = typeof key === 'function' ? key : () => key;

@@ -66,9 +66,8 @@ export interface StaticMenuOptions {
 const withSeparator = (items: MenuItemConstructorOptions[]): MenuItemConstructorOptions[] => (items.length > 0 ? [...items, { type: 'separator' }] : []);
 
 /*
- * The menu that stands until the page sends its own, again after a reload or a crash, and while no
- * window is open, so Quit is always there. The stock View menu without reload and the zoom roles: their accelerators are taken
- * before the page sees them, and a reload would drop the page's state without asking.
+ * The menu until the page sends its own, and while no window is open, so Quit is always there. The View
+ * menu leaves out reload and zoom: their keys are taken before the page sees them, and a reload drops its state.
  */
 export const staticMenuTemplate = (options: StaticMenuOptions): MenuItemConstructorOptions[] => {
     const platform = options.platform ?? process.platform;
@@ -122,10 +121,8 @@ export interface MenuCommandOptions {
 }
 
 /*
- * Runs a menu command in the page (`menu:run`), which runs it the way its own palette does. One fired by
- * a key the page already had is dropped: its own listeners answered it or let it pass on purpose. Only a
- * minimized window is shown: showing activates the app, and a pick from behind the person's work must
- * leave it there.
+ * Runs a menu command in the page (`menu:run`). One fired by a key the page already had is dropped: its
+ * listeners answered it or let it pass. Only a minimized window is shown, since showing activates the app.
  */
 export const createMenuCommands =
     (options: MenuCommandOptions) =>
