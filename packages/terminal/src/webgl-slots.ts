@@ -1,6 +1,5 @@
-/* How many terminals may hold a WebGL renderer at the same time. A browser keeps about 16 live
-   contexts per page and silently drops the oldest, so the budget stays well under that and leaves
-   room for whatever else on the page draws with WebGL. */
+/* A browser keeps about 16 live contexts per page and silently drops the oldest, so this leaves room
+   for whatever else on the page draws with WebGL. */
 export const DEFAULT_WEBGL_CONTEXTS = 10;
 
 /* Output moves a context at most once in this window, and only away from a holder that was quiet
@@ -26,9 +25,8 @@ interface Member {
 const nothing = (): SlotChange => ({ granted: [], revoked: [] });
 
 /**
- * Hands a fixed number of WebGL contexts to the terminals that deserve them most, the focused one
- * first, then the ones most recently focused or written to. Knows nothing about xterm or the DOM;
- * the budget turns a `SlotChange` into addons that are loaded and disposed.
+ * Hands a fixed number of WebGL contexts to the focused terminal first, then the ones most recently
+ * focused or written to. Knows nothing about xterm or the DOM; the budget turns a change into addons.
  */
 export class WebglSlots {
     private readonly members = new Map<string, Member>();
@@ -62,8 +60,7 @@ export class WebglSlots {
     request(id: string): SlotChange {
         const member = this.members.get(id);
         if (member) {
-            member.seq = ++this.stamp;
-            member.activeAt = this.now();
+            this.bump(member, this.now());
         } else {
             this.members.set(id, { seq: ++this.stamp, activeAt: this.now(), holding: false, blocked: false });
         }
@@ -87,8 +84,7 @@ export class WebglSlots {
         if (!member) {
             return nothing();
         }
-        member.seq = ++this.stamp;
-        member.activeAt = this.now();
+        this.bump(member, this.now());
         // Focusing is how a terminal that lost its context asks for a new one.
         member.blocked = false;
         return this.reconcile();
@@ -109,8 +105,7 @@ export class WebglSlots {
             return nothing();
         }
         const now = this.now();
-        member.seq = ++this.stamp;
-        member.activeAt = now;
+        this.bump(member, now);
         // A holder that climbs stays a holder; only a waiter can change who holds what.
         if (member.holding || now - this.outputSwitchedAt < OUTPUT_SWITCH_INTERVAL_MS) {
             return nothing();
@@ -144,6 +139,11 @@ export class WebglSlots {
     setCap(cap: number): SlotChange {
         this.cap = Math.max(1, cap);
         return this.reconcile();
+    }
+
+    private bump(member: Member, now: number): void {
+        member.seq = ++this.stamp;
+        member.activeAt = now;
     }
 
     private ranked(): string[] {

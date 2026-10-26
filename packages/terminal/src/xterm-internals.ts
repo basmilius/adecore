@@ -7,11 +7,9 @@ import type { Terminal } from '@xterm/xterm';
  */
 
 /*
- * FitAddon measures the host's border box, so a vertical padding on the host would count as room for a
- * row that is cut off. The host has none; what a whole row does not fill is split above and below, as an
- * offset rather than a padding, since FitAddon subtracts the terminal element's own padding too.
- * False, without a fit, for a host the layout has given no room yet: FitAddon would make two columns
- * of it, a grid nobody sees that a shell still redraws its prompt for.
+ * FitAddon measures the host's border box and subtracts the terminal element's padding, so what a whole
+ * row does not fill is split above and below as an offset, never a padding. False, without a fit, for a
+ * host with no room yet: FitAddon would make a two-column grid a shell still redraws its prompt for.
  */
 export const fitToHost = (term: Terminal, fit: FitAddon): boolean => {
     const host = term.element?.parentElement;
@@ -54,10 +52,9 @@ export const unscaledPointer = (
 };
 
 /*
- * xterm measures a pointer against the screen's scaled bounding box but divides by unscaled cells, so
- * under an ancestor's scale() a selection or a click lands rows off, more so further down. Its one mouse
- * service (private, shared by selection, links and mouse reporting) gets the pointer as it would stand
- * without the transform. Call after `open`, which creates that service.
+ * xterm measures a pointer against the scaled bounding box but divides by unscaled cells, so under an
+ * ancestor's scale() a click lands rows off. Its private mouse service (shared by selection, links and
+ * mouse reporting) gets the unscaled pointer. Call after `open`, which creates that service.
  */
 export const followAncestorScale = (term: Terminal): void => {
     const mouse = (term as unknown as { _core: { _mouseService?: MouseService } })._core._mouseService;

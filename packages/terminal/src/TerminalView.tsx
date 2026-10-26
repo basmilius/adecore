@@ -65,7 +65,6 @@ export interface TerminalViewProps {
 
 interface Live {
     term: Terminal;
-    refit(): void;
     restyle(fontSize: number, lineHeight: number): void;
     setInput(readOnly: boolean, convertEol: boolean): void;
     followGrid(size: TerminalSize): void;
@@ -121,15 +120,17 @@ export function TerminalView({
             // Through the parser (RIS), since `Terminal.reset()` runs at once and output still queued would land on the fresh screen.
             reset: () => live.current?.term.write('\x1bc'),
             focus: () => {
-                live.current?.term.focus();
-                if (live.current?.webgl) {
-                    webglBudget.focus(live.current.id);
+                const current = live.current;
+                current?.term.focus();
+                if (current?.webgl) {
+                    webglBudget.focus(current.id);
                 }
             },
             blur: () => {
-                live.current?.term.blur();
-                if (live.current?.webgl) {
-                    webglBudget.blur(live.current.id);
+                const current = live.current;
+                current?.term.blur();
+                if (current?.webgl) {
+                    webglBudget.blur(current.id);
                 }
             },
             paste: (text) => live.current?.term.paste(text),
@@ -175,11 +176,8 @@ export function TerminalView({
         if (initial.scaledByAncestor) {
             followAncestorScale(term);
         }
-        /*
-         * The grid this terminal fits and tells the program, and the grid the program has. They part while
-         * another client sizes the same program; this one then draws that grid, clipped or with room to
-         * spare, until a fit here changes the grid and claims it back. Null until a fit had room.
-         */
+        // The grid this terminal fits and the grid the program has. They part while another client sizes the
+        // program; this one then draws that grid until a fit here claims it back. Null until a fit had room.
         let claimed: TerminalSize | null = fitToHost(term, fit) ? { cols: term.cols, rows: term.rows } : null;
         let shared = claimed;
         const drawShared = (): void => {
@@ -204,9 +202,10 @@ export function TerminalView({
         let theme = JSON.stringify(term.options.theme);
         const restyle = (size: number, height: number): void => {
             const next = readTerminalTheme();
+            const nextKey = JSON.stringify(next);
             // A fresh theme object repaints every cell, so only a different one is handed over.
-            if (JSON.stringify(next) !== theme) {
-                theme = JSON.stringify(next);
+            if (nextKey !== theme) {
+                theme = nextKey;
                 term.options.theme = next;
             }
             term.options.fontFamily = readTerminalFont();
@@ -220,7 +219,6 @@ export function TerminalView({
         let releaseWebgl: (() => void) | null = null;
         const current: Live = {
             term,
-            refit,
             restyle,
             followGrid: (size) => {
                 shared = size;

@@ -36,10 +36,8 @@ interface Entry {
 }
 
 /**
- * Keeps the number of live WebGL renderers under the cap, however many terminals a page shows.
- * A browser drops the oldest of its own contexts without telling anyone, which left a terminal on
- * the DOM renderer for good; here a terminal that loses its context queues up again instead.
- * `WebglSlots` decides who holds one, this class loads and disposes the addons.
+ * Keeps the live WebGL renderers under the cap. A browser silently drops its oldest context, which left
+ * a terminal on the DOM renderer for good; here a terminal that loses its context queues up again.
  */
 class WebglBudget {
     private readonly slots = new WebglSlots(DEFAULT_WEBGL_CONTEXTS);
@@ -132,8 +130,7 @@ class WebglBudget {
             return;
         }
         this.drop(entry);
-        // Disposing the addon puts the DOM renderer back and queues a full repaint; the fit runs
-        // after that frame, on the cell size that renderer measured.
+        // The fit runs after the DOM renderer's repaint, on the cell size it measured.
         this.scheduleRefit(entry);
     }
 
@@ -150,8 +147,7 @@ class WebglBudget {
         }
         entry.addon?.dispose();
         entry.addon = null;
-        // The addon leaves its canvas to the garbage collector, and until that runs the browser
-        // still counts the context. Losing it by hand is what makes a released slot a free one.
+        // The browser counts the context until the canvas is collected, so it is lost by hand.
         entry.canvas?.getContext('webgl2')?.getExtension('WEBGL_lose_context')?.loseContext();
         entry.canvas = null;
     }
