@@ -11,6 +11,7 @@ import type {
 import { isRecord } from '@adecore/agent-contracts';
 import { clipText } from '@adecore/agent-contracts/text';
 import type { BackendEvent } from './backend.ts';
+import { str } from '../fields.ts';
 import { estimateContextBreakdown } from './context-breakdown.ts';
 import type { ChatThread } from './thread.ts';
 
@@ -39,10 +40,6 @@ export function isMainAgentOutput(event: BackendEvent): boolean {
  */
 function startsAgentTurn(event: BackendEvent): boolean {
     return isMainAgentOutput(event) || ((event.type === 'approval.requested' || event.type === 'question.requested') && event.background !== true);
-}
-
-function str(value: unknown): string | null {
-    return typeof value === 'string' ? value : null;
 }
 
 /* A markdown code block around text that may hold backticks of its own. */

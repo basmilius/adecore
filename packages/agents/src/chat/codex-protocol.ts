@@ -5,6 +5,7 @@ import { readCodexLimits } from '../usage/limits/normalize.ts';
 import { codexRuntimeMode } from '../providers/codex.ts';
 import type { ApprovalDecision, BackendEvent } from './backend.ts';
 import type { CodexFrame } from './codex-transport.ts';
+import { num, str } from '../fields.ts';
 import { cleanTitle } from '../title-file.ts';
 
 type CodexRpcId = number | string;
@@ -13,14 +14,6 @@ type CodexRpcId = number | string;
 type CodexAnswer = { kind: 'respond'; rpcId: CodexRpcId; result: unknown } | { kind: 'steer'; text: string };
 
 type Frame = Record<string, unknown>;
-
-function str(value: unknown): string | null {
-    return typeof value === 'string' ? value : null;
-}
-
-function num(value: unknown): number {
-    return typeof value === 'number' && Number.isFinite(value) ? value : 0;
-}
 
 const GOAL_STATUSES: Record<string, ChatGoalStatus> = {
     active: 'active',

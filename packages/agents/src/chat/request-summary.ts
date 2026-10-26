@@ -6,10 +6,7 @@ import {
     type ChatRequestApproval,
     type ChatRequestSummary
 } from '@adecore/agent-contracts';
-
-function str(value: unknown): string | null {
-    return typeof value === 'string' ? value : null;
-}
+import { str } from '../fields.ts';
 
 // The keys a tool's input names its subject under, in the order a person would look for one.
 const SUBJECT_KEYS = ['file_path', 'notebook_path', 'path', 'url', 'query', 'pattern', 'skill', 'description'];

@@ -59,7 +59,6 @@ export interface ProviderRegistryOptions {
     providers?: ChatProvider[];
     // The executables to probe, when they are not the ones the providers name.
     commands?: Partial<Record<AgentKind, string>>;
-    // How to probe; a test answers without spawning anything.
     detect?: (command: string) => Promise<CliDetection>;
     env?: Record<string, string | undefined>;
 }

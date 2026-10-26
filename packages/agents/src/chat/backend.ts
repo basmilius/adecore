@@ -22,7 +22,6 @@ import type { SpawnChatProcess } from './chat-process.ts';
  */
 
 export interface BackendLaunch {
-    // A test points this at a fake CLI.
     command: string[];
     cwd: string;
     env: Record<string, string>;
@@ -55,7 +54,6 @@ export interface BackendLaunch {
     folders?: readonly string[];
     // False keeps the CLI from loading configuration out of `cwd` (settings, hooks, MCP servers); absent loads it.
     projectConfig?: boolean;
-    // How the CLI is started; a test runs a fake in the same process, everything else spawns it.
     spawn?: SpawnChatProcess;
     saveGeneratedImage?(ref: string, upload: ChatAttachmentUpload): Promise<ChatAttachment>;
 }

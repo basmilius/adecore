@@ -53,7 +53,7 @@ export interface ProviderAccountsOptions {
     // `kinds` are the CLIs that get a default account; absent, every kind this version knows.
     providers: { list(): Promise<ProviderInfo[]>; get(kind: AgentKind): ChatProvider; enabled?(kind: AgentKind): boolean; kinds?(): readonly AgentKind[] };
     env?: Env;
-    // How to ask a CLI who is signed in, for every kind whose provider has no reader of its own; a test answers without starting one.
+    // How to ask a CLI who is signed in, for every kind whose provider has no reader of its own.
     ask?: AskAccount;
     prepareShadow?: (home: string, shadow: string) => Promise<ShadowHomeReport>;
     folderExists?: (path: string) => boolean;
@@ -62,7 +62,7 @@ export interface ProviderAccountsOptions {
     // Where sensitive values are kept; null on a machine without a keychain. Absent is the platform's own.
     secrets?: SecretStore | null;
     now?: () => number;
-    // How a login watch waits between two checks; a test moves its clock instead.
+    // How a login watch waits between two checks.
     sleep?: (ms: number) => Promise<void>;
 }
 

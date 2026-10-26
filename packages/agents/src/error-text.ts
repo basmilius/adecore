@@ -15,6 +15,11 @@ export function describeError(error: unknown, debug: boolean): string {
     return error.message === '' ? error.name : error.message;
 }
 
+/* What was thrown, as an Error a rejection can carry. */
+export function asError(thrown: unknown): Error {
+    return thrown instanceof Error ? thrown : new Error(String(thrown));
+}
+
 // The host decides once whether a stack is worth showing; the package reads no variable of its own.
 let showStacks = false;
 

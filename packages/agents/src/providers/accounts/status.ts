@@ -1,6 +1,7 @@
 import type { AgentKind } from '@adecore/agent-contracts';
 import { isRecord } from '@adecore/agent-contracts';
 import { withTimeout } from '../../async.ts';
+import { filledStr as text } from '../../fields.ts';
 import { CodexTransport, type CodexClientInfo } from '../../chat/codex-transport.ts';
 import { runProcess } from '../../run-process.ts';
 
@@ -16,10 +17,6 @@ export interface AccountReading {
 }
 
 export type AskAccount = (kind: AgentKind, command: readonly string[], env: Record<string, string | undefined>) => Promise<AccountReading>;
-
-function text(value: unknown): string | null {
-    return typeof value === 'string' && value !== '' ? value : null;
-}
 
 /* `claude auth status --json`, as Claude Code 2.1.282 prints it: `loggedIn`, `email`, `orgName`, `subscriptionType`. */
 export function readClaudeAuthStatus(output: string): AccountReading {

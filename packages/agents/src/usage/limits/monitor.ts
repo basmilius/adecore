@@ -62,7 +62,6 @@ export interface UsageMonitorOptions {
     providers: ProviderRegistry;
     /* The accounts to read; absent reads the default account of every CLI and names none. */
     accounts?: LimitAccounts;
-    /* How to ask; a test answers without starting a CLI. */
     probe?: (kind: UsageProvider, command: readonly string[], env: ProbeEnv) => Promise<ProbeResult>;
     /*
      * A plan the host reads itself, for a provider whose CLI cannot be asked (a subscription API the host calls,

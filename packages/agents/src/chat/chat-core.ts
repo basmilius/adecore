@@ -176,16 +176,13 @@ export interface ChatCoreOptions {
     env?: Record<string, string | undefined>;
     // What the agent is told once, at the start of every process, when the host has one note for every chat.
     instructions?: string;
-    // The CLIs to run, when they are not the ones the providers name; a test points these at fakes.
+    // The CLIs to run, when they are not the ones the providers name.
     command?: string[];
     codexCommand?: string[];
-    // How a CLI is started; a test runs a fake in the same process instead of spawning one.
     spawn?: SpawnChatProcess;
     // How the host names itself to an app-server it opens for a question about a thread.
     codexClient?: CodexClientInfo;
-    // Where the skill folders are looked for; a test points it at a temporary tree.
     skills?: SkillIndex;
-    // Where the files people attach are written.
     attachments: AttachmentStore;
     bookmarks?: BookmarkStore;
     // Pages agents publish in a chat; their files go in the same attachment folders.
@@ -196,7 +193,7 @@ export interface ChatCoreOptions {
     claudeTitles?: { forSession(agentSessionId: string, projectsDir: string, cwd: string): Promise<string | null> };
     // A name for a Codex chat, asked of a one-shot CLI: its app-server names no thread on its own.
     nameChat?: (provider: AgentKind, input: ChatTitleInput) => Promise<string | null>;
-    // Where a subagent's whole conversation is read and how its growth is noticed; a test hands in fakes.
+    // Where a subagent's whole conversation is read and how its growth is noticed.
     subagents?: Partial<Pick<SubagentReaderOptions, 'claudeProjectsDir' | 'seams' | 'now' | 'listOnce'>>;
     /*
      * Asked when a chat is loaded with a turn that could be resumed: true once the resume is owed,
@@ -355,7 +352,6 @@ export class ChatCore {
         return folder === null ? '' : join(folder, 'projects');
     }
 
-    /* Whether a conversation of one account of this CLI can go on under the other. */
     canContinue(kind: AgentKind, from: string | undefined, to: string | undefined): boolean {
         if ((from ?? kind) === (to ?? kind)) {
             return true;
@@ -368,7 +364,6 @@ export class ChatCore {
         launchEnv(this.accounts, kind, account, this.env);
     }
 
-    /* What a person calls an account of this CLI. */
     accountLabel(kind: AgentKind, account: string | undefined): string {
         return isDefaultAccountOf(kind, account) || account === undefined ? this.providers.get(kind).name : (this.accounts?.labelOf(account) ?? account);
     }

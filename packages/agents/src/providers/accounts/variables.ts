@@ -15,7 +15,6 @@ export class SecretsUnavailableError extends CodedError<'secrets-unavailable'> {
     }
 }
 
-/* What keeps the sensitive values; a test keeps them in memory. */
 export interface SecretStore {
     /* Null for a key it has nothing under. */
     read(key: string): Promise<string | null>;

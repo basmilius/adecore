@@ -1,6 +1,7 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { withDeadline } from '../../async.ts';
 import { DEFAULT_ACP_CLIENT, type AcpClientInfo } from '../../chat/acp-backend.ts';
 import {
     ACP_AUTH_REQUIRED,
@@ -16,7 +17,7 @@ import { JsonRpcError, JsonRpcTransport, type JsonRpcFrame } from '../../chat/js
 import { definedEnv } from './launch.ts';
 import { ASK_TIMEOUT_MS, type AccountReading } from './status.ts';
 
-/* The clock the probe's deadline runs on; a test hands in one it moves itself. */
+/* The clock the probe's deadline runs on. */
 export interface ProbeTimer {
     setTimeout(run: () => void, ms: number): unknown;
     clearTimeout(handle: unknown): void;
@@ -39,27 +40,6 @@ export interface AcpAccountProbe {
 
 const SIGNED_OUT: AccountReading = { signedIn: false, email: null, plan: null, organization: null };
 const SIGNED_IN: AccountReading = { signedIn: true, email: null, plan: null, organization: null };
-
-const REAL_TIMER: ProbeTimer = {
-    setTimeout: (run, ms) => setTimeout(run, ms),
-    clearTimeout: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>)
-};
-
-function withDeadline<T>(work: Promise<T>, ms: number, timer: ProbeTimer, message: string): Promise<T> {
-    return new Promise((resolve, reject) => {
-        const handle = timer.setTimeout(() => reject(new Error(message)), ms);
-        work.then(
-            (value) => {
-                timer.clearTimeout(handle);
-                resolve(value);
-            },
-            (e: unknown) => {
-                timer.clearTimeout(handle);
-                reject(e instanceof Error ? e : new Error(String(e)));
-            }
-        );
-    });
-}
 
 /*
  * Asks an ACP agent whether the account's environment is signed in: a session it opens means yes, "authentication
@@ -137,7 +117,7 @@ export async function askAcpAccount(probe: AcpAccountProbe): Promise<AccountRead
             }
             return SIGNED_IN;
         };
-        return await withDeadline(reading(), probe.timeoutMs ?? ASK_TIMEOUT_MS, probe.timer ?? REAL_TIMER, `${probe.name} did not answer in time`);
+        return await withDeadline(reading(), probe.timeoutMs ?? ASK_TIMEOUT_MS, `${probe.name} did not answer in time`, probe.timer);
     } finally {
         await transport?.dispose();
         await rm(folder, { recursive: true, force: true });

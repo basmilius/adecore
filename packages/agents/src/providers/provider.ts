@@ -26,7 +26,7 @@ export interface ChatProvider {
     readonly name: string;
     readonly catalog: ModelCatalog;
     readonly capabilities: ProviderCapabilities;
-    // The executable and its leading arguments; a test points this at a fake CLI.
+    // The executable and its leading arguments.
     readonly command: string[];
     // What a terminal runs to continue one of this CLI's sessions; `{id}` stands for the session id.
     readonly resumeCommand: string;

@@ -3,6 +3,7 @@ import { readdir, readFile, stat } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import type { ChatHistoryResult, ChatItem } from '@adecore/agent-contracts';
 import { isRecord } from '@adecore/agent-contracts';
+import { filledStr as str } from '../fields.ts';
 import { fileExists } from '../fs.ts';
 import { readLines } from '../title-file.ts';
 import { ClaudeProtocol } from './claude-protocol.ts';
@@ -11,10 +12,6 @@ import type { ThreadProjector } from './projector.ts';
 import type { ChatThread } from './thread.ts';
 
 const CHUNK_BYTES = 4 * 1024 * 1024;
-
-function str(value: unknown): string | null {
-    return typeof value === 'string' && value !== '' ? value : null;
-}
 
 /* The words of a user line that somebody said, or null for a line that carries tool results. */
 export function spokenText(content: unknown): string | null {

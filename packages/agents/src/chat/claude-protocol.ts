@@ -10,18 +10,11 @@ import type {
 } from '@adecore/agent-contracts';
 import { isRecord } from '@adecore/agent-contracts';
 import { readClaudeEvent } from '../usage/limits/normalize.ts';
+import { num, str } from '../fields.ts';
 import { claudeRuntimeMode } from '../providers/claude.ts';
 import type { ApprovalDecision, BackendEvent } from './backend.ts';
 
 type Frame = Record<string, unknown>;
-
-function str(value: unknown): string | null {
-    return typeof value === 'string' ? value : null;
-}
-
-function num(value: unknown): number {
-    return typeof value === 'number' && Number.isFinite(value) ? value : 0;
-}
 
 // A tool result is a string or a list of content blocks; only the text is worth showing.
 function resultText(content: unknown): string {

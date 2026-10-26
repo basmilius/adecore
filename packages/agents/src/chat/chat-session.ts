@@ -34,7 +34,7 @@ import { readableAssistantText } from './readable-text.ts';
 import type { SubagentSettlement } from './subagent-settlement.ts';
 import { ChatThread } from './thread.ts';
 import { UiReplies, type UiReplyHost } from './ui-replies.ts';
-import { errorText } from '../error-text.ts';
+import { asError, errorText } from '../error-text.ts';
 import { systemClock, type OutboxClock } from '../outbox/outbox-worker.ts';
 import { cleanTitle } from '../title-file.ts';
 
@@ -56,13 +56,13 @@ export interface PromptNotes {
     reset(): void;
 }
 
-/* Chats a person attached to a message: the ones the host knows, and what the agent is told about them. */
 /* What a message pointed at: other chats with `@`, and views and nodes with `#`, by id. */
 export interface ChatAttached {
     chats: string[];
     references: string[];
 }
 
+/* Chats a person attached to a message: the ones the host knows, and what the agent is told about them. */
 export type ChatReferences = (attached: {
     readonly chats?: readonly string[];
     readonly references?: readonly string[];
@@ -77,7 +77,6 @@ export interface ChatSessionOptions {
     // The access a UI host captured per reply, from the record; never on the wire.
     uiAccess?: Readonly<Record<string, unknown>>;
     provider: ChatProvider;
-    // The executable and leading arguments; a test points this at a fake CLI.
     command: string[];
     /* The environment of the CLI under the chat's account, asked at every start; throws for an account that cannot start. */
     env(account: string | undefined): Record<string, string>;
@@ -396,9 +395,7 @@ export class ChatSession {
         this.emit([this.thread.patchInfo({})]);
     }
 
-    /*
-     * Internal follow-ups wait for a new turn. User input goes through `sendInput`, which can steer native work.
-     */
+    /* Internal follow-ups wait for a new turn. User input goes through `sendInput`, which can steer native work. */
     send(text: string, sent: ChatSendExtras = {}): { queued: boolean; turnId: string } {
         const extras = this.vetted(sent);
         const turnId = newId('turn');
@@ -1786,7 +1783,7 @@ export class ChatSession {
             backend = this.ensureBackend();
         } catch (error) {
             // What the host prepares for a launch (its folders, its instructions) can throw too; the turn already opened, so it fails.
-            backend = Promise.reject(error instanceof Error ? error : new Error(String(error)));
+            backend = Promise.reject(asError(error));
         }
         const generation = this.generation;
         void Promise.all([backend, this.turnReady, this.options.save?.()])
@@ -1900,7 +1897,7 @@ export class ChatSession {
             env = this.options.env(this.thread.info.account);
             this.launchedAccount = this.thread.info.account;
         } catch (error) {
-            return Promise.reject(error instanceof Error ? error : new Error(String(error)));
+            return Promise.reject(asError(error));
         }
         this.generation = nextGeneration();
         const generation = this.generation;
@@ -1941,7 +1938,7 @@ export class ChatSession {
                 }
             });
         } catch (error) {
-            return Promise.reject(error instanceof Error ? error : new Error(String(error)));
+            return Promise.reject(asError(error));
         }
         const backend = made.backend;
         this.backend = backend;
@@ -1952,7 +1949,7 @@ export class ChatSession {
             started = backend.start();
         } catch (error) {
             // A spawn that throws on the spot (no such executable) is a start that failed like any other.
-            started = Promise.reject(error instanceof Error ? error : new Error(String(error)));
+            started = Promise.reject(asError(error));
         }
         this.starting = started
             .then(() => backend)

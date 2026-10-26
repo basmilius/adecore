@@ -1,5 +1,6 @@
 import { isRecord, type AgentKind, type ChatFileChange, type ChatQuestion, type ChatTurnLimit, type RuntimeMode } from '@adecore/agent-contracts';
 import { z } from 'zod';
+import { filledStr } from '../fields.ts';
 import { MODE_ORDER } from '../modes.ts';
 import { cleanTitle } from '../title-file.ts';
 import type { ApprovalDecision, BackendEvent } from './backend.ts';
@@ -525,14 +526,10 @@ function foldSpace(text: string): string {
     return text.replace(/\s+/g, ' ').trim();
 }
 
-function str(value: unknown): string | null {
-    return typeof value === 'string' && value !== '' ? value : null;
-}
-
-/* A field of the agent's own input, which no schema promises; the first one that is a non-empty string. */
 // Where agents put the command a call runs; Antigravity names it `CommandLine`.
 const COMMAND_KEYS = ['command', 'cmd', 'CommandLine'];
 
+/* A field of the agent's own input, which no schema promises; the first one that is a non-empty string. */
 function rawField(raw: unknown, ...keys: string[]): string | null {
     if (!isRecord(raw)) {
         return null;
@@ -542,7 +539,7 @@ function rawField(raw: unknown, ...keys: string[]): string | null {
         if (Array.isArray(value) && value.every((part) => typeof part === 'string') && value.length > 0) {
             return value.join(' ');
         }
-        if (str(value) !== null) {
+        if (filledStr(value) !== null) {
             return value as string;
         }
     }
