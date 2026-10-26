@@ -52,6 +52,7 @@ describe('a segmented control', () => {
         expect(segmentedTarget(options, 3, 'Home')).toBe(1);
         expect(segmentedTarget(options, 1, 'End')).toBe(3);
         expect(segmentedTarget(options, 1, 'a')).toBeNull();
+
         expect(
             segmentedTarget(
                 OPTIONS.map((option) => ({ ...option, disabled: true })),
@@ -79,6 +80,7 @@ describe.skipIf(typeof document === 'undefined')('a segmented control under the 
     function Harness(props: Partial<SegmentedProps<View>> & { initial: View }) {
         const { initial, ...rest } = props;
         const [value, setValue] = useState<View>(initial);
+
         return (
             <Segmented<View>
                 label="View"
@@ -97,6 +99,7 @@ describe.skipIf(typeof document === 'undefined')('a segmented control under the 
         const { createRoot } = await import('react-dom/client');
         root = createRoot(container);
         await act(async () => root.render(node));
+
         return [...container.querySelectorAll<HTMLButtonElement>('[role="radio"]')];
     };
 

@@ -14,18 +14,23 @@ export class LoadedComponent<Component> {
 
     async load(): Promise<Component> {
         const component = await this.loader();
+
         if (this.current === null) {
             this.current = component;
+
             for (const listener of this.listeners) {
                 listener();
             }
+
             noteLanding();
         }
+
         return component;
     }
 
     subscribe(listener: () => void): () => void {
         this.listeners.add(listener);
+
         return () => {
             this.listeners.delete(listener);
         };
@@ -37,6 +42,7 @@ const openErrorListeners = new Set<(error: unknown) => void>();
 /* Only a load for a render, which a person waits on; a failed prefetch never reaches it, not even one of the same module at the same moment. */
 export function onLazyOpenError(listener: (error: unknown) => void): () => void {
     openErrorListeners.add(listener);
+
     return () => {
         openErrorListeners.delete(listener);
     };
@@ -50,6 +56,7 @@ async function open<Component>(loaded: LoadedComponent<Component>): Promise<{ de
         for (const listener of openErrorListeners) {
             listener(error);
         }
+
         throw error;
     }
 }
@@ -65,13 +72,16 @@ export function lazyNamed<Module extends Record<Name, ComponentType<any>>, Name 
     const loaded = new LoadedComponent(async () => (await load())[name]);
     prefetcher.register(() => loaded.load());
     const Lazy = lazy(() => open(loaded));
+
     // Once `loaded` has it, `Lazy` never committed anything, so switching over remounts nothing.
     const LazyNamed = (props: ComponentProps<Module[Name]>) => {
         // `loaded` fills in place; compiled, the element drawn before the module landed would stay.
         'use no memo';
         const Component: ComponentType<any> = loaded.current ?? Lazy;
+
         return <Component {...props} />;
     };
+
     return Object.assign(LazyNamed, {
         preload: async () => {
             await loaded.load();
@@ -82,9 +92,11 @@ export function lazyNamed<Module extends Record<Name, ComponentType<any>>, Name 
 /* Stays true after the first opening, so every close after it still has something mounted to animate. */
 function useOpenedOnce(open: boolean): boolean {
     const [opened, setOpened] = useState(open);
+
     if (open && !opened) {
         setOpened(true);
     }
+
     return opened || open;
 }
 
@@ -98,25 +110,32 @@ export function lazyDialog<Module extends Record<Name, ComponentType>, Name exte
     const loaded = new LoadedComponent(async (): Promise<ComponentType> => (await load())[name]);
     prefetcher.register(() => loaded.load());
     const Dialog = lazy(() => open(loaded));
+
     const subscribe = (listener: () => void) => loaded.subscribe(listener);
+
     const isLoaded = () => loaded.current !== null;
+
     const LazyDialog = () => {
         // As in `lazyNamed`: what `loaded` holds is read again on every render.
         'use no memo';
         const opened = useOpenedOnce(useStore(isOpen));
         useSyncExternalStore(subscribe, isLoaded);
         const Loaded: ComponentType | null = loaded.current;
+
         if (Loaded) {
             return <Loaded />;
         }
+
         if (!opened) {
             return null;
         }
+
         return (
             <Suspense fallback={null}>
                 <Dialog />
             </Suspense>
         );
     };
+
     return LazyDialog;
 }

@@ -8,8 +8,10 @@ export interface TileProps extends Omit<ComponentProps<'button'>, 'title'> {
     title: string;
     description?: ReactNode;
     shortcut?: Shortcut;
+
     /* The one tile a screen leads with. */
     primary?: boolean;
+
     size?: 'md' | 'sm';
 }
 

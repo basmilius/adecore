@@ -20,9 +20,12 @@ export const ComboboxRoot = Autocomplete.Root;
 
 export type ComboboxInputProps = Omit<ComponentProps<typeof Autocomplete.Input>, 'size' | 'className'> & {
     className?: string;
+
     /* The heights of `Input`. */
     size?: 'md' | 'sm';
+
     mono?: boolean;
+
     /* Drawn in front of the text. `className` then goes to the box around the icon and the input; `ref` stays on the input. */
     icon?: LucideIcon;
 };
@@ -62,6 +65,7 @@ export type ComboboxPopupProps = ComponentProps<typeof Autocomplete.Popup> & Pla
 
 export function ComboboxPopup({ side = 'bottom', align = 'start', sideOffset = 6, className, ...props }: ComboboxPopupProps) {
     const [placement, popupProps] = splitPlacement(props);
+
     return (
         <Autocomplete.Portal>
             <Autocomplete.Positioner className="popup-positioner" render={renderPositioner} {...placement} side={side} align={align} sideOffset={sideOffset}>
@@ -73,17 +77,23 @@ export function ComboboxPopup({ side = 'bottom', align = 'start', sideOffset = 6
 
 export function ComboboxList(props: ComponentProps<typeof Autocomplete.List>) {
     const { t } = useTranslation('ui');
+
     return <Autocomplete.List aria-label={t('combobox.suggestions')} {...props} />;
 }
 
 export type ComboboxItemProps = ComponentProps<typeof Autocomplete.Item> & {
     icon?: ReactNode;
+
     /* The first to give way when the row is narrow. */
     hint?: ReactNode;
+
     description?: ReactNode;
+
     /* Before the shortcut. */
     trailing?: ReactNode;
+
     shortcut?: Shortcut;
+
     /* Keeps only what makes it an option, for a row that lays out itself. */
     unstyled?: boolean;
 };
@@ -97,7 +107,9 @@ export function ComboboxItem({ icon, hint, description, trailing, shortcut, unst
             </Autocomplete.Item>
         );
     }
+
     const label = <span className="min-w-0 truncate">{children}</span>;
+
     return (
         <Autocomplete.Item className={withClass(clsx('menu-item', description !== undefined && 'items-start'), className)} {...props}>
             {icon !== undefined && <span className="flex h-lh shrink-0 items-center text-text-faint">{icon}</span>}

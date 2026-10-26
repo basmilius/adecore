@@ -7,9 +7,12 @@ type Access = 'read' | 'write';
 const element = (log: Access[]): HTMLElement => {
     const read = (value: number): number => {
         log.push('read');
+
         return value;
     };
+
     const properties = new Map<string, string>();
+
     const style = new Proxy(
         {
             getPropertyValue: (name: string): string => properties.get(name) ?? '',
@@ -22,11 +25,14 @@ const element = (log: Access[]): HTMLElement => {
             set: (target, property, value) => {
                 log.push('write');
                 target[property] = value;
+
                 return true;
             }
         }
     );
+
     let section: HTMLElement | undefined;
+
     return {
         style,
         childNodes: [null],
@@ -70,11 +76,13 @@ describe('positioning the ports of a file tree', () => {
     test('puts the decoration after the git status column when asked, and keeps the space after that column', () => {
         const log: Access[] = [];
         const placed = port(log);
+
         const sections = new Map<string, HTMLElement>([
             ['[data-item-section="content"]', { offsetLeft: 30, offsetWidth: 100 } as HTMLElement],
             ['[data-item-section="git"]', { offsetLeft: 140, offsetWidth: 16 } as HTMLElement],
             ['[data-item-section="icon"]', { offsetLeft: 4 } as HTMLElement]
         ]);
+
         placed.rowElement.querySelector = ((selector: string) => sections.get(selector) ?? null) as HTMLElement['querySelector'];
         positionPorts([placed], 'after-status');
         expect(placed.decoration.style.left).toBe('172px');

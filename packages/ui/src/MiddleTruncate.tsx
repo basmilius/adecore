@@ -6,8 +6,10 @@ import { Tooltip } from './Tooltip.tsx';
 
 export interface MiddleTruncateProps {
     text: string;
+
     /* The whole text on hover and focus while it is cut. Off where the caller's own tooltip already says it. */
     tooltip?: boolean;
+
     className?: string;
     ref?: Ref<HTMLSpanElement>;
 }
@@ -19,14 +21,18 @@ function textMeasure(element: HTMLElement): ((text: string) => number) | null {
     const view = element.ownerDocument.defaultView;
     canvas ??= element.ownerDocument.createElement('canvas');
     const context = canvas.getContext('2d');
+
     if (context === null || view === null) {
         return null;
     }
+
     const style = view.getComputedStyle(element);
     context.font = style.font || `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+
     if ('letterSpacing' in context) {
         context.letterSpacing = style.letterSpacing === 'normal' ? '0px' : style.letterSpacing;
     }
+
     return (text) => context.measureText(text).width;
 }
 
@@ -44,18 +50,23 @@ export function MiddleTruncate({ text, tooltip = true, className, ref }: MiddleT
         if (element === null) {
             return;
         }
+
         const update = (): void => {
             const measure = textMeasure(element);
             // Layout rounds what a canvas measures, so a text a fraction wider than its box still fits.
             const next = measure === null ? null : fitMiddle(text, element.getBoundingClientRect().width + 0.5, measure);
             setCut((current) => (sameCut(current, next) ? current : next));
         };
+
         update();
+
         if (typeof ResizeObserver === 'undefined') {
             return;
         }
+
         const observer = new ResizeObserver(update);
         observer.observe(element);
+
         return () => observer.disconnect();
     }, [element, text]);
 
@@ -72,9 +83,11 @@ export function MiddleTruncate({ text, tooltip = true, className, ref }: MiddleT
             )}
         </span>
     );
+
     // Only a cut text has more to say, and a long list of whole ones keeps no hover handlers.
     if (cut === null || !tooltip) {
         return content;
     }
+
     return <Tooltip label={text}>{content}</Tooltip>;
 }

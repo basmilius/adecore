@@ -1,5 +1,6 @@
 export { FileTreeRoot as Root } from './parts.tsx';
 export { TreeCheckbox as Checkbox, TreeControl as Control, TreeDecoration as Decoration } from '../tree/parts.tsx';
+
 export {
     ancestorDirsOf,
     applyExpansion,

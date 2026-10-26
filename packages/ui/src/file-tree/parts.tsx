@@ -28,14 +28,19 @@ export type FileTreeRootProps = useRender.ComponentProps<'div'> & {
     renderControl?(row: FileTreeVisibleRow): ReactNode;
     renderDecoration?(row: FileTreeVisibleRow): ReactNode;
     decorationOrder?: FileTreeDecorationOrder;
+
     /* In place of the row's own glyph (the file icon, or a directory's chevron); undefined keeps that glyph. */
     rowIcon?(row: FileTreeVisibleRow): LucideIcon | undefined;
+
     /* As tall as its rows, up to the height its container leaves it. */
     fitContent?: boolean;
+
     /* Marks where this occurs in every name, ignoring case. */
     highlight?: string;
+
     /* The line under an open, empty directory; undefined draws none, such as while its children still load. */
     emptyLabel?: FileTreeEmptyLabel;
+
     treeProps?: Omit<PierreProps, 'model'>;
 };
 
@@ -74,20 +79,26 @@ export function FileTreeRoot({
     const { t } = useTranslation('ui');
     const [frame, setFrame] = useState<HTMLDivElement | null>(null);
     const { attach, bar } = useFileTreeShift(model, resetKey);
+
     const frameRef = (node: Element | null) => {
         setFrame(node as HTMLDivElement | null);
         attach(node as HTMLElement | null);
         mergeRefs<Element>(ref)(node);
     };
+
     const subscribeToRows = (listener: () => void): (() => void) => (fitContent ? model.subscribe(listener) : () => {});
+
     const countRows = (): number => model.getVisibleCount();
+
     const rowCount = useSyncExternalStore(subscribeToRows, countRows, countRows);
     const slots = useFileTreeSlots(model, frame, label ?? t('tree.label'), { order: decorationOrder, rowIcon, highlight, emptyLabel });
     const passEmptyLine = useEmptyLines(model, frame, emptyLabel);
     const latestLoads = useRef({ onLoadChildren, onExpandedPathsChange });
+
     useLayoutEffect(() => {
         latestLoads.current = { onLoadChildren, onExpandedPathsChange };
     }, [onLoadChildren, onExpandedPathsChange]);
+
     const cancelFocus = useRef<(() => void) | undefined>(undefined);
 
     useEffect(() => () => cancelFocus.current?.(), [model]);
@@ -96,37 +107,47 @@ export function FileTreeRoot({
         let previous = new Set<string>();
         let disposed = false;
         let pending = false;
+
         const report = (): void => {
             pending = false;
+
             if (disposed) {
                 return;
             }
+
             const rows = visibleRows(model).filter((row) => row.kind === 'directory');
             const known = new Set(rows.map((row) => row.path));
             const expanded = new Set([...previous].filter((path) => !known.has(path)));
+
             for (const row of rows) {
                 if (row.isExpanded) {
                     expanded.add(row.path);
                 }
             }
+
             const opened = [...expanded].filter((path) => !previous.has(path));
             const changed = opened.length > 0 || [...previous].some((path) => !expanded.has(path));
             previous = expanded;
+
             if (changed) {
                 latestLoads.current.onExpandedPathsChange?.([...expanded]);
             }
+
             for (const path of opened) {
                 latestLoads.current.onLoadChildren?.(path);
             }
         };
+
         const schedule = (): void => {
             if (!pending) {
                 pending = true;
                 queueMicrotask(report);
             }
         };
+
         const unsubscribe = model.subscribe(schedule);
         report();
+
         return () => {
             disposed = true;
             unsubscribe();
@@ -137,33 +158,43 @@ export function FileTreeRoot({
         if (frame === null) {
             return;
         }
+
         const onClickRow = (event: MouseEvent): void => {
             if (event.defaultPrevented || inSlot(event) || extendsSelection(event)) {
                 return;
             }
+
             const path = rowPathOf({ nativeEvent: event });
+
             if (path !== null && directoryHandle(model, path) === null) {
                 onActivate?.(path);
             }
         };
+
         const onKey = (event: KeyboardEvent): void => {
             if (event.defaultPrevented || inSlot(event)) {
                 return;
             }
+
             if (movesFocus(event) && selectionFollowsFocus) {
                 cancelFocus.current?.();
                 // beta.6 stops the key in its own handler; selection must follow after that handler moves focus.
                 cancelFocus.current = followFocus(model, onFocusMove);
             }
+
             passEmptyLine(event);
+
             if (event.key === 'Enter' && !event.altKey && !event.metaKey && !event.ctrlKey) {
                 const path = model.getFocusedPath();
+
                 if (path === null) {
                     return;
                 }
+
                 event.preventDefault();
                 event.stopPropagation();
                 const directory = directoryHandle(model, path);
+
                 if (directory) {
                     directory.toggle();
                 } else {
@@ -171,23 +202,28 @@ export function FileTreeRoot({
                 }
             }
         };
+
         const withTargets =
             <RowEvent extends Event>(handle?: (path: string, targets: readonly string[], event: RowEvent) => void) =>
             (event: RowEvent): void => {
                 if (inSlot(event)) {
                     return;
                 }
+
                 const path = rowPathOf({ nativeEvent: event });
+
                 if (path !== null) {
                     handle?.(path, menuTargetsOf(path, model.getSelectedPaths()), event);
                 }
             };
+
         const onContext = withTargets(onRowContextMenu);
         const onDrag = withTargets(onRowDragStart);
         frame.addEventListener('click', onClickRow);
         frame.addEventListener('keydown', onKey, true);
         frame.addEventListener('contextmenu', onContext);
         frame.addEventListener('dragstart', onDrag);
+
         return () => {
             frame.removeEventListener('click', onClickRow);
             frame.removeEventListener('keydown', onKey, true);
@@ -211,6 +247,7 @@ export function FileTreeRoot({
                     <PierreFileTree {...treeProps} model={model} className={clsx('adecore-file-tree-host', treeProps?.className)} />
                     {slots.map(({ row, control, decoration, icon }) => {
                         const ownIcon = icon === null ? undefined : rowIcon?.(row);
+
                         return (
                             <span key={control.slot} style={{ display: 'contents' }}>
                                 {createPortal(renderControl?.(row), control)}

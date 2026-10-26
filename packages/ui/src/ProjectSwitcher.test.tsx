@@ -8,9 +8,11 @@ import { ProjectSwitcher, ProjectSwitcherGroups, type ProjectSwitcherItem, type 
 import { UIProvider } from './UIProvider.tsx';
 
 const i18n = i18next.createInstance();
+
 await i18n.init({ lng: 'en', fallbackLng: 'en', resources: {}, interpolation: { escapeValue: false } });
 
 const render = (node: ReactNode): string => renderToStaticMarkup(<UIProvider i18n={i18n}>{node}</UIProvider>);
+
 const project: ProjectSwitcherItem = { id: 'studio', name: 'Studio', icon: <span aria-hidden>Folder</span> };
 
 describe('a project switcher', () => {
@@ -39,6 +41,7 @@ describe('a project switcher', () => {
     test('accepts app-specific fields without exposing them on the trigger', () => {
         type Item = ProjectSwitcherItem & { folder: string };
         const item: Item = { ...project, folder: '/projects/studio' };
+
         const props: ProjectSwitcherProps<Item> = {
             current: item,
             projects: [item],
@@ -47,6 +50,7 @@ describe('a project switcher', () => {
                 void folder;
             }
         };
+
         const markup = render(<ProjectSwitcher {...props} />);
         expect(markup).toContain('Studio');
         expect(markup).not.toContain(item.folder);
@@ -55,6 +59,7 @@ describe('a project switcher', () => {
 
 describe("the project switcher's groups", () => {
     const separators = (markup: string): number => markup.split('role="separator"').length - 1;
+
     const groups = (props: Omit<ProjectSwitcherProps, 'current'>): string =>
         render(
             <Menu.Root>
@@ -70,6 +75,7 @@ describe("the project switcher's groups", () => {
             children: <Menu.Item>Open folder</Menu.Item>,
             onSelect: () => {}
         });
+
         const studio = markup.indexOf('>Studio</span>');
         const scratchpad = markup.indexOf('Scratchpad');
         const openFolder = markup.indexOf('Open folder');
@@ -113,11 +119,13 @@ describe("the project switcher's words", () => {
     test('reads the empty trigger in Dutch', async () => {
         const dutch = i18next.createInstance();
         await dutch.init({ lng: 'nl', fallbackLng: 'en', resources: {}, interpolation: { escapeValue: false } });
+
         const markup = renderToStaticMarkup(
             <UIProvider i18n={dutch}>
                 <ProjectSwitcher current={null} projects={[]} onSelect={() => {}} />
             </UIProvider>
         );
+
         expect(markup).toContain('aria-label="Projecten"');
         expect(markup).toContain('>Projecten</span>');
     });

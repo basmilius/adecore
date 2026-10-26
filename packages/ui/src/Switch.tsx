@@ -5,8 +5,10 @@ import { Switch as BaseSwitch } from '@base-ui/react/switch';
 export interface SwitchProps {
     checked: boolean;
     onCheckedChange(checked: boolean): void;
+
     /* The accessible name; the row it sits in usually carries the visible one. */
     label: string;
+
     disabled?: boolean;
     className?: string;
     ref?: Ref<HTMLButtonElement>;

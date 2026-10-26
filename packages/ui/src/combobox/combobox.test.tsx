@@ -5,12 +5,14 @@ import i18next from 'i18next';
 import { Combobox, CommandPalette, UIProvider } from '../index.ts';
 
 const i18n = i18next.createInstance();
+
 await i18n.init({ lng: 'en', resources: {}, interpolation: { escapeValue: false } });
 
 const FRUITS = ['Apple', 'Apricot', 'Banana'];
 
 function Suggestions({ onPick }: { onPick(fruit: string): void }) {
     const [text, setText] = useState('');
+
     return (
         <Combobox.Root items={FRUITS} value={text} onValueChange={setText}>
             <Combobox.Input aria-label="Fruit" />
@@ -44,6 +46,7 @@ function Palette({
 }) {
     const [query, setQuery] = useState('');
     const [highlight, setHighlight] = useState<string | undefined>();
+
     return (
         <CommandPalette.Root
             open
@@ -121,10 +124,12 @@ describe.skipIf(typeof document === 'undefined')('a combobox and a command palet
         const picked: string[] = [];
         await mount(<Suggestions onPick={(fruit) => picked.push(fruit)} />);
         const input = document.querySelector<HTMLInputElement>('input[aria-label="Fruit"]')!;
+
         await act(async () => {
             input.focus();
             type(input, 'ap');
         });
+
         expect([...document.querySelectorAll('[role="option"]')].map((row) => row.textContent)).toEqual(['Apple', 'Apricot']);
         await act(async () => key(input, 'ArrowDown'));
         await act(async () => key(input, 'ArrowDown'));
@@ -154,15 +159,18 @@ describe.skipIf(typeof document === 'undefined')('a combobox and a command palet
         await mount(<Palette onRun={(fruit) => runs.push(fruit)} onOpenChange={() => {}} onModEnter={(fruit) => elsewhere.push(fruit)} />);
         const input = document.querySelector<HTMLInputElement>('input[aria-label="Jump to"]')!;
         await act(async () => key(input, 'ArrowDown'));
+
         await act(async () => {
             input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', metaKey: true, bubbles: true, cancelable: true }));
         });
+
         expect(elsewhere).toEqual(['Apricot']);
         expect(runs).toEqual([]);
     });
 
     test('returns focus to the field when the highlighted palette row receives focus', async () => {
         const focusEvents: string[] = [];
+
         await mount(
             <Palette
                 onRun={() => {}}
@@ -179,15 +187,18 @@ describe.skipIf(typeof document === 'undefined')('a combobox and a command palet
                 }}
             />
         );
+
         const field = document.querySelector<HTMLInputElement>('input[aria-label="Jump to"]')!;
         await act(async () => new Promise((resolve) => setTimeout(resolve, 50)));
         await act(async () => key(field, 'ArrowDown'));
         const row = document.querySelector<HTMLElement>('[role="option"][data-highlighted]')!;
         expect(row.textContent).toBe('Apricot');
+
         await act(async () => {
             row.focus();
             expect(document.activeElement === field).toBe(true);
         });
+
         expect(document.activeElement === field).toBe(true);
         expect(highlighted()).toEqual(['Apricot']);
         expect(focusEvents).toEqual(['capture', 'bubble']);
@@ -201,10 +212,12 @@ describe.skipIf(typeof document === 'undefined')('a combobox and a command palet
         await act(async () => key(field, 'ArrowDown'));
         const row = [...document.querySelectorAll<HTMLElement>('[role="option"]')][2]!;
         expect(highlighted()).toEqual(['Apricot']);
+
         await act(async () => {
             row.focus();
             expect(document.activeElement === field).toBe(true);
         });
+
         expect(highlighted()).toEqual(['Banana']);
         expect(field.getAttribute('aria-activedescendant')).toBe(row.id);
         await act(async () => key(field, 'Enter'));

@@ -10,8 +10,10 @@ const TICK_MS = 30_000;
 export interface RelativeTimeProps {
     /* `null`, `undefined` or an invalid date for a moment that is not known, drawn as a dash. */
     at: Date | number | null | undefined;
+
     /* Off inside a row that is the focus target itself: no tab stop of its own, and the row shows the exact time. */
     tooltip?: boolean;
+
     tooltipSide?: TooltipSide;
     className?: string;
     ref?: Ref<HTMLElement>;
@@ -23,6 +25,7 @@ export function RelativeTime({ at, tooltip = true, tooltipSide, className, ref }
     'use no memo';
     useFormatLocale();
     const now = useNow(TICK_MS);
+
     if (at === null || at === undefined || Number.isNaN(new Date(at).getTime())) {
         return (
             <span ref={ref} className={className}>
@@ -30,6 +33,7 @@ export function RelativeTime({ at, tooltip = true, tooltipSide, className, ref }
             </span>
         );
     }
+
     if (!tooltip) {
         return (
             <time ref={ref as Ref<HTMLTimeElement>} dateTime={new Date(at).toISOString()} className={clsx('whitespace-nowrap', className)}>
@@ -37,6 +41,7 @@ export function RelativeTime({ at, tooltip = true, tooltipSide, className, ref }
             </time>
         );
     }
+
     return (
         <Tooltip label={formatDayClockWithYear(at)} side={tooltipSide}>
             {/* Text is no tab stop of its own, and a hint that only the pointer can open is lost to the keyboard. */}

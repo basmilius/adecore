@@ -16,10 +16,13 @@ let app: string;
 
 const run = (bunfig: string | null): { passed: boolean; output: string } => {
     rmSync(join(app, 'bunfig.toml'), { force: true });
+
     if (bunfig !== null) {
         writeFileSync(join(app, 'bunfig.toml'), bunfig);
     }
+
     const result = Bun.spawnSync([process.execPath, 'test', '--conditions=source'], { cwd: app, stdout: 'pipe', stderr: 'pipe' });
+
     return { passed: result.exitCode === 0, output: `${result.stdout.toString()}${result.stderr.toString()}` };
 };
 
@@ -27,18 +30,22 @@ beforeAll(() => {
     app = mkdtempSync(join(tmpdir(), 'adecore-ui-dedupe-'));
     const modules = join(app, 'node_modules');
     const reactDom = copyOf('react-dom');
+
     const copies: [string, string][] = [
         ['react', copyOf('react')],
         ['react-dom', reactDom],
         ['scheduler', copyOf('scheduler', reactDom)]
     ];
+
     for (const [name, path] of copies) {
         cpSync(path, join(modules, name), { recursive: true, dereference: true });
     }
+
     mkdirSync(join(modules, '@adecore'), { recursive: true });
     symlinkSync(ROOT, join(modules, '@adecore', 'ui'));
     writeFileSync(join(app, 'package.json'), JSON.stringify({ name: 'app', private: true, dependencies: { '@adecore/ui': 'link:@adecore/ui' } }));
     writeFileSync(join(app, 'tsconfig.json'), JSON.stringify({ compilerOptions: { jsx: 'react-jsx' } }));
+
     writeFileSync(
         join(app, 'field.test.tsx'),
         [
@@ -91,6 +98,7 @@ describe('the dedupe preload over every package of the checkout', () => {
             '.': './index.js',
             './testing/dedupe': './src/testing/dedupe.ts'
         });
+
         mkdirSync(join(folder, 'src', 'testing'), { recursive: true });
         cpSync(join(import.meta.dir, 'dedupe.ts'), join(folder, 'src', 'testing', 'dedupe.ts'));
     };
@@ -109,9 +117,11 @@ describe('the dedupe preload over every package of the checkout', () => {
             dependencies: { '@adecore/ui': 'link:@adecore/ui' },
             ...(dedupe === undefined ? {} : { adecore: { dedupe } })
         };
+
         writeFileSync(join(folder, 'package.json'), JSON.stringify(manifest));
         writeFileSync(join(folder, 'bunfig.toml'), preload ? '[test]\npreload = ["@adecore/ui/testing/dedupe"]\n' : '');
         const result = Bun.spawnSync([process.execPath, 'test'], { cwd: folder, stdout: 'pipe', stderr: 'pipe' });
+
         return `${result.stdout.toString()}${result.stderr.toString()}`;
     };
 
@@ -128,11 +138,13 @@ describe('the dedupe preload over every package of the checkout', () => {
         copyOfName(chat, '@acme/store', 'checkout');
 
         const linked = join(fixture, 'linked');
+
         fakeApp(linked, [
             "import { copy } from '@codemirror/state';",
             "import { state, store } from '@adecore/chat';",
             "test('copies', () => console.log(`app=${copy} checkout=${state} store=${store}`));"
         ]);
+
         mkdirSync(join(linked, 'node_modules', '@adecore'), { recursive: true });
         symlinkSync(join(checkout, 'packages', 'ui'), join(linked, 'node_modules', '@adecore', 'ui'));
         symlinkSync(chat, join(linked, 'node_modules', '@adecore', 'chat'));

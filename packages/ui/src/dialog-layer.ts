@@ -11,6 +11,7 @@ export function useDialogLayer(isOpen: boolean): boolean {
     const id = useRef(Symbol('dialog'));
     // Decided in render at the moment the dialog opens, so its first frame is already on the right step.
     const [seen, setSeen] = useState({ open: false, stacked: false });
+
     if (seen.open !== isOpen) {
         setSeen({ open: isOpen, stacked: isOpen && open.size > 0 });
     }
@@ -19,8 +20,10 @@ export function useDialogLayer(isOpen: boolean): boolean {
         if (!isOpen) {
             return;
         }
+
         const self = id.current;
         open.add(self);
+
         return () => {
             open.delete(self);
         };

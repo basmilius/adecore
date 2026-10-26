@@ -6,6 +6,7 @@ const DOTS = [0, 1, 2];
 export interface SpinnerProps extends Omit<ComponentProps<'span'>, 'children'> {
     /* In pixels, on the steps of an icon: 12, 14, 16 or 20. */
     size?: number;
+
     /* What runs, read by a screen reader. Left out where the words beside it already say so, which hides the spinner as an icon is hidden. */
     label?: string;
 }

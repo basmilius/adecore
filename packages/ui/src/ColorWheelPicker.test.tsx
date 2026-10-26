@@ -8,6 +8,7 @@ import { Select } from './Select.tsx';
 import { UIProvider } from './UIProvider.tsx';
 
 const i18n = i18next.createInstance();
+
 await i18n.init({ lng: 'en', fallbackLng: 'en', resources: {}, interpolation: { escapeValue: false } });
 
 type Tone = 'red' | 'amber' | 'green' | 'blue' | 'violet' | 'gray' | 'stone' | 'plain';
@@ -37,6 +38,7 @@ const base: ColorWheelPickerProps<Tone> = {
 };
 
 const render = (node: ReactNode): string => renderToStaticMarkup(<UIProvider i18n={i18n}>{node}</UIProvider>);
+
 const classOf = (markup: string): string | undefined => /<button[^>]*class="([^"]+)"/.exec(markup)?.[1];
 
 describe('a color wheel picker', () => {
@@ -64,6 +66,7 @@ describe.skipIf(typeof document === 'undefined')('a color wheel picker in a page
 
     function Harness(props: Partial<ColorWheelPickerProps<Tone>>) {
         const [value, setValue] = useState<Tone>(base.value);
+
         return (
             <UIProvider i18n={i18n}>
                 <ColorWheelPicker<Tone>
@@ -87,8 +90,10 @@ describe.skipIf(typeof document === 'undefined')('a color wheel picker in a page
     };
 
     const trigger = (): HTMLButtonElement => container.querySelector<HTMLButtonElement>('button[aria-haspopup]')!;
+
     const swatch = (name: string): HTMLButtonElement | null =>
         document.querySelector<HTMLButtonElement>(`[role="radiogroup"][aria-label="Tint"] [aria-label="${name}"]`);
+
     const wheelLabel = (): string | null | undefined => document.querySelector('[role="radiogroup"]')?.nextElementSibling?.textContent;
 
     const open = async (): Promise<void> => {
@@ -138,11 +143,14 @@ describe.skipIf(typeof document === 'undefined')('a color wheel picker in a page
         await open();
         const wheel = document.querySelector<HTMLElement>('[role="radiogroup"]')!;
         const size = Number.parseInt(wheel.style.width, 10);
+
         const spot = (name: string) => ({ left: swatch(name)!.style.left, top: swatch(name)!.style.top });
+
         for (const radio of document.querySelectorAll<HTMLElement>('[role="radio"]')) {
             expect(radio.style.left).toMatch(/^-?\d+px$/);
             expect(radio.style.top).toMatch(/^-?\d+px$/);
         }
+
         const middle = `${(size - 24) / 2}px`;
         expect(spot('Plain')).toEqual({ left: middle, top: middle });
         expect(spot('Red').left).toBe(middle);
@@ -155,16 +163,20 @@ describe.skipIf(typeof document === 'undefined')('a color wheel picker in a page
         expect(previews).toEqual(['green']);
         await act(async () => swatch('Blue')?.focus());
         expect(wheelLabel()).toBe('Blue');
+
         await act(async () => {
             swatch('Red')?.dispatchEvent(new PointerEvent('pointerover', { bubbles: true }));
             swatch('Red')?.dispatchEvent(new PointerEvent('pointerenter'));
         });
+
         expect(wheelLabel()).toBe('Red');
+
         await act(async () => {
             const wheel = document.querySelector('[role="radiogroup"]')!;
             wheel.dispatchEvent(new PointerEvent('pointerout', { bubbles: true }));
             wheel.dispatchEvent(new PointerEvent('pointerleave'));
         });
+
         expect(wheelLabel()).toBe('Green');
         await press('Escape');
         await settle();

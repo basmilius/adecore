@@ -11,12 +11,15 @@ export const formatDecimal = (value: number): string => numberFormatter(ONE_DECI
 /* One options object per key, so the formatter cached on it is built once (`numberFormatter`). */
 const specCache = <Key>(build: (key: Key) => Intl.NumberFormatOptions): ((key: Key) => Intl.NumberFormatOptions) => {
     const specs = new Map<Key, Intl.NumberFormatOptions>();
+
     return (key) => {
         let spec = specs.get(key);
+
         if (spec === undefined) {
             spec = build(key);
             specs.set(key, spec);
         }
+
         return spec;
     };
 };
@@ -43,10 +46,13 @@ const NUMERAL = /^[+-]?\d+(?:\.(\d+))?$/;
 export const formatNumeral = (numeral: string | number): string => {
     const text = typeof numeral === 'number' ? String(numeral) : numeral.trim();
     const match = NUMERAL.exec(text);
+
     if (match === null) {
         return text;
     }
+
     const decimals = Math.min(match[1]?.length ?? 0, MAX_FRACTION_DIGITS);
+
     // A string goes to Intl as it is, so it formats the exact decimal and not the nearest double.
     return numberFormatter(fixedSpec(decimals)).format(text as Intl.StringNumericLiteral);
 };
@@ -58,6 +64,7 @@ export const formatPercent = (value: number): string => `${value < 10 ? formatDe
 const moneySpec = specCache((key: `${string}|${number | ''}`) => {
     const [currency, digits] = key.split('|');
     const maximumFractionDigits = Number(digits);
+
     return { style: 'currency', currency, currencyDisplay: 'narrowSymbol', ...(maximumFractionDigits ? { maximumFractionDigits } : {}) };
 });
 
@@ -73,12 +80,15 @@ export const formatUsdSignificant = (value: number): string => numberFormatter(S
 /* `1.2M`, `412K`, `640`: a token count is read as a size, not counted. */
 export const formatTokens = (value: number): string => {
     const rounded = Math.round(value);
+
     if (rounded >= 1_000_000) {
         return `${formatDecimal(rounded >= 10_000_000 ? Math.round(rounded / 1_000_000) : rounded / 1_000_000)}M`;
     }
+
     if (rounded >= 1_000) {
         return `${formatDecimal(rounded >= 10_000 ? Math.round(rounded / 1_000) : rounded / 1_000)}K`;
     }
+
     return formatNumber(rounded);
 };
 
@@ -91,10 +101,13 @@ const UNITS = ['B', 'KB', 'MB', 'GB', 'TB'] as const;
 export const formatBytes = (bytes: number, whole = false): string => {
     let value = Math.max(0, bytes);
     let unit = 0;
+
     while (value >= 1024 && unit < UNITS.length - 1) {
         value /= 1024;
         unit++;
     }
+
     const decimals = unit > 0 && !whole && value < 10;
+
     return `${decimals ? formatDecimal(value) : formatNumber(value)} ${UNITS[unit]}`;
 };

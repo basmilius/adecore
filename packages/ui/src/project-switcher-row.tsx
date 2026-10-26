@@ -15,6 +15,7 @@ export function ProjectSwitcherRow<Item extends ProjectSwitcherItem>({
 }) {
     const { t } = useTranslation('ui');
     const hasActions = Boolean(project.actions);
+
     const item = (
         <Menu.Item
             className={clsx('min-w-0', project.muted && 'opacity-50')}
@@ -27,6 +28,7 @@ export function ProjectSwitcherRow<Item extends ProjectSwitcherItem>({
             {project.hint && <span className="ml-auto truncate pl-3 text-xs text-text-faint">{project.hint}</span>}
         </Menu.Item>
     );
+
     const row = project.description ? (
         <Tooltip label={project.description} side="right" sideOffset={hasActions ? 41 : undefined}>
             {item}

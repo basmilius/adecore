@@ -8,6 +8,7 @@ export interface Shortcut {
     meta: boolean;
     alt: boolean;
     shift: boolean;
+
     /* An uppercase letter, a digit, a punctuation mark or a named key (`Enter`, `ArrowLeft`, `F2`).
        Empty for modifiers held during a pointer gesture (`Mod` then "drag"), which never match a key. */
     key: string;
@@ -54,19 +55,25 @@ export const shortcut = (text: string): Shortcut => {
     // A trailing `++` is the plus key itself, which a plain split would read as two empty words.
     const words = text === '+' ? ['+'] : text.endsWith('++') ? [...text.slice(0, -2).split('+'), '+'] : text.split('+');
     const result: Shortcut = { mod: false, ctrl: false, meta: false, alt: false, shift: false, key: '' };
+
     for (const word of words) {
         if (Object.hasOwn(MODIFIER_FIELDS, word)) {
             result[MODIFIER_FIELDS[word]!] = true;
+
             continue;
         }
+
         if (!isKey(word)) {
             throw new Error(`Unknown key "${word}" in shortcut "${text}"`);
         }
+
         if (result.key !== '') {
             throw new Error(`Shortcut "${text}" names two keys`);
         }
+
         result.key = word.length === 1 ? word.toUpperCase() : word;
     }
+
     return result;
 };
 
@@ -75,16 +82,21 @@ const matchesKey = (key: string, event: KeyLike): boolean => {
     if (/^[A-Z]$/.test(key)) {
         return event.code === `Key${key}`;
     }
+
     if (/^[0-9]$/.test(key)) {
         return event.code === `Digit${key}`;
     }
+
     const code = PUNCTUATION_CODES[key];
+
     if (code) {
         return event.code === code;
     }
+
     if (key === 'Space') {
         return event.code === 'Space';
     }
+
     return event.key === key;
 };
 
@@ -92,9 +104,11 @@ const matchesKey = (key: string, event: KeyLike): boolean => {
 export const matchesShortcut = (target: Shortcut, event: KeyLike, apple: boolean): boolean => {
     const meta = target.meta || (target.mod && apple);
     const ctrl = target.ctrl || (target.mod && !apple);
+
     if (target.key === '' || event.metaKey !== meta || event.ctrlKey !== ctrl || event.altKey !== target.alt || event.shiftKey !== target.shift) {
         return false;
     }
+
     return matchesKey(target.key, event);
 };
 
@@ -114,16 +128,20 @@ const KEY_LABELS: Record<string, { apple: string; other: string }> = {
 /* In the order the platform prints them. */
 export const shortcutParts = (target: Shortcut, apple: boolean): string[] => {
     const parts: string[] = [];
+
     if (apple) {
         if (target.ctrl) {
             parts.push('⌃');
         }
+
         if (target.alt) {
             parts.push('⌥');
         }
+
         if (target.shift) {
             parts.push('⇧');
         }
+
         if (target.meta || target.mod) {
             parts.push('⌘');
         }
@@ -131,20 +149,25 @@ export const shortcutParts = (target: Shortcut, apple: boolean): string[] => {
         if (target.ctrl || target.mod) {
             parts.push('Ctrl');
         }
+
         if (target.alt) {
             parts.push('Alt');
         }
+
         if (target.shift) {
             parts.push('Shift');
         }
+
         if (target.meta) {
             parts.push('Meta');
         }
     }
+
     if (target.key !== '') {
         const label = KEY_LABELS[target.key];
         parts.push(label ? label[apple ? 'apple' : 'other'] : target.key);
     }
+
     return parts;
 };
 

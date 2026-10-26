@@ -19,15 +19,21 @@ export interface TooltipProps {
     label: ReactNode;
     open?: boolean;
     onOpenChange?(open: boolean): void;
+
     /* A virtual anchor positions a controlled hint over canvas content without adding an input target. */
     anchor?: ComponentProps<typeof BaseTooltip.Positioner>['anchor'];
+
     /* A shortcut, or a short phrase about a key that is not one ("Shift skips the cache"). */
     kbd?: Shortcut | string;
+
     side?: TooltipSide;
     sideOffset?: number;
+
     /* Makes the label the accessible name of the trigger as well, so the name and the tooltip never say two different things. */
     name?: boolean;
+
     disabled?: boolean;
+
     /* Its own children and handlers are kept; Base UI merges the tooltip props in. */
     children?: ReactElement<Record<string, unknown>>;
 }
@@ -39,6 +45,7 @@ export function Tooltip({ label, open, onOpenChange, anchor, kbd, side = 'top', 
         if (element === null || kbd === undefined || typeof kbd === 'string') {
             return undefined;
         }
+
         return registerShortcutHint(element, kbd);
     };
 

@@ -4,10 +4,13 @@ import { FORMAT_LANGUAGE, FORMAT_SYSTEM } from './regions.ts';
 /* The app hands it over once, before the first render; the language writes the words and the region writes the notation. */
 export interface FormatSource {
     language(): string;
+
     /* A region tag such as `nl-NL`, or `FORMAT_LANGUAGE` or `FORMAT_SYSTEM`. */
     region(): string;
+
     /* The system's own locale when a shell can read it; a browser tab falls back on `navigator`. */
     systemLocale?(): string | undefined;
+
     subscribe(onChange: () => void): () => void;
 }
 
@@ -17,6 +20,7 @@ let source: FormatSource = { language: () => 'en', region: () => FORMAT_LANGUAGE
 export const setFormatSource = (next: FormatSource): FormatSource => {
     const previous = source;
     source = next;
+
     return previous;
 };
 
@@ -34,6 +38,7 @@ const usable = (tag: string | undefined): string | null => {
     if (tag === undefined || tag === '') {
         return null;
     }
+
     try {
         return Intl.DateTimeFormat.supportedLocalesOf([tag]).length > 0 ? tag : null;
     } catch {
@@ -47,12 +52,15 @@ const usable = (tag: string | undefined): string | null => {
  */
 export const systemLocale = (): string => {
     const fromShell = usable(source.systemLocale?.());
+
     if (fromShell !== null) {
         return fromShell;
     }
+
     if (typeof navigator === 'undefined') {
         return FALLBACK_LOCALE;
     }
+
     return usable(navigator.languages?.[0] ?? navigator.language) ?? FALLBACK_LOCALE;
 };
 
@@ -60,6 +68,7 @@ export const systemLocale = (): string => {
 const regionOfLanguage = (): string => {
     const language = source.language();
     const system = systemLocale();
+
     return system.toLowerCase().startsWith(language) ? system : (LANGUAGE_REGIONS[language] ?? language);
 };
 
@@ -67,6 +76,7 @@ const resolve = (region: string): string => {
     if (region === FORMAT_LANGUAGE) {
         return regionOfLanguage();
     }
+
     return region === FORMAT_SYSTEM ? systemLocale() : region;
 };
 
@@ -91,11 +101,14 @@ const cacheFor = <O extends object, T>(
     build: (locale: string | undefined, options: O) => T
 ): T => {
     const hit = store.get(options);
+
     if (hit !== undefined && hit.locale === locale) {
         return hit.formatter;
     }
+
     const formatter = build(locale, options);
     store.set(options, { locale, formatter });
+
     return formatter;
 };
 
@@ -129,10 +142,12 @@ const collators = new Map<string, Intl.Collator>();
 export const labelCollator = (): Intl.Collator => {
     const locale = wordLocale();
     let collator = collators.get(locale);
+
     if (collator === undefined) {
         collator = new Intl.Collator(locale, { sensitivity: 'base', numeric: true });
         collators.set(locale, collator);
     }
+
     return collator;
 };
 
@@ -141,5 +156,6 @@ let nameCollators: { loose: Intl.Collator; exact: Intl.Collator } | null = null;
 /* For names that are no words, such as files: what `localeCompare` did, without a collator built on every call. */
 export const nameOrder = (left: string, right: string): number => {
     nameCollators ??= { loose: new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }), exact: new Intl.Collator() };
+
     return nameCollators.loose.compare(left, right) || nameCollators.exact.compare(left, right);
 };

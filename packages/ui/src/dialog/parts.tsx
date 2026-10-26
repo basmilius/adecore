@@ -15,6 +15,7 @@ const SIZE = {
 export function DialogRoot({ open, defaultOpen, onOpenChange, ...props }: ComponentProps<typeof BaseDialog.Root>) {
     // Followed rather than taken over, so a dialog that keeps its own state still does.
     const [seen, setSeen] = useState(defaultOpen ?? false);
+
     return (
         <DialogOpenContext value={open ?? seen}>
             <BaseDialog.Root
@@ -22,6 +23,7 @@ export function DialogRoot({ open, defaultOpen, onOpenChange, ...props }: Compon
                 defaultOpen={defaultOpen}
                 onOpenChange={(next, details) => {
                     onOpenChange?.(next, details);
+
                     if (!details.isCanceled) {
                         setSeen(next);
                     }
@@ -39,8 +41,10 @@ export const DialogClose = BaseDialog.Close;
 export type DialogPopupProps = ComponentProps<typeof BaseDialog.Popup> & {
     /* `sm` is the dialog of a question or a few fields. Without a size the popup is as wide as its `className` says. */
     size?: keyof typeof SIZE;
+
     /* Always over another dialog. A dialog that opens while another one is up stacks by itself. */
     nested?: boolean;
+
     backdrop?: boolean;
     backdropClassName?: string;
     keepMounted?: boolean;
@@ -49,6 +53,7 @@ export type DialogPopupProps = ComponentProps<typeof BaseDialog.Popup> & {
 /* The portal, the backdrop and the popup of a dialog in one part; `useDialogLayer` says whether it stacks. */
 export function DialogPopup({ size, nested = false, backdrop = true, backdropClassName, keepMounted, className, ...props }: DialogPopupProps) {
     const stacked = useDialogLayer(useContext(DialogOpenContext)) || nested;
+
     return (
         <BaseDialog.Portal keepMounted={keepMounted}>
             {backdrop && (

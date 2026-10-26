@@ -67,10 +67,12 @@ describe('prefetching lazy modules', () => {
     test('a module registered while everything loads joins the end', async () => {
         const log: string[] = [];
         const prefetcher = new Prefetcher(eagerIdle(log));
+
         prefetcher.register(async () => {
             log.push('git');
             prefetcher.register(loader('diff', log));
         });
+
         prefetcher.register(loader('drawing', log));
         await prefetcher.prefetchEverything();
         expect(log.filter((entry) => entry !== 'idle')).toEqual(['git', 'start drawing', 'end drawing', 'start diff', 'end diff']);
@@ -80,9 +82,11 @@ describe('prefetching lazy modules', () => {
         const log: string[] = [];
         const prefetcher = new Prefetcher(eagerIdle(log));
         prefetcher.register(loader('git', log));
+
         prefetcher.register(async () => {
             throw new TypeError('Failed to fetch dynamically imported module');
         });
+
         prefetcher.register(loader('drawing', log));
         await prefetcher.prefetchEverything();
         expect(log.filter((entry) => entry.startsWith('end'))).toEqual(['end git', 'end drawing']);
@@ -91,10 +95,13 @@ describe('prefetching lazy modules', () => {
     test('says it is busy only while a prefetch waits on its module', async () => {
         const seen: boolean[] = [];
         const prefetcher = new Prefetcher((run) => run());
+
         prefetcher.register(async () => {
             seen.push(prefetcher.busy);
+
             throw new TypeError('Failed to fetch dynamically imported module');
         });
+
         expect(prefetcher.busy).toBe(false);
         await prefetcher.prefetchEverything();
         expect(seen).toEqual([true]);
@@ -116,10 +123,12 @@ describe('prefetching lazy modules', () => {
         const waiting: (() => void)[] = [];
         const log: string[] = [];
         let allowed = true;
+
         const prefetcher = new Prefetcher(
             (run) => waiting.push(run),
             () => allowed
         );
+
         const workspace = loader('workspace', log);
         prefetcher.register(workspace);
         const done = prefetcher.prefetchEverything();

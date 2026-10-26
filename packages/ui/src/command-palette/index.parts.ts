@@ -7,6 +7,7 @@ export {
     ComboboxItem as Item,
     ComboboxStatus as Status
 } from '../combobox/parts.tsx';
+
 export {
     CommandPaletteFooter as Footer,
     CommandPaletteInput as Input,

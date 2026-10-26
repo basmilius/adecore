@@ -16,10 +16,13 @@ const PICKED_RING = {
 export interface ColorSwatchProps extends ComponentProps<'button'> {
     /* Without one the swatch is an outlined circle: "no color", or the button that opens the rest of a palette. */
     color?: string;
+
     picked?: boolean;
     on?: keyof typeof PICKED_RING;
+
     /* Off where the ring alone marks a pick, such as on a swatch of two tones, where a tick reads as a glitch. */
     tick?: boolean;
+
     /* Such as `<Menu.Item unstyled />`, so the row's padding and highlight stay off it. */
     render?: useRender.RenderProp;
 }

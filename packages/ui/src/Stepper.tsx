@@ -13,10 +13,13 @@ export interface StepperProps {
     min: number;
     max: number;
     step: number;
+
     /* Places after the separator, always shown: `1,0`, `1,5`. Defaults to the places `step` is written with. */
     decimals?: number;
+
     /* Printed right after the number, such as `px` or `%`. */
     unit?: string;
+
     label: string;
     className?: string;
     ref?: Ref<HTMLDivElement>;
@@ -25,16 +28,19 @@ export interface StepperProps {
 /* A number between minus and plus, in one sunken group so the three read as a single control. */
 export function Stepper({ value, onValueChange, min, max, step, decimals = placesOf(step), unit, label, className, ref }: StepperProps) {
     const { t } = useTranslation('ui');
+
     const reading = (amount: number) => (
         <>
             {formatFixed(amount, decimals)}
             {unit && <span className="text-text-muted">{unit}</span>}
         </>
     );
+
     const nudge = (direction: -1 | 1): void => {
         const next = Math.round((value + direction * step) * 100) / 100;
         onValueChange(Math.min(max, Math.max(min, next)));
     };
+
     return (
         <ButtonGroup
             ref={ref}

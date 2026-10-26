@@ -17,14 +17,20 @@ export interface ChoiceCardsProps<Value extends string | number> {
     value: Value;
     onValueChange(value: Value): void;
     choices: readonly Choice<Value>[];
+
     /* Read by a screen reader, since the row has no visible heading of its own. */
     label: string;
+
     orientation?: 'horizontal' | 'vertical';
+
     /* Filled row by row; takes the place of `orientation`. */
     columns?: number;
+
     radio?: 'start' | 'end';
+
     /* What the checked choice still asks for, under its card; only a vertical group without columns has room for it. */
     detail?: ReactNode;
+
     disabled?: boolean;
     className?: string;
     ref?: Ref<HTMLDivElement>;
@@ -32,12 +38,14 @@ export interface ChoiceCardsProps<Value extends string | number> {
 
 function ChoiceCard<Value extends string | number>({ choice, radio }: { choice: Choice<Value>; radio: 'start' | 'end' }) {
     const id = useId();
+
     // As tall as the title's line, so the dot centers on it.
     const dot = (
         <span className="flex h-(--text-sm--line-height) shrink-0 items-center" aria-hidden>
             <span className="size-4 rounded-full border border-border-strong group-data-checked:border-5 group-data-checked:border-accent group-data-checked:bg-accent-text" />
         </span>
     );
+
     return (
         <Radio.Root
             value={choice.value}
@@ -79,6 +87,7 @@ export function ChoiceCards<Value extends string | number>({
     ref
 }: ChoiceCardsProps<Value>) {
     const vertical = columns === undefined && orientation === 'vertical';
+
     return (
         <RadioGroup
             ref={ref}

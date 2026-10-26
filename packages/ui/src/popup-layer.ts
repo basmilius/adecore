@@ -12,11 +12,14 @@ function usePopupLayer(isOpen: boolean): void {
         if (!isOpen) {
             return;
         }
+
         const self = Symbol('popup');
         open.add(self);
         document.documentElement.setAttribute('data-popup-open', '');
+
         return () => {
             open.delete(self);
+
             if (open.size === 0) {
                 document.documentElement.removeAttribute('data-popup-open');
             }
@@ -26,6 +29,7 @@ function usePopupLayer(isOpen: boolean): void {
 
 function LayerPositioner({ open: isOpen, ...props }: ComponentProps<'div'> & { readonly open: boolean }) {
     usePopupLayer(isOpen);
+
     return createElement('div', props);
 }
 

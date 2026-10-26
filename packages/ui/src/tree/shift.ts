@@ -27,15 +27,19 @@ export function sidewaysDelta(step: WheelStep, pageWidth: number): number {
     const swapped = step.shiftKey && step.deltaX === 0;
     const sideways = swapped ? step.deltaY : step.deltaX;
     const across = swapped ? 0 : step.deltaY;
+
     if (sideways === 0 || Math.abs(sideways) <= Math.abs(across)) {
         return 0;
     }
+
     if (step.deltaMode === 1) {
         return sideways * LINE_WIDTH;
     }
+
     if (step.deltaMode === 2) {
         return sideways * pageWidth;
     }
+
     return sideways;
 }
 
@@ -43,6 +47,8 @@ export function shiftThumb(shift: number, max: number, track: number, view: numb
     if (max <= 0 || track <= 0) {
         return { left: 0, width: Math.max(track, 0) };
     }
+
     const width = Math.min(track, Math.max(MIN_THUMB, Math.round((track * view) / (view + max))));
+
     return { left: Math.round(((track - width) * clampShift(shift, max)) / max), width };
 }

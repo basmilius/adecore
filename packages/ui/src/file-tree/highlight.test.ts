@@ -10,7 +10,9 @@ describe('matching a query in a name', () => {
             [10, 11],
             [12, 13]
         ]);
+
         expect(matchRanges('SplitButton.tsx', 'button')).toEqual([[5, 11]]);
+
         expect(matchRanges('aaaa', 'aa')).toEqual([
             [0, 2],
             [2, 4]
@@ -28,6 +30,7 @@ describe.skipIf(typeof document === 'undefined')('marking the matches in the row
     const rowOf = (html: string): HTMLElement => {
         const row = document.createElement('button');
         row.innerHTML = `<div data-item-section="icon"></div><div data-item-section="content">${html}</div>`;
+
         return row;
     };
 

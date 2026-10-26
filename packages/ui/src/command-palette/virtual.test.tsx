@@ -7,19 +7,24 @@ import { CommandPalette, UIProvider } from '../index.ts';
 interface Item {
     label: string;
 }
+
 interface Group {
     label: string;
     items: Item[];
 }
+
 const GROUPS: Group[] = [
     { label: 'First group', items: Array.from({ length: 100 }, (_, index) => ({ label: `Item ${index}` })) },
     { label: 'Second group', items: [{ label: 'Needle' }] }
 ];
+
 const i18n = i18next.createInstance();
+
 await i18n.init({ lng: 'en', resources: {}, interpolation: { escapeValue: false } });
 
 function Palette({ onPick }: { onPick(item: string): void }) {
     const [query, setQuery] = useState('');
+
     return (
         <CommandPalette.Root virtualized open items={GROUPS} itemToStringValue={(item: Item) => item.label} value={query} onValueChange={setQuery}>
             <CommandPalette.Popup>
@@ -52,18 +57,21 @@ describe.skipIf(typeof document === 'undefined')('a virtual command palette', ()
         // The DOM runner has no layout engine; the list needs a viewport and measurable rows.
         height = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetHeight');
         width = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetWidth');
+
         Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
             configurable: true,
             get() {
                 return this.getAttribute('role') === 'listbox' ? 256 : 32;
             }
         });
+
         Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {
             configurable: true,
             get() {
                 return 576;
             }
         });
+
         container = document.createElement('div');
         document.body.append(container);
         root = createRoot(container);
@@ -72,11 +80,13 @@ describe.skipIf(typeof document === 'undefined')('a virtual command palette', ()
     afterEach(async () => {
         await act(async () => root.unmount());
         container.remove();
+
         if (height === undefined) {
             delete (HTMLElement.prototype as { offsetHeight?: number }).offsetHeight;
         } else {
             Object.defineProperty(HTMLElement.prototype, 'offsetHeight', height);
         }
+
         if (width === undefined) {
             delete (HTMLElement.prototype as { offsetWidth?: number }).offsetWidth;
         } else {
@@ -86,6 +96,7 @@ describe.skipIf(typeof document === 'undefined')('a virtual command palette', ()
 
     test('bounds mounted options, preserves accessible totals and picks a result after filtering into another group', async () => {
         const picked: string[] = [];
+
         await act(async () =>
             root.render(
                 <UIProvider i18n={i18n}>
@@ -93,6 +104,7 @@ describe.skipIf(typeof document === 'undefined')('a virtual command palette', ()
                 </UIProvider>
             )
         );
+
         const options = [...document.querySelectorAll('[role="option"]')];
         expect(options.length).toBeGreaterThan(0);
         expect(options.length).toBeLessThan(101);

@@ -6,24 +6,33 @@ import { PopoverPopup, PopoverRoot, PopoverTrigger } from './popover/parts.tsx';
 import { triggerClassName } from './select-shared.ts';
 
 const SWATCH_SIZE = 24;
+
 /* The outer ring stands this far from the middle, further when its swatches would not keep a gap between them otherwise. */
 const MIN_RADIUS = 97;
+
 const MIN_GAP = 8;
+
 /* Room past the outer ring for the ring a picked swatch wears. */
 const EDGE = 7;
 
 export interface ColorWheelPickerProps<Id extends string> {
     value: Id;
     onValueChange(id: Id): void;
+
     /* The one under the pointer or the focus while the wheel is open; null once none is looked at. */
     onPreviewChange?(id: Id | null): void;
+
     /* The accessible name; the row the picker stands in usually carries the visible one. */
     label: string;
+
     /* From the outside in, each ring in its own order from the top. */
     rings: readonly (readonly Id[])[];
+
     center?: Id;
+
     /* Any CSS background, a gradient too. */
     colorOf(id: Id): string;
+
     labelOf(id: Id): string;
     disabled?: boolean;
     align?: 'start' | 'end';
@@ -43,11 +52,15 @@ function layout<Id>(rings: readonly (readonly Id[])[], center: Id | undefined): 
     const radius = Math.max(MIN_RADIUS, outer > 1 ? Math.ceil((SWATCH_SIZE + MIN_GAP) / (2 * Math.sin(Math.PI / outer))) : 0);
     const size = 2 * (radius + SWATCH_SIZE / 2 + EDGE);
     const middle = (size - SWATCH_SIZE) / 2;
+
     const spot = (id: Id, turn: number, distance: number): Spot<Id> => {
         const angle = turn * 2 * Math.PI - Math.PI / 2;
+
         return { id, left: Math.round(middle + distance * Math.cos(angle)), top: Math.round(middle + distance * Math.sin(angle)) };
     };
+
     const spots = rings.flatMap((ring, depth) => ring.map((id, i) => spot(id, i / ring.length, (radius * (rings.length - depth)) / rings.length)));
+
     return { size, spots: center === undefined ? spots : [...spots, spot(center, 0, 0)] };
 }
 
@@ -88,14 +101,17 @@ export function ColorWheelPicker<Id extends string>({
     const tabStop = spots.find((spot) => spot.id === (focused ?? value))?.id ?? spots[0]?.id;
     // Read by the cleanup below, which runs after the state and the props of its render are gone.
     const preview = useRef({ looking: false, onPreviewChange });
+
     useEffect(() => {
         preview.current.onPreviewChange = onPreviewChange;
     });
+
     const look = (id: Id | null): void => {
         setLooking(id);
         preview.current.looking = id !== null;
         onPreviewChange?.(id);
     };
+
     // A picker taken away while a color is previewed gets no close of its popover, so it ends the preview itself.
     useEffect(
         () => () => {
@@ -105,21 +121,26 @@ export function ColorWheelPicker<Id extends string>({
         },
         []
     );
+
     const close = (): void => {
         setOpen(false);
         setFocused(null);
         look(null);
     };
+
     const step = (event: KeyboardEvent<HTMLDivElement>): void => {
         const next = STEPS[event.key];
         const swatches = [...(wheel.current?.querySelectorAll<HTMLElement>('[role="radio"]') ?? [])];
         const index = swatches.indexOf(event.target as HTMLElement);
+
         if (next === undefined || index < 0) {
             return;
         }
+
         event.preventDefault();
         swatches[next(index, swatches.length)]?.focus();
     };
+
     return (
         <PopoverRoot
             open={open}

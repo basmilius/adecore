@@ -6,13 +6,18 @@ import { Icon } from '../Icon.tsx';
 export interface SettingsSectionProps {
     title?: string;
     description?: ReactNode;
+
     /* For a pane whose sections are kinds of thing. */
     icon?: LucideIcon;
+
     /* On the header line, after the action. */
     tag?: ReactNode;
+
     action?: ReactNode;
+
     /* A note under the card. */
     footer?: ReactNode;
+
     children: ReactNode;
     className?: string;
     ref?: Ref<HTMLElement>;
@@ -21,6 +26,7 @@ export interface SettingsSectionProps {
 /* Rows divide themselves with a hairline. Without a title it is the card alone. */
 export function SettingsSection({ title, description, icon, tag, action, footer, children, className, ref }: SettingsSectionProps) {
     const hasHeader = title !== undefined || description !== undefined || tag !== undefined || action !== undefined;
+
     return (
         <section ref={ref} className={clsx('flex min-w-0 flex-col gap-2.5', className)} aria-label={title}>
             {hasHeader && (

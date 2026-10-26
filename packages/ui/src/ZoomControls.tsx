@@ -13,8 +13,10 @@ import { activeZoomPreset, steppedZoom, ZOOM_PRESETS } from './zoom.ts';
 export interface ZoomSelection {
     label: string;
     shortcut?: Shortcut;
+
     /* Nothing is selected, so the row is there but says so rather than doing nothing. */
     enabled: boolean;
+
     onZoom(): void;
 }
 
@@ -30,13 +32,16 @@ export interface ZoomLabels {
 export interface ZoomControlsProps {
     /* 1 is 100%. */
     zoom: number;
+
     onZoomChange(zoom: number): void;
     onFitAll(): void;
     presets?: readonly number[];
     labels?: ZoomLabels;
     shortcuts?: { zoomReset?: Shortcut; fitAll?: Shortcut };
+
     /* Left out by a surface with nothing to select. */
     selection?: ZoomSelection;
+
     className?: string;
     ref?: Ref<HTMLDivElement>;
 }

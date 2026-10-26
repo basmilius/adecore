@@ -9,20 +9,25 @@ import { TooltipProvider } from './Tooltip.tsx';
 export interface UIProviderProps {
     /* The library's `ui` namespace is added to it, in every language it ships. */
     i18n: I18n;
+
     /* Without one the formatters write English in the region of that language. */
     formatSource?: FormatSource;
+
     children: ReactNode;
 }
 
 export function UIProvider({ i18n, formatSource, children }: UIProviderProps) {
     const [handed, setHanded] = useState<{ i18n: I18n | null; source: FormatSource | undefined }>({ i18n: null, source: undefined });
+
     // In render and not in an effect, so the first child already reads the words and the region.
     // Both calls only store what they are handed, so a render React throws away leaves nothing wrong behind.
     if (handed.i18n !== i18n || handed.source !== formatSource) {
         addUiResources(i18n);
+
         if (formatSource !== undefined) {
             setFormatSource(formatSource);
         }
+
         setHanded({ i18n, source: formatSource });
     }
 

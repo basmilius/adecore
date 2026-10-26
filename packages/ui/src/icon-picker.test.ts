@@ -13,13 +13,17 @@ const namesOf = (sections: ReturnType<typeof sectionsOf>): string[][] => section
 const layout = (groups: number[], columns: number): IconCellBox[] => {
     const boxes: IconCellBox[] = [];
     let top = 0;
+
     for (const count of groups) {
         top += 28;
+
         for (let i = 0; i < count; i++) {
             boxes.push({ left: (i % columns) * 32, top: top + Math.floor(i / columns) * 32, width: 28 });
         }
+
         top += Math.ceil(count / columns) * 32 + 4;
     }
+
     return boxes;
 };
 

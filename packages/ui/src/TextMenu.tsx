@@ -26,6 +26,7 @@ export function TextMenu({ children, items, ref, ...rest }: TextMenuProps) {
         if (!matchesShortcut(EDIT_SHORTCUTS.selectAll, event, isApplePlatform())) {
             return;
         }
+
         event.preventDefault();
         selectAllWithin(host.current);
     };

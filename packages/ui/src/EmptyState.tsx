@@ -10,14 +10,19 @@ const ICON_SIZE = 20;
 export interface EmptyStateProps {
     /* A Lucide icon, or a mark of another kind that takes a `size`. */
     icon?: LucideIcon | ReactElement<{ size?: number }>;
+
     /* A `Spinner` in place of the icon. */
     busy?: boolean;
+
     /* For a state that is an outcome rather than a list with nothing in it. */
     title?: ReactNode;
+
     /* One sentence: what is missing, and what puts something there. */
     children: ReactNode;
+
     /* Kept to one. */
     action?: ReactNode;
+
     className?: string;
     ref?: Ref<HTMLDivElement>;
 }

@@ -15,6 +15,7 @@ let nextId = 0;
 export const registerShortcutHint = (element: Element, shortcut: Shortcut): (() => void) => {
     nextId += 1;
     targets.set(element, { id: nextId, shortcut });
+
     return () => {
         targets.delete(element);
     };
@@ -41,7 +42,9 @@ export class ModifierHold {
         if (event.repeat && event.key === this.modifierKey()) {
             return;
         }
+
         this.cancel();
+
         if (event.key === this.modifierKey() && !this.otherModifierHeld(event)) {
             this.timer = setTimeout(() => {
                 this.timer = null;
@@ -62,6 +65,7 @@ export class ModifierHold {
             clearTimeout(this.timer);
             this.timer = null;
         }
+
         if (this.shown) {
             this.shown = false;
             this.onChange(false);
@@ -93,8 +97,10 @@ export interface HintPlacement {
 }
 
 const HINT_GAP_PX = 2;
+
 /* Room a hint needs to be centered under its button; nearer a window edge it lines up with that edge instead. */
 const EDGE_ROOM_PX = 48;
+
 const HINT_HEIGHT_PX = 24;
 
 /* Under the button, centered, and above it where the window ends first. */
@@ -103,11 +109,14 @@ export const placeHint = (rect: HintRect, viewport: { width: number; height: num
     const top = Math.round(below ? rect.bottom + HINT_GAP_PX : rect.top - HINT_GAP_PX);
     const translateY = below ? '0' : '-100%';
     const center = (rect.left + rect.right) / 2;
+
     if (center < EDGE_ROOM_PX) {
         return { left: Math.round(rect.left), top, translateX: '0', translateY };
     }
+
     if (center > viewport.width - EDGE_ROOM_PX) {
         return { right: Math.round(viewport.width - rect.right), top, translateX: '0', translateY };
     }
+
     return { left: Math.round(center), top, translateX: '-50%', translateY };
 };

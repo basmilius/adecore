@@ -32,13 +32,16 @@ export function SelectSearch<T extends string>({
     const flat = groups ? groups.flatMap((group) => group.items) : (items as SelectItem<T>[]);
     const byValue = new Map(flat.map((item) => [item.value, item]));
     const selected = value === null ? null : (byValue.get(value) ?? null);
+
     const comboboxItems = groups
         ? groups.map((group) => ({ value: group.label, items: group.items.map((item) => item.value) }))
         : flat.map((item) => item.value);
+
     const searchLabel = searchPlaceholder ?? t('select.search');
 
     const renderRow = (itemValue: T) => {
         const item = byValue.get(itemValue)!;
+
         return (
             <Combobox.Item key={item.value} className={rowClassName(item)} value={item.value} disabled={item.disabled}>
                 <RowContent item={item} picked={item.value === value} text={<span className="truncate">{item.label}</span>} />

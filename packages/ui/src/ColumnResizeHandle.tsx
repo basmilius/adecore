@@ -5,6 +5,7 @@ import type { ColumnEdge } from './useColumnResize.ts';
 export interface ColumnResizeHandleProps {
     /* The edge the column hangs from, as handed to `useColumnResize`; the handle sits on the other one. */
     from: ColumnEdge;
+
     onPointerDown(event: ReactPointerEvent<HTMLElement>): void;
     className?: string;
     style?: CSSProperties;

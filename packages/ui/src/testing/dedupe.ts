@@ -33,6 +33,7 @@ interface Copy {
 
 const manifestOf = (folder: string): Manifest | null => {
     const path = join(folder, 'package.json');
+
     return existsSync(path) ? (JSON.parse(readFileSync(path, 'utf8')) as Manifest) : null;
 };
 
@@ -42,6 +43,7 @@ const dependsOnLibrary = (manifest: Manifest | null): boolean =>
 const membersOf = (root: string, manifest: Manifest | null): string[] => {
     const workspaces = manifest?.workspaces;
     const patterns = (Array.isArray(workspaces) ? workspaces : workspaces?.packages) ?? [];
+
     return patterns
         .flatMap((pattern) => [...new Glob(`${pattern}/package.json`).scanSync({ cwd: root, onlyFiles: true })])
         .map((path) => join(root, dirname(path)));
@@ -53,6 +55,7 @@ const membersOf = (root: string, manifest: Manifest | null): string[] => {
  */
 const appFolders = (): string[] => {
     const root = process.cwd();
+
     return [root, ...membersOf(root, manifestOf(root)).filter((folder) => dependsOnLibrary(manifestOf(folder)))];
 };
 
@@ -60,11 +63,14 @@ const appFolders = (): string[] => {
 const checkoutFolders = (): string[] => {
     for (let folder = dirname(library); dirname(folder) !== folder; folder = dirname(folder)) {
         const manifest = manifestOf(folder);
+
         if (manifest?.workspaces !== undefined) {
             const members = membersOf(folder, manifest);
+
             return members.includes(library) ? [folder, ...members] : [library];
         }
     }
+
     return [library];
 };
 
@@ -72,8 +78,10 @@ const namesIn = (folder: string, pattern: string): string[] => {
     if (!pattern.endsWith('/*')) {
         return [pattern];
     }
+
     const scope = pattern.slice(0, -2);
     const path = join(folder, 'node_modules', scope);
+
     return existsSync(path)
         ? readdirSync(path)
               .filter((entry) => !entry.startsWith('.'))
@@ -85,9 +93,11 @@ const namesIn = (folder: string, pattern: string): string[] => {
 const copyFrom = (from: string, name: string): string | null => {
     for (let folder = from; ; folder = dirname(folder)) {
         const candidate = join(folder, 'node_modules', name);
+
         if (existsSync(candidate)) {
             return realpathSync(candidate);
         }
+
         if (dirname(folder) === folder) {
             return null;
         }
@@ -96,28 +106,38 @@ const copyFrom = (from: string, name: string): string | null => {
 
 const findCopies = (): Copy[] => {
     const checkout = checkoutFolders();
+
     const inside = (path: string): boolean => path === checkout[0] || path.startsWith(`${checkout[0]}${sep}`);
+
     // A run inside the checkout is the library's own; a node_modules above it belongs to no app.
     if (inside(realpathSync(process.cwd()))) {
         return [];
     }
+
     const folders = appFolders();
+
     const added = folders.flatMap((folder) => {
         const names = manifestOf(folder)?.adecore?.dedupe;
+
         return Array.isArray(names) ? names.filter((name): name is string => typeof name === 'string') : [];
     });
+
     const names = new Set([...SHARED, ...added].flatMap((pattern) => checkout.flatMap((folder) => namesIn(folder, pattern))));
+
     return [...names].flatMap((name) => {
         const ours = folders.map((folder) => copyFrom(folder, name)).find((copy): copy is string => copy !== null && !inside(copy));
+
         if (ours === undefined) {
             return [];
         }
+
         const theirs = new Set(
             checkout
                 .map((folder) => join(folder, 'node_modules', name))
                 .filter((path) => existsSync(path))
                 .map((path) => realpathSync(path))
         );
+
         return [...theirs].filter((real) => real !== ours).map((real) => ({ theirs: `${real}${sep}`, ours: `${ours}${sep}` }));
     });
 };
@@ -138,6 +158,7 @@ const standIn = (path: string): string => {
     const { exports, imports } = transpiler.scan(readFileSync(path, 'utf8'));
     const esm = exports.length > 0 || imports.some((entry) => entry.kind === 'import-statement');
     const target = JSON.stringify(path);
+
     return [`export * from ${target};`, ...(!esm || exports.includes('default') ? [`export { default } from ${target};`] : [])].join('\n');
 };
 
@@ -147,6 +168,7 @@ if (copies.length > 0) {
         setup(build) {
             build.onLoad({ filter: new RegExp(`^(${copies.map((copy) => escape(copy.theirs)).join('|')})`) }, (args) => {
                 const copy = copies.find((candidate) => args.path.startsWith(candidate.theirs))!;
+
                 return { contents: standIn(copy.ours + args.path.slice(copy.theirs.length)), loader: 'js' };
             });
         }

@@ -68,16 +68,21 @@ export function TabsRoot({ value, defaultValue = 0, onValueChange, ...props }: T
     const current = controlled ? value : own;
     // The latest handler without a new context for every render of a parent that writes it inline.
     const latest = useRef(onValueChange);
+
     useLayoutEffect(() => {
         latest.current = onValueChange;
     });
+
     const select = (next: TabsValue): void => {
         if (!controlled) {
             setOwn(next);
         }
+
         latest.current?.(next);
     };
+
     const selection = { value: current, select };
+
     return (
         <SelectionContext value={selection}>
             <BaseTabs.Root value={current} onValueChange={(next) => selection.select(next)} {...props} />
@@ -88,14 +93,19 @@ export function TabsRoot({ value, defaultValue = 0, onValueChange, ...props }: T
 export type TabsListProps = Omit<ComponentProps<typeof BaseTabs.List>, 'className'> & {
     /* On the strip, which runs the width of the pane; padding here insets the tabs from its edges. */
     className?: string;
+
     /* Drawn before the tabs, such as what they are the views of. It keeps its own width, like `end`. */
     start?: ReactNode;
+
     /* Drawn after the tabs, such as a button that adds one. It keeps its own width: the tabs fit in what is left. */
     end?: ReactNode;
+
     /* Like `end`, but right beside the last tab instead of at the end of the strip, so it moves with the tabs. */
     after?: ReactNode;
+
     /* `line` underlines the picked tab over the strip's border; `pill` fills it, for tabs in a toolbar. */
     variant?: TabsVariant;
+
     /* What happens to tabs that do not fit: a "More" menu at the end of the strip, or a row that scrolls sideways. */
     overflow?: 'menu' | 'scroll';
 };
@@ -121,39 +131,48 @@ export function TabsList({ className, children, start, end, after, variant = 'li
     const [edges, setEdges] = useState({ start: false, end: false });
     // Null until the first measure, which runs before the first paint.
     const [shown, setShown] = useState<number[] | null>(null);
+
     const tabs = Children.toArray(children).filter(
         (child): child is ReactElement<ComponentProps<typeof TabsTab>> => isValidElement(child) && child.type === TabsTab
     );
+
     const kept = tabs.flatMap((tab, index) => (tab.props.value === value || tab.props.pinned === true ? [index] : []));
 
     useLayoutEffect(() => {
         const host = strip.current;
         const row = measure.current;
+
         if (scrolls || !host || !row) {
             return;
         }
+
         const fit = (): void => {
             const style = getComputedStyle(host);
             const gap = parseFloat(style.columnGap) || 0;
+
             const taken = [head.current, beside.current, tail.current].reduce(
                 (sum, part) => (part === null ? sum : sum + part.getBoundingClientRect().width + gap),
                 0
             );
+
             const room = host.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) - taken;
             const cells = [...row.children].map((cell) => cell.getBoundingClientRect().width);
             const more = cells.pop() ?? 0;
             const next = shownTabs(cells, room, parseFloat(getComputedStyle(row).columnGap) || 0, more, kept);
             setShown((current) => (sameIndices(current, next) ? current : next));
         };
+
         fit();
         const observer = new ResizeObserver(fit);
         observer.observe(host);
         observer.observe(row);
+
         for (const part of [head.current, beside.current, tail.current]) {
             if (part !== null) {
                 observer.observe(part);
             }
         }
+
         return () => observer.disconnect();
     });
 
@@ -162,11 +181,14 @@ export function TabsList({ className, children, start, end, after, variant = 'li
     useEffect(() => {
         const row = list.current;
         const tab = row?.querySelector<HTMLElement>('[aria-selected="true"]');
+
         if (!scrolls || !row || !tab) {
             return;
         }
+
         const strip = row.getBoundingClientRect();
         const picked = tab.getBoundingClientRect();
+
         if (picked.left < strip.left) {
             row.scrollLeft -= strip.left - picked.left;
         } else if (picked.right > strip.right) {
@@ -176,21 +198,26 @@ export function TabsList({ className, children, start, end, after, variant = 'li
 
     useEffect(() => {
         const row = list.current;
+
         if (!scrolls || !row) {
             return;
         }
+
         const measure = (): void => {
             const start = row.scrollLeft > 0;
             const end = row.scrollLeft + row.clientWidth < row.scrollWidth - 1;
             setEdges((current) => (current.start === start && current.end === end ? current : { start, end }));
         };
+
         measure();
         row.addEventListener('scroll', measure, { passive: true });
         const observer = new ResizeObserver(measure);
         observer.observe(row);
+
         for (const tab of row.children) {
             observer.observe(tab);
         }
+
         return () => {
             row.removeEventListener('scroll', measure);
             observer.disconnect();
@@ -200,20 +227,25 @@ export function TabsList({ className, children, start, end, after, variant = 'li
     // A mouse wheel only turns vertically, and on a row that scrolls sideways that is the way it should turn.
     useEffect(() => {
         const row = list.current;
+
         if (!scrolls || !row) {
             return;
         }
+
         const onWheel = (event: WheelEvent): void => {
             if (!event.deltaX && event.deltaY) {
                 row.scrollLeft += event.deltaY;
             }
         };
+
         row.addEventListener('wheel', onWheel, { passive: true });
+
         return () => row.removeEventListener('wheel', onWheel);
     }, [scrolls]);
 
     const visible = shown === null ? tabs : shown.map((index) => tabs[index]!);
     const hidden = shown === null ? [] : tabs.filter((_, index) => !shown.includes(index));
+
     const more = (
         <>
             {t('tabs.more')}
@@ -283,6 +315,7 @@ type TabProps = ComponentProps<typeof BaseTabs.Tab>;
 export type TabsTabProps = TabProps & {
     /* Makes the tab closable: a close button in it, a middle click, and Delete or Backspace while the tab has focus. */
     onClose?(): void;
+
     /* Keeps the tab in the strip, never in the menu, and leaves it unclosable even with `onClose`. */
     pinned?: boolean;
 };
@@ -304,6 +337,7 @@ export function TabsTab({ className, onClose, pinned = false, children, ...props
 
     const handleKeyDown = (e: Parameters<NonNullable<TabProps['onKeyDown']>>[0]): void => {
         onKeyDown?.(e);
+
         if (!e.defaultPrevented && e.target === e.currentTarget && (e.key === 'Delete' || e.key === 'Backspace')) {
             e.preventDefault();
             onClose();
@@ -313,6 +347,7 @@ export function TabsTab({ className, onClose, pinned = false, children, ...props
     // A middle press starts autoscroll on some platforms; the release is what closes.
     const handleMouseDown = (e: Parameters<NonNullable<TabProps['onAuxClick']>>[0]): void => {
         onMouseDown?.(e);
+
         if (e.button === 1) {
             e.preventDefault();
         }
@@ -320,6 +355,7 @@ export function TabsTab({ className, onClose, pinned = false, children, ...props
 
     const handleAuxClick = (e: Parameters<NonNullable<TabProps['onAuxClick']>>[0]): void => {
         onAuxClick?.(e);
+
         if (!e.defaultPrevented && e.button === 1) {
             e.preventDefault();
             onClose();
@@ -360,6 +396,7 @@ export type TabsCountProps = Omit<useRender.ComponentProps<'span'>, 'children'> 
 /* Nothing at zero: an empty view needs no number to say so. */
 export function TabsCount({ value, render, className, ref, ...props }: TabsCountProps) {
     const inMenu = useContext(InMenuContext);
+
     const element = useRender({
         render,
         ref,
@@ -370,5 +407,6 @@ export function TabsCount({ value, render, className, ref, ...props }: TabsCount
             className: clsx('inline-flex shrink-0', inMenu && 'ml-auto', className)
         }
     });
+
     return value === 0 ? null : element;
 }

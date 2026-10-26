@@ -5,6 +5,7 @@ export const TAB_TOP_INSET = 4;
 
 /* The corner of the indicator's tab, and of its body, which is `rounded-sm` like the other drop indicator. */
 export const TAB_RADIUS = 6;
+
 export const BODY_RADIUS = 4;
 
 /* The stroke is centered on the path, so the path runs half of it inside the box to keep the outer edge on it. */
@@ -16,8 +17,10 @@ export interface DropPreviewShape {
     y: number;
     width: number;
     height: number;
+
     /* The part of the box above the body that the tab stands in; 0 for a rectangle. */
     barHeight: number;
+
     tabLeft: number;
     tabWidth: number;
     tabTop: number;
@@ -53,6 +56,7 @@ export function sameDropPreview(left: DropPreviewShape | null, right: DropPrevie
     if (left === null || right === null) {
         return left === right;
     }
+
     return (
         left.x === right.x &&
         left.y === right.y &&
@@ -84,8 +88,11 @@ export function dropPreviewPath({ x, y, width, height, barHeight, tabLeft, tabWi
     const cornerLeft = Math.min(bodyCorner, tabStart - left);
     const cornerRight = Math.min(bodyCorner, right - tabEnd);
     const cornerBottom = Math.max(0, Math.min(bodyCorner, (right - left) / 2, (bottom - top) / 2));
+
     const at = (px: number, py: number): string => `${coordinate(x + px)},${coordinate(y + py)}`;
+
     const arc = (corner: number, px: number, py: number): string => `A${coordinate(corner)},${coordinate(corner)} 0 0 1 ${at(px, py)}`;
+
     return [
         `M${at(left + cornerLeft, top)}`,
         `H${coordinate(x + tabStart)}`,
@@ -110,10 +117,13 @@ export function dropPreviewPath({ x, y, width, height, barHeight, tabLeft, tabWi
 export interface TabDrop {
     /* The gap in the strip it lands in, counted in tabs from the left. */
     gap: number;
+
     left: number;
     tabWidth: number;
+
     /* The cell as a whole, bar included. */
     width: number;
+
     height: number;
     barHeight: number;
 }

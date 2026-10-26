@@ -18,10 +18,13 @@ export interface SettingsSectionEntry {
     icon: LucideIcon;
     label: string;
     description: string;
+
     /* Rendered in a `LazyBoundary`, so a lazy component loads when its section is opened. */
     pane: ComponentType;
+
     /* A list beside a detail that scrolls on its own (`MasterDetail`), instead of one padded column. */
     split?: boolean;
+
     /* Runs to the pane's edges, with the title bar floating over its top; a `split` section draws none. */
     hero?: ComponentType;
 }
@@ -29,20 +32,25 @@ export interface SettingsSectionEntry {
 export interface SettingsGroupEntry {
     /* The first group usually goes without one. */
     label: string | null;
+
     sections: readonly SettingsSectionEntry[];
 }
 
 export interface SettingsSearchResult {
     section: string;
+
     /* The row to reveal (a `SettingsRow` `searchId`), or null for a result that is the pane itself. */
     id: string | null;
+
     label: string;
 }
 
 export interface SettingsSearch {
     find(query: string): readonly SettingsSearchResult[];
+
     /* The printed shortcut that focuses the field. */
     hint?: string;
+
     /* Focuses and selects the field each time it grows. */
     focusAt?: number;
 }
@@ -54,15 +62,21 @@ export interface SettingsDialogProps {
     onNavigate(next: { section: string; target?: string | null }): void;
     groups: readonly SettingsGroupEntry[];
     footer?: readonly SettingsSectionEntry[];
+
     /* Under the footer sections, past a hairline: a section whose tab the app draws itself (a `Tabs.Tab`
        with the section's id as its value), such as an account. */
     account?: { section: SettingsSectionEntry; tab: ReactNode };
+
     search?: SettingsSearch;
+
     /* The row a search result jumped to, lit until `onTargetShown`. */
     target?: string | null;
+
     onTargetShown?(): void;
+
     /* On the popup. */
     className?: string;
+
     ref?: Ref<HTMLDivElement>;
 }
 
@@ -83,6 +97,7 @@ function NavTab({ section }: { section: SettingsSectionEntry }) {
 
 function SettingsNav({ groups, footer, account }: Pick<SettingsDialogProps, 'groups' | 'footer' | 'account'>) {
     const { t } = useTranslation('ui');
+
     return (
         <Tabs.List aria-label={t('settings.sections')} activateOnFocus className="flex min-h-0 grow flex-col">
             <div className="flex min-h-0 flex-col gap-3.5 overflow-y-auto">
@@ -144,8 +159,10 @@ function SearchField({ search, query, onQuery, onPick }: SearchFieldProps) {
                         event.stopPropagation();
                         onQuery('');
                     }
+
                     if (event.key === 'Enter') {
                         const first = search.find(query)[0];
+
                         if (first) {
                             onPick(first);
                         }
@@ -188,6 +205,7 @@ function SearchResults({ search, query, labelOf, onPick }: SearchResultsProps) {
     if (results.length === 0) {
         return <p className="px-2.5 py-1 text-xs break-words text-text-muted">{t('settings.search.none', { query: query.trim() })}</p>;
     }
+
     return (
         <ul className="flex min-h-0 flex-col gap-0.5 overflow-y-auto" aria-label={t('settings.search.results')}>
             {results.map((result) => (
@@ -231,12 +249,15 @@ export function SettingsDialog({
     const barFill = useRef<HTMLDivElement>(null);
     // The latest callback behind a stable one, so a lit row's timer does not start over on every render.
     const latestShown = useRef(onTargetShown);
+
     useEffect(() => {
         latestShown.current = onTargetShown;
     });
+
     const targetValue = { target, shown: () => latestShown.current?.() };
 
     const labelOf = (id: string): string => sections.find((entry) => entry.id === id)?.label ?? id;
+
     const pick = (result: SettingsSearchResult): void => onNavigate({ section: result.section, target: result.id });
 
     return (
@@ -244,6 +265,7 @@ export function SettingsDialog({
             open={open}
             onOpenChange={(next) => {
                 onOpenChange(next);
+
                 if (!next) {
                     setQuery('');
                 }
@@ -297,6 +319,7 @@ export function SettingsDialog({
                             {sections.map((entry) => {
                                 const Pane = entry.pane;
                                 const Hero = entry.split ? undefined : entry.hero;
+
                                 return (
                                     <Tabs.Panel
                                         key={entry.id}

@@ -14,6 +14,7 @@ export function DisabledReason({ reason, children }: DisabledReasonProps) {
     if (reason === null) {
         return children;
     }
+
     return (
         <Tooltip label={reason} side="right">
             {children}

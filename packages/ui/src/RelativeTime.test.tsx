@@ -39,14 +39,17 @@ describe.skipIf(typeof document === 'undefined')('a relative time on screen', ()
     beforeEach(async () => {
         region = 'en-US';
         listeners = new Set();
+
         previousFormatSource = setFormatSource({
             language: () => 'en',
             region: () => region,
             subscribe: (onChange) => {
                 listeners.add(onChange);
+
                 return () => listeners.delete(onChange);
             }
         });
+
         container = document.createElement('div');
         document.body.append(container);
         const { createRoot } = await import('react-dom/client');

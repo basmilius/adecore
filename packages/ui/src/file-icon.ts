@@ -19,6 +19,7 @@ let resolver: ReturnType<typeof createFileTreeIconResolver> | null = null;
 /* Built on the first icon rather than on import, so a bundle that never draws one never builds it. */
 const resolveIcon: ReturnType<typeof createFileTreeIconResolver>['resolveIcon'] = (...args) => {
     resolver ??= createFileTreeIconResolver(FILE_TREE_ICONS);
+
     return resolver.resolveIcon(...args);
 };
 
@@ -34,12 +35,15 @@ export const mountFileIconSprite = (): void => {
     if (document.getElementById(SPRITE_ELEMENT_ID) !== null) {
         return;
     }
+
     const holder = document.createElement('div');
     holder.innerHTML = SETI_SPRITE_SHEET;
     const sprite = holder.firstElementChild;
+
     if (sprite === null) {
         return;
     }
+
     sprite.id = SPRITE_ELEMENT_ID;
     (document.body ?? document.documentElement).append(sprite);
 };

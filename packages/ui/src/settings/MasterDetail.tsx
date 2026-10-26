@@ -6,6 +6,7 @@ const LIST_WIDTHS = { 280: 'w-70', 320: 'w-80', 340: 'w-85' } as const;
 export interface MasterDetailProps {
     /* Usually `MasterItem`s under their own headers. */
     list: ReactNode;
+
     listWidth: keyof typeof LIST_WIDTHS;
     listLabel: string;
     detail: ReactNode;

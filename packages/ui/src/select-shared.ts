@@ -4,8 +4,10 @@ import clsx from 'clsx';
 export interface SelectItem<T extends string> {
     value: T;
     label: string;
+
     /* A second line under the label, for what the choice does. */
     description?: string;
+
     icon?: ReactNode;
     disabled?: boolean;
 }

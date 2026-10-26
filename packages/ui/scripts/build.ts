@@ -7,6 +7,7 @@ import { copyFile, rm } from 'node:fs/promises';
  * to what an app imports. The theme is plain CSS and goes into `dist` as it is.
  */
 await rm('dist', { recursive: true, force: true });
+
 await $`tsc -p tsconfig.build.json`;
 console.log(describeReactCompilerReport('ui', await compileReactDist('dist')));
 await copyFile('src/theme.css', 'dist/theme.css');

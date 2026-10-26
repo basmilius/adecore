@@ -3,24 +3,31 @@ const WORD_START = /[\s\-_./:]/;
 /* Whether `query` starts the text or one of its words. */
 const startsWord = (text: string, query: string): boolean => {
     let at = text.indexOf(query);
+
     while (at !== -1) {
         if (at === 0 || WORD_START.test(text[at - 1]!)) {
             return true;
         }
+
         at = text.indexOf(query, at + 1);
     }
+
     return false;
 };
 
 const lettersInOrder = (text: string, query: string): boolean => {
     let at = 0;
+
     for (const letter of query.replace(/\s+/g, '')) {
         at = text.indexOf(letter, at);
+
         if (at === -1) {
             return false;
         }
+
         at += 1;
     }
+
     return true;
 };
 
@@ -32,19 +39,26 @@ const lettersInOrder = (text: string, query: string): boolean => {
  */
 export function matchScore(text: string, query: string): number | null {
     const wanted = query.trim().toLowerCase();
+
     if (wanted === '') {
         return 0;
     }
+
     const haystack = text.toLowerCase();
+
     if (haystack.startsWith(wanted)) {
         return 5;
     }
+
     if (startsWord(haystack, wanted)) {
         return 4;
     }
+
     const words = wanted.split(/\s+/);
+
     if (words.every((word) => haystack.includes(word))) {
         return haystack.startsWith(words[0]!) ? 3 : 2;
     }
+
     return lettersInOrder(haystack, wanted) ? 1 : null;
 }

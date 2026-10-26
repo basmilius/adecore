@@ -29,20 +29,25 @@ export function emptyLineChanges(
     added: Iterable<string>
 ): { add: string[]; remove: string[] } {
     const wanted = new Set<string>();
+
     rows.forEach((row, index) => {
         if (row.kind !== 'directory' || !row.isExpanded) {
             return;
         }
+
         const line = emptyLineOf(row.path);
+
         for (let next = index + 1; next < rows.length && rows[next]!.depth > row.depth; next++) {
             if (rows[next]!.path !== line) {
                 return;
             }
         }
+
         if (labelOf(row) !== undefined) {
             wanted.add(line);
         }
     });
+
     return {
         add: [...wanted].filter((line) => !has(line)),
         remove: [...added].filter((line) => !wanted.has(line) && has(line))
@@ -53,47 +58,64 @@ export function emptyLineChanges(
 export function pastEmptyLine(model: FileTree, key: string): string | null {
     const index = model.getFocusedIndex();
     const focused = model.getFocusedPath();
+
     if (index < 0 || focused === null) {
         return null;
     }
+
     const count = model.getVisibleCount();
+
     const at = (position: number): FileTreeVisibleRow | null =>
         position >= 0 && position < count ? (model.getVisibleRows(position, position)[0] ?? null) : null;
+
     const lineAt = (position: number): boolean => {
         const row = at(position);
+
         return row !== null && isEmptyLine(row.path);
     };
+
     const pathAt = (position: number): string => {
         const row = at(position);
+
         return row === null ? focused : pathOfRow(row);
     };
+
     if ((key === 'ArrowDown' || key === 'ArrowRight') && lineAt(index + 1)) {
         return key === 'ArrowDown' ? pathAt(index + 2) : focused;
     }
+
     if (key === 'ArrowUp' && lineAt(index - 1)) {
         return pathAt(index - 2);
     }
+
     if (key === 'End' && lineAt(count - 1)) {
         return pathAt(count - 2);
     }
+
     return null;
 }
 
 /* Focus that still lands on a line, through a key with a modifier or the engine giving focus back to the line's element, goes on the way the last key went. */
 export function skipEmptyLine(model: FileTree, key: string): boolean {
     const path = model.getFocusedPath();
+
     if (path === null || !isEmptyLine(path)) {
         return false;
     }
+
     if (key === 'ArrowUp' || key === 'PageUp') {
         model.focusPreviousItem();
+
         return true;
     }
+
     if (key === 'ArrowDown' || key === 'PageDown' || key === 'End') {
         model.focusNextItem();
     }
+
     if (model.getFocusedPath() === path) {
         model.focusPath(directoryOfEmptyLine(path));
     }
+
     return true;
 }

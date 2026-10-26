@@ -13,6 +13,7 @@ describe('createToastStore', () => {
         for (const toast of useToasts.getState().toasts) {
             useToasts.getState().dismiss(toast.id);
         }
+
         jest.useRealTimers();
     });
 

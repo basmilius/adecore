@@ -26,21 +26,27 @@ export function DockShell({ children, autoHide = false, className, barClassName,
         if (!autoHide) {
             return;
         }
+
         let pointerNear = false;
+
         const evaluate = (): void => {
             const bar = barRef.current;
             const holds = bar !== null && (bar.querySelector('[data-popup-open]') !== null || bar.querySelector(':focus-visible') !== null);
             setRevealed(pointerNear || holds);
         };
+
         const onMove = (event: PointerEvent): void => {
             if (event.target instanceof Element && event.target.closest('[data-holds-dock]') !== null) {
                 return;
             }
+
             pointerNear = window.innerHeight - event.clientY <= REVEAL_ZONE;
             evaluate();
         };
+
         window.addEventListener('pointermove', onMove);
         window.addEventListener('focusin', evaluate);
+
         return () => {
             window.removeEventListener('pointermove', onMove);
             window.removeEventListener('focusin', evaluate);
@@ -49,9 +55,11 @@ export function DockShell({ children, autoHide = false, className, barClassName,
     }, [autoHide]);
 
     const hidden = autoHide && !revealed;
+
     useEffect(() => {
         onHiddenChange?.(hidden);
     }, [hidden, onHiddenChange]);
+
     return (
         <div ref={ref} {...rest} className={clsx('pointer-events-none absolute inset-x-0 bottom-4 flex justify-center', className)}>
             <Surface

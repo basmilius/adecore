@@ -15,6 +15,7 @@ export class Prefetcher {
     private running: Promise<void> | null = null;
     private loading = false;
     private readonly whenIdle: WhenIdle;
+
     /* Asked on every ask and again before every load, since a person can turn data saving on while the page runs. */
     private readonly allowed: () => boolean;
 
@@ -30,6 +31,7 @@ export class Prefetcher {
 
     register(load: Loader): void {
         this.registered.push(load);
+
         if (this.everythingOn) {
             this.enqueue(load);
         }
@@ -39,7 +41,9 @@ export class Prefetcher {
         if (!this.allowed()) {
             return Promise.resolve();
         }
+
         this.enqueue(load);
+
         return this.drain();
     }
 
@@ -48,10 +52,13 @@ export class Prefetcher {
         if (!this.allowed()) {
             return Promise.resolve();
         }
+
         this.everythingOn = true;
+
         for (const load of this.registered) {
             this.enqueue(load);
         }
+
         return this.drain();
     }
 
@@ -59,6 +66,7 @@ export class Prefetcher {
         if (this.queued.has(load)) {
             return;
         }
+
         this.queued.add(load);
         this.queue.push(load);
         void this.drain();
@@ -69,6 +77,7 @@ export class Prefetcher {
         if (this.running === null && this.queue.length > 0) {
             this.running = this.loadQueue();
         }
+
         return this.running ?? Promise.resolve();
     }
 
@@ -76,12 +85,16 @@ export class Prefetcher {
         try {
             for (let load = this.queue.shift(); load; load = this.queue.shift()) {
                 await new Promise<void>((resolve) => this.whenIdle(resolve));
+
                 if (!this.allowed()) {
                     // Data saving came on while it waited; a later ask may queue it again.
                     this.queued.delete(load);
+
                     continue;
                 }
+
                 this.loading = true;
+
                 try {
                     await load();
                 } catch {
@@ -98,14 +111,17 @@ export class Prefetcher {
 
 /* Safari has no idle callback; the timeout at least lets the frame that asked finish first. */
 const FALLBACK_DELAY_MS = 50;
+
 /* A canvas that keeps drawing (a blinking cursor, a stream) may never leave an idle moment, and a prefetch that never runs helps nobody. */
 const IDLE_TIMEOUT_MS = 2000;
 
 const whenIdle: WhenIdle = (run) => {
     if (typeof requestIdleCallback === 'function') {
         requestIdleCallback(() => run(), { timeout: IDLE_TIMEOUT_MS });
+
         return;
     }
+
     setTimeout(run, FALLBACK_DELAY_MS);
 };
 

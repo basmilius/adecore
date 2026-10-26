@@ -3,7 +3,9 @@ export const isApplePlatform = (): boolean => {
     if (typeof navigator === 'undefined') {
         return false;
     }
+
     const hints = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData;
+
     return applePlatformFrom(hints?.platform || navigator.platform);
 };
 

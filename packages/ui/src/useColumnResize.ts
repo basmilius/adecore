@@ -6,10 +6,13 @@ export type ColumnEdge = 'left' | 'right' | 'top' | 'bottom';
 export interface ColumnResizeOptions {
     /* In whole pixels. */
     size: number;
+
     min: number;
     from: ColumnEdge;
+
     /* Read at drag time, so a window resize between two drags is taken into account. */
     max?(): number;
+
     /* Called on every move. */
     onSize(size: number): void;
 }
@@ -22,6 +25,7 @@ export interface ColumnResize {
 
 export const clampColumnSize = (options: Pick<ColumnResizeOptions, 'min' | 'max'>, size: number): number => {
     const max = Math.max(options.min, options.max?.() ?? Number.MAX_SAFE_INTEGER);
+
     return Math.max(options.min, Math.min(Math.round(size), max));
 };
 
@@ -42,22 +46,29 @@ export const useColumnResize = (ref: RefObject<HTMLElement | null>, options: Col
         /* The far edge grows as the pointer comes towards it; the near edge grows as it goes away. */
         const growsTowardsAnchor = options.from === 'right' || options.from === 'bottom';
         column?.setAttribute('data-resizing', 'true');
+
         const onMove = (move: PointerEvent): void => {
             const delta = along(options.from, move) - start;
             options.onSize(clampColumnSize(options, size + (growsTowardsAnchor ? -delta : delta)));
         };
+
         const onUp = (): void => {
             handle.removeEventListener('pointermove', onMove);
+
             for (const type of DRAG_ENDS) {
                 handle.removeEventListener(type, onUp);
             }
+
             if (handle.hasPointerCapture(event.pointerId)) {
                 handle.releasePointerCapture(event.pointerId);
             }
+
             column?.removeAttribute('data-resizing');
         };
+
         handle.setPointerCapture(event.pointerId);
         handle.addEventListener('pointermove', onMove);
+
         for (const type of DRAG_ENDS) {
             handle.addEventListener(type, onUp);
         }

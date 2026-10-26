@@ -27,6 +27,7 @@ describe('fitMiddle', () => {
 
     test('head, middle and tail are the whole text again', () => {
         const text = 'apps/client/src/shell/settings/panes/AgentsPane.tsx';
+
         for (let width = 1; width < measure(text); width++) {
             const cut = fitMiddle(text, width, measure)!;
             expect(cut.head + cut.middle + cut.tail).toBe(text);

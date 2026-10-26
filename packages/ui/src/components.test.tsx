@@ -32,6 +32,7 @@ import { UIProvider } from './UIProvider.tsx';
 import { Waveform } from './Waveform.tsx';
 
 const i18n = i18next.createInstance();
+
 await i18n.init({ lng: 'en', fallbackLng: 'en', resources: {}, interpolation: { escapeValue: false } });
 
 let previousFormatSource: FormatSource;
@@ -45,6 +46,7 @@ afterEach(() => {
 });
 
 const render = (node: ReactNode): string => renderToStaticMarkup(<UIProvider i18n={i18n}>{node}</UIProvider>);
+
 const classesIn = (markup: string): string[][] => [...markup.matchAll(/class="([^"]*)"/g)].map((match) => match[1]!.split(/\s+/));
 
 describe('an icon button', () => {
@@ -157,6 +159,7 @@ describe('a segment bar', () => {
                 label="Sections"
             />
         );
+
         expect(markup).toContain('<ol aria-label="Sections"');
         expect(markup).toContain('left:0%;width:12.5%');
         expect(markup).toContain('left:12.5%;width:37.5%');
@@ -174,6 +177,7 @@ describe('a segment bar', () => {
                 range={[5, 15]}
             />
         );
+
         expect(markup).toContain('left:0%;width:50%');
         expect(markup).toContain('left:50%;width:50%');
         expect(markup).not.toContain('>C<');
@@ -189,6 +193,7 @@ describe('a segment bar', () => {
                 onSelect={() => {}}
             />
         );
+
         expect(markup).toContain('left:25%;width:25%');
         expect(markup).toContain('left:75%;width:25%');
         expect(markup.match(/<li/g)).toHaveLength(2);
@@ -229,6 +234,7 @@ describe('a color swatch', () => {
                 <ColorSwatch render={<Menu.Item unstyled />} aria-label="None" picked />
             </Menu.Root>
         );
+
         expect(markup).toContain('role="menuitem"');
         expect(markup).toContain('focus-ring');
         expect(markup).not.toContain('menu-item');
@@ -252,6 +258,7 @@ describe('a menu row', () => {
                 </Menu.Row>
             </Menu.Root>
         );
+
         expect(markup).toContain('role="group"');
         expect(markup).toContain('aria-label="Dev server"');
         expect(classesIn(markup)).toContainEqual(expect.arrayContaining(['menu-row']));
@@ -270,14 +277,17 @@ describe('a field', () => {
                 <Input />
             </Field>
         );
+
         const control = /<input id="([^"]+)"/.exec(markup)?.[1];
         expect(control).toBeDefined();
         expect(markup).toContain(`<label for="${control}"`);
         const describedBy = /aria-describedby="([^"]+)"/.exec(markup)?.[1]?.split(' ') ?? [];
         expect(describedBy).toHaveLength(2);
+
         for (const id of describedBy) {
             expect(markup).toContain(`id="${id}"`);
         }
+
         expect(markup).toContain('aria-invalid="true"');
         expect(markup).toContain('role="alert"');
     });
@@ -288,6 +298,7 @@ describe('a field', () => {
                 <Input aria-label="Other" />
             </Field>
         );
+
         expect(markup).not.toContain('<label');
         const labelledBy = /role="group" aria-labelledby="([^"]+)" aria-describedby="([^"]+)"/.exec(markup);
         expect(labelledBy).not.toBeNull();
@@ -318,6 +329,7 @@ describe('a field', () => {
                 <Input icon={Search} size="sm" className="grow" />
             </Field>
         );
+
         expect(markup).toMatch(/<span[^>]*><svg/);
         expect(classesIn(markup)).toContainEqual(expect.arrayContaining(['field', 'field-sm', 'grow']));
         expect(markup).toContain('width="12"');
@@ -328,9 +340,11 @@ describe('a field', () => {
 
     test('draws what comes after the text inside the box of the field', () => {
         const markup = render(<Input aria-label="Filter" size="sm" className="grow" end={<span>3</span>} />);
+
         expect(markup).toMatch(
             /^<span class="field relative flex p-0 field-sm grow"><input [^>]*aria-label="Filter"[^>]*\/><span[^>]*><span>3<\/span><\/span><\/span>$/
         );
+
         expect(markup).not.toContain('<svg');
     });
 
@@ -344,6 +358,7 @@ describe('a menu item', () => {
 
     test('is a row with its indicator unless it asks to be left unstyled', () => {
         expect(classesIn(inMenu(<Menu.Item>Rename</Menu.Item>))).toContainEqual(expect.arrayContaining(['menu-item']));
+
         const bare = inMenu(
             <>
                 <Menu.Item unstyled className="icon-btn">
@@ -354,6 +369,7 @@ describe('a menu item', () => {
                 </Menu.CheckboxItem>
             </>
         );
+
         expect(bare).not.toContain('menu-item');
         expect(bare).not.toContain('<svg');
         expect(bare).toMatch(/<div role="menuitem"[^>]* tabindex="-1"/);
@@ -365,6 +381,7 @@ describe('a menu item', () => {
                 Fast mode
             </Menu.CheckboxItem>
         );
+
         expect(markup.indexOf('Fast mode')).toBeLessThan(markup.indexOf('border-border-strong'));
         expect(markup).toContain('ml-auto');
     });
@@ -377,6 +394,7 @@ describe('a menu item', () => {
                 </Menu.GroupLabel>
             </Menu.Group>
         );
+
         expect(classesIn(markup)).toContainEqual(expect.arrayContaining(['font-medium']));
     });
 });
@@ -398,6 +416,7 @@ describe('the element a part renders', () => {
                 <button type="button">x</button>
             </PanelHeader>
         );
+
         expect(markup.indexOf('Files')).toBeLessThan(markup.indexOf('<button'));
         expect(markup.startsWith('<header')).toBe(true);
     });
@@ -445,6 +464,7 @@ describe('tabs', () => {
     const strip = (count: number): string => {
         const source = fakeFormatSource();
         source.set({ region: 'nl-NL' });
+
         return renderToStaticMarkup(
             <UIProvider i18n={i18n} formatSource={source}>
                 <Tabs.Root value="links">
@@ -483,6 +503,7 @@ describe('tabs', () => {
                 </Tabs.List>
             </Tabs.Root>
         );
+
         expect(markup.match(/aria-label="Close tab"/g)).toHaveLength(1);
         expect(markup).toContain('tabindex="-1"');
         expect(markup).toContain('>after</span>');
@@ -501,6 +522,7 @@ describe('tabs', () => {
                 </Tabs.List>
             </Tabs.Root>
         );
+
         const pinned = /<[^>]*data-pinned=""[^>]*>Home</.exec(markup)?.[0] ?? '';
         expect(pinned).toContain('px-2');
         expect(markup.match(/aria-label="Close tab"/g)).toHaveLength(1);
@@ -514,6 +536,7 @@ describe('tabs', () => {
                 </Tabs.List>
             </Tabs.Root>
         );
+
         expect(markup.indexOf('>before</span>')).toBeGreaterThan(-1);
         expect(markup.indexOf('>before</span>')).toBeLessThan(markup.indexOf('role="tablist"'));
     });
@@ -523,6 +546,7 @@ describe('a stepper', () => {
     const renderStepper = (node: ReactNode): string => {
         const source = fakeFormatSource();
         source.set({ region: 'nl-NL' });
+
         return renderToStaticMarkup(
             <UIProvider i18n={i18n} formatSource={source}>
                 {node}
@@ -551,11 +575,13 @@ describe('the provider', () => {
     test('adds the words of the library to the app i18next, so a control reads them on its first render', () => {
         const fresh = i18next.createInstance();
         void fresh.init({ lng: 'nl', resources: {} });
+
         const markup = renderToStaticMarkup(
             <UIProvider i18n={fresh}>
                 <Stepper value={2} onValueChange={() => {}} min={0} max={4} step={1} label="Rand" />
             </UIProvider>
         );
+
         expect(fresh.hasResourceBundle('en', 'ui')).toBe(true);
         expect(markup).toContain('aria-label="Rand: kleiner"');
     });
@@ -564,15 +590,19 @@ describe('the provider', () => {
         const source = fakeFormatSource();
         source.set({ region: 'nl-NL' });
         let seen = '';
+
         const Probe = () => {
             seen = formatLocale();
+
             return null;
         };
+
         renderToStaticMarkup(
             <UIProvider i18n={i18n} formatSource={source}>
                 <Probe />
             </UIProvider>
         );
+
         expect(seen).toBe('nl-NL');
     });
 });
@@ -621,12 +651,14 @@ describe('the toasts', () => {
             update: () => {},
             dismiss: () => {}
         }));
+
         const markup = render(<Toasts store={store} />);
         expect(markup).toMatch(/<button type="button" class="[^"]*\bh-6\b[^"]*">Retry<\/button>/);
     });
 
     test('count down a failure that goes by itself, and hide the close button of one without an action', () => {
         const deadline = { start: 0, end: 10_000 };
+
         const store = create<ToastStore>(() => ({
             toasts: [
                 { id: 'ping', kind: 'error', title: 'New issue', action: { label: 'Open', run: () => {} }, deadline },
@@ -636,6 +668,7 @@ describe('the toasts', () => {
             update: () => {},
             dismiss: () => {}
         }));
+
         const markup = render(<Toasts store={store} />);
         expect(markup.match(/toast-timer-arc/g)).toHaveLength(1);
         expect(classesIn(markup)).toContainEqual(expect.arrayContaining(['opacity-0', 'group-hover:opacity-100']));

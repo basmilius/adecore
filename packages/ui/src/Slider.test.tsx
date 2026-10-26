@@ -9,6 +9,7 @@ import { fakeFormatSource } from './testing/fake-source.ts';
 import { UIProvider } from './UIProvider.tsx';
 
 const i18n = i18next.createInstance();
+
 await i18n.init({ lng: 'en', fallbackLng: 'en', resources: {}, interpolation: { escapeValue: false } });
 
 let previousFormatSource: FormatSource;
@@ -58,6 +59,7 @@ describe.skipIf(typeof document === 'undefined')('a slider under the keyboard', 
     function Harness(props: Omit<SliderProps, 'value' | 'onValueChange' | 'label'> & { initial: number }) {
         const { initial, ...rest } = props;
         const [value, setValue] = useState(initial);
+
         return (
             <Slider
                 {...rest}
@@ -74,13 +76,17 @@ describe.skipIf(typeof document === 'undefined')('a slider under the keyboard', 
     const mount = async (node: ReactNode): Promise<HTMLInputElement> => {
         const { createRoot } = await import('react-dom/client');
         root = createRoot(container);
+
         await act(async () => {
             root.render(<UIProvider i18n={i18n}>{node}</UIProvider>);
         });
+
         const input = container.querySelector<HTMLInputElement>('input[type="range"]');
+
         if (input === null) {
             throw new Error('no range input');
         }
+
         return input;
     };
 
@@ -90,6 +96,7 @@ describe.skipIf(typeof document === 'undefined')('a slider under the keyboard', 
             const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
             // Base UI 1.0.0-rc.0 reads the global `window.event` while it sets a value; Chromium has one, happy-dom none.
             Object.assign(globalThis, { event });
+
             try {
                 input.dispatchEvent(event);
             } finally {

@@ -25,6 +25,7 @@ describe('the drop preview', () => {
 
     test('keeps the commands of its path the same for any shape, so one outline can move into another', () => {
         const commands = (path: string): string => path.replace(/[\d.,-]+/g, '');
+
         const rect = dropPreviewPath(rectDropPreview({ x: 0, y: 0, width: 300, height: 200 }));
         const tab = dropPreviewPath(tabDropPreview({ gap: 0, left: 0, tabWidth: 96, width: 300, height: 200, barHeight: 36 }, { x: 0, y: 0 }));
         expect(commands(rect)).toBe(commands(tab));

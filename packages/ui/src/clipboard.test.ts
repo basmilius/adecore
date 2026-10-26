@@ -18,11 +18,13 @@ afterEach(() => {
 describe('copying text', () => {
     test('resolves true once the clipboard holds the text', async () => {
         const written: string[] = [];
+
         useClipboard({
             writeText: async (text: string) => {
                 written.push(text);
             }
         });
+
         expect(await copyText('git status')).toBe(true);
         expect(written).toEqual(['git status']);
     });

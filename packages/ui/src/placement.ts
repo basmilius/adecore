@@ -17,9 +17,11 @@ export type PlacementKey = (typeof PLACEMENT_KEYS)[number];
 export function splitPlacement<Props extends Partial<Record<PlacementKey, unknown>>>(props: Props): [Pick<Props, PlacementKey>, Omit<Props, PlacementKey>] {
     const placement: Record<string, unknown> = {};
     const rest: Record<string, unknown> = { ...props };
+
     for (const key of PLACEMENT_KEYS) {
         placement[key] = props[key];
         delete rest[key];
     }
+
     return [placement as Pick<Props, PlacementKey>, rest as Omit<Props, PlacementKey>];
 }

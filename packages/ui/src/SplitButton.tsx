@@ -10,18 +10,24 @@ import { Tooltip } from './Tooltip.tsx';
 export interface SplitButtonProps extends Omit<ComponentProps<'button'>, 'ref'> {
     variant?: ButtonVariant;
     size?: ButtonSize;
+
     /* The hint on the action half. */
     tooltip?: ReactNode;
+
     /* The rows of the menu the chevron opens. */
     menu: ReactNode;
+
     /* The accessible name of the chevron, and its hint unless `menuTooltip` says something else. */
     menuLabel: string;
+
     menuTooltip?: ReactNode;
     menuDisabled?: boolean;
     menuAlign?: MenuPopupProps['align'];
     menuClassName?: string;
+
     /* On the box around both halves; every other prop goes to the action half. */
     className?: string;
+
     ref?: ComponentProps<'span'>['ref'];
 }
 

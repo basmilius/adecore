@@ -11,10 +11,13 @@ export interface AccentSwatchesProps<Id extends string> {
     value: string | undefined;
     onValueChange(id: Id): void;
     label: string;
+
     /* Every color on offer, in the order of the list behind the featured ones. */
     accents: readonly { id: Id; color: string }[];
+
     /* The few drawn in the open, in the order they stand. */
     featured: readonly Id[];
+
     labelOf(id: Id): string;
     className?: string;
     ref?: Ref<HTMLDivElement>;
@@ -26,10 +29,14 @@ export interface AccentSwatchesProps<Id extends string> {
  */
 export function AccentSwatches<Id extends string>({ value, onValueChange, label, accents, featured, labelOf, className, ref }: AccentSwatchesProps<Id>) {
     const { t } = useTranslation('ui');
+
     const isFeatured = (id: string): boolean => featured.some((entry) => entry === id);
+
     const colorOf = (id: string): string | undefined => accents.find((entry) => entry.id === id)?.color;
+
     const shown = accents.filter((entry) => isFeatured(entry.id)).sort((a, b) => featured.indexOf(a.id) - featured.indexOf(b.id));
     const hidden = value !== undefined && !isFeatured(value) && colorOf(value) !== undefined ? value : null;
+
     return (
         <div ref={ref} className={clsx('flex items-center gap-2', className)} role="radiogroup" aria-label={label}>
             {shown.map((entry) => (

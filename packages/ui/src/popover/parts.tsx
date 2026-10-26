@@ -33,6 +33,7 @@ export type PopoverPopupProps = ComponentProps<typeof BasePopover.Popup> &
 
 export function PopoverPopup({ variant = 'menu', side = 'bottom', align = 'start', sideOffset = 8, className, ...props }: PopoverPopupProps) {
     const [placement, popupProps] = splitPlacement(props);
+
     return (
         <BasePopover.Portal>
             <BasePopover.Positioner className="popup-positioner" render={renderPositioner} {...placement} side={side} align={align} sideOffset={sideOffset}>
@@ -54,6 +55,7 @@ export type PreviewCardPopupProps = ComponentProps<typeof BasePreviewCard.Popup>
 /* A card that opens while the pointer rests on its trigger, drawn like a popover. */
 export function PreviewCardPopup({ variant = 'menu', side = 'bottom', align = 'start', sideOffset = 8, className, ...props }: PreviewCardPopupProps) {
     const [placement, popupProps] = splitPlacement(props);
+
     return (
         <BasePreviewCard.Portal>
             <BasePreviewCard.Positioner className="z-(--z-popup)" {...placement} side={side} align={align} sideOffset={sideOffset}>

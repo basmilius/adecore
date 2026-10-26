@@ -16,25 +16,33 @@ export type { IconPickerGroup } from './icon-picker.ts';
 
 /* A row of cells is 28 high with a gap of 4. Under a heading of 28 the last row keeps 8 below it; without headings the grid has 6 above as well. */
 const ROW_HEIGHT = 32;
+
 const HEADED_EXTRA = 32;
 const BARE_EXTRA = 10;
 
 export interface IconPickerProps {
     /* By name, in the order of the grid, or in groups under a heading each. The name is also its tooltip. */
     icons: IconPickerIcons;
+
     value: string | null;
     onValueChange(name: string): void;
+
     /* By icon name: more words a search finds it by, beside its name and its group's label. */
     keywords?: Readonly<Record<string, readonly string[]>>;
+
     /* On by default for groups, off for a flat set. */
     searchable?: boolean;
+
     /* The grid as a scroll area this many rows high. Without it the grid is as tall as its icons. */
     rows?: number;
+
     disabled?: boolean;
     onClear?: () => void;
     label?: string;
+
     /* It still names the trigger. */
     hideLabel?: boolean;
+
     className?: string;
     ref?: Ref<HTMLDivElement>;
 }
@@ -42,6 +50,7 @@ export interface IconPickerProps {
 /* Only a stuck heading draws a line under it. */
 const markStuckHeadings = (area: HTMLElement): void => {
     const top = area.scrollTop;
+
     for (const heading of area.querySelectorAll<HTMLElement>('[data-icon-heading]')) {
         const group = heading.parentElement;
         const stuck = group !== null && top > 0 && group.offsetTop <= top && group.offsetTop + group.offsetHeight > top;
@@ -169,6 +178,7 @@ function IconPickerPanel({ id, name, sections, headed, value, keywords, searchab
     const [query, setQuery] = useState('');
     const [focused, setFocused] = useState<string | null>(null);
     const shown = filterSections(sections, query, keywords);
+
     const tabStop = tabStopOf(
         shown.flatMap((section) => section.icons.map(([icon]) => icon)),
         focused,
@@ -179,15 +189,18 @@ function IconPickerPanel({ id, name, sections, headed, value, keywords, searchab
     useLayoutEffect(() => {
         const element = area.current;
         const chosen = element?.querySelector<HTMLElement>('[aria-checked="true"]');
+
         if (!element || !chosen || element.scrollHeight <= element.clientHeight) {
             return;
         }
+
         const heading = element.querySelector<HTMLElement>('[data-icon-heading]')?.offsetHeight ?? 0;
         element.scrollTop = Math.round(chosen.offsetTop - heading - (element.clientHeight - heading - chosen.offsetHeight) / 2);
     }, []);
 
     const search = (next: string): void => {
         setQuery(next);
+
         if (area.current) {
             area.current.scrollTop = 0;
         }
@@ -198,6 +211,7 @@ function IconPickerPanel({ id, name, sections, headed, value, keywords, searchab
         if (!escapeClearsSearch(event.key, query)) {
             return;
         }
+
         event.stopPropagation();
         event.preventDefault();
         search('');
@@ -208,19 +222,24 @@ function IconPickerPanel({ id, name, sections, headed, value, keywords, searchab
         if (event.metaKey || event.ctrlKey || event.altKey) {
             return;
         }
+
         const cells = [...event.currentTarget.querySelectorAll<HTMLElement>('[role="radio"]')];
         const from = cells.indexOf(event.target as HTMLElement);
+
         if (from === -1) {
             return;
         }
+
         const to = cellForKey(
             event.key,
             cells.map((cell) => cell.getBoundingClientRect()),
             from
         );
+
         if (to === null) {
             return;
         }
+
         event.preventDefault();
         cells[to]?.focus();
     };
@@ -298,10 +317,13 @@ function IconPickerPanel({ id, name, sections, headed, value, keywords, searchab
                                 ))}
                             </div>
                         );
+
                         if (section.label === null) {
                             return cells;
                         }
+
                         const headingId = `${id}-group-${index}`;
+
                         return (
                             <div key={section.id} role="group" aria-labelledby={headingId}>
                                 {/* A step lighter than the popover in the dark theme, where a darker band would read as a hole in it. */}

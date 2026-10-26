@@ -8,7 +8,9 @@ export const useNow = (intervalMs: number, ticking = true): number => {
         if (!ticking) {
             return;
         }
+
         const timer = window.setInterval(() => setNow(Date.now()), intervalMs);
+
         return () => window.clearInterval(timer);
     }, [intervalMs, ticking]);
 
@@ -28,6 +30,7 @@ export const useTickingText = (render: () => string, intervalMs = 1000): RefObje
 
     useEffect(() => {
         const timer = window.setInterval(tick, intervalMs);
+
         return () => window.clearInterval(timer);
     }, [intervalMs, tick]);
 

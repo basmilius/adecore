@@ -9,6 +9,7 @@ export interface SegmentedOption<T extends string> {
     id: T;
     label: string;
     icon?: LucideIcon;
+
     /* Takes the option out of the tab order and the arrow keys; the rest of the group stays usable. */
     disabled?: boolean;
 }
@@ -19,12 +20,16 @@ export interface SegmentedProps<T extends string> {
     options: readonly SegmentedOption<T>[];
     label: string;
     disabled?: boolean;
+
     /* `vertical` is as wide as its container, for labels too long to stand side by side. */
     orientation?: 'horizontal' | 'vertical';
+
     /* The heights of `Input`, `Select` and `Button`. */
     size?: 'md' | 'sm';
+
     /* An option with an icon draws as a square, its label as its accessible name and tooltip. One without an icon keeps its label. */
     iconOnly?: boolean;
+
     className?: string;
     ref?: Ref<HTMLDivElement>;
 }
@@ -53,9 +58,11 @@ export function Segmented<T extends string>({
 
     const move = (event: KeyboardEvent<HTMLButtonElement>, index: number): void => {
         const next = segmentedTarget(options, index, event.key);
+
         if (next === null) {
             return;
         }
+
         event.preventDefault();
         onValueChange(options[next]!.id);
         event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="radio"]')[next]?.focus();
@@ -76,6 +83,7 @@ export function Segmented<T extends string>({
         >
             {options.map((option, index) => {
                 const square = iconOnly && option.icon !== undefined;
+
                 const button = (
                     <button
                         key={option.id}
@@ -96,6 +104,7 @@ export function Segmented<T extends string>({
                         {!square && option.label}
                     </button>
                 );
+
                 return square ? (
                     <Tooltip key={option.id} label={option.label} name>
                         {button}

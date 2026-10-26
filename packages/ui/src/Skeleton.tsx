@@ -4,6 +4,7 @@ import clsx from 'clsx';
 export interface SkeletonProps {
     /* The width, and a height other than the one line of 16px. */
     className?: string;
+
     ref?: Ref<HTMLSpanElement>;
 }
 

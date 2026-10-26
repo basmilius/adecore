@@ -31,10 +31,13 @@ export interface PillProps {
     shape?: keyof typeof SHAPES;
     size?: 'md' | 'sm';
     mono?: boolean;
+
     /* With a handler the pill is a button; without one it is a label. */
     onClick?: () => void;
+
     /* Makes the button a toggle. */
     pressed?: boolean;
+
     disabled?: boolean;
     className?: string;
     ref?: Ref<HTMLElement>;
@@ -50,6 +53,7 @@ export function Pill({ icon, children, tone = 'muted', shape = 'pill', size = 'm
         mono && 'font-mono',
         className
     );
+
     if (!onClick) {
         return (
             <span ref={ref} className={shared}>
@@ -58,6 +62,7 @@ export function Pill({ icon, children, tone = 'muted', shape = 'pill', size = 'm
             </span>
         );
     }
+
     return (
         <button
             ref={ref as Ref<HTMLButtonElement>}

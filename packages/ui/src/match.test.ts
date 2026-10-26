@@ -6,6 +6,7 @@ describe('matchScore', () => {
         const ranked = ['Toggle the sidebar', 'Slide deck', 'Sidebar on the left', 'Sign out'].sort(
             (first, second) => (matchScore(second, 'side') ?? -1) - (matchScore(first, 'side') ?? -1)
         );
+
         expect(ranked).toEqual(['Sidebar on the left', 'Toggle the sidebar', 'Slide deck', 'Sign out']);
         expect(matchScore('Sign out', 'side')).toBeNull();
         expect(matchScore('Sidebar on the left', 'side')).toBe(5);

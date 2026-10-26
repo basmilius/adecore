@@ -4,15 +4,21 @@ import clsx from 'clsx';
 export interface MeterProps {
     /* In the unit of `min` and `max`, held to them. Null draws an empty track, for a level not measured yet. */
     value: number | null;
+
     min?: number;
     max?: number;
+
     /* Drawn as lines across the track, such as a target or a limit. */
     marks?: readonly number[];
+
     label: string;
+
     /* The value in words for a screen reader, such as "-18.2 LUFS". Left out, it reads the number. */
     valueText?: string;
+
     /* Its width, which it fills. */
     className?: string;
+
     ref?: Ref<HTMLDivElement>;
 }
 

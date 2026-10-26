@@ -6,6 +6,7 @@ const keysOf = (value: unknown, prefix = ''): string[] => {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
         return [prefix];
     }
+
     return Object.entries(value).flatMap(([key, child]) => keysOf(child, prefix === '' ? key : `${prefix}.${key}`));
 };
 

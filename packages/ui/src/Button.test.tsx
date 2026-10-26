@@ -16,6 +16,7 @@ describe('a button', () => {
                 Continue
             </Button>
         );
+
         expect(markup).toContain('h-9');
         expect(markup).toContain('rounded-full');
         expect(markup).toContain('text-sm');

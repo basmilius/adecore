@@ -69,6 +69,7 @@ export type MenuPopupProps = ComponentProps<typeof BaseMenu.Popup> & Placement;
 export function MenuPopup({ className, ...props }: MenuPopupProps) {
     const defaults = PLACEMENT[useContext(MenuKindContext)];
     const [placement, popupProps] = splitPlacement(props);
+
     return (
         <BaseMenu.Portal>
             <BaseMenu.Positioner
@@ -100,8 +101,10 @@ export function MenuItem({ unstyled = false, className, ...props }: MenuItemProp
 export interface MenuCheckProps {
     /* One of several is a bare tick; on or off is a tick in an outlined box, which says the row can be off. */
     kind: 'radio' | 'checkbox';
+
     /* Only for a row that is not a radio or checkbox item, and so has no indicator of its own. */
     checked?: boolean;
+
     className?: string;
     ref?: Ref<HTMLSpanElement>;
 }
@@ -109,6 +112,7 @@ export interface MenuCheckProps {
 /* One line of the row tall, so a row with a second line keeps the tick beside its first. */
 export function MenuCheck({ kind, checked, className, ref }: MenuCheckProps) {
     const tick = <Icon icon={Check} size={kind === 'radio' ? 14 : 12} />;
+
     const indicator =
         checked !== undefined ? (
             checked && tick
@@ -117,6 +121,7 @@ export function MenuCheck({ kind, checked, className, ref }: MenuCheckProps) {
         ) : (
             <BaseMenu.CheckboxItemIndicator className="flex">{tick}</BaseMenu.CheckboxItemIndicator>
         );
+
     return (
         <span ref={ref} className={clsx('grid h-lh w-4 shrink-0 place-items-center', className)}>
             {kind === 'checkbox' ? <span className="grid h-4 w-4 place-items-center rounded border border-border-strong">{indicator}</span> : indicator}
@@ -164,6 +169,7 @@ export function MenuRadioItem({ unstyled = false, indicator = 'start', className
 
 type SubmenuTriggerProps = ComponentProps<typeof BaseMenu.SubmenuTrigger> & {
     children?: ReactNode;
+
     /* The chevron at the end of the row that says it opens more. Off for a row that carries a hint there instead. */
     chevron?: boolean;
 };
@@ -186,8 +192,10 @@ export function MenuRow({ render, className, ref, ...props }: MenuRowProps) {
 
 type RowButton = {
     icon: LucideIcon;
+
     /* The button's accessible name. Unlike the `label` of an item, typing never lands on the button. */
     label: string;
+
     /* Classes for the icon rather than the button, such as a fill. The size stays the row's. */
     iconClassName?: string;
 };

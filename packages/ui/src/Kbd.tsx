@@ -15,9 +15,12 @@ const KEY_CAP_SIZES = { md: 'h-6 min-w-6 px-1.5 text-xs', sm: 'h-5 min-w-5 px-1 
 export interface KbdProps {
     /* Printed the way this platform writes it. Without one, the children are printed as they are (`↑`, `Esc`). */
     shortcut?: Shortcut;
+
     children?: ReactNode;
+
     /* In a menu row the `.menu-item kbd` rule dresses it; anywhere else it is a chip on the surface it sits on. */
     variant?: 'menu' | 'inline';
+
     className?: string;
     ref?: Ref<HTMLElement>;
 }
@@ -47,8 +50,10 @@ export function KeyCap({ children, size = 'md', className, ref }: KeyCapProps) {
 
 export interface KeysProps {
     shortcut: Shortcut;
+
     /* The pointer gesture the keys go with, such as "drag", as one more cap. */
     then?: string;
+
     size?: 'md' | 'sm';
     className?: string;
     ref?: Ref<HTMLSpanElement>;
@@ -56,6 +61,7 @@ export interface KeysProps {
 
 export function Keys({ shortcut, then, size = 'md', className, ref }: KeysProps) {
     const parts = [...shortcutParts(shortcut, isApplePlatform()), ...(then ? [then] : [])];
+
     return (
         <span ref={ref} className={clsx('flex items-center', size === 'sm' ? 'gap-0.5' : 'gap-1', className)}>
             {parts.map((part, index) => (

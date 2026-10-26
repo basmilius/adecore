@@ -10,18 +10,23 @@ export function useContentSize(): [(node: HTMLElement | null) => void, ContentSi
     const [size, setSize] = useState<ContentSize>({ width: 0, height: 0 });
     const observer = useRef<ResizeObserver | null>(null);
     useEffect(() => () => observer.current?.disconnect(), []);
+
     const measure = (node: HTMLElement | null): void => {
         observer.current?.disconnect();
+
         if (node === null) {
             return;
         }
+
         const update = (width: number, height: number): void => {
             const next = { width: Math.round(width), height: Math.round(height) };
             setSize((current) => (current.width === next.width && current.height === next.height ? current : next));
         };
+
         update(node.clientWidth, node.clientHeight);
         observer.current = new ResizeObserver(([entry]) => update(entry!.contentRect.width, entry!.contentRect.height));
         observer.current.observe(node);
     };
+
     return [measure, size];
 }

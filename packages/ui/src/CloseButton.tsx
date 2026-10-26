@@ -17,5 +17,6 @@ export function CloseButton({ label, kbd, size, className, ref, ...closes }: Clo
     if ('dialog' in closes) {
         return <IconButton ref={ref} icon={X} label={label} kbd={kbd} size={size} className={className} render={<Dialog.Close />} />;
     }
+
     return <IconButton ref={ref} icon={X} label={label} kbd={kbd} size={size} className={className} onClick={closes.onClick} />;
 }

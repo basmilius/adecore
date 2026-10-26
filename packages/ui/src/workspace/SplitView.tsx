@@ -41,15 +41,19 @@ export interface SplitViewInfo {
 
 export interface SplitViewBounds extends SplitViewInfo {
     viewId: string;
+
     /** Viewport coordinates, suitable for a native surface kept outside the layout's DOM. */
     rect: SplitRect;
+
     borderRadius: string;
 }
 
 export interface SplitDropTarget {
     paneId: string;
+
     /** A body drop names its zone; an omitted side denotes the tab strip. */
     side?: 'left' | 'right' | 'top' | 'bottom' | 'center';
+
     /** A gap in the original tab order, before the source is lifted out. */
     index?: number;
 }
@@ -89,12 +93,14 @@ interface Measurement {
     scaleX: number;
     scaleY: number;
 }
+
 const ZERO: Measurement = { width: 0, height: 0, left: 0, top: 0, scaleX: 1, scaleY: 1 };
 const MINIMUM: SplitMinimum = { width: 120, height: 80 };
 
 /* The pane's section or header under `container`, found by its data attribute rather than a selector, so no id needs escaping. */
 function paneElement(container: ParentNode | null | undefined, attribute: 'splitPane' | 'splitHeader', paneId: string): HTMLElement | undefined {
     const selector = attribute === 'splitPane' ? '[data-split-pane]' : '[data-split-header]';
+
     return Array.from(container?.querySelectorAll<HTMLElement>(selector) ?? []).find((element) => element.dataset[attribute] === paneId);
 }
 
@@ -116,10 +122,12 @@ function Divider({
     const before = divider.lengths.slice(0, divider.index + 1).reduce((sum, value) => sum + value, 0);
     const total = divider.lengths.reduce((sum, value) => sum + value, 0);
     const position = total ? Math.round((before / total) * 100) : 0;
+
     const limit = (delta: number): number =>
         resizeSplit(divider, delta, false, 0, minimumResizeShare)
             .slice(0, divider.index + 1)
             .reduce((sum, size) => sum + size, 0) * 100;
+
     return (
         <div
             role="separator"
@@ -135,6 +143,7 @@ function Divider({
             onKeyDown={(event) => {
                 const negative = horizontal ? 'ArrowLeft' : 'ArrowUp';
                 const positive = horizontal ? 'ArrowRight' : 'ArrowDown';
+
                 if (event.key === 'Enter') {
                     event.preventDefault();
                     onEqualize(event.altKey);
@@ -148,6 +157,7 @@ function Divider({
                 if (event.button !== 0) {
                     return;
                 }
+
                 event.preventDefault();
                 cleanup.current?.();
                 const element = event.currentTarget;
@@ -162,52 +172,65 @@ function Divider({
                 // A pointer reports more often than the screen draws; one resize per frame is all that shows.
                 let frame = 0;
                 let pending: PointerEvent | null = null;
+
                 const apply = (): void => {
                     frame = 0;
                     const next = pending;
                     pending = null;
+
                     if (next) {
                         const delta = ((horizontal ? next.clientX : next.clientY) - start) / (scale || 1);
                         onResize(resizeSplit(divider, delta, next.altKey, 8 / (scale || 1), minimumResizeShare));
                     }
                 };
+
                 const move = (next: PointerEvent): void => {
                     if (next.pointerId !== pointerId) {
                         return;
                     }
+
                     pending = next;
+
                     if (frame !== 0) {
                         return;
                     }
+
                     if (view) {
                         frame = view.requestAnimationFrame(apply);
                     } else {
                         apply();
                     }
                 };
+
                 const release = (): void => {
                     if (frame !== 0) {
                         view?.cancelAnimationFrame(frame);
                         apply();
                     }
+
                     end();
                 };
+
                 const end = (): void => {
                     if (frame !== 0) {
                         view?.cancelAnimationFrame(frame);
                         frame = 0;
                     }
+
                     element.removeEventListener('pointermove', move);
                     element.removeEventListener('pointerup', release);
                     element.removeEventListener('pointercancel', end);
                     element.removeEventListener('lostpointercapture', end);
                     element.ownerDocument.defaultView?.removeEventListener('blur', end);
                     delete element.dataset.resizing;
+
                     if (element.hasPointerCapture(pointerId)) {
                         element.releasePointerCapture(pointerId);
                     }
+
                     cleanup.current = null;
                 };
+
                 cleanup.current = end;
                 element.setPointerCapture(pointerId);
                 element.addEventListener('pointermove', move);
@@ -256,10 +279,12 @@ export function SplitView({
     const prefix = useId();
     const serial = useRef(0);
     const lastFocus = useRef<HTMLElement | null>(null);
+
     useEffect(() => {
         const previous = lastFocus.current;
         const element = root.current;
         const active = element?.ownerDocument.activeElement;
+
         if (
             previous &&
             element &&
@@ -271,35 +296,45 @@ export function SplitView({
             target?.focus({ preventScroll: true });
         }
     });
+
     const [measurement, setMeasurement] = useState(ZERO);
     const [dragging, setDragging] = useState(false);
     const drag = useRef<(SplitDrag & { width: number }) | null>(null);
     const [preview, setPreview] = useState<DropPreviewShape | null>(null);
     // A dragover fires many times a second; only a different shape is worth a render.
     const shownPreview = useRef<DropPreviewShape | null>(null);
+
     const showPreview = useCallback((shape: DropPreviewShape | null): void => {
         if (!sameDropPreview(shownPreview.current, shape)) {
             shownPreview.current = shape;
             setPreview(shape);
         }
     }, []);
+
     const latest = useRef({ value, onValueChange });
+
     useLayoutEffect(() => {
         latest.current = { value, onValueChange };
     });
+
     const dispatch = (command: SplitCommand): void => {
         const state = latest.current;
         const next = updateSplitLayout(state.value, command);
+
         if (next !== state.value) {
             state.onValueChange(next, command);
         }
     };
+
     const measure = useCallback((): void => {
         const element = root.current;
+
         if (!element) {
             return;
         }
+
         const rect = element.getBoundingClientRect();
+
         const next = {
             width: element.clientWidth,
             height: element.clientHeight,
@@ -308,68 +343,89 @@ export function SplitView({
             scaleX: rect.width / (element.clientWidth || 1),
             scaleY: rect.height / (element.clientHeight || 1)
         };
+
         setMeasurement((current) => (Object.keys(next).every((key) => current[key as keyof Measurement] === next[key as keyof Measurement]) ? current : next));
     }, []);
+
     useLayoutEffect(measure);
+
     useEffect(() => {
         const element = root.current;
+
         if (!element) {
             return;
         }
+
         const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
         observer?.observe(element);
         const view = element.ownerDocument.defaultView;
         view?.addEventListener('resize', measure);
         view?.addEventListener('scroll', measure, true);
+
         return () => {
             observer?.disconnect();
             view?.removeEventListener('resize', measure);
             view?.removeEventListener('scroll', measure, true);
         };
     }, [measure]);
+
     const stopDrag = useCallback((): void => {
         drag.current = null;
         setDragging(false);
         showPreview(null);
     }, [showPreview]);
+
     useEffect(() => {
         if (!dragging) {
             return;
         }
+
         const document = root.current?.ownerDocument;
         const view = document?.defaultView;
         document?.addEventListener('dragend', stopDrag);
         document?.addEventListener('drop', stopDrag);
         view?.addEventListener('blur', stopDrag);
+
         return () => {
             document?.removeEventListener('dragend', stopDrag);
             document?.removeEventListener('drop', stopDrag);
             view?.removeEventListener('blur', stopDrag);
         };
     }, [dragging, stopDrag]);
+
     const gap = layout === 'roomy' ? 8 : 1;
     const barHeight = showTabs || renderPaneHeader ? Math.max(0, headerHeight) : 0;
+
     const geometry = splitGeometry(value, measurement.width, measurement.height, gap, (pane) =>
         typeof minimumSize === 'function' ? minimumSize(pane) : minimumSize
     );
+
     const panes = splitPanes(value.root);
+
     // A stable sibling order also avoids DOM moves, which reload embedded browsing contexts.
     const views = panes
         .flatMap((pane) => pane.views.map((viewId) => ({ pane, viewId })))
         .sort((left, right) => (left.viewId < right.viewId ? -1 : left.viewId > right.viewId ? 1 : 0));
+
     const visible = new Map(geometry.panes.map((pane) => [pane.pane.id, pane]));
+
     const radius = (rect: SplitRect): string => paneRadius(rect, measurement.width, measurement.height, edges, layout === 'roomy' ? 8 : 0);
+
     // A header squares off the top corners of the body under it.
     const bodyRadius = (rect: SplitRect, header: number): string => {
         const corners = radius(rect).split(' ');
+
         if (header > 0) {
             corners[0] = corners[1] = '0px';
         }
+
         return corners.join(' ');
     };
+
     const bounds: SplitViewBounds[] = panes.flatMap((pane) => {
         const rect = visible.get(pane.id);
         const header = Math.min(barHeight, rect?.height ?? 0);
+
         const body = rect
             ? {
                   x: measurement.left + rect.x * measurement.scaleX,
@@ -378,40 +434,54 @@ export function SplitView({
                   height: Math.max(0, rect.height - header) * measurement.scaleY
               }
             : { x: 0, y: 0, width: 0, height: 0 };
+
         const borderRadius = rect ? bodyRadius(rect, header) : '0px 0px 0px 0px';
+
         return pane.views.map((viewId) => ({ viewId, paneId: pane.id, active: !!rect && pane.active === viewId, rect: body, borderRadius }));
     });
+
     const boundsKey = JSON.stringify(bounds);
     const reportedBounds = useRef('');
     const boundsCallback = useRef(onViewBoundsChange);
+
     useLayoutEffect(() => {
         boundsCallback.current = onViewBoundsChange;
     });
+
     useEffect(() => () => boundsCallback.current?.([]), []);
+
     useLayoutEffect(() => {
         if (onViewBoundsChange && reportedBounds.current !== boundsKey) {
             reportedBounds.current = boundsKey;
             onViewBoundsChange(bounds);
         }
     });
+
     const id = (kind: string, viewId: string): string => `${prefix}-${kind}-${encodeURIComponent(viewId)}`;
+
     const startDrag = (pane: SplitPane, event: DragEvent<HTMLButtonElement>, viewId?: string): void => {
         drag.current = { sourceId: pane.id, viewId, width: event.currentTarget.closest('[data-document-tab]')?.getBoundingClientRect().width ?? 128 };
         event.dataTransfer.setData('application/x-adecore-view', JSON.stringify({ workspace: prefix, paneId: pane.id, viewId }));
         event.dataTransfer.effectAllowed = 'move';
+
         if (viewId) {
             onViewDragStart?.(viewId, event);
         }
+
         setDragging(true);
     };
+
     const commandFor = (target: SplitDropTarget): SplitCommand | null => {
         if (!drag.current) {
             return null;
         }
+
         const { sourceId, viewId } = drag.current;
+
         if (target.side === 'center') {
             return { type: 'swap', sourceId, targetId: target.paneId, viewId };
         }
+
         return {
             type: 'move',
             sourceId,
@@ -423,13 +493,16 @@ export function SplitView({
             splitId: `${prefix}-split-${serial.current}`
         };
     };
+
     const locateDrop = (event: DragEvent<HTMLDivElement>): { target: SplitDropTarget; shape: DropPreviewShape } | null => {
         const x = (event.clientX - measurement.left) / (measurement.scaleX || 1);
         const y = (event.clientY - measurement.top) / (measurement.scaleY || 1);
         const rect = geometry.panes.find((item) => x >= item.x && x <= item.x + item.width && y >= item.y && y <= item.y + item.height);
+
         if (!rect) {
             return null;
         }
+
         const header = Math.min(barHeight, rect.height);
         const inHeader = y < rect.y + header;
         const strip = inHeader ? paneElement(root.current, 'splitHeader', rect.pane.id) : undefined;
@@ -438,6 +511,7 @@ export function SplitView({
         const index = inHeader ? tabGapAt(tabRects, event.clientX) : undefined;
         const target: SplitDropTarget = { paneId: rect.pane.id, side, index };
         const command = commandFor(target);
+
         if (drag.current) {
             if (canDrop?.(drag.current, target) === false || !command || updateSplitLayout(value, command) === value) {
                 return null;
@@ -445,13 +519,16 @@ export function SplitView({
         } else if (!onExternalDrop || !canDropExternal?.(event, target)) {
             return null;
         }
+
         if (side === 'center') {
             return { target, shape: rectDropPreview(rect) };
         }
+
         if (side) {
             const horizontal = side === 'left' || side === 'right';
             const width = horizontal ? Math.max(0, (rect.width - gap) / 2) : rect.width;
             const height = horizontal ? rect.height : Math.max(0, (rect.height - gap) / 2);
+
             return {
                 target,
                 shape: rectDropPreview({
@@ -462,13 +539,16 @@ export function SplitView({
                 })
             };
         }
+
         if (header === 0) {
             return { target, shape: rectDropPreview(rect) };
         }
+
         const tabWidth = Math.min(rect.width, (drag.current?.width ?? 128) / (measurement.scaleX || 1));
         const next = tabRects[index ?? tabRects.length];
         const left = next?.left ?? tabRects.at(-1)?.right ?? measurement.left + rect.x * measurement.scaleX;
         const relative = Math.max(0, Math.min(rect.width - tabWidth, (left - measurement.left) / (measurement.scaleX || 1) - rect.x));
+
         return {
             target,
             shape: tabDropPreview(
@@ -477,32 +557,43 @@ export function SplitView({
             )
         };
     };
+
     const focusDirection = (key: string): void => {
         const source = visible.get(value.focused);
+
         if (!source) {
             return;
         }
+
         const horizontal = key === 'ArrowLeft' || key === 'ArrowRight';
         const positive = key === 'ArrowRight' || key === 'ArrowDown';
+
         const center = (rect: SplitRect): number => (horizontal ? rect.x + rect.width / 2 : rect.y + rect.height / 2);
+
         const cross = (rect: SplitRect): number => (horizontal ? rect.y + rect.height / 2 : rect.x + rect.width / 2);
+
         const options = geometry.panes.filter((rect) => rect !== source && (positive ? center(rect) > center(source) : center(rect) < center(source)));
+
         options.sort(
             (left, right) =>
                 Math.abs(center(left) - center(source)) +
                 2 * Math.abs(cross(left) - cross(source)) -
                 (Math.abs(center(right) - center(source)) + 2 * Math.abs(cross(right) - cross(source)))
         );
+
         const next = options[0];
+
         if (next) {
             dispatch({ type: 'focus', paneId: next.pane.id });
             const element = paneElement(root.current, 'splitPane', next.pane.id);
             element?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')?.focus();
+
             if (!showTabs) {
                 element?.focus();
             }
         }
     };
+
     return useRender({
         render,
         ref: [root, ref ?? null],
@@ -520,24 +611,31 @@ export function SplitView({
             onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => {
                 props.onKeyDown?.(event);
                 const target = event.target as HTMLElement;
+
                 const navigation =
                     target === event.currentTarget || target.matches('.ade-split-pane, .ade-split-content') || !!target.closest('.ade-split-header');
+
                 if (!event.defaultPrevented && navigation && event.altKey && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
                     event.preventDefault();
                     focusDirection(event.key);
                 }
+
                 if (event.key === 'Escape') {
                     stopDrag();
                 }
             },
             onDragOver: (event: DragEvent<HTMLDivElement>) => {
                 props.onDragOver?.(event);
+
                 if (event.defaultPrevented) {
                     showPreview(null);
+
                     return;
                 }
+
                 const drop = locateDrop(event);
                 showPreview(drop?.shape ?? null);
+
                 if (drop) {
                     event.preventDefault();
                     event.dataTransfer.dropEffect = drag.current ? 'move' : 'copy';
@@ -545,21 +643,27 @@ export function SplitView({
             },
             onDragLeave: (event: DragEvent<HTMLDivElement>) => {
                 props.onDragLeave?.(event);
+
                 if (!(event.relatedTarget instanceof Node) || !event.currentTarget.contains(event.relatedTarget)) {
                     showPreview(null);
                 }
             },
             onDrop: (event: DragEvent<HTMLDivElement>) => {
                 props.onDrop?.(event);
+
                 if (event.defaultPrevented) {
                     stopDrag();
+
                     return;
                 }
+
                 const drop = locateDrop(event);
+
                 if (drop) {
                     event.preventDefault();
                     event.stopPropagation();
                     const command = commandFor(drop.target);
+
                     if (command) {
                         serial.current++;
                         dispatch(command);
@@ -567,6 +671,7 @@ export function SplitView({
                         onExternalDrop?.(drop.target, event);
                     }
                 }
+
                 stopDrag();
             },
             children: (
@@ -574,6 +679,7 @@ export function SplitView({
                     {panes.map((pane) => {
                         const rect = visible.get(pane.id);
                         const header = Math.min(barHeight, rect?.height ?? 0);
+
                         return (
                             <section
                                 key={pane.id}
@@ -597,6 +703,7 @@ export function SplitView({
                                                 <TabStrip
                                                     items={pane.views.map((viewId) => {
                                                         const metadata = getTab?.(viewId);
+
                                                         return {
                                                             ...metadata,
                                                             id: viewId,
@@ -639,6 +746,7 @@ export function SplitView({
                         const rect = visible.get(pane.id);
                         const active = !!rect && pane.active === viewId;
                         const header = Math.min(barHeight, rect?.height ?? 0);
+
                         const position: CSSProperties = rect
                             ? {
                                   left: rect.x,
@@ -648,6 +756,7 @@ export function SplitView({
                                   borderRadius: bodyRadius(rect, header)
                               }
                             : {};
+
                         return (
                             <div
                                 key={viewId}

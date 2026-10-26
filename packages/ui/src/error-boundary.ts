@@ -8,9 +8,11 @@ export const shouldReset = (failed: boolean, previous: ResetKeys, next: ResetKey
     if (!failed) {
         return false;
     }
+
     if (previous.length !== next.length) {
         return true;
     }
+
     return previous.some((key, i) => !Object.is(key, next[i]));
 };
 
@@ -20,5 +22,6 @@ export const errorMessageOf = (error: unknown): string => (error instanceof Erro
 /* The text behind the copy button: what a bug report needs, the component stack included. */
 export const errorReport = (label: string, error: unknown, componentStack: string | null): string => {
     const stack = error instanceof Error && error.stack ? error.stack : errorMessageOf(error);
+
     return [label, stack, ...(componentStack ? [`Component stack:${componentStack}`] : [])].join('\n\n');
 };

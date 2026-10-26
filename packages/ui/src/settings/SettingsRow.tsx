@@ -11,18 +11,25 @@ const TARGET_MS = 1600;
 export interface SettingsRowProps {
     label: ReactNode;
     description?: ReactNode;
+
     /* It carries its own accessible name. */
     control?: ReactNode;
+
     /* Under the label line, at the whole width. */
     children?: ReactNode;
+
     /* For a row that only shows state. */
     muted?: boolean;
+
     /* Held to the label's first line (`TopIcon`) or a tile of its own. */
     leading?: ReactNode;
+
     /* For a row that only makes sense under the one above it. */
     indent?: boolean;
+
     /* The id a search result names to lead here. */
     searchId?: string;
+
     className?: string;
     ref?: Ref<HTMLDivElement>;
 }
@@ -53,8 +60,10 @@ export function SettingsRow({ label, description, control, children, muted = fal
         if (!targeted) {
             return;
         }
+
         row.current?.scrollIntoView({ block: 'center' });
         const timer = window.setTimeout(shown, TARGET_MS);
+
         return () => window.clearTimeout(timer);
     }, [targeted, shown]);
 

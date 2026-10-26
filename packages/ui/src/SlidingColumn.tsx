@@ -9,22 +9,30 @@ const TRANSITION_MS = 200;
 
 export interface SlidingColumnProps {
     open: boolean;
+
     /* Already clamped by the caller, which knows what has to stay beside it (`clampColumnSize`). */
     width: number;
+
     /* Space before the surface, in pixels. Replaces the border and carries the resize handle. */
     gap?: number;
+
     bounds: { min: number; max(): number };
     onWidthChange(width: number): void;
+
     /* For a column whose place is restored as the page loads; only what a person does afterwards should animate. */
     instant?: boolean;
+
     /* For a panel with shortcuts of its own. Focusable by script alone, so opening something in it hands it the keys without a click. */
     body?: {
         ref: RefObject<HTMLDivElement | null>;
         onKeyDown(event: ReactKeyboardEvent<HTMLDivElement>): void;
     };
+
     className?: string;
+
     /* The outer column, for bounds that measure what is beside it rather than the whole window. */
     ref?: Ref<HTMLElement>;
+
     children?: ReactNode;
 }
 
@@ -35,13 +43,16 @@ export interface SlidingColumnProps {
 export function SlidingColumn({ open, width, gap = 0, bounds, onWidthChange, instant = false, body, className, ref, children }: SlidingColumnProps) {
     /* Closed and done animating. */
     const [settled, setSettled] = useState(!open);
+
     /* A width that lands without a transition fires no `transitionend`. */
     if (instant && settled !== !open) {
         setSettled(!open);
     }
+
     const present = open || !settled;
     const column = useRef<HTMLElement>(null);
     const spacing = Math.max(0, Math.round(gap));
+
     const { startResize } = useColumnResize(column, {
         min: bounds.min + spacing,
         max: () => bounds.max() + spacing,
@@ -54,8 +65,10 @@ export function SlidingColumn({ open, width, gap = 0, bounds, onWidthChange, ins
         if (open || settled) {
             return;
         }
+
         // Reduced motion and a hidden tab paint no width change, so no `transitionend` arrives.
         const timer = window.setTimeout(() => setSettled(true), TRANSITION_MS + 50);
+
         return () => {
             window.clearTimeout(timer);
         };

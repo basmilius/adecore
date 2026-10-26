@@ -13,21 +13,29 @@ export type { IconButtonSize };
 export interface IconButtonProps extends Omit<ComponentProps<'button'>, 'children'> {
     /* Left out for a button that draws something other than one Lucide glyph, handed in as children. */
     icon?: LucideIcon;
+
     /* The accessible name, and the tooltip unless `tooltip` says otherwise. */
     label: string;
+
     /* A tooltip that says more than the name (a reason it is disabled), or `false` for none at all. */
     tooltip?: ReactNode | false;
+
     kbd?: Shortcut | string;
     tooltipSide?: TooltipSide;
     size?: IconButtonSize;
+
     /* Drawn as a pressed key. Use `aria-pressed` instead where the button is a real toggle. */
     active?: boolean;
+
     /* A `Spinner` in place of the icon. */
     busy?: boolean;
+
     /* For the icon rather than the button. The size stays the button's. */
     iconClassName?: string;
+
     /* Drawn after the icon: a count, or a word beside it together with `w-auto`. */
     children?: ReactNode;
+
     render?: useRender.RenderProp;
 }
 
@@ -68,9 +76,11 @@ export function IconButton({
             )
         }
     });
+
     if (tooltip === false) {
         return button;
     }
+
     return (
         <Tooltip label={tooltip ?? label} kbd={kbd} side={tooltipSide}>
             {button as ReactElement<Record<string, unknown>>}

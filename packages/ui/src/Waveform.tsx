@@ -7,6 +7,7 @@ import { useMeasuredWidth } from './useMeasuredWidth.ts';
 
 /* About one bar per 3px, each 2px wide; a bar sits at its own time, so it lines up with the marks and the playhead. */
 const BAR_PITCH = 3;
+
 const BAR_WIDTH = 2;
 
 /* The height of a silent bar, so silence still reads as a line. */
@@ -20,19 +21,25 @@ const barsOf = (levels: readonly number[], duration: number, from: number, to: n
     if (count <= 0 || levels.length === 0 || duration <= 0 || to <= from) {
         return [];
     }
+
     const perSecond = levels.length / duration;
+
     return Array.from({ length: count }, (_, i) => {
         const start = from + ((to - from) * i) / count;
         const end = from + ((to - from) * (i + 1)) / count;
+
         if (end <= 0 || start >= duration) {
             return null;
         }
+
         const first = Math.max(0, Math.floor(start * perSecond));
         const last = Math.min(levels.length - 1, Math.max(first, Math.ceil(end * perSecond) - 1));
         let level = 0;
+
         for (let index = first; index <= last; index++) {
             level = Math.max(level, levels[index] ?? 0);
         }
+
         return Math.min(1, Math.max(SILENCE, level));
     });
 };
@@ -40,23 +47,33 @@ const barsOf = (levels: readonly number[], duration: number, from: number, to: n
 export interface WaveformProps {
     /* Samples spread evenly over the duration, from 0 for silence to 1 for the loudest, at any rate. */
     levels: readonly number[];
+
     /* In seconds, as are all times here. */
     duration: number;
+
     /* Defaults to the whole. */
     range?: readonly [from: number, to: number];
+
     /* Left out, the waveform draws no playhead. */
     value?: number;
+
     /* Without it the waveform only shows. */
     onValueChange?(value: number): void;
+
     /* Where a drag lets go and where a key moved to. */
     onValueCommitted?(value: number): void;
+
     step?: number;
+
     /* Runs first; a key it calls `preventDefault` on, the waveform leaves alone and lets bubble. */
     onKeyDown?(e: KeyboardEvent<HTMLDivElement>): void;
+
     marks?: readonly number[];
     label: string;
+
     /* Its height, which the waveform fills. */
     className?: string;
+
     ref?: Ref<HTMLDivElement>;
 }
 
@@ -84,14 +101,18 @@ export function Waveform({
     const bars = barsOf(levels, duration, from, to, count);
 
     const positionOf = (time: number): number => (span > 0 ? (time - from) / span : 0);
+
     const inView = (time: number): boolean => {
         const position = positionOf(time);
+
         return position >= 0 && position <= 1;
     };
+
     const clamp = (time: number): number => Math.min(duration, Math.max(0, time));
 
     const seekAt = (e: PointerEvent<HTMLDivElement>): void => {
         const rect = e.currentTarget.getBoundingClientRect();
+
         if (rect.width > 0) {
             dragged.current = clamp(from + ((e.clientX - rect.left) / rect.width) * span);
             onValueChange?.(dragged.current);
@@ -107,10 +128,13 @@ export function Waveform({
 
     const moveByKey = (e: KeyboardEvent<HTMLDivElement>): void => {
         onKeyDown?.(e);
+
         if (e.defaultPrevented) {
             return;
         }
+
         const at = value ?? 0;
+
         const moves: Record<string, number> = {
             ArrowLeft: at - step,
             ArrowDown: at - step,
@@ -121,10 +145,13 @@ export function Waveform({
             Home: 0,
             End: duration
         };
+
         const next = moves[e.key];
+
         if (next === undefined) {
             return;
         }
+
         // The slider owns these keys; a transport listening higher up would move the playhead a second time.
         e.preventDefault();
         e.stopPropagation();
@@ -171,7 +198,9 @@ export function Waveform({
                     if (level === null) {
                         return null;
                     }
+
                     const center = from + (span * (i + 0.5)) / count;
+
                     return (
                         <rect
                             key={i}
@@ -185,6 +214,7 @@ export function Waveform({
                 })}
                 {marks.filter(inView).map((mark) => {
                     const x = Math.round(positionOf(mark) * width) + 0.5;
+
                     return (
                         <line key={mark} x1={x} x2={x} y1={0} y2={100} strokeWidth={1} vectorEffect="non-scaling-stroke" className="stroke-accent opacity-60" />
                     );

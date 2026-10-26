@@ -6,10 +6,12 @@ describe('ErrorBoundary state', () => {
     const boundary = (resetKeys: unknown[]): { instance: ErrorBoundary; states: unknown[] } => {
         const instance = new ErrorBoundary({ label: 'This view failed to render', resetKeys, children: null });
         const states: unknown[] = [];
+
         instance.setState = ((next: object) => {
             states.push(next);
             instance.state = { ...instance.state, ...next };
         }) as ErrorBoundary['setState'];
+
         return { instance, states };
     };
 
@@ -27,6 +29,7 @@ describe('ErrorBoundary state', () => {
 
     test('resets only a failed boundary whose keys changed', () => {
         const view = { id: 'v1' };
+
         const cases: [string, boolean, unknown[], unknown[], boolean][] = [
             ['healthy', false, ['a', 1], ['b', 2], false],
             ['changed value', true, ['v1', 4], ['v1', 5], true],
@@ -37,6 +40,7 @@ describe('ErrorBoundary state', () => {
             ['added key', true, ['v1'], ['v1', 1], true],
             ['removed key', true, ['v1', 1], ['v1'], true]
         ];
+
         for (const [name, failed, previous, next, reset] of cases) {
             const { instance, states } = boundary(next);
             instance.state = { error: failed ? new Error('boom') : null, failed, componentStack: null };

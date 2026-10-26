@@ -8,8 +8,10 @@ export interface WorkspaceProps extends useRender.ComponentProps<'div'> {
     toolbar?: ReactNode;
     sidebar?: ReactNode;
     sidePanel?: ReactNode;
+
     /** Auto-sized regions keep their own width, separators and opening animation. */
     sidebarWidth?: number | 'auto';
+
     sidePanelWidth?: number | 'auto';
     sidebarOpen?: boolean;
     sidePanelOpen?: boolean;
@@ -38,6 +40,7 @@ export function Workspace({
     const leftOpen = hasSidebar && (sidebarOpen ?? true);
     const rightOpen = hasPanel && (sidePanelOpen ?? true);
     const hasToolbar = isPresent(toolbar);
+
     const element = useRender({
         render,
         ref,
@@ -70,6 +73,8 @@ export function Workspace({
             )
         }
     });
+
     const context = { layout, edges: { top: !hasToolbar, right: !rightOpen, bottom: true, left: !leftOpen } };
+
     return <WorkspaceContext value={context}>{element}</WorkspaceContext>;
 }

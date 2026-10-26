@@ -8,7 +8,9 @@ const NEAR_BOTTOM = 16;
 export interface TreeShiftSource {
     /* The node whose changes add, remove or rename rows; null while the tree has not drawn it yet. */
     root(frame: HTMLElement): ParentNode | null;
+
     rows(root: ParentNode): readonly HTMLElement[];
+
     /* How many pixels of the row lie past its edge at no shift; null for a row that is not laid out. */
     need(row: HTMLElement, shift: number, gap: number, range: Range): number | null;
 }
@@ -23,6 +25,7 @@ export function useTreeShift(source: TreeShiftSource, resetKey?: string): { atta
         if (frame === null || track === null || thumb === null) {
             return;
         }
+
         const range = document.createRange();
         let root: ParentNode | null = null;
         let exact = 0;
@@ -35,10 +38,12 @@ export function useTreeShift(source: TreeShiftSource, resetKey?: string): { atta
 
         const draw = (): void => {
             const shift = Math.round(exact);
+
             if (shift !== drawn) {
                 drawn = shift;
                 frame.style.setProperty(SHIFT_PROPERTY, `${shift}px`);
             }
+
             const { left, width } = shiftThumb(shift, max, track.clientWidth, frame.clientWidth);
             thumb.style.left = `${left}px`;
             thumb.style.width = `${width}px`;
@@ -47,13 +52,17 @@ export function useTreeShift(source: TreeShiftSource, resetKey?: string): { atta
 
         const measure = (): void => {
             pending = 0;
+
             if (root === null) {
                 root = source.root(frame);
+
                 if (root === null) {
                     return;
                 }
+
                 rows.observe(root, { childList: true, subtree: true, characterData: true });
             }
+
             const drawnRows = source.rows(root);
             const gap = drawnRows.length === 0 ? 0 : Number.parseFloat(getComputedStyle(drawnRows[0]!).columnGap) || 0;
             max = maxShift(drawnRows.map((row) => source.need(row, drawn, gap, range)).filter((need) => need !== null));
@@ -75,26 +84,33 @@ export function useTreeShift(source: TreeShiftSource, resetKey?: string): { atta
 
         const onWheel = (event: WheelEvent): void => {
             const delta = sidewaysDelta(event, frame.clientWidth);
+
             if (delta === 0 || max === 0) {
                 return;
             }
+
             scrolling = true;
             window.clearTimeout(hideTimer);
+
             hideTimer = window.setTimeout(() => {
                 scrolling = false;
                 draw();
             }, HIDE_AFTER);
+
             const next = clampShift(exact + delta, max);
+
             if (next !== exact) {
                 event.preventDefault();
                 exact = next;
             }
+
             draw();
         };
 
         const onPointerMove = (event: PointerEvent): void => {
             const bottom = track.getBoundingClientRect().bottom;
             const isNear = event.clientY >= bottom - NEAR_BOTTOM;
+
             if (isNear !== near) {
                 near = isNear;
                 draw();
@@ -144,15 +160,20 @@ export const TREE_ROWS: TreeShiftSource = {
     rows: (root) => [...root.querySelectorAll<HTMLElement>('.adecore-tree-row')],
     need: (row, shift) => {
         const box = row.getBoundingClientRect();
+
         if (box.width === 0) {
             return null;
         }
+
         const parts = [...row.children].filter((child) => !child.classList.contains('adecore-tree-guide'));
+
         if (parts.length === 0) {
             return null;
         }
+
         const reach = Math.max(...parts.map((part) => part.getBoundingClientRect().right));
         const limit = box.right - (Number.parseFloat(getComputedStyle(row).paddingInlineEnd) || 0);
+
         return shiftNeed(reach, limit, shift);
     }
 };

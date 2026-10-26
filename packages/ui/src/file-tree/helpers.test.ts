@@ -62,11 +62,14 @@ describe('file tree model behavior', () => {
         const model = new Model({ paths: Array.from({ length: 10_000 }, (_, i) => `file-${String(i).padStart(5, '0')}.ts`) });
         const original = model.getVisibleRows.bind(model);
         let copied = 0;
+
         model.getVisibleRows = (start, end) => {
             const rows = original(start, end);
             copied += rows.length;
+
             return rows;
         };
+
         const rows = visibleRowsAround(model, 5000, 40);
         expect(rows.map((row) => row.index)).toEqual(Array.from({ length: 42 }, (_, i) => 4999 + i));
         expect(copied).toBe(42);

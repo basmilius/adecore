@@ -16,6 +16,7 @@ describe('a banner', () => {
             const classes = rootClasses(
                 renderToStaticMarkup(<Banner placement={placement} icon={CircleAlert} tone="error" message="Failed." className="w-full" />)
             );
+
             expect(classes).toContain('w-full');
             expect(classes).not.toContain('absolute');
         }

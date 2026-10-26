@@ -6,14 +6,20 @@ import { EmptyState } from './EmptyState.tsx';
 export interface PanelEmptyProps {
     /* The panel's own header, kept above the sentence so a person can still act while nothing is listed. */
     header?: ReactNode;
+
     icon?: LucideIcon;
+
     /* A `Spinner` in place of the icon. */
     busy?: boolean;
+
     action?: ReactNode;
+
     /* For a box that has no ground behind it yet, such as a card on a canvas. */
     sunken?: boolean;
+
     /* A panel is one track of a flex column; a card is a box with a height of its own, where `grow` means nothing. */
     fill?: 'grow' | 'full';
+
     children: ReactNode;
     className?: string;
     ref?: Ref<HTMLDivElement>;

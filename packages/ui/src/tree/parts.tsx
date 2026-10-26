@@ -25,10 +25,12 @@ export type TreeRootProps = useRender.ComponentProps<'div'> & {
 export function TreeRoot({ overflow = 'truncate', render, className, ref, children, ...props }: TreeRootProps) {
     const { attach, bar } = useTreeShift(TREE_ROWS);
     const scrolls = overflow === 'scroll';
+
     const rootRef = (node: HTMLDivElement | null) => {
         attach(scrolls ? node : null);
         mergeRefs<HTMLDivElement>(ref)(node);
     };
+
     return useRender({
         render,
         ref: rootRef,
@@ -115,6 +117,7 @@ export type TreeChevronProps = useRender.ComponentProps<'button'> & {
 
 export function TreeChevron({ expanded, onExpandedChange, render, className, ref, onClick, onDoubleClick, ...props }: TreeChevronProps) {
     const { t } = useTranslation('ui');
+
     return useRender({
         render,
         ref,
@@ -128,6 +131,7 @@ export function TreeChevron({ expanded, onExpandedChange, render, className, ref
             onClick: (event: MouseEvent<HTMLButtonElement>) => {
                 event.stopPropagation();
                 onClick?.(event);
+
                 if (!event.defaultPrevented) {
                     onExpandedChange?.(!expanded);
                 }
@@ -139,16 +143,19 @@ export function TreeChevron({ expanded, onExpandedChange, render, className, ref
 }
 
 export type TreeLabelProps = useRender.ComponentProps<'span'>;
+
 export function TreeLabel({ render, className, ref, ...props }: TreeLabelProps) {
     return useRender({ render, ref, defaultTagName: 'span', props: { ...props, className: clsx('adecore-tree-label', className) } });
 }
 
 export type TreeDecorationProps = useRender.ComponentProps<'span'>;
+
 export function TreeDecoration({ render, className, ref, ...props }: TreeDecorationProps) {
     return useRender({ render, ref, defaultTagName: 'span', props: { ...props, className: clsx('adecore-tree-decoration', className) } });
 }
 
 export type TreeControlProps = useRender.ComponentProps<'span'>;
+
 export function TreeControl({ render, className, ref, onClick, onDoubleClick, onKeyDown, onPointerDown, ...props }: TreeControlProps) {
     return useRender({
         render,
@@ -167,6 +174,7 @@ export function TreeControl({ render, className, ref, onClick, onDoubleClick, on
 }
 
 export type TreeCheckboxProps = CheckboxProps;
+
 export function TreeCheckbox(props: TreeCheckboxProps) {
     return (
         <TreeControl>

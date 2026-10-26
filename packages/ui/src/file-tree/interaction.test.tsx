@@ -6,6 +6,7 @@ import { FolderGit2 } from 'lucide-react';
 import { FileTree, Tree, UIProvider, useFileTree, type FileTreeModel, type FileTreeRootProps } from '../index.ts';
 
 const i18n = i18next.createInstance();
+
 await i18n.init({ lng: 'en', resources: {}, interpolation: { escapeValue: false } });
 
 function Harness({
@@ -32,15 +33,18 @@ function Harness({
     paths?: string[];
 }) {
     const [checked, setChecked] = useState(false);
+
     const { model } = useFileTree({
         paths,
         initialExpansion: 'open',
         flattenEmptyDirectories: true,
         dragAndDrop: { canDrag: () => true, canDrop: () => false }
     });
+
     useLayoutEffect(() => {
         exposed = model;
     }, [model]);
+
     return (
         <FileTree.Root
             model={model}
@@ -65,34 +69,42 @@ let exposed: FileTreeModel;
 describe.skipIf(typeof document === 'undefined')('file tree interaction', () => {
     let root: Root;
     let container: HTMLDivElement;
+
     beforeEach(() => {
         container = document.createElement('div');
         document.body.append(container);
         root = createRoot(container);
     });
+
     afterEach(async () => {
         await act(async () => {
             root.unmount();
         });
+
         container.remove();
     });
+
     const mount = async (node: ReactNode): Promise<void> => {
         await act(async () => {
             root.render(<UIProvider i18n={i18n}>{node}</UIProvider>);
         });
     };
+
     const change = async (run: () => void): Promise<void> => {
         await act(async () => {
             run();
         });
     };
+
     const row = (path: string): HTMLElement => {
         const found = exposed
             .getFileTreeContainer()
             ?.shadowRoot?.querySelector<HTMLElement>(`[data-type="item"][data-item-path="${path}"]:not([data-item-parked])`);
+
         if (!found) {
             throw new Error(`Missing row ${path}`);
         }
+
         return found;
     };
 
@@ -107,16 +119,20 @@ describe.skipIf(typeof document === 'undefined')('file tree interaction', () => 
         expect(checkbox.getAttribute('aria-checked')).toBe('true');
         expect(activated).toEqual([]);
         expect(exposed.getSelectedPaths()).toEqual([]);
+
         await change(() => {
             exposed.getItem('src/one.ts')?.focus();
             checkbox.focus();
         });
+
         await change(() => checkbox.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, composed: true, cancelable: true })));
         expect(exposed.getFocusedPath()).toBe('src/one.ts');
+
         await change(() => {
             checkbox.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true, composed: true, cancelable: true }));
             checkbox.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', bubbles: true, composed: true, cancelable: true }));
         });
+
         expect(checkbox.getAttribute('aria-checked')).toBe('false');
         expect(activated).toEqual([]);
         await change(() => row('src/one.ts').dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true })));
@@ -126,6 +142,7 @@ describe.skipIf(typeof document === 'undefined')('file tree interaction', () => 
     test('retains mixed/disabled checkbox semantics and prevents a control key from reaching its row', async () => {
         let rowKeys = 0;
         let changes = 0;
+
         await mount(
             <Tree.Root onKeyDown={() => rowKeys++}>
                 <Tree.Row>
@@ -134,12 +151,15 @@ describe.skipIf(typeof document === 'undefined')('file tree interaction', () => 
                 </Tree.Row>
             </Tree.Root>
         );
+
         const mixed = container.querySelector<HTMLElement>('[aria-label="All files"]')!;
         expect(mixed.getAttribute('aria-checked')).toBe('mixed');
+
         await change(() => {
             mixed.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true }));
             mixed.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', bubbles: true, cancelable: true }));
         });
+
         expect(changes).toBe(1);
         expect(rowKeys).toBe(0);
         const disabled = container.querySelector<HTMLButtonElement>('[aria-label="Unavailable"]')!;
@@ -157,10 +177,12 @@ describe.skipIf(typeof document === 'undefined')('file tree interaction', () => 
                 </Tree.Row>
             </Tree.Root>
         );
+
         const tree = container.querySelector<HTMLElement>('[role=tree]')!;
         const row = container.querySelector<HTMLElement>('[role=treeitem]')!;
         expect(tree.dataset.overflow).toBe('scroll');
         expect(tree.querySelector('.adecore-tree-shift')).not.toBeNull();
+
         const box = (left: number, right: number): DOMRect => ({
             left,
             right,
@@ -172,12 +194,15 @@ describe.skipIf(typeof document === 'undefined')('file tree interaction', () => 
             y: 0,
             toJSON: () => ({})
         });
+
         row.getBoundingClientRect = () => box(0, 100);
         (row.children[0] as HTMLElement).getBoundingClientRect = () => box(4, 120);
         (row.children[1] as HTMLElement).getBoundingClientRect = () => box(126, 160);
         await change(() => row.append(document.createElement('i')));
         await new Promise((resolve) => setTimeout(resolve, 50));
+
         const shift = (): string => tree.style.getPropertyValue('--adecore-tree-shift');
+
         await change(() => tree.dispatchEvent(new WheelEvent('wheel', { deltaX: 30, bubbles: true, cancelable: true })));
         expect(shift()).toBe('30px');
         await change(() => tree.dispatchEvent(new WheelEvent('wheel', { deltaX: 500, bubbles: true, cancelable: true })));
@@ -193,6 +218,7 @@ describe.skipIf(typeof document === 'undefined')('file tree interaction', () => 
         const style = document.createElement('style');
         style.textContent = rules;
         document.head.append(style);
+
         try {
             await mount(
                 <>
@@ -208,6 +234,7 @@ describe.skipIf(typeof document === 'undefined')('file tree interaction', () => 
                     </Tree.Root>
                 </>
             );
+
             const scrolling = container.querySelector<HTMLElement>('[aria-label=Scrolls]')!;
             const bar = scrolling.lastElementChild as HTMLElement;
             expect(bar.className).toBe('adecore-tree-shift');
@@ -231,6 +258,7 @@ describe.skipIf(typeof document === 'undefined')('file tree interaction', () => 
                 </Tree.Row>
             </Tree.Root>
         );
+
         const tree = container.querySelector<HTMLElement>('[role=tree]')!;
         expect(tree.dataset.overflow).toBe('truncate');
         expect(tree.querySelector('.adecore-tree-shift')).toBeNull();
@@ -242,12 +270,15 @@ describe.skipIf(typeof document === 'undefined')('file tree interaction', () => 
         await change(() => FileTree.focusRow(exposed, 'src/one.ts'));
         const original = window.setTimeout;
         const deferred: (() => void)[] = [];
+
         window.setTimeout = ((callback: TimerHandler) => {
             if (typeof callback === 'function') {
                 deferred.push(callback as () => void);
             }
+
             return 1;
         }) as typeof window.setTimeout;
+
         try {
             await change(() =>
                 row('src/one.ts').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, composed: true, cancelable: true }))
@@ -255,6 +286,7 @@ describe.skipIf(typeof document === 'undefined')('file tree interaction', () => 
         } finally {
             window.setTimeout = original;
         }
+
         await change(() => deferred.forEach((callback) => callback()));
         expect(exposed.getFocusedPath()).toBe('src/two.ts');
         expect(exposed.getSelectedPaths()).toEqual(['src/two.ts']);
@@ -291,39 +323,51 @@ describe.skipIf(typeof document === 'undefined')('file tree interaction', () => 
         const originalStyle = globalThis.getComputedStyle;
         const frames = new Map<number, FrameRequestCallback>();
         let serial = 0;
+
         globalThis.requestAnimationFrame = (callback) => {
             frames.set(++serial, callback);
+
             return serial;
         };
+
         globalThis.cancelAnimationFrame = (id) => {
             frames.delete(id);
         };
+
         document.createRange = () => {
             const range = originalRange.call(document);
+
             Object.defineProperty(range, 'getBoundingClientRect', {
                 value: () => {
                     const frame = container.querySelector<HTMLElement>('.adecore-file-tree');
                     const shift = Number.parseFloat(frame?.style.getPropertyValue('--adecore-tree-shift') ?? '') || 0;
+
                     return new DOMRect(44 - shift, 0, 216, 25);
                 }
             });
+
             return range;
         };
+
         globalThis.getComputedStyle = (element, pseudo) =>
             new Proxy(originalStyle(element, pseudo), {
                 get: (style, property) => {
                     if (property === 'paddingInlineEnd') {
                         return '8px';
                     }
+
                     if (property === 'marginInlineEnd') {
                         return '26px';
                     }
+
                     if (property === 'columnGap') {
                         return '6px';
                     }
+
                     return Reflect.get(style, property);
                 }
             });
+
         const drawFrames = async (): Promise<void> => {
             for (let pass = 0; pass < 6 && frames.size > 0; pass++) {
                 const current = [...frames.values()];
@@ -331,13 +375,16 @@ describe.skipIf(typeof document === 'undefined')('file tree interaction', () => 
                 await change(() => current.forEach((callback) => callback(0)));
             }
         };
+
         try {
             await mount(<Harness resetKey="first" />);
             const frame = container.querySelector<HTMLElement>('.adecore-file-tree')!;
             Object.defineProperty(frame, 'clientWidth', { value: 200 });
+
             for (const element of exposed.getFileTreeContainer()!.shadowRoot!.querySelectorAll<HTMLElement>('[data-type="item"]')) {
                 element.getBoundingClientRect = () => new DOMRect(0, 0, 200, 25);
             }
+
             await drawFrames();
             await change(() => frame.dispatchEvent(new WheelEvent('wheel', { deltaX: 30, bubbles: true, cancelable: true })));
             expect(frame.style.getPropertyValue('--adecore-tree-shift')).toBe('30px');
@@ -358,19 +405,25 @@ describe.skipIf(typeof document === 'undefined')('file tree interaction', () => 
         await mount(<Harness paths={paths} />);
         const original = exposed.getVisibleRows.bind(exposed);
         const copied: number[] = [];
+
         exposed.getVisibleRows = (start, end) => {
             const rows = original(start, end);
             copied.push(rows.length);
+
             return rows;
         };
+
         const scroller = exposed.getFileTreeContainer()!.shadowRoot!.querySelector<HTMLElement>('[data-file-tree-virtualized-scroll]')!;
+
         for (const index of [1000, 3000, 5000]) {
             await change(() => {
                 scroller.scrollTop = index * exposed.getItemHeight();
                 scroller.dispatchEvent(new Event('scroll'));
             });
+
             await new Promise((resolve) => setTimeout(resolve, 20));
         }
+
         expect(container.querySelector('[aria-label="Viewed src/file-05000.ts"]')).not.toBeNull();
         expect(copied.length).toBeGreaterThan(0);
         // The mounted window and a neighbor on each side, never the 10,001 visible rows.
@@ -413,6 +466,7 @@ describe.skipIf(typeof document === 'undefined')('file tree interaction', () => 
         const previousCss = Object.getOwnPropertyDescriptor(globalThis, 'CSS');
         Object.defineProperty(globalThis, 'CSS', { configurable: true, value: { highlights: registry } });
         Object.defineProperty(globalThis, 'Highlight', { configurable: true, value: class extends Set<Range> {} });
+
         try {
             await mount(<Harness highlight="O" />);
             const marks = registry.get('adecore-tree-match')!;
@@ -425,29 +479,37 @@ describe.skipIf(typeof document === 'undefined')('file tree interaction', () => 
             } else {
                 Object.defineProperty(globalThis, 'CSS', previousCss);
             }
+
             Reflect.deleteProperty(globalThis, 'Highlight');
         }
     });
 
     describe('empty directories', () => {
         const emptyPaths = ['empty/', 'src/one.ts', 'README.md'];
+
         const emptyFolder: FileTreeRootProps['emptyLabel'] = (directory) => (directory.path === 'empty/' ? 'Empty folder' : undefined);
+
         const line = (): HTMLElement | null => exposed.getFileTreeContainer()?.shadowRoot?.querySelector<HTMLElement>('[data-empty-line="true"]') ?? null;
+
         // Selection follows focus on a timer, which runs here once the key is handled.
         const press = async (from: string, key: string): Promise<void> => {
             const original = window.setTimeout;
             const deferred: (() => void)[] = [];
+
             window.setTimeout = ((callback: TimerHandler) => {
                 if (typeof callback === 'function') {
                     deferred.push(callback as () => void);
                 }
+
                 return 1;
             }) as typeof window.setTimeout;
+
             try {
                 await change(() => row(from).dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, composed: true, cancelable: true })));
             } finally {
                 window.setTimeout = original;
             }
+
             await change(() => deferred.forEach((callback) => callback()));
         };
 
@@ -489,17 +551,21 @@ describe.skipIf(typeof document === 'undefined')('file tree interaction', () => 
             const activated: string[] = [];
             const context: (string | null)[] = [];
             let wrapperMenus = 0;
+
             await mount(
                 <div onContextMenu={() => wrapperMenus++}>
                     <Harness paths={emptyPaths} emptyLabel={emptyFolder} onActivate={(path) => activated.push(path)} onContext={(path) => context.push(path)} />
                 </div>
             );
+
             const drawn = line()!;
+
             await change(() => {
                 drawn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, composed: true, cancelable: true }));
                 drawn.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true, cancelable: true }));
                 drawn.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, composed: true, cancelable: true }));
             });
+
             expect(activated).toEqual([]);
             expect(context).toEqual([]);
             expect(wrapperMenus).toBe(0);
@@ -522,13 +588,16 @@ describe.skipIf(typeof document === 'undefined')('file tree interaction', () => 
 
         test('extends a selection past the line, without it', async () => {
             await mount(<Harness paths={emptyPaths} emptyLabel={emptyFolder} />);
+
             await change(() => {
                 FileTree.focusRow(exposed, 'empty/');
                 FileTree.selectOnly(exposed, 'empty/');
             });
+
             await change(() =>
                 row('empty/').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', shiftKey: true, bubbles: true, composed: true, cancelable: true }))
             );
+
             expect(exposed.getFocusedPath()).toBe('src/');
             expect([...exposed.getSelectedPaths()].sort()).toEqual(['empty/', 'src/']);
         });

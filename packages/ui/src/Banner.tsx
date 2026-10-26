@@ -19,10 +19,13 @@ export interface BannerProps {
     icon: LucideIcon;
     tone: BannerTone;
     message: ReactNode;
+
     /* The buttons that answer the line. */
     children?: ReactNode;
+
     /* Under `overlay` a `className` replaces the overlay position instead of adding to it, so its utilities never meet the component's own. */
     placement?: 'overlay' | 'inline';
+
     className?: string;
     ref?: Ref<HTMLDivElement>;
 }

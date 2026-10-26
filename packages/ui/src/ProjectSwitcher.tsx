@@ -10,13 +10,18 @@ export interface ProjectSwitcherItem {
     id: string;
     name: string;
     icon?: ReactNode;
+
     /* The folder or other details, shown in a tooltip so the row stays on one line. */
     description?: ReactNode;
+
     /* At the end of the row. */
     hint?: ReactNode;
+
     disabled?: boolean;
+
     /* A stale or disconnected project can still be selected to try opening it. */
     muted?: boolean;
+
     /* For the submenu beside this project's row. */
     actions?: ReactNode;
 }
@@ -26,14 +31,19 @@ export interface ProjectSwitcherProps<Item extends ProjectSwitcherItem = Project
     projects: readonly Item[];
     recentProjects?: readonly Item[];
     onSelect(project: Item, event: MouseEvent<HTMLElement>): void;
+
     /* Before the current project's icon. */
     leading?: ReactNode;
+
     /* A group of their own between the open projects and Recent projects. */
     before?: ReactNode;
+
     /* In one group with Recent projects. */
     children?: ReactNode;
+
     /* What the trigger reads while `current` is null; next to a current project, it comes before that name in the accessible name. */
     label?: string;
+
     disabled?: boolean;
     open?: boolean;
     defaultOpen?: boolean;

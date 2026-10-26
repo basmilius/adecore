@@ -7,6 +7,7 @@ const set = (modality: Modality): void => {
     if (current === modality) {
         return;
     }
+
     current = modality;
     document.documentElement.dataset.modality = modality;
 };
@@ -19,8 +20,10 @@ export function startInputModality(): void {
     if (started) {
         return;
     }
+
     started = true;
     set('pointer');
+
     window.addEventListener(
         'keydown',
         (event) => {
@@ -31,6 +34,7 @@ export function startInputModality(): void {
         },
         { capture: true }
     );
+
     window.addEventListener('pointerdown', () => set('pointer'), { capture: true, passive: true });
     window.addEventListener('pointermove', () => set('pointer'), { capture: true, passive: true });
 }

@@ -25,6 +25,7 @@ describe.skipIf(typeof document === 'undefined')('a copy button under a click', 
         const { createRoot } = await import('react-dom/client');
         root = createRoot(container);
         await act(async () => root.render(node));
+
         return container.querySelector('button')!;
     };
 
@@ -33,6 +34,7 @@ describe.skipIf(typeof document === 'undefined')('a copy button under a click', 
     beforeEach(() => {
         written = [];
         refuse = false;
+
         Object.defineProperty(navigator, 'clipboard', {
             configurable: true,
             value: {
@@ -40,10 +42,12 @@ describe.skipIf(typeof document === 'undefined')('a copy button under a click', 
                     if (refuse) {
                         throw new Error('refused');
                     }
+
                     written.push(text);
                 }
             }
         });
+
         container = document.createElement('div');
         document.body.append(container);
     });

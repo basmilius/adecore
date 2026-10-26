@@ -90,6 +90,7 @@ describe('formatShortcut', () => {
             ['ArrowUp', '↑', '↑'],
             ['ArrowDown', '↓', '↓']
         ];
+
         for (const [name, apple, other] of names) {
             expect(formatShortcut(shortcut(name), true)).toBe(apple);
             expect(formatShortcut(shortcut(name), false)).toBe(other);

@@ -23,14 +23,17 @@ describe('the boundary of the library', () => {
         const reaching = sources()
             .filter(({ path, text }) => /\.tsx?$/.test(path) && REACHES_OUT.test(text))
             .map(({ path }) => path);
+
         expect(reaching).toEqual([]);
     });
 
     test('nothing leaves src through a relative import', () => {
         const escaping = sources().filter(({ path, text }) => {
             const depth = path.split('/').length - 1;
+
             return [...text.matchAll(/from ['"]((?:\.\.\/)+)/g)].some((match) => match[1]!.length / 3 > depth);
         });
+
         expect(escaping.map(({ path }) => path)).toEqual([]);
     });
 
@@ -38,6 +41,7 @@ describe('the boundary of the library', () => {
         const naming = [...sources(), ...PUBLIC_DOCS.map((path) => ({ path, text: readFileSync(join(ROOT, path), 'utf8') }))]
             .filter(({ text }) => /ruimte|aftermotion|solvidi|command[ -]center/i.test(text))
             .map(({ path }) => path);
+
         expect(naming.filter((path) => path !== 'boundary.test.ts')).toEqual([]);
     });
 });

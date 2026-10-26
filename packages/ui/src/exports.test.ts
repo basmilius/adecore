@@ -26,20 +26,26 @@ type Declaration = Program['body'][number];
 /* What an entry file names, values and types alike, as written in its export statements. */
 const namesIn = (file: string): string[] => {
     const program = parseSync(file, readFileSync(join(HERE, file), 'utf8')).program;
+
     return program.body.flatMap((statement: Declaration) => {
         if (statement.type === 'ExportNamedDeclaration') {
             const typeOnly = statement.exportKind === 'type';
+
             return statement.specifiers.map((specifier) => {
                 const exported = specifier.exported.type === 'Identifier' ? specifier.exported.name : String(specifier.exported.value);
+
                 return typeOnly || specifier.exportKind === 'type' ? `type ${exported}` : exported;
             });
         }
+
         if (statement.type === 'ExportAllDeclaration' && statement.exported !== null) {
             return [statement.exported.type === 'Identifier' ? statement.exported.name : String(statement.exported.value)];
         }
+
         if (statement.type === 'ExportAllDeclaration') {
             return [`* from ${statement.source.value}`];
         }
+
         return [];
     });
 };
@@ -61,11 +67,13 @@ describe('the public API', () => {
 
     test('the compound components have these parts', () => {
         const barrel = MODULES['.']!;
+
         const parts = Object.fromEntries(
             ['Combobox', 'CommandPalette', 'ContextMenu', 'Dialog', 'FileTree', 'Tree', 'KeyValueList', 'Menu', 'Popover', 'PreviewCard', 'Tabs'].map(
                 (name) => [name, Object.keys(barrel[name] as object).sort()]
             )
         );
+
         expect(parts).toMatchSnapshot();
     });
 

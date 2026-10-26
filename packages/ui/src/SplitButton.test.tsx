@@ -14,6 +14,7 @@ describe('a split button', () => {
                 Commit
             </SplitButton>
         );
+
         const frame = /<span class="([^"]+)"/.exec(markup)![1]!.split(' ');
         expect(frame).toEqual(expect.arrayContaining(['h-7', 'rounded-md', 'overflow-clip']));
         const [action, chevron] = classesOf(markup);
@@ -32,7 +33,9 @@ describe('a split button', () => {
                 Push
             </SplitButton>
         );
+
         expect(/<span class="([^"]+)"/.exec(markup)![1]!.split(' ')).toEqual(expect.arrayContaining(['border', 'border-field-border']));
+
         for (const half of classesOf(markup)) {
             expect(half).not.toContain('border');
         }
@@ -44,13 +47,16 @@ describe('a split button', () => {
                 Push
             </SplitButton>
         );
+
         expect(actionOff).toMatch(/<button[^>]*disabled=""[^>]*>Push<\/button>/);
         expect(actionOff).not.toMatch(/aria-label="More"[^>]*disabled/);
+
         const menuOff = renderToStaticMarkup(
             <SplitButton menuDisabled menuLabel="More" menu={null}>
                 Push
             </SplitButton>
         );
+
         expect(menuOff).not.toMatch(/disabled=""[^>]*>Push<\/button>/);
         expect(menuOff).toMatch(/<button[^>]*disabled=""[^>]*aria-label="More"|<button[^>]*aria-label="More"[^>]*disabled=""/);
     });
@@ -79,11 +85,13 @@ describe.skipIf(typeof document === 'undefined')('a split button in use', () => 
 
     test('runs the action from one half and opens the menu from the other', async () => {
         const ran: string[] = [];
+
         await mount(
             <SplitButton menuLabel="More" onClick={() => ran.push('commit')} menu={<Menu.Item onClick={() => ran.push('push')}>Commit and push</Menu.Item>}>
                 Commit
             </SplitButton>
         );
+
         const [action, chevron] = [...container.querySelectorAll('button')];
         await act(async () => action!.click());
         expect(ran).toEqual(['commit']);

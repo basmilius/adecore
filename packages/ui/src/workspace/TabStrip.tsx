@@ -91,6 +91,7 @@ export function TabStrip({
     const { t } = useTranslation('ui');
     const strip = useRef<HTMLDivElement>(null);
     const closingFocus = useRef<string | null>(null);
+
     useLayoutEffect(() => {
         if (closingFocus.current && !items.some((item) => item.id === closingFocus.current)) {
             closingFocus.current = null;
@@ -98,26 +99,33 @@ export function TabStrip({
             target?.focus({ preventScroll: true });
         }
     });
+
     const close = (id: string, action?: () => void): void => {
         if (strip.current?.contains(strip.current.ownerDocument.activeElement)) {
             closingFocus.current = id;
         }
+
         if (action) {
             action();
         } else {
             onClose?.(id);
         }
     };
+
     const [edges, setEdges] = useState({ start: false, end: false });
     const [insertion, setInsertion] = useState(0);
+
     const measure = (): void => {
         const element = strip.current;
+
         if (!element) {
             return;
         }
+
         const start = element.scrollLeft > 0;
         const end = element.scrollLeft + element.clientWidth < element.scrollWidth - 1;
         setEdges((current) => (current.start === start && current.end === end ? current : { start, end }));
+
         if (insertAt !== undefined && insertAt !== null) {
             const tabs = Array.from(element.querySelectorAll<HTMLElement>('[data-document-tab]'));
             const after = tabs[insertAt];
@@ -125,48 +133,63 @@ export function TabStrip({
             setInsertion(after?.offsetLeft ?? (last ? last.offsetLeft + last.offsetWidth : 0));
         }
     };
+
     // Stays set after the active tab changes, as its width can settle frames later; a person's own scroll ends it.
     const revealing = useRef(false);
+
     const reveal = (): void => {
         const element = strip.current;
         const selected = element?.querySelector<HTMLElement>('[aria-selected="true"]');
+
         if (!revealing.current || !element || !selected) {
             return;
         }
+
         const container = selected.closest<HTMLElement>('[data-document-tab]');
         const tab = container && element.contains(container) ? container : selected;
         const fade = parseFloat(getComputedStyle(element).getPropertyValue('--fade-size')) || 0;
         const bounds = element.getBoundingClientRect();
         const rect = tab.getBoundingClientRect();
         const left = tabRevealScrollLeft(element, rect.left - bounds.left - element.clientLeft + element.scrollLeft, rect.width, fade);
+
         if (left !== element.scrollLeft) {
             element.scrollLeft = left;
         }
     };
+
     useLayoutEffect(() => {
         revealing.current = true;
     }, [value]);
+
     useLayoutEffect(() => {
         reveal();
         measure();
     });
+
     useEffect(() => {
         const element = strip.current;
+
         if (!element || typeof ResizeObserver === 'undefined') {
             return;
         }
+
         const observer = new ResizeObserver(() => {
             reveal();
             measure();
         });
+
         observer.observe(element);
         element.querySelectorAll('[data-document-tab]').forEach((tab) => observer.observe(tab));
+
         return () => observer.disconnect();
     });
+
     const gap = (event: DragEvent<HTMLDivElement>): number => {
         const rects = Array.from(event.currentTarget.querySelectorAll('[data-document-tab]'), (tab) => tab.getBoundingClientRect());
+
         return tabGapAt(rects, event.clientX);
     };
+
     const context: TabContextValue = {
         items,
         value,
@@ -180,6 +203,7 @@ export function TabStrip({
         close,
         focus: (index) => strip.current?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[index]?.focus()
     };
+
     return useRender({
         render,
         ref: [strip, ref ?? null],
@@ -198,16 +222,20 @@ export function TabStrip({
             },
             onWheel: (event: WheelEvent<HTMLDivElement>) => {
                 props.onWheel?.(event);
+
                 if (event.defaultPrevented) {
                     return;
                 }
+
                 revealing.current = false;
+
                 if (!event.deltaX && event.deltaY) {
                     event.currentTarget.scrollLeft += event.deltaY;
                 }
             },
             onPointerDown: (event: PointerEvent<HTMLDivElement>) => {
                 props.onPointerDown?.(event);
+
                 // A press on the strip itself grabs its scrollbar, and a touch may pan it.
                 if (event.target === event.currentTarget || event.pointerType === 'touch') {
                     revealing.current = false;
@@ -215,12 +243,14 @@ export function TabStrip({
             },
             onDragOver: (event: DragEvent<HTMLDivElement>) => {
                 props.onDragOver?.(event);
+
                 if (!event.defaultPrevented) {
                     onTabDragOver?.(gap(event), event);
                 }
             },
             onDrop: (event: DragEvent<HTMLDivElement>) => {
                 props.onDrop?.(event);
+
                 if (!event.defaultPrevented) {
                     onTabDrop?.(gap(event), event);
                 }
@@ -246,6 +276,7 @@ interface TabContextValue extends Pick<
     close(id: string, action?: () => void): void;
     focus(index: number): void;
 }
+
 const TabContext = createContext<TabContextValue | null>(null);
 
 export interface DocumentTabProps extends Omit<useRender.ComponentProps<'span'>, 'children' | 'onDoubleClick' | 'onDragStart' | 'onDragEnd'> {
@@ -260,20 +291,26 @@ export interface DocumentTabProps extends Omit<useRender.ComponentProps<'span'>,
 /** A tab with application-owned metadata and menus, rendered inside TabStrip's renderTab slot. */
 export function DocumentTab({ item, onClose, closeShortcut, onDoubleClick, onDragStart, onDragEnd, className, render, ref, ...props }: DocumentTabProps) {
     const context = useContext(TabContext);
+
     if (!context) {
         throw new Error('DocumentTab must be rendered inside TabStrip.');
     }
+
     const { t } = useTranslation('ui');
     const { items, value, onValueChange } = context;
     const index = items.findIndex((candidate) => candidate.id === item.id);
+
     const close = (): void => context.close(item.id, onClose);
+
     const closable = item.closable !== false && (onClose ?? context.onClose) !== undefined;
+
     // Shift with Cmd, Ctrl or Alt stays the app's to give a meaning.
     const closesOnPress = (event: MouseEvent): boolean =>
         !!context.pressToClose &&
         closable &&
         !item.pinned &&
         (event.button === 1 || (event.button === 0 && event.shiftKey && !event.metaKey && !event.ctrlKey && !event.altKey));
+
     return useRender({
         render,
         ref,
@@ -290,6 +327,7 @@ export function DocumentTab({ item, onClose, closeShortcut, onDoubleClick, onDra
             },
             onMouseDown: (event: MouseEvent<HTMLSpanElement>) => {
                 props.onMouseDown?.(event);
+
                 // A press that closes starts no text selection, takes no focus and no middle-button scroll.
                 if (closesOnPress(event)) {
                     event.preventDefault();
@@ -297,6 +335,7 @@ export function DocumentTab({ item, onClose, closeShortcut, onDoubleClick, onDra
             },
             onAuxClick: (event: MouseEvent<HTMLSpanElement>) => {
                 props.onAuxClick?.(event);
+
                 if (event.button === 1 && closesOnPress(event)) {
                     event.preventDefault();
                     close();
@@ -317,8 +356,10 @@ export function DocumentTab({ item, onClose, closeShortcut, onDoubleClick, onDra
                             onClick={(event) => {
                                 if (closesOnPress(event)) {
                                     close();
+
                                     return;
                                 }
+
                                 onValueChange(item.id);
                             }}
                             onDoubleClick={(event) => (onDoubleClick ?? context.onDoubleClick)?.(item.id, event)}
@@ -329,6 +370,7 @@ export function DocumentTab({ item, onClose, closeShortcut, onDoubleClick, onDra
                             onDragEnd={onDragEnd ?? context.onDragEnd}
                             onKeyDown={(event) => {
                                 const next = tabIndexForKey(event.key, index, items.length);
+
                                 if (next !== null) {
                                     event.preventDefault();
                                     onValueChange(items[next]!.id);

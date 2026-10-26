@@ -32,6 +32,7 @@ function TimerRing({ deadline, onDismiss }: { deadline: ToastDeadline; onDismiss
     const { t } = useTranslation('ui');
     const lifetime = deadline.end - deadline.start;
     const [elapsed] = useState(() => elapsedOf(deadline, Date.now()));
+
     return (
         <IconButton size="xs" label={t('action.dismiss')} className="group/ring relative -my-px" onClick={onDismiss}>
             <svg width={16} height={16} viewBox="0 0 16 16" className="-rotate-90" aria-hidden>
@@ -71,6 +72,7 @@ function ToastCard<T extends Toast>({ toast, footer, onDismiss }: { toast: T; fo
     const actions = [...(toast.action === undefined ? [] : [toast.action]), ...(toast.actions ?? [])];
     // An offer that runs out shows how long it has left instead.
     const countdown = actions.length > 0 ? toast.deadline : undefined;
+
     return (
         <Surface className="group flex items-start gap-3 rounded-[10px] py-2.5 pr-2 pl-3">
             <span className={clsx(TITLE_LINE, 'w-4 justify-center')}>
@@ -118,8 +120,10 @@ function ToastCard<T extends Toast>({ toast, footer, onDismiss }: { toast: T; fo
 
 export interface ToastsProps<T extends Toast> {
     store: ToastStoreHook<T>;
+
     /* Drawn under the description. */
     footer?: (toast: T) => ReactNode;
+
     className?: string;
     ref?: Ref<HTMLDivElement>;
 }
@@ -127,6 +131,7 @@ export interface ToastsProps<T extends Toast> {
 export function Toasts<T extends Toast>({ store, footer, className, ref }: ToastsProps<T>) {
     // Through `useStore`: the compiler takes a call of the prop itself for a plain function and would skip it on a later draw.
     const toasts = useStore(store, (state) => state.toasts);
+
     // Stays mounted with nothing in it: a screen reader skips what a live region says the moment it is inserted.
     return (
         <div

@@ -16,8 +16,10 @@ export {
     formatWeekdayDay,
     isSameDay
 } from './datetime.ts';
+
 export { formatAgo, formatClockDuration, formatCountdown, formatDuration, formatElapsedShort, formatPreciseDuration } from './duration.ts';
 export { formatLocale, labelCollator, nameCollator, setFormatSource, systemLocale, useFormatLocale, type FormatSource } from './locale.ts';
+
 export {
     formatBytes,
     formatDecimal,
@@ -29,5 +31,6 @@ export {
     formatTokens,
     formatUsdSignificant
 } from './number.ts';
+
 export { FORMAT_LANGUAGE, FORMAT_REGIONS, FORMAT_REGION_CHOICES, FORMAT_SYSTEM, formatRegionFrom, regionName } from './regions.ts';
 export { localTimeZone } from './time-zone.ts';

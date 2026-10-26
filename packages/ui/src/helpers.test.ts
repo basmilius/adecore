@@ -19,9 +19,11 @@ describe('two refs on one element', () => {
     test('are both filled, an object and a callback alike', () => {
         const object: { current: string | null } = { current: null };
         const called: (string | null)[] = [];
+
         mergeRefs<string>(object, (node) => {
             called.push(node);
         })('node');
+
         expect(object.current).toBe('node');
         expect(called).toEqual(['node']);
     });
@@ -32,9 +34,11 @@ describe('the words of the library in an app', () => {
         const i18n = i18next.createInstance();
         await i18n.init({ lng: 'en', resources: {} });
         addUiResources(i18n);
+
         for (const language of Object.keys(UI_RESOURCES)) {
             expect(i18n.hasResourceBundle(language, UI_NAMESPACE)).toBe(true);
         }
+
         expect(i18n.t('action.cancel', { ns: UI_NAMESPACE })).toBe('Cancel');
     });
 

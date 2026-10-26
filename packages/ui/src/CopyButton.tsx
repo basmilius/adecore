@@ -11,8 +11,10 @@ const COPIED_MS = 1500;
 
 interface CopyButtonBase {
     text: string;
+
     /* The accessible name and the tooltip of the icon, or the word on the button with `showLabel`. */
     label?: string;
+
     disabled?: boolean;
     className?: string;
     ref?: Ref<HTMLButtonElement>;
@@ -42,12 +44,15 @@ export function CopyButton(props: CopyButtonProps) {
         if (copiedAt === null) {
             return;
         }
+
         const timer = window.setTimeout(() => setCopiedAt(null), COPIED_MS);
+
         return () => window.clearTimeout(timer);
     }, [copiedAt]);
 
     const copied = copiedAt !== null;
     const name = label ?? t('action.copy');
+
     const copy = async (): Promise<void> => {
         // A refusal goes unconfirmed and unreported: a person can do nothing about it (`clipboard.ts`).
         if (await copyText(text)) {
@@ -73,6 +78,7 @@ export function CopyButton(props: CopyButtonProps) {
             onClick={() => void copy()}
         />
     );
+
     return (
         <>
             {button}

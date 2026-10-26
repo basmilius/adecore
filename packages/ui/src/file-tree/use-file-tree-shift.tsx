@@ -13,28 +13,37 @@ function limitOf(row: HTMLElement, content: Element, gap: number): number {
     const start = content.getBoundingClientRect().left;
     const contentMargin = Number.parseFloat(getComputedStyle(content).marginInlineEnd) || 0;
     let limit = Number.POSITIVE_INFINITY;
+
     for (const part of [...row.children].filter((child) => child !== content).flatMap((child) => boxesOf(child))) {
         const rect = part.getBoundingClientRect();
+
         if (rect.width === 0 || rect.left < start) {
             continue;
         }
+
         if (part.childNodes.length === 0 && Number.parseFloat(getComputedStyle(part).flexGrow) > 0) {
             continue;
         }
+
         limit = Math.min(limit, rect.left - gap);
     }
+
     if (limit !== Number.POSITIVE_INFINITY) {
         return limit - contentMargin;
     }
+
     return row.getBoundingClientRect().right - Number.parseFloat(getComputedStyle(row).paddingInlineEnd) - contentMargin;
 }
 
 function needOf(row: HTMLElement, shift: number, gap: number, range: Range): number | null {
     const content = row.querySelector(':scope > [data-item-section="content"]');
+
     if (content === null || row.getBoundingClientRect().width === 0) {
         return null;
     }
+
     range.selectNodeContents(content);
+
     return shiftNeed(range.getBoundingClientRect().right, limitOf(row, content, gap), shift);
 }
 
@@ -45,5 +54,6 @@ export function useFileTreeShift(model: FileTree, resetKey?: string): { attach(n
         rows: (root) => [...root.querySelectorAll<HTMLElement>(ROWS)],
         need: needOf
     };
+
     return useTreeShift(source, resetKey);
 }

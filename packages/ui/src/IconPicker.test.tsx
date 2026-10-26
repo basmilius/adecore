@@ -10,6 +10,7 @@ import { fakeFormatSource } from './testing/fake-source.ts';
 import { UIProvider } from './UIProvider.tsx';
 
 const i18n = i18next.createInstance();
+
 await i18n.init({ lng: 'en', fallbackLng: 'en', resources: {}, interpolation: { escapeValue: false } });
 
 const GROUPS: IconPickerGroup[] = [
@@ -73,6 +74,7 @@ describe.skipIf(typeof document === 'undefined')('an icon picker in a page', () 
 
     function Harness({ initial, ...props }: Partial<IconPickerProps> & { initial: string | null }) {
         const [value, setValue] = useState<string | null>(initial);
+
         return (
             <UIProvider i18n={i18n}>
                 <IconPicker
@@ -99,7 +101,9 @@ describe.skipIf(typeof document === 'undefined')('an icon picker in a page', () 
     };
 
     const trigger = (): HTMLButtonElement => container.querySelector<HTMLButtonElement>('button[aria-haspopup]')!;
+
     const cell = (name: string): HTMLButtonElement | null => document.querySelector<HTMLButtonElement>(`[role="radio"][aria-label="${name}"]`);
+
     const search = (): HTMLInputElement | null => document.querySelector<HTMLInputElement>('input[aria-label="Search icons"]');
 
     const open = async (props: Partial<IconPickerProps> & { initial: string | null }): Promise<void> => {
@@ -114,6 +118,7 @@ describe.skipIf(typeof document === 'undefined')('an icon picker in a page', () 
         await act(async () => {
             (document.activeElement as HTMLElement).dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
         });
+
         await settle();
     };
 

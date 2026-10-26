@@ -10,12 +10,16 @@ export interface SliderProps {
     min: number;
     max: number;
     step?: number;
+
     /* Places after the separator, always shown. Defaults to the places `step` is written with. */
     decimals?: number;
+
     /* Printed right after the number, such as `px` or `%`. */
     unit?: string;
+
     /* Shown above the track and read as the slider's name. */
     label: string;
+
     disabled?: boolean;
     className?: string;
     ref?: Ref<HTMLDivElement>;

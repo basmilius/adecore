@@ -5,12 +5,15 @@ import { useColumnResize, type ColumnEdge, type ColumnResize } from './useColumn
 
 class Handle extends EventTarget {
     captured = false;
+
     setPointerCapture(): void {
         this.captured = true;
     }
+
     hasPointerCapture(): boolean {
         return this.captured;
     }
+
     releasePointerCapture(): void {
         this.captured = false;
     }
@@ -20,12 +23,15 @@ function setup(from: ColumnEdge) {
     const handle = new Handle();
     const sizes: number[] = [];
     const attributes = new Map<string, string>();
+
     const column = {
         getBoundingClientRect: () => ({ width: 388, height: 388 }),
         setAttribute: (key: string, value: string) => attributes.set(key, value),
         removeAttribute: (key: string) => attributes.delete(key)
     } as unknown as HTMLElement;
+
     const rendered: ColumnResize[] = [];
+
     function Probe() {
         const resize = useColumnResize(
             { current: column },
@@ -37,15 +43,20 @@ function setup(from: ColumnEdge) {
                 onSize: (size) => sizes.push(size)
             }
         );
+
         rendered.push(resize);
+
         return null;
     }
+
     renderToStaticMarkup(createElement(Probe));
     const { startResize } = rendered[0]!;
     startResize({ currentTarget: handle, clientX: 104, clientY: 104, pointerId: 1, preventDefault() {} } as unknown as ReactPointerEvent<HTMLElement>);
+
     function move(position: number): void {
         handle.dispatchEvent(Object.assign(new Event('pointermove'), { clientX: position, clientY: position }));
     }
+
     return { handle, sizes, attributes, move };
 }
 

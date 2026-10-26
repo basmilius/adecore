@@ -13,9 +13,11 @@ export type FileTreeOptions = WithoutSizing<PierreOptions>;
 // Model options are initial; paths and status can subsequently change through the model's mutation methods.
 export function useFileTree(options: FileTreeOptions) {
     const latest = useRef(options.onSelectionChange);
+
     useLayoutEffect(() => {
         latest.current = options.onSelectionChange;
     }, [options.onSelectionChange]);
+
     return usePierreFileTree({
         composition: { contextMenu: { enabled: false } },
         icons: FILE_TREE_ICONS,

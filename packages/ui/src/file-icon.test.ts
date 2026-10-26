@@ -39,12 +39,14 @@ describe('FILE_TREE_ICONS', () => {
     /* A rule pointing at a symbol the sprite lacks draws an empty row in the tree. */
     test('points every rule at a symbol in its sprite', () => {
         const symbols = new Set([...(FILE_TREE_ICONS.spriteSheet ?? '').matchAll(/<symbol id="([^"]+)"/g)].map((match) => match[1]));
+
         const targets = [
             ...Object.values(FILE_TREE_ICONS.byFileName ?? {}),
             ...Object.values(FILE_TREE_ICONS.byFileExtension ?? {}),
             ...Object.values(FILE_TREE_ICONS.byFileNameContains ?? {}),
             ...Object.values(FILE_TREE_ICONS.remap ?? {})
         ];
+
         expect(targets.filter((target) => typeof target !== 'string' || !symbols.has(target))).toEqual([]);
     });
 });

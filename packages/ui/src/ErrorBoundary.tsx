@@ -11,13 +11,18 @@ import { Icon } from './Icon.tsx';
 export interface ErrorBoundaryProps {
     /* The first line of the message: "Could not show this view". */
     label: string;
+
     resetKeys?: ResetKeys;
+
     /* Drops the icon and the spacing, for a small surface. */
     compact?: boolean;
+
     /* For the last resort, which has nothing around it to fall back to. */
     reload?: boolean;
+
     /* By default the message covers the positioned parent. */
     className?: string;
+
     children: ReactNode;
 }
 
@@ -42,6 +47,7 @@ interface FallbackProps {
 /* A function component, so the words come from the i18next instance the app renders with. */
 function ErrorFallback({ label, error, componentStack, compact, reload, className, onRetry }: FallbackProps) {
     const { t } = useTranslation('ui');
+
     return (
         <div role="alert" className={clsx('grid place-items-center overflow-auto bg-surface', compact ? 'p-3' : 'p-6', className)}>
             <div className={clsx('flex max-w-[360px] flex-col items-center text-center', compact ? 'gap-1' : 'gap-2')}>
@@ -94,7 +100,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         if (!this.state.failed) {
             return this.props.children;
         }
+
         const { label, compact = false, reload = false, className = 'absolute inset-0' } = this.props;
+
         return (
             <ErrorFallback
                 label={label}

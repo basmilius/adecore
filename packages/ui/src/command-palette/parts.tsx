@@ -64,9 +64,11 @@ export function CommandPaletteRoot<ItemValue>({
         if (!resetting) {
             return;
         }
+
         if (listRef.current !== null) {
             listRef.current.scrollTop = 0;
         }
+
         // The rows may come back only after Base UI has seen the empty list in a commit of its own.
         // oxlint-disable-next-line react/set-state-in-effect
         setSettledValue(value);
@@ -76,11 +78,13 @@ export function CommandPaletteRoot<ItemValue>({
         if (row.hasAttribute('data-highlighted')) {
             return;
         }
+
         // Base UI has no imperative highlight action and disables highlighting on item focus.
         // Enable pointer navigation just for this event when the app has disabled hover highlighting.
         if (!highlightItemOnHover) {
             flushSync(() => setFocusHighlight(true));
         }
+
         try {
             row.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, movementX: 1 }));
         } finally {
@@ -101,6 +105,7 @@ export function CommandPaletteRoot<ItemValue>({
                         if (details.reason === 'input-change') {
                             setSettledValue(next);
                         }
+
                         onValueChange?.(next, details);
                     }}
                     items={(resetting ? NO_ITEMS : items) as readonly ItemValue[] | undefined}
@@ -108,6 +113,7 @@ export function CommandPaletteRoot<ItemValue>({
                         if (item !== undefined && virtualScroll.current !== null) {
                             queueMicrotask(() => virtualScroll.current?.(details.index, details.reason));
                         }
+
                         onItemHighlighted?.(item, details);
                     }}
                     inline
@@ -131,6 +137,7 @@ export type CommandPalettePopupProps = Omit<DialogPopupProps, 'size'> & {
 export function CommandPalettePopup({ size = 'md', initialFocus, className, ...props }: CommandPalettePopupProps) {
     const { t } = useTranslation('ui');
     const refs = useContext(PaletteRefsContext);
+
     return (
         <DialogPopup
             aria-label={t('palette.label')}
@@ -144,12 +151,16 @@ export function CommandPalettePopup({ size = 'md', initialFocus, className, ...p
 export type CommandPaletteInputProps = Omit<ComponentProps<typeof Autocomplete.Input>, 'className'> & {
     /* In front of the text instead of the magnifier: the mark of a mode, a button back. */
     leading?: ReactNode;
+
     /* After the text, before the Escape hint: toggles of a search, a button that uses the text. */
     trailing?: ReactNode;
+
     /* The Escape key at the end of the field. Off where Escape does something else first. */
     escapeHint?: boolean;
+
     /* A pattern or a path read back letter by letter. */
     mono?: boolean;
+
     /* Goes to the row around the field; `ref` stays on the input. */
     className?: string;
 };
@@ -157,6 +168,7 @@ export type CommandPaletteInputProps = Omit<ComponentProps<typeof Autocomplete.I
 /* It keeps the keys while the arrows move the highlight; a control beside it should not take the focus on a click. */
 export function CommandPaletteInput({ leading, trailing, escapeHint = true, mono = false, className, ref, ...props }: CommandPaletteInputProps) {
     const refs = useContext(PaletteRefsContext);
+
     return (
         <div className={clsx('relative flex shrink-0 items-center gap-2 border-b border-border px-3', className)}>
             {leading ?? <Icon icon={Search} size={14} className="shrink-0 text-text-faint" />}
@@ -176,6 +188,7 @@ export function CommandPaletteInput({ leading, trailing, escapeHint = true, mono
 export function CommandPaletteList({ className, ref, onFocus, ...props }: ComponentProps<typeof Autocomplete.List>) {
     const { t } = useTranslation('ui');
     const refs = useContext(PaletteRefsContext);
+
     return (
         <Autocomplete.List
             ref={mergeRefs(ref, refs?.list)}
@@ -185,9 +198,11 @@ export function CommandPaletteList({ className, ref, onFocus, ...props }: Compon
             onFocus={(event) => {
                 onFocus?.(event);
                 const row = event.target.closest('[role="option"]');
+
                 if (row === null || !event.currentTarget.contains(row) || refs?.input.current == null) {
                     return;
                 }
+
                 refs.highlight(row);
                 refs.input.current.focus({ preventScroll: true });
             }}

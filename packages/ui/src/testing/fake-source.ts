@@ -9,6 +9,7 @@ export interface FakeFormatSource extends FormatSource {
 export const fakeFormatSource = (): FakeFormatSource => {
     let language = 'en';
     let region: string = FORMAT_LANGUAGE;
+
     return {
         language: () => language,
         region: () => region,

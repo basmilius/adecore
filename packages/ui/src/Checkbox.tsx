@@ -7,10 +7,13 @@ import { Icon } from './Icon.tsx';
 export interface CheckboxProps {
     checked: boolean;
     onCheckedChange(checked: boolean): void;
+
     /* The accessible name; a `<label>` around the box and its text usually carries the visible one. */
     label: string;
+
     /* Some of the items it stands for are picked and some are not, as on a box that picks every row of a list. */
     indeterminate?: boolean;
+
     disabled?: boolean;
     className?: string;
     ref?: Ref<HTMLButtonElement>;

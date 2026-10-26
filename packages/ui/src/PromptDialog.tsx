@@ -13,39 +13,53 @@ export interface PromptDialogProps {
     title: string;
     titleIcon?: LucideIcon;
     description?: ReactNode;
+
     /* Without it the dialog is a confirm and nothing else. */
     field?: {
         /* Without one only a screen reader hears the name, from `ariaLabel`. */
         label?: string;
+
         ariaLabel?: string;
         initial?: string;
         placeholder?: string;
         mono?: boolean;
         maxLength?: number;
     };
+
     /* A second, taller field under it. */
     area?: { label: string; initial?: string; placeholder?: string };
+
     confirmLabel: string;
     confirmBusyLabel?: string;
     confirmIcon?: LucideIcon;
     danger?: boolean;
+
     /* For a step the caller runs elsewhere; a step this dialog awaits says so itself. */
     busy?: boolean;
+
     allowEmpty?: boolean;
+
     /* A reason this question cannot be answered at all, beside the one an empty field is. */
     confirmDisabled?: boolean;
+
     secondary?: { label: string; onClick(): void };
     nested?: boolean;
+
     /* Between the description and the buttons. */
     children?: ReactNode;
+
     /* A rejection stays on screen as the reason and leaves the dialog open. */
     onConfirm(value: string, body: string): void | Promise<unknown>;
+
     /* For a rejection that carries no sentence of its own. */
     fallbackMessage?: string;
+
     /* Only ever told `false`: the dialog never closes itself. */
     onOpenChange(open: boolean): void;
+
     /* On the popup. */
     className?: string;
+
     ref?: Ref<HTMLDivElement>;
 }
 
@@ -78,13 +92,17 @@ export function PromptDialog({
     const token = open ? `${field?.initial ?? ''}\u0000${area?.initial ?? ''}` : '';
     const [draft, setDraft] = useState({ token, value: field?.initial ?? '', body: area?.initial ?? '' });
     const step = useAsyncAction(fallbackMessage);
+
     if (draft.token !== token) {
         setDraft({ token, value: field?.initial ?? '', body: area?.initial ?? '' });
         step.clear();
     }
+
     const { value, body } = draft;
     const working = busy || step.busy;
+
     const setValue = (next: string): void => setDraft({ ...draft, value: next });
+
     const setBody = (next: string): void => setDraft({ ...draft, body: next });
 
     const submit = (): void => {
@@ -117,6 +135,7 @@ export function PromptDialog({
                             onKeyDown={(event) => {
                                 // Whatever listens on the window has keys of its own, and a name may hold any of them.
                                 event.stopPropagation();
+
                                 if (event.key === 'Enter') {
                                     event.preventDefault();
                                     submit();

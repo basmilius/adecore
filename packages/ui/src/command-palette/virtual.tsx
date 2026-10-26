@@ -31,22 +31,28 @@ function virtualRowsOf<ItemValue, Group extends { items: readonly ItemValue[] }>
     const rows: VirtualPaletteRow<ItemValue>[] = [];
     const itemRows: number[] = [];
     let count = 0;
+
     for (const value of values) {
         const grouped = value !== null && typeof value === 'object' && 'items' in value && Array.isArray(value.items);
         const group = grouped ? (value as Group) : null;
+
         if (group !== null && group.items.length === 0) {
             continue;
         }
+
         const groupIndex = groups.length;
         groups.push(group);
+
         if (group !== null && labelled) {
             rows.push({ group: groupIndex, index: -1 });
         }
+
         for (const item of group === null ? [value as ItemValue] : group.items) {
             itemRows.push(rows.length);
             rows.push({ group: groupIndex, index: count++, item });
         }
     }
+
     return { groups, rows, itemRows, count };
 }
 
@@ -64,6 +70,7 @@ export function CommandPaletteVirtualList<ItemValue, Group extends { items: read
     const scrollRef = useRef<HTMLDivElement | null>(null);
     const labelled = groupLabel !== undefined;
     const { groups, rows, itemRows, count } = useMemo(() => virtualRowsOf<ItemValue, Group>(filtered, labelled), [filtered, labelled]);
+
     // oxlint-disable-next-line react/incompatible-library
     const virtualizer = useVirtualizer({
         count: rows.length,
@@ -74,38 +81,48 @@ export function CommandPaletteVirtualList<ItemValue, Group extends { items: read
         scrollPaddingStart: 6,
         scrollPaddingEnd: 6
     });
+
     useLayoutEffect(() => {
         if (scroll === null) {
             return;
         }
+
         const highlight = (index: number, reason: string): void => {
             const row = itemRows[index];
+
             if (row !== undefined && reason !== 'pointer') {
                 virtualizer.scrollToIndex(row, { align: reason === 'none' ? 'start' : 'auto' });
             }
         };
+
         scroll.current = highlight;
+
         return () => {
             if (scroll.current === highlight) {
                 scroll.current = null;
             }
         };
     }, [scroll, virtualizer, itemRows]);
+
     const visible = virtualizer.getVirtualItems();
     const visibleGroups = new Map<number, typeof visible>();
+
     for (const item of visible) {
         const group = rows[item.index]!.group;
         const current = visibleGroups.get(group);
+
         if (current === undefined) {
             visibleGroups.set(group, [item]);
         } else {
             current.push(item);
         }
     }
+
     const renderRows = (items: typeof visible): ReactNode =>
         items.map((item) => {
             const row = rows[item.index]!;
             const group = groups[row.group];
+
             return (
                 <div
                     key={item.key}
@@ -123,15 +140,19 @@ export function CommandPaletteVirtualList<ItemValue, Group extends { items: read
                 </div>
             );
         });
+
     return (
         <CommandPaletteList {...props} ref={mergeRefs(ref, scrollRef)}>
             <div role="presentation" className="relative" style={{ height: virtualizer.getTotalSize() }}>
                 {[...visibleGroups].map(([index, items]) => {
                     const group = groups[index];
+
                     if (group === null || group === undefined) {
                         return <Fragment key={index}>{renderRows(items)}</Fragment>;
                     }
+
                     const labelVisible = items.some((item) => rows[item.index]!.index === -1);
+
                     return (
                         <Autocomplete.Group key={index} items={group.items}>
                             {!labelVisible && groupLabel !== undefined && (

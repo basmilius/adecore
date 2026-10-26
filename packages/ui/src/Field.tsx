@@ -6,6 +6,7 @@ import { SectionLabel } from './SectionLabel.tsx';
 
 const HINT = 'text-xs text-text-muted';
 const ERROR = 'text-xs text-status-error';
+
 // Beside the control the label reads at the size of what is typed, on the middle of the control's first line however tall it grows.
 const LABEL_BESIDE = 'flex h-8 items-center self-start text-sm text-text-muted';
 
@@ -47,6 +48,7 @@ function FieldLabel({ id, group, horizontal, children }: { id: string; group: bo
             </label>
         );
     }
+
     return group ? (
         <SectionLabel id={`${id}-label`}>{children}</SectionLabel>
     ) : (
@@ -57,13 +59,17 @@ function FieldLabel({ id, group, horizontal, children }: { id: string; group: bo
 export interface FieldProps {
     label?: ReactNode;
     hint?: ReactNode;
+
     /* Shown under the control and marks it invalid; null or empty shows nothing. */
     error?: ReactNode;
+
     /* For what a `<label>` cannot point at, such as a `Segmented`: the label then names a group around it. */
     group?: boolean;
+
     orientation?: 'vertical' | 'horizontal';
     className?: string;
     ref?: Ref<HTMLDivElement>;
+
     /* An `Input` or a `TextArea` connects to the label and the lines under it by itself, unless the field is a `group`. */
     children: ReactNode;
 }
@@ -78,6 +84,7 @@ export function Field({ label, hint, error, group = false, orientation = 'vertic
     const lines = [hasHint ? `${id}-hint` : null, hasError ? `${id}-error` : null].filter((part) => part !== null);
     const describedBy = lines.length > 0 ? lines.join(' ') : undefined;
     const control = group ? null : { id: `${id}-control`, describedBy, invalid: hasError };
+
     return (
         <div
             ref={ref}

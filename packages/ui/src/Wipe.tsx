@@ -9,6 +9,7 @@ import { splitAt, splitForKey } from './wipe-split.ts';
 export interface WipeProps {
     /* The share of the width left of the handle, from 0 to 1. */
     value: number;
+
     onValueChange(value: number): void;
     before: ReactNode;
     after: ReactNode;
@@ -26,6 +27,7 @@ export function Wipe({ value: split, onValueChange: onSplit, before, after, labe
     function moveTo(clientX: number): void {
         const rect = frame.current?.getBoundingClientRect();
         const next = rect ? splitAt(clientX, rect) : null;
+
         if (next !== null) {
             onSplit(next);
         }
@@ -46,9 +48,11 @@ export function Wipe({ value: split, onValueChange: onSplit, before, after, labe
 
     function onKeyDown(e: KeyboardEvent<HTMLDivElement>): void {
         const next = splitForKey(split, e.key);
+
         if (next === null) {
             return;
         }
+
         // Only while the handle has the focus, so a canvas or a timeline around it never hears these keys.
         e.preventDefault();
         e.stopPropagation();

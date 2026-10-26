@@ -13,10 +13,13 @@ const toDate = (at: Date | number): Date => (typeof at === 'number' ? new Date(a
 export const formatDateTime = (at: Date | number, options: Intl.DateTimeFormatOptions): string => {
     const date = toDate(at);
     const parts = dateFormatter(options).formatToParts(date);
+
     if (!parts.some((part) => WORD_PARTS.has(part.type))) {
         return parts.map((part) => part.value).join('');
     }
+
     const words = wordFormatter(options).formatToParts(date);
+
     return parts.map((part) => (WORD_PARTS.has(part.type) ? (words.find((word) => word.type === part.type)?.value ?? part.value) : part.value)).join('');
 };
 
@@ -39,16 +42,21 @@ const zoned = (options: Intl.DateTimeFormatOptions, timeZone: string | undefined
     if (timeZone === undefined) {
         return options;
     }
+
     let byZone = zonedSpecs.get(options);
+
     if (byZone === undefined) {
         byZone = new Map();
         zonedSpecs.set(options, byZone);
     }
+
     let spec = byZone.get(timeZone);
+
     if (spec === undefined) {
         spec = { ...options, timeZone };
         byZone.set(timeZone, spec);
     }
+
     return spec;
 };
 
@@ -89,6 +97,7 @@ export const formatNumericDate = (at: Date | number): string => formatDateTime(a
 export const isSameDay = (a: Date | number, b: Date | number): boolean => {
     const left = toDate(a);
     const right = toDate(b);
+
     return left.getFullYear() === right.getFullYear() && left.getMonth() === right.getMonth() && left.getDate() === right.getDate();
 };
 
@@ -104,8 +113,10 @@ export const formatAge = (at: Date | number, now: Date | number = Date.now()): s
     const date = toDate(at);
     const today = toDate(now);
     const past = today.getTime() - date.getTime();
+
     if (past < WEEK) {
         return formatAgo(past);
     }
+
     return date.getFullYear() === today.getFullYear() ? formatDay(date) : formatDayWithYear(date);
 };

@@ -33,15 +33,20 @@ export const sectionsOf = (icons: IconPickerIcons): IconSection[] =>
 /* The icons whose name, keywords or group label hold the query, case-insensitive. A group without one is left out. */
 export const filterSections = (sections: readonly IconSection[], query: string, keywords: Readonly<Record<string, readonly string[]>> = {}): IconSection[] => {
     const needle = query.trim().toLowerCase();
+
     if (needle === '') {
         return [...sections];
     }
+
     const holds = (text: string): boolean => text.toLowerCase().includes(needle);
+
     return sections.flatMap((section) => {
         if (section.label !== null && holds(section.label)) {
             return [section];
         }
+
         const icons = section.icons.filter(([name]) => holds(name) || (keywords[name] ?? []).some(holds));
+
         return icons.length > 0 ? [{ ...section, icons }] : [];
     });
 };
@@ -59,6 +64,7 @@ const SAME_ROW = 2;
  */
 export const cellForKey = (key: string, boxes: readonly IconCellBox[], from: number): number | null => {
     const last = boxes.length - 1;
+
     switch (key) {
         case 'ArrowRight':
             return Math.min(from + 1, last);
@@ -74,29 +80,38 @@ export const cellForKey = (key: string, boxes: readonly IconCellBox[], from: num
         default:
             return null;
     }
+
     const current = boxes[from];
+
     if (current === undefined) {
         return null;
     }
+
     const down = key === 'ArrowDown';
     const tops = boxes.map((box) => box.top).filter((top) => (down ? top > current.top + SAME_ROW : top < current.top - SAME_ROW));
+
     if (tops.length === 0) {
         return from;
     }
+
     const row = down ? Math.min(...tops) : Math.max(...tops);
     const center = current.left + current.width / 2;
     let nearest = from;
     let distance = Number.POSITIVE_INFINITY;
+
     boxes.forEach((box, index) => {
         if (Math.abs(box.top - row) > SAME_ROW) {
             return;
         }
+
         const gap = Math.abs(box.left + box.width / 2 - center);
+
         if (gap < distance) {
             nearest = index;
             distance = gap;
         }
     });
+
     return nearest;
 };
 

@@ -7,9 +7,12 @@ import { Icon } from './Icon.tsx';
 export interface InputProps extends Omit<ComponentProps<'input'>, 'size'> {
     /* `sm` is the height of a small button. */
     size?: 'md' | 'sm';
+
     mono?: boolean;
+
     /* `className` then goes to the box around the icon and the input; `ref` stays on the input. */
     icon?: LucideIcon;
+
     /* Inside the field, after the text. `className` then goes to the box, as with `icon`. */
     end?: ReactNode;
 }
@@ -50,8 +53,10 @@ export function Input({ size = 'md', mono = false, icon, end, className, id, ...
 export interface TextAreaProps extends ComponentProps<'textarea'> {
     /* `sm` is the type and the padding of a small input. */
     size?: 'md' | 'sm';
+
     resize?: 'none' | 'vertical';
     mono?: boolean;
+
     /* `bare` drops the border, the ground and the focus outline, for a field inside a card that draws all three around it. */
     variant?: 'field' | 'bare';
 }
@@ -59,6 +64,7 @@ export interface TextAreaProps extends ComponentProps<'textarea'> {
 /* At least 64px tall; `rows` makes it taller. */
 export function TextArea({ size = 'md', resize = 'none', mono = false, variant = 'field', className, id, ...props }: TextAreaProps) {
     const field = useFieldControl();
+
     return (
         <textarea
             {...fieldControlProps(field, id)}
