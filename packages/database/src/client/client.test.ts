@@ -10,6 +10,7 @@ const SERVER = { flavor: 'sqlite', version: '3.50.4' } as const;
 type Responder = (request: DatabaseRequest, calls: DatabaseRequest[]) => DatabaseResponse | Promise<DatabaseResponse> | undefined;
 
 const ok = (id: string, result: unknown): DatabaseResponse => ({ id, ok: true, result }) as DatabaseResponse;
+
 const err = (id: string, code: string, message = 'failed', extra: object = {}): DatabaseResponse =>
     ({ id, ok: false, error: { code, message, ...extra } }) as DatabaseResponse;
 
@@ -17,6 +18,7 @@ const err = (id: string, code: string, message = 'failed', extra: object = {}): 
 const scripted = (respond: Responder = () => undefined) => {
     const calls: DatabaseRequest[] = [];
     let opens = 0;
+
     const transport: DatabaseTransport = async (request) => {
         calls.push(request);
         const custom = respond(request, calls);
@@ -66,6 +68,7 @@ const scripted = (respond: Responder = () => undefined) => {
 
 const counterIds = () => {
     let next = 0;
+
     return () => `id${++next}`;
 };
 
@@ -76,6 +79,7 @@ const caught = async (promise: Promise<unknown>): Promise<DatabaseRequestError> 
         await promise;
     } catch (error) {
         expect(error).toBeInstanceOf(DatabaseRequestError);
+
         return error as DatabaseRequestError;
     }
 
@@ -178,9 +182,11 @@ describe('opening', () => {
 
     test('rejects every waiter when the open fails, and tries again on the next request', async () => {
         let failing = true;
+
         const { transport, methods } = scripted((request) =>
             request.method === 'open' && failing ? err(request.id, 'connect-failed', 'no route') : undefined
         );
+
         const session = createDatabaseClient(transport).session(connection);
 
         const errors = await Promise.all([caught(session.schemas()), caught(session.server())]);
@@ -239,6 +245,7 @@ describe('requests', () => {
         const { transport } = scripted((request) =>
             request.method === 'apply' ? err(request.id, 'conflict', 'The update matched no row.', { sqlState: '40001', change: 1 }) : undefined
         );
+
         const error = await caught(createDatabaseClient(transport).session(connection).apply('main', 'users', []));
         expect(error).toMatchObject({ name: 'DatabaseRequestError', code: 'conflict', message: 'The update matched no row.', sqlState: '40001', change: 1 });
     });
@@ -247,6 +254,7 @@ describe('requests', () => {
         const client = createDatabaseClient(async () => {
             throw new Error('channel closed');
         });
+
         const error = await caught(client.session(connection).schemas());
         expect(error).toMatchObject({ code: 'helper-unavailable', message: 'channel closed' });
         expect(await caught(client.test(config))).toMatchObject({ code: 'helper-unavailable' });
@@ -256,6 +264,7 @@ describe('requests', () => {
         const client = createDatabaseClient(() => {
             throw new Error('no bridge');
         });
+
         expect(await caught(client.session(connection).schemas())).toMatchObject({ code: 'helper-unavailable', message: 'no bridge' });
     });
 
@@ -282,15 +291,19 @@ describe('requests', () => {
 describe('unknown-session', () => {
     test.each(['schemas', 'tables', 'structure', 'rows', 'count', 'cell', 'page'] as const)('opens again and retries %s once', async (method) => {
         let first = true;
+
         const { transport, methods, calls } = scripted((request) => {
             if (request.method === method && first) {
                 first = false;
+
                 return err(request.id, 'unknown-session');
             }
 
             return undefined;
         });
+
         const session = createDatabaseClient(transport).session(connection);
+
         const run = {
             schemas: () => session.schemas(),
             tables: () => session.tables('main'),
@@ -317,10 +330,13 @@ describe('unknown-session', () => {
 
     test('shares the reopen between reads that fail together', async () => {
         const stale = new Set(['s1']);
+
         const { transport, methods } = scripted((request) => {
             const session = (request.params as { session?: string }).session;
+
             return session !== undefined && stale.has(session) && request.method !== 'close' ? err(request.id, 'unknown-session') : undefined;
         });
+
         const session = createDatabaseClient(transport).session(connection);
         await session.server();
         await Promise.all([session.schemas(), session.tables('main')]);
@@ -330,15 +346,19 @@ describe('unknown-session', () => {
     for (const method of ['apply', 'execute', 'transaction', 'export', 'import'] as const) {
         test(`${method} rejects with the original error and opens again for the next request`, async () => {
             let first = true;
+
             const { transport, methods } = scripted((request) => {
                 if (request.method === method && first) {
                     first = false;
+
                     return err(request.id, 'unknown-session', 'gone');
                 }
 
                 return undefined;
             });
+
             const session = createDatabaseClient(transport).session(connection);
+
             const run = () =>
                 ({
                     apply: () => session.apply('main', 't', []),
@@ -363,6 +383,7 @@ describe('schema changes', () => {
         const client = createDatabaseClient(transport);
         const changes: SchemaChange[] = [];
         client.onSchemaChange((change) => changes.push(change));
+
         return { client, changes, session: client.session(connection) };
     };
 
@@ -378,6 +399,7 @@ describe('schema changes', () => {
                   })
                 : undefined
         );
+
         const client = createDatabaseClient(transport);
         const changes: SchemaChange[] = [];
         client.onSchemaChange((change) => changes.push(change));
@@ -416,6 +438,7 @@ describe('schema changes', () => {
 
     test('does not tell when the statement failed or the execute rejected', async () => {
         const failed = [{ kind: 'error', sql: 'DROP TABLE t', error: { code: 'query-failed', message: 'no' }, elapsedMs: 0 }];
+
         const { transport } = scripted((request) => {
             if (request.method !== 'execute') {
                 return undefined;
@@ -425,6 +448,7 @@ describe('schema changes', () => {
                 ? err(request.id, 'read-only')
                 : ok(request.id, { results: failed, inTransaction: false });
         });
+
         const client = createDatabaseClient(transport);
         const changes: SchemaChange[] = [];
         client.onSchemaChange((change) => changes.push(change));
@@ -454,9 +478,11 @@ describe('schema changes', () => {
         const client = createDatabaseClient(transport);
         const heard: SchemaChange[] = [];
         const report = spyOn(console, 'error').mockImplementation(() => {});
+
         client.onSchemaChange(() => {
             throw new Error('broken view');
         });
+
         client.onSchemaChange((change) => heard.push(change));
 
         expect(await client.session(connection).execute('DROP TABLE t')).toMatchObject({ results });
@@ -480,9 +506,11 @@ describe('abort', () => {
 
     test('sends a cancel for the request and rejects at once while it is in flight', async () => {
         let release: (response: DatabaseResponse) => void = () => {};
+
         const { transport, calls, methods } = scripted((request) =>
             request.method === 'rows' ? new Promise<DatabaseResponse>((resolve) => (release = resolve)) : undefined
         );
+
         const session = createDatabaseClient(transport, { createId: counterIds() }).session(connection);
         await session.server();
 
@@ -504,8 +532,10 @@ describe('abort', () => {
             if (request.method === 'cancel') {
                 throw new Error('no channel');
             }
+
             return request.method === 'rows' ? new Promise<DatabaseResponse>(() => {}) : undefined;
         });
+
         const session = createDatabaseClient(transport).session(connection);
         const controller = new AbortController();
         const pending = caught(session.rows('main', 't', { offset: 0, limit: 1 }, { signal: controller.signal }));
@@ -516,9 +546,11 @@ describe('abort', () => {
 
     test('lets an execute that was sent answer with what ran before the cancel', async () => {
         let release: (response: DatabaseResponse) => void = () => {};
+
         const { transport, calls, methods } = scripted((request) =>
             request.method === 'execute' ? new Promise<DatabaseResponse>((resolve) => (release = resolve)) : undefined
         );
+
         const session = createDatabaseClient(transport, { createId: counterIds() }).session(connection);
         await session.server();
 
@@ -536,19 +568,24 @@ describe('abort', () => {
             ],
             inTransaction: true
         };
+
         release(ok(calls[1]!.id, partial));
         expect(await pending).toEqual(partial as never);
     });
 
     test('rejects an execute with cancelled when nothing ran, or when the cancel cannot be sent', async () => {
         let release: (response: DatabaseResponse) => void = () => {};
+
         let cancels = 0;
+
         const { transport, calls } = scripted((request) => {
             if (request.method === 'cancel' && ++cancels === 2) {
                 throw new Error('no channel');
             }
+
             return request.method === 'execute' ? new Promise<DatabaseResponse>((resolve) => (release = resolve)) : undefined;
         });
+
         const session = createDatabaseClient(transport).session(connection);
 
         const queued = new AbortController();
@@ -567,9 +604,11 @@ describe('abort', () => {
 
     test('stops waiting for an open without cancelling the open for the others', async () => {
         let release: (response: DatabaseResponse) => void = () => {};
+
         const { transport, methods } = scripted((request) =>
             request.method === 'open' ? new Promise<DatabaseResponse>((resolve) => (release = resolve)) : undefined
         );
+
         const session = createDatabaseClient(transport, { createId: counterIds() }).session(connection);
         const controller = new AbortController();
         const aborted = caught(session.schemas({ signal: controller.signal }));
@@ -622,9 +661,11 @@ describe('closing', () => {
 
     test('close waits for an open that is in flight and closes what it opened', async () => {
         let release: (response: DatabaseResponse) => void = () => {};
+
         const { transport, methods } = scripted((request) =>
             request.method === 'open' ? new Promise<DatabaseResponse>((resolve) => (release = resolve)) : undefined
         );
+
         const session = createDatabaseClient(transport, { createId: counterIds() }).session(connection);
         const opening = caught(session.schemas());
         await tick();

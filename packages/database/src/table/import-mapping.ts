@@ -17,14 +17,19 @@ export const matchColumns = (fileColumns: readonly string[], tableColumns: reado
     if (!header) {
         return fileColumns.map((_, index) => tableColumns[index] ?? null);
     }
+
     const taken = new Set<string>();
+
     return fileColumns.map((name) => {
         const wanted = name.trim().toLowerCase();
         const match = tableColumns.find((column) => !taken.has(column) && column.toLowerCase() === wanted);
+
         if (match === undefined) {
             return null;
         }
+
         taken.add(match);
+
         return match;
     });
 };

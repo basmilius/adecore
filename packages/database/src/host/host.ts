@@ -52,6 +52,7 @@ const parseLine = (line: string): unknown => {
 /* Settles when every promise has, or after the grace period; a helper that hangs must not hold up an app that quits. */
 const settleWithin = async (promises: readonly Promise<unknown>[]): Promise<void> => {
     let timer: ReturnType<typeof setTimeout> | undefined;
+
     const grace = new Promise<void>((resolve) => {
         timer = setTimeout(resolve, CLOSE_GRACE_MS);
     });
@@ -125,11 +126,13 @@ export const createDatabaseHost = (options: DatabaseHostOptions): DatabaseHost =
 
         if (!isDict(message) || message.event !== 'ready') {
             abort(run, 'The helper did not start with a ready line.');
+
             return;
         }
 
         if (message.protocol !== PROTOCOL_VERSION) {
             abort(run, `The helper speaks protocol ${String(message.protocol)}, this host speaks ${PROTOCOL_VERSION}.`);
+
             return;
         }
 
@@ -165,11 +168,14 @@ export const createDatabaseHost = (options: DatabaseHostOptions): DatabaseHost =
         }
 
         let resolveReady = (): void => {};
+
         let rejectReady = (_error: Failure): void => {};
+
         const ready = new Promise<void>((resolve, reject) => {
             resolveReady = resolve;
             rejectReady = reject;
         });
+
         // A request awaits this; a run nobody waits for must not raise an unhandled rejection.
         ready.catch(() => {});
 
@@ -183,6 +189,7 @@ export const createDatabaseHost = (options: DatabaseHostOptions): DatabaseHost =
                 onResponse(run, line);
             }
         });
+
         child.onExit((code) => retire(run, code === null ? 'The helper exited.' : `The helper exited with code ${code}.`));
 
         return run;
@@ -206,6 +213,7 @@ export const createDatabaseHost = (options: DatabaseHostOptions): DatabaseHost =
     /* Sends a message under a helper id of the host's own; the promise never rejects. */
     const dispatch = (run: Run, method: string, params: unknown): { readonly id: string; readonly response: Promise<DatabaseResponse> } => {
         const id = `h${++counter}`;
+
         const response = new Promise<DatabaseResponse>((resolve) => {
             run.pending.set(id, resolve);
 
@@ -224,6 +232,7 @@ export const createDatabaseHost = (options: DatabaseHostOptions): DatabaseHost =
 
     const sessionOf = (request: DatabaseRequest): string | null => {
         const session = (request.params as { readonly session?: unknown }).session;
+
         return typeof session === 'string' ? session : null;
     };
 
@@ -290,6 +299,7 @@ export const createDatabaseHost = (options: DatabaseHostOptions): DatabaseHost =
     const cancelOwned = async (request: Extract<DatabaseRequest, { method: 'cancel' }>, owner: string): Promise<DatabaseResponse> => {
         const entries = inflight.get(owner);
         const target = request.id === request.params.request ? undefined : entries?.get(request.params.request);
+
         const answer = (cancelled: boolean): DatabaseResponse => ({ id: request.id, ok: true, result: { cancelled } });
 
         if (target === undefined) {
@@ -298,6 +308,7 @@ export const createDatabaseHost = (options: DatabaseHostOptions): DatabaseHost =
 
         if (target.helperId === null) {
             target.cancelled = true;
+
             return answer(true);
         }
 
@@ -308,6 +319,7 @@ export const createDatabaseHost = (options: DatabaseHostOptions): DatabaseHost =
         }
 
         const sent = await dispatch(run, 'cancel', { request: target.helperId }).response;
+
         return { ...sent, id: request.id } as DatabaseResponse;
     };
 
@@ -319,6 +331,7 @@ export const createDatabaseHost = (options: DatabaseHostOptions): DatabaseHost =
 
         // The helper ends a session whose connection to the server was lost.
         const target = sessionOf(request);
+
         if (target !== null && !response.ok && response.error.code === 'unknown-session') {
             sessions.delete(target);
         }
@@ -339,10 +352,12 @@ export const createDatabaseHost = (options: DatabaseHostOptions): DatabaseHost =
 
         if (entry.released) {
             void dispatch(run, 'close', { session }).response;
+
             return failure(request.id, 'cancelled', 'The request was cancelled.');
         }
 
         sessions.set(session, owner);
+
         return { ...response, id: request.id } as DatabaseResponse;
     };
 

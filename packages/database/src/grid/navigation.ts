@@ -30,9 +30,11 @@ export const moveFocus = (from: CellPosition | null, input: NavigationKey, size:
     if (size.rows === 0 || size.columns === 0) {
         return null;
     }
+
     if (from === null && ENTERING_KEYS.has(input.key)) {
         return { row: 0, column: 0 };
     }
+
     const lastRow = size.rows - 1;
     const lastColumn = size.columns - 1;
     const start = from ?? { row: 0, column: 0 };
@@ -61,11 +63,14 @@ export const moveFocus = (from: CellPosition | null, input: NavigationKey, size:
                 if (column > 0) {
                     return { row, column: column - 1 };
                 }
+
                 return row > 0 ? { row: row - 1, column: lastColumn } : null;
             }
+
             if (column < lastColumn) {
                 return { row, column: column + 1 };
             }
+
             return row < lastRow ? { row: row + 1, column: 0 } : null;
         }
         default:

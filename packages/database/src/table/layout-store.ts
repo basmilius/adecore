@@ -35,16 +35,21 @@ export const parseStoredLayout = (text: string | null): StoredLayout | null => {
     if (text === null) {
         return null;
     }
+
     let data: unknown;
+
     try {
         data = JSON.parse(text);
     } catch {
         return null;
     }
+
     if (!isRecord(data) || data.version !== LAYOUT_VERSION) {
         return null;
     }
+
     const widths: Record<string, number> = {};
+
     if (isRecord(data.widths)) {
         for (const [name, width] of Object.entries(data.widths)) {
             if (typeof width === 'number' && Number.isFinite(width) && width > 0) {
@@ -52,7 +57,9 @@ export const parseStoredLayout = (text: string | null): StoredLayout | null => {
             }
         }
     }
+
     const pageSize = PAGE_SIZES.find((size) => size === data.pageSize) ?? null;
+
     return {
         widths,
         hidden: isStringList(data.hidden) ? data.hidden : [],

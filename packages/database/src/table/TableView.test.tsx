@@ -9,6 +9,7 @@ import { stubClient, stubSession } from '../testing/stub.ts';
 import { TableView } from './TableView.tsx';
 
 const i18n = i18next.createInstance();
+
 await i18n.init({ lng: 'en', fallbackLng: 'en', resources: {}, interpolation: { escapeValue: false } });
 
 const client = stubClient({ session: (connection) => stubSession(connection) });

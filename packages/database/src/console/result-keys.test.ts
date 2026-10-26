@@ -8,6 +8,7 @@ const from = (table: string, column: string, name = column): ResultColumn => ({
     kind: 'integer',
     source: { schema: 'shop', table, column }
 });
+
 const computed: ResultColumn = { name: 'total', type: '', kind: 'integer' };
 
 const structure = (name: string, primaryKey: string[], foreignKeys: TableStructure['foreignKeys'] = []): TableStructure => ({
@@ -58,6 +59,7 @@ describe('the keys of a result', () => {
 
     test('mark the keys of the table each column comes from, an alias included, and nothing on an expression', () => {
         const keys = resultKeysOf('mysql', columns, structures);
+
         expect(keys.columns.map((column) => [column.primaryKey, column.foreignKey])).toEqual([
             [true, false],
             [false, true],

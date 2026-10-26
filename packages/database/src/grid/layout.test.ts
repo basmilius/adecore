@@ -29,9 +29,11 @@ describe('drawnRange', () => {
 
     test('stays the same while the top moves within a block, and moves by blocks', () => {
         const first = scrollBlock(5 * ROW_BLOCK * ROW_HEIGHT);
+
         for (let row = 0; row < ROW_BLOCK; row++) {
             expect(scrollBlock((5 * ROW_BLOCK + row) * ROW_HEIGHT)).toBe(first);
         }
+
         expect(scrollBlock(6 * ROW_BLOCK * ROW_HEIGHT)).toBe(first + 1);
         expect(scrollBlock(-40)).toBe(0);
     });

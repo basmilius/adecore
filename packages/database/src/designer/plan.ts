@@ -12,12 +12,15 @@ export interface Plan {
 
 export const planOf = (dialect: Dialect, schema: string, structure: TableStructure | null, draft: TableDraft): Plan => {
     const problems = validateDraft(dialect, draft);
+
     if (problems.length > 0) {
         return { problems, statements: [], destructive: false };
     }
+
     if (structure === null) {
         return { problems, statements: createTableSql(dialect, schema, draft), destructive: false };
     }
+
     return { problems, statements: alterTableSql(dialect, schema, structure, draft), destructive: dropsColumns(draftOf(structure), draft) };
 };
 

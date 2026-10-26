@@ -11,6 +11,7 @@ export async function recoverFrom(session: DatabaseSession, statements: readonly
         if (inTransaction && statements.includes('BEGIN') && failedSql.trim().toUpperCase() !== 'BEGIN') {
             await session.transaction('rollback');
         }
+
         if (statements[0] === REBUILD_START) {
             await session.execute('PRAGMA foreign_keys=ON');
         }

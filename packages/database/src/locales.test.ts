@@ -6,6 +6,7 @@ const leavesOf = (value: unknown, prefix = ''): [string, unknown][] => {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
         return [[prefix, value]];
     }
+
     return Object.entries(value).flatMap(([key, child]) => leavesOf(child, prefix === '' ? key : `${prefix}.${key}`));
 };
 

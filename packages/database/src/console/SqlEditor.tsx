@@ -26,6 +26,7 @@ export function SqlEditor({ ref, value, onValueChange, run, label, placeholder, 
 
     useEffect(() => {
         const pending = pendingSelection.current;
+
         if (pending !== null) {
             pendingSelection.current = null;
             pending.area.setSelectionRange(pending.start, pending.end);
@@ -37,29 +38,38 @@ export function SqlEditor({ ref, value, onValueChange, run, label, placeholder, 
         const before = target.value;
         target.setSelectionRange(edit.from, edit.to);
         const inserted = document.execCommand('insertText', false, edit.insert);
+
         if (inserted && target.value === applyEdit(before, edit)) {
             target.setSelectionRange(edit.selectionStart, edit.selectionEnd);
+
             return;
         }
+
         pendingSelection.current = { area: target, start: edit.selectionStart, end: edit.selectionEnd };
         onValueChange(applyEdit(before, edit));
     };
 
     const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>): void => {
         const scope = runScopeOf(event, isApplePlatform());
+
         if (scope !== null) {
             event.preventDefault();
             run(scope);
+
             return;
         }
+
         if (event.nativeEvent.isComposing || event.metaKey || event.ctrlKey || event.altKey) {
             return;
         }
+
         const target = event.currentTarget;
         const { selectionStart, selectionEnd } = target;
+
         if (event.key === 'Tab') {
             event.preventDefault();
             const edit = event.shiftKey ? outdentEdit(target.value, selectionStart, selectionEnd) : indentEdit(target.value, selectionStart, selectionEnd);
+
             if (edit !== null) {
                 apply(target, edit);
             }

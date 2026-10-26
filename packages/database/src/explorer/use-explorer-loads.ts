@@ -60,6 +60,7 @@ export function useExplorerLoads(connections: readonly Connection[]): ExplorerLo
                 started.current.delete(key);
             }
         }
+
         setLoads((current) => ({
             entries: new Map([...current.entries].filter(([, entry]) => !within(target, entry.target))),
             versions: target.schema === undefined ? new Map([...current.versions].filter(([id]) => id !== target.connectionId)) : current.versions
@@ -71,16 +72,20 @@ export function useExplorerLoads(connections: readonly Connection[]): ExplorerLo
         if (!silent) {
             store(target, { status: 'loading' });
         }
+
         const session = client.session(connection);
+
         const request: Promise<Loaded> =
             target.schema === undefined
                 ? session.schemas()
                 : target.table === undefined
                   ? session.tables(target.schema)
                   : session.structure(target.schema, target.table);
+
         request.then(
             (value) => {
                 store(target, { status: 'ready', value });
+
                 if (target.schema === undefined) {
                     // Chained after the schemas so the version never opens a session by itself.
                     session.server().then(
@@ -95,13 +100,17 @@ export function useExplorerLoads(connections: readonly Connection[]): ExplorerLo
 
     const start = (target: LoadTarget): void => {
         const key = loadKey(target);
+
         if (started.current.has(key)) {
             return;
         }
+
         const connection = connections.find((entry) => entry.id === target.connectionId);
+
         if (connection === undefined) {
             return;
         }
+
         started.current.set(key, target);
         run(target, connection, false);
     };
@@ -110,10 +119,12 @@ export function useExplorerLoads(connections: readonly Connection[]): ExplorerLo
     const reload = (change: SchemaChange): void => {
         const connection = connections.find((entry) => entry.id === change.connectionId);
         const dropped: LoadTarget[] = [];
+
         for (const [key, began] of [...started.current]) {
             if (!touches(change, began)) {
                 continue;
             }
+
             if (began.table !== undefined) {
                 started.current.delete(key);
                 dropped.push(began);
@@ -121,6 +132,7 @@ export function useExplorerLoads(connections: readonly Connection[]): ExplorerLo
                 run(began, connection, true);
             }
         }
+
         if (dropped.length > 0) {
             const gone = new Set(dropped.map(loadKey));
             setLoads((current) => ({ ...current, entries: new Map([...current.entries].filter(([key]) => !gone.has(key))) }));
@@ -132,13 +144,16 @@ export function useExplorerLoads(connections: readonly Connection[]): ExplorerLo
     // A connection that was edited or removed is a different session, so what it listed is stale.
     useEffect(() => {
         const known = configs.current;
+
         for (const [id, config] of known) {
             const now = connections.find((entry) => entry.id === id);
+
             if (now === undefined || now.config !== config) {
                 known.delete(id);
                 reset({ connectionId: id });
             }
         }
+
         for (const connection of connections) {
             known.set(connection.id, connection.config);
         }

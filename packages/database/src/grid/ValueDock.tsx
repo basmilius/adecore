@@ -25,6 +25,7 @@ export function ValueDock({ open, panel, children, width: given, onWidthChange, 
     const dock = useRef<HTMLDivElement>(null);
     const [own, setOwn] = useState(VALUE_PANEL_WIDTH);
     const width = given ?? own;
+
     const { startResize } = useColumnResize(dock, {
         size: width,
         min: VALUE_PANEL_MIN_WIDTH,
@@ -34,6 +35,7 @@ export function ValueDock({ open, panel, children, width: given, onWidthChange, 
             if (given === undefined) {
                 setOwn(next);
             }
+
             onWidthChange?.(next);
         }
     });

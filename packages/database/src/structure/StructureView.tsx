@@ -52,11 +52,13 @@ export function StructureView({ connection, schema, table, toolbarStart, classNa
 
     useEffect(() => {
         let current = true;
+
         const settle = (outcome: Load): void => {
             if (current) {
                 setAnswer({ connection, schema, table, attempt, load: outcome });
             }
         };
+
         client
             .session(connection)
             .structure(schema, table)
@@ -64,6 +66,7 @@ export function StructureView({ connection, schema, table, toolbarStart, classNa
                 (structure) => settle({ status: 'ready', structure }),
                 (e: unknown) => settle({ status: 'error', message: messageOf(e, t('structure.failed')) })
             );
+
         return () => {
             current = false;
         };
@@ -92,6 +95,7 @@ export function StructureView({ connection, schema, table, toolbarStart, classNa
 
 export function StructureTabs({ structure, start }: { structure: TableStructure; start?: ReactNode }) {
     const { t } = useTranslation('database');
+
     const head =
         start === undefined || start === null || start === false ? undefined : (
             <span className="flex items-center gap-4">
@@ -99,6 +103,7 @@ export function StructureTabs({ structure, start }: { structure: TableStructure;
                 <Separator />
             </span>
         );
+
     return (
         <Tabs.Root defaultValue="columns" className="flex min-h-0 grow flex-col">
             <Tabs.List className="shrink-0 px-3" start={head}>
@@ -151,11 +156,13 @@ function Grid({ heads, children }: { heads: readonly string[]; children: ReactNo
 
 function YesNo({ value }: { value: boolean }) {
     const { t } = useTranslation('database');
+
     return <>{value ? t('structure.yes') : t('structure.no')}</>;
 }
 
 function ColumnsTable({ structure }: { structure: TableStructure }) {
     const { t } = useTranslation('database');
+
     const heads = [
         t('structure.column.name'),
         t('structure.column.type'),
@@ -164,10 +171,13 @@ function ColumnsTable({ structure }: { structure: TableStructure }) {
         t('structure.column.extra'),
         t('structure.column.comment')
     ];
+
     const foreign = new Set(structure.foreignKeys.flatMap((key) => key.columns));
+
     if (structure.columns.length === 0) {
         return <EmptyState>{t('structure.noColumns')}</EmptyState>;
     }
+
     return (
         <Grid heads={heads}>
             {structure.columns.map((column) => (
@@ -179,6 +189,7 @@ function ColumnsTable({ structure }: { structure: TableStructure }) {
 
 function ColumnRow({ column, primary, foreign }: { column: ColumnInfo; primary: boolean; foreign: boolean }) {
     const { t } = useTranslation('database');
+
     return (
         <tr>
             <td className={TD}>
@@ -211,9 +222,11 @@ function ColumnRow({ column, primary, foreign }: { column: ColumnInfo; primary: 
 
 function IndexesTable({ indexes }: { indexes: readonly IndexInfo[] }) {
     const { t } = useTranslation('database');
+
     if (indexes.length === 0) {
         return <EmptyState>{t('structure.noIndexes')}</EmptyState>;
     }
+
     return (
         <Grid heads={[t('structure.index.name'), t('structure.index.columns'), t('structure.index.kind')]}>
             {indexes.map((index) => (
@@ -234,10 +247,13 @@ function IndexesTable({ indexes }: { indexes: readonly IndexInfo[] }) {
 
 function ForeignKeysTable({ foreignKeys }: { foreignKeys: readonly ForeignKeyInfo[] }) {
     const { t } = useTranslation('database');
+
     if (foreignKeys.length === 0) {
         return <EmptyState>{t('structure.noForeignKeys')}</EmptyState>;
     }
+
     const action = (value: string | null): string => value ?? t('structure.engineDefault');
+
     return (
         <Grid
             heads={[
@@ -263,9 +279,11 @@ function ForeignKeysTable({ foreignKeys }: { foreignKeys: readonly ForeignKeyInf
 
 function Ddl({ ddl }: { ddl: string | null }) {
     const { t } = useTranslation('database');
+
     if (ddl === null) {
         return <EmptyState>{t('structure.noDdl')}</EmptyState>;
     }
+
     return (
         <div className="relative">
             <Button variant="secondary" size="xs" className="absolute top-2 right-3" onClick={() => copyText(ddl)}>

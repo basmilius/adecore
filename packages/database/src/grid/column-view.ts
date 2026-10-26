@@ -13,11 +13,13 @@ const shownPins = (count: number, view: ColumnView): number[] => view.pinned.fil
 export const displayOrder = (count: number, view: ColumnView): number[] => {
     const pinned = shownPins(count, view);
     const rest: number[] = [];
+
     for (let i = 0; i < count; i++) {
         if (!view.hidden.has(i) && !pinned.includes(i)) {
             rest.push(i);
         }
     }
+
     return [...pinned, ...rest];
 };
 

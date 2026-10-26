@@ -10,8 +10,10 @@ export const runScopeOf = (event: KeyLike, apple: boolean): QueryConsoleRunScope
     if (matchesShortcut(RUN_ALL_SHORTCUT, event, apple)) {
         return 'all';
     }
+
     if (matchesShortcut(RUN_SHORTCUT, event, apple)) {
         return 'selection-or-statement';
     }
+
     return null;
 };

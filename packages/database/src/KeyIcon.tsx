@@ -11,5 +11,6 @@ export function KeyIcon({ primaryKey, foreignKey, size }: ColumnKeys & { size: 1
     if (!primaryKey && !foreignKey) {
         return null;
     }
+
     return <Icon icon={KeyRound} size={size} className={clsx('shrink-0', primaryKey ? 'text-(--file-icon-yellow)' : 'text-(--file-icon-blue)')} />;
 }

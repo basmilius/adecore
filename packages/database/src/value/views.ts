@@ -9,8 +9,10 @@ export const viewsOf = (source: Source, draft: Draft): ViewId[] => {
     if (source.binary) {
         const parsed = parseHex(draft.text);
         const hex = parsed.ok ? parsed.hex : source.original.text;
+
         return formatUuid(hex) === null ? ['hex', 'utf8'] : ['hex', 'utf8', 'uuid'];
     }
+
     return source.json ? ['formatted', 'text'] : ['text'];
 };
 
@@ -19,10 +21,13 @@ export const sizeOf = (source: Source, draft: Draft): { unit: 'bytes' | 'charact
     if (draft.mode !== 'value') {
         return null;
     }
+
     if (!source.binary) {
         return { unit: 'characters', count: draft.text.length };
     }
+
     const parsed = parseHex(draft.text);
+
     return parsed.ok ? { unit: 'bytes', count: parsed.hex.length / 2 } : null;
 };
 
@@ -40,26 +45,35 @@ export const renderView = (view: Exclude<ViewId, 'text'>, draft: Draft): Rendere
     if (draft.mode !== 'value') {
         return { kind: 'empty' };
     }
+
     if (view === 'formatted') {
         const pretty = prettyJson(draft.text);
+
         if (pretty !== null) {
             return { kind: 'text', text: pretty };
         }
+
         const checked = checkJson(draft.text);
+
         return { kind: 'problem', problem: { kind: 'json', reason: checked.ok ? '' : checked.reason } };
     }
 
     const parsed = parseHex(draft.text);
+
     if (!parsed.ok) {
         return { kind: 'problem', problem: { kind: 'hex', problem: parsed.problem } };
     }
+
     if (view === 'utf8') {
         return { kind: 'text', text: decodeUtf8(parsed.hex) };
     }
+
     if (view === 'uuid') {
         return { kind: 'text', text: formatUuid(parsed.hex) ?? '' };
     }
+
     const total = parsed.hex.length / 2;
+
     return {
         kind: 'text',
         text: hexDumpLines(parsed.hex, DUMP_LIMIT_BYTES).join('\n'),

@@ -11,6 +11,7 @@ describe('sortOnly and sortStateOf', () => {
             { column: 'a', direction: 'asc' as const },
             { column: 'b', direction: 'desc' as const }
         ];
+
         expect(sortStateOf(sorts, 'b')).toEqual({ direction: 'desc', position: 2 });
         expect(sortStateOf(sorts, 'z')).toBeNull();
     });

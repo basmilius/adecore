@@ -56,11 +56,13 @@ const raceAbort = <T>(promise: Promise<T>, signal: AbortSignal | undefined): Pro
 
     if (signal.aborted) {
         promise.catch(() => {});
+
         return Promise.reject(cancelledError());
     }
 
     return new Promise<T>((resolve, reject) => {
         const onAbort = (): void => reject(cancelledError());
+
         signal.addEventListener('abort', onAbort, { once: true });
         promise.then(resolve, reject).finally(() => signal.removeEventListener('abort', onAbort));
     });
@@ -162,6 +164,7 @@ export const createDatabaseClient = (transport: DatabaseTransport, options: Data
 
             track();
             held.add(created);
+
             opening ??= send('open', { connection: connection.config })
                 .then((result) => (opened = result))
                 .finally(() => {
@@ -247,6 +250,7 @@ export const createDatabaseClient = (transport: DatabaseTransport, options: Data
             },
             async count(schema, table, where, requestOptions) {
                 const params = (id: string) => (where === undefined ? { session: id, schema, table } : { session: id, schema, table, where });
+
                 return (await request('count', params, requestOptions, true)).count;
             },
             async cell(schema, table, key, column, requestOptions) {
@@ -287,6 +291,7 @@ export const createDatabaseClient = (transport: DatabaseTransport, options: Data
                 connection = next;
             }
         };
+
         return created;
     };
 
@@ -296,6 +301,7 @@ export const createDatabaseClient = (transport: DatabaseTransport, options: Data
         },
         async discover(kind, discoverOptions) {
             const params = discoverOptions?.context === undefined ? { kind } : { kind, context: discoverOptions.context };
+
             return (await send('discover', params, discoverOptions?.signal)).containers;
         },
         sample(path, format, header, requestOptions) {
@@ -304,6 +310,7 @@ export const createDatabaseClient = (transport: DatabaseTransport, options: Data
         notifySchemaChange,
         onSchemaChange(listener) {
             schemaListeners.add(listener);
+
             return () => {
                 schemaListeners.delete(listener);
             };
@@ -313,6 +320,7 @@ export const createDatabaseClient = (transport: DatabaseTransport, options: Data
 
             if (existing !== undefined && isEqual(existing.session.connection.config, connection.config)) {
                 existing.update(connection);
+
                 return existing.session;
             }
 
@@ -320,23 +328,28 @@ export const createDatabaseClient = (transport: DatabaseTransport, options: Data
 
             const created = createSession(connection, channel);
             channelsOf(connection.id).set(channel, created);
+
             return created.session;
         },
         async disconnect(connectionId) {
             const existing = new Set(live.get(connectionId)?.values());
+
             for (const entry of held) {
                 if (entry.session.connection.id === connectionId) {
                     existing.add(entry);
                 }
             }
+
             live.delete(connectionId);
             await Promise.all([...existing].map((entry) => entry.close()));
         },
         async dispose() {
             const all = new Set([...live.values()].flatMap((channels) => [...channels.values()]));
+
             for (const entry of held) {
                 all.add(entry);
             }
+
             live.clear();
             await Promise.all([...all].map((entry) => entry.close()));
         }

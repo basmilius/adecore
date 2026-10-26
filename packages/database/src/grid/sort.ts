@@ -8,5 +8,6 @@ export const sortOnly = (column: string, direction: SortDirection): GridSort[] =
 /* The sort of a column and its place among the sorts counted from one, or `null` when it is not sorted. */
 export const sortStateOf = (sorts: readonly GridSort[], column: string): { direction: SortDirection; position: number } | null => {
     const index = sorts.findIndex((sort) => sort.column === column);
+
     return index < 0 ? null : { direction: sorts[index]!.direction, position: index + 1 };
 };

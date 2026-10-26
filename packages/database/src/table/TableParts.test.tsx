@@ -14,6 +14,7 @@ import { TableStatusBar, type SelectionFigures } from './TableStatusBar.tsx';
 import { TableToolbar, type TableToolbarProps } from './TableToolbar.tsx';
 
 const i18n = i18next.createInstance();
+
 await i18n.init({ lng: 'en', fallbackLng: 'en', resources: {}, interpolation: { escapeValue: false } });
 
 const render = (node: ReactNode): string =>
@@ -140,10 +141,12 @@ describe('TableStatusBar selection', () => {
         const source = fakeFormatSource();
         source.set({ region: 'nl-NL' });
         const previous = setFormatSource(source);
+
         const exact: Aggregates = {
             count: 3,
             numeric: { count: 3, sum: 12901.255, average: 4300.4183, minimum: 0.5, maximum: 12900.5, minimumText: '0.50', maximumText: '12900.50' }
         };
+
         const renderIn = (numberNotation: 'database' | 'region'): string =>
             renderToStaticMarkup(
                 <UIProvider i18n={i18n} formatSource={source}>
@@ -152,6 +155,7 @@ describe('TableStatusBar selection', () => {
                     </DatabaseProvider>
                 </UIProvider>
             );
+
         const database = renderIn('database');
         const region = renderIn('region');
         setFormatSource(previous);
@@ -192,6 +196,7 @@ describe('TableToolbar', () => {
             { kind: 'filter', text: 'quantity > 1', sql: '"quantity" > 1' },
             { kind: 'sort', column: 'created_at', direction: 'desc' }
         ];
+
         const markup = render(<TableToolbar {...toolbarProps} chips={chips} />);
         expect(markup).toContain('>quantity &gt; 1</button>');
         expect(markup).toContain('lucide-arrow-down');
@@ -223,6 +228,7 @@ describe('TableToolbar', () => {
 
     test('keeps the removed controls out of the row', () => {
         const markup = render(<TableToolbar {...toolbarProps} onToggleRecordView={noop} transfer={{ busy: false, onExport: noop }} />);
+
         for (const label of ['Delete selected rows', 'Duplicate selected rows', 'Revert selected rows', 'Value editor', 'Export']) {
             expect(markup).not.toContain(`aria-label="${label}"`);
         }

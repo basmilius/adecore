@@ -15,6 +15,7 @@ export interface SchemaPickerProps {
 
 export function SchemaPicker({ schemas, value, onValueChange, disabled, className, ref }: SchemaPickerProps) {
     const { t } = useTranslation('database');
+
     return (
         <Select
             ref={ref}

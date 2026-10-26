@@ -10,5 +10,6 @@ export const outcomeOf = (results: readonly StatementResult[]): { readonly ok: b
 /* Whether the helper can wrap the statement to fetch a page of it: a read that starts with `SELECT` or `WITH`. */
 export const isPageable = (sql: string, engine: Engine): boolean => {
     const keyword = firstKeyword(sql, engine);
+
     return keyword === 'SELECT' || keyword === 'WITH';
 };

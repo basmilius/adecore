@@ -52,6 +52,7 @@ const launch = (options: Parameters<typeof spawnHelper>[1] = {}) => {
     const exits: (number | null)[] = [];
     helper.onLine((line) => lines.push(line));
     helper.onExit((code) => exits.push(code));
+
     return { helper, lines, exits };
 };
 

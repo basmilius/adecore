@@ -38,7 +38,9 @@ const connection = (id: string, engine: 'sqlite' | 'mysql' = 'mysql'): Connectio
 });
 
 const schema = (name: string, system = false): SchemaInfo => ({ name, system });
+
 const table = (name: string, kind: 'table' | 'view' = 'table'): TableInfo => ({ name, kind, rowEstimate: null, comment: null });
+
 const column = (name: string, type = 'int'): ColumnInfo => ({
     name,
     type,
@@ -49,6 +51,7 @@ const column = (name: string, type = 'int'): ColumnInfo => ({
     generated: false,
     comment: null
 });
+
 const structure = (name: string, columns: ColumnInfo[], primaryKey: string[] = [], foreignKeyColumns: string[] = []): TableStructure => ({
     schema: 'shop',
     name,
@@ -73,6 +76,7 @@ const structure = (name: string, columns: ColumnInfo[], primaryKey: string[] = [
               ],
     ddl: null
 });
+
 const ready = <T>(value: T): Load<T> => ({ status: 'ready', value });
 
 interface World {
@@ -129,10 +133,12 @@ const nameOf = (row: TreeRow): string => {
 const labels = (rows: readonly TreeRow[]): string[] =>
     rows.map((row) => {
         const name = nameOf(row);
+
         return `${row.level}:${name}`;
     });
 
 const app = connection('app');
+
 const world: World = {
     connections: [app],
     schemas: { app: ready([schema('shop'), schema('blog'), schema('mysql', true)]) },
@@ -186,6 +192,7 @@ describe('flattenTree', () => {
 
     test('numbers the siblings of a parent for a screen reader', () => {
         const rows = flattenTree(inputOf({ ...world, expanded: openShop }));
+
         expect(rows.filter((row) => row.level === 4).map((row) => [row.posInSet, row.setSize])).toEqual([
             [1, 2],
             [2, 2],
@@ -203,6 +210,7 @@ describe('flattenTree', () => {
 
     test('skips the schema level of a connection with one schema', () => {
         const lite = connection('lite', 'sqlite');
+
         const rows = flattenTree(
             inputOf({
                 connections: [lite],
@@ -211,6 +219,7 @@ describe('flattenTree', () => {
                 tables: { 'lite/main': ready([table('notes')]) }
             })
         );
+
         expect(labels(rows)).toEqual(['1:lite', '2:[tables]', '3:notes']);
         expect(rows[1]).toMatchObject({ kind: 'folder', parent: connectionKey('lite') });
         expect(rows[2]).toMatchObject({ kind: 'table', ref: { schema: 'main', table: 'notes' } });
@@ -255,6 +264,7 @@ describe('the columns of a table', () => {
     test('show a loading row until the structure arrives, and a failed load can be retried', () => {
         expect(labels(flattenTree(inputOf(open))).slice(3, 7)).toEqual(['4:orders', '4:users', '5:loading', '3:[views]']);
         const failed = flattenTree(inputOf({ ...open, structures: { 'app/shop/users': { status: 'error', message: 'gone' } } }));
+
         expect(failed.find((row) => row.kind === 'error')).toMatchObject({
             retry: { connectionId: 'app', schema: 'shop', table: 'users' },
             focusable: true,
@@ -271,8 +281,10 @@ describe('the columns of a table', () => {
                 }
             })
         );
+
         expect(labels(rows).slice(4, 12)).toEqual(['4:users', '5:[columns]', '6:id', '6:team_id', '6:name', '5:[keys]', '5:[foreignKeys]', '3:[views]']);
         const columns = rows.filter((row) => row.kind === 'column');
+
         expect(columns.map((row) => [row.primaryKey, row.foreignKey])).toEqual([
             [true, false],
             [false, true],
@@ -295,6 +307,7 @@ describe('the columns of a table', () => {
 
     test('stay in the tree whether the filter is on or not', () => {
         const structures = { 'app/shop/users': ready(structure('users', [column('id')])) };
+
         expect(labels(flattenTree(inputOf({ ...open, structures, filter: 'users' })))).toEqual([
             '1:app',
             '2:shop',
@@ -310,6 +323,7 @@ describe('the columns of a table', () => {
 
 describe('the folders of a table', () => {
     const users = { connectionId: 'app', schema: 'shop', table: 'users' };
+
     const full: TableStructure = {
         ...structure('users', [column('id'), column('team_id'), column('email')], ['id'], ['team_id']),
         indexes: [
@@ -320,11 +334,13 @@ describe('the folders of a table', () => {
         checks: [{ name: 'users_email_set', expression: "email <> ''" }],
         triggers: [{ name: 'users_audit', timing: 'AFTER', event: 'UPDATE' }]
     };
+
     const opened = (expanded: string[] = [], collapsed: string[] = [], value: TableStructure = full) =>
         flattenTree(inputOf({ ...world, expanded: [...openShop, usersKey, ...expanded], collapsed, structures: { 'app/shop/users': ready(value) } }));
 
     test('come in a fixed order with their counts, the columns open and the rest closed', () => {
         const rows = opened();
+
         expect(labels(rows).slice(4, 14)).toEqual([
             '4:users',
             '5:[columns]',
@@ -349,6 +365,7 @@ describe('the folders of a table', () => {
 
     test('show only the folders that hold something, and a view only its columns', () => {
         expect(labels(opened([], [], structure('users', [column('id')]))).slice(4, 7)).toEqual(['4:users', '5:[columns]', '6:id']);
+
         const view = flattenTree(
             inputOf({
                 ...world,
@@ -356,6 +373,7 @@ describe('the folders of a table', () => {
                 structures: { 'app/shop/active_users': ready({ ...structure('active_users', [column('id')]), kind: 'view' }) }
             })
         );
+
         expect(labels(view).slice(-3, -1)).toEqual(['4:active_users', '5:id']);
     });
 
@@ -364,7 +382,9 @@ describe('the folders of a table', () => {
             ['keys', 'foreignKeys', 'indexes', 'checks', 'triggers'].map((part) => partKey(users, part as TablePart)),
             [partKey(users, 'columns')]
         );
+
         const entries = rows.flatMap((row) => (row.kind === 'entry' ? [row.entry] : []));
+
         expect(entries).toEqual([
             { type: 'key', name: 'PRIMARY', columns: ['id'], primary: true },
             { type: 'key', name: 'users_email', columns: ['email'], primary: false },
@@ -392,6 +412,7 @@ describe('the folders of a table', () => {
                 { name: 'totals', kind: 'view', rowEstimate: null, comment: null }
             ]
         };
+
         expect([tableKindIn(list, 'users'), tableKindIn(list, 'totals'), tableKindIn(list, 'gone')]).toEqual(['table', 'view', undefined]);
         expect(tableKindIn({ status: 'loading' }, 'users')).toBeUndefined();
     });
@@ -448,6 +469,7 @@ describe('neededLoads', () => {
 
     test('asks for the structure of an open table that has none yet', () => {
         const input = inputOf({ ...world, expanded: [...openShop, usersKey, shopTables] });
+
         expect(neededLoads(input)).toEqual([
             { connectionId: 'app', schema: 'shop', table: 'orders' },
             { connectionId: 'app', schema: 'shop', table: 'users' }
@@ -461,6 +483,7 @@ describe('neededLoads', () => {
             schemas: world.schemas,
             tables: { 'app/shop': { status: 'loading' }, 'app/blog': { status: 'error', message: 'x' } }
         });
+
         expect(neededLoads(input)).toEqual([]);
         const loaded = inputOf({ ...world, expanded: [...openShop, usersKey], structures: { 'app/shop/users': { status: 'loading' } } });
         expect(neededLoads(loaded)).toEqual([]);
@@ -549,6 +572,7 @@ describe('selecting a row', () => {
             structures: { 'app/shop/users': ready(structure('users', [column('id')], ['id'])) }
         })
     );
+
     const rowOf = (kind: TreeRow['kind']): TreeRow => rows.find((row) => row.kind === kind)!;
 
     test('gives a connection its id, a schema or a folder its schema, a table or a column its table', () => {
@@ -593,6 +617,7 @@ describe('selectAllSql', () => {
 
 describe('the folders of the app', () => {
     const item = (label: string) => ({ id: label, label, icon: FileCode });
+
     const consoles: ExplorerFolder = { id: 'consoles', label: 'Consoles', items: [item('shop 1.sql'), item('orders.sql')] };
     const withFolders: World = { ...world, folders: { app: [consoles, { id: 'empty', label: 'Empty', items: [] }] } };
 

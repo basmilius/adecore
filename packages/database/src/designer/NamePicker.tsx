@@ -20,11 +20,13 @@ export interface NamePickerProps {
 /* Picks some of a few names, such as the columns of an index, and numbers the picks once there is more than one. */
 export function NamePicker({ options, value, onToggle, label, disabled = false, className, ref }: NamePickerProps) {
     const { t } = useTranslation('database');
+
     return (
         <div ref={ref} role="group" aria-label={label} className={clsx('flex flex-wrap items-center gap-1', className)}>
             {options.length === 0 && <span className="text-xs text-text-faint">{t('designer.noColumnsToPick')}</span>}
             {options.map((name) => {
                 const position = value.indexOf(name);
+
                 return (
                     <Button
                         key={name}

@@ -16,6 +16,7 @@ import { planOf } from './plan.ts';
 import { TableDesigner } from './TableDesigner.tsx';
 
 const i18n = i18next.createInstance();
+
 await i18n.init({ lng: 'en', fallbackLng: 'en', resources: {}, interpolation: { escapeValue: false } });
 
 const client = {
@@ -61,6 +62,7 @@ const structure: TableStructure = {
 
 const view = (draft: TableDraft, props: Partial<DesignerViewProps> = {}, from: TableStructure | null = structure): string => {
     const dialect = props.dialect ?? mysql;
+
     return render(
         <DesignerView
             dialect={dialect}
@@ -99,9 +101,11 @@ describe('TableDesigner', () => {
 describe('DesignerView', () => {
     test('shows a new table with the tabs, a disabled Create and the problems in place of SQL', () => {
         const markup = view(emptyDraft(), {}, null);
+
         for (const word of ['Table name', 'Columns', 'Indexes', 'Foreign keys', 'Options', 'Create table', 'Add column']) {
             expect(markup).toContain(word);
         }
+
         expect(markup).toContain('The table needs a name.');
         expect(markup).toContain('The table needs at least one column.');
     });
@@ -109,6 +113,7 @@ describe('DesignerView', () => {
     test('shows the columns of a table and No changes while nothing changed', () => {
         const markup = view(draftOf(structure));
         expect(markup).toContain('value="orders"');
+
         for (const word of ['value="bigint"', 'value="total"', 'In cents', 'Apply', 'No changes', 'GENERATED ALWAYS AS']) {
             expect(markup).toContain(word);
         }
@@ -173,6 +178,7 @@ describe('the tabs of the designer', () => {
                 {...props}
             />
         );
+
         expect(markup).toContain('value="fk_user"');
         expect(markup).toContain('References table');
         expect(markup).toContain('email');

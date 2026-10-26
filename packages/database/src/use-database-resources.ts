@@ -7,6 +7,7 @@ import { addDatabaseResources } from './locales.ts';
 export function useDatabaseResources(): void {
     const { i18n } = useTranslation();
     const [added, setAdded] = useState<I18n | null>(null);
+
     if (added !== i18n) {
         addDatabaseResources(i18n);
         setAdded(i18n);

@@ -21,15 +21,18 @@ describe('helperPath', () => {
 
     test('asks for the package named after the platform and architecture', () => {
         const asked: string[] = [];
+
         find(
             'linux',
             'x64',
             (specifier) => {
                 asked.push(specifier);
+
                 return '/pkg/package.json';
             },
             present
         );
+
         expect(asked).toEqual(['@adecore/database-linux-x64/package.json']);
     });
 
@@ -39,6 +42,7 @@ describe('helperPath', () => {
 
     test('maps app.asar to app.asar.unpacked', () => {
         const resolve = () => join('/Applications/App.app/Contents/Resources/app.asar/node_modules/@adecore/database-darwin-arm64', 'package.json');
+
         expect(find('darwin', 'arm64', resolve, present)).toBe(
             join('/Applications/App.app/Contents/Resources/app.asar.unpacked/node_modules/@adecore/database-darwin-arm64', 'bin', 'adecore-database')
         );
@@ -46,15 +50,18 @@ describe('helperPath', () => {
 
     test('checks the unpacked path, not the archive path', () => {
         const checked: string[] = [];
+
         find(
             'darwin',
             'arm64',
             () => join('/r/app.asar/pkg', 'package.json'),
             (path) => {
                 checked.push(path);
+
                 return true;
             }
         );
+
         expect(checked).toEqual([join('/r/app.asar.unpacked/pkg', 'bin', 'adecore-database')]);
     });
 
@@ -62,6 +69,7 @@ describe('helperPath', () => {
         const missing = (): string => {
             throw new Error('Cannot find module');
         };
+
         expect(find('linux', 'x64', missing, present)).toBeNull();
     });
 
@@ -84,17 +92,21 @@ describe('helperPath', () => {
 describe('helperPath with ADECORE_DATABASE_HELPER', () => {
     test('returns the override before looking anywhere else, whether it exists or not', () => {
         const looked: string[] = [];
+
         const path = helperPath({
             env: { ADECORE_DATABASE_HELPER: '/builds/adecore-database' },
             resolve: (specifier) => {
                 looked.push(specifier);
+
                 return '/pkg/package.json';
             },
             exists: (candidate) => {
                 looked.push(candidate);
+
                 return false;
             }
         });
+
         expect(path).toBe('/builds/adecore-database');
         expect(looked).toEqual([]);
     });
@@ -132,11 +144,13 @@ describe('helperPath in a checkout', () => {
 
     test('returns null when the checkout has not built the helper', () => {
         const exists = (path: string): boolean => path === join(CHECKOUT, 'Cargo.toml');
+
         expect(find('darwin', 'arm64', missing, exists)).toBeNull();
     });
 
     test('returns null without the Cargo.toml of a checkout, as in the published package', () => {
         const exists = (path: string): boolean => path !== join(CHECKOUT, 'Cargo.toml');
+
         expect(find('darwin', 'arm64', missing, exists)).toBeNull();
     });
 });

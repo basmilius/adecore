@@ -9,6 +9,7 @@ describe('expansion', () => {
         tableKey({ connectionId: 'one', schema: 'main', table: 'orders' }),
         connectionKey('two')
     ]);
+
     const collapsed = new Set([folderKey('one', 'main', 'view'), folderKey('two', 'main', 'view')]);
 
     test('keys the state by connection', () => {

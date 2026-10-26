@@ -56,6 +56,7 @@ type MenuProps = Pick<GridHeaderCellProps, 'column' | 'index' | 'sortable' | 'ha
 /* The items of the menu a header opens, from its button and from a right click. */
 function HeaderMenuItems({ column, index, sortable, hasSorts, pinned, hasHidden, canHide, actions }: MenuProps) {
     const { t } = useTranslation('database');
+
     return (
         <>
             {sortable && (
@@ -102,6 +103,7 @@ function HeaderMenuItems({ column, index, sortable, hasSorts, pinned, hasHidden,
 function ColumnFacts({ column }: { column: GridColumn }) {
     const { t } = useTranslation('database');
     const keys = { primaryKey: column.primaryKey === true, foreignKey: column.foreignKey === true };
+
     const facts = [
         keys.primaryKey || keys.foreignKey ? t(keyLabelOf(keys)) : null,
         column.type === '' ? null : column.type,
@@ -109,6 +111,7 @@ function ColumnFacts({ column }: { column: GridColumn }) {
         column.defaultValue === undefined || column.defaultValue === null ? null : t('grid.column.default', { value: column.defaultValue }),
         column.autoIncrement === true ? t('grid.column.autoIncrement') : null
     ].filter((fact) => fact !== null);
+
     return (
         <>
             <span className="block">{column.name}</span>
@@ -141,6 +144,7 @@ export function GridHeaderCell({
     const lastPress = useRef<number | null>(null);
     // Set by a press on the resize strip, since the click that ends the drag would otherwise pick the column.
     const resized = useRef(false);
+
     const { startResize } = useColumnResize(cell, {
         size: width,
         min: MIN_COLUMN_WIDTH,
@@ -151,25 +155,32 @@ export function GridHeaderCell({
 
     const pressHandle = (event: PointerEvent<HTMLElement>): void => {
         resized.current = true;
+
         if (isDoubleClick(lastPress.current, event.timeStamp)) {
             lastPress.current = null;
             actions.onFit(index);
+
             return;
         }
+
         lastPress.current = event.timeStamp;
         startResize(event);
     };
 
     const handleClick = (event: MouseEvent<HTMLDivElement>): void => {
         const target = event.target as Element;
+
         // A click inside a menu popup reaches here through the React tree, not the DOM.
         if (!event.currentTarget.contains(target) || target.closest('button') !== null) {
             return;
         }
+
         if (resized.current) {
             resized.current = false;
+
             return;
         }
+
         actions.onSelect(index, { shiftKey: event.shiftKey, mod: isModHeld(event, isApplePlatform()) });
     };
 

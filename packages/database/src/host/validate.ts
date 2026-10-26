@@ -103,6 +103,7 @@ const value = (input: unknown, label: string): void => {
         if (!Number.isFinite(input)) {
             fail(`"${label}" must be a finite number.`);
         }
+
         return;
     }
 
@@ -120,6 +121,7 @@ const value = (input: unknown, label: string): void => {
 const editValue = (input: unknown, label: string): void => {
     if (isDict(input) && input.kind === 'default') {
         shape(input, label, ['kind']);
+
         return;
     }
 
@@ -129,6 +131,7 @@ const editValue = (input: unknown, label: string): void => {
 const values = (input: unknown, label: string, check: (value: unknown, label: string) => void, atLeastOne: boolean): void => {
     if (!isDict(input)) {
         fail(`"${label}" must be an object.`);
+
         return;
     }
 
@@ -146,6 +149,7 @@ const values = (input: unknown, label: string, check: (value: unknown, label: st
 const tunnel = (input: unknown, label: string): void => {
     if (!isDict(input)) {
         fail(`"${label}" must be an object.`);
+
         return;
     }
 
@@ -155,6 +159,7 @@ const tunnel = (input: unknown, label: string): void => {
         optional(config, 'port', label, port);
         optional(config, 'user', label, filledText);
         optional(config, 'identityFile', label, filledText);
+
         return;
     }
 
@@ -163,6 +168,7 @@ const tunnel = (input: unknown, label: string): void => {
         filledText(config.container, `${label}.container`);
         optional(config, 'port', label, port);
         optional(config, 'context', label, filledText);
+
         return;
     }
 
@@ -172,6 +178,7 @@ const tunnel = (input: unknown, label: string): void => {
 const connection = (input: unknown, label: string): void => {
     if (!isDict(input)) {
         fail(`"${label}" must be an object.`);
+
         return;
     }
 
@@ -180,6 +187,7 @@ const connection = (input: unknown, label: string): void => {
         absolutePath(config.path, `${label}.path`);
         optional(config, 'create', label, flag);
         optional(config, 'readOnly', label, flag);
+
         return;
     }
 
@@ -197,6 +205,7 @@ const connection = (input: unknown, label: string): void => {
         optional(config, 'database', label, anyText);
         optional(config, 'tls', label, oneOf(TLS_MODES));
         optional(config, 'readOnly', label, flag);
+
         return;
     }
 
@@ -206,6 +215,7 @@ const connection = (input: unknown, label: string): void => {
 const rowChange = (input: unknown, label: string): void => {
     if (!isDict(input)) {
         fail(`"${label}" must be an object.`);
+
         return;
     }
 
@@ -227,6 +237,7 @@ const rowChange = (input: unknown, label: string): void => {
 const exportSource = (input: unknown, label: string): void => {
     if (!isDict(input)) {
         fail(`"${label}" must be an object.`);
+
         return;
     }
 
@@ -236,6 +247,7 @@ const exportSource = (input: unknown, label: string): void => {
         filledText(source.table, `${label}.table`);
         optional(source, 'where', label, anyText);
         optional(source, 'orderBy', label, anyText);
+
         return;
     }
 
@@ -243,6 +255,7 @@ const exportSource = (input: unknown, label: string): void => {
         const source = shape(input, label, ['kind', 'sql'], ['schema']);
         filledText(source.sql, `${label}.sql`);
         optional(source, 'schema', label, filledText);
+
         return;
     }
 
@@ -309,6 +322,7 @@ const PARAMS: { readonly [M in DatabaseMethod]: (input: unknown) => void } = {
 
         if (!Array.isArray(params.changes)) {
             fail('"params.changes" must be a list.');
+
             return;
         }
 
@@ -360,6 +374,7 @@ const PARAMS: { readonly [M in DatabaseMethod]: (input: unknown) => void } = {
 
         if (!Array.isArray(params.columns)) {
             fail('"params.columns" must be a list.');
+
             return;
         }
 

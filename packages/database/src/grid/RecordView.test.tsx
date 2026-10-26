@@ -12,6 +12,7 @@ import { RecordView } from './RecordView.tsx';
 import type { GridColumn, GridRow } from './types.ts';
 
 const i18n = i18next.createInstance();
+
 await i18n.init({ lng: 'en', fallbackLng: 'en', resources: {}, interpolation: { escapeValue: false } });
 
 const render = (node: ReactNode): string =>
@@ -51,9 +52,11 @@ describe('RecordView', () => {
     test('lists every column with its type and a field for its value', () => {
         const markup = render(view(0));
         expect(markup).toContain('aria-label="Fields of users"');
+
         for (const name of ['id', 'name', 'status', 'note']) {
             expect(markup).toContain(`>${name}</span>`);
         }
+
         expect(markup).toContain('>varchar(255)</span>');
         expect(markup).toContain('value="Ada"');
         expect(markup).toContain('value="7"');
@@ -63,6 +66,7 @@ describe('RecordView', () => {
         const source = fakeFormatSource();
         source.set({ region: 'nl-NL' });
         const previous = setFormatSource(source);
+
         try {
             const markup = renderToStaticMarkup(
                 <UIProvider i18n={i18n} formatSource={source}>
@@ -77,6 +81,7 @@ describe('RecordView', () => {
                     </DatabaseProvider>
                 </UIProvider>
             );
+
             expect(markup).toContain('value="9007199254740993"');
             expect(markup).toContain('value="12.900,50"');
         } finally {
@@ -126,6 +131,7 @@ describe('RecordView', () => {
             { name: 'body', type: 'text', kind: 'text' },
             { name: 'photo', type: 'blob', kind: 'binary' }
         ];
+
         const markup = render(
             <RecordView
                 label="Fields"
@@ -137,6 +143,7 @@ describe('RecordView', () => {
                 onClose={() => {}}
             />
         );
+
         expect(markup.match(/aria-label="Show full value"/g)).toHaveLength(3);
     });
 

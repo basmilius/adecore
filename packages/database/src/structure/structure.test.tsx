@@ -11,6 +11,7 @@ import { StructureTabs, StructureView } from './StructureView.tsx';
 import { referenceOf } from './structure-text.ts';
 
 const i18n = i18next.createInstance();
+
 await i18n.init({ lng: 'en', fallbackLng: 'en', resources: {}, interpolation: { escapeValue: false } });
 
 const client = stubClient();
@@ -63,6 +64,7 @@ describe('StructureView', () => {
 describe('StructureTabs', () => {
     test('names the tabs and counts what each holds', () => {
         const markup = render(<StructureTabs structure={structure} />);
+
         for (const name of ['Columns', 'Indexes', 'Foreign keys', 'DDL']) {
             expect(markup).toContain(name);
         }

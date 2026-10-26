@@ -36,9 +36,11 @@ const importing = (folder: string, forbidden: RegExp): string[] =>
 describe('the boundary of the package', () => {
     test('the code and the readme never name an app that uses the package', () => {
         const readme = join(ROOT, 'README.md');
+
         const naming = [...sources(), ...(existsSync(readme) ? [{ path: 'README.md', text: readFileSync(readme, 'utf8') }] : [])]
             .filter(({ path, text }) => path !== 'boundary.test.ts' && /ruimte|aftermotion|solvidi|command[ -]center/i.test(text))
             .map(({ path }) => path);
+
         expect(naming).toEqual([]);
     });
 
@@ -51,6 +53,7 @@ describe('the boundary of the package', () => {
                 )
             )
             .map(({ path }) => path);
+
         expect(leaving).toEqual([]);
     });
 

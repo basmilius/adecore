@@ -38,7 +38,9 @@ const LOOK = {
 export function EnumPicker({ type, value, nullable, label, autoOpen = false, disabled = false, onDone, look = 'cell', className, ref }: EnumPickerProps) {
     const { t } = useTranslation('database');
     const set = type.kind === 'set';
+
     const membersOfValue = (): ReadonlySet<string> => new Set(set && value !== null ? membersOf(value) : []);
+
     const settled = useRef(false);
     const [members, setMembers] = useState(membersOfValue);
 
@@ -53,8 +55,10 @@ export function EnumPicker({ type, value, nullable, label, autoOpen = false, dis
         if (open) {
             settled.current = false;
             setMembers(membersOfValue());
+
             return;
         }
+
         const joined = joinMembers(type, members);
         settle(set && joined !== value ? { value: joined } : undefined);
     };
@@ -62,11 +66,13 @@ export function EnumPicker({ type, value, nullable, label, autoOpen = false, dis
     const toggle = (member: string, checked: boolean): void => {
         setMembers((now) => {
             const next = new Set(now);
+
             if (checked) {
                 next.add(member);
             } else {
                 next.delete(member);
             }
+
             return next;
         });
     };

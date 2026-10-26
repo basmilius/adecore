@@ -30,6 +30,7 @@ const textOf = (value: Exclude<Value, null>): string => (typeof value === 'objec
 export const sourceOf = (column: Pick<GridColumn, 'name' | 'type' | 'kind'>, value: Value): Source => {
     const binary = column.kind === 'binary' || (value !== null && typeof value === 'object');
     const original: Draft = value === null ? { text: '', mode: 'null' } : { text: textOf(value), mode: 'value' };
+
     return {
         name: column.name,
         type: column.type,
@@ -50,18 +51,24 @@ export const editValueOf = (draft: Draft, source: Source): Conversion => {
     if (draft.mode === 'null') {
         return { ok: true, value: null };
     }
+
     if (draft.mode === 'default') {
         return { ok: true, value: { kind: 'default' } };
     }
+
     if (source.binary) {
         const parsed = parseHex(draft.text);
+
         return parsed.ok ? { ok: true, value: { kind: 'binary', hex: parsed.hex } } : { ok: false, problem: { kind: 'hex', problem: parsed.problem } };
     }
+
     if (source.json) {
         const checked = checkJson(draft.text);
+
         if (!checked.ok) {
             return { ok: false, problem: { kind: 'json', reason: checked.reason } };
         }
     }
+
     return { ok: true, value: parseDraft(draft.text, source.kind) };
 };

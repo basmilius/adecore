@@ -85,6 +85,7 @@ export interface GridRowViewProps {
 export const GridRowView = memo(function GridRowView({ row, index, selected, focusedColumn, rangeStart, rangeEnd, editing, look, actions }: GridRowViewProps) {
     const { columns, order, widths, pinnedShown, gutter, notation, enumTypes, picked } = look;
     const tint = row.state === undefined ? (selected ? 'bg-accent-soft/40' : '') : ROW_STATE[row.state];
+
     const cells = order.map((columnIndex, position) => {
         const column = columns[columnIndex]!;
         const cell = row.cells[columnIndex] ?? null;
@@ -96,6 +97,7 @@ export const GridRowView = memo(function GridRowView({ row, index, selected, foc
         const isEditing = editing !== null && editing.column === columnIndex;
         const pinned = position < pinnedShown;
         const enumType = enumTypes[columnIndex] ?? null;
+
         return (
             <div
                 key={columnIndex}
@@ -154,6 +156,7 @@ export const GridRowView = memo(function GridRowView({ row, index, selected, foc
             </div>
         );
     });
+
     return (
         <div
             role="row"

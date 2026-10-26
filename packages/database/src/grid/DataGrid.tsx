@@ -198,6 +198,7 @@ export function DataGrid({
     const [menuTarget, setMenuTarget] = useState<MenuTarget | null>(null);
     const [editing, setEditing] = useState<CellEdit | null>(null);
     const [ownSelection, setOwnSelection] = useState<ReadonlySet<string>>(NO_KEYS);
+
     const [layout, setLayout] = useState<Layout>(() => ({
         signature: signatureOf(columns),
         rows,
@@ -205,13 +206,16 @@ export function DataGrid({
         estimated: estimateWidths(columns, rows, notation),
         ...restoreLayout(columns, initialLayout)
     }));
+
     const reportedLayout = useRef<GridLayout>(captureLayout(columns, layout));
 
     const signature = signatureOf(columns);
     let current = layout;
+
     if (layout.signature !== signature || layout.rows !== rows || layout.notation !== notation) {
         const same = layout.signature === signature;
         const estimated = estimateWidths(columns, rows, notation);
+
         current = {
             signature,
             rows,
@@ -219,6 +223,7 @@ export function DataGrid({
             estimated: same ? growWidths(layout.estimated, estimated) : estimated,
             ...(same ? { resized: layout.resized, view: layout.view } : restoreLayout(columns, initialLayout))
         };
+
         setLayout(current);
     }
 
@@ -226,10 +231,12 @@ export function DataGrid({
     const order = useMemo(() => displayOrder(columns.length, current.view), [columns.length, current.view]);
     const pinnedShown = pinnedCount(columns.length, current.view);
     const displayOf = useMemo(() => new Map(order.map((index, position) => [index, position])), [order]);
+
     const widths = useMemo(
         () => columns.map((_, index) => current.resized[index] ?? current.estimated[index] ?? clampColumnWidth(0)),
         [columns, current.resized, current.estimated]
     );
+
     const shownWidths = useMemo(() => order.map((index) => widths[index]!), [order, widths]);
     const offsets = columnOffsets(shownWidths);
     const gutter = gutterWidth(rows.length);
@@ -238,12 +245,17 @@ export function DataGrid({
     const viewportHeight = size.height > 0 ? size.height : FALLBACK_VIEWPORT_HEIGHT;
     const range = drawnRange(scrolledBlock, viewportHeight, rows.length);
     const selection = selectedKeys ?? ownSelection;
+
     const isShown = (position: CellPosition | null): position is CellPosition =>
         position !== null && position.row < rows.length && displayOf.has(position.column);
+
     const focusCell = isShown(focused) ? focused : null;
     const anchorCell = isShown(rangeAnchor) ? rangeAnchor : null;
+
     const toDisplay = (position: CellPosition): CellPosition => ({ row: position.row, column: displayOf.get(position.column)! });
+
     const fromDisplay = (position: CellPosition): CellPosition => ({ row: position.row, column: order[position.column]! });
+
     const rect = focusCell === null ? null : rectBetween(toDisplay(anchorCell ?? focusCell), toDisplay(focusCell));
     const page = Math.max(1, Math.floor((viewportHeight - HEADER_HEIGHT) / ROW_HEIGHT));
     const sortable = onSortsChange !== undefined;
@@ -256,7 +268,9 @@ export function DataGrid({
     const cellBlock: RangeBlock | null = rect === null ? null : { top: rect.top, bottom: rect.bottom, columns: order.slice(rect.left, rect.right + 1) };
     const block = columnBlock ?? cellBlock;
     const blockKey = block === null ? '' : `${block.top}:${block.bottom}:${block.columns.join(',')}`;
+
     const headerId = (column: number): string => `${gridId}-h-${column}`;
+
     const enumTypes = useMemo(() => columns.map((column) => parseEnumType(column.type)), [columns]);
 
     useEffect(() => {
@@ -267,6 +281,7 @@ export function DataGrid({
 
     useEffect(() => {
         const captured = captureLayout(columns, current);
+
         if (!sameLayout(captured, reportedLayout.current)) {
             reportedLayout.current = captured;
             reportLayout.current?.(captured);
@@ -280,8 +295,10 @@ export function DataGrid({
     useEffect(() => {
         if (blockKey === '') {
             reportRange.current?.(null);
+
             return;
         }
+
         const [top, bottom, list] = blockKey.split(':');
         reportRange.current?.({ top: Number(top), bottom: Number(bottom), columns: list === '' ? [] : list!.split(',').map(Number) });
     }, [blockKey]);
@@ -290,9 +307,12 @@ export function DataGrid({
         if (focusRequest === null || focusRequest === undefined) {
             return;
         }
+
         const index = rows.findIndex((row) => row.key === focusRequest.rowKey);
+
         if (index >= 0) {
             focusAt({ row: index, column: focusRequest.column });
+
             if (focusRequest.quiet !== true) {
                 scroller.current?.focus();
             }
@@ -315,8 +335,10 @@ export function DataGrid({
         const stop = (): void => {
             dragging.current = false;
         };
+
         window.addEventListener('pointerup', stop);
         window.addEventListener('pointercancel', stop);
+
         return () => {
             window.removeEventListener('pointerup', stop);
             window.removeEventListener('pointercancel', stop);
@@ -337,19 +359,24 @@ export function DataGrid({
     const canEdit = (position: CellPosition): boolean => {
         const row = rows[position.row];
         const column = columns[position.column];
+
         if (!editable || row === undefined || column === undefined || row.locked === true || row.state === 'deleted' || column.readOnly === true) {
             return false;
         }
+
         return !isPreview(row.cells[position.column] ?? null) || loadValue !== undefined;
     };
 
     const revealColumn = (column: number): void => {
         const element = scroller.current;
         const at = displayOf.get(column);
+
         if (element === null || at === undefined || at < pinnedShown) {
             return;
         }
+
         const left = scrollToReveal(gutter + (offsets[at] ?? 0), shownWidths[at] ?? 0, element.scrollLeft, element.clientWidth, gutter + pinnedWidth);
+
         if (left !== element.scrollLeft) {
             element.scrollLeft = left;
         }
@@ -357,13 +384,17 @@ export function DataGrid({
 
     const reveal = (position: CellPosition): void => {
         const element = scroller.current;
+
         if (element === null) {
             return;
         }
+
         const top = scrollToReveal(HEADER_HEIGHT + position.row * ROW_HEIGHT, ROW_HEIGHT, element.scrollTop, element.clientHeight, HEADER_HEIGHT);
+
         if (top !== element.scrollTop) {
             element.scrollTop = top;
         }
+
         revealColumn(position.column);
     };
 
@@ -382,6 +413,7 @@ export function DataGrid({
 
     const step = (from: CellPosition | null, input: NavigationKey): CellPosition | null => {
         const next = moveFocus(isShown(from) ? toDisplay(from) : null, input, { rows: rows.length, columns: order.length, page });
+
         return next === null ? null : fromDisplay(next);
     };
 
@@ -389,31 +421,41 @@ export function DataGrid({
         if (selectedKeys === undefined) {
             setOwnSelection(next);
         }
+
         onSelectedKeysChange?.(next);
     };
 
     const beginEdit = async (position: CellPosition): Promise<void> => {
         const row = rows[position.row];
+
         if (row === undefined || !canEdit(position)) {
             return;
         }
+
         const cell = row.cells[position.column] ?? null;
         settled.current = false;
+
         if (!isPreview(cell)) {
             const text = draftOf(cell);
             setEditing({ ...position, draft: text, initial: text, loading: false });
+
             return;
         }
+
         setEditing({ ...position, draft: '', initial: '', loading: true });
         const value = await loadValue?.(row.key, position.column);
+
         setEditing((now) => {
             if (now === null || !now.loading || now.row !== position.row || now.column !== position.column) {
                 return now;
             }
+
             if (value === undefined) {
                 return null;
             }
+
             const text = draftOf(value);
+
             return { ...now, draft: text, initial: text, loading: false };
         });
     };
@@ -422,16 +464,21 @@ export function DataGrid({
         if (editing === null || settled.current) {
             return;
         }
+
         settled.current = true;
         const column = columns[editing.column];
         const row = rows[editing.row];
+
         if (commit && !editing.loading && editing.draft !== editing.initial && column !== undefined && row !== undefined) {
             onCommit?.(row.key, editing.column, parseDraft(editing.draft, column.kind));
         }
+
         setEditing(null);
         scroller.current?.focus();
+
         if (move !== undefined) {
             const next = step(editing, { key: 'Tab', shiftKey: move === 'previous', mod: false });
+
             if (next !== null) {
                 focusAt(next);
             }
@@ -442,12 +489,15 @@ export function DataGrid({
         if (editing === null || settled.current) {
             return;
         }
+
         settled.current = true;
         const row = rows[editing.row];
         const before = row?.cells[editing.column] ?? null;
+
         if (result !== undefined && row !== undefined && result.value !== (typeof before === 'string' ? before : null)) {
             onCommit?.(row.key, editing.column, result.value);
         }
+
         setEditing(null);
         scroller.current?.focus();
     };
@@ -458,6 +508,7 @@ export function DataGrid({
 
     const commitValue = (value: EditValue): void => {
         const row = menuCell === null ? undefined : rows[menuCell.row];
+
         if (menuCell !== null && row !== undefined && canEdit(menuCell)) {
             onCommit?.(row.key, menuCell.column, value);
         }
@@ -466,10 +517,12 @@ export function DataGrid({
     /* The cells from row `top` to `bottom` in the given columns, with the whole value of every preview `loadValue` can fetch. */
     const wholeCellsOf = async (top: number, bottom: number, indexes: readonly number[]): Promise<readonly (readonly Shown[])[]> => {
         const shown = rows.slice(top, bottom + 1);
+
         const whole = await loadWholeCells(
             shown.map((row) => indexes.map((index) => row.cells[index] ?? null)),
             loadValue === undefined ? undefined : (row, column) => loadValue(shown[row]!.key, indexes[column]!)
         );
+
         if (whole.previews > 0) {
             onNotice?.({
                 tone: 'error',
@@ -477,6 +530,7 @@ export function DataGrid({
                 description: t(whole.tooLarge ? 'grid.copyPreviews.tooLarge' : 'grid.copyPreviews.unavailable')
             });
         }
+
         return whole.rows;
     };
 
@@ -484,8 +538,10 @@ export function DataGrid({
         if (block === null) {
             return;
         }
+
         const picked = block.columns;
         const cells = await wholeCellsOf(block.top, block.bottom, picked);
+
         await copyText(
             formatCopy(format, {
                 columns: picked.map((index) => ({ name: columns[index]!.name, kind: columns[index]!.kind })),
@@ -517,6 +573,7 @@ export function DataGrid({
 
     const selectAll = (): void => {
         const all = fullRect(rows.length, order.length);
+
         if (all !== null) {
             setColumnSelection(NO_COLUMN_SELECTION);
             setRangeAnchor(fromDisplay({ row: all.top, column: all.left }));
@@ -532,8 +589,10 @@ export function DataGrid({
             index,
             click
         );
+
         anchor.current = result.anchor;
         setSelection(result.selected);
+
         if (!click.mod && order.length > 0) {
             setColumnSelection(NO_COLUMN_SELECTION);
             setRangeAnchor({ row: result.anchor, column: order[order.length - 1]! });
@@ -545,14 +604,18 @@ export function DataGrid({
         if (event.target !== event.currentTarget || event.altKey) {
             return;
         }
+
         if (editing !== null) {
             if (event.key === 'Escape') {
                 finishEdit(false);
             }
+
             return;
         }
+
         const mod = isModHeld(event, isApplePlatform());
         const key = event.key.toLowerCase();
+
         if (mod && key === 'c') {
             event.preventDefault();
             copyRange();
@@ -561,8 +624,10 @@ export function DataGrid({
             selectAll();
         } else if (mod && key === 'd' && onDuplicateRows !== undefined) {
             event.preventDefault();
+
             const keys =
                 selection.size > 0 ? rows.filter((row) => selection.has(row.key)).map((row) => row.key) : focusedRowKey === null ? [] : [focusedRowKey];
+
             if (keys.length > 0) {
                 onDuplicateRows(keys);
             }
@@ -580,6 +645,7 @@ export function DataGrid({
             setColumnSelection(NO_COLUMN_SELECTION);
         } else {
             const next = step(focusCell, { key: event.key, shiftKey: event.shiftKey, mod });
+
             if (next !== null) {
                 event.preventDefault();
                 focusAt(next, event.shiftKey && event.key !== 'Tab');
@@ -591,12 +657,16 @@ export function DataGrid({
         if (event.button !== 0 || isEditing) {
             return;
         }
+
         const row = rows[position.row];
+
         if (row !== undefined && isModHeld(event, isApplePlatform()) && followCell({ rowKey: row.key, column: position.column })) {
             focusAt(position);
             onFollow?.({ rowKey: row.key, column: position.column });
+
             return;
         }
+
         const extend = event.shiftKey && focusCell !== null;
         dragOrigin.current = extend ? (anchorCell ?? focusCell) : position;
         dragging.current = true;
@@ -614,14 +684,17 @@ export function DataGrid({
         if (!rectContains(rect, position.row, displayOf.get(position.column)!)) {
             focusAt(position);
         }
+
         setMenuTarget(position);
     };
 
     const openRowMenu = (index: number): void => {
         const row = rows[index];
+
         if (row !== undefined && !selection.has(row.key)) {
             selectRowAt(index, { shiftKey: false, mod: false });
         }
+
         setMenuTarget({ row: index, column: null });
     };
 
@@ -631,6 +704,7 @@ export function DataGrid({
 
     const fitColumn = (index: number): void => {
         const column = columns[index];
+
         if (column !== undefined) {
             resizeColumn(index, fitColumnWidth(column.name, columnTexts(column, index, rows, notation), column.primaryKey === true));
         }
@@ -675,14 +749,17 @@ export function DataGrid({
     const stableDragTo = useStableCallback(dragTo);
     const stableBeginEdit = useStableCallback((position: CellPosition) => void beginEdit(position));
     const stableOpenCellMenu = useStableCallback(openCellMenu);
+
     const stablePressRowNumber = useStableCallback((index: number, event: MouseEvent) => {
         if (!pressedInPopup()) {
             selectRowAt(index, { shiftKey: event.shiftKey, mod: isModHeld(event, isApplePlatform()) });
         }
     });
+
     const stableOpenRowMenu = useStableCallback(openRowMenu);
     const stableFinishPick = useStableCallback(finishPick);
     const stableFinishEdit = useStableCallback(finishEdit);
+
     const rowActions = useMemo(
         (): RowActions => ({
             pressCell: stablePressCell,
@@ -701,6 +778,7 @@ export function DataGrid({
     const renderRow = (index: number): ReactNode => {
         const row = rows[index]!;
         const inRect = columnBlock === null && rect !== null && index >= rect.top && index <= rect.bottom;
+
         return (
             <GridRowView
                 key={row.key}
@@ -719,6 +797,7 @@ export function DataGrid({
 
     const headerCells = order.map((columnIndex, position) => {
         const column = columns[columnIndex]!;
+
         return (
             <GridHeaderCell
                 key={columnIndex}
@@ -747,6 +826,7 @@ export function DataGrid({
     const menuColumn = menuCell === null ? undefined : columns[menuCell.column];
     const nullable = menuColumn?.nullable !== false;
     const hasDefault = menuColumn !== undefined && ((menuColumn.defaultValue ?? null) !== null || menuColumn.autoIncrement === true);
+
     const menuContext: GridMenuContext | null =
         menuRow === undefined || menuTarget === null
             ? null

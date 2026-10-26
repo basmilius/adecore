@@ -73,12 +73,14 @@ export function DesignerView({
 }: DesignerViewProps) {
     const { t } = useTranslation('database');
     const disabled = readOnlyReason !== null;
+
     const applyReason =
         readOnlyReason ?? (plan.problems.length > 0 ? t('designer.fixProblems') : plan.statements.length === 0 ? t('designer.noChanges') : null);
 
     function handleKeyDown(event: KeyboardEvent<HTMLDivElement>): void {
         if (matchesShortcut(APPLY_SHORTCUT, event.nativeEvent, isApplePlatform())) {
             event.preventDefault();
+
             if (applyReason === null) {
                 onRequestApply();
             }

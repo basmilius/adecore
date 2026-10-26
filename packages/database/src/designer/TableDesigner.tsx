@@ -59,15 +59,18 @@ export function TableDesigner({ connection, schema, table, toolbarStart, classNa
     const loaded = useLoaded<Snapshot>(
         async (signal) => {
             const session = client.session(connection);
+
             const [server, structure, tables] = await Promise.all([
                 session.server({ signal }),
                 subject.current === null ? Promise.resolve(null) : session.structure(schema, subject.current, { signal }),
                 session.tables(schema, { signal })
             ]);
+
             return { dialect: dialectOf(server), structure, tables: tables.filter((info) => info.kind === 'table').map((info) => info.name) };
         },
         JSON.stringify([connection.id, schema, subject.current])
     );
+
     const snapshot = loaded.value;
 
     // The apply of this designer reloads by itself; a change from elsewhere replaces an untouched draft and warns about an edited one.
@@ -89,6 +92,7 @@ export function TableDesigner({ connection, schema, table, toolbarStart, classNa
         setEditing({ snapshot, baseline, draft: baseline });
         setShapeChanged(false);
     }
+
     const draft = editing.draft;
 
     const plan = useMemo(() => (snapshot === null ? null : planOf(snapshot.dialect, schema, snapshot.structure, draft)), [snapshot, schema, draft]);
@@ -101,30 +105,40 @@ export function TableDesigner({ connection, schema, table, toolbarStart, classNa
         if (snapshot === null || plan === null) {
             return;
         }
+
         const session = client.session(connection);
         const statements = plan.statements;
         const wasNew = snapshot.structure === null;
+
         const settle = (message: string | null): void => {
             setFailure(message);
             setConfirming(false);
         };
+
         let outcome: ExecuteResult;
         applying.current = true;
+
         try {
             outcome = await session.execute(statements.join(';\n'), { schema });
         } catch (e) {
             settle(messageOf(e, t('designer.failed')));
+
             return;
         } finally {
             applying.current = false;
         }
+
         const failed = outcome.results.find((result) => result.kind === 'error');
+
         if (failed?.kind === 'error') {
             await recoverFrom(session, statements, failed.sql, outcome.inTransaction);
             settle(failed.error.message);
+
             return;
         }
+
         settle(null);
+
         // The client has told its listeners already: `execute` does for a statement that creates, alters or drops.
         if (wasNew || draft.name !== draft.originalName) {
             setSubject({ requested: table, current: draft.name });

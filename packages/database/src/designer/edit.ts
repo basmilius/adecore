@@ -18,13 +18,17 @@ export const addColumn = (draft: TableDraft, type: string): TableDraft => ({
 /* A rename carries along every key, index and foreign key that names the column. */
 export const patchColumn = (draft: TableDraft, key: string, patch: Partial<ColumnDraft>): TableDraft => {
     const before = draft.columns.find((column) => column.key === key);
+
     if (before === undefined) {
         return draft;
     }
+
     const inKey = draft.primaryKey.includes(before.name);
     const applied: Partial<ColumnDraft> = inKey && patch.nullable === true ? { ...patch, nullable: false } : patch;
     const after = { ...before, ...applied };
+
     const follow = (names: readonly string[]): string[] => names.map((name) => (name === before.name ? after.name : name));
+
     return {
         ...draft,
         columns: replaceAt(draft.columns, key, () => after),
@@ -37,9 +41,11 @@ export const patchColumn = (draft: TableDraft, key: string, patch: Partial<Colum
 /* What names the column goes with it: an index keeps its other columns, a foreign key on it is dropped. */
 export const removeColumn = (draft: TableDraft, key: string): TableDraft => {
     const gone = draft.columns.find((column) => column.key === key);
+
     if (gone === undefined) {
         return draft;
     }
+
     return {
         ...draft,
         columns: draft.columns.filter((column) => column.key !== key),
@@ -54,22 +60,28 @@ export const removeColumn = (draft: TableDraft, key: string): TableDraft => {
 export const moveColumn = (draft: TableDraft, key: string, offset: -1 | 1): TableDraft => {
     const from = draft.columns.findIndex((column) => column.key === key);
     const to = from + offset;
+
     if (from < 0 || to < 0 || to >= draft.columns.length) {
         return draft;
     }
+
     const columns = [...draft.columns];
     [columns[from], columns[to]] = [columns[to]!, columns[from]!];
+
     return { ...draft, columns };
 };
 
 /* A column in the primary key cannot be null, so putting it there says so. */
 export const togglePrimaryKey = (draft: TableDraft, key: string): TableDraft => {
     const column = draft.columns.find((candidate) => candidate.key === key);
+
     if (column === undefined) {
         return draft;
     }
+
     const joining = !draft.primaryKey.includes(column.name);
     const toggledKey = { ...draft, primaryKey: toggled(draft.primaryKey, column.name) };
+
     return joining ? patchColumn(toggledKey, key, { nullable: false }) : toggledKey;
 };
 
@@ -133,5 +145,6 @@ export const removeForeignKey = (draft: TableDraft, key: string): TableDraft => 
 /* A collation belongs to a character set, so choosing another set empties it. */
 export const patchOptions = (draft: TableDraft, patch: Partial<TableOptions>): TableDraft => {
     const charsetChanged = patch.charset !== undefined && patch.charset !== draft.options.charset;
+
     return { ...draft, options: { ...draft.options, ...(charsetChanged ? { collation: '' } : {}), ...patch } };
 };

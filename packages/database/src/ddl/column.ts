@@ -11,9 +11,11 @@ const KEYWORD = /^(?:NULL|TRUE|FALSE|CURRENT_DATE|CURRENT_TIME(?:\(\d*\))?|CURRE
  */
 export const defaultClause = (expression: string): string => {
     const text = expression.trim();
+
     if (NUMERIC_TEXT.test(text) || STRING.test(text) || KEYWORD.test(text)) {
         return text;
     }
+
     return text.startsWith('(') && text.endsWith(')') ? text : `(${text})`;
 };
 
@@ -26,34 +28,43 @@ export interface ColumnSqlOptions {
 export const columnSpecSql = (dialect: Dialect, column: ColumnDraft, { inlinePrimaryKey = false }: ColumnSqlOptions = {}): string => {
     const mysql = dialect.engine === 'mysql';
     const parts: string[] = [];
+
     if (column.type !== '') {
         parts.push(column.type);
     }
+
     if (column.generated && column.generatedClause !== null) {
         parts.push(column.generatedClause);
     }
+
     if (inlinePrimaryKey) {
         parts.push(column.autoIncrement ? 'PRIMARY KEY AUTOINCREMENT' : 'PRIMARY KEY');
     }
+
     // MariaDB takes neither NULL nor NOT NULL after the expression of a computed column.
     const statesNullability = !(column.generated && dialect.flavor === 'mariadb');
+
     if (statesNullability && !column.nullable) {
         parts.push('NOT NULL');
     } else if (statesNullability && mysql) {
         // MySQL gives a TIMESTAMP column NOT NULL unless it is told otherwise.
         parts.push('NULL');
     }
+
     if (!column.generated) {
         if (column.defaultValue !== null && column.defaultValue.trim() !== '') {
             parts.push(`DEFAULT ${defaultClause(column.defaultValue)}`);
         }
+
         if (mysql && column.autoIncrement) {
             parts.push('AUTO_INCREMENT');
         }
     }
+
     if (mysql && column.comment !== '') {
         parts.push(`COMMENT ${sqlLiteral('mysql', column.comment)}`);
     }
+
     return parts.join(' ');
 };
 

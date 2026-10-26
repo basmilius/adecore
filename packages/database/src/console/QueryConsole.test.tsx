@@ -16,6 +16,7 @@ import { StatementResultView } from './StatementResultView.tsx';
 import { TransactionControls } from './TransactionControls.tsx';
 
 const i18n = i18next.createInstance();
+
 await i18n.init({ lng: 'en', fallbackLng: 'en', resources: {}, interpolation: { escapeValue: false } });
 
 const client = { session: () => ({}) } as unknown as DatabaseClient;
@@ -81,6 +82,7 @@ describe('QueryConsole toolbar', () => {
         const markup = render(<QueryConsole defaultValue="SELECT 1" toolbarEnd={<button type="button">Run on a connection</button>} />);
         expect(markup).toContain('aria-label="SQL"');
         expect(markup).toContain('>Run on a connection</button>');
+
         for (const word of ['Run all', 'History', 'Auto-commit', 'aria-label="Schema"']) {
             expect(markup).not.toContain(word);
         }
@@ -166,6 +168,7 @@ describe('StatementResultView', () => {
             hasMore: true,
             elapsedMs: 1.25
         };
+
         const markup = render(<StatementResultView result={result} />);
         expect(markup).toContain('role="grid"');
         expect(markup).toContain('Rows: 2');
@@ -182,6 +185,7 @@ describe('StatementResultView', () => {
             hasMore: false,
             elapsedMs: 1
         };
+
         expect(render(<StatementResultView result={result} />)).not.toContain('Value panel');
         expect(render(<StatementResultView result={result} onValuePanelOpenChange={() => {}} />)).toMatch(/aria-label="Value panel"[^>]* aria-pressed="false"/);
         expect(render(<StatementResultView result={result} valuePanelOpen onValuePanelOpenChange={() => {}} />)).toMatch(
@@ -198,6 +202,7 @@ describe('StatementResultView', () => {
             hasMore: true,
             elapsedMs: 1
         };
+
         const markup = render(<StatementResultView result={result} offset={500} pager={{ page: 2, loading: false, onPrevious: () => {}, onNext: () => {} }} />);
         expect(markup).toContain('Rows: 501 to 502');
         expect(markup).toContain('Page 2');
@@ -215,6 +220,7 @@ describe('StatementResultView', () => {
             hasMore: false,
             elapsedMs: 1
         };
+
         const markup = render(<StatementResultView result={result} pager={{ page: 1, loading: false, onPrevious: () => {}, onNext: () => {} }} />);
         expect(markup).toMatch(/aria-label="Previous page"[^>]* disabled=""|disabled=""[^>]*aria-label="Previous page"/);
         expect(markup).toMatch(/aria-label="Next page"[^>]* disabled=""|disabled=""[^>]*aria-label="Next page"/);
@@ -229,6 +235,7 @@ describe('StatementResultView', () => {
             hasMore: false,
             elapsedMs: 1
         };
+
         expect(render(<StatementResultView result={result} />)).not.toContain('Export result');
         expect(render(<StatementResultView result={result} onExport={() => {}} />)).toContain('aria-label="Export result"');
     });
@@ -248,6 +255,7 @@ describe('StatementResultView', () => {
                 result={{ kind: 'error', sql: 'SELEC', error: { code: 'query-failed', message: 'syntax error', sqlState: '42000' }, elapsedMs: 1 }}
             />
         );
+
         expect(markup).toContain('syntax error');
         expect(markup).toContain('SQLSTATE 42000');
     });

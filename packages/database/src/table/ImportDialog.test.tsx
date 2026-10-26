@@ -9,6 +9,7 @@ import type { ColumnInfo } from '../protocol/index.ts';
 import { ImportForm, type ImportFormProps } from './ImportDialog.tsx';
 
 const i18n = i18next.createInstance();
+
 await i18n.init({ lng: 'en', fallbackLng: 'en', resources: {}, interpolation: { escapeValue: false } });
 
 const render = (node: ReactNode): string =>

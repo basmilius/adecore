@@ -36,9 +36,11 @@ describe('connection config', () => {
     test('flags a missing host unless a socket stands in for it, and a port out of range', () => {
         expect(configProblems(mysql({ host: ' ' }).config)).toEqual({ host: 'host-required' });
         expect(configProblems(mysql({ host: '', socket: '/tmp/mysql.sock' }).config)).toEqual({});
+
         for (const port of [0, 65536, 1.5, Number.NaN]) {
             expect(configProblems(mysql({ port }).config)).toEqual({ port: 'port-range' });
         }
+
         expect(configProblems(mysql({ port: undefined }).config)).toEqual({});
         expect(configProblems(mysql({ port: 65535 }).config)).toEqual({});
     });
@@ -53,6 +55,7 @@ describe('connection config', () => {
 
 const ssh = (tunnel: Record<string, unknown> = {}, patch: Record<string, unknown> = {}): Connection =>
     mysql({ host: '127.0.0.1', tunnel: { kind: 'ssh', host: 'bastion', ...tunnel }, ...patch });
+
 const docker = (tunnel: Record<string, unknown> = {}, patch: Record<string, unknown> = {}): Connection =>
     mysql({ tunnel: { kind: 'docker', container: 'shop-db-1', port: 3306, ...tunnel }, ...patch });
 

@@ -11,7 +11,9 @@ export function OptionsEditor({ draft, dialect, disabled, onChange, className, r
     const { t } = useTranslation('database');
     const id = useId();
     const { options } = draft;
+
     const patch = (change: Parameters<typeof patchOptions>[1]): void => onChange(patchOptions(draft, change));
+
     if (dialect.engine === 'sqlite') {
         return (
             <div ref={ref} className={clsx('flex flex-col gap-4 p-3', className)}>
@@ -32,6 +34,7 @@ export function OptionsEditor({ draft, dialect, disabled, onChange, className, r
             </div>
         );
     }
+
     return (
         <div ref={ref} className={clsx('flex max-w-xl flex-col gap-4 p-3', className)}>
             <SuggestedField
@@ -106,6 +109,7 @@ function SuggestedField({
     onValueChange(value: string): void;
 }) {
     const { t } = useTranslation('database');
+
     return (
         <>
             <datalist id={listId}>

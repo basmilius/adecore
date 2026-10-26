@@ -25,12 +25,15 @@ export const atLeast = (dialect: Dialect, ...wanted: number[]): boolean => {
     if (dialect.version.length === 0) {
         return true;
     }
+
     for (let i = 0; i < wanted.length; i++) {
         const have = dialect.version[i] ?? 0;
+
         if (have !== wanted[i]) {
             return have > wanted[i]!;
         }
     }
+
     return true;
 };
 
@@ -47,6 +50,7 @@ export const tableName = (dialect: Dialect, schema: string, table: string): stri
 /* SQLite puts the schema in front of the name of an index, where MySQL names the table it is on. */
 export const sqliteSchemaPrefix = (dialect: Dialect, schema: string): string => {
     const named = schemaOf(dialect, schema);
+
     return named === undefined ? '' : `${quote(dialect, named)}.`;
 };
 

@@ -68,10 +68,12 @@ describe('withContainer', () => {
 
     test('keeps the Docker context of the tunnel it replaces', () => {
         const first = withContainer(blank, container());
+
         const again = withContainer(
             { ...first, tunnel: { ...first.tunnel!, kind: 'docker', container: 'x', context: 'remote' } },
             container({ name: 'other' })
         );
+
         expect(again.tunnel).toEqual({ kind: 'docker', container: 'other', port: 3306, context: 'remote' });
     });
 

@@ -61,9 +61,13 @@ const structure: TableStructure = {
 };
 
 const base = draftOf(structure);
+
 const alter = (draft: TableDraft): string => alterTableSql(mysql, 'shop', structure, draft).join('\n;\n');
+
 const withColumns = (columns: readonly ColumnDraft[], rest: Partial<TableDraft> = {}): TableDraft => ({ ...base, columns, ...rest });
+
 const named = (name: string): ColumnDraft => base.columns.find((candidate) => candidate.name === name)!;
+
 const added = (name: string, type: string, rest: Partial<ColumnDraft> = {}): ColumnDraft => ({ ...emptyColumn(name), type, ...rest });
 
 describe('createTableSql for MySQL', () => {
@@ -91,6 +95,7 @@ describe('createTableSql for MySQL', () => {
             columns: [added('na`me', 'int', { nullable: false })],
             indexes: [{ key: 'one', originalName: null, name: '', columns: ['na`me'], unique: true }]
         };
+
         expect(createTableSql(mysql, 'my db', draft)[0]).toBe(
             ['CREATE TABLE `my db`.`we``ird table` (', '    `na``me` int NOT NULL,', '    UNIQUE INDEX (`na``me`)', ')'].join('\n')
         );
@@ -107,6 +112,7 @@ describe('createTableSql for MySQL', () => {
                 added('d', 'int', { defaultValue: '(1 + 1)' })
             ]
         };
+
         expect(createTableSql(mysql, 'db', draft)[0]).toContain(
             [
                 '`a` char(36) NULL DEFAULT (uuid())',
@@ -141,6 +147,7 @@ describe('alterTableSql for MySQL', () => {
 
     test('adds a column in the middle after the one before it, and at the start with FIRST', () => {
         const [id, userId, ...rest] = base.columns;
+
         expect(alter(withColumns([id!, added('note', 'text'), userId!, ...rest]))).toBe(
             'ALTER TABLE `shop`.`orders`\n    ADD COLUMN `note` text NULL AFTER `id`'
         );
@@ -152,11 +159,13 @@ describe('alterTableSql for MySQL', () => {
             base.columns.filter((candidate) => candidate.name !== 'status'),
             { indexes: [] }
         );
+
         expect(alter(draft)).toBe('ALTER TABLE `shop`.`orders`\n    DROP INDEX `idx_status`,\n    DROP COLUMN `status`');
     });
 
     test('modifies a column whose definition changed', () => {
         const total = { ...named('total'), type: 'bigint', nullable: false, defaultValue: '0' };
+
         expect(alter(withColumns(base.columns.map((candidate) => (candidate.name === 'total' ? total : candidate))))).toBe(
             'ALTER TABLE `shop`.`orders`\n    MODIFY COLUMN `total` bigint NOT NULL DEFAULT 0'
         );
@@ -167,6 +176,7 @@ describe('alterTableSql for MySQL', () => {
             ...withColumns(base.columns.map((candidate) => (candidate.name === 'status' ? { ...candidate, name: 'state' } : candidate))),
             indexes: [{ ...base.indexes[0]!, columns: ['state'] }]
         };
+
         expect(alter(draft)).toBe(
             "ALTER TABLE `shop`.`orders`\n    CHANGE COLUMN `status` `state` varchar(20) NOT NULL DEFAULT 'draft' COMMENT 'It''s a status'"
         );
@@ -174,6 +184,7 @@ describe('alterTableSql for MySQL', () => {
 
     test('moves the fewest columns when the order changes', () => {
         const [id, userId, status, total, double] = base.columns;
+
         expect(alter(withColumns([userId!, status!, total!, double!, id!]))).toBe(
             'ALTER TABLE `shop`.`orders`\n    MODIFY COLUMN `id` bigint NOT NULL AUTO_INCREMENT AFTER `double`'
         );
@@ -185,6 +196,7 @@ describe('alterTableSql for MySQL', () => {
     test('renames in a statement of its own when a position names the new name', () => {
         const [id, userId, status, total, double] = base.columns;
         const draft = withColumns([{ ...id!, name: 'order_id' }, { ...total! }, userId!, status!, double!], { primaryKey: ['order_id'] });
+
         expect(alterTableSql(mysql, 'shop', structure, draft)).toEqual([
             'ALTER TABLE `shop`.`orders`\n    CHANGE COLUMN `id` `order_id` bigint NOT NULL AUTO_INCREMENT',
             'ALTER TABLE `shop`.`orders`\n    MODIFY COLUMN `total` int NULL AFTER `order_id`'
@@ -193,6 +205,7 @@ describe('alterTableSql for MySQL', () => {
 
     test('adds, renames and drops an index', () => {
         const added1 = { key: 'n', originalName: null, name: 'idx_total', columns: ['total', 'user_id'], unique: true };
+
         expect(alter({ ...base, indexes: [...base.indexes, added1] })).toBe(
             'ALTER TABLE `shop`.`orders`\n    ADD UNIQUE INDEX `idx_total` (`total`, `user_id`)'
         );
@@ -227,6 +240,7 @@ describe('alterTableSql for MySQL', () => {
             onUpdate: 'CASCADE',
             onDelete: null
         };
+
         expect(alter({ ...base, foreignKeys: [...base.foreignKeys, key] })).toBe(
             'ALTER TABLE `shop`.`orders`\n    ADD CONSTRAINT `fk_total` FOREIGN KEY (`total`) REFERENCES `other`.`totals` (`id`) ON UPDATE CASCADE'
         );

@@ -56,6 +56,7 @@ const PATTERN = /^((?:NOT\s+)?(?:LIKE|ILIKE|GLOB|REGEXP|RLIKE))\s+([\s\S]+)$/i;
 const MEMBER = /^((?:NOT\s+)?IN)\s*(\([\s\S]+\))$/i;
 const BETWEEN = /^((?:NOT\s+)?BETWEEN)\s+([\s\S]+?)\s+AND\s+([\s\S]+)$/i;
 const IS_TEST = /^IS\s+(?:NOT\s+)?(?:NULL|TRUE|FALSE)$/i;
+
 /* A name being typed, or one that opened a quote. Whitespace after it means an operator is coming. */
 const NAME_BEING_TYPED = /^\s*(?:[\w$]*|[`"][^`"]*[`"]?)$/;
 
@@ -76,9 +77,11 @@ export const chipsToWhere = (chips: readonly Chip[]): string => {
         .filter(isFilter)
         .map((chip) => chip.sql.trim())
         .filter((sql) => sql !== '');
+
     if (conditions.length < 2) {
         return conditions[0] ?? '';
     }
+
     return conditions.map((sql) => (OR.test(sql) ? `(${sql})` : sql)).join(' AND ');
 };
 
@@ -89,6 +92,7 @@ export const chipsToOrderBy = (engine: Engine, chips: readonly Chip[]): string =
             if (chip.kind === 'sort') {
                 return [orderByClause(engine, [chip])];
             }
+
             return chip.kind === 'order' ? [chip.text.trim()] : [];
         })
         .filter((part) => part !== '')
@@ -104,6 +108,7 @@ export const toggleSort = (chips: readonly Chip[], column: string): Chip[] => {
     if (!chips.some((chip) => isSort(chip) && chip.column === column)) {
         return [...chips, { kind: 'sort', column, direction: 'asc' }];
     }
+
     return chips.map((chip) => (isSort(chip) && chip.column === column ? { ...chip, direction: chip.direction === 'asc' ? 'desc' : 'asc' } : chip));
 };
 
@@ -116,6 +121,7 @@ export const removeChipAt = (chips: readonly Chip[], index: number): Chip[] => c
 /* Puts the chip where another stood, dropping it if an equal one is already elsewhere in the list. */
 export const replaceChipAt = (chips: readonly Chip[], index: number, chip: Chip): Chip[] => {
     const duplicate = chips.some((other, at) => at !== index && chipKey(other) === chipKey(chip));
+
     return duplicate ? removeChipAt(chips, index) : chips.map((other, at) => (at === index ? chip : other));
 };
 
@@ -124,20 +130,26 @@ const rawFilter = (text: string): FilterChip => ({ kind: 'filter', text, sql: te
 /* The WHERE of a layout or of a jump as chips: the remembered ones when they still say that text, else the text as one raw chip. */
 export const filterChipsOf = (where: string, remembered: readonly StoredFilter[] = []): Chip[] => {
     const text = where.trim();
+
     if (text === '') {
         return [];
     }
+
     const kept = remembered.map((filter): FilterChip => ({ kind: 'filter', text: filter.text, sql: filter.sql }));
+
     return chipsToWhere(kept) === text ? kept : [rawFilter(text)];
 };
 
 /* A plain list of columns becomes sort chips; anything else is one chip that keeps the text. */
 export const sortChipsOf = (engine: Engine, orderBy: string): Chip[] => {
     const text = orderBy.trim();
+
     if (text === '') {
         return [];
     }
+
     const sorts = parseOrderByLoose(engine, text);
+
     return sorts === null ? [{ kind: 'order', text }] : sorts.map(sortChip);
 };
 
@@ -156,6 +168,7 @@ export const chipsFromQuery = (engine: Engine, { where, orderBy, remembered }: C
 const isClosed = (operand: string): boolean => {
     let quote: string | null = null;
     let depth = 0;
+
     for (const character of operand) {
         if (quote !== null) {
             quote = character === quote ? null : quote;
@@ -165,11 +178,13 @@ const isClosed = (operand: string): boolean => {
             depth++;
         } else if (character === ')') {
             depth--;
+
             if (depth < 0) {
                 return false;
             }
         }
     }
+
     return quote === null && depth === 0;
 };
 
@@ -178,20 +193,27 @@ const upper = (keyword: string): string => keyword.replace(/\s+/g, ' ').toUpperC
 /* The operator and operands of a condition in the form the chip shows, or `null` when the text does not read as one. */
 const readOperation = (rest: string): string | null => {
     const compare = COMPARE.exec(rest);
+
     if (compare !== null) {
         const operator = compare[1] === '==' ? '=' : compare[1] === '!=' ? '<>' : compare[1];
+
         return isClosed(compare[2]!) ? `${operator} ${compare[2]}` : null;
     }
+
     for (const form of [PATTERN, MEMBER]) {
         const found = form.exec(rest);
+
         if (found !== null) {
             return isClosed(found[2]!) ? `${upper(found[1]!)} ${found[2]}` : null;
         }
     }
+
     const between = BETWEEN.exec(rest);
+
     if (between !== null) {
         return isClosed(between[2]!) && isClosed(between[3]!) ? `${upper(between[1]!)} ${between[2]} AND ${between[3]}` : null;
     }
+
     return IS_TEST.test(rest) ? upper(rest) : null;
 };
 
@@ -201,14 +223,18 @@ const readOperation = (rest: string): string | null => {
  */
 export const parseCondition = (engine: Engine, text: string, columns: readonly string[]): FilterChip | null => {
     const match = WORD.exec(text.trim());
+
     if (match === null) {
         return null;
     }
+
     const column = findColumn(engine, match[1]!, columns);
     const operation = column === undefined ? null : readOperation(match[2]!.trim());
+
     if (column === undefined || operation === null) {
         return null;
     }
+
     return { kind: 'filter', text: `${match[1]} ${operation}`, sql: `${quoteIdentifier(engine, column)} ${operation}` };
 };
 
@@ -216,6 +242,7 @@ export const parseCondition = (engine: Engine, text: string, columns: readonly s
 export const cellChip = (engine: Engine, column: string, value: LiteralValue, kind: ValueKind | undefined, exclude: boolean): FilterChip => {
     const name = identifierText(column);
     const text = value === null ? `${name} IS ${exclude ? 'NOT ' : ''}NULL` : `${name} ${exclude ? '<>' : '='} ${sqlLiteral(engine, value, kind)}`;
+
     return { kind: 'filter', text, sql: exclude ? notEqualsCondition(engine, column, value, kind) : equalsCondition(engine, column, value, kind) };
 };
 
@@ -225,24 +252,30 @@ export const shorten = (text: string, limit: number): string => (text.length > l
 /* How well a name matches what is typed: 0 is the name itself, then its start, a word of it, anywhere in it; `null` is no match. */
 const rankOf = (name: string, token: string): number | null => {
     const lower = name.toLowerCase();
+
     if (lower === token) {
         return 0;
     }
+
     if (lower.startsWith(token)) {
         return 1;
     }
+
     if (lower.split(/[\s_.-]+/).some((word) => word.startsWith(token))) {
         return 2;
     }
+
     return lower.includes(token) ? 3 : null;
 };
 
 /* The columns that match a typed name, the closest first and in table order among equals. */
 export const matchColumns = (columns: readonly CommandColumn[], typed: string, limit = SUGGESTED_COLUMNS): CommandColumn[] => {
     const token = typed.trim().replace(/^[`"]/, '').replace(/[`"]$/, '').toLowerCase();
+
     if (token === '') {
         return [];
     }
+
     return columns
         .map((column, order) => ({ column, order, rank: rankOf(column.name, token) }))
         .filter((entry): entry is { column: CommandColumn; order: number; rank: number } => entry.rank !== null)
@@ -257,24 +290,31 @@ export const matchColumns = (columns: readonly CommandColumn[], typed: string, l
  */
 export const suggest = (engine: Engine, text: string, columns: readonly CommandColumn[], limit = SUGGESTED_COLUMNS): Suggestion[] => {
     const typed = text.trim();
+
     if (typed === '') {
         return [];
     }
+
     const suggestions: Suggestion[] = [];
+
     const condition = parseCondition(
         engine,
         typed,
         columns.map((column) => column.name)
     );
+
     if (condition !== null) {
         suggestions.push({ kind: 'condition', chip: condition });
     }
+
     if (NAME_BEING_TYPED.test(text)) {
         for (const column of matchColumns(columns, typed, limit)) {
             suggestions.push({ kind: 'filter', column }, { kind: 'sort', column }, { kind: 'jump', column });
         }
     }
+
     suggestions.push({ kind: 'sql', chip: rawFilter(typed) });
+
     return suggestions;
 };
 

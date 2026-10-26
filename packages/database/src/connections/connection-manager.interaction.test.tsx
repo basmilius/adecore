@@ -12,10 +12,12 @@ const gone: Connection = { id: 'gone', name: 'Gone', config: { engine: 'mysql', 
 
 function Controlled() {
     const [value, setValue] = useState<readonly Connection[]>([shop, gone]);
+
     return <ConnectionManager value={value} onValueChange={setValue} />;
 }
 
 const notices = (): HTMLElement[] => findAll('[role=status]');
+
 const row = (name: string): HTMLElement => byText('nav button', new RegExp(`^${name}`));
 
 describe.skipIf(typeof document === 'undefined')('the answer of Test connection in a ConnectionManager', () => {

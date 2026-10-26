@@ -3,14 +3,19 @@ export const ROW_HEIGHT = 28;
 export const HEADER_HEIGHT = 32;
 export const MIN_COLUMN_WIDTH = 64;
 export const MAX_COLUMN_WIDTH = 320;
+
 /* How far a drag may widen a column; the estimate stops at `MAX_COLUMN_WIDTH`, a person may go further. */
 export const MAX_RESIZED_WIDTH = 1200;
+
 /* How wide fitting a column to its content may make it. */
 export const MAX_FIT_WIDTH = 640;
+
 /* The window of drawn rows moves in blocks of this many rows, so a scroll within a block draws nothing. */
 export const ROW_BLOCK = 16;
+
 /* Two presses on a resize handle this close are a double click. */
 export const DOUBLE_CLICK_MS = 350;
+
 /* What a viewport is taken to be until it is measured, so a first paint already holds rows. */
 export const FALLBACK_VIEWPORT_HEIGHT = 600;
 
@@ -20,6 +25,7 @@ const CELL_PADDING = 24;
 const KEY_ICON_ROOM = 18;
 const GUTTER_MIN_WIDTH = 40;
 const SAMPLE_ROWS = 50;
+
 /* The arrow and the position number a sorted header carries after its name. */
 const SORT_ROOM = 24;
 
@@ -42,10 +48,12 @@ export const drawnRange = (block: number, height: number, count: number): Visibl
     if (count <= 0 || height <= 0) {
         return { start: 0, end: 0 };
     }
+
     const page = Math.ceil(height / ROW_HEIGHT);
     const top = Math.max(0, block) * ROW_BLOCK;
     const start = Math.max(0, Math.floor((top - page) / ROW_BLOCK) * ROW_BLOCK);
     const end = Math.min(count, Math.ceil((top + ROW_BLOCK + 2 * page) / ROW_BLOCK) * ROW_BLOCK);
+
     return { start: Math.min(start, end), end };
 };
 
@@ -57,18 +65,22 @@ export const scrollToReveal = (start: number, size: number, scroll: number, view
     if (start < scroll + leading) {
         return Math.max(0, start - leading);
     }
+
     if (start + size > scroll + viewport) {
         return Math.max(0, start + size - viewport);
     }
+
     return scroll;
 };
 
 /* The left edge of every column, counted from the first one. */
 export const columnOffsets = (widths: readonly number[]): number[] => {
     let offset = 0;
+
     return widths.map((width) => {
         const left = offset;
         offset += width;
+
         return left;
     });
 };

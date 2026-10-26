@@ -33,6 +33,7 @@ import { QueryConsole, RESULTS_HEIGHT_KEY } from './QueryConsole.tsx';
 const connection: Connection = { id: 'one', name: 'Shop', config: { engine: 'sqlite', path: SHOP_PATH } };
 
 const editor = (): HTMLTextAreaElement => find('textarea[aria-label=SQL]') as HTMLTextAreaElement;
+
 const SCRIPT = 'SELECT 1;\nSELECT 2;\nSELECT 3';
 
 describe.skipIf(typeof document === 'undefined')('QueryConsole in a DOM', () => {
@@ -173,13 +174,18 @@ describe.skipIf(typeof document === 'undefined')('QueryConsole in a DOM', () => 
         await mounted.unmount();
         await client.dispose();
         const script = 'BEGIN; UPDATE customers SET name = 1 WHERE id = 1; SELECT SLEEP(9)';
+
         let answer: (response: DatabaseResponse) => void = () => {};
+
         let running = '';
+
         client = clientOver(async (request) => {
             if (request.method === 'execute') {
                 running = request.id;
+
                 return new Promise<DatabaseResponse>((resolve) => (answer = resolve));
             }
+
             if (request.method === 'cancel') {
                 const stopped: StatementResult = {
                     kind: 'error',
@@ -187,15 +193,19 @@ describe.skipIf(typeof document === 'undefined')('QueryConsole in a DOM', () => 
                     error: { code: 'cancelled', message: 'The request was cancelled.' },
                     elapsedMs: 4
                 };
+
                 answer({
                     id: running,
                     ok: true,
                     result: { results: [done('BEGIN', 0), done('UPDATE customers SET name = 1 WHERE id = 1'), stopped], inTransaction: true }
                 });
+
                 return { id: request.id, ok: true, result: { cancelled: true } };
             }
+
             return recorded.transport(request);
         });
+
         mounted = await mount(<QueryConsole connection={connection} />, { client, storage });
 
         await type(editor(), script);
@@ -294,11 +304,13 @@ describe.skipIf(typeof document === 'undefined')('the results of a QueryConsole'
 /* An editor of the app's own, with the selection a test sets and a key that runs. */
 function OwnEditor({ ref, value, onValueChange, run, label, busy }: QueryConsoleEditorProps) {
     const area = useRef<HTMLTextAreaElement>(null);
+
     useImperativeHandle(
         ref,
         () => ({ selection: () => ({ start: Number(area.current?.dataset.start ?? 0), end: Number(area.current?.dataset.end ?? 0) }) }),
         []
     );
+
     return (
         <textarea
             ref={area}
@@ -322,6 +334,7 @@ describe.skipIf(typeof document === 'undefined')('a QueryConsole with the editor
     let sql = '';
 
     const own = (): HTMLTextAreaElement => find('textarea[aria-label="Own SQL"]') as HTMLTextAreaElement;
+
     const caret = (start: number, end = start): void => {
         own().dataset.start = String(start);
         own().dataset.end = String(end);
@@ -332,6 +345,7 @@ describe.skipIf(typeof document === 'undefined')('a QueryConsole with the editor
         recorded.onExecute((statement) => [done(statement, 3)]);
         client = clientOver(recorded.transport);
         sql = SCRIPT;
+
         mounted = await mount(
             <QueryConsole
                 connection={connection}
@@ -374,9 +388,11 @@ describe.skipIf(typeof document === 'undefined')('a QueryConsole with the editor
 
     test('keeps the editor of the app when the connection goes and comes back, and runs only with one', async () => {
         const editorBefore = own();
+
         const draw = (withConnection: boolean) => (
             <QueryConsole connection={withConnection ? connection : undefined} value={sql} renderEditor={(editorProps) => <OwnEditor {...editorProps} />} />
         );
+
         await mounted.rerender(draw(false));
         expect(own()).toBe(editorBefore);
         expect(findAll('button').map((button) => button.textContent)).not.toContain('Run');
@@ -435,9 +451,11 @@ describe.skipIf(typeof document === 'undefined')('the schema of a QueryConsole o
 
     test('with onSchemaChange asks for the schema and runs in the one the app gives', async () => {
         const asked: string[] = [];
+
         mounted = await mount(<QueryConsole connection={server} schema="shop" onSchemaChange={(schema) => asked.push(schema)} defaultValue="SELECT 1" />, {
             client
         });
+
         await pick('archive');
         expect(asked).toEqual(['archive']);
         await click(byText('button', 'Run'));
@@ -526,12 +544,14 @@ describe.skipIf(typeof document === 'undefined')('paging a QueryConsole result t
     let recorded: RecordedTransport;
     let client: ReturnType<typeof clientOver>;
     let mounted: Mounted;
+
     const pageOf = (offset: number, count: number) => ({
         columns: [{ name: 'id', type: 'INTEGER', kind: 'integer' as const }],
         rows: Array.from({ length: count }, (_, index) => [offset + index + 1]),
         hasMore: true,
         elapsedMs: 0
     });
+
     const offsets = (): number[] => recorded.of('page').map((request) => request.params.offset);
 
     beforeEach(async () => {

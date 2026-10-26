@@ -50,6 +50,7 @@ describe('parseStoredLayout', () => {
                 orderBy: 'id'
             })
         );
+
         expect(parsed).toEqual({ widths: { name: 120 }, hidden: [], pinned: [], pageSize: null, where: '', orderBy: 'id', filters: [] });
     });
 
@@ -65,6 +66,7 @@ describe('parseStoredLayout', () => {
                 filters: [{ text: 'a = 1', sql: '"a" = 1' }, { text: 'b' }, { text: 'c', sql: '  ' }, 'd', null, { text: 4, sql: 'x' }]
             })
         );
+
         expect(parsed?.filters).toEqual([{ text: 'a = 1', sql: '"a" = 1' }]);
     });
 });

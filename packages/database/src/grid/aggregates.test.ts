@@ -10,6 +10,7 @@ const rows: Shown[][] = [
     ['c', null, '0.25'],
     ['d', 5, { kind: 'default' }]
 ];
+
 const kinds = ['text', 'integer', 'decimal'] as const;
 
 describe('blockSize', () => {
@@ -70,6 +71,7 @@ describe('the extremes of a block in each notation', () => {
 
     const extremes = (notation: 'database' | 'region'): [string, string] => {
         const numeric = aggregateBlock([['1200.50'], ['9007199254740993'], ['-3.250']], ['decimal'], { top: 0, bottom: 2, columns: [0] }).numeric;
+
         return [numeralText(numeric!.minimumText, notation), numeralText(numeric!.maximumText, notation)];
     };
 

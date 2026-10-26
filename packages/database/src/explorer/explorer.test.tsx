@@ -9,6 +9,7 @@ import { stubClient } from '../testing/stub.ts';
 import { DatabaseExplorer } from './DatabaseExplorer.tsx';
 
 const i18n = i18next.createInstance();
+
 await i18n.init({ lng: 'en', fallbackLng: 'en', resources: {}, interpolation: { escapeValue: false } });
 
 const client = stubClient();

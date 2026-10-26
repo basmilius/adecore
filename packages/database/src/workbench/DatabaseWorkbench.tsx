@@ -87,13 +87,17 @@ export function DatabaseWorkbench({ connections, onConnectionsChange, className,
     const known = useMemo(() => new Set(connections.map((connection) => connection.id)), [connections]);
     // While there are no connections they may still be loading, so nothing is dropped then.
     const pruned = known.size > 0 ? pruneTabs(state, known) : state;
+
     if (pruned !== state) {
         setState(pruned);
     }
+
     const isOpen = (id: string): boolean => state.tabs.some((tab) => tab.id === id);
+
     if (![...dirty].every(isOpen)) {
         setDirty(new Set([...dirty].filter(isOpen)));
     }
+
     const tabs = state.tabs.filter((tab) => known.has(connectionIdOf(tab)));
     const active = tabs.find((tab) => tab.id === state.activeId) ?? tabs.at(-1) ?? null;
     const canManage = onConnectionsChange !== undefined;
@@ -104,33 +108,42 @@ export function DatabaseWorkbench({ connections, onConnectionsChange, className,
 
     const onAction = useStableCallback((action: DatabaseAction): void => {
         const connectionId = action.kind === 'open-table' || action.kind === 'edit-table' ? action.ref.connectionId : action.connectionId;
+
         if (!known.has(connectionId) || (action.kind === 'manage-connection' && !canManage)) {
             outer?.(action);
+
             return;
         }
+
         switch (action.kind) {
             case 'open-table':
                 setSelection(action.ref);
                 setState((current) => openTable(current, action.ref, action.view, action.where));
+
                 break;
             case 'open-console':
                 setState((current) => openConsole(current, action.connectionId, action.schema, action.sql));
+
                 break;
             case 'new-table':
                 setState((current) => openDesigner(current, action.connectionId, action.schema));
+
                 break;
             case 'edit-table':
                 setState((current) => openDesigner(current, action.ref.connectionId, action.ref.schema, action.ref.table));
+
                 break;
             case 'manage-connection':
                 setManaged(action.connectionId);
                 setManaging(true);
+
                 break;
         }
     });
 
     function newConsole(): void {
         const context = consoleContext();
+
         if (context !== null) {
             setState((current) => openConsole(current, context.connectionId, context.schema));
         }
@@ -141,10 +154,13 @@ export function DatabaseWorkbench({ connections, onConnectionsChange, className,
         if (active !== null) {
             return { connectionId: connectionIdOf(active), schema: active.kind === 'table' ? active.ref.schema : active.schema };
         }
+
         if (selection !== null && known.has(selection.connectionId)) {
             return { connectionId: selection.connectionId, schema: selection.schema };
         }
+
         const first = connections[0];
+
         return first === undefined ? null : { connectionId: first.id };
     }
 
@@ -179,12 +195,15 @@ export function DatabaseWorkbench({ connections, onConnectionsChange, className,
             if (current.has(id) === isDirty) {
                 return current;
             }
+
             const next = new Set(current);
+
             if (isDirty) {
                 next.add(id);
             } else {
                 next.delete(id);
             }
+
             return next;
         });
     }
@@ -202,9 +221,11 @@ export function DatabaseWorkbench({ connections, onConnectionsChange, className,
 
     const viewOf = (tab: WorkbenchTab) => {
         const connection = connections.find((entry) => entry.id === connectionIdOf(tab));
+
         if (connection === undefined) {
             return null;
         }
+
         switch (tab.kind) {
             case 'table':
                 return <TableTab connection={connection} tab={tab} onDirtyChange={(isDirty) => markDirty(tab.id, isDirty)} />;
@@ -321,6 +342,7 @@ export function DatabaseWorkbench({ connections, onConnectionsChange, className,
                         if (closing !== null) {
                             closeById(closing);
                         }
+
                         setClosing(null);
                     }}
                     onOpenChange={(open) => {

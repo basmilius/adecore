@@ -15,21 +15,28 @@ export interface RowClick {
  */
 export const selectRow = (keys: readonly string[], current: ReadonlySet<string>, anchor: number, index: number, click: RowClick): RowSelection => {
     const key = keys[index];
+
     if (key === undefined) {
         return { selected: current, anchor };
     }
+
     if (click.shiftKey && anchor >= 0 && anchor < keys.length) {
         const from = Math.min(anchor, index);
         const to = Math.max(anchor, index);
         const range = keys.slice(from, to + 1);
+
         return { selected: new Set(click.mod ? [...current, ...range] : range), anchor };
     }
+
     if (click.mod) {
         const next = new Set(current);
+
         if (!next.delete(key)) {
             next.add(key);
         }
+
         return { selected: next, anchor: index };
     }
+
     return { selected: new Set([key]), anchor: index };
 };

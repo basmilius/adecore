@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { firstKeyword, splitStatements, statementAt, tokenize } from './sql-split.ts';
 
 const sqlite = (sql: string): string[] => splitStatements(sql, 'sqlite').map((statement) => statement.text);
+
 const mysql = (sql: string): string[] => splitStatements(sql, 'mysql').map((statement) => statement.text);
 
 describe('splitStatements', () => {
@@ -59,6 +60,7 @@ describe('splitStatements', () => {
 
     test('keeps SQLite trigger bodies whole', () => {
         const sql = 'CREATE TRIGGER t AFTER INSERT ON a BEGIN INSERT INTO b VALUES (CASE WHEN 1 THEN 2 END); UPDATE c SET x = 1; END; SELECT 1';
+
         expect(sqlite(sql)).toEqual([
             'CREATE TRIGGER t AFTER INSERT ON a BEGIN INSERT INTO b VALUES (CASE WHEN 1 THEN 2 END); UPDATE c SET x = 1; END',
             'SELECT 1'

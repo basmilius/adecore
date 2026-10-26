@@ -47,6 +47,7 @@ export function RowMenu({ row, connection, onRefresh, onDisconnect, onRequest }:
 
     const copyDdl = async (ref: TableRef): Promise<void> => {
         const structure = await client.session(connection).structure(ref.schema, ref.table);
+
         if (structure.ddl !== null) {
             copyText(structure.ddl);
         }
@@ -64,6 +65,7 @@ export function RowMenu({ row, connection, onRefresh, onDisconnect, onRequest }:
 
     const tableGroups = (ref: TableRef, kind: TableKind): ReactNode[][] => {
         const request = (change: TableRequest['change']) => (): void => onRequest({ change, connection, ref, kind });
+
         return [
             [
                 actionItem('open-data', Table, t('explorer.openData'), { kind: 'open-table', ref, view: 'data', tableKind: kind }),

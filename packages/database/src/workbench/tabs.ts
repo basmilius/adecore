@@ -32,14 +32,18 @@ const add = (state: WorkbenchState, tab: WorkbenchTab): WorkbenchState => ({ ...
 
 const update = (state: WorkbenchState, id: string, change: (tab: WorkbenchTab) => WorkbenchTab): WorkbenchState => {
     let changed = false;
+
     const tabs = state.tabs.map((tab) => {
         if (tab.id !== id) {
             return tab;
         }
+
         const next = change(tab);
         changed ||= next !== tab;
+
         return next;
     });
+
     return changed ? { ...state, tabs } : state;
 };
 
@@ -51,27 +55,34 @@ export const openTable = (state: WorkbenchState, ref: TableRef, view: TableViewM
     if (where !== undefined && where.trim() !== '') {
         return add({ ...state, serial: state.serial + 1 }, { id: `filtered:${state.serial + 1}`, kind: 'table', ref, view, where });
     }
+
     const id = tableTabId(ref);
     const existing = state.tabs.find((tab) => tab.id === id);
+
     if (existing === undefined) {
         return add(state, { id, kind: 'table', ref, view });
     }
+
     return focusTab(setTableView(state, id, view), id);
 };
 
 export const openConsole = (state: WorkbenchState, connectionId: string, schema?: string, sql = ''): WorkbenchState => {
     const serial = state.serial + 1;
     const consoles = state.consoles + 1;
+
     return add({ ...state, serial, consoles }, { id: `console:${serial}`, kind: 'console', connectionId, schema, sql, number: consoles });
 };
 
 /* A table is designed in one tab; a new table gets a tab each time. */
 export const openDesigner = (state: WorkbenchState, connectionId: string, schema: string, table?: string): WorkbenchState => {
     const existing = table === undefined ? undefined : state.tabs.find((tab) => isDesignerOf(tab, connectionId, schema, table));
+
     if (existing !== undefined) {
         return focusTab(state, existing.id);
     }
+
     const serial = state.serial + 1;
+
     return add({ ...state, serial }, { id: `designer:${serial}`, kind: 'designer', connectionId, schema, table });
 };
 
@@ -84,29 +95,37 @@ export const setConsoleSql = (state: WorkbenchState, id: string, sql: string): W
 /* The designer of a new table became the designer of that table, in the same tab. Closes any other designer of it. */
 export const setDesignerTable = (state: WorkbenchState, id: string, table: string): WorkbenchState => {
     const subject = state.tabs.find((tab) => tab.id === id);
+
     if (subject?.kind !== 'designer' || subject.table === table) {
         return state;
     }
+
     const tabs = state.tabs.filter((tab) => tab.id === id || !isDesignerOf(tab, subject.connectionId, subject.schema, table));
+
     return update({ ...state, tabs }, id, (tab) => (tab.kind === 'designer' ? { ...tab, table } : tab));
 };
 
 /* The tab next to the closed one comes forward when the closed one was in front. */
 export const closeTab = (state: WorkbenchState, id: string): WorkbenchState => {
     const at = state.tabs.findIndex((tab) => tab.id === id);
+
     if (at < 0) {
         return state;
     }
+
     const tabs = state.tabs.filter((tab) => tab.id !== id);
+
     return { ...state, tabs, activeId: state.activeId === id ? (tabs[Math.min(at, tabs.length - 1)]?.id ?? null) : state.activeId };
 };
 
 /* Drops the tabs of connections that are gone. */
 export const pruneTabs = (state: WorkbenchState, connectionIds: ReadonlySet<string>): WorkbenchState => {
     const tabs = state.tabs.filter((tab) => connectionIds.has(connectionIdOf(tab)));
+
     if (tabs.length === state.tabs.length) {
         return state;
     }
+
     return { ...state, tabs, activeId: tabs.some((tab) => tab.id === state.activeId) ? state.activeId : (tabs.at(-1)?.id ?? null) };
 };
 
@@ -118,6 +137,7 @@ const isOptionalText = (value: unknown): value is string | undefined => value ==
 
 const refOf = (value: unknown): TableRef | null => {
     const ref = value as Partial<Record<keyof TableRef, unknown>> | null;
+
     return typeof ref === 'object' && ref !== null && isText(ref.connectionId) && isText(ref.schema) && isText(ref.table)
         ? { connectionId: ref.connectionId, schema: ref.schema, table: ref.table }
         : null;
@@ -125,14 +145,18 @@ const refOf = (value: unknown): TableRef | null => {
 
 const tabOf = (value: unknown): WorkbenchTab | null => {
     const raw = value as Record<string, unknown> | null;
+
     if (typeof raw !== 'object' || raw === null || !isText(raw.id)) {
         return null;
     }
+
     const id = raw.id;
+
     switch (raw.kind) {
         case 'table': {
             const ref = refOf(raw.ref);
             const view = raw.view === 'structure' ? 'structure' : 'data';
+
             return ref === null || !isOptionalText(raw.where) ? null : { id, kind: 'table', ref, view, where: raw.where };
         }
         case 'console':
@@ -153,25 +177,35 @@ export const parseState = (raw: string | null): WorkbenchState => {
     if (raw === null) {
         return emptyState;
     }
+
     let data: Record<string, unknown>;
+
     try {
         data = JSON.parse(raw) as Record<string, unknown>;
     } catch {
         return emptyState;
     }
+
     if (typeof data !== 'object' || data === null || data.version !== 1 || !Array.isArray(data.tabs)) {
         return emptyState;
     }
+
     const seen = new Set<string>();
+
     const tabs = data.tabs.map(tabOf).filter((tab): tab is WorkbenchTab => {
         if (tab === null || seen.has(tab.id)) {
             return false;
         }
+
         seen.add(tab.id);
+
         return true;
     });
+
     const activeId = typeof data.activeId === 'string' && seen.has(data.activeId) ? data.activeId : (tabs.at(-1)?.id ?? null);
+
     const counter = (value: unknown): number => (typeof value === 'number' && Number.isFinite(value) && value >= 0 ? Math.floor(value) : 0);
+
     return {
         tabs,
         activeId,

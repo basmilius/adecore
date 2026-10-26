@@ -105,12 +105,15 @@ const readOnlyReasonOf = (connection: Connection, structure: TableStructure | nu
     if (connection.config.readOnly === true) {
         return t('table.readOnly.connection');
     }
+
     if (structure?.kind === 'view') {
         return t('table.readOnly.view');
     }
+
     if (structure !== null && structure.rowKey === null) {
         return t('table.readOnly.noKey');
     }
+
     return null;
 };
 
@@ -170,6 +173,7 @@ function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defa
     const counter = useRef<AbortController | null>(null);
     const insertedBefore = useRef(0);
     const engine = connection.config.engine;
+
     const [chips, setChips] = useState<Chip[]>(() =>
         chipsFromQuery(engine, {
             where: defaultWhere ?? stored?.where ?? '',
@@ -177,6 +181,7 @@ function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defa
             remembered: defaultWhere === undefined ? stored?.filters : undefined
         })
     );
+
     const [offset, setOffset] = useState(0);
     const [pageSize, setPageSize] = useState(stored?.pageSize ?? DEFAULT_PAGE_SIZE);
     const [pending, setPending] = useState<PendingChanges>(emptyPending);
@@ -197,6 +202,7 @@ function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defa
     const applied = useMemo((): Filters => ({ where: chipsToWhere(chips), orderBy: chipsToOrderBy(engine, chips) }), [chips, engine]);
     const target = `${connection.id}|${schema}|${table}`;
     const structureLoad = useLoaded((signal) => session.structure(schema, table, { signal }), target);
+
     // The offset travels with the page it belongs to, since the page on screen lags behind the one asked for.
     const rowsLoad = useLoaded(
         async (signal) => ({
@@ -210,6 +216,7 @@ function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defa
         }),
         JSON.stringify([target, applied, offset, pageSize])
     );
+
     const structure = structureLoad.value;
     const loaded = rowsLoad.value?.result ?? null;
     const loadedOffset = rowsLoad.value?.offset ?? 0;
@@ -218,10 +225,12 @@ function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defa
     const editable = readOnlyReason === null && structure !== null && loaded !== null && !rowsLoad.loading;
 
     const columns = useMemo(() => (loaded === null ? [] : buildGridColumns(loaded, structure)), [loaded, structure]);
+
     const rows = useMemo(
         () => (loaded === null ? [] : buildGridRows({ structure, loaded, pending, offset: loadedOffset })),
         [loaded, structure, pending, loadedOffset]
     );
+
     const transfer = useTableTransfer({
         client,
         session,
@@ -249,6 +258,7 @@ function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defa
                               : { tone: 'success', title: transferText(found, t) }
                       )
     });
+
     const changeCount = pendingCount(pending);
     const dirty = changeCount > 0;
     const reportDirty = useRef(onDirtyChange);
@@ -259,6 +269,7 @@ function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defa
     // The record view shows the row of the focused cell, or the first row before a cell has the focus.
     const focusedIndex = focus === null ? -1 : rows.findIndex((row) => row.key === focus.rowKey);
     const recordIndex = focusedIndex >= 0 ? focusedIndex : rows.length > 0 ? 0 : -1;
+
     const selectionFigures = useMemo(
         () =>
             range === null || blockSize(range) < 2
@@ -273,6 +284,7 @@ function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defa
                   },
         [range, rows, columns]
     );
+
     const sqlTarget = useMemo((): SqlTarget => ({ engine, schema, table }), [engine, schema, table]);
 
     useSchemaChange(connection.id, schema, () => {
@@ -299,6 +311,7 @@ function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defa
     useEffect(() => {
         const controller = new AbortController();
         lifetime.current = controller;
+
         return () => {
             controller.abort();
             counter.current?.abort();
@@ -309,6 +322,7 @@ function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defa
         if (pending.inserts.length > insertedBefore.current && grid.current !== null) {
             grid.current.scrollTop = grid.current.scrollHeight;
         }
+
         insertedBefore.current = pending.inserts.length;
     }, [pending.inserts.length]);
 
@@ -342,11 +356,14 @@ function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defa
         const where = chipsToWhere(next);
         const orderBy = chipsToOrderBy(engine, next);
         const filters = next.filter((chip): chip is FilterChip => chip.kind === 'filter').map(({ text, sql }) => ({ text, sql }));
+
         if (where === applied.where && orderBy === applied.orderBy) {
             remember({ filters });
             setChips([...next]);
+
             return;
         }
+
         guard(() => {
             remember({ where, orderBy, filters });
             counter.current?.abort();
@@ -367,11 +384,13 @@ function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defa
         const row = parseRowKey(cell.rowKey);
         const column = loaded?.columns[cell.column];
         const value = loaded === null || row.kind !== 'loaded' ? undefined : valueOfCell(loaded.rows[row.index]?.[cell.column] ?? null);
+
         return column === undefined || value === undefined ? null : cellChip(engine, column.name, value, column.kind, exclude);
     };
 
     const sortByColumn = (cell: FocusedCell): void => {
         const name = columns[cell.column]?.name;
+
         if (name !== undefined) {
             applyChips(toggleSort(chips, name));
         }
@@ -379,6 +398,7 @@ function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defa
 
     const jumpToColumn = (name: string): void => {
         const index = columns.findIndex((column) => column.name === name);
+
         if (index >= 0) {
             setRecordOpen(false);
             setColumnRequest({ column: index });
@@ -415,10 +435,13 @@ function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defa
         counter.current?.abort();
         counter.current = controller;
         setCounting(true);
+
         try {
             const total = await session.count(schema, table, applied.where || undefined, { signal: controller.signal });
+
             if (!controller.signal.aborted) {
                 setCounted(total);
+
                 return total;
             }
         } catch (error) {
@@ -430,11 +453,13 @@ function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defa
                 setCounting(false);
             }
         }
+
         return null;
     };
 
     const goToLast = async (): Promise<void> => {
         const total = counted ?? (await countRows());
+
         if (total !== null) {
             goToPage(lastPageOffset(total, pageSize));
         }
@@ -443,9 +468,11 @@ function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defa
     const commit = (rowKey: string, column: number, value: EditValue): void => {
         const name = loaded?.columns[column]?.name;
         const row = parseRowKey(rowKey);
+
         if (loaded === null || name === undefined) {
             return;
         }
+
         if (row.kind === 'inserted') {
             setPending((now) => setInsertValue(now, row.id, name, value));
         } else {
@@ -457,13 +484,16 @@ function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defa
         const row = parseRowKey(rowKey);
         const name = loaded?.columns[column]?.name;
         const key = row.kind === 'loaded' && structure !== null && loaded !== null ? rowKeyOf(structure, loaded, row.index) : null;
+
         if (key === null || name === undefined) {
             return undefined;
         }
+
         try {
             return await session.cell(schema, table, key, name, { signal: lifetime.current?.signal });
         } catch (error) {
             setFailure(messageOf(error));
+
             return undefined;
         }
     });
@@ -471,14 +501,17 @@ function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defa
     const refsOf = (keys: Iterable<string>): RowSelectionRefs => {
         const loadedRows: number[] = [];
         const inserted: number[] = [];
+
         for (const key of keys) {
             const row = parseRowKey(key);
+
             if (row.kind === 'inserted') {
                 inserted.push(row.id);
             } else {
                 loadedRows.push(row.index);
             }
         }
+
         return { loaded: loadedRows, inserted };
     };
 
@@ -486,11 +519,13 @@ function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defa
         setPending((now) => {
             const refs = refsOf(keys);
             const next = refs.inserted.reduce(removeInsert, now);
+
             return markDeleted(
                 next,
                 refs.loaded.filter((index) => loaded !== null && structure !== null && rowKeyOf(structure, loaded, index) !== null)
             );
         });
+
         setSelected(NO_KEYS);
     };
 
@@ -512,16 +547,19 @@ function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defa
         const column = columns[cell.column];
         const key = column === undefined || structure === null ? undefined : foreignKeyOf(structure.foreignKeys, column.name);
         const row = rowByKey.get(cell.rowKey);
+
         return key === undefined || row === undefined ? null : referenceOf(engine, key, columns, row.cells);
     };
 
     const isReferenceColumn = (column: number): boolean => {
         const name = columns[column]?.name;
+
         return name !== undefined && structure !== null && foreignKeyOf(structure.foreignKeys, name) !== undefined;
     };
 
     const follow = (cell: FocusedCell): void => {
         const reference = referenceAt(cell);
+
         if (reference !== null) {
             onAction?.({
                 kind: 'open-table',
@@ -544,6 +582,7 @@ function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defa
 
     const changeRecordIndex = (index: number): void => {
         const row = rows[index];
+
         if (row !== undefined) {
             followInGrid({ rowKey: row.key, column: focus?.column ?? 0 });
         }
@@ -552,11 +591,14 @@ function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defa
     const queryMenu = (context: GridMenuContext): ReactNode => {
         const cell = context.cell;
         const name = cell === null ? undefined : columns[cell.column]?.name;
+
         if (cell === null || name === undefined) {
             return null;
         }
+
         const include = cellChipAt(cell, false);
         const exclude = cellChipAt(cell, true);
+
         return (
             <>
                 <ContextMenu.Item disabled={include === null} onClick={() => include !== null && applyChips(addChip(chips, include))}>
@@ -583,6 +625,7 @@ function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defa
 
     const gridMenu = (context: GridMenuContext): ReactNode => {
         const count = context.rowKeys.length;
+
         return (
             <>
                 <ContextMenu.Item disabled={!editable} onClick={() => cloneRows(context.rowKeys)}>
@@ -607,9 +650,11 @@ function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defa
 
     const conflictMessage = (error: DatabaseRequestError, changes: readonly RowChange[]): string => {
         const change = error.change === undefined ? undefined : changes[error.change];
+
         if (error.change === undefined || change === undefined || change.kind === 'insert') {
             return error.message;
         }
+
         return t('table.conflict', { number: formatNumber(error.change + 1), row: describeKey(change.key) });
     };
 
@@ -617,9 +662,11 @@ function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defa
         if (structure === null || loaded === null) {
             return;
         }
+
         const changes = toRowChanges(structure, loaded, pending);
         setSubmitting(true);
         setFailure(null);
+
         try {
             await session.apply(schema, table, changes);
             discardPending();
@@ -826,6 +873,7 @@ interface TransferBannerProps {
 
 function TransferBanner({ notice, onCancel, onDismiss }: TransferBannerProps) {
     const { t } = useTranslation('database');
+
     return (
         <Banner
             icon={notice.kind === 'failed' ? CircleAlert : notice.kind === 'exporting' ? Download : Check}

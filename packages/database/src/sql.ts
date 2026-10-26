@@ -31,6 +31,7 @@ const markOf = (engine: Engine): string => (engine === 'mysql' ? '`' : '"');
 
 export const quoteIdentifier = (engine: Engine, name: string): string => {
     const mark = markOf(engine);
+
     return `${mark}${name.replaceAll(mark, mark + mark)}${mark}`;
 };
 
@@ -43,6 +44,7 @@ export const qualifiedName = (target: SqlTarget): string =>
 const stringLiteral = (engine: Engine, text: string): string => {
     // MySQL reads a backslash as an escape unless the server runs with NO_BACKSLASH_ESCAPES.
     const escaped = engine === 'mysql' ? text.replaceAll('\\', '\\\\') : text;
+
     return `'${escaped.replaceAll("'", "''")}'`;
 };
 
@@ -53,6 +55,7 @@ export const sqlLiteral = (engine: Engine, value: LiteralValue, kind?: ValueKind
     if (value === null) {
         return 'NULL';
     }
+
     switch (typeof value) {
         case 'boolean':
             return engine === 'mysql' ? (value ? 'TRUE' : 'FALSE') : value ? '1' : '0';
@@ -60,9 +63,11 @@ export const sqlLiteral = (engine: Engine, value: LiteralValue, kind?: ValueKind
             return Number.isFinite(value) ? String(value) : 'NULL';
         case 'string': {
             const trimmed = value.trim();
+
             return kind !== undefined && isNumericKind(kind) && NUMERIC_TEXT.test(trimmed) ? trimmed : stringLiteral(engine, value);
         }
     }
+
     switch (value.kind) {
         case 'default':
             return 'DEFAULT';
@@ -97,43 +102,56 @@ export const orderByClause = (engine: Engine, sorts: readonly ColumnSort[]): str
 
 const unquote = (engine: Engine, word: string): string | null => {
     const mark = word[0]!;
+
     if (mark !== '`' && mark !== '"') {
         return word;
     }
+
     // A double quoted word is a string in MySQL, which sorts by a constant and so is not a column.
     if (mark === '"' && engine === 'mysql') {
         return null;
     }
+
     return word.slice(1, -1).replaceAll(mark + mark, mark);
 };
 
 const readOrderBy = (engine: Engine, text: string, resolve: (word: string) => string | undefined): ColumnSort[] | null => {
     const source = text.trim();
+
     if (source === '') {
         return [];
     }
+
     const sorts: ColumnSort[] = [];
     let position = 0;
+
     while (position < source.length) {
         ORDER_ITEM.lastIndex = position;
         const match = ORDER_ITEM.exec(source);
+
         if (match === null) {
             return null;
         }
+
         const word = unquote(engine, match[1]!);
         const column = word === null ? undefined : resolve(word);
+
         if (column === undefined || sorts.some((sort) => sort.column === column)) {
             return null;
         }
+
         sorts.push({ column, direction: match[2]?.toLowerCase() === 'desc' ? 'desc' : 'asc' });
         position = ORDER_ITEM.lastIndex;
+
         if (match[3] === '') {
             return sorts;
         }
+
         if (position >= source.length) {
             return null;
         }
     }
+
     return sorts;
 };
 
@@ -154,5 +172,6 @@ export const parseOrderByLoose = (engine: Engine, text: string): ColumnSort[] | 
 /* The column a word names, which may be quoted the way the engine quotes, or `undefined` when none of the columns is meant. */
 export const findColumn = (engine: Engine, word: string, columns: readonly string[]): string | undefined => {
     const bare = unquote(engine, word);
+
     return bare === null ? undefined : matchColumn(columns, bare);
 };

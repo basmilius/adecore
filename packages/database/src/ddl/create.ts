@@ -9,22 +9,27 @@ const INDENT = '    ';
 /* `CONSTRAINT name FOREIGN KEY (...) REFERENCES t (...) ON UPDATE .. ON DELETE ..`, shared by a create and an `ADD`. */
 export const foreignKeySql = (dialect: Dialect, schema: string, foreignKey: ForeignKeyDraft): string => {
     const sqlite = dialect.engine === 'sqlite';
+
     // SQLite cannot name another schema in a reference, and MySQL needs one only for another database.
     const target =
         sqlite || foreignKey.referencedSchema === '' || foreignKey.referencedSchema === schema
             ? quote(dialect, foreignKey.referencedTable)
             : `${quote(dialect, foreignKey.referencedSchema)}.${quote(dialect, foreignKey.referencedTable)}`;
+
     const parts = [
         ...(foreignKey.name === '' ? [] : [`CONSTRAINT ${quote(dialect, foreignKey.name)}`]),
         `FOREIGN KEY (${columnList(dialect, foreignKey.columns)})`,
         `REFERENCES ${target} (${columnList(dialect, foreignKey.referencedColumns)})`
     ];
+
     if (foreignKey.onUpdate !== null) {
         parts.push(`ON UPDATE ${foreignKey.onUpdate}`);
     }
+
     if (foreignKey.onDelete !== null) {
         parts.push(`ON DELETE ${foreignKey.onDelete}`);
     }
+
     return parts.join(' ');
 };
 
@@ -33,6 +38,7 @@ export const mysqlOptionsSql = (options: TableOptions, against?: TableOptions): 
     // Only a comment can be emptied; an engine, a character set or a collation has no empty value to ask for.
     const changed = (field: 'engine' | 'charset' | 'collation' | 'comment'): boolean =>
         options[field] !== against?.[field] && (options[field] !== '' || (field === 'comment' && against !== undefined));
+
     return [
         ...(changed('engine') ? [`ENGINE=${options.engine}`] : []),
         ...(changed('charset') ? [`DEFAULT CHARSET=${options.charset}`] : []),
@@ -59,16 +65,21 @@ export interface CreateParts {
 /* The `CREATE TABLE` of a draft under a name of the caller's choosing, which a rebuild uses for the table it fills before the swap. */
 export const createTableParts = (dialect: Dialect, schema: string, draft: TableDraft, name: string): CreateParts => {
     const sqlite = dialect.engine === 'sqlite';
+
     // SQLite declares AUTOINCREMENT on the column itself, which then is the whole primary key; a WITHOUT ROWID table has no rowid to count.
     const autoColumn =
         sqlite && draft.primaryKey.length === 1 && !draft.options.withoutRowid
             ? draft.columns.find((column) => column.name === draft.primaryKey[0] && column.autoIncrement)?.name
             : undefined;
+
     const lines = draft.columns.map((column) => columnSql(dialect, column, { inlinePrimaryKey: column.name === autoColumn }));
+
     if (draft.primaryKey.length > 0 && autoColumn === undefined) {
         lines.push(`PRIMARY KEY (${columnList(dialect, draft.primaryKey)})`);
     }
+
     const separate: IndexDraft[] = [];
+
     for (const index of draft.indexes) {
         if (!sqlite) {
             lines.push(inlineIndexSql(dialect, index));
@@ -78,15 +89,19 @@ export const createTableParts = (dialect: Dialect, schema: string, draft: TableD
             separate.push(index);
         }
     }
+
     for (const foreignKey of draft.foreignKeys) {
         lines.push(foreignKeySql(dialect, schema, foreignKey));
     }
+
     const options = sqlite ? sqliteOptionsSql(draft.options).join(', ') : mysqlOptionsSql(draft.options).join(' ');
     const head = `CREATE TABLE ${tableName(dialect, schema, name)} (\n${lines.map((line) => INDENT + line).join(',\n')}\n)`;
+
     return { table: options === '' ? head : `${head} ${options}`, indexes: separate };
 };
 
 export const createTableSql = (dialect: Dialect, schema: string, draft: TableDraft): string[] => {
     const { table, indexes } = createTableParts(dialect, schema, draft, draft.name);
+
     return [table, ...indexes.map((index) => createIndexSql(dialect, schema, draft.name, index))];
 };

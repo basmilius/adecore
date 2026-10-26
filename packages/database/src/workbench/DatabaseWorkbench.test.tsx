@@ -11,6 +11,7 @@ import { DatabaseWorkbench } from './DatabaseWorkbench.tsx';
 import { emptyState, openConsole, openDesigner, openTable, serializeState, STORAGE_KEY } from './tabs.ts';
 
 const i18n = i18next.createInstance();
+
 await i18n.init({ lng: 'en', fallbackLng: 'en', resources: {}, interpolation: { escapeValue: false } });
 
 const client = stubClient({ session: (connection) => stubSession(connection) });

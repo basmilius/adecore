@@ -18,6 +18,7 @@ const speaksProtocol = (): boolean => {
 
     try {
         const output = Bun.spawnSync([HELPER], { stdin: 'ignore', stdout: 'pipe', stderr: 'ignore', timeout: 5000 }).stdout.toString();
+
         return (JSON.parse(output.split('\n')[0] ?? '') as { protocol?: unknown }).protocol === PROTOCOL_VERSION;
     } catch {
         return false;
@@ -36,6 +37,7 @@ afterAll(async () => {
 });
 
 const available = speaksProtocol();
+
 if (process.env.ADECORE_REQUIRE_DATABASE_HELPER === '1' && !available) {
     throw new Error('The database integration suite requires a release helper with the current protocol.');
 }
@@ -43,10 +45,12 @@ if (process.env.ADECORE_REQUIRE_DATABASE_HELPER === '1' && !available) {
 describe.skipIf(!available)('the page, the host and the helper together', () => {
     test('a table made in the console reads back, edits and counts', async () => {
         const session = client.session(shop);
+
         const { results: created } = await session.execute(`
             CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL, note TEXT, avatar BLOB);
             INSERT INTO customers (name, note, avatar) VALUES ('Ada', '${'x'.repeat(2000)}', x'89504e47'), ('Linus', NULL, NULL);
         `);
+
         expect(created.map((result) => result.kind)).toEqual(['done', 'done']);
 
         const page = await session.rows('main', 'customers', { offset: 0, limit: 1, orderBy: 'id' });
@@ -60,6 +64,7 @@ describe.skipIf(!available)('the page, the host and the helper together', () => 
             { kind: 'update', key: { id: 2 }, values: { note: 'kernel' } },
             { kind: 'insert', values: { name: 'Grace' } }
         ]);
+
         expect(affected).toBe(2);
         expect(await session.count('main', 'customers', 'note IS NOT NULL')).toBe(2);
 
@@ -69,6 +74,7 @@ describe.skipIf(!available)('the page, the host and the helper together', () => 
 
     test('a write the server refuses rolls the whole change set back', async () => {
         const session = client.session(shop);
+
         await expect(
             session.apply('main', 'customers', [
                 { kind: 'insert', values: { name: 'Margaret' } },
@@ -116,10 +122,12 @@ describe.skipIf(!available)('the page, the host and the helper together', () => 
     test('an aborted script is cancelled on the server and answers what it wrote first', async () => {
         const session = client.session(shop);
         const controller = new AbortController();
+
         const running = session.execute(
             "UPDATE customers SET note = 'seen' WHERE id = 1; WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n) SELECT COUNT(*) FROM n",
             { signal: controller.signal }
         );
+
         setTimeout(() => controller.abort(), 100);
         const { results, inTransaction } = await running;
         expect(results.map((result) => (result.kind === 'error' ? result.error.code : result.kind))).toEqual(['done', 'cancelled']);

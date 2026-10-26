@@ -15,6 +15,7 @@ export interface DestructiveDialogProps {
 /* Lists the statements that cannot be taken back and asks before they run. */
 export function DestructiveDialog({ statements, onConfirm, onCancel, ref }: DestructiveDialogProps) {
     const { t } = useTranslation('database');
+
     return (
         <PromptDialog
             ref={ref}

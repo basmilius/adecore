@@ -21,7 +21,9 @@ const rows: GridRow[] = [
 ];
 
 const rowHeaders = (): HTMLElement[] => findAll('[role=rowheader]');
+
 const columnHeaders = (): HTMLElement[] => findAll('[role=columnheader]');
+
 const selectedRows = (): string[] => findAll('[role=row][aria-selected=true]').map((row) => row.getAttribute('aria-rowindex') ?? '');
 
 /* The menu closes on the press in a browser, so the click that follows lands on whatever lay under the pointer. */
@@ -81,6 +83,7 @@ describe.skipIf(typeof document === 'undefined')('DataGrid menu of an editable c
 
     beforeEach(async () => {
         client = clientOver(fakeDatabaseTransport({ databases: {} }));
+
         mounted = await mount(
             <DataGrid
                 label="Customers"
@@ -120,6 +123,7 @@ describe.skipIf(typeof document === 'undefined')('DataGrid with pinned columns',
 
     beforeEach(async () => {
         client = clientOver(fakeDatabaseTransport({ databases: {} }));
+
         mounted = await mount(
             <DataGrid
                 label="Customers"
@@ -141,18 +145,23 @@ describe.skipIf(typeof document === 'undefined')('DataGrid with pinned columns',
 
     test('stick with the gutter as one block in every row and the header, so no offset can drift', () => {
         const [header, first, second] = findAll('[role=row]');
+
         const blockOf = (line: Element | undefined): HTMLElement[] => [...(line!.firstElementChild as HTMLElement).children] as HTMLElement[];
+
         expect((header!.firstElementChild as HTMLElement).className).toContain('sticky left-0');
         expect(blockOf(header).map((part) => part.textContent)).toEqual(['', 'email', 'name']);
         expect(blockOf(first).map((part) => part.textContent)).toEqual(['1', 'ada@example.com', 'Ada']);
         expect(blockOf(second).map((part) => part.textContent)).toEqual(['2', 'grace@example.com', 'Grace']);
+
         // Every part of the block has the width of its column, the same in the header and the rows, and the rest follows the block.
         for (const line of [header, first, second]) {
             expect(blockOf(line).map(widthOf)).toEqual(blockOf(header).map(widthOf));
         }
+
         expect(widthOf(blockOf(header)[1]!)).toBe(201);
         expect(header!.children[1]?.textContent).toBe('id');
         expect(first!.children[1]?.textContent).toBe('1');
+
         for (const cell of [...findAll('[role=gridcell]'), ...findAll('[role=columnheader]'), ...findAll('[role=rowheader]')]) {
             expect(cell.style.left).toBe('');
         }
@@ -161,11 +170,14 @@ describe.skipIf(typeof document === 'undefined')('DataGrid with pinned columns',
     test('paint the gutter and the pinned columns under their own line, so nothing that scrolls shows through it', () => {
         const pinned = findAll('[role=row]').flatMap((line) => [...(line.firstElementChild as HTMLElement).children]);
         expect(pinned.length).toBe(9);
+
         for (const part of pinned) {
             expect(part.className).toContain('bg-clip-border');
         }
+
         const scrolling = findAll('[role=gridcell]').filter((cell) => !pinned.includes(cell));
         expect(scrolling.length).toBe(4);
+
         for (const cell of scrolling) {
             expect(cell.className).not.toContain('bg-clip-border');
         }
@@ -202,6 +214,7 @@ describe.skipIf(typeof document === 'undefined')('DataGrid copying a preview', (
 
     beforeEach(() => {
         written = [];
+
         Object.defineProperty(navigator, 'clipboard', {
             value: {
                 writeText: async (text: string) => {
@@ -210,12 +223,14 @@ describe.skipIf(typeof document === 'undefined')('DataGrid copying a preview', (
             },
             configurable: true
         });
+
         client = clientOver(fakeDatabaseTransport({ databases: {} }));
     });
 
     afterEach(async () => {
         await mounted?.unmount();
         await client.dispose();
+
         if (original) {
             Object.defineProperty(navigator, 'clipboard', original);
         } else {
@@ -226,10 +241,13 @@ describe.skipIf(typeof document === 'undefined')('DataGrid copying a preview', (
     test('copies the whole value it loads', async () => {
         const notices: DatabaseNotice[] = [];
         const asked: [string, number][] = [];
+
         await mountWith(async (rowKey, column) => {
             asked.push([rowKey, column]);
+
             return LONG;
         }, notices);
+
         await copyBodyAsSql();
 
         expect(await waitFor(() => written[0]!)).toBe(`INSERT INTO "posts" ("name") VALUES ('${LONG}');`);
@@ -271,12 +289,14 @@ describe.skipIf(typeof document === 'undefined')('DataGrid without a connection'
     function FileGrid() {
         const [sorts, setSorts] = useState<readonly GridSort[]>([]);
         const sorted = sorts.length === 0 ? fileRows : [...fileRows].sort((left, right) => compareRows(left, right, sorts[0]!));
+
         return <DataGrid label="cities.csv" columns={fileColumns} rows={sorted} sorts={sorts} onSortsChange={setSorts} />;
     }
 
     const compareRows = (left: GridRow, right: GridRow, sort: GridSort): number => {
         const column = fileColumns.findIndex((candidate) => candidate.name === sort.column);
         const order = String(left.cells[column]).localeCompare(String(right.cells[column]));
+
         return sort.direction === 'asc' ? order : -order;
     };
 

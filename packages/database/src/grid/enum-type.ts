@@ -11,44 +11,59 @@ const DECLARATION = /^(enum|set)\s*\(/i;
  */
 export const parseEnumType = (type: string): EnumType | null => {
     const head = DECLARATION.exec(type.trim());
+
     if (head === null) {
         return null;
     }
+
     const source = type.trim().slice(head[0].length);
     const values: string[] = [];
     let position = 0;
+
     while (position < source.length) {
         if (source[position] !== "'") {
             return null;
         }
+
         position++;
         let value = '';
+
         for (;;) {
             if (position >= source.length) {
                 return null;
             }
+
             if (source[position] === "'") {
                 if (source[position + 1] === "'") {
                     value += "'";
                     position += 2;
+
                     continue;
                 }
+
                 position++;
+
                 break;
             }
+
             value += source[position];
             position++;
         }
+
         values.push(value);
         const next = source[position];
+
         if (next === ')') {
             return source.slice(position + 1).trim() === '' ? tidy(head[1]!, values) : null;
         }
+
         if (next !== ',') {
             return null;
         }
+
         position++;
     }
+
     return null;
 };
 

@@ -95,6 +95,7 @@ export const spawnHelper = (path: string, options: SpawnHelperOptions = {}): Hel
             finish(null);
         }
     });
+
     child.on('close', (code, signal) => finish(code, signal));
 
     return {
@@ -109,6 +110,7 @@ export const spawnHelper = (path: string, options: SpawnHelperOptions = {}): Hel
         onExit(listener): void {
             if (finished) {
                 queueMicrotask(() => listener(exitCode, exitSignal));
+
                 return;
             }
 

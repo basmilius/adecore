@@ -146,12 +146,14 @@ export function QueryConsole({
     const channel = `console:${useId()}`;
     const session = useMemo(() => (connection === undefined ? null : client.session(connection, channel)), [client, connection, channel]);
     const engine = connection?.config.engine;
+
     useEffect(
         () => () => {
             void session?.close();
         },
         [session]
     );
+
     // Nothing is recorded without a connection, so the key of none is never written.
     const history = useConsoleHistory(connection?.id ?? '');
     const running = useRef<AbortController | null>(null);
@@ -179,6 +181,7 @@ export function QueryConsole({
     // Closed until the first run, so the editor has the whole height before anything ran.
     const [resultsOpen, setResultsOpen] = useState(false);
     const [resultsHeight, setResultsHeight] = useState(() => parseStoredSize(storage?.get(RESULTS_HEIGHT_KEY), MIN_RESULTS_HEIGHT));
+
     const { startResize } = useColumnResize(resultsPane, {
         size: resultsHeight ?? MIN_RESULTS_HEIGHT,
         min: MIN_RESULTS_HEIGHT,
@@ -186,6 +189,7 @@ export function QueryConsole({
         max: () => (resultsPane.current?.parentElement?.clientHeight ?? 0) - MIN_EDITOR_HEIGHT,
         onSize: setResultsHeight
     });
+
     const sql = value ?? own;
     const blank = sql.trim() === '';
     const busy = run.status === 'running' || settling;
@@ -208,11 +212,14 @@ export function QueryConsole({
         if (session === null || engine !== 'mysql') {
             return undefined;
         }
+
         const controller = new AbortController();
+
         session
             .schemas({ signal: controller.signal })
             .then((list) => setSchemas(orderSchemas(list)))
             .catch(() => undefined);
+
         return () => controller.abort();
     }, [engine, session]);
 
@@ -228,6 +235,7 @@ export function QueryConsole({
         if (value === undefined) {
             setOwn(next);
         }
+
         onValueChange?.(next);
     };
 
@@ -236,15 +244,20 @@ export function QueryConsole({
         if (engine === undefined) {
             return null;
         }
+
         const selection = editorHandle.current?.selection();
+
         if (scope === 'all' || selection === undefined) {
             return splitStatements(sql, engine).length === 0 ? null : sql;
         }
+
         const { start, end } = selection;
         const selected = sql.slice(start, end);
+
         if (splitStatements(selected, engine).length > 0) {
             return selected;
         }
+
         return statementAt(sql, start, engine)?.text ?? null;
     };
 
@@ -252,11 +265,15 @@ export function QueryConsole({
         if (target === null || busy || engine === undefined) {
             return;
         }
+
         const statements = findDestructive(target, engine);
+
         if (statements.length > 0) {
             setConfirming({ target, statements });
+
             return;
         }
+
         void execute(target);
     };
 
@@ -264,18 +281,22 @@ export function QueryConsole({
         if (session === null || connection === undefined) {
             return;
         }
+
         const controller = new AbortController();
         const mine = ++generation.current;
         running.current = controller;
         setResultsOpen(true);
         setRun({ status: 'running' });
         setNotice(null);
+
         const record = (outcome: Pick<HistoryEntry, 'ok' | 'rows'>): void =>
             history.record({ sql: target, at: Date.now(), connection: connection.name, ...outcome });
+
         try {
             if (mode === 'manual' && !inTransaction) {
                 setInTransaction(await session.transaction('begin', { signal: controller.signal }));
             }
+
             // A cancel that stopped the run midway still answers what ran and whether a transaction stayed open.
             const executed = await session.execute(target, { schema: activeSchema, limit: PAGE_SIZE, signal: controller.signal });
             setInTransaction(executed.inTransaction);
@@ -299,6 +320,7 @@ export function QueryConsole({
 
     const pickHistory = (entry: HistoryEntry, runIt: boolean): void => {
         changeSql(entry.sql);
+
         if (runIt) {
             requestRun(entry.sql);
         }
@@ -308,9 +330,12 @@ export function QueryConsole({
         if (session === null) {
             return false;
         }
+
         setSettling(true);
+
         try {
             setInTransaction(await session.transaction(action));
+
             return true;
         } catch (error) {
             notify({
@@ -318,6 +343,7 @@ export function QueryConsole({
                 title: t(action === 'commit' ? 'console.transaction.commitFailed' : 'console.transaction.rollbackFailed'),
                 description: messageOf(error)
             });
+
             return false;
         } finally {
             setSettling(false);
@@ -328,6 +354,7 @@ export function QueryConsole({
         if (await settle(action)) {
             setMode('auto');
         }
+
         setEndingManual(false);
     };
 
@@ -343,11 +370,14 @@ export function QueryConsole({
         if (session === null) {
             return;
         }
+
         const mine = generation.current;
         setPaging(true);
         setNotice(null);
+
         try {
             const rows = await session.page(result.sql, { schema: activeSchema, offset, limit: PAGE_SIZE });
+
             if (generation.current === mine) {
                 setPages((current) => ({ ...current, [index]: { offset, rows, before } }));
             }
@@ -362,9 +392,12 @@ export function QueryConsole({
         if (files === undefined || session === null) {
             return;
         }
+
         setExporting(true);
+
         try {
             const path = await files.save({ suggestedName: `result.${format}`, format });
+
             if (path !== null) {
                 const exported = await session.export({ source: { kind: 'query', sql: result.sql, schema: activeSchema }, format, path });
                 notify({ tone: 'success', title: t('console.exported', { count: exported.rows, formatted: formatNumber(exported.rows) }) });
@@ -383,6 +416,7 @@ export function QueryConsole({
     const shown: StatementResult | undefined = base?.kind === 'rows' && page !== undefined ? { kind: 'rows', sql: base.sql, ...page.rows } : base;
     const offset = page?.offset ?? 0;
     const before = page?.before ?? [];
+
     const pager: ResultPager | undefined =
         base?.kind === 'rows' && shown?.kind === 'rows' && engine !== undefined && isPageable(base.sql, engine) && (shown.hasMore || offset > 0)
             ? {
@@ -392,6 +426,7 @@ export function QueryConsole({
                   onNext: () => void loadPage(index, base, offset + shown.rows.length, [...before, offset])
               }
             : undefined;
+
     const exportBase = files !== undefined && base?.kind === 'rows' ? base : undefined;
     // Read for the statement, not for each page of it, so paging through a result asks for nothing again.
     const keys = useResultKeys(session, engine, base);
@@ -530,6 +565,7 @@ export function QueryConsole({
                 onConfirm={() => {
                     const target = confirming?.target;
                     setConfirming(null);
+
                     if (target !== undefined) {
                         void execute(target);
                     }

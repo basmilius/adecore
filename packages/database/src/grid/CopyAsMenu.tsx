@@ -13,6 +13,7 @@ export interface CopyAsMenuProps {
 
 export function CopyAsMenu({ disabled, formats, onCopy }: CopyAsMenuProps) {
     const { t } = useTranslation('database');
+
     return (
         <ContextMenu.SubmenuRoot>
             <ContextMenu.SubmenuTrigger disabled={disabled}>

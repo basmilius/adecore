@@ -45,7 +45,9 @@ const structure: TableStructure = {
 };
 
 const base = draftOf(structure);
+
 const keyOf = (draft: TableDraft, name: string): string => draft.columns.find((column) => column.name === name)!.key;
+
 const names = (draft: TableDraft): string[] => draft.columns.map((column) => column.name);
 
 describe('editing columns', () => {

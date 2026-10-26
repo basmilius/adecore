@@ -47,23 +47,29 @@ const longestRun = (positions: readonly number[]): ReadonlySet<number> => {
     const length: number[] = [];
     const previous: number[] = [];
     let best = -1;
+
     for (let i = 0; i < positions.length; i++) {
         length[i] = 1;
         previous[i] = -1;
+
         for (let before = 0; before < i; before++) {
             if (positions[before]! < positions[i]! && length[before]! + 1 > length[i]!) {
                 length[i] = length[before]! + 1;
                 previous[i] = before;
             }
         }
+
         if (best < 0 || length[i]! > length[best]!) {
             best = i;
         }
     }
+
     const run = new Set<number>();
+
     for (let at = best; at >= 0; at = previous[at]!) {
         run.add(at);
     }
+
     return run;
 };
 
@@ -81,17 +87,23 @@ const columnChanges = (dialect: Dialect, original: TableDraft, draft: TableDraft
     let survivor = 0;
     const keptColumns: KeptColumn[] = [];
     const addedColumns: AddedColumn[] = [];
+
     draft.columns.forEach((column, at) => {
         const after = at === 0 ? null : draft.columns[at - 1]!.name;
+
         if (column.originalName === null) {
             addedColumns.push({ column, placed: draft.columns.slice(at + 1).some((later) => later.originalName !== null), after });
+
             return;
         }
+
         const rank = survivor++;
         const before = original.columns.find((candidate) => candidate.name === column.originalName);
+
         if (before === undefined) {
             return;
         }
+
         keptColumns.push({
             original: before,
             column,
@@ -103,6 +115,7 @@ const columnChanges = (dialect: Dialect, original: TableDraft, draft: TableDraft
     });
 
     const droppedColumns = original.columns.filter((column) => !survivors.some((kept) => kept.originalName === column.name));
+
     return { droppedColumns, keptColumns, addedColumns };
 };
 
@@ -110,8 +123,10 @@ const indexChanges = (original: TableDraft, draft: TableDraft, project: Project)
     const droppedIndexes: IndexDraft[] = [];
     const addedIndexes = draft.indexes.filter((index) => index.originalName === null);
     const renamedIndexes: RenamedIndex[] = [];
+
     for (const before of original.indexes) {
         const after = draft.indexes.find((index) => matches(before, index));
+
         if (after === undefined) {
             droppedIndexes.push(before);
         } else if (!sameList(project(before.columns), after.columns) || before.unique !== after.unique) {
@@ -121,6 +136,7 @@ const indexChanges = (original: TableDraft, draft: TableDraft, project: Project)
             renamedIndexes.push({ from: before, to: after });
         }
     }
+
     return { droppedIndexes, addedIndexes, renamedIndexes };
 };
 
@@ -136,21 +152,26 @@ const sameForeignKey = (before: ForeignKeyDraft, after: ForeignKeyDraft, project
 const foreignKeyChanges = (original: TableDraft, draft: TableDraft, project: Project) => {
     const droppedForeignKeys: ForeignKeyDraft[] = [];
     const addedForeignKeys = draft.foreignKeys.filter((key) => key.originalName === null);
+
     for (const before of original.foreignKeys) {
         const after = draft.foreignKeys.find((key) => matches(before, key));
+
         if (after === undefined || !sameForeignKey(before, after, project)) {
             droppedForeignKeys.push(before);
+
             if (after !== undefined) {
                 addedForeignKeys.push(after);
             }
         }
     }
+
     return { droppedForeignKeys, addedForeignKeys };
 };
 
 /* What a draft changes in the table it came from, told apart by the names items kept. */
 export const diffOf = (dialect: Dialect, original: TableDraft, draft: TableDraft): TableDiff => {
     const renames = new Map(draft.columns.filter((column) => column.originalName !== null).map((column) => [column.originalName!, column.name]));
+
     const project: Project = (names) => names.map((name) => renames.get(name) ?? name);
 
     return {

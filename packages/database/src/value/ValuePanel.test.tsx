@@ -9,6 +9,7 @@ import type { GridColumn } from '../grid/types.ts';
 import { ValuePanel, type ValuePanelProps } from './ValuePanel.tsx';
 
 const i18n = i18next.createInstance();
+
 await i18n.init({ lng: 'en', fallbackLng: 'en', resources: {}, interpolation: { escapeValue: false } });
 
 const render = (node: ReactNode): string =>

@@ -59,6 +59,7 @@ export function CommandField({ chips, columns, engine, onChipsChange, onJumpToCo
     const [dismissed, setDismissed] = useState(false);
     const suggestions = useMemo(() => suggest(engine, text, columns), [engine, text, columns]);
     const open = focused && !dismissed && suggestions.length > 0;
+
     const optionId = (index: number): string => `${listId}-${index}`;
 
     useImperativeHandle(inputRef, () => input.current!, []);
@@ -86,18 +87,22 @@ export function CommandField({ chips, columns, engine, onChipsChange, onJumpToCo
             case 'condition':
             case 'sql':
                 commit(suggestion.chip);
+
                 break;
             case 'filter':
                 change(filterStartText(suggestion.column));
                 input.current?.focus();
+
                 break;
             case 'sort':
                 onChipsChange(toggleSort(chips, suggestion.column.name));
                 clear();
+
                 break;
             case 'jump':
                 clear();
                 onJumpToColumn(suggestion.column.name);
+
                 break;
         }
     };
@@ -122,6 +127,7 @@ export function CommandField({ chips, columns, engine, onChipsChange, onJumpToCo
         if (event.nativeEvent.isComposing) {
             return;
         }
+
         if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
             if (suggestions.length > 0) {
                 event.preventDefault();
@@ -131,6 +137,7 @@ export function CommandField({ chips, columns, engine, onChipsChange, onJumpToCo
         } else if (event.key === 'Enter') {
             event.preventDefault();
             const suggestion = suggestions[Math.min(active, suggestions.length - 1)];
+
             if (suggestion !== undefined) {
                 pick(suggestion);
             } else if (editing !== null) {
@@ -153,6 +160,7 @@ export function CommandField({ chips, columns, engine, onChipsChange, onJumpToCo
 
     const handleBlur = (): void => {
         setFocused(false);
+
         if (editing !== null) {
             clear();
         }
@@ -207,6 +215,7 @@ export function CommandField({ chips, columns, engine, onChipsChange, onJumpToCo
                         const column = columnOf(suggestion);
                         const previous = suggestions[index - 1];
                         const startsGroup = column !== null && (previous === undefined || columnOf(previous)?.name !== column.name);
+
                         return (
                             <div key={`${suggestion.kind}:${column?.name ?? ''}`} role="presentation">
                                 {startsGroup && (
@@ -240,6 +249,7 @@ export function CommandField({ chips, columns, engine, onChipsChange, onJumpToCo
 
 function SuggestionLabel({ suggestion }: { suggestion: Suggestion }) {
     const { t } = useTranslation('database');
+
     switch (suggestion.kind) {
         case 'condition':
             return (
@@ -280,6 +290,7 @@ interface ChipViewProps {
 /* A filter opens its text for editing, a sort flips its direction, and a raw ORDER BY is only shown. */
 function ChipView({ chip, onActivate, onRemove }: ChipViewProps) {
     const { t } = useTranslation('database');
+
     return (
         <span className="inline-flex h-5 max-w-72 min-w-0 shrink-0 items-center rounded-md bg-text/10 font-mono text-code text-text">
             {chip.kind === 'filter' && (

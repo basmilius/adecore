@@ -50,12 +50,14 @@ const setup = (options: { latencyMs?: number; readOnly?: boolean } = {}) => {
     const data = database();
     const client = createDatabaseClient(fakeDatabaseTransport({ databases: { '/tmp/shop.db': data, db: data }, latencyMs: options.latencyMs }));
     const session = client.session({ id: 'c', name: 'Shop', config: { engine: 'sqlite', path: '/tmp/shop.db', readOnly: options.readOnly } });
+
     return { client, session, data };
 };
 
 describe('opening', () => {
     test('picks a database by sqlite path or mysql host', async () => {
         const { client } = setup();
+
         expect(await client.session({ id: 'a', name: 'a', config: { engine: 'sqlite', path: '/tmp/shop.db' } }).server()).toEqual({
             flavor: 'sqlite',
             version: '3.50.4'
@@ -81,6 +83,7 @@ describe('opening', () => {
 describe('reading', () => {
     test('lists schemas, tables and the structure', async () => {
         const { session } = setup();
+
         expect(await session.schemas()).toEqual([
             { name: 'main', system: false },
             { name: 'archive', system: false }
@@ -112,6 +115,7 @@ describe('reading', () => {
                 }
             })
         );
+
         expect((await client.session({ id: 'a', name: 'a', config: { engine: 'mysql', host: 'db', user: 'u' } }).structure('main', 't')).rowKey).toEqual([
             'email'
         ]);
@@ -137,6 +141,7 @@ describe('reading', () => {
         expect(first.hasMore).toBe(true);
 
         const executed = await session.execute('SELECT * FROM users; SELECT * FROM users', { maxBytes: 1 });
+
         expect(executed.results.map((result) => (result.kind === 'rows' ? [result.rows.length, result.hasMore] : null))).toEqual([
             [1, true],
             [1, true]
@@ -174,11 +179,13 @@ describe('reading', () => {
 describe('apply', () => {
     test('inserts with defaults, updates and deletes in one go', async () => {
         const { session } = setup();
+
         const affected = await session.apply('main', 'users', [
             { kind: 'insert', values: { email: 'new@example.com', created_at: { kind: 'default' } } },
             { kind: 'update', key: { id: 1 }, values: { email: 'changed@example.com', avatar: { kind: 'binary', hex: '00ff' }, role: { kind: 'default' } } },
             { kind: 'delete', key: { id: 3 } }
         ]);
+
         expect(affected).toBe(3);
 
         const result = await session.rows('main', 'users', { offset: 0, limit: 10 });
@@ -191,6 +198,7 @@ describe('apply', () => {
 
     test('rolls everything back on a conflict and names the change', async () => {
         const { session } = setup();
+
         await expect(
             session.apply('main', 'users', [
                 { kind: 'delete', key: { id: 1 } },
@@ -218,6 +226,7 @@ describe('apply', () => {
 
     test('rejects a value the column cannot hold', async () => {
         const { session } = setup();
+
         await expect(session.apply('main', 'users', [{ kind: 'insert', values: { email: null } }])).rejects.toMatchObject({
             code: 'query-failed',
             sqlState: '23000'
@@ -243,31 +252,40 @@ describe('apply', () => {
 describe('execute', () => {
     test('answers SELECT * FROM <table> on the first schema, in any case and quoting', async () => {
         const { session } = setup();
+
         const {
             results: [result]
         } = await session.execute('select * from `notes`;');
+
         expect(result).toMatchObject({ kind: 'rows', sql: 'select * from `notes`', hasMore: false });
         expect(result!.kind === 'rows' ? result.rows : []).toEqual([['one'], ['two']]);
     });
 
     test('honors the schema, the limit and keeps the schema selected', async () => {
         const { session } = setup();
+
         const {
             results: [archive]
         } = await session.execute('SELECT * FROM old', { schema: 'archive' });
+
         expect(archive!.kind).toBe('rows');
+
         const {
             results: [again]
         } = await session.execute('SELECT * FROM old');
+
         expect(again!.kind).toBe('rows');
 
         const {
             results: [elsewhere]
         } = await session.execute('SELECT * FROM old', { schema: 'main' });
+
         expect(elsewhere!.kind).toBe('error');
+
         const {
             results: [paged]
         } = await session.execute('SELECT * FROM users', { schema: 'main', limit: 2 });
+
         expect(paged).toMatchObject({ kind: 'rows', hasMore: true });
         await expect(session.execute('SELECT * FROM users', { schema: 'nope' })).rejects.toMatchObject({ code: 'query-failed' });
     });
@@ -338,6 +356,7 @@ describe('transactions', () => {
 describe('files and discovery', () => {
     test('answers unsupported for export, import and sample, since it has no files', async () => {
         const { client, session } = setup();
+
         await expect(
             session.export({ source: { kind: 'table', schema: 'main', table: 'users' }, format: 'csv', path: '/tmp/users.csv' })
         ).rejects.toMatchObject({ code: 'unsupported', message: expect.stringContaining('no files') });
@@ -361,6 +380,7 @@ describe('files and discovery', () => {
             service: 'db',
             suggested: {}
         } as const;
+
         const listed = createDatabaseClient(fakeDatabaseTransport({ databases: {}, containers: [container] }));
         expect(await listed.discover('docker', { context: 'desktop' })).toEqual([container]);
     });
@@ -394,8 +414,10 @@ describe('latency', () => {
     test('holds an answer until its delay has passed', async () => {
         const transport = fakeDatabaseTransport({ databases: { db: database() }, latencyMs: 20 });
         let answered = false;
+
         const pending = transport({ id: 'r1', method: 'open', params: { connection: { engine: 'mysql', host: 'db', user: 'u' } } }).then((response) => {
             answered = true;
+
             return response;
         });
 
@@ -409,13 +431,17 @@ describe('latency', () => {
     test('a client abort cancels a request before its delayed answer', async () => {
         const transport = fakeDatabaseTransport({ databases: { db: database() }, latencyMs: 200 });
         const started = Promise.withResolvers<void>();
+
         const client = createDatabaseClient((request) => {
             const response = transport(request);
+
             if (request.method === 'rows') {
                 started.resolve();
             }
+
             return response;
         });
+
         const session = client.session({ id: 'c', name: 'Shop', config: { engine: 'mysql', host: 'db', user: 'u' } });
         const opening = session.server();
         jest.advanceTimersByTime(200);

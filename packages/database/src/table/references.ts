@@ -25,14 +25,18 @@ export const referenceOf = (
     cells: readonly Shown[]
 ): Reference | null => {
     const matches: ColumnMatch[] = [];
+
     for (const [position, name] of key.columns.entries()) {
         const referenced = key.referencedColumns[position];
         const index = columns.findIndex((column) => column.name === name);
         const value = index < 0 ? undefined : wholeValueOf(cells[index] ?? null);
+
         if (referenced === undefined || value === undefined || value === null) {
             return null;
         }
+
         matches.push({ column: referenced, value, kind: columns[index]!.kind });
     }
+
     return matches.length === 0 ? null : { schema: key.referencedSchema, table: key.referencedTable, where: matchCondition(engine, matches) };
 };

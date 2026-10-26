@@ -67,6 +67,7 @@ describe.skipIf(typeof document === 'undefined')('the views of a table in a DOM,
                 expect(recorded.of('structure').length).toBeGreaterThan(structures);
                 expect(recorded.of('rows').length).toBeGreaterThan(pages);
             });
+
             expect(findAll('[role=dialog]')).toEqual([]);
             expect(document.body.textContent).not.toContain('The table changed');
         });
@@ -103,12 +104,14 @@ describe.skipIf(typeof document === 'undefined')('a page of a table the byte lim
 
     beforeEach(async () => {
         recorded = recordTransport(fakeDatabaseTransport({ databases: { [SHOP_PATH]: shopDatabase } }));
+
         recorded.respond('rows', ({ offset }) => ({
             columns: [{ name: 'id', type: 'INTEGER', kind: 'integer' }],
             rows: [[offset + 1], [offset + 2]],
             hasMore: true,
             elapsedMs: 0
         }));
+
         client = clientOver(recorded.transport);
         mounted = await mount(<TableView connection={connection} schema="main" table="customers" />, { client });
         await waitFor(() => expect(findAll('[role=gridcell]').length).toBeGreaterThan(0));
@@ -130,6 +133,7 @@ describe.skipIf(typeof document === 'undefined')('the record view beside a table
     let mounted: Mounted;
 
     const fields = (): HTMLElement => find('[role=group][aria-label="Fields of customers"]');
+
     const field = (name: string): HTMLInputElement => fields().querySelector<HTMLInputElement>(`input[aria-label="${name}"]`)!;
 
     beforeEach(async () => {
@@ -169,12 +173,14 @@ describe.skipIf(typeof document === 'undefined')('the record view beside a table
 
     test('edits a field into the pending changes of the grid', async () => {
         const input = field('name');
+
         await perform(() => {
             input.focus();
             const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!;
             setter.call(input, 'Augusta');
             input.dispatchEvent(new Event('input', { bubbles: true }));
         });
+
         await perform(() => input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })));
         await waitFor(() => expect(byText('button', /Submit/).textContent).toContain('1'));
         expect(findAll('[role=gridcell]').some((cell) => cell.textContent === 'Augusta')).toBe(true);

@@ -18,7 +18,9 @@ const isEntry = (value: unknown): value is HistoryEntry => {
     if (value === null || typeof value !== 'object') {
         return false;
     }
+
     const entry = value as Record<string, unknown>;
+
     return (
         typeof entry.sql === 'string' &&
         typeof entry.at === 'number' &&
@@ -33,8 +35,10 @@ export const parseHistory = (raw: string | null): HistoryEntry[] => {
     if (raw === null) {
         return [];
     }
+
     try {
         const parsed: unknown = JSON.parse(raw);
+
         return Array.isArray(parsed) ? parsed.filter(isEntry).slice(0, HISTORY_LIMIT) : [];
     } catch {
         return [];
@@ -46,17 +50,21 @@ export const serializeHistory = (entries: readonly HistoryEntry[]): string => JS
 /* The list with the run in front. A run of the same SQL as the latest one replaces it. */
 export const addEntry = (entries: readonly HistoryEntry[], entry: HistoryEntry): HistoryEntry[] => {
     const rest = entries[0]?.sql.trim() === entry.sql.trim() ? entries.slice(1) : entries;
+
     return [entry, ...rest].slice(0, HISTORY_LIMIT);
 };
 
 /* The entries whose SQL holds every word of the query, in any case. */
 export const searchHistory = (entries: readonly HistoryEntry[], query: string): readonly HistoryEntry[] => {
     const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+
     if (words.length === 0) {
         return entries;
     }
+
     return entries.filter((entry) => {
         const sql = entry.sql.toLowerCase();
+
         return words.every((word) => sql.includes(word));
     });
 };

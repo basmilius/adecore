@@ -30,9 +30,11 @@ export const recordTransport = (inner: DatabaseTransport): RecordedTransport => 
     const transport: DatabaseTransport = async (request): Promise<DatabaseResponse> => {
         requests.push(request);
         const answer = answers.get(request.method);
+
         if (answer !== undefined) {
             return { id: request.id, ok: true, result: answer(request.params as never) } as DatabaseResponse;
         }
+
         return inner(request);
     };
 
@@ -76,6 +78,7 @@ export interface Mounted {
 export const createI18n = async () => {
     const i18n = i18next.createInstance();
     await i18n.init({ lng: 'en', fallbackLng: 'en', resources: {}, interpolation: { escapeValue: false } });
+
     return i18n;
 };
 
@@ -84,6 +87,7 @@ export const clientOver = (transport: DatabaseTransport): DatabaseClient => crea
 /* A memory-backed storage, like `localStorage` without the globals. */
 export const memoryStorage = (): DatabaseStorage & { readonly entries: Map<string, string> } => {
     const entries = new Map<string, string>();
+
     return {
         entries,
         get: (key) => entries.get(key) ?? null,
@@ -103,6 +107,7 @@ export const mount = async (node: ReactNode, { client, actions, notices, storage
     const container = document.createElement('div');
     document.body.append(container);
     const root: Root = createRoot(container);
+
     const wrap = (inner: ReactNode): ReactNode => (
         <UIProvider i18n={i18n}>
             {client === undefined ? (
@@ -120,10 +125,12 @@ export const mount = async (node: ReactNode, { client, actions, notices, storage
             )}
         </UIProvider>
     );
+
     await act(async () => {
         root.render(wrap(node));
         await flush();
     });
+
     return {
         container,
         unmount: async () => {
@@ -158,6 +165,7 @@ export const perform = (change: () => void): Promise<void> =>
 /* Waits until the check passes, or fails with the last error. */
 export const waitFor = async <T,>(check: () => T, timeoutMs = 2000): Promise<T> => {
     const started = Date.now();
+
     for (;;) {
         try {
             return check();
@@ -165,6 +173,7 @@ export const waitFor = async <T,>(check: () => T, timeoutMs = 2000): Promise<T> 
             if (Date.now() - started > timeoutMs) {
                 throw error;
             }
+
             await settle();
         }
     }
@@ -175,9 +184,11 @@ const everywhere = (): HTMLElement => document.body;
 /* The only element that matches, or a failure that says what was there. */
 export const find = (selector: string, within: ParentNode = everywhere()): HTMLElement => {
     const found = [...within.querySelectorAll<HTMLElement>(selector)];
+
     if (found.length !== 1) {
         throw new Error(`Expected one element for "${selector}" and found ${found.length}.`);
     }
+
     return found[0]!;
 };
 
@@ -188,10 +199,13 @@ const textOf = (element: Element): string => (element.textContent ?? '').replace
 /* The only element of a kind whose own text matches. */
 export const byText = (selector: string, text: string | RegExp, within: ParentNode = everywhere()): HTMLElement => {
     const matches = (element: Element): boolean => (typeof text === 'string' ? textOf(element) === text : text.test(textOf(element)));
+
     const found = findAll(selector, within).filter(matches);
+
     if (found.length !== 1) {
         throw new Error(`Expected one "${selector}" with text ${String(text)} and found ${found.length}: ${findAll(selector, within).map(textOf).join(' | ')}`);
     }
+
     return found[0]!;
 };
 
@@ -235,6 +249,7 @@ export const press = (element: Element, key: string, init: KeyboardEventInit = {
 /* Sets the value of a text field the way typing does, so React sees an input event. */
 export const type = (field: HTMLInputElement | HTMLTextAreaElement, value: string): Promise<void> => {
     const prototype = field instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+
     return perform(() => {
         Object.getOwnPropertyDescriptor(prototype, 'value')!.set!.call(field, value);
         field.dispatchEvent(new Event('input', { bubbles: true }));

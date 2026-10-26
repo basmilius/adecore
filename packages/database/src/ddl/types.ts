@@ -50,10 +50,13 @@ export const collationSuggestionsOf = (charset: string): readonly string[] => {
     if (charset === '') {
         return [];
     }
+
     if (charset === 'binary') {
         return ['binary'];
     }
+
     const suggestions = [`${charset}_general_ci`, `${charset}_unicode_ci`, `${charset}_bin`];
+
     return charset === 'utf8mb4' ? ['utf8mb4_0900_ai_ci', 'utf8mb4_unicode_520_ci', ...suggestions] : suggestions;
 };
 

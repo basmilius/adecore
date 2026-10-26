@@ -15,15 +15,18 @@ const restore = (storage: DatabaseStorage | undefined, connections: readonly Con
     const expanded = new Set(from.expanded);
     const collapsed = new Set(from.collapsed);
     const loaded = new Set(from.loaded);
+
     for (const { id } of connections) {
         if (loaded.has(id)) {
             continue;
         }
+
         loaded.add(id);
         const stored = parseExpansion(storage?.get(expansionKey(id)) ?? null, id);
         stored.expanded.forEach((key) => expanded.add(key));
         stored.collapsed.forEach((key) => collapsed.add(key));
     }
+
     return { expanded, collapsed, loaded };
 };
 
@@ -51,6 +54,7 @@ export function useStoredExpansion(connections: readonly Connection[]): StoredEx
             const next = serializeExpansion(id, state);
             const last = written.current.get(id);
             written.current.set(id, next);
+
             if (last !== undefined && last !== next) {
                 storage?.set(expansionKey(id), next);
             }

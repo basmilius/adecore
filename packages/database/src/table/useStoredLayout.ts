@@ -30,6 +30,7 @@ export function useStoredLayout(storage: DatabaseStorage | undefined, key: strin
     const write = useCallback((): void => {
         clearTimeout(timer.current);
         timer.current = undefined;
+
         if (dirty.current) {
             dirty.current = false;
             target.current.storage?.set(target.current.key, serializeLayout(latest.current));
@@ -44,6 +45,7 @@ export function useStoredLayout(storage: DatabaseStorage | undefined, key: strin
             if (storage === undefined) {
                 return;
             }
+
             latest.current = { ...latest.current, ...change };
             dirty.current = true;
             clearTimeout(timer.current);

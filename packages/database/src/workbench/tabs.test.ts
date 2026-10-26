@@ -136,6 +136,7 @@ describe('persisting tabs', () => {
             ],
             activeId: 'gone'
         });
+
         const read = parseState(raw);
         expect(read.tabs.map((tab) => tab.id)).toEqual(['a', 'console:4']);
         expect(read.activeId).toBe('console:4');

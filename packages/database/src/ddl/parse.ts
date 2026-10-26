@@ -13,8 +13,10 @@ interface Spot {
 function* unquoted(text: string, backslash: boolean): Generator<Spot> {
     let depth = 0;
     let closer: string | null = null;
+
     for (let i = 0; i < text.length; i++) {
         const char = text[i]!;
+
         if (closer !== null) {
             if (backslash && char === '\\' && closer === "'") {
                 i++;
@@ -25,16 +27,22 @@ function* unquoted(text: string, backslash: boolean): Generator<Spot> {
                     closer = null;
                 }
             }
+
             continue;
         }
+
         if (char in CLOSERS) {
             closer = CLOSERS[char]!;
+
             continue;
         }
+
         if (char === ')') {
             depth--;
         }
+
         yield { index: i, char, depth };
+
         if (char === '(') {
             depth++;
         }
@@ -53,11 +61,13 @@ export const definitionOf = (ddl: string | null): Definition | null => {
     if (ddl === null) {
         return null;
     }
+
     // Only a MySQL statement reads a backslash as an escape, and only a MySQL statement quotes with backticks.
     const backslash = ddl.includes('`');
     let open = -1;
     let close = -1;
     const commas: number[] = [];
+
     for (const { index, char, depth } of unquoted(ddl, backslash)) {
         if (open < 0) {
             if (char === '(' && depth === 0) {
@@ -71,10 +81,13 @@ export const definitionOf = (ddl: string | null): Definition | null => {
             }
         }
     }
+
     if (open < 0 || close < 0) {
         return null;
     }
+
     const bounds = [open, ...commas, close];
+
     return {
         items: bounds.slice(1).map((end, at) => ddl.slice(bounds[at]! + 1, end).trim()),
         tail: ddl.slice(close + 1)
@@ -84,14 +97,19 @@ export const definitionOf = (ddl: string | null): Definition | null => {
 /* The name a definition starts with, unquoted. */
 const leadingName = (item: string): string | null => {
     const mark = item[0];
+
     if (mark === '`' || mark === '"') {
         const end = item.indexOf(mark, 1);
+
         return end < 0 ? null : item.slice(1, end).replaceAll(mark + mark, mark);
     }
+
     if (mark === '[') {
         const end = item.indexOf(']');
+
         return end < 0 ? null : item.slice(1, end);
     }
+
     return /^[^\s(]+/.exec(item)?.[0] ?? null;
 };
 
@@ -103,34 +121,44 @@ const generatedClauseOf = (item: string): string | null => {
     // A default or a comment may hold the words, so the strings are blanked before the search.
     const masked = item.replace(/'(?:[^']|'')*'/g, (text) => ' '.repeat(text.length));
     const start = AS_OPEN.exec(masked);
+
     if (start === null) {
         return null;
     }
+
     const open = start.index + start[0].length - 1;
     let end = -1;
+
     for (const { index, char, depth } of unquoted(masked.slice(open), false)) {
         if (char === ')' && depth === 0) {
             end = open + index + 1;
+
             break;
         }
     }
+
     if (end < 0) {
         return null;
     }
+
     const suffix = AS_SUFFIX.exec(masked.slice(end));
+
     return item.slice(start.index, end + (suffix?.[0].length ?? 0)).trim();
 };
 
 /* The generated clause of every generated column in a table's DDL, by column name. */
 export const generatedClausesOf = (ddl: string | null): ReadonlyMap<string, string> => {
     const clauses = new Map<string, string>();
+
     for (const item of definitionOf(ddl)?.items ?? []) {
         const name = leadingName(item);
         const clause = name === null ? null : generatedClauseOf(item);
+
         if (name !== null && clause !== null) {
             clauses.set(name, clause);
         }
     }
+
     return clauses;
 };
 
@@ -148,8 +176,11 @@ export const NO_OPTIONS: TableOptions = { engine: '', charset: '', collation: ''
 
 export const optionsOf = (structure: Pick<TableStructure, 'ddl'>): TableOptions => {
     const tail = definitionOf(structure.ddl)?.tail ?? '';
+
     const word = (pattern: RegExp): string => pattern.exec(tail)?.[1] ?? '';
+
     const comment = /\bCOMMENT\s*=?\s*'((?:[^'\\]|''|\\.)*)'/i.exec(tail)?.[1] ?? '';
+
     return {
         engine: word(/\bENGINE\s*=\s*(\w+)/i),
         charset: word(/\b(?:DEFAULT\s+)?(?:CHARSET|CHARACTER\s+SET)\s*=?\s*(\w+)/i),

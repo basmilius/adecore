@@ -33,6 +33,7 @@ export function useLoaded<T>(load: (signal: AbortSignal) => Promise<T>, key: str
 
     useEffect(() => {
         const controller = new AbortController();
+
         loader.current(controller.signal).then(
             (value) => {
                 if (!controller.signal.aborted) {
@@ -45,10 +46,12 @@ export function useLoaded<T>(load: (signal: AbortSignal) => Promise<T>, key: str
                 }
             }
         );
+
         return () => controller.abort();
     }, [key, version]);
 
     const answered = state.key === key && state.version === version;
+
     return {
         value: state.value,
         loading: !answered,

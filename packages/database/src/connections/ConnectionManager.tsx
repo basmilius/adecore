@@ -46,10 +46,12 @@ export function ConnectionManager({ value, onValueChange, selected, onSelectedCh
     const client = useDatabaseClient();
     const pickedId = selected === undefined ? own : selected;
     const current = value.find((connection) => connection.id === pickedId) ?? value[0] ?? null;
+
     // The answer of one connection is gone once another is picked, so coming back does not bring it back.
     if (outcome !== null && outcome.connectionId !== current?.id) {
         setOutcome(null);
     }
+
     // An answer to an older config is never shown for a newer one.
     const shown = outcome !== null && current !== null && outcome.config === current.config ? outcome : null;
 
@@ -57,6 +59,7 @@ export function ConnectionManager({ value, onValueChange, selected, onSelectedCh
         if (selected === undefined) {
             setOwn(id);
         }
+
         onSelectedChange?.(id);
     };
 
@@ -192,6 +195,7 @@ export function ConnectionManager({ value, onValueChange, selected, onSelectedCh
 function DockerMenuItems({ onPick }: { onPick(container: DockerContainer): void }) {
     const { t } = useTranslation('database');
     const { state, reload } = useDockerContainers();
+
     if (state.status === 'loading') {
         return (
             <Menu.Label className="flex items-center gap-2">
@@ -200,6 +204,7 @@ function DockerMenuItems({ onPick }: { onPick(container: DockerContainer): void 
             </Menu.Label>
         );
     }
+
     if (state.status !== 'ready') {
         return (
             <>
@@ -212,10 +217,13 @@ function DockerMenuItems({ onPick }: { onPick(container: DockerContainer): void 
             </>
         );
     }
+
     const containers = state.containers.filter(isMysqlContainer);
+
     if (containers.length === 0) {
         return <Menu.Label>{t('connections.fromDocker.empty')}</Menu.Label>;
     }
+
     return containers.map((container) => (
         <Menu.Item key={container.id} onClick={() => onPick(container)}>
             <span className="flex min-w-0 flex-col">
@@ -235,6 +243,7 @@ function ConnectionTest({ connection, onOutcome }: { connection: Connection; onO
     const test = async (): Promise<void> => {
         const config = connection.config;
         setBusy(true);
+
         try {
             onOutcome({ connectionId: connection.id, config, info: await client.test(config) });
         } catch (e) {

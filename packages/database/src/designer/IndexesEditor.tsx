@@ -10,6 +10,7 @@ import { addIndex, patchIndex, removeIndex, toggleIndexColumn } from './edit.ts'
 export function IndexesEditor({ draft, disabled, onChange, className, ref }: EditorProps) {
     const { t } = useTranslation('database');
     const columns = draft.columns.map((column) => column.name);
+
     return (
         <div ref={ref} className={clsx('flex min-h-0 flex-col', className)}>
             <div>

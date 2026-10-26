@@ -39,6 +39,7 @@ describe('sameDraft', () => {
 describe('editValueOf', () => {
     const convert = (kind: GridColumn['kind'], value: Parameters<typeof sourceOf>[1], text: string) => {
         const source = sourceOf(column(kind), value);
+
         return editValueOf({ text, mode: 'value' }, source);
     };
 

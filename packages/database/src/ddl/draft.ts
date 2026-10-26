@@ -105,6 +105,7 @@ const foreignKeyDraftOf = (foreignKey: ForeignKeyInfo, at: number): ForeignKeyDr
 /* The draft that changes nothing: what a structure already says. */
 export const draftOf = (structure: TableStructure): TableDraft => {
     const clauses = generatedClausesOf(structure.ddl);
+
     return {
         originalName: structure.name,
         name: structure.name,

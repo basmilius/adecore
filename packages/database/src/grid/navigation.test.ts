@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { moveFocus } from './navigation.ts';
 
 const SIZE = { rows: 10, columns: 4, page: 5 };
+
 const key = (name: string, shiftKey = false, mod = false) => ({ key: name, shiftKey, mod });
 
 describe('moveFocus', () => {

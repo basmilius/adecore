@@ -149,6 +149,7 @@ const rowKeyOf = (table: Table): string[] | null => {
     const unique = table.indexes.find(
         (index) => index.unique && index.columns.every((name) => table.columns.find((column) => column.name === name)?.nullable === false)
     );
+
     return unique === undefined ? null : [...unique.columns];
 };
 
@@ -180,6 +181,7 @@ const toCell = (value: Value, cellLimit: number): Cell => {
 
     if (value !== null && typeof value === 'object') {
         const length = value.hex.length / 2;
+
         return { kind: 'binary', hex: value.hex.slice(0, Math.min(length, cellLimit) * 2), length };
     }
 
@@ -196,16 +198,20 @@ interface ByteBudget {
 
 const toRowsResult = (table: Table, rows: readonly (readonly Value[])[], offset: number, limit: number, cellLimit: number, budget: ByteBudget): RowsResult => {
     const page: Cell[][] = [];
+
     for (const row of rows.slice(offset, offset + limit)) {
         const cells = row.map((value) => toCell(value, cellLimit));
         // Characters rather than bytes: near enough for a fake.
         const size = JSON.stringify(cells).length;
+
         if (page.length > 0 && size > budget.left) {
             return { columns: toResultColumns(table), rows: page, hasMore: true, elapsedMs: 0 };
         }
+
         budget.left = Math.max(0, budget.left - size);
         page.push(cells);
     }
+
     return { columns: toResultColumns(table), rows: page, hasMore: rows.length > offset + limit, elapsedMs: 0 };
 };
 
@@ -213,6 +219,7 @@ const toRowsResult = (table: Table, rows: readonly (readonly Value[])[], offset:
 const defaultOf = (column: ColumnInfo, table: Table): Value => {
     if (column.autoIncrement) {
         const index = table.columns.indexOf(column);
+
         return table.rows.reduce((highest, row) => (typeof row[index] === 'number' ? Math.max(highest, row[index]) : highest), 0) + 1;
     }
 
@@ -272,6 +279,7 @@ const applyChanges = (table: Table, changes: DatabaseParams<'apply'>['changes'])
 
             const row = table.columns.map((column) => {
                 const given = Object.hasOwn(change.values, column.name) ? change.values[column.name]! : { kind: 'default' as const };
+
                 return resolveEdit(column, draft, given);
             });
 
@@ -285,6 +293,7 @@ const applyChanges = (table: Table, changes: DatabaseParams<'apply'>['changes'])
             }
 
             draft.rows.push(row);
+
             return;
         }
 
@@ -302,6 +311,7 @@ const applyChanges = (table: Table, changes: DatabaseParams<'apply'>['changes'])
 
         if (change.kind === 'delete') {
             draft.rows.splice(draft.rows.indexOf(row), 1);
+
             return;
         }
 
@@ -312,6 +322,7 @@ const applyChanges = (table: Table, changes: DatabaseParams<'apply'>['changes'])
     });
 
     table.rows = draft.rows;
+
     return changes.length;
 };
 
@@ -331,6 +342,7 @@ const selectedTable = (session: Session, sql: string): Table => {
 const runStatement = (session: Session, sql: string, limit: number, cellLimit: number, budget: ByteBudget): StatementResult => {
     try {
         const table = selectedTable(session, sql);
+
         return { kind: 'rows', sql, ...toRowsResult(table, table.rows, 0, limit, cellLimit, budget) };
     } catch (error) {
         if (error instanceof FakeError) {
@@ -402,15 +414,18 @@ export const fakeDatabaseTransport = (options: FakeDatabaseTransportOptions): Da
             const session = connect(connection);
             const id = `fake-${++counter}`;
             sessions.set(id, session);
+
             return { session: id, server: serverOf(connection) };
         },
         close: ({ session }) => {
             sessionOf(session);
             sessions.delete(session);
+
             return null;
         },
         test: ({ connection }) => {
             connect(connection);
+
             return { server: serverOf(connection) };
         },
         schemas: ({ session }) => ({
@@ -418,10 +433,12 @@ export const fakeDatabaseTransport = (options: FakeDatabaseTransportOptions): Da
         }),
         tables: ({ session, schema }) => {
             const tables = findSchema(sessionOf(session), schema);
+
             return { tables: [...tables].map(([name, table]) => ({ name, kind: table.kind, rowEstimate: table.rows.length, comment: null })) };
         },
         structure: ({ session, schema, table: name }) => {
             const table = findTable(sessionOf(session), schema, name);
+
             return {
                 schema,
                 name,
@@ -438,6 +455,7 @@ export const fakeDatabaseTransport = (options: FakeDatabaseTransportOptions): Da
         },
         rows: ({ session, schema, table: name, offset, limit, cellLimit, maxBytes }) => {
             const table = findTable(sessionOf(session), schema, name);
+
             return toRowsResult(table, table.rows, offset, limit, cellLimit ?? DEFAULT_ROWS_CELL_LIMIT, { left: maxBytes ?? DEFAULT_MAX_BYTES });
         },
         count: ({ session, schema, table: name }) => ({ count: findTable(sessionOf(session), schema, name).rows.length }),
@@ -491,15 +509,18 @@ export const fakeDatabaseTransport = (options: FakeDatabaseTransportOptions): Da
             const target = sessionOf(session);
             selectSchema(target, schema);
             const table = selectedTable(target, sql);
+
             return toRowsResult(table, table.rows, offset, limit, cellLimit ?? DEFAULT_EXECUTE_CELL_LIMIT, { left: maxBytes ?? DEFAULT_MAX_BYTES });
         },
         transaction: ({ session, action }) => {
             const target = sessionOf(session);
             target.inTransaction = action === 'begin';
+
             return { active: target.inTransaction };
         },
         export: ({ session }) => {
             sessionOf(session);
+
             throw new FakeError('unsupported', 'The fake database has no files to export to.');
         },
         sample: () => {
@@ -507,12 +528,14 @@ export const fakeDatabaseTransport = (options: FakeDatabaseTransportOptions): Da
         },
         import: ({ session }) => {
             sessionOf(session);
+
             throw new FakeError('unsupported', 'The fake database has no files to import from.');
         },
         discover: () => ({ containers: structuredClone([...(options.containers ?? [])]) }),
         cancel: ({ request }) => {
             const stop = waiting.get(request);
             stop?.();
+
             return { cancelled: stop !== undefined };
         }
     };
@@ -520,6 +543,7 @@ export const fakeDatabaseTransport = (options: FakeDatabaseTransportOptions): Da
     const answer = (request: DatabaseRequest): DatabaseResponse => {
         try {
             const handler = handlers[request.method] as (params: unknown) => unknown;
+
             return { id: request.id, ok: true, result: handler(request.params) } as DatabaseResponse;
         } catch (error) {
             if (error instanceof FakeError) {

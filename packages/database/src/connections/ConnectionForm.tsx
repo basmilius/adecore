@@ -53,6 +53,7 @@ export function ConnectionForm({ value, onValueChange, onBrowse, className, ref 
     const { t } = useTranslation('database');
     const [touched, setTouched] = useState<Touched>(new Set());
     const config = value.config;
+
     const options: readonly SegmentedOption<Engine>[] = [
         { id: 'sqlite', label: t('engine.sqlite'), icon: ENGINE_ICONS.sqlite },
         { id: 'mysql', label: t('engine.mysql'), icon: ENGINE_ICONS.mysql }
@@ -109,9 +110,11 @@ export function ConnectionForm({ value, onValueChange, onBrowse, className, ref 
 /* The sentence for a problem, once the field has something to answer for. */
 function useProblem(problem: ConfigProblem | undefined, field: string, touched: Touched, filled: boolean): string | undefined {
     const { t } = useTranslation('database');
+
     if (problem === undefined || !(touched.has(field) || filled)) {
         return undefined;
     }
+
     return t(`connections.form.problems.${problem}`);
 }
 
@@ -124,10 +127,12 @@ function SqliteFields({ config, onConfigChange, touched, touch, onBrowse }: Fiel
     const browse = async (): Promise<void> => {
         await browsing.run(async () => {
             const picked = await onBrowse?.('database');
+
             if (picked !== null && picked !== undefined) {
                 onConfigChange({ ...config, path: picked });
             }
         });
+
         touch('path');
     };
 
@@ -239,6 +244,7 @@ function MysqlFields({ config, onConfigChange, touched, touch, onBrowse }: Field
     const mode = modeOf(config);
     const tunnel = config.tunnel;
     const modes: readonly SegmentedOption<ConnectMode>[] = CONNECT_MODES.map((id) => ({ id, label: t(`connections.form.mode.${id}`), icon: MODE_ICONS[id] }));
+
     const tlsItems: SelectItem<MysqlTlsMode>[] = TLS_MODES.map((tls) => ({
         value: tls,
         label: t(`connections.form.tls.${tls}`),
@@ -351,11 +357,13 @@ function SshFields({ config, tunnel, onConfigChange, touched, touch, onBrowse }:
     const problems = configProblems(config);
     const hostError = useProblem(problems.sshHost, 'sshHost', touched, tunnel.host !== '');
     const portError = useProblem(problems.sshPort, 'sshPort', touched, tunnel.port !== undefined);
+
     const update = (patch: Partial<SshTunnel>): void => onConfigChange({ ...config, tunnel: { ...tunnel, ...patch } });
 
     const browse = async (): Promise<void> => {
         await browsing.run(async () => {
             const picked = await onBrowse?.('identity');
+
             if (picked !== null && picked !== undefined) {
                 update({ identityFile: picked });
             }
@@ -421,6 +429,7 @@ function DockerFields({ config, tunnel, onConfigChange, touched, touch }: Fields
 
     const publishedText = (container: DockerContainer, port: number): string => {
         const host = publishedPortOf(container, port);
+
         return host === null ? t('connections.form.docker.notPublished') : t('connections.form.docker.published', { port: host });
     };
 
@@ -429,6 +438,7 @@ function DockerFields({ config, tunnel, onConfigChange, touched, touch }: Fields
         label: container.name,
         description: containerDescription(container, publishedText(container, containerPortOf(container)))
     }));
+
     if (tunnel.container !== '' && picked === undefined) {
         items.unshift({ value: tunnel.container, label: tunnel.container, description: t('connections.form.docker.notRunning') });
     }
@@ -448,6 +458,7 @@ function DockerFields({ config, tunnel, onConfigChange, touched, touch }: Fields
 
     const pick = (name: string): void => {
         const container = containers.find((candidate) => candidate.name === name);
+
         if (container !== undefined) {
             onConfigChange(withContainer(config, container));
         }

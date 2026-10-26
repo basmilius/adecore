@@ -100,6 +100,7 @@ export function DatabaseExplorer({
         versions: loads.versions,
         folders: (connectionId: string) => folders?.[connectionId] ?? []
     };
+
     const rows = flattenTree({ ...input, filter });
     const stop = tabStop(rows, activeKey, selectedKey);
 
@@ -118,15 +119,19 @@ export function DatabaseExplorer({
 
     const setOpen = (key: string, open: boolean): void => {
         const folder = startsOpen(key);
+
         const toggle = (current: ReadonlySet<string>): ReadonlySet<string> => {
             const next = new Set(current);
+
             if (open !== folder) {
                 next.add(key);
             } else {
                 next.delete(key);
             }
+
             return next;
         };
+
         (folder ? setCollapsed : setExpanded)(toggle);
     };
 
@@ -138,11 +143,13 @@ export function DatabaseExplorer({
         if (value === undefined) {
             setOwn(selection);
         }
+
         onValueChange?.(selection);
     };
 
     const pick = (row: TreeRow): void => {
         const selection = selectionOf(row);
+
         if (selection !== null) {
             select(selection);
         }
@@ -152,12 +159,16 @@ export function DatabaseExplorer({
     const open = (row: TreeRow, preview = false): void => {
         if (row.kind === 'appItem') {
             row.item.onOpen?.({ preview });
+
             return;
         }
+
         const ref = openedTableOf(row);
+
         if (ref === null) {
             return;
         }
+
         pick(row);
         const tableKind = row.kind === 'table' && row.ref === ref ? row.table.kind : tableKindIn(loads.tables(ref.connectionId, ref.schema), ref.table);
         act?.({ kind: 'open-table', ref, view: 'data', ...(tableKind === undefined ? {} : { tableKind }), ...(openOnClick ? { preview } : {}) });
@@ -170,6 +181,7 @@ export function DatabaseExplorer({
             case 'entry':
             case 'appItem':
                 open(row);
+
                 break;
             case 'connection':
             case 'schema':
@@ -178,9 +190,11 @@ export function DatabaseExplorer({
             case 'appFolder':
                 pick(row);
                 toggle(row);
+
                 break;
             case 'error':
                 loads.reset(row.retry);
+
                 break;
         }
     };
@@ -189,16 +203,21 @@ export function DatabaseExplorer({
         if ((e.target as HTMLElement).tagName === 'BUTTON') {
             return;
         }
+
         const action = navigate(rows, activeKey ?? stop, e.key);
+
         if (action === null) {
             return;
         }
+
         e.preventDefault();
+
         if (action.type === 'focus') {
             focusAfterRender.current = true;
             setActiveKey(action.key);
         } else if (action.type === 'activate') {
             const row = rows.find((candidate) => candidate.key === action.key);
+
             if (row !== undefined) {
                 activate(row);
             }
@@ -212,14 +231,19 @@ export function DatabaseExplorer({
         if (pressedInPopup()) {
             return;
         }
+
         setActiveKey(row.key);
+
         if (openOnClick && (row.kind === 'table' || row.kind === 'appItem')) {
             if (count <= 1) {
                 open(row, true);
             }
+
             return;
         }
+
         pick(row);
+
         if (row.kind !== 'table' && isExpandable(row)) {
             toggle(row);
         } else if (row.kind === 'error') {
@@ -236,6 +260,7 @@ export function DatabaseExplorer({
     const finish = (done: TableRequest, to: string | undefined): void => {
         setRequest(null);
         const { connectionId, schema, table } = done.ref;
+
         if (selected?.connectionId === connectionId && selected.schema === schema && selected.table === table) {
             select(to === undefined ? { connectionId, schema } : { connectionId, schema, table: to });
         }
@@ -243,6 +268,7 @@ export function DatabaseExplorer({
 
     const connectionOf = (row: TreeRow): Connection | undefined => {
         const selection = selectionOf(row);
+
         return selection === null ? undefined : connections.find((entry) => entry.id === selection.connectionId);
     };
 
@@ -250,14 +276,17 @@ export function DatabaseExplorer({
 
     const renderRow = (row: TreeRow, index: number): ReactNode => {
         const connection = connectionOf(row);
+
         const menu =
             row.kind === 'appItem' ? (
                 (row.item.menu ?? null)
             ) : connection !== undefined && hasMenu(row) ? (
                 <RowMenu row={row} connection={connection} onRefresh={loads.reset} onDisconnect={disconnect} onRequest={setRequest} />
             ) : null;
+
         const selectedRow = isSelected(row);
         const draggable = row.kind === 'table' && onTableDragStart !== undefined;
+
         const props = {
             level: row.level,
             selected: selectedRow,
@@ -288,7 +317,9 @@ export function DatabaseExplorer({
                 }
             }
         };
+
         const content = <RowContent row={row} onToggle={isExpandable(row) ? () => toggle(row) : undefined} />;
+
         if (menu === null) {
             return (
                 <Tree.Row key={row.key} {...props}>
@@ -296,6 +327,7 @@ export function DatabaseExplorer({
                 </Tree.Row>
             );
         }
+
         return (
             <ContextMenu.Root key={row.key}>
                 <ContextMenu.Trigger render={<Tree.Row {...props} />}>{content}</ContextMenu.Trigger>
@@ -339,6 +371,7 @@ export function DatabaseExplorer({
 
 function RowContent({ row, onToggle }: { row: TreeRow; onToggle?: () => void }) {
     const { t } = useTranslation('database');
+
     switch (row.kind) {
         case 'connection':
             return (
@@ -446,6 +479,7 @@ const EMPTY_WORDS = { schemas: 'explorer.noSchemas', tables: 'explorer.noTables'
 function SchemaCount({ shown, total }: { shown: number; total: number }) {
     const { t } = useTranslation('database');
     const counts = { shown: formatNumber(shown), total: formatNumber(total) };
+
     return (
         <Tooltip label={t('explorer.schemaCountHint', { count: total, ...counts })}>
             <span className="shrink-0 text-text-faint tabular-nums">{t('explorer.schemaCount', counts)}</span>
@@ -458,6 +492,7 @@ const ENTRY_ICON_SLOT = 'inline-flex size-4 shrink-0 items-center justify-center
 
 function ColumnIcon(keys: ColumnKeys) {
     const { t } = useTranslation('database');
+
     if (!keys.primaryKey && !keys.foreignKey) {
         return (
             <span className={ENTRY_ICON_SLOT}>
@@ -465,6 +500,7 @@ function ColumnIcon(keys: ColumnKeys) {
             </span>
         );
     }
+
     return (
         <Tooltip label={t(keyLabelOf(keys))}>
             <span className={ENTRY_ICON_SLOT}>
@@ -478,11 +514,13 @@ function ColumnIcon(keys: ColumnKeys) {
 function EntryContent({ row }: { row: EntryRow }) {
     const { t } = useTranslation('database');
     const { entry } = row;
+
     const icon = (glyph: LucideIcon, className: string): ReactNode => (
         <span className={ENTRY_ICON_SLOT}>
             <Icon icon={glyph} size={14} className={className} />
         </span>
     );
+
     switch (entry.type) {
         case 'key':
             return (
@@ -496,6 +534,7 @@ function EntryContent({ row }: { row: EntryRow }) {
         case 'foreignKey': {
             const { foreignKey } = entry;
             const columns = foreignKey.columns.join(', ');
+
             return (
                 <>
                     <Tree.ChevronSlot />
@@ -544,6 +583,7 @@ function EntryContent({ row }: { row: EntryRow }) {
 
 function ErrorContent({ row }: { row: ErrorRow }) {
     const { t } = useTranslation('database');
+
     return (
         <>
             <Tree.ChevronSlot />

@@ -35,31 +35,45 @@ export interface LoadTarget {
 const SEPARATOR = '\u0000';
 
 export const connectionKey = (connectionId: string): string => `c:${connectionId}`;
+
 export const schemaKey = (connectionId: string, schema: string): string => `s:${connectionId}${SEPARATOR}${schema}`;
+
 export const folderKey = (connectionId: string, schema: string, group: TableKind): string => `f:${connectionId}${SEPARATOR}${schema}${SEPARATOR}${group}`;
+
 export const tableKey = (ref: TableRef): string => `t:${ref.connectionId}${SEPARATOR}${ref.schema}${SEPARATOR}${ref.table}`;
+
 /* The folders of a table, in the order they come under it. */
 export const PARTS = ['columns', 'keys', 'foreignKeys', 'indexes', 'checks', 'triggers'] as const;
+
 export type TablePart = (typeof PARTS)[number];
+
 export const partKey = (ref: TableRef, part: TablePart): string => `p:${ref.connectionId}${SEPARATOR}${ref.schema}${SEPARATOR}${ref.table}${SEPARATOR}${part}`;
+
 /* A folder of a schema, and the columns of a table, are open until the person closes them; everything else is closed until they open it. */
 export const startsOpen = (key: string): boolean => key.startsWith('f:') || (key.startsWith('p:') && key.endsWith(`${SEPARATOR}columns`));
+
 /* The connection a key of a connection, schema, folder or table belongs to. */
 export const connectionOfKey = (key: string): string => {
     const rest = key.slice(2);
     const end = rest.indexOf(SEPARATOR);
+
     return end === -1 ? rest : rest.slice(0, end);
 };
+
 export const columnKey = (ref: TableRef, column: string): string => `${tableKey(ref)}${SEPARATOR}${column}`;
+
 /* A folder of the app's own under a connection, and an item in it. */
 export const appFolderKey = (connectionId: string, folder: string): string => `x:${connectionId}${SEPARATOR}${folder}`;
+
 const appItemKey = (connectionId: string, folder: string, item: string): string => `${appFolderKey(connectionId, folder)}${SEPARATOR}${item}`;
+
 const entryKey = (ref: TableRef, part: TablePart, index: number): string => `${partKey(ref, part)}${SEPARATOR}${index}`;
 
 export const loadKey = (target: LoadTarget): string => {
     if (target.schema === undefined) {
         return connectionKey(target.connectionId);
     }
+
     return target.table === undefined
         ? schemaKey(target.connectionId, target.schema)
         : tableKey({ connectionId: target.connectionId, schema: target.schema, table: target.table });
@@ -297,11 +311,14 @@ const matches = (name: string, query: string): boolean => name.toLowerCase().inc
 /* What each folder of a table besides its columns holds: the primary key and the unique keys, the foreign keys, the other indexes, the checks and the triggers. */
 export const tableEntries = (structure: TableStructure): Readonly<Record<Exclude<TablePart, 'columns'>, readonly TableEntry[]>> => {
     const primaryIndex = structure.indexes.find((index) => index.primary);
+
     const primary: TableEntry[] =
         structure.primaryKey.length === 0 ? [] : [{ type: 'key', name: primaryIndex?.name ?? null, columns: structure.primaryKey, primary: true }];
+
     const unique = structure.indexes
         .filter((index) => index.unique && !index.primary)
         .map((index): TableEntry => ({ type: 'key', name: index.name, columns: index.columns, primary: false }));
+
     return {
         keys: [...primary, ...unique],
         foreignKeys: structure.foreignKeys.map((foreignKey) => ({ type: 'foreignKey', foreignKey })),
@@ -322,6 +339,7 @@ export const flattenTree = (input: TreeInput): TreeRow[] => {
     const columnRows = (ref: TableRef, structure: TableStructure, level: number, parent: string): Draft[] => {
         const primary = new Set(structure.primaryKey);
         const foreign = new Set(structure.foreignKeys.flatMap((foreignKey) => foreignKey.columns));
+
         return structure.columns.map((column): Draft => ({
             make: (place) => ({
                 kind: 'column',
@@ -342,24 +360,33 @@ export const flattenTree = (input: TreeInput): TreeRow[] => {
     /* The folders a table opens into, each only when it holds something. A view has only its columns, straight under it. */
     const tableChildren = (ref: TableRef, kind: TableKind, level: number, parent: string): Draft[] => {
         const load = input.structures(ref.connectionId, ref.schema, ref.table);
+
         if (load.status !== 'ready') {
             return [pendingDraft(load, { connectionId: ref.connectionId, schema: ref.schema, table: ref.table }, level, parent)];
         }
+
         const structure = load.value;
+
         if (structure.columns.length === 0) {
             return [statusDraft({ kind: 'empty', of: 'columns' }, level, parent, true)];
         }
+
         if (kind === 'view') {
             return columnRows(ref, structure, level, parent);
         }
+
         const entries = tableEntries(structure);
+
         return PARTS.flatMap((part): Draft[] => {
             const count = part === 'columns' ? structure.columns.length : entries[part].length;
+
             if (count === 0) {
                 return [];
             }
+
             const key = partKey(ref, part);
             const open = startsOpen(key) ? !input.collapsed.has(key) : input.expanded.has(key);
+
             const below = (): Draft[] =>
                 part === 'columns'
                     ? columnRows(ref, structure, level + 1, key)
@@ -376,6 +403,7 @@ export const flattenTree = (input: TreeInput): TreeRow[] => {
                           }),
                           below: []
                       }));
+
             return [
                 {
                     make: (place) => ({ kind: 'part', key, level, parent, focusable: true, ref, part, expanded: open, count, ...place }),
@@ -388,6 +416,7 @@ export const flattenTree = (input: TreeInput): TreeRow[] => {
     const tableDraft = (ref: TableRef, table: TableInfo, level: number, parent: string): Draft => {
         const key = tableKey(ref);
         const open = input.expanded.has(key);
+
         return {
             make: (place) => ({ kind: 'table', key, level, parent, focusable: true, ref, table, expanded: open, ...place }),
             below: open ? settle(tableChildren(ref, table.kind, level + 1, key)) : []
@@ -397,19 +426,25 @@ export const flattenTree = (input: TreeInput): TreeRow[] => {
     /* The folders under a schema (or under a connection with only that schema), and how many tables they hold. */
     const folderDrafts = (connection: Connection, schema: string, level: number, parent: string): { drafts: Draft[]; tables: number } => {
         const load = input.tables(connection.id, schema);
+
         if (load.status === 'ready') {
             const shown = filtering ? load.value.filter((table) => matches(table.name, query)) : load.value;
+
             if (shown.length === 0 && !filtering) {
                 return { drafts: [statusDraft({ kind: 'empty', of: 'tables' }, level, parent, true)], tables: 0 };
             }
+
             const drafts = GROUPS.flatMap((group): Draft[] => {
                 const members = shown.filter((table) => table.kind === group);
+
                 if (members.length === 0) {
                     return [];
                 }
+
                 const key = folderKey(connection.id, schema, group);
                 const open = filtering || !input.collapsed.has(key);
                 const tables = members.map((table) => tableDraft({ connectionId: connection.id, schema, table: table.name }, table, level + 1, key));
+
                 return [
                     {
                         make: (place) => ({
@@ -429,21 +464,27 @@ export const flattenTree = (input: TreeInput): TreeRow[] => {
                     }
                 ];
             });
+
             return { drafts, tables: shown.length };
         }
+
         if (filtering) {
             return { drafts: [], tables: 0 };
         }
+
         return { drafts: [pendingDraft(load, { connectionId: connection.id, schema }, level, parent)], tables: 0 };
     };
 
     const schemaDraft = (connection: Connection, schema: string, parent: string): Draft | null => {
         const key = schemaKey(connection.id, schema);
         const { drafts, tables } = folderDrafts(connection, schema, 3, key);
+
         if (filtering && tables === 0) {
             return null;
         }
+
         const open = filtering || input.expanded.has(key);
+
         return {
             make: (place) => ({ kind: 'schema', key, level: 2, parent, focusable: true, connection, schema, expanded: open, ...place }),
             below: open ? settle(drafts) : []
@@ -454,11 +495,14 @@ export const flattenTree = (input: TreeInput): TreeRow[] => {
     const appFolderDrafts = (connection: Connection, level: number, parent: string): Draft[] =>
         (input.folders?.(connection.id) ?? []).flatMap((folder): Draft[] => {
             const items = filtering ? folder.items.filter((item) => matches(item.label, query)) : folder.items;
+
             if (items.length === 0) {
                 return [];
             }
+
             const key = appFolderKey(connection.id, folder.id);
             const open = filtering || input.expanded.has(key);
+
             const rows = items.map((item): Draft => ({
                 make: (place) => ({
                     kind: 'appItem',
@@ -472,6 +516,7 @@ export const flattenTree = (input: TreeInput): TreeRow[] => {
                 }),
                 below: []
             }));
+
             return [
                 {
                     make: (place) => ({
@@ -498,12 +543,15 @@ export const flattenTree = (input: TreeInput): TreeRow[] => {
         const open = filtering ? load.status === 'ready' || appFolders.length > 0 : input.expanded.has(key);
         let children: Draft[] = [];
         let schemaCount: ConnectionRow['schemaCount'] = null;
+
         if (load.status === 'ready') {
             const visible = visibleSchemas(load.value, input.showSystemSchemas);
             const sole = soleSchema(visible);
+
             if (visible.length < load.value.length) {
                 schemaCount = { shown: visible.length, total: load.value.length };
             }
+
             if (sole !== null) {
                 children = open ? folderDrafts(connection, sole, 2, key).drafts : [];
             } else if (visible.length === 0) {
@@ -514,12 +562,16 @@ export const flattenTree = (input: TreeInput): TreeRow[] => {
         } else if (open && !filtering) {
             children = [pendingDraft(load, { connectionId: connection.id }, 2, key)];
         }
+
         // Behind a status row too: what the app keeps of a connection does not wait on its server.
         children = [...children, ...(open ? appFolders : [])];
+
         if (filtering && children.length === 0) {
             return null;
         }
+
         const version = input.versions(connection.id);
+
         return {
             make: (place) => ({ kind: 'connection', key, level: 1, parent: null, focusable: true, connection, expanded: open, version, schemaCount, ...place }),
             below: open ? settle(children) : []
@@ -532,30 +584,41 @@ export const flattenTree = (input: TreeInput): TreeRow[] => {
 /* The loads an open node is waiting for and nobody has asked for yet. */
 export const neededLoads = (input: Omit<TreeInput, 'filter'>): LoadTarget[] => {
     const needed: LoadTarget[] = [];
+
     for (const connection of input.connections) {
         if (!input.expanded.has(connectionKey(connection.id))) {
             continue;
         }
+
         const load = input.schemas(connection.id);
+
         if (load.status === 'idle') {
             needed.push({ connectionId: connection.id });
+
             continue;
         }
+
         if (load.status !== 'ready') {
             continue;
         }
+
         const visible = visibleSchemas(load.value, input.showSystemSchemas);
         const sole = soleSchema(visible);
         const wanted = sole !== null ? [sole] : visible.map((schema) => schema.name).filter((name) => input.expanded.has(schemaKey(connection.id, name)));
+
         for (const schema of wanted) {
             const tables = input.tables(connection.id, schema);
+
             if (tables.status === 'idle') {
                 needed.push({ connectionId: connection.id, schema });
+
                 continue;
             }
+
             if (tables.status !== 'ready') {
                 continue;
             }
+
             for (const table of tables.value) {
                 if (
                     input.expanded.has(tableKey({ connectionId: connection.id, schema, table: table.name })) &&
@@ -566,6 +629,7 @@ export const neededLoads = (input: Omit<TreeInput, 'filter'>): LoadTarget[] => {
             }
         }
     }
+
     return needed;
 };
 
@@ -579,11 +643,14 @@ export type TreeAction =
 /* What a key does to the row that has the focus, or `null` when it does nothing there. */
 export const navigate = (rows: readonly TreeRow[], activeKey: string | null, pressed: string): TreeAction | null => {
     const stops = rows.filter((row) => row.focusable);
+
     if (stops.length === 0) {
         return null;
     }
+
     const at = stops.findIndex((row) => row.key === activeKey);
     const row = at === -1 ? null : stops[at]!;
+
     switch (pressed) {
         case 'ArrowDown':
             return { type: 'focus', key: stops[Math.min(at + 1, stops.length - 1)]!.key };
@@ -597,19 +664,24 @@ export const navigate = (rows: readonly TreeRow[], activeKey: string | null, pre
             if (row === null || !isExpandable(row)) {
                 return null;
             }
+
             if (!row.expanded) {
                 return { type: 'expand', key: row.key };
             }
+
             const child = stops.find((candidate) => candidate.parent === row.key);
+
             return child === undefined ? null : { type: 'focus', key: child.key };
         }
         case 'ArrowLeft': {
             if (row === null) {
                 return null;
             }
+
             if (isExpandable(row) && row.expanded) {
                 return { type: 'collapse', key: row.key };
             }
+
             return row.parent === null ? null : { type: 'focus', key: row.parent };
         }
         case 'Enter':
@@ -627,5 +699,6 @@ export const tabStop = (rows: readonly TreeRow[], activeKey: string | null, sele
             return key;
         }
     }
+
     return rows.find((row) => row.focusable)?.key ?? null;
 };

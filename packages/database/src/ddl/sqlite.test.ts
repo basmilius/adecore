@@ -37,9 +37,13 @@ const structure: TableStructure = {
 };
 
 const base = draftOf(structure);
+
 const alter = (draft: TableDraft, schema = 'main', old = sqlite): string[] => alterTableSql(old, schema, structure, draft);
+
 const named = (name: string): ColumnDraft => base.columns.find((candidate) => candidate.name === name)!;
+
 const added = (name: string, type: string, rest: Partial<ColumnDraft> = {}): ColumnDraft => ({ ...emptyColumn(name), type, ...rest });
+
 const replace = (name: string, rest: Partial<ColumnDraft>): TableDraft => ({
     ...base,
     columns: base.columns.map((candidate) => (candidate.name === name ? { ...candidate, ...rest } : candidate))
@@ -83,6 +87,7 @@ describe('createTableSql for SQLite', () => {
             ],
             options: { ...emptyDraft().options, withoutRowid: true }
         };
+
         expect(createTableSql(sqlite, 'aux', draft)).toEqual([
             [
                 'CREATE TABLE "aux"."tag""s" (',
@@ -188,6 +193,7 @@ describe('alterTableSql for SQLite', () => {
             onUpdate: null,
             onDelete: null
         };
+
         const changes: TableDraft[] = [
             { ...base, primaryKey: [] },
             { ...base, foreignKeys: [key] },
@@ -196,6 +202,7 @@ describe('alterTableSql for SQLite', () => {
             replace('body', { defaultValue: "'x'" }),
             { ...base, options: { ...base.options, withoutRowid: true } }
         ];
+
         for (const draft of changes) {
             expect(alter(draft)[0]).toBe('PRAGMA foreign_keys=OFF');
         }
@@ -208,6 +215,7 @@ describe('alterTableSql for SQLite', () => {
             added('c', 'TEXT', { defaultValue: 'lower(1)' }),
             added('d', 'INTEGER', { autoIncrement: true })
         ];
+
         for (const fresh of columns) {
             expect(alter({ ...base, columns: [...base.columns, fresh] })[0]).toBe('PRAGMA foreign_keys=OFF');
         }

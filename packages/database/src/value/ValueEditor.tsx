@@ -75,7 +75,9 @@ export function ValueEditor({ column, value, editable, onCommit }: ValueEditorPr
         if (!editable || onCommit === undefined || !dirty) {
             return;
         }
+
         const conversion = editValueOf(draft, source);
+
         if (conversion.ok) {
             onCommit(conversion.value);
         } else {
@@ -123,9 +125,11 @@ export function ValueEditor({ column, value, editable, onCommit }: ValueEditorPr
         if (content.kind === 'empty') {
             return <Faint>{placeholder}</Faint>;
         }
+
         if (content.kind === 'problem') {
             return <Faint>{problemText(content.problem)}</Faint>;
         }
+
         return (
             <>
                 <pre className={clsx(READING, wrapped ? 'break-words whitespace-pre-wrap' : 'whitespace-pre')}>{content.text}</pre>
@@ -142,6 +146,7 @@ export function ValueEditor({ column, value, editable, onCommit }: ValueEditorPr
         if (view === 'text') {
             return editor('min-h-0 flex-1');
         }
+
         if (view === 'hex' && editable) {
             return (
                 <>
@@ -150,6 +155,7 @@ export function ValueEditor({ column, value, editable, onCommit }: ValueEditorPr
                 </>
             );
         }
+
         return rendered === null ? null : reading(rendered, wrap && WRAPPING_VIEWS.has(view));
     };
 

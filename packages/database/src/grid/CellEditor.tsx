@@ -27,6 +27,7 @@ export function CellEditor({ value, label, onValueChange, onCommit, onCancel }: 
         if (event.nativeEvent.isComposing) {
             return;
         }
+
         if (event.key === 'Enter') {
             event.preventDefault();
             onCommit();

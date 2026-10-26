@@ -15,6 +15,7 @@ const lineStartOf = (value: string, at: number): number => value.lastIndexOf('\n
 
 const lineEndOf = (value: string, at: number): number => {
     const newline = value.indexOf('\n', at);
+
     return newline === -1 ? value.length : newline;
 };
 
@@ -24,6 +25,7 @@ const indentOf = (line: string): string => /^[ \t]*/.exec(line)![0];
 const touchedLines = (value: string, start: number, end: number): { from: number; to: number } => {
     const from = lineStartOf(value, start);
     const last = end > start && value[end - 1] === '\n' ? end - 1 : end;
+
     return { from, to: lineEndOf(value, last) };
 };
 
@@ -32,8 +34,10 @@ export const indentEdit = (value: string, start: number, end: number): TextEdit 
     if (!value.slice(start, end).includes('\n')) {
         return { from: start, to: end, insert: INDENT, selectionStart: start + INDENT.length, selectionEnd: start + INDENT.length };
     }
+
     const { from, to } = touchedLines(value, start, end);
     const lines = value.slice(from, to).split('\n');
+
     return {
         from,
         to,
@@ -47,16 +51,21 @@ export const indentEdit = (value: string, start: number, end: number): TextEdit 
 export const outdentEdit = (value: string, start: number, end: number): TextEdit | null => {
     const { from, to } = touchedLines(value, start, end);
     const lines = value.slice(from, to).split('\n');
+
     const removed = lines.map((line) => {
         if (line.startsWith('\t')) {
             return 1;
         }
+
         return Math.min(INDENT.length, /^ */.exec(line)![0].length);
     });
+
     const total = removed.reduce((sum, count) => sum + count, 0);
+
     if (total === 0) {
         return null;
     }
+
     return {
         from,
         to,
@@ -71,5 +80,6 @@ export const newlineEdit = (value: string, start: number, end: number): TextEdit
     const lineStart = lineStartOf(value, start);
     const indent = indentOf(value.slice(lineStart, start));
     const insert = `\n${indent}`;
+
     return { from: start, to: end, insert, selectionStart: start + insert.length, selectionEnd: start + insert.length };
 };

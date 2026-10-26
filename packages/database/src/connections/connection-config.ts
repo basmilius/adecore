@@ -34,9 +34,11 @@ export const isAbsolutePath = (path: string): boolean => /^(?:\/|[A-Za-z]:[\\/]|
 
 const sqliteProblems = (config: SqliteConnectionConfig): ConfigProblems => {
     const path = config.path.trim();
+
     if (path === '') {
         return { path: 'path-required' };
     }
+
     return isAbsolutePath(path) ? {} : { path: 'path-relative' };
 };
 
@@ -47,6 +49,7 @@ export const modeOf = (config: MysqlConnectionConfig): ConnectMode => {
     if (config.tunnel !== undefined) {
         return config.tunnel.kind;
     }
+
     return config.socket === undefined ? 'tcp' : 'socket';
 };
 
@@ -54,31 +57,39 @@ const mysqlProblems = (config: MysqlConnectionConfig): ConfigProblems => {
     const problems: { -readonly [K in keyof ConfigProblems]: ConfigProblems[K] } = {};
     const tunnel = config.tunnel;
     const mode = modeOf(config);
+
     if (mode === 'socket' && (config.socket ?? '').trim() === '') {
         problems.socket = 'socket-required';
     }
+
     if ((mode === 'tcp' || mode === 'ssh') && config.host.trim() === '') {
         problems.host = 'host-required';
     }
+
     if ((mode === 'tcp' || mode === 'ssh') && config.port !== undefined && !isPort(config.port)) {
         problems.port = 'port-range';
     }
+
     if (tunnel?.kind === 'ssh') {
         if (tunnel.host.trim() === '') {
             problems.sshHost = 'ssh-host-required';
         }
+
         if (tunnel.port !== undefined && !isPort(tunnel.port)) {
             problems.sshPort = 'ssh-port-range';
         }
     }
+
     if (tunnel?.kind === 'docker') {
         if (tunnel.container.trim() === '') {
             problems.container = 'container-required';
         }
+
         if (tunnel.port !== undefined && !isPort(tunnel.port)) {
             problems.containerPort = 'container-port-range';
         }
     }
+
     return problems;
 };
 
@@ -90,30 +101,38 @@ export const isValidConfig = (config: ConnectionConfig): boolean => Object.keys(
 
 const lastSegment = (path: string): string => {
     const segments = path.split(/[\\/]/).filter((segment) => segment !== '');
+
     return segments[segments.length - 1] ?? path;
 };
 
 const targetWhere = (config: MysqlConnectionConfig): string => {
     const tunnel = config.tunnel;
+
     if (tunnel?.kind === 'docker') {
         return tunnel.container === '' ? 'Docker' : `${tunnel.container} (Docker)`;
     }
+
     if (tunnel?.kind === 'ssh') {
         return tunnel.host === '' ? config.host : `${config.host} via ${tunnel.host}`;
     }
+
     if (config.socket !== undefined) {
         return lastSegment(config.socket);
     }
+
     return `${config.host}:${config.port ?? DEFAULT_MYSQL_PORT}`;
 };
 
 /* The short line under a connection's name: the file name of a database file, or `user@host:port`, `user@host via <ssh host>` and `user@container (Docker)`. */
 export const targetOf = (connection: Connection): string => {
     const config = connection.config;
+
     if (config.engine === 'sqlite') {
         return lastSegment(config.path);
     }
+
     const where = targetWhere(config);
+
     return config.user === '' || where === '' ? where : `${config.user}@${where}`;
 };
 
@@ -122,12 +141,14 @@ export const withMode = (config: MysqlConnectionConfig, mode: ConnectMode): Mysq
     if (modeOf(config) === mode) {
         return config;
     }
+
     const base: MysqlConnectionConfig = {
         ...config,
         host: config.host.trim() === '' ? DEFAULT_HOST : config.host,
         socket: undefined,
         tunnel: undefined
     };
+
     switch (mode) {
         case 'tcp':
             return base;

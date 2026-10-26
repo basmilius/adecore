@@ -17,6 +17,7 @@ export function ColumnsEditor({ draft, dialect, disabled, onChange, className, r
     const listId = useId();
     const mysql = dialect.engine === 'mysql';
     const defaultType = typeSuggestionsOf(dialect)[0]!;
+
     return (
         <div ref={ref} className={clsx('flex min-h-0 flex-col', className)}>
             {draft.columns.length === 0 ? (
@@ -103,7 +104,9 @@ function ColumnRow({ draft, column, at, mysql, listId, disabled, onChange }: Col
     const { t } = useTranslation('database');
     const keyAt = draft.primaryKey.indexOf(column.name);
     const locked = disabled || column.generated;
+
     const patch = (change: Partial<ColumnDraft>): void => onChange(patchColumn(draft, column.key, change));
+
     return (
         <tr>
             <td className={clsx(TD, 'whitespace-nowrap')}>

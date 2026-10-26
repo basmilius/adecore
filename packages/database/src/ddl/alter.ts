@@ -22,8 +22,10 @@ const unchanged = (diff: TableDiff): boolean =>
 export const alterTableSql = (dialect: Dialect, schema: string, structure: TableStructure, draft: TableDraft): string[] => {
     const original = draftOf(structure);
     const diff = diffOf(dialect, original, draft);
+
     if (unchanged(diff)) {
         return [];
     }
+
     return dialect.engine === 'sqlite' ? sqliteAlterSql(dialect, schema, original, draft, diff) : mysqlAlterSql(dialect, schema, original, draft, diff);
 };

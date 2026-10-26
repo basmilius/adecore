@@ -21,17 +21,21 @@ export function useReferenceColumns(
     const scope = `${connection.id}\u0000${schema}`;
     const [cache, setCache] = useState<Cache>({ scope, columns: {} });
     const known = cache.scope === scope ? cache.columns : {};
+
     const wanted = [...new Set(draft.foreignKeys.map((foreignKey) => foreignKey.referencedTable))]
         .filter((table) => table !== '' && table !== draft.name && !(table in known))
         .sort();
+
     const wantedKey = wanted.join('\u0000');
 
     useEffect(() => {
         if (wantedKey === '') {
             return undefined;
         }
+
         let current = true;
         const session = client.session(connection);
+
         for (const table of wantedKey.split('\u0000')) {
             session
                 .structure(schema, table)
@@ -45,6 +49,7 @@ export function useReferenceColumns(
                     }
                 });
         }
+
         return () => {
             current = false;
         };

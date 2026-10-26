@@ -22,18 +22,22 @@ const DEFAULT_ACTION = 'default';
 export function ForeignKeysEditor({ draft, schema, tables, referenceColumns, disabled, onChange, className, ref }: ForeignKeysEditorProps) {
     const { t } = useTranslation('database');
     const columns = draft.columns.map((column) => column.name);
+
     const actions = [
         { value: DEFAULT_ACTION, label: t('designer.foreignKeys.engineDefault') },
         ...FOREIGN_KEY_ACTIONS.map((action) => ({ value: action, label: action }))
     ];
+
     return (
         <div ref={ref} className={clsx('flex min-h-0 flex-col', className)}>
             <div>
                 {draft.foreignKeys.length === 0 && <EmptyState>{t('designer.foreignKeys.empty')}</EmptyState>}
                 {draft.foreignKeys.map((foreignKey) => {
                     const referenced = foreignKey.referencedTable === '' ? [] : referenceColumns(foreignKey.referencedTable);
+
                     const choices =
                         tables.includes(foreignKey.referencedTable) || foreignKey.referencedTable === '' ? tables : [...tables, foreignKey.referencedTable];
+
                     return (
                         <div key={foreignKey.key} className="flex flex-col gap-3 border-b border-border-soft px-3 py-3">
                             <div className="flex items-end gap-3">

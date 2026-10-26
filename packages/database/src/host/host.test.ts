@@ -33,6 +33,7 @@ class ScriptedHelper implements HelperProcess {
 
         if (this.hold.has(message.method)) {
             this.held.push(message);
+
             return;
         }
 
@@ -99,6 +100,7 @@ interface HarnessOptions extends Partial<DatabaseHostOptions> {
 const harness = (options: HarnessOptions = {}) => {
     const helpers: ScriptedHelper[] = [];
     const { hold = [], autoReady = true, ...hostOptions } = options;
+
     const host = createDatabaseHost({
         start: () => {
             const helper = new ScriptedHelper(new Set(hold), `s${helpers.length + 1}-`);
@@ -119,6 +121,7 @@ const harness = (options: HarnessOptions = {}) => {
 const tick = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
 const open = (id: string) => ({ id, method: 'open', params: { connection: SQLITE } });
+
 const rows = (id: string, session: string) => ({ id, method: 'rows', params: { session, schema: 'main', table: 't', offset: 0, limit: 10 } });
 
 const sessionOf = (response: DatabaseResponse): string => (response.ok ? (response.result as { session: string }).session : '');
@@ -217,6 +220,7 @@ describe('starting the helper', () => {
                 throw new Error('ENOENT');
             }
         });
+
         const response = await broken.handle(open('r1'), 'a');
         expect(errorCode(response)).toBe('helper-unavailable');
         expect(response.ok ? '' : response.error.message).toContain('ENOENT');
@@ -231,15 +235,18 @@ describe('starting the helper', () => {
     test('starts a new helper for the request after a failed start', async () => {
         let attempts = 0;
         const helpers: ScriptedHelper[] = [];
+
         const host = createDatabaseHost({
             start: () => {
                 const helper = new ScriptedHelper(new Set(), 's');
                 helpers.push(helper);
                 attempts++;
                 queueMicrotask(() => (attempts === 1 ? helper.ready(PROTOCOL_VERSION + 1) : helper.ready()));
+
                 return helper;
             }
         });
+
         expect(errorCode(await host.handle(open('r1'), 'a'))).toBe('helper-unavailable');
         expect((await host.handle(open('r2'), 'a')).ok).toBe(true);
         expect(helpers).toHaveLength(2);
@@ -354,6 +361,7 @@ describe('cancel', () => {
 
     test('stops a request that still waits for the app to authorize it', async () => {
         let allow: (value: boolean) => void = () => {};
+
         const { host, helpers } = harness({ authorize: () => new Promise<boolean>((resolve) => (allow = resolve)) });
         const waiting = host.handle(open('r1'), 'a');
         await tick();
@@ -368,15 +376,19 @@ describe('cancel', () => {
 describe('authorize', () => {
     test('is asked for open and test with the connection and the owner', async () => {
         const asked: unknown[] = [];
+
         const { host, helpers } = harness({
             authorize: (connection, owner) => {
                 asked.push([connection, owner]);
+
                 return true;
             }
         });
+
         const session = sessionOf(await host.handle(open('r1'), 'a'));
         await host.handle({ id: 'r2', method: 'test', params: { connection: SQLITE } }, 'b');
         await host.handle(rows('r3', session), 'a');
+
         expect(asked).toEqual([
             [SQLITE, 'a'],
             [SQLITE, 'b']
@@ -407,11 +419,13 @@ const file = (method: 'export' | 'import' | 'sample', session: string, path = '/
         import: { session, schema: 'main', table: 't', path, format: 'csv', header: true, columns: ['a'] },
         sample: { path, format: 'csv', header: true }
     };
+
     return { id: `f-${method}`, method, params: params[method] };
 };
 
 describe('the new session methods', () => {
     const page = (session: string) => ({ id: 'p1', method: 'page', params: { session, sql: 'SELECT 1', offset: 0, limit: 1 } });
+
     const transaction = (session: string) => ({ id: 't1', method: 'transaction', params: { session, action: 'begin' } });
 
     test('belong to the owner that opened the session, without reaching the helper', async () => {
@@ -445,12 +459,15 @@ describe('the new session methods', () => {
 describe('authorizeFile', () => {
     test('is asked for the path, the access and the owner', async () => {
         const asked: unknown[] = [];
+
         const { host } = harness({
             authorizeFile: (path, access, owner) => {
                 asked.push([path, access, owner]);
+
                 return true;
             }
         });
+
         const session = sessionOf(await host.handle(open('r1'), 'a'));
 
         for (const method of ['export', 'import', 'sample'] as const) {
@@ -500,12 +517,15 @@ describe('authorizeFile', () => {
 
     test("is not asked for another owner's session", async () => {
         let asked = 0;
+
         const { host } = harness({
             authorizeFile: () => {
                 asked++;
+
                 return true;
             }
         });
+
         const session = sessionOf(await host.handle(open('r1'), 'a'));
         expect(errorCode(await host.handle(file('export', session), 'b'))).toBe('unknown-session');
         expect(asked).toBe(0);
@@ -523,12 +543,15 @@ describe('authorizeDiscovery', () => {
 
     test('is asked for the kind and the owner', async () => {
         const asked: unknown[] = [];
+
         const { host } = harness({
             authorizeDiscovery: (kind, owner) => {
                 asked.push([kind, owner]);
+
                 return true;
             }
         });
+
         await host.handle(discover, 'a');
         expect(asked).toEqual([['docker', 'a']]);
     });
@@ -551,12 +574,15 @@ describe('authorizeDiscovery', () => {
 describe('authorize and tunnels', () => {
     test('still decides on a connection with a tunnel', async () => {
         const seen: unknown[] = [];
+
         const { host } = harness({
             authorize: (connection) => {
                 seen.push(connection);
+
                 return false;
             }
         });
+
         const connection = { engine: 'mysql', host: '', user: 'root', tunnel: { kind: 'docker', container: 'db' } };
         expect(errorCode(await host.handle({ id: 'r1', method: 'open', params: { connection } }, 'a'))).toBe('forbidden');
         expect(errorCode(await host.handle({ id: 'r2', method: 'test', params: { connection } }, 'a'))).toBe('forbidden');

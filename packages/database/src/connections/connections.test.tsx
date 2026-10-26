@@ -10,6 +10,7 @@ import { ConnectionForm } from './ConnectionForm.tsx';
 import { ConnectionManager } from './ConnectionManager.tsx';
 
 const i18n = i18next.createInstance();
+
 await i18n.init({ lng: 'en', fallbackLng: 'en', resources: {}, interpolation: { escapeValue: false } });
 
 const client = stubClient();
@@ -68,9 +69,11 @@ describe('ConnectionForm', () => {
     test('offers the four ways to connect, TCP first, and shows no socket field in TCP mode', () => {
         const markup = render(<ConnectionForm value={mysql} onValueChange={() => undefined} />);
         expect(markup).toContain('Connect through');
+
         for (const label of ['TCP', 'Socket', 'SSH', 'Docker']) {
             expect(markup).toContain(`>${label}</button>`);
         }
+
         expect(markup).toContain('aria-checked="true"');
         expect(markup).not.toContain('/tmp/mysql.sock');
         expect(markup).not.toContain('SSH host');
@@ -83,6 +86,7 @@ describe('ConnectionForm', () => {
                 onValueChange={() => undefined}
             />
         );
+
         expect(markup).toContain('value="/tmp/mysql.sock"');
         expect(markup).not.toContain('value="db.test"');
         expect(markup).not.toContain('SSH host');
@@ -92,6 +96,7 @@ describe('ConnectionForm', () => {
         const markup = render(
             <ConnectionForm value={{ ...mysql, config: { ...mysql.config, socket: '' } as Connection['config'] }} onValueChange={() => undefined} />
         );
+
         expect(markup).toContain('placeholder="/tmp/mysql.sock"');
         expect(markup).not.toContain('Enter the socket path.');
     });
@@ -186,11 +191,13 @@ describe('ConnectionManager', () => {
             name: 'Staging',
             config: { engine: 'mysql', host: '127.0.0.1', user: 'root', tunnel: { kind: 'ssh', host: 'bastion' } }
         };
+
         const viaDocker: Connection = {
             id: 'four',
             name: 'Local',
             config: { engine: 'mysql', host: '127.0.0.1', user: 'app', tunnel: { kind: 'docker', container: 'shop-db-1' } }
         };
+
         const markup = render(<ConnectionManager value={[viaSsh, viaDocker]} onValueChange={() => undefined} />);
         expect(markup).toContain('root@127.0.0.1 via bastion');
         expect(markup).toContain('app@shop-db-1 (Docker)');
@@ -205,6 +212,7 @@ describe('ConnectionManager', () => {
                 renderFields={(connection) => <p>Own {connection.name}</p>}
             />
         );
+
         expect(markup).toContain('<p>Own Shop</p>');
         expect(markup.indexOf('Read only')).toBeLessThan(markup.indexOf('<p>Own Shop</p>'));
         expect(markup.indexOf('<p>Own Shop</p>')).toBeLessThan(markup.indexOf('Test connection'));

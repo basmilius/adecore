@@ -19,16 +19,19 @@ export function useDockerContainers(): { readonly state: DockerState; reload(): 
 
     useEffect(() => {
         const controller = new AbortController();
+
         client.discover('docker', { signal: controller.signal }).then(
             (containers) => setState({ status: 'ready', containers }),
             (e: unknown) => {
                 if (controller.signal.aborted) {
                     return;
                 }
+
                 const message = messageOf(e);
                 setState({ status: e instanceof DatabaseRequestError && e.code === 'unsupported' ? 'unsupported' : 'error', message });
             }
         );
+
         return () => controller.abort();
     }, [client, attempt]);
 

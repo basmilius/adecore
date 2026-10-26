@@ -11,6 +11,7 @@ const preview = (text: string): Shown => ({ kind: 'longText', preview: text.slic
 describe('loadWholeCells', () => {
     test('copies a long text cell as SQL with all of its characters', async () => {
         const whole = await loadWholeCells([[1, preview(LONG)]], async () => LONG);
+
         const sql = formatCopy('sql', {
             columns: [
                 { name: 'id', kind: 'integer' },
@@ -28,6 +29,7 @@ describe('loadWholeCells', () => {
     test('loads only the previews, by their place in the block', async () => {
         const asked: [number, number][] = [];
         const binary: Shown = { kind: 'binary', hex: 'ab', length: 3 };
+
         const whole = await loadWholeCells(
             [
                 ['a', binary],
@@ -35,6 +37,7 @@ describe('loadWholeCells', () => {
             ],
             async (row, column) => {
                 asked.push([row, column]);
+
                 return row === 0 ? ({ kind: 'binary', hex: 'abcdef' } satisfies Value) : LONG;
             }
         );
@@ -51,6 +54,7 @@ describe('loadWholeCells', () => {
 
     test('keeps the cells a block without previews holds, and asks for nothing', async () => {
         const rows: Shown[][] = [[1, 'a', null]];
+
         const whole = await loadWholeCells(rows, async () => {
             throw new Error('Nothing to load.');
         });
@@ -60,10 +64,12 @@ describe('loadWholeCells', () => {
 
     test('counts the cells it could not load, which stay previews', async () => {
         const rows = [[preview(LONG), preview(LONG), preview(LONG)]];
+
         const whole = await loadWholeCells(rows, async (_row, column) => {
             if (column === 1) {
                 throw new Error('Gone.');
             }
+
             return column === 0 ? LONG : undefined;
         });
 
@@ -81,8 +87,10 @@ describe('loadWholeCells', () => {
     test('keeps every preview when the whole values pass the limit', async () => {
         let asked = 0;
         const rows: Shown[][] = [[{ kind: 'binary', hex: '00', length: WHOLE_COPY_LIMIT / 2 + 1 }]];
+
         const whole = await loadWholeCells(rows, async () => {
             asked += 1;
+
             return null;
         });
 

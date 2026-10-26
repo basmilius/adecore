@@ -149,6 +149,7 @@ describe('parseOrderBy', () => {
             { column: 'name', direction: 'desc' as const },
             { column: 'id', direction: 'asc' as const }
         ];
+
         for (const engine of ['sqlite', 'mysql'] as const) {
             expect(parseOrderBy(engine, orderByClause(engine, sorts), columns)).toEqual(sorts);
         }

@@ -109,6 +109,7 @@ export function TableToolbar({
     const { t } = useTranslation('database');
     const readOnly = readOnlyReason !== null;
     const hasStart = start !== undefined && start !== null && start !== false;
+
     const tooltipOf = (label: string): string => (readOnly ? t('table.unavailable', { action: label, reason: readOnlyReason }) : label);
 
     return (

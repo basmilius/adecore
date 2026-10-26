@@ -15,7 +15,9 @@ export const parseRowKey = (key: string): RowRef =>
 
 export const buildGridColumns = (loaded: Pick<RowsResult, 'columns'>, structure: TableStructure | null): GridColumn[] => {
     const keys = { primaryKey: structure?.primaryKey ?? [], foreignKey: structure?.foreignKeys.flatMap((key) => key.columns) ?? [] };
+
     const infoOf = (name: string) => structure?.columns.find((info) => info.name === name);
+
     return loaded.columns.map((column) => gridColumnOf(column, infoOf(column.name), keys));
 };
 
@@ -32,14 +34,19 @@ export const buildGridRows = ({ structure, loaded, pending, offset }: GridRowsIn
     const rows = loaded.rows.map((cells, index): GridRow => {
         const edits = pending.edits[index];
         const edited = new Set<number>();
+
         const shown = cells.map((cell, column): Shown => {
             const edit = edits?.[loaded.columns[column]!.name];
+
             if (edit === undefined) {
                 return cell;
             }
+
             edited.add(column);
+
             return shownOfEdit(edit);
         });
+
         return {
             key: loadedRowKey(index),
             number: offset + index + 1,
@@ -49,15 +56,18 @@ export const buildGridRows = ({ structure, loaded, pending, offset }: GridRowsIn
             locked: structure === null || rowKeyOf(structure, loaded, index) === null
         };
     });
+
     const inserted = pending.inserts.map((row): GridRow => ({
         key: insertedRowKey(row.id),
         number: null,
         cells: loaded.columns.map((column): Shown => {
             const value = row.values[column.name];
+
             return value === undefined ? { kind: 'default' } : shownOfEdit(value);
         }),
         state: 'inserted'
     }));
+
     return [...rows, ...inserted];
 };
 
@@ -67,11 +77,14 @@ export const buildGridRows = ({ structure, loaded, pending, offset }: GridRowsIn
  */
 export const cloneValues = (columns: readonly GridColumn[], cells: readonly Shown[]): Record<string, EditValue> => {
     const values: Record<string, EditValue> = {};
+
     columns.forEach((column, index) => {
         const value = column.autoIncrement === true || column.readOnly === true ? undefined : wholeValueOf(cells[index] ?? null);
+
         if (value !== undefined) {
             values[column.name] = value;
         }
     });
+
     return values;
 };

@@ -21,36 +21,46 @@ export const restoreLayout = (columns: readonly { readonly name: string }[], lay
     const resized: Record<number, number> = {};
     const hidden = new Set<number>();
     const pinned: number[] = [];
+
     if (layout !== undefined) {
         columns.forEach((column, index) => {
             const width = layout.widths[column.name];
+
             if (width !== undefined) {
                 resized[index] = Math.max(MIN_COLUMN_WIDTH, Math.min(Math.round(width), MAX_RESIZED_WIDTH));
             }
+
             if (layout.hidden.includes(column.name)) {
                 hidden.add(index);
             }
         });
+
         for (const name of layout.pinned) {
             const index = columns.findIndex((column) => column.name === name);
+
             if (index >= 0 && !hidden.has(index) && !pinned.includes(index)) {
                 pinned.push(index);
             }
         }
     }
+
     return { resized, view: { hidden: hidden.size >= columns.length ? new Set() : hidden, pinned } };
 };
 
 /* The layout of a grid's state, with the columns by name. */
 export const captureLayout = (columns: readonly { readonly name: string }[], state: ColumnState): GridLayout => {
     const widths: Record<string, number> = {};
+
     for (const [index, width] of Object.entries(state.resized)) {
         const column = columns[Number(index)];
+
         if (column !== undefined) {
             widths[column.name] = width;
         }
     }
+
     const namesOf = (indexes: readonly number[]): string[] => indexes.flatMap((index) => columns[index]?.name ?? []);
+
     return {
         widths,
         hidden: namesOf([...state.view.hidden].sort((a, b) => a - b)),
@@ -60,6 +70,7 @@ export const captureLayout = (columns: readonly { readonly name: string }[], sta
 
 export const sameLayout = (a: GridLayout, b: GridLayout): boolean => {
     const names = Object.keys(a.widths);
+
     return (
         names.length === Object.keys(b.widths).length &&
         names.every((name) => a.widths[name] === b.widths[name]) &&

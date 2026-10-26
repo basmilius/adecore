@@ -14,6 +14,7 @@ const tableTarget = { session: 's1', schema: 'main', table: 'users' };
 const rejection = (value: unknown): string => {
     const parsed = parseRequest(value);
     expect(parsed.ok).toBe(false);
+
     return parsed.ok ? '' : parsed.error.message;
 };
 
@@ -110,7 +111,9 @@ describe('connections', () => {
 
     test('rejects a malformed tunnel', () => {
         const base = { engine: 'mysql', host: 'db', user: 'root' };
+
         const tunnel = (value: unknown) => open({ ...base, tunnel: value });
+
         expect(rejection(tunnel('ssh'))).toContain('tunnel');
         expect(rejection(tunnel({ kind: 'vpn', host: 'x' }))).toContain('tunnel.kind');
         expect(rejection(tunnel({ kind: 'ssh' }))).toContain('"host"');
@@ -261,6 +264,7 @@ describe('page and transaction', () => {
 
 describe('export, sample and import', () => {
     const table = { kind: 'table', schema: 'main', table: 'users' };
+
     const exporting = (params: object) => request('export', { session: 's', source: table, format: 'csv', path: '/tmp/a.csv', ...params });
 
     test('checks export', () => {
@@ -288,6 +292,7 @@ describe('export, sample and import', () => {
 
     test('checks sample', () => {
         const sample = (params: object) => request('sample', { path: '/tmp/a.csv', format: 'tsv', header: true, ...params });
+
         expect(parseRequest(sample({ limit: 10 })).ok).toBe(true);
         expect(rejection(sample({ path: 'a.csv' }))).toContain('absolute');
         expect(rejection(sample({ format: 'json' }))).toContain('format');
@@ -300,6 +305,7 @@ describe('export, sample and import', () => {
     test('checks import', () => {
         const importing = (params: object) =>
             request('import', { ...tableTarget, path: '/tmp/a.csv', format: 'csv', header: true, columns: [null, 'email'], ...params });
+
         expect(parseRequest(importing({})).ok).toBe(true);
         expect(rejection(importing({ path: 'a.csv' }))).toContain('absolute');
         expect(rejection(importing({ format: 'sql' }))).toContain('format');

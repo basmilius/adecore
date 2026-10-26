@@ -21,6 +21,7 @@ export type NumberNotation = 'database' | 'region';
 
 /* A cell never draws more than this, however long the text: the DOM stays small and the cell is one line anyway. */
 export const DISPLAY_LIMIT = 200;
+
 /* How many bytes of a binary value the cell spells out. */
 export const BINARY_PREVIEW_BYTES = 8;
 
@@ -33,9 +34,11 @@ export const isPreview = (cell: Shown): boolean => {
     if (!isObject(cell)) {
         return false;
     }
+
     if (cell.kind === 'longText') {
         return true;
     }
+
     return cell.kind === 'binary' && cell.hex.length < cell.length * 2;
 };
 
@@ -44,13 +47,16 @@ export const numeralText = (numeral: string | number, notation: NumberNotation):
     if (notation === 'database') {
         return String(numeral);
     }
+
     const formatted = formatNumeral(numeral);
+
     return formatted === String(numeral).trim() ? String(numeral) : formatted;
 };
 
 /* Identifiers are labels, even when the database stores their characters as a number. */
 export function columnNotation(column: GridColumn, notation: NumberNotation): NumberNotation {
     const identifierName = (name: string): boolean => /^(?:id|.+_id)$/i.test(name) || /(?:Id|ID)$/.test(name);
+
     return column.primaryKey === true ||
         column.foreignKey === true ||
         column.autoIncrement === true ||
@@ -65,18 +71,23 @@ const cut = (text: string): string => (text.length > DISPLAY_LIMIT ? `${text.sli
 export const cellView = (cell: Shown, kind: ValueKind, notation: NumberNotation = 'database'): CellView => {
     const numeric = isNumericKind(kind);
     const align = numeric ? 'end' : 'start';
+
     if (cell === null) {
         return { text: 'NULL', tone: 'null', align };
     }
+
     if (typeof cell === 'boolean') {
         return { text: cell ? 'true' : 'false', tone: 'value', align };
     }
+
     if (typeof cell === 'number') {
         return { text: numeric ? numeralText(cell, notation) : String(cell), tone: 'value', align };
     }
+
     if (typeof cell === 'string') {
         return { text: cut(numeric ? numeralText(cell, notation) : cell), tone: 'value', align };
     }
+
     switch (cell.kind) {
         case 'default':
             return { text: 'DEFAULT', tone: 'default', align };
@@ -85,6 +96,7 @@ export const cellView = (cell: Shown, kind: ValueKind, notation: NumberNotation 
         case 'binary': {
             const shown = cell.hex.slice(0, BINARY_PREVIEW_BYTES * 2);
             const truncated = shown.length < cell.length * 2;
+
             return { text: `0x${shown}${truncated ? ELLIPSIS : ''}`, tone: 'value', align: 'start', suffix: formatBytes(cell.length) };
         }
     }
@@ -95,9 +107,11 @@ export const copyTextOf = (cell: Shown): string => {
     if (cell === null) {
         return 'NULL';
     }
+
     if (typeof cell !== 'object') {
         return String(cell);
     }
+
     switch (cell.kind) {
         case 'default':
             return 'DEFAULT';
@@ -113,5 +127,6 @@ export const shownOfEdit = (value: EditValue): Shown => {
     if (value !== null && typeof value === 'object' && value.kind === 'binary') {
         return { kind: 'binary', hex: value.hex, length: value.hex.length / 2 };
     }
+
     return value as Shown;
 };

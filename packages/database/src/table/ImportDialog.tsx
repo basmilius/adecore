@@ -54,10 +54,13 @@ export function ImportForm({
 }: ImportFormProps) {
     const { t } = useTranslation('database');
     const items = [{ value: SKIP, label: t('table.import.skip') }, ...tableColumns.map((column, index) => ({ value: String(index), label: column.name }))];
+
     const valueOf = (name: string | null): string => {
         const index = name === null ? -1 : tableColumns.findIndex((column) => column.name === name);
+
         return index < 0 ? SKIP : String(index);
     };
+
     const canImport = sample !== null && hasMapping(mapping) && !busy;
 
     return (
@@ -156,6 +159,7 @@ export interface ImportDialogProps extends ImportFormProps {
 /* The import of a file into the table: pick how the columns map, look at the rows, confirm. */
 export function ImportDialog({ open, onOpenChange, ...form }: ImportDialogProps) {
     const { t } = useTranslation('database');
+
     return (
         <Dialog.Root open={open} onOpenChange={(next) => !form.busy && onOpenChange(next)}>
             <Dialog.Popup className="flex max-h-[calc(100vh-96px)] w-[720px] max-w-[calc(100vw-48px)] flex-col p-5">

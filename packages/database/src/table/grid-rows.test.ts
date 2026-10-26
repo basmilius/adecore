@@ -60,6 +60,7 @@ describe('buildGridColumns', () => {
                 }
             ]
         };
+
         const [id, name] = buildGridColumns(loaded, linked);
         expect(id).toMatchObject({ primaryKey: true, foreignKey: false });
         expect(name).toMatchObject({ primaryKey: false, foreignKey: true });
@@ -120,6 +121,7 @@ describe('cloneValues', () => {
             { kind: 'binary', hex: 'ab', length: 1 },
             { kind: 'default' }
         ]);
+
         expect(values).toEqual({ name: 'Ada', avatar: { kind: 'binary', hex: 'ab' } });
     });
 

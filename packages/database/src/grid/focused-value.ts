@@ -8,16 +8,20 @@ export const wholeValueOf = (cell: Shown): Value | undefined =>
 /* What a cell holds as far as it goes: the whole value, or the preview of a long text or a binary value. */
 export const previewValueOf = (cell: Shown): Value => {
     const whole = wholeValueOf(cell);
+
     if (whole !== undefined) {
         return whole;
     }
+
     if (cell !== null && typeof cell === 'object') {
         if (cell.kind === 'longText') {
             return cell.preview;
         }
+
         if (cell.kind === 'binary') {
             return { kind: 'binary', hex: cell.hex };
         }
     }
+
     return null;
 };

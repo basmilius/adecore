@@ -15,6 +15,7 @@ export const containerTitle = (container: DockerContainer): string => composeNam
 /* The port to connect to inside the container: MySQL's own when the container lists it or lists nothing, else the first it lists. */
 export const containerPortOf = (container: DockerContainer): number => {
     const ports = container.ports.map((entry) => entry.container);
+
     return ports.length === 0 || ports.includes(DEFAULT_MYSQL_PORT) ? DEFAULT_MYSQL_PORT : ports[0]!;
 };
 
@@ -28,6 +29,7 @@ const isEmpty = (text: string | undefined): boolean => text === undefined || tex
 export const withContainer = (config: MysqlConnectionConfig, container: DockerContainer): MysqlConnectionConfig => {
     const docker = withMode(config, 'docker');
     const { user, password, database } = container.suggested;
+
     return {
         ...docker,
         user: isEmpty(docker.user) && user !== undefined ? user : docker.user,

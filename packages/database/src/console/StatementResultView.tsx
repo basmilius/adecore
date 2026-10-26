@@ -65,10 +65,12 @@ export function StatementResultView({
 }: StatementResultViewProps) {
     const { t } = useTranslation('database');
     const [focus, setFocus] = useState<FocusedCell | null>(null);
+
     const rows = useMemo(
         () => (result.kind === 'rows' ? result.rows.map((cells, index): GridRow => ({ key: `row:${index}`, number: offset + index + 1, cells })) : []),
         [result, offset]
     );
+
     const sqlTarget = useMemo((): SqlTarget | undefined => (engine === undefined ? undefined : { engine, table: RESULT_TABLE }), [engine]);
     const elapsed = t('console.elapsed', { value: formatDecimal(result.elapsedMs) });
 
@@ -114,17 +116,21 @@ export function StatementResultView({
 
     const referenceAt = (cell: FocusedCell): Reference | null => {
         const row = rows.find((candidate) => candidate.key === cell.rowKey);
+
         return keys === null || row === undefined ? null : keys.referenceAt(cell.column, row.cells);
     };
+
     const follow =
         keys === null || onFollowReference === undefined
             ? undefined
             : (cell: FocusedCell): void => {
                   const reference = referenceAt(cell);
+
                   if (reference !== null) {
                       onFollowReference(reference);
                   }
               };
+
     const referenceMenu = (context: GridMenuContext): ReactNode =>
         follow === undefined || context.cell === null || keys?.isReference(context.cell.column) !== true ? null : (
             <ContextMenu.Item disabled={referenceAt(context.cell) === null} onClick={() => context.cell !== null && follow(context.cell)}>

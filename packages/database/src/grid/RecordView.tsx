@@ -56,13 +56,16 @@ const textOf = (cell: GridRow['cells'][number], kind: GridColumn['kind'], notati
     if (isPreview(cell)) {
         return cellView(cell, kind, notation).text;
     }
+
     if (cell !== null && typeof cell === 'object' && cell.kind === 'default') {
         return '';
     }
+
     // A field that can be edited holds the server's text, which is what an edit starts from.
     if (readOnly && isNumericKind(kind) && (typeof cell === 'number' || typeof cell === 'string')) {
         return numeralText(cell, notation);
     }
+
     return draftOf(cell);
 };
 
@@ -116,6 +119,7 @@ export function RecordView({
         if (editing !== null && !editing.loading && row !== undefined && editing.draft !== editing.initial) {
             onCommit?.(row.key, editing.column, parseDraft(editing.draft, columns[editing.column]!.kind));
         }
+
         setEditing(null);
     };
 
@@ -127,19 +131,25 @@ export function RecordView({
 
     const beginEdit = async (column: number): Promise<void> => {
         const cell = row?.cells[column] ?? null;
+
         if (row === undefined || !canEdit(column) || !isPreview(cell) || loadValue === undefined) {
             return;
         }
+
         setEditing({ column, draft: '', initial: '', loading: true });
         const value = await loadValue(row.key, column);
+
         setEditing((now) => {
             if (now === null || !now.loading || now.column !== column) {
                 return now;
             }
+
             if (value === undefined) {
                 return null;
             }
+
             const text = draftOf(value);
+
             return { column, draft: text, initial: text, loading: false };
         });
     };
@@ -155,9 +165,11 @@ export function RecordView({
     const toggleOpened = (column: number): void => {
         setOpened((now) => {
             const next = new Set(now);
+
             if (!next.delete(column)) {
                 next.add(column);
             }
+
             return next;
         });
     };
@@ -171,10 +183,13 @@ export function RecordView({
         if (event.nativeEvent.isComposing) {
             return;
         }
+
         const mod = isModHeld(event, apple);
+
         if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
             event.preventDefault();
             const direction = event.key === 'ArrowUp' ? -1 : 1;
+
             if (mod) {
                 moveRow(index + direction);
             } else {
@@ -241,6 +256,7 @@ export function RecordView({
                         const placeholder = cell === null ? 'NULL' : typeof cell === 'object' && cell.kind === 'default' ? 'DEFAULT' : undefined;
                         const expandable = enumType === null && opensUp(cell, column.kind);
                         const expanded = expandable && opened.has(position);
+
                         return (
                             <ContextMenu.Root key={position}>
                                 <ContextMenu.Trigger
@@ -382,12 +398,15 @@ function WholeValue({
         if (known !== undefined || loadValue === undefined) {
             return;
         }
+
         let live = true;
+
         void loadValue(row.key, column).then((whole) => {
             if (live) {
                 setFetched({ cell, value: whole });
             }
         });
+
         return () => {
             live = false;
         };

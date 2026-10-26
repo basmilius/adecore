@@ -30,12 +30,16 @@ import type { ExplorerItem } from './folders.ts';
 const connection: Connection = { id: 'one', name: 'Shop', config: { engine: 'sqlite', path: SHOP_PATH } };
 
 const rows = (): HTMLElement[] => findAll('[role=treeitem]');
+
 const labels = (): string[] => rows().map((row) => (row.textContent ?? '').trim());
+
 const row = (name: string): HTMLElement => {
     const found = rows().filter((candidate) => (candidate.textContent ?? '').startsWith(name));
+
     if (found.length !== 1) {
         throw new Error(`Expected one row starting with "${name}" in ${labels().join(' | ')}.`);
     }
+
     return found[0]!;
 };
 
@@ -65,6 +69,7 @@ describe.skipIf(typeof document === 'undefined')('DatabaseExplorer in a DOM', ()
         await mounted.unmount();
         const data = new Map<string, string>();
         let ended = false;
+
         mounted = await mount(
             <DatabaseExplorer
                 connections={[connection]}
@@ -75,20 +80,25 @@ describe.skipIf(typeof document === 'undefined')('DatabaseExplorer in a DOM', ()
             />,
             { client, actions }
         );
+
         await openTables();
         expect(row('orders').getAttribute('draggable')).toBe('true');
         expect(row('Shop').getAttribute('draggable')).not.toBe('true');
         expect(row('Tables').getAttribute('draggable')).not.toBe('true');
         const event = new Event('dragstart', { bubbles: true, cancelable: true });
         Object.defineProperty(event, 'dataTransfer', { value: { setData: (key: string, value: string) => data.set(key, value) } });
+
         await perform(() => {
             row('orders').dispatchEvent(event);
         });
+
         expect(JSON.parse(data.get('table')!)).toEqual({ ref: { connectionId: 'one', schema: 'main', table: 'orders' }, kind: 'table' });
         expect(actions).toEqual([]);
+
         await perform(() => {
             row('orders').dispatchEvent(new Event('dragend', { bubbles: true }));
         });
+
         expect(ended).toBe(true);
     });
 
@@ -132,6 +142,7 @@ describe.skipIf(typeof document === 'undefined')('DatabaseExplorer in a DOM', ()
         expect(foreign.textContent).toContain('customer_id → customers (id)');
         await focus(foreign);
         await press(foreign, 'Enter');
+
         expect(actions.at(-1)).toEqual({
             kind: 'open-table',
             ref: { connectionId: 'one', schema: 'main', table: 'customers' },
@@ -183,10 +194,12 @@ describe.skipIf(typeof document === 'undefined')('DatabaseExplorer in a DOM', ()
 
     test('with openOnClick, opens a table on a click as a preview and keeps it on a double click or Enter', async () => {
         await mounted.unmount();
+
         mounted = await mount(<DatabaseExplorer connections={[connection]} openOnClick onValueChange={(selection) => selections.push(selection)} />, {
             client,
             actions
         });
+
         await openTables();
         const orders = { kind: 'open-table', ref: { connectionId: 'one', schema: 'main', table: 'orders' }, view: 'data', tableKind: 'table' } as const;
 
@@ -198,7 +211,9 @@ describe.skipIf(typeof document === 'undefined')('DatabaseExplorer in a DOM', ()
         await perform(() => {
             row('orders').dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 2 }));
         });
+
         await doubleClick(row('orders'));
+
         expect(actions).toEqual([
             { ...orders, preview: true },
             { ...orders, preview: false }
@@ -225,6 +240,7 @@ describe.skipIf(typeof document === 'undefined')('DatabaseExplorer in a DOM', ()
     test('draws the app’s own folder under a connection, opens its items as a table opens and offers their menu', async () => {
         await mounted.unmount();
         const opened: { id: string; preview: boolean }[] = [];
+
         const item = (id: string): ExplorerItem => ({
             id,
             label: id,
@@ -232,6 +248,7 @@ describe.skipIf(typeof document === 'undefined')('DatabaseExplorer in a DOM', ()
             onOpen: ({ preview }) => opened.push({ id, preview }),
             menu: <ContextMenu.Item onClick={() => opened.push({ id: `menu:${id}`, preview: false })}>Rename</ContextMenu.Item>
         });
+
         const folders = { one: [{ id: 'consoles', label: 'Consoles', items: [item('shop 1.sql'), item('shop 2.sql')] }] };
         mounted = await mount(<DatabaseExplorer connections={[connection]} folders={folders} openOnClick />, { client, actions });
         await openTables();
@@ -243,6 +260,7 @@ describe.skipIf(typeof document === 'undefined')('DatabaseExplorer in a DOM', ()
         await doubleClick(row('shop 2.sql'));
         await focus(row('shop 1.sql'));
         await press(row('shop 1.sql'), 'Enter');
+
         expect(opened).toEqual([
             { id: 'shop 1.sql', preview: true },
             { id: 'shop 2.sql', preview: false },
@@ -352,6 +370,7 @@ describe.skipIf(typeof document === 'undefined')('DatabaseExplorer in a DOM', ()
                 { name: 'invoices', kind: 'table', rowEstimate: 0, comment: null }
             ]
         }));
+
         await perform(() => client.notifySchemaChange({ connectionId: 'one', schema: 'main' }));
         await waitFor(() => expect(labels()).toContain('invoices'));
 
@@ -374,9 +393,11 @@ describe.skipIf(typeof document === 'undefined')('DatabaseExplorer in a DOM', ()
         await openTables();
         await contextMenu(row('customers'));
         const item = byText('[role=menuitem]', 'Edit table');
+
         await perform(() => {
             item.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, cancelable: true }));
         });
+
         // The menu closes on the press in a browser, so the click lands on the row that was under it.
         await click(row('orders'));
         expect(selections).toEqual([]);
@@ -385,6 +406,7 @@ describe.skipIf(typeof document === 'undefined')('DatabaseExplorer in a DOM', ()
         await perform(() => {
             row('orders').dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, cancelable: true }));
         });
+
         await click(row('orders'));
         expect(selections.at(-1)).toEqual({ connectionId: 'one', schema: 'main', table: 'orders' });
     });

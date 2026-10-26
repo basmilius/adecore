@@ -32,10 +32,13 @@ const numberOf = (cell: Shown): { value: number; text: string } | null => {
     if (typeof cell === 'number') {
         return Number.isFinite(cell) ? { value: cell, text: String(cell) } : null;
     }
+
     if (typeof cell === 'string') {
         const text = cell.trim();
+
         return NUMERIC_TEXT.test(text) ? { value: Number(text), text } : null;
     }
+
     return null;
 };
 
@@ -52,31 +55,40 @@ export const aggregateBlock = (rows: readonly (readonly Shown[])[], kinds: reado
     let sum = 0;
     let minimum: { value: number; text: string } | null = null;
     let maximum: { value: number; text: string } | null = null;
+
     for (let row = block.top; row <= block.bottom; row++) {
         const cells = rows[row];
+
         if (cells === undefined) {
             continue;
         }
+
         for (const column of block.columns) {
             count++;
             const kind = kinds[column];
             const found = kind !== undefined && isNumericKind(kind) ? numberOf(cells[column] ?? null) : null;
+
             if (found === null) {
                 continue;
             }
+
             numbers++;
             sum += found.value;
+
             if (minimum === null || found.value < minimum.value) {
                 minimum = found;
             }
+
             if (maximum === null || found.value > maximum.value) {
                 maximum = found;
             }
         }
     }
+
     if (numbers === 0 || minimum === null || maximum === null) {
         return { count, numeric: null };
     }
+
     return {
         count,
         numeric: {

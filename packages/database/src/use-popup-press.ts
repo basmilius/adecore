@@ -13,7 +13,9 @@ export function usePopupPress(): () => boolean {
         const press = (e: PointerEvent): void => {
             pressed.current = isInFloatingLayer(e.target);
         };
+
         document.addEventListener('pointerdown', press, true);
+
         return () => {
             document.removeEventListener('pointerdown', press, true);
         };
@@ -22,6 +24,7 @@ export function usePopupPress(): () => boolean {
     return () => {
         const was = pressed.current;
         pressed.current = false;
+
         return was;
     };
 }

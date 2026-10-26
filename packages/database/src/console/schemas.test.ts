@@ -9,6 +9,7 @@ describe('orderSchemas', () => {
             { name: 'mysql', system: true },
             { name: 'blog', system: false }
         ]);
+
         expect(ordered.map(({ name }) => name)).toEqual(['shop', 'blog', 'information_schema', 'mysql']);
     });
 });

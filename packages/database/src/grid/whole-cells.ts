@@ -24,6 +24,7 @@ const wholeSize = (cell: Shown): number => {
     if (cell === null || typeof cell !== 'object' || cell.kind === 'default') {
         return 0;
     }
+
     return cell.kind === 'longText' ? cell.length : cell.length * 2;
 };
 
@@ -37,6 +38,7 @@ export const loadWholeCells = async (
 ): Promise<WholeCells> => {
     const wanted: Wanted[] = [];
     let size = 0;
+
     rows.forEach((cells, row) =>
         cells.forEach((cell, column) => {
             if (isPreview(cell)) {
@@ -45,9 +47,11 @@ export const loadWholeCells = async (
             }
         })
     );
+
     if (wanted.length === 0) {
         return { rows, previews: 0, tooLarge: false };
     }
+
     if (load === undefined || size > WHOLE_COPY_LIMIT) {
         return { rows, previews: wanted.length, tooLarge: load !== undefined };
     }
@@ -55,11 +59,13 @@ export const loadWholeCells = async (
     const filled = rows.map((cells) => [...cells]);
     let previews = 0;
     let next = 0;
+
     const work = async (): Promise<void> => {
         while (next < wanted.length) {
             const { row, column } = wanted[next]!;
             next += 1;
             const value = await load(row, column).catch(() => undefined);
+
             if (value === undefined) {
                 previews += 1;
             } else {
@@ -67,6 +73,8 @@ export const loadWholeCells = async (
             }
         }
     };
+
     await Promise.all(Array.from({ length: Math.min(PARALLEL_LOADS, wanted.length) }, work));
+
     return { rows: filled, previews, tooLarge: false };
 };

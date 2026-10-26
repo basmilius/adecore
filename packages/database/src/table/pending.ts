@@ -30,9 +30,11 @@ export const valuesEqual = (left: EditValue | undefined, right: EditValue | unde
     if (left === undefined || right === undefined) {
         return false;
     }
+
     if (left === null || right === null || typeof left !== 'object' || typeof right !== 'object') {
         return left === right;
     }
+
     return left.kind === right.kind && (left.kind !== 'binary' || (right.kind === 'binary' && left.hex === right.hex));
 };
 
@@ -41,6 +43,7 @@ export const setEdit = (pending: PendingChanges, row: number, column: string, va
     const { [row]: current = {}, ...others } = pending.edits;
     const { [column]: _replaced, ...kept } = current;
     const next = valuesEqual(value, valueOfCell(original)) ? kept : { ...kept, [column]: value };
+
     return { ...pending, edits: Object.keys(next).length === 0 ? others : { ...others, [row]: next } };
 };
 
@@ -69,6 +72,7 @@ export const revertRow = (pending: PendingChanges, row: number): PendingChanges 
     const { [row]: _dropped, ...edits } = pending.edits;
     const deletes = new Set(pending.deletes);
     deletes.delete(row);
+
     return { ...pending, edits, deletes };
 };
 
@@ -81,6 +85,7 @@ export interface RowSelectionRefs {
 /* Takes back every change to the given rows: the edits and deletion marks of the loaded ones, and the inserted ones altogether. */
 export const revertRows = (pending: PendingChanges, rows: RowSelectionRefs): PendingChanges => {
     const reverted = rows.loaded.reduce(revertRow, pending);
+
     return { ...reverted, inserts: reverted.inserts.filter((row) => !rows.inserted.includes(row.id)) };
 };
 
@@ -97,18 +102,24 @@ type LoadedRows = Pick<RowsResult, 'columns' | 'rows'>;
  */
 export const rowKeyOf = (structure: TableStructure, loaded: LoadedRows, row: number): RowKey | null => {
     const cells = loaded.rows[row];
+
     if (structure.rowKey === null || cells === undefined) {
         return null;
     }
+
     const key: Record<string, Value> = {};
+
     for (const name of structure.rowKey) {
         const index = loaded.columns.findIndex((column) => column.name === name);
         const value = index < 0 ? undefined : valueOfCell(cells[index] as Cell);
+
         if (value === undefined) {
             return null;
         }
+
         key[name] = value;
     }
+
     return key;
 };
 
@@ -116,18 +127,23 @@ export const rowKeyOf = (structure: TableStructure, loaded: LoadedRows, row: num
 export const toRowChanges = (structure: TableStructure, loaded: LoadedRows, pending: PendingChanges): RowChange[] => {
     const keyOf = (row: number): RowKey => {
         const key = rowKeyOf(structure, loaded, row);
+
         if (key === null) {
             throw new Error(`Row ${row + 1} of ${structure.name} has no usable key.`);
         }
+
         return key;
     };
+
     const updates = Object.keys(pending.edits)
         .map(Number)
         .filter((row) => !pending.deletes.has(row))
         .sort((left, right) => left - right)
         .map((row): RowChange => ({ kind: 'update', key: keyOf(row), values: pending.edits[row]! }));
+
     const deletes = [...pending.deletes].sort((left, right) => left - right).map((row): RowChange => ({ kind: 'delete', key: keyOf(row) }));
     const inserts = pending.inserts.map((row): RowChange => ({ kind: 'insert', values: row.values }));
+
     return [...updates, ...deletes, ...inserts];
 };
 
@@ -135,9 +151,11 @@ const keyValueText = (value: Value): string => {
     if (value === null) {
         return 'NULL';
     }
+
     if (typeof value === 'object') {
         return `0x${value.hex}`;
     }
+
     return typeof value === 'string' ? `'${value}'` : String(value);
 };
 

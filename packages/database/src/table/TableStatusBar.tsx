@@ -66,6 +66,7 @@ function SelectionSummary({ selection }: { selection: SelectionFigures }) {
     const { columns, aggregates } = selection;
     const { count, numeric } = aggregates;
     const notation = useNumberNotation();
+
     const figure = (label: string, value: string) => (
         <span className="shrink-0">
             <span className="text-text-faint">{label}</span> <span className="text-text">{value}</span>

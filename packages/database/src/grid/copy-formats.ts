@@ -34,19 +34,24 @@ const jsonOf = (cell: Shown, kind: ValueKind): string => {
     if (cell === null) {
         return 'null';
     }
+
     if (typeof cell === 'boolean') {
         return String(cell);
     }
+
     if (typeof cell === 'number') {
         if (kind === 'boolean' && (cell === 0 || cell === 1)) {
             return String(cell === 1);
         }
+
         return Number.isFinite(cell) ? String(cell) : 'null';
     }
+
     if (typeof cell === 'string') {
         if (isNumericKind(kind) && JSON_NUMBER.test(cell)) {
             return cell;
         }
+
         if (kind === 'json') {
             try {
                 return JSON.stringify(JSON.parse(cell));
@@ -54,8 +59,10 @@ const jsonOf = (cell: Shown, kind: ValueKind): string => {
                 return JSON.stringify(cell);
             }
         }
+
         return JSON.stringify(cell);
     }
+
     return cell.kind === 'default' ? 'null' : JSON.stringify(copyTextOf(cell));
 };
 
@@ -70,13 +77,17 @@ const toJson = ({ columns, rows }: CopyInput): string => {
     if (rows.length === 0) {
         return '[]';
     }
+
     const objects = rows.map((row) => {
         if (columns.length === 0) {
             return '  {}';
         }
+
         const fields = columns.map((column, index) => `    ${JSON.stringify(column.name)}: ${jsonOf(row[index] ?? null, column.kind)}`);
+
         return `  {\n${fields.join(',\n')}\n  }`;
     });
+
     return `[\n${objects.join(',\n')}\n]`;
 };
 
@@ -84,7 +95,9 @@ const toSql = ({ columns, rows, target }: CopyInput): string => {
     if (target === undefined) {
         throw new Error('Copying as SQL needs the table the rows belong to.');
     }
+
     const head = `INSERT INTO ${qualifiedName(target)} (${columns.map((column) => quoteIdentifier(target.engine, column.name)).join(', ')}) VALUES`;
+
     return rows.map((row) => `${head} (${columns.map((column, index) => sqlLiteral(target.engine, row[index] ?? null, column.kind)).join(', ')});`).join('\n');
 };
 

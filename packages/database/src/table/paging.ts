@@ -19,6 +19,7 @@ export interface PageBounds {
 export const pageBounds = (offset: number, rowCount: number, hasMore: boolean, counted: number | null): PageBounds => {
     const exact = counted !== null || !hasMore;
     const total = counted ?? (hasMore ? offset + rowCount + 1 : offset + rowCount);
+
     return {
         from: rowCount === 0 ? 0 : offset + 1,
         to: offset + rowCount,

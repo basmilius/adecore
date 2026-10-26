@@ -21,6 +21,7 @@ export interface TransactionControlsProps {
 /* Auto-commit on or off, and while a transaction is open, the way to end it. */
 export function TransactionControls({ mode, onModeChange, open, busy, onCommit, onRollback, className, ref }: TransactionControlsProps) {
     const { t } = useTranslation('database');
+
     return (
         <div ref={ref} className={clsx('flex items-center gap-2', className)}>
             <Tooltip label={t('console.transaction.hint')}>

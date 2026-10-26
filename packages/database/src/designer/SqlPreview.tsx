@@ -16,6 +16,7 @@ export interface SqlPreviewProps {
 /* The sentence a problem of the draft is read as. */
 function ProblemText({ problem }: { problem: DraftProblem }) {
     const { t } = useTranslation('database');
+
     return <>{t(`ddl.problem.${problem.code}`, { subject: problem.subject })}</>;
 }
 
@@ -23,6 +24,7 @@ function ProblemText({ problem }: { problem: DraftProblem }) {
 export function SqlPreview({ plan, className, ref }: SqlPreviewProps) {
     const { t } = useTranslation('database');
     const script = scriptOf(plan.statements);
+
     return (
         <section
             ref={ref}

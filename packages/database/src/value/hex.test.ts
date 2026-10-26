@@ -32,6 +32,7 @@ describe('formatUuid', () => {
 describe('hexDumpLines', () => {
     test('writes the offset, two groups of eight bytes and the ASCII column', () => {
         const hex = '48656c6c6f2c20776f726c640a00ff01' + '4142';
+
         expect(hexDumpLines(hex)).toEqual([
             '00000000  48 65 6c 6c 6f 2c 20 77  6f 72 6c 64 0a 00 ff 01  |Hello, world....|',
             '00000010  41 42                                             |AB|'

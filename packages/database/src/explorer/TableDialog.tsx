@@ -32,13 +32,16 @@ export function TableDialog({ request, onClose, onDone }: TableDialogProps) {
         const dialect = dialectOf(await session.server());
         const { results } = await session.execute(statementOf(dialect, change, ref, kind, to));
         const failed = results.find((result) => result.kind === 'error');
+
         if (failed?.kind === 'error') {
             throw new Error(failed.error.message);
         }
+
         // The client tells its listeners after a `RENAME`, a `DROP` and a `TRUNCATE`, but not after a SQLite emptying, which is a `DELETE FROM`.
         if (change === 'truncate' && dialect.engine === 'sqlite') {
             client.notifySchemaChange({ connectionId: ref.connectionId, schema: ref.schema });
         }
+
         onDone(request, to);
     };
 
@@ -46,13 +49,16 @@ export function TableDialog({ request, onClose, onDone }: TableDialogProps) {
         if (change === 'rename') {
             if (typed === ref.table) {
                 onClose();
+
                 return;
             }
+
             await run(typed);
         } else if (change === 'drop') {
             if (typed !== ref.table) {
                 throw new Error(t('explorer.drop.mismatch'));
             }
+
             await run();
         } else {
             await run();

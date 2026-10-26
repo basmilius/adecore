@@ -2,6 +2,7 @@
 export const parseStoredSize = (raw: string | null | undefined, minimum: number): number | null => {
     try {
         const value: unknown = JSON.parse(raw ?? 'null');
+
         return typeof value === 'number' && Number.isFinite(value) && value >= minimum ? Math.round(value) : null;
     } catch {
         return null;

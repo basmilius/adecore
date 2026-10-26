@@ -70,7 +70,9 @@ export function useTableTransfer({ client, session, files, schema, table, struct
         if (notice?.kind !== 'exported' && notice?.kind !== 'imported') {
             return;
         }
+
         const timer = setTimeout(() => setNotice(null), NOTICE_MS);
+
         return () => clearTimeout(timer);
     }, [notice]);
 
@@ -89,19 +91,24 @@ export function useTableTransfer({ client, session, files, schema, table, struct
         if (files === undefined || exporting.current !== null) {
             return;
         }
+
         void (async () => {
             const path = await files.save({ suggestedName: `${table}.${format}`, format });
+
             if (path === null) {
                 return;
             }
+
             const controller = new AbortController();
             exporting.current = controller;
             setNotice({ kind: 'exporting', format });
+
             try {
                 const result = await session.export(
                     { source: { kind: 'table', schema, table, where: where || undefined, orderBy: orderBy || undefined }, format, path },
                     { signal: controller.signal }
                 );
+
                 show({ kind: 'exported', rows: result.rows });
             } catch (error) {
                 if (controller.signal.aborted || isCancelled(error)) {
@@ -119,6 +126,7 @@ export function useTableTransfer({ client, session, files, schema, table, struct
         sampling.current?.abort();
         const controller = new AbortController();
         sampling.current = controller;
+
         return await client.sample(path, format, header, { signal: controller.signal });
     };
 
@@ -126,12 +134,16 @@ export function useTableTransfer({ client, session, files, schema, table, struct
         if (files === undefined || structure === null) {
             return;
         }
+
         void (async () => {
             const path = await files.open({ formats: ['csv', 'tsv'] });
+
             if (path === null) {
                 return;
             }
+
             const format = formatOfPath(path);
+
             try {
                 const read = await sample(path, format, true);
                 setImportDraft({ path, format, header: true, sample: read, mapping: matchColumns(read.columns, tableColumns, true), busy: false, error: null });
@@ -145,11 +157,14 @@ export function useTableTransfer({ client, session, files, schema, table, struct
         if (importDraft === null) {
             return;
         }
+
         const { path, format } = importDraft;
         setImportDraft({ ...importDraft, header, sample: null, error: null });
+
         void (async () => {
             try {
                 const read = await sample(path, format, header);
+
                 setImportDraft((now) =>
                     now === null || now.path !== path ? now : { ...now, header, sample: read, mapping: matchColumns(read.columns, tableColumns, header) }
                 );
@@ -169,8 +184,10 @@ export function useTableTransfer({ client, session, files, schema, table, struct
         if (importDraft === null || importDraft.busy || importDraft.sample === null) {
             return;
         }
+
         const { path, format, header, mapping } = importDraft;
         setImportDraft({ ...importDraft, busy: true, error: null });
+
         void (async () => {
             try {
                 const rows = await session.import(schema, table, { path, format, header, columns: mapping });

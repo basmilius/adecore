@@ -34,6 +34,7 @@ export function DatabaseProvider({ client, onAction, onNotice, storage, files, n
     const ownStorage = storage ?? outer?.storage;
     const ownFiles = files ?? outer?.files;
     const ownNotation = numberNotation ?? outer?.numberNotation ?? 'database';
+
     const value = useMemo(
         () =>
             ownClient === undefined
@@ -41,6 +42,7 @@ export function DatabaseProvider({ client, onAction, onNotice, storage, files, n
                 : { client: ownClient, onAction: ownAction, onNotice: ownNotice, storage: ownStorage, files: ownFiles, numberNotation: ownNotation },
         [ownClient, ownAction, ownNotice, ownStorage, ownFiles, ownNotation]
     );
+
     if (value === null) {
         throw new Error('A DatabaseProvider needs a client, or a DatabaseProvider above it to take one from.');
     }

@@ -35,6 +35,7 @@ const initial: Connection = { id: 'one', name: 'Shop', config: { engine: 'mysql'
 
 function Controlled({ start, onValue, onBrowse }: { start: Connection; onValue(value: Connection): void; onBrowse?: ConnectionFormProps['onBrowse'] }) {
     const [value, setValue] = useState(start);
+
     return (
         <ConnectionForm
             value={value}
@@ -87,6 +88,7 @@ describe.skipIf(typeof document === 'undefined')('ConnectionForm in a DOM', () =
         expect(options[1]!.textContent).toContain('Not published');
 
         await click(options[0]!);
+
         expect(latest().config).toMatchObject({
             engine: 'mysql',
             user: 'app',
@@ -100,10 +102,13 @@ describe.skipIf(typeof document === 'undefined')('ConnectionForm in a DOM', () =
         const asked: string[] = [];
         const recorded = recordTransport(fakeDatabaseTransport({ databases: {} }));
         client = clientOver(recorded.transport);
+
         const onBrowse = (purpose: 'database' | 'identity'): Promise<string | null> => {
             asked.push(purpose);
+
             return Promise.resolve(purpose === 'database' ? '/data/shop.sqlite' : '/keys/id_ed25519');
         };
+
         const sqlite: Connection = { id: 'one', name: 'Shop', config: { engine: 'sqlite', path: '' } };
         mounted = await mount(<Controlled start={sqlite} onValue={(value) => values.push(value)} onBrowse={onBrowse} />, { client });
 
@@ -117,6 +122,7 @@ describe.skipIf(typeof document === 'undefined')('ConnectionForm in a DOM', () =
             name: 'Remote',
             config: { engine: 'mysql', host: '127.0.0.1', user: 'root', tunnel: { kind: 'ssh', host: 'bastion', user: 'deploy' } }
         };
+
         mounted = await mount(<Controlled start={viaSsh} onValue={(value) => values.push(value)} onBrowse={onBrowse} />, { client });
         await click(byText('button', 'Browse'));
         expect(asked).toEqual(['database', 'identity']);

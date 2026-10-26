@@ -66,6 +66,7 @@ describe('reading a CREATE TABLE', () => {
         const clauses = generatedClausesOf(
             "CREATE TABLE t (a int, \"b\" int AS (a + 1) STORED, c text DEFAULT 'as (x)', `d` int GENERATED ALWAYS AS (concat(`c`, ')')) VIRTUAL)"
         );
+
         expect([...clauses]).toEqual([
             ['b', 'AS (a + 1) STORED'],
             ['d', "GENERATED ALWAYS AS (concat(`c`, ')')) VIRTUAL"]
@@ -90,6 +91,7 @@ describe('validateDraft', () => {
     test('asks for a name, a column, and a type on MySQL', () => {
         expect(validateDraft(mysql, emptyDraft()).map((problem) => problem.code)).toEqual(['tableName', 'noColumns']);
         const draft = { ...emptyDraft(), name: 't', columns: [emptyColumn('a'), { ...emptyColumn('A'), type: 'int' }, emptyColumn('')] };
+
         expect(validateDraft(mysql, draft)).toEqual([
             { code: 'columnType', subject: 'a' },
             { code: 'columnDuplicate', subject: 'A' },
@@ -118,6 +120,7 @@ describe('validateDraft', () => {
                 }
             ]
         };
+
         expect(validateDraft(sqlite, draft).map((problem) => problem.code)).toEqual(['indexColumns', 'indexName', 'foreignKey']);
         expect(validateDraft(mysql, { ...draft, indexes: [], foreignKeys: [] })).toEqual([]);
     });
@@ -127,6 +130,7 @@ describe('validateDraft', () => {
             ...draftOf({ schema: 's', name: 't', kind: 'table', columns: [], primaryKey: [], rowKey: null, indexes: [], foreignKeys: [], ddl: null }),
             name: 't'
         };
+
         const column = { ...emptyColumn('a'), originalName: 'a' };
         expect(dropsColumns({ ...draft, columns: [column] }, draft)).toBe(true);
         expect(dropsColumns({ ...draft, columns: [column] }, { ...draft, columns: [{ ...column, name: 'b' }] })).toBe(false);

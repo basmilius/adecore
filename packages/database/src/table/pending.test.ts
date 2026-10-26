@@ -134,6 +134,7 @@ describe('toRowChanges', () => {
         pending = setEdit(pending, 0, 'name', 'A.', 'Ada');
         pending = markDeleted(pending, [1]);
         pending = setInsertValue(addInsert(pending), 1, 'name', 'New');
+
         expect(toRowChanges(structure(['id']), loaded, pending)).toEqual([
             { kind: 'update', key: { id: 1 }, values: { name: 'A.' } },
             { kind: 'delete', key: { id: 2 } },
@@ -166,6 +167,7 @@ describe('describeKey', () => {
 describe('addInsertWith', () => {
     test('adds a row that starts from the given values', () => {
         const next = addInsertWith(addInsert(emptyPending), { name: 'Ada' });
+
         expect(next.inserts).toEqual([
             { id: 1, values: {} },
             { id: 2, values: { name: 'Ada' } }

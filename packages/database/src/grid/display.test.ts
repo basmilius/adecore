@@ -4,6 +4,7 @@ import { fakeFormatSource } from '@adecore/ui/testing';
 import { BINARY_PREVIEW_BYTES, cellView, copyTextOf, DISPLAY_LIMIT, isPreview, numeralText, shownOfEdit } from './display.ts';
 
 const source = fakeFormatSource();
+
 let previous: FormatSource;
 
 beforeAll(() => {

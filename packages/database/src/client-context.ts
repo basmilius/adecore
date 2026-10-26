@@ -16,9 +16,11 @@ export const DatabaseContext = createContext<DatabaseContextValue | null>(null);
 
 const useDatabaseContext = (): DatabaseContextValue => {
     const value = use(DatabaseContext);
+
     if (value === null) {
         throw new Error('A database view needs a DatabaseProvider above it.');
     }
+
     return value;
 };
 

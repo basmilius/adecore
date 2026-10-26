@@ -22,6 +22,7 @@ const isWordCode = (code: number): boolean =>
 
 const lineEnd = (text: string, at: number): number => {
     const newline = text.indexOf('\n', at);
+
     return newline === -1 ? text.length : newline + 1;
 };
 
@@ -31,9 +32,12 @@ const startsLineComment = (text: string, at: number, engine: Engine): boolean =>
         if (engine === 'sqlite') {
             return true;
         }
+
         const next = text[at + 2];
+
         return next === undefined || WHITESPACE.test(next) || next.charCodeAt(0) < 32;
     }
+
     return text[at] === '#' && engine === 'mysql';
 };
 
@@ -42,6 +46,7 @@ const quotedEnd = (text: string, at: number, engine: Engine): number => {
     const quote = text[at]!;
     const backslashEscapes = engine === 'mysql' && quote !== '`';
     let i = at + 1;
+
     while (i < text.length) {
         if (backslashEscapes && text[i] === '\\') {
             i += 2;
@@ -55,6 +60,7 @@ const quotedEnd = (text: string, at: number, engine: Engine): number => {
             i += 1;
         }
     }
+
     return text.length;
 };
 
@@ -62,9 +68,11 @@ const quotedEnd = (text: string, at: number, engine: Engine): number => {
 export const tokenize = (text: string, engine: Engine): SqlToken[] => {
     const tokens: SqlToken[] = [];
     let i = 0;
+
     while (i < text.length) {
         const char = text[i]!;
         const code = text.charCodeAt(i);
+
         if (WHITESPACE.test(char)) {
             i += 1;
         } else if (char === "'" || char === '"' || char === '`') {
@@ -90,9 +98,11 @@ export const tokenize = (text: string, engine: Engine): SqlToken[] => {
             i += 1;
         } else if (isWordCode(code)) {
             let end = i + 1;
+
             while (end < text.length && isWordCode(text.charCodeAt(end))) {
                 end += 1;
             }
+
             tokens.push({ kind: 'word', start: i, end });
             i = end;
         } else {
@@ -100,6 +110,7 @@ export const tokenize = (text: string, engine: Engine): SqlToken[] => {
             i += 1;
         }
     }
+
     return tokens;
 };
 
@@ -112,12 +123,15 @@ class TriggerState {
 
     word(word: string): void {
         const upper = word.toUpperCase();
+
         if (this.leading.length < 3) {
             this.leading.push(upper);
         }
+
         if (!this.isTrigger()) {
             return;
         }
+
         if (upper === 'BEGIN' && !this.inBody) {
             this.inBody = true;
         } else if (upper === 'CASE' && this.inBody) {
@@ -137,6 +151,7 @@ class TriggerState {
 
     private isTrigger(): boolean {
         const [first, second, third] = this.leading;
+
         return first === 'CREATE' && (second === 'TRIGGER' || ((second === 'TEMP' || second === 'TEMPORARY') && third === 'TRIGGER'));
     }
 }
@@ -144,12 +159,15 @@ class TriggerState {
 const trimmed = (text: string, from: number, to: number): SqlStatement => {
     let start = from;
     let end = to;
+
     while (start < end && WHITESPACE.test(text[start]!)) {
         start += 1;
     }
+
     while (end > start && WHITESPACE.test(text[end - 1]!)) {
         end -= 1;
     }
+
     return { text: text.slice(start, end), start, end };
 };
 
@@ -170,12 +188,14 @@ export const splitStatements = (text: string, engine: Engine): SqlStatement[] =>
                 if (hasContent) {
                     statements.push(trimmed(text, start, token.start));
                 }
+
                 start = token.end;
                 hasContent = false;
                 trigger = new TriggerState();
             }
         } else if (token.kind !== 'comment') {
             hasContent = true;
+
             if (token.kind === 'word' && engine === 'sqlite') {
                 trigger.word(text.slice(token.start, token.end));
             }
@@ -185,6 +205,7 @@ export const splitStatements = (text: string, engine: Engine): SqlStatement[] =>
     if (hasContent) {
         statements.push(trimmed(text, start, text.length));
     }
+
     return statements;
 };
 
@@ -195,16 +216,21 @@ export const splitStatements = (text: string, engine: Engine): SqlStatement[] =>
  */
 export const statementAt = (text: string, offset: number, engine: Engine): SqlStatement | null => {
     const statements = splitStatements(text, engine);
+
     for (const [index, statement] of statements.entries()) {
         if (offset >= statement.start && offset <= statement.end) {
             return statement;
         }
+
         const next = statements[index + 1];
+
         if (offset > statement.end && (next === undefined || offset < next.start)) {
             const gap = text.slice(statement.end, offset);
+
             return gap.includes('\n') && next !== undefined ? next : statement;
         }
     }
+
     return statements[0] ?? null;
 };
 
@@ -214,7 +240,9 @@ export const firstKeyword = (text: string, engine: Engine): string => {
         if (token.kind === 'comment' || (token.kind === 'punct' && text[token.start] === '(')) {
             continue;
         }
+
         return token.kind === 'word' ? (/^[A-Za-z]*/.exec(text.slice(token.start, token.end))?.[0] ?? '').toUpperCase() : '';
     }
+
     return '';
 };

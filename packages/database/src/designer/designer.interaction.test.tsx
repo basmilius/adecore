@@ -10,7 +10,9 @@ import { TableDesigner } from './TableDesigner.tsx';
 const connection: Connection = { id: 'one', name: 'Shop', config: { engine: 'sqlite', path: SHOP_PATH } };
 
 const preview = (): string => (find('section[aria-label=SQL]').textContent ?? '').replace(/\s+/g, ' ');
+
 const applyButton = (label: string): HTMLButtonElement => byText('button', label) as HTMLButtonElement;
+
 const nameFields = (): HTMLInputElement[] => findAll('input[aria-label=Name]') as HTMLInputElement[];
 
 describe.skipIf(typeof document === 'undefined')('TableDesigner in a DOM', () => {

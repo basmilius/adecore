@@ -21,11 +21,13 @@ const tableKey = ({ schema, table }: TableName): string => `${schema}\u0000${tab
 /* The tables the columns of a result come from, each once, in the order they first appear. */
 export const sourceTablesOf = (columns: readonly ResultColumn[]): TableName[] => {
     const tables = new Map<string, TableName>();
+
     for (const { source } of columns) {
         if (source !== undefined && !tables.has(tableKey(source))) {
             tables.set(tableKey(source), { schema: source.schema, table: source.table });
         }
     }
+
     return [...tables.values()];
 };
 
@@ -36,18 +38,23 @@ export const sourceTablesOf = (columns: readonly ResultColumn[]): TableName[] =>
 export const resultKeysOf = (engine: Engine, columns: readonly ResultColumn[], structures: ReadonlyMap<string, TableStructure>): ResultKeys => {
     const structureOf = (column: ResultColumn | undefined): TableStructure | undefined =>
         column?.source === undefined ? undefined : structures.get(tableKey(column.source));
+
     const foreignKeyAt = (column: number) => {
         const source = columns[column]?.source;
         const structure = structureOf(columns[column]);
+
         return source === undefined || structure === undefined ? undefined : foreignKeyOf(structure.foreignKeys, source.column);
     };
+
     return {
         columns: columns.map((column): GridColumn => {
             const structure = structureOf(column);
             const name = column.source?.column;
+
             if (structure === undefined || name === undefined) {
                 return column;
             }
+
             return {
                 ...column,
                 primaryKey: structure.primaryKey.includes(name),
@@ -58,14 +65,17 @@ export const resultKeysOf = (engine: Engine, columns: readonly ResultColumn[], s
         referenceAt: (column, cells) => {
             const key = foreignKeyAt(column);
             const source = columns[column]?.source;
+
             if (key === undefined || source === undefined) {
                 return null;
             }
+
             // The columns of the result as the columns of that table, so a join names each key column of its own table only.
             const asTable = columns.map((entry) => ({
                 name: entry.source !== undefined && tableKey(entry.source) === tableKey(source) ? entry.source.column : '',
                 kind: entry.kind
             }));
+
             return referenceOf(engine, key, asTable, cells);
         }
     };
@@ -82,11 +92,15 @@ export function useResultKeys(session: DatabaseSession | null, engine: Engine | 
         if (session === null || result?.kind !== 'rows') {
             return undefined;
         }
+
         const tables = sourceTablesOf(result.columns);
+
         if (tables.length === 0) {
             return undefined;
         }
+
         const controller = new AbortController();
+
         // A table the server named but cannot describe, such as a derived one, marks no column.
         const loads = tables.map((table) =>
             session.structure(table.schema, table.table, { signal: controller.signal }).then(
@@ -94,11 +108,13 @@ export function useResultKeys(session: DatabaseSession | null, engine: Engine | 
                 () => null
             )
         );
+
         void Promise.all(loads).then((entries) => {
             if (!controller.signal.aborted) {
                 setLoaded({ result, structures: new Map(entries.filter((entry) => entry !== null)) });
             }
         });
+
         return () => controller.abort();
     }, [session, result]);
 

@@ -9,6 +9,7 @@ import { DatabaseProvider } from './DatabaseProvider.tsx';
 import { stubClient } from './testing/stub.ts';
 
 const i18n = i18next.createInstance();
+
 await i18n.init({ lng: 'en', fallbackLng: 'en', resources: {}, interpolation: { escapeValue: false } });
 
 const outerClient = stubClient({});
@@ -36,6 +37,7 @@ function Probe({ report }: { report(value: Seen): void }) {
         act: useDatabaseAction(),
         notify: useDatabaseNotice()
     });
+
     return null;
 }
 
@@ -50,11 +52,13 @@ const render = (node: ReactNode): void => {
 describe('DatabaseProvider', () => {
     test('hands the views what it was given', () => {
         const actions: DatabaseAction[] = [];
+
         render(
             <DatabaseProvider client={outerClient} storage={storage} files={files} numberNotation="region" onAction={(action) => actions.push(action)}>
                 <Probe report={report} />
             </DatabaseProvider>
         );
+
         expect(seen.client).toBe(outerClient);
         expect(seen.storage).toBe(storage);
         expect(seen.files).toBe(files);
@@ -69,6 +73,7 @@ describe('DatabaseProvider', () => {
                 <Probe report={report} />
             </DatabaseProvider>
         );
+
         expect(seen.notation).toBe('database');
         expect(seen.act).toBeUndefined();
         expect(seen.notify).toBeUndefined();
@@ -77,6 +82,7 @@ describe('DatabaseProvider', () => {
 
     test('hands a notice to the app, also from inside another provider that sets none', () => {
         const notices: DatabaseNotice[] = [];
+
         render(
             <DatabaseProvider client={outerClient} onNotice={(notice) => notices.push(notice)}>
                 <DatabaseProvider onAction={() => {}}>
@@ -84,6 +90,7 @@ describe('DatabaseProvider', () => {
                 </DatabaseProvider>
             </DatabaseProvider>
         );
+
         seen.notify?.({ tone: 'success', title: 'Exported 3 rows.' });
         expect(notices).toEqual([{ tone: 'success', title: 'Exported 3 rows.' }]);
     });
@@ -91,6 +98,7 @@ describe('DatabaseProvider', () => {
     test('inside another, takes what it leaves out from the one above and overrides what it sets', () => {
         const outer: DatabaseAction[] = [];
         const inner: DatabaseAction[] = [];
+
         render(
             <DatabaseProvider client={outerClient} storage={storage} files={files} numberNotation="region" onAction={(action) => outer.push(action)}>
                 <DatabaseProvider onAction={(action) => inner.push(action)}>
@@ -98,6 +106,7 @@ describe('DatabaseProvider', () => {
                 </DatabaseProvider>
             </DatabaseProvider>
         );
+
         expect(seen.client).toBe(outerClient);
         expect(seen.storage).toBe(storage);
         expect(seen.files).toBe(files);
@@ -113,6 +122,7 @@ describe('DatabaseProvider', () => {
                 </DatabaseProvider>
             </DatabaseProvider>
         );
+
         expect(seen.client).toBe(innerClient);
         expect(seen.notation).toBe('database');
         seen.act?.({ kind: 'open-console', connectionId: 'shop' });

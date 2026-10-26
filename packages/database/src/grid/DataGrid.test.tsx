@@ -12,6 +12,7 @@ import { DataGrid } from './DataGrid.tsx';
 import type { GridColumn, GridRow } from './types.ts';
 
 const i18n = i18next.createInstance();
+
 await i18n.init({ lng: 'en', fallbackLng: 'en', resources: {}, interpolation: { escapeValue: false } });
 
 const client = { session: () => ({}) } as unknown as DatabaseClient;
@@ -45,6 +46,7 @@ describe('DataGrid', () => {
     test('draws rows of plain text without a DatabaseProvider, in the words of the package', async () => {
         const own = i18next.createInstance();
         await own.init({ lng: 'en', fallbackLng: 'en', resources: {}, interpolation: { escapeValue: false } });
+
         const markup = renderToStaticMarkup(
             <UIProvider i18n={own}>
                 <DataGrid
@@ -60,6 +62,7 @@ describe('DataGrid', () => {
                 />
             </UIProvider>
         );
+
         expect(markup).toContain('aria-label="cities.csv"');
         expect(markup.match(/aria-label="Column menu"/g)).toHaveLength(2);
         expect(markup).toContain('Utrecht');
@@ -145,9 +148,11 @@ describe('DataGrid', () => {
         const single = render(
             <DataGrid label="Users" columns={columns} rows={rows} sorts={[{ column: 'name', direction: 'desc' }]} onSortsChange={() => {}} />
         );
+
         expect(single).toContain('aria-sort="descending"');
         expect(single.match(/aria-sort="none"/g)).toHaveLength(2);
         expect(single).toContain('lucide-arrow-down');
+
         const several = render(
             <DataGrid
                 label="Users"
@@ -160,6 +165,7 @@ describe('DataGrid', () => {
                 onSortsChange={() => {}}
             />
         );
+
         expect(several).toContain('aria-sort="ascending"');
         expect(several).toContain('tabular-nums">2<');
     });
@@ -189,6 +195,7 @@ describe('DataGrid', () => {
         const markup = render(<DataGrid label="Users" columns={columns} rows={rows} />);
         const widths = [...markup.matchAll(/role="columnheader"[^>]*style="width:(\d+)px"/g)].map((match) => Number(match[1]));
         expect(widths).toHaveLength(3);
+
         for (const width of widths) {
             expect(width).toBeGreaterThanOrEqual(64);
             expect(width).toBeLessThanOrEqual(320);
@@ -216,6 +223,7 @@ describe('DataGrid numbers in a Dutch region', () => {
         { name: 'ratio', type: 'DOUBLE', kind: 'float' },
         { name: 'name', type: 'TEXT', kind: 'text' }
     ];
+
     const values: GridRow[] = [{ key: 'row:0', number: 1234, cells: ['9007199254740993', '12900.50', -0.25, '1234'] }];
 
     const renderIn = (numberNotation: NumberNotation): string =>
@@ -245,6 +253,7 @@ describe('DataGrid numbers in a Dutch region', () => {
             { name: 'alias', kind: 'integer', type: 'int', source: { schema: 'app', table: 'person', column: 'person_id' } },
             { name: 'paid', kind: 'integer', type: 'int' }
         ];
+
         const markup = renderToStaticMarkup(
             <UIProvider i18n={i18n} formatSource={source}>
                 <DatabaseProvider client={client} numberNotation="region">
@@ -252,6 +261,7 @@ describe('DataGrid numbers in a Dutch region', () => {
                 </DatabaseProvider>
             </UIProvider>
         );
+
         expect(markup.match(/>1234567</g)).toHaveLength(6);
         expect(markup).toContain('>1.234.567<');
     });

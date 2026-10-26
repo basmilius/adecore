@@ -49,6 +49,7 @@ const speaksProtocol = (): boolean => {
 
     try {
         const output = Bun.spawnSync([HELPER], { stdin: 'ignore', stdout: 'pipe', stderr: 'ignore', timeout: 5000 }).stdout.toString();
+
         return (JSON.parse(output.split('\n')[0] ?? '') as { protocol?: unknown }).protocol === PROTOCOL_VERSION;
     } catch {
         return false;
@@ -56,6 +57,7 @@ const speaksProtocol = (): boolean => {
 };
 
 const available = speaksProtocol();
+
 if (process.env.ADECORE_REQUIRE_DATABASE_HELPER === '1' && !available) {
     throw new Error('The DDL integration suite requires a release helper with the current protocol.');
 }
@@ -72,6 +74,7 @@ afterAll(async () => {
 
 const mysqlConfig = (url: string): ConnectionConfig => {
     const parsed = new URL(url);
+
     return {
         engine: 'mysql',
         host: parsed.hostname,
@@ -142,11 +145,13 @@ function defineSuite(label: string, open: () => Promise<Target>, close: (target:
                 await close(target);
             }
         });
+
         // SQLite reports no name for a foreign key, so a name given to one would never read back.
         const fkName = (name: string): string => (mysql ? name : '');
 
         const run = async (statements: readonly string[]): Promise<void> => {
             const outcome = await target.session.execute(statements.join(';\n'), { schema: target.schema });
+
             for (const result of outcome.results) {
                 expect(result.kind === 'error' ? result.error.message : '').toBe('');
             }
@@ -158,6 +163,7 @@ function defineSuite(label: string, open: () => Promise<Target>, close: (target:
             const names = current.columns.filter((candidate) => !candidate.generated).map((candidate) => candidate.name);
             const page = await target.session.rows(target.schema, current.name, { offset: 0, limit: 100, orderBy: 'id' });
             const wanted = names.map((name) => page.columns.findIndex((candidate) => candidate.name === name));
+
             return new Map(names.map((name, at) => [name, page.rows.map((row) => row[wanted[at]!] ?? null)]));
         };
 
@@ -174,17 +180,22 @@ function defineSuite(label: string, open: () => Promise<Target>, close: (target:
             expect(alterTableSql(target.dialect, target.schema, current, draft)).toEqual([]);
 
             const after = await snapshot();
+
             for (const kept of next.columns) {
                 if (kept.originalName !== null && !kept.generated && before.has(kept.originalName)) {
                     expect(after.get(kept.name)).toEqual(before.get(kept.originalName)!);
                 }
             }
+
             expect(await target.session.count(target.schema, next.name)).toBe(expectedRows);
+
             return statements;
         };
 
         const keyOf = (name: string): string => draft.columns.find((candidate) => candidate.name === name)!.key;
+
         const indexKeyOf = (name: string): string => draft.indexes.find((candidate) => candidate.name === name)!.key;
+
         const foreignKeyOf = (columnName: string): string => draft.foreignKeys.find((candidate) => candidate.columns[0] === columnName)!.key;
 
         test('creates a table with every column feature, an index and a foreign key', async () => {
@@ -196,6 +207,7 @@ function defineSuite(label: string, open: () => Promise<Target>, close: (target:
             ]);
 
             const generated = mysql ? 'GENERATED ALWAYS AS (char_length(`title`)) VIRTUAL' : 'GENERATED ALWAYS AS (length("title")) STORED';
+
             draft = {
                 ...emptyDraft(),
                 name: 'notes',
@@ -241,6 +253,7 @@ function defineSuite(label: string, open: () => Promise<Target>, close: (target:
                 `INSERT INTO ${mysql ? '`authors`' : '"authors"'} (id, name) VALUES (1, 'Ada'), (2, 'Linus')`,
                 `INSERT INTO ${mysql ? '`notes`' : '"notes"'} (title, body, slug, priority, author_id) VALUES ('First', 'hello', 'first', 1, 1), ('Second', NULL, 'second', 2, 2), ('Third', 'x', NULL, 3, NULL)`
             ]);
+
             expectedRows = 3;
             draft = draftOf(current);
             expect(alterTableSql(dialect, schema, current, draft)).toEqual([]);
@@ -251,6 +264,7 @@ function defineSuite(label: string, open: () => Promise<Target>, close: (target:
                 ...draft,
                 columns: [...draft.columns, column('pinned', whole, { nullable: false, defaultValue: '0' }), column('summary', long)]
             };
+
             await change(next);
         });
 
@@ -314,12 +328,14 @@ function defineSuite(label: string, open: () => Promise<Target>, close: (target:
         test('adds, changes and drops a foreign key', async () => {
             const added = addForeignKey(draft, target.schema);
             const fresh = added.foreignKeys.at(-1)!;
+
             const configured = patchForeignKey(added, fresh.key, {
                 name: fkName('fk_notes_editor'),
                 referencedTable: 'authors',
                 referencedColumns: ['id'],
                 onDelete: 'CASCADE'
             });
+
             await change(toggleForeignKeyColumn(configured, fresh.key, 'columns', 'editor_id'));
 
             await change(patchForeignKey(draft, foreignKeyOf('editor_id'), { onDelete: 'SET NULL', onUpdate: 'CASCADE' }));
@@ -339,8 +355,10 @@ function defineSuite(label: string, open: () => Promise<Target>, close: (target:
             if (mysql) {
                 await change(patchOptions(draft, { comment: 'Notes of a person' }));
                 await change(patchOptions(draft, { comment: '' }));
+
                 return;
             }
+
             // Without a rowid the key is no alias of one, so the helper reports no auto increment.
             await change(patchColumn(patchOptions(draft, { withoutRowid: true }), keyOf('id'), { autoIncrement: false }));
             await change(patchColumn(patchOptions(draft, { withoutRowid: false }), keyOf('id'), { autoIncrement: true }));
@@ -348,11 +366,13 @@ function defineSuite(label: string, open: () => Promise<Target>, close: (target:
 
         test('adds and drops computed columns', async () => {
             const quoted = (name: string): string => (mysql ? `\`${name}\`` : `"${name}"`);
+
             const computed = (name: string, stored: boolean): ColumnDraft =>
                 column(name, mysql ? 'int' : 'INTEGER', {
                     generated: true,
                     generatedClause: `GENERATED ALWAYS AS (${quoted('priority')} * 2) ${stored ? 'STORED' : 'VIRTUAL'}`
                 });
+
             const withComputed: TableDraft = { ...draft, columns: [...draft.columns, computed('double_virtual', false), computed('double_stored', true)] };
             await change(withComputed);
             await change({ ...draft, columns: draft.columns.filter((candidate) => !candidate.generated || candidate.name === 'title_length') });
@@ -381,10 +401,12 @@ function defineSuite(label: string, open: () => Promise<Target>, close: (target:
 
         test.skipIf(mysql)('rebuilds around a UNIQUE constraint when its column is renamed and dropped', async () => {
             const { dialect, schema } = target;
+
             await run([
                 `CREATE TABLE "pages" (id INTEGER PRIMARY KEY, slug TEXT UNIQUE, title TEXT)`,
                 `INSERT INTO "pages" (slug, title) VALUES ('a', 'A'), ('b', 'B')`
             ]);
+
             const before = await read('pages');
             const original = draftOf(before);
             expect(original.indexes.map((index) => index.name)).toEqual(['sqlite_autoindex_pages_1']);
@@ -394,6 +416,7 @@ function defineSuite(label: string, open: () => Promise<Target>, close: (target:
                 columns: original.columns.map((candidate) => (candidate.name === 'slug' ? { ...candidate, name: 'handle' } : candidate)),
                 indexes: original.indexes.map((index) => ({ ...index, columns: ['handle'] }))
             };
+
             await run(alterTableSql(dialect, schema, before, renamed));
             const middle = await read('pages');
             expect(shapeOf(dialect, draftOf(middle))).toEqual(shapeOf(dialect, renamed));
@@ -413,10 +436,12 @@ function defineSuite(label: string, open: () => Promise<Target>, close: (target:
             await run([`CREATE TABLE "guarded" (id INTEGER PRIMARY KEY, name TEXT)`, `INSERT INTO "guarded" (name) VALUES ('a'), (NULL)`]);
             const before = await read('guarded');
             const original = draftOf(before);
+
             const strict = {
                 ...original,
                 columns: original.columns.map((candidate) => (candidate.name === 'name' ? { ...candidate, nullable: false } : candidate))
             };
+
             const statements = alterTableSql(dialect, schema, before, strict);
             expect(statements[0]).toBe('PRAGMA foreign_keys=OFF');
 
@@ -437,6 +462,7 @@ function defineSuite(label: string, open: () => Promise<Target>, close: (target:
 
         test('keeps composite keys and awkward names together through a column rename and a table rename', async () => {
             const { dialect, schema } = target;
+
             const parent: TableDraft = {
                 ...emptyDraft(),
                 name: 'line items',
@@ -448,6 +474,7 @@ function defineSuite(label: string, open: () => Promise<Target>, close: (target:
                 primaryKey: ['order', 'group'],
                 indexes: [{ key: 'p', originalName: null, name: 'line items sku', columns: ['group', 'sku'], unique: true }]
             };
+
             const child: TableDraft = {
                 ...emptyDraft(),
                 name: 'line notes',
@@ -466,6 +493,7 @@ function defineSuite(label: string, open: () => Promise<Target>, close: (target:
                     }
                 ]
             };
+
             await run(createTableSql(dialect, schema, parent));
             await run(createTableSql(dialect, schema, child));
             const created = await read('line items');
@@ -473,16 +501,19 @@ function defineSuite(label: string, open: () => Promise<Target>, close: (target:
             expect(shapeOf(dialect, draftOf(await read('line notes'))).foreignKeys[0]!.columns).toEqual(['order', 'group']);
 
             const quoted = (name: string): string => (mysql ? `\`${name}\`` : `"${name}"`);
+
             await run([`INSERT INTO ${quoted('line items')} (${quoted('order')}, ${quoted('group')}) VALUES (1, 1), (1, 2)`]);
             await run([`INSERT INTO ${quoted('line notes')} (${quoted('order')}, ${quoted('group')}, note) VALUES (1, 2, 'kept')`]);
 
             const renamed = draftOf(created);
+
             const next: TableDraft = {
                 ...renamed,
                 name: 'line things',
                 columns: renamed.columns.map((candidate) => (candidate.name === 'sku' ? { ...candidate, name: 'code' } : candidate)),
                 indexes: renamed.indexes.map((index) => ({ ...index, columns: ['group', 'code'] }))
             };
+
             await run(alterTableSql(dialect, schema, created, next));
             const after = await read('line things');
             expect(shapeOf(dialect, draftOf(after))).toEqual(shapeOf(dialect, next));
@@ -503,6 +534,7 @@ defineSuite(
     async () => {
         const connection: Connection = { id: 'ddl-sqlite', name: 'DDL', config: { engine: 'sqlite', path: join(folderOf('ddl.sqlite')), create: true } };
         const session = client.session(connection);
+
         return { session, schema: 'main', dialect: dialectOf(await session.server()) };
     },
     () => Promise.resolve()
@@ -514,17 +546,20 @@ for (const [label, variable] of [
     ['MySQL', 'ADECORE_TEST_MYSQL_URL']
 ] as const) {
     const url = process.env[variable];
+
     if (url === undefined) {
         continue;
     }
 
     const schema = `adecore_ddl_${label.toLowerCase()}_${process.pid}`;
+
     defineSuite(
         label,
         async () => {
             const connection: Connection = { id: `ddl-${label}`, name: 'DDL', config: mysqlConfig(url) };
             const session = client.session(connection);
             await session.execute(`DROP DATABASE IF EXISTS \`${schema}\`; CREATE DATABASE \`${schema}\` DEFAULT CHARACTER SET utf8mb4`);
+
             return { session, schema, dialect: dialectOf(await session.server()) };
         },
         async ({ session }) => {
