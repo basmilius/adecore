@@ -23,17 +23,22 @@ const NEWLINE = 0x0a;
 /* Hashes the first `length` bytes of a file into `hash`, a chunk at a time. */
 async function hashPrefix(path: string, length: number, hash: Hash): Promise<Hash> {
     const handle = await open(path, 'r');
+
     try {
         const chunk = Buffer.alloc(Math.min(length, HASH_CHUNK_BYTES));
         let offset = 0;
+
         while (offset < length) {
             const { bytesRead } = await handle.read(chunk, 0, Math.min(chunk.length, length - offset), offset);
+
             if (bytesRead === 0) {
                 break;
             }
+
             hash.update(chunk.subarray(0, bytesRead));
             offset += bytesRead;
         }
+
         return hash;
     } finally {
         await handle.close();
@@ -54,10 +59,12 @@ export interface LineRead {
 export async function forEachLine(chunks: AsyncIterable<Uint8Array>, hash: Hash, onLine: (line: string) => void): Promise<LineRead> {
     let consumed = 0;
     let pending: Buffer[] = [];
+
     for await (const piece of chunks) {
         const chunk = Buffer.from(piece.buffer, piece.byteOffset, piece.byteLength);
         let start = 0;
         let newline = chunk.indexOf(NEWLINE, start);
+
         while (newline !== -1) {
             const end = newline + 1;
             const line = pending.length === 0 ? chunk.subarray(start, end) : Buffer.concat([...pending, chunk.subarray(start, end)]);
@@ -68,11 +75,13 @@ export async function forEachLine(chunks: AsyncIterable<Uint8Array>, hash: Hash,
             start = end;
             newline = chunk.indexOf(NEWLINE, start);
         }
+
         if (start < chunk.length) {
             // A copy: the stream may hand the same memory out again for its next chunk.
             pending.push(Buffer.from(chunk.subarray(start)));
         }
     }
+
     return { consumed, rest: Buffer.concat(pending).toString('utf8') };
 }
 
@@ -108,35 +117,43 @@ function isUsageFile(provider: UsageProvider, name: string): boolean {
 
 async function listUsageFiles(dir: string, provider: UsageProvider, out: string[] = []): Promise<string[]> {
     let entries;
+
     try {
         entries = await readdir(dir, { withFileTypes: true });
     } catch {
         // A directory that cannot be read is one the scan walks past; the root itself reports status.
         return out;
     }
+
     for (const entry of entries) {
         const path = join(dir, entry.name);
+
         if (entry.isDirectory()) {
             await listUsageFiles(path, provider, out);
         } else if (entry.isFile() && isUsageFile(provider, entry.name)) {
             out.push(path);
         }
     }
+
     return out;
 }
 
 /* The bytes of a file from `from` to its end, a chunk at a time. */
 async function* fileChunks(path: string, from: number): AsyncGenerator<Uint8Array> {
     const handle = await open(path, 'r');
+
     try {
         let position = from;
+
         for (;;) {
             // A buffer per chunk: a decompressor may still hold the one before.
             const chunk = Buffer.alloc(READ_CHUNK_BYTES);
             const { bytesRead } = await handle.read(chunk, 0, chunk.length, position);
+
             if (bytesRead === 0) {
                 return;
             }
+
             position += bytesRead;
             yield chunk.subarray(0, bytesRead);
         }
@@ -150,24 +167,30 @@ function readBytes(path: string, from: number, compressed: boolean): AsyncIterab
     if (!compressed) {
         return fileChunks(path, from);
     }
+
     const source = Readable.from(fileChunks(path, from));
     const decompressed = createZstdDecompress();
     source.on('error', (error) => decompressed.destroy(error));
+
     return source.pipe(decompressed);
 }
 
 /* The usage record of one transcript line, when it carries one. */
 function parseLine(raw: string, provider: UsageProvider, codex: CodexParserState | null): UsageRecord | null {
     const line = raw.endsWith('\r') ? raw.slice(0, -1) : raw;
+
     if (line === '') {
         return null;
     }
+
     if (provider === 'claude') {
         return claudeMightCarryUsage(line) ? parseClaudeLine(line) : null;
     }
+
     if (provider === 'codex') {
         return codex !== null && codexMightCarryUsage(line) ? parseCodexLine(line, codex) : null;
     }
+
     // Claude Code and Codex write transcripts of their own, Grok a file read whole; every other provider is a log its host keeps.
     return hostLogMightCarryUsage(line) ? parseHostUsageLine(line, provider) : null;
 }
@@ -186,14 +209,18 @@ async function parseLines(
 ): Promise<ParsedFile> {
     const codex = provider === 'codex' ? (state ?? createCodexState()) : null;
     const records: UsageRecord[] = [];
+
     const read = await forEachLine(chunks, hash, (line) => {
         const record = parseLine(line, provider, codex);
+
         if (record !== null) {
             records.push(record);
         }
     });
+
     const committed = codex === null ? null : cloneCodexState(codex);
     const tail = parseLine(read.rest, provider, codex);
+
     return { records, tail: tail === null ? [] : [tail], offset: from + read.consumed, codex: committed };
 }
 
@@ -211,14 +238,20 @@ type AccountOf = (record: UsageRecord) => string | undefined;
  */
 export function accountResolver(root: UsageRootPath, sessionAccounts: () => ReadonlyMap<string, string>): AccountOf {
     const accounts = root.accounts ?? [root.provider];
+
     const stored = (id: string): string | undefined => (id === root.provider ? undefined : id);
+
     if (accounts.length === 1) {
         const only = stored(accounts[0]!);
+
         return () => only;
     }
+
     const fallback = accounts.includes(root.provider) ? root.provider : accounts[0]!;
+
     return (record) => {
         const ran = sessionAccounts().get(`${root.provider}\0${record.sessionId}`);
+
         return stored(ran !== undefined && accounts.includes(ran) ? ran : fallback);
     };
 }
@@ -226,6 +259,7 @@ export function accountResolver(root: UsageRootPath, sessionAccounts: () => Read
 function withAccount(records: UsageRecord[], accountOf: AccountOf): UsageRecord[] {
     return records.map((record) => {
         const account = accountOf(record);
+
         return account === undefined ? record : { ...record, account };
     });
 }
@@ -257,7 +291,9 @@ export class UsageScanner {
         if (this.loaded) {
             return;
         }
+
         this.loaded = true;
+
         try {
             this.index = decodeIndex(await readFile(this.file, 'utf8'));
         } catch (e) {
@@ -274,37 +310,47 @@ export class UsageScanner {
         let files = 0;
         let changedFiles = 0;
         let sessions: ReadonlyMap<string, string> | null = null;
+
         const sessionAccounts = (): ReadonlyMap<string, string> => {
             sessions ??= this.sessionAccounts();
+
             return sessions;
         };
 
         for (const root of this.roots()) {
             try {
                 const info = await stat(root.path);
+
                 if (!info.isDirectory()) {
                     roots.push({ provider: root.provider, path: root.path, status: 'missing', message: null });
+
                     continue;
                 }
             } catch (e) {
                 const missing = isNotFound(e);
+
                 roots.push({
                     provider: root.provider,
                     path: root.path,
                     status: missing ? 'missing' : 'failed',
                     message: missing ? null : errorText(e)
                 });
+
                 continue;
             }
+
             let failure: string | null = null;
             const accountOf = accountResolver(root, sessionAccounts);
             const paths = await listUsageFiles(root.path, root.provider);
             const plain = new Set(paths);
+
             for (const path of paths) {
                 if (root.provider === 'codex' && path.endsWith('.jsonl.zst') && plain.has(path.slice(0, -4))) {
                     continue;
                 }
+
                 files += 1;
+
                 try {
                     if (await this.readFileInto(path, root.provider, accountOf)) {
                         changedFiles += 1;
@@ -314,6 +360,7 @@ export class UsageScanner {
                     failure ??= errorText(e);
                 }
             }
+
             roots.push({ provider: root.provider, path: root.path, status: failure === null ? 'ok' : 'failed', message: failure });
         }
 
@@ -322,15 +369,18 @@ export class UsageScanner {
             await mkdir(join(this.home, 'usage'), { recursive: true, mode: 0o700 });
             await writeAtomic(this.file, encodeIndex(this.index));
         }
+
         return { at: Date.now(), files, changedFiles, durationMs: Date.now() - started, roots };
     }
 
     /* Every record the index holds, with the copies one message left in several transcripts folded. */
     records(): UsageRecord[] {
         const all: UsageRecord[] = [];
+
         for (const file of this.index.values()) {
             all.push(...file.records, ...file.tail);
         }
+
         return foldByKey(all);
     }
 
@@ -340,6 +390,7 @@ export class UsageScanner {
         const key = compressed ? path.slice(0, -4) : path;
         const known = this.index.get(key);
         const currentParser = provider !== 'codex' || known?.parserVersion === CODEX_PARSER_VERSION;
+
         if (
             currentParser &&
             known !== undefined &&
@@ -350,9 +401,11 @@ export class UsageScanner {
         ) {
             return false;
         }
+
         if (readsWhole(provider)) {
             return this.readWholeInto(path, provider, accountOf, info);
         }
+
         const appended =
             !compressed &&
             currentParser &&
@@ -361,6 +414,7 @@ export class UsageScanner {
             known.provider === provider &&
             info.size > known.size &&
             known.head?.startsWith('sha256:') === true;
+
         // A file only counts as grown while it starts the way it did; one rewritten larger is read again from the start.
         const prefix = appended ? await hashPrefix(path, known.offset, createHash('sha256')) : null;
         const grown = prefix !== null && known !== undefined && headOf(prefix) === known.head ? known : null;
@@ -368,6 +422,7 @@ export class UsageScanner {
         const from = grown?.offset ?? 0;
         const parsed = await parseLines(readBytes(path, from, compressed), hash, provider, from, grown?.codex ?? null);
         const before = grown?.records ?? [];
+
         const entry: IndexedFile = {
             provider,
             size: info.size,
@@ -380,8 +435,10 @@ export class UsageScanner {
             head: headOf(hash),
             ...(provider === 'codex' ? { parserVersion: CODEX_PARSER_VERSION, compressed } : {})
         };
+
         this.index.set(key, entry);
         this.dirty = true;
+
         return true;
     }
 
@@ -392,9 +449,11 @@ export class UsageScanner {
      */
     private async readWholeInto(path: string, provider: UsageProvider, accountOf: AccountOf, info: { size: number; mtimeMs: number }): Promise<boolean> {
         const records = parseGrokUsage(await readFile(path, 'utf8'), path);
+
         if (records === null) {
             return false;
         }
+
         this.index.set(path, {
             provider,
             size: info.size,
@@ -405,7 +464,9 @@ export class UsageScanner {
             codex: null,
             head: null
         });
+
         this.dirty = true;
+
         return true;
     }
 }

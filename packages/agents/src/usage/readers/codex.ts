@@ -76,6 +76,7 @@ function deltaOf(total: CodexCounts, previous: CodexCounts | null): CodexCounts 
     if (previous === null) {
         return total;
     }
+
     const delta: CodexCounts = {
         input: total.input - previous.input,
         cached: total.cached - previous.cached,
@@ -83,6 +84,7 @@ function deltaOf(total: CodexCounts, previous: CodexCounts | null): CodexCounts 
         output: total.output - previous.output,
         reasoning: total.reasoning - previous.reasoning
     };
+
     // A compaction or a resume restarts the count, so anything falling is not a delta at all.
     return delta.input < 0 || delta.cached < 0 || delta.cacheWrite < 0 || delta.output < 0 || delta.reasoning < 0 ? null : delta;
 }
@@ -92,7 +94,9 @@ export function isForkOrSubagent(payload: Record<string, unknown>): boolean {
     if (typeof payload.forked_from_id === 'string' || typeof payload.parent_thread_id === 'string') {
         return true;
     }
+
     const spawn = asObject(asObject(payload.source)?.subagent)?.thread_spawn;
+
     return typeof asObject(spawn)?.parent_thread_id === 'string';
 }
 
@@ -101,6 +105,7 @@ export function isForkOrSubagent(payload: Record<string, unknown>): boolean {
 export function parseCodexLine(line: string, state: CodexParserState): UsageRecord | null {
     const record = parseObject(line);
     const payload = record === null ? null : asObject(record.payload);
+
     if (record === null || payload === null) {
         return null;
     }
@@ -110,33 +115,42 @@ export function parseCodexLine(line: string, state: CodexParserState): UsageReco
         if (state.sawSessionMeta) {
             return null;
         }
+
         state.sawSessionMeta = true;
         state.sessionId = asString(payload.id) || asString(payload.session_id);
         state.cwd = asString(payload.cwd);
+
         if (isForkOrSubagent(payload)) {
             state.suppressing = true;
             state.anchorMs = Date.parse(asString(record.timestamp)) || 0;
         }
+
         return null;
     }
 
     if (record.type === 'turn_context') {
         const model = asString(payload.model);
+
         if (model !== '') {
             state.model = model;
         }
+
         const cwd = asString(payload.cwd);
+
         if (cwd !== '') {
             state.cwd = cwd;
         }
+
         return null;
     }
 
     if (payload.type === 'thread_settings_applied') {
         const settings = asObject(payload.thread_settings);
+
         if (settings !== null && typeof settings.service_tier === 'string') {
             state.serviceTier = settings.service_tier;
         }
+
         return null;
     }
 
@@ -147,26 +161,33 @@ export function parseCodexLine(line: string, state: CodexParserState): UsageReco
     if (payload.type !== 'token_count') {
         return null;
     }
+
     const info = asObject(payload.info);
     const total = info === null ? null : asObject(info.total_token_usage);
+
     if (info === null || total === null || state.model === null) {
         return null;
     }
+
     const timestampMs = Date.parse(asString(record.timestamp));
+
     if (Number.isNaN(timestampMs)) {
         return null;
     }
 
     const signature = JSON.stringify(info.total_token_usage);
+
     if (signature === state.lastSignature) {
         return null;
     }
+
     state.lastSignature = signature;
 
     const cumulative = countsOf(total);
     const last = asObject(info.last_token_usage);
     const counts = deltaOf(cumulative, state.total) ?? (last === null ? null : countsOf(last));
     state.total = cumulative;
+
     if (counts === null) {
         return null;
     }
@@ -174,19 +195,23 @@ export function parseCodexLine(line: string, state: CodexParserState): UsageReco
     if (state.suppressing) {
         if (timestampMs - state.anchorMs <= FORK_COPY_MAX_GAP_MS) {
             state.anchorMs = timestampMs;
+
             return null;
         }
+
         // The first event that is not part of the replayed burst is this thread's own work.
         state.suppressing = false;
     }
 
     let dedupeKey: string | null = null;
     const pending = state.latestResponse === null ? undefined : state.pendingCompactions[state.latestResponse];
+
     if (pending !== undefined && (sameCounts(pending.counts, counts) || sameCounts(pending.threadTotal, cumulative))) {
         dedupeKey = `codex:response:${state.latestResponse}`;
         delete state.pendingCompactions[state.latestResponse!];
         state.handledResponses.push(state.latestResponse!);
     }
+
     return usageRecord(counts, timestampMs, state.model, state, dedupeKey);
 }
 
@@ -203,9 +228,11 @@ function sameCounts(first: CodexCounts | null, second: CodexCounts): boolean {
 
 function parseCompaction(record: Record<string, unknown>, payload: Record<string, unknown>, state: CodexParserState): UsageRecord | null {
     const id = asString(record.type === 'compacted' ? payload.compaction_response_id : payload.response_id);
+
     if (id === '' || state.handledResponses.includes(id)) {
         return null;
     }
+
     if (record.type === 'compacted') {
         if (!state.compacted.includes(id)) {
             state.compacted.push(id);
@@ -214,29 +241,38 @@ function parseCompaction(record: Record<string, unknown>, payload: Record<string
         const usage = asObject(payload.usage);
         const model = asString(payload.model) || state.model;
         const timestampMs = Date.parse(asString(record.timestamp));
+
         if (usage === null || model === null || !Number.isFinite(timestampMs)) {
             return null;
         }
+
         const counts = countsOf(usage);
         const parsed = usageRecord(counts, timestampMs, model, state, `codex:response:${id}`);
+
         if (parsed === null) {
             return null;
         }
+
         state.latestResponse = id;
         const threadTotal = asObject(payload.thread_token_usage);
         state.pendingCompactions[id] ??= { record: parsed, counts, threadTotal: threadTotal === null ? null : countsOf(threadTotal) };
     }
+
     const pending = state.pendingCompactions[id];
+
     if (!state.compacted.includes(id) || pending === undefined) {
         return null;
     }
+
     state.handledResponses.push(id);
     delete state.pendingCompactions[id];
+
     return pending.record;
 }
 
 function usageRecord(counts: CodexCounts, timestampMs: number, model: string, state: CodexParserState, dedupeKey: string | null): UsageRecord | null {
     const uncached = Math.max(0, counts.input - counts.cached - counts.cacheWrite);
+
     const totals = {
         calls: 1,
         input: uncached,
@@ -246,9 +282,11 @@ function usageRecord(counts: CodexCounts, timestampMs: number, model: string, st
         output: counts.output,
         reasoning: Math.min(counts.output, counts.reasoning)
     };
+
     if (uncached + counts.cached + counts.cacheWrite + counts.output === 0) {
         return null;
     }
+
     return {
         provider: 'codex',
         timestampMs,

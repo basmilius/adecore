@@ -26,6 +26,7 @@ describe('the aggregation', () => {
         const { buckets } = await aggregate(records, week, prices, []);
         expect(buckets.map((bucket) => [bucket.slot, bucket.totals.calls])).toEqual([['2026-09-10', 1]]);
         const utc = await aggregate(records, { ...week, timeZone: 'UTC' }, prices, []);
+
         expect(utc.buckets.map((bucket) => [bucket.slot, bucket.totals.calls])).toEqual([
             ['2026-09-09', 1],
             ['2026-09-10', 1]
@@ -45,6 +46,7 @@ describe('the aggregation', () => {
             record({ at: '2026-09-10T10:00:00.000Z', sessionId: 's-2' }),
             record({ at: '2026-09-10T11:00:00.000Z', provider: 'codex', model: 'gpt-5.6', sessionId: 'c-1' })
         ];
+
         const { buckets, sessions } = await aggregate(records, week, prices, []);
         expect(buckets).toHaveLength(2);
         expect(buckets[0]!.sessions).toBe(2);
@@ -76,6 +78,7 @@ describe('the aggregation', () => {
             record({ at: '2026-09-10T09:00:00.000Z', provider: 'grok', model: 'grok-4.7-build-fast', costUsd: 0.25 }),
             record({ at: '2026-09-10T10:00:00.000Z', provider: 'grok', model: 'grok-4.7-build-fast', costUsd: 0.5 })
         ];
+
         const { models, buckets, projects } = await aggregate(records, week, prices, []);
         expect(models).toMatchObject([{ provider: 'grok', costUsd: 0.75, priceBasis: 'exact', pricedAs: null }]);
         expect(buckets[0]!.costUsd).toBe(0.75);
@@ -84,11 +87,13 @@ describe('the aggregation', () => {
 
     test('folds a directory onto the project it belongs to and keeps a share per provider', async () => {
         const known = [{ projectId: 'p1', name: 'Ruimte', folder: '/work/repo' }];
+
         const records = [
             record({ at: '2026-09-10T09:00:00.000Z' }),
             record({ at: '2026-09-10T09:00:00.000Z', provider: 'codex', model: 'gpt-5.6' }),
             record({ at: '2026-09-10T09:00:00.000Z', cwd: '/work/other' })
         ];
+
         const { projects } = await aggregate(records, week, prices, known);
         const mine = projects.find((project) => project.folder === '/work/repo')!;
         expect(mine.name).toBe('Ruimte');
@@ -103,12 +108,14 @@ describe('the aggregation', () => {
             record({ at: '2026-09-10T09:00:00.000Z', account: 'claude_work' }),
             record({ at: '2026-09-10T09:00:00.000Z', account: 'claude_gone' })
         ];
+
         const folded = await aggregate(records, week, prices, []);
         expect(folded.buckets).toHaveLength(1);
         expect(folded.buckets[0]!.account).toBeUndefined();
         expect(folded.models).toHaveLength(1);
 
         const split = await aggregate(records, { ...week, accounts: ['claude', 'claude_work'] }, prices, []);
+
         expect(split.buckets.map((bucket) => [bucket.account, bucket.totals.calls])).toEqual([
             ['claude', 1],
             ['claude_work', 1]

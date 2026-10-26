@@ -17,6 +17,7 @@ function nameOf(kind: string): string {
 beforeEach(async () => {
     root = await mkdtemp(join(tmpdir(), 'ruimte-usage-accounts-'));
     home = join(root, 'home');
+
     service = await testAccounts({
         home: root,
         env: { HOME: home, USERPROFILE: home },
@@ -79,6 +80,7 @@ describe('the accounts of the usage page and the limits', () => {
             { provider: 'codex', agentSessionId: 't-2' },
             { provider: 'codex', agentSessionId: null, account: 'codex_work' }
         ]);
+
         expect([...known]).toEqual([
             ['codex\0t-1', 'codex_work'],
             ['codex\0t-2', 'codex']

@@ -44,6 +44,7 @@ describe('the Codex reader', () => {
             tokens(2, counts(1_000, 800, 0, 50), counts(1_000, 800, 0, 50)),
             tokens(3, counts(3_000, 2_400, 0, 130), counts(2_000, 1_600, 0, 80))
         ]);
+
         expect(records).toHaveLength(2);
         expect(records[0]!.totals).toEqual({ calls: 1, input: 200, cacheRead: 800, cacheWrite: 0, cacheWrite1h: 0, output: 50, reasoning: 0 });
         expect(records[1]!.totals).toEqual({ calls: 1, input: 400, cacheRead: 1_600, cacheWrite: 0, cacheWrite1h: 0, output: 80, reasoning: 0 });
@@ -60,6 +61,7 @@ describe('the Codex reader', () => {
             // A compaction restarts the count, so the difference would be negative.
             tokens(3, counts(2_000, 1_500, 0, 60), counts(2_000, 1_500, 0, 60))
         ]);
+
         expect(records).toHaveLength(2);
         expect(records[1]!.totals).toEqual({ calls: 1, input: 500, cacheRead: 1_500, cacheWrite: 0, cacheWrite1h: 0, output: 60, reasoning: 0 });
     });
@@ -83,6 +85,7 @@ describe('the Codex reader', () => {
             tokens(0.5, counts(3_000, 2_400, 0, 130), counts(2_000, 1_600, 0, 80)),
             tokens(30, counts(5_000, 4_000, 0, 200), counts(2_000, 1_600, 0, 70))
         ];
+
         const records = feed(lines);
         expect(records).toHaveLength(1);
         expect(records[0]!.totals.output).toBe(70);
@@ -96,6 +99,7 @@ describe('the Codex reader', () => {
                 tokens(0, counts(1_000, 800, 0, 50), counts(1_000, 800, 0, 50)),
                 tokens(30, counts(2_000, 1_600, 0, 90), counts(1_000, 800, 0, 40))
             ]);
+
             expect(records).toHaveLength(1);
         }
     });

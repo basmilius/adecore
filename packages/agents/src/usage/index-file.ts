@@ -58,12 +58,15 @@ class Interner {
 
     index(value: string): number {
         const seen = this.at.get(value);
+
         if (seen !== undefined) {
             return seen;
         }
+
         const next = this.values.length;
         this.values.push(value);
         this.at.set(value, next);
+
         return next;
     }
 }
@@ -74,6 +77,7 @@ export function encodeIndex(index: UsageIndex): string {
     const folders = new Interner();
     const accounts = new Interner();
     const files: Record<string, FileRow> = {};
+
     const row = (record: UsageRecord): RecordRow => {
         const counted: RecordRow = [
             record.timestampMs,
@@ -90,14 +94,18 @@ export function encodeIndex(index: UsageIndex): string {
             record.dedupeKey ?? 0,
             record.account === undefined ? 0 : accounts.index(record.account) + 1
         ];
+
         if (record.costUsd !== undefined || record.serviceTier !== undefined) {
             counted[13] = record.costUsd;
         }
+
         if (record.serviceTier !== undefined) {
             counted[14] = record.serviceTier;
         }
+
         return counted;
     };
+
     for (const [path, file] of index) {
         files[path] = {
             p: file.provider,
@@ -112,6 +120,7 @@ export function encodeIndex(index: UsageIndex): string {
             ...(file.compressed === undefined ? {} : { z: file.compressed })
         };
     }
+
     const document: IndexFile = {
         version: INDEX_VERSION,
         models: models.values,
@@ -120,6 +129,7 @@ export function encodeIndex(index: UsageIndex): string {
         accounts: accounts.values,
         files
     };
+
     return JSON.stringify(document);
 }
 
@@ -142,12 +152,15 @@ function isRow(row: unknown, version: number): row is RecordRow {
 export function decodeIndex(text: string): UsageIndex {
     const index: UsageIndex = new Map();
     let document: IndexFile;
+
     try {
         document = JSON.parse(text) as IndexFile;
     } catch {
         return index;
     }
+
     const version = document?.version;
+
     if (
         (version !== INDEX_VERSION && version !== 2 && version !== ACCOUNTLESS_VERSION) ||
         !Array.isArray(document.models) ||
@@ -156,19 +169,26 @@ export function decodeIndex(text: string): UsageIndex {
     ) {
         return index;
     }
+
     const accounts = Array.isArray(document.accounts) ? document.accounts : [];
+
     const name = (table: string[], at: number): string | null => (typeof table[at] === 'string' ? table[at] : null);
+
     for (const [path, file] of Object.entries(document.files ?? {})) {
         // Every provider the schema knows, so a new one is never dropped from the index it was saved in.
         if (!UsageProviderSchema.safeParse(file.p).success) {
             continue;
         }
+
         if (typeof file.s !== 'number' || typeof file.m !== 'number' || typeof file.o !== 'number' || file.o < 0 || !Array.isArray(file.r)) {
             continue;
         }
+
         let broken = false;
+
         const decode = (rows: RecordRow[]): UsageRecord[] => {
             const records: UsageRecord[] = [];
+
             for (const row of rows) {
                 const valid = isRow(row, version);
                 const model = valid ? name(document.models, row[1]) : null;
@@ -176,10 +196,13 @@ export function decodeIndex(text: string): UsageIndex {
                 const cwd = valid ? name(document.folders, row[3]) : null;
                 const accountAt = valid ? (row[12] ?? 0) : 0;
                 const account = accountAt === 0 ? undefined : name(accounts, accountAt - 1);
+
                 if (!valid || model === null || sessionId === null || cwd === null || account === null) {
                     broken = true;
+
                     return records;
                 }
+
                 records.push({
                     provider: file.p,
                     timestampMs: row[0],
@@ -193,10 +216,13 @@ export function decodeIndex(text: string): UsageIndex {
                     dedupeKey: row[11] === 0 ? null : row[11]
                 });
             }
+
             return records;
         };
+
         const records = decode(file.r);
         const tail = decode(Array.isArray(file.t) ? file.t : []);
+
         if (!broken) {
             index.set(path, {
                 provider: file.p,
@@ -212,5 +238,6 @@ export function decodeIndex(text: string): UsageIndex {
             });
         }
     }
+
     return index;
 }

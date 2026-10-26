@@ -36,12 +36,15 @@ export function kindOfDuration(durationMs: number | null): UsageWindow['kind'] {
     if (durationMs === null) {
         return 'other';
     }
+
     if (durationMs >= MONTH_MS) {
         return 'monthly';
     }
+
     if (durationMs >= WEEK_MS) {
         return 'weekly';
     }
+
     return 'session';
 }
 
@@ -68,33 +71,44 @@ export function readClaudeUsage(response: unknown): ProviderReading | { unavaila
     if (!isRecord(response)) {
         return { unavailable: { reason: 'failed', message: 'Claude Code returned no readable usage' } };
     }
+
     const plan = typeof response.subscription_type === 'string' ? response.subscription_type : null;
     const limits = isRecord(response.rate_limits) ? response.rate_limits : null;
+
     if (response.rate_limits_available === false || limits === null) {
         // An API key, Bedrock or Vertex account has no plan windows at all, which is not a failure.
         return { unavailable: { reason: 'no-subscription', message: null } };
     }
+
     const windows: UsageWindow[] = [];
+
     const push = (id: string, label: string, kind: UsageWindow['kind'], durationMs: number, entry: unknown): void => {
         const window = isRecord(entry) ? entry : null;
         const utilization = window === null ? null : num(window.utilization);
+
         if (utilization === null) {
             return;
         }
+
         const resetsAt = typeof window?.resets_at === 'string' ? Date.parse(window.resets_at) : Number.NaN;
         windows.push({ id, label, kind, used: fraction(utilization / 100), resetsAt: Number.isNaN(resetsAt) ? null : resetsAt, durationMs });
     };
+
     for (const known of CLAUDE_WINDOWS) {
         push(known.id, known.label, known.kind, known.durationMs, limits[known.key]);
     }
+
     for (const entry of Array.isArray(limits.model_scoped) ? limits.model_scoped : []) {
         const name = isRecord(entry) && typeof entry.display_name === 'string' ? entry.display_name : null;
+
         if (name !== null) {
             push(`seven_day_${slug(name)}`, `Weekly · ${name}`, 'weekly', WEEK_MS, entry);
         }
     }
+
     const session = isRecord(response.session) ? response.session : null;
     const sessionUsd = session === null ? null : num(session.total_cost_usd);
+
     return { plan, windows, cost: sessionUsd === null ? null : { sessionUsd } };
 }
 
@@ -103,11 +117,14 @@ export function readClaudeEvent(info: unknown): LimitsUpdate | null {
     const event = isRecord(info) ? info : null;
     const type = event !== null && typeof event.rateLimitType === 'string' ? event.rateLimitType : null;
     const utilization = event === null ? null : num(event.utilization);
+
     if (type === null || utilization === null) {
         return null;
     }
+
     const known = CLAUDE_WINDOWS.find((window) => window.key === type);
     const resetsAt = num(event?.resetsAt);
+
     return {
         kind: 'claude',
         windows: [
@@ -127,24 +144,30 @@ export function readClaudeEvent(info: unknown): LimitsUpdate | null {
  */
 export function readCodexLimits(snapshot: unknown): ProviderReading | null {
     const limits = isRecord(snapshot) ? snapshot : null;
+
     if (limits === null || (typeof limits.limitId === 'string' && limits.limitId !== 'codex')) {
         return null;
     }
+
     const plan = typeof limits.planType === 'string' ? limits.planType : null;
     const windows: UsageWindow[] = [];
+
     for (const [position, entry] of [
         ['primary', limits.primary],
         ['secondary', limits.secondary]
     ] as const) {
         const window = isRecord(entry) ? entry : null;
         const usedPercent = window === null ? null : num(window.usedPercent);
+
         if (usedPercent === null) {
             continue;
         }
+
         const minutes = num(window?.windowDurationMins);
         const durationMs = minutes === null ? null : Math.round(minutes * MINUTE_MS);
         const kind = kindOfDuration(durationMs);
         const resetsAt = num(window?.resetsAt);
+
         windows.push({
             id: position,
             kind,
@@ -154,6 +177,7 @@ export function readCodexLimits(snapshot: unknown): ProviderReading | null {
             durationMs
         });
     }
+
     return { plan, windows, cost: null };
 }
 
@@ -164,11 +188,14 @@ export function readCodexLimits(snapshot: unknown): ProviderReading | null {
  */
 export function mergeWindows(known: readonly UsageWindow[], updates: readonly Partial<UsageWindow>[]): UsageWindow[] {
     const merged = known.map((window) => ({ ...window }));
+
     for (const update of updates) {
         if (update.id === undefined || update.used === undefined) {
             continue;
         }
+
         const at = merged.findIndex((window) => window.id === update.id);
+
         if (at === -1) {
             merged.push({
                 id: update.id,
@@ -178,9 +205,12 @@ export function mergeWindows(known: readonly UsageWindow[], updates: readonly Pa
                 resetsAt: update.resetsAt ?? null,
                 durationMs: update.durationMs ?? null
             });
+
             continue;
         }
+
         merged[at] = { ...merged[at]!, ...update } as UsageWindow;
     }
+
     return merged;
 }

@@ -99,6 +99,7 @@ export class UsageMonitor {
         this.plans = options.plans ?? {};
         this.probe = options.probe ?? ((kind, command, env) => (kind === 'claude' ? probeClaude(command, env) : probeCodex(command, env, options.client)));
         this.now = options.now ?? Date.now;
+
         for (const kind of PROVIDERS) {
             this.stateOf(kind, kind);
         }
@@ -112,8 +113,10 @@ export class UsageMonitor {
     snapshot(): UsageLimitsSnapshot {
         const providers = this.listed().map(({ id, kind, label, color }) => {
             const published = this.stateOf(kind, id).published;
+
             return this.accounts === null ? published : { ...published, account: { id, label, ...(color === undefined ? {} : { color }) } };
         });
+
         return { providers };
     }
 
@@ -135,6 +138,7 @@ export class UsageMonitor {
         this.inFlight ??= this.runAll(force).finally(() => {
             this.inFlight = null;
         });
+
         return this.inFlight;
     }
 
@@ -152,7 +156,9 @@ export class UsageMonitor {
         if (update.windows.length === 0) {
             return;
         }
+
         const state = this.stateOf(update.kind, update.account ?? update.kind);
+
         state.published = {
             ...state.published,
             plan: update.plan ?? state.published.plan,
@@ -161,27 +167,33 @@ export class UsageMonitor {
             windows: mergeWindows(state.published.windows, update.windows),
             unavailable: null
         };
+
         this.emit();
     }
 
     /* Every account of a CLI whose plan is read, the default one first. */
     private listed(): LimitAccount[] {
         const accounts = this.accounts?.list() ?? PROVIDERS.map((kind) => ({ id: kind, kind, label: kind, isDefault: true }));
+
         return PROVIDERS.flatMap((kind) => {
             if (!PROBED.includes(kind) && this.plans[kind] === undefined) {
                 return [];
             }
+
             const own = accounts.filter((account) => account.kind === kind);
+
             return [...own.filter((account) => account.isDefault), ...own.filter((account) => !account.isDefault)];
         });
     }
 
     private stateOf(kind: UsageProvider, id: string): ProviderState {
         let state = this.states.get(id);
+
         if (state === undefined || state.kind !== kind) {
             state = { kind, published: blank(kind), backoffMs: PROBE_INTERVAL_MS, nextAt: 0 };
             this.states.set(id, state);
         }
+
         return state;
     }
 
@@ -190,48 +202,62 @@ export class UsageMonitor {
         if (force) {
             return true;
         }
+
         if (this.now() < state.nextAt) {
             return false;
         }
+
         if (account.isDefault) {
             return true;
         }
+
         const used = this.accounts?.lastUsedAt(account.id) ?? null;
+
         return used !== null && this.now() - used < RECENT_USE_MS;
     }
 
     private async runAll(force: boolean): Promise<void> {
         const installed = await this.registry.list();
         let changed = false;
+
         for (const account of this.listed()) {
             const { kind } = account;
             const state = this.stateOf(kind, account.id);
+
             if (!this.due(account, state, force)) {
                 continue;
             }
+
             const info = installed.find((provider) => provider.kind === kind);
+
             if (this.plans[kind] === undefined && (info === undefined || !info.installed)) {
                 state.published = { ...blank(kind), checkedAt: this.now(), unavailable: { reason: 'not-installed', message: null } };
                 state.nextAt = this.now() + PROBE_INTERVAL_MS;
                 changed = true;
+
                 continue;
             }
+
             // The next read is counted from when this one started, so a read that takes a few seconds does not push the tick of the clock past its time.
             const startedAt = this.now();
             const result = await this.read(account);
             const failed = 'unavailable' in result && result.unavailable?.reason === 'failed';
             state.backoffMs = failed ? Math.min(MAX_BACKOFF_MS, state.backoffMs * 2) : PROBE_INTERVAL_MS;
             state.nextAt = startedAt + state.backoffMs;
+
             if (failed && state.published.windows.length > 0) {
                 // A pass that could not reach the CLI leaves the last good numbers where they are.
                 continue;
             }
+
             state.published =
                 'unavailable' in result
                     ? { ...blank(kind), checkedAt: this.now(), unavailable: result.unavailable }
                     : { kind, plan: result.plan, checkedAt: this.now(), source: 'probe', windows: result.windows, cost: result.cost, unavailable: null };
+
             changed = true;
         }
+
         if (changed) {
             this.emit();
         }
@@ -239,6 +265,7 @@ export class UsageMonitor {
 
     private async read(account: LimitAccount): Promise<ProbeResult> {
         const plan = this.plans[account.kind];
+
         if (plan !== undefined) {
             try {
                 return await plan(account);
@@ -246,12 +273,15 @@ export class UsageMonitor {
                 return { unavailable: { reason: 'failed', message: errorText(e) } };
             }
         }
+
         let env: ProbeEnv;
+
         try {
             env = this.accounts === null ? definedEnv(process.env) : this.accounts.envFor(account.kind, account.id);
         } catch (e) {
             return { unavailable: { reason: 'failed', message: errorText(e) } };
         }
+
         return this.probe(account.kind, this.registry.get(account.kind).command, env);
     }
 

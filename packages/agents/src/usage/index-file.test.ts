@@ -31,6 +31,7 @@ describe('the usage index file', () => {
             ],
             ['/claude/b.jsonl', file({ head: null, records: [] })]
         ]);
+
         expect(decodeIndex(encodeIndex(index))).toEqual(index);
     });
 
@@ -41,6 +42,7 @@ describe('the usage index file', () => {
                 file({ provider: 'grok', head: null, records: [record({ provider: 'grok', costUsd: 1.699024 }), record({ provider: 'grok' })] })
             ]
         ]);
+
         expect(decodeIndex(encodeIndex(index))).toEqual(index);
     });
 
@@ -52,6 +54,7 @@ describe('the usage index file', () => {
 
     test('reads a version 1 index as the default account', () => {
         const row = [1_700_000_000_000, 0, 0, 0, 1, 10, 20, 30, 5, 40, 0, 'msg_1'];
+
         const text = JSON.stringify({
             version: 1,
             models: ['claude-sonnet-5'],
@@ -59,6 +62,7 @@ describe('the usage index file', () => {
             folders: ['/work/demo'],
             files: { '/claude/a.jsonl': { p: 'claude', s: 1200, m: 1_700_000_000_500, o: 1100, r: [row], t: [], c: null } }
         });
+
         const decoded = decodeIndex(text).get('/claude/a.jsonl');
         expect(decoded?.records).toEqual([record()]);
         expect(decoded?.head).toBeNull();
@@ -75,6 +79,7 @@ describe('the usage index file', () => {
         ) as {
             files: Record<string, { r: unknown[][] }>;
         };
+
         document.files['/claude/a.jsonl']!.r[0]![1] = 99;
         const decoded = decodeIndex(JSON.stringify(document));
         expect([...decoded.keys()]).toEqual(['/claude/b.jsonl']);
@@ -91,6 +96,7 @@ describe('the usage index file', () => {
         ) as {
             files: Record<string, Record<string, unknown>>;
         };
+
         document.files['/claude/a.jsonl']!.p = 'gemini';
         document.files['/claude/b.jsonl']!.o = -1;
         expect(decodeIndex(JSON.stringify(document)).size).toBe(0);

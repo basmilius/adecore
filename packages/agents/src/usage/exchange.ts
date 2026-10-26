@@ -17,9 +17,11 @@ export function parseRate(document: unknown, currency: string): Omit<UsageRate, 
     const body = typeof document === 'object' && document !== null ? (document as Record<string, unknown>) : null;
     const rates = body === null || typeof body.rates !== 'object' || body.rates === null ? null : (body.rates as Record<string, unknown>);
     const rate = rates === null ? undefined : rates[currency];
+
     if (typeof rate !== 'number' || !Number.isFinite(rate) || rate <= 0 || typeof body?.date !== 'string') {
         return null;
     }
+
     return { currency, rate, date: body.date };
 }
 
@@ -47,6 +49,7 @@ export class ExchangeRates {
     /* Reads the rate an earlier run stored, once; asking for a new one is left to `ensure`. */
     load(): Promise<void> {
         this.stored ??= this.readStored();
+
         return this.stored;
     }
 
@@ -57,6 +60,7 @@ export class ExchangeRates {
             .finally(() => {
                 this.inFlight = null;
             });
+
         return this.inFlight;
     }
 
@@ -67,6 +71,7 @@ export class ExchangeRates {
     private async readStored(): Promise<void> {
         try {
             const stored = JSON.parse(await readFile(this.file, 'utf8')) as UsageRate;
+
             if (stored?.currency === TARGET_CURRENCY && typeof stored.rate === 'number' && stored.rate > 0) {
                 this.rate = stored;
             }
@@ -81,16 +86,22 @@ export class ExchangeRates {
         if (!this.allowFetch || (this.rate !== null && Date.now() - this.rate.fetchedAt < TTL_MS)) {
             return false;
         }
+
         let changed = false;
+
         try {
             const response = await fetch(`${FRANKFURTER_URL}?from=USD&to=${TARGET_CURRENCY}`, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+
             if (!response.ok) {
                 throw new Error(`frankfurter.app answered ${response.status}`);
             }
+
             const parsed = parseRate(await response.json(), TARGET_CURRENCY);
+
             if (parsed === null) {
                 throw new Error(`The answer carried no ${TARGET_CURRENCY} rate`);
             }
+
             this.rate = { ...parsed, fetchedAt: Date.now() };
             changed = true;
             await mkdir(join(this.home, 'usage'), { recursive: true, mode: 0o700 });
@@ -99,6 +110,7 @@ export class ExchangeRates {
             // Yesterday's rate still converts; a rate that could not be refreshed is not a failure.
             console.warn('Could not refresh the exchange rate:', errorText(e));
         }
+
         return changed;
     }
 }

@@ -12,24 +12,31 @@ export function claudeMightCarryUsage(line: string): boolean {
  */
 export function parseClaudeLine(line: string): UsageRecord | null {
     const record = parseObject(line);
+
     if (record === null || record.type !== 'assistant') {
         return null;
     }
+
     const message = asObject(record.message);
     const usage = message === null ? null : asObject(message.usage);
+
     if (message === null || usage === null) {
         return null;
     }
+
     const model = asString(message.model);
     const timestampMs = Date.parse(asString(record.timestamp));
+
     // `<synthetic>` is what Claude Code writes for a message it made up itself, an error or an
     // interruption. It never reached the API, and its counts are zero, so it is not a call.
     if (model === '' || model === '<synthetic>' || Number.isNaN(timestampMs)) {
         return null;
     }
+
     const creation = asObject(usage.cache_creation);
     const outputDetails = asObject(usage.output_tokens_details);
     const messageId = asString(message.id);
+
     const totals = {
         calls: 1,
         input: int(usage.input_tokens),
@@ -39,9 +46,11 @@ export function parseClaudeLine(line: string): UsageRecord | null {
         output: int(usage.output_tokens),
         reasoning: outputDetails === null ? 0 : int(outputDetails.thinking_tokens)
     };
+
     if (!countsTokens(totals)) {
         return null;
     }
+
     return {
         provider: 'claude',
         timestampMs,

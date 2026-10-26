@@ -60,22 +60,30 @@ function maxTotals(into: UsageTotals, from: UsageTotals): void {
 export function foldByKey(records: readonly UsageRecord[]): UsageRecord[] {
     const folded: UsageRecord[] = [];
     const at = new Map<string, number>();
+
     for (const record of records) {
         if (record.dedupeKey === null) {
             folded.push(record);
+
             continue;
         }
+
         const seen = at.get(record.dedupeKey);
+
         if (seen === undefined) {
             at.set(record.dedupeKey, folded.length);
             folded.push({ ...record, totals: { ...record.totals } });
+
             continue;
         }
+
         const into = folded[seen]!;
         maxTotals(into.totals, record.totals);
+
         if (record.costUsd !== undefined) {
             into.costUsd = Math.max(into.costUsd ?? 0, record.costUsd);
         }
     }
+
     return folded;
 }

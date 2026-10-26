@@ -16,6 +16,7 @@ const entry = {
 describe('the log of an API a host calls itself', () => {
     test('a line a host wrote is read back as one call, with every kind of token as it was counted', () => {
         const record = parseHostUsageLine(hostUsageLine(entry).trim(), 'nanogpt');
+
         expect(record).toMatchObject({
             provider: 'nanogpt',
             model: 'z-ai/glm-5.3',

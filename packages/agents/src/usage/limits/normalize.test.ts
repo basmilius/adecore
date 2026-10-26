@@ -18,9 +18,11 @@ describe('what Claude answers', () => {
     test('turns a percent and an ISO moment into a fraction and epoch milliseconds', () => {
         const reading = readClaudeUsage(claudeAnswer);
         expect('unavailable' in reading).toBe(false);
+
         if ('unavailable' in reading) {
             return;
         }
+
         expect(reading.plan).toBe('max');
         expect(reading.cost).toEqual({ sessionUsd: 1.5 });
         expect(reading.windows).toHaveLength(3);
@@ -43,6 +45,7 @@ describe('what Claude answers', () => {
 
     test('the event of a running turn carries a fraction and seconds instead', () => {
         const update = readClaudeEvent({ status: 'allowed', rateLimitType: 'five_hour', utilization: 0.31, resetsAt: 1_789_000_000 });
+
         expect(update).toEqual({
             kind: 'claude',
             windows: [{ id: 'five_hour', label: 'Session', kind: 'session', durationMs: 5 * 60 * 60_000, used: 0.31, resetsAt: 1_789_000_000_000 }]

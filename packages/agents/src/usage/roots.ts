@@ -19,6 +19,7 @@ const TRANSCRIPTS: Partial<Record<UsageProvider, string>> & Record<'claude' | 'c
 /* The transcripts of the default accounts, found through the variables the CLIs themselves read. */
 export function usageRoots(env: Record<string, string | undefined> = process.env): UsageRootPath[] {
     const home = homeFolder(env);
+
     return [
         { provider: 'claude', path: join(env.CLAUDE_CONFIG_DIR ?? join(home, '.claude'), TRANSCRIPTS.claude) },
         { provider: 'codex', path: join(env.CODEX_HOME ?? join(home, '.codex'), TRANSCRIPTS.codex) },
@@ -29,19 +30,24 @@ export function usageRoots(env: Record<string, string | undefined> = process.env
 /* The transcripts of every account, once per folder: Codex accounts over one home share its sessions. */
 export function accountRoots(folders: ReadonlyArray<{ id: string; kind: UsageProvider; folder: string }>): UsageRootPath[] {
     const roots = new Map<string, UsageRootPath & { accounts: string[] }>();
+
     for (const { id, kind, folder } of folders) {
         const transcripts = TRANSCRIPTS[kind];
+
         if (transcripts === undefined) {
             continue;
         }
+
         const path = join(folder, transcripts);
         const key = `${kind}\0${path}`;
         const root = roots.get(key);
+
         if (root === undefined) {
             roots.set(key, { provider: kind, path, accounts: [id] });
         } else {
             root.accounts.push(id);
         }
     }
+
     return [...roots.values()];
 }

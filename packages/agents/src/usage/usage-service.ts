@@ -30,13 +30,16 @@ export interface UsageServiceOptions {
 function withRecordAccounts(accounts: UsageAccount[], records: readonly UsageRecord[]): UsageAccount[] {
     const listed = new Set(accounts.map((account) => account.id));
     const gone: UsageAccount[] = [];
+
     for (const record of records) {
         const id = accountOfRecord(record);
+
         if (!listed.has(id)) {
             listed.add(id);
             gone.push({ id, kind: record.provider, label: id });
         }
     }
+
     return [...accounts, ...gone];
 }
 
@@ -76,6 +79,7 @@ export class UsageService {
     /* The page is open here: keep the numbers moving until it closes or the socket does. */
     follow(clientId: string): void {
         this.followers.add(clientId);
+
         this.timer ??= setInterval(() => {
             void this.rescan();
         }, SCAN_TTL_MS);
@@ -83,6 +87,7 @@ export class UsageService {
 
     unfollow(clientId: string): void {
         this.followers.delete(clientId);
+
         if (this.followers.size === 0 && this.timer !== null) {
             clearInterval(this.timer);
             this.timer = null;
@@ -93,8 +98,10 @@ export class UsageService {
         if (Date.now() - this.report.at > SCAN_TTL_MS) {
             await this.rescan();
         }
+
         const records = this.scanner.records();
         const { buckets, models, projects, sessions } = await aggregate(records, payload, this.prices, await this.knownProjects());
+
         return {
             from: payload.from,
             to: payload.to,
@@ -131,6 +138,7 @@ export class UsageService {
         this.inFlight ??= this.runScan().finally(() => {
             this.inFlight = null;
         });
+
         return this.inFlight;
     }
 
@@ -141,20 +149,26 @@ export class UsageService {
                 this.sinks.emit({ event: 'usage.changed', payload: { scannedAt: this.report.at } });
             }
         });
+
         const [report] = await Promise.all([
             this.scanner.scan().catch((e: unknown) => {
                 console.error('The usage scan failed:', errorText(e));
+
                 return null;
             }),
             this.prices.load(),
             this.rates.load()
         ]);
+
         this.failed = report === null;
+
         if (report === null) {
             // The last good numbers stay on screen; only the moment of the scan is not moved on.
             return;
         }
+
         this.report = report;
+
         if (report.changedFiles > 0) {
             this.sinks.emit({ event: 'usage.changed', payload: { scannedAt: report.at } });
         }

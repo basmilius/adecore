@@ -33,14 +33,18 @@ export function hostLogMightCarryUsage(line: string): boolean {
 /* The provider is the root's, so one reader serves every API a host logs. */
 export function parseHostUsageLine(line: string, provider: UsageProvider): UsageRecord | null {
     const entry = parseObject(line);
+
     if (entry === null) {
         return null;
     }
+
     const model = asString(entry.model);
     const timestampMs = typeof entry.at === 'number' && Number.isFinite(entry.at) ? entry.at : Number.NaN;
+
     if (model === '' || Number.isNaN(timestampMs)) {
         return null;
     }
+
     const totals = {
         calls: 1,
         input: int(entry.input),
@@ -50,9 +54,11 @@ export function parseHostUsageLine(line: string, provider: UsageProvider): Usage
         output: int(entry.output),
         reasoning: int(entry.reasoning)
     };
+
     if (!countsTokens(totals)) {
         return null;
     }
+
     return {
         provider,
         timestampMs,

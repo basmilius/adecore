@@ -22,6 +22,7 @@ async function mainCheckoutOf(gitPath: string): Promise<string | null> {
     const match = /^gitdir:\s*(.+)$/m.exec(text);
     const gitDir = match?.[1]?.trim();
     const at = gitDir?.indexOf('/.git/worktrees/') ?? -1;
+
     return gitDir !== undefined && at > 0 ? gitDir.slice(0, at) : null;
 }
 
@@ -41,25 +42,32 @@ export class ProjectResolver {
     async resolve(cwd: string): Promise<ResolvedProject> {
         const folder = cwd === '' ? '' : await this.rootOf(cwd);
         const project = this.known.get(folder);
+
         return { folder, name: project?.name ?? (folder === '' ? 'Elsewhere' : basename(folder)), projectId: project?.projectId ?? null };
     }
 
     private async rootOf(cwd: string): Promise<string> {
         const cached = this.roots.get(cwd);
+
         if (cached !== undefined) {
             return cached;
         }
+
         let root = cwd;
+
         for (let at = cwd; at !== dirname(at); at = dirname(at)) {
             try {
                 const info = await stat(join(at, '.git'));
                 root = (info.isFile() ? await mainCheckoutOf(join(at, '.git')) : null) ?? at;
+
                 break;
             } catch {
                 // Not a checkout at this level; the one above it may be.
             }
         }
+
         this.roots.set(cwd, root);
+
         return root;
     }
 }

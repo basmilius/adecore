@@ -20,8 +20,10 @@ export function machineAccounts(snapshot: ProviderAccounts, nameOf: (kind: Usage
         if (!isUsageProvider(account.kind)) {
             return [];
         }
+
         const isDefault = id === account.kind;
         const state = snapshot.statuses.find((status) => status.id === id)?.state;
+
         return [
             {
                 id,
@@ -52,7 +54,9 @@ export function usageRootsOf(service: ProviderAccountsService): UsageRootPath[] 
             if (!isUsageProvider(kind)) {
                 return [];
             }
+
             const folder = service.transcriptFolder(kind, id);
+
             return folder === null || folder === '' ? [] : [{ id, kind, folder }];
         })
     );
@@ -78,10 +82,12 @@ export function limitAccountsOf(
 /* The account every CLI session a chat here ran was under, by `<provider>\0<sessionId>`, for the transcripts accounts share. */
 export function chatSessionAccounts(chats: ReadonlyArray<Pick<ChatInfo, 'provider' | 'agentSessionId' | 'account'>>): Map<string, string> {
     const known = new Map<string, string>();
+
     for (const chat of chats) {
         if (chat.agentSessionId !== null) {
             known.set(`${chat.provider}\0${chat.agentSessionId}`, chat.account ?? chat.provider);
         }
     }
+
     return known;
 }

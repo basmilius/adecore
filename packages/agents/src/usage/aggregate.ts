@@ -30,6 +30,7 @@ function slotFormatter(timeZone: string, resolution: UsageResolution): Intl.Date
         resolution === 'hour'
             ? { timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23' }
             : { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' };
+
     try {
         return new Intl.DateTimeFormat('en-CA', options);
     } catch {
@@ -41,8 +42,11 @@ function slotFormatter(timeZone: string, resolution: UsageResolution): Intl.Date
 /* `2026-09-10` for a day, `2026-09-10T14` for an hour: the day is always the first ten characters. */
 function slotOf(format: Intl.DateTimeFormat, timestampMs: number, resolution: UsageResolution): string {
     const parts = format.formatToParts(new Date(timestampMs));
+
     const at = (type: Intl.DateTimeFormatPartTypes): string => parts.find((part) => part.type === type)?.value ?? '';
+
     const day = `${at('year')}-${at('month')}-${at('day')}`;
+
     return resolution === 'hour' ? `${day}T${at('hour')}` : day;
 }
 
@@ -96,6 +100,7 @@ function foldBucket(
 ): void {
     const key = `${slot}\0${record.provider}\0${record.model}\0${account ?? ''}`;
     let bucket = buckets.get(key);
+
     if (bucket === undefined) {
         bucket = {
             slot,
@@ -108,12 +113,15 @@ function foldBucket(
             cacheSavingsUsd: 0,
             sessions: new Set()
         };
+
         buckets.set(key, bucket);
     }
+
     bucket.totals = addTotals(bucket.totals, record.totals);
     bucket.costUsd += cost;
     bucket.priced ||= price !== null || record.costUsd !== undefined;
     bucket.cacheSavingsUsd += price === null ? 0 : cacheSavingsOf(record.totals, price);
+
     if (record.sessionId !== '') {
         bucket.sessions.add(record.sessionId);
     }
@@ -122,6 +130,7 @@ function foldBucket(
 function foldModel(models: Map<string, ModelRow>, record: UsageRecord, account: string | null, lookup: PriceLookup, cost: number): void {
     const key = `${record.provider}\0${record.model}\0${account ?? ''}`;
     let model = models.get(key);
+
     if (model === undefined) {
         model = {
             provider: record.provider,
@@ -134,8 +143,10 @@ function foldModel(models: Map<string, ModelRow>, record: UsageRecord, account: 
             basis: record.costUsd === undefined ? lookup.basis : 'exact',
             pricedAs: record.costUsd === undefined ? lookup.pricedAs : null
         };
+
         models.set(key, model);
     }
+
     model.totals = addTotals(model.totals, record.totals);
     model.costUsd += cost;
     model.priced ||= lookup.price !== null || record.costUsd !== undefined;
@@ -178,31 +189,39 @@ export async function aggregate(
 
     for (const record of records) {
         const account = only === null ? null : accountOfRecord(record);
+
         if (only !== null && !only.has(account!)) {
             continue;
         }
+
         const slot = slotOf(format, record.timestampMs, payload.resolution);
         const day = slot.slice(0, 10);
+
         if (day < payload.from || day > payload.to) {
             continue;
         }
+
         const lookup = prices.look(record.model, record.serviceTier, record.timestampMs);
         const cost = record.costUsd ?? (lookup.price === null ? 0 : costOf(record.totals, lookup.price));
         foldBucket(buckets, slot, record, account, lookup.price, cost);
         foldModel(models, record, account, lookup, cost);
+
         if (record.sessionId !== '') {
             sessions.add(`${record.provider}\0${record.sessionId}`);
         }
 
         let folder = folders.get(record.cwd);
+
         if (folder === undefined) {
             const resolved = await resolver.resolve(record.cwd);
             folder = resolved.folder;
             folders.set(record.cwd, folder);
+
             if (!projects.has(folder)) {
                 projects.set(folder, { folder, name: resolved.name, projectId: resolved.projectId, byProvider: new Map(), totals: emptyTotals(), costUsd: 0 });
             }
         }
+
         foldProject(projects.get(folder)!, record, cost);
     }
 

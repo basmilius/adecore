@@ -46,6 +46,7 @@ async function workspace() {
     const codex = join(home, 'sessions');
     await mkdir(codex);
     await mkdir(join(home, 'usage'));
+
     const price = {
         litellm_provider: 'openai',
         mode: 'responses',
@@ -56,12 +57,17 @@ async function workspace() {
         cache_read_input_token_cost_priority: 0.0000003,
         output_cost_per_token_priority: 0.00003
     };
+
     await writeFile(join(home, 'usage', 'prices.json'), JSON.stringify({ fetchedAt: Date.now(), document: { 'gpt-6.1-sol': price, 'gpt-5.6-luna': price } }));
+
     const createService = () => new UsageService({ home, roots: [{ provider: 'codex', path: codex }], allowPriceFetch: false, knownProjects: async () => [] });
+
     const summary = (service = createService()) => service.summary({ from: date, to: date, resolution: 'day', timeZone: 'Europe/Amsterdam' });
+
     const write = async (lines: string[], name = 'session.jsonl') => {
         await writeFile(join(codex, name), `${lines.join('\n')}\n`);
     };
+
     return { home, codex, summary, createService, write };
 }
 
@@ -106,10 +112,12 @@ describe('Codex usage accounting', () => {
     test('deduplicates compaction responses copied into a fork', async () => {
         const { summary, write } = await workspace();
         await write([...header(), request(), compacted()]);
+
         await write(
             [line('session_meta', { id: 'child', forked_from_id: 'session-1', cwd: '/work/repo' }), header()[1]!, request(), compacted()],
             'fork.jsonl'
         );
+
         expect((await summary()).models[0]!.totals.calls).toBe(1);
     });
 
@@ -163,11 +171,13 @@ describe('Codex usage accounting', () => {
         const path = join(home, 'usage', 'index.json');
         const index = JSON.parse(await readFile(path, 'utf8'));
         index.version = 2;
+
         for (const file of Object.values(index.files) as Array<{ v?: number; r: unknown[][]; c: unknown }>) {
             delete file.v;
             file.r = [];
             file.c = null;
         }
+
         await writeFile(path, JSON.stringify(index));
         const result = await summary();
         expect(result.models[0]!.totals.calls).toBe(2);

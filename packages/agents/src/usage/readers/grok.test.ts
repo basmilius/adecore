@@ -49,7 +49,9 @@ describe('the Grok reader', () => {
                 })
             })
         ]);
+
         const records = parseGrokUsage(text, PATH)!;
+
         expect(
             records.map((record) => [
                 record.model,

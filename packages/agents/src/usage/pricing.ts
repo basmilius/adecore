@@ -61,24 +61,31 @@ function rate(value: unknown): number | null {
  */
 export function parsePriceTable(document: unknown): PriceTable {
     const table: PriceTable = new Map();
+
     if (typeof document !== 'object' || document === null) {
         return table;
     }
+
     for (const [name, value] of Object.entries(document as Record<string, LiteLlmEntry>)) {
         if (typeof value !== 'object' || value === null) {
             continue;
         }
+
         if (typeof value.litellm_provider !== 'string' || !PROVIDERS.has(value.litellm_provider)) {
             continue;
         }
+
         if (typeof value.mode !== 'string' || !MODES.has(value.mode)) {
             continue;
         }
+
         const input = rate(value.input_cost_per_token);
         const output = rate(value.output_cost_per_token);
+
         if (input === null || output === null) {
             continue;
         }
+
         const price: ModelPrice = {
             input,
             output,
@@ -86,7 +93,9 @@ export function parsePriceTable(document: unknown): PriceTable {
             cacheWrite: rate(value.cache_creation_input_token_cost) ?? input * CACHE_WRITE_SHARE,
             cacheWrite1h: input * CACHE_WRITE_1H_SHARE
         };
+
         const tiers: Partial<Record<string, ModelPrice>> = {};
+
         for (const [tier, multiplier] of [
             ['priority', 2],
             ['flex', 0.5],
@@ -100,22 +109,27 @@ export function parsePriceTable(document: unknown): PriceTable {
                 cacheWrite1h: price.cacheWrite1h * multiplier
             };
         }
+
         if (value.litellm_provider === 'openai') {
             price.tiers = tiers;
         }
+
         const key = name.trim().toLowerCase();
         table.set(key, price);
         const bare = key.slice(key.lastIndexOf('/') + 1);
+
         if (bare !== key && !table.has(bare)) {
             table.set(bare, price);
         }
     }
+
     return table;
 }
 
 /* `claude-opus-4-5-20251101` is the same model as `claude-opus-4-5`, dated. */
 function withoutDate(key: string): string | null {
     const match = /^(.*)-\d{6,8}$/.exec(key);
+
     return match === null ? null : match[1]!;
 }
 
@@ -134,37 +148,48 @@ const REVIEW_MODELS = [
 export function lookupPrice(table: PriceTable, model: string, serviceTier?: string, timestampMs?: number): PriceLookup {
     const found = lookupBasePrice(table, model, timestampMs);
     const tier = serviceTier === 'fast' ? 'priority' : serviceTier;
+
     return { ...found, price: (tier === undefined ? undefined : found.price?.tiers?.[tier]) ?? found.price };
 }
 
 function lookupBasePrice(table: PriceTable, model: string, timestampMs?: number): PriceLookup {
     const key = model.trim().toLowerCase().split('[')[0]!;
     const bare = key.slice(key.lastIndexOf('/') + 1);
+
     if (bare === '' || AMBIGUOUS.has(bare)) {
         return { price: null, basis: 'unknown', pricedAs: null };
     }
+
     const exact = table.get(key) ?? table.get(bare);
+
     if (exact !== undefined) {
         return { price: exact, basis: 'exact', pricedAs: null };
     }
+
     if (bare === 'codex-auto-review' && timestampMs !== undefined && Number.isFinite(timestampMs)) {
         const date = new Date(timestampMs).toISOString().slice(0, 10);
         const fallback = REVIEW_MODELS.find(([released]) => date >= released)?.[1] ?? 'gpt-5';
         const found = lookupBasePrice(table, fallback);
+
         return { price: found.price, basis: found.price === null ? 'unknown' : 'family', pricedAs: found.price === null ? null : fallback };
     }
+
     const dated = withoutDate(bare);
     const undated = dated === null ? undefined : table.get(dated);
+
     if (undated !== undefined && dated !== null) {
         return { price: undated, basis: 'exact', pricedAs: dated };
     }
+
     for (let family = dated ?? bare; family.includes('-');) {
         family = family.slice(0, family.lastIndexOf('-'));
         const found = AMBIGUOUS.has(family) ? undefined : table.get(family);
+
         if (found !== undefined) {
             return { price: found, basis: 'family', pricedAs: family };
         }
     }
+
     return { price: null, basis: 'unknown', pricedAs: null };
 }
 
@@ -222,6 +247,7 @@ export class PriceBook {
     /* Reads the table an earlier run stored, once; asking LiteLLM is left to `ensure`. */
     load(): Promise<void> {
         this.stored ??= this.readStored();
+
         return this.stored;
     }
 
@@ -232,6 +258,7 @@ export class PriceBook {
             .finally(() => {
                 this.inFlight = null;
             });
+
         return this.inFlight;
     }
 
@@ -243,6 +270,7 @@ export class PriceBook {
         try {
             const snapshot = JSON.parse(await readFile(this.file, 'utf8')) as Snapshot;
             const table = parsePriceTable(snapshot?.document);
+
             if (table.size > 0 && typeof snapshot.fetchedAt === 'number') {
                 this.table = table;
                 this.source = 'litellm';
@@ -259,17 +287,23 @@ export class PriceBook {
         if (!this.allowFetch || (this.fetchedAt !== null && Date.now() - this.fetchedAt < TTL_MS)) {
             return false;
         }
+
         let changed = false;
+
         try {
             const response = await fetch(LITELLM_URL, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+
             if (!response.ok) {
                 throw new Error(`LiteLLM answered ${response.status}`);
             }
+
             const document: unknown = await response.json();
             const table = parsePriceTable(document);
+
             if (table.size === 0) {
                 throw new Error('The LiteLLM table held no model this app prices');
             }
+
             this.table = table;
             this.source = 'litellm';
             this.fetchedAt = Date.now();
@@ -280,6 +314,7 @@ export class PriceBook {
             // Whatever is loaded keeps pricing; a table that could not be refreshed is not a failure.
             console.warn('Could not refresh the price table:', errorText(e));
         }
+
         return changed;
     }
 }

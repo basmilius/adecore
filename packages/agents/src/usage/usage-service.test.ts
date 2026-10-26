@@ -17,16 +17,20 @@ test('a summary does not wait for the price table or the rate, and their arrival
     const home = await mkdtemp(join(tmpdir(), 'ruimte-usage-service-'));
     made.push(home);
     const answers: Array<() => void> = [];
+
     globalThis.fetch = ((url: string) =>
         new Promise<Response>((resolve) => {
             const body = String(url).includes('frankfurter') ? { date: '2026-10-13', rates: { EUR: 0.9 } } : {};
             answers.push(() => resolve(Response.json(body)));
         })) as typeof fetch;
+
     const service = new UsageService({ home, roots: [], knownProjects: async () => [] });
     const events: AgentEvent[] = [];
     const changed = Promise.withResolvers<void>();
+
     service.subscribe('client', (event) => {
         events.push(event);
+
         if (event.event === 'usage.changed') {
             changed.resolve();
         }
@@ -39,6 +43,7 @@ test('a summary does not wait for the price table or the rate, and their arrival
     for (const answer of answers) {
         answer();
     }
+
     await changed.promise;
     expect(events.map((event) => event.event)).toEqual(['usage.changed']);
     const again = await service.summary({ from: '2026-10-13', to: '2026-10-13', resolution: 'day', timeZone: 'UTC' });

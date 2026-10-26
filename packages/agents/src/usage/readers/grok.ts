@@ -19,6 +19,7 @@ function cwdOf(path: string): string {
 function recordOf(counts: Record<string, unknown>, model: string, base: Omit<UsageRecord, 'model' | 'totals' | 'dedupeKey'>, turn: string): UsageRecord | null {
     const cacheRead = int(counts.cachedReadTokens);
     const cacheWrite = int(counts.cacheCreationTokens);
+
     const totals = {
         calls: int(counts.modelCalls),
         // Grok's input holds both cache kinds: its total is input plus output.
@@ -29,10 +30,13 @@ function recordOf(counts: Record<string, unknown>, model: string, base: Omit<Usa
         output: int(counts.outputTokens),
         reasoning: int(counts.reasoningTokens)
     };
+
     if (!countsTokens(totals)) {
         return null;
     }
+
     const ticks = int(counts.costUsdTicks);
+
     return {
         ...base,
         model,
@@ -50,34 +54,44 @@ function recordOf(counts: Record<string, unknown>, model: string, base: Omit<Usa
  */
 export function parseGrokUsage(text: string, path: string): UsageRecord[] | null {
     const file = parseObject(text);
+
     if (file === null || !Array.isArray(file.turns)) {
         return null;
     }
+
     const sessionId = asString(file.sessionId) || basename(dirname(path));
     const cwd = cwdOf(path);
     const records: UsageRecord[] = [];
+
     for (const entry of file.turns) {
         const turn = asObject(entry);
         const timestampMs = turn === null ? Number.NaN : Date.parse(asString(turn.endedAt));
+
         if (turn === null || Number.isNaN(timestampMs)) {
             continue;
         }
+
         const number = typeof turn.turnNumber === 'number' ? String(turn.turnNumber) : asString(turn.endedAt);
         const base = { provider: 'grok' as const, timestampMs, sessionId, cwd };
         const byModel = asObject(turn.modelUsage);
+
         const models: Array<[string, Record<string, unknown>]> =
             byModel === null
                 ? [[asString(turn.primaryModelId), turn]]
                 : Object.entries(byModel).flatMap(([model, counts]) => {
                       const object = asObject(counts);
+
                       return object === null ? [] : [[model, object] as [string, Record<string, unknown>]];
                   });
+
         for (const [model, counts] of models) {
             const record = model === '' ? null : recordOf(counts, model, base, number);
+
             if (record !== null) {
                 records.push(record);
             }
         }
     }
+
     return records;
 }

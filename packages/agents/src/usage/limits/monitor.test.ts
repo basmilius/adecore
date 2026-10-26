@@ -31,13 +31,16 @@ describe('the usage monitor', () => {
 
     test('leaves out a provider it has no way to read a plan of', async () => {
         const probed: string[] = [];
+
         const monitor = new UsageMonitor({
             providers: registry(['claude', 'grok']),
             probe: (kind) => {
                 probed.push(kind);
+
                 return Promise.resolve(reading(0.23));
             }
         });
+
         await monitor.refresh(true);
         expect(monitor.snapshot().providers.map((provider) => provider.kind)).toEqual(['claude', 'codex']);
         expect(probed).toEqual(['claude']);
@@ -67,14 +70,17 @@ describe('the usage monitor', () => {
         let now = 1_000;
         let probes = 0;
         let answer: ProbeResult = reading(0.23);
+
         const monitor = new UsageMonitor({
             providers: registry(['claude']),
             now: () => now,
             probe: () => {
                 probes += 1;
+
                 return Promise.resolve(answer);
             }
         });
+
         await monitor.refresh(false);
         answer = { unavailable: { reason: 'failed', message: 'Claude Code did not answer in time' } };
         now += 5 * 60_000;
@@ -82,6 +88,7 @@ describe('the usage monitor', () => {
         expect(probes).toBe(2);
         expect(providerOf(monitor, 'claude').windows[0]).toMatchObject({ used: 0.23 });
         expect(providerOf(monitor, 'claude').unavailable).toBeNull();
+
         for (const minutes of [10, 20, 40, 60, 60]) {
             const before = probes;
             now += minutes * 60_000 - 1;
@@ -92,6 +99,7 @@ describe('the usage monitor', () => {
             expect(probes).toBe(before + 1);
             expect(providerOf(monitor, 'claude').windows[0]).toMatchObject({ used: 0.23 });
         }
+
         answer = reading(0.42);
         await monitor.refresh(true);
         const afterSuccess = probes;
@@ -110,6 +118,7 @@ describe('the usage monitor', () => {
             providers: registry(['claude']),
             probe: () => Promise.resolve({ unavailable: { reason: 'no-subscription', message: null } })
         });
+
         await monitor.refresh(true);
         expect(providerOf(monitor, 'claude')).toMatchObject({ windows: [], unavailable: { reason: 'no-subscription' } });
         monitor.stop();
@@ -119,6 +128,7 @@ describe('the usage monitor', () => {
         const MINUTE = 60_000;
         let now = 0;
         let passes = 0;
+
         const monitor = new UsageMonitor({
             providers: registry(['claude']),
             now: () => now,
@@ -126,9 +136,11 @@ describe('the usage monitor', () => {
                 passes += 1;
                 // The read itself takes a few seconds.
                 now += 5_000;
+
                 return reading(0.1);
             }
         });
+
         await monitor.refresh(false);
         // The interval fires five minutes after the first pass started, which is before five minutes after it ended.
         now = 5 * MINUTE;
@@ -139,13 +151,16 @@ describe('the usage monitor', () => {
 
     test('two callers at once share one pass', async () => {
         let passes = 0;
+
         const monitor = new UsageMonitor({
             providers: registry(['claude']),
             probe: () => {
                 passes += 1;
+
                 return Promise.resolve(reading(0.1));
             }
         });
+
         await Promise.all([monitor.refresh(true), monitor.refresh(true)]);
         expect(passes).toBe(1);
         monitor.stop();
@@ -155,16 +170,20 @@ describe('the usage monitor', () => {
         const HOUR = 60 * 60_000;
         let now = 100 * HOUR;
         const used = new Map<string, number>();
+
         const accounts = (list: LimitAccount[]): LimitAccounts => ({
             list: () => list,
             envFor: (_kind, id) => ({ ACCOUNT: id }),
             lastUsedAt: (id) => used.get(id) ?? null
         });
+
         const claudeAccounts: LimitAccount[] = [
             { id: 'claude_work', kind: 'claude', label: 'Work', color: 'blue', isDefault: false },
             { id: 'claude', kind: 'claude', label: 'Claude Code', isDefault: true }
         ];
+
         const probed: string[] = [];
+
         const monitorOf = (list: LimitAccount[]): UsageMonitor =>
             new UsageMonitor({
                 providers: registry(['claude']),
@@ -172,6 +191,7 @@ describe('the usage monitor', () => {
                 now: () => now,
                 probe: (_kind, _command, env) => {
                     probed.push(env.ACCOUNT!);
+
                     return Promise.resolve(reading(env.ACCOUNT === 'claude' ? 0.1 : 0.7));
                 }
             });
@@ -214,6 +234,7 @@ describe('the usage monitor', () => {
 
         test('a plan the host reads itself is asked once per account, with the account', async () => {
             const asked: string[] = [];
+
             const monitor = new UsageMonitor({
                 providers: registry([]),
                 accounts: accounts([
@@ -223,16 +244,19 @@ describe('the usage monitor', () => {
                 plans: {
                     grok: (account) => {
                         asked.push(account.id);
+
                         return Promise.resolve(reading(account.isDefault ? 0.1 : 0.6));
                     }
                 }
             });
+
             await monitor.refresh(true);
             expect(asked).toEqual(['grok', 'grok_work']);
             expect(monitor.snapshot().providers.map((provider) => [provider.account?.id, provider.windows[0]?.used])).toEqual([
                 ['grok', 0.1],
                 ['grok_work', 0.6]
             ]);
+
             monitor.stop();
         });
 
@@ -245,11 +269,13 @@ describe('the usage monitor', () => {
                         if (id === 'claude_work') {
                             throw new Error('its folder is missing');
                         }
+
                         return {};
                     }
                 },
                 probe: () => Promise.resolve(reading(0.2))
             });
+
             await monitor.refresh(true);
             expect(monitor.snapshot().providers[1]).toMatchObject({ unavailable: { reason: 'failed', message: 'its folder is missing' } });
             monitor.stop();
@@ -266,14 +292,17 @@ describe('a plan the host reads itself', () => {
 
     test('answers for a provider with no CLI, without an environment or an installed check', async () => {
         const probed: string[] = [];
+
         const monitor = new UsageMonitor({
             providers: registry([]),
             probe: (kind) => {
                 probed.push(kind);
+
                 return Promise.resolve(reading(0));
             },
             plans: { nanogpt: () => Promise.resolve(reading(0.4)) }
         });
+
         await monitor.refresh(true);
         expect(providerOf(monitor, 'nanogpt')).toMatchObject({ plan: 'Subscription', source: 'probe', unavailable: null });
         expect(providerOf(monitor, 'nanogpt').windows[0]).toMatchObject({ id: 'weekly_input', used: 0.4 });
@@ -287,6 +316,7 @@ describe('a plan the host reads itself', () => {
             providers: registry([]),
             plans: { nanogpt: () => Promise.resolve({ unavailable: { reason: 'no-subscription', message: 'Add an API key in Settings' } }) }
         });
+
         await monitor.refresh(true);
         expect(providerOf(monitor, 'nanogpt').unavailable).toEqual({ reason: 'no-subscription', message: 'Add an API key in Settings' });
         monitor.stop();
@@ -294,12 +324,14 @@ describe('a plan the host reads itself', () => {
 
     test('a read that throws is a failed read and keeps the last good numbers', async () => {
         let fail = false;
+
         const monitor = new UsageMonitor({
             providers: registry([]),
             plans: {
                 nanogpt: () => (fail ? Promise.reject(new Error('offline')) : Promise.resolve(reading(0.4)))
             }
         });
+
         await monitor.refresh(true);
         fail = true;
         await monitor.refresh(true);

@@ -26,6 +26,7 @@ function timeoutOf<T>(work: Promise<T>, ms: number, what: string): Promise<T> {
  */
 export async function probeClaude(command: readonly string[], env: Record<string, string>, spawn: SpawnChatProcess = spawnChatProcess): Promise<ProbeResult> {
     let child: ChatProcess;
+
     try {
         child = spawn({
             command: [...command, '-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose'],
@@ -36,45 +37,58 @@ export async function probeClaude(command: readonly string[], env: Record<string
     } catch (error) {
         return failure(errorText(error));
     }
+
     const write = (frame: unknown): void => {
         child.stdin.write(`${JSON.stringify(frame)}\n`);
         child.stdin.flush();
     };
+
     const read = async (): Promise<ProbeResult> => {
         write({ type: 'control_request', request_id: 'probe-init', request: { subtype: 'initialize', hooks: {} } });
         let asked = false;
         let buffer = '';
         const decoder = new TextDecoder();
+
         for await (const chunk of child.stdout as unknown as AsyncIterable<Uint8Array>) {
             buffer += decoder.decode(chunk, { stream: true });
             let at = buffer.indexOf('\n');
+
             for (; at !== -1; at = buffer.indexOf('\n')) {
                 const line = buffer.slice(0, at);
                 buffer = buffer.slice(at + 1);
                 let frame: unknown;
+
                 try {
                     frame = JSON.parse(line);
                 } catch {
                     continue;
                 }
+
                 if (typeof frame !== 'object' || frame === null) {
                     continue;
                 }
+
                 const envelope = frame as { type?: unknown; request_id?: unknown; response?: { subtype?: unknown; response?: unknown } };
+
                 if (envelope.type !== 'control_response') {
                     continue;
                 }
+
                 if (!asked) {
                     asked = true;
                     write({ type: 'control_request', request_id: 'probe-usage', request: { subtype: 'get_usage' } });
+
                     continue;
                 }
+
                 if (envelope.response?.subtype === 'error') {
                     return failure('Claude Code refused to report its usage');
                 }
+
                 return readClaudeUsage(envelope.response?.response ?? envelope.response);
             }
         }
+
         return failure('Claude Code closed without reporting its usage');
     };
 
@@ -95,6 +109,7 @@ export async function probeCodex(
     client: CodexClientInfo = DEFAULT_CODEX_CLIENT
 ): Promise<ProbeResult> {
     let transport: CodexTransport | null = null;
+
     try {
         transport = new CodexTransport({
             command: [...command],
@@ -103,12 +118,14 @@ export async function probeCodex(
             onFrame: () => undefined,
             onExit: () => undefined
         });
+
         const open = transport;
         await timeoutOf(open.request('initialize', { clientInfo: client, capabilities: { experimentalApi: true } }), PROBE_TIMEOUT_MS, 'Codex');
         open.notify('initialized', {});
         const answer = await timeoutOf(open.request('account/rateLimits/read', undefined), CODEX_READ_TIMEOUT_MS, 'Codex');
         const snapshot = typeof answer === 'object' && answer !== null ? (answer as { rateLimits?: unknown }).rateLimits : null;
         const reading = readCodexLimits(snapshot);
+
         // An account on an API key has no plan windows; Codex answers, with nothing in it.
         return reading ?? { unavailable: { reason: 'no-subscription', message: null } };
     } catch (error) {

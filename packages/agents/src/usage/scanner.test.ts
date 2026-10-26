@@ -15,6 +15,7 @@ async function workspace(): Promise<{ home: string; claude: string; codex: strin
     const codex = join(base, 'codex', 'sessions');
     await mkdir(claude, { recursive: true });
     await mkdir(codex, { recursive: true });
+
     return {
         home: join(base, 'home'),
         claude,
@@ -58,6 +59,7 @@ describe('the usage scanner', () => {
         const { home } = await workspace();
         const folder = join(home, '..', 'nanogpt', 'usage');
         await mkdir(folder, { recursive: true });
+
         const line = (seconds: number, completion: number): string =>
             `${JSON.stringify({
                 at: Date.parse('2026-10-20T09:00:00.000Z') + seconds * 1000,
@@ -70,6 +72,7 @@ describe('the usage scanner', () => {
                 output: completion,
                 reasoning: 0
             })}\n`;
+
         await writeFile(join(folder, '2026-10.jsonl'), line(0, 100));
 
         const scanner = new UsageScanner(home, [{ provider: 'nanogpt', path: folder }]);
@@ -93,9 +96,11 @@ describe('the usage scanner', () => {
         await mkdir(folder, { recursive: true });
         await writeFile(join(folder, 'summary.json'), '{"info": {"id": "01a1-session"}}');
         const usage = join(folder, 'usage.json');
+
         const first = grokTurn(1, '2026-10-21T09:51:44.000000+00:00', {
             'grok-4.7-build-fast': { inputTokens: 1000, cachedReadTokens: 600, outputTokens: 50, modelCalls: 1, costUsdTicks: 10_000_000 }
         });
+
         await writeFile(usage, grokUsage([first]));
 
         const roots: UsageRootPath[] = [{ provider: 'grok', path: sessions }];
@@ -106,6 +111,7 @@ describe('the usage scanner', () => {
         const second = grokTurn(2, '2026-10-21T09:53:00.000000+00:00', {
             'grok-4.7-build-fast': { inputTokens: 2000, cachedReadTokens: 1500, outputTokens: 80, modelCalls: 2 }
         });
+
         await writeFile(usage, grokUsage([first, second]));
         await scanner.scan();
         expect(scanner.records().map((record) => record.totals.input)).toEqual([400, 500]);
@@ -117,6 +123,7 @@ describe('the usage scanner', () => {
 
         const warm = new UsageScanner(home, roots);
         await warm.scan();
+
         expect(warm.records().map((record) => [record.provider, record.costUsd])).toEqual([
             ['grok', 0.001],
             ['grok', undefined]
@@ -131,10 +138,12 @@ describe('the usage scanner', () => {
         await mkdir(broken, { recursive: true });
         await mkdir(fine, { recursive: true });
         await writeFile(join(broken, 'usage.json'), 'not json');
+
         await writeFile(
             join(fine, 'usage.json'),
             grokUsage([grokTurn(1, '2026-10-21T09:51:44.000000+00:00', { 'grok-4.7-build': { inputTokens: 10, outputTokens: 5 } })])
         );
+
         const scanner = new UsageScanner(home, [{ provider: 'grok', path: sessions }]);
         expect(await scanner.scan()).toMatchObject({ files: 2, changedFiles: 1, roots: [{ status: 'ok' }] });
         expect(scanner.records().map((record) => record.cwd)).toEqual(['/work/b']);
@@ -144,6 +153,7 @@ describe('the usage scanner', () => {
         const { home, claude, codex, roots } = await workspace();
         await writeFile(join(claude, 'a.jsonl'), assistant('msg_1', 0, 40) + assistant('msg_2', 5, 60));
         await mkdir(join(codex, '2026'), { recursive: true });
+
         await writeFile(
             join(codex, '2026', 'b.jsonl'),
             [
@@ -180,6 +190,7 @@ describe('the usage scanner', () => {
     test('parses added usage after verifying the committed bytes and counts a Codex turn once', async () => {
         const { home, codex, roots } = await workspace();
         const path = join(codex, 'grow.jsonl');
+
         const lines = [
             JSON.stringify({ type: 'session_meta', timestamp: '2026-09-10T09:00:00.000Z', payload: { id: 't-1', cwd: '/work/repo' } }),
             JSON.stringify({ type: 'turn_context', timestamp: '2026-09-10T09:00:01.000Z', payload: { model: 'gpt-5.6-sol' } }),
@@ -189,6 +200,7 @@ describe('the usage scanner', () => {
                 payload: { type: 'token_count', info: { total_token_usage: { input_tokens: 500, cached_input_tokens: 400, output_tokens: 30 } } }
             })
         ];
+
         await writeFile(path, `${lines.join('\n')}\n`);
 
         const scanner = new UsageScanner(home, roots);
@@ -200,6 +212,7 @@ describe('the usage scanner', () => {
             timestamp: '2026-09-10T09:01:00.000Z',
             payload: { type: 'token_count', info: { total_token_usage: { input_tokens: 900, cached_input_tokens: 700, output_tokens: 50 } } }
         });
+
         await writeFile(path, `${[...lines, grown].join('\n')}\n`);
         const second = await scanner.scan();
         expect(second.changedFiles).toBe(1);
@@ -273,11 +286,14 @@ describe('the usage scanner', () => {
         const probe = await open(path, 'w');
         const read = spyOn(Object.getPrototypeOf(probe), 'read');
         await probe.close();
+
         const bytesRead = async (): Promise<number> => {
             const results = await Promise.all(read.mock.results.map((result) => result.value as Promise<{ bytesRead: number }>));
             read.mockClear();
+
             return results.reduce((sum, result) => sum + result.bytesRead, 0);
         };
+
         try {
             const header = `${JSON.stringify({ type: 'session_meta', padding: 'x'.repeat(200_000) })}\n`;
             let content = header + assistant('msg_1', 0, 40);
@@ -312,6 +328,7 @@ describe('the usage scanner', () => {
         const probe = await open(path, 'r');
         const read = spyOn(Object.getPrototypeOf(probe), 'read');
         await probe.close();
+
         try {
             const scanner = new UsageScanner(home, roots);
             await scanner.scan();
@@ -357,15 +374,19 @@ describe('the usage scanner', () => {
         await writeFile(join(work, 'b.jsonl'), assistant('msg_2', 0, 40));
         await writeFile(join(codex, 'ran.jsonl'), codexSession('t-work', 500));
         await writeFile(join(codex, 'unknown.jsonl'), codexSession('t-elsewhere', 700));
+
         const roots: UsageRootPath[] = [
             { provider: 'claude', path: claude, accounts: ['claude'] },
             { provider: 'claude', path: work, accounts: ['claude_work'] },
             { provider: 'codex', path: codex, accounts: ['codex', 'codex_work'] }
         ];
+
         const scanner = new UsageScanner(home, roots, { sessionAccounts: () => new Map([['codex\0t-work', 'codex_work']]) });
         await scanner.scan();
+
         const accountOf = (sessionOrMessage: string): string | undefined =>
             scanner.records().find((record) => record.sessionId === sessionOrMessage || record.dedupeKey?.includes(sessionOrMessage))?.account;
+
         expect(accountOf('msg_1')).toBeUndefined();
         expect(accountOf('msg_2')).toBe('claude_work');
         expect(accountOf('t-work')).toBe('codex_work');
@@ -374,6 +395,7 @@ describe('the usage scanner', () => {
         // Kept in the index, so a fresh scanner knows it without asking again.
         const warm = new UsageScanner(home, roots);
         await warm.scan();
+
         expect(
             warm
                 .records()
@@ -390,9 +412,11 @@ describe('the usage scanner', () => {
         const index = JSON.parse(await readFile(file, 'utf8')) as { version: number; accounts?: string[]; files: Record<string, { r: unknown[][] }> };
         index.version = 1;
         delete index.accounts;
+
         for (const entry of Object.values(index.files)) {
             entry.r = entry.r.map((row) => row.slice(0, 12));
         }
+
         await writeFile(file, JSON.stringify(index));
 
         const scanner = new UsageScanner(home, roots);
@@ -413,6 +437,7 @@ describe('forEachLine', () => {
     test('gives the same lines, hash and rest whatever the chunks cut through', async () => {
         const bytes = Buffer.from('first line\r\nzweite Zeile mit Umlaut ä und 😀\n\nthird\nstill being writ');
         const committed = bytes.subarray(0, bytes.lastIndexOf('\n') + 1);
+
         for (const size of [1, 2, 3, 7, 64, bytes.length]) {
             const lines: string[] = [];
             const hash = createHash('sha256');
