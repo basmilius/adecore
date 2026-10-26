@@ -11,8 +11,10 @@ const steppers = new Map<string, Stepper[]>();
 
 export function registerEffortStepper(key: string, stepper: Stepper): () => void {
     steppers.set(key, [...(steppers.get(key) ?? []), stepper]);
+
     return () => {
         const left = (steppers.get(key) ?? []).filter((entry) => entry !== stepper);
+
         if (left.length > 0) {
             steppers.set(key, left);
         } else {
@@ -24,9 +26,12 @@ export function registerEffortStepper(key: string, stepper: Stepper): () => void
 /* False when that chat has no composer on screen. At either end of the model's efforts the composer says so and nothing changes. */
 export function stepEffortFromComposer(key: string, step: EffortStep): boolean {
     const stepper = steppers.get(key)?.at(-1);
+
     if (stepper === undefined) {
         return false;
     }
+
     stepper(step);
+
     return true;
 }

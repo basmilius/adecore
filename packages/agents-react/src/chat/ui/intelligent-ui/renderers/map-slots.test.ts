@@ -7,9 +7,11 @@ test('the page keeps four maps drawn at once', () => {
 
 test('grants a slot while there is one, and queues the rest in the order they asked', () => {
     const slots = new MapSlots(2);
+
     for (const id of ['a', 'b', 'c', 'd']) {
         slots.request(id);
     }
+
     expect(['a', 'b', 'c', 'd', 'e'].map((id) => slots.stateOf(id))).toEqual(['granted', 'granted', 'queued', 'queued', 'idle']);
     slots.request('a');
     expect(slots.stateOf('a')).toBe('granted');
@@ -22,9 +24,11 @@ test('grants a slot while there is one, and queues the rest in the order they as
 
 test('taking a slot makes the longest-held map give its own up, and queue first', () => {
     const slots = new MapSlots(2);
+
     for (const id of ['a', 'b', 'c', 'd']) {
         slots.request(id);
     }
+
     slots.take('d');
     expect(['a', 'b', 'c', 'd'].map((id) => slots.stateOf(id))).toEqual(['queued', 'granted', 'queued', 'granted']);
     slots.release('b');

@@ -52,6 +52,7 @@ const useReferablesFromChats = (_scopeId: string, _chatId: string): Referables =
 /* A host without views of its own offers its chats. */
 export function useHostReferables(scopeId: string, chatId: string): Referables {
     const useReferables = useChatHost().useReferables ?? useReferablesFromChats;
+
     return useReferables(scopeId, chatId);
 }
 
@@ -64,6 +65,7 @@ const noPlatform = (): ProviderPlatform | null => null;
 /* Null where the host does not say, as it need not. */
 export function useHostMachinePlatform(scopeId: string): ProviderPlatform | null {
     const useMachinePlatform = useChatHost().useMachinePlatform ?? noPlatform;
+
     return useMachinePlatform(scopeId);
 }
 
@@ -100,10 +102,12 @@ export function useHostComposerPlaceholder(...args: Parameters<ChatHost['useComp
 }
 
 const NO_SEND_ACTIONS: readonly ComposerSendAction[] = [];
+
 const noSendActions = (): readonly ComposerSendAction[] => NO_SEND_ACTIONS;
 
 export function useHostComposerSendActions(scopeId: string, chatId: string): readonly ComposerSendAction[] {
     const useSendActions = useChatHost().useComposerSendActions ?? noSendActions;
+
     return useSendActions(scopeId, chatId);
 }
 

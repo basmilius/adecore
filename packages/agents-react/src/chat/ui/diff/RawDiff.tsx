@@ -3,6 +3,7 @@ import { useReviewSettled } from './review-settle';
 
 export function RawDiff({ text, overflow, fill, maxHeight }: { text: string; overflow: 'wrap' | 'scroll'; fill: boolean; maxHeight?: number }) {
     useReviewSettled();
+
     return (
         <pre
             data-diff-raw

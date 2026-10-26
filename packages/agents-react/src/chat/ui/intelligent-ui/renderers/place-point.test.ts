@@ -6,12 +6,15 @@ const FOUND = { lat: 52.09, lon: 5.12 };
 test('the point the host found for the address wins over the coordinates written beside it', () => {
     const props = { lat: 1, lon: 2, address: ' Domplein 1 ' };
     const asked: Array<[string, string]> = [];
+
     const context = {
         place: (nodeId: string, address: string) => {
             asked.push([nodeId, address]);
+
             return FOUND;
         }
     };
+
     expect(placePoint(props, 'node', context)).toEqual(FOUND);
     expect(asked).toEqual([['node', ' Domplein 1 ']]);
 });

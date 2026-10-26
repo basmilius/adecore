@@ -18,6 +18,7 @@ export function fullFileDiff(patch: string, name: string, contents: DiffContents
             newFile: { name, contents: contents.new },
             throwOnError: true
         });
+
         return parsed === undefined || parsed.isPartial || parsed.hunks.length === 0 ? null : parsed;
     } catch {
         return null;

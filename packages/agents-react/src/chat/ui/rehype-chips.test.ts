@@ -13,11 +13,14 @@ function elementsOf(node: ReactNode): Rendered[] {
     if (Array.isArray(node)) {
         return node.flatMap(elementsOf);
     }
+
     if (!isValidElement(node)) {
         return [];
     }
+
     const element = node as ReactElement<Rendered['props']>;
     const own = typeof element.type === 'string' ? [{ type: element.type, props: element.props }] : [];
+
     return [...own, ...elementsOf(element.props.children)];
 }
 

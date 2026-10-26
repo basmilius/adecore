@@ -71,36 +71,47 @@ function nameOf(fiber: Fiber): string | null {
 function renderTracker(container: object) {
     const key = Object.keys(container).find((name) => name.startsWith('__reactContainer$'))!;
     const seen = new WeakMap<Fiber, { props: unknown; state: unknown }>();
+
     const current = (): Fiber => ((container as Record<string, Fiber>)[key]!.stateNode as { current: Fiber }).current;
+
     const walk = (fiber: Fiber | null, rendered: Fiber[]): void => {
         for (let node = fiber; node !== null; node = node.sibling) {
             if (nameOf(node) !== null) {
                 const before = seen.get(node) ?? (node.alternate === null ? undefined : seen.get(node.alternate));
+
                 if (before !== undefined && (before.props !== node.memoizedProps || before.state !== node.memoizedState)) {
                     rendered.push(node);
                 }
+
                 const record = { props: node.memoizedProps, state: node.memoizedState };
                 seen.set(node, record);
+
                 if (node.alternate !== null) {
                     seen.set(node.alternate, record);
                 }
             }
+
             walk(node.child, rendered);
         }
     };
+
     const find = (fiber: Fiber | null, name: string): Fiber | null => {
         for (let node = fiber; node !== null; node = node.sibling) {
             const found = nameOf(node) === name ? node : find(node.child, name);
+
             if (found !== null) {
                 return found;
             }
         }
+
         return null;
     };
+
     return {
         rendered(): Fiber[] {
             const rendered: Fiber[] = [];
             walk(current(), rendered);
+
             return rendered;
         },
         propsOf(name: string): Record<string, unknown> | null {
@@ -112,10 +123,12 @@ function renderTracker(container: object) {
 function insideRowOf(fiber: Fiber, itemId: string): boolean {
     for (let node: Fiber | null = fiber; node !== null; node = node.return) {
         const item = node.memoizedProps?.item as { id: string } | undefined;
+
         if (nameOf(node) === 'AssistantRow' && item?.id === itemId) {
             return true;
         }
     }
+
     return false;
 }
 
@@ -161,6 +174,7 @@ class ManualResizeObserver {
 
     static resized(target: Element, width: number, height: number): void {
         const entry = { target, borderBoxSize: [{ inlineSize: width, blockSize: height }] } as unknown as ResizeObserverEntry;
+
         for (const observer of ManualResizeObserver.all) {
             if (observer.targets.has(target)) {
                 observer.callback([entry], observer as unknown as ResizeObserver);
@@ -183,6 +197,7 @@ const NO_HOST: Partial<ChatHost> = {};
 
 async function mounted(layout: Layout, activeTurnId: string | null, run: (mount: Mounted) => Promise<void>, setup: Setup = {}): Promise<void> {
     const page = createPage();
+
     const fromPage = [
         'window',
         'document',
@@ -194,20 +209,27 @@ async function mounted(layout: Layout, activeTurnId: string | null, run: (mount:
         'requestAnimationFrame',
         'cancelAnimationFrame'
     ] as const;
+
     const names = [...fromPage, 'ResizeObserver', 'IS_REACT_ACT_ENVIRONMENT'] as const;
     const previous = names.map((name) => Object.getOwnPropertyDescriptor(globalThis, name));
     const view = page.window as unknown as { Element: { prototype: object }; HTMLElement: { prototype: object } };
+
     const heightOf = (element: HTMLElement): number => {
         const index = element.getAttribute('data-index');
+
         if (index !== null) {
             return layout.rowHeights[Number(index)] ?? 0;
         }
+
         if (element.firstElementChild?.hasAttribute('data-composer')) {
             return layout.composerHeight;
         }
+
         const viewport = element.classList.contains('chat-scroll') || element.parentElement?.classList.contains('chat-column') === true;
+
         return viewport ? VIEWPORT.height : 0;
     };
+
     Object.defineProperties(view.HTMLElement.prototype, {
         offsetHeight: {
             get(this: HTMLElement) {
@@ -219,8 +241,10 @@ async function mounted(layout: Layout, activeTurnId: string | null, run: (mount:
         clientHeight: { get: () => VIEWPORT.height, configurable: true },
         scrollHeight: { get: () => layout.rowHeights.reduce((sum, height) => sum + height, 0) + layout.composerHeight, configurable: true }
     });
+
     if (layout.clampScroll) {
         const offsets = new WeakMap<HTMLElement, number>();
+
         Object.defineProperty(view.HTMLElement.prototype, 'scrollTop', {
             get(this: HTMLElement) {
                 return offsets.get(this) ?? 0;
@@ -231,30 +255,37 @@ async function mounted(layout: Layout, activeTurnId: string | null, run: (mount:
             configurable: true
         });
     }
+
     Object.defineProperty(view.Element.prototype, 'getBoundingClientRect', {
         value: () => ({ x: 0, y: 0, top: 0, left: 0, right: VIEWPORT.width, bottom: VIEWPORT.height, ...VIEWPORT }),
         configurable: true
     });
+
     // No styles at all here, so a padding reads as nothing.
     page.window.getComputedStyle ??= () => ({}) as CSSStyleDeclaration;
     page.window.requestAnimationFrame = () => 0;
     page.window.cancelAnimationFrame = () => {};
     (page.window as unknown as { ResizeObserver: unknown }).ResizeObserver = ManualResizeObserver;
+
     for (const name of fromPage) {
         Object.defineProperty(globalThis, name, { value: name === 'window' ? page.window : page.window[name], configurable: true });
     }
+
     Object.defineProperty(globalThis, 'ResizeObserver', { value: ManualResizeObserver, configurable: true });
     Object.defineProperty(globalThis, 'IS_REACT_ACT_ENVIRONMENT', { value: true, configurable: true });
     const root = createRoot(page.host);
     const tracker = renderTracker(page.host);
     const commits: Fiber[][] = [];
+
     try {
         useChats.getState().forget(KEY);
+
         if (setup.statusOnly) {
             useChats.getState().status(KEY, setup.info ?? infoOf(activeTurnId));
         } else {
             useChats.getState().reset(KEY, setup.info ?? infoOf(activeTurnId), setup.items ?? threadOf());
         }
+
         await act(async () =>
             root.render(
                 <ChatHostProvider host={setup.host ?? NO_HOST}>
@@ -274,19 +305,24 @@ async function mounted(layout: Layout, activeTurnId: string | null, run: (mount:
                 </ChatHostProvider>
             )
         );
+
         commits.length = 0;
+
         const resizeRow = async (index: number, height: number): Promise<void> => {
             layout.rowHeights[index] = height;
             const row = page.host.querySelector(`[data-index="${index}"]`)!;
             await act(async () => ManualResizeObserver.resized(row, VIEWPORT.width, height));
         };
+
         await run({ page, commits, propsOf: tracker.propsOf, resizeRow });
     } finally {
         await act(async () => root.unmount());
         ManualResizeObserver.all.clear();
         useChats.getState().forget(KEY);
+
         names.forEach((name, index) => {
             const descriptor = previous[index];
+
             if (descriptor === undefined) {
                 Reflect.deleteProperty(globalThis, name);
             } else {
@@ -303,10 +339,13 @@ for (const [where, activeTurnId] of [
     test(`a streamed word commits only the row of the reply it grows, with that reply ${where}`, async () => {
         await mounted({ rowHeights: [60, 60, 60, 60, 60, 60, 40], composerHeight: 0 }, activeTurnId, async ({ page, commits }) => {
             expect(page.host.querySelectorAll('[data-item-id]').length).toBeGreaterThanOrEqual(6);
+
             for (const word of [' and', ' then', ' more']) {
                 await act(async () => useChats.getState().apply(KEY, { type: 'delta', itemId: 'reply-3', text: word }));
             }
+
             expect(commits).toHaveLength(3);
+
             for (const rendered of commits) {
                 expect(rendered.filter((fiber) => !insideRowOf(fiber, 'reply-3')).map(nameOf)).toEqual([]);
                 expect(rendered.filter((fiber) => nameOf(fiber) === 'AssistantRow')).toHaveLength(1);
@@ -323,12 +362,14 @@ test('a word that adds a line moves the end of the thread down without drawing i
         expect(scroller.scrollTop).toBe(scroller.scrollHeight);
         expect(commits.flat().some((fiber) => nameOf(fiber) === 'Timeline')).toBe(true);
         const rows = ['ThreadRow', 'RowContainer', 'MarkableRow', 'Row', 'UserRow', 'MessageActions', 'BookmarkMarker'];
+
         expect(
             commits
                 .flat()
                 .filter((fiber) => rows.includes(nameOf(fiber) ?? ''))
                 .map(nameOf)
         ).toEqual([]);
+
         expect(commits.flat().filter((fiber) => nameOf(fiber) === 'AssistantRow')).toHaveLength(1);
     });
 });
@@ -342,17 +383,20 @@ test('growing a reply cannot hide earlier rows while the thread still fits witho
         text: `Reply ${index}`,
         streaming: index === 19
     }));
+
     await mounted(
         { rowHeights: Array(20).fill(10), composerHeight: 80, clampScroll: true },
         null,
         async ({ page, resizeRow }) => {
             const scroller = page.host.querySelector('.chat-scroll') as HTMLElement;
+
             for (let height = 40; height <= 310; height += 30) {
                 await resizeRow(19, height);
                 expect(scroller.scrollHeight).toBeLessThan(scroller.clientHeight);
                 expect(scroller.scrollTop).toBe(0);
                 expect(page.host.querySelector('[data-item-id="reply-0"]')).not.toBeNull();
             }
+
             expect(useChats.getState().byKey[KEY]?.order).toHaveLength(20);
         },
         { items }
@@ -368,17 +412,21 @@ test('loading an older page keeps the reader on the same message', async () => {
         text: `Reply ${index}`,
         streaming: false
     }));
+
     const layout = { rowHeights: Array(20).fill(56), composerHeight: 0, clampScroll: true };
+
     await mounted(
         layout,
         null,
         async ({ page }) => {
             const scroller = page.host.querySelector('.chat-scroll') as HTMLElement;
             await act(async () => useChats.getState().reset(KEY, infoOf(null), items.slice(20), { history: { start: 20, cursor: 'g:20' }, pending: [] }));
+
             await act(async () => {
                 scroller.scrollTop = 280;
                 scroller.dispatchEvent(new page.window.Event('scroll', { bubbles: true }));
             });
+
             expect(page.host.querySelector('[data-item-id="reply-25"]')).not.toBeNull();
             layout.rowHeights.unshift(...Array(20).fill(56));
             await act(async () => useChats.getState().prepend(KEY, 'g:20', { items: items.slice(0, 20), history: { start: 0, cursor: null } }));
@@ -394,13 +442,16 @@ test('the strip follows a message coming out from under the composer while the r
     // The second message is in the virtualizer's range the whole time, so only the scroll itself can tell the strip.
     await mounted({ rowHeights: [60, 3000, 400, 3000, 60, 60, 40], composerHeight: 150 }, null, async ({ page, propsOf }) => {
         const scroller = page.host.querySelector('.chat-scroll') as HTMLElement;
+
         const scrollTo = async (top: number): Promise<void> => {
             scroller.scrollTop = top;
+
             // linkedom has no capture phase, so the event bubbles to the root where React listens for it.
             await act(async () => {
                 scroller.dispatchEvent(new page.window.Event('scroll', { bubbles: true }));
             });
         };
+
         await scrollTo(2500);
         expect(propsOf('Scrubber')).toMatchObject({ firstInView: 0, lastInView: 0 });
         await scrollTo(2700);
@@ -436,7 +487,9 @@ function shellThread(): ChatItem[] {
         state: 'done',
         parentToolUseId: null
     });
+
     const reply = (id: string, createdAt: number): ChatItem => ({ id, kind: 'assistant', turnId: null, createdAt, text: 'Done.', streaming: false });
+
     return [
         bash('probe', 'sleep 1; orbit probe launch probe-1 --wait 5 2>&1 | grep ok', 1),
         reply('reply-1', 2),
@@ -452,12 +505,15 @@ function linesOf(host: HTMLElement): string[] {
     return [...host.querySelectorAll('.group\\/line')].map((line) => {
         const copy = line.cloneNode(true) as HTMLElement;
         copy.querySelector('time')?.remove();
+
         for (const bold of copy.querySelectorAll('.font-semibold')) {
             bold.textContent = `*${bold.textContent}*`;
         }
+
         for (const hidden of copy.querySelectorAll('.sr-only')) {
             hidden.textContent = `(${hidden.textContent})`;
         }
+
         return copy.textContent ?? '';
     });
 }
@@ -494,6 +550,7 @@ for (const welcomes of [false, true]) {
             async ({ page }) => {
                 const composer = page.host.querySelector('[data-composer]');
                 let missing = 0;
+
                 await act(async () => {
                     jumpToTimelineItem(KEY, 'not-in-history', {
                         onMissing: () => {
@@ -501,6 +558,7 @@ for (const welcomes of [false, true]) {
                         }
                     });
                 });
+
                 expect(missing).toBe(0);
                 expect(page.host.querySelector('[role="status"]')?.textContent).toContain('Loading conversation');
                 expect(page.host.textContent).not.toContain('is ready.');
@@ -546,7 +604,9 @@ for (const cached of [true, false]) {
                     streaming: false
                 }) as ChatItem
         );
+
         const layouts: Array<Array<{ top: number; height: number }>> = [];
+
         await mounted(
             { rowHeights: items.map(() => 300), composerHeight: 120 },
             null,
@@ -554,12 +614,15 @@ for (const cached of [true, false]) {
                 if (!cached) {
                     await act(async () => useChats.getState().reset(KEY, infoOf(null), items));
                 }
+
                 expect(layouts.length).toBeGreaterThan(0);
+
                 for (const layout of layouts) {
                     for (let index = 1; index < layout.length; index++) {
                         expect(layout[index]!.top).toBeGreaterThanOrEqual(layout[index - 1]!.top + layout[index - 1]!.height);
                     }
                 }
+
                 const scroller = page.host.querySelector('.chat-scroll') as HTMLElement;
                 expect(scroller.scrollTop).toBe(scroller.scrollHeight);
             },
@@ -568,9 +631,11 @@ for (const cached of [true, false]) {
                 statusOnly: !cached,
                 onLayout: (host) => {
                     const elements = [...host.querySelectorAll<HTMLElement>('[data-index]')];
+
                     if (elements.length === 0 || elements[0]!.parentElement?.style.visibility === 'hidden') {
                         return;
                     }
+
                     layouts.push(
                         elements.map((element) => ({
                             top: Number(/translateY\(([-\d.]+)px\)/.exec(element.style.transform)?.[1]),
@@ -585,6 +650,7 @@ for (const cached of [true, false]) {
 
 test("the thread's height reaches its host only once its rows are laid out, and again when one grows", async () => {
     const heights: number[] = [];
+
     await mounted(
         { rowHeights: [60, 90, 120], composerHeight: 80 },
         null,
@@ -595,6 +661,7 @@ test("the thread's height reaches its host only once its rows are laid out, and 
         },
         { onContentHeight: (height) => heights.push(height) }
     );
+
     // Never the estimate of the rows before they were measured.
     expect(heights.every((height) => height === 270 || height === 350)).toBe(true);
 });

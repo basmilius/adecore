@@ -11,19 +11,24 @@ export function ApprovalReview({ entries, maxHeight }: { entries: readonly Revie
     const active = entries.find((entry) => entry.key === selected) ?? entries[0];
     const totals = new Map<string, number>();
     const counts = new Map<string, number>();
+
     for (const entry of entries) {
         totals.set(entry.path, (totals.get(entry.path) ?? 0) + 1);
     }
+
     const labels = entries.map((entry) => {
         const count = (counts.get(entry.path) ?? 0) + 1;
         counts.set(entry.path, count);
         const total = totals.get(entry.path)!;
         const suffix = total > 1 ? ` (${formatNumber(count)}/${formatNumber(total)})` : '';
+
         return { short: `${entry.path.split(/[\\/]/).at(-1)}${suffix}`, full: `${entry.path}${suffix}` };
     });
+
     if (active === undefined) {
         return null;
     }
+
     return (
         <div>
             {entries.length > 1 && (

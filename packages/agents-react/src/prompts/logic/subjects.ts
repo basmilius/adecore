@@ -78,8 +78,10 @@ export function approvalButtons(subject: PromptSubject, reason: string): Approva
     if (subject.kind !== 'chat' || subject.item.kind !== 'approval') {
         return [];
     }
+
     const { item } = subject;
     const message = reason.trim();
+
     return [
         ...(item.canAllowAlways && item.allowAlways
             ? [
@@ -116,18 +118,24 @@ export async function answerPrompt(
     if (subject.kind === 'host') {
         return host.prompts.answer(subject.prompt, action);
     }
+
     if (chat === null) {
         throw new Error(i18next.t('agent-prompts:error.notConnected'));
     }
+
     const { item, nodeId } = subject;
+
     if (action.kind === 'approve') {
         return chat.approve(nodeId, item.requestId, action.decision, action.message);
     }
+
     if (action.kind === 'answer') {
         return chat.answer(nodeId, item.requestId, action.answers);
     }
+
     if (action.kind === 'dismiss') {
         return chat.dismiss(nodeId, item.id);
     }
+
     throw new Error(i18next.t('agent-prompts:error.noChoices'));
 }

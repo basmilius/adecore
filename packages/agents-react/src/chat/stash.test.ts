@@ -13,6 +13,7 @@ describe('parseStash', () => {
             { id: 'b' },
             'nope'
         ]);
+
         expect(parseStash(raw)).toEqual([
             {
                 id: 'a',
@@ -66,6 +67,7 @@ describe('stashedFrom', () => {
             quoteSource: null,
             references: ['view-a']
         };
+
         expect(stashedFrom(draft, 'id-1', 5, 'chat-a')).toEqual({
             id: 'id-1',
             text: 'look at @src/a.ts',
@@ -92,6 +94,7 @@ describe('stashedFrom', () => {
             { id: 'a', text: 'x', quote: { text: 'One.', chatId: 'chat-a', itemId: 'answer-1' } },
             { id: 'b', text: 'x', quote: { text: 'One.' } }
         ]);
+
         const [first, second] = parseStash(raw);
         expect(first?.quote).toEqual({ text: 'One.', chatId: 'chat-a', itemId: 'answer-1' });
         expect(second).not.toHaveProperty('quote');

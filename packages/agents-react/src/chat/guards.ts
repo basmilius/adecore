@@ -23,9 +23,11 @@ export function pasteBecomesAttachment(text: string): boolean {
 export function pastedTextName(taken: string[]): string {
     const names = new Set(taken);
     let index = 1;
+
     while (names.has(`paste-${index}.txt`)) {
         index += 1;
     }
+
     return `paste-${index}.txt`;
 }
 

@@ -29,7 +29,9 @@ export function accountsOfKind(accounts: ProviderAccounts | null, kind: AgentKin
     if (accounts === null) {
         return [];
     }
+
     const statuses = new Map(accounts.statuses.map((status) => [status.id, status]));
+
     return Object.entries(accounts.accounts)
         .filter(([, account]) => account.kind === kind)
         .map(([id, account]) => ({ id, account, status: statuses.get(id) ?? null, isDefault: id === kind }))
@@ -51,6 +53,7 @@ export function accountLoginOf(accounts: ProviderAccounts | null | undefined, ki
     if (accounts?.loginCommands?.[kind] !== undefined) {
         return 'terminal';
     }
+
     return accounts?.chatLogins?.includes(kind) === true ? 'chat' : null;
 }
 
@@ -68,6 +71,7 @@ export const ACCOUNT_TONE_CLASSES: Record<AccountTone, string> = {
  */
 export function accountStatusLine(status: ProviderAccountStatus | null, canLogIn: boolean): { text: string; tone: AccountTone } {
     const words = (key: string, values?: Record<string, string>): string => i18next.t(`agent-providers:status.${key}`, values);
+
     switch (status?.state ?? 'checking') {
         case 'checking':
             return { text: words('checking'), tone: 'muted' };
@@ -81,6 +85,7 @@ export function accountStatusLine(status: ProviderAccountStatus | null, canLogIn
             if (!canLogIn) {
                 return { text: words('available'), tone: 'muted' };
             }
+
             return { text: status?.plan ? words('readyPlan', { plan: status.plan }) : words('ready'), tone: 'muted' };
         case 'folder-missing':
             return { text: words('folderMissing'), tone: 'error' };
@@ -105,9 +110,11 @@ function slugOf(label: string): string {
 export function mintAccountId(kind: AgentKind, label: string, taken: ReadonlySet<string>): string {
     const base = `${kind}_${slugOf(label) || 'account'}`.slice(0, 60).replace(/-+$/, '');
     let id = base;
+
     for (let suffix = 2; taken.has(id); suffix += 1) {
         id = `${base}-${suffix}`;
     }
+
     return id;
 }
 
@@ -119,6 +126,7 @@ export function freeAccountColor(entries: readonly AccountEntry[], accents: Chat
     const { all, featured } = accents;
     const worn = new Set(entries.map((entry) => (accountColor(entry.account.color, all) === undefined ? fallback : entry.account.color)));
     const choices = [...featured, ...all.map((entry) => entry.id).filter((id) => !featured.includes(id))];
+
     return choices.find((id) => !worn.has(id)) ?? featured[entries.length % featured.length] ?? fallback;
 }
 
@@ -140,11 +148,15 @@ export function hasAccountChoice(entries: readonly AccountEntry[]): boolean {
 export function canContinueOn(accounts: ProviderAccounts | null, kind: AgentKind, from: string | undefined, to: string | undefined): boolean {
     const fromId = from ?? kind;
     const toId = to ?? kind;
+
     if (fromId === toId) {
         return true;
     }
+
     const folderOf = (id: string): string | undefined =>
         accounts?.accounts[id]?.kind === kind ? accounts.statuses.find((status) => status.id === id)?.transcripts : undefined;
+
     const folder = folderOf(fromId);
+
     return folder !== undefined && folder !== '' && folder === folderOf(toId);
 }

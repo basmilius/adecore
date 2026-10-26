@@ -8,9 +8,12 @@ import type { UiPlacePoint, UiRenderContext } from '../render-context';
 export function placePoint(props: UiProps<'Place'>, nodeId: string, context: Pick<UiRenderContext, 'place'>): UiPlacePoint | null | undefined {
     const { lat, lon, address } = props;
     const written = lat !== undefined && lon !== undefined ? { lat, lon } : undefined;
+
     if (address === undefined || address.trim() === '') {
         return written ?? null;
     }
+
     const found = context.place === undefined ? null : context.place(nodeId, address);
+
     return found ?? written ?? found;
 }

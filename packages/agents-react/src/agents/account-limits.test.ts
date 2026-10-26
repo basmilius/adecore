@@ -56,7 +56,9 @@ describe('going on under another account after a limit', () => {
 
     test('lists every account with room, the least spent first, and suggests the first', () => {
         const read = snapshot(limits(null, 0.4), limits('claude_work', 0.6), limits('claude_home', 0.2));
+
         const ids = (current: string | undefined): string[] => continueTargets(accounts, read, 'claude', current).map((entry) => entry.id);
+
         expect(ids('claude_out')).toEqual(['claude_home', 'claude', 'claude_work']);
         expect(ids(undefined)).toEqual(['claude_home', 'claude_work']);
         expect(continueTarget(accounts, read, 'claude', undefined)?.id).toBe(ids(undefined)[0]);
@@ -70,10 +72,12 @@ describe('going on under another account after a limit', () => {
             limits('claude_off', 0),
             limits('claude_out', 0)
         );
+
         expect(continueTargets(accounts, read, 'claude', undefined)).toEqual([]);
         expect(continueTargets(accounts, null, 'claude', undefined)).toEqual([]);
         expect(continueTarget(accounts, read, 'claude', undefined)).toBeNull();
         expect(continueTarget(accounts, null, 'claude', undefined)).toBeNull();
+
         const someRoom = snapshot(
             limits(null, 1),
             limits('claude_work', 0.5),
@@ -81,6 +85,7 @@ describe('going on under another account after a limit', () => {
             limits('claude_off', 0),
             limits('claude_out', 0)
         );
+
         expect(continueTargets(accounts, someRoom, 'claude', undefined).map((entry) => entry.id)).toEqual(['claude_work']);
     });
 
@@ -88,6 +93,7 @@ describe('going on under another account after a limit', () => {
         expect(hasUnreadAccount(accounts, snapshot(limits(null, 1), limits('claude_work', 0.2), limits('claude_home', 0.2, 0, 0)), 'claude', undefined)).toBe(
             true
         );
+
         expect(hasUnreadAccount(accounts, snapshot(limits(null, 1), limits('claude_work', 0.2), limits('claude_home', 0.2)), 'claude', undefined)).toBe(false);
     });
 

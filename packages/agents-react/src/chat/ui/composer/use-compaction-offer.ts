@@ -12,8 +12,10 @@ const PAGE_CLOCK: DueClock = {
         if (typeof window === 'undefined') {
             return () => {};
         }
+
         window.addEventListener('focus', wake);
         document.addEventListener('visibilitychange', wake);
+
         return () => {
             window.removeEventListener('focus', wake);
             document.removeEventListener('visibilitychange', wake);
@@ -38,6 +40,7 @@ export function useCompactionOffer(chatId: string, info: ChatInfo, compaction: P
         if (dueAt === null) {
             return;
         }
+
         return watchDueAt(dueAt, setNow, PAGE_CLOCK);
     }, [dueAt]);
 

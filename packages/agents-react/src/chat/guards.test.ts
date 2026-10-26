@@ -27,6 +27,7 @@ describe('usableSlashCommands', () => {
             'context',
             'security-review'
         ]);
+
         expect(usableSlashCommands([])).toEqual([]);
     });
 });

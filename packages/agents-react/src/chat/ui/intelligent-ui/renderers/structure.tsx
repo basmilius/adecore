@@ -20,6 +20,7 @@ export function TabsRenderer({ node, children, context }: UiRendererProps<UiProp
     const tabs = uiChildrenOf(node, 'Tab');
     const [picked, setPicked] = useBlockLocal<string | null>(context, node.id, () => null);
     const value = picked !== null && tabs.some((tab) => tab.id === picked) ? picked : (tabs[0]?.id ?? null);
+
     return (
         <Tabs.Root value={value} onValueChange={(next) => setPicked(String(next))} className="flex flex-col gap-3">
             <Tabs.List variant="pill" overflow="scroll" className="w-fit max-w-full rounded-xl bg-ui-tile p-0.75">
@@ -44,6 +45,7 @@ export function TabRenderer({ node, children }: UiRendererProps<UiProps<'Tab'>>)
 
 export function SectionsRenderer({ node, children, context }: UiRendererProps<UiProps<'Sections'>>) {
     const [touched, setTouched] = useBlockLocal(context, node.id, () => false);
+
     return (
         <SectionsContext value={{ touched, touch: () => setTouched(true) }}>
             <div className="chat-ui-nodes flex flex-col gap-1.5">{children}</div>
@@ -56,6 +58,7 @@ export function SectionRenderer({ node, children, context }: UiRendererProps<UiP
     const fold = useContext(SectionsContext);
     const [open, setOpen] = useBlockLocal(context, node.id, () => !fold.touched);
     const contentId = useId();
+
     return (
         <section className="rounded-xl bg-ui-tile">
             <button

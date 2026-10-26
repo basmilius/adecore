@@ -7,8 +7,10 @@ export function LegacyDiffPool({ children }: { children: ReactNode }) {
     const host = useChatHost();
     const outer = useWorkerPool();
     const workerFactory = host.code.legacyDiffWorker;
+
     if (outer !== undefined || workerFactory === undefined) {
         return children;
     }
+
     return <DiffPool workerFactory={workerFactory}>{children}</DiffPool>;
 }

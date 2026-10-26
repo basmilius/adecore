@@ -5,15 +5,19 @@
  */
 export function focusPromptStart(root: ParentNode | null | undefined): boolean {
     const card = root?.querySelector<HTMLElement>('.prompt-card');
+
     if (!card) {
         return false;
     }
+
     const start =
         card.querySelector<HTMLElement>('[data-prompt-entry]:not(:disabled)') ??
         card.querySelector<HTMLElement>('[role="toolbar"] button:not(:disabled):not([data-prompt-primary]):not([data-prompt-lasting])') ??
         card.querySelector<HTMLElement>('[data-prompt-primary]:not(:disabled)') ??
         card.querySelector<HTMLElement>('.prompt-heading');
+
     start?.focus({ preventScroll: true });
+
     return start !== null;
 }
 
@@ -21,5 +25,6 @@ export function focusPromptStart(root: ParentNode | null | undefined): boolean {
 export function focusPromptHeading(root: ParentNode | null | undefined): boolean {
     const heading = root?.querySelector<HTMLElement>('.prompt-card .prompt-heading');
     heading?.focus({ preventScroll: true });
+
     return !!heading;
 }

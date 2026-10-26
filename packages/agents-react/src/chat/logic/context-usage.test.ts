@@ -23,12 +23,14 @@ describe('contextSegments', () => {
             contextWindow: 1000,
             breakdown: { toolOutput: 1000, filesRead: 1000, conversation: 0, system: 0 }
         });
+
         expect(segments?.reduce((sum, segment) => sum + segment.fraction, 0)).toBe(1);
     });
 });
 
 describe('orderOptions', () => {
     const select = (id: string): ModelOptionDescriptor => ({ id, label: id, type: 'select', choices: [{ id: 'a', label: 'A' }], defaultChoice: 'a' });
+
     const toggle = (id: string): ModelOptionDescriptor => ({ id, label: id, type: 'boolean', defaultValue: false });
 
     test('puts the context window last, so a switch like Fast mode sits right under Reasoning', () => {

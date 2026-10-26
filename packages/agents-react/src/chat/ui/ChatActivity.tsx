@@ -36,28 +36,37 @@ export function ChatActivity({ chatId }: { chatId: string }) {
     const tasks = useHostTasks(id);
     // The infos of these sub-agents' own chats, so the info of any other chat changing does not draw this again.
     const children = useChats(useShallow((s) => subagents.map((item) => (item.childId === undefined ? undefined : s.statusByKey[keyOf(item.childId)]?.info))));
+
     const progress = progressOf(
         subagents.map((item, index) => {
             const taskId = taskIdOf(item);
+
             return taskRowStateOf(item, taskId === null ? null : (tasks?.[taskId] ?? null), children[index]);
         })
     );
+
     const words = subagents.map((item) => {
         const taskId = taskIdOf(item);
+
         return statusWordOf(item, taskId === null ? null : (tasks?.[taskId] ?? null));
     });
+
     const background = useChatRow(chatId, (row) => row?.info.background) ?? NO_TASKS;
+
     if (subagents.length === 0 && background.length === 0) {
         return null;
     }
+
     const { shells, monitors } = backgroundCounts(background);
     const Slot = host.SubagentSlot;
     const counting = progress.active > 0 && progress.total > 1;
+
     const label = counting
         ? [t('activity.progress', { done: progress.done, total: progress.total }), progress.waiting > 0 && t('activity.needsYou', { count: progress.waiting })]
               .filter(Boolean)
               .join(', ')
         : t('activity.subagents', { count: badgeCountOf(words) });
+
     return (
         <div className="mb-3 flex flex-wrap items-center gap-2">
             {subagents.length > 0 &&
@@ -94,6 +103,7 @@ export function ChatActivity({ chatId }: { chatId: string }) {
 
 export function StatusIcon({ word }: { word: StatusWord }) {
     const look = statusLookOf(word);
+
     return <Icon icon={look.icon} size={14} className={clsx('shrink-0', look.tone, look.spins && 'animate-spin')} />;
 }
 
@@ -142,6 +152,7 @@ function ActivityRow({
             {time !== '' && <span className="shrink-0 text-xs text-text-faint tabular-nums">{time}</span>}
         </>
     );
+
     // The stop is a button of its own beside the line, since a button cannot hold another.
     return (
         <div className={clsx('flex items-center gap-1 rounded-md', onOpen && 'hover:bg-surface-hover')}>
@@ -163,6 +174,7 @@ function SubagentRows({ chatId, items }: { chatId: string; items: readonly ChatS
         1000,
         items.some((item) => item.status === 'running')
     );
+
     return items.map((item) => <SubagentEntry key={item.id} chatId={chatId} item={item} now={now} />);
 }
 
@@ -175,6 +187,7 @@ function SubagentEntry({ chatId, item, now }: { chatId: string; item: ChatSubage
     const child = useChats((s) => (item.childId === undefined ? undefined : s.statusByKey[keyOf(item.childId)]?.info));
     const word = statusWordOf(item, task);
     const state = taskRowStateOf(item, task, child);
+
     return (
         <ActivityRow
             icon={<StatusIcon word={word} />}

@@ -17,6 +17,7 @@ const { document } = parseHTML(`<html><body>
 </body></html>`);
 
 const surface = document.getElementById('surface')!;
+
 const partOf = (id: string) => surfacePartOf(document.getElementById(id), surface);
 
 describe('surfacePartOf', () => {

@@ -47,6 +47,7 @@ function NumberChip({ number, selected }: { number: number; selected: boolean })
 function PlaceRow({ listed, number, selected, onPick }: { listed: ListedPlace; number: number; selected: boolean; onPick: (() => void) | null }) {
     const { t } = useTranslation('agent-chat');
     const { detail, address } = listed.node.props;
+
     const body = (
         <>
             <NumberChip number={number} selected={selected} />
@@ -59,7 +60,9 @@ function PlaceRow({ listed, number, selected, onPick }: { listed: ListedPlace; n
             </span>
         </>
     );
+
     const row = 'flex h-full w-full min-h-12 items-start gap-2.5 rounded-xl bg-ui-tile px-3 py-2 text-left';
+
     return (
         <li>
             {onPick === null ? (
@@ -83,12 +86,15 @@ function noteFor(t: TFunction<'agent-chat'>, source: UiMapSource | null, status:
     if (status === 'offline') {
         return t('blocks.map.offline');
     }
+
     if (status === 'unavailable' || status === 'failed' || status === 'lost') {
         return t('blocks.map.unavailable');
     }
+
     if (source?.state === 'off') {
         return t(source.reason === 'disabled' ? 'blocks.map.disabled' : source.reason === 'signed-out' ? 'blocks.map.signedOut' : 'blocks.map.unavailable');
     }
+
     return source?.state === 'tiles' && status === 'tiles' ? (source.attribution ?? null) : null;
 }
 
@@ -117,6 +123,7 @@ function MapFrame({ markers, source, selected, onPick }: FrameProps) {
     const drawn = slot.state === 'granted' && !broken;
     const waiting = useLater(drawn && status === 'loading', LOADING_SPINNER_MS);
     const note = noteFor(t, source, status);
+
     const quiet = (text: string, action?: { label: string; run(): void }) => (
         <div className="grid h-full place-items-center content-center justify-items-center gap-2 p-3 text-center">
             <p className="text-xs text-text-faint">{text}</p>
@@ -127,11 +134,14 @@ function MapFrame({ markers, source, selected, onPick }: FrameProps) {
             )}
         </div>
     );
+
     const retry = () => {
         setStatus('loading');
         setAttempt((previous) => previous + 1);
     };
+
     let body: ReactNode = null;
+
     if (status === 'failed') {
         body = quiet(t('blocks.map.unavailable'));
     } else if (status === 'lost') {
@@ -154,6 +164,7 @@ function MapFrame({ markers, source, selected, onPick }: FrameProps) {
             </DiffFallbackBoundary>
         );
     }
+
     return (
         <>
             <div ref={setElement} className="relative h-50 overflow-hidden rounded-xl bg-ui-tile @min-[420px]:h-60">
@@ -184,33 +195,42 @@ export function MapRenderer({ node, children, context }: UiRendererProps<UiProps
     const binding = bindingOf(node, context);
     const current = binding?.value ?? node.props.value;
     const maps = useChatHost().maps;
+
     const places: ListedPlace[] = uiChildrenOf(node, 'Place').map((place) => ({
         node: place,
         name: uiNodeLabel(place),
         point: placePoint(place.props, place.id, context)
     }));
+
     const markers = places.flatMap((listed, index) =>
         listed.point ? [{ id: listed.node.id, number: index + 1, lat: listed.point.lat, lon: listed.point.lon }] : []
     );
+
     const selectedId = places.find((listed) => listed.node.props.value !== undefined && listed.node.props.value === current)?.node.id ?? null;
+
     const pick = (id: string): void => {
         const value = places.find((listed) => listed.node.id === id)?.node.props.value;
+
         if (value !== undefined) {
             binding?.onValueChange(value);
         }
     };
+
     const onPick = binding !== null ? pick : null;
+
     const frame = maps ? (
         <HostedFrame maps={maps} scopeId={context.scopeId} markers={markers} selected={selectedId} onPick={onPick} />
     ) : (
         <MapFrame markers={markers} source={null} selected={selectedId} onPick={onPick} />
     );
+
     return (
         <div className={clsx('@container flex flex-col gap-1.5', !node.complete && PENDING)}>
             {frame}
             <ol aria-label={t('blocks.map.label', { count: places.length })} className="grid gap-1.5 @min-[420px]:grid-cols-2">
                 {places.map((listed, index) => {
                     const { value } = listed.node.props;
+
                     return (
                         <PlaceRow
                             key={listed.node.id}

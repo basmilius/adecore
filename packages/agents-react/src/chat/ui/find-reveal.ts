@@ -15,6 +15,7 @@ export const FindRevealContext = createContext<FindReveal | null>(null);
 export function useOpenForFind(itemId: string, field: ChatFindField, setOpen: (open: boolean) => void): void {
     const reveal = useContext(FindRevealContext);
     const wanted = reveal !== null && reveal.itemId === itemId && reveal.field === field;
+
     useEffect(() => {
         if (wanted) {
             setOpen(true);

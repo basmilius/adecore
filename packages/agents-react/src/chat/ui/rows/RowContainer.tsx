@@ -14,6 +14,7 @@ export interface RowContainerProps {
 
 export function RowContainer({ row, previous, index, top, ref, children }: RowContainerProps) {
     const wide = row.kind === 'visual' && row.visual.layout === 'wide';
+
     return (
         <div
             data-index={index}

@@ -20,6 +20,7 @@ export function SessionLine({ window, now }: { window: UsageWindow; now: number 
     const tone = sessionTone(window.used);
     const mark = evenPace(window, now)?.percent ?? null;
     const resetsAt = window.resetsAt;
+
     return (
         <span className="flex items-center gap-2 text-xs text-text-faint tabular-nums">
             <span aria-hidden className="relative h-1 w-14 shrink-0 rounded-full bg-surface-sunken">

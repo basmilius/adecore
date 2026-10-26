@@ -17,6 +17,7 @@ describe('pastedChipsIn', () => {
         const text = 'Before $review | $review $missing #Admin? `#Admin` | after #Admin';
         const from = text.indexOf('|') + 2;
         const to = text.lastIndexOf('|') - 1;
+
         expect(pastedChipsIn(text, from, to, [{ from: text.indexOf('`'), to: text.lastIndexOf('`') + 1 }], choices)).toEqual({
             text: text.slice(from, to),
             mentions: [],
@@ -35,6 +36,7 @@ describe('pastedChipsIn', () => {
 describe('withPastedChips', () => {
     test('adds what is new, a chat apart from a view, under the name the text spells', () => {
         const draft = { ...EMPTY_DRAFT, mentions: ['a.ts'], references: ['view-admin'] };
+
         const next = withPastedChips(
             draft,
             {
@@ -48,6 +50,7 @@ describe('withPastedChips', () => {
             },
             choices
         );
+
         expect(next).toMatchObject({
             mentions: ['a.ts', 'b.ts'],
             skills: ['review'],

@@ -15,11 +15,13 @@ test('the map without tiles is land over water in the colors it is given, from o
 
 test('a label prefers the translated property and keeps what the style wrote as its last resort', () => {
     expect(localizedTextField('{name}', 'name_nl')).toEqual(['coalesce', ['get', 'name_nl'], ['to-string', ['coalesce', ['get', 'name'], '']]]);
+
     expect(localizedTextField('{name}\n{ref}', 'name_nl')).toEqual([
         'coalesce',
         ['get', 'name_nl'],
         ['concat', ['to-string', ['coalesce', ['get', 'name'], '']], '\n', ['to-string', ['coalesce', ['get', 'ref'], '']]]
     ]);
+
     const written = ['get', 'name'];
     expect(localizedTextField(written, 'name_nl')).toEqual(['coalesce', ['get', 'name_nl'], written]);
     expect(localizedTextField('Plain', 'name_nl')).toEqual(['coalesce', ['get', 'name_nl'], 'Plain']);
@@ -32,6 +34,7 @@ test('a text field that is neither text nor an expression is left alone', () => 
 
 test('the bounds hold every point, and none for no points', () => {
     expect(boundsOf([])).toBeNull();
+
     expect(
         boundsOf([
             { id: 'a', lat: 52, lon: 5 },
@@ -54,6 +57,7 @@ test('points on both sides of the date line span a few degrees, not the globe', 
         [179.5, -18],
         [181, -17]
     ]);
+
     expect(
         boundsOf([
             { id: 'a', lat: 0, lon: -170 },
@@ -64,6 +68,7 @@ test('points on both sides of the date line span a few degrees, not the globe', 
         [170, 0],
         [190, 0]
     ]);
+
     expect(boundsOf([{ id: 'a', lat: 1, lon: 5 }])).toEqual([
         [5, 1],
         [5, 1]
@@ -81,6 +86,7 @@ test('markers that do not cover each other stay where they are', () => {
         { id: 'b', x: 20, y: 0 },
         { id: 'c', x: 0, y: 100 }
     ]);
+
     expect([...offsets.values()]).toEqual([
         [0, 0],
         [0, 0],
@@ -95,6 +101,7 @@ test('a marker on top of an earlier one moves to the nearest free spot beside it
         { id: 'c', x: 55, y: 50 },
         { id: 'd', x: 50, y: 50 }
     ]);
+
     expect(offsets.get('a')).toEqual([0, 0]);
     expect(offsets.get('b')).toEqual([20, 0]);
     expect(offsets.get('c')).toEqual([0, 20]);
@@ -105,6 +112,7 @@ test('no marker of a crowd ends up on another', () => {
     const crowd = Array.from({ length: 9 }, (_, i) => ({ id: String(i), x: 10, y: 10 }));
     const offsets = spreadOverlaps(crowd);
     const spots = crowd.map((point) => ({ x: point.x + offsets.get(point.id)![0], y: point.y + offsets.get(point.id)![1] }));
+
     for (const [i, spot] of spots.entries()) {
         for (const other of spots.slice(i + 1)) {
             expect(Math.hypot(spot.x - other.x, spot.y - other.y)).toBeGreaterThanOrEqual(20);

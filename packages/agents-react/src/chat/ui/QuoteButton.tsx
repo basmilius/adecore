@@ -18,6 +18,7 @@ interface Offer {
 /* The last line the range covers. A triple-click ends on an empty rect at the start of the next row. */
 function lastLineOf(range: Range): DOMRect | null {
     const rects = [...range.getClientRects()].filter((rect) => rect.width > 0);
+
     return rects.at(-1) ?? null;
 }
 
@@ -39,15 +40,19 @@ export function QuoteButton({
 
     useEffect(() => {
         let pressed = false;
+
         const read = (): void => {
             const selection = document.getSelection();
             const quote = taker.current === null ? null : selectedAnswerQuote(selection, thread.current);
             const box = frame.current;
             const line = quote === null || selection === null ? null : lastLineOf(selection.getRangeAt(0));
+
             if (quote === null || box === null || line === null) {
                 setOffer(null);
+
                 return;
             }
+
             const bounds = box.getBoundingClientRect();
             // The canvas may zoom the cell; the button is placed in the frame's own pixels.
             const zoom = box.offsetWidth > 0 ? bounds.width / box.offsetWidth : 1;
@@ -55,23 +60,30 @@ export function QuoteButton({
             const y = (line.bottom - bounds.top) / zoom + GAP_PX;
             setOffer({ quote: quote.text, itemId: quote.itemId, x: Math.round(x), y: Math.round(y) });
         };
+
         const press = (): void => {
             pressed = true;
         };
+
         const release = (): void => {
             pressed = false;
             read();
         };
+
         const change = (): void => {
             if (pressed) {
                 setOffer(null);
+
                 return;
             }
+
             read();
         };
+
         document.addEventListener('pointerdown', press, true);
         document.addEventListener('pointerup', release, true);
         document.addEventListener('selectionchange', change);
+
         return () => {
             document.removeEventListener('pointerdown', press, true);
             document.removeEventListener('pointerup', release, true);

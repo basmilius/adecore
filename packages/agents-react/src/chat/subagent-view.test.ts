@@ -58,11 +58,13 @@ describe('subagent view', () => {
 
     test('the breadcrumb follows the title with every step down and marks the one on screen', () => {
         expect(breadcrumbOf(MAIN_AGENT)).toEqual([]);
+
         expect(breadcrumbOf([count, survey, deeper])).toEqual([
             { label: 'Count', depth: 1, current: false },
             { label: 'Survey', depth: 2, current: false },
             { label: 'Sub-agent', depth: 3, current: true }
         ]);
+
         expect(breadcrumbOf([count])).toEqual([{ label: 'Count', depth: 1, current: true }]);
     });
 

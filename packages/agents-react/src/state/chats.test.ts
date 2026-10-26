@@ -64,6 +64,7 @@ describe('applyEvent', () => {
 
     test('the first text of a reply and an item event change the structure', () => {
         const empty: ChatItem = { id: 'r', kind: 'assistant', createdAt: 0, turnId: null, text: '', streaming: false };
+
         const tool: ChatItem = {
             id: 'x',
             kind: 'tool',
@@ -76,6 +77,7 @@ describe('applyEvent', () => {
             output: null,
             parentToolUseId: null
         };
+
         const state: ChatState = { info: info(), items: { r: empty, x: tool }, structure: { r: empty, x: tool }, order: ['r', 'x'] };
 
         const first = applyEvent(state, { type: 'delta', itemId: 'r', text: 'Hi' });
@@ -87,6 +89,7 @@ describe('applyEvent', () => {
 
     test("a stream of tool output and a sub-agent's words leaves the structure of a long thread as it was", () => {
         const thread: ChatItem[] = Array.from({ length: 5000 }, (_, i) => user(`u${i}`, `message ${i}`));
+
         const tool: ChatItem = {
             id: 'x',
             kind: 'tool',
@@ -99,11 +102,13 @@ describe('applyEvent', () => {
             output: null,
             parentToolUseId: null
         };
+
         const child: ChatItem = { id: 'c', kind: 'assistant', createdAt: 0, turnId: null, text: 'Reading', streaming: true, parentToolUseId: 'task-1' };
         const items = Object.fromEntries([...thread, tool, child].map((item) => [item.id, item]));
         const start: ChatState = { info: info(), items, structure: items, order: Object.keys(items) };
 
         let state = start;
+
         for (let i = 0; i < 500; i++) {
             state = applyEvent(state, { type: 'delta', itemId: 'x', text: `line ${i}\n` });
             state = applyEvent(state, { type: 'delta', itemId: 'c', text: '.' });
@@ -119,6 +124,7 @@ describe('applyEvent', () => {
     test('a reset replaces the items and their order along with the info', () => {
         const items = { a: user('a', 'old'), b: user('b', 'older') };
         const state: ChatState = { info: info(), items, structure: items, order: ['a', 'b'] };
+
         const cleared = info({
             agentSessionId: null,
             running: false,
@@ -127,6 +133,7 @@ describe('applyEvent', () => {
         });
 
         expect(applyEvent(state, { type: 'reset', info: cleared, items: [] })).toEqual({ info: cleared, items: {}, structure: {}, order: [] });
+
         expect(applyEvent(state, { type: 'reset', info: cleared, items: [user('c', 'new')] })).toEqual({
             info: cleared,
             items: { c: user('c', 'new') },
@@ -254,6 +261,7 @@ describe('a thread held from its newest page', () => {
         answers: null,
         state
     });
+
     const key = 'paged/chat-1';
     const newest = [user('u3', 'third'), user('u4', 'fourth')];
 
@@ -261,6 +269,7 @@ describe('a thread held from its newest page', () => {
         useChats.getState().reset(key, info(), newest, { history: { start: 2, cursor: 'g:2' }, pending: [question('q0', 'pending')] });
         const state = useChats.getState().byKey[key]!;
         useChats.getState().forget(key);
+
         return state;
     };
 
@@ -314,6 +323,7 @@ describe('a thread held from its newest page', () => {
     describe('with sub-agents from before it', () => {
         const subagent = (id: string, status: 'running' | 'done'): ChatSubagentItem =>
             ({ id, kind: 'subagent', createdAt: 0, turnId: null, toolUseId: id, status, finishedAt: status === 'done' ? 1 : null }) as ChatSubagentItem;
+
         const flyout = (state: ChatState) => flyoutSubagents([...(state.subagentsBefore ?? []), ...state.order], state.structure).map((item) => item.id);
 
         test('holds the ones the host sent outside the thread, where the flyout finds them', () => {
@@ -365,6 +375,7 @@ describe('chat replay publication', () => {
         const key = 'batch-replay';
         const sink = chatSink(() => key);
         const reply: ChatItem = { id: 'reply', kind: 'assistant', createdAt: 0, turnId: null, text: '', streaming: true };
+
         const tool: ChatItem = {
             id: 'tool',
             kind: 'tool',
@@ -377,10 +388,12 @@ describe('chat replay publication', () => {
             output: null,
             parentToolUseId: null
         };
+
         sink.reset('chat', info(), [reply, tool]);
         const previous = useChats.getState().byKey[key]!;
         let published = 0;
         const stop = useChats.subscribe(() => published++);
+
         try {
             sink.replay!('chat', [
                 { type: 'delta', itemId: 'reply', text: 'one' },
@@ -390,6 +403,7 @@ describe('chat replay publication', () => {
                 { type: 'delta', itemId: 'tool', text: 'x'.repeat(65536) },
                 { type: 'delta', itemId: 'tool', text: '😀' }
             ]);
+
             const next = useChats.getState().byKey[key]!;
             expect(published).toBe(1);
             expect(next.items.reply).toMatchObject({ text: 'one two three', uiQueries: { authorChatId: 'chat-1', blocks: {} } });
@@ -416,12 +430,14 @@ describe('chat replay publication', () => {
         const special = user('__proto__', 'A valid item id');
         sink.reset('chat', info(), [user('old', 'Previous history')]);
         const previous = useChats.getState().byKey[key]!;
+
         try {
             sink.replay!('chat', [
                 { type: 'item', item: user('first', 'Before reset') },
                 { type: 'reset', info: info(), items: [special] },
                 { type: 'item', item: { ...special, text: 'Updated' } }
             ]);
+
             const next = useChats.getState().byKey[key]!;
             expect(next.order).toEqual(['__proto__']);
             expect(Object.getPrototypeOf(next.items)).toBe(Object.prototype);

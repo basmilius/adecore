@@ -8,6 +8,7 @@ export interface ModelRequirement {
 
 function partsOf(version: string, strict: boolean): number[] | null {
     const found = (strict ? /^(\d+)\.(\d+)(?:\.(\d+))?$/ : /(\d+)\.(\d+)\.(\d+)/).exec(version);
+
     return found === null ? null : [Number(found[1]), Number(found[2]), Number(found[3] ?? 0)];
 }
 
@@ -24,13 +25,16 @@ function isReported(slug: string, reported: ReadonlySet<string>): boolean {
 export function modelRequirementOf(model: ModelInfo, provider: ProviderInfo, reported: ReadonlySet<string>): ModelRequirement | null {
     const minimum = model.minCliVersion === undefined ? null : partsOf(model.minCliVersion, true);
     const installed = provider.version === null ? null : partsOf(provider.version, false);
+
     if (minimum === null || installed === null || isReported(model.slug, reported)) {
         return null;
     }
+
     for (let i = 0; i < 3; i++) {
         if (installed[i] !== minimum[i]) {
             return (installed[i] ?? 0) > (minimum[i] ?? 0) ? null : { cli: provider.name, minVersion: model.minCliVersion ?? '' };
         }
     }
+
     return null;
 }

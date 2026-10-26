@@ -22,6 +22,7 @@ const approval: ChatApprovalItem = {
 
 test.skipIf(typeof document === 'undefined')('a child transcript leaves its waiting prompts to the main composer', async () => {
     const requests: Array<{ type: string; payload: unknown }> = [];
+
     const page: ChatSubagentResult = {
         items: [{ kind: 'note', id: 'working', createdAt: 0, turnId: null, level: 'info', text: 'Reviewing the changes' }],
         pending: [approval],
@@ -30,15 +31,18 @@ test.skipIf(typeof document === 'undefined')('a child transcript leaves its wait
         context: { provider: 'claude', cwd: '/child', chatId: 'hidden-child' },
         live: true
     };
+
     const transport = {
         status: 'open',
         request: async (type: string, payload: unknown) => {
             requests.push({ type, payload });
+
             return type === 'chat.subagent' ? page : {};
         },
         on: () => () => {},
         subscribeStatus: () => () => {}
     } as ChatTransport;
+
     const scope: ChatScope = {
         id: 'child-approval-test',
         keyOf: (id) => `child-approval-test/${id}`,
@@ -46,13 +50,16 @@ test.skipIf(typeof document === 'undefined')('a child transcript leaves its wait
         transport,
         chats: {} as ChatScope['chats']
     };
+
     const element = document.createElement('div');
     document.body.append(element);
     const root = createRoot(element);
+
     try {
         await act(async () => {
             root.render(createElement(ChatScopeContext.Provider, { value: scope }, createElement(SubagentTimeline, { chatId: 'parent', toolUseId: 'task' })));
         });
+
         expect(element.textContent).toContain('Reviewing the changes');
         expect(element.querySelector('.prompt-card')).toBeNull();
         expect(requests.filter((request) => request.type === 'chat.approve')).toEqual([]);
@@ -60,6 +67,7 @@ test.skipIf(typeof document === 'undefined')('a child transcript leaves its wait
         await act(async () => {
             root.unmount();
         });
+
         element.remove();
     }
 });

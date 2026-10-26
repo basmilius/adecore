@@ -11,13 +11,16 @@ import { splitMarkdownBlocks } from './markdown-blocks';
 /* Every block that is parsed goes through react-markdown once, so its calls count the parses a render does. */
 let parses = 0;
 const RealMarkdown = reactMarkdown.default;
+
 mock.module('react-markdown', () => ({
     ...reactMarkdown,
     default: function Markdown(options: Parameters<typeof RealMarkdown>[0]) {
         parses++;
+
         return RealMarkdown(options);
     }
 }));
+
 const { ReplyMarkdown } = await import('./Markdown');
 
 // A reference definition keeps a reply in one block, so the same reply goes through remark as a whole.
@@ -34,16 +37,21 @@ interface Rendered {
 /* A reply drawn to static markup, with the shell code blocks the host was asked to add actions to. */
 function renderReply(text: string, streaming: boolean): Rendered {
     const shell: ShellCodeBlockContext[] = [];
+
     const host: Partial<ChatHost> = {
         renderShellCodeBlock: (context) => {
             shell.push(context);
+
             return createElement('button', { 'data-language': context.language, 'data-code': context.code, 'data-complete': context.complete }, 'Run');
         }
     };
+
     const before = parses;
+
     const html = renderToStaticMarkup(
         createElement(ChatHostProvider, { host }, createElement(ReplyMarkdown, { text, streaming, reply: { ...REPLY, streaming } }))
     );
+
     return { html: normalized(html), shell, parses: parses - before };
 }
 
@@ -110,6 +118,7 @@ describe('a top-level code fence drawn without parsing', () => {
 
     test('every case but the ones markdown reads differently is drawn directly', () => {
         const remarked = new Set(['a backtick in the info string of a backtick fence']);
+
         for (const [name, text] of FENCES) {
             expect([name, splitMarkdownBlocks(text).some((block) => block.fence !== undefined)]).toEqual([name, !remarked.has(name)]);
         }
@@ -160,12 +169,14 @@ describe('a streaming reply in a page', () => {
         for (const name of fromPage) {
             Object.defineProperty(globalThis, name, { value: name === 'window' ? page.window : page.window[name], configurable: true });
         }
+
         Object.defineProperty(globalThis, 'IS_REACT_ACT_ENVIRONMENT', { value: true, configurable: true });
     });
 
     afterAll(() => {
         names.forEach((name, index) => {
             const descriptor = previous[index];
+
             if (descriptor === undefined) {
                 Reflect.deleteProperty(globalThis, name);
             } else {
@@ -187,6 +198,7 @@ describe('a streaming reply in a page', () => {
     async function mount(text: string): Promise<void> {
         root = createRoot(page.host);
         await show(text, true);
+
         // The lent highlighter arrives after the first frame.
         await act(async () => {
             await new Promise((resolve) => setTimeout(resolve, 0));
@@ -211,10 +223,12 @@ describe('a streaming reply in a page', () => {
         let text = `Intro.\n\n\`\`\`ts\n${Array.from({ length: count }, (_, index) => `const value${index} = ${index};`).join('\n')}\n`;
         await mount(text);
         const before = parses;
+
         for (let index = 0; index < 30; index++) {
             text += index % 5 === 4 ? '\n' : `word${index} `;
             await show(text, true);
         }
+
         expect(parses - before).toBe(0);
         expect(page.host.querySelectorAll('.chat-code .line')).toHaveLength(count + 6);
         await act(async () => root.unmount());

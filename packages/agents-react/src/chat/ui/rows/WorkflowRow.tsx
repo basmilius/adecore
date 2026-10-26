@@ -39,6 +39,7 @@ const TIME = 'shrink-0 text-xs text-text-faint tabular-nums';
 
 function Elapsed({ startedAt }: { startedAt: number }) {
     const ref = useTickingText(() => formatElapsedShort(Date.now() - startedAt));
+
     return <span ref={ref} className={TIME} />;
 }
 
@@ -49,6 +50,7 @@ function AgentLine({ view, provider, onOpen }: { view: WorkflowAgentView; provid
     const agentId = agent.agentId;
     // One still waiting has no transcript yet.
     const open = onOpen !== undefined && agentId !== null ? () => onOpen({ toolUseId: workflowAgentRef(agentId), description: agent.label }) : undefined;
+
     return (
         <button
             className="-mx-1 mb-0.5 flex w-[calc(100%+8px)] items-start gap-2 rounded-md px-1 py-1 text-left enabled:hover:bg-surface-hover"
@@ -87,6 +89,7 @@ function AgentLine({ view, provider, onOpen }: { view: WorkflowAgentView; provid
 function PhaseBlock({ phase, provider, onOpen }: { phase: WorkflowPhaseView; provider: AgentKind | undefined; onOpen?(step: SubagentStep): void }) {
     const { t } = useTranslation('agent-chat');
     const settled = phase.agents.filter((view) => view.state === 'done' || view.state === 'failed').length;
+
     return (
         <div className="mt-3">
             {phase.title !== null && (
@@ -106,11 +109,13 @@ function PhaseBlock({ phase, provider, onOpen }: { phase: WorkflowPhaseView; pro
 
 function Counts({ counts }: { counts: WorkflowCounts }) {
     const { t } = useTranslation('agent-chat');
+
     const parts = [
         { key: 'working', count: counts.running, tone: 'text-status-running' },
         { key: 'finished', count: counts.done, tone: 'text-status-idle' },
         { key: 'failedCount', count: counts.failed, tone: 'text-status-error' }
     ].filter((part) => part.count > 0);
+
     return (
         <span className="shrink-0 truncate text-xs text-text-faint tabular-nums">
             {t('rows.workflow.agents', { count: counts.total })}
@@ -150,6 +155,7 @@ export function WorkflowRow({
     const opens = hasToolBody(tool);
     const onOpen = refused ? undefined : onOpenAgent;
     const actions = useChatActions();
+
     const stop = (): void => {
         if (chatId && workflow.taskId) {
             void actions.stopTask(chatId, workflow.taskId).catch((error: unknown) => {
@@ -161,7 +167,9 @@ export function WorkflowRow({
             });
         }
     };
+
     const failed = tool.state === 'error';
+
     const header = (
         <>
             <span className={clsx(ROW_GUTTER, running && 'text-accent')}>
@@ -173,11 +181,13 @@ export function WorkflowRow({
             {opens && <Icon icon={ChevronRight} size={12} className={clsx('shrink-0 text-text-faint transition-transform', open && 'rotate-90')} />}
         </>
     );
+
     const headerClasses = clsx(
         '-mx-1 flex h-7 w-[calc(100%+8px)] min-w-0 items-center gap-2 rounded-md px-1 text-left text-xs',
         failed ? 'text-status-error' : 'text-text-muted',
         opens && 'hover:bg-surface-hover'
     );
+
     return (
         <div data-find-item={tool.id} className="mb-1">
             <div className="flex items-center gap-1">

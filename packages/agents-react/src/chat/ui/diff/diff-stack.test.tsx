@@ -53,13 +53,16 @@ async function mounted(run: (page: ReturnType<typeof createPage>, root: HostedRo
     Object.defineProperty(globalThis, 'customElements', { value: page.window.customElements, configurable: true });
     Object.defineProperty(globalThis, 'IS_REACT_ACT_ENVIRONMENT', { value: true, configurable: true });
     const root = hostedRoot(createRoot(page.host));
+
     try {
         await run(page, root);
     } finally {
         await act(async () => root.unmount());
         setHost({});
+
         names.forEach((name, index) => {
             const descriptor = previous[index];
+
             if (descriptor === undefined) {
                 Reflect.deleteProperty(globalThis, name);
             } else {
@@ -72,13 +75,17 @@ async function mounted(run: (page: ReturnType<typeof createPage>, root: HostedRo
 function frames(page: ReturnType<typeof createPage>) {
     const pending = new Map<number, FrameRequestCallback>();
     let index = 0;
+
     page.window.requestAnimationFrame = (callback) => {
         pending.set(++index, callback);
+
         return index;
     };
+
     page.window.cancelAnimationFrame = (handle) => {
         pending.delete(handle);
     };
+
     return async () => {
         const callbacks = [...pending.values()];
         pending.clear();
@@ -124,6 +131,7 @@ test('stacked reviews admit one editor per frame, retain stable entries and prom
 
 function OpenFiles({ entries }: { entries: readonly ReviewEntry[] }) {
     const stack = useReviewStack(entries);
+
     return (
         <>
             {entries.map((entry) => (
@@ -160,6 +168,7 @@ test('closing and reopening the changed-files card restarts its per-frame admiss
         const nextFrame = frames(page);
         const engine = new FakeEditorEngine();
         setHost({ code: { ...CODE, editor: async () => engine } });
+
         const scope: ChatScope = {
             id: 'review',
             keyOf: (id) => id,
@@ -167,6 +176,7 @@ test('closing and reopening the changed-files card restarts its per-frame admiss
             transport: {} as ChatScope['transport'],
             chats: {} as ChatScope['chats']
         };
+
         const tools: ChatToolItem[] = entries.map((entry, index) => ({
             id: `tool-${index}`,
             kind: 'tool',
@@ -179,6 +189,7 @@ test('closing and reopening the changed-files card restarts its per-frame admiss
             state: 'done',
             output: null
         }));
+
         await act(async () =>
             root.render(
                 <ChatScopeContext value={scope}>
@@ -186,6 +197,7 @@ test('closing and reopening the changed-files card restarts its per-frame admiss
                 </ChatScopeContext>
             )
         );
+
         const card = page.host.querySelector<HTMLButtonElement>('button[aria-expanded]')!;
         await act(async () => card.click());
         await act(async () => page.host.querySelectorAll<HTMLButtonElement>('button[data-file-path]').forEach((button) => button.click()));
@@ -204,10 +216,12 @@ test('closing and reopening the changed-files card restarts its per-frame admiss
 function delayedEngine() {
     let resolve!: (engine: EditorEngine) => void;
     let reject!: (error: Error) => void;
+
     const pending = new Promise<EditorEngine>((yes, no) => {
         resolve = yes;
         reject = no;
     });
+
     return { load: () => pending, resolve, reject };
 }
 
@@ -220,9 +234,11 @@ for (const strict of [false, true]) {
             setHost({ code: { ...CODE, editor: delayed.load } });
             const view = <DiffStack entries={entries} />;
             await act(async () => root.render(strict ? <StrictMode>{view}</StrictMode> : view));
+
             for (let index = 0; index < 3; index++) {
                 await nextFrame();
             }
+
             expect(engine.editors).toHaveLength(0);
             expect(page.host.querySelectorAll('[data-review-entry]')).toHaveLength(1);
             await act(async () => delayed.resolve(engine));
@@ -240,10 +256,12 @@ test('a rejected grouped engine settles its status before admitting the next rev
         const nextFrame = frames(page);
         const delayed = delayedEngine();
         setHost({ code: { ...CODE, editor: delayed.load } });
+
         const fallbackEntries = reviewEntries(
             entries.slice(1).map((entry) => ({ path: entry.path, kind: 'update', diff: 'raw fallback' })),
             [{ path: 'first.txt', before: 'old\n'.repeat(201), after: 'new\n'.repeat(201) }]
         );
+
         const ordered = [fallbackEntries.at(-1)!, ...fallbackEntries.slice(0, -1)];
         await act(async () => root.render(<DiffStack entries={ordered} />));
         await nextFrame();
@@ -262,15 +280,18 @@ test('an omitted head settles without loading an engine', async () => {
         const nextFrame = frames(page);
         const engine = new FakeEditorEngine();
         let loads = 0;
+
         setHost({
             code: {
                 ...CODE,
                 editor: async () => {
                     loads++;
+
                     return engine;
                 }
             }
         });
+
         const oversized = reviewEntries([], [{ path: 'long.txt', before: 'old', after: 'x'.repeat(10001) }]);
         await act(async () => root.render(<DiffStack entries={[...oversized, ...entries]} />));
         expect(loads).toBe(0);

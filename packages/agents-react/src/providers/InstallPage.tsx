@@ -13,6 +13,7 @@ import { CliMark } from './parts';
 function CommandBlock({ command }: { command: string }) {
     const { t } = useTranslation('agent-providers');
     const [copied, setCopied] = useState<string | null>(null);
+
     return (
         <div className="flex min-w-0 items-center gap-2 rounded-lg border border-border bg-surface-sunken py-1 pr-1 pl-3">
             <code className="min-w-0 grow font-mono text-code break-all text-text select-text">{command}</code>
@@ -58,6 +59,7 @@ function Step({ index, state, title, children }: { index: number; state: Install
 function SignInWay({ way, canRun, onRun }: { way: ProviderSignIn; canRun: boolean; onRun(command: string): void }) {
     const { t } = useTranslation('agent-providers');
     const { providerKeyNote } = useChatHost();
+
     switch (way.kind) {
         case 'command':
             return (
@@ -74,6 +76,7 @@ function SignInWay({ way, canRun, onRun }: { way: ProviderSignIn; canRun: boolea
             );
         case 'env': {
             const note = providerKeyNote?.(way.variable) ?? null;
+
             return (
                 <p className="text-xs text-text-muted">
                     <Trans
@@ -110,10 +113,13 @@ export function InstallPage({ provider, signedIn, extra }: InstallPageProps) {
     const platform = chosen ?? initial;
     const install = provider.install;
     const run = host.runProviderCommand;
+
     const onRun = (command: string): void => run?.(scopeId, provider.kind, command);
+
     const command = platform === null ? undefined : install?.commands[platform];
 
     const steps: { title: string; done: boolean; body: ReactNode }[] = [];
+
     steps.push({
         title: t('install.install.title'),
         done: provider.installed,
@@ -151,10 +157,13 @@ export function InstallPage({ provider, signedIn, extra }: InstallPageProps) {
             </>
         )
     });
+
     if (extra !== null) {
         steps.push(extra);
     }
+
     const ways = install?.signIn ?? [];
+
     steps.push({
         title: t('install.signIn.title'),
         done: provider.installed && signedIn,
@@ -170,11 +179,13 @@ export function InstallPage({ provider, signedIn, extra }: InstallPageProps) {
                 ))
             )
     });
+
     steps.push({
         title: t('install.start.title'),
         done: false,
         body: <p className="text-xs text-text-muted">{t('install.start.description', { provider: provider.name })}</p>
     });
+
     const states = installStepStates(steps.map((step) => step.done));
 
     return (

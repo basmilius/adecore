@@ -12,6 +12,7 @@ const EFFORT: ModelOptionDescriptor = {
     ],
     defaultChoice: 'high'
 };
+
 const FAST: ModelOptionDescriptor = { id: 'fast', label: 'Fast', type: 'boolean', defaultValue: true };
 
 function modelWith(options: ModelOptionDescriptor[]): ModelInfo {

@@ -29,9 +29,11 @@ export class VisualViewportController {
         this.observer.observe(scroller);
         this.attributes = new MutationObserver(this.onScroll);
         const row = box.closest('[data-index]');
+
         if (row) {
             this.attributes.observe(row, { attributes: true, attributeFilter: ['style'] });
         }
+
         scroller.addEventListener('scroll', this.onScroll, { passive: true });
         this.refresh();
     }
@@ -40,11 +42,13 @@ export class VisualViewportController {
         if (this.disposed) {
             return;
         }
+
         const top = this.offsetInScroller(this.scroller.getBoundingClientRect(), this.box.getBoundingClientRect());
         const available = this.scroller.clientHeight;
         const geometry = visualViewportGeometry(this.box.offsetHeight, available, top);
         this.viewport.style.height = `${geometry.height}px`;
         const key = `${geometry.top}:${geometry.height}`;
+
         if (key !== this.last) {
             this.last = key;
             this.bridge.setViewport(geometry);
@@ -54,14 +58,18 @@ export class VisualViewportController {
     scroll(request: VisualScrollRequest): void {
         const outer = this.scroller.getBoundingClientRect();
         const box = this.box.getBoundingClientRect();
+
         if (this.disposed || box.bottom <= outer.top || box.top >= outer.bottom) {
             return;
         }
+
         if ('by' in request) {
             this.pendingDelta += request.by;
             this.schedule();
+
             return;
         }
+
         this.pendingDelta = 0;
         const start = this.scroller.scrollTop + this.offsetInScroller(outer, box);
         const top = 'to' in request ? start + request.to : request.edge === 'start' ? 0 : this.scroller.scrollHeight;
@@ -82,6 +90,7 @@ export class VisualViewportController {
     private offsetInScroller(outer: DOMRect, box: DOMRect): number {
         // A chat on a canvas can be scaled; messages inside its frame use unscaled CSS pixels.
         const scale = outer.height / this.scroller.offsetHeight || 1;
+
         return (box.top - outer.top) / scale - this.scroller.clientTop;
     }
 
@@ -89,12 +98,15 @@ export class VisualViewportController {
         if (this.frame || this.disposed) {
             return;
         }
+
         this.frame = this.view.requestAnimationFrame(() => {
             this.frame = 0;
+
             if (this.pendingDelta !== 0) {
                 this.scroller.scrollBy({ top: this.pendingDelta, behavior: 'instant' });
                 this.pendingDelta = 0;
             }
+
             this.refresh();
         });
     }

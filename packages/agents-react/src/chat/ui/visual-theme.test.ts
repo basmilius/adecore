@@ -33,6 +33,7 @@ const LIGHT: Record<string, string> = {
 
 function tokens(values: Record<string, string>): VisualTokens {
     const read = (token: string): string => values[token] ?? '';
+
     return { color: read, length: read, value: read };
 }
 
@@ -43,6 +44,7 @@ describe('visualThemeOf', () => {
         const missing = VISUAL_THEME_VARIABLES.filter((name) => !(name in theme.variables));
         // Text on a warning or an info color has no token of its own, so the page's default stays.
         expect(missing).toEqual(['--warning-foreground', '--info-foreground']);
+
         expect(theme.variables).toMatchObject({
             '--background': 'rgb(250, 250, 250)',
             '--foreground': LIGHT['--text'],

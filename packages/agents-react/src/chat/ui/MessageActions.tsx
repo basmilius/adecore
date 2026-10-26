@@ -31,14 +31,19 @@ export function MessageActions({ chatId, row }: { chatId: string; row: MessageRo
     const bookmarks = useChatRow(chatId, (chat) => chat?.bookmarks);
     const info = useChatRow(chatId, (chat) => chat?.info ?? null);
     const turn = useChatRow(chatId, (chat) => (turnId === null ? undefined : chat?.structure[turnId]));
+
     const streaming = useChatRow(chatId, (chat) => {
         const item = chat?.items[row.id];
+
         return item?.kind === 'assistant' && item.streaming;
     });
+
     const hasText = useChatRow(chatId, (chat) => {
         const item = chat?.items[row.id];
+
         return (item?.kind === 'user' || item?.kind === 'assistant') && /\S/.test(item.text);
     });
+
     const bookmarked = bookmarks?.some((candidate) => candidate.itemId === row.id) === true;
     const canFork = turnId !== null && forkRefusal(info, turn) === null;
     const [copied, setCopied] = useState(false);
@@ -48,7 +53,9 @@ export function MessageActions({ chatId, row }: { chatId: string; row: MessageRo
         if (!copied) {
             return;
         }
+
         const timer = setTimeout(() => setCopied(false), COPIED_MS);
+
         return () => clearTimeout(timer);
     }, [copied]);
 
@@ -57,6 +64,7 @@ export function MessageActions({ chatId, row }: { chatId: string; row: MessageRo
         const item = useChats.getState().byKey[scope.keyOf(chatId)]?.items[row.id];
         const current = item?.kind === row.kind ? ({ ...row, item } as MessageRow) : row;
         const text = (plain ? null : markdownOf(current)) ?? messageTextOf(current);
+
         if (text !== null) {
             copyWithChips(messageClipboardChips(current.item, text, lookup));
             setCopied(true);

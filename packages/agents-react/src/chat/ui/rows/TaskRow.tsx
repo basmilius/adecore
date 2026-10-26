@@ -33,6 +33,7 @@ const STATE_TONE: Record<TaskRowState, string> = {
 
 function Elapsed({ startedAt }: { startedAt: number }) {
     const ref = useTickingText(() => formatElapsedShort(Date.now() - startedAt));
+
     return <span ref={ref} className="shrink-0 text-xs text-text-faint tabular-nums" />;
 }
 
@@ -40,6 +41,7 @@ function StateLine({ state, task }: { state: TaskRowState; task: SubagentTask | 
     const { t } = useTranslation('agent-chat');
     const until = state === 'paused' ? task?.paused?.until : undefined;
     const now = useNow(60_000, until !== undefined);
+
     return (
         <span className={clsx('truncate text-2xs', STATE_TONE[state])}>
             {until === undefined ? t(`rows.task.${state}`) : t('rows.task.pausedUntil', { time: formatMoment(until, now) })}
@@ -58,18 +60,23 @@ export function TaskRow({ item, task, open, onPress }: { item: ChatSubagentItem;
     const child = useChats((s) => (item.childId === undefined ? undefined : s.statusByKey[keyOf(item.childId)]?.info));
     const provider = child?.provider;
     const slug = child?.model ?? child?.selection.model ?? null;
+
     const model = useProviders((s) => {
         if (slug === null) {
             return null;
         }
+
         const models = s.providers.find((entry) => entry.kind === provider)?.models;
+
         return shortModelName(modelName(slug, models), models);
     });
+
     const state = taskRowStateOf(item, task, child);
     const title = item.description || t('rows.subagent.task');
     const startedAt = task?.createdAt ?? item.startedAt;
     const finishedAt = task === null ? item.finishedAt : (task.settledAt ?? item.finishedAt);
     const settled = state === 'done' || state === 'failed' || state === 'cancelled';
+
     return (
         <button className="-mx-1 mb-0.5 flex w-[calc(100%+8px)] items-start gap-2 rounded-md px-1 py-1 text-left hover:bg-surface-hover" onClick={onPress}>
             <span className={clsx(ROW_GUTTER, 'relative text-text')}>

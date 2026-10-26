@@ -24,15 +24,19 @@ class FakeMachine implements ChatTransport {
         if (type !== 'chat.subagent') {
             return Promise.reject(new ChatTransportError('unknown-request', type));
         }
+
         const asked = payload as ChatSubagentPayload;
         this.asked.push(asked);
         const failure = this.fail ?? this.failNext;
         this.failNext = null;
+
         if (failure) {
             return Promise.reject(failure);
         }
+
         const end = asked.cursor === undefined ? this.conversation.length : Number(asked.cursor);
         const start = Math.max(0, end - (asked.limit ?? 60));
+
         const result: ChatSubagentResult = {
             items: this.conversation.slice(start, end),
             history: { start, cursor: start > 0 ? String(start) : null },
@@ -41,6 +45,7 @@ class FakeMachine implements ChatTransport {
             ...(this.context ? { context: this.context } : {}),
             live: true
         };
+
         return Promise.resolve(result as ChatRequestMap[T]['result']);
     }
 
@@ -48,11 +53,13 @@ class FakeMachine implements ChatTransport {
         const set = this.handlers.get(event) ?? new Set();
         set.add(handler as (payload: unknown) => void);
         this.handlers.set(event, set);
+
         return () => set.delete(handler as (payload: unknown) => void);
     }
 
     subscribeStatus(handler: (status: ChatTransportStatus) => void): () => void {
         this.statusHandlers.add(handler);
+
         return () => this.statusHandlers.delete(handler);
     }
 
@@ -64,6 +71,7 @@ class FakeMachine implements ChatTransport {
 
     setStatus(status: ChatTransportStatus): void {
         this.status = status;
+
         for (const handler of this.statusHandlers) {
             handler(status);
         }
@@ -74,6 +82,7 @@ async function open(machine: FakeMachine): Promise<{ conversation: SubagentConve
     const states: SubagentConversationState[] = [];
     const conversation = new SubagentConversation(machine, 'chat-1', 'toolu_1', (state) => states.push(state));
     await conversation.start();
+
     return { conversation, states };
 }
 
@@ -104,6 +113,7 @@ describe('SubagentConversation', () => {
             canAllowAlways: false,
             decision: 'pending'
         };
+
         const machine = new FakeMachine();
         machine.conversation = [approval, ...Array.from({ length: 70 }, (_, i) => note(`n${i}`))];
         machine.pending = [approval];
@@ -117,6 +127,7 @@ describe('SubagentConversation', () => {
         expect(conversation.current.pending).toEqual([]);
         conversation.dispose();
     });
+
     test('keeps the child context through pagination and replaces it on a new read', async () => {
         const machine = new FakeMachine();
         machine.conversation = Array.from({ length: 70 }, (_, i) => note(`n${i}`));

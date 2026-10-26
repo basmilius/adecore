@@ -169,6 +169,7 @@ function withEditorGlobals(page: ReturnType<typeof createPage>): () => void {
         extend() {},
         setBaseAndExtent() {}
     };
+
     const document = page.document as unknown as Record<string, unknown>;
     const window = page.window as unknown as Record<string, unknown>;
     document.getSelection = () => selection;
@@ -179,6 +180,7 @@ function withEditorGlobals(page: ReturnType<typeof createPage>): () => void {
     // No frame ever comes, so the editor never measures a layout linkedom does not have.
     window.requestAnimationFrame = () => 0;
     window.cancelAnimationFrame = () => {};
+
     const fromPage = [
         'window',
         'document',
@@ -190,18 +192,24 @@ function withEditorGlobals(page: ReturnType<typeof createPage>): () => void {
         'cancelAnimationFrame',
         'MutationObserver'
     ];
+
     const names = [...fromPage, 'IS_REACT_ACT_ENVIRONMENT'];
     const previous = names.map((name) => Object.getOwnPropertyDescriptor(globalThis, name));
+
     for (const name of fromPage) {
         Object.defineProperty(globalThis, name, { value: name === 'window' ? page.window : window[name], configurable: true });
     }
+
     Object.defineProperty(globalThis, 'IS_REACT_ACT_ENVIRONMENT', { value: true, configurable: true });
+
     return () => {
         if (ownReader === undefined) {
             Reflect.deleteProperty(globalThis, 'FileReader');
         }
+
         names.forEach((name, index) => {
             const descriptor = previous[index];
+
             if (descriptor === undefined) {
                 Reflect.deleteProperty(globalThis, name);
             } else {
@@ -220,19 +228,25 @@ interface Fiber {
 
 function propsIn(container: object, ...path: string[]): Record<string, unknown> | null {
     const key = Object.keys(container).find((entry) => entry.startsWith('__reactContainer$'))!;
+
     const find = (fiber: Fiber | null, name: string): Fiber | null => {
         for (let node = fiber; node !== null; node = node.sibling) {
             const found = typeof node.type === 'function' && (node.type as { name: string }).name === name ? node : find(node.child, name);
+
             if (found !== null) {
                 return found;
             }
         }
+
         return null;
     };
+
     let fiber: Fiber | null = (container as Record<string, { stateNode: { current: Fiber } }>)[key]!.stateNode.current;
+
     for (const name of path) {
         fiber = find(fiber?.child ?? null, name);
     }
+
     return fiber?.memoizedProps ?? null;
 }
 
@@ -249,11 +263,13 @@ async function mount(options: Options = {}): Promise<Mounted> {
     cleanups.push(withEditorGlobals(page));
     const sent: Mounted['sent'] = [];
     const calls: Mounted['calls'] = [];
+
     const record =
         (name: string) =>
         async (...args: unknown[]): Promise<void> => {
             calls.push([name, ...args]);
         };
+
     const actions = {
         clear: record('clear'),
         stopTurn: record('stopTurn'),
@@ -264,7 +280,9 @@ async function mount(options: Options = {}): Promise<Mounted> {
         continueOn: record('continueOn'),
         ...options.actions
     } as ChatActions;
+
     const host: Partial<ChatHost> = { actions, isApplePlatform: () => true, ...options.host };
+
     const scope = {
         id: SCOPE_ID,
         keyOf: (chatId: string) => `${SCOPE_ID}/${chatId}`,
@@ -278,18 +296,24 @@ async function mount(options: Options = {}): Promise<Mounted> {
         },
         chats: { listSkills: async () => options.skills ?? [] }
     } as unknown as ChatScope;
+
     const info = options.info ?? infoOf();
     const own = providerOf(options.capabilities ?? {}, options.model);
+
     useProvidersStore
         .getState()
         .setProviders(SCOPE_ID, [own, ...(options.otherProviders ?? []).map(({ kind, name }) => ({ ...own, kind, name, models: [{ ...MODEL, slug: kind }] }))]);
+
     useChats.getState().reset(scope.keyOf(CHAT), info, options.items ?? []);
+
     if (options.accounts !== undefined) {
         useProviderAccountsStore.getState().set(SCOPE_ID, options.accounts);
     }
+
     if (options.limits !== undefined) {
         useUsageStore.getState().setLimits(SCOPE_ID, options.limits);
     }
+
     const element = (
         <ChatHostProvider host={host}>
             <ChatScopeContext.Provider value={scope}>
@@ -302,6 +326,7 @@ async function mount(options: Options = {}): Promise<Mounted> {
                     providerFixed={false}
                     onSend={(text, extras) => {
                         sent.push({ text, extras });
+
                         return options.onSend?.(text, extras);
                     }}
                     onRetarget={async () => undefined}
@@ -309,8 +334,10 @@ async function mount(options: Options = {}): Promise<Mounted> {
             </ChatScopeContext.Provider>
         </ChatHostProvider>
     );
+
     let root = createRoot(page.host);
     await act(async () => root.render(element));
+
     cleanups.push(async () => {
         await act(async () => root.unmount());
         useChats.getState().forget(scope.keyOf(CHAT));
@@ -319,14 +346,18 @@ async function mount(options: Options = {}): Promise<Mounted> {
         useUsageStore.getState().forget(SCOPE_ID);
         writeDraft(CHAT, EMPTY_DRAFT);
     });
+
     const view = (): EditorView => EditorView.findFromDOM(page.host.querySelector('.cm-content') as HTMLElement)!;
+
     const fire = async (target: Element, type: string, fields: Record<string, unknown>): Promise<void> => {
         const event = new page.window.Event(type, { bubbles: true, cancelable: true });
         Object.assign(event, fields);
+
         await act(async () => {
             target.dispatchEvent(event);
         });
     };
+
     return {
         page,
         sent,
@@ -360,6 +391,7 @@ async function mount(options: Options = {}): Promise<Mounted> {
             const container = page.document.createElement('div');
             page.document.body.appendChild(container);
             const drawn = createRoot(container);
+
             await act(async () =>
                 drawn.render(
                     <ChatHostProvider host={host}>
@@ -367,10 +399,12 @@ async function mount(options: Options = {}): Promise<Mounted> {
                     </ChatHostProvider>
                 )
             );
+
             cleanups.push(async () => {
                 await act(async () => drawn.unmount());
                 container.remove();
             });
+
             return container;
         },
         text: () => view().state.doc.toString(),
@@ -427,6 +461,7 @@ describe("the host's send actions", () => {
         return {
             useComposerSendActions: (scopeId, chatId) => {
                 asked.push([scopeId, chatId]);
+
                 return actions;
             }
         };
@@ -435,6 +470,7 @@ describe("the host's send actions", () => {
     async function menuRows(composer: Mounted): Promise<HTMLElement[]> {
         const popup = composer.propsOf('SendButton', 'MenuPopup') as { children: ReactNode };
         const drawn = await composer.draw(<Menu.Root>{popup.children}</Menu.Root>);
+
         return [...drawn.querySelectorAll<HTMLElement>('[role="menuitem"]')];
     }
 
@@ -449,10 +485,12 @@ describe("the host's send actions", () => {
     test('a chevron beside Send lists them in order, and a pick hands the draft over and keeps it', async () => {
         const asked: Array<[string, string]> = [];
         const ran: Array<[string, ComposerSendDraft]> = [];
+
         const actions: ComposerSendAction[] = [
             { id: 'repeat', label: 'Repeat…', run: (draft) => ran.push(['repeat', draft]) },
             { id: 'off', label: 'Not now', disabled: true, run: (draft) => ran.push(['off', draft]) }
         ];
+
         const composer = await mount({ host: hostWith(actions, asked) });
         expect(asked[0]).toEqual([SCOPE_ID, CHAT]);
         expect(composer.byLabel('More send options')?.getAttribute('aria-haspopup')).toBe('menu');
@@ -461,6 +499,7 @@ describe("the host's send actions", () => {
         expect(rows.map((row) => row.textContent?.trim())).toEqual(['Repeat…', 'Not now']);
         expect(rows[1]!.getAttribute('aria-disabled')).toBe('true');
         await composer.click(rows[0]!);
+
         expect(ran).toEqual([
             [
                 'repeat',
@@ -474,6 +513,7 @@ describe("the host's send actions", () => {
                 }
             ]
         ]);
+
         expect(composer.sent).toEqual([]);
         expect(composer.text()).toBe('  Check the build  ');
     });
@@ -534,6 +574,7 @@ describe('mentions', () => {
         expect(composer.text()).toBe('Read @src/lib/util.ts ');
         expect(composer.page.host.querySelector('[role="listbox"]')).toBeNull();
         await composer.press('Enter');
+
         expect(composer.sent[0]).toEqual({
             text: 'Read @src/lib/util.ts',
             extras: { delivery: 'queue', mentions: ['src/lib/util.ts'], skills: [], chats: [], attachments: [] }
@@ -606,6 +647,7 @@ describe('# references', () => {
         await composer.press('Enter');
         expect(composer.text()).toBe('Draw in #Sketch and #Research Q3 ');
         await composer.press('Enter');
+
         expect(composer.sent[0]).toEqual({
             text: 'Draw in #Sketch and #Research Q3',
             extras: { delivery: 'queue', mentions: [], skills: [], chats: ['view-q3'], attachments: [], references: ['view-sketch'] }
@@ -658,6 +700,7 @@ describe('# references', () => {
 /* What a copy or a paste reads and writes, by type, the way a browser's clipboard does. */
 function clipboardOf(entries: Record<string, string> = {}) {
     const data: Record<string, string> = { ...entries };
+
     return {
         data,
         files: [] as File[],
@@ -680,12 +723,14 @@ describe('copy and paste keep chips', () => {
         ],
         chatsOnly: false
     };
+
     const skills = [{ name: 'review', description: '' }] as ChatSkill[];
 
     test('a paste with the chips a copy carried makes those chips again, a chat apart from a view', async () => {
         const composer = await mount({ host: { useReferables: () => referables }, skills });
         await settle();
         const text = 'Read @src/a.ts with $review in #Admin panel and #Plan';
+
         const chips = {
             text,
             mentions: ['src/a.ts'],
@@ -695,11 +740,14 @@ describe('copy and paste keep chips', () => {
                 { id: 'chat-plan', name: 'Plan' }
             ]
         };
+
         await composer.fire(composer.view().contentDOM, 'paste', {
             clipboardData: clipboardOf({ 'text/plain': text, 'application/x-adecore-chips': JSON.stringify(chips) })
         });
+
         expect(composer.text()).toBe(text);
         await composer.press('Enter');
+
         expect(composer.sent[0]?.extras).toMatchObject({
             mentions: ['src/a.ts'],
             skills: ['review'],
@@ -729,6 +777,7 @@ describe('copy and paste keep chips', () => {
         const clipboardData = clipboardOf();
         await composer.fire(composer.view().contentDOM, 'copy', { clipboardData });
         expect(clipboardData.data['text/plain']).toBe('See #Admin panel');
+
         expect(JSON.parse(clipboardData.data['application/x-adecore-chips']!)).toEqual({
             text: 'See #Admin panel',
             mentions: [],
@@ -757,16 +806,19 @@ describe('skills and commands', () => {
 
     test('/ lists the commands, and /clear asks before it clears a chat whose turn is in the way', async () => {
         const calls: Array<[string, boolean]> = [];
+
         const composer = await mount({
             actions: {
                 clear: async (chatId: string, force: boolean) => {
                     calls.push([chatId, force]);
+
                     if (!force) {
                         throw new ChatTransportError('chat-busy', 'busy');
                     }
                 }
             }
         });
+
         await composer.type('/cl');
         const listbox = composer.page.host.querySelector('[role="listbox"]')!;
         expect(listbox.getAttribute('aria-label')).toBe('Commands');
@@ -780,6 +832,7 @@ describe('skills and commands', () => {
         expect(dialog.open).toBe(true);
         await act(() => dialog.onConfirm());
         expect((composer.propsOf('PromptDialog') as { open: boolean }).open).toBe(false);
+
         expect(calls).toEqual([
             [CHAT, false],
             [CHAT, true]
@@ -808,6 +861,7 @@ describe('drafts and history', () => {
             { id: 'one', kind: 'user', turnId: 'turn-1', createdAt: 1, text: 'First prompt' },
             { id: 'two', kind: 'user', turnId: 'turn-2', createdAt: 2, text: 'Second prompt' }
         ] as ChatItem[];
+
         const composer = await mount({ items });
         await composer.press('ArrowUp');
         expect(composer.text()).toBe('Second prompt');
@@ -842,6 +896,7 @@ describe('the stash', () => {
             createdAt: 1,
             references: []
         });
+
         const composer = await mount({ host: { useReferableChats: () => [{ id: 'other', title: 'Other chat' }] } });
         await composer.press('s', { metaKey: true, code: 'KeyS' });
         expect(composer.text()).toBe('See #Other chat there');
@@ -913,13 +968,16 @@ describe('continuing after a stop', () => {
 
     test('Continue waits while a configuration change is on its way', async () => {
         let finish: () => void = () => undefined;
+
         const composer = await mount({
             items: stopped,
             actions: { configure: () => new Promise<void>((resolve) => (finish = resolve)) }
         });
+
         await act(async () => {
             (composer.propsOf('RunSettings')!.onMode as (mode: string) => void)('auto');
         });
+
         expect(continueButton(composer)!.disabled).toBe(true);
         await act(async () => finish());
         expect(continueButton(composer)!.disabled).toBe(false);
@@ -930,11 +988,13 @@ describe('continuing after a stop', () => {
         await composer.type('Instead, do this');
         expect(composer.byLabel('Send')).not.toBeNull();
         expect(composer.page.host.textContent).not.toContain('Continue');
+
         // The editor's own Mod key follows the platform the tests run on, so the box is emptied by a change and not by Mod-a.
         await act(async () => {
             const view = composer.view();
             view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: '' }, userEvent: 'delete.selection' });
         });
+
         expect(composer.byLabel('Send')).toBeNull();
         expect(composer.page.host.textContent).toContain('Continue');
     });
@@ -1006,15 +1066,18 @@ describe('continuing on another account after a usage limit', () => {
         plan('claude_full', 0.1, { weekly: 1 }),
         plan('claude_new', 0, { checkedAt: 0 })
     ];
+
     const roomy: UsageLimitsSnapshot = { providers: [...spent, plan('claude_work', 0.6), plan('claude_home', 0.2)] };
 
     const continued = (composer: Mounted): unknown[] => composer.calls.filter(([name]) => name === 'continueOn').map(([, ...args]) => args);
+
     const continueButtons = (composer: Mounted): HTMLElement[] => [...composer.page.host.querySelectorAll<HTMLElement>('[aria-label^="Continue on"]')];
 
     /* The rows the chevron's menu holds, drawn as the open popup would draw them. */
     async function menuRows(composer: Mounted): Promise<HTMLElement[]> {
         const popup = composer.propsOf('ContinueOn', 'MenuPopup') as { children: ReactNode };
         const drawn = await composer.draw(<Menu.Root>{popup.children}</Menu.Root>);
+
         return [...drawn.querySelectorAll<HTMLElement>('[role="menuitem"]')];
     }
 
@@ -1037,9 +1100,11 @@ describe('continuing on another account after a usage limit', () => {
         expect(rows[1]!.textContent).toContain('60%');
         expect(rows[0]!.textContent).not.toContain('in a fork');
         expect(rows[1]!.textContent).toContain('in a fork');
+
         for (const name of ['Off', 'Out', 'Full', 'New']) {
             expect(rows.some((row) => row.textContent?.includes(name))).toBe(false);
         }
+
         await composer.click(rows[1]!);
         expect(continued(composer)).toEqual([[CHAT, 'claude_work']]);
     });
@@ -1059,6 +1124,7 @@ describe('continuing on another account after a usage limit', () => {
 
     test('a failed switch says so and leaves the bar to try again', async () => {
         const notices: ChatToast[] = [];
+
         const composer = await mount({
             info: limited,
             accounts,
@@ -1070,6 +1136,7 @@ describe('continuing on another account after a usage limit', () => {
                 }
             }
         });
+
         const rows = await menuRows(composer);
         await composer.click(rows[1]!);
         await settle();
@@ -1148,18 +1215,25 @@ describe('the surface around the text', () => {
     /* Counts the editor taking the focus; linkedom has no focus of its own. */
     const watchFocus = (composer: Mounted): { count: number } => {
         const focus = { count: 0 };
+
         composer.view().contentDOM.focus = () => {
             focus.count += 1;
         };
+
         return focus;
     };
+
     const surfaceOf = (composer: Mounted): HTMLElement => composer.page.host.querySelector('.composer-input')!.parentElement!.parentElement!;
+
     const press = async (composer: Mounted, target: Element): Promise<Event> => {
         let pressed: Event | null = null;
+
         target.addEventListener('mousedown', (event) => {
             pressed = event;
         });
+
         await composer.fire(target, 'mousedown', { button: 0 });
+
         return pressed!;
     };
 
@@ -1205,6 +1279,7 @@ describe('the surface around the text', () => {
         const composer = await mount({
             host: { ComposerSlot: () => <span data-composer-action>Playhead</span> }
         });
+
         const focus = watchFocus(composer);
         const event = await press(composer, composer.page.host.querySelector('[data-composer-action]')!);
         expect(event.defaultPrevented).toBe(false);
@@ -1236,9 +1311,11 @@ describe('the mode of a chat', () => {
     test('a mode picked in the composer changes this chat and leaves the default for new chats alone', async () => {
         rememberChatPreferences({ runtimeMode: 'full-access' });
         const composer = await mount();
+
         await act(async () => {
             (composer.propsOf('RunSettings')!.onMode as (mode: string) => void)('supervised');
         });
+
         await settle();
         expect(composer.calls).toContainEqual(['configure', CHAT, { runtimeMode: 'supervised' }]);
         expect(readChatPreferences().runtimeMode).toBe('full-access');
@@ -1250,10 +1327,13 @@ describe('a cold prompt cache', () => {
         const start = 1_800_000_000_000;
         jest.useFakeTimers();
         jest.setSystemTime(start);
+
         cleanups.push(() => {
             jest.useRealTimers();
         });
+
         const turn = { id: 'turn-1', kind: 'turn', createdAt: start - 60_000, turnId: 'turn-1', state: 'done', endedAt: start - 30_000, costUsd: 0 };
+
         const composer = await mount({
             capabilities: { compaction: 'prompt' },
             info: infoOf({
@@ -1261,10 +1341,13 @@ describe('a cold prompt cache', () => {
             }),
             items: [turn as ChatItem]
         });
+
         expect(composer.page.host.textContent).not.toContain('Cache expired');
+
         await act(async () => {
             jest.advanceTimersByTime(240_000);
         });
+
         expect(composer.page.host.textContent).toContain('Cache expired');
         const compact = [...composer.page.host.querySelectorAll('button')].find((button) => button.textContent === 'Compact')!;
         await composer.click(compact);
@@ -1293,9 +1376,11 @@ describe('stepping the reasoning effort', () => {
     test('a command of the host raises the effort of the chat on screen one step and says so', async () => {
         const composer = await mount({ model: thinking });
         let reached = false;
+
         await act(async () => {
             reached = stepEffortFromComposer(`${SCOPE_ID}/${CHAT}`, 'up');
         });
+
         await settle();
         expect(reached).toBe(true);
         expect(composer.calls).toContainEqual(['configure', CHAT, { selection: { model: 'model', options: { effort: 'high' } } }]);
@@ -1304,9 +1389,11 @@ describe('stepping the reasoning effort', () => {
 
     test('at the end of what the model offers nothing changes, and the composer says why', async () => {
         const composer = await mount({ model: thinking, info: infoOf({ selection: { model: 'model', options: { effort: 'low' } } }) });
+
         await act(async () => {
             stepEffortFromComposer(`${SCOPE_ID}/${CHAT}`, 'down');
         });
+
         expect(composer.calls.filter(([name]) => name === 'configure')).toEqual([]);
         expect(composer.page.host.textContent).toContain('Low is the least reasoning Model takes');
     });
@@ -1327,6 +1414,7 @@ describe('the model menu', () => {
                 { kind: 'antigravity', name: 'Antigravity' }
             ]
         });
+
         const popup = composer.propsOf('RunSettings', 'MenuPopup') as { children: ReactNode };
         // The model list only: the submenus after it draw nothing outside an open menu.
         const [rest] = Children.toArray(popup.children) as Array<ReactElement<{ children: ReactNode[] }>>;

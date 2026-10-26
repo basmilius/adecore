@@ -20,6 +20,7 @@ const SourceNumbers = createContext<ReadonlyMap<string, number>>(new Map());
 /* Plain text in the same measure until the node closes, so highlighting never makes it jump. */
 export function CodeBlockRenderer({ node }: UiRendererProps<UiProps<'CodeBlock'>>) {
     const { language } = node.props;
+
     return (
         <div className="chat-ui-code chat-ui-flat flex flex-col rounded-xl bg-ui-tile p-1.5">
             {language !== undefined && language !== '' && (
@@ -57,9 +58,11 @@ function AttachedImage({
     unnamed: boolean;
 }) {
     const source = useHostAttachmentUrl(scopeId, chatId, attachmentId);
+
     if (!cell) {
         return <ImageThumb source={source} alt={alt} className="max-h-70 max-w-full rounded-xl object-contain" />;
     }
+
     return (
         <>
             <ImageThumb source={source} alt={alt} aspect={1} />
@@ -78,6 +81,7 @@ export function ImageRenderer({ node, children, context }: UiRendererProps<UiPro
     const { attachment, alt } = node.props;
     const caption = uiNodeLabel(node);
     const name = alt ?? (caption === '' ? t('blocks.image.label') : caption);
+
     return (
         <figure className={cell ? 'flex min-w-0 flex-col gap-1' : 'flex flex-col items-start gap-1.5'}>
             {attachment === undefined ? (
@@ -96,6 +100,7 @@ export function ImageRenderer({ node, children, context }: UiRendererProps<UiPro
 /* Three columns, two in a narrow block; the container decides, not the window, since a chat can be any width. */
 export function GalleryRenderer({ node, children }: UiRendererProps<UiProps<'Gallery'>>) {
     const { t } = useTranslation('agent-chat');
+
     return (
         <GalleryContext value>
             <div role="group" aria-label={t('blocks.gallery.label', { count: uiChildrenOf(node, 'Image').length })} className="@container">
@@ -125,11 +130,15 @@ export function CompareRenderer({ node, children, context }: UiRendererProps<UiP
     const [split, setSplit] = useState(0.5);
     const [aspect, setAspect] = useState(COMPARE_ASPECT);
     const caption = uiNodeLabel(node);
+
     // Each picture is named by its side and by what the whole comparison shows.
     const describe = (side: string): string => (caption === '' ? side : `${side}: ${caption}`);
+
     const loading = (source: typeof first) => source.url === null && source.failure === null;
+
     const label = t('blocks.compare.label', { before: beforeLabel, after: afterLabel });
     let body: ReactNode;
+
     if (loading(first) || loading(second)) {
         body = <ImageThumb source={{ url: null, failure: null }} alt={label} aspect={COMPARE_ASPECT} />;
     } else if (first.url !== null && second.url !== null) {
@@ -151,6 +160,7 @@ export function CompareRenderer({ node, children, context }: UiRendererProps<UiP
                             className="size-full object-contain select-none"
                             onLoad={(event) => {
                                 const { naturalWidth, naturalHeight } = event.currentTarget;
+
                                 if (naturalWidth > 0 && naturalHeight > 0) {
                                     setAspect(naturalWidth / naturalHeight);
                                 }
@@ -167,6 +177,7 @@ export function CompareRenderer({ node, children, context }: UiRendererProps<UiP
         body = <ImageThumb source={first} alt={label} aspect={COMPARE_ASPECT} />;
     } else {
         const shown = first.url !== null ? { source: first, name: describe(beforeLabel) } : { source: second, name: describe(afterLabel) };
+
         body = (
             <>
                 <ImageThumb source={shown.source} alt={shown.name} className="max-h-70 max-w-full object-contain" />
@@ -174,6 +185,7 @@ export function CompareRenderer({ node, children, context }: UiRendererProps<UiP
             </>
         );
     }
+
     return (
         <figure className="flex w-full flex-col items-start gap-1.5">
             {body}
@@ -209,6 +221,7 @@ export function ModelRenderer({ node, children, context }: UiRendererProps<UiPro
     const label = alt ?? (caption === '' ? t('blocks.model.label') : caption);
     const View = host.ModelView;
     let body: ReactNode;
+
     if (View !== undefined && source.url !== null) {
         body = (
             <div role="group" aria-label={label} className="relative h-80 w-full overflow-hidden rounded-xl bg-ui-tile">
@@ -236,6 +249,7 @@ export function ModelRenderer({ node, children, context }: UiRendererProps<UiPro
             </div>
         );
     }
+
     return (
         <figure className="flex w-full flex-col items-start gap-1.5">
             {body}
@@ -248,6 +262,7 @@ export function SourcesRenderer({ node, children }: UiRendererProps<UiProps<'Sou
     const { t } = useTranslation('agent-chat');
     const headingId = useId();
     const numbers = new Map(uiChildrenOf(node, 'Source').map((source, index) => [source.id, index + 1]));
+
     return (
         <SourceNumbers value={numbers}>
             <section aria-labelledby={headingId} className="chat-ui-flat flex flex-col rounded-xl bg-ui-tile p-1.5">
@@ -277,6 +292,7 @@ export interface UiSourceCitationProps {
  */
 export function UiSourceCitation({ number, title, url, onReveal, className }: UiSourceCitationProps) {
     const { t } = useTranslation('agent-chat');
+
     return (
         <PreviewCard.Root>
             <PreviewCard.Trigger
@@ -310,6 +326,7 @@ export function SourceRenderer({ node, context }: UiRendererProps<UiProps<'Sourc
     const { title, url } = node.props;
     const { openUrl } = context;
     const [measureDomain, domainCut] = useTruncated<HTMLSpanElement>();
+
     const face = (
         <>
             <span className="grid size-5 shrink-0 place-items-center rounded-md bg-ui-inset text-2xs font-semibold text-text tabular-nums">{number}</span>
@@ -321,6 +338,7 @@ export function SourceRenderer({ node, context }: UiRendererProps<UiProps<'Sourc
             </span>
         </>
     );
+
     return (
         <li data-ui-source={node.id} tabIndex={-1} className="chat-ui-source scroll-my-2 rounded-md">
             {/* The title wraps and the domain may be cut short, so the tooltip says both whole; a row that opens nothing takes focus only while it cuts. */}

@@ -67,21 +67,27 @@ export function withTimedRows(rows: TimelineRow[], timed: readonly TimedRow[]): 
     if (timed.length === 0) {
         return rows;
     }
+
     // Sorting is stable, which is what keeps rows of the same moment in the order they came.
     const pending = [...timed].sort((first, second) => first.at - second.at);
     const merged: TimelineRow[] = [];
     let next = 0;
+
     for (const row of rows) {
         const time = rowTime(row);
+
         while (time !== null && next < pending.length && pending[next]!.at < time) {
             merged.push(pending[next]!.row);
             next += 1;
         }
+
         merged.push(row);
     }
+
     for (; next < pending.length; next++) {
         merged.push(pending[next]!.row);
     }
+
     return merged;
 }
 

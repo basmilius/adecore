@@ -19,6 +19,7 @@ test('importing the public diff views does not load Pierre or the legacy rendere
         }
         if (!blocked) throw new Error('legacy import guard did not run');
     `;
+
     const child = Bun.spawn([process.execPath, '--conditions=source', '-e', script], { stdout: 'pipe', stderr: 'pipe' });
     const [code, error] = await Promise.all([child.exited, new Response(child.stderr).text()]);
     expect(error).toBe('');

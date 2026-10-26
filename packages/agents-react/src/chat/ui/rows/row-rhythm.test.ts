@@ -6,18 +6,23 @@ import { replyHeader, rowRhythm } from './row-rhythm';
 function user(id: string, createdAt = 0): TimelineRow {
     return { kind: 'user', id, item: { id, kind: 'user', createdAt } as ChatUserItem };
 }
+
 function opener(id: string, createdAt: number): TimelineRow {
     return { kind: 'turn-start', id, label: '', turn: { id, kind: 'turn', createdAt } as ChatTurnItem };
 }
+
 function prose(id: string): TimelineRow {
     return { kind: 'assistant', id, item: { id, kind: 'assistant' } as ChatAssistantItem };
 }
+
 function call(id: string): TimelineRow {
     return { kind: 'work', id, tool: { id, kind: 'tool' } as ChatToolItem };
 }
+
 function visual(id: string): TimelineRow {
     return { kind: 'visual', id, visual: { id } as ChatVisual };
 }
+
 function card(id: string): TimelineRow {
     return { kind: 'app-card', id, card: { id, at: 0, render: () => null } };
 }

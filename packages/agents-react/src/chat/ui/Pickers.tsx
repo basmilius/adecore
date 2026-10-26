@@ -77,19 +77,26 @@ export function ModelPicker({
     const trimmed = query.trim().toLowerCase();
 
     const favorites = useChatPreferences((preferences) => preferences.favoriteModels);
+
     const starredHere = (row: PickerEntry | undefined): boolean => row?.kind === 'model' && favorites[row.provider.kind]?.includes(row.model.slug) === true;
+
     const entries = pickerEntriesOf(inPickerOrder(providers), trimmed, legacyOpen, expanded, { provider, model: selection.model }, (kind) =>
         favoriteModelsOf(favorites, kind)
     );
+
     const scope = useContext(ChatScopeContext);
     const machine = useHostMachineLabel(scope?.id ?? '');
     const reported = useReportedModels(provider);
+
     const requirementOf = (entry: PickerEntry & { kind: 'model' }) => modelRequirementOf(entry.model, entry.provider, reported);
+
     // A CLI that is too old blocks all its models; one way to its settings under the group says it once.
     const kindBefore = (i: number): AgentKind | undefined => {
         const before = entries[i - 1];
+
         return before === undefined || before.kind === 'legacy' ? undefined : before.provider.kind;
     };
+
     const blockedKinds = new Set(entries.flatMap((entry) => (entry.kind === 'model' && requirementOf(entry) !== null ? [entry.provider.kind] : [])));
 
     /* Closing forgets the search, so the next open (a click or `/model`) starts on the whole list. */
@@ -99,6 +106,7 @@ export function ModelPicker({
             setLegacyOpen(false);
             setExpanded(new Set());
         }
+
         setIndex(0);
         onOpenChange(next);
     };
@@ -112,26 +120,36 @@ export function ModelPicker({
         if (!entry) {
             return;
         }
+
         if (entry.kind === 'legacy') {
             setLegacyOpen(true);
             inputRef.current?.focus();
+
             return;
         }
+
         if (entry.kind === 'all') {
             const kind = entry.provider.kind;
+
             setExpanded((now) => {
                 const next = new Set(now);
+
                 if (!next.delete(kind)) {
                     next.add(kind);
                 }
+
                 return next;
             });
+
             inputRef.current?.focus();
+
             return;
         }
+
         if (requirementOf(entry) !== null) {
             return;
         }
+
         onChange(entry.provider.kind, entry.model.slug);
         setOpen(false);
     };
@@ -193,6 +211,7 @@ export function ModelPicker({
                         if (entry.kind === 'all') {
                             const before = entries[i - 1];
                             const header = grouped && (before === undefined || before.kind === 'legacy' || before.provider.kind !== entry.provider.kind);
+
                             return (
                                 <div key={`all-${entry.provider.kind}`}>
                                     {separatesGroups(kindBefore(i), entry.provider.kind) && <Menu.Separator />}
@@ -215,6 +234,7 @@ export function ModelPicker({
                                 </div>
                             );
                         }
+
                         if (entry.kind === 'legacy') {
                             return (
                                 <button
@@ -229,11 +249,13 @@ export function ModelPicker({
                                 </button>
                             );
                         }
+
                         const previous = entries[i - 1];
                         // A provider's rows start where the one before it ended; its row that opens the rest belongs to it.
                         const first = grouped && (previous === undefined || previous.kind === 'legacy' || previous.provider.kind !== entry.provider.kind);
                         // The makers read as groups only where the whole list is shown, so a short list is not cut by labels.
                         const vendorOpen = trimmed !== '' || expanded.has(entry.provider.kind);
+
                         // The starred rows lead their CLI without a maker's label; the makers start after them.
                         const vendorFirst =
                             vendorOpen &&
@@ -244,11 +266,13 @@ export function ModelPicker({
                                 previous.provider.kind !== entry.provider.kind ||
                                 starredHere(previous) ||
                                 previous.model.vendor !== entry.model.vendor);
+
                         const requirement = requirementOf(entry);
                         const next = entries[i + 1];
                         const lastOfGroup = next === undefined || next.kind !== 'model' || next.provider.kind !== entry.provider.kind;
                         const chosen = entry.provider.kind === provider && entry.model.slug === selection.model;
                         const starred = starredHere(entry);
+
                         return (
                             <div key={`${entry.provider.kind}/${entry.model.slug}`}>
                                 {separatesGroups(kindBefore(i), entry.provider.kind) && <Menu.Separator />}
@@ -325,9 +349,11 @@ export function ModelPicker({
 export function StashPicker({ onRestore }: { onRestore(prompt: StashedPrompt): void }) {
     const { t } = useTranslation('agent-chat');
     const prompts = useStash((s) => s.prompts);
+
     if (prompts.length === 0) {
         return null;
     }
+
     return (
         <Popover.Root>
             <Tooltip label={t('pickers.stash.title')} kbd={STASH_SHORTCUT}>

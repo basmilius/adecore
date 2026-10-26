@@ -30,6 +30,7 @@ export function stepIndex(index: number, count: number, to: ListStep): number {
     if (count === 0) {
         return -1;
     }
+
     switch (to) {
         case 'first':
             return 0;
@@ -50,19 +51,25 @@ export function choiceKey(event: PromptKeyEvent, { multiSelect, anyChosen }: { m
     if (!isPlain(event)) {
         return null;
     }
+
     const step = LIST_KEYS[event.key];
+
     if (step) {
         return { kind: 'move', to: step };
     }
+
     if (event.code === 'Space') {
         return { kind: 'pick' };
     }
+
     if (event.key === 'Enter') {
         if (!multiSelect) {
             return { kind: 'pick-and-commit' };
         }
+
         return anyChosen ? { kind: 'commit' } : { kind: 'pick' };
     }
+
     return null;
 }
 
@@ -74,13 +81,16 @@ export function answerFieldKey(
     if (!isPlain(event)) {
         return null;
     }
+
     if (event.key === 'ArrowUp' && belowChoices && caretAtStart) {
         return { kind: 'to-last-choice' };
     }
+
     if (event.key === 'Enter') {
         // An empty answer is not sent, and an empty line in front of the answer is never what Enter meant.
         return hasText ? { kind: 'commit' } : { kind: 'ignore' };
     }
+
     return null;
 }
 
@@ -101,9 +111,11 @@ export function pageKey(event: PromptKeyEvent, apple: boolean, typing: boolean):
     if (typing || event.isComposing) {
         return null;
     }
+
     if (matchesShortcut(PROMPT_SHORTCUTS.previousPrompt, event, apple)) {
         return -1;
     }
+
     return matchesShortcut(PROMPT_SHORTCUTS.nextPrompt, event, apple) ? 1 : null;
 }
 

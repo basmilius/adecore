@@ -21,11 +21,13 @@ test('an oversized first entry keeps its own gates and consumes the group budget
             { path: 'small.txt', before: 'old', after: 'new' }
         ]
     );
+
     expect([...planReview(entries, null).values()]).toEqual(['editor', 'deferred']);
 });
 
 test('promoting a deferred review gives it the first slot without exceeding the group limit', () => {
     const entries = edits(5);
+
     expect([...planReview(entries, entries[4]!.key)]).toEqual([
         [entries[4]!.key, 'editor'],
         [entries[0]!.key, 'editor'],
@@ -33,6 +35,7 @@ test('promoting a deferred review gives it the first slot without exceeding the 
         [entries[2]!.key, 'deferred'],
         [entries[3]!.key, 'deferred']
     ]);
+
     expect([...planReview([...entries], entries[4]!.key)]).toEqual([...planReview(entries, entries[4]!.key)]);
 });
 
@@ -44,6 +47,7 @@ test('row and character estimates bound combined reviews without computing diffs
             { path: 'b.txt', before: 'one', after: 'two' }
         ]
     );
+
     expect(reviewSize(entries[0]!)).toEqual({ rows: 4, characters: 16 });
     expect([...planReview(entries, null, { editors: 3, rows: 5, characters: 100 }).values()]).toEqual(['editor', 'deferred']);
     expect([...planReview(entries, null, { editors: 3, rows: 100, characters: 20 }).values()]).toEqual(['editor', 'deferred']);

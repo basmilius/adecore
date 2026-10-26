@@ -11,6 +11,7 @@ const endpoints: ChatQuestion = {
         { label: 'Only chat and files', description: 'Keep terminal retries separate' }
     ]
 };
+
 const checks: ChatQuestion = {
     id: 'checks',
     header: 'Validation',
@@ -22,10 +23,13 @@ const checks: ChatQuestion = {
         { label: 'Build', description: 'Verify the production bundle' }
     ]
 };
+
 const notes: ChatQuestion = { id: 'notes', header: 'Instructions', question: 'What else should the agent keep in mind?', multiSelect: false, choices: [] };
+
 function base(id: string) {
     return { id: `preview-${id}`, requestId: `preview-${id}`, createdAt: 0, turnId: null };
 }
+
 function question(id: string, questions: ChatQuestion[], async = false): ChatQuestionItem {
     return {
         ...base(id),
@@ -36,6 +40,7 @@ function question(id: string, questions: ChatQuestion[], async = false): ChatQue
         async
     };
 }
+
 function approval(long = false): ChatApprovalItem {
     return {
         ...base(long ? 'long' : 'edit'),

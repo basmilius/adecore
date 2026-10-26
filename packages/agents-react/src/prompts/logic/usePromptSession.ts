@@ -43,13 +43,16 @@ export function usePromptSession<T>({ prompts, idOf, pick, disabled }: PromptSes
     const busy = useRef(false);
     const pressedRequest = useRef<string | null>(null);
     const stillCompleted = completed.filter((id) => prompts.some((prompt) => idOf(prompt) === id));
+
     if (stillCompleted.length !== completed.length) {
         setCompleted(stillCompleted);
     }
+
     const waiting = prompts.filter((prompt) => !completed.includes(idOf(prompt)));
     const active = pick(waiting, activeId, activeIndex);
     const activeKey = active === null ? null : idOf(active);
     const index = active === null ? 0 : waiting.indexOf(active);
+
     if (index !== activeIndex) {
         setActiveIndex(index);
     }
@@ -61,32 +64,40 @@ export function usePromptSession<T>({ prompts, idOf, pick, disabled }: PromptSes
 
     const finish = (id: string) => {
         setCompleted((current) => [...current, id]);
+
         setDrafts((current) => {
             const next = { ...current };
             delete next[id];
+
             return next;
         });
     };
+
     const act = async (prompt: T, send: () => Promise<void>): Promise<'sent' | 'failed' | 'busy'> => {
         if (busy.current || disabled) {
             return 'busy';
         }
+
         const id = idOf(prompt);
         busy.current = true;
         setSending(true);
         setError(null);
+
         try {
             await send();
             finish(id);
+
             return 'sent';
         } catch (cause) {
             setError({ id, message: errorMessage(cause) });
+
             return 'failed';
         } finally {
             busy.current = false;
             setSending(false);
         }
     };
+
     return {
         active,
         activeId: activeKey,

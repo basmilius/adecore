@@ -32,6 +32,7 @@ describe('groupProviders', () => {
             [providerOf('acme')],
             accountsOf(statusOf('acme', 'acme', 'ready', 'max'), statusOf('acme_work', 'acme', 'ready', 'pro'))
         );
+
         expect(groups.ready[0]!.entries).toHaveLength(2);
         expect(groups.ready[0]!.note).toBeNull();
     });
@@ -41,6 +42,7 @@ describe('groupProviders', () => {
             [providerOf('acme'), providerOf('beta')],
             accountsOf(statusOf('acme', 'acme', 'signed-out'), statusOf('acme_work', 'acme', 'ready'), statusOf('beta', 'beta', 'checking'))
         );
+
         expect(kindsOf(groups.ready)).toEqual(['acme', 'beta']);
         expect(groups.setup).toEqual([]);
     });
@@ -56,7 +58,9 @@ describe('groupProviders', () => {
             [providerOf('acme'), providerOf('beta')],
             accountsOf(statusOf('acme', 'acme', 'signed-out'), statusOf('beta', 'beta', 'failed'))
         );
+
         expect(groups.ready).toEqual([]);
+
         expect(groups.setup.map((row) => row.note)).toEqual([
             { text: 'Not logged in', tone: 'warning' },
             { text: 'Check failed', tone: 'warning' }
@@ -65,9 +69,11 @@ describe('groupProviders', () => {
 
     test('what the host says comes before what the accounts say', () => {
         const local = providerOf('local', { installed: false, capabilities: { terminal: false } as ProviderInfo['capabilities'] });
+
         const groups = groupProviders([providerOf('acme'), local], accountsOf(statusOf('acme', 'acme', 'ready', 'max')), (provider) =>
             provider.kind === 'local' ? { text: 'Off', tone: 'muted' } : null
         );
+
         expect(kindsOf(groups.ready)).toEqual(['acme']);
         expect(kindsOf(groups.setup)).toEqual(['local']);
         expect(groups.setup[0]!.note).toEqual({ text: 'Off', tone: 'muted' });

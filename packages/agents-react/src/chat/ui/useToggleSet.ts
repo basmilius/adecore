@@ -18,13 +18,16 @@ export function useToggleSet(onToggle?: () => void): ToggleSet {
     const toggle = (id: string): void => {
         setIds((current) => {
             const next = new Set(current);
+
             if (next.has(id)) {
                 next.delete(id);
             } else {
                 next.add(id);
             }
+
             return next;
         });
+
         onToggle?.();
     };
 

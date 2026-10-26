@@ -25,11 +25,13 @@ export const useTimelineFlash = create<TimelineFlashStore>((set, get) => ({
     flash(key, rowId, opens, block) {
         const nonce = (get().target?.nonce ?? 0) + 1;
         set({ target: { key, rowId, opens, nonce, ...(block ? { block } : {}) } });
+
         const timer = setTimeout(() => {
             if (get().target?.nonce === nonce) {
                 set({ target: null });
             }
         }, FLASH_MS);
+
         (timer as { unref?: () => void }).unref?.();
     }
 }));

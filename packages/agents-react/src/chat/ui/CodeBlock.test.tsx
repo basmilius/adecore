@@ -31,24 +31,30 @@ test('a code block draws with the highlighter the host lends, without loading wh
     const asked: string[] = [];
     const lent = hostHighlighter(asked);
     let borrowed = 0;
+
     const code: ChatHost['code'] = {
         useMode: () => 'light',
         useThemes: () => ({ light: 'github-light', dark: 'github-dark' }),
         custom: [],
         highlighter: async () => {
             borrowed += 1;
+
             return lent;
         }
     };
+
     const page = createPage();
     const fromPage = ['window', 'document', 'Node', 'Element', 'HTMLElement'] as const;
     const names = [...fromPage, 'IS_REACT_ACT_ENVIRONMENT'] as const;
     const previous = names.map((name) => Object.getOwnPropertyDescriptor(globalThis, name));
+
     for (const name of fromPage) {
         Object.defineProperty(globalThis, name, { value: name === 'window' ? page.window : page.window[name], configurable: true });
     }
+
     Object.defineProperty(globalThis, 'IS_REACT_ACT_ENVIRONMENT', { value: true, configurable: true });
     const root = createRoot(page.host);
+
     try {
         await act(async () =>
             root.render(
@@ -57,17 +63,21 @@ test('a code block draws with the highlighter the host lends, without loading wh
                 </ChatHostProvider>
             )
         );
+
         await act(async () => {
             await new Promise((resolve) => setTimeout(resolve, 0));
         });
+
         const colored = [...page.host.querySelectorAll('pre span')].filter((span) => span.getAttribute('style')?.includes(HOST_COLOR));
         expect(colored.map((span) => span.textContent)).toEqual(['const answer = 42;', 'export { answer };']);
         expect(borrowed).toBe(1);
         expect(asked).toEqual([]);
     } finally {
         await act(async () => root.unmount());
+
         names.forEach((name, index) => {
             const descriptor = previous[index];
+
             if (descriptor === undefined) {
                 Reflect.deleteProperty(globalThis, name);
             } else {

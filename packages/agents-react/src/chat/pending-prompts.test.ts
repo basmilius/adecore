@@ -7,16 +7,21 @@ import { PROMPT_SAMPLES } from '../testing/prompts';
 import { ChatPromptFeed } from './pending-prompts';
 
 const APPROVAL = PROMPT_SAMPLES.find((sample) => sample.label === 'Permission · Command')!.items[0]!;
+
 const keyOf = (id: string) => `prompt-feed/${id}`;
+
 const info = (chatId: string, waiting = true): ChatInfo => ({ chatId, provider: 'grok', status: waiting ? 'needs-you' : 'running' }) as ChatInfo;
+
 const child = (childId: string): ChatSubagentItem =>
     ({ kind: 'subagent', id: `spawn-${childId}`, childId, description: childId, status: 'running' }) as ChatSubagentItem;
+
 const cleanups: Array<() => void> = [];
 
 afterEach(() => {
     for (const cleanup of cleanups.splice(0)) {
         cleanup();
     }
+
     useChats.getState().forgetWhere((key) => key.startsWith('prompt-feed/') || key.startsWith('other-feed/'));
 });
 
@@ -24,22 +29,27 @@ function follow() {
     const held: string[] = [];
     const released: string[] = [];
     let subjects: PromptSubject[] = [];
+
     const scope = {
         keyOf,
         chats: {
             observe: (id: string) => {
                 held.push(id);
+
                 return () => {
                     released.push(id);
                 };
             }
         }
     } as unknown as ChatScope;
+
     const feed = new ChatPromptFeed(scope, 'main', (next) => {
         subjects = next;
     });
+
     cleanups.push(() => feed.dispose());
     feed.start();
+
     return { feed, held, released, subjects: () => subjects };
 }
 
@@ -52,10 +62,12 @@ test('follows later descendants and paged requests, keeps their recipients apart
     useChats
         .getState()
         .reset(keyOf('first'), info('first'), [], { history: { start: 20, cursor: 'older' }, pending: [APPROVAL], subagents: [child('nested')] });
+
     useChats.getState().reset('other-feed/nested', info('nested'), [APPROVAL]);
     expect(following.held).toEqual(['first', 'nested']);
     expect(following.subjects()).toHaveLength(2);
     useChats.getState().reset(keyOf('nested'), info('nested'), [APPROVAL]);
+
     expect(following.subjects()).toEqual([
         { kind: 'chat', nodeId: 'main', item: APPROVAL },
         { kind: 'chat', nodeId: 'first', item: APPROVAL, source: { label: 'first', provider: 'grok' } },

@@ -23,8 +23,10 @@ export const ChatScopeContext = createContext<ChatScope | null>(null);
 /* Throws outside a scope on purpose: a component that reads a chat has to know which host it runs on. */
 export function useChatScope(): ChatScope {
     const scope = useContext(ChatScopeContext);
+
     if (scope === null) {
         throw new Error('This component reads a chat, so it has to be rendered inside a ChatScopeContext');
     }
+
     return scope;
 }

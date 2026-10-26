@@ -9,6 +9,7 @@ const senders = new Map<string, (how: ComposerSend) => void>();
 
 export function registerComposerSender(key: string, send: (how: ComposerSend) => void): () => void {
     senders.set(key, send);
+
     return () => {
         if (senders.get(key) === send) {
             senders.delete(key);
@@ -19,9 +20,12 @@ export function registerComposerSender(key: string, send: (how: ComposerSend) =>
 /* False when that chat has no composer on screen. An empty or unsendable draft sends nothing, as with the keys. */
 export function sendFromComposer(key: string, how: ComposerSend = 'default'): boolean {
     const send = senders.get(key);
+
     if (send === undefined) {
         return false;
     }
+
     send(how);
+
     return true;
 }

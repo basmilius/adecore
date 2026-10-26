@@ -23,6 +23,7 @@ export class DiffFallbackBoundary extends Component<Props, State> {
         if (state.resetKeys.length !== props.resetKeys.length || state.resetKeys.some((value, index) => !Object.is(value, props.resetKeys[index]))) {
             return { failed: false, resetKeys: props.resetKeys };
         }
+
         return null;
     }
 

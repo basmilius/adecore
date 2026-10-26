@@ -92,9 +92,11 @@ interface AccountPick {
 
 function optionSummary(option: ModelOptionDescriptor, selection: ModelSelection): string | null {
     const value = selection.options[option.id];
+
     if (option.type === 'select') {
         return option.choices.find((choice) => choice.id === (value ?? option.defaultChoice))?.label ?? null;
     }
+
     return (value ?? option.defaultValue) === true ? option.label : null;
 }
 
@@ -148,16 +150,21 @@ export function RunSettings({
     const current = modelName(selection.model, owner?.models);
     const short = shortModelName(current, owner?.models);
     const options = orderOptions((model?.options ?? []).map(localizedOption));
+
     const summary = options.flatMap((option) => {
         const label = optionSummary(option, selection);
+
         return label === null ? [] : [{ id: option.id, label, ring: option.id === CONTEXT_OPTION }];
     });
+
     // A CLI without a context choice still fills one, so the ring stands on its own next to the size.
     const hasContextOption = options.some((option) => option.id === CONTEXT_OPTION);
     const standaloneContext = !hasContextOption && Boolean(usage.contextWindow);
+
     if (standaloneContext) {
         summary.push({ id: CONTEXT_OPTION, label: formatTokens(usage.contextWindow ?? 0), ring: true });
     }
+
     const grouped = providers.length > 1;
     const live = modelGroupsOf(providers, false);
     const legacy = modelGroupsOf(providers, true);
@@ -176,7 +183,9 @@ export function RunSettings({
 
     const searchable = wantsModelSearch(providers);
     const favorites = useChatPreferences((preferences) => preferences.favoriteModels);
+
     const favoritesOf = (kind: AgentKind): ReadonlySet<string> => favoriteModelsOf(favorites, kind);
+
     const found = query.trim() === '' ? null : searchModels(inPickerOrder(providers), query, favoritesOf);
 
     // The menu moves the focus to its popup as it opens, so the search field takes it a frame later.
@@ -184,7 +193,9 @@ export function RunSettings({
         if (!open || !searchable) {
             return;
         }
+
         const frame = requestAnimationFrame(() => searchRef.current?.focus());
+
         return () => cancelAnimationFrame(frame);
     }, [open, searchable]);
 
@@ -192,6 +203,7 @@ export function RunSettings({
         if (!next) {
             setQuery('');
         }
+
         onOpenChange(next);
     };
 
@@ -200,10 +212,13 @@ export function RunSettings({
         if (!searchable || event.target === searchRef.current || event.metaKey || event.ctrlKey || event.altKey) {
             return;
         }
+
         const typed = event.key.length === 1 && event.key !== ' ';
+
         if (!typed && event.key !== 'Backspace') {
             return;
         }
+
         event.preventDefault();
         event.stopPropagation();
         setQuery((now) => (typed ? now + event.key : now.slice(0, -1)));
@@ -216,17 +231,22 @@ export function RunSettings({
             event.preventDefault();
             event.stopPropagation();
             setQuery('');
+
             return;
         }
+
         if (event.key === 'Enter') {
             event.preventDefault();
             const first = found?.[0];
+
             if (first !== undefined) {
                 onModel(first.entry.kind, first.models[0]!.slug);
                 changeOpen(false);
             }
+
             return;
         }
+
         if (event.key !== 'Escape' && event.key !== 'ArrowDown' && event.key !== 'ArrowUp' && event.key !== 'Tab') {
             event.stopPropagation();
         }
@@ -235,6 +255,7 @@ export function RunSettings({
     // The name wraps rather than truncates, so a long name a provider gives is read whole.
     const modelRow = (entry: ProviderInfo, row: ModelInfo) => {
         const starred = favoritesOf(entry.kind).has(row.slug);
+
         return (
             <Menu.Row key={row.slug} aria-label={row.name}>
                 <Menu.RadioItem value={modelValue(entry.kind, row.slug)} closeOnClick>
@@ -256,10 +277,13 @@ export function RunSettings({
     // Every model of one provider, the starred ones first and the rest under a label per maker where the provider names them.
     const byMaker = (entry: ProviderInfo, models: ModelInfo[]) => {
         const starred = favoritesOf(entry.kind);
+
         return favoritesFirst(models, starred).map((row, i, sorted) => {
             const previous = sorted[i - 1];
+
             const labeled =
                 row.vendor !== undefined && !starred.has(row.slug) && (previous === undefined || starred.has(previous.slug) || previous.vendor !== row.vendor);
+
             return (
                 <Fragment key={row.slug}>
                     {labeled && <Menu.GroupLabel>{row.vendor}</Menu.GroupLabel>}
@@ -273,9 +297,11 @@ export function RunSettings({
     const providerModels = (entry: ProviderInfo, models: ModelInfo[]) => {
         const starred = favoritesOf(entry.kind);
         const shortlist = shortlistOf(entry.kind, models, { provider, model: selection.model }, starred);
+
         if (shortlist === null) {
             return [...models.filter((row) => starred.has(row.slug)), ...models.filter((row) => !starred.has(row.slug))].map((row) => modelRow(entry, row));
         }
+
         return (
             <>
                 {shortlist.map((row) => modelRow(entry, row))}
@@ -468,6 +494,7 @@ function AccountSubmenu({ provider, account }: { provider: AgentKind; account: A
     const host = useChatHost();
     const { t } = useTranslation('agent-chat');
     const { choice, started, onPick } = account;
+
     return (
         <Menu.SubmenuRoot>
             <Menu.SubmenuTrigger className="text-text-muted">
@@ -502,9 +529,11 @@ function AccountRows({ choice, locked }: { choice: AccountChoice; locked(id: str
     const { t } = useTranslation('agent-chat');
     const limits = useUsageLimits();
     const now = useNow(MINUTE_MS);
+
     return choice.offered.map((entry) => {
         const session = sessionWindow(limitsOfAccount(limits, entry.id));
         const disabled = locked(entry.id);
+
         const row = (
             <Menu.RadioItem key={entry.id} value={entry.id} disabled={disabled} closeOnClick className="items-start data-disabled:opacity-50">
                 <span className="flex min-w-0 grow flex-col">
@@ -516,6 +545,7 @@ function AccountRows({ choice, locked }: { choice: AccountChoice; locked(id: str
                 </span>
             </Menu.RadioItem>
         );
+
         return disabled ? (
             <Tooltip key={entry.id} label={t('pickers.account.forkToSwitch', { account: choice.nameOf(entry) })} side="right" sideOffset={12}>
                 {row}
@@ -529,6 +559,7 @@ function AccountRows({ choice, locked }: { choice: AccountChoice; locked(id: str
 /* How full the context is, drawn small enough to sit in the pill beside the window's size. */
 function ContextRing({ usage }: { usage: ChatUsage }) {
     const fraction = contextFraction(usage);
+
     return (
         <svg width="14" height="14" viewBox="0 0 14 14" className={clsx('shrink-0', contextTone(fraction))} aria-hidden="true">
             <circle cx="7" cy="7" r={RING_RADIUS} fill="none" strokeWidth="2" className="stroke-border-strong" />
@@ -554,6 +585,7 @@ function ContextUsage({ usage, disabled, onCompact }: { usage: ChatUsage; disabl
     const percent = Math.round(fraction * 100);
     const segments = contextSegments(usage);
     const used = formatTokens(usage.contextTokens);
+
     return (
         <Menu.Group className="flex flex-col gap-2 px-2.5 py-1.5">
             <div className="flex items-center gap-2">
@@ -623,14 +655,17 @@ function ContextUsage({ usage, disabled, onCompact }: { usage: ChatUsage; disabl
  */
 function OptionRow({ option, selection, onChange }: { option: ModelOptionDescriptor; selection: ModelSelection; onChange(value: string | boolean): void }) {
     const icon = <Icon icon={optionIcon(option)} size={14} className="shrink-0 text-text-faint" />;
+
     if (option.type === 'boolean') {
         const checked = (selection.options[option.id] ?? option.defaultValue) === true;
+
         const item = (
             <Menu.CheckboxItem indicator="end" className="text-text-muted" checked={checked} onCheckedChange={onChange} closeOnClick={false}>
                 {icon}
                 <span className="min-w-0 grow truncate">{option.label}</span>
             </Menu.CheckboxItem>
         );
+
         return option.description ? (
             <Tooltip label={option.description} side="right" sideOffset={12}>
                 {item}
@@ -639,7 +674,9 @@ function OptionRow({ option, selection, onChange }: { option: ModelOptionDescrip
             item
         );
     }
+
     const value = String(selection.options[option.id] ?? option.defaultChoice);
+
     if (option.choices.length > INLINE_CHOICES) {
         return (
             <Menu.SubmenuRoot>
@@ -663,6 +700,7 @@ function OptionRow({ option, selection, onChange }: { option: ModelOptionDescrip
             </Menu.SubmenuRoot>
         );
     }
+
     return (
         <div className="flex items-center gap-2.5 px-2.5 py-1.5 text-sm text-text-muted">
             {icon}

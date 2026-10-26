@@ -18,24 +18,32 @@ function type(input: HTMLInputElement, value: string): void {
 test.skipIf(typeof document === 'undefined')('a text field keeps what is typed up to its limit, and a Choice carries it', async () => {
     const observer = globalThis.IntersectionObserver;
     Object.defineProperty(globalThis, 'IntersectionObserver', { configurable: true, writable: true, value: undefined });
+
     const text =
         '```ui\n$name = "Ada"\n<TextField value={$name} maxLength={8}>Name</TextField><Choices><Choice context={"Hello " + $name}>Send</Choice></Choices>\n```';
+
     const blocks = compileUi(text, { id: 'fields', final: true });
+
     for (const block of blocks) {
         block.revision = 'revision';
     }
+
     const sent: Record<string, unknown>[] = [];
+
     const host: Partial<ChatHost> = {
         intelligentUi: {
             sendChoice: async (_scope, payload) => {
                 sent.push(payload.values ?? {});
+
                 return 'sent';
             }
         }
     };
+
     const element = document.createElement('div');
     document.body.append(element);
     const root = createRoot(element);
+
     try {
         await act(async () =>
             root.render(
@@ -46,7 +54,9 @@ test.skipIf(typeof document === 'undefined')('a text field keeps what is typed u
                 )
             )
         );
+
         const input = () => element.querySelector<HTMLInputElement>('input')!;
+
         expect(input().value).toBe('Ada');
         await act(async () => type(input(), 'Grace'));
         expect(input().value).toBe('Grace');

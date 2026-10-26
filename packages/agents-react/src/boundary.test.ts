@@ -24,6 +24,7 @@ describe('the boundary of @adecore/agents-react', () => {
                 )
                 .map((specifier) => `${path}: ${specifier}`)
         );
+
         expect(reaching).toEqual([]);
     });
 
@@ -42,6 +43,7 @@ describe('the boundary of @adecore/agents-react', () => {
                     (specifier) => specifier.startsWith('.') && resolve(dirname(join(HERE, path)), specifier).startsWith(join(HERE, 'testing'))
                 )
         );
+
         expect(reaching).toEqual([]);
     });
 

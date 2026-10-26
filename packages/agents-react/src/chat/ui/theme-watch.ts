@@ -13,6 +13,7 @@ const THEME_ATTRIBUTES = ['class', 'style', 'data-theme'];
 export function watchTheme(owner: Document, changed: () => void): () => void {
     const view = owner.defaultView ?? window;
     let frame = 0;
+
     const schedule = (): void => {
         if (frame === 0) {
             frame = view.requestAnimationFrame(() => {
@@ -21,14 +22,18 @@ export function watchTheme(owner: Document, changed: () => void): () => void {
             });
         }
     };
+
     const observer = new view.MutationObserver(schedule);
+
     for (const root of [owner.documentElement, owner.body]) {
         if (root !== null) {
             observer.observe(root, { attributes: true, attributeFilter: THEME_ATTRIBUTES });
         }
     }
+
     return () => {
         observer.disconnect();
+
         if (frame !== 0) {
             view.cancelAnimationFrame(frame);
             frame = 0;

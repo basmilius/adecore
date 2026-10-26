@@ -5,6 +5,7 @@ import { insertAtSelection } from './insert';
 function typed(doc: string, from: number, to: number, text: string): { doc: string; caret: number } {
     const state = EditorState.create({ doc, selection: EditorSelection.single(from, to) });
     const next = state.update(insertAtSelection(state, text)).state;
+
     return { doc: next.doc.toString(), caret: next.selection.main.head };
 }
 

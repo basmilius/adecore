@@ -31,6 +31,7 @@ export function TokenChip({ kind, value, sigil, icon, label, tone, onOpen, class
             onOpen();
         }
     };
+
     return (
         <span
             {...rest}
@@ -55,11 +56,13 @@ export function ReferenceChip({ id }: { id: string }) {
     const { t } = useTranslation('agent-chat');
     const { items, open } = useContext(ReferenceLookupContext);
     const item = items.find((candidate) => candidate.id === id);
+
     if (item === undefined) {
         return (
             <TokenChip kind="gone" icon={<Icon icon={CircleOff} size={14} className={TOKEN_ICON} />} label={t('references.gone')} tone={REFERENCE_GONE_TONE} />
         );
     }
+
     return (
         <TokenChip
             kind="reference"

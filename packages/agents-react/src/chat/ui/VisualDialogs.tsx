@@ -20,9 +20,11 @@ export function VisualDialogs({ chatId }: { chatId: string }) {
     const visual = useChatRow(chatId, (row) => (visualId === null ? null : (row?.visuals?.find((candidate) => candidate.id === visualId) ?? null)));
     // The dialog fades out after it closes, and draws what it showed until then.
     const [shown, setShown] = useState<ChatVisual | null>(visual);
+
     if (visual !== null && visual !== shown) {
         setShown(visual);
     }
+
     const close = (): void => useVisualDialog.getState().close();
 
     return (
@@ -55,6 +57,7 @@ export function VisualDialogs({ chatId }: { chatId: string }) {
                     if (visualId !== null) {
                         await scope.chats.removeVisual(chatId, visualId);
                     }
+
                     close();
                 }}
                 onOpenChange={close}

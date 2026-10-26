@@ -41,6 +41,7 @@ function hostedRoot(root: Root): HostedRoot {
 
 class FakeWorker extends EventTarget {
     terminated = false;
+
     postMessage(request: { id: string; type: string }) {
         queueMicrotask(() =>
             this.dispatchEvent(
@@ -55,6 +56,7 @@ class FakeWorker extends EventTarget {
             )
         );
     }
+
     terminate() {
         this.terminated = true;
     }
@@ -70,11 +72,13 @@ async function mounted(run: (page: ReturnType<typeof createPage>, root: HostedRo
     Object.defineProperty(globalThis, 'cancelAnimationFrame', { value: () => {}, configurable: true });
     Object.defineProperty(globalThis, 'IS_REACT_ACT_ENVIRONMENT', { value: true, configurable: true });
     const root = hostedRoot(createRoot(page.host));
+
     try {
         await run(page, root);
     } finally {
         await act(async () => root.unmount());
         setHost({});
+
         names.forEach((name, index) => {
             if (previous[index] === undefined) {
                 Reflect.deleteProperty(globalThis, name);
@@ -88,17 +92,22 @@ async function mounted(run: (page: ReturnType<typeof createPage>, root: HostedRo
 function workers() {
     const created: FakeWorker[] = [];
     let ready!: () => void;
+
     const started = new Promise<void>((resolve) => {
         ready = resolve;
     });
+
     const factory = () => {
         const worker = new FakeWorker();
         created.push(worker);
+
         if (created.length === 2) {
             ready();
         }
+
         return worker as unknown as Worker;
     };
+
     return { created, factory, started };
 }
 
@@ -124,6 +133,7 @@ test('an enclosing pool takes precedence over the host worker factory', async ()
     await mounted(async (page, root) => {
         const worker = workers();
         setHost({ code: { ...CODE, legacyDiffWorker: worker.factory } });
+
         await act(async () =>
             root.render(
                 <WorkerPoolContext value={{} as NonNullable<ContextType<typeof WorkerPoolContext>>}>
@@ -131,6 +141,7 @@ test('an enclosing pool takes precedence over the host worker factory', async ()
                 </WorkerPoolContext>
             )
         );
+
         expect(worker.created).toHaveLength(0);
         expect(page.host.textContent).toBe('Outer pool');
     });

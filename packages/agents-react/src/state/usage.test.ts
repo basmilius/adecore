@@ -16,6 +16,7 @@ describe('the usage preferences', () => {
         const storage = { getItem: (key: string) => stored.get(key) ?? null, setItem: (key: string, value: string) => void stored.set(key, value) };
         const previous = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
         Object.defineProperty(globalThis, 'localStorage', { value: storage, configurable: true });
+
         try {
             storage.setItem(USAGE_PREFERENCES_KEY, JSON.stringify({ period: '30d', metric: 'tokens', currency: 'EUR' }));
             reloadUsagePreferences();

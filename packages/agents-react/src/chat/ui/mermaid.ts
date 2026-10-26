@@ -57,15 +57,19 @@ function attributeText(value: string): string {
  */
 export function themedSvg(svg: string, colors: Readonly<Record<string, string>>): string {
     const root = ROOT.exec(svg);
+
     if (root === null) {
         return svg;
     }
+
     const variables = attributeText(
         Object.entries(colors)
             .map(([name, value]) => `${name}:${value};`)
             .join('')
     );
+
     const tag = STYLE.test(root[0]) ? root[0].replace(STYLE, (style) => style + variables) : root[0].replace(/^<svg\b/, `<svg style="${variables}"`);
+
     return svg.slice(0, root.index) + tag + svg.slice(root.index + root[0].length);
 }
 

@@ -32,6 +32,7 @@ const cache = new Map<string, Run[]>();
 function runsOf(highlighter: Highlighter, code: string, language: string, theme: string, offset: number): Run[] {
     const fg = highlighter.getTheme(theme).fg.toLowerCase();
     const { tokens } = highlighter.codeToTokens(code, { lang: language as BundledLanguage, theme });
+
     return tokens.flat().map((token) => ({
         start: offset + token.offset,
         end: offset + token.offset + token.content.length,
@@ -44,18 +45,23 @@ function runsOf(highlighter: Highlighter, code: string, language: string, theme:
 /* `base` with `[start, end)` cut out of it and `inner` in its place. */
 function overlay(base: readonly Run[], start: number, end: number, inner: readonly Run[]): Run[] {
     const kept: Run[] = [];
+
     for (const run of base) {
         if (run.end <= start || run.start >= end) {
             kept.push(run);
+
             continue;
         }
+
         if (run.start < start) {
             kept.push({ ...run, end: start, content: run.content.slice(0, start - run.start) });
         }
+
         if (run.end > end) {
             kept.push({ ...run, start: end, content: run.content.slice(end - run.start) });
         }
     }
+
     return [...kept, ...inner].sort((left, right) => left.start - right.start);
 }
 
@@ -74,25 +80,34 @@ function languagesOf(command: string, extra: readonly EmbeddedCode[]): Set<strin
 function highlight(command: string, extra: readonly EmbeddedCode[], theme: string, code: CodeHighlighter): Run[] | null {
     const key = `${theme}\n${extra.map(({ start, end, language }) => `${start}:${end}:${language}`).join(',')}\n${command}`;
     const known = cache.get(key);
+
     if (known !== undefined) {
         // Touched entries move to the end, so the oldest falls out first.
         cache.delete(key);
         cache.set(key, known);
+
         return known;
     }
+
     const embedded = codeIn(command, extra);
     const highlighter = code.ready([SHELL_LANGUAGE, ...embedded.map(({ language }) => language)], theme);
+
     if (highlighter === null) {
         return null;
     }
+
     let runs = runsOf(highlighter, command, code.language(SHELL_LANGUAGE), theme, 0);
+
     for (const part of embedded) {
         runs = overlay(runs, part.start, part.end, runsOf(highlighter, command.slice(part.start, part.end), code.language(part.language), theme, part.start));
     }
+
     cache.set(key, runs);
+
     if (cache.size > CACHE_LIMIT) {
         cache.delete(cache.keys().next().value!);
     }
+
     return runs;
 }
 
@@ -101,20 +116,26 @@ function draw(command: string, runs: readonly Run[] | null, from: number, to: nu
     if (runs === null) {
         return [command.slice(from, to)];
     }
+
     const parts: ReactNode[] = [];
     let at = from;
+
     for (const run of runs) {
         if (run.end <= from || run.start >= to) {
             continue;
         }
+
         const start = Math.max(run.start, from);
         const end = Math.min(run.end, to);
+
         // Shiki leaves the line breaks out of its tokens; they come from the command itself.
         if (start > at) {
             parts.push(command.slice(at, start));
         }
+
         const content = run.content.slice(start - run.start, end - run.start);
         const style = tokenStyle(run);
+
         parts.push(
             style === undefined ? (
                 content
@@ -124,11 +145,14 @@ function draw(command: string, runs: readonly Run[] | null, from: number, to: nu
                 </span>
             )
         );
+
         at = end;
     }
+
     if (at < to) {
         parts.push(command.slice(at, to));
     }
+
     return parts;
 }
 
@@ -148,14 +172,18 @@ function Name({ named }: { named: NamedWord }) {
 function drawNamed(command: string, runs: readonly Run[] | null, names: readonly NamedWord[]): ReactNode[] {
     const parts: ReactNode[] = [];
     let at = 0;
+
     for (const named of names) {
         if (named.start < at) {
             continue;
         }
+
         parts.push(...draw(command, runs, at, named.start), <Name key={`name-${named.start}`} named={named} />);
         at = named.end;
     }
+
     parts.push(...draw(command, runs, at, command.length));
+
     return parts;
 }
 
@@ -180,10 +208,13 @@ export function ShellCommand({ command, code = NO_CODE, names = NO_NAMES }: { co
         if (runs !== null || tooLong) {
             return;
         }
+
         let cancelled = false;
+
         Promise.all([highlighter.loadTheme(theme, custom), ...[...languagesOf(command, code)].map((lang) => highlighter.loadLanguage(lang))])
             .then(() => !cancelled && setLoads((count) => count + 1))
             .catch(() => undefined);
+
         return () => {
             cancelled = true;
         };
@@ -192,5 +223,6 @@ export function ShellCommand({ command, code = NO_CODE, names = NO_NAMES }: { co
     if (names.length > 0) {
         return <>{drawNamed(command, runs, names)}</>;
     }
+
     return <>{runs === null ? command : draw(command, runs, 0, command.length)}</>;
 }

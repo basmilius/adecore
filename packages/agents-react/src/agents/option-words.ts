@@ -20,8 +20,10 @@ export function choiceWord(optionId: string, choice: { id: string; label: string
 /* The option with the words a person reads, for a surface that draws its labels and choices. */
 export function localizedOption(option: ModelOptionDescriptor): ModelOptionDescriptor {
     const label = optionWord(option);
+
     if (option.type !== 'select') {
         return { ...option, label };
     }
+
     return { ...option, label, choices: option.choices.map((choice) => ({ ...choice, label: choiceWord(option.id, choice) })) };
 }

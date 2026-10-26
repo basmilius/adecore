@@ -30,6 +30,7 @@ function workflow(agents: ChatWorkflowAgent[]): ChatWorkflow {
 describe('workflowPhases', () => {
     test('every announced phase is there in order with its agents, one of no known phase first and untitled', () => {
         const phases = workflowPhases(workflow([agent(1), agent(2, { phaseIndex: null }), agent(3, { phaseIndex: 9 })]), true);
+
         expect(phases.map((phase) => [phase.title, phase.agents.map((view) => view.agent.index)])).toEqual([
             [null, [2, 3]],
             ['Write', [1]],
@@ -63,14 +64,17 @@ describe('workflowAgentPreview', () => {
             tool: 'Bash',
             text: 'bun test'
         });
+
         expect(workflowAgentPreview({ agent: agent(1, { promptPreview: 'Map the device' }), state: 'running' })).toEqual({
             tool: null,
             text: 'Map the device'
         });
+
         expect(workflowAgentPreview({ agent: agent(1, { resultPreview: '\n# Catalog\nmore', promptPreview: 'Map' }), state: 'done' })).toEqual({
             tool: null,
             text: 'Catalog'
         });
+
         expect(workflowAgentPreview({ agent: agent(1, { promptPreview: 'Map' }), state: 'done' })).toEqual({ tool: null, text: 'Map' });
         expect(workflowAgentPreview({ agent: agent(1, { error: 'blocked' }), state: 'failed' })).toEqual({ tool: null, text: 'blocked' });
         expect(workflowAgentPreview({ agent: agent(1), state: 'waiting' })).toEqual({ tool: null, text: null });
@@ -88,10 +92,13 @@ describe('workflowDescription', () => {
     test('reads the description out of the meta literal, quotes and escapes included', () => {
         const script =
             "export const meta = {\n    name: 'build',\n    description: 'Build the \\'home\\' layer',\n    phases: [{ title: 'Map' }]\n}\nconst description = 'not this'";
+
         expect(workflowDescription({ script })).toBe("Build the 'home' layer");
+
         expect(
             workflowDescription({ script: 'export const meta = { name: "x", phases: [{ title: "}" }] }\nagent("a", { description: "not this" })' })
         ).toBeNull();
+
         expect(workflowDescription({ name: 'review' })).toBeNull();
         expect(workflowDescription(null)).toBeNull();
     });

@@ -6,13 +6,17 @@ import { useEffect, useState } from 'react';
  */
 export function useInView(element: Element | null, margin = '200px'): boolean {
     const [inView, setInView] = useState(typeof IntersectionObserver === 'undefined');
+
     useEffect(() => {
         if (element === null || typeof IntersectionObserver === 'undefined') {
             return;
         }
+
         const observer = new IntersectionObserver((entries) => setInView(entries.at(-1)?.isIntersecting ?? false), { rootMargin: margin });
         observer.observe(element);
+
         return () => observer.disconnect();
     }, [element, margin]);
+
     return inView;
 }

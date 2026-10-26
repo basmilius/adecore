@@ -39,9 +39,11 @@ function withoutMarks(text: string): string {
 /* The Summary that heads a block, which is its first node; a Summary further down is a subheading. */
 export function uiBlockHead(nodes: readonly UiViewNode[]): { id: string; label: string } | null {
     const first = nodes[0];
+
     if (first === undefined || first.type !== 'Summary' || first.error !== undefined) {
         return null;
     }
+
     return { id: first.id, label: withoutMarks(uiNodeLabel(first)) };
 }
 
@@ -52,22 +54,28 @@ export function uiBlockHead(nodes: readonly UiViewNode[]): { id: string; label: 
 export async function revealUiSource(root: ParentNode, nodeId: string, ancestors: readonly string[] = []): Promise<boolean> {
     for (const id of ancestors) {
         const control = [...root.querySelectorAll<HTMLButtonElement>('[data-ui-reveal]')].find((element) => element.dataset.uiReveal === id);
+
         if (control && (control.getAttribute('aria-expanded') === 'false' || control.getAttribute('aria-selected') === 'false')) {
             control.click();
             await new Promise<void>((resolve) => setTimeout(resolve, 0));
         }
     }
+
     const row = [...root.querySelectorAll<HTMLElement>('[data-ui-source]')].find((element) => element.dataset.uiSource === nodeId);
+
     if (row === undefined) {
         return false;
     }
+
     // The light runs when focus arrives, so a row that already has it lets go first.
     if (row.ownerDocument.activeElement === row) {
         row.blur();
     }
+
     row.focus({ preventScroll: true });
     const reduced = row.ownerDocument.defaultView?.matchMedia('(prefers-reduced-motion: reduce)').matches === true;
     row.scrollIntoView({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' });
+
     return true;
 }
 
@@ -105,6 +113,7 @@ export function uiWithUnit(text: string, unit: string | undefined): string {
     if (unit === undefined || unit === '') {
         return text;
     }
+
     return unit === '%' ? `${text}${unit}` : `${text}\u00a0${unit}`;
 }
 
@@ -113,10 +122,13 @@ export function uiLiveChoiceReason(t: TFunction<'agent-chat'>, live: UiLiveStatu
     if (live === null || live === undefined || live.state === 'fresh') {
         return null;
     }
+
     if (live.state === 'reading') {
         return t('blocks.choice.reading');
     }
+
     const source = live.source ?? live.sources[0] ?? '';
+
     return uiReasonText(t, live.code, live.reason) ?? t(live.state === 'failed' ? 'blocks.live.failed' : 'blocks.live.refused', { source });
 }
 
@@ -136,19 +148,24 @@ export function uiUrlDomain(url: string): string {
  */
 export function uiEventTime(at: string, now: Date | number = Date.now()): string {
     const moment = parseUiEventTime(at);
+
     if (moment === null) {
         return at;
     }
+
     const zone = moment.written ? 'UTC' : undefined;
     const year = moment.written ? moment.date.getUTCFullYear() : moment.date.getFullYear();
     const withYear = year !== new Date(now).getFullYear();
+
     if (moment.kind === 'time') {
         return moment.seconds
             ? formatDateTime(moment.date, { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'UTC' })
             : formatClock(moment.date, zone);
     }
+
     if (moment.kind === 'date') {
         return withYear ? formatDayWithYear(moment.date, zone) : formatDay(moment.date, zone);
     }
+
     return withYear ? formatDayClockWithYear(moment.date, zone) : formatDayClock(moment.date, zone);
 }

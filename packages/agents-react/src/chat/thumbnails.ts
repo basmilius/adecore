@@ -18,6 +18,7 @@ export interface ThumbnailCrop {
 /* The square in the middle of an image that a thumbnail shows, the same part `object-cover` would. */
 export function thumbnailCrop(width: number, height: number, max: number = THUMBNAIL_PX): ThumbnailCrop {
     const size = Math.max(1, Math.min(width, height));
+
     return {
         sx: Math.max(0, Math.floor((width - size) / 2)),
         sy: Math.max(0, Math.floor((height - size) / 2)),
@@ -29,9 +30,11 @@ export function thumbnailCrop(width: number, height: number, max: number = THUMB
 function bytesOf(base64: string): Uint8Array<ArrayBuffer> {
     const binary = atob(base64);
     const bytes = new Uint8Array(new ArrayBuffer(binary.length));
+
     for (let i = 0; i < binary.length; i++) {
         bytes[i] = binary.charCodeAt(i);
     }
+
     return bytes;
 }
 
@@ -55,12 +58,16 @@ async function makeThumbnail(upload: ChatAttachmentUpload): Promise<string> {
         const crop = thumbnailCrop(bitmap.width, bitmap.height);
         const canvas = new OffscreenCanvas(crop.out, crop.out);
         const context = canvas.getContext('2d');
+
         if (!context) {
             bitmap.close();
+
             return uploadPreviewUrl(upload);
         }
+
         context.drawImage(bitmap, crop.sx, crop.sy, crop.size, crop.size, 0, 0, crop.out, crop.out);
         bitmap.close();
+
         return await dataUrlOf(await canvas.convertToBlob({ type: 'image/png' }));
     } catch {
         return uploadPreviewUrl(upload);
@@ -73,13 +80,17 @@ const making = new WeakMap<ChatAttachmentUpload, Promise<string>>();
 
 function thumbnailOf(upload: ChatAttachmentUpload): Promise<string> {
     let promise = making.get(upload);
+
     if (!promise) {
         promise = makeThumbnail(upload).then((url) => {
             made.set(upload, url);
+
             return url;
         });
+
         making.set(upload, promise);
     }
+
     return promise;
 }
 
@@ -92,12 +103,15 @@ export function useUploadThumbnail(upload: ChatAttachmentUpload): string | null 
         if (made.has(upload)) {
             return;
         }
+
         let cancelled = false;
+
         void thumbnailOf(upload).then((url) => {
             if (!cancelled) {
                 setReady({ upload, url });
             }
         });
+
         return () => {
             cancelled = true;
         };

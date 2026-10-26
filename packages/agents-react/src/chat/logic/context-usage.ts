@@ -20,10 +20,13 @@ export function contextFraction(usage: ChatUsage): number {
 /* The stretches of the bar, in the legend's order; null from a host that does not estimate, which draws the plain bar. */
 export function contextSegments(usage: ChatUsage): ContextSegment[] | null {
     const breakdown = usage.breakdown;
+
     if (!breakdown || usage.contextTokens === 0) {
         return null;
     }
+
     const whole = Math.max(usage.contextWindow ?? 0, usage.contextTokens);
+
     return CONTEXT_PARTS.map((part) => ({ part, tokens: breakdown[part], fraction: breakdown[part] / whole }));
 }
 

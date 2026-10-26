@@ -34,6 +34,7 @@ export function useComposerMenus({ chatId, info, capabilities, providerName, dra
      */
     useEffect(() => {
         let stale = false;
+
         scope.chats
             .listSkills(chatId)
             .then((found) => {
@@ -42,6 +43,7 @@ export function useComposerMenus({ chatId, info, capabilities, providerName, dra
                 }
             })
             .catch(() => undefined);
+
         return () => {
             stale = true;
         };

@@ -12,6 +12,7 @@ function mapping(document: DiffDocument): DiffSyntaxMapping {
         blocks: document.sides[side].length === 0 ? [] : [document.sides[side].join('\n')],
         resets: []
     });
+
     return {
         documents: { old: build('old'), new: build('new') },
         locate: (side, index) => (index >= 0 && index < document.sides[side].length ? { block: 0, line: index } : undefined)
@@ -30,30 +31,37 @@ test('source tokens keep old and new grammar states and immutable arrays, and re
     const document = diffDocument(patchOf(old, fresh), { old, new: fresh });
     const base = createDiffSyntaxRuntime({ themes: [], highlighter: fixture(highlighter) });
     let requests = 0;
+
     const runtime: DiffSyntaxRuntime = {
         open(definition) {
             const session = base.open(definition);
+
             return {
                 ...session,
                 request(index) {
                     requests++;
+
                     return session.request(index);
                 }
             };
         },
         dispose: () => base.dispose()
     };
+
     const source = diffSourceTokens(document, mapping(document), runtime);
     let notices = 0;
     let finish!: () => void;
+
     const ready = new Promise<void>((resolve) => {
         finish = resolve;
     });
+
     const stop = source.subscribe(() => {
         if (++notices === 2) {
             finish();
         }
     });
+
     expect(source.get('old', 1)).toBeUndefined();
     expect(source.get('old', 0)).toBeUndefined();
     expect(source.get('new', 1)).toBeUndefined();
@@ -77,11 +85,13 @@ test('disposed sources suppress late replies and failed blocks remain plain with
     const replies: Array<(packet: DiffSyntaxTokens | null) => void> = [];
     let disposed = 0;
     let requests = 0;
+
     const runtime: DiffSyntaxRuntime = {
         open() {
             return {
                 request: () => {
                     requests++;
+
                     return new Promise((resolve) => replies.push(resolve));
                 },
                 cancel: () => {},
@@ -92,11 +102,14 @@ test('disposed sources suppress late replies and failed blocks remain plain with
         },
         dispose: () => {}
     };
+
     const source = diffSourceTokens(document, mapping(document), runtime);
     let notices = 0;
+
     source.subscribe(() => {
         notices++;
     });
+
     expect(source.get('old', 0)).toBeUndefined();
     replies[0]!(null);
     await Promise.resolve();
@@ -116,11 +129,13 @@ test('disposed sources suppress late replies and failed blocks remain plain with
 test('an empty side never starts a syntax request', () => {
     const document = diffDocument(patchOf('', '\n'), { old: '', new: '\n' });
     let requests = 0;
+
     const runtime: DiffSyntaxRuntime = {
         open() {
             return {
                 request: async () => {
                     requests++;
+
                     return null;
                 },
                 cancel: () => {},
@@ -129,6 +144,7 @@ test('an empty side never starts a syntax request', () => {
         },
         dispose: () => {}
     };
+
     const source = diffSourceTokens(document, mapping(document), runtime);
     expect(source.get('old', 0)).toBeNull();
     expect(requests).toBe(0);

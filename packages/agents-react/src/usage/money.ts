@@ -5,5 +5,6 @@ import { moneyFormat } from './format';
 export function useMoney(): (usd: number) => string {
     const currency = useUsage((s) => s.currency);
     const rate = useUsage((s) => s.summary?.rate ?? null);
+
     return moneyFormat(currency, rate);
 }

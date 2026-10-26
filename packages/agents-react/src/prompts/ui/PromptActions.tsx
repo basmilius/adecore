@@ -32,6 +32,7 @@ export function ApprovalActions({
     sending: boolean;
 }) {
     const { t } = useTranslation('agent-prompts');
+
     return (
         <>
             {onAddReason && (
@@ -87,6 +88,7 @@ export function QuestionActions({
     onCommit(): void;
 }) {
     const { t } = useTranslation(['agent-prompts', 'agent-chat']);
+
     return (
         <>
             {index > 0 && (

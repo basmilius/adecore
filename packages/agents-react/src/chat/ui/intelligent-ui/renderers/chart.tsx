@@ -57,13 +57,16 @@ function verticalLayout(chart: UiChartData, unit: string | undefined, width: num
     const { low, high } = uiChartRange(chart.min, chart.max)!;
     const ticks = low === 0 ? [0, high / 2, high] : [low, 0, high];
     const tickUnit = unitApart(unit) ? undefined : unit;
+
     const { axisWidth, tickTexts } = uiChartAxis(
         ticks.map((tick) => valueText(tick, tickUnit)),
         width,
         character
     );
+
     const band = Math.max(0, width - axisWidth) / chart.labels.length;
     const labelEvery = Math.max(1, Math.ceil(LABEL_BAND / Math.max(1, band)));
+
     return { low, high, ticks, tickTexts, axisWidth, band, labelEvery, labelRoom: Math.min(band * labelEvery, Math.max(0, width - axisWidth)) };
 }
 
@@ -72,7 +75,9 @@ function labelsCut(chart: UiChartData, unit: string | undefined, width: number, 
     if (width <= 0 || chart.kind === 'hbar' || chart.kind === 'stacked') {
         return false;
     }
+
     const { labelRoom } = verticalLayout(chart, unit, width, character);
+
     return chart.labels.some((label) => uiChartTextWidth(label, character) > labelRoom);
 }
 
@@ -81,29 +86,35 @@ function useChartCharacter(): number {
     const [character] = useState(() =>
         typeof document === 'undefined' ? UI_CHART_CHARACTER : uiChartCharacter(Number.parseFloat(getComputedStyle(document.documentElement).fontSize))
     );
+
     return character;
 }
 
 /* The height a chart will take, which its place holds while the node streams. */
 function chartHeight(kind: ChartKind, rows: number): number {
     const count = Math.max(1, Math.min(rows, UI_CHART_ROWS));
+
     return kind === 'hbar' ? count * HBAR_ROW : kind === 'stacked' ? count * STACKED_ROW : HEIGHT;
 }
 
 /* One sentence with the main point over all of the data, drawn or not, which a screen reader hears in place of the drawing. */
 function chartSummary(values: UiChartValues, unit: string | undefined, t: TFunction<'agent-chat'>): string {
     let top: { label: string; series: string; value: number } | null = null;
+
     for (const series of values.series) {
         for (let i = 0; i < series.values.length; i++) {
             const value = series.values[i];
+
             if (value !== null && value !== undefined && (top === null || value > top.value)) {
                 top = { label: values.labels[i] ?? '', series: series.key, value };
             }
         }
     }
+
     if (top === null) {
         return t('blocks.chart.values');
     }
+
     return values.series.length > 1
         ? t('blocks.chart.summarySeries', { count: values.labels.length, series: top.series, label: top.label, value: valueText(top.value, unit) })
         : t('blocks.chart.summary', { count: values.labels.length, label: top.label, value: valueText(top.value, unit) });
@@ -125,6 +136,7 @@ function Legend({ chart }: { chart: UiChartData }) {
 /* Every number of the data, for a screen reader, and on screen once a person opens it. */
 function ValuesTable({ values, unit, shown }: { values: UiChartValues; unit: string | undefined; shown: boolean }) {
     const { t } = useTranslation('agent-chat');
+
     const table = (
         <table className={shown ? 'w-full border-collapse text-xs tabular-nums' : undefined}>
             <caption className={shown ? 'sr-only' : undefined}>{t('blocks.chart.values')}</caption>
@@ -154,6 +166,7 @@ function ValuesTable({ values, unit, shown }: { values: UiChartValues; unit: str
             </tbody>
         </table>
     );
+
     // A table grows to its widest cell whatever width it is given, so it is hidden inside a block that clips.
     return <div className={shown ? 'max-h-80 w-full overflow-auto rounded-md border border-border-soft' : 'sr-only'}>{table}</div>;
 }
@@ -195,13 +208,19 @@ function VerticalChart({
     const [hover, setHover] = useState<number | null>(null);
     const { low, high, ticks, tickTexts, axisWidth, band, labelEvery, labelRoom } = verticalLayout(chart, unit, width, character);
     const plotHeight = HEIGHT - PLOT_TOP - Math.round((LABEL_ROOM * character) / UI_CHART_CHARACTER);
+
     const y = (value: number): number => Math.round(PLOT_TOP + ((high - value) / (high - low)) * plotHeight);
+
     const baseline = y(0);
+
     const center = (index: number): number => Math.round(axisWidth + band * index + band / 2);
+
     const gap = band * 0.2;
     const barWidth = Math.max(1, (band - gap) / chart.series.length);
+
     const labelAt = (index: number, text: string): number => {
         const half = uiChartTextWidth(text, character) / 2;
+
         return Math.round(Math.min(Math.max(center(index), axisWidth + half), width - half));
     };
 
@@ -212,6 +231,7 @@ function VerticalChart({
                 if (point !== null) {
                     paths.push(`${index === 0 || all[index - 1] === null ? 'M' : 'L'}${point}`);
                 }
+
                 return paths;
             }, [])
             .join(' ');
@@ -241,7 +261,9 @@ function VerticalChart({
                     if (index % labelEvery !== 0) {
                         return null;
                     }
+
                     const text = uiChartText(label, labelRoom, character);
+
                     return (
                         <text key={index} x={labelAt(index, text)} y={HEIGHT - 4} textAnchor="middle" className="fill-text-faint text-xs">
                             {text}
@@ -310,6 +332,7 @@ function HorizontalChart({ chart, unit }: { chart: UiChartData; unit: string | u
     const span = high - low;
     const zero = (-low / span) * 100;
     const single = chart.series.length === 1;
+
     return (
         <div aria-hidden className="flex flex-col">
             {chart.labels.map((label, index) => (
@@ -319,6 +342,7 @@ function HorizontalChart({ chart, unit }: { chart: UiChartData; unit: string | u
                         {low < 0 && <span className="absolute inset-y-0 w-px bg-border" style={{ left: `${zero}%` }} />}
                         {chart.series.map((series, at) => {
                             const value = series.values[index] ?? 0;
+
                             return (
                                 <span key={series.key} className={clsx('relative block', single ? 'h-3' : 'h-1')}>
                                     <span
@@ -389,14 +413,17 @@ function ChartNotes({
 }) {
     const { t } = useTranslation('agent-chat');
     const [shown, setShown] = useBlockLocal(context, `${nodeId}:values`, () => false);
+
     const notes = [
         ...(chart.truncated ? [t('blocks.chart.rowsLeftOut', { shown: formatNumber(chart.labels.length), total: formatNumber(chart.total) })] : []),
         ...(chart.omitted.length > 0 ? [t('blocks.chart.seriesLeftOut', { count: chart.omitted.length, series: chart.omitted.join(', ') })] : []),
         ...(requested === 'stacked' && chart.kind !== 'stacked' ? [t('blocks.chart.sideBySide')] : [])
     ];
+
     const partial = chart.truncated || chart.omitted.length > 0 || cut;
     const [measure, truncated] = useTruncated<HTMLSpanElement>();
     const toggle = shown ? t('blocks.chart.hideValues') : t('blocks.chart.showValues');
+
     return (
         <>
             {notes.length > 0 && (
@@ -441,6 +468,7 @@ function DrawnChart({
     const [measureRows, rowsCut] = useTruncated<HTMLDivElement>(true);
     const values = uiChartValues(data);
     const { kind } = chart;
+
     return (
         <figure className="chat-ui-flat flex flex-col gap-2.5 rounded-xl bg-ui-tile p-3.5">
             {chart.series.length > 1 && <Legend chart={chart} />}
@@ -474,11 +502,14 @@ function DrawnChart({
 export function ChartRenderer({ node, context }: UiRendererProps<UiProps<'Chart'>>) {
     const { kind, data, unit } = node.props;
     const chart = node.complete ? uiChartData(data, kind) : null;
+
     if (!node.complete) {
         return <div aria-hidden className="rounded-xl bg-ui-tile" style={{ height: chartHeight(kind, data.length) }} />;
     }
+
     if (chart === null) {
         return <UiFallbackPart fallback={node.fallback} problem={{ kind: 'failed' }} />;
     }
+
     return <DrawnChart chart={chart} requested={kind} data={data} unit={unit} context={context} nodeId={node.id} />;
 }

@@ -10,14 +10,19 @@ import { hasProviderLogo } from './provider-paths';
 export function modelNameFromSlug(slug: string): string {
     const bare = slug.slice(slug.lastIndexOf('/') + 1).replace(/-\d{6,8}$/, '');
     const words: string[] = [];
+
     for (const word of bare.split('-')) {
         const previous = words.at(-1);
+
         if (previous !== undefined && /^\d+$/.test(word) && /\d$/.test(previous)) {
             words[words.length - 1] = `${previous}.${word}`;
+
             continue;
         }
+
         words.push(word);
     }
+
     return words.map((word) => (word === 'gpt' ? 'GPT' : word.charAt(0).toUpperCase() + word.slice(1))).join(' ');
 }
 
@@ -35,6 +40,7 @@ export interface AgentChip {
 
 export function agentChipOf(providers: readonly ProviderInfo[], provider: AgentKind, model: string): AgentChip {
     const owner = providers.find((entry) => entry.kind === provider);
+
     return {
         mark: hasProviderLogo(provider) ? 'logo' : 'icon',
         name: owner?.name ?? provider,
@@ -54,18 +60,23 @@ export function useModelName(provider: AgentKind | undefined, slug: string): str
 export function sharedModelPrefix(models: readonly ModelInfo[]): string {
     const names = models.map((entry) => entry.name.split(' '));
     const first = names[0];
+
     if (first === undefined || names.length < 2) {
         return '';
     }
+
     let count = 0;
+
     while (names.every((words) => words.length > count + 1 && words[count] === first[count])) {
         count++;
     }
+
     return count === 0 ? '' : `${first.slice(0, count).join(' ')} `;
 }
 
 /* A model's name without the words its whole catalog shares. */
 export function shortModelName(name: string, models: readonly ModelInfo[] | undefined): string {
     const prefix = sharedModelPrefix(models ?? []);
+
     return prefix !== '' && name.startsWith(prefix) ? name.slice(prefix.length) : name;
 }

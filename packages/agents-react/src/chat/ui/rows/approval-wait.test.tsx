@@ -52,11 +52,14 @@ async function render(node: ReactNode): Promise<{ text: string; done(): Promise<
     const fromPage = ['window', 'document', 'Node', 'Element', 'HTMLElement'] as const;
     const names = [...fromPage, 'IS_REACT_ACT_ENVIRONMENT'] as const;
     const previous = names.map((name) => Object.getOwnPropertyDescriptor(globalThis, name));
+
     for (const name of fromPage) {
         Object.defineProperty(globalThis, name, { value: name === 'window' ? page.window : page.window[name], configurable: true });
     }
+
     Object.defineProperty(globalThis, 'IS_REACT_ACT_ENVIRONMENT', { value: true, configurable: true });
     const root = createRoot(page.host);
+
     await act(async () =>
         root.render(
             <ChatHostProvider host={{}}>
@@ -64,13 +67,16 @@ async function render(node: ReactNode): Promise<{ text: string; done(): Promise<
             </ChatHostProvider>
         )
     );
+
     return {
         text: page.host.textContent ?? '',
         async done() {
             await act(async () => root.unmount());
             useChats.getState().forgetWhere((key) => key.startsWith('approval-wait-test/'));
+
             names.forEach((name, index) => {
                 const descriptor = previous[index];
+
                 if (descriptor === undefined) {
                     Reflect.deleteProperty(globalThis, name);
                 } else {

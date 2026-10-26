@@ -26,39 +26,49 @@ export function useUiLinks(
     const host = useChatHost().intelligentUi;
     const values = uiInputValues(block, state);
     const scope = state.scope();
+
     const queryValues = Object.fromEntries(
         Object.keys(block.queries)
             .filter((name) => Object.hasOwn(scope, name))
             .map((name) => [name, scope[name]])
     );
+
     let targets: Record<string, UiLinkTarget> = {};
+
     try {
         if (block.complete) {
             targets = uiLinkTargets(block, values, queryValues);
         }
     } catch {}
+
     const signature = JSON.stringify(targets);
     const input = JSON.stringify(values);
     const tickets = JSON.stringify(reads);
     const defaultInput = JSON.stringify(uiInputValues(block, new UiState(block)));
     const link = host?.link;
+
     useEffect(() => {
         asked.current.clear();
     }, [block.id, block.revision, context.scopeId, context.chatId, context.itemId, link]);
+
     useEffect(() => {
         if (!link || !block.revision || context.phase !== 'final') {
             return;
         }
+
         let stopped = false;
+
         const validate = async () => {
             const moved = Object.entries(JSON.parse(signature) as Record<string, UiLinkTarget>)
                 .slice(0, UI_HOST_LIMITS.links)
                 .filter(([nodeId, target]) => asked.current.get(nodeId) !== JSON.stringify(target));
+
             for (const [nodeId, target] of moved) {
                 const record = (reading: ChatUiLinkReading) => {
                     asked.current.set(nodeId, JSON.stringify(target));
                     setChecked((previous) => ({ ...previous, [nodeId]: { target: JSON.stringify(target), reading } }));
                 };
+
                 try {
                     const reading = await link(context.scopeId, {
                         chatId: context.chatId,
@@ -69,51 +79,66 @@ export function useUiLinks(
                         values: JSON.parse(input),
                         reads: JSON.parse(tickets)
                     });
+
                     if (stopped) {
                         return;
                     }
+
                     record(reading);
                 } catch {
                     if (stopped) {
                         return;
                     }
+
                     record({ state: 'plain' });
                 }
             }
         };
+
         // The first check runs at once; a later one waits until the inputs rested.
         const timer = setTimeout(() => void validate(), asked.current.size === 0 ? 0 : LINK_SETTLE_MS);
+
         return () => {
             stopped = true;
             clearTimeout(timer);
         };
     }, [block.id, block.revision, context.scopeId, context.chatId, context.itemId, context.phase, signature, input, tickets, link]);
+
     const idOf = (target: UiLinkTarget) => Object.entries(targets).find(([, entry]) => JSON.stringify(entry) === JSON.stringify(target))?.[0];
+
     const resolution = (target: UiLinkTarget): ChatUiLinkReading => {
         const id = idOf(target);
+
         if (id === undefined) {
             return { state: 'plain' };
         }
+
         if (checked[id]?.target === JSON.stringify(target)) {
             return checked[id].reading;
         }
+
         if (input === defaultInput && frozen && frozen.revision === block.revision) {
             const firstQueries = Object.fromEntries(
                 Object.entries(frozen.readings)
                     .filter(([, reading]) => reading.state === 'fresh')
                     .map(([name, reading]) => [name, reading.value])
             );
+
             if (JSON.stringify(queryValues) === JSON.stringify(firstQueries)) {
                 return frozen.links?.[id] ?? { state: 'plain' };
             }
         }
+
         return { state: 'plain' };
     };
+
     const open = (target: UiLinkTarget) => {
         const nodeId = idOf(target);
+
         if (!nodeId || !link || !block.revision) {
             return;
         }
+
         void link(context.scopeId, {
             chatId: context.chatId,
             itemId: context.itemId,
@@ -125,6 +150,7 @@ export function useUiLinks(
         })
             .then((reading) => {
                 setChecked((previous) => ({ ...previous, [nodeId]: { target: JSON.stringify(target), reading } }));
+
                 if (reading.state === 'chip' && reading.target) {
                     host?.openLink?.(context.scopeId, reading);
                 }
@@ -133,8 +159,11 @@ export function useUiLinks(
                 setChecked((previous) => ({ ...previous, [nodeId]: { target: JSON.stringify(target), reading: { state: 'plain' } } }));
             });
     };
+
     const hostOpenUrl = host?.openUrl;
+
     const openUrl = (url: string) => hostOpenUrl?.(context.scopeId, url);
+
     return {
         link: link ? resolution : undefined,
         openLink: link && host?.openLink ? open : undefined,

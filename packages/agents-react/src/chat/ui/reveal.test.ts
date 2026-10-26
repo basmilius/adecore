@@ -10,9 +10,11 @@ describe('advanceReveal', () => {
 
     test('closes about two thirds of the gap in one time constant', () => {
         let position = 0;
+
         for (let elapsed = 0; elapsed < REVEAL_TAU_MS; elapsed += 10) {
             position = advanceReveal(position, 1000, 10, false);
         }
+
         expect(position).toBeCloseTo(1000 * (1 - Math.exp(-1)), 0);
     });
 

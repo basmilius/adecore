@@ -38,7 +38,9 @@ export function QuestionBody({
         if (shownQuestion.current === question.id) {
             return;
         }
+
         shownQuestion.current = question.id;
+
         if (document.activeElement === null || document.activeElement === document.body) {
             (items.current[tabStop] ?? items.current[0])?.focus({ preventScroll: true });
         }
@@ -49,10 +51,13 @@ export function QuestionBody({
             multiSelect: question.multiSelect,
             anyChosen: !answer.custom && answer.choices.length > 0
         });
+
         if (action === null) {
             return;
         }
+
         event.preventDefault();
+
         if (action.kind === 'move') {
             items.current[stepIndex(index, count, action.to)]?.focus();
         } else if (action.kind === 'commit') {
@@ -60,6 +65,7 @@ export function QuestionBody({
         } else {
             const next = pickPromptChoice(answer, question, label);
             onAnswer(next);
+
             if (action.kind === 'pick-and-commit') {
                 onCommit(next);
             }
@@ -68,15 +74,19 @@ export function QuestionBody({
 
     const onFieldKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
         const field = event.currentTarget;
+
         const action = answerFieldKey(event.nativeEvent, {
             belowChoices: question.choices.length > 0,
             caretAtStart: field.selectionStart === 0 && field.selectionEnd === 0,
             hasText: field.value.trim() !== ''
         });
+
         if (action === null) {
             return;
         }
+
         event.preventDefault();
+
         if (action.kind === 'to-last-choice') {
             items.current[question.choices.length - 1]?.focus();
         } else if (action.kind === 'commit') {
@@ -91,6 +101,7 @@ export function QuestionBody({
                 <div role={question.multiSelect ? 'group' : 'radiogroup'} aria-label={question.question} className="flex flex-col gap-2">
                     {question.choices.map((choice, index) => {
                         const selected = !answer.custom && answer.choices.includes(choice.label);
+
                         return (
                             <button
                                 key={choice.label}

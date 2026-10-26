@@ -33,11 +33,13 @@ describe('ProviderList', () => {
     test('each group has its label, and a group without providers is left out', () => {
         const ready: ProviderRow = { provider: providerOf('claude', 'Claude Code'), entries: [], note: null };
         const setup: ProviderRow = { provider: providerOf('nanogpt', 'Nano'), entries: [], note: { text: 'No key', tone: 'warning' } };
+
         expect(sectionsIn(render({ ready: [ready], setup: [setup], missing: [providerOf('acme', 'Acme', false)] }))).toEqual([
             'Ready',
             'Needs setup',
             'Not installed'
         ]);
+
         expect(sectionsIn(render({ ready: [ready] }))).toEqual(['Ready']);
     });
 
@@ -45,6 +47,7 @@ describe('ProviderList', () => {
         const markup = render({
             ready: [{ provider: providerOf('codex', 'Codex'), entries: [entryOf('codex', undefined, 'pro', true)], note: { text: 'pro', tone: 'muted' } }]
         });
+
         expect(markup).toContain('>pro<');
         expect(markup).not.toContain('Default');
         expect(markup).not.toContain('2.1.0');
@@ -70,6 +73,7 @@ describe('ProviderList', () => {
             { ready: [{ provider: providerOf('codex', 'Codex'), entries: [entryOf('codex', undefined, 'pro', true)], note: null }] },
             { kind: 'account', id: 'codex' }
         );
+
         expect(markup).toContain('aria-current="true"');
     });
 

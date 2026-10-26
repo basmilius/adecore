@@ -53,11 +53,13 @@ async function mounted(run: (page: ReturnType<typeof createPage>, root: HostedRo
     const previousAct = globals.IS_REACT_ACT_ENVIRONMENT;
     globals.IS_REACT_ACT_ENVIRONMENT = true;
     const root = hostedRoot(createRoot(page.host, { onCaughtError: () => {} }));
+
     try {
         await run(page, root);
     } finally {
         await act(async () => root.unmount());
         globals.IS_REACT_ACT_ENVIRONMENT = previousAct;
+
         if (previousWindow === undefined) {
             Reflect.deleteProperty(globalThis, 'window');
         } else {
@@ -70,11 +72,15 @@ test('an edit review loads the host engine once and updates the same read-only e
     await mounted(async (_page, root) => {
         const engine = new FakeEditorEngine();
         let loads = 0;
+
         const loadEngine = async () => {
             loads++;
+
             return engine;
         };
+
         const render = (change: FileChange) => root.render(createElement(EditorEditDiff, { change, loadEngine, fallback: createElement('p', null, 'Legacy') }));
+
         await act(async () => render({ path: 'main.rs', before: 'let old = 1;\n', after: 'let fresh = 2;\n' }));
         const editor = engine.last;
         expect(editor.readOnly).toBe(true);
@@ -96,6 +102,7 @@ test('engine failures retain the supplied legacy renderer and a late engine does
     await mounted(async (page, root) => {
         const change: FileChange = { path: 'a.ts', before: 'old', after: 'new' };
         const fallback = createElement('p', null, 'Legacy');
+
         await act(async () =>
             root.render(
                 createElement(EditorEditDiff, {
@@ -107,13 +114,16 @@ test('engine failures retain the supplied legacy renderer and a late engine does
                 })
             )
         );
+
         expect(page.host.textContent).toBe('Legacy');
         const engine = new FakeEditorEngine();
         let resolve!: (engine: EditorEngine) => void;
+
         const loadEngine = () =>
             new Promise<EditorEngine>((done) => {
                 resolve = done;
             });
+
         await act(async () => root.render(createElement(EditorEditDiff, { change, loadEngine, fallback })));
         expect(page.host.textContent).toBe('Loading diff');
         await act(async () => root.render(null));
@@ -126,12 +136,16 @@ test('a virtualized edit remount uses the cached engine without a loading placeh
     await mounted(async (page, root) => {
         const engine = new FakeEditorEngine();
         let loads = 0;
+
         const loadEngine = async () => {
             loads++;
+
             return engine;
         };
+
         const render = () =>
             root.render(createElement(EditorEditDiff, { change: { path: 'a.ts', before: 'old', after: 'new' }, loadEngine, fallback: 'Legacy' }));
+
         await act(async () => render());
         await act(async () => root.render(null));
         act(() => render());
@@ -149,13 +163,16 @@ test('a failed editor mount falls back locally and retries when the loader chang
                 throw new Error('Mount failed');
             }
         }
+
         const change: FileChange = { path: 'a.ts', before: 'old', after: 'new' };
+
         const render = (loadEngine: () => Promise<EditorEngine>) =>
             root.render(
                 <DiffFallbackBoundary fallback="Legacy" resetKeys={[loadEngine]}>
                     <EditorEditDiff change={change} loadEngine={loadEngine} fallback="Legacy" />
                 </DiffFallbackBoundary>
             );
+
         await act(async () => render(async () => new BrokenEngine()));
         expect(page.host.textContent).toBe('Legacy');
         const engine = new FakeEditorEngine();
@@ -170,6 +187,7 @@ test('a rejected lazy diff chunk also retains the legacy review', async () => {
         const FailedChunk = lazy(async () => {
             throw new Error('Chunk unavailable');
         });
+
         await act(async () =>
             root.render(
                 <DiffFallbackBoundary fallback="Legacy" resetKeys={[]}>
@@ -179,6 +197,7 @@ test('a rejected lazy diff chunk also retains the legacy review', async () => {
                 </DiffFallbackBoundary>
             )
         );
+
         expect(page.host.textContent).toBe('Legacy');
     });
 });
@@ -186,15 +205,20 @@ test('a rejected lazy diff chunk also retains the legacy review', async () => {
 test('patch reviews validate snapshots and read whitespace-filtered context from the new side', async () => {
     await mounted(async (_page, root) => {
         const engine = new FakeEditorEngine();
+
         const loadEngine = async () => engine;
+
         const change = { path: 'a.ts', kind: 'update' as const, diff: '@@ -2,2 +2,2 @@\n \tkeep\n-old\n+new\n' };
         const contents = { old: 'prefix\n\tkeep\nold\ntail\n', new: 'prefix\n  keep\nnew\ntail\n' };
+
         await act(async () =>
             root.render(<EditorPatchDiff change={change} contents={contents} ignoreWhitespace wrap fill={false} loadEngine={loadEngine} fallback="Legacy" />)
         );
+
         expect(engine.last.getText()).toBe('  keep\nold\nnew');
         expect([0, 1, 2].map((line) => engine.last.lineNumbers!(line))).toEqual(['2', '3', '3']);
         expect(engine.last.lineHighlights.map((line) => line.bar)).toEqual(['hatched', 'solid']);
+
         await act(async () =>
             root.render(
                 <EditorPatchDiff
@@ -208,6 +232,7 @@ test('patch reviews validate snapshots and read whitespace-filtered context from
                 />
             )
         );
+
         expect(engine.editors).toHaveLength(1);
         expect(engine.last.getText()).toBe('\tkeep\nold\nnew');
     });
@@ -217,9 +242,11 @@ test('a partial deletion patch has real selectable old text and original gutter 
     await mounted(async (_page, root) => {
         const engine = new FakeEditorEngine();
         const change = { path: 'a.ts', kind: 'delete' as const, diff: '@@ -20,2 +19,0 @@\n-one\n-two\n' };
+
         await act(async () =>
             root.render(<EditorPatchDiff change={change} ignoreWhitespace={false} wrap fill={false} loadEngine={async () => engine} fallback="Legacy" />)
         );
+
         expect(engine.last.getText()).toBe('one\ntwo');
         expect([0, 1].map((line) => engine.last.lineNumbers!(line))).toEqual(['20', '21']);
         expect(engine.last.readOnly).toBe(true);
@@ -229,7 +256,9 @@ test('a partial deletion patch has real selectable old text and original gutter 
 test('split patch reviews use two real side documents and preserve the shared loader', async () => {
     await mounted(async (page, root) => {
         const engine = new FakeEditorEngine();
+
         const loadEngine = async () => engine;
+
         await act(async () =>
             root.render(
                 createElement(EditorPatchDiff, {
@@ -243,6 +272,7 @@ test('split patch reviews use two real side documents and preserve the shared lo
                 })
             )
         );
+
         expect(engine.editors.length).toBe(2);
         expect(engine.editors.map((editor) => editor.getText())).toEqual(['context\nold', 'context\nnew\nextra']);
         expect(engine.editors[0]!.lineNumbers!(1)).toBe('11');
@@ -255,9 +285,12 @@ test('split patch reviews use two real side documents and preserve the shared lo
 test('a small edit in a large snapshot mounts while a large displayed edit shows the omission', async () => {
     await mounted(async (page, root) => {
         const engine = new FakeEditorEngine();
+
         const loadEngine = async () => engine;
+
         const before = Array.from({ length: 5000 }, (_, index) => `line ${index}`).join('\n');
         const after = before.replace('line 2500\n', 'changed\n');
+
         const render = (before: string, after: string) =>
             root.render(
                 createElement(EditorEditDiff, {
@@ -266,6 +299,7 @@ test('a small edit in a large snapshot mounts while a large displayed edit shows
                     fallback: createElement('p', null, 'Legacy')
                 })
             );
+
         await act(async () => render(before, after));
         expect(engine.last.getText().split('\n').length).toBeLessThan(20);
         expect(engine.last.getText()).toContain('changed');
@@ -278,15 +312,20 @@ test('a small edit in a large snapshot mounts while a large displayed edit shows
 test('changing the preview cap preserves the mounted editor and its scroll position', async () => {
     await mounted(async (page, root) => {
         const fake = new FakeEditorEngine();
+
         const engine: EditorEngine = {
             mount(host, options) {
                 const editor = fake.mount(host, options);
                 editor.contentHeight = 1000;
+
                 return editor;
             }
         };
+
         const loadEngine = async () => engine;
+
         const change = { path: 'file.ts', before: 'old', after: 'new' };
+
         const render = (maxHeight: number) =>
             root.render(
                 createElement(EditorEditDiff, {
@@ -296,6 +335,7 @@ test('changing the preview cap preserves the mounted editor and its scroll posit
                     fallback: createElement('p', null, 'Legacy')
                 })
             );
+
         await act(async () => render(176));
         expect((page.host.querySelector('.adecore-editor-diff') as HTMLElement).style.height).toBe('176px');
         const editor = fake.last;
@@ -313,12 +353,16 @@ test('oversize edits, patches and approvals never calculate hunks or mount an en
     await mounted(async (page, root) => {
         const engine = new FakeEditorEngine();
         let loads = 0;
+
         const loadEngine = async () => {
             loads++;
+
             return engine;
         };
+
         const patch = spyOn(merge, 'patchOf');
         const parse = spyOn(merge, 'parsePatch');
+
         try {
             setHost({ code: { ...CODE, editor: loadEngine } });
             const huge = 'x'.repeat(5000000);
@@ -330,6 +374,7 @@ test('oversize edits, patches and approvals never calculate hunks or mount an en
             const changePatch = { path: 'large.ts', kind: 'add' as const, diff: '@@ -0,0 +1 @@\n+' + huge };
             await act(async () => root.render(createElement(UnifiedDiff, { change: changePatch })));
             expect(page.host.querySelector('[data-diff-omitted]')).not.toBeNull();
+
             await act(async () =>
                 root.render(
                     createElement(EditorPatchDiff, {
@@ -342,7 +387,9 @@ test('oversize edits, patches and approvals never calculate hunks or mount an en
                     })
                 )
             );
+
             expect(page.host.querySelector('[data-diff-omitted]')).not.toBeNull();
+
             const item: ChatApprovalItem = {
                 kind: 'approval',
                 id: 'approval',
@@ -356,6 +403,7 @@ test('oversize edits, patches and approvals never calculate hunks or mount an en
                 createdAt: 0,
                 input: { file_path: 'large.ts', content: huge }
             };
+
             await act(async () =>
                 root.render(
                     createElement(ApprovalBody, {
@@ -367,6 +415,7 @@ test('oversize edits, patches and approvals never calculate hunks or mount an en
                     })
                 )
             );
+
             expect(page.host.querySelector('[data-diff-omitted]')).not.toBeNull();
             expect(patch).not.toHaveBeenCalled();
             expect(parse).not.toHaveBeenCalled();
@@ -384,17 +433,23 @@ test('many-hunk edits calculate once within a work budget and omit without loadi
     await mounted(async (page, root) => {
         const engine = new FakeEditorEngine();
         let loads = 0;
+
         const loadEngine = async () => {
             loads++;
+
             return engine;
         };
+
         const lines = Array.from({ length: 19800 }, (_, index) => `line ${index}`);
+
         const change = {
             path: 'many.txt',
             before: lines.join('\n'),
             after: lines.map((line, index) => (index % 11 === 0 ? `changed ${index}` : line)).join('\n')
         };
+
         const patch = spyOn(merge, 'patchOf');
+
         try {
             await act(async () => root.render(createElement(EditorEditDiff, { change, loadEngine, fallback: 'Legacy' })));
             expect(patch).toHaveBeenCalledTimes(1);
@@ -413,6 +468,7 @@ test('edits within the work budget render exact source rows', async () => {
         const engine = new FakeEditorEngine();
         const change = { path: 'small.ts', before: 'start\nold\nend', after: 'start\nnew\nend' };
         const patch = spyOn(merge, 'patchOf');
+
         try {
             await act(async () => root.render(createElement(EditorEditDiff, { change, loadEngine: async () => engine, fallback: 'Legacy' })));
             expect(patch).toHaveBeenCalledTimes(1);
@@ -429,11 +485,13 @@ test('reformatting 1100 lines stays in the editor instead of being omitted', asy
     await mounted(async (page, root) => {
         const engine = new FakeEditorEngine();
         const lines = Array.from({ length: 1100 }, (_, index) => `line ${index}`);
+
         const change = {
             path: 'formatted.txt',
             before: lines.join('\n'),
             after: lines.map((line, index) => (index % 2 === 0 ? `changed ${index}` : line)).join('\n')
         };
+
         await act(async () => root.render(createElement(EditorEditDiff, { change, loadEngine: async () => engine, fallback: 'Legacy' })));
         expect(engine.last.getText().split('\n')).toHaveLength(1650);
         expect(page.host.querySelector('[data-diff-omitted]')).toBeNull();
@@ -445,11 +503,13 @@ test('the public edit and patch paths check complete sources once', async () => 
     await mounted(async (_page, root) => {
         const engine = new FakeEditorEngine();
         const check = spyOn(sourceBudget, 'diffSourceBudget');
+
         try {
             setHost({ code: { ...CODE, editor: async () => engine } });
             await act(async () => root.render(createElement(EditDiff, { change: { path: 'a.ts', before: 'old', after: 'new' } })));
             expect(check).toHaveBeenCalledTimes(1);
             check.mockClear();
+
             await act(async () =>
                 root.render(
                     createElement(UnifiedDiff, {
@@ -458,6 +518,7 @@ test('the public edit and patch paths check complete sources once', async () => 
                     })
                 )
             );
+
             expect(check).toHaveBeenCalledTimes(1);
         } finally {
             check.mockRestore();
@@ -470,19 +531,23 @@ for (const kind of ['edit', 'patch'] as const) {
     test(`a rejected ${kind} engine shows its own failure status without starting legacy workers`, async () => {
         await mounted(async (page, root) => {
             let workers = 0;
+
             const loadEngine = async (): Promise<EditorEngine> => {
                 throw new Error('engine unavailable');
             };
+
             setHost({
                 code: {
                     ...CODE,
                     editor: loadEngine,
                     legacyDiffWorker: () => {
                         workers++;
+
                         throw new Error('legacy worker must stay idle');
                     }
                 }
             });
+
             try {
                 await act(async () =>
                     root.render(
@@ -493,6 +558,7 @@ for (const kind of ['edit', 'patch'] as const) {
                         )
                     )
                 );
+
                 expect(page.host.querySelector('[data-diff-unavailable]')?.textContent).toContain('Could not load this diff');
                 expect(page.host.textContent).toContain('file.ts');
                 expect(page.host.querySelector('[data-diff-omitted]')).toBeNull();
@@ -507,20 +573,25 @@ for (const kind of ['edit', 'patch'] as const) {
     test(`a failed ${kind} mount leaves a local status without a legacy renderer`, async () => {
         await mounted(async (page, root) => {
             const engine = new FakeEditorEngine();
+
             engine.mount = () => {
                 throw new Error('mount unavailable');
             };
+
             let workers = 0;
+
             setHost({
                 code: {
                     ...CODE,
                     editor: async () => engine,
                     legacyDiffWorker: () => {
                         workers++;
+
                         throw new Error('legacy worker must stay idle');
                     }
                 }
             });
+
             try {
                 await act(async () =>
                     root.render(
@@ -531,6 +602,7 @@ for (const kind of ['edit', 'patch'] as const) {
                         )
                     )
                 );
+
                 expect(page.host.querySelector('[data-diff-unavailable]')?.textContent).toContain('Could not load this diff');
                 expect(page.host.querySelector('diffs-container')).toBeNull();
                 expect(workers).toBe(0);
@@ -545,23 +617,28 @@ test('a patch without hunks uses a bounded raw view without loading the engine o
     await mounted(async (page, root) => {
         let loads = 0;
         let workers = 0;
+
         setHost({
             code: {
                 ...CODE,
                 editor: async () => {
                     loads++;
+
                     return new FakeEditorEngine();
                 },
                 legacyDiffWorker: () => {
                     workers++;
+
                     throw new Error('legacy worker must stay idle');
                 }
             }
         });
+
         try {
             await act(async () =>
                 root.render(<UnifiedDiff change={{ path: 'raw.ts', kind: 'update', diff: 'rename from old.ts\nrename to raw.ts\n' }} maxHeight={176} />)
             );
+
             const raw = page.host.querySelector('[data-diff-raw]') as HTMLElement;
             expect(raw.textContent).toBe('rename from old.ts\nrename to raw.ts');
             expect(raw.style.maxHeight).toBe('176px');

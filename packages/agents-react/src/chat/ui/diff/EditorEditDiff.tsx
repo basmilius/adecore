@@ -40,6 +40,7 @@ function ReadyDiff({
     const theme = useHostCodeThemes()[mode];
     const language = getFiletypeFromFileName(path);
     const tokens = useDiffSourceTokens(document, language, theme);
+
     return (
         <DiffView
             engine={engine}
@@ -79,38 +80,48 @@ export function EditorDocumentDiff({
     const { t } = useTranslation('agent-chat');
     const withinLimits = canRenderEditorDiff(document);
     const [loaded, setLoaded] = useState<{ load: EngineLoader; engine: EditorEngine | null }>();
+
     useEffect(() => {
         if (!withinLimits || engines.has(loadEngine)) {
             return;
         }
+
         let active = true;
+
         void Promise.resolve()
             .then(loadEngine)
             .then(
                 (engine) => {
                     engines.set(loadEngine, engine);
+
                     if (active) {
                         setLoaded({ load: loadEngine, engine });
                     }
                 },
                 () => {
                     engines.set(loadEngine, null);
+
                     if (active) {
                         setLoaded({ load: loadEngine, engine: null });
                     }
                 }
             );
+
         return () => {
             active = false;
         };
     }, [loadEngine, withinLimits]);
+
     const engine = loaded?.load === loadEngine ? loaded.engine : engines.get(loadEngine);
+
     if (!withinLimits) {
         return <DiffOmitted path={path} />;
     }
+
     if (engine === undefined) {
         return <div className="px-3 py-2 text-xs text-text-faint">{t('work.loadingDiff')}</div>;
     }
+
     return engine === null ? (
         fallback
     ) : (
@@ -135,8 +146,10 @@ export default function EditorEditDiff({
         sourceChecked || diffSourceBudget(change.before, change.after)
             ? diffDocument(patchOf(change.before, change.after, 3, { maxWork: EDITOR_DIFF_WORK }), { old: change.before, new: change.after })
             : undefined;
+
     if (document === undefined) {
         return <DiffOmitted path={change.path} />;
     }
+
     return <EditorDocumentDiff document={document} path={change.path} loadEngine={loadEngine} fallback={fallback} maxHeight={maxHeight} />;
 }

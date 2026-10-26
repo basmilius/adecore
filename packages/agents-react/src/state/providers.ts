@@ -34,6 +34,7 @@ export const useProvidersStore = create<ProvidersStore>((set, get) => ({
  */
 export function useProviders<T>(select: (row: ProvidersRow) => T): T {
     const { id } = useChatScope();
+
     return useProvidersStore((s) => select(s.byScope[id] ?? NONE));
 }
 

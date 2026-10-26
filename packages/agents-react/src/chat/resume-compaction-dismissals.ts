@@ -9,6 +9,7 @@ const useDismissals = create<{ byKey: Record<string, string> }>(() => ({ byKey: 
 
 export function useResumeCompactionDismissal(chatId: string): string | null {
     const { keyOf } = useChatScope();
+
     return useDismissals((s) => s.byKey[keyOf(chatId)] ?? null);
 }
 

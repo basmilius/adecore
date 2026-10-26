@@ -30,9 +30,11 @@ function failed(host: Notifier, title: string, e: unknown): void {
 async function add(scope: ChatScope, host: Notifier, chatId: string, itemId: string, name?: string): Promise<boolean> {
     try {
         await scope.chats.addBookmark(chatId, itemId, name);
+
         return true;
     } catch (e) {
         failed(host, i18next.t('agent-chat:bookmarks.addFailed'), e);
+
         return false;
     }
 }
@@ -40,6 +42,7 @@ async function add(scope: ChatScope, host: Notifier, chatId: string, itemId: str
 /* Marks a message and opens the field for its name at once, before the host answered. */
 export async function placeBookmark(scope: ChatScope, host: Notifier, chatId: string, itemId: string): Promise<void> {
     useBookmarkNaming.getState().open(scope.keyOf(chatId), itemId);
+
     if (!(await add(scope, host, chatId, itemId))) {
         useBookmarkNaming.getState().close();
     }
@@ -58,13 +61,17 @@ export async function nameBookmark(
     previous: string | undefined
 ): Promise<void> {
     const next = name.trim();
+
     if (next === (previous ?? '')) {
         return;
     }
+
     if (next !== '') {
         await add(scope, host, chatId, itemId, next);
+
         return;
     }
+
     try {
         await scope.chats.renameBookmark(chatId, itemId, '');
     } catch (e) {
@@ -78,8 +85,10 @@ export async function removeBookmark(scope: ChatScope, host: Notifier, chatId: s
         await scope.chats.removeBookmark(chatId, bookmark.itemId);
     } catch (e) {
         failed(host, i18next.t('agent-chat:bookmarks.removeFailed'), e);
+
         return;
     }
+
     host.notify({
         title: i18next.t('agent-chat:bookmarks.removed'),
         kind: 'deleted',
@@ -90,8 +99,10 @@ export async function removeBookmark(scope: ChatScope, host: Notifier, chatId: s
 /* Scrolls the chat's thread to the message, and opens its name field for a rename. False when no thread of it is on screen yet. */
 export function goToBookmark(scope: ChatScope, chatId: string, itemId: string, rename = false): boolean {
     const key = scope.keyOf(chatId);
+
     if (rename) {
         useBookmarkNaming.getState().open(key, itemId);
     }
+
     return jumpToTimelineItem(key, itemId);
 }

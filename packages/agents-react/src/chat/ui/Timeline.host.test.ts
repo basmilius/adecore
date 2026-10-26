@@ -21,12 +21,14 @@ function countingFind(calls: { count: number }): ChatHost['useTimelineFind'] {
         useState(0);
         useState(null);
         calls.count += 1;
+
         return NO_FIND;
     };
 }
 
 function thread(...hosts: Array<{ key?: string; host: Partial<ChatHost> }>): ReactNode {
     const timeline = createElement(ChatScopeContext.Provider, { value: scope }, createElement(Timeline, { chatId: 'chat' }));
+
     return hosts.reduceRight<ReactNode>((children, { key, host }) => createElement(ChatHostProvider, { key, host }, children), timeline);
 }
 
@@ -35,6 +37,7 @@ async function mounted(run: (root: ReturnType<typeof createRoot>, errors: unknow
     const element = document.createElement('div');
     document.body.append(element);
     const root = createRoot(element, { onUncaughtError: (error) => errors.push(error), onCaughtError: (error) => errors.push(error) });
+
     try {
         await run(root, errors);
     } finally {
@@ -52,11 +55,13 @@ test.skipIf(typeof document === 'undefined')('a mounted thread refuses a host wi
         expect(errors).toEqual([]);
         const calls = { count: 0 };
         let refusal: unknown = null;
+
         try {
             await act(async () => root.render(thread({ host: { useTimelineFind: countingFind(calls) } })));
         } catch (error) {
             refusal = error;
         }
+
         expect(String(refusal)).toContain('reads its host once');
         expect(calls.count).toBe(0);
         expect(errors.filter((error) => /hook/i.test(String(error)))).toEqual([]);

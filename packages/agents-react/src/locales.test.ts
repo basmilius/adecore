@@ -21,9 +21,11 @@ function strings(value: unknown, prefix = ''): Array<[string, string]> {
     if (typeof value === 'string') {
         return [[prefix, value]];
     }
+
     if (typeof value !== 'object' || value === null) {
         return [[prefix, '']];
     }
+
     return Object.entries(value).flatMap(([key, child]) => strings(child, prefix === '' ? key : `${prefix}.${key}`));
 }
 
@@ -34,6 +36,7 @@ function placeholders(text: string): string[] {
 describe('the words of @adecore/agents-react', () => {
     test('every namespace has a file in every language, and every file a namespace', () => {
         expect(Object.keys(AGENTS_LOCALES).sort()).toEqual(['en', 'nl']);
+
         for (const language of Object.keys(AGENTS_LOCALES)) {
             expect(namespacesOn(language)).toEqual([...AGENTS_NAMESPACES].sort());
         }
@@ -43,6 +46,7 @@ describe('the words of @adecore/agents-react', () => {
         const english = new Map(strings(await read('en', namespace)));
         const dutch = new Map(strings(await read('nl', namespace)));
         expect([...dutch.keys()].sort()).toEqual([...english.keys()].sort());
+
         for (const [key, text] of english) {
             expect([key, placeholders(dutch.get(key) ?? '')]).toEqual([key, placeholders(text)]);
         }

@@ -32,6 +32,7 @@ function setup(overrides: Partial<VisualBridgeOptions> = {}) {
     const timers: Array<{ ms: number; run: () => void; cancelled: boolean }> = [];
     let failures = 0;
     let acting = true;
+
     const bridge = new VisualBridge({
         frame: () => frame,
         visual: { maxHeight: 900 },
@@ -47,13 +48,16 @@ function setup(overrides: Partial<VisualBridgeOptions> = {}) {
         after: (ms, run) => {
             const timer = { ms, run, cancelled: false };
             timers.push(timer);
+
             return () => {
                 timer.cancelled = true;
             };
         },
         ...overrides
     });
+
     const fromFrame = (data: unknown): void => bridge.receive({ source: frame, data });
+
     return {
         bridge,
         frame,
@@ -78,6 +82,7 @@ describe('VisualBridge', () => {
         await flush();
         expect(frame.posted).toEqual([]);
         frame.fromFrame(visualProxyReadyMessage());
+
         expect(frame.posted).toEqual([
             { message: visualResourceReadyMessage('<p>chart</p>'), origin: '*' },
             { message: visualHostContextMessage(DARK), origin: '*' }
@@ -86,6 +91,7 @@ describe('VisualBridge', () => {
 
     test('sends a page that is read after the host page asked as soon as it is there', async () => {
         let resolve: (html: string) => void = () => undefined;
+
         const frame = setup({ page: new Promise<string>((done) => (resolve = done)) });
         frame.fromFrame(visualProxyReadyMessage());
         expect(frame.posted).toEqual([]);
@@ -126,12 +132,14 @@ describe('VisualBridge', () => {
     test('a windowed visual reports its full height and synchronizes only after the runtime is ready', async () => {
         const requests: unknown[] = [];
         let ready = false;
+
         const page = setup({
             onViewportReady: () => {
                 ready = true;
             },
             onScroll: (request) => requests.push(request)
         });
+
         page.bridge.setViewport({ top: 1200, height: 700 });
         page.fromFrame(visualScrollMessage({ by: 40 }));
         await flush();

@@ -17,6 +17,7 @@ const PLATFORMS: readonly ProviderPlatform[] = ['darwin', 'linux', 'win32'];
 /* The first step not done is the current one. */
 export function installStepStates(done: readonly boolean[]): InstallStepState[] {
     const first = done.indexOf(false);
+
     return done.map((value, index) => (value ? 'done' : index === first ? 'current' : 'later'));
 }
 
@@ -25,11 +26,13 @@ export function pagePlatform(): ProviderPlatform {
     if (isApplePlatform()) {
         return 'darwin';
     }
+
     return typeof navigator !== 'undefined' && /windows/i.test(navigator.userAgent) ? 'win32' : 'linux';
 }
 
 /* The systems a provider has a command for, and the one the page opens on: the machine's when it has one there. */
 export function installPlatforms(provider: ProviderInfo, machine: ProviderPlatform): { offered: ProviderPlatform[]; initial: ProviderPlatform | null } {
     const offered = PLATFORMS.filter((platform) => Boolean(provider.install?.commands[platform]));
+
     return { offered, initial: offered.includes(machine) ? machine : (offered[0] ?? null) };
 }

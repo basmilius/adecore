@@ -24,12 +24,15 @@ export function usePromptHistory(chatId: string, setText: (next: string, mention
     const [index, setIndex] = useState<number | null>(null);
 
     const prompts: Array<{ text: string; mentions: string[] }> = [];
+
     for (const id of order ?? []) {
         const item = items?.[id];
+
         if (item?.kind === 'user') {
             prompts.push({ text: item.text, mentions: item.mentions ?? [] });
         }
     }
+
     // Walking back further than this is faster with the timeline than with the arrow key.
     const history = prompts.slice(-PROMPT_HISTORY);
 
@@ -37,17 +40,23 @@ export function usePromptHistory(chatId: string, setText: (next: string, mention
         if (history.length === 0) {
             return false;
         }
+
         const next = index === null ? (direction === -1 ? history.length - 1 : null) : index + direction;
+
         if (next === null || next >= history.length) {
             setIndex(null);
             setText('', [], []);
+
             return true;
         }
+
         if (next < 0) {
             return true;
         }
+
         setIndex(next);
         setText(history[next]!.text, history[next]!.mentions);
+
         return true;
     };
 
@@ -55,8 +64,10 @@ export function usePromptHistory(chatId: string, setText: (next: string, mention
         if (index === null) {
             return false;
         }
+
         setIndex(null);
         setText('', [], []);
+
         return true;
     };
 

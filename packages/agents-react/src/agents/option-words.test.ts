@@ -20,6 +20,7 @@ beforeAll(async () => {
     for (const [namespace, words] of Object.entries(await AGENTS_LOCALES.nl!())) {
         i18next.addResourceBundle('nl', namespace, words, true, true);
     }
+
     await i18next.changeLanguage('nl');
 });
 

@@ -16,11 +16,14 @@ function asPatch(change: ChatFileChange): string | null {
     if (!/^@@/m.test(change.diff)) {
         return null;
     }
+
     if (/^\+\+\+ /m.test(change.diff)) {
         return change.diff;
     }
+
     const from = change.kind === 'add' ? '/dev/null' : `a/${change.path}`;
     const to = change.kind === 'delete' ? '/dev/null' : `b/${change.path}`;
+
     return `--- ${from}\n+++ ${to}\n${change.diff}`;
 }
 
@@ -37,9 +40,11 @@ function lineClass(line: string): string {
     if (line.startsWith('+')) {
         return 'text-chat-added';
     }
+
     if (line.startsWith('-')) {
         return 'text-chat-removed';
     }
+
     return 'text-text-muted';
 }
 
@@ -52,6 +57,7 @@ export default function LegacyUnifiedDiff({ change, overflow = 'wrap', diffStyle
     const newText = contents?.new;
     const full = patch === null || oldText === undefined || newText === undefined ? null : fullFileDiff(patch, change.path, { old: oldText, new: newText });
     const unfolds = full !== null;
+
     const options = {
         theme,
         themeType: resolved,
@@ -61,6 +67,7 @@ export default function LegacyUnifiedDiff({ change, overflow = 'wrap', diffStyle
         hunkSeparators: unfolds ? ('line-info' as const) : ('simple' as const),
         unsafeCSS: fill ? FILL_CSS : undefined
     };
+
     if (patch === null) {
         return (
             <pre className="max-h-64 overflow-auto px-3 py-2 font-mono text-code select-text" style={fill ? undefined : { maxHeight }}>
@@ -75,6 +82,7 @@ export default function LegacyUnifiedDiff({ change, overflow = 'wrap', diffStyle
             </pre>
         );
     }
+
     return (
         <div
             className={clsx('chat-diff select-text', fill && 'flex grow flex-col')}

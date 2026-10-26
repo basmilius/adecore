@@ -33,26 +33,36 @@ export function useTakeBack({ chatId, draft: { latest, setDraft }, setNotice, on
         if (takingBack !== null) {
             return;
         }
+
         const failed = (e: unknown): void => {
             host.notify({ kind: 'error', title: t('composer.queue.editFailed'), description: errorMessage(e) });
         };
+
         const readFiles = async (): Promise<ChatAttachmentUpload[]> => {
             const stored = message.attachments ?? [];
+
             if (stored.length === 0) {
                 return [];
             }
+
             const files = host.attachments;
+
             return readStoredAttachments((attachment) => files.read(scope.id, chatId, attachment.id), stored);
         };
+
         setTakingBack(message.id);
+
         try {
             let uploads: ChatAttachmentUpload[];
+
             try {
                 uploads = await readFiles();
             } catch (e) {
                 failed(e);
+
                 return;
             }
+
             const taken: Omit<ChatDraft, 'quote' | 'quoteSource'> = {
                 text: message.text,
                 mentions: message.mentions ?? [],
@@ -61,12 +71,16 @@ export function useTakeBack({ chatId, draft: { latest, setDraft }, setNotice, on
                 attachments: uploads,
                 references: message.references ?? []
             };
+
             // A file that would not fit is refused here, while the message still holds it on the machine.
             const wouldReject = takeBackIntoDraft(latest.current, taken).rejected[0];
+
             if (wouldReject) {
                 setNotice(t('composer.notice.queuedDoesNotFit', { name: wouldReject.name || t('composer.notice.thatFile'), reason: wouldReject.reason }));
+
                 return;
             }
+
             try {
                 await actions.unqueue(chatId, message.id);
             } catch (e) {
@@ -75,13 +89,17 @@ export function useTakeBack({ chatId, draft: { latest, setDraft }, setNotice, on
                 } else {
                     failed(e);
                 }
+
                 return;
             }
+
             const merged = takeBackIntoDraft(latest.current, taken);
             setDraft(merged.draft);
+
             if (merged.rejected[0]) {
                 setNotice(t('composer.notice.rejected', { name: merged.rejected[0].name, reason: merged.rejected[0].reason }));
             }
+
             onTaken();
         } finally {
             setTakingBack(null);

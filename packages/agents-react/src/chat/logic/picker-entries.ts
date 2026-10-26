@@ -4,6 +4,7 @@ import { nameCollator } from '@adecore/ui/format';
 /* The providers in the order a picker lists them: the frontier labs, the rest, then the API providers, each by name. */
 export function inPickerOrder<T extends { kind: AgentKind; name: string }>(providers: readonly T[]): T[] {
     const groups = pickerGroupsOf(providers);
+
     return [...groups.frontier, ...groups.others, ...groups.api];
 }
 
@@ -33,6 +34,7 @@ export interface PickerCurrent {
 export type FavoritesOf = (kind: AgentKind) => ReadonlySet<string>;
 
 const NO_FAVORITES: FavoritesOf = () => new Set();
+
 const VENDOR_ORDER: Intl.CollatorOptions = { sensitivity: 'base' };
 const MODEL_ORDER: Intl.CollatorOptions = { sensitivity: 'base', numeric: true };
 
@@ -48,12 +50,15 @@ export function modelsByVendor(models: ModelInfo[]): ModelInfo[] {
     if (!models.some((model) => model.vendor !== undefined)) {
         return models;
     }
+
     const vendorOrder = nameCollator(VENDOR_ORDER).compare;
     const modelOrder = nameCollator(MODEL_ORDER).compare;
+
     return [...models].sort((a, b) => {
         if (a.vendor === undefined || b.vendor === undefined) {
             return a.vendor === b.vendor ? 0 : a.vendor === undefined ? 1 : -1;
         }
+
         return vendorOrder(a.vendor, b.vendor) || modelOrder(a.name, b.name);
     });
 }
@@ -63,6 +68,7 @@ export function favoritesFirst(models: ModelInfo[], favorites: ReadonlySet<strin
     if (favorites.size === 0) {
         return modelsByVendor(models);
     }
+
     return [...models.filter((model) => favorites.has(model.slug)), ...modelsByVendor(models.filter((model) => !favorites.has(model.slug)))];
 }
 
@@ -79,6 +85,7 @@ export function shortlistOf(
     if (models.length <= COMPACT_MODEL_LIMIT) {
         return null;
     }
+
     return favoritesFirst(
         models.filter((model) => model.isDefault || favorites.has(model.slug) || (current?.provider === kind && current.model === model.slug)),
         favorites
@@ -97,6 +104,7 @@ export function searchModels(
     favoritesOf: FavoritesOf = NO_FAVORITES
 ): Array<{ entry: ProviderInfo; models: ModelInfo[] }> {
     const needle = query.trim().toLowerCase();
+
     return providers
         .map((entry) => ({
             entry,
@@ -126,6 +134,7 @@ export function pickerEntriesOf(
 ): PickerEntry[] {
     const rowsOf = (entry: ProviderInfo, models: ModelInfo[]): PickerEntry[] =>
         favoritesFirst(models, favoritesOf(entry.kind)).map((model) => ({ kind: 'model', provider: entry, model }));
+
     if (query !== '') {
         return providers.flatMap((entry) =>
             rowsOf(
@@ -134,19 +143,25 @@ export function pickerEntriesOf(
             )
         );
     }
+
     const legacy = providers.flatMap((entry) =>
         entry.models.filter((model) => model.legacy).map((model) => ({ kind: 'model' as const, provider: entry, model }))
     );
+
     const live = providers.flatMap((entry): PickerEntry[] => {
         const models = entry.models.filter((model) => !model.legacy);
         const shortlist = shortlistOf(entry.kind, models, current, favoritesOf(entry.kind));
+
         if (shortlist === null) {
             return rowsOf(entry, models);
         }
+
         if (expanded.has(entry.kind)) {
             return [{ kind: 'all', provider: entry, count: models.length, open: true }, ...rowsOf(entry, models)];
         }
+
         return [...rowsOf(entry, shortlist), { kind: 'all', provider: entry, count: models.length, open: false }];
     });
+
     return legacy.length === 0 ? live : [...live, { kind: 'legacy', count: legacy.length }, ...(legacyOpen ? legacy : [])];
 }

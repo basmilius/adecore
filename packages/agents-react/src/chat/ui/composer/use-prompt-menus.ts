@@ -108,11 +108,14 @@ export function usePromptMenus<D extends PromptDraft>({
         if (mention === null || cwd === null) {
             return;
         }
+
         let stale = false;
+
         const search = (): void => {
             if (searchFiles === null) {
                 return;
             }
+
             searchFiles(scope.id, cwd, mention.query, MENTION_RESULTS)
                 .then((files) => {
                     if (!stale) {
@@ -122,14 +125,18 @@ export function usePromptMenus<D extends PromptDraft>({
                 })
                 .catch(() => undefined);
         };
+
         // A bare `@` is not a keystroke in a query. It opens the list of what is there, at once.
         if (mention.query === '') {
             search();
+
             return () => {
                 stale = true;
             };
         }
+
         const timer = setTimeout(search, SEARCH_DEBOUNCE_MS);
+
         return () => {
             stale = true;
             clearTimeout(timer);
@@ -137,11 +144,13 @@ export function usePromptMenus<D extends PromptDraft>({
     }, [scope, cwd, mention, searchFiles]);
 
     const commandQuery = text.startsWith('/') && !text.includes('\n') ? text.slice(1).trim().toLowerCase() : null;
+
     const commandsOf = (query: string): ComposerCommand[] => {
         const known = new Set(skills.map((skill) => skill.name));
         const own = localCommands.map((name) => ({ name, hint: t(`composer.commands.${name}`), local: true, skill: false }));
         // Every CLI with goals reads `/goal`, also one that lists no commands of its own.
         const goal = goals ? [{ name: 'goal', hint: t('composer.commands.goal'), local: false, skill: false }] : [];
+
         const cli = usableSlashCommands([...slashCommands])
             .filter((name) => !localCommands.includes(name) && (!goals || name !== 'goal'))
             .map((name) => ({
@@ -150,8 +159,10 @@ export function usePromptMenus<D extends PromptDraft>({
                 local: false,
                 skill: known.has(name)
             }));
+
         return [...own, ...goal, ...cli].filter((command) => command.name.startsWith(query)).slice(0, 8);
     };
+
     const commands = commandQuery === null ? [] : commandsOf(commandQuery);
     const skillMatches = skillQuery === null ? [] : skills.filter((skill) => skill.name.toLowerCase().includes(skillQuery.query.toLowerCase())).slice(0, 8);
 
@@ -166,11 +177,13 @@ export function usePromptMenus<D extends PromptDraft>({
     const referenceMenuOpen = !commandMenuOpen && !skillMenuOpen && !mentionMenuOpen && referenceQuery !== null && offersReferences;
     const excluded = ownId === undefined ? [...draft.chats, ...draft.references] : [ownId, ...draft.chats, ...draft.references];
     const referenceMatches = referenceMenuOpen ? referenceSuggestions(referables, referenceQuery.query, excluded, REFERENCE_RESULTS) : [];
+
     // What the editor draws as chips and the send checks are still in the text, under the name each was picked with.
     const referenceChips = referenceTokens([...draft.chats, ...draft.references], referables.items, draft.referenceNames).map((token) => ({
         ...token,
         kind: referables.items.find((item) => item.id === token.id)?.kind ?? null
     }));
+
     // One menu is open at a time, so they share an id.
     const listId = useId();
     const menuOpen = commandMenuOpen || skillMenuOpen || mentionMenuOpen || referenceMenuOpen;
@@ -209,6 +222,7 @@ export function usePromptMenus<D extends PromptDraft>({
         if (!mention) {
             return;
         }
+
         const result = insertMention(text, mention, path);
         setText(result.text, draft.mentions.includes(path) ? draft.mentions : [...draft.mentions, path]);
         setMention(null);
@@ -217,6 +231,7 @@ export function usePromptMenus<D extends PromptDraft>({
 
     const chooseMentionAt = (index: number): void => {
         const path = mention === null ? null : mentionPick(index, searched, mention.query);
+
         if (path !== null) {
             chooseMention(path);
         }
@@ -230,9 +245,12 @@ export function usePromptMenus<D extends PromptDraft>({
         if (!referenceQuery) {
             return;
         }
+
         const result = insertReference(text, referenceQuery, item.name);
         const chat = item.kind === 'chat';
+
         const add = (ids: string[]): string[] => (ids.includes(item.id) ? ids : [...ids, item.id]);
+
         setDraft((current) => ({
             ...current,
             text: result.text,
@@ -240,12 +258,14 @@ export function usePromptMenus<D extends PromptDraft>({
             references: chat ? current.references : add(current.references),
             referenceNames: { ...current.referenceNames, [item.id]: item.name }
         }));
+
         setReferenceQuery(null);
         moveCaret(result.caret);
     };
 
     const chooseReferenceAt = (index: number): void => {
         const item = referenceMatches[index] ?? referenceMatches[0];
+
         if (item !== undefined) {
             chooseReference(item);
         }
@@ -265,10 +285,13 @@ export function usePromptMenus<D extends PromptDraft>({
     /* A clicked command; Tab completes one with a space after it instead. */
     const pickCommand = (command: ComposerCommand, index: number): void => {
         setMenuIndex(index);
+
         if (command.skill) {
             chooseSkill(command.name);
+
             return;
         }
+
         setText(`/${command.name}`);
         inputRef.current?.focus();
     };
@@ -277,8 +300,10 @@ export function usePromptMenus<D extends PromptDraft>({
     const completeCommand = (command: ComposerCommand): void => {
         if (command.skill) {
             chooseSkill(command.name);
+
             return;
         }
+
         setText(`/${command.name} `);
     };
 
@@ -286,12 +311,16 @@ export function usePromptMenus<D extends PromptDraft>({
     const moveInMenu = (key: string, count: number): boolean => {
         if (key === 'ArrowDown') {
             setMenuIndex((i) => (i + 1) % count);
+
             return true;
         }
+
         if (key === 'ArrowUp') {
             setMenuIndex((i) => (i - 1 + count) % count);
+
             return true;
         }
+
         return false;
     };
 

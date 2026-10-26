@@ -34,32 +34,45 @@ export function portTransport(port: FramePort): PortTransport {
 
     const answer = (id: string, frame: { ok: true; result: unknown } | { ok: false; error: { code: string; message: string } }): void => {
         const entry = pending.get(id);
+
         if (!entry) {
             return;
         }
+
         pending.delete(id);
+
         if (!frame.ok) {
             entry.reject(new ChatTransportError(frame.error.code, frame.error.message));
+
             return;
         }
+
         const result = AGENT_REQUEST_SCHEMAS[entry.type].result.safeParse(frame.result);
+
         if (!result.success) {
             entry.reject(new ChatTransportError('bad-reply', i18next.t('agent-chat:transport.badReply', { type: entry.type })));
+
             return;
         }
+
         entry.resolve(result.data);
     };
 
     const dispatch = (event: string, payload: unknown): void => {
         if (!isEventType(event)) {
             console.warn('Dropped an unknown event', event);
+
             return;
         }
+
         const parsed = AGENT_EVENT_SCHEMAS[event].safeParse(payload);
+
         if (!parsed.success) {
             console.warn(`Dropped a malformed ${event} event`);
+
             return;
         }
+
         // A copy, so a handler that unsubscribes while it runs does not change the set being walked.
         for (const handler of [...(eventHandlers.get(event) ?? [])]) {
             (handler as (payload: unknown) => void)(parsed.data);
@@ -70,21 +83,30 @@ export function portTransport(port: FramePort): PortTransport {
         if (status === 'closed') {
             return;
         }
+
         const parsed = parseServerFrame(raw);
+
         if (!parsed.ok) {
             console.warn('Dropped a malformed frame', parsed.message);
+
             return;
         }
+
         const frame = parsed.value;
+
         if ('event' in frame) {
             dispatch(frame.event, frame.payload);
+
             return;
         }
+
         if (frame.id === null) {
             // An answer without an id is about a frame the host could not read; nothing waits for it.
             console.warn('The chat host refused a frame', frame);
+
             return;
         }
+
         answer(frame.id, frame);
     });
 
@@ -96,29 +118,36 @@ export function portTransport(port: FramePort): PortTransport {
             if (status !== 'open') {
                 return Promise.reject(new ChatTransportError('not-connected', i18next.t('agent-chat:transport.notConnected')));
             }
+
             const id = String(nextId++);
+
             const promise = new Promise<ChatRequestMap[T]['result']>((resolve, reject) => {
                 pending.set(id, { type, resolve: resolve as (result: unknown) => void, reject });
             });
+
             try {
                 port.send({ id, type, payload });
             } catch {
                 // A payload the port cannot clone throws here, and the caller only listens to the promise.
                 pending.delete(id);
+
                 return Promise.reject(new ChatTransportError('not-sent', i18next.t('agent-chat:transport.notSent', { type })));
             }
+
             return promise;
         },
         on<E extends AgentEventType>(event: E, handler: (payload: ChatEventMap[E]) => void): () => void {
             const handlers = eventHandlers.get(event) ?? new Set();
             eventHandlers.set(event, handlers);
             handlers.add(handler);
+
             return () => {
                 handlers.delete(handler);
             };
         },
         subscribeStatus(handler: (status: ChatTransportStatus) => void): () => void {
             statusHandlers.add(handler);
+
             return () => {
                 statusHandlers.delete(handler);
             };
@@ -127,13 +156,16 @@ export function portTransport(port: FramePort): PortTransport {
             if (status === 'closed') {
                 return;
             }
+
             status = 'closed';
             stopListening();
             const waiting = [...pending.values()];
             pending.clear();
+
             for (const entry of waiting) {
                 entry.reject(new ChatTransportError('disconnected', i18next.t('agent-chat:transport.closedBeforeAnswer')));
             }
+
             for (const handler of [...statusHandlers]) {
                 handler(status);
             }

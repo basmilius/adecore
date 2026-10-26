@@ -10,6 +10,7 @@ export function quoteOf(selected: string): string | null {
         .join('\n')
         .replace(/^\n+|\n+$/g, '')
         .replace(/\n{3,}/g, '\n\n');
+
     return text.trim() === '' ? null : text;
 }
 
@@ -18,10 +19,12 @@ export function withQuote(quote: string, message: string): string {
     if (quote === '') {
         return message;
     }
+
     const block = quote
         .split('\n')
         .map((line) => (line === '' ? '>' : `> ${line}`))
         .join('\n');
+
     return message === '' ? block : `${block}\n\n${message}`;
 }
 
@@ -32,15 +35,19 @@ export function withQuote(quote: string, message: string): string {
 export function splitQuote(text: string): { quote: string; rest: string } | null {
     const lines = text.split('\n');
     let end = 0;
+
     while (end < lines.length && (lines[end] === '>' || lines[end]!.startsWith('> '))) {
         end += 1;
     }
+
     if (end === 0 || (end < lines.length && lines[end] !== '')) {
         return null;
     }
+
     const quote = lines
         .slice(0, end)
         .map((line) => line.slice(2))
         .join('\n');
+
     return { quote, rest: lines.slice(end + 1).join('\n') };
 }

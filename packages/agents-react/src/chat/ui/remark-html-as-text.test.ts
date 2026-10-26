@@ -15,11 +15,14 @@ function elementsOf(node: ReactNode): Rendered[] {
     if (Array.isArray(node)) {
         return node.flatMap(elementsOf);
     }
+
     if (!isValidElement(node)) {
         return [];
     }
+
     const element = node as ReactElement<{ children?: ReactNode }>;
     const own = typeof element.type === 'string' ? [{ type: element.type, children: element.props.children }] : [];
+
     return [...own, ...elementsOf(element.props.children)];
 }
 
@@ -28,12 +31,15 @@ function textOf(node: ReactNode): string {
     if (typeof node === 'string') {
         return node;
     }
+
     if (Array.isArray(node)) {
         return node.map(textOf).join('');
     }
+
     if (isValidElement(node)) {
         return textOf((node as ReactElement<{ children?: ReactNode }>).props.children);
     }
+
     return '';
 }
 

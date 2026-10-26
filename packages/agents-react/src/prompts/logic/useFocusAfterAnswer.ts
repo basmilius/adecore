@@ -19,7 +19,9 @@ export function useFocusAfterAnswer(activeId: string | null, container: RefObjec
         if (!pending.current) {
             return;
         }
+
         pending.current = false;
+
         if (!focusPromptStart(container.current)) {
             onEmpty();
         }

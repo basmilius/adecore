@@ -6,6 +6,7 @@ import { Icon, Pill, Tooltip } from '@adecore/ui';
 /* What a model row says beside the name: its badge, and a mark when the provider says the model can call tools. */
 export function ModelMarks({ model }: { model: ModelInfo }) {
     const { t } = useTranslation('agent-chat');
+
     return (
         <>
             {model.badge && (

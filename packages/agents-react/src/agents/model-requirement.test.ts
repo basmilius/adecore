@@ -10,7 +10,9 @@ const model = (minCliVersion?: string): ModelInfo => ({
     options: [],
     ...(minCliVersion === undefined ? {} : { minCliVersion })
 });
+
 const provider = (version: string | null): ProviderInfo => ({ name: 'Claude Code', version }) as ProviderInfo;
+
 const NONE: ReadonlySet<string> = new Set();
 
 describe('modelRequirementOf', () => {

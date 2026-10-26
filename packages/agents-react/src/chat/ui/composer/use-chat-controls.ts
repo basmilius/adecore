@@ -32,8 +32,10 @@ export function useChatControls({ chatId, info, notice: { setNotice, showError }
         if (configuring.current) {
             return;
         }
+
         configuring.current = true;
         setConfigurationPending(true);
+
         void work()
             .catch(showError)
             .finally(() => {
@@ -49,6 +51,7 @@ export function useChatControls({ chatId, info, notice: { setNotice, showError }
                 if (patch.selection) {
                     rememberChatSelection(info.provider, patch.selection);
                 }
+
                 if (patch.account) {
                     rememberChatAccount(scope.id, info.provider, patch.account);
                 }
@@ -59,18 +62,23 @@ export function useChatControls({ chatId, info, notice: { setNotice, showError }
     /* A model of another CLI re-points the whole chat; one of this CLI's own is a configure. */
     const chooseModel = (provider: AgentKind, slug: string): void => {
         const selection: ModelSelection = { model: slug, options: {} };
+
         if (provider !== info.provider) {
             runConfiguration(() => onRetarget(provider, selection).then(() => rememberChatSelection(provider, selection)));
+
             return;
         }
+
         configure({ selection });
     };
 
     const stop = (shiftKey: boolean): void => {
         if (composerStopOf(shiftKey) === 'turn') {
             void actions.stopTurn(chatId, false).catch(showError);
+
             return;
         }
+
         host.confirm.stopSubagents(scope.id, chatId, () => void actions.stopTurn(chatId, true).catch(showError));
     };
 
@@ -81,8 +89,10 @@ export function useChatControls({ chatId, info, notice: { setNotice, showError }
         } catch (e) {
             if (errorCode(e) === 'chat-busy') {
                 setConfirmClear(true);
+
                 return;
             }
+
             setNotice(t('composer.notice.clearFailed'));
         }
     };
@@ -101,12 +111,15 @@ export function useChatControls({ chatId, info, notice: { setNotice, showError }
         switch (name) {
             case 'model':
                 setModelPickerOpen(true);
+
                 return true;
             case 'compact':
                 void actions.compact(chatId).catch(() => undefined);
+
                 return true;
             case 'clear':
                 void clearThread();
+
                 return true;
             default:
                 return false;

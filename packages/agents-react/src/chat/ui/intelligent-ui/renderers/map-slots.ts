@@ -28,6 +28,7 @@ export class MapSlots {
         if (this.held.includes(id) || this.queue.includes(id)) {
             return;
         }
+
         (this.held.length < this.capacity ? this.held : this.queue).push(id);
         this.changed();
     }
@@ -35,14 +36,18 @@ export class MapSlots {
     release(id: string): void {
         const wasHeld = this.held.includes(id);
         const wasQueued = this.queue.includes(id);
+
         if (!wasHeld && !wasQueued) {
             return;
         }
+
         this.held.splice(0, this.held.length, ...this.held.filter((entry) => entry !== id));
         this.queue.splice(0, this.queue.length, ...this.queue.filter((entry) => entry !== id));
+
         while (this.held.length < this.capacity && this.queue.length > 0) {
             this.held.push(this.queue.shift()!);
         }
+
         this.changed();
     }
 
@@ -50,13 +55,17 @@ export class MapSlots {
         if (this.held.includes(id)) {
             return;
         }
+
         const at = this.queue.indexOf(id);
+
         if (at >= 0) {
             this.queue.splice(at, 1);
         }
+
         if (this.held.length >= this.capacity) {
             this.queue.unshift(this.held.shift()!);
         }
+
         this.held.push(id);
         this.changed();
     }
@@ -67,6 +76,7 @@ export class MapSlots {
 
     subscribe = (listener: () => void): (() => void) => {
         this.listeners.add(listener);
+
         return () => {
             this.listeners.delete(listener);
         };
@@ -84,6 +94,7 @@ let page: MapSlots | null = null;
 /* The one budget of the page, made on first use. */
 export function pageMapSlots(): MapSlots {
     page ??= new MapSlots(MAX_LIVE_MAPS);
+
     return page;
 }
 
@@ -94,12 +105,16 @@ export function useMapSlot(id: string, wanted: boolean, slots: MapSlots = pageMa
         () => slots.stateOf(id),
         () => 'idle' as const
     );
+
     useEffect(() => {
         if (!wanted) {
             return;
         }
+
         slots.request(id);
+
         return () => slots.release(id);
     }, [slots, id, wanted]);
+
     return { state, take: () => slots.take(id) };
 }

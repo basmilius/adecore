@@ -67,13 +67,16 @@ const SPREAD_STEPS: readonly (readonly [number, number])[] = [
 export function spreadOverlaps(points: readonly ScreenPoint[]): Map<string, [number, number]> {
     const offsets = new Map<string, [number, number]>();
     const placed: { x: number; y: number }[] = [];
+
     for (const point of points) {
         const free = ([dx, dy]: readonly [number, number]): boolean =>
             placed.every((other) => Math.hypot(other.x - (point.x + dx), other.y - (point.y + dy)) >= MAP_MARKER_SIZE);
+
         const step = [[0, 0] as const, ...SPREAD_STEPS].find(free) ?? ([0, 0] as const);
         offsets.set(point.id, [step[0], step[1]]);
         placed.push({ x: point.x + step[0], y: point.y + step[1] });
     }
+
     return offsets;
 }
 
@@ -95,19 +98,24 @@ const TOKEN = /\{([^{}]+)\}/g;
 function tokenExpression(text: string): Expression | string {
     const parts: (Expression | string)[] = [];
     let at = 0;
+
     for (const match of text.matchAll(TOKEN)) {
         if (match.index > at) {
             parts.push(text.slice(at, match.index));
         }
+
         parts.push(['to-string', ['coalesce', ['get', match[1]], '']]);
         at = match.index + match[0].length;
     }
+
     if (parts.length === 0) {
         return text;
     }
+
     if (at < text.length) {
         parts.push(text.slice(at));
     }
+
     return parts.length === 1 && typeof parts[0] !== 'string' ? parts[0] : ['concat', ...parts];
 }
 
@@ -117,9 +125,11 @@ function tokenExpression(text: string): Expression | string {
  */
 export function localizedTextField(original: unknown, field: string): unknown {
     const fallback = typeof original === 'string' ? tokenExpression(original) : original;
+
     if (typeof fallback !== 'string' && !Array.isArray(fallback)) {
         return original;
     }
+
     return ['coalesce', ['get', field], fallback];
 }
 
@@ -132,19 +142,24 @@ export function boundsOf(points: readonly MapPoint[]): LngLatBoundsLike | null {
     if (points.length === 0) {
         return null;
     }
+
     const lons = points.map((point) => point.lon).sort((a, b) => a - b);
     let widest = lons[0]! + 360 - lons[lons.length - 1]!;
     let west = lons[0]!;
     let east = lons[lons.length - 1]!;
+
     for (let i = 1; i < lons.length; i++) {
         const gap = lons[i]! - lons[i - 1]!;
+
         if (gap > widest) {
             widest = gap;
             west = lons[i]!;
             east = lons[i - 1]! + 360;
         }
     }
+
     const lats = points.map((point) => point.lat);
+
     return [
         [west, Math.min(...lats)],
         [east, Math.max(...lats)]

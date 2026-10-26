@@ -11,9 +11,11 @@ const CRUMB_LINK = 'truncate text-text-muted hover:text-text';
 /* The chat's own title in the bar; while a sub-agent stands in the chat's place, pressing it goes back to the main agent. */
 export function SubagentTitleCrumb({ chatId, className, children }: { chatId: string; className?: string; children: ReactNode }) {
     const { trail, show } = useSubagentTrail(chatId);
+
     if (trail.length === 0) {
         return <>{children}</>;
     }
+
     return (
         <button type="button" className={clsx('flex min-w-0 items-center', className)} onClick={() => show(MAIN_AGENT)}>
             {children}
@@ -25,9 +27,11 @@ export function SubagentTitleCrumb({ chatId, className, children }: { chatId: st
 export function SubagentBreadcrumb({ chatId, className }: { chatId: string; className?: string }) {
     const { t } = useTranslation('agent-chat');
     const { trail, show } = useSubagentTrail(chatId);
+
     if (trail.length === 0) {
         return null;
     }
+
     return (
         <nav aria-label={t('subagents.title')} className={clsx('flex min-w-0 items-center gap-1', className)}>
             {breadcrumbOf(trail).map((step) => (
@@ -53,11 +57,14 @@ export function SubagentActions({ chatId }: { chatId: string }) {
     const { t } = useTranslation('agent-chat');
     const { trail, show } = useSubagentTrail(chatId);
     const subagents = useOpenableSubagents(chatId);
+
     if (trail.length === 0) {
         return null;
     }
+
     // Only a row of the chat's own thread can be stopped; a grandchild belongs to the sub-agent that opened it.
     const shown = trail.length === 1 ? subagents.find((item) => item.toolUseId === trail[0]!.toolUseId) : undefined;
+
     return (
         <div className="flex shrink-0 items-center gap-1">
             {shown !== undefined && <SubagentStopButton chatId={chatId} item={shown} size="sm" />}

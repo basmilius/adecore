@@ -13,6 +13,7 @@ const openErrorListeners = new Set<(error: unknown) => void>();
  */
 export function setLazyPrefetch(next: (load: Loader) => void): void {
     register = next;
+
     for (const load of loaders) {
         next(load);
     }
@@ -24,6 +25,7 @@ export function setLazyPrefetch(next: (load: Loader) => void): void {
  */
 export function onLazyOpenError(listener: (error: unknown) => void): () => void {
     openErrorListeners.add(listener);
+
     return () => {
         openErrorListeners.delete(listener);
     };
@@ -41,11 +43,14 @@ export function lazyNamed<Module extends Record<Name, ComponentType<any>>, Name 
 ): ComponentType<ComponentProps<Module[Name]>> {
     // Through `LoadedComponent`, so a `LazyBoundary` around it draws the moment the module lands.
     const loaded = new LoadedComponent<ComponentType<any>>(async () => (await load())[name]);
+
     const open = (): Promise<ComponentType<any>> => loaded.load();
+
     if (options?.prefetch !== false) {
         loaders.push(open);
         register?.(open);
     }
+
     // Only a render loads through here; a prefetch calls `open` itself, so its failures report nothing.
     const Lazy = lazy(async () => {
         try {
@@ -54,14 +59,18 @@ export function lazyNamed<Module extends Record<Name, ComponentType<any>>, Name 
             for (const listener of openErrorListeners) {
                 listener(error);
             }
+
             throw error;
         }
     });
+
     const LazyNamed = (props: ComponentProps<Module[Name]>) => {
         // `loaded` fills in place; compiled, the element drawn before the module landed would stay.
         'use no memo';
         const Component: ComponentType<any> = loaded.current ?? Lazy;
+
         return <Component {...props} />;
     };
+
     return LazyNamed;
 }

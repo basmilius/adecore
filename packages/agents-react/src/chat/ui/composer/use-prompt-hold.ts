@@ -31,6 +31,7 @@ export function usePromptHold(): ComposerPromptHold {
     const schedule = (): void => {
         clearTimer();
         const wait = holdLiftsIn({ typedAt: typedAt.current, composing: composing.current }, Date.now());
+
         if (wait !== null) {
             timer.current = setTimeout(() => release('pause'), wait);
         }
@@ -44,11 +45,13 @@ export function usePromptHold(): ComposerPromptHold {
 
     const setComposing = (next: boolean): void => {
         composing.current = next;
+
         if (next) {
             setState({ held: true, releasedBy: null });
         } else {
             typedAt.current = Date.now();
         }
+
         schedule();
     };
 

@@ -32,6 +32,7 @@ function ApprovalDetails({ item }: { item: ChatApprovalItem }) {
     const input = typeof item.input === 'object' && item.input !== null ? (item.input as Record<string, unknown>) : {};
     // Some agents describe a command by the command itself, which the box under it already shows.
     const describes = item.description && item.description.trim() !== (typeof input.command === 'string' ? input.command.trim() : null);
+
     return (
         <>
             {describes && <p className="text-sm text-text-muted">{item.description}</p>}
@@ -82,6 +83,7 @@ export function ApprovalBody({
     const host = useChatHost();
     const { t } = useTranslation('agent-prompts');
     const AnswerField = host.dictation.Textarea;
+
     return (
         <>
             <ApprovalDetails item={item} />

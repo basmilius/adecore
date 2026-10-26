@@ -17,6 +17,7 @@ describe('rowClipboardChips', () => {
             skills: ['review'],
             references: ['view-sketch']
         } as ChatUserItem;
+
         expect(rowClipboardChips({ kind: 'user', id: item.id, item }, item.text, { items })).toEqual({
             text: item.text,
             mentions: ['src/main.ts'],

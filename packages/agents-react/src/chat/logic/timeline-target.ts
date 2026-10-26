@@ -28,14 +28,18 @@ export function withCurrentText(rows: TimelineRow[], items: Record<string, ChatI
     if (!items) {
         return rows;
     }
+
     return rows.map((row) => {
         const item = items[row.id];
+
         if (row.kind === 'assistant' && item?.kind === 'assistant') {
             return { ...row, item };
         }
+
         if (row.kind === 'thinking' && item?.kind === 'thinking') {
             return { ...row, item };
         }
+
         return row;
     });
 }
@@ -48,6 +52,7 @@ export function readTimelineTarget(element: HTMLElement, scroller: HTMLElement |
     const column = positiveInteger(file?.dataset.fileColumn);
     const endLine = positiveInteger(file?.dataset.fileEndLine);
     const path = file?.dataset.filePath ?? null;
+
     return {
         selection: selectionWithin(scroller),
         row: rows.find((row) => row.id === id) ?? null,
@@ -73,6 +78,7 @@ export function readTimelineTarget(element: HTMLElement, scroller: HTMLElement |
 
 function positiveInteger(value: string | undefined): number | null {
     const number = Number(value);
+
     return Number.isSafeInteger(number) && number > 0 ? number : null;
 }
 
@@ -87,31 +93,40 @@ export function uiReplyJump(
     hasEarlier: boolean
 ): UiReplyJump {
     const item = items?.[target.itemId];
+
     if (!item) {
         return { kind: hasEarlier ? 'earlier' : 'missing' };
     }
+
     if (item.kind !== 'assistant' || !item.ui?.some((block) => block.id === target.blockId && block.revision === target.revision)) {
         return { kind: 'missing' };
     }
+
     const index = rows.findIndex((row) => row.kind === 'assistant' && row.id === target.itemId);
+
     if (index !== -1) {
         return { kind: 'row', index };
     }
+
     return item.turnId && !expandedTurns.has(item.turnId) ? { kind: 'turn', turnId: item.turnId } : { kind: 'missing' };
 }
 
 export function revealUiReplyBlock(scroller: HTMLElement, target: UiReplyTarget): boolean {
     // Compare attributes instead of interpolating provider ids into CSS selectors.
     const row = Array.from(scroller.querySelectorAll<HTMLElement>('[data-item-id]')).find((element) => element.dataset.itemId === target.itemId);
+
     const block =
         row &&
         Array.from(row.querySelectorAll<HTMLElement>('[data-ui-block]')).find(
             (element) => element.dataset.uiBlock === target.blockId && element.dataset.uiRevision === target.revision
         );
+
     if (!block) {
         return false;
     }
+
     scroller.scrollTop += block.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
     block.focus({ preventScroll: true });
+
     return true;
 }

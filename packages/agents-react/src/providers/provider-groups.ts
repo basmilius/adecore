@@ -24,6 +24,7 @@ export interface ProviderGroups {
 /* What an account says beside its name: its plan while it is ready, a short word when it is not, nothing while it is checked. */
 export function accountNote(status: ProviderAccountStatus | null): ProviderSetupStatus | null {
     const words = (key: string): string => i18next.t(`agent-providers:${key}`);
+
     switch (status?.state ?? 'checking') {
         case 'checking':
             return null;
@@ -57,14 +58,18 @@ export function groupProviders(
     setupStatusOf?: (provider: ProviderInfo) => ProviderSetupStatus | null
 ): ProviderGroups {
     const groups: ProviderGroups = { ready: [], setup: [], missing: [] };
+
     for (const provider of providers) {
         // A provider that never runs in a terminal is no CLI to install: it is turned on in its own detail.
         if (!provider.installed && provider.capabilities.terminal) {
             groups.missing.push(provider);
+
             continue;
         }
+
         const entries = provider.installed ? accountsOfKind(accounts, provider.kind) : [];
         const hostStatus = setupStatusOf?.(provider) ?? null;
+
         if (hostStatus !== null) {
             groups.setup.push({ provider, entries, note: hostStatus });
         } else if (entries.length === 0 || entries.some(usable)) {
@@ -73,5 +78,6 @@ export function groupProviders(
             groups.setup.push({ provider, entries, note: accountNote(entries[0]!.status) });
         }
     }
+
     return groups;
 }

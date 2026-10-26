@@ -42,6 +42,7 @@ export function TimelineMenuPopup({
     const lookup = useReferenceLookup(chatId ?? '');
     const { fork, fileLinks } = useChatHost();
     const openFileLink = useOpenFileLink();
+
     const openInPreview = (): void => {
         if (target.file != null) {
             openFileLink(target.file.cwd, target.file.ref, target.file.scopeId);
@@ -49,6 +50,7 @@ export function TimelineMenuPopup({
             openFileLink(cwd, { path: target.path, ...(target.line === null ? {} : { line: target.line }), directory: false }, scopeId);
         }
     };
+
     return (
         <ContextMenu.Popup>
             <ContextMenu.Item disabled={target.selection === ''} onClick={() => copyText(target.selection)}>
@@ -108,6 +110,7 @@ export function BookmarkMenuItems({ chatId, itemId, onName }: { chatId: string; 
     const scope = useChatScope();
     const host = useChatHost();
     const bookmark = useChatRow(chatId, (row) => row?.bookmarks?.find((candidate) => candidate.itemId === itemId) ?? null);
+
     if (bookmark === null) {
         return (
             <ContextMenu.Item
@@ -120,6 +123,7 @@ export function BookmarkMenuItems({ chatId, itemId, onName }: { chatId: string; 
             </ContextMenu.Item>
         );
     }
+
     return (
         <>
             <ContextMenu.Item
@@ -141,6 +145,7 @@ export function BookmarkMenuItems({ chatId, itemId, onName }: { chatId: string; 
 function ReadingWidthSubmenu() {
     const { t } = useTranslation('agent-chat');
     const readingWidth = useChatPreferences((preferences) => preferences.readingWidth);
+
     return (
         <ContextMenu.SubmenuRoot>
             <ContextMenu.SubmenuTrigger>

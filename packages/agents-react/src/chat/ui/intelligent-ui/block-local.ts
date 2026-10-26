@@ -17,15 +17,18 @@ export class UiPageMemory<Value> {
     /* Reading a value counts as using it. */
     get(key: string): Value | undefined {
         const value = this.entries.get(key);
+
         if (value !== undefined) {
             this.set(key, value);
         }
+
         return value;
     }
 
     set(key: string, value: Value): void {
         this.entries.delete(key);
         this.entries.set(key, value);
+
         if (this.entries.size > this.limit) {
             this.entries.delete(this.entries.keys().next().value!);
         }
@@ -43,9 +46,11 @@ const remembered = new UiPageMemory<unknown>(512);
 export function useBlockLocal<Value>(context: UiRenderContext, nodeId: string, initial: () => Value): [Value, (next: Value) => void] {
     const key = `${context.scopeId}\n${context.chatId}\n${context.itemId}\n${context.blockId}\n${nodeId}`;
     const [value, setValue] = useState<Value>(() => (remembered.has(key) ? (remembered.get(key) as Value) : initial()));
+
     const set = (next: Value): void => {
         remembered.set(key, next);
         setValue(next);
     };
+
     return [value, set];
 }

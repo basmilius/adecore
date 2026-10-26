@@ -115,6 +115,7 @@ export function LimitsList({ limits, now, compact = false }: LimitsListProps) {
         <div className={clsx('flex flex-col', compact ? 'gap-4' : 'gap-6')}>
             {limits.providers.map((provider) => {
                 const note = explain(provider);
+
                 return (
                     <div key={limitsAccountId(provider)} className="flex flex-col gap-2">
                         <p className="flex items-center gap-2 text-xs font-medium">
@@ -143,6 +144,7 @@ function WindowLine({ window, now }: { window: UsageWindow; now: number }) {
     const { t } = useTranslation('agent-usage');
     const percent = Math.round(window.used * 100);
     const mark = evenPace(window, now)?.percent ?? null;
+
     return (
         <>
             <span className="text-text-muted">{window.label}</span>
@@ -177,6 +179,7 @@ function AccountLines({ account, now }: { account: LimitAccount; now: number }) 
     const windows = signedOut || note !== null ? [] : (account.entry?.windows ?? []);
     const next = nextReset(windows, now);
     const resetsIn = next === null ? null : resetInLabel(next.resetsAt, now);
+
     return (
         <>
             <p className="col-span-full mt-2 flex min-w-0 items-center gap-2">

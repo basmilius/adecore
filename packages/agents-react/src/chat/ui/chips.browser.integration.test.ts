@@ -19,12 +19,15 @@ interface LineMeasure {
 async function compileStyles(candidates: string[]): Promise<string> {
     const docs = join(import.meta.dir, '../../../../../docs');
     const tailwind = Bun.resolveSync('@tailwindcss/node', Bun.resolveSync('@tailwindcss/vite', docs));
+
     const { compile } = (await import(tailwind)) as {
         compile(css: string, options: { base: string; onDependency(path: string): void }): Promise<{ build(candidates: string[]): string }>;
     };
+
     const themes = [join(import.meta.dir, '../../../../ui/src/theme.css'), join(import.meta.dir, '../../theme.css')];
     const source = [`@import 'tailwindcss';`, `@plugin '@tailwindcss/typography';`, ...themes.map((path) => `@import ${JSON.stringify(path)};`)].join('\n');
     const compiler = await compile(source, { base: docs, onDependency: () => undefined });
+
     return compiler.build(candidates);
 }
 
@@ -32,10 +35,14 @@ test('every chip shares one box and one baseline, centered on its line, in a mes
     const directory = await mkdtemp(join(tmpdir(), 'adecore-chips-'));
     let view: InstanceType<typeof Bun.WebView> | null = null;
     let server: ReturnType<typeof Bun.serve> | null = null;
+
     const resolve = (name: string) => JSON.stringify(Bun.resolveSync(name, import.meta.dir));
+
     const source = (path: string) => JSON.stringify(join(import.meta.dir, path));
+
     try {
         const entry = join(directory, 'entry.tsx');
+
         await writeFile(
             entry,
             `
@@ -120,6 +127,7 @@ test('every chip shares one box and one baseline, centered on its line, in a mes
             window.ready=true;
         `
         );
+
         const build = await Bun.build({
             entrypoints: [entry],
             target: 'browser',
@@ -133,10 +141,13 @@ test('every chip shares one box and one baseline, centered on its line, in a mes
                 }
             ]
         });
+
         if (!build.success) {
             throw new AggregateError(build.logs, 'Could not bundle the chip fixture');
         }
+
         const script = await build.outputs[0]!.text();
+
         server = Bun.serve({
             hostname: '127.0.0.1',
             port: 0,
@@ -149,17 +160,21 @@ test('every chip shares one box and one baseline, centered on its line, in a mes
                       );
             }
         });
+
         view = new Bun.WebView({ backend: { type: 'chrome', url: false }, headless: true, dataStore: { directory: join(directory, 'profile') } });
         const browser = view;
         await browser.navigate(`http://127.0.0.1:${server.port}`);
         await browser.resize(900, 700);
         const deadline = Date.now() + 5000;
+
         while (!(await browser.evaluate<boolean>('window.ready===true&&document.querySelectorAll("#reply [data-chip]").length>0'))) {
             if (Date.now() > deadline) {
                 throw new Error('The chip fixture did not render');
             }
+
             await browser.evaluate<unknown>(frame);
         }
+
         const candidates = await browser.evaluate<string[]>('[...new Set([...document.querySelectorAll("[class]")].flatMap(element=>[...element.classList]))]');
         const css = await compileStyles(candidates);
         await browser.evaluate<unknown>(`document.head.append(Object.assign(document.createElement('style'),{textContent:${JSON.stringify(css)}}))`);
@@ -169,13 +184,16 @@ test('every chip shares one box and one baseline, centered on its line, in a mes
             expect(measured.chips).toHaveLength(kinds);
             const [first] = measured.chips;
             const textCenter = measured.text.top + measured.text.height / 2;
+
             for (const chip of measured.chips) {
                 expect({ kind: chip.kind, top: Math.abs(chip.top - first!.top) <= 1, height: Math.abs(chip.height - first!.height) <= 1 }).toEqual({
                     kind: chip.kind,
                     top: true,
                     height: true
                 });
+
                 const center = chip.top + chip.height / 2;
+
                 expect({
                     kind: chip.kind,
                     baseline: Math.abs(chip.baseline - measured.text.baseline) <= 0.5,
@@ -185,7 +203,9 @@ test('every chip shares one box and one baseline, centered on its line, in a mes
                 }).toEqual({ kind: chip.kind, baseline: true, centered: true, icon: true });
             }
         };
+
         const measured: Record<string, Record<string, LineMeasure>> = {};
+
         // The message's own size, then the size of the chip's own text.
         for (const size of ['', '14px']) {
             await browser.evaluate<unknown>(`window.setTextSize(${JSON.stringify(size)})`);
@@ -195,9 +215,11 @@ test('every chip shares one box and one baseline, centered on its line, in a mes
             const reply = await browser.evaluate<LineMeasure>('window.measure("reply")');
             const composer = await browser.evaluate<LineMeasure>('window.measureComposer()');
             measured[size || 'message'] = { clickable, still, reply, composer };
+
             if (process.env.CHIPS_REPORT === '1') {
                 console.log(JSON.stringify(measured));
             }
+
             expectAligned(clickable, 4);
             expectAligned(still, 4);
             expectAligned(reply, 1);

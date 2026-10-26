@@ -17,6 +17,7 @@ export interface ReviewBudget {
 }
 
 export const REVIEW_BUDGET: ReviewBudget = { editors: 3, rows: 2000, characters: 2000000 };
+
 export type ReviewSlot = 'editor' | 'deferred';
 
 export function reviewEntries(patches: readonly ChatFileChange[], edits: readonly FileChange[]): readonly ReviewEntry[] {
@@ -29,20 +30,25 @@ export function reviewEntries(patches: readonly ChatFileChange[], edits: readonl
 export function reviewSize(entry: ReviewEntry, budget: ReviewBudget = REVIEW_BUDGET): { rows: number; characters: number } {
     const texts = entry.change.kind === 'edit' ? [entry.change.edit.before, entry.change.edit.after] : [entry.change.patch.diff];
     const characters = texts.reduce((sum, text) => sum + text.length, 0);
+
     if (characters > budget.characters) {
         return { rows: budget.rows + 1, characters };
     }
+
     let rows = 0;
+
     for (const text of texts) {
         if (text.length > 0) {
             rows++;
         }
+
         for (let index = text.indexOf('\n'); index >= 0; index = text.indexOf('\n', index + 1)) {
             if (++rows > budget.rows) {
                 return { rows, characters };
             }
         }
     }
+
     return { rows, characters };
 }
 
@@ -53,8 +59,10 @@ export function planReview(entries: readonly ReviewEntry[], promoted: string | n
     let editors = 0;
     let rows = 0;
     let characters = 0;
+
     for (const entry of ordered) {
         const size = reviewSize(entry, budget);
+
         // The first review keeps its own omission and error handling, even when the group estimate exceeds the budget.
         if (editors === 0 || (editors < budget.editors && rows + size.rows <= budget.rows && characters + size.characters <= budget.characters)) {
             slots.set(entry.key, 'editor');
@@ -65,5 +73,6 @@ export function planReview(entries: readonly ReviewEntry[], promoted: string | n
             slots.set(entry.key, 'deferred');
         }
     }
+
     return slots;
 }

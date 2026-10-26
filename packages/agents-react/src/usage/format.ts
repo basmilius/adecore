@@ -1,5 +1,6 @@
 import type { UsageProvider, UsageRate } from '@adecore/agent-contracts';
 import { formatDay, formatHour, formatWeekdayDay, formatMoney, formatNumber, formatTokens } from '@adecore/ui/format';
+
 export { formatClock } from '@adecore/ui/format';
 
 /* Dollars are what a price table is in; euros are what the page can be set to. */
@@ -21,8 +22,10 @@ export function moneyFormat(currency: UsageCurrency, rate: UsageRate | null): (u
     const converts = currency !== 'USD' && rate !== null && rate.currency === currency;
     const factor = converts ? rate.rate : 1;
     const code = converts ? currency : 'USD';
+
     return (usd) => {
         const value = usd * factor;
+
         // Under a cent the two decimals of a currency read as zero, which is the one thing it is not.
         return formatMoney(value, code, value !== 0 && Math.abs(value) < 0.01 ? 4 : undefined);
     };
@@ -61,16 +64,19 @@ function hourOfSlot(slot: string): number | null {
 function atHour(slot: string, hour: number): Date {
     const day = dateOfSlot(slot);
     day.setHours(hour);
+
     return day;
 }
 
 export function slotLabel(slot: string): string {
     const hour = hourOfSlot(slot);
+
     return hour === null ? formatWeekdayDay(dateOfSlot(slot)) : formatHour(atHour(slot, hour));
 }
 
 export function slotAxisLabel(slot: string): string {
     const hour = hourOfSlot(slot);
+
     return hour === null ? formatDay(dateOfSlot(slot)) : formatHour(atHour(slot, hour));
 }
 
@@ -81,5 +87,6 @@ export function formatDate(at: number): string {
 /* Enough of a path's tail to tell two checkouts of the same repository apart, under a row that already carries the name. */
 export function shortPath(path: string): string {
     const parts = path.split('/').filter(Boolean);
+
     return parts.length <= 3 ? path : `…/${parts.slice(-3).join('/')}`;
 }

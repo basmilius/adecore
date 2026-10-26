@@ -19,10 +19,12 @@ test.skipIf(typeof document === 'undefined')('the arrows move the comparison onl
     const element = document.createElement('div');
     document.body.append(element);
     const root = createRoot(element);
+
     const key = (target: EventTarget, name: string) =>
         act(async () => {
             target.dispatchEvent(new KeyboardEvent('keydown', { key: name, bubbles: true, cancelable: true }));
         });
+
     try {
         await act(async () =>
             root.render(
@@ -33,13 +35,17 @@ test.skipIf(typeof document === 'undefined')('the arrows move the comparison onl
                 )
             )
         );
+
         const handle = () => element.querySelector('[role="slider"]')!;
+
         expect(handle().getAttribute('aria-valuenow')).toBe('50');
         // A key goes to the focused element only. Nothing here has the focus, so a listener anywhere else (the window, the frame, a sibling) must not move the split.
         expect(document.activeElement).not.toBe(handle());
+
         for (const target of [window, document, document.body, element.querySelector('figure')!, handle().parentElement!, element.querySelector('img')!]) {
             await key(target, 'ArrowRight');
         }
+
         expect(handle().getAttribute('aria-valuenow')).toBe('50');
         await act(async () => (handle() as HTMLElement).focus());
         expect(document.activeElement).toBe(handle());
@@ -62,6 +68,7 @@ test.skipIf(typeof document === 'undefined')('each picture of a comparison shows
     const element = document.createElement('div');
     document.body.append(element);
     const root = createRoot(element);
+
     try {
         await act(async () =>
             root.render(
@@ -72,9 +79,11 @@ test.skipIf(typeof document === 'undefined')('each picture of a comparison shows
                 )
             )
         );
+
         const cuts = [...element.querySelectorAll<HTMLElement>('div')].flatMap((layer) =>
             layer.style.clipPath ? [layer.style.clipPath.replaceAll('0px', '0')] : []
         );
+
         expect(cuts).toEqual(['inset(0 50% 0 0)', 'inset(0 0 0 50%)']);
     } finally {
         await act(async () => root.unmount());
@@ -88,11 +97,14 @@ test.skipIf(typeof document === 'undefined')('a model whose view throws says so 
     const element = document.createElement('div');
     document.body.append(element);
     const root = createRoot(element);
+
     const ModelView = (): never => {
         throw new Error('No WebGL');
     };
+
     const error = console.error;
     console.error = () => undefined;
+
     try {
         await act(async () =>
             root.render(
@@ -103,6 +115,7 @@ test.skipIf(typeof document === 'undefined')('a model whose view throws says so 
                 )
             )
         );
+
         expect(element.querySelector('[role="alert"]')?.textContent).toContain('Could not show this model');
         expect(element.textContent).toContain('Done');
         expect(element.querySelector('figcaption')?.textContent).toBe('Bracket');

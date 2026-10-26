@@ -39,19 +39,25 @@ const caches = new WeakMap<readonly CommandLook[], Map<string, CommandLookRun | 
 /* The look of a simple command and what it says about it, or null when no look knows it. */
 function lookOf(command: ShellSimpleCommand, looks: readonly CommandLook[]): { look: CommandLook; match: CommandLookMatch } | null {
     const program = command.program;
+
     if (program === null) {
         return null;
     }
+
     const args = command.words.slice(program.index + 1).map(({ text }) => text);
+
     for (const look of looks) {
         if (look.program !== program.name) {
             continue;
         }
+
         const match = look.describe(args);
+
         if (match !== null) {
             return { look, match };
         }
     }
+
     return null;
 }
 
@@ -59,16 +65,21 @@ function lookOf(command: ShellSimpleCommand, looks: readonly CommandLook[]): { l
 function foldedWord(source: string, word: ShellWord, fold: boolean): { text: string; body: { start: number; end: number } | null } {
     const text = source.slice(word.start, word.end);
     const body = word.body === null ? null : { start: word.body.start - word.start, end: word.body.end - word.start };
+
     if (!fold) {
         return { text, body };
     }
+
     if (body !== null && body.end - body.start > FOLD_LENGTH) {
         const cut = body.start + FOLD_LENGTH;
+
         return { text: `${text.slice(0, cut)}…${text.slice(body.end)}`, body: { start: body.start, end: cut + 1 } };
     }
+
     if (body === null && text.length > FOLD_LENGTH) {
         return { text: `${text.slice(0, FOLD_LENGTH)}…`, body: null };
     }
+
     return { text, body };
 }
 
@@ -81,25 +92,32 @@ function detailOf(source: string, command: ShellSimpleCommand, match: CommandLoo
     let previous: ShellWord | null = null;
     // The option the word before was, whose value this word may be.
     let option: string | null = null;
+
     for (const word of command.words.slice(first)) {
         if (previous !== null) {
             const gap = source.slice(previous.end, word.start);
             detail += /^[ \t]*$/.test(gap) ? gap : ' ';
         }
+
         const start = detail.length;
         const { text, body } = foldedWord(source, word, option !== null && match.fold?.includes(option) === true);
         const language = option === null ? undefined : match.languages?.[option];
+
         if (language !== undefined && body !== null && body.end > body.start) {
             code.push({ start: start + body.start, end: start + body.end, language });
         }
+
         detail += text;
         const isOption = word.text.startsWith('-') && word.text !== '-';
+
         if (!isOption) {
             words.push({ start, end: detail.length, text: word.text, option });
         }
+
         option = isOption ? word.text : null;
         previous = word;
     }
+
     return { detail, code, words };
 }
 
@@ -107,8 +125,10 @@ function read(command: string, looks: readonly CommandLook[]): CommandLookRun | 
     let found: { command: ShellSimpleCommand; look: CommandLook; match: CommandLookMatch } | null = null;
     let more = 0;
     const others: string[] = [];
+
     for (const simple of shellCommands(command)) {
         const known = lookOf(simple, looks);
+
         if (known !== null && found === null) {
             found = { command: simple, ...known };
         } else if (known !== null) {
@@ -117,9 +137,11 @@ function read(command: string, looks: readonly CommandLook[]): CommandLookRun | 
             others.push(simple.program.name);
         }
     }
+
     if (found === null) {
         return null;
     }
+
     return {
         look: found.look,
         match: found.match,
@@ -139,19 +161,26 @@ export function matchCommandLook(command: string, looks: readonly CommandLook[] 
     if (looks === undefined || looks.length === 0 || command.length > EMBEDDED_CODE_LIMIT || !looks.some(({ program }) => command.includes(program))) {
         return null;
     }
+
     let cache = caches.get(looks);
+
     if (cache === undefined) {
         cache = new Map();
         caches.set(looks, cache);
     }
+
     const known = cache.get(command);
+
     if (known !== undefined) {
         return known;
     }
+
     const run = read(command, looks);
     cache.set(command, run);
+
     if (cache.size > CACHE_LIMIT) {
         cache.delete(cache.keys().next().value!);
     }
+
     return run;
 }

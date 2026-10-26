@@ -63,6 +63,7 @@ const THEMATIC_BREAK = /^ {0,3}([-*_])(?:[ \t]*\1){2,}[ \t]*$/;
 // A heading or a quote, which ends a list item instead of continuing its paragraph.
 const ENDS_ITEM = /^ {0,3}(?:#{1,6}(?:[ \t]|$)|>)/;
 const HTML_START = /^ {0,3}<[A-Za-z/!?]/;
+
 // The HTML that runs on until a marker rather than a blank line, with that marker.
 const HTML_UNTIL: [RegExp, RegExp][] = [
     [/^ {0,3}<(?:pre|script|style|textarea)(?:[ \t>]|$)/i, /<\/(?:pre|script|style|textarea)>/i],
@@ -71,6 +72,7 @@ const HTML_UNTIL: [RegExp, RegExp][] = [
     [/^ {0,3}<![A-Za-z]/, />/],
     [/^ {0,3}<!\[CDATA\[/, /\]\]>/]
 ];
+
 // A reference or footnote definition may be used anywhere in the text, so a block cannot stand alone.
 const DEFINITION = /^ {0,3}\[[^\]]+\]:/m;
 // Markdown ends a line at a lone carriage return too, which a split at line feeds would not see.
@@ -94,6 +96,7 @@ export function splitMarkdownBlocks(text: string): MarkdownBlock[] {
     if (DEFINITION.test(text) || LONE_RETURN.test(text)) {
         return [{ text, openFence: isFenceOpenAtEnd(text) }];
     }
+
     const lines = text.split('\n');
     const blocks: MarkdownBlock[] = [];
     let start = 0;
@@ -121,6 +124,7 @@ export function splitMarkdownBlocks(text: string): MarkdownBlock[] {
         if (end > start) {
             blocks.push({ text: text.slice(start, end), openFence: false });
         }
+
         start = end;
     };
 
@@ -134,6 +138,7 @@ export function splitMarkdownBlocks(text: string): MarkdownBlock[] {
         const blankCut = lineFence === null && afterBlank && !blank && !CONTINUES.test(line);
         lineFence = nextFence(lineFence, line);
         afterBlank = lineFence === null && blank && index > 0;
+
         if (top !== null) {
             if (closesFence(top.marker, content)) {
                 closed = { fence: top, source: text.slice(top.from, at + content.length) };
@@ -143,36 +148,46 @@ export function splitMarkdownBlocks(text: string): MarkdownBlock[] {
                 top.body += (top.ending ?? '') + outdent(content, top.indent);
                 top.ending = line.length > content.length ? '\r\n' : '\n';
             }
+
             continue;
         }
+
         if (closed !== null) {
             if (empty) {
                 continue;
             }
+
             blocks.push(fenceBlock(text.slice(start, at), closed.fence, closed.source, true));
             start = at;
             closed = null;
         }
+
         if (html !== null) {
             // Raw HTML holds no fence and no blank line to cut at until its marker.
             if (html.test(content)) {
                 html = null;
             }
+
             continue;
         }
+
         if (known && fence !== null && item !== null && !empty && columns(content) < item.column) {
             // Code is no paragraph a line may continue lazily, so a line left of the item's content ends
             // the item and its code. A next item of the same list keeps the list going.
             fence = null;
+
             if (!LIST_MARKER.test(content)) {
                 item = null;
             }
         }
+
         if (blankCut && fence === null) {
             cutAt(at);
         }
+
         const above = index > 0 ? withoutReturn(lines[index - 1]!) : '';
         const opening = known && fence === null ? openingFence(content) : null;
+
         if (opening !== null && EMPTY_ITEM.test(above)) {
             // Markdown reads an empty item right above a fence as a list or as text depending on what
             // stands before it, so the two stay in one block.
@@ -185,12 +200,15 @@ export function splitMarkdownBlocks(text: string): MarkdownBlock[] {
             top = { ...opening, from: at + opening.indent, body: '', ending: null };
             item = null;
             blankAbove = null;
+
             continue;
         }
+
         if (known && item?.empty === true && empty) {
             // An item with nothing on its first line ends at a blank line right under it.
             item = null;
         }
+
         if (known && fence === null && !empty) {
             // A fence in an item is followed only while the item is known to be open, and less than four
             // columns deeper than its content: deeper it is code of the item, or of an item inside it.
@@ -200,19 +218,24 @@ export function splitMarkdownBlocks(text: string): MarkdownBlock[] {
                 item = nextItem(item, content, index > 0 && !BLANK.test(above));
             }
         }
+
         if (fence === null && HTML_START.test(content)) {
             known = false;
             const until = HTML_UNTIL.find(([begins]) => begins.test(content))?.[1];
             html = until !== undefined && !until.test(content) ? until : null;
         }
+
         if (known && (fence !== null || item !== null)) {
             fence = nextFence(fence, fence === null ? itemContent(content) : content);
         }
+
         if (item?.empty === true && !empty && columns(content) >= item.column) {
             item = { ...item, empty: false };
         }
+
         blankAbove = empty ? at : null;
     }
+
     if (top !== null) {
         blocks.push(fenceBlock(text.slice(start), top, text.slice(top.from), false));
     } else if (closed !== null) {
@@ -220,6 +243,7 @@ export function splitMarkdownBlocks(text: string): MarkdownBlock[] {
     } else {
         blocks.push({ text: text.slice(start), openFence: (known ? fence : lineFence) !== null });
     }
+
     return blocks;
 }
 
@@ -241,21 +265,28 @@ export function settledBlocksText(text: string): string {
 function withoutTrailingTitles(text: string): string {
     const lines = text.split('\n');
     let end = lines.length;
+
     for (let index = lines.length - 1; index >= 0; index--) {
         const line = lines[index]!;
+
         if (BLANK.test(line)) {
             continue;
         }
+
         // A bold line right under a line of text continues that paragraph.
         const title = HEADING.test(line) || (BOLD_LINE.test(line) && (index === 0 || BLANK.test(lines[index - 1]!)));
+
         if (!title) {
             break;
         }
+
         end = index;
     }
+
     if (end === lines.length) {
         return text;
     }
+
     return lines
         .slice(0, end)
         .map((line) => `${line}\n`)
@@ -265,46 +296,58 @@ function withoutTrailingTitles(text: string): string {
 /* The fence a line leaves open: it opens one, closes the one that is open, or changes nothing. */
 function nextFence(fence: OpenFence | null, line: string): OpenFence | null {
     const match = FENCE.exec(line);
+
     if (!match) {
         return fence;
     }
+
     const indent = match[1]!.length;
     const run = match[2]!;
     const rest = match[3]!;
+
     if (fence === null) {
         // A backtick fence's info string may not hold a backtick, or the line is inline code.
         if (run[0] === '`' && rest.includes('`')) {
             return null;
         }
+
         return { marker: run[0]!, length: run.length, indent };
     }
+
     // A closing fence carries no info string, and a line far deeper than the opening is code.
     if (run[0] === fence.marker && run.length >= fence.length && BLANK.test(rest) && indent <= fence.indent + CLOSING_INDENT) {
         return null;
     }
+
     return fence;
 }
 
 function isFenceOpenAtEnd(text: string): boolean {
     let fence: OpenFence | null = null;
+
     for (const line of text.split('\n')) {
         fence = nextFence(fence, withoutReturn(line));
     }
+
     return fence !== null;
 }
 
 /* The fence a line opens wherever it stands, with its indentation in columns. */
 function openingFence(content: string): Pick<TopFence, 'marker' | 'info' | 'indent' | 'direct'> | null {
     const match = FENCE.exec(content);
+
     if (!match) {
         return null;
     }
+
     const marker = match[2]!;
     const info = match[3]!.replace(/^[ \t]+|[ \t]+$/g, '');
+
     // A backtick fence's info string may not hold a backtick, or the line is inline code.
     if (marker[0] === '`' && info.includes('`')) {
         return null;
     }
+
     return { marker, info, indent: columns(content), direct: !/[\\&]/.test(info.split(/[ \t]/, 1)[0]!) };
 }
 
@@ -315,6 +358,7 @@ function withoutReturn(line: string): string {
 
 function closesFence(marker: string, content: string): boolean {
     const run = CLOSING_FENCE.exec(content)?.[1];
+
     return run !== undefined && run[0] === marker[0] && run.length >= marker.length;
 }
 
@@ -322,38 +366,48 @@ function fenceBlock(text: string, fence: TopFence, source: string, closed: boole
     if (!fence.direct) {
         return { text, openFence: !closed };
     }
+
     return { text, openFence: !closed, fence: { marker: fence.marker, info: fence.info, body: fence.body, closed, source } };
 }
 
 /* The list item a line that is neither blank nor a fence leaves open, as far as a fence needs to know. */
 function nextItem(item: ListItem | null, content: string, underLine: boolean): ListItem | null {
     const indent = columns(content);
+
     if (item !== null && indent >= item.column) {
         return item;
     }
+
     if (THEMATIC_BREAK.test(content) || ENDS_ITEM.test(content)) {
         return null;
     }
+
     const marker = indent < CODE_INDENT ? itemMarker(content) : null;
+
     if (marker === null) {
         if (item === null || !underLine) {
             return null;
         }
+
         // A line right under an item may continue its paragraph, or follow an item that ends in something else.
         return { ...item, certain: false };
     }
+
     // Right under another line, only a bullet or a 1 with text after it surely starts a list; anything
     // else may be text of a paragraph above.
     const certain = !underLine || (item !== null && item.certain && item.kind === marker.kind) || (marker.first && marker.rest !== '');
+
     return { column: marker.column, kind: marker.kind, certain, empty: marker.rest === '' };
 }
 
 /* The marker a list item starts with: its kind, whether it may start a list under text, and the column its content starts at. */
 function itemMarker(content: string): { kind: string; first: boolean; column: number; rest: string } | null {
     const match = LIST_MARKER.exec(content);
+
     if (match === null) {
         return null;
     }
+
     const [, bullet, number, delimiter, spacing = '', rest = ''] = match;
     const indent = columns(content);
     const width = bullet !== undefined ? 1 : number!.length + 1;
@@ -361,18 +415,21 @@ function itemMarker(content: string): { kind: string; first: boolean; column: nu
     // item starts with indented code one column after the marker.
     const gap = rest === '' ? 1 : columns(spacing, indent + width);
     const column = indent + width + (gap > CODE_INDENT ? 1 : gap);
+
     return { kind: bullet ?? delimiter!, first: bullet !== undefined || Number(number) === 1, column, rest };
 }
 
 /* A list item's line with its marker as spaces, so a fence on that line is seen where the item's content starts. */
 function itemContent(content: string): string {
     const marker = itemMarker(content);
+
     return marker === null ? content : ' '.repeat(marker.column) + marker.rest;
 }
 
 /* The columns of the indentation of a line, which starts at column `from`; a tab reaches to the next stop of four. */
 function columns(line: string, from = 0): number {
     let column = from;
+
     for (const character of line) {
         if (character === '\t') {
             column += TAB_STOP - (column % TAB_STOP);
@@ -382,6 +439,7 @@ function columns(line: string, from = 0): number {
             break;
         }
     }
+
     return column - from;
 }
 
@@ -392,20 +450,26 @@ function columns(line: string, from = 0): number {
 function outdent(line: string, indent: number): string {
     let column = 0;
     let index = 0;
+
     while (column < indent && index < line.length) {
         const character = line[index];
+
         if (character === '\t') {
             const stop = column + TAB_STOP - (column % TAB_STOP);
+
             if (stop > indent) {
                 return ' '.repeat(stop - indent) + line.slice(index + 1);
             }
+
             column = stop;
         } else if (character === ' ') {
             column += 1;
         } else {
             break;
         }
+
         index += 1;
     }
+
     return line.slice(index);
 }

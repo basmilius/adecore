@@ -81,6 +81,7 @@ class FakeObserver {
 
 const COUNT = 6;
 const SOURCE = Array.from({ length: COUNT }, (_, i) => `<Map><Place lat={${i + 1}} lon={5}>Stop ${i}</Place></Map>`).join('');
+
 const host: Partial<ChatHost> = {
     maps: { useSource: () => ({ state: 'tiles', styleUrl: (theme) => `https://maps.example/${theme}` }) },
     intelligentUi: { sendChoice: async () => 'sent' }
@@ -94,6 +95,7 @@ beforeAll(async () => {
     if (typeof document === 'undefined') {
         return;
     }
+
     mock.module('maplibre-gl', () => ({ Map: FakeMap, Marker: FakeMarker, setWorkerUrl: () => undefined }));
     mock.module('maplibre-gl/dist/maplibre-gl.css', () => ({}));
     // The chunk is fetched before the first map asks for it, so what follows is only the page's budget.
@@ -104,6 +106,7 @@ beforeEach(async () => {
     if (typeof document === 'undefined') {
         return;
     }
+
     FakeMap.made = [];
     FakeObserver.all = [];
     original = globalThis.IntersectionObserver;
@@ -113,6 +116,7 @@ beforeEach(async () => {
     root = createRoot(element);
     const text = '```ui\n' + SOURCE + '\n```';
     const blocks = compileUi(text, { id: 'maps', final: true });
+
     await act(async () =>
         root.render(
             createElement(
@@ -128,13 +132,16 @@ afterEach(async () => {
     if (typeof document === 'undefined') {
         return;
     }
+
     await act(async () => root.unmount());
     element.remove();
     Object.defineProperty(globalThis, 'IntersectionObserver', { configurable: true, writable: true, value: original });
 });
 
 const show = async (index: number, visible: boolean) => act(async () => FakeObserver.all[index]!.show(visible));
+
 const buttons = () => [...element.querySelectorAll<HTMLButtonElement>('button')].filter((button) => button.textContent === 'Show map');
+
 const live = () => FakeMap.made.filter((map) => !map.removed);
 
 test.skipIf(typeof document === 'undefined')('draws no map until its frame is near the viewport', async () => {
@@ -151,6 +158,7 @@ test.skipIf(typeof document === 'undefined')('draws four maps at once, offers th
     for (let index = 0; index < COUNT; index++) {
         await show(index, true);
     }
+
     expect(live()).toHaveLength(4);
     expect(buttons()).toHaveLength(2);
     expect(element.textContent).toContain('Only a few maps show at once');
@@ -165,6 +173,7 @@ test.skipIf(typeof document === 'undefined')('a map that leaves the viewport giv
     for (let index = 0; index < COUNT; index++) {
         await show(index, true);
     }
+
     expect(buttons()).toHaveLength(2);
     await show(1, false);
     expect(live()).toHaveLength(4);
@@ -178,6 +187,7 @@ test.skipIf(typeof document === 'undefined')('a map whose graphics context was t
     for (let index = 0; index < COUNT; index++) {
         await show(index, true);
     }
+
     expect(buttons()).toHaveLength(2);
     await act(async () => FakeMap.made[0]!.canvas.dispatchEvent(new Event('webglcontextlost')));
     expect(element.textContent).toContain('Could not show the map');

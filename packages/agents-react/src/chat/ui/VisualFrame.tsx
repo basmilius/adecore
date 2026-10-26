@@ -54,6 +54,7 @@ export function VisualFrame({ chatId, visual, fill = false, className }: VisualF
     const scope = useChatScope();
     // The frame opens again when its page changes, so the reader keeps its identity while the visual does.
     const page = useCallback(() => attachments.read(scope.id, chatId, visual.id).then((blob) => blob.text()), [attachments, scope.id, chatId, visual.id]);
+
     return (
         <PageFrame
             page={page}
@@ -91,10 +92,12 @@ function PageFrame({ page, title, maxHeight, fill = false, className, initialHei
     const controllerRef = useRef<VisualViewportController | null>(null);
     const [viewportReady, setViewportReady] = useState(false);
     const [measure, width] = useMeasuredWidth();
+
     const setBox = (node: HTMLDivElement | null) => {
         boxRef.current = node;
         measure(node);
     };
+
     const theme = useVisualTheme(boxRef);
     const widthRef = useRef(width);
     const onHeightRef = useRef(onHeight);
@@ -104,9 +107,11 @@ function PageFrame({ page, title, maxHeight, fill = false, className, initialHei
     const [failed, setFailed] = useState(false);
     // The frame keeps the address it opened with: a later theme goes over the bridge, since a new address would load the page again.
     const [opening, setOpening] = useState<{ src: string; theme: VisualTheme } | null>(null);
+
     if (opening === null && frameUrl !== null && theme !== null && width > 0) {
         setOpening({ src: frameUrl + visualThemeFragment(theme), theme });
     }
+
     const height = fill || width === 0 ? undefined : (reported ?? initialHeight(width));
 
     useLayoutEffect(() => {
@@ -116,9 +121,11 @@ function PageFrame({ page, title, maxHeight, fill = false, className, initialHei
 
     useLayoutEffect(() => {
         const frame = frameRef.current;
+
         if (opening === null || frame === null) {
             return;
         }
+
         const bridge = new VisualBridge({
             frame: () => frame.contentWindow,
             visual: { maxHeight },
@@ -130,6 +137,7 @@ function PageFrame({ page, title, maxHeight, fill = false, className, initialHei
                 if (fill) {
                     return;
                 }
+
                 setReported(next);
                 onHeightRef.current?.(widthRef.current, next);
             },
@@ -142,10 +150,14 @@ function PageFrame({ page, title, maxHeight, fill = false, className, initialHei
             onAppearance: setDrawn,
             onFailure: () => setFailed(true)
         });
+
         bridgeRef.current = bridge;
         const view = frame.ownerDocument.defaultView ?? window;
+
         const listen = (event: MessageEvent): void => bridge.receive(event);
+
         view.addEventListener('message', listen);
+
         return () => {
             view.removeEventListener('message', listen);
             bridge.dispose();
@@ -158,11 +170,14 @@ function PageFrame({ page, title, maxHeight, fill = false, className, initialHei
         const viewport = viewportRef.current;
         const bridge = bridgeRef.current;
         const scroller = box?.closest<HTMLElement>('.chat-scroll');
+
         if (fill || !viewportReady || !box || !viewport || !bridge || !scroller) {
             return;
         }
+
         const controller = new VisualViewportController(box, viewport, scroller, bridge);
         controllerRef.current = controller;
+
         return () => {
             controller.dispose();
             controllerRef.current = null;

@@ -16,14 +16,19 @@ function approvalCard() {
         ...button,
         onPress: () => {}
     }));
+
     const toolbar = renderToStaticMarkup(createElement(ApprovalActions, { buttons, locked: false, sending: false }));
+
     const { document } = parseHTML(
         `<html><body><div class="prompt-card"><h3 tabindex="-1" class="prompt-heading">Run command</h3><div role="toolbar">${toolbar}</div></div></body></html>`
     );
+
     const focused: string[] = [];
+
     for (const element of document.querySelectorAll<HTMLElement>('.prompt-heading, button')) {
         element.focus = () => void focused.push(element.textContent ?? '');
     }
+
     return { root: document.body, focused };
 }
 

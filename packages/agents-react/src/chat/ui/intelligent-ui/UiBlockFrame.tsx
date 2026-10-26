@@ -34,14 +34,19 @@ function LivePart({ live }: { live: UiLiveStatus }) {
     const slow = useLater(live.state === 'reading', READING_SPINNER_MS);
     const { readAt } = live;
     const fresh = live.state === 'fresh' || live.state === 'reading';
+
     const ago = useTickingText(() => {
         if (readAt === null) {
             return '';
         }
+
         const time = formatAgo(Date.now() - readAt);
+
         return fresh ? t('blocks.live.read', { time }) : time;
     });
+
     const source = live.source ?? live.sources[0] ?? '';
+
     const icon = slow ? (
         <Spinner size={12} />
     ) : live.state === 'failed' ? (
@@ -51,14 +56,17 @@ function LivePart({ live }: { live: UiLiveStatus }) {
     ) : (
         <Icon icon={Radio} size={12} className="text-positive" />
     );
+
     const words =
         live.state === 'failed'
             ? t('blocks.live.failed', { source })
             : live.state === 'refused'
               ? t('blocks.live.refused', { source })
               : t('blocks.live.label');
+
     const reason = live.state === 'failed' || live.state === 'refused' ? uiReasonText(t, live.code, live.reason) : undefined;
     const hint = reason !== undefined ? reason : live.sources.length > 0 ? t('blocks.live.sources', { sources: live.sources.join(', ') }) : null;
+
     const body = (
         <span tabIndex={hint === null ? undefined : 0} className="flex items-center gap-1.5">
             {icon}
@@ -79,6 +87,7 @@ function LivePart({ live }: { live: UiLiveStatus }) {
             )}
         </span>
     );
+
     return hint === null ? body : <Tooltip label={hint}>{body}</Tooltip>;
 }
 
@@ -87,9 +96,11 @@ function UiBlockFooter({ live = null, answered = null, fixes = NO_FIXES, shownAs
     const { t } = useTranslation('agent-chat');
     const [fixesOpen, setFixesOpen] = useState(false);
     const listId = useId();
+
     if (live === null && answered === null && fixes.length === 0 && shownAsText === null) {
         return null;
     }
+
     return (
         <div className="flex flex-col gap-1.5 text-2xs text-text-faint">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -155,34 +166,44 @@ function useRisingFloor(active: boolean): [RefObject<HTMLDivElement | null>, num
     const ref = useRef<HTMLDivElement>(null);
     const held = useRef(0);
     const [floor, setFloor] = useState(0);
+
     useLayoutEffect(() => {
         const element = ref.current;
+
         if (element === null) {
             return;
         }
+
         if (active) {
             const observer = new ResizeObserver(() => {
                 const height = Math.ceil(element.getBoundingClientRect().height);
                 held.current = Math.max(held.current, height);
                 setFloor(held.current);
             });
+
             observer.observe(element);
+
             return () => {
                 observer.disconnect();
                 setFloor(0);
             };
         }
+
         // The final render already let go of the floor, so the card measures its own height here.
         const from = held.current;
         const to = element.getBoundingClientRect().height;
         held.current = 0;
         const reduced = element.ownerDocument.defaultView?.matchMedia('(prefers-reduced-motion: reduce)').matches === true;
+
         if (from - to < 1 || reduced) {
             return;
         }
+
         const release = element.animate([{ minHeight: `${from}px` }, { minHeight: `${to}px` }], { duration: RELEASE_MS, easing: 'ease-out' });
+
         return () => release.cancel();
     }, [active]);
+
     return [ref, floor];
 }
 
@@ -198,17 +219,21 @@ export function UiBlockFrame({ nodes, phase, children, className, ...footer }: U
     const streaming = phase === 'streaming';
     const head = uiBlockHead(nodes);
     const [ref, floor] = useRisingFloor(streaming);
+
     // Only while the focus is inside the block, so the composer keeps the same keys for sending.
     const pickPrimary = (event: KeyboardEvent<HTMLDivElement>): void => {
         if (!matchesShortcut(KEY_SHORTCUTS.modEnter, event, host.isApplePlatform())) {
             return;
         }
+
         const primary = event.currentTarget.querySelector<HTMLButtonElement>('[data-ui-primary-choice]');
+
         if (primary !== null) {
             event.preventDefault();
             primary.click();
         }
     };
+
     return (
         <UiHeadContext value={head?.id ?? null}>
             <div

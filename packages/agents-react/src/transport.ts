@@ -48,6 +48,7 @@ export function whenOpen(transport: ChatTransport, run: () => void): () => void 
     if (transport.status === 'open') {
         run();
     }
+
     return transport.subscribeStatus((status) => {
         if (status === 'open') {
             run();
@@ -62,5 +63,6 @@ export function errorMessage(error: unknown): string {
 /* Whether a request failed because the link was down rather than because the host refused it; the reconnect asks again. */
 export function isConnectionError(error: unknown): boolean {
     const code = errorCode(error);
+
     return code === 'not-connected' || code === 'disconnected';
 }

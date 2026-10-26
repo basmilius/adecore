@@ -79,7 +79,9 @@ describe('subagent list', () => {
         const first = subagent('task-a', { origin: 'ruimte', childId: 'node-1', status: 'done', turnId: 'turn-1', startedAt: 1, finishedAt: 5 });
         const second = subagent('task-b', { origin: 'ruimte', childId: 'node-1', background: true, startedAt: 6 });
         const tasks: Record<string, SubagentTask> = { a: task('done'), b: task('open') };
+
         const words = (items: readonly ChatSubagentItem[]) => items.map((item) => statusWordOf(item, tasks[taskIdOf(item) ?? ''] ?? null));
+
         const structure: Record<string, ChatItem> = { u1: message('u1'), u2: { ...message('u2'), createdAt: 5 }, 'task-a': first, 'task-b': second };
 
         const listed = flyoutSubagents(['u1', 'task-a', 'task-b'], structure);

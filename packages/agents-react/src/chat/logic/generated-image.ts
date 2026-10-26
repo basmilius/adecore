@@ -23,22 +23,29 @@ export function generatedImageView(tool: ChatToolItem): GeneratedImageView {
     if (tool.state === 'running') {
         return { state: 'generating' };
     }
+
     const parsed = GeneratedImageInputSchema.safeParse(tool.input);
     const input = parsed.success ? parsed.data : {};
     const output = tool.output?.trim() || null;
+
     if (tool.state === 'error' || input.attachment === undefined) {
         return { state: 'failed', failure: output === null && tool.state !== 'error' ? { kind: 'empty' } : { kind: 'provider', message: output } };
     }
+
     const attachment = input.attachment;
+
     if (attachment.size === 0) {
         return { state: 'failed', failure: { kind: 'empty' } };
     }
+
     if (!attachment.mime.startsWith('image/')) {
         return { state: 'failed', failure: { kind: 'not-image' } };
     }
+
     if (attachment.size > CHAT_ATTACHMENT_MAX_BYTES) {
         return { state: 'failed', failure: { kind: 'too-large', limit: CHAT_ATTACHMENT_MAX_BYTES } };
     }
+
     return { state: 'ready', attachment, prompt: input.revisedPrompt?.trim() || null, transparent: input.transparentBackground === true };
 }
 

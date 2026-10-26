@@ -40,9 +40,11 @@ export class ChatPromptFeed {
     dispose(): void {
         this.disposed = true;
         this.unsubscribe?.();
+
         for (const release of this.children.values()) {
             release();
         }
+
         this.children.clear();
     }
 
@@ -50,49 +52,63 @@ export class ChatPromptFeed {
         if (this.disposed) {
             return;
         }
+
         const store = useChats.getState();
         const subjects = new Map<string, ChatPromptSubject>();
         const seen = new Set<string>();
+
         const visit = (chatId: string, source?: ChatPromptSubject['source']): void => {
             if (seen.has(chatId)) {
                 return;
             }
+
             seen.add(chatId);
             const key = this.scope.keyOf(chatId);
             const row = store.byKey[key];
             const info = store.statusByKey[key]?.info ?? row?.info;
+
             for (const item of waitingRequestsOf(row)) {
                 if (info !== undefined && (chatId === this.chatId || stillWaiting(item, info))) {
                     subjects.set(`${chatId}:${item.requestId}`, { kind: 'chat', nodeId: chatId, item, ...(source === undefined ? {} : { source }) });
                 }
             }
+
             for (const item of Object.values(row?.structure ?? {})) {
                 if (item.kind !== 'subagent' || item.childId === undefined || seen.has(item.childId)) {
                     continue;
                 }
+
                 const childInfo = store.statusByKey[this.scope.keyOf(item.childId)]?.info;
+
                 if (item.status !== 'running' && childInfo?.status !== 'needs-you') {
                     continue;
                 }
+
                 if (!this.children.has(item.childId)) {
                     this.children.set(item.childId, this.scope.chats.observe(item.childId));
                 }
+
                 visit(item.childId, { label: subagentTitle(item), provider: childInfo?.provider });
             }
         };
+
         visit(this.chatId);
+
         for (const [chatId, release] of this.children) {
             if (!seen.has(chatId)) {
                 this.children.delete(chatId);
                 release();
             }
         }
+
         const next = [...subjects.values()];
+
         if (
             this.current === null ||
             next.length !== this.current.length ||
             next.some((subject, index) => {
                 const previous = this.current?.[index];
+
                 return (
                     subject.nodeId !== previous?.nodeId ||
                     subject.item !== previous.item ||

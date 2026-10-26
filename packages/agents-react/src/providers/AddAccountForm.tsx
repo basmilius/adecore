@@ -42,11 +42,14 @@ export function AddAccountForm({ provider, entries, login, onCancel, onAdded }: 
 
     const submit = async (event: FormEvent): Promise<void> => {
         event.preventDefault();
+
         if (label === '' || busy) {
             return;
         }
+
         setBusy(true);
         setError(null);
+
         try {
             if (linking) {
                 const taken = new Set(Object.keys(providerAccountsOf(scope.id).accounts?.accounts ?? {}));

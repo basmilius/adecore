@@ -95,12 +95,15 @@ function lookSummary(tools: readonly ChatToolItem[], looks: readonly CommandLook
     let look: CommandLook | null = null;
     let group: { key: string; sentence(count: number): string } | undefined;
     let sameKey = true;
+
     for (const tool of tools) {
         const command = shellCommand(tool.name, tool.input);
         const run = command === null ? null : matchCommandLook(command, looks);
+
         if (run === null || (look !== null && run.look !== look)) {
             return null;
         }
+
         if (look === null) {
             look = run.look;
             group = run.match.group;
@@ -108,35 +111,45 @@ function lookSummary(tools: readonly ChatToolItem[], looks: readonly CommandLook
             sameKey = false;
         }
     }
+
     if (look === null) {
         return null;
     }
+
     if (sameKey && group !== undefined) {
         return { look, summary: group.sentence(tools.length) };
     }
+
     return look.sentence === undefined ? null : { look, summary: look.sentence(tools.length) };
 }
 
 /* "Read 4 files", "Ran 2 commands", "12 tool calls" when the run mixes kinds, or the sentence of a look all its calls are runs of. */
 export function summarizeGroup(tools: ChatToolItem[], looks?: readonly CommandLook[]): string {
     const looked = lookSummary(tools, looks);
+
     if (looked !== null) {
         return looked.summary;
     }
+
     const names = new Set(tools.map((tool) => tool.name));
     const only = names.size === 1 ? tools[0]!.name : null;
     const failed = tools.filter(failedFileChange);
+
     if (only !== null && toolEntry(only)?.grouped === true && failed.length === 0) {
         return i18next.t(`agent-chat:group.tools.${only}`, { count: tools.length });
     }
+
     // Counts the files rather than the calls: three edits to one file are one file edited.
     if (tools.every((tool) => isFileChange(tool.name)) && failed.length < tools.length) {
         const paths = new Set(tools.filter((tool) => !failedFileChange(tool)).map(editedPath));
+
         return i18next.t('agent-chat:group.edited', { count: paths.size });
     }
+
     if (only !== null) {
         return i18next.t('agent-chat:group.calls', { name: only, count: tools.length });
     }
+
     return i18next.t('agent-chat:group.toolCalls', { count: tools.length });
 }
 
@@ -157,20 +170,25 @@ function editedPath(tool: ChatToolItem): string {
 export function summarizeTurn(tools: readonly ChatToolItem[], looks?: readonly CommandLook[]): string[] {
     // Keyed by the sentence, so its place is where the first call of that kind came.
     const counts = new Map<string, { count: number; say(count: number): string }>();
+
     const add = (key: string, say: (count: number) => string, total?: number): void => {
         const known = counts.get(key);
+
         if (known === undefined) {
             counts.set(key, { count: total ?? 1, say });
         } else {
             known.count = total ?? known.count + 1;
         }
     };
+
     const edited = new Set<string>();
     let other = 0;
+
     for (const tool of tools) {
         const command = shellCommand(tool.name, tool.input);
         const run = command === null ? null : matchCommandLook(command, looks);
         const group = run?.match.group;
+
         if (run !== null && group !== undefined) {
             // Keyed by the program too, so two looks with a key in common keep their own sentences.
             add(`look:${run.look.program}:${group.key}`, group.sentence);
@@ -186,10 +204,13 @@ export function summarizeTurn(tools: readonly ChatToolItem[], looks?: readonly C
             other += 1;
         }
     }
+
     const parts = [...counts.values()].map(({ count, say }) => say(count));
+
     if (other > 0) {
         parts.push(i18next.t(parts.length === 0 ? 'agent-chat:group.toolCalls' : 'agent-chat:group.otherCalls', { count: other }));
     }
+
     return parts;
 }
 
@@ -199,20 +220,24 @@ export function summarizeTurn(tools: readonly ChatToolItem[], looks?: readonly C
  */
 export function agentTurnLabel(turn: ChatTurnItem): string {
     const about = (what: string): string => (turn.label ? i18next.t('agent-chat:turn.about', { what, label: turn.label }) : what);
+
     // A turn the machine opened with the results of tasks this chat gave; the label is their titles.
     if (turn.taskIds !== undefined && turn.taskIds.length > 0) {
         return about(i18next.t('agent-chat:turn.wokenByTask', { count: turn.taskIds.length }));
     }
+
     // A turn the machine opened over a message another node sent; the label names who sent it.
     if (turn.messageFrom !== undefined && turn.messageFrom.length > 0) {
         return about(i18next.t('agent-chat:turn.wokenByMessage', { count: turn.messageFrom.length }));
     }
+
     return turn.label ? i18next.t('agent-chat:turn.subagentFinished', { label: turn.label }) : i18next.t('agent-chat:turn.continued');
 }
 
 /* The items of the turn tell a turn a person stopped from one the machine ended after a restart. */
 export function turnLabel(turn: ChatTurnItem, items: readonly ChatItem[] = []): string {
     const duration = formatElapsedShort((turn.endedAt ?? turn.createdAt) - turn.createdAt);
+
     switch (turn.state) {
         case 'aborted':
             return abortedByMachine(turn, items) ? i18next.t('agent-chat:turn.stopped', { duration }) : i18next.t('agent-chat:turn.youStopped', { duration });
@@ -233,6 +258,7 @@ const MAX_NESTING = 8;
 
 function branchOf(item: ChatSubagentItem, options: TimelineOptions, children: Map<string, ChatItem[]>, depth = 0): SubagentBranch {
     const own = children.get(item.toolUseId) ?? [];
+
     return {
         id: item.id,
         item,
@@ -251,39 +277,50 @@ export function findSubagentBranch(rows: readonly TimelineRow[], toolUseId: stri
         if (branch.item.toolUseId === toolUseId) {
             return branch;
         }
+
         for (const child of branch.nested) {
             const found = search(child);
+
             if (found) {
                 return found;
             }
         }
+
         return null;
     };
+
     for (let index = 0; index < rows.length; index++) {
         const row = rows[index]!;
         const branch = row.kind === 'subagent' ? search(row) : null;
+
         if (branch) {
             return { index, branch };
         }
     }
+
     return null;
 }
 
 /* What each subagent did, keyed by the call that spawned it, in the order it happened. */
 function groupChildren(items: ChatItem[]): Map<string, ChatItem[]> {
     const children = new Map<string, ChatItem[]>();
+
     for (const item of items) {
         const parent = parentOf(item);
+
         if (parent === null) {
             continue;
         }
+
         const bucket = children.get(parent);
+
         if (bucket) {
             bucket.push(item);
         } else {
             children.set(parent, [item]);
         }
     }
+
     return children;
 }
 
@@ -291,26 +328,31 @@ function flushTools(buffer: ChatToolItem[], rows: TimelineRow[], options: Timeli
     if (buffer.length === 0) {
         return;
     }
+
     const tools = buffer.splice(0);
     const live = tools.filter((tool) => tool.state === 'running');
     const settled = tools.filter((tool) => tool.state !== 'running');
+
     if (settled.length === 1) {
         rows.push({ kind: 'work', id: settled[0]!.id, tool: settled[0]! });
     } else if (settled.length > 1) {
         const id = `group-${settled[0]!.id}`;
         const expanded = options.expandedGroups.has(id);
         const looked = lookSummary(settled, options.commandLooks);
+
         rows.push(
             looked === null
                 ? { kind: 'work-group', id, tools: settled, summary: summarizeGroup(settled), expanded }
                 : { kind: 'work-group', id, tools: settled, summary: looked.summary, expanded, look: looked.look }
         );
+
         if (expanded) {
             for (const tool of settled) {
                 rows.push({ kind: 'work', id: tool.id, tool });
             }
         }
     }
+
     for (const tool of live) {
         rows.push({ kind: 'work-live', id: tool.id, tool });
     }
@@ -324,68 +366,90 @@ function isImageRow(row: TimelineRow): boolean {
 function rowsForItems(items: ChatItem[], options: TimelineOptions, children: Map<string, ChatItem[]>): TimelineRow[] {
     const rows: TimelineRow[] = [];
     const tools: ChatToolItem[] = [];
+
     for (const item of items) {
         if (parentOf(item) !== null) {
             continue;
         }
+
         const report = handbackReportOf(item);
+
         if (item.kind === 'tool' && item.workflow !== undefined) {
             flushTools(tools, rows, options);
             rows.push({ kind: 'workflow', id: item.id, tool: item, workflow: item.workflow });
+
             continue;
         }
+
         if (item.kind === 'tool' && isImageGeneration(item)) {
             flushTools(tools, rows, options);
             rows.push({ kind: item.state === 'running' ? 'work-live' : 'work', id: item.id, tool: item });
+
             continue;
         }
+
         if (item.kind === 'tool' && report === null) {
             tools.push(item);
+
             continue;
         }
+
         if (report !== null) {
             flushTools(tools, rows, options);
             rows.push({ kind: 'report', id: item.id, text: report });
+
             continue;
         }
+
         flushTools(tools, rows, options);
+
         switch (item.kind) {
             case 'subagent':
                 rows.push({ kind: 'subagent', ...branchOf(item, options, children) });
+
                 break;
             case 'user':
                 rows.push({ kind: 'user', id: item.id, item });
+
                 break;
             case 'assistant':
                 if (item.text !== '' || item.streaming) {
                     rows.push({ kind: 'assistant', id: item.id, item });
                 }
+
                 break;
             case 'thinking':
                 rows.push({ kind: 'thinking', id: item.id, item });
+
                 break;
             case 'approval':
                 // A pending one sits on the composer; only its outcome belongs in the transcript.
                 if (item.decision !== 'pending') {
                     rows.push({ kind: 'approval', id: item.id, item });
                 }
+
                 break;
             case 'question':
                 if (item.state !== 'pending') {
                     rows.push({ kind: 'question', id: item.id, item });
                 }
+
                 break;
             case 'note':
                 rows.push({ kind: 'note', id: item.id, level: item.level, text: item.text, ...(item.from === undefined ? {} : { from: item.from }) });
+
                 break;
             case 'compaction':
                 rows.push({ kind: 'compaction', id: item.id, preTokens: item.preTokens });
+
                 break;
             case 'turn':
                 break;
         }
     }
+
     flushTools(tools, rows, options);
+
     return rows;
 }
 
@@ -400,12 +464,16 @@ function changedFilesRow(turn: ChatTurnItem, items: ChatItem[]): TimelineRow | n
     const edits = items.filter(
         (item): item is ChatToolItem => item.kind === 'tool' && item.state === 'done' && isFileChange(item.name) && hasFileChanges(item)
     );
+
     const diff = turn.checkpointDiff ?? null;
     const empty = diff === null ? edits.length === 0 : diff.files.length === 0;
+
     if (empty) {
         return null;
     }
+
     const moved = turn.checkpointHead !== undefined && turn.checkpointHeadAfter !== undefined && turn.checkpointHead !== turn.checkpointHeadAfter;
+
     return {
         kind: 'changed-files',
         id: `files-${turn.id}`,
@@ -423,22 +491,29 @@ function changedFilesRow(turn: ChatTurnItem, items: ChatItem[]): TimelineRow | n
  */
 function lastAssistantRow(rows: TimelineRow[]): TimelineRow | null {
     const refused = new Set<string>();
+
     for (let i = rows.length - 1; i >= 0; i--) {
         const row = rows[i]!;
+
         if (row.kind === 'assistant') {
             return row;
         }
+
         if (row.kind === 'approval' && row.item.decision === 'deny' && row.item.toolUseId !== null) {
             refused.add(row.item.toolUseId);
+
             continue;
         }
+
         if (row.kind === 'work' && refused.has(row.tool.toolUseId)) {
             continue;
         }
+
         if (row.kind !== 'note' && !isImageRow(row)) {
             return null;
         }
     }
+
     return null;
 }
 
@@ -451,17 +526,21 @@ function lastAssistantRow(rows: TimelineRow[]): TimelineRow | null {
 function withLiveThought(rows: TimelineRow[], items: readonly ChatItem[]): TimelineRow[] {
     const thoughtAt = items.findLastIndex((item) => item.kind === 'thinking' && parentOf(item) === null);
     const thought = items[thoughtAt];
+
     if (thought?.kind !== 'thinking' || thought.text === '') {
         return rows;
     }
+
     const after = new Set(items.slice(thoughtAt + 1).map((item) => item.id));
     const index = rows.findIndex((row) => row.kind === 'work-live' && after.has(row.tool.id));
     const call = rows[index];
     const shownAt = rows.findIndex((row) => row.kind === 'thinking' && row.id === thought.id);
     const inSight = shownAt !== -1 && shownAt < index && !rows.slice(shownAt + 1, index).some((row) => row.kind === 'work' || row.kind === 'work-group');
+
     if (call?.kind !== 'work-live' || inSight) {
         return rows;
     }
+
     return [...rows.slice(0, index), { kind: 'live-thought', id: `live-thought-${thought.id}`, item: thought, at: call.tool.createdAt }, ...rows.slice(index)];
 }
 
@@ -474,24 +553,31 @@ interface TurnChunk {
 function chunksByTurn(items: ChatItem[]): TurnChunk[] {
     const chunks: TurnChunk[] = [];
     const byTurn = new Map<string, ChatItem[]>();
+
     for (const item of items) {
         if (item.turnId === null) {
             const last = chunks.at(-1);
+
             if (last?.turnId === null) {
                 last.items.push(item);
             } else {
                 chunks.push({ turnId: null, items: [item] });
             }
+
             continue;
         }
+
         let bucket = byTurn.get(item.turnId);
+
         if (!bucket) {
             bucket = [];
             byTurn.set(item.turnId, bucket);
             chunks.push({ turnId: item.turnId, items: bucket });
         }
+
         bucket.push(item);
     }
+
     return chunks;
 }
 
@@ -499,27 +585,36 @@ function chunksByTurn(items: ChatItem[]): TurnChunk[] {
 export function deriveTimelineRows(items: ChatItem[], options: TimelineOptions): TimelineRow[] {
     const rows: TimelineRow[] = [];
     const children = groupChildren(items);
+
     for (const chunk of chunksByTurn(items)) {
         if (chunk.turnId === null) {
             rows.push(...rowsForItems(chunk.items, options, children));
+
             continue;
         }
+
         const turnId = chunk.turnId;
         const turn = chunk.items.find((item): item is ChatTurnItem => item.kind === 'turn');
         const conversation = chunk.items.filter((item) => item.kind !== 'turn');
+
         if (turn?.origin === 'agent') {
             // The agent started this one itself, so there is no message of the person to show above it.
             rows.push({ kind: 'turn-start', id: `start-${turnId}`, turn, label: agentTurnLabel(turn) });
         }
+
         const active = turnId === options.activeTurnId || turn?.state === 'running';
+
         if (!turn || active) {
             const live = rowsForItems(conversation, options, children);
             rows.push(...(active ? withLiveThought(live, conversation) : live));
+
             if (active) {
                 rows.push({ kind: 'working', id: `working-${turnId}`, startedAt: turn?.createdAt ?? Date.now() });
             }
+
             continue;
         }
+
         // Steering splits the conversation inside a turn. Earlier responses keep their place above it.
         const lastUser = conversation.findLastIndex((item) => item.kind === 'user');
         rows.push(...rowsForItems(conversation.slice(0, lastUser + 1), options, children));
@@ -529,16 +624,20 @@ export function deriveTimelineRows(items: ChatItem[], options: TimelineOptions):
         const finalAssistant = lastAssistantRow(work);
         const closing = finalAssistant ? work.indexOf(finalAssistant) : work.length;
         const before = work.slice(0, closing);
+
         // Images remain a turn's visible result, and a workflow or a background subagent may still be running after its turn ends.
         const standing = before.filter(
             (row) => isImageRow(row) || (row.kind === 'workflow' && row.tool.state === 'running') || (row.kind === 'subagent' && row.item.status === 'running')
         );
+
         const folded = before.length - standing.length;
         const expanded = options.expandedTurns.has(turnId);
+
         if (folded > 0) {
             const tools = rest.filter(
                 (item): item is ChatToolItem => item.kind === 'tool' && parentOf(item) === null && handbackReportOf(item) === null && !isImageGeneration(item)
             );
+
             rows.push({
                 kind: 'turn-fold',
                 id: `fold-${turnId}`,
@@ -549,15 +648,20 @@ export function deriveTimelineRows(items: ChatItem[], options: TimelineOptions):
                 expanded
             });
         }
+
         rows.push(...(expanded ? before : standing));
         const changed = changedFilesRow(turn, conversation);
+
         if (changed) {
             rows.push(changed);
         }
+
         rows.push(...work.slice(closing));
+
         if (options.forkedTurns?.has(turnId) === true) {
             rows.push({ kind: 'forks', id: `forks-${turnId}`, turnId });
         }
     }
+
     return rows;
 }

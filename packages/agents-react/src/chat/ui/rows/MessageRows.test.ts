@@ -19,8 +19,10 @@ const scope: ChatScope = {
     transport: {} as ChatScope['transport'],
     chats: {} as ChatScope['chats']
 };
+
 let host: Partial<ChatHost> = {};
 const i18n = createInstance();
+
 await i18n.init({
     lng: 'en',
     resources: {
@@ -32,7 +34,9 @@ await i18n.init({
         }
     }
 });
+
 const item = { id: 'answer', kind: 'assistant' as const, turnId: null, createdAt: 0, text: '', streaming: false };
+
 const capabilities: ProviderCapabilities = {
     chat: true,
     terminal: true,
@@ -50,6 +54,7 @@ const capabilities: ProviderCapabilities = {
     reportsThinking: false,
     slashCommands: false
 };
+
 function render(context: { provider: ChatInfo['provider']; chatId?: string } | null = null) {
     return renderToStaticMarkup(
         createElement(
@@ -78,6 +83,7 @@ beforeEach(() => {
         { kind: 'codex', name: 'Codex', installed: true, version: '1', models: [], defaultModel: null, capabilities, resumeCommand: '' },
         { kind: 'claude', name: 'Claude Code', installed: true, version: '1', models: [], defaultModel: null, capabilities, resumeCommand: '' }
     ]);
+
     const info: ChatInfo = {
         chatId: 'parent',
         provider: 'codex',
@@ -93,6 +99,7 @@ beforeEach(() => {
         usage: { contextTokens: 0, contextWindow: 0, costUsd: 0, turns: 0 },
         createdAt: 0
     };
+
     useChats.getState().reset(scope.keyOf('parent'), info, []);
     // Server rendering reads Zustand's initial snapshot instead of the current browser state.
     useProvidersStore.getInitialState().byScope[scope.id] = useProvidersStore.getState().byScope[scope.id]!;
@@ -131,6 +138,7 @@ describe('reply identity in a child conversation', () => {
 
 describe('the line over a message that answers a choice', () => {
     const sourceAt = Date.UTC(2026, 9, 9, 11, 52);
+
     const choice = {
         itemId: 'answer',
         blockId: 'review',
@@ -141,7 +149,9 @@ describe('the line over a message that answers a choice', () => {
         older: false,
         at: sourceAt + 60_000
     };
+
     const message: ChatUserItem = { id: 'message', kind: 'user', turnId: null, createdAt: 0, text: 'Fix the blocking findings in links.ts:148' };
+
     const renderUser = (item: ChatUserItem, navigation: React.ContextType<typeof UiReplyNavigationContext> = null) =>
         renderToStaticMarkup(
             createElement(
@@ -189,7 +199,9 @@ describe('the views and nodes a message points at', () => {
         ],
         chatsOnly: false
     };
+
     const message: ChatUserItem = { id: 'message', kind: 'user', turnId: null, createdAt: 0, text: 'Draw a sun in #Sketch', references: ['view-sketch'] };
+
     const renderWith = (item: ChatUserItem) =>
         renderToStaticMarkup(
             createElement(

@@ -6,11 +6,13 @@ import { markdownLanguage } from './editor';
 
 function chipsOf(state: EditorState): string[] {
     const found: string[] = [];
+
     for (const source of state.facet(EditorView.decorations)) {
         (source as DecorationSet).between(0, state.doc.length, (from, to) => {
             found.push(state.doc.sliceString(from, to));
         });
     }
+
     return found;
 }
 
@@ -25,6 +27,7 @@ describe('chipDecorations', () => {
             { id: 'view-q3', name: 'Research Q3', kind: 'chat' as const },
             { id: 'node-gone', name: 'Gone', kind: null }
         ];
+
         const state = EditorState.create({ doc: 'compare #Research Q3 with #Gone', extensions: chipDecorations({ mentions: [], skills: [], references }) });
         // The chip of a known kind is the pill and, inside it, the `#` the mark stands in for.
         expect(chipsOf(state).sort()).toEqual(['#', '#Gone', '#Research Q3']);
@@ -43,11 +46,13 @@ describe('chipDecorations', () => {
         const doc = 'see `@a.ts` and @a.ts\n```\n@a.ts\n```';
         const state = EditorState.create({ doc, extensions: [markdownLanguage, chipDecorations({ mentions: ['a.ts'], skills: [] })] });
         const ranges: number[] = [];
+
         for (const source of state.facet(EditorView.decorations)) {
             (source as DecorationSet).between(0, state.doc.length, (from) => {
                 ranges.push(from);
             });
         }
+
         expect(ranges).toEqual([16]);
     });
 

@@ -59,6 +59,7 @@ const BRAND = 'font-semibold';
 function withBrand(text: string, brands: readonly string[]): ReactNode {
     for (const brand of brands) {
         const at = brand === '' ? -1 : text.indexOf(brand);
+
         if (at !== -1) {
             return (
                 <>
@@ -69,6 +70,7 @@ function withBrand(text: string, brands: readonly string[]): ReactNode {
             );
         }
     }
+
     return text;
 }
 
@@ -80,18 +82,23 @@ function hasNames(look: CommandLook): look is CommandLook & Required<Pick<Comman
 function NamedLookDetail({ run, chatId, look }: { run: CommandLookRun; chatId: string; look: Required<Pick<CommandLook, 'useNames'>> }) {
     const scope = useContext(ChatScopeContext);
     const nameOf = useCommandNames(look, scope?.id ?? '', chatId);
+
     const names = run.words.flatMap((word): NamedWord[] => {
         const name = nameOf(word.text, word.option);
+
         return name === null ? [] : [{ start: word.start, end: word.end, word: word.text, name }];
     });
+
     return <ShellCommand command={run.detail} code={run.code} names={names} />;
 }
 
 function LookDetail({ run, chatId }: { run: CommandLookRun; chatId: string }) {
     const { look } = run;
+
     if (!hasNames(look)) {
         return <ShellCommand command={run.detail} code={run.code} />;
     }
+
     // Keyed by the look, so a row whose command turns into another look's starts its hooks again.
     return <NamedLookDetail key={look.program} run={run} chatId={chatId} look={look} />;
 }
@@ -102,6 +109,7 @@ const TAG = 'shrink-0 rounded bg-surface-hover px-1.5 text-text-faint';
 function LookTags({ run }: { run: CommandLookRun }) {
     const { t } = useTranslation('agent-chat');
     const also = run.heredoc ? [...run.others, t('work.heredoc')] : run.others;
+
     return (
         <>
             {also.length > 0 && <span className={TAG}>{t('work.alsoRan', { programs: also.join(', ') })}</span>}
@@ -156,6 +164,7 @@ export function ToggleLine({
         failed && 'text-status-error',
         className
     );
+
     const content = (
         <>
             <span className={clsx(ROW_GUTTER, live && 'text-accent')}>{icon}</span>
@@ -192,9 +201,11 @@ export function ToggleLine({
             )}
         </>
     );
+
     if (onToggle === undefined) {
         return <div className={classes}>{content}</div>;
     }
+
     return (
         <button className={classes} onClick={onToggle}>
             {content}
@@ -205,6 +216,7 @@ export function ToggleLine({
 /* The diff renderers load lazily, so a diff waits on them under a line that says so. */
 function DiffSuspense({ children }: { children: ReactNode }) {
     const { t } = useTranslation('agent-chat');
+
     return <LazyBoundary fallback={<div className="px-3 py-2 text-xs text-text-faint">{t('work.loadingDiff')}</div>}>{children}</LazyBoundary>;
 }
 
@@ -262,11 +274,14 @@ function DiffBody({ tool, entries, patched }: { tool: ChatToolItem; entries: rea
 /* What a call answered, muted under the call; a failure in the error color, or its exit code when the tool names one. */
 function ToolOutput({ tool }: { tool: ChatToolItem }) {
     const { t } = useTranslation('agent-chat');
+
     if (!hasOutput(tool.output)) {
         return null;
     }
+
     const failed = tool.state === 'error';
     const { code, rest } = failed ? exitCodeOf(tool.output) : { code: null, rest: tool.output };
+
     return (
         <>
             {hasOutput(rest) && (
@@ -286,10 +301,13 @@ function ToolOutput({ tool }: { tool: ChatToolItem }) {
 export function ToolBody({ tool }: { tool: ChatToolItem }) {
     const patches = unifiedChanges(tool);
     const changes = patches.length > 0 ? [] : fileChanges(tool.name, tool.input);
+
     if (patches.length + changes.length > 0) {
         return <DiffBody tool={tool} entries={reviewEntries(patches, changes)} patched={patches.length > 0} />;
     }
+
     const lines = toolCallLines(tool.name, tool.input);
+
     return (
         <div className="mt-0.5 mb-2 ml-6 flex flex-col gap-1.5 font-mono text-code select-text">
             {lines.command !== null && (
@@ -345,6 +363,7 @@ export function WorkRow({
     const opens = hasToolBody(tool);
     const shell = shellCommand(tool.name, tool.input);
     const run = detail === undefined && icon === undefined && label === undefined && shell !== null ? matchCommandLook(shell, host.commandLooks) : null;
+
     return (
         <div data-find-item={tool.id} className={nested ? 'ml-6' : undefined}>
             <ToggleLine
@@ -370,6 +389,7 @@ export function WorkRow({
 export function RunningFor({ startedAt }: { startedAt: number }) {
     const { t } = useTranslation('agent-chat');
     const ref = useTickingText(() => t('work.runningFor', { elapsed: formatElapsedShort(Date.now() - startedAt) }));
+
     return <span ref={ref} className="shrink-0 text-xs text-text-faint tabular-nums" />;
 }
 
@@ -385,6 +405,7 @@ export function WorkLiveRow({ chatId, tool: derived }: { chatId: string; tool: C
     const run = shell === null ? null : matchCommandLook(shell, commandLooks);
     const awaiting = useAwaitsApproval(chatId, tool.toolUseId);
     const { t } = useTranslation('agent-chat');
+
     return (
         <div>
             <ToggleLine
@@ -431,6 +452,7 @@ export function WorkGroupRow({
     onToggle(): void;
 }) {
     const failed = tools.some((tool) => tool.state === 'error');
+
     return (
         <div>
             <ToggleLine
@@ -464,6 +486,7 @@ export function TurnFoldRow({
 }) {
     const { commandLooks } = useChatHost();
     const brands = commandLooks?.flatMap(({ brand }) => (brand === undefined ? [] : [brand])) ?? [];
+
     return (
         <button
             className={clsx(
@@ -502,6 +525,7 @@ function CheckpointFileBody({ file }: { file: ChatCheckpointFile }) {
     if (file.omitted) {
         return <div className="px-3 py-2 text-xs text-text-faint">{omittedLabel(file.omitted)}</div>;
     }
+
     return (
         <DiffSuspense>
             <UnifiedDiff change={file} />
@@ -533,10 +557,12 @@ function ChangedFilesCard({
     const [expanded, setExpanded] = useState(false);
     // A jump opens the card, also one that mounted it by scrolling it on screen; the flash is gone by the next visit.
     const [seenReveal, setSeenReveal] = useState(0);
+
     if (revealNonce > 0 && revealNonce !== seenReveal) {
         setSeenReveal(revealNonce);
         setExpanded(true);
     }
+
     return (
         <div className="mb-3 overflow-hidden rounded-lg border border-border bg-surface-raised">
             <button
@@ -588,11 +614,14 @@ export function ChangedFilesRow({
     const [open, setOpen] = useState<Record<string, boolean>>({});
     const [fetched, setFetched] = useState<ChatCheckpointDiff | null>(null);
     const actions = useChatActions();
+
     useEffect(() => {
         if (diff !== null || !checkpoint) {
             return;
         }
+
         let alive = true;
+
         void actions
             .turnDiff(chatId, turnId)
             .then((answer) => {
@@ -601,16 +630,20 @@ export function ChangedFilesRow({
                 }
             })
             .catch(() => undefined);
+
         return () => {
             alive = false;
         };
     }, [actions, chatId, turnId, diff, checkpoint]);
+
     const checkpointDiff = diff ?? fetched;
     const { keyOf } = useChatScope();
     const flash = useTimelineFlash((s) => s.target);
     const revealNonce = flash !== null && flash.opens && flash.key === keyOf(chatId) && flash.rowId === `files-${turnId}` ? flash.nonce : 0;
+
     if (checkpointDiff !== null && checkpointDiff.files.length > 0) {
         const files = checkpointDiff.files;
+
         return (
             <ChangedFilesCard
                 revealNonce={revealNonce}
@@ -639,6 +672,7 @@ export function ChangedFilesRow({
             </ChangedFilesCard>
         );
     }
+
     return <ProviderChangedFiles tools={tools} open={open} setOpen={setOpen} revealNonce={revealNonce} />;
 }
 
@@ -659,6 +693,7 @@ function ProviderReviewFiles({
 }) {
     const { t } = useTranslation('agent-chat');
     const stack = useReviewStack(reviews.filter(({ path }) => open[path] === true).flatMap(({ reviews }) => reviews));
+
     return reviews.map(({ path, count, reviews }) => (
         <ChangedFileLine
             key={path}
@@ -685,32 +720,42 @@ function ProviderChangedFiles({
     setOpen: Dispatch<SetStateAction<Record<string, boolean>>>;
 }) {
     const byPath = new Map<string, { edits: FileChange[]; patches: ChatFileChange[] }>();
+
     const entryFor = (path: string) => {
         const existing = byPath.get(path);
+
         if (existing) {
             return existing;
         }
+
         const created = { edits: [] as FileChange[], patches: [] as ChatFileChange[] };
         byPath.set(path, created);
+
         return created;
     };
+
     for (const tool of tools) {
         const patches = unifiedChanges(tool);
+
         if (patches.length > 0) {
             for (const patch of patches) {
                 entryFor(patch.path).patches.push(patch);
             }
+
             continue;
         }
+
         for (const change of fileChanges(tool.name, tool.input)) {
             entryFor(change.path || tool.id).edits.push(change);
         }
     }
+
     const reviews = [...byPath].map(([path, entry]) => ({
         path,
         count: entry.patches.length + entry.edits.length,
         reviews: reviewEntries(entry.patches, entry.edits)
     }));
+
     return (
         <ChangedFilesCard count={byPath.size} revealNonce={revealNonce}>
             <ProviderReviewFiles reviews={reviews} open={open} setOpen={setOpen} />
@@ -722,6 +767,7 @@ function ProviderChangedFiles({
 export function WorkingRow({ startedAt }: { startedAt: number }) {
     const { t } = useTranslation('agent-chat');
     const ref = useTickingText(() => formatClockDuration(Date.now() - startedAt));
+
     return (
         <div className="-mx-1 mb-0.5 flex h-7 items-center gap-2 px-1 text-xs text-text-muted">
             <span className={`${ROW_GUTTER} text-status-running`}>

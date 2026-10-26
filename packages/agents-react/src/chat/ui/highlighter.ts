@@ -5,7 +5,9 @@ import { useChatHost, type ChatHost } from '../../host';
 import { shikiThemeOf } from './code-theme';
 
 export type { Highlighter };
+
 export type GrammarState = ReturnType<Highlighter['getLastGrammarState']>;
+
 // A plain language needs no grammar; shiki draws it in the theme's own foreground.
 const PLAIN = 'text';
 
@@ -27,8 +29,10 @@ async function grammarOf(loaded: Highlighter, lang: string): Promise<string> {
     if (lang === PLAIN || loaded.getLoadedLanguages().includes(lang)) {
         return lang;
     }
+
     try {
         await loaded.loadLanguage(lang as BundledLanguage);
+
         return lang;
     } catch {
         return PLAIN;
@@ -48,8 +52,10 @@ function createCodeHighlighter(source: () => Promise<Highlighter>): CodeHighligh
     const load = (): Promise<Highlighter> => {
         highlighterLoad ??= source().then((loaded) => {
             highlighter = loaded;
+
             return loaded;
         });
+
         return highlighterLoad;
     };
 
@@ -57,11 +63,13 @@ function createCodeHighlighter(source: () => Promise<Highlighter>): CodeHighligh
         if (highlighter === null || !themes.has(theme)) {
             return null;
         }
+
         for (const lang of langs) {
             if (!languages.has(lang)) {
                 return null;
             }
         }
+
         return highlighter;
     };
 
@@ -70,49 +78,63 @@ function createCodeHighlighter(source: () => Promise<Highlighter>): CodeHighligh
     return {
         loadLanguage(lang) {
             let pending = languageLoads.get(lang);
+
             if (!pending) {
                 pending = load().then(async (loaded) => {
                     languages.set(lang, await grammarOf(loaded, lang));
                 });
+
                 languageLoads.set(lang, pending);
             }
+
             return pending;
         },
         loadTheme(theme, custom) {
             let pending = themeLoads.get(theme);
+
             if (!pending) {
                 pending = load().then(async (loaded) => {
                     // Loading a theme the highlighter already has replaces it, under whatever else of the host draws with it.
                     if (!loaded.getLoadedThemes().includes(theme)) {
                         await loaded.loadTheme(shikiThemeOf(theme, custom) as BundledTheme | ThemeRegistration);
                     }
+
                     themes.add(theme);
                 });
+
                 themeLoads.set(theme, pending);
             }
+
             return pending;
         },
         ready,
         language,
         tokenizer(lang, theme) {
             const loaded = ready([lang], theme);
+
             if (loaded === null) {
                 return null;
             }
+
             const resolved = language(lang);
             const key = `${resolved}:${theme}`;
             let entry = tokenizers.get(key);
+
             if (!entry) {
                 const options = { lang: resolved as BundledLanguage, theme };
+
                 entry = {
                     tokenize: tokens.wrap(key, (code, state) => {
                         const result = loaded.codeToTokens(code, state ? { ...options, grammarState: state } : options);
+
                         return { lines: result.tokens, state: result.grammarState };
                     }),
                     fg: loaded.getTheme(theme).fg
                 };
+
                 tokenizers.set(key, entry);
             }
+
             return entry;
         }
     };
@@ -130,13 +152,17 @@ const borrowed = new WeakMap<() => Promise<Highlighter>, CodeHighlighter>();
 export function codeHighlighter(source?: () => Promise<Highlighter>): CodeHighlighter {
     if (source === undefined) {
         bundled ??= createCodeHighlighter(loadBundled);
+
         return bundled;
     }
+
     let highlighter = borrowed.get(source);
+
     if (highlighter === undefined) {
         highlighter = createCodeHighlighter(source);
         borrowed.set(source, highlighter);
     }
+
     return highlighter;
 }
 
@@ -158,10 +184,13 @@ export function loadTheme(theme: string, custom: ChatHost['code']['custom']): Pr
 /* The inline style of one token; undefined when it only has the surrounding color. */
 export function tokenStyle(token: CodeToken): CSSProperties | undefined {
     const style = token.fontStyle ?? 0;
+
     if (token.color === undefined && style <= 0) {
         return undefined;
     }
+
     const decorations = [style & 4 ? 'underline' : '', style & 8 ? 'line-through' : ''].filter(Boolean).join(' ');
+
     return {
         color: token.color,
         ...(style & 1 ? { fontStyle: 'italic' } : {}),

@@ -62,9 +62,11 @@ export function useComposerSubmit({
     /* Opens the host's new chat once the host took the message; a host that answers nothing took it. */
     const afterSend = (sent: void | Promise<boolean>, andNew: boolean): void => {
         const openNewChat = host.openNewChat;
+
         if (!andNew || openNewChat === null) {
             return;
         }
+
         void Promise.resolve(sent)
             .then((taken) => {
                 if (taken !== false) {
@@ -79,39 +81,53 @@ export function useComposerSubmit({
         const delivery = steerable && (alternate ? sendDelivery === 'queue' : sendDelivery === 'steer') ? 'steer' : 'queue';
         const { text, quote, quoteSource } = draft;
         const trimmed = text.trim();
+
         if (isEmptyDraft(draft) || !writable || guard.tooLong) {
             return;
         }
+
         // Recheck restored drafts and files that finished reading concurrently.
         const rejected = checkAttachmentLimits(
             0,
             draft.attachments.map((attachment) => ({ ...attachment, bytes: uploadBytes(attachment) }))
         ).rejected[0];
+
         if (rejected) {
             setNotice(`${rejected.name}: ${rejected.reason}`);
+
             return;
         }
+
         hold.release('send');
         const { commandQuery } = menus;
         const chosen = menus.commands[menus.activeIndex];
+
         if (commandQuery !== null && chosen?.local && controls.runCommand(chosen.name)) {
             box.clear();
+
             return;
         }
+
         if (commandQuery !== null && chosen?.skill) {
             menus.chooseSkill(chosen.name);
+
             return;
         }
+
         // Whoever sends wants to see what comes back, wherever they were reading.
         scrollTimelineToEnd(chatId, 'instant');
+
         if (commandQuery !== null && chosen && !chosen.local) {
             afterSend(onSend(`/${chosen.name}`, {}), how === 'and-new');
             box.clear();
+
             return;
         }
+
         const chats = presentReferences(trimmed, draft.chats, menus.referenceChips);
         // A machine without `viewReferences` drops the field, so only the chats it does know reach it.
         const references = menus.referables.chatsOnly ? [] : presentReferences(trimmed, draft.references, menus.referenceChips);
+
         const sent = onSend(withQuote(quote, trimmed), {
             delivery,
             mentions: presentMentions(trimmed, draft.mentions),
@@ -121,6 +137,7 @@ export function useComposerSubmit({
             attachments: draft.attachments,
             references: references.length > 0 ? references : undefined
         });
+
         afterSend(sent, how === 'and-new');
         box.clear();
         menus.close();
@@ -129,9 +146,11 @@ export function useComposerSubmit({
 
     // A menu row means the draft as it stands when it is picked, so the registration reads the latest submit.
     const submitRef = useRef(submit);
+
     useEffect(() => {
         submitRef.current = submit;
     });
+
     useEffect(() => registerComposerSender(scope.keyOf(chatId), (how) => submitRef.current(how)), [scope, chatId]);
 
     /*
@@ -142,11 +161,13 @@ export function useComposerSubmit({
     const restoreStashed = (prompt: StashedPrompt): void => {
         const stashedQuote = prompt.quote;
         const here = stashedQuote !== undefined && stashedQuote.chatId === chatId;
+
         const { chats, dropped } = restorableChats(
             prompt.chats,
             new Set(menus.referables.items.filter((item) => item.kind === 'chat').map((item) => item.id)),
             chatId
         );
+
         setDraft((current) => ({
             ...current,
             text: stashedQuote === undefined || here ? prompt.text : withQuote(stashedQuote.text, prompt.text),
@@ -156,9 +177,11 @@ export function useComposerSubmit({
             references: [...prompt.references],
             ...(here ? { quote: stashedQuote.text, quoteSource: stashedQuote.itemId } : {})
         }));
+
         if (dropped > 0) {
             setNotice(t('composer.notice.stashChatsDropped', { count: dropped }), 'info');
         }
+
         history.forget();
         inputRef.current?.focus();
     };
@@ -168,6 +191,7 @@ export function useComposerSubmit({
         if (!writable) {
             return;
         }
+
         scrollTimelineToEnd(chatId, 'instant');
         afterSend(onSend(CONTINUE_PROMPT, {}), false);
     };
@@ -176,11 +200,14 @@ export function useComposerSubmit({
     const toggleStash = (): void => {
         if (isEmptyDraft(draft)) {
             const newest = useStash.getState().prompts[0];
+
             if (newest) {
                 restoreStashed(newest);
             }
+
             return;
         }
+
         if (stashDraft(draft, chatId)) {
             box.clear();
             menus.close();

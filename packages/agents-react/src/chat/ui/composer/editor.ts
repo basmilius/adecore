@@ -33,17 +33,21 @@ export interface CodeRange {
 /* The code spans and fenced blocks between `from` and `to`, as far as the parser has got. */
 export function codeRanges(state: EditorState, from = 0, to = state.doc.length): CodeRange[] {
     const found: CodeRange[] = [];
+
     syntaxTree(state).iterate({
         from,
         to,
         enter: (node) => {
             if (node.name === 'InlineCode' || node.name === 'FencedCode') {
                 found.push({ from: node.from, to: node.to, kind: node.name === 'InlineCode' ? 'inline' : 'fence' });
+
                 return false;
             }
+
             return undefined;
         }
     });
+
     return found;
 }
 
@@ -61,16 +65,20 @@ function codeDecorations(view: EditorView): DecorationSet {
     const { state } = view;
     const decorations: Array<Range<Decoration>> = [];
     const fenceLines = new Set<number>();
+
     for (const visible of view.visibleRanges) {
         for (const range of codeRanges(state, visible.from, visible.to)) {
             if (range.kind === 'inline') {
                 decorations.push(inlineCodeMark.range(range.from, range.to));
+
                 continue;
             }
+
             const first = state.doc.lineAt(range.from).number;
             const last = state.doc.lineAt(range.to).number;
             const start = state.doc.lineAt(Math.max(range.from, visible.from)).number;
             const end = state.doc.lineAt(Math.min(range.to, visible.to)).number;
+
             for (let number = start; number <= end; number++) {
                 if (!fenceLines.has(number)) {
                     fenceLines.add(number);
@@ -79,6 +87,7 @@ function codeDecorations(view: EditorView): DecorationSet {
             }
         }
     }
+
     return Decoration.set(decorations, true);
 }
 

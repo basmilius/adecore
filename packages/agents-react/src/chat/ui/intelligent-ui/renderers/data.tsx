@@ -26,6 +26,7 @@ const EntityTiles = createContext(false);
  */
 function LiveFigure({ text, previous, live, className }: { text: string; previous?: string; live?: UiLiveValue; className?: string }) {
     const lit = live !== undefined && live.changed && !live.stale && previous !== text;
+
     return (
         <span key={text} className={clsx(live?.stale ? 'text-text-muted' : 'text-text', lit && 'chat-ui-changed', className)}>
             {text}
@@ -48,6 +49,7 @@ export function StatRenderer({ node, context }: UiRendererProps<UiProps<'Stat'>>
     // A change from zero has no percentage.
     const percent = change === null || previous === undefined || previous === 0 ? null : formatPercent(Math.abs((change / previous) * 100));
     const said = percent === null ? t('blocks.stat.from', { previous: from }) : t('blocks.stat.change', { change: percent, previous: from });
+
     return (
         <div className="flex min-w-0 flex-col items-start gap-1.5 rounded-xl bg-ui-tile p-3">
             <span className="max-w-full truncate text-2xs text-text-muted">{label}</span>
@@ -80,6 +82,7 @@ export function StatRenderer({ node, context }: UiRendererProps<UiProps<'Stat'>>
 
 export function EntityListRenderer({ node, children }: UiRendererProps<UiProps<'EntityList'>>) {
     const count = uiChildrenOf(node, 'Entry').length;
+
     if (count <= TILED_UP_TO) {
         return (
             <EntityTiles value>
@@ -87,6 +90,7 @@ export function EntityListRenderer({ node, children }: UiRendererProps<UiProps<'
             </EntityTiles>
         );
     }
+
     return (
         <KeyValueList.Root divided={count >= DIVIDED_FROM} className="chat-ui-nodes chat-ui-flat rounded-xl bg-ui-tile px-3 py-2">
             {children}
@@ -96,6 +100,7 @@ export function EntityListRenderer({ node, children }: UiRendererProps<UiProps<'
 
 export function EntryRenderer({ node, children }: UiRendererProps<UiProps<'Entry'>>) {
     const tiled = useContext(EntityTiles);
+
     if (tiled) {
         return (
             <div className="flex min-w-0 flex-col gap-0.5 rounded-xl bg-ui-tile px-3 py-2">
@@ -104,6 +109,7 @@ export function EntryRenderer({ node, children }: UiRendererProps<UiProps<'Entry
             </div>
         );
     }
+
     return (
         <KeyValueList.Item>
             <KeyValueList.Name>{node.props.label}</KeyValueList.Name>
@@ -118,6 +124,7 @@ function numberText(cell: Extract<UiTableCell, { kind: 'number' }>, unit: string
 
 function Cell({ value, column, live }: { value: unknown; column: UiTableColumn; live?: UiLiveValue }) {
     const cell = uiTableCell(value, column);
+
     switch (cell.kind) {
         case 'empty':
             return null;
@@ -125,6 +132,7 @@ function Cell({ value, column, live }: { value: unknown; column: UiTableColumn; 
             return <>{cell.text}</>;
         case 'number': {
             const before = live?.previous === undefined ? undefined : uiTableCell(live.previous, column);
+
             return (
                 <LiveFigure
                     text={numberText(cell, column.unit)}
@@ -155,11 +163,14 @@ export function TableRenderer({ node, context }: UiRendererProps<UiProps<'Table'
     const { t } = useTranslation('agent-chat');
     const [all, setAll] = useBlockLocal(context, node.id, () => false);
     const columns = uiTableColumns(node);
+
     if (columns.length === 0) {
         return <UiFallbackPart fallback={node.fallback} problem={{ kind: 'failed' }} />;
     }
+
     const { rows } = node.props;
     const shown = all ? rows : rows.slice(0, UI_TABLE_ROWS);
+
     return (
         <div className="flex flex-col items-start gap-1.5">
             <div className="chat-ui-flat max-h-80 w-full overflow-auto rounded-xl bg-ui-tile px-1.5 pb-1.5">

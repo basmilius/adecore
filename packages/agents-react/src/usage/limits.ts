@@ -19,13 +19,16 @@ const holds = new Map<string, Hold>();
 function hold(scope: ChatScope): Hold {
     const link = scope.transport;
     const scopeId = scope.id;
+
     const offStatus = whenOpen(link, () => {
         link.request('usage.limits', {})
             .then((snapshot) => useUsageStore.getState().setLimits(scopeId, snapshot))
             .catch(() => undefined);
     });
+
     // A running turn reports its own numbers, which is what keeps a bar moving between reads.
     const offChanged = link.on('usage.limitsChanged', (snapshot) => useUsageStore.getState().setLimits(scopeId, snapshot));
+
     return {
         readers: 0,
         release: () => {
@@ -44,8 +47,10 @@ export function useUsageLimits(): UsageLimitsSnapshot | null {
         const held = holds.get(scope.id) ?? hold(scope);
         held.readers += 1;
         holds.set(scope.id, held);
+
         return () => {
             held.readers -= 1;
+
             if (held.readers === 0) {
                 held.release();
                 holds.delete(scope.id);
@@ -59,5 +64,6 @@ export function useUsageLimits(): UsageLimitsSnapshot | null {
 /* The snapshot per CLI and account, with the accounts of the same host it is read from. */
 export function useLimitGroups(limits: UsageLimitsSnapshot | null): LimitGroup[] {
     const accounts = useProviderAccounts((row) => row.accounts);
+
     return limits === null ? [] : limitGroups(limits, accounts);
 }

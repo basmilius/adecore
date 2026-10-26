@@ -41,15 +41,18 @@ const subagent = {
 
 test('the activity line draws again for the info of its own sub-agents, not for that of any other chat', async () => {
     const renders = { count: 0 };
+
     const host: Partial<ChatHost> = {
         tasks: {
             useTasks: () => {
                 renders.count += 1;
+
                 return undefined;
             },
             useTask: () => null
         }
     };
+
     const store = useChats.getState();
     store.reset(scope.keyOf('chat'), infoOf('chat', 'running'), [subagent]);
     store.status(scope.keyOf('child'), infoOf('child', 'running'));
@@ -58,11 +61,14 @@ test('the activity line draws again for the info of its own sub-agents, not for 
     const fromPage = ['window', 'document', 'Node', 'Element', 'HTMLElement'] as const;
     const names = [...fromPage, 'IS_REACT_ACT_ENVIRONMENT'] as const;
     const previous = names.map((name) => Object.getOwnPropertyDescriptor(globalThis, name));
+
     for (const name of fromPage) {
         Object.defineProperty(globalThis, name, { value: name === 'window' ? page.window : page.window[name], configurable: true });
     }
+
     Object.defineProperty(globalThis, 'IS_REACT_ACT_ENVIRONMENT', { value: true, configurable: true });
     const root = createRoot(page.host);
+
     try {
         await act(async () =>
             root.render(
@@ -73,6 +79,7 @@ test('the activity line draws again for the info of its own sub-agents, not for 
                 </ChatHostProvider>
             )
         );
+
         expect(page.host.textContent).not.toBe('');
         const before = renders.count;
         await act(async () => useChats.getState().status(scope.keyOf('other'), infoOf('other', 'idle')));
@@ -82,8 +89,10 @@ test('the activity line draws again for the info of its own sub-agents, not for 
     } finally {
         await act(async () => root.unmount());
         useChats.getState().forgetWhere((key) => key.startsWith('activity-test/'));
+
         names.forEach((name, index) => {
             const descriptor = previous[index];
+
             if (descriptor === undefined) {
                 Reflect.deleteProperty(globalThis, name);
             } else {

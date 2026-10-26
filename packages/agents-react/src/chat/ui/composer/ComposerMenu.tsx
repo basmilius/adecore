@@ -9,6 +9,7 @@ import { optionIdOf } from './menu-aria';
 
 function splitPath(path: string): { name: string; dir: string } {
     const slash = path.lastIndexOf('/');
+
     return slash < 0 ? { name: path, dir: '' } : { name: path.slice(slash + 1), dir: path.slice(0, slash) };
 }
 
@@ -41,6 +42,7 @@ function MenuOption({ menus, index, className, onPick, children }: OptionProps) 
 
 function CommandMenu({ menus }: { menus: Menus }) {
     const { t } = useTranslation('agent-chat');
+
     return (
         <div id={menus.listId} role="listbox" aria-label={t('composer.menu.commands')} className="border-b border-border px-1.5 py-1.5">
             {menus.commands.map((command, index) => (
@@ -56,6 +58,7 @@ function CommandMenu({ menus }: { menus: Menus }) {
 
 function SkillMenu({ menus }: { menus: Menus }) {
     const { t } = useTranslation('agent-chat');
+
     return (
         <div id={menus.listId} role="listbox" aria-label={t('composer.menu.skills')} className="border-b border-border px-1.5 py-1.5">
             {menus.skillMatches.map((skill, index) => (
@@ -76,6 +79,7 @@ function MentionMenu({ menus, query }: { menus: Menus; query: string }) {
     const { listId, files, mentionCount } = menus;
     const filesLabelId = `${listId}-files`;
     const filesLabelShown = query === '';
+
     return (
         <div className="border-b border-border px-1.5 py-1.5">
             {mentionCount > 0 && (
@@ -83,6 +87,7 @@ function MentionMenu({ menus, query }: { menus: Menus; query: string }) {
                     {filesLabelShown && <Menu.Label id={filesLabelId}>{t('composer.mentions.here')}</Menu.Label>}
                     {files.map((path, index) => {
                         const { name, dir } = splitPath(path);
+
                         return (
                             <MenuOption key={path} menus={menus} index={index} className="items-center" onPick={() => menus.chooseMention(path)}>
                                 <FileIcon path={path} size={14} />
@@ -104,9 +109,11 @@ function MentionMenu({ menus, query }: { menus: Menus; query: string }) {
 function ReferenceMenu({ menus }: { menus: Menus }) {
     const { t } = useTranslation('agent-chat');
     const { listId, referenceMatches } = menus;
+
     const groups = (['canvas', 'views'] as const)
         .map((group) => ({ group, items: referenceMatches.filter((item) => item.group === group) }))
         .filter((entry) => entry.items.length > 0);
+
     return (
         <div className="border-b border-border px-1.5 py-1.5">
             {referenceMatches.length > 0 ? (
@@ -116,6 +123,7 @@ function ReferenceMenu({ menus }: { menus: Menus }) {
                             <Menu.Label id={`${listId}-${group}`}>{t(`composer.references.${group}`)}</Menu.Label>
                             {items.map((item) => {
                                 const index = referenceMatches.indexOf(item);
+
                                 return (
                                     <MenuOption key={item.id} menus={menus} index={index} className="items-center" onPick={() => menus.chooseReference(item)}>
                                         <Icon icon={REFERENCE_ICONS[item.kind]} size={14} className="shrink-0 text-text-faint" />
@@ -141,14 +149,18 @@ export function ComposerMenu({ menus }: { menus: Menus }) {
     if (menus.commandMenuOpen) {
         return <CommandMenu menus={menus} />;
     }
+
     if (menus.skillMenuOpen) {
         return <SkillMenu menus={menus} />;
     }
+
     if (menus.mentionMenuOpen && menus.mention !== null) {
         return <MentionMenu menus={menus} query={menus.mention.query} />;
     }
+
     if (menus.referenceMenuOpen) {
         return <ReferenceMenu menus={menus} />;
     }
+
     return null;
 }

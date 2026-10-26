@@ -8,6 +8,7 @@ import { TIMESTAMP_FORMAT } from './timestamp-format';
  */
 export function RowTime({ at }: { at: number }) {
     useFormatLocale();
+
     return (
         <Tooltip label={formatDateTime(at, TIMESTAMP_FORMAT)}>
             <time

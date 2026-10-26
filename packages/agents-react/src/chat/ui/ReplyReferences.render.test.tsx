@@ -41,6 +41,7 @@ const reply = [
 
 test('a reply spells a view or node as #Name, and that chip opens it like a chip a person picked', async () => {
     const opened: string[] = [];
+
     const host: Partial<ChatHost> = {
         useStreaming: () => 'blocks',
         useReferables: () => referables,
@@ -48,20 +49,25 @@ test('a reply spells a view or node as #Name, and that chip opens it like a chip
             opened.push(id);
         }
     };
+
     const items = [
         { id: 'ask', kind: 'user', turnId: 'turn', createdAt: 0, text: 'Look at #Todo', references: ['view-todo'] },
         { id: 'answer', kind: 'assistant', turnId: 'turn', createdAt: 1, text: reply, streaming: false }
     ] as ChatItem[];
+
     useChats.getState().reset(scope.keyOf('chat'), info, items);
     const page = createPage();
     const fromPage = ['window', 'document', 'Node', 'Element', 'HTMLElement'] as const;
     const names = [...fromPage, 'IS_REACT_ACT_ENVIRONMENT'] as const;
     const previous = names.map((name) => Object.getOwnPropertyDescriptor(globalThis, name));
+
     for (const name of fromPage) {
         Object.defineProperty(globalThis, name, { value: name === 'window' ? page.window : page.window[name], configurable: true });
     }
+
     Object.defineProperty(globalThis, 'IS_REACT_ACT_ENVIRONMENT', { value: true, configurable: true });
     const root = createRoot(page.host);
+
     try {
         await act(async () =>
             root.render(
@@ -72,12 +78,15 @@ test('a reply spells a view or node as #Name, and that chip opens it like a chip
                 </ChatHostProvider>
             )
         );
+
         const chips = [...page.host.querySelectorAll('[data-chip]')];
+
         expect(chips.map((chip) => [chip.getAttribute('data-chip-value'), chip.textContent])).toEqual([
             ['view-admin-panel', '#Admin panel'],
             ['view-admin', '#Admin'],
             ['view-todo', '#Todo']
         ]);
+
         expect(page.host.querySelector('h1')?.textContent).toBe('Admin');
         expect(page.host.querySelector('code')?.textContent).toBe('#Admin');
         expect(page.host.querySelector('pre')?.textContent).toContain('#Admin');
@@ -85,15 +94,19 @@ test('a reply spells a view or node as #Name, and that chip opens it like a chip
         const panel = chips[0] as HTMLElement;
         expect(panel.getAttribute('role')).toBe('button');
         await act(async () => panel.click());
+
         await act(async () => {
             panel.dispatchEvent(Object.assign(new page.window.Event('keydown', { bubbles: true, cancelable: true }), { key: 'Enter' }));
         });
+
         expect(opened).toEqual(['view-admin-panel', 'view-admin-panel']);
     } finally {
         await act(async () => root.unmount());
         useChats.getState().forget(scope.keyOf('chat'));
+
         names.forEach((name, index) => {
             const descriptor = previous[index];
+
             if (descriptor === undefined) {
                 delete (globalThis as Record<string, unknown>)[name];
             } else {

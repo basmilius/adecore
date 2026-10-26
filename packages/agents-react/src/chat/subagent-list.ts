@@ -31,9 +31,11 @@ export function statusWordOf(item: ChatSubagentItem, task: SubagentTask | null):
     if (item.status === 'failed' && task?.status === 'cancelled') {
         return 'cancelled';
     }
+
     if (item.status === 'running' && task?.status === 'open' && task.paused !== undefined) {
         return 'paused';
     }
+
     return item.status;
 }
 
@@ -42,9 +44,11 @@ export type TaskRowState = StatusWord | 'waiting';
 
 export function taskRowStateOf(item: ChatSubagentItem, task: SubagentTask | null, child: ChatInfo | undefined): TaskRowState {
     const word = statusWordOf(item, task);
+
     if (word === 'running' && (child?.status === 'needs-you' || (child?.requests?.length ?? 0) > 0)) {
         return 'waiting';
     }
+
     return word;
 }
 
@@ -63,6 +67,7 @@ export function flyoutSubagents(order: readonly string[], structure: Readonly<Re
     return activeSubagents(
         order.flatMap((id) => {
             const item = structure[id];
+
             return item === undefined ? [] : [item];
         })
     );
@@ -76,6 +81,7 @@ export function summaryWordOf(words: readonly StatusWord[]): StatusWord {
 /* The number on the badge: the ones still at work, a paused one included, and all of them once none is. */
 export function badgeCountOf(words: readonly StatusWord[]): number {
     const active = words.filter((word) => word === 'running' || word === 'paused').length;
+
     return active > 0 ? active : words.length;
 }
 
@@ -85,18 +91,23 @@ export function entryTimeOf(item: ChatSubagentItem, task: SubagentTask | null, n
     const startedAt = task?.createdAt ?? item.startedAt;
     const finishedAt = task === null ? item.finishedAt : (task.settledAt ?? item.finishedAt);
     const word = statusWordOf(item, task);
+
     if (word === 'paused') {
         const until = task?.paused?.until;
+
         return until === undefined
             ? i18next.t('agent-chat:common.status.paused')
             : i18next.t('agent-chat:activity.pausedUntil', { time: formatMoment(until, now) });
     }
+
     if (item.status === 'running') {
         return startedAt > 0 ? formatElapsedShort(now - startedAt) : '';
     }
+
     if (startedAt <= 0 || finishedAt === null || finishedAt < startedAt) {
         return i18next.t(`agent-chat:common.status.${word}`);
     }
+
     return i18next.t(`agent-chat:activity.took.${word}`, { duration: formatElapsedShort(finishedAt - startedAt) });
 }
 
@@ -112,12 +123,15 @@ export function stopOf(item: ChatSubagentItem, turnRunning: boolean): SubagentSt
     if (item.status !== 'running') {
         return null;
     }
+
     if (item.origin === 'ruimte') {
         return item.childId === undefined ? null : 'task';
     }
+
     if (item.native?.agentId) {
         return 'native';
     }
+
     return turnRunning ? null : 'mark';
 }
 

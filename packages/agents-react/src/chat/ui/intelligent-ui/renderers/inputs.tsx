@@ -22,6 +22,7 @@ const ChecklistContext = createContext<ChecklistState>({ values: [], enabled: fa
 /* The rows of a checklist as one named group. */
 function ChecklistGroup({ pending, children }: { pending: boolean; children: ReactNode }) {
     const { t } = useTranslation('agent-chat');
+
     return (
         <div role="group" aria-label={t('blocks.checklist')} className={clsx('chat-ui-nodes flex flex-col gap-1.5', pending && PENDING)}>
             {children}
@@ -32,9 +33,11 @@ function ChecklistGroup({ pending, children }: { pending: boolean; children: Rea
 export function ChecklistRenderer({ node, children, context }: UiRendererProps<UiProps<'Checklist'>>) {
     const binding = bindingOf(node, context);
     const values = binding?.value ?? node.props.value;
+
     const toggle = (value: Scalar): void => {
         binding?.onValueChange(values.includes(value) ? values.filter((entry) => entry !== value) : [...values, value]);
     };
+
     return (
         <ChecklistContext value={{ values, enabled: binding !== null, toggle }}>
             <ChecklistGroup pending={!node.complete}>{children}</ChecklistGroup>
@@ -47,11 +50,13 @@ export function ItemRenderer({ node, children }: UiRendererProps<UiProps<'Item'>
     const list = useContext(ChecklistContext);
     const { value } = node.props;
     const checked = list.values.includes(value);
+
     const toggleRow = (event: MouseEvent<HTMLDivElement>): void => {
         if (list.enabled && !(event.target as Element).closest('button, a')) {
             list.toggle(value);
         }
     };
+
     return (
         <div
             className={clsx(
@@ -69,6 +74,7 @@ export function ItemRenderer({ node, children }: UiRendererProps<UiProps<'Item'>
 
 export function SwitchRenderer({ node, children, context }: UiRendererProps<UiProps<'Switch'>>) {
     const binding = bindingOf(node, context);
+
     return (
         <div
             className={clsx('chat-ui-flat flex min-h-11 items-center justify-between gap-3 rounded-xl bg-ui-tile px-3 py-2 text-xs', !node.complete && PENDING)}
@@ -88,6 +94,7 @@ export function SwitchRenderer({ node, children, context }: UiRendererProps<UiPr
 export function SliderRenderer({ node, context }: UiRendererProps<UiProps<'Slider'>>) {
     const binding = bindingOf(node, context);
     const { value, min, max, step, unit } = node.props;
+
     return (
         <Slider
             value={binding?.value ?? value}
@@ -114,6 +121,7 @@ export function SegmentedRenderer({ node, context }: UiRendererProps<UiProps<'Se
     const current = binding?.value ?? node.props.value;
     const options = uiChildrenOf(node, 'Option').map((option, index) => ({ id: String(index), label: uiNodeLabel(option), value: option.props.value }));
     const picked = options.find((option) => option.value === current)?.id ?? '';
+
     return (
         <div className={clsx(!node.complete && PENDING)}>
             <Segmented
@@ -124,6 +132,7 @@ export function SegmentedRenderer({ node, context }: UiRendererProps<UiProps<'Se
                 disabled={binding === null}
                 onValueChange={(id) => {
                     const option = options[Number(id)];
+
                     if (option !== undefined) {
                         binding?.onValueChange(option.value);
                     }
@@ -151,6 +160,7 @@ export function TextFieldRenderer({ node, children, context }: UiRendererProps<U
     const value = binding?.value ?? node.props.value;
     const countId = `${id}-count`;
     const counting = value.length >= maxLength * COUNT_FROM;
+
     return (
         <div className={clsx('flex flex-col gap-1.5', !node.complete && PENDING)}>
             <label htmlFor={id} className="px-0.5 text-2xs text-text-muted">
@@ -186,6 +196,7 @@ export function SelectRenderer({ node, context }: UiRendererProps<UiProps<'Selec
     const current = binding?.value ?? node.props.value;
     const options = uiChildrenOf(node, 'Option').map((option, index) => ({ id: String(index), label: uiNodeLabel(option), value: option.props.value }));
     const label = uiOwnLabel(node);
+
     return (
         <div className={clsx('flex flex-col items-start gap-1.5', !node.complete && PENDING)}>
             {label !== '' && <span className="px-0.5 text-2xs text-text-muted">{label}</span>}
@@ -196,6 +207,7 @@ export function SelectRenderer({ node, context }: UiRendererProps<UiProps<'Selec
                 disabled={binding === null || options.length === 0}
                 onValueChange={(id) => {
                     const option = options[Number(id)];
+
                     if (option !== undefined) {
                         binding?.onValueChange(option.value);
                     }
@@ -210,6 +222,7 @@ export function ButtonRenderer({ node, children, context }: UiRendererProps<UiPr
     const enabled = node.onAction !== undefined && node.complete && context.answer === null && node.props.disabled !== true;
     const label = uiNodeLabel(node);
     const [measure, truncated] = useTruncated<HTMLSpanElement>();
+
     return (
         <div className={clsx(!node.complete && PENDING)}>
             <Tooltip label={label} disabled={!truncated}>

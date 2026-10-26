@@ -4,6 +4,7 @@ import { parseAnsi } from '../logic/ansi';
 export function AnsiOutput({ text, limit, tailLines }: { text: string; limit?: number; tailLines?: number }) {
     const { t } = useTranslation('agent-chat');
     const { tokens, omitted } = parseAnsi(text, { limit, tailLines });
+
     return (
         <>
             {tokens.map((token, index) => (

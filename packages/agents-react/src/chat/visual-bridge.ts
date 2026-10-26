@@ -49,6 +49,7 @@ export interface VisualBridgeOptions {
 
 function timeout(ms: number, run: () => void): () => void {
     const timer = setTimeout(run, ms);
+
     return () => clearTimeout(timer);
 }
 
@@ -78,6 +79,7 @@ export class VisualBridge {
     constructor(options: VisualBridgeOptions) {
         this.options = options;
         this.theme = options.theme;
+
         options.page.then(
             (html) => {
                 this.html = html;
@@ -94,10 +96,13 @@ export class VisualBridge {
     /* A `message` event of the window the frame is in. */
     receive(event: { source: unknown; data: unknown }): void {
         const frame = this.options.frame();
+
         if (this.disposed || frame === null || event.source !== frame) {
             return;
         }
+
         const message = parseVisualMessage(event.data);
+
         switch (message?.method) {
             case VISUAL_BRIDGE_METHODS.sandboxProxyReady:
                 // A frame that loads again starts over from the sandbox host page.
@@ -108,40 +113,50 @@ export class VisualBridge {
                 this.viewportReady = false;
                 this.cancelSilence();
                 this.sendPage();
+
                 return;
             case VISUAL_BRIDGE_METHODS.sizeChanged:
                 if (this.sent === null) {
                     return;
                 }
+
                 if (!this.live) {
                     this.live = true;
                     this.options.onAppearance(this.sent.appearance);
                 }
+
                 this.options.onHeight(
                     this.options.onViewportReady ? visualContentHeight(message.height) : clampVisualHeight(this.options.visual, message.height)
                 );
+
                 return;
             case VISUAL_BRIDGE_METHODS.viewportReady:
                 if (this.sent === null) {
                     return;
                 }
+
                 this.viewportReady = true;
                 this.options.onViewportReady?.();
                 this.setViewport(this.viewport);
+
                 return;
             case VISUAL_BRIDGE_METHODS.scrollRequest:
                 if (this.sent !== null && this.viewportReady && this.viewport !== null) {
                     this.options.onScroll?.(message.request);
                 }
+
                 return;
             case VISUAL_BRIDGE_METHODS.openLink:
                 if (this.sent === null) {
                     return;
                 }
+
                 if (this.options.mayOpenLink()) {
                     this.options.openLink(message.url);
                 }
+
                 frame.postMessage(visualOpenLinkResult(message.id), '*');
+
                 return;
             default:
                 return;
@@ -150,6 +165,7 @@ export class VisualBridge {
 
     setViewport(viewport: VisualViewport | null): void {
         this.viewport = viewport;
+
         if (!this.disposed && this.sent !== null && this.viewportReady) {
             this.options.frame()?.postMessage(visualViewportMessage(viewport), '*');
         }
@@ -159,10 +175,13 @@ export class VisualBridge {
     setTheme(theme: VisualTheme): void {
         this.theme = theme;
         const frame = this.options.frame();
+
         if (this.disposed || this.sent === null || frame === null) {
             return;
         }
+
         this.postTheme(frame);
+
         if (this.live) {
             this.options.onAppearance(theme.appearance);
         }
@@ -173,7 +192,9 @@ export class VisualBridge {
         if (this.heard || this.disposed) {
             return;
         }
+
         this.cancelSilence();
+
         this.cancelSilence = (this.options.after ?? timeout)(SILENCE_MS, () => {
             if (!this.heard && !this.disposed) {
                 this.options.onFailure();
@@ -188,9 +209,11 @@ export class VisualBridge {
 
     private sendPage(): void {
         const frame = this.options.frame();
+
         if (this.disposed || !this.waiting || this.html === null || frame === null) {
             return;
         }
+
         this.waiting = false;
         // Any origin, since the frame's own is opaque; `receive` checks every answer's source instead.
         frame.postMessage(visualResourceReadyMessage(this.html), '*');

@@ -44,9 +44,12 @@ export function continueTargets(
 ): AccountEntry[] {
     const roomy = others(accounts, kind, current).flatMap((entry) => {
         const limits = limitsOfAccount(snapshot, entry.id);
+
         return hasRoom(limits) ? [{ entry, pressure: pressure(limits) }] : [];
     });
+
     roomy.sort((a, b) => a.pressure - b.pressure);
+
     return roomy.map((target) => target.entry);
 }
 

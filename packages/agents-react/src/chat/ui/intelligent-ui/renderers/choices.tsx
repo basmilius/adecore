@@ -17,6 +17,7 @@ const SPINNER_AFTER_MS = 300;
 export function ChoicesRenderer({ children, context }: UiRendererProps<UiProps<'Choices'>>) {
     const { t } = useTranslation('agent-chat');
     const [streamed] = useState(context.phase === 'streaming');
+
     return (
         <div role="group" aria-label={t('blocks.choices')} className="chat-ui-nodes @container flex flex-wrap items-start gap-2">
             {children}
@@ -46,14 +47,17 @@ export function ChoiceRenderer({ node, children, context }: UiRendererProps<UiPr
     const failed = answer === null && context.failedChoiceId === node.id;
     const closed = waiting || unavailable || answer !== null;
     const slow = useLater(chosen && answer.state === 'sending', SPINNER_AFTER_MS);
+
     if (!waiting && uiChoiceLabel(node) === null) {
         return <UiFallbackPart fallback={node.fallback} problem={{ kind: 'failed' }} />;
     }
+
     const reason = waiting
         ? t('blocks.choice.waiting')
         : answer === null && unavailable
           ? ((disabled === true ? null : context.choiceReason) ?? t('blocks.choice.unavailable'))
           : null;
+
     const described = detail !== undefined && detail !== '';
     const strong = primary === true;
 

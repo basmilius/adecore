@@ -44,6 +44,7 @@ let workerUrlSet: string | null = null;
  */
 function ensureBundledWorker(hosted: string | undefined): void {
     const url = hosted ?? new URL('maplibre-gl/dist/maplibre-gl-worker.mjs', import.meta.url).href;
+
     if (url !== workerUrlSet) {
         setWorkerUrl(url);
         workerUrlSet = url;
@@ -53,6 +54,7 @@ function ensureBundledWorker(hosted: string | undefined): void {
 /* The grounds of the built-in map are theme tokens, which the page resolves; the style needs plain colors. */
 function readColors(element: HTMLElement): MapColors {
     const style = getComputedStyle(element);
+
     return { land: style.getPropertyValue('--map-land').trim() || 'transparent', water: style.getPropertyValue('--map-water').trim() || 'transparent' };
 }
 
@@ -70,25 +72,31 @@ export function MapView({ markers, source, selected, onPick, onStatus }: MapView
     const [map, setMap] = useState<MapLibreMap | null>(null);
     const [outline, setOutline] = useState(false);
     const latest = useRef({ source, onStatus, onPick });
+
     useEffect(() => {
         latest.current = { source, onStatus, onPick };
     });
+
     const language = i18n.language.split('-')[0] ?? 'en';
     const styleKey = `${mode}:${source.state === 'tiles' ? source.styleUrl(mode) : 'outline'}`;
     const pointsKey = JSON.stringify(markers.map((marker) => [marker.id, marker.lat, marker.lon]));
 
     useEffect(() => {
         const container = element.current;
+
         if (container === null) {
             return;
         }
+
         const current = latest.current.source;
         let colors = readColors(container);
         const offline = current.state === 'tiles' && typeof navigator !== 'undefined' && navigator.onLine === false;
         const tiles = current.state === 'tiles' && !offline;
         let created: MapLibreMap;
+
         try {
             ensureBundledWorker(workerUrl);
+
             created = new MapLibreMap({
                 container,
                 style: current.state === 'tiles' && tiles ? current.styleUrl(mode) : baseMapStyle(colors),
@@ -106,13 +114,16 @@ export function MapView({ markers, source, selected, onPick, onStatus }: MapView
                 },
                 transformRequest: (url) => {
                     const now = latest.current.source;
+
                     return now.state === 'tiles' && now.transformRequest ? now.transformRequest(url) : { url };
                 }
             });
         } catch {
             latest.current.onStatus('failed');
+
             return;
         }
+
         created.touchZoomRotate.disableRotation();
         const canvas = created.getCanvas();
         canvas.tabIndex = -1;
@@ -130,16 +141,19 @@ export function MapView({ markers, source, selected, onPick, onStatus }: MapView
             if (drawing === 'outline' || !wantsTiles) {
                 return;
             }
+
             drawing = 'outline';
             reason = why;
             setOutline(true);
             created.setStyle(baseMapStyle(colors));
             latest.current.onStatus(why);
         };
+
         const drawTiles = (): void => {
             if (current.state !== 'tiles') {
                 return;
             }
+
             drawing = 'tiles';
             reason = null;
             styleLoaded = false;
@@ -149,74 +163,97 @@ export function MapView({ markers, source, selected, onPick, onStatus }: MapView
             created.setStyle(current.styleUrl(mode));
             latest.current.onStatus('loading');
         };
+
         const unreachable = (): 'offline' | 'unavailable' => (typeof navigator !== 'undefined' && navigator.onLine === false ? 'offline' : 'unavailable');
 
         created.on('style.load', () => {
             if (drawing !== 'tiles') {
                 return;
             }
+
             styleLoaded = true;
+
             if (restoring) {
                 restoring = false;
                 latest.current.onStatus('tiles');
             }
+
             const field = current.state === 'tiles' ? current.labelField?.(language) : undefined;
+
             if (field === undefined) {
                 return;
             }
+
             for (const layer of created.getStyle().layers) {
                 const textField = layer.type === 'symbol' ? layer.layout?.['text-field'] : undefined;
+
                 if (textField !== undefined) {
                     created.setLayoutProperty(layer.id, 'text-field', localizedTextField(textField, field) as never);
                 }
             }
         });
+
         created.on('load', () => {
             if (drawing === 'tiles') {
                 latest.current.onStatus('tiles');
             }
         });
+
         created.on('sourcedata', (event) => {
             if ('tile' in event) {
                 tileErrors = 0;
             }
         });
+
         created.on('error', (event) => {
             if (drawing !== 'tiles') {
                 return;
             }
+
             // Before the style is here there is nothing to draw. After it, a tile the host refuses (a ticket
             // that ran out) or several in a row leave an empty map; a single one the map retries itself.
             const status = (event.error as { status?: number } | undefined)?.status;
+
             if (!styleLoaded || status === 401 || status === 403 || ++tileErrors >= TILE_ERRORS_IN_A_ROW) {
                 drawOutline(unreachable());
             }
         });
+
         const goOffline = (): void => drawOutline('offline');
+
         const goOnline = (): void => {
             if (reason === 'offline') {
                 drawTiles();
             }
         };
+
         const contextLost = (): void => latest.current.onStatus('lost');
+
         if (wantsTiles) {
             window.addEventListener('offline', goOffline);
             window.addEventListener('online', goOnline);
         }
+
         canvas.addEventListener('webglcontextlost', contextLost);
+
         // Colors that change within the side repaint the outline in place: a style that differs only in its paint is
         // applied as a diff, so the map, its camera and its markers stay. The tiles draw colors of their own.
         const stopWatching = watchTheme(container.ownerDocument, () => {
             const next = readColors(container);
+
             if (next.land === colors.land && next.water === colors.water) {
                 return;
             }
+
             colors = next;
+
             if (drawing === 'outline') {
                 created.setStyle(baseMapStyle(colors));
             }
         });
+
         setMap(created);
+
         return () => {
             stopWatching();
             window.removeEventListener('offline', goOffline);
@@ -231,19 +268,23 @@ export function MapView({ markers, source, selected, onPick, onStatus }: MapView
 
     useEffect(() => {
         const bounds = boundsOf(markers);
+
         if (map === null || bounds === null) {
             return;
         }
+
         map.fitBounds(bounds, { ...mapFitOptions(outline), duration: 0 });
         // The points are compared by their coordinates, so a render that rebuilt the same list does not move the map.
         // oxlint-disable-next-line react-hooks/exhaustive-deps
     }, [map, pointsKey, outline]);
 
     const pickable = onPick !== null;
+
     useEffect(() => {
         if (map === null) {
             return;
         }
+
         const drawn = markers.map((marker) => {
             const node = document.createElement('div');
             node.setAttribute('aria-hidden', 'true');
@@ -251,18 +292,24 @@ export function MapView({ markers, source, selected, onPick, onStatus }: MapView
             node.className = `${MARKER} ${marker.id === selected ? PICKED : ''} ${pickable ? 'cursor-pointer' : ''}`;
             node.textContent = String(marker.number);
             node.addEventListener('click', () => latest.current.onPick?.(marker.id));
+
             return { marker, drawing: new Marker({ element: node }).setLngLat([marker.lon, marker.lat]).addTo(map) };
         });
+
         const spread = (): void => {
             const offsets = spreadOverlaps(drawn.map(({ marker }) => ({ id: marker.id, ...map.project([marker.lon, marker.lat]) })));
+
             for (const { marker, drawing } of drawn) {
                 drawing.setOffset(offsets.get(marker.id) ?? [0, 0]);
             }
         };
+
         spread();
         map.on('zoomend', spread);
+
         return () => {
             map.off('zoomend', spread);
+
             for (const { drawing } of drawn) {
                 drawing.remove();
             }
@@ -272,6 +319,7 @@ export function MapView({ markers, source, selected, onPick, onStatus }: MapView
 
     const showAll = (): void => {
         const bounds = boundsOf(markers);
+
         if (map !== null && bounds !== null) {
             map.fitBounds(bounds, mapFitOptions(outline));
         }

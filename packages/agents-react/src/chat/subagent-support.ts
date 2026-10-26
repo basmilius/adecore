@@ -16,6 +16,7 @@ export const useSubagentSupport = create<SubagentSupportStore>((set, get) => ({
         if (get().unsupported[scopeId]) {
             return;
         }
+
         set({ unsupported: { ...get().unsupported, [scopeId]: true } });
     }
 }));

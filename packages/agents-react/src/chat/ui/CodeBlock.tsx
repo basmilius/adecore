@@ -51,7 +51,9 @@ export function CodeBlock({ code, lang, actions, view }: { code: string; lang: s
         if (copyState !== 'copied') {
             return;
         }
+
         const timer = setTimeout(() => setCopyState('idle'), COPIED_MS);
+
         return () => clearTimeout(timer);
     }, [copyState]);
 
@@ -59,8 +61,10 @@ export function CodeBlock({ code, lang, actions, view }: { code: string; lang: s
         if (copying.current) {
             return;
         }
+
         copying.current = true;
         setCopyState('copying');
+
         try {
             // The best-effort clipboard helper cannot distinguish a refusal from success.
             await navigator.clipboard.writeText(code);
@@ -76,16 +80,20 @@ export function CodeBlock({ code, lang, actions, view }: { code: string; lang: s
         if (tokenizer !== null) {
             return;
         }
+
         let cancelled = false;
+
         Promise.all([highlighter.loadLanguage(lang), highlighter.loadTheme(theme, custom)])
             .then(() => !cancelled && setLoaded(`${lang}:${theme}`))
             .catch(() => !cancelled && setLoaded('failed'));
+
         return () => {
             cancelled = true;
         };
     }, [highlighter, lang, theme, custom, tokenizer]);
 
     const pending = (tokenizer === null || tokens === null) && loaded !== 'failed';
+
     return (
         <div className="chat-code" data-copy-state={copyState}>
             {view ?? (

@@ -43,11 +43,13 @@ describe('ticksOf', () => {
     test('a message of the person and a wake by tasks get a tick, a turn the CLI opened on its own gets none', () => {
         const rows = deriveTimelineRows(thread, options);
         const ticks = ticksOf(rows);
+
         expect(ticks.map((tick) => [tick.id, tick.kind])).toEqual([
             ['u1', 'person'],
             ['start-t2', 'wake'],
             ['u4', 'person']
         ]);
+
         expect(ticks.every((tick) => rows[tick.rowIndex]!.id === tick.id)).toBe(true);
         expect(ticks[1]!.text).toBe('Woken by 2 tasks');
     });
@@ -68,15 +70,18 @@ describe('ticksOf', () => {
             },
             { id: 'a5', kind: 'assistant', createdAt: 9500, turnId: 't5', text: 'Noted.', streaming: false }
         ];
+
         const ticks = ticksOf(deriveTimelineRows(woken, options));
         expect(ticks.map((tick) => [tick.id, tick.kind, tick.text])).toEqual([['start-t5', 'wake', 'Woken by a message: Message from Lexer']]);
     });
 
     test('a bookmark marks the tick of its message, and a marked reply gets a tick of its own, or its fold does', () => {
         const bookmark = (itemId: string) => ({ itemId, excerpt: `start of ${itemId}`, createdAt: 1 });
+
         const rows = deriveTimelineRows(thread, options);
         const marks = bookmarkRows(rows, [bookmark('u1'), bookmark('a2')], Object.fromEntries(thread.map((item) => [item.id, item])));
         const ticks = ticksOf(rows, marks);
+
         expect(ticks.map((tick) => [tick.id, tick.kind, tick.bookmark?.itemId ?? null])).toEqual([
             ['u1', 'person', 'u1'],
             ['start-t2', 'wake', null],
@@ -91,8 +96,10 @@ describe('ticksOf', () => {
             { id: 'x9', kind: 'tool', createdAt: 1, turnId: 't9', toolUseId: 'x9', name: 'Bash', input: {}, state: 'done', output: '', parentToolUseId: null },
             { id: 'b9', kind: 'assistant', createdAt: 2, turnId: 't9', text: 'Done.', streaming: false }
         ];
+
         const foldedRows = deriveTimelineRows(folded, options);
         const hidden = ticksOf(foldedRows, bookmarkRows(foldedRows, [bookmark('a9')], Object.fromEntries(folded.map((item) => [item.id, item]))));
+
         expect(hidden.map((tick) => [tick.id, tick.kind, tick.text])).toEqual([
             ['u9', 'person', 'go'],
             ['fold-t9', 'bookmark', 'start of a9']
@@ -115,6 +122,7 @@ describe('layoutTicks', () => {
         expect(layout.pitch).toBe(8);
         expect(layout.top).toBe(38);
         expect(layout.slots.map((slot) => slot.y)).toEqual([41, 49, 57]);
+
         expect(layout.slots.map((slot) => [slot.first, slot.last])).toEqual([
             [0, 0],
             [1, 1],
@@ -147,6 +155,7 @@ describe('layoutTicks', () => {
 
     test('a merged tick is marked when a message in it has a bookmark', () => {
         const layout = layoutTicks(['wake', 'wake', 'bookmark', 'wake', 'person', 'wake'], 12, [false, false, true, false, false, false]);
+
         expect(layout.slots.map((slot) => [slot.kind, slot.marked])).toEqual([
             ['wake', false],
             ['bookmark', true],
@@ -174,6 +183,7 @@ describe('find hits on the strip', () => {
         turnId: null,
         bookmark: null
     });
+
     const ticks = [tickAt(2), tickAt(10), tickAt(20)];
 
     test('a row counts under the tick before it, and a row above the first tick under the first', () => {
@@ -234,13 +244,16 @@ describe('messagesInView', () => {
     test('reads a bounded number of live measurement starts in a long thread', () => {
         let reads = 0;
         let shift = 0;
+
         const starts = {
             length: 30000,
             at: (index: number): number | undefined => {
                 reads++;
+
                 return index >= 0 && index < 30000 ? index * 100 + shift : undefined;
             }
         };
+
         expect(messagesInView({ starts, scrollTop: 1234500, visibleHeight: 500 })).toEqual({ first: 12345, last: 12349 });
         expect(reads).toBeLessThan(40);
         shift = 50;
@@ -284,6 +297,7 @@ describe('messagesInView', () => {
 
 describe('stepMessage', () => {
     const starts = [0, 400, 1200, 1300, 2600];
+
     const all = (): boolean => true;
 
     test('back from a message at the top is the one before it, back from inside one is its own start', () => {
@@ -301,6 +315,7 @@ describe('stepMessage', () => {
 
     test('only eligible messages are stepped to', () => {
         const even = (index: number): boolean => index % 2 === 0;
+
         expect(stepMessage(starts, even, 0, 1)).toBe(2);
         expect(stepMessage(starts, even, 2600, -1)).toBe(2);
     });
@@ -319,15 +334,19 @@ describe('threadPaddingLeft', () => {
     test('a narrower view pads until the text starts 40 pixels in', () => {
         const textLeft = (width: number): number => {
             const padding = threadPaddingLeft(width, true);
+
             return padding + Math.max(0, (width - padding - 16 - 768) / 2);
         };
+
         expect(threadPaddingLeft(600, true)).toBe(40);
         expect(threadPaddingLeft(840, true)).toBe(24);
+
         for (const width of [500, 824, 830, 841, 843, 847, 850]) {
             expect(textLeft(width)).toBeGreaterThanOrEqual(40);
             expect(Number.isInteger(threadPaddingLeft(width, true))).toBe(true);
         }
     });
+
     test('the column follows the reading width, and a full one always pads clear of the strip', () => {
         expect(threadPaddingLeft(760, true, 640)).toBe(16);
         expect(threadPaddingLeft(760, true)).toBe(40);

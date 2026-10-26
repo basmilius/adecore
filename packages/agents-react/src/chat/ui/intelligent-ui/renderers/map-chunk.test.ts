@@ -7,19 +7,25 @@ const SRC = fileURLToPath(new URL('../../../../', import.meta.url));
 test('only the map view loads MapLibre, and every other module reaches the view through a dynamic import', async () => {
     const importing: string[] = [];
     const staticViewImports: string[] = [];
+
     for await (const found of new Glob('**/*.{ts,tsx}').scan({ cwd: SRC })) {
         const path = found.replaceAll('\\', '/');
+
         if (/\.test\.tsx?$/.test(path) || path.endsWith('.d.ts')) {
             continue;
         }
+
         const text = await Bun.file(SRC + path).text();
+
         if (/^import (?!type\b)[^;]*from 'maplibre-gl|^import 'maplibre-gl/m.test(text)) {
             importing.push(path);
         }
+
         if (/^import (?!type\b)[^;]*from '\.\/map-view'/m.test(text)) {
             staticViewImports.push(path);
         }
     }
+
     expect(importing).toEqual(['chat/ui/intelligent-ui/renderers/map-view.tsx']);
     expect(staticViewImports).toEqual([]);
     const renderer = await Bun.file(`${SRC}chat/ui/intelligent-ui/renderers/map.tsx`).text();

@@ -26,9 +26,11 @@ export function SubagentStopButton({
     const actions = useChatActions();
     const turnRunning = useChatRow(chatId, (row) => (row?.info.activeTurnId ?? null) !== null);
     const stop = stopOf(item, turnRunning);
+
     if (stop === null) {
         return null;
     }
+
     const send = (): void => {
         void actions.stopSubagent(chatId, item.toolUseId).catch((e: unknown) => {
             const stale = e instanceof Error && 'code' in e && e.code === 'subagent-stale';
@@ -36,12 +38,16 @@ export function SubagentStopButton({
             host.notify({ kind: 'error', title: t('subagents.stopFailed'), description });
         });
     };
+
     const run = (): void => {
         if (stop === 'task' && item.childId !== undefined) {
             host.confirm.stopTask(id, item.childId, subagentTitle(item), send);
+
             return;
         }
+
         send();
     };
+
     return <IconButton icon={Square} size={size} label={stopLabel(stop)} className={className} onClick={run} />;
 }

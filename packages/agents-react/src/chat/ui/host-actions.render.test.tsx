@@ -37,6 +37,7 @@ const NAMES = [...FROM_PAGE, 'ResizeObserver', 'IS_REACT_ACT_ENVIRONMENT'] as co
 
 class StillResizeObserver {
     observe(): void {}
+
     disconnect(): void {}
 }
 
@@ -48,21 +49,26 @@ const drawnMenus: Root[] = [];
 beforeEach(() => {
     page = createPage();
     previous = NAMES.map((name) => Object.getOwnPropertyDescriptor(globalThis, name));
+
     Object.defineProperties((page.window as unknown as { HTMLElement: { prototype: object } }).HTMLElement.prototype, {
         clientWidth: { get: () => 640, configurable: true },
         clientHeight: { get: () => 240, configurable: true }
     });
+
     // A page without styles: every token and background reads as unset.
     page.window.getComputedStyle = () =>
         new Proxy(
             { getPropertyValue: () => '' },
             { get: (target, key) => (key in target ? target[key as 'getPropertyValue'] : '') }
         ) as unknown as CSSStyleDeclaration;
+
     page.window.requestAnimationFrame = () => 0;
     page.window.cancelAnimationFrame = () => {};
+
     for (const name of FROM_PAGE) {
         Object.defineProperty(globalThis, name, { value: name === 'window' ? page.window : page.window[name], configurable: true });
     }
+
     Object.defineProperty(globalThis, 'ResizeObserver', { value: StillResizeObserver, configurable: true });
     Object.defineProperty(globalThis, 'IS_REACT_ACT_ENVIRONMENT', { value: true, configurable: true });
     root = createRoot(page.host);
@@ -73,8 +79,10 @@ afterEach(async () => {
         root.unmount();
         drawnMenus.splice(0).forEach((drawn) => drawn.unmount());
     });
+
     NAMES.forEach((name, index) => {
         const descriptor = previous[index];
+
         if (descriptor === undefined) {
             Reflect.deleteProperty(globalThis, name);
         } else {
@@ -102,16 +110,21 @@ interface Fiber {
 
 function propsOf(name: string): Record<string, unknown> | null {
     const key = Object.keys(page.host).find((entry) => entry.startsWith('__reactContainer$'))!;
+
     const find = (fiber: Fiber | null): Fiber | null => {
         for (let node = fiber; node !== null; node = node.sibling) {
             const found = typeof node.type === 'function' && (node.type as { name: string }).name === name ? node : find(node.child);
+
             if (found !== null) {
                 return found;
             }
         }
+
         return null;
     };
+
     const container = (page.host as unknown as Record<string, { stateNode: { current: Fiber } }>)[key]!;
+
     return find(container.stateNode.current.child)?.memoizedProps ?? null;
 }
 
@@ -124,6 +137,7 @@ async function menuItems(): Promise<HTMLElement[]> {
     const drawn = createRoot(container);
     await act(async () => drawn.render(<Menu.Root>{popup!.children}</Menu.Root>));
     drawnMenus.push(drawn);
+
     return [...container.querySelectorAll<HTMLElement>('[role="menuitem"]')];
 }
 
@@ -134,10 +148,13 @@ const visuals = { frameUrl: 'https://visuals.example.test/frame.html', openLink:
 test("a visual's menu offers the host's actions above Remove and runs the one a person picks", async () => {
     const asked: [string, string, string][] = [];
     const ran: string[] = [];
+
     const actions = (scopeId: string, chatId: string, shown: ChatVisual): HostMenuAction[] => {
         asked.push([scopeId, chatId, shown.id]);
+
         return [{ id: 'keep', label: 'Keep', run: () => ran.push('keep') }];
     };
+
     await render({ visuals: { ...visuals, actions } }, <VisualRow chatId="chat" visual={visual} />);
     const items = await menuItems();
     expect(labelsOf(items)).toEqual(['Keep', 'Remove visual']);
@@ -153,6 +170,7 @@ test("a visual's menu holds Remove alone when the host adds nothing", async () =
 
 test('a generated image without a prompt gets a menu for the actions of the host', async () => {
     const ran: string[] = [];
+
     const host: Partial<ChatHost> = {
         attachments: {
             useUrl: () => ({ url: 'blob:image', failure: null }),
@@ -160,6 +178,7 @@ test('a generated image without a prompt gets a menu for the actions of the host
             actions: (_scopeId, _chatId, shown) => [{ id: 'keep', label: `Keep ${shown.name}`, run: () => ran.push(shown.id) }]
         }
     };
+
     await render(host, <GeneratedImageRow chatId="chat" tool={imageTool} />);
     expect(page.document.querySelector('[aria-label="More actions"]')).not.toBeNull();
     const items = await menuItems();
@@ -173,15 +192,19 @@ test('a generated image without a prompt or actions of the host has no menu', as
         { attachments: { useUrl: () => ({ url: 'blob:image', failure: null }), read: async () => new Blob() } },
         <GeneratedImageRow chatId="chat" tool={imageTool} />
     );
+
     expect(page.document.querySelector('[aria-label="More actions"]')).toBeNull();
 });
 
 test('a page outside a thread opens in the sandboxed frame of the host and is read once it opens', async () => {
     let reads = 0;
+
     const read = async (): Promise<string> => {
         reads += 1;
+
         return '<p>Saved</p>';
     };
+
     await render({ visuals }, <VisualPageFrame page={read} title="Saved page" />);
     const frame = page.document.querySelector('iframe');
     expect(frame?.getAttribute('sandbox')).toBe('allow-scripts allow-forms');

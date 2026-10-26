@@ -36,6 +36,7 @@ export interface UiChartData extends UiChartValues {
 
 function numericKeys(rows: readonly ChartRow[]): string[] {
     const keys: string[] = [];
+
     for (const row of rows) {
         for (const [key, value] of Object.entries(row)) {
             if (key !== 'label' && !keys.includes(key) && typeof value === 'number' && Number.isFinite(value)) {
@@ -43,6 +44,7 @@ function numericKeys(rows: readonly ChartRow[]): string[] {
             }
         }
     }
+
     return keys;
 }
 
@@ -53,6 +55,7 @@ function valuesOf(rows: readonly ChartRow[], keys: readonly string[]): UiChartVa
             key,
             values: rows.map((row) => {
                 const value = row[key];
+
                 return typeof value === 'number' && Number.isFinite(value) ? value : null;
             })
         }))
@@ -72,6 +75,7 @@ export function uiChartRange(min: number, max: number): { low: number; high: num
     const low = min < 0 ? -niceCeiling(-min) : 0;
     const high = max > 0 ? niceCeiling(max) : low === 0 ? 1 : 0;
     const span = high - low;
+
     return span > 0 && Number.isFinite(span) && Number.isFinite(1 / span) ? { low, high } : null;
 }
 
@@ -83,21 +87,27 @@ export function uiChartRange(min: number, max: number): { low: number; high: num
 export function uiChartData(data: UiProps<'Chart'>['data'], kind: ChartKind): UiChartData | null {
     const rows = data.slice(0, UI_CHART_ROWS);
     const keys = numericKeys(rows);
+
     if (rows.length === 0 || keys.length === 0) {
         return null;
     }
+
     const { labels, series } = valuesOf(rows, keys.slice(0, UI_CHART_SERIES));
     const negative = series.some(({ values }) => values.some((value) => value !== null && value < 0));
     const drawn = kind === 'stacked' && negative ? 'bar' : kind;
+
     const extents =
         drawn === 'stacked'
             ? labels.map((_, index) => series.reduce((sum, { values }) => sum + (values[index] ?? 0), 0))
             : series.flatMap(({ values }) => values.filter((value) => value !== null));
+
     const min = Math.min(0, ...extents);
     const max = Math.max(0, ...extents);
+
     if (uiChartRange(min, max) === null) {
         return null;
     }
+
     return {
         labels,
         series,
@@ -112,6 +122,7 @@ export function uiChartData(data: UiProps<'Chart'>['data'], kind: ChartKind): Ui
 
 /* The width of one character of a chart's type at a 16px root, an estimate since SVG text cannot wrap or be measured before it draws. */
 export const UI_CHART_CHARACTER = 7.5;
+
 /* The narrowest a value axis is, and the gap between a tick label and the plot. */
 const AXIS_WIDTH = 44;
 const AXIS_GAP = 8;
@@ -128,6 +139,7 @@ export function uiChartTextWidth(text: string, character = UI_CHART_CHARACTER): 
 /* Text cut to the room it has, so a label never reaches past its place; the whole of it is in the values. */
 export function uiChartText(text: string, room: number, character = UI_CHART_CHARACTER): string {
     const fit = Math.floor(room / character);
+
     return text.length <= fit ? text : `${text.slice(0, Math.max(1, fit - 1))}…`;
 }
 
@@ -136,6 +148,7 @@ export function uiChartAxis(ticks: readonly string[], width: number, character =
     const scale = character / UI_CHART_CHARACTER;
     const room = Math.max(AXIS_WIDTH * scale, Math.floor(width * 0.4));
     const tickTexts = ticks.map((tick) => uiChartText(tick, room - AXIS_GAP, character));
+
     return {
         axisWidth: Math.round(Math.min(room, Math.max(AXIS_WIDTH * scale, ...tickTexts.map((text) => uiChartTextWidth(text, character) + AXIS_GAP)))),
         tickTexts
@@ -147,7 +160,9 @@ export function niceCeiling(value: number): number {
     if (value <= 0) {
         return 0;
     }
+
     const power = 10 ** Math.floor(Math.log10(value));
     const step = [1, 2, 2.5, 5, 10].find((factor) => factor * power >= value) ?? 10;
+
     return step * power;
 }

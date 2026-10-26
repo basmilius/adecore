@@ -69,6 +69,7 @@ describe('continuableTurn', () => {
             level: 'warning',
             text: 'Stopped with its children'
         } as ChatItem;
+
         expect(continuableTurn(info(), [...STOPPED, note])).toBeNull();
     });
 

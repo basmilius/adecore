@@ -6,6 +6,7 @@ import { useHostCodeMode, useHostCodeThemes } from '../../host-hooks';
 export function useCodeTheme(): string {
     const mode = useHostCodeMode();
     const themes = useHostCodeThemes();
+
     return mode === 'dark' ? themes.dark : themes.light;
 }
 

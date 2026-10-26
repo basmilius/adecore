@@ -38,10 +38,12 @@ describe('fullFileDiff', () => {
     test('lays the hunks of a patch over both whole texts', () => {
         const diff = fullFileDiff(PATCH, 'x.txt', { old: OLD, new: NEW });
         expect(diff?.isPartial).toBe(false);
+
         expect(diff?.hunks.map((hunk) => [hunk.additionStart, hunk.collapsedBefore])).toEqual([
             [2, 1],
             [32, 23]
         ]);
+
         expect(diff?.additionLines).toHaveLength(40);
         expect(diff?.deletionLines).toHaveLength(40);
     });

@@ -551,9 +551,11 @@ const ChatHostContext = createContext<ChatHost>(DEFAULT_HOST);
 export function ChatHostProvider({ host, children }: { host: Partial<ChatHost>; children?: ReactNode }) {
     const parent = useContext(ChatHostContext);
     const [pinned] = useState(() => ({ host, value: { ...parent, ...host } }));
+
     if (pinned.host !== host) {
         throw new Error('A ChatHostProvider reads its host once: hand it the same object on every render, or a new key to mount it with another');
     }
+
     return createElement(ChatHostContext.Provider, { value: pinned.value }, children);
 }
 

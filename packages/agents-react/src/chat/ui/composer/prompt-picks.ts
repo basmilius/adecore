@@ -7,6 +7,7 @@ import type { PromptDraft } from './use-prompt-menus';
 export function promptPicks(value: PromptDraft, referables: Referables): Pick<ChatSendExtras, 'mentions' | 'skills' | 'chats' | 'references'> {
     const text = value.text.trim();
     const tokens = referenceTokens([...value.chats, ...value.references], referables.items, value.referenceNames);
+
     return {
         mentions: presentMentions(text, value.mentions),
         skills: presentSkills(text, value.skills),

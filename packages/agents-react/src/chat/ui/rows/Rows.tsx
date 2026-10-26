@@ -41,6 +41,7 @@ function AppCardBody({ card }: { card: ThreadCard }) {
 
 function AppCardRow({ card }: { card: ThreadCard }) {
     const { t } = useTranslation('agent-chat');
+
     return (
         <ErrorBoundary label={t('timeline.cardFailed')} resetKeys={[card]} compact className="relative rounded-lg">
             <AppCardBody card={card} />
@@ -55,6 +56,7 @@ export function Row({ row, chatId, toggleGroup, toggleTurn, toggleSubagent, open
             return <UserRow chatId={chatId} item={row.item} />;
         case 'turn-start': {
             const toolUseId = row.turn.taskToolUseId;
+
             return <AgentTurnRow label={row.label} onOpen={toolUseId ? () => openSubagent(toolUseId) : undefined} />;
         }
         case 'assistant':

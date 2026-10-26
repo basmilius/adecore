@@ -59,15 +59,18 @@ export const useDrafts = createChatStore<{ ids: string[] }>(
 
 function trackDraft(chatId: string, held: boolean): void {
     const { ids } = useDrafts.getState();
+
     if (ids.includes(chatId) === held) {
         return;
     }
+
     useDrafts.setState({ ids: held ? [...ids, chatId] : ids.filter((id) => id !== chatId) });
 }
 
 /* An unsent prompt per chat node, kept across reloads so a half-written message is never lost. */
 export function readDraft(chatId: string): ChatDraft {
     const record = storage.read()[chatId];
+
     return record
         ? {
               text: record.text,
@@ -86,15 +89,20 @@ export function readDraft(chatId: string): ChatDraft {
 export function writeDraft(chatId: string, draft: ChatDraft): void {
     const drafts = storage.read();
     trackDraft(chatId, !isEmptyDraft(draft));
+
     if (isEmptyDraft(draft)) {
         delete drafts[chatId];
         storage.write(drafts);
+
         return;
     }
+
     drafts[chatId] = recordOf(draft, true);
+
     if (storage.write(drafts)) {
         return;
     }
+
     // A file can outgrow the storage quota; the text is the part worth keeping then.
     drafts[chatId] = recordOf(draft, false);
     storage.write(drafts);
@@ -141,6 +149,7 @@ export function takeBackIntoDraft(
         taken.attachments.map((upload) => ({ name: upload.name, mime: upload.mime, bytes: uploadBytes(upload), upload })),
         current.attachments.reduce((bytes, upload) => bytes + uploadBytes(upload), 0)
     );
+
     return {
         draft: {
             text: current.text.trim() === '' ? taken.text : joinDraftText(taken.text, current.text),
@@ -164,6 +173,7 @@ const takers = new Map<string, DraftTaker>();
 
 export function takeDraftOffers(chatId: string, take: DraftTaker): () => void {
     takers.set(chatId, take);
+
     return () => {
         if (takers.get(chatId) === take) {
             takers.delete(chatId);
@@ -177,10 +187,13 @@ export function takeDraftOffers(chatId: string, take: DraftTaker): () => void {
  */
 export function offerDraft(chatId: string, text: string): void {
     const take = takers.get(chatId);
+
     if (take) {
         take(text);
+
         return;
     }
+
     const current = readDraft(chatId);
     writeDraft(chatId, { ...current, text: joinDraftText(current.text, text) });
 }

@@ -38,6 +38,7 @@ const code: ChatHost['code'] = {
 function probeContext() {
     let fill = '#000000';
     let painted = '#000000';
+
     return {
         get fillStyle() {
             return fill;
@@ -64,6 +65,7 @@ const GLOBALS = [
     'requestAnimationFrame',
     'cancelAnimationFrame'
 ];
+
 let previous: (PropertyDescriptor | undefined)[];
 let page: ReturnType<typeof createPage>;
 let root: Root;
@@ -73,6 +75,7 @@ let ownContext: unknown;
 
 beforeEach(() => {
     tokenReads = 0;
+
     tokens = {
         '--chat-code-bg': '#f0f0f0',
         '--surface-raised': '#ffffff',
@@ -82,18 +85,21 @@ beforeEach(() => {
         '--surface': '#fafafa',
         '--accent': '#3366ff'
     };
+
     frames = new Map();
     nextFrame = 1;
     page = createPage();
     canvas = page.document.createElement('canvas').constructor as unknown as typeof canvas;
     ownContext = canvas.prototype.getContext;
     canvas.prototype.getContext = () => probeContext();
+
     const values: Record<string, unknown> = {
         window: page.window,
         IS_REACT_ACT_ENVIRONMENT: true,
         getComputedStyle: () => ({
             getPropertyValue: (token: string) => {
                 tokenReads++;
+
                 return tokens[token] ?? '';
             },
             fontFamily: 'sans-serif',
@@ -101,23 +107,29 @@ beforeEach(() => {
         }),
         requestAnimationFrame: (callback: FrameRequestCallback) => {
             frames.set(nextFrame, callback);
+
             return nextFrame++;
         },
         cancelAnimationFrame: (handle: number) => frames.delete(handle)
     };
+
     previous = GLOBALS.map((name) => Object.getOwnPropertyDescriptor(globalThis, name));
+
     for (const name of GLOBALS) {
         const value = name in values ? values[name] : page.window[name as keyof Window];
         Object.defineProperty(globalThis, name, { value, configurable: true, writable: true });
     }
+
     root = createRoot(page.host);
 });
 
 afterEach(async () => {
     await act(async () => root.unmount());
     canvas.prototype.getContext = ownContext;
+
     GLOBALS.forEach((name, index) => {
         const descriptor = previous[index];
+
         if (descriptor === undefined) {
             Reflect.deleteProperty(globalThis, name);
         } else {
@@ -140,10 +152,12 @@ async function nextPaint(): Promise<void> {
         await Promise.resolve();
         const due = [...frames.values()];
         frames.clear();
+
         for (const callback of due) {
             callback(0);
         }
     });
+
     await settle();
 }
 
@@ -164,6 +178,7 @@ async function drawDiagram(source = DIAGRAM): Promise<void> {
             </ChatHostProvider>
         )
     );
+
     await settle();
 }
 

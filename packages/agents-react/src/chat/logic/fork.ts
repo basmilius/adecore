@@ -20,6 +20,7 @@ export interface ForkPoint {
 function turnsOf(items: Record<string, ChatItem>, order: readonly string[]): ChatTurnItem[] {
     return order.flatMap((id) => {
         const item = items[id];
+
         return item?.kind === 'turn' ? [item] : [];
     });
 }
@@ -32,15 +33,19 @@ export function forkRefusal(info: ChatInfo | null, turn: ChatItem | undefined): 
     if (info === null || turn?.kind !== 'turn') {
         return i18next.t('agent-chat:fork.refusal.notInConversation');
     }
+
     if (!FORKABLE_PROVIDERS.has(info.provider)) {
         return i18next.t('agent-chat:fork.refusal.cliCannotFork');
     }
+
     if (info.agentSessionId === null) {
         return i18next.t('agent-chat:fork.refusal.noConversation');
     }
+
     if (turn.state === 'running' || info.activeTurnId !== null) {
         return i18next.t('agent-chat:fork.refusal.turnRunning');
     }
+
     return null;
 }
 
@@ -49,31 +54,37 @@ export function summaryRefusal(state: { busy: boolean; originalPresent: boolean 
     if (!state.originalPresent) {
         return i18next.t('agent-chat:fork.refusal.originalGone');
     }
+
     if (state.busy) {
         return i18next.t('agent-chat:fork.refusal.turnRunning');
     }
+
     return null;
 }
 
 /* The forks this client knows of that went on after this turn of this chat, in the order it holds them. */
 export function forkIdsAfter(infos: Iterable<ChatInfo>, chatId: string, turnId: string): string[] {
     const ids: string[] = [];
+
     for (const info of infos) {
         if (info.forkOf?.chatId === chatId && info.forkOf.turnId === turnId) {
             ids.push(info.chatId);
         }
     }
+
     return ids;
 }
 
 /* The turns of this chat that at least one fork this client knows of went on after. */
 export function forkedTurnIds(infos: Iterable<ChatInfo>, chatId: string): Set<string> {
     const turns = new Set<string>();
+
     for (const info of infos) {
         if (info.forkOf?.chatId === chatId) {
             turns.add(info.forkOf.turnId);
         }
     }
+
     return turns;
 }
 
@@ -86,16 +97,20 @@ export function forkPointOf(items: Record<string, ChatItem>, order: readonly str
     const turns = turnsOf(items, order);
     const index = turns.findIndex((turn) => turn.id === turnId);
     const turn = turns[index];
+
     if (turn === undefined) {
         return null;
     }
+
     const asked = order.map((id) => items[id]).find((item) => item?.kind === 'user' && item.turnId === turnId);
     const text = asked?.kind === 'user' ? asked.text : (turn.label ?? '');
+
     const prompt =
         text
             .split('\n')
             .find((line) => line.trim() !== '')
             ?.trim() ?? null;
+
     return { turnId, number: index + 1, total: turns.length, counted: whole, last: index === turns.length - 1, prompt };
 }
 
@@ -106,10 +121,13 @@ export function forkPointLabel(point: ForkPoint, maxPrompt = 60): string {
         : point.counted
           ? i18next.t('agent-chat:fork.point.afterTurn', { number: point.number, total: point.total })
           : i18next.t('agent-chat:fork.point.afterThis');
+
     if (point.prompt === null) {
         return where;
     }
+
     const prompt = point.prompt.length > maxPrompt ? `${point.prompt.slice(0, maxPrompt - 1)}…` : point.prompt;
+
     return i18next.t('agent-chat:fork.point.about', { where, prompt });
 }
 
@@ -177,6 +195,7 @@ export function forkPayload(input: {
     const provider = cli !== undefined && cli.chosen.provider !== cli.original.provider ? cli.chosen.provider : null;
     const selection = cli !== undefined && (provider !== null || cli.chosen.selection.model !== cli.original.selection.model) ? cli.chosen.selection : null;
     const account = cli?.chosen.account !== undefined && (provider !== null || cli.chosen.account !== cli.original.account) ? cli.chosen.account : null;
+
     return {
         chatId: input.chatId,
         turnId: input.turnId,
@@ -192,11 +211,14 @@ export function forkPayload(input: {
 /* Why a branch cannot be the fork's, or null when it can. */
 export function branchRefusal(branch: string, taken: readonly string[]): string | null {
     const name = branch.trim();
+
     if (name === '') {
         return i18next.t('agent-chat:fork.branch.unnamed');
     }
+
     if (taken.includes(name)) {
         return i18next.t('agent-chat:fork.branch.taken');
     }
+
     return null;
 }

@@ -101,6 +101,7 @@ function EmptyThread({ chatId }: { chatId: string }) {
     const model = useModelName(info?.provider, info?.selection.model ?? '');
     const sources = useHostContextSources(chatId);
     const hidesFolder = useHostHidesFolder(chatId);
+
     return (
         <div className="flex grow items-center justify-center">
             <div className="flex max-w-sm flex-col items-center gap-3 px-6 py-8 text-center">
@@ -137,6 +138,7 @@ function MarkableRow({ row, chatId, bookmark, children }: { row: TimelineRow; ch
             </>
         );
     }
+
     return (
         <>
             <BookmarkMarker chatId={chatId} itemId={row.id} bookmark={bookmark} />
@@ -162,6 +164,7 @@ interface ThreadRowProps extends Omit<RowProps, 'openConversation'> {
 /* Memoized with stable props, so a streamed word or a scroll draws only the rows it changed. */
 const ThreadRow = memo(function ThreadRow({ row, previous, index, top, measure, chatId, flashNonce, bookmark, ...actions }: ThreadRowProps) {
     const header = replyHeader(row, previous);
+
     return (
         <RowContainer row={row} previous={previous} index={index} top={top} ref={measure}>
             {flashNonce !== null && <span key={flashNonce} className="chat-flash pointer-events-none absolute inset-0 rounded-lg" aria-hidden />}
@@ -210,24 +213,31 @@ export function Timeline({
     const cursor = useChatRow(chatId, (row) => row?.history?.cursor ?? null);
     const scope = useChatScope();
     const { id: scopeId, keyOf } = scope;
+
     // Read when the menu opens rather than subscribed to, for the same reason the rows use the structure.
     const fullItems = () => useChats.getState().byKey[keyOf(chatId)]?.items;
+
     const scrollRef = useRef<HTMLDivElement>(null);
     const threadRef = useRef<HTMLDivElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
     const quoteTakerRef = useRef<QuoteTaker | null>(null);
+
     const registerQuoteTaker = useCallback((take: QuoteTaker) => {
         quoteTakerRef.current = take;
+
         return () => {
             if (quoteTakerRef.current === take) {
                 quoteTakerRef.current = null;
             }
         };
     }, []);
+
     const followRef = useRef(true);
+
     const stopFollowing = useCallback(() => {
         followRef.current = false;
     }, []);
+
     const groups = useToggleSet(stopFollowing);
     const turns = useToggleSet(stopFollowing);
     const subagents = useToggleSet(stopFollowing);
@@ -247,8 +257,10 @@ export function Timeline({
         if (cursor === null || loadingEarlierRef.current) {
             return;
         }
+
         loadingEarlierRef.current = true;
         setLoadingEarlier(true);
+
         // A page that failed is asked for again on the next scroll; the thread keeps what it has.
         void scope.chats
             .loadEarlier(chatId, cursor)
@@ -263,6 +275,7 @@ export function Timeline({
         if (!order || !items) {
             return [];
         }
+
         return deriveTimelineRows(
             order.map((id) => items[id]!),
             {
@@ -275,14 +288,17 @@ export function Timeline({
             }
         );
     }, [order, items, groups.ids, turns.ids, subagents.ids, activeTurnId, forkedTurns, host.commandLooks]);
+
     const cards = useHostThreadCards(scopeId, chatId);
     const drawsVisuals = host.visuals !== null;
     // Where the part of the thread this client holds begins, while there is a page before it.
     const heldFrom = cursor === null ? null : (items?.[order?.[0] ?? '']?.createdAt ?? null);
+
     const rows = useMemo(
         () => withTimedRows(threadRows, timedRowsOf(cards, drawsVisuals ? (visuals ?? []) : null, heldFrom)),
         [threadRows, cards, drawsVisuals, visuals, heldFrom]
     );
+
     const welcomes = useHostWelcome(chatId);
 
     const loadingHistory = historyPending && ((info !== null && (info.usage.turns > 0 || info.activeTurnId !== null)) || (order?.length ?? 0) > 0);
@@ -297,6 +313,7 @@ export function Timeline({
     // A turn a jump is on its way to, which waits for the page its messages are on to come in.
     const [revealing, setRevealing] = useState<{ turnId: string; target: TurnTarget } | null>(null);
     const flash = useTimelineFlash((s) => s.target);
+
     const revealBlock = useCallback(
         (block: UiReplyTarget) => {
             setLanding(null);
@@ -304,6 +321,7 @@ export function Timeline({
         },
         [keyOf, chatId]
     );
+
     const uiNavigation = useMemo(
         () => ({
             chatId,
@@ -316,31 +334,40 @@ export function Timeline({
     // Whether the thread's text clears the strip depends on the width of the view, which only the thread's own frame tells.
     useLayoutEffect(() => {
         const element = frameRef.current;
+
         if (element === null || typeof ResizeObserver === 'undefined') {
             return;
         }
+
         const column = element.closest('.chat-column') !== null;
+
         const measure = (): void =>
             setFrame((current) =>
                 current.width === element.offsetWidth && current.height === element.offsetHeight && current.column === column
                     ? current
                     : { width: element.offsetWidth, height: element.offsetHeight, column }
             );
+
         const observer = new ResizeObserver(measure);
         observer.observe(element);
         measure();
+
         return () => observer.disconnect();
     }, []);
 
     useLayoutEffect(() => {
         const element = composerRef.current;
+
         if (element === null) {
             return;
         }
+
         const measure = () => setComposerHeight(element.offsetHeight);
+
         const observer = new ResizeObserver(measure);
         observer.observe(element);
         measure();
+
         return () => observer.disconnect();
     }, []);
 
@@ -382,10 +409,13 @@ export function Timeline({
         // Include the end before the first pin, so its actual heights are known before revealing it.
         rangeExtractor: (range) => {
             const indexes = defaultRangeExtractor(range);
+
             if (!initialLayout) {
                 return indexes;
             }
+
             const tail = Math.max(8, Math.ceil(frame.height / ESTIMATED_ROW_PX));
+
             return [...new Set([...indexes, ...Array.from({ length: Math.min(tail, range.count) }, (_, index) => range.count - 1 - index)])].sort(
                 (left, right) => left - right
             );
@@ -402,36 +432,47 @@ export function Timeline({
      */
     const totalSize = virtualizer.getTotalSize();
     const virtualRows = virtualizer.getVirtualItems();
+
     useLayoutEffect(() => {
         if (!initialLayout || empty || loadingHistory || frame.height === 0) {
             return;
         }
+
         // Ref measurements can change offsets after render. Commit those offsets before the first paint.
         const measured = virtualizer.getVirtualItems();
+
         if (
             virtualRows.length !== measured.length ||
             virtualRows.some((row, index) => row.key !== measured[index]?.key || row.start !== measured[index]?.start || row.size !== measured[index]?.size)
         ) {
             settleLayout();
+
             return;
         }
+
         if (measured.at(-1)?.index === rows.length - 1) {
             setMeasuredThread(keyOf(chatId));
         }
     }, [initialLayout, empty, loadingHistory, frame.height, virtualRows, virtualizer, rows.length, keyOf, chatId]);
+
     useLayoutEffect(() => {
         const thread = threadRef.current;
+
         if (onContentHeight === undefined || initialLayout || empty || loadingHistory || thread === null) {
             return;
         }
+
         const style = getComputedStyle(thread);
         onContentHeight(totalSize + (Number.parseFloat(style.paddingTop) || 0) + (Number.parseFloat(style.paddingBottom) || 0));
     }, [onContentHeight, initialLayout, empty, loadingHistory, totalSize]);
+
     useLayoutEffect(() => {
         const element = scrollRef.current;
+
         if (!followRef.current || element === null) {
             return;
         }
+
         // The composer is in the scroll flow, so its measured height is part of this end position.
         element.scrollTop = element.scrollHeight;
         scrollGeometry.current = { top: element.scrollTop, height: element.scrollHeight, viewport: element.clientHeight };
@@ -443,16 +484,21 @@ export function Timeline({
         const head = order?.[0];
         const moved = head !== headRef.current;
         headRef.current = head;
+
         if (element === null) {
             return;
         }
+
         const anchor = anchorRef.current;
         const index = moved && anchor !== null && !followRef.current ? rows.findIndex((row) => row.id === anchor.id) : -1;
+
         if (anchor !== null && index !== -1) {
             virtualizer.getTotalSize();
             element.scrollTop = virtualizer.measurementsCache[index]!.start - anchor.offset;
+
             return;
         }
+
         const row = virtualizer.getVirtualItemForOffset(element.scrollTop);
         anchorRef.current = row === undefined ? null : { id: String(row.key), offset: row.start - element.scrollTop };
     });
@@ -460,6 +506,7 @@ export function Timeline({
     // Close to the top, the page before goes in; again after each page that left too little above the reader.
     useEffect(() => {
         const element = scrollRef.current;
+
         if (element !== null && wantsEarlier(element)) {
             loadEarlier();
         }
@@ -474,13 +521,16 @@ export function Timeline({
 
     // The virtualizer materializes measurements on access; binary searches need only a few message starts.
     const measurements = virtualizer.measurementsCache;
+
     const starts = {
         length: ticks.length,
         at: (index: number): number | undefined => {
             const tick = ticks.at(index);
+
             return tick === undefined ? undefined : (measurements[tick.rowIndex]?.start ?? tick.rowIndex * ESTIMATED_ROW_PX);
         }
     };
+
     const scrollTop = virtualizer.scrollOffset ?? 0;
     const viewport = virtualizer.scrollRect?.height ?? 0;
     const visibleHeight = Math.max(0, viewport - coveredHeight);
@@ -494,12 +544,16 @@ export function Timeline({
     const [, redrawStrip] = useReducer((count: number) => count + 1, 0);
     const stripRef = useRef({ starts, inView });
     stripRef.current = { starts, inView };
+
     const followStrip = (element: HTMLElement): void => {
         const { starts: current, inView: shown } = stripRef.current;
+
         if (shown === null) {
             return;
         }
+
         const next = messagesInView({ starts: current, scrollTop: element.scrollTop, visibleHeight: visibleHeightRef.current });
+
         if (next?.first !== shown.first || next?.last !== shown.last) {
             redrawStrip();
         }
@@ -518,6 +572,7 @@ export function Timeline({
             order,
             firstRowInView: () => {
                 const top = scrollRef.current?.scrollTop ?? 0;
+
                 return virtualizer.getVirtualItems().find((virtualRow) => virtualRow.end > top)?.index ?? 0;
             },
             openTurn: turns.add,
@@ -527,6 +582,7 @@ export function Timeline({
             scrollToRow: (index) => {
                 const top = scrollRef.current?.scrollTop ?? 0;
                 const bottom = top + visibleHeightRef.current;
+
                 if (!virtualizer.getVirtualItems().some((virtualRow) => virtualRow.index === index && virtualRow.end > top && virtualRow.start < bottom)) {
                     virtualizer.scrollToIndex(index, { align: 'center' });
                 }
@@ -536,27 +592,34 @@ export function Timeline({
         }),
         [chatId, onMainAgent, rows, items, order, virtualizer, turns.add, groups.add, subagents.add, stopFollowing]
     );
+
     const chatFind = useHostTimelineFind(findOptions);
     const searching = chatFind.open;
+
     // A find covers the whole thread, so every page before this one comes in while it is open.
     useEffect(() => {
         if (searching) {
             loadEarlier();
         }
     }, [searching, loadEarlier]);
+
     const found = useMemo(() => (searching ? ticksWithHits(ticks, chatFind.hitRows) : []), [searching, ticks, chatFind.hitRows]);
     const foundCurrent = chatFind.currentRow === null ? null : tickOfRow(ticks, chatFind.currentRow);
 
     const jumpTo = (index: number): void => {
         const tick = ticks[index];
+
         if (!tick) {
             return;
         }
+
         if (tick.bookmark !== null) {
             setLanding(null);
             setSeeking({ itemId: tick.bookmark.itemId, key: keyOf(chatId) });
+
             return;
         }
+
         showRowAtTop(virtualizer, followRef, tick.rowIndex);
     };
 
@@ -564,65 +627,89 @@ export function Timeline({
         if (seeking === null) {
             return;
         }
+
         if (seeking.key !== keyOf(chatId)) {
             setSeeking(null);
+
             return;
         }
+
         if (loadingHistory) {
             return;
         }
+
         if (seeking.block) {
             const jump = uiReplyJump(seeking.block, rows, items, turns.ids, cursor !== null);
+
             if (jump.kind === 'earlier') {
                 loadEarlier();
             } else if (jump.kind === 'turn') {
                 turns.add(jump.turnId);
             } else {
                 setSeeking(null);
+
                 if (jump.kind === 'row') {
                     showRowAtTop(virtualizer, followRef, jump.index);
                     setLanding({ target: seeking.block, key: seeking.key });
                 }
             }
+
             return;
         }
+
         const index = rows.findIndex((row) => row.id === seeking.itemId);
+
         if (index !== -1) {
             setSeeking(null);
             showRowAtTop(virtualizer, followRef, index);
+
             if (seeking.options?.flash) {
                 useTimelineFlash.getState().flash(seeking.key, seeking.itemId, false);
             }
+
             return;
         }
+
         // The thread has not loaded yet, so nothing says the item is missing; the effect below bounds the wait.
         if (items === undefined) {
             return;
         }
+
         const item = items[seeking.itemId];
+
         if (item === undefined && cursor !== null) {
             loadEarlier();
+
             return;
         }
+
         const turnId = item?.turnId ?? null;
+
         if (turnId !== null && !turns.ids.has(turnId)) {
             turns.add(turnId);
+
             return;
         }
+
         setSeeking(null);
         seeking.options?.onMissing?.();
     }, [seeking, rows, items, turns, virtualizer, cursor, loadEarlier, keyOf, chatId, loadingHistory]);
+
     const waitingForThread = seeking !== null && (items === undefined || loadingHistory);
+
     useEffect(() => {
         if (!waitingForThread) {
             return;
         }
+
         const timer = window.setTimeout(() => {
             setSeeking(null);
             seeking?.options?.onMissing?.();
         }, JUMP_THREAD_WAIT_MS);
+
         return () => window.clearTimeout(timer);
     }, [waitingForThread, seeking]);
+
     useEffect(
         () =>
             registerItemJumper(keyOf(chatId), (itemId, options) => {
@@ -631,14 +718,18 @@ export function Timeline({
             }),
         [keyOf, chatId]
     );
+
     useLayoutEffect(() => {
         if (!landing || landing.key !== keyOf(chatId)) {
             return;
         }
+
         let frame = 0;
         let attempts = 0;
+
         const reveal = () => {
             const scroller = scrollRef.current;
+
             if (scroller && revealUiReplyBlock(scroller, landing.target)) {
                 useTimelineFlash.getState().flash(keyOf(chatId), landing.target.itemId, false, landing.target);
                 setLanding(null);
@@ -649,7 +740,9 @@ export function Timeline({
                 setLanding(null);
             }
         };
+
         frame = requestAnimationFrame(reveal);
+
         return () => cancelAnimationFrame(frame);
     }, [landing, keyOf, chatId]);
 
@@ -657,28 +750,36 @@ export function Timeline({
         if (revealing === null) {
             return;
         }
+
         const { turnId, target } = revealing;
         const changes = target === 'changes' ? rows.findIndex((row) => row.kind === 'changed-files' && row.turnId === turnId) : -1;
         const opening = order?.map((id) => items?.[id]).find((item) => item?.kind === 'user' && item.turnId === turnId);
         const found = changes !== -1 ? changes : rows.findIndex((row) => row.id === opening?.id || row.id === `start-${turnId}` || row.id === `fold-${turnId}`);
+
         if (found !== -1) {
             setRevealing(null);
             showRowAtTop(virtualizer, followRef, found);
             useTimelineFlash.getState().flash(keyOf(chatId), rows[found]!.id, changes !== -1);
+
             return;
         }
+
         // The turn is before the page this thread holds; a thread that holds it all has no such turn.
         if (cursor === null) {
             setRevealing(null);
+
             return;
         }
+
         loadEarlier();
     }, [revealing, rows, order, items, virtualizer, cursor, loadEarlier, keyOf, chatId]);
+
     useEffect(() => registerTurnJumper(keyOf(chatId), (turnId, target) => setRevealing({ turnId, target })), [keyOf, chatId]);
     // The strip is memoized and draws on every scroll, so it gets one callback for its life.
     const jumpRef = useRef(jumpTo);
     jumpRef.current = jumpTo;
     const pick = useCallback((index: number) => jumpRef.current(index), []);
+
     // Read when the card asks rather than on every render, so the strip's memo holds while the thread streams.
     const cardChat = useMemo<CardChat>(
         () => ({
@@ -687,7 +788,9 @@ export function Timeline({
                 if (fork === null) {
                     return false;
                 }
+
                 const row = useChats.getState().byKey[keyOf(chatId)];
+
                 return forkRefusal(row?.info ?? null, row?.structure[turnId]) === null;
             },
             fork: (turnId) => fork?.(chatId, turnId)
@@ -696,40 +799,51 @@ export function Timeline({
     );
 
     const stepRef = useRef<(direction: -1 | 1) => boolean>(() => false);
+
     stepRef.current = (direction) => {
         if (!onMainAgent) {
             return false;
         }
+
         const index = stepMessage(starts, (i) => ticks[i]!.kind === 'person', scrollTop, direction);
+
         if (index === null) {
             return false;
         }
+
         jumpTo(index);
+
         return true;
     };
+
     useEffect(() => registerMessageStepper(keyOf(chatId), (direction) => stepRef.current(direction)), [keyOf, chatId]);
 
     // Read through a ref, so the rows keep one callback for their life and their memo holds.
     const opensRef = useRef({ rows, show });
     opensRef.current = { rows, show };
+
     /* The whole of what a sub-agent did, in the thread's place. Its row only keeps the beginning. */
     const openConversation = useCallback((step: SubagentStep): void => {
         opensRef.current.show(openFromMain(step));
     }, []);
 
     const addSubagent = subagents.add;
+
     /* The header of a turn a sub-agent woke. It points at the row that agent worked in, or the one it hangs under. */
     const openSubagent = useCallback(
         (toolUseId: string): void => {
             const found = findSubagentBranch(opensRef.current.rows, toolUseId);
+
             if (!found) {
                 return;
             }
+
             addSubagent(found.branch.id);
             showRowAtTop(virtualizer, followRef, found.index);
         },
         [addSubagent, virtualizer]
     );
+
     const flashedRow = flash !== null && flash.key === keyOf(chatId) && !flash.block ? flash.rowId : null;
 
     return (
@@ -758,16 +872,20 @@ export function Timeline({
                             const previous = scrollGeometry.current;
                             const layoutChanged = previous.height !== el.scrollHeight || previous.viewport !== el.clientHeight;
                             const atEnd = el.scrollHeight - el.scrollTop - el.clientHeight < FOLLOW_THRESHOLD_PX;
+
                             if (!layoutChanged && el.scrollTop < previous.top) {
                                 followRef.current = false;
                             } else if (atEnd) {
                                 followRef.current = true;
                             }
+
                             scrollGeometry.current = { top: el.scrollTop, height: el.scrollHeight, viewport: el.clientHeight };
                             setTimelineAtEnd(chatId, followRef.current);
+
                             if (wantsEarlier(el)) {
                                 loadEarlier();
                             }
+
                             followStrip(el);
                         }}
                     >
@@ -803,6 +921,7 @@ export function Timeline({
                                             <FindRevealContext.Provider value={chatFind.reveal}>
                                                 {virtualRows.map((virtualRow) => {
                                                     const row = rows[virtualRow.index]!;
+
                                                     return (
                                                         <ThreadRow
                                                             key={row.id}

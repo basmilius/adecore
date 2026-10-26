@@ -30,6 +30,7 @@ test('the work budget keeps displayable reformatting shapes exact', () => {
     for (const count of [800, 900, 1000, 1100, 1200, 1300]) {
         const lines = Array.from({ length: count }, (_, index) => `line ${index}`);
         const before = lines.join('\n');
+
         for (const every of [2, 3]) {
             const after = lines.map((line, index) => (index % every === 0 ? `changed ${index}` : line)).join('\n');
             const patch = patchOf(before, after, 3, { maxWork: EDITOR_DIFF_WORK });

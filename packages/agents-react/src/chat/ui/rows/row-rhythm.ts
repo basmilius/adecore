@@ -16,6 +16,7 @@ export function rowRhythm(row: TimelineRow, previous: TimelineRow | null): strin
     const question = row.kind === 'user';
     const bare = previous?.kind === 'visual' || previous?.kind === 'app-card';
     const seam = !question && previous !== null && previous.kind !== 'user' && (isBlock(row) !== isBlock(previous) || bare);
+
     return clsx(question && 'pb-(--chat-answer-gap)', seam && 'pt-(--chat-block-gap)');
 }
 
@@ -28,15 +29,19 @@ export function replyHeader(row: TimelineRow, previous: TimelineRow | null): { a
     if (row.kind === 'user' || row.kind === 'turn-start') {
         return null;
     }
+
     if (previous === null) {
         return { at: null };
     }
+
     if (previous.kind === 'user') {
         return { at: previous.item.createdAt };
     }
+
     if (previous.kind === 'turn-start') {
         return { at: previous.turn.createdAt };
     }
+
     return null;
 }
 

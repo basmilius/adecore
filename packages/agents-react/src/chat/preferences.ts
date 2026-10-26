@@ -43,9 +43,11 @@ function parseFavoriteModels(stored: unknown): Partial<Record<AgentKind, string[
     if (typeof stored !== 'object' || stored === null || Array.isArray(stored)) {
         return {};
     }
+
     return Object.fromEntries(
         Object.entries(stored).flatMap(([provider, slugs]) => {
             const kept = Array.isArray(slugs) ? slugs.filter((slug): slug is string => typeof slug === 'string' && slug !== '') : [];
+
             return kept.length === 0 ? [] : [[provider, kept]];
         })
     );
@@ -60,8 +62,10 @@ export function parseChatPreferences(raw: string | null): ChatPreferences {
     if (raw === null) {
         return DEFAULT_CHAT_PREFERENCES;
     }
+
     try {
         const stored = JSON.parse(raw) as Partial<ChatPreferences>;
+
         return {
             selectionByProvider: { ...stored.selectionByProvider },
             lastProvider: stored.lastProvider ?? null,
@@ -86,9 +90,11 @@ export function defaultProvider(preferences: ChatPreferences): AgentKind | null 
 /* The model a chat of this provider starts with; null lets the host fall back to the CLI's own default. */
 export function selectionFor(preferences: ChatPreferences, provider: AgentKind | null | undefined): ModelSelection | null {
     const owner = provider ?? preferences.lastProvider;
+
     if (owner === null) {
         return null;
     }
+
     return preferences.selectionByProvider[owner] ?? null;
 }
 
@@ -112,10 +118,13 @@ export function withSelection(preferences: ChatPreferences, provider: AgentKind,
  */
 export function accountFor(preferences: ChatPreferences, scopeId: string, provider: AgentKind, accounts?: ProviderAccounts | null): string | null {
     const picked = preferences.accountByMachine[scopeId]?.[provider] ?? null;
+
     if (picked === null || accounts === undefined) {
         return picked;
     }
+
     const account = accounts?.accounts[picked];
+
     return account?.kind === provider && account.enabled !== false ? picked : null;
 }
 
@@ -124,6 +133,7 @@ export function withAccount(preferences: ChatPreferences, scopeId: string, provi
     const { [provider]: _previous, ...others } = preferences.accountByMachine[scopeId] ?? {};
     const picks = account === null || account === provider ? others : { ...others, [provider]: account };
     const { [scopeId]: _machine, ...machines } = preferences.accountByMachine;
+
     return { ...preferences, accountByMachine: Object.keys(picks).length === 0 ? machines : { ...machines, [scopeId]: picks } };
 }
 
@@ -131,8 +141,10 @@ export function withAccount(preferences: ChatPreferences, scopeId: string, provi
 export function chatPreferencesPayload(preferences: ChatPreferences, scopeId: string, accounts?: ProviderAccounts | null): ChatPreferencesPayload {
     const picks = Object.keys(preferences.accountByMachine[scopeId] ?? {}).flatMap((provider) => {
         const account = accountFor(preferences, scopeId, provider as AgentKind, accounts);
+
         return account === null ? [] : [[provider, account] as const];
     });
+
     return {
         runtimeMode: preferences.runtimeMode,
         terminalRuntimeMode: preferences.terminalRuntimeMode,
@@ -156,6 +168,7 @@ export function readChatPreferences(): ChatPreferences {
 
 /* Where the remembered default is kept, which an app with more than one window of the same origin listens for. */
 export let CHAT_PREFERENCES_KEY = storageKey();
+
 onChatStorageConfiguration(() => {
     CHAT_PREFERENCES_KEY = storageKey();
 });
@@ -192,6 +205,7 @@ export function rememberSendKey(sendKey: ChatSendKey): void {
 export function rememberChatSelection(provider: AgentKind, selection: ModelSelection): void {
     const current = useChatPreferences.getState();
     const previous = current.selectionByProvider[provider];
+
     if (
         current.lastProvider === provider &&
         previous?.model === selection.model &&
@@ -200,6 +214,7 @@ export function rememberChatSelection(provider: AgentKind, selection: ModelSelec
     ) {
         return;
     }
+
     write(withSelection(current, provider, selection));
 }
 
@@ -217,6 +232,7 @@ export function withFavoriteToggled(preferences: ChatPreferences, provider: Agen
     const current = preferences.favoriteModels[provider] ?? [];
     const next = current.includes(slug) ? current.filter((each) => each !== slug) : [...current, slug];
     const { [provider]: _previous, ...others } = preferences.favoriteModels;
+
     return { ...preferences, favoriteModels: next.length === 0 ? others : { ...others, [provider]: next } };
 }
 

@@ -21,7 +21,9 @@ export function useNotice(): ComposerNotice {
         if (!shown) {
             return;
         }
+
         const timer = setTimeout(() => setShown(null), NOTICE_MS);
+
         return () => clearTimeout(timer);
     }, [shown]);
 

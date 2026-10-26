@@ -25,14 +25,17 @@ function resolveColor(element: HTMLElement, token: string, ground: string): stri
     probeCanvas.height = 1;
     const context = probeCanvas.getContext('2d', { willReadFrequently: true });
     const value = getComputedStyle(element).getPropertyValue(token).trim();
+
     if (context === null || value === '') {
         return ground;
     }
+
     context.fillStyle = ground;
     context.fillRect(0, 0, 1, 1);
     context.fillStyle = value;
     context.fillRect(0, 0, 1, 1);
     const [red, green, blue] = context.getImageData(0, 0, 1, 1).data;
+
     return `#${[red, green, blue].map((channel) => channel!.toString(16).padStart(2, '0')).join('')}`;
 }
 
@@ -45,14 +48,17 @@ interface DiagramLook {
 function diagramLook(element: HTMLElement): DiagramLook {
     const style = getComputedStyle(element);
     const ground = resolveColor(element, GROUND_TOKEN, '#808080');
+
     const colors = Object.fromEntries(
         Object.entries(DIAGRAM_TOKENS).map(([name, token]) => [name, token === GROUND_TOKEN ? ground : resolveColor(element, token, ground)])
     );
+
     const font = {
         family: style.fontFamily,
         mono: style.getPropertyValue('--font-mono').trim() || 'monospace',
         size: Number.parseFloat(style.fontSize) || 14
     };
+
     return { colors, font };
 }
 
@@ -64,6 +70,7 @@ function keepingSame(next: DiagramLook) {
 async function layOut(id: string, source: string, font: DiagramFont): Promise<LaidOut> {
     const { renderAsync } = await import('pele/lazy');
     const { svg, width, height } = await renderAsync(source, renderOptions(font, id));
+
     return { svg, width: Math.ceil(width), height: Math.ceil(height) };
 }
 
@@ -84,6 +91,7 @@ export function MermaidBlock({ code }: { code: string }) {
 
     useEffect(() => {
         const element = frame.current;
+
         if (element !== null) {
             setLook(keepingSame(diagramLook(element)));
         }
@@ -92,25 +100,31 @@ export function MermaidBlock({ code }: { code: string }) {
     // An app may change its colors without turning light or dark, which only the root of the page tells.
     useEffect(() => {
         const element = frame.current;
+
         if (element === null) {
             return;
         }
+
         return watchTheme(element.ownerDocument, () => setLook(keepingSame(diagramLook(element))));
     }, []);
 
     const fontFamily = look?.font.family;
     const fontMono = look?.font.mono;
     const fontSize = look?.font.size;
+
     useEffect(() => {
         if (streaming || fontFamily === undefined || fontMono === undefined || fontSize === undefined) {
             return;
         }
+
         let cancelled = false;
+
         // A diagram already drawn stays until the next one is there, so it does not blink.
         layOut(id, code, { family: fontFamily, mono: fontMono, size: fontSize }).then(
             (image) => !cancelled && setDrawing({ state: 'drawn', image }),
             () => !cancelled && setDrawing({ state: 'failed' })
         );
+
         return () => {
             cancelled = true;
         };
@@ -118,6 +132,7 @@ export function MermaidBlock({ code }: { code: string }) {
 
     const image = drawing.state === 'drawn' && look !== null ? { ...drawing.image, svg: themedSvg(drawing.image.svg, look.colors) } : null;
     const showsDiagram = !streaming && !source && drawing.state !== 'failed';
+
     const toggle =
         streaming || drawing.state === 'failed' ? undefined : (
             <IconButton
@@ -127,6 +142,7 @@ export function MermaidBlock({ code }: { code: string }) {
                 onClick={() => setSource((shown) => !shown)}
             />
         );
+
     return (
         // One tree in every state, so the code block keeps the lines it has when the fence closes.
         <div ref={frame}>

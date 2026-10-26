@@ -12,25 +12,33 @@ afterEach(() => setSystemTime());
 test.skipIf(typeof document === 'undefined')('picking a place sets the binding and a Choice sends it', async () => {
     const observer = globalThis.IntersectionObserver;
     Object.defineProperty(globalThis, 'IntersectionObserver', { configurable: true, writable: true, value: undefined });
+
     const text =
         '```ui\n$picked = ""\n<Map value={$picked}><Place lat={52.0907} lon={5.1214} value="dom">Domtoren</Place><Place lat={52.0849} lon={5.1181}>Oudegracht</Place>' +
         '<Place address="Station" value="station">Station</Place></Map><Choices><Choice context={"Plan around " + $picked}>Plan</Choice></Choices>\n```';
+
     const blocks = compileUi(text, { id: 'map', final: true });
+
     for (const block of blocks) {
         block.revision = 'revision';
     }
+
     const sent: Record<string, unknown>[] = [];
+
     const host: Partial<ChatHost> = {
         intelligentUi: {
             sendChoice: async (_scope, payload) => {
                 sent.push(payload.values ?? {});
+
                 return 'sent';
             }
         }
     };
+
     const element = document.createElement('div');
     document.body.append(element);
     const root = createRoot(element);
+
     try {
         await act(async () =>
             root.render(
@@ -41,7 +49,9 @@ test.skipIf(typeof document === 'undefined')('picking a place sets the binding a
                 )
             )
         );
+
         const rows = () => [...element.querySelectorAll<HTMLButtonElement>('li button')];
+
         expect(rows()).toHaveLength(2);
         expect(rows().map((row) => row.getAttribute('aria-pressed'))).toEqual(['false', 'false']);
         await act(async () => rows()[1]!.click());

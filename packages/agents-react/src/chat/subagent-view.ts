@@ -77,6 +77,7 @@ export function subagentOf(structure: Readonly<Record<string, ChatItem>>, toolUs
 export function openableSubagents(order: readonly string[], structure: Record<string, ChatItem>, machineRefused: boolean): ChatSubagentItem[] {
     return order.flatMap((id) => {
         const item = structure[id];
+
         return item?.kind === 'subagent' && canOpenSubagent(item, machineRefused) ? [item] : [];
     });
 }
@@ -97,19 +98,24 @@ export const useSubagentView = create<SubagentViewStore>((set, get) => ({
     trails: {},
     show(key, trail) {
         const trails = { ...get().trails };
+
         if (trail.length === 0) {
             delete trails[key];
         } else {
             trails[key] = trail;
         }
+
         set({ trails });
     },
     back(key) {
         const trail = get().trails[key];
+
         if (trail === undefined || trail.length === 0) {
             return false;
         }
+
         get().show(key, stepBack(trail));
+
         return true;
     }
 }));
@@ -118,6 +124,7 @@ export const useSubagentView = create<SubagentViewStore>((set, get) => ({
 export function useSubagentTrail(chatId: string): { trail: SubagentTrail; show(trail: SubagentTrail): void } {
     const key = useChatScope().keyOf(chatId);
     const trail = useSubagentView((s) => s.trails[key] ?? MAIN_AGENT);
+
     return { trail, show: (next) => useSubagentView.getState().show(key, next) };
 }
 
@@ -127,10 +134,12 @@ export function useOpenableSubagents(chatId: string): ChatSubagentItem[] {
     // The structure and not the items, so a delta growing a reply does not walk the thread again.
     const order = useChatRow(chatId, (row) => row?.order);
     const structure = useChatRow(chatId, (row) => row?.structure);
+
     return structure === undefined ? [] : openableSubagents(order ?? NO_ITEMS, structure, refused);
 }
 
 export function useSubagentItem(chatId: string, toolUseId: string): ChatSubagentItem | null {
     const structure = useChatRow(chatId, (row) => row?.structure);
+
     return structure === undefined ? null : subagentOf(structure, toolUseId);
 }

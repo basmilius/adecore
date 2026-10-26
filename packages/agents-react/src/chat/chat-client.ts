@@ -78,10 +78,12 @@ export class ChatClient {
         this.transport = transport;
         this.sink = sink;
         this.providers = providers;
+
         this.unsubscribe.push(
             transport.on('chat.event', ({ chatId, event, seq }) => {
                 const previous = this.sequence(chatId);
                 this.sink.apply(chatId, event);
+
                 if (previous !== undefined || (!this.sink.historyIdentity && this.mounted.get(chatId)?.attached)) {
                     this.rememberSequence(chatId, seq);
                 }
@@ -92,6 +94,7 @@ export class ChatClient {
             transport.on('chat.visuals', ({ chatId, visuals }) => this.sink.visuals(chatId, visuals)),
             transport.subscribeStatus((status) => this.onStatus(status))
         );
+
         if (transport.status === 'open') {
             void this.loadProviders();
             void this.loadStatuses();
@@ -100,39 +103,52 @@ export class ChatClient {
 
     inspect(chatId: string): Promise<ChatAttachResult> {
         const pending = this.inspections.get(chatId);
+
         if (pending) {
             return pending;
         }
+
         const read = this.transport.request('chat.attach', { chatId, historyLimit: 100 }).finally(async () => {
             this.inspections.delete(chatId);
+
             // A visible chat owns its attachment; an inspection must never release it.
             if (!this.mounted.get(chatId)) {
                 await this.transport.request('chat.detach', { chatId }).catch(() => undefined);
             }
         });
+
         this.inspections.set(chatId, read);
+
         return read;
     }
 
     /* Shares a live attachment without creating a chat; a visible composer and several ancestors may hold it together. */
     observe(chatId: string): () => void {
         this.observers.set(chatId, (this.observers.get(chatId) ?? 0) + 1);
+
         if (!this.mounted.has(chatId)) {
             this.mounted.set(chatId, { attached: false, observerOnly: true });
             void this.attach(chatId).catch(() => undefined);
         }
+
         let released = false;
+
         return () => {
             if (released) {
                 return;
             }
+
             released = true;
             const remaining = (this.observers.get(chatId) ?? 1) - 1;
+
             if (remaining > 0) {
                 this.observers.set(chatId, remaining);
+
                 return;
             }
+
             this.observers.delete(chatId);
+
             if (this.mounted.get(chatId)?.observerOnly) {
                 void this.detach(chatId);
             }
@@ -142,13 +158,16 @@ export class ChatClient {
     /* Answers false when the transport is not connected; the chat opens once it is. */
     async open(chatId: string, options: ChatOpenOptions): Promise<boolean> {
         this.mounted.set(chatId, { ...options, attached: false });
+
         try {
             await this.attach(chatId);
+
             return true;
         } catch (e) {
             if (isConnectionError(e)) {
                 return false;
             }
+
             throw e;
         }
     }
@@ -160,19 +179,23 @@ export class ChatClient {
      */
     async retarget(chatId: string, provider: AgentKind, selection: ModelSelection): Promise<void> {
         const entry = this.mounted.get(chatId);
+
         if (!entry) {
             return;
         }
+
         // The account belonged to the CLI the chat leaves, and the seq to its stream: the new chat's
         // stream starts over, so offering it the old seq would read as nothing missed and reset nothing.
         const { attached: _attached, account: _account, seq: _seq, observerOnly: _observerOnly, ...options } = entry;
         this.rememberSequence(chatId, undefined);
         this.mounted.delete(chatId);
         await this.transport.request('chat.kill', { chatId });
+
         try {
             await this.open(chatId, { ...options, provider, selection });
         } catch (e) {
             this.sink.forget(chatId);
+
             throw e;
         }
     }
@@ -188,14 +211,19 @@ export class ChatClient {
 
     async detach(chatId: string): Promise<void> {
         const entry = this.mounted.get(chatId);
+
         if (entry && this.observers.has(chatId)) {
             entry.observerOnly = true;
+
             return;
         }
+
         this.mounted.delete(chatId);
+
         if (!entry?.attached) {
             return;
         }
+
         try {
             await this.transport.request('chat.detach', { chatId });
         } catch {
@@ -221,29 +249,34 @@ export class ChatClient {
     /* Marks a message; the list every client of the chat holds comes back as `chat.bookmarks`. */
     async addBookmark(chatId: string, itemId: string, name?: string): Promise<ChatBookmark[]> {
         const { bookmarks } = await this.transport.request('chat.addBookmark', { chatId, itemId, ...(name === undefined ? {} : { name }) });
+
         return bookmarks;
     }
 
     /* An empty name takes the name away. */
     async renameBookmark(chatId: string, itemId: string, name: string): Promise<ChatBookmark[]> {
         const { bookmarks } = await this.transport.request('chat.renameBookmark', { chatId, itemId, name });
+
         return bookmarks;
     }
 
     async removeBookmark(chatId: string, itemId: string): Promise<ChatBookmark[]> {
         const { bookmarks } = await this.transport.request('chat.removeBookmark', { chatId, itemId });
+
         return bookmarks;
     }
 
     /* Takes a visual and its page out of the chat for good; the list every client of the chat holds comes back as `chat.visuals`. */
     async removeVisual(chatId: string, visualId: string): Promise<ChatVisual[]> {
         const { visuals } = await this.transport.request('chat.removeVisual', { chatId, visualId });
+
         return visuals;
     }
 
     /* What this chat's CLI would run as a skill, for the composer's `$` picker. */
     async listSkills(chatId: string): Promise<ChatSkill[]> {
         const { skills } = await this.transport.request('skills.list', { chatId });
+
         return skills;
     }
 
@@ -273,6 +306,7 @@ export class ChatClient {
     async loadStatuses(): Promise<void> {
         try {
             const { chats } = await this.transport.request('chat.list', {});
+
             for (const info of chats) {
                 this.sink.status(info.chatId, info);
             }
@@ -285,6 +319,7 @@ export class ChatClient {
         if (!this.providers) {
             return;
         }
+
         try {
             const { providers } = await this.transport.request('provider.list', {});
             this.providers.setProviders(providers);
@@ -299,9 +334,11 @@ export class ChatClient {
      */
     loadEarlier(chatId: string, cursor: string): Promise<void> {
         const running = this.earlier.get(chatId);
+
         if (running) {
             return running;
         }
+
         const read = this.transport
             .request('chat.history', { chatId, cursor, limit: HISTORY_PAGE })
             .then((page) => {
@@ -311,14 +348,18 @@ export class ChatClient {
             })
             .catch(async (e: unknown) => {
                 const entry = this.mounted.get(chatId);
+
                 if (errorCode(e) !== 'history-expired' || !entry) {
                     throw e;
                 }
+
                 this.rememberSequence(chatId, undefined);
                 await this.attach(chatId);
             })
             .finally(() => this.earlier.delete(chatId));
+
         this.earlier.set(chatId, read);
+
         return read;
     }
 
@@ -331,9 +372,11 @@ export class ChatClient {
         for (const off of this.unsubscribe) {
             off();
         }
+
         this.unsubscribe.length = 0;
         this.observers.clear();
         this.checkpoints = new WeakMap();
+
         for (const chatId of [...this.mounted.keys()]) {
             void this.detach(chatId);
         }
@@ -346,9 +389,11 @@ export class ChatClient {
      */
     private async attach(chatId: string): Promise<void> {
         const entry = this.mounted.get(chatId);
+
         if (!entry) {
             return;
         }
+
         if (!entry.observerOnly) {
             await this.transport.request('chat.create', {
                 chatId,
@@ -360,26 +405,34 @@ export class ChatClient {
                 runtimeMode: entry.runtimeMode
             });
         }
+
         // Closed or opened again in the meantime: an opening that is still there attaches itself.
         if (this.mounted.get(chatId) !== entry) {
             return;
         }
+
         const since = this.sequence(chatId);
         const result = await this.transport.request('chat.attach', { chatId, historyLimit: HISTORY_PAGE, ...(since === undefined ? {} : { since }) });
         const current = this.mounted.get(chatId);
+
         if (current !== entry) {
             // Its detach found nothing attached yet, and the host would stream this chat here until the socket closes.
             if (!current) {
                 await this.transport.request('chat.detach', { chatId }).catch(() => undefined);
             }
+
             return;
         }
+
         // A cache eviction while the request was in flight also invalidates its replay base.
         if (result.events && since !== undefined && this.sequence(chatId) === undefined) {
             await this.attach(chatId);
+
             return;
         }
+
         entry.attached = true;
+
         if (result.events && since !== undefined) {
             if (this.sink.replay) {
                 this.sink.replay(chatId, result.events);
@@ -391,8 +444,10 @@ export class ChatClient {
         } else {
             const page =
                 result.history === undefined ? undefined : { history: result.history, pending: result.pending ?? [], subagents: result.subagents ?? [] };
+
             this.sink.reset(chatId, result.info, result.items, page);
         }
+
         this.rememberSequence(chatId, result.seq);
         // A host without bookmarks or visuals sends none, and then this chat has none.
         this.sink.bookmarks(chatId, result.bookmarks ?? []);
@@ -403,16 +458,21 @@ export class ChatClient {
         if (!this.sink.historyIdentity) {
             return this.mounted.get(chatId)?.seq;
         }
+
         const identity = this.sink.historyIdentity(chatId);
+
         return identity === undefined ? undefined : this.checkpoints.get(identity);
     }
 
     private rememberSequence(chatId: string, seq: number | undefined): void {
         const entry = this.mounted.get(chatId);
+
         if (entry) {
             entry.seq = seq;
         }
+
         const identity = this.sink.historyIdentity?.(chatId);
+
         if (identity !== undefined) {
             if (seq === undefined) {
                 this.checkpoints.delete(identity);
@@ -426,6 +486,7 @@ export class ChatClient {
         if (this.preferences === null) {
             return;
         }
+
         void this.transport.request('chat.setPreferences', this.preferences).catch(() => undefined);
     }
 
@@ -435,8 +496,10 @@ export class ChatClient {
             void this.loadProviders();
             void this.loadStatuses();
             void this.mounted.reattachAll((chatId) => this.attach(chatId));
+
             return;
         }
+
         this.mounted.detachAll();
     }
 }

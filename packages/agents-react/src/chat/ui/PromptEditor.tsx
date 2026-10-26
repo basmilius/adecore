@@ -76,23 +76,29 @@ export function PromptEditor({
         referables,
         label
     });
+
     const extensions = chipDecorations({ mentions: value.mentions, skills: value.skills, references: menus.referenceChips });
 
     const onKeyDown = (e: KeyboardEvent): boolean => {
         if (e.isComposing) {
             return false;
         }
+
         // Escape closes the picker, and only that: the dialog around the field stays.
         if (e.key === 'Escape' && menus.menuOpen) {
             menus.close();
             e.stopPropagation();
+
             return true;
         }
+
         // Enter adds a line here rather than sending, so on a command it completes like Tab.
         if (e.key === 'Enter' && menus.commandMenuOpen) {
             menus.completeCommand(menus.commands[menus.activeIndex]!);
+
             return true;
         }
+
         return pickInMenu(e, menus);
     };
 

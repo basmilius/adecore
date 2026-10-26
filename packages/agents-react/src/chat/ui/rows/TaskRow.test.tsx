@@ -44,11 +44,14 @@ test('a paused task says when it goes on in words that follow the day it is now'
     const fromPage = ['window', 'document', 'Node', 'Element', 'HTMLElement'] as const;
     const names = [...fromPage, 'IS_REACT_ACT_ENVIRONMENT'] as const;
     const previous = names.map((name) => Object.getOwnPropertyDescriptor(globalThis, name));
+
     for (const name of fromPage) {
         Object.defineProperty(globalThis, name, { value: name === 'window' ? page.window : page.window[name], configurable: true });
     }
+
     Object.defineProperty(globalThis, 'IS_REACT_ACT_ENVIRONMENT', { value: true, configurable: true });
     const root = createRoot(page.host);
+
     await act(async () =>
         root.render(
             <ChatHostProvider host={{}}>
@@ -58,6 +61,7 @@ test('a paused task says when it goes on in words that follow the day it is now'
             </ChatHostProvider>
         )
     );
+
     const tomorrow = page.host.textContent ?? '';
     expect(tomorrow).not.toContain(`Paused until ${formatClock(until)}`);
 
@@ -66,8 +70,10 @@ test('a paused task says when it goes on in words that follow the day it is now'
     expect(page.host.textContent).toContain(`Paused until ${formatClock(until)}`);
 
     await act(async () => root.unmount());
+
     names.forEach((name, index) => {
         const descriptor = previous[index];
+
         if (descriptor === undefined) {
             Reflect.deleteProperty(globalThis, name);
         } else {

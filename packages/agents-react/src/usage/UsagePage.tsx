@@ -44,9 +44,11 @@ function HostAgents() {
     const { id } = useChatScope();
     const row = useProvidersStore((s) => s.byScope[id]);
     const installed = (row?.providers ?? []).filter((provider) => provider.installed);
+
     if (!row?.loaded) {
         return null;
     }
+
     return (
         <div className="flex flex-col items-center gap-2">
             <p className="text-xs text-text-muted">
@@ -68,6 +70,7 @@ function useSummary(scopeId: string, transport: ChatTransport, period: UsagePeri
     useEffect(() => {
         // A host knows its followers per link, so every connection has to be told again, on a reconnect and on a move to another host.
         const off = whenOpen(transport, () => void transport.request('usage.subscribe', {}).catch(() => undefined));
+
         return () => {
             off();
             void transport.request('usage.unsubscribe', {}).catch(() => undefined);
@@ -78,6 +81,7 @@ function useSummary(scopeId: string, transport: ChatTransport, period: UsagePeri
         const payload = summaryPayload(period, account);
         const asked = askedKey(payload);
         useUsageStore.getState().setLoading(scopeId, true);
+
         transport
             .request('usage.summary', payload)
             .then((summary) => useUsageStore.getState().receive(scopeId, asked, summary))
@@ -89,6 +93,7 @@ function useSummary(scopeId: string, transport: ChatTransport, period: UsagePeri
         const offStatus = whenOpen(transport, load);
         // A scan that found something is the sign to ask again; nothing else changes the numbers.
         const offChanged = transport.on('usage.changed', load);
+
         return () => {
             offChanged();
             offStatus();
@@ -103,16 +108,21 @@ function Provenance() {
     const summary = useUsage((s) => s.summary);
     const currency = useUsage((s) => s.currency);
     const failed = useUsage((s) => s.failed);
+
     if (failed) {
         return <FormError className="mt-auto text-center">{t('provenance.failed')}</FormError>;
     }
+
     if (summary === null) {
         return null;
     }
+
     const prices =
         summary.pricing.fetchedAt === null ? t('provenance.bundledPrices') : t('provenance.fetchedPrices', { date: formatDate(summary.pricing.fetchedAt) });
+
     // The rate is named only when it is being used, so a page in dollars says nothing about euros.
     const rate = currency === 'USD' || summary.rate === null ? null : t('provenance.rate', { currency: summary.rate.currency, date: summary.rate.date });
+
     return (
         <p className="mt-auto text-center text-xs text-text-muted">
             {t('provenance.scanned', { count: summary.scan.files, time: formatClock(summary.scan.at), files: formatCount(summary.scan.files) })} · {prices}
@@ -147,9 +157,11 @@ function LoadingBody() {
  */
 function AccountPicker({ accounts, value, onChange }: { accounts: readonly UsageAccount[]; value: string | null; onChange(account: string | null): void }) {
     const { t } = useTranslation('agent-usage');
+
     if (!USAGE_PROVIDERS.some((kind) => accounts.filter((account) => account.kind === kind).length > 1)) {
         return null;
     }
+
     return (
         <Select
             value={value ?? ALL_ACCOUNTS}

@@ -22,7 +22,9 @@ export function messageClipboardChips(
     if (item.kind === 'assistant') {
         return clipboardChipsOf(text, tokenizeNamedReferences(text, lookup.items, lookup.referenced));
     }
+
     const tokens = referenceTokens([...(item.chats ?? []), ...(item.references ?? [])], lookup.items);
+
     return clipboardChipsOf(text, tokenizeChips(text, item.mentions ?? [], item.skills ?? [], tokens));
 }
 
@@ -31,15 +33,18 @@ export function rowClipboardChips(row: TimelineRow, text: string, lookup: Pick<R
     if (row.kind === 'user' || row.kind === 'assistant') {
         return messageClipboardChips(row.item, text, lookup);
     }
+
     return clipboardChipsOf(text, []);
 }
 
 /* What a chip the transcript drew stands for, read back from the attributes `TokenChip` writes. */
 function segmentOf(chip: Element): ChipSegment | null {
     const value = chip.getAttribute('data-chip-value');
+
     if (value === null) {
         return null;
     }
+
     switch (chip.getAttribute('data-chip')) {
         case 'mention':
             return { kind: 'mention', path: value };
@@ -47,6 +52,7 @@ function segmentOf(chip: Element): ChipSegment | null {
             return { kind: 'skill', name: value };
         case 'reference': {
             const name = chip.getAttribute('data-chip-name');
+
             return name === null || name === '' ? null : { kind: 'reference', id: value, name };
         }
         default:
@@ -57,31 +63,39 @@ function segmentOf(chip: Element): ChipSegment | null {
 /* The chips a selection holds whole, beside the text it copies; a chip cut in half is only text. */
 export function selectionChips(selection: Selection): ClipboardChips {
     const segments: ChipSegment[] = [];
+
     for (let i = 0; i < selection.rangeCount; i++) {
         const container = selection.getRangeAt(i).commonAncestorContainer;
         const root = container instanceof Element ? container : container.parentElement;
         const own = root?.closest('[data-chip]');
         const candidates = own ? [own] : [...(root?.querySelectorAll('[data-chip]') ?? [])];
+
         for (const chip of candidates) {
             const segment = selection.containsNode(chip, false) ? segmentOf(chip) : null;
+
             if (segment !== null) {
                 segments.push(segment);
             }
         }
     }
+
     return clipboardChipsOf(selection.toString(), segments);
 }
 
 /* A copy of a selection in the thread, which carries the chips in it as well when it holds any. */
 export function copySelectionWithChips(event: ClipboardEvent): void {
     const selection = document.getSelection();
+
     if (event.defaultPrevented || event.clipboardData === null || selection === null || selection.isCollapsed) {
         return;
     }
+
     const chips = selectionChips(selection);
+
     if (!hasClipboardChips(chips)) {
         return;
     }
+
     writeClipboardChips(event.clipboardData, chips);
     event.preventDefault();
 }
@@ -93,9 +107,12 @@ export function copySelectionWithChips(event: ClipboardEvent): void {
 export function copyWithChips(chips: ClipboardChips): void {
     if (!hasClipboardChips(chips) || typeof document.execCommand !== 'function') {
         void copyText(chips.text);
+
         return;
     }
+
     let written = false;
+
     const write = (event: ClipboardEvent): void => {
         if (event.clipboardData !== null) {
             writeClipboardChips(event.clipboardData, chips);
@@ -103,12 +120,15 @@ export function copyWithChips(chips: ClipboardChips): void {
             written = true;
         }
     };
+
     document.addEventListener('copy', write, true);
+
     try {
         document.execCommand('copy');
     } finally {
         document.removeEventListener('copy', write, true);
     }
+
     if (!written) {
         void copyText(chips.text);
     }

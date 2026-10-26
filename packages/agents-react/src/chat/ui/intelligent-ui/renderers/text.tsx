@@ -49,6 +49,7 @@ export function SummaryRenderer({ node, children }: UiRendererProps<UiProps<'Sum
     const head = headId === undefined || headId === node.id;
     const { tone, badge } = node.props;
     const shown = tone ?? 'neutral';
+
     return (
         <div className={clsx(ICON_ROW, tone === undefined ? 'bg-ui-tile' : UI_TONE_SURFACE[tone])}>
             {head && (
@@ -69,6 +70,7 @@ export function SummaryRenderer({ node, children }: UiRendererProps<UiProps<'Sum
 /* A quiet tile whatever its tone: only the square of its icon wears the tone. */
 export function CalloutRenderer({ node, children }: UiRendererProps<UiProps<'Callout'>>) {
     const { tone, title } = node.props;
+
     return (
         <div className={clsx('chat-ui-flat bg-ui-tile text-xs', ICON_ROW)}>
             <span aria-hidden className={clsx(ICON_SQUARE, UI_TONE_SURFACE[tone], UI_TONE_TEXT[tone])}>
@@ -84,6 +86,7 @@ export function CalloutRenderer({ node, children }: UiRendererProps<UiProps<'Cal
 
 export function TagRenderer({ node, children }: UiRendererProps<UiProps<'Tag'>>) {
     const { tone } = node.props;
+
     return (
         <Pill shape="tag" size="sm" tone={tone === undefined ? 'muted' : UI_TONE_PILL[tone]}>
             {children}
@@ -96,9 +99,12 @@ export function ProgressRenderer({ node, children, context }: UiRendererProps<Ui
     const { t } = useTranslation('agent-chat');
     const { value, max } = node.props;
     const limit = max ?? 100;
+
     const reading =
         value === undefined ? null : limit === 100 ? formatPercent(value) : t('blocks.progress.of', { value: formatNumber(value), max: formatNumber(limit) });
+
     const label = uiNodeLabel(node);
+
     return (
         <div className="chat-ui-flat flex flex-col gap-2 rounded-xl bg-ui-tile p-3">
             <div className="flex items-baseline justify-between gap-3 text-xs">
@@ -123,6 +129,7 @@ export function StepRenderer({ node, children, context }: UiRendererProps<UiProp
     const { t } = useTranslation('agent-chat');
     const { state, detail } = node.props;
     const quiet = state === 'pending' || state === 'skipped';
+
     return (
         <li className="flex min-h-10 items-start gap-3 rounded-xl bg-ui-tile px-3 py-2.5 text-xs">
             <span className={clsx('mt-0.5 grid size-4 shrink-0 place-items-center', STEP_TONES[state])}>
@@ -162,6 +169,7 @@ export function EventRenderer({ node, children }: UiRendererProps<UiProps<'Event
     const label = [time, uiNodeLabel(node), tone === 'neutral' ? '' : t(`blocks.event.tone.${tone}`), detail ?? ''].filter((part) => part !== '').join(', ');
     const described = detail !== undefined && detail !== '';
     const tagged = described && detail.length <= DETAIL_AS_TAG;
+
     return (
         <li aria-label={label} className="flex min-h-9 items-start gap-3 py-2 text-xs">
             {/* A time nobody could read stays as written and is no `dateTime` for a machine to read. */}

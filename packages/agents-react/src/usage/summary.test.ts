@@ -118,6 +118,7 @@ describe('the day table', () => {
                 bucket({ slot: '2026-09-10', provider: 'codex', model: 'gpt-5.6', costUsd: 1 })
             ])
         );
+
         expect(rows.map((row) => row.slot)).toEqual(['2026-09-10', '2026-09-08']);
         expect(rows[0]!.costByProvider).toEqual({ claude: 3, codex: 1 });
         expect(rows[0]!.costUsd).toBe(4);
@@ -132,6 +133,7 @@ describe('the day table', () => {
         const rows = deriveDays(
             summary([bucket({ slot: '2026-09-10T09', costUsd: 2 }), bucket({ slot: '2026-09-10T14', costUsd: 3 })], { resolution: 'hour' })
         );
+
         expect(rows).toHaveLength(1);
         expect(rows[0]!.slot).toBe('2026-09-10');
         expect(rows[0]!.costUsd).toBe(5);

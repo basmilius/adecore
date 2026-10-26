@@ -21,9 +21,11 @@ export function workflowAgentState(agent: ChatWorkflowAgent, workflowRunning: bo
     if (agent.status !== 'running') {
         return agent.status;
     }
+
     if (!workflowRunning) {
         return 'stopped';
     }
+
     return agent.startedAt === null ? 'waiting' : 'running';
 }
 
@@ -35,15 +37,21 @@ export function workflowPhases(workflow: ChatWorkflow, workflowRunning: boolean)
     const known = new Map(workflow.phases.map((phase) => [phase.index, phase]));
     const loose: WorkflowAgentView[] = [];
     const byPhase = new Map<number, WorkflowAgentView[]>();
+
     for (const agent of workflow.agents) {
         const view = { agent, state: workflowAgentState(agent, workflowRunning) };
+
         if (agent.phaseIndex === null || !known.has(agent.phaseIndex)) {
             loose.push(view);
+
             continue;
         }
+
         byPhase.set(agent.phaseIndex, [...(byPhase.get(agent.phaseIndex) ?? []), view]);
     }
+
     const phases = workflow.phases.map((phase) => ({ key: `phase-${phase.index}`, title: phase.title, agents: byPhase.get(phase.index) ?? [] }));
+
     return loose.length > 0 ? [{ key: 'loose', title: null, agents: loose }, ...phases] : phases;
 }
 
@@ -81,6 +89,7 @@ function firstLine(text: string | undefined): string | null {
 /* The second line of an agent: what it does while at work, what it answered once it stopped, what it was asked before. */
 export function workflowAgentPreview(view: WorkflowAgentView): WorkflowAgentPreview {
     const { agent } = view;
+
     switch (view.state) {
         case 'running':
             return agent.lastTool === null
@@ -100,10 +109,12 @@ export type WorkflowCounts = Record<WorkflowAgentState, number> & { total: numbe
 
 export function workflowCounts(phases: WorkflowPhaseView[]): WorkflowCounts {
     const counts: WorkflowCounts = { total: 0, running: 0, waiting: 0, stopped: 0, done: 0, failed: 0 };
+
     for (const view of phases.flatMap((phase) => phase.agents)) {
         counts.total += 1;
         counts[view.state] += 1;
     }
+
     return counts;
 }
 
@@ -113,22 +124,28 @@ const DESCRIPTION = /\bdescription\s*:\s*(['"`])((?:\\.|(?!\1)[^\\])*)\1/;
 /* The literal from its opening brace to the one that closes it, skipping braces inside strings. */
 function metaLiteral(script: string): string | null {
     const start = META_START.exec(script);
+
     if (start === null) {
         return null;
     }
+
     const from = start.index + start[0].length - 1;
     let depth = 0;
     let quote: string | null = null;
+
     for (let i = from; i < script.length; i++) {
         const char = script[i]!;
+
         if (quote !== null) {
             if (char === '\\') {
                 i++;
             } else if (char === quote) {
                 quote = null;
             }
+
             continue;
         }
+
         if (char === "'" || char === '"' || char === '`') {
             quote = char;
         } else if (char === '{') {
@@ -137,6 +154,7 @@ function metaLiteral(script: string): string | null {
             return script.slice(from, i + 1);
         }
     }
+
     return null;
 }
 
@@ -144,5 +162,6 @@ function metaLiteral(script: string): string | null {
 export function workflowDescription(input: unknown): string | null {
     const script = typeof input === 'object' && input !== null && 'script' in input ? input.script : undefined;
     const meta = typeof script === 'string' ? metaLiteral(script) : null;
+
     return (meta === null ? undefined : DESCRIPTION.exec(meta)?.[2]?.replace(/\\(.)/g, '$1').trim()) || null;
 }

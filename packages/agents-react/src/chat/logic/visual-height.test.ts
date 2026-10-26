@@ -43,9 +43,11 @@ describe('the height of a visual frame', () => {
 
     test('forgets the oldest reports once it holds plenty', () => {
         rememberVisualHeight('first', 400, 333);
+
         for (let i = 0; i < 500; i++) {
             rememberVisualHeight(`filler-${i}`, 400, 100);
         }
+
         expect(initialVisualHeight(visual('first'), 400)).toBe(240);
         expect(initialVisualHeight(visual('filler-499'), 400)).toBe(100);
     });

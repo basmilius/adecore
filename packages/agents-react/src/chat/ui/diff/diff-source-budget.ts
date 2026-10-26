@@ -13,18 +13,22 @@ export function textFitsBudget(text: string, budget: TextBudget): boolean {
     if (text.length > budget.characters) {
         return false;
     }
+
     let rows = text.length === 0 ? 0 : 1;
     let length = 0;
+
     for (let index = 0; index < text.length; index++) {
         if (text.charCodeAt(index) === 10) {
             if (index < text.length - 1 && ++rows > budget.rows) {
                 return false;
             }
+
             length = 0;
         } else if (++length > budget.lineLength) {
             return false;
         }
     }
+
     return rows <= budget.rows;
 }
 
@@ -41,16 +45,20 @@ export function legacyDiffBudget(before: string, after: string, patch = ''): boo
     if (before.length + after.length + patch.length > LEGACY_BUDGET.characters) {
         return false;
     }
+
     let rows = 2;
+
     for (const text of [before, after, patch]) {
         if (!textFitsBudget(text, LEGACY_BUDGET)) {
             return false;
         }
+
         for (let index = 0; index < text.length; index++) {
             if (text.charCodeAt(index) === 10 && ++rows > LEGACY_BUDGET.rows) {
                 return false;
             }
         }
     }
+
     return true;
 }

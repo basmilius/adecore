@@ -47,6 +47,7 @@ class ReferenceIcon extends WidgetType {
         const root = createRoot(holder);
         root.render(createElement(Icon, { icon: REFERENCE_ICONS[this.kind], size: 12 }));
         roots.set(holder, root);
+
         return holder;
     }
 
@@ -62,18 +63,23 @@ function chipMarks(state: EditorState): DecorationSet {
     const { mentions, skills, references = [] } = state.facet(choices);
     const kinds = new Map(references.map((token) => [token.id, token.kind]));
     const marks: Range<Decoration>[] = [];
+
     // `@a.ts` in backticks is code, not a mention.
     for (const range of chipRanges(state.doc.toString(), mentions, skills, codeRanges(state), references)) {
         if (range.kind !== 'reference') {
             marks.push((range.kind === 'skill' ? skillMark : mentionMark).range(range.from, range.to));
+
             continue;
         }
+
         marks.push(referenceMark.range(range.from, range.to));
         const kind = kinds.get(range.value);
+
         if (kind !== undefined && kind !== null) {
             marks.push(Decoration.replace({ widget: new ReferenceIcon(kind) }).range(range.from, range.from + 1));
         }
     }
+
     return Decoration.set(marks, true);
 }
 

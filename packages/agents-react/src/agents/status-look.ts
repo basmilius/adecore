@@ -38,5 +38,6 @@ export function taskStatusWord(task: TaskState): StatusWord {
     if (task.status !== 'open') {
         return task.status;
     }
+
     return task.paused === undefined ? 'running' : 'paused';
 }

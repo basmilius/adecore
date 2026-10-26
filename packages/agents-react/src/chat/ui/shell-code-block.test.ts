@@ -16,15 +16,18 @@ const scope: ChatScope = {
     transport: {} as ChatScope['transport'],
     chats: {} as ChatScope['chats']
 };
+
 let host: Partial<ChatHost>;
 let calls: ShellCodeBlockContext[];
 
 beforeEach(() => {
     calls = [];
+
     host = {
         useStreaming: () => 'words',
         renderShellCodeBlock: (context) => {
             calls.push(context);
+
             return createElement('button', { 'data-shell-action': true, disabled: !context.complete }, 'Prepare');
         }
     };
@@ -42,6 +45,7 @@ function render(node: ReactNode, context: { provider: 'claude'; chatId?: string 
 
 function assistant(text: string, streaming = false, parentToolUseId?: string): ReactNode {
     const item: ChatAssistantItem = { id: 'main-item', kind: 'assistant', turnId: null, createdAt: 0, text, streaming, parentToolUseId };
+
     return createElement(AssistantRow, { chatId: 'main-chat', item });
 }
 
@@ -85,6 +89,7 @@ describe('shell slot through the real assistant and Markdown renderers', () => {
 
     test('handles multiple shell fences, longer closing fences and backticks inside tilde code', () => {
         render(assistant('~~~zsh\nprintf `pwd`\n~~~~\n\n```sh\nprintf second\n````'));
+
         expect(calls.map(({ code, complete }) => ({ code, complete }))).toEqual([
             { code: 'printf `pwd`', complete: true },
             { code: 'printf second', complete: true }
@@ -109,12 +114,14 @@ describe('shell slot through the real assistant and Markdown renderers', () => {
         render(createElement(ReplyMarkdown, { text, streaming: false }));
         render(createElement(AnsiOutput, { text }));
         render(createElement(ReportRow, { id: 'report', text }));
+
         render(
             createElement(ThinkingRow, {
                 chatId: 'main-chat',
                 item: { id: 'thought', kind: 'thinking', turnId: null, createdAt: 0, text, streaming: false, endedAt: null }
             })
         );
+
         expect(calls).toEqual([]);
     });
 
@@ -135,6 +142,7 @@ describe('shell slot through the real assistant and Markdown renderers', () => {
 
     test('rendering only creates the action node', () => {
         let clicked = false;
+
         host = {
             ...host,
             renderShellCodeBlock: () =>
@@ -148,6 +156,7 @@ describe('shell slot through the real assistant and Markdown renderers', () => {
                     'Prepare'
                 )
         };
+
         render(assistant('```sh\nprintf safe\n```'));
         expect(clicked).toBe(false);
     });

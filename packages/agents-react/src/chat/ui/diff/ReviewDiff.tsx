@@ -8,6 +8,7 @@ const UnifiedDiff = lazyNamed(() => import('../UnifiedDiff'), 'default');
 
 export function ReviewDiff({ entry, maxHeight = 480 }: { entry: ReviewEntry; maxHeight?: number }) {
     const { t } = useTranslation('agent-chat');
+
     return (
         <div data-review-entry={entry.key}>
             <LazyBoundary fallback={<p className="px-3 py-2 text-xs text-text-faint">{t('work.loadingDiff')}</p>}>

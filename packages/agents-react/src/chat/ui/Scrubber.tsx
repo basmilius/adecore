@@ -99,8 +99,10 @@ export const Scrubber = memo(function Scrubber({
         if (strip === null || typeof ResizeObserver === 'undefined') {
             return;
         }
+
         const observer = new ResizeObserver(() => setHeight(strip.offsetHeight));
         observer.observe(strip);
+
         return () => observer.disconnect();
     }, [strip]);
 
@@ -115,13 +117,16 @@ export const Scrubber = memo(function Scrubber({
 
     const anchor = useMemo(() => {
         const element = strip;
+
         if (anchorY === null || element === null) {
             return undefined;
         }
+
         return {
             contextElement: element,
             getBoundingClientRect: () => {
                 const rect = element.getBoundingClientRect();
+
                 return DOMRect.fromRect({ x: rect.left, y: rect.top + anchorY + TICK_HEIGHT_PX / 2, width: rect.width, height: 0 });
             }
         };
@@ -131,10 +136,13 @@ export const Scrubber = memo(function Scrubber({
 
     const actionsFor = (tick: ScrubberTick | null): CardAction[] =>
         tick === null ? [] : Object.values(CARD_ACTIONS).filter((action) => action.offers(tick, chat));
+
     const actions = actionsFor(hoveredTick);
+
     /* The message a bookmark goes on: the one it is on already, or the person's own. A wake is the machine's and holds none. */
     const markableOf = (tick: ScrubberTick | null): string | null =>
         tick === null || chat === null ? null : (tick.bookmark?.itemId ?? (tick.kind === 'person' ? tick.id : null));
+
     const menuTick = menuIndex === null ? null : (ticks[menuIndex] ?? null);
     const menuMarkable = markableOf(menuTick);
 
@@ -142,10 +150,13 @@ export const Scrubber = memo(function Scrubber({
         // The hover card is a child here as well, and a click in it is about no tick.
         const index = strip === null || cameThroughPortal(e) ? null : messageAt(layout, e.clientY - strip.getBoundingClientRect().top);
         const tick = index === null ? null : (ticks[index] ?? null);
+
         if (tick === null || (actionsFor(tick).length === 0 && markableOf(tick) === null)) {
             e.preventBaseUIHandler();
+
             return;
         }
+
         setMenuIndex(index);
     };
 
@@ -165,6 +176,7 @@ export const Scrubber = memo(function Scrubber({
                                 onPointerMove={(e) => {
                                     setPointing(true);
                                     const index = pointAt(e);
+
                                     if (index !== hovered) {
                                         setHovered(index);
                                     }
@@ -172,6 +184,7 @@ export const Scrubber = memo(function Scrubber({
                                 onPointerLeave={() => setPointing(false)}
                                 onClick={(e) => {
                                     const index = pointAt(e);
+
                                     if (index !== null) {
                                         onPick(index);
                                     }
@@ -183,6 +196,7 @@ export const Scrubber = memo(function Scrubber({
                             const distance = pointing && hoveredSlot !== null ? Math.abs(index - hoveredSlot) : null;
                             // A bookmark is a place to find again from anywhere, so it never dims with the rest.
                             const bright = slot.marked || slotInView(slot, inView) || distance === 0;
+
                             return (
                                 <Fragment key={slot.first}>
                                     <span

@@ -16,12 +16,15 @@ export function ForksRow({ chatId, turnId }: { chatId: string; turnId: string })
     const { t } = useTranslation('agent-chat');
     const forks = useForkIdsAfter(chatId, turnId);
     const label = t('work.forksAfter', { count: forks.length });
+
     if (forks.length === 0) {
         return null;
     }
+
     if (forks.length === 1) {
         return <OneFork forkId={forks[0]!} label={label} />;
     }
+
     return (
         <div className="flex">
             <Menu.Root>
@@ -53,6 +56,7 @@ function ForksLabel({ label, link = true }: { label: string; link?: boolean }) {
 // A fork no longer in this project has nowhere to lead, so it only says it is there.
 function OneFork({ forkId, label }: { forkId: string; label: string }) {
     const place = useHostChatPlace(forkId);
+
     return (
         <div className="flex">
             {place.title === null ? (
@@ -71,6 +75,7 @@ function OneFork({ forkId, label }: { forkId: string; label: string }) {
 function ForkItem({ forkId }: { forkId: string }) {
     const { t } = useTranslation('agent-chat');
     const place = useHostChatPlace(forkId);
+
     return (
         <Menu.Item disabled={place.title === null} onClick={place.go}>
             <Icon icon={GitFork} size={14} /> <span className="truncate">{place.title ?? t('fork.pill.label')}</span>

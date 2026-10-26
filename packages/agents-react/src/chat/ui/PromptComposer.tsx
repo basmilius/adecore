@@ -82,6 +82,7 @@ export function PromptComposer({
         if (hold?.releasedBy === 'blur' && heldKey.current === activeKey) {
             return;
         }
+
         if (focused && expanded && !elsewhere && !ref.current?.querySelector('.prompt-card')?.contains(document.activeElement)) {
             // Keys meant for the draft may still be coming, and on a button the next Space would answer the card.
             if (hasDraft) {
@@ -114,6 +115,7 @@ export function PromptComposer({
                         onDraft={(draft) => session.setDraft(promptIdOf(active), draft)}
                         onAction={(action) => {
                             refocus.hold();
+
                             void session
                                 .act(active, () => answerPrompt(active, action, actions, host))
                                 .then((result) => {

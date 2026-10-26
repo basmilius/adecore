@@ -24,31 +24,41 @@ export function diffSourceTokens(document: DiffDocument, mapping: DiffSyntaxMapp
     const pending = { old: new Set<number>(), new: new Set<number>() };
     const listeners = new Set<() => void>();
     let disposed = false;
+
     return {
         get(side, index) {
             const location = mapping.locate(side, index);
+
             if (disposed || location === undefined || document.sides[side][index] === undefined) {
                 return null;
             }
+
             const { block, line } = location;
             const known = cache[side].get(block);
+
             if (known !== undefined) {
                 return known[line] ?? null;
             }
+
             if (!pending[side].has(block)) {
                 pending[side].add(block);
                 const text = mapping.documents[side].blocks[block]!.split('\n');
+
                 const publish = (lines: ReadonlyArray<readonly LineToken[] | null>): void => {
                     if (disposed) {
                         return;
                     }
+
                     pending[side].delete(block);
                     cache[side].set(block, lines);
+
                     for (const listener of [...listeners]) {
                         listener();
                     }
                 };
+
                 const count = text.length;
+
                 void sides[side].request(block).then(
                     (packet) => {
                         if (!disposed) {
@@ -58,12 +68,14 @@ export function diffSourceTokens(document: DiffDocument, mapping: DiffSyntaxMapp
                     () => publish(text.map(() => null))
                 );
             }
+
             return undefined;
         },
         subscribe(listener) {
             if (!disposed) {
                 listeners.add(listener);
             }
+
             return () => {
                 listeners.delete(listener);
             };

@@ -40,11 +40,14 @@ const LIST_ITEM = /^([ \t]*)(?:([-*+])|(\d{1,9})([.)]))([ \t]+)(\[[ xX]\](?:[ \t
 /* The list item a line starts, if it starts one. */
 export function listItemAt(line: string): ListItem | null {
     const match = LIST_ITEM.exec(line);
+
     if (match === null) {
         return null;
     }
+
     const [prefix, indent, bullet, number, delimiter, space, task] = match;
     const marker = bullet ?? `${Number(number) + 1}${delimiter}`;
+
     return { prefix, next: `${indent}${marker}${space}${task ? '[ ] ' : ''}`, empty: line.slice(prefix.length).trim() === '' };
 }
 
@@ -60,25 +63,32 @@ export function enterAction(
     { inOpenFence, list, column, sendKey = 'enter', multiline = false, startsNewChat = false }: EnterContext
 ): EnterAction {
     const modOnly = modSends(sendKey, multiline);
+
     if (keys.mod) {
         if (keys.alt && startsNewChat) {
             return 'send-and-new';
         }
+
         return keys.alt || (modOnly && keys.shift) ? 'send-alternate' : 'send';
     }
+
     if (keys.shift || inOpenFence) {
         return 'newline';
     }
+
     if (list !== null) {
         // A caret in front of the marker moves the item down rather than splitting its marker.
         if (column < list.prefix.length) {
             return 'newline';
         }
+
         return list.empty ? 'leave-list' : 'continue-list';
     }
+
     if (keys.alt) {
         return 'send-alternate';
     }
+
     return modOnly ? 'newline' : 'send';
 }
 
@@ -89,6 +99,7 @@ function enclosingFence(tree: Tree, pos: number): SyntaxNode | null {
             return node;
         }
     }
+
     return null;
 }
 
@@ -100,16 +111,20 @@ function isOpenFence(fence: SyntaxNode): boolean {
 /* Whether `pos` sits inside a fenced code block that has an opening fence and no closing one yet. */
 export function inOpenFence(tree: Tree, pos: number): boolean {
     const fence = enclosingFence(tree, pos);
+
     return fence !== null && pos > fence.from && isOpenFence(fence);
 }
 
 /* Whether `pos` sits in the body of a fenced code block, open or closed: below its opening line and before its end. */
 export function inFenceBody(tree: Tree, text: string, pos: number): boolean {
     const fence = enclosingFence(tree, pos);
+
     if (fence === null) {
         return false;
     }
+
     const openingEnd = text.indexOf('\n', fence.from);
+
     return openingEnd !== -1 && pos > openingEnd && (pos < fence.to || isOpenFence(fence));
 }
 
@@ -127,18 +142,23 @@ const INLINE_BLOCK = /^(Paragraph|ATXHeading\d|SetextHeading\d)$/;
  */
 export function inCode(tree: Tree, text: string, pos: number): boolean {
     let blockFrom: number | null = null;
+
     for (let node: SyntaxNode | null = tree.resolveInner(pos, -1); node !== null; node = node.parent) {
         if (node.name === 'FencedCode') {
             return pos > node.from && (pos < node.to || isOpenFence(node));
         }
+
         if (node.name === 'InlineCode' && pos > node.from && pos < node.to) {
             return true;
         }
+
         if (blockFrom === null && INLINE_BLOCK.test(node.name)) {
             blockFrom = node.from;
         }
     }
+
     let from = blockFrom ?? text.lastIndexOf('\n', pos - 1) + 1;
+
     tree.iterate({
         from,
         to: pos,
@@ -148,6 +168,7 @@ export function inCode(tree: Tree, text: string, pos: number): boolean {
             }
         }
     });
+
     return /(^|[^\\])`/.test(text.slice(from, pos));
 }
 
@@ -169,8 +190,10 @@ export function recallDirection({ key, text, from, to, recalled }: RecallContext
     if (key === 'ArrowUp' && (text === '' || (recalled && from === 0))) {
         return -1;
     }
+
     if (key === 'ArrowDown' && recalled && to === text.length) {
         return 1;
     }
+
     return null;
 }

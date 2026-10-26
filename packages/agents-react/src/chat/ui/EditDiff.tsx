@@ -20,6 +20,7 @@ export default function EditDiff({ change, allowEditor = true, maxHeight }: { ch
     const legacyMode = !allowEditor || loadEngine === undefined;
     const legacyAllowed = legacyMode && legacyDiffBudget(change.before, change.after);
     const omitted = <DiffOmitted path={change.path} />;
+
     const fallback = legacyAllowed ? (
         <DiffFallbackBoundary fallback={omitted} resetKeys={[change.path, change.before, change.after]}>
             <LazyBoundary fallback={<div className="px-3 py-2 text-xs text-text-faint">{t('work.loadingDiff')}</div>}>
@@ -29,13 +30,17 @@ export default function EditDiff({ change, allowEditor = true, maxHeight }: { ch
     ) : (
         omitted
     );
+
     if (!sourceAllowed) {
         return omitted;
     }
+
     if (legacyMode) {
         return fallback;
     }
+
     const unavailable = <DiffUnavailable path={change.path} />;
+
     return (
         <DiffFallbackBoundary fallback={unavailable} resetKeys={[change.path, change.before, change.after, loadEngine]}>
             <LazyBoundary fallback={<div className="px-3 py-2 text-xs text-text-faint">{t('work.loadingDiff')}</div>}>

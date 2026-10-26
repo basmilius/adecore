@@ -85,6 +85,7 @@ describe('reading what is stored', () => {
             favoriteModels: { claude: ['opus'], codex: ['gpt-5-codex', 'gpt-5'] },
             changedAt: 42
         };
+
         expect(parseChatPreferences(JSON.stringify(stored))).toEqual(stored as ChatPreferences);
     });
 
@@ -112,6 +113,7 @@ describe('what a machine is told', () => {
             terminalRuntimeMode: 'auto',
             changedAt: 7
         });
+
         // The terminal mode too, since the machine starts terminal agents a verb opened on its own.
         expect(chatPreferencesPayload(remembered, 'local')).toEqual({
             runtimeMode: 'supervised',
@@ -129,10 +131,12 @@ describe('what a machine is told', () => {
 
     test('an account the machine turned off or removed is left to the default one, while one it did not list yet stands', () => {
         const remembered = preferences({ accountByMachine: { local: { claude: 'claude_work', codex: 'codex_gone' } } });
+
         const accounts: ProviderAccounts = {
             accounts: { claude: { kind: 'claude' }, claude_work: { kind: 'claude', enabled: false }, codex: { kind: 'codex' } },
             statuses: []
         };
+
         expect(chatPreferencesPayload(remembered, 'local', accounts).accounts).toBeUndefined();
         expect(chatPreferencesPayload(remembered, 'local', null).accounts).toBeUndefined();
         expect(chatPreferencesPayload(remembered, 'local').accounts).toEqual({ claude: 'claude_work', codex: 'codex_gone' });

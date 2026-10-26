@@ -3,6 +3,7 @@ import type { ModelInfo, ProviderInfo } from '@adecore/agent-contracts';
 import { favoritesFirst, inPickerOrder, pickerEntriesOf, searchModels, separatesGroups, shortlistOf, wantsModelSearch } from './picker-entries';
 
 const model = (slug: string, extra: Partial<ModelInfo> = {}): ModelInfo => ({ slug, name: slug, legacy: false, isDefault: false, options: [], ...extra });
+
 const provider = (models: ModelInfo[]): ProviderInfo => ({ kind: 'claude', name: 'Claude Code', version: '1.0.0', models }) as ProviderInfo;
 
 describe('inPickerOrder', () => {
@@ -15,6 +16,7 @@ describe('inPickerOrder', () => {
             { kind: 'antigravity', name: 'Antigravity' },
             { kind: 'claude', name: 'Claude Code' }
         ]).map((entry) => entry.kind);
+
         expect(ordered).toEqual(['claude', 'codex', 'antigravity', 'grok', 'anthropic-claude-api', 'nanogpt']);
         expect(ordered.map((kind, i) => separatesGroups(ordered[i - 1], kind))).toEqual([false, false, true, false, true, false]);
     });
@@ -108,6 +110,7 @@ describe('a provider with many models', () => {
         const entries = pickerEntriesOf([legacy, other], '', false, new Set(['codex']), null);
         expect(entries.at(-1)).toMatchObject({ kind: 'legacy', count: 1 });
         const rows = entries.flatMap((entry) => (entry.kind === 'all' ? [[entry.provider.kind, entry.open]] : []));
+
         expect(rows).toEqual([
             ['claude', false],
             ['codex', true]
@@ -133,11 +136,13 @@ describe('starred models', () => {
 
     test('stay in the short list of a long one, before the default and the one that is picked', () => {
         const big = provider(many(12).map((entry, i) => (i === 3 ? { ...entry, isDefault: true } : entry)));
+
         expect(shortlistOf('claude', big.models, { provider: 'claude', model: 'm07' }, new Set(['m10']))?.map((entry) => entry.slug)).toEqual([
             'm10',
             'm03',
             'm07'
         ]);
+
         expect(slugs(pickerEntriesOf([big], '', false, new Set(), null, () => new Set(['m10'])))).toEqual(['m10', 'm03', 'all']);
     });
 
@@ -155,5 +160,6 @@ test('vendor and model ties keep source order, while missing vendors go last', (
         model('unknown', { name: 'Model 1' }),
         model('earlier', { vendor: 'ACME', name: 'Model 3' })
     ];
+
     expect(favoritesFirst(models, new Set()).map((entry) => entry.slug)).toEqual(['earlier', 'first', 'second', 'tenth', 'unknown']);
 });

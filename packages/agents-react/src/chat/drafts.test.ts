@@ -31,6 +31,7 @@ describe('a queued message taken back to edit', () => {
             attachments: [upload('a.txt')],
             references: ['view-a']
         };
+
         expect(takeBackIntoDraft(EMPTY_DRAFT, taken)).toEqual({ draft: { ...taken, quote: '', quoteSource: null }, rejected: [] });
     });
 
@@ -45,6 +46,7 @@ describe('a queued message taken back to edit', () => {
             quoteSource: 'answer-1',
             references: ['node-b']
         };
+
         const taken = {
             text: 'see @src/a.ts\n',
             mentions: ['src/a.ts'],
@@ -53,6 +55,7 @@ describe('a queued message taken back to edit', () => {
             attachments: [upload('a.txt')],
             references: ['view-a', 'node-b']
         };
+
         expect(takeBackIntoDraft(current, taken).draft).toEqual({
             text: 'see @src/a.ts\n\nand @src/b.ts',
             mentions: ['src/a.ts', 'src/b.ts'],

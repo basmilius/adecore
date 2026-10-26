@@ -16,11 +16,15 @@ export function threadReferencedKey(structure: Record<string, ChatItem> | undefi
     if (structure === undefined) {
         return '';
     }
+
     const cached = referencedOf.get(structure);
+
     if (cached !== undefined) {
         return cached;
     }
+
     const ids = new Set<string>();
+
     for (const item of Object.values(structure)) {
         if (item.kind === 'user') {
             for (const id of [...(item.chats ?? []), ...(item.references ?? [])]) {
@@ -28,8 +32,10 @@ export function threadReferencedKey(structure: Record<string, ChatItem> | undefi
             }
         }
     }
+
     const key = [...ids].join('\n');
     referencedOf.set(structure, key);
+
     return key;
 }
 
@@ -39,6 +45,7 @@ export function useReferenceLookup(chatId: string): ReferenceLookup {
     const { openReference } = useChatHost();
     const referables = useHostReferables(scopeId, chatId);
     const key = useChatRow(chatId, (chat) => threadReferencedKey(chat?.structure));
+
     return {
         items: referables.items,
         open: openReference ? (id: string) => openReference(scopeId, id) : null,

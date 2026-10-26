@@ -21,6 +21,7 @@ export function stripMarkdown(text: string): string {
 /* What a tool call has to show for itself: what it answered, or what it has answered so far. */
 function outputOf(tool: { output: string | null; progress?: { output: string | null } }): string | null {
     const output = tool.output ?? tool.progress?.output ?? null;
+
     return output === null ? null : stripAnsi(output);
 }
 
@@ -41,6 +42,7 @@ export function messageTextOf(row: TimelineRow): string | null {
             return outputOf(row.tool);
         case 'work-group': {
             const outputs = row.tools.map(outputOf).filter((output): output is string => output !== null);
+
             return outputs.length > 0 ? outputs.join('\n\n') : null;
         }
         case 'subagent':

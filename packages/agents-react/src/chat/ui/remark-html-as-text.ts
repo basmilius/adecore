@@ -13,13 +13,18 @@ function literal(parent: MdastNode): void {
     if (parent.children === undefined) {
         return;
     }
+
     const flow = FLOW_PARENTS.has(parent.type);
+
     parent.children = parent.children.map((child): MdastNode => {
         if (child.type !== 'html') {
             literal(child);
+
             return child;
         }
+
         const text = { ...child, type: 'text' };
+
         return flow ? { type: 'paragraph', position: child.position, children: [text] } : text;
     });
 }

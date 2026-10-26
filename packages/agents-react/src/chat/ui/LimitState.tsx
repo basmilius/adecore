@@ -33,10 +33,13 @@ const refreshedAt = new Map<string, number>();
  */
 function readUnreadAccounts(scope: ChatScope): void {
     const last = refreshedAt.get(scope.id);
+
     if (last !== undefined && Date.now() - last < UNREAD_REFRESH_MS) {
         return;
     }
+
     refreshedAt.set(scope.id, Date.now());
+
     void scope.transport
         .request('usage.refreshLimits', {})
         .then((snapshot) => useUsageStore.getState().setLimits(scope.id, snapshot))
@@ -52,9 +55,11 @@ function ResumeAtResetToggle({ chatId, info }: { chatId: string; info: ChatInfo 
     const { id } = useChatScope();
     const actions = useChatActions();
     const machineAllows = useHostResumeAtReset(id);
+
     const set = (on: boolean): void => {
         void actions.configure(chatId, { resumeAtReset: on }).catch(() => undefined);
     };
+
     return (
         <Tooltip label={machineAllows ? t('limit.toggle') : t('limit.machineOff')}>
             {/* A disabled switch does not take the pointer, so the tooltip hangs on a wrapper. */}
@@ -89,11 +94,14 @@ function ContinueOn({ chatId, info, choice }: { chatId: string; info: ChatInfo; 
     }, [scope, unread]);
 
     const target = targets[0];
+
     if (target === undefined) {
         return null;
     }
+
     const go = (entry: AccountEntry): void => {
         setBusy(true);
+
         actions
             .continueOn(chatId, entry.id)
             .catch((e: unknown) =>
@@ -105,8 +113,10 @@ function ContinueOn({ chatId, info, choice }: { chatId: string; info: ChatInfo; 
             )
             .finally(() => setBusy(false));
     };
+
     const name = choice.nameOf(target);
     const split = targets.length > 1;
+
     const suggestion = (
         <Tooltip label={t('limit.continueOnTip', { account: name })}>
             <Button
@@ -123,9 +133,11 @@ function ContinueOn({ chatId, info, choice }: { chatId: string; info: ChatInfo; 
             </Button>
         </Tooltip>
     );
+
     if (!split) {
         return suggestion;
     }
+
     return (
         <ButtonGroup className="shrink-0">
             {suggestion}
@@ -161,10 +173,12 @@ function ContinueOnRows({
     const { t } = useTranslation('agent-chat');
     const limits = useUsageLimits();
     const now = useNow(MINUTE_MS);
+
     return targets.map((entry) => {
         const name = choice.nameOf(entry);
         const session = sessionWindow(limitsOfAccount(limits, entry.id));
         const fork = !canContinueOn(choice.accounts, info.provider, info.account, entry.id);
+
         return (
             <Menu.Item
                 key={entry.id}
@@ -192,12 +206,15 @@ export function LimitDock({ chatId, info }: { chatId: string; info: ChatInfo }) 
     const now = useNow(MINUTE_MS, info.limit !== undefined);
     const choice = useAccountChoice(info.provider, info.account);
     const view = limitView(info, now);
+
     if (view === null) {
         return null;
     }
+
     // With a choice of accounts the line names the one that ran into the limit.
     const account = choice === null ? null : choice.current === null ? choice.currentId : choice.nameOf(choice.current);
     const detail = account === null ? view.detail : view.detail === null ? account : `${account} · ${view.detail}`;
+
     return (
         <div className="flex items-center gap-2 border-b border-border px-3.5 py-2.5">
             <Icon icon={Hourglass} size={16} className="shrink-0 text-text-faint" />
@@ -219,9 +236,11 @@ export function LimitPill({ chatId }: { chatId: string }) {
     useFormatLocale();
     const now = useNow(MINUTE_MS, info?.limit !== undefined);
     const view = info === undefined ? null : limitView(info, now);
+
     if (info === undefined || view === null) {
         return null;
     }
+
     return (
         <>
             <Tooltip label={view.detail === null ? view.title : `${view.title}. ${view.detail}`}>

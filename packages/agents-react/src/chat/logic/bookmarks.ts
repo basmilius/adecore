@@ -9,7 +9,9 @@ export function bookmarkLabel(bookmark: ChatBookmark): string {
 /* The bookmarks in the order of the thread; one whose message this client does not hold goes last. */
 export function bookmarksInThreadOrder(bookmarks: readonly ChatBookmark[], order: readonly string[]): ChatBookmark[] {
     const places = new Map(order.map((id, index) => [id, index]));
+
     const place = (bookmark: ChatBookmark): number => places.get(bookmark.itemId) ?? order.length;
+
     return [...bookmarks].sort((left, right) => place(left) - place(right) || left.createdAt - right.createdAt);
 }
 
@@ -25,18 +27,23 @@ export function bookmarkRows(
 ): Map<string, ChatBookmark> {
     const rowIds = new Set(rows.map((row) => row.id));
     const folds = new Map<string, string>();
+
     for (const row of rows) {
         if (row.kind === 'turn-fold') {
             folds.set(row.turn.id, row.id);
         }
     }
+
     const marked = new Map<string, ChatBookmark>();
+
     for (const bookmark of bookmarks) {
         const turnId = items[bookmark.itemId]?.turnId ?? null;
         const rowId = rowIds.has(bookmark.itemId) ? bookmark.itemId : turnId === null ? undefined : folds.get(turnId);
+
         if (rowId !== undefined && !marked.has(rowId)) {
             marked.set(rowId, bookmark);
         }
     }
+
     return marked;
 }

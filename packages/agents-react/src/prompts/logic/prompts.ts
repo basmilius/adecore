@@ -2,17 +2,20 @@ import type { ChatApprovalItem, ChatQuestionItem, ChatQuestion } from '@adecore/
 import { toggleChoice } from '../../chat/logic/answers';
 
 export type PendingPrompt = ChatApprovalItem | ChatQuestionItem;
+
 export type PromptAction =
     | { kind: 'approve'; decision: 'allow' | 'allow-always' | 'deny'; message?: string }
     | { kind: 'answer'; answers: Record<string, string> }
     | { kind: 'dismiss' }
     // A terminal's permission request, answered with one of the choices the host offered.
     | { kind: 'choose'; choiceId: string };
+
 export interface PromptAnswer {
     choices: string[];
     text: string;
     custom: boolean;
 }
+
 export interface PromptDraft {
     index: number;
     answers: Record<string, PromptAnswer>;
@@ -23,9 +26,11 @@ export interface PromptDraft {
 export function emptyPromptDraft(): PromptDraft {
     return { index: 0, answers: {}, reason: '', showReason: false };
 }
+
 export function answerValue(answer: PromptAnswer): string {
     return answer.custom ? answer.text.trim() : answer.choices.join(', ');
 }
+
 export function questionAnswer(draft: PromptDraft, question: ChatQuestion): PromptAnswer {
     return draft.answers[question.id] ?? { choices: [], text: '', custom: question.choices.length === 0 };
 }
@@ -46,13 +51,16 @@ export function orderPrompts<T>(prompts: readonly T[], blocking: (prompt: T) => 
 
 export function nextPrompt(items: readonly PendingPrompt[], activeId: string | null): PendingPrompt | null {
     const active = items.find((item) => item.requestId === activeId);
+
     if (active) {
         return active;
     }
+
     return orderPrompts(items, isBlockingPrompt, (item) => item.createdAt)[0] ?? null;
 }
 
 export function promptAnswers(item: ChatQuestionItem, draft: PromptDraft): Record<string, string> | null {
     const answers = Object.fromEntries(item.questions.map((question) => [question.id, answerValue(questionAnswer(draft, question))]));
+
     return Object.values(answers).every((answer) => answer !== '') ? answers : null;
 }

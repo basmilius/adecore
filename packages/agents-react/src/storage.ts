@@ -37,12 +37,14 @@ export function configureChatStorage(configuration: ChatStorageOptions): void {
     if (hydrated) {
         throw new Error('Configure chat storage before using chat stores');
     }
+
     options = {
         ...configuration,
         keys: { ...configuration.keys },
         legacyNamespaces: [...(configuration.legacyNamespaces ?? [])],
         legacyKeys: Object.fromEntries(Object.entries(configuration.legacyKeys ?? {}).map(([key, values]) => [key, [...values]]))
     };
+
     for (const listener of configurationListeners) {
         listener();
     }
@@ -60,6 +62,7 @@ export function chatStorageAdapter(): ChatStorageAdapter | null {
     if (options.storage !== undefined) {
         return options.storage;
     }
+
     try {
         return globalThis.localStorage;
     } catch {
@@ -71,7 +74,9 @@ export function hydrateChatStorage(): void {
     if (hydrated) {
         return;
     }
+
     hydrated = true;
+
     for (const hydrate of hydrators) {
         hydrate();
     }
@@ -80,34 +85,47 @@ export function hydrateChatStorage(): void {
 export function createChatStore<T>(initial: StateCreator<T>, hydrate: (store: StoreApi<T>) => void): UseBoundStore<StoreApi<T>> {
     const store = create<T>(initial);
     let initialized = false;
+
     const hydrateOnce = (): void => {
         if (initialized) {
             return;
         }
+
         initialized = true;
         hydrate(store);
     };
+
     hydrators.push(hydrateOnce);
+
     const ready = (): void => {
         hydrateChatStorage();
         hydrateOnce();
     };
+
     const useStore = ((...args: Parameters<typeof store>) => {
         ready();
+
         return store(...args);
     }) as typeof store;
+
     Object.assign(useStore, store);
+
     useStore.getState = () => {
         ready();
+
         return store.getState();
     };
+
     useStore.subscribe = (...args) => {
         ready();
+
         return store.subscribe(...args);
     };
+
     useStore.setState = ((...args: Parameters<typeof store.setState>) => {
         ready();
         store.setState(...args);
     }) as typeof store.setState;
+
     return useStore;
 }

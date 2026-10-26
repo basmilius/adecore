@@ -17,6 +17,7 @@ class TestWorker {
         if (this.fail) {
             throw new Error('Worker transport failed');
         }
+
         this.sent.push(message);
     }
 
@@ -73,6 +74,7 @@ function fixture(highlighter: Highlighter): () => Promise<Highlighter> {
         ...highlighter,
         codeToTokensBase: (code, options) => highlighter.codeToTokensBase(code, { ...options, tokenizeTimeLimit: 0 })
     };
+
     return async () => untimed;
 }
 
@@ -80,13 +82,16 @@ describe('diff syntax runtime', () => {
     test('opens lazily and shares one worker across mounted sides', async () => {
         const worker = new TestWorker();
         let calls = 0;
+
         const runtime = createDiffSyntaxRuntime({
             themes: [],
             workerFactory: () => {
                 calls++;
+
                 return worker.worker();
             }
         });
+
         const old = runtime.open(DOCUMENT);
         const fresh = runtime.open(DOCUMENT);
         expect(calls).toBe(0);
@@ -97,9 +102,11 @@ describe('diff syntax runtime', () => {
         const requests = worker.requests();
         expect(requests.map((request) => request.document)).toEqual([DOCUMENT, DOCUMENT]);
         expect(requests[0]!.generation).not.toBe(requests[1]!.generation);
+
         for (const request of requests) {
             worker.emit(packet({ generation: request.generation, index: request.index }));
         }
+
         expect((await left)?.index).toBe(0);
         expect((await right)?.index).toBe(0);
         runtime.dispose();
@@ -113,9 +120,11 @@ describe('diff syntax runtime', () => {
         expect(session.request(0)).toBe(one);
         const two = session.request(1);
         expect(worker.requests()[1]!.document).toBeUndefined();
+
         for (const request of worker.requests()) {
             worker.emit(packet({ generation: request.generation, index: request.index }));
         }
+
         await Promise.all([one, two]);
         runtime.dispose();
     });
@@ -210,14 +219,17 @@ describe('diff syntax runtime', () => {
     test('worker construction failure falls back for all later requests', async () => {
         using highlighter = await createHighlighter({ themes: [], langs: [] });
         let factories = 0;
+
         const runtime = createDiffSyntaxRuntime({
             themes: [],
             highlighter: fixture(highlighter),
             workerFactory: () => {
                 factories++;
+
                 throw new Error('CSP blocked worker');
             }
         });
+
         const session = runtime.open(DOCUMENT);
         const first = await session.request(0);
         const second = await session.request(0);
@@ -261,6 +273,7 @@ describe('diff syntax runtime', () => {
                 throw new Error('WASM unavailable');
             }
         });
+
         expect(await runtime.open(DOCUMENT).request(0)).toBeNull();
         runtime.dispose();
         const worker = new TestWorker();

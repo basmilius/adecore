@@ -63,13 +63,16 @@ interface ProviderListProps {
 /* The providers by whether they are ready, need setup or are not installed; a group without providers is left out. */
 export function ProviderList({ groups, current, canAddAccount, canAddProvider = false, onPick }: ProviderListProps) {
     const { t } = useTranslation('agent-providers');
+
     const picksCli = (kind: AgentKind): boolean => (current?.kind === 'cli' || current?.kind === 'install') && current.cli === kind;
+
     const picksAccount = (id: string): boolean => current?.kind === 'account' && current.id === id;
 
     const row = ({ provider, entries, note }: ProviderRow) => {
         // One account has no row of its own, so picking it lights up its provider.
         const several = entries.length > 1;
         const selected = picksCli(provider.kind) || (!several && entries[0] !== undefined && picksAccount(entries[0].id));
+
         return (
             <div key={provider.kind} className="flex min-w-0 shrink-0 flex-col gap-0.5">
                 <ListRow

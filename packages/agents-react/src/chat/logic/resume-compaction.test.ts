@@ -79,6 +79,7 @@ test('a chat that is working or has a message waiting is left alone', () => {
 
 test('a turn that already compacted is not offered it again, in either shape', () => {
     expect(offer({ items: [turn('turn-1', ENDED), compaction('turn-1')] })).toBeNull();
+
     expect(offer({ items: [turn('turn-1', ENDED), compaction('turn-0'), turn('turn-2', ENDED)] })).toEqual({
         turnId: 'turn-2',
         tokens: RESUME_COMPACTION_TOKENS,
@@ -89,6 +90,7 @@ test('a turn that already compacted is not offered it again, in either shape', (
 test('keeping the full history holds for that turn only', () => {
     expect(offer({ dismissedTurnId: 'turn-1' })).toBeNull();
     expect(offer({ dismissedTurnId: 'turn-0' })).toEqual({ turnId: 'turn-1', tokens: RESUME_COMPACTION_TOKENS, reason: 'idle' });
+
     expect(offer({ items: [turn('turn-1', ENDED), turn('turn-2', ENDED)], dismissedTurnId: 'turn-1' })).toEqual({
         turnId: 'turn-2',
         tokens: RESUME_COMPACTION_TOKENS,
@@ -114,9 +116,11 @@ test('a cache that is still warm keeps the offer back, however long the chat lay
 test('the offer comes due when the cache expires, or after the idle stretch from a CLI that names no expiry, and not at all while none could be made', () => {
     const items = [turn('turn-1', ENDED)];
     const expires = ENDED + 300_000;
+
     expect(resumeCompactionDueAt({ info: info({ usage: { ...USAGE, cacheExpiresAt: expires } }), compaction: 'prompt', items, dismissedTurnId: null })).toBe(
         expires
     );
+
     expect(resumeCompactionDueAt({ info: info(), compaction: 'prompt', items, dismissedTurnId: null })).toBe(ENDED + RESUME_COMPACTION_IDLE_MS);
     expect(resumeCompactionDueAt({ info: info(), compaction: 'none', items, dismissedTurnId: null })).toBeNull();
     expect(resumeCompactionDueAt({ info: info(), compaction: 'prompt', items, dismissedTurnId: 'turn-1' })).toBeNull();
@@ -133,10 +137,12 @@ function fakeClock(start: number) {
     let now = start;
     let timer: { run: () => void; at: number } | null = null;
     let wake: (() => void) | null = null;
+
     const clock: DueClock = {
         now: () => now,
         setTimer: (run, ms) => {
             timer = { run, at: now + ms };
+
             return timer;
         },
         clearTimer: (cleared) => {
@@ -146,11 +152,13 @@ function fakeClock(start: number) {
         },
         onWake: (listener) => {
             wake = listener;
+
             return () => {
                 wake = null;
             };
         }
     };
+
     return {
         clock,
         set: (time: number) => {

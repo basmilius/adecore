@@ -15,6 +15,7 @@ export function holdsPrompt(input: HoldInput, now: number): boolean {
     if (input.composing) {
         return true;
     }
+
     return input.typedAt !== null && now - input.typedAt < PROMPT_HOLD_PAUSE_MS;
 }
 
@@ -23,5 +24,6 @@ export function holdLiftsIn(input: HoldInput, now: number): number | null {
     if (input.composing || input.typedAt === null) {
         return null;
     }
+
     return Math.max(0, input.typedAt + PROMPT_HOLD_PAUSE_MS - now);
 }

@@ -22,11 +22,13 @@ export function useFileLinkTarget(text: string): FileRef | null {
     const cwd = useFileLinkCwd();
     const scopeId = useFileLinkScopeId();
     const { fileLinks } = useChatHost();
+
     return fileLinks?.target(text, cwd, scopeId) ?? null;
 }
 
 /* Follows a reference the way the app opens a file or a folder. */
 export function useOpenFileLink(): (cwd: string | null, ref: FileRef, scopeId?: string | null) => void {
     const { fileLinks } = useChatHost();
+
     return (cwd, ref, scopeId = null) => fileLinks?.open(cwd, ref, scopeId);
 }

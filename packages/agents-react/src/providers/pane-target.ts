@@ -16,12 +16,15 @@ export function pickOfTarget(target: string | null, providers: ProviderInfo[]): 
     if (target === 'providers.apple') {
         return { kind: 'cli', cli: 'apple' };
     }
+
     if (target === ADD_TARGET) {
         return { kind: 'catalog' };
     }
+
     if (!target?.startsWith(INSTALL_TARGET) || target.length === INSTALL_TARGET.length) {
         return null;
     }
+
     return pickOfCli(target.slice(INSTALL_TARGET.length) as AgentKind, providers);
 }
 
@@ -32,8 +35,10 @@ export function pickOfTarget(target: string | null, providers: ProviderInfo[]): 
  */
 export function pickOfCli(cli: AgentKind, providers: ProviderInfo[]): Picked {
     const provider = providers.find((entry) => entry.kind === cli);
+
     if (provider !== undefined && (provider.installed || !provider.capabilities.terminal)) {
         return { kind: 'cli', cli };
     }
+
     return { kind: 'install', cli };
 }

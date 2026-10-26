@@ -12,6 +12,7 @@ import { ChatScopeContext, type ChatScope } from '../../scope';
 import { parseAnsi, stripAnsi } from './ansi';
 
 const i18n = createInstance();
+
 await i18n.init({ lng: 'en', resources: { en: { 'agent-chat': words } } });
 
 function render(props: Parameters<typeof AnsiOutput>[0]): string {
@@ -29,7 +30,9 @@ describe('ANSI tool output', () => {
         const output =
             '\x1b[30;42;1m PASS \x1b[39;49;22m\x1b[39m Tests\\Audit\\NotificationsTest\x1b[39m\n' +
             '\x1b[32;1m✓\x1b[39;22m \x1b[90mit uses ULID session identity\x1b[39m';
+
         const { tokens } = parseAnsi(output);
+
         expect(tokens).toEqual([
             { content: ' PASS ', style: { color: 'var(--term-ansi-black)', backgroundColor: 'var(--term-ansi-green)', fontWeight: 'bold' } },
             { content: ' Tests\\Audit\\NotificationsTest', style: {} },
@@ -42,11 +45,13 @@ describe('ANSI tool output', () => {
 
     test('uses theme tokens for all standard and bright foregrounds and backgrounds', () => {
         const names = ['black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white'];
+
         for (let i = 0; i < names.length; i++) {
             expect(parseAnsi(`\x1b[${30 + i};${40 + i}mtext`).tokens[0]!.style).toEqual({
                 color: `var(--term-ansi-${names[i]})`,
                 backgroundColor: `var(--term-ansi-${names[i]})`
             });
+
             expect(parseAnsi(`\x1b[${90 + i};${100 + i}mtext`).tokens[0]!.style).toEqual({
                 color: `var(--term-ansi-bright-${names[i]})`,
                 backgroundColor: `var(--term-ansi-bright-${names[i]})`
@@ -65,6 +70,7 @@ describe('ANSI tool output', () => {
 
     test('supports dim, italic, underline, strikethrough, inverse and individual resets', () => {
         const { tokens } = parseAnsi('\x1b[31;44;1;2;3;4;9mstyled\x1b[22;23;24;29;7mreversed\x1b[27;39;49mplain');
+
         expect(tokens[0]!.style).toEqual({
             color: 'color-mix(in srgb, var(--term-ansi-red) 65%, transparent)',
             backgroundColor: 'var(--term-ansi-blue)',
@@ -72,6 +78,7 @@ describe('ANSI tool output', () => {
             fontStyle: 'italic',
             textDecorationLine: 'underline line-through'
         });
+
         expect(tokens[1]!.style).toEqual({ color: 'var(--term-ansi-blue)', backgroundColor: 'var(--term-ansi-red)' });
         expect(tokens[2]!.style).toEqual({});
         expect(parseAnsi('\x1b[7minverse').tokens[0]!.style).toEqual({ color: 'var(--chat-code-bg)', backgroundColor: 'var(--chat-output)' });
@@ -82,6 +89,7 @@ describe('ANSI tool output', () => {
             color: 'var(--term-ansi-red)',
             backgroundColor: 'var(--term-ansi-bright-red)'
         });
+
         expect(parseAnsi('\x1b[38;5;196;48;5;232mcube').tokens[0]!.style).toEqual({ color: 'rgb(255 0 0)', backgroundColor: 'rgb(8 8 8)' });
         expect(parseAnsi('\x1b[38;5;231;48;5;255mgray').tokens[0]!.style).toEqual({ color: 'rgb(255 255 255)', backgroundColor: 'rgb(238 238 238)' });
     });
@@ -91,10 +99,12 @@ describe('ANSI tool output', () => {
             color: 'rgb(12 34 56)',
             backgroundColor: 'rgb(78 90 123)'
         });
+
         expect(parseAnsi('\x1b[38:2::12:34:56;48:5:196mRGB').tokens[0]!.style).toEqual({
             color: 'rgb(12 34 56)',
             backgroundColor: 'rgb(255 0 0)'
         });
+
         expect(parseAnsi('\x1b[38:2:12:34:56mRGB').tokens[0]!.style.color).toBe('rgb(12 34 56)');
     });
 
@@ -127,6 +137,7 @@ describe('ANSI tool output', () => {
             ],
             omitted: 4
         });
+
         expect(parseAnsi('\x1b[32mhello\x1b[0m', { limit: 5 }).omitted).toBe(0);
         expect(parseAnsi('\x1b[32mhello', { limit: 0 })).toEqual({ tokens: [], omitted: 5 });
     });
@@ -135,12 +146,14 @@ describe('ANSI tool output', () => {
         const lines = Array.from({ length: 20 }, (_, i) => `line ${i}`).join('\n');
         const text = `\x1b[32m${lines}\n`;
         const result = parseAnsi(text, { tailLines: 12 });
+
         expect(result.tokens).toEqual([
             {
                 content: Array.from({ length: 12 }, (_, i) => `line ${i + 8}`).join('\n'),
                 style: { color: 'var(--term-ansi-green)' }
             }
         ]);
+
         expect(result.omitted).toBe(0);
         expect(plain('first\n\nlast\n', { tailLines: 2 })).toBe('\nlast');
         expect(plain('\n', { tailLines: 12 })).toBe('');
@@ -154,7 +167,9 @@ describe('ANSI tool output', () => {
             transport: {} as ChatScope['transport'],
             chats: {} as ChatScope['chats']
         };
+
         const lines = Array.from({ length: 20 }, (_, i) => `line ${i}`).join('\n');
+
         const tool: ChatToolItem = {
             id: 'colored-live',
             kind: 'tool',
@@ -168,6 +183,7 @@ describe('ANSI tool output', () => {
             parentToolUseId: null,
             progress: { startedAt: null, description: null, output: `\x1b[32m${lines}\n` }
         };
+
         const markup = renderToStaticMarkup(
             createElement(
                 I18nextProvider,
@@ -175,6 +191,7 @@ describe('ANSI tool output', () => {
                 createElement(ChatScopeContext.Provider, { value: scope }, createElement(WorkLiveRow, { chatId: 'chat', tool }))
             )
         );
+
         const { document } = parseHTML(markup);
         const output = document.querySelector('pre')!;
         expect(output.textContent).toBe(Array.from({ length: 12 }, (_, i) => `line ${i + 8}`).join('\n'));

@@ -32,19 +32,23 @@ export default function EditorPatchDiff({
 }) {
     const oldText = contents?.old;
     const newText = contents?.new;
+
     const document = useMemo(() => {
         if (!sourceChecked && (!diffSourceBudget(oldText ?? '', newText ?? '') || !patchSourceBudget(change.diff))) {
             return undefined;
         }
+
         return diffDocument(
             parsePatch(change.diff),
             oldText === undefined || newText === undefined ? undefined : { old: oldText, new: newText },
             ignoreWhitespace
         );
     }, [change.diff, oldText, newText, ignoreWhitespace, sourceChecked]);
+
     if (document === undefined) {
         return <DiffOmitted path={change.path} />;
     }
+
     return (
         <EditorDocumentDiff
             document={document}

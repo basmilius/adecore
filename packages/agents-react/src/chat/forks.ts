@@ -23,11 +23,13 @@ function joinedForks(
 ): (state: { statusByKey: ChatStatuses }) => string {
     let statuses: ChatStatuses | null = null;
     let joined = '';
+
     return (state) => {
         if (state.statusByKey !== statuses) {
             statuses = state.statusByKey;
             joined = [...collect(forkInfosOn(statuses, owns))].join('\n');
         }
+
         return joined;
     };
 }
@@ -41,6 +43,7 @@ export function useForkedTurns(chatId: string): ReadonlySet<string> {
     const { owns } = useChatScope();
     const select = joinedForks(owns, (infos) => forkedTurnIds(infos, chatId));
     const joined = useChats(select);
+
     return new Set(splitIds(joined));
 }
 
@@ -49,5 +52,6 @@ export function useForkIdsAfter(chatId: string, turnId: string): string[] {
     const { owns } = useChatScope();
     const select = joinedForks(owns, (infos) => forkIdsAfter(infos, chatId, turnId));
     const joined = useChats(select);
+
     return splitIds(joined);
 }

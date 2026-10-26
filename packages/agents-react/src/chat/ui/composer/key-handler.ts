@@ -34,9 +34,11 @@ function indentInFence(e: KeyboardEvent, view: EditorView): boolean {
     const { state } = view;
     const { from, to, head } = state.selection.main;
     const tree = ensureSyntaxTree(state, state.doc.length, 50) ?? syntaxTree(state);
+
     if (!inFenceBody(tree, state.doc.toString(), head)) {
         return false;
     }
+
     // Handled even when there is nothing to outdent, so Shift+Tab never throws the focus out of a block.
     if (e.shiftKey) {
         indentLess(view);
@@ -45,48 +47,62 @@ function indentInFence(e: KeyboardEvent, view: EditorView): boolean {
     } else {
         view.dispatch(state.replaceSelection(tabSpaces(head - state.doc.lineAt(head).from)), { scrollIntoView: true, userEvent: 'input' });
     }
+
     return true;
 }
 
 /* The keys an open picker takes: the arrows walk it, and Tab (or Enter, outside the commands) picks. */
 export function pickInMenu(e: KeyboardEvent, menus: ComposerMenus): boolean {
     const { activeIndex } = menus;
+
     if (menus.commandMenuOpen) {
         if (menus.moveInMenu(e.key, menus.commands.length)) {
             return true;
         }
+
         if (e.key === 'Tab') {
             menus.completeCommand(menus.commands[activeIndex]!);
+
             return true;
         }
     }
+
     if (menus.skillMenuOpen) {
         if (menus.moveInMenu(e.key, menus.skillMatches.length)) {
             return true;
         }
+
         if (e.key === 'Tab' || e.key === 'Enter') {
             menus.chooseSkill((menus.skillMatches[activeIndex] ?? menus.skillMatches[0]!).name);
+
             return true;
         }
     }
+
     if (menus.mentionMenuOpen && menus.mentionCount > 0) {
         if (menus.moveInMenu(e.key, menus.mentionCount)) {
             return true;
         }
+
         if (e.key === 'Tab' || e.key === 'Enter') {
             menus.chooseMentionAt(activeIndex);
+
             return true;
         }
     }
+
     if (menus.referenceMenuOpen && menus.referenceMatches.length > 0) {
         if (menus.moveInMenu(e.key, menus.referenceMatches.length)) {
             return true;
         }
+
         if (e.key === 'Tab' || e.key === 'Enter') {
             menus.chooseReferenceAt(activeIndex);
+
             return true;
         }
     }
+
     return false;
 }
 
@@ -98,6 +114,7 @@ function enter(e: KeyboardEvent, view: EditorView, { host, sendKey, submit }: Ke
     const tree = ensureSyntaxTree(state, state.doc.length, 50) ?? syntaxTree(state);
     const line = state.doc.lineAt(head);
     const list = from === to && !inCode(tree, state.doc.toString(), head) ? listItemAt(line.text) : null;
+
     const action = enterAction(
         { shift: e.shiftKey, mod: isModHeld(e, host.isApplePlatform()), alt: e.altKey },
         {
@@ -109,9 +126,11 @@ function enter(e: KeyboardEvent, view: EditorView, { host, sendKey, submit }: Ke
             startsNewChat: host.openNewChat !== null
         }
     );
+
     if (action === 'newline') {
         return insertNewline(view);
     }
+
     if (action === 'continue-list') {
         if (list) {
             view.dispatch({
@@ -121,57 +140,77 @@ function enter(e: KeyboardEvent, view: EditorView, { host, sendKey, submit }: Ke
                 userEvent: 'input'
             });
         }
+
         return true;
     }
+
     if (action === 'leave-list') {
         view.dispatch({ changes: { from: line.from, to: line.to }, selection: { anchor: line.from }, userEvent: 'delete' });
+
         return true;
     }
+
     submit(SEND_HOW[action]);
+
     return true;
 }
 
 /* Runs before the editor's own keymap; true means the key is handled and its default prevented. */
 export function composerKeyHandler(input: KeyHandlerInput): (e: KeyboardEvent, view: EditorView) => boolean {
     const { chatId, host, text, history } = input;
+
     return (e, view) => {
         input.noteKey(e);
+
         // Escape leaves the node, unless it first has a recalled prompt to put back.
         if (e.key === 'Escape' && !e.isComposing) {
             if (!history.leave()) {
                 return false;
             }
+
             e.stopPropagation();
+
             return true;
         }
+
         // The app's own shortcuts stay the app's while you type: Mod+Shift+Enter would otherwise send as well.
         if (host.isAppShortcut(e)) {
             return false;
         }
+
         e.stopPropagation();
+
         // A key inside an IME composition belongs to the composition, Enter and the arrows included.
         if (e.isComposing) {
             return false;
         }
+
         // Reading back through a long answer should not mean leaving the box you are typing in.
         if (e.key === 'PageUp' || e.key === 'PageDown') {
             return pageTimeline(chatId, e.key === 'PageUp' ? -1 : 1);
         }
+
         if (matchesShortcut(STASH_SHORTCUT, e, host.isApplePlatform())) {
             input.toggleStash();
+
             return true;
         }
+
         if (pickInMenu(e, input.menus)) {
             return true;
         }
+
         if (e.key === 'Tab' && !e.altKey && !e.metaKey && !e.ctrlKey && indentInFence(e, view)) {
             return true;
         }
+
         if (e.key === 'Enter') {
             return enter(e, view, input);
         }
+
         const { from, to } = view.state.selection.main;
         const direction = recallDirection({ key: e.key, text, from, to, recalled: history.recalled(text) });
+
         return direction !== null && history.recall(direction);
     };
 }

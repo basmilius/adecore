@@ -26,10 +26,13 @@ const START: View = { scale: 1, x: 0, y: 0 };
  */
 function zoomed(view: View, factor: number, pointX: number, pointY: number): View {
     const scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, view.scale * factor));
+
     if (scale === MIN_SCALE) {
         return START;
     }
+
     const ratio = scale / view.scale;
+
     return { scale, x: pointX - (pointX - view.x) * ratio, y: pointY - (pointY - view.y) * ratio };
 }
 
@@ -62,9 +65,11 @@ function Lightbox({
     /* Where the pointer sits against the middle of the frame, which is what the transform counts from. */
     const pointIn = (event: { clientX: number; clientY: number }): { x: number; y: number } => {
         const rect = frameRef.current?.getBoundingClientRect();
+
         if (!rect) {
             return { x: 0, y: 0 };
         }
+
         return { x: event.clientX - rect.left - rect.width / 2, y: event.clientY - rect.top - rect.height / 2 };
     };
 
@@ -114,11 +119,13 @@ function Lightbox({
                         if (view.scale <= MIN_SCALE) {
                             return;
                         }
+
                         e.currentTarget.setPointerCapture(e.pointerId);
                         dragRef.current = { pointerId: e.pointerId, x: e.clientX - view.x, y: e.clientY - view.y };
                     }}
                     onPointerMove={(e) => {
                         const drag = dragRef.current;
+
                         if (drag?.pointerId === e.pointerId) {
                             setView((current) => ({ ...current, x: e.clientX - drag.x, y: e.clientY - drag.y }));
                         }
@@ -163,12 +170,15 @@ export interface ImageThumbProps {
 export function ImageThumb({ source, alt, className, aspect, actions, open: openProp, onOpenChange }: ImageThumbProps) {
     const [ownOpen, setOwnOpen] = useState(false);
     const open = openProp ?? ownOpen;
+
     const setOpen = (next: boolean): void => {
         setOwnOpen(next);
         onOpenChange?.(next);
     };
+
     const { url: src, failure } = source;
     const ratio = aspect === undefined ? undefined : { aspectRatio: aspect };
+
     if (src === null) {
         return (
             <span
@@ -186,6 +196,7 @@ export function ImageThumb({ source, alt, className, aspect, actions, open: open
             </span>
         );
     }
+
     return (
         <>
             <button

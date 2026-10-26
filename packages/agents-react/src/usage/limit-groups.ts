@@ -46,12 +46,15 @@ export function limitGroups(snapshot: UsageLimitsSnapshot, accounts: ProviderAcc
         if (!snapshot.providers.some((entry) => entry.kind === kind)) {
             return [];
         }
+
         const known = accountsOfKind(accounts, kind);
+
         const read = snapshot.providers
             .filter((entry) => entry.kind === kind)
             .map((entry): LimitAccount => {
                 const id = limitsAccountId(entry);
                 const account = known.find((each) => each.id === id);
+
                 return {
                     id,
                     kind,
@@ -61,6 +64,7 @@ export function limitGroups(snapshot: UsageLimitsSnapshot, accounts: ProviderAcc
                     status: account?.status ?? null
                 };
             });
+
         const unread = known
             .filter((account) => account.account.enabled !== false && !read.some((row) => row.id === account.id))
             .map((account): LimitAccount => ({
@@ -71,7 +75,9 @@ export function limitGroups(snapshot: UsageLimitsSnapshot, accounts: ProviderAcc
                 entry: null,
                 status: account.status
             }));
+
         const rows = [...read, ...unread];
+
         return rows.length === 0 ? [] : [{ kind, accounts: rows }];
     });
 }
@@ -88,11 +94,13 @@ export function isSignedOut(account: LimitAccount): boolean {
 /* The window that resets first from now, the one reset a line per window has no room to repeat. */
 export function nextReset(windows: readonly UsageWindow[], now: number): (UsageWindow & { resetsAt: number }) | null {
     let next: (UsageWindow & { resetsAt: number }) | null = null;
+
     for (const window of windows) {
         if (window.resetsAt !== null && window.resetsAt > now && (next === null || window.resetsAt < next.resetsAt)) {
             next = { ...window, resetsAt: window.resetsAt };
         }
     }
+
     return next;
 }
 
@@ -100,6 +108,7 @@ export function nextReset(windows: readonly UsageWindow[], now: number): (UsageW
 export function paceText(window: UsageWindow, now: number): string {
     const percent = Math.round(window.used * 100);
     const pace = evenPace(window, now);
+
     return pace === null
         ? i18next.t('agent-usage:limits.used', { percent })
         : i18next.t(`agent-usage:limits.pace.${pace.standing}`, { percent, pace: pace.percent });
@@ -110,8 +119,10 @@ export function checkedLabel(entry: UsageLimitsProvider, now: number): string | 
     if (entry.checkedAt <= 0) {
         return null;
     }
+
     const past = now - entry.checkedAt;
     const when = past < MINUTE ? i18next.t('agent-usage:limits.checked.now') : i18next.t('agent-usage:limits.checked.ago', { duration: formatDuration(past) });
+
     return entry.source === 'event' ? i18next.t('agent-usage:limits.checked.fromTurn', { when }) : when;
 }
 
@@ -120,13 +131,16 @@ export function explain(provider: UsageLimitsProvider): string | null {
     if (provider.unavailable === null) {
         return provider.windows.length === 0 ? i18next.t('agent-usage:limits.none') : null;
     }
+
     if (provider.unavailable.reason === 'not-installed') {
         return i18next.t('agent-usage:limits.notInstalled');
     }
+
     if (provider.unavailable.reason === 'no-subscription') {
         // A provider that knows why it has no plan says so; the rest are accounts on an API key.
         return provider.unavailable.message ?? i18next.t('agent-usage:limits.noSubscription');
     }
+
     return provider.unavailable.message ?? i18next.t('agent-usage:limits.unreachable');
 }
 

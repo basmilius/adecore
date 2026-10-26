@@ -17,9 +17,11 @@ const BUILT_IN_MARKS: Partial<Record<AgentKind, AgentMark>> = {
 
 export function AgentIcon({ kind, size = 14, className }: { kind: AgentKind; size?: number; className?: string }) {
     const mark = hostAgentMark(kind) ?? BUILT_IN_MARKS[kind];
+
     if (!mark) {
         return <Icon icon={Bot} size={size} className={className} />;
     }
+
     return (
         <svg
             role="img"

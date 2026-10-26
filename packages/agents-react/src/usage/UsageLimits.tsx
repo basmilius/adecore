@@ -26,6 +26,7 @@ interface Login {
 
 function LoginButton({ account, login }: { account: LimitAccount; login: Login }) {
     const { t } = useTranslation('agent-usage');
+
     const button = (
         <Button
             variant="secondary"
@@ -38,6 +39,7 @@ function LoginButton({ account, login }: { account: LimitAccount; login: Login }
             {t('limits.logIn')}
         </Button>
     );
+
     return login.blocked === null ? (
         button
     ) : (
@@ -54,6 +56,7 @@ function LimitCard({ account, named, now, login }: { account: LimitAccount; name
     const note = signedOut ? null : accountNote(account);
     const plan = signedOut ? null : account.entry?.plan;
     const checked = signedOut || account.entry === null ? null : checkedLabel(account.entry, now);
+
     return (
         <div className="flex min-w-0 flex-col gap-3.5 rounded-xl border border-border bg-surface bg-clip-padding px-4 py-3.5">
             <p className="flex min-w-0 items-center gap-2 text-xs font-medium">
@@ -106,9 +109,11 @@ export function UsageLimits() {
     if (limits === null) {
         return null;
     }
+
     const filterable = groups.length > 1 && hasSeveralAccounts(groups);
     const current = filterable && groups.some((group) => group.kind === filter) ? filter : 'all';
     const shown = current === 'all' ? groups : groups.filter((group) => group.kind === current);
+
     const loginFor = (kind: UsageProvider): Login | null =>
         openLogin === null || loginCommands?.[kind] === undefined
             ? null

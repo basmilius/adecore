@@ -43,6 +43,7 @@ test('renders compiled nodes in the actual reply composition and falls back for 
 function drawn(source: string, extra: Partial<Omit<typeof context, 'phase'>> & { phase?: 'streaming' | 'final' } = {}, host: Partial<ChatHost> = {}): string {
     const text = '```ui\n' + source + '\n```';
     const blocks = compileUi(text, { id: 'item', final: true });
+
     return renderToStaticMarkup(createElement(ChatHostProvider, { host }, createElement(UiReply, { text, blocks, context: { ...context, ...extra } })));
 }
 
@@ -71,6 +72,7 @@ test('leaves code, control labels and the value of an expression as written', ()
     const markup = drawn(
         '$name = "**data**"\n<Summary>{$name} **prose**</Summary><CodeBlock>a **b**</CodeBlock><Choices><Choice>Fix **all**</Choice></Choices>'
     );
+
     expect(markup).toContain('**data** <strong>prose</strong>');
     expect(markup).toContain('Fix **all**');
     expect(markup).not.toContain('<strong>b</strong>');
@@ -86,6 +88,7 @@ test('keeps headings, lists, images and raw addresses out of prose', () => {
     expect(markup).not.toContain('<a');
     expect(markup).not.toContain('javascript:');
     expect(markup).toContain('site');
+
     const linked = drawn(
         '<Summary>See [site](https://example.com) and [bad](javascript:alert(1))</Summary>',
         {},
@@ -93,6 +96,7 @@ test('keeps headings, lists, images and raw addresses out of prose', () => {
             intelligentUi: { openUrl: () => undefined, sendChoice: async () => 'sent' }
         }
     );
+
     expect(linked.match(/<button[^>]*>site<\/button>/g)).toHaveLength(1);
     expect(linked).toContain('and bad');
 });
@@ -114,14 +118,17 @@ test('finds written prose inside a repetition and keeps a repeated value as data
     const markup = drawn(
         '$rows = [{name: "**a**"}]\n<EntityList><Each items={$rows} as="row"><Entry label="Name">{row.name} is **ready**</Entry></Each></EntityList>'
     );
+
     expect(markup).toContain('**a** is <strong>ready</strong>');
 });
 
 test('an answered block restores its selected input and closes every choice and input', () => {
     const text =
         '```ui\n$count = 2\n<Slider value={$count} min={1} max={5}>Count</Slider><Choices><Choice context={"Build " + $count}>Build</Choice></Choices>\n```';
+
     const blocks = compileUi(text, { id: 'answered-item', final: true }).map((block) => ({ ...block, revision: 'revision' }));
     const choice = blocks[0].nodes.find((node) => node.type === 'Choices')!.children[0];
+
     const answer = {
         itemId: 'answered-item',
         blockId: blocks[0].id,
@@ -135,9 +142,11 @@ test('an answered block restores its selected input and closes every choice and 
         queued: true,
         turnId: 'turn'
     };
+
     const markup = renderToStaticMarkup(
         createElement(UiReply, { text, blocks, context: { ...context, itemId: 'answered-item' }, answers: { [blocks[0].id]: answer } })
     );
+
     expect(markup).toContain('Build 4');
     expect(markup).toContain('aria-disabled="true"');
     expect(markup).toContain('disabled');
@@ -147,6 +156,7 @@ test('an answered block restores its selected input and closes every choice and 
 test('a jump highlights only its original block revision and leaves both blocks focusable', () => {
     const text = '```ui\n<Summary>One</Summary>\n```\n```ui\n<Summary>Two</Summary>\n```';
     const blocks = compileUi(text, { id: 'item', final: true });
+
     const render = (revision: string) =>
         parseHTML(
             renderToStaticMarkup(
@@ -157,6 +167,7 @@ test('a jump highlights only its original block revision and leaves both blocks 
                 )
             )
         ).document;
+
     const document = render(blocks[1]!.revision!);
     expect(document.querySelectorAll('[data-ui-block][tabindex="-1"]').length).toBe(2);
     expect(document.querySelectorAll('.chat-flash').length).toBe(1);
@@ -168,6 +179,7 @@ test('numbers in written prose resolve to Sources without changing code, express
     const html = drawn(
         '$text = "[1]"\n<Callout tone="info">See **[1]** and `[1]` and [9]. {$text}</Callout><Choices><Choice>Pick [1]</Choice></Choices><Sources><Source title="Docs" url="https://adecore.dev"/></Sources>'
     );
+
     expect(html).toContain('inline-flex h-4 min-w-4.5');
     expect(html).toMatch(/<code[^>]*>\[1\]<\/code>/);
     expect(html).toContain('[9]');
@@ -185,6 +197,7 @@ test('an event with a time nobody can read keeps its place in the timeline with 
     const markup = drawn(
         '<Timeline><Event at="14:02">Alert fired</Event><Event at="soon" tone="info" detail="later">Rolled back</Event></Timeline><Summary>After</Summary>'
     );
+
     expect(markup).toContain('dateTime="14:02"');
     expect(markup).not.toContain('Could not show this part');
     expect(markup).not.toContain('dateTime="soon"');
@@ -220,6 +233,7 @@ test('a map takes the points its machine froze and keeps a place without one in 
     const text = '```ui\n' + UTRECHT + '\n```';
     const blocks = compileUi(text, { id: 'item', final: true }).map((block) => ({ ...block, revision: 'r1' }));
     const ids = evaluateUiBlock(blocks[0]).nodes[0].children.map((place) => place.id);
+
     const queries = {
         authorChatId: 'chat',
         blocks: {
@@ -231,6 +245,7 @@ test('a map takes the points its machine froze and keeps a place without one in 
             }
         }
     };
+
     const markup = renderToStaticMarkup(createElement(UiReply, { text, blocks, context, queries }));
     expect(markup).not.toContain('Looking up');
     expect(markup.match(/Not on the map/g)).toHaveLength(1);
@@ -246,11 +261,15 @@ test('a place the catalog refused is drawn as its text under the list', () => {
 test('a frozen point belongs to the address it was looked up for, not to the node that held it', () => {
     const source = '<Map><Each items={["Domplein 1", "Oudegracht 245"]} as="street"><Place address={street}>{street}</Place></Each></Map>';
     const reordered = '<Map><Each items={["Oudegracht 245", "Domplein 1"]} as="street"><Place address={street}>{street}</Place></Each></Map>';
+
     const frozen = (text: string) => {
         const blocks = compileUi('```ui\n' + text + '\n```', { id: 'item', final: true }).map((block) => ({ ...block, revision: 'r1' }));
+
         return { blocks, ids: evaluateUiBlock(blocks[0]).nodes[0].children.map((place) => place.id) };
     };
+
     const first = frozen(source);
+
     const queries = {
         authorChatId: 'chat',
         blocks: {
@@ -265,11 +284,14 @@ test('a frozen point belongs to the address it was looked up for, not to the nod
             }
         }
     };
+
     const text = (body: string) => '```ui\n' + body + '\n```';
+
     const same = renderToStaticMarkup(createElement(UiReply, { text: text(source), blocks: first.blocks, context, queries }));
     expect(same).not.toContain('Not on the map');
     // The same nodes now hold the other addresses: the readings stay with their addresses, so nothing borrows another place's point.
     const moved = frozen(reordered);
+
     const swapped = renderToStaticMarkup(
         createElement(UiReply, {
             text: text(reordered),
@@ -278,6 +300,7 @@ test('a frozen point belongs to the address it was looked up for, not to the nod
             queries: { ...queries, blocks: { [moved.blocks[0].id]: queries.blocks[first.blocks[0].id] } }
         })
     );
+
     expect(swapped.match(/Not on the map/g)).toHaveLength(2);
 });
 

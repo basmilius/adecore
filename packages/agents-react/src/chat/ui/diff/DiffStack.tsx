@@ -7,6 +7,7 @@ import { useReviewStack, type ReviewStack } from './use-review-stack';
 
 export function ReviewStackView({ entries, stack }: { entries: readonly ReviewEntry[]; stack: ReviewStack }) {
     const { t } = useTranslation('agent-chat');
+
     return (
         <div data-review-stack>
             {entries.map((entry) => (
@@ -41,5 +42,6 @@ export function ReviewStackView({ entries, stack }: { entries: readonly ReviewEn
 
 export function DiffStack({ entries }: { entries: readonly ReviewEntry[] }) {
     const stack = useReviewStack(entries);
+
     return <ReviewStackView entries={entries} stack={stack} />;
 }

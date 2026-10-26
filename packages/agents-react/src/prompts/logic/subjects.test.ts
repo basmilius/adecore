@@ -16,8 +16,10 @@ import {
 function sampleOf(label: string) {
     return PROMPT_SAMPLES.find((sample) => sample.label === label)!.items[0]!;
 }
+
 const command = sampleOf('Permission · Command') as ChatApprovalItem;
 const optional = sampleOf('Question · Optional') as ChatQuestionItem;
+
 // A chat's own prompt never reaches the app's host, so one that refuses everything fails such a test.
 const NO_HOST: Pick<ChatHost, 'prompts'> = {
     prompts: { useExtra: () => [], render: () => null, answer: () => Promise.reject(new Error('The host was asked')) }
@@ -25,11 +27,13 @@ const NO_HOST: Pick<ChatHost, 'prompts'> = {
 
 function recorder() {
     const calls: unknown[][] = [];
+
     const clients: ChatPromptClients = {
         approve: async (...args) => void calls.push(['approve', ...args]),
         answer: async (...args) => void calls.push(['answer', ...args]),
         dismiss: async (...args) => void calls.push(['dismiss', ...args])
     };
+
     return { calls, clients };
 }
 
@@ -59,6 +63,7 @@ describe('answering a subject', () => {
         await answerPrompt(subject, { kind: 'approve', decision: 'deny', message: 'no' }, clients, NO_HOST);
         await answerPrompt({ kind: 'chat', nodeId: 'chat-1', item: optional }, { kind: 'answer', answers: { endpoints: 'All three' } }, clients, NO_HOST);
         await answerPrompt({ kind: 'chat', nodeId: 'chat-1', item: optional }, { kind: 'dismiss' }, clients, NO_HOST);
+
         expect(calls).toEqual([
             ['approve', 'chat-1', command.requestId, 'deny', 'no'],
             ['answer', 'chat-1', optional.requestId, { endpoints: 'All three' }],
@@ -73,6 +78,7 @@ describe('answering a subject', () => {
 
 describe("an app's own prompt", () => {
     const answered: unknown[][] = [];
+
     const host: Pick<ChatHost, 'prompts'> = {
         prompts: { useExtra: () => [], render: () => null, answer: async (prompt, action) => void answered.push([prompt.id, action]) }
     };
@@ -98,6 +104,7 @@ describe('subject identity and order', () => {
             { kind: 'chat', nodeId: 'node', item: { ...command, requestId: 'same', createdAt: 3 } },
             { kind: 'host', nodeId: 'node', prompt: hostPrompt('same', 5) }
         ];
+
         expect(new Set(subjects.map(promptIdOf)).size).toBe(2);
         expect(subjects.map(promptCreatedAt)).toEqual([3, 5]);
     });

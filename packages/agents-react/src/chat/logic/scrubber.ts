@@ -29,6 +29,7 @@ const MIN_PITCH_PX = 4;
 
 /* The scroller's padding around the thread's content column (`px-4`). */
 const THREAD_PADDING_PX = 16;
+
 export const STRIP_WIDTH_PX = 24;
 /* The strip's distance from the view's left edge, and the air it keeps between itself and the thread's text. */
 export const STRIP_INSET_PX = 8;
@@ -44,23 +45,30 @@ const WIDTH_WAKE_PX = 5;
 export function ticksOf(rows: readonly TimelineRow[], marks: ReadonlyMap<string, ChatBookmark> = new Map()): ScrubberTick[] {
     return rows.flatMap((row, rowIndex): ScrubberTick[] => {
         const bookmark = marks.get(row.id) ?? null;
+
         if (row.kind === 'user') {
             // A message of only attachments still has a place in the thread; its names stand in for the text.
             const text = row.item.text !== '' ? row.item.text : (row.item.attachments ?? []).map((attachment) => attachment.name).join(', ');
+
             return [{ id: row.id, rowIndex, kind: 'person', text, createdAt: row.item.createdAt, turnId: row.item.turnId, bookmark }];
         }
+
         // The other turns nobody asked for (a sub-agent that finished, the CLI going on) are no place to return to.
         if (row.kind === 'turn-start' && ((row.turn.taskIds?.length ?? 0) > 0 || (row.turn.messageFrom?.length ?? 0) > 0)) {
             return [{ id: row.id, rowIndex, kind: 'wake', text: row.label, createdAt: row.turn.createdAt, turnId: row.turn.id, bookmark: null }];
         }
+
         if (bookmark === null) {
             return [];
         }
+
         if (row.kind === 'assistant') {
             return [{ id: row.id, rowIndex, kind: 'bookmark', text: row.item.text, createdAt: row.item.createdAt, turnId: row.item.turnId, bookmark }];
         }
+
         // The fold of a turn a marked reply is hidden in; the card reads the start the bookmark kept.
         const turnId = row.kind === 'turn-fold' ? row.turn.id : null;
+
         return [{ id: row.id, rowIndex, kind: 'bookmark', text: bookmark.excerpt, createdAt: bookmark.createdAt, turnId, bookmark }];
     });
 }
@@ -90,19 +98,23 @@ export function layoutTicks(kinds: readonly TickKind[], height: number, marked: 
     const count = kinds.length;
     const room = Math.max(0, Math.floor(height));
     const slotCount = Math.min(count, Math.floor(room / MIN_PITCH_PX));
+
     if (slotCount === 0) {
         return { top: 0, pitch: MIN_PITCH_PX, count, slots: [] };
     }
+
     const pitch = Math.min(PITCH_PX, Math.floor(room / slotCount));
     const top = Math.floor((room - slotCount * pitch) / 2);
     const inset = Math.floor((pitch - TICK_HEIGHT_PX) / 2);
     const slots: TickSlot[] = [];
+
     for (let i = 0; i < slotCount; i++) {
         const first = Math.floor((i * count) / slotCount);
         const last = Math.floor(((i + 1) * count) / slotCount) - 1;
         // A merged tick is the person's as soon as one message in it is, since those are what the strip is for.
         const run = kinds.slice(first, last + 1);
         const kind = run.includes('person') ? 'person' : run.includes('bookmark') ? 'bookmark' : 'wake';
+
         slots.push({
             first,
             last,
@@ -112,6 +124,7 @@ export function layoutTicks(kinds: readonly TickKind[], height: number, marked: 
             y: top + i * pitch + inset
         });
     }
+
     return { top, pitch, count, slots };
 }
 
@@ -123,6 +136,7 @@ export function tickOfRow(ticks: readonly ScrubberTick[], rowIndex: number): num
     if (ticks.length === 0) {
         return null;
     }
+
     return Math.max(
         0,
         lastIndexAtOrBelow(ticks.length, (index) => ticks[index]!.rowIndex, rowIndex)
@@ -132,25 +146,31 @@ export function tickOfRow(ticks: readonly ScrubberTick[], rowIndex: number): num
 /* Per tick, whether any of the rows has a find hit in its stretch. */
 export function ticksWithHits(ticks: readonly ScrubberTick[], hitRows: readonly number[]): boolean[] {
     const found = ticks.map(() => false);
+
     for (const row of hitRows) {
         const tick = tickOfRow(ticks, row);
+
         if (tick !== null) {
             found[tick] = true;
         }
     }
+
     return found;
 }
 
 /* The message under a height in the strip; inside a merged tick the height picks among its messages. */
 export function messageAt(layout: ScrubberLayout, y: number): number | null {
     const { slots, top, pitch } = layout;
+
     if (slots.length === 0) {
         return null;
     }
+
     const offset = y - top;
     const index = Math.min(slots.length - 1, Math.max(0, Math.floor(offset / pitch)));
     const slot = slots[index]!;
     const fraction = Math.min(1, Math.max(0, (offset - index * pitch) / pitch));
+
     return slot.first + Math.min(slot.last - slot.first, Math.floor(fraction * (slot.last - slot.first + 1)));
 }
 
@@ -158,9 +178,11 @@ export function slotOf(layout: ScrubberLayout, message: number): number | null {
     const { slots } = layout;
     let low = 0;
     let high = slots.length - 1;
+
     while (low <= high) {
         const middle = (low + high) >> 1;
         const slot = slots[middle]!;
+
         if (message < slot.first) {
             high = middle - 1;
         } else if (message > slot.last) {
@@ -169,6 +191,7 @@ export function slotOf(layout: ScrubberLayout, message: number): number | null {
             return middle;
         }
     }
+
     return null;
 }
 
@@ -180,9 +203,11 @@ export function tickWidth(kind: TickKind, distanceFromPointer: number | null): n
     if (distanceFromPointer === 0) {
         return WIDTH_HOVERED_PX;
     }
+
     if (distanceFromPointer === 1) {
         return kind === 'wake' ? WIDTH_NEAR_WAKE_PX : WIDTH_NEAR_PERSON_PX;
     }
+
     return kind === 'wake' ? WIDTH_WAKE_PX : WIDTH_PERSON_PX;
 }
 
@@ -191,8 +216,10 @@ function lastIndexAtOrBelow(length: number, valueAt: (index: number) => number, 
     let low = 0;
     let high = length - 1;
     let found = -1;
+
     while (low <= high) {
         const middle = (low + high) >> 1;
+
         if (valueAt(middle) <= limit) {
             found = middle;
             low = middle + 1;
@@ -200,6 +227,7 @@ function lastIndexAtOrBelow(length: number, valueAt: (index: number) => number, 
             high = middle - 1;
         }
     }
+
     return found;
 }
 
@@ -229,15 +257,19 @@ export interface MessageRange {
  */
 export function messagesInView({ starts, scrollTop, visibleHeight }: ReadingPosition): MessageRange | null {
     const bottom = scrollTop + visibleHeight;
+
     if (starts.length === 0 || visibleHeight <= 0 || starts.at(0)! >= bottom) {
         return null;
     }
+
     const first = Math.max(0, lastAtOrAbove(starts, scrollTop));
     let last = lastAtOrAbove(starts, bottom);
+
     // A row that starts on the very last line has not a pixel on screen yet.
     if (starts.at(last)! >= bottom) {
         last--;
     }
+
     return { first, last: Math.max(first, last) };
 }
 
@@ -258,13 +290,16 @@ export function stepMessage(starts: MessageStarts, eligible: (index: number) => 
                 return i;
             }
         }
+
         return null;
     }
+
     for (let i = lastAtOrAbove(starts, scrollTop + 1) + 1; i < starts.length; i++) {
         if (eligible(i)) {
             return i;
         }
     }
+
     return null;
 }
 
@@ -278,7 +313,9 @@ export function threadPaddingLeft(width: number, strip: boolean, measure = readi
     if (!strip) {
         return THREAD_PADDING_PX;
     }
+
     // The column's margin is half of what the padding leaves, so the padding counts the clearance twice.
     const padding = 2 * STRIP_CLEARANCE_PX + measure + THREAD_PADDING_PX - Math.floor(width);
+
     return Math.min(STRIP_CLEARANCE_PX, Math.max(THREAD_PADDING_PX, padding));
 }

@@ -18,6 +18,7 @@ export function BookmarkSubmenu({ chatId }: { chatId: string }) {
     const host = useChatHost();
     const place = useHostChatPlace(chatId);
     const sorted = bookmarksInThreadOrder(bookmarks ?? [], order ?? []);
+
     if (sorted.length === 0) {
         return null;
     }

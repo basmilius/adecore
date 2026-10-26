@@ -14,6 +14,7 @@ function linkTo(scope: ChatScope): ChatTransport {
     if (scope.transport.status !== 'open') {
         throw new Error(words('notAnswering'));
     }
+
     return scope.transport;
 }
 
@@ -21,9 +22,11 @@ function linkTo(scope: ChatScope): ChatTransport {
 export async function saveAccounts(scope: ChatScope, host: Pick<ChatHost, 'notify'>, accounts: ProviderAccountMap): Promise<boolean> {
     try {
         useProviderAccountsStore.getState().set(scope.id, await linkTo(scope).request('accounts.save', { accounts }));
+
         return true;
     } catch (e) {
         host.notify({ id: `providers-save-${scope.id}`, kind: 'error', title: words('account.saveFailed'), description: errorMessage(e) });
+
         return false;
     }
 }
@@ -31,6 +34,7 @@ export async function saveAccounts(scope: ChatScope, host: Pick<ChatHost, 'notif
 /* One account changed and every other one as the host last said. */
 export function saveAccount(scope: ChatScope, host: Pick<ChatHost, 'notify'>, id: string, account: ProviderAccount): Promise<boolean> {
     const current = providerAccountsOf(scope.id).accounts?.accounts ?? {};
+
     return saveAccounts(scope, host, { ...current, [id]: account });
 }
 
@@ -40,9 +44,11 @@ export function saveAccount(scope: ChatScope, host: Pick<ChatHost, 'notify'>, id
  */
 export async function removeAccount(scope: ChatScope, host: Pick<ChatHost, 'notify'>, id: string, kind: AgentKind): Promise<void> {
     const { [id]: _gone, ...rest } = providerAccountsOf(scope.id).accounts?.accounts ?? {};
+
     if (!(await saveAccounts(scope, host, rest))) {
         throw new Error(words('account.saveFailed'));
     }
+
     if (accountFor(readChatPreferences(), scope.id, kind) === id) {
         rememberChatAccount(scope.id, kind, null);
     }
@@ -52,6 +58,7 @@ export async function removeAccount(scope: ChatScope, host: Pick<ChatHost, 'noti
 export async function createAccount(scope: ChatScope, kind: AgentKind, label: string, color: string): Promise<string> {
     const { id, ...accounts } = await linkTo(scope).request('accounts.create', { kind, label, color });
     useProviderAccountsStore.getState().set(scope.id, accounts);
+
     return id;
 }
 

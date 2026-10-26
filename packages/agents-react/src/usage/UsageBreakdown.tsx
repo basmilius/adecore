@@ -45,16 +45,19 @@ function ModelName({ provider, slug }: { provider: UsageProvider; slug: string }
 
 function PricedAs({ provider, slug }: { provider: UsageProvider; slug: string }) {
     const { t } = useTranslation('agent-usage');
+
     return t('breakdown.models.pricedAs', { model: useModelName(provider, slug) });
 }
 
 function ModelRows({ models, metric, total }: { models: readonly UsageModel[]; metric: UsageMetric; total: number }) {
     const { t } = useTranslation('agent-usage');
     const money = useMoney();
+
     /* On the tokens metric the biggest row is the one that moved the most, not the dearest. */
     const sorted = [...models].sort((a, b) =>
         metric === 'tokens' ? totalTokensOf(b.totals) - totalTokensOf(a.totals) : (b.costUsd ?? -1) - (a.costUsd ?? -1)
     );
+
     return (
         <div className={TABLE}>
             <div className={HEAD}>
@@ -109,6 +112,7 @@ function ModelRows({ models, metric, total }: { models: readonly UsageModel[]; m
 function ProjectRow({ project, top, money }: { project: UsageProject; top: number; money(usd: number): string }) {
     // The usage on screen is one host's, so the look of a project is that host's too.
     const look = useHostProjectLook(useChatScope().id, project.projectId);
+
     return (
         /* The mark sits on the title rather than between the two lines, so the icons line up with the names. */
         <div className={`${ROW} h-auto items-start py-1.5`}>
@@ -127,6 +131,7 @@ function ProjectRow({ project, top, money }: { project: UsageProject; top: numbe
                 {USAGE_PROVIDERS.map((provider) => {
                     const share = project.byProvider[provider];
                     const width = barWidth(share?.costUsd ?? 0, top);
+
                     return width === 0 ? null : <span key={provider} style={{ width: `${width}%`, background: PROVIDER_COLORS[provider] }} />;
                 })}
             </span>
@@ -139,6 +144,7 @@ function ProjectRow({ project, top, money }: { project: UsageProject; top: numbe
 function ProjectRows({ projects }: { projects: readonly UsageProject[] }) {
     const money = useMoney();
     const top = Math.max(...projects.map((project) => project.costUsd), 0);
+
     return (
         <div className={clsx(TABLE, 'gap-1')}>
             {projects.map((project) => (
@@ -153,9 +159,11 @@ function DayRows({ summary, providers }: { summary: UsageSummaryResult; provider
     const { t } = useTranslation('agent-usage');
     const money = useMoney();
     const rows = deriveDays(summary);
+
     if (rows.length === 0) {
         return <EmptyState>{t('breakdown.days.empty')}</EmptyState>;
     }
+
     return (
         <div className={TABLE}>
             <div className={HEAD}>
@@ -196,6 +204,7 @@ export function UsageBreakdown({ summary, metric, providers }: UsageBreakdownPro
     const { t } = useTranslation('agent-usage');
     const [tab, setTab] = useState<Breakdown>('models');
     const total = summary.models.reduce((sum, model) => sum + (model.costUsd ?? 0), 0);
+
     return (
         <section className="flex flex-col gap-3">
             <div className="flex items-center gap-3">

@@ -16,6 +16,7 @@ describe('embeddedCode', () => {
         expect(found(`python3 -c 'import json; print(json.load(open("a.json"))["rev"])'`)).toEqual([
             ['python', 'import json; print(json.load(open("a.json"))["rev"])']
         ]);
+
         expect(found('node -e "console.log(1)"')).toEqual([['javascript', 'console.log(1)']]);
         expect(found(`bun --eval 'const x: number = 1'`)).toEqual([['typescript', 'const x: number = 1']]);
         expect(found(`psql -d app -c 'select 1'`)).toEqual([['sql', 'select 1']]);
@@ -25,10 +26,12 @@ describe('embeddedCode', () => {
 
     test('a shell script inside a command is shell again, and the code inside that is found too', () => {
         const command = `bash -lc 'cd app && python3 -c "print(1)"'`;
+
         expect(found(command)).toEqual([
             ['shellscript', 'cd app && python3 -c "print(1)"'],
             ['python', 'print(1)']
         ]);
+
         expect(found(`sh -c "echo hi"`)).toEqual([['shellscript', 'echo hi']]);
     });
 
@@ -91,16 +94,19 @@ describe('shellCommands', () => {
     test('splits a line into its commands, each with its words unquoted and its program', () => {
         const source = `FOO=1 /opt/bin/tool run "a b" --x 2>&1 | grep -E 'x' && sleep 3`;
         const commands = shellCommands(source);
+
         expect(commands.map(({ words }) => words.map(({ text }) => text))).toEqual([
             ['FOO=1', '/opt/bin/tool', 'run', 'a b', '--x'],
             ['grep', '-E', 'x'],
             ['sleep', '3']
         ]);
+
         expect(commands.map(({ program }) => program)).toEqual([
             { index: 1, name: 'tool' },
             { index: 0, name: 'grep' },
             { index: 0, name: 'sleep' }
         ]);
+
         const [first] = commands;
         expect(first!.words.map(({ start, end }) => source.slice(start, end))).toEqual(['FOO=1', '/opt/bin/tool', 'run', '"a b"', '--x']);
         expect(first!.redirects.map(({ start, end, op }) => [source.slice(start, end), op])).toEqual([['2>&1', '>&']]);

@@ -32,14 +32,19 @@ interface AccountDetailProps {
 /* The name a person types, saved when they leave the field; an empty one goes back to what was there. */
 function NameField({ value, label, onSave }: { value: string; label: string; onSave(name: string): void }) {
     const [draft, setDraft] = useState(value);
+
     const commit = (): void => {
         const name = draft.trim();
+
         if (name === '' || name === value) {
             setDraft(value);
+
             return;
         }
+
         onSave(name);
     };
+
     return (
         <Input
             className="w-55 max-w-full"
@@ -80,9 +85,11 @@ export function AccountDetail({ provider, entry, login, canOpenLogin, loginBlock
         if (trouble !== null) {
             return trouble;
         }
+
         if (!signedIn) {
             return t('account.login.signedOutDetail');
         }
+
         return status?.plan ? t('account.login.planDetail', { plan: status.plan }) : t('account.login.detail');
     };
 

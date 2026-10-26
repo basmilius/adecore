@@ -31,6 +31,7 @@ const WIDE_MEASURE = 1200;
 export function readingWidthStyle(width: ChatReadingWidth): CSSProperties {
     const measure = MEASURES[width];
     const bounded = Number.isFinite(measure);
+
     return {
         '--chat-measure': bounded ? `${measure}px` : '100%',
         '--chat-wide-measure': bounded ? `${WIDE_MEASURE}px` : '100%'

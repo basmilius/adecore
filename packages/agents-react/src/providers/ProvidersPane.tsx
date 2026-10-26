@@ -49,11 +49,14 @@ export function ProvidersPane({ target = null, detailOf, defaults = true, instal
 
     const groups = groupProviders(providers, accounts, setupStatusOf);
     const installed = [...groups.ready, ...groups.setup].map((row) => row.provider);
+
     const entriesOf = (kind: AgentKind): AccountEntry[] => accountsOfKind(accounts, kind);
+
     const loginOf = (kind: AgentKind) => accountLoginOf(accounts, kind);
 
     // What was picked may be gone since (an account removed elsewhere); the first CLI stands in for it.
     const pickedEntry = picked?.kind === 'account' ? (Object.hasOwn(accounts?.accounts ?? {}, picked.id) ? picked.id : null) : null;
+
     // A CLI taken off the host since it was picked makes way too, so the detail never stays empty.
     const keeps = (entry: Picked): boolean => {
         switch (entry.kind) {
@@ -67,17 +70,22 @@ export function ProvidersPane({ target = null, detailOf, defaults = true, instal
                 return true;
         }
     };
+
     const current: Picked | null = picked !== null && keeps(picked) ? picked : installed[0] ? { kind: 'cli', cli: installed[0].kind } : null;
     const currentAccount = current?.kind === 'account' ? accounts?.accounts[current.id] : undefined;
+
     const currentCli =
         current === null || current.kind === 'catalog' ? null : current.kind === 'account' ? (currentAccount?.kind as AgentKind | undefined) : current.cli;
+
     const provider = (current?.kind === 'install' ? providers : installed).find((entry) => entry.kind === currentCli) ?? null;
 
     // A search result lands on a row of a CLI's detail, so a picked account makes way for its CLI.
     const [seenTarget, setSeenTarget] = useState(target);
+
     if (target !== seenTarget) {
         setSeenTarget(target);
         const opened = pickOfTarget(target, providers);
+
         if (opened !== null) {
             setPicked(opened);
         } else if (target?.startsWith('providers.') && current?.kind !== 'cli' && provider !== null) {
@@ -87,6 +95,7 @@ export function ProvidersPane({ target = null, detailOf, defaults = true, instal
 
     const added = (id: string, name: string, made: boolean): void => {
         setPicked({ kind: 'account', id });
+
         if (made && provider !== null && loginOf(provider.kind) === 'terminal' && openLogin !== null && loginBlocked === null) {
             void openLogin(scopeId, provider.kind, id, name);
         }
@@ -111,22 +120,28 @@ export function ProvidersPane({ target = null, detailOf, defaults = true, instal
         if (current?.kind === 'catalog') {
             return addPage?.((kind) => setPicked(pickOfCli(kind, providers))) ?? null;
         }
+
         if (current === null || provider === null) {
             return null;
         }
+
         if (current.kind === 'install') {
             const extra = installStepOf?.(provider) ?? null;
             const statuses = entriesOf(provider.kind).map((entry) => entry.status?.state);
             // Without accounts to read, nothing says the CLI is signed out, so being there is all it takes.
             const signedIn = statuses.length === 0 || statuses.includes('ready');
+
             if (!provider.installed || !signedIn || (extra !== null && !extra.done)) {
                 return <InstallPage key={provider.kind} provider={provider} signedIn={signedIn} extra={extra} />;
             }
         }
+
         const own = current.kind === 'cli' || current.kind === 'install' ? (detailOf?.(provider) ?? null) : null;
+
         if (own !== null) {
             return own;
         }
+
         if (current.kind === 'add') {
             return (
                 <AddAccountForm
@@ -139,8 +154,10 @@ export function ProvidersPane({ target = null, detailOf, defaults = true, instal
                 />
             );
         }
+
         if (current.kind === 'account') {
             const entry = entriesOf(provider.kind).find((candidate) => candidate.id === current.id);
+
             return (
                 entry && (
                     <AccountDetail
@@ -156,6 +173,7 @@ export function ProvidersPane({ target = null, detailOf, defaults = true, instal
                 )
             );
         }
+
         return (
             <>
                 <CliDetail

@@ -9,9 +9,11 @@ function fits(option: ModelOptionDescriptor, value: string | boolean | undefined
 /* What an option runs at: the value picked, else the model's own default. A value the model does not offer counts as unpicked. */
 export function optionValue(option: ModelOptionDescriptor, options: OptionValues): string | boolean {
     const picked = options[option.id];
+
     if (fits(option, picked)) {
         return picked;
     }
+
     return option.type === 'boolean' ? option.defaultValue : option.defaultChoice;
 }
 

@@ -27,12 +27,15 @@ export class MountedRegistry<T extends MountedEntry> extends Map<string, T> {
      */
     async reattachAll(reattach: (id: string, entry: T) => Promise<void>): Promise<void> {
         const queue = [...this];
+
         const work = async (): Promise<void> => {
             for (let next = queue.shift(); next !== undefined; next = queue.shift()) {
                 const [id, entry] = next;
+
                 if (entry.attached || this.get(id) !== entry) {
                     continue;
                 }
+
                 try {
                     await reattach(id, entry);
                 } catch {
@@ -40,6 +43,7 @@ export class MountedRegistry<T extends MountedEntry> extends Map<string, T> {
                 }
             }
         };
+
         await Promise.all(Array.from({ length: REATTACH_CONCURRENCY }, work));
     }
 }

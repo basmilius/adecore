@@ -10,12 +10,15 @@ function hintedPlaceholder(lead: string, joiner: string, hints: ReadonlyArray<{ 
     const extra = document.createElement('span');
     extra.className = 'composer-hints-extra';
     extra.append(joiner);
+
     for (const hint of hints) {
         const cap = document.createElement('kbd');
         cap.textContent = hint.key;
         extra.append(cap, hint.label);
     }
+
     root.append(lead, extra);
+
     return root;
 }
 
@@ -32,13 +35,16 @@ export function useHintedPlaceholder({ chatId, disabled, readOnly, mentionable, 
     const { t } = useTranslation('agent-chat');
     const scope = useChatScope();
     const lead = useHostComposerPlaceholder(scope.id, chatId);
+
     return useMemo(() => {
         if (disabled) {
             return t('composer.placeholder.disconnected');
         }
+
         if (readOnly) {
             return t('composer.placeholder.readOnly');
         }
+
         return hintedPlaceholder(lead ?? t('composer.placeholder.lead'), t('composer.placeholder.joiner'), [
             { key: '/', label: t('composer.placeholder.commands') },
             ...(mentionable ? [{ key: '@', label: t('composer.placeholder.files') }] : []),

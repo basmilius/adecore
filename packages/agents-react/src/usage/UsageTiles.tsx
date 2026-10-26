@@ -13,6 +13,7 @@ interface UsageTilesProps {
 export function UsageTiles({ totals, cacheSavingsUsd }: UsageTilesProps) {
     const { t } = useTranslation('agent-usage');
     const money = useMoney();
+
     const tiles: { id: string; value: string }[] = [
         { id: 'processed', value: formatTokens(totalTokensOf(totals)) },
         { id: 'uncachedInput', value: formatTokens(totals.input) },
@@ -21,6 +22,7 @@ export function UsageTiles({ totals, cacheSavingsUsd }: UsageTilesProps) {
         { id: 'output', value: formatTokens(totals.output) },
         { id: 'cacheSavings', value: money(cacheSavingsUsd) }
     ];
+
     return (
         <div className="grid grid-cols-2 gap-2 md:grid-cols-6">
             {tiles.map((tile) => (

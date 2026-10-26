@@ -20,6 +20,7 @@ interface ResumeCompactionDockProps {
 export function ResumeCompactionDock({ tokens, reason = 'idle', onCompact, onDismiss }: ResumeCompactionDockProps) {
     const { t } = useTranslation('agent-chat');
     const cold = reason === 'cache-expired';
+
     return (
         <div className="flex items-center gap-2 border-b border-border px-3.5 py-2.5">
             <Icon icon={Minimize2} size={16} className="shrink-0 text-text-faint" />

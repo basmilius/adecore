@@ -50,6 +50,7 @@ function attachments(value: unknown): StashedAttachment[] {
     if (!Array.isArray(value)) {
         return [];
     }
+
     return value.filter(isRecord).map((entry) => ({
         name: typeof entry.name === 'string' ? entry.name : '',
         mime: typeof entry.mime === 'string' ? entry.mime : '',
@@ -61,11 +62,13 @@ function stashedQuote(value: unknown): StashedQuote | undefined {
     if (!isRecord(value) || typeof value.text !== 'string' || typeof value.chatId !== 'string' || typeof value.itemId !== 'string') {
         return undefined;
     }
+
     return { text: value.text, chatId: value.chatId, itemId: value.itemId };
 }
 
 function stashedQuoteField(value: unknown): { quote?: StashedQuote } {
     const quote = stashedQuote(value);
+
     return quote === undefined ? {} : { quote };
 }
 
@@ -74,11 +77,14 @@ export function parseStash(raw: string | null): StashedPrompt[] {
     if (raw === null) {
         return [];
     }
+
     try {
         const stored: unknown = JSON.parse(raw);
+
         if (!Array.isArray(stored)) {
             return [];
         }
+
         return stored
             .filter(isRecord)
             .filter((entry) => typeof entry.id === 'string' && typeof entry.text === 'string')
@@ -112,7 +118,9 @@ export function stashedFrom(draft: ChatDraft, id: string, now: number, chatId: s
     if (isEmptyDraft(draft)) {
         return null;
     }
+
     const kept = draft.quote !== '' && draft.quoteSource !== null;
+
     return {
         id,
         text: kept ? draft.text : withQuote(draft.quote, draft.text),
@@ -136,6 +144,7 @@ export const STASH_CHATS_LIMIT = 16;
 export function restorableChats(stashed: readonly string[], referable: ReadonlySet<string>, chatId: string): { chats: string[]; dropped: number } {
     const others = stashed.filter((id) => id !== chatId);
     const chats = others.filter((id) => referable.has(id));
+
     return { chats: chats.slice(0, STASH_CHATS_LIMIT), dropped: others.length - chats.length };
 }
 
@@ -155,10 +164,13 @@ function write(prompts: StashedPrompt[]): void {
 /* Puts a draft on the shelf; false when the composer held nothing to put there. */
 export function stashDraft(draft: ChatDraft, chatId: string): boolean {
     const entry = stashedFrom(draft, `stash-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, Date.now(), chatId);
+
     if (!entry) {
         return false;
     }
+
     write(withStashed(useStash.getState().prompts, entry));
+
     return true;
 }
 

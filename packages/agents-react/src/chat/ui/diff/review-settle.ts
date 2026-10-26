@@ -6,6 +6,7 @@ export function useReviewSettled(): void {
     const scope = useContext(ReviewSettleContext);
     const key = scope?.key;
     const settle = scope?.settle;
+
     useEffect(() => {
         if (key !== undefined) {
             settle?.(key);

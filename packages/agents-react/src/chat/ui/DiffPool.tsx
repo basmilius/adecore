@@ -9,9 +9,11 @@ const POOL_SIZE = 2;
 function ThemeSync() {
     const pool = useWorkerPool();
     const theme = useDiffTheme();
+
     useEffect(() => {
         void pool?.setRenderOptions({ theme });
     }, [pool, theme]);
+
     return null;
 }
 
@@ -21,6 +23,7 @@ function ThemeSync() {
  */
 export default function DiffPool({ workerFactory, children }: { workerFactory: () => Worker; children: ReactNode }) {
     const theme = useDiffTheme();
+
     return (
         <WorkerPoolContextProvider
             poolOptions={{

@@ -12,15 +12,18 @@ test('a usage limit says when it resets, and once a resume is owed when the chat
         title: 'Stopped on a usage limit',
         detail: `The limit resets at ${at}.`
     });
+
     expect(limitView({ limit: { kind: 'usage', resetsAt: LATER }, resumeAt: LATER, activeTurnId: null }, NOW)).toMatchObject({
         pill: `Resumes ${at}`,
         detail: `Resumes at ${at}.`
     });
+
     expect(limitView({ limit: { kind: 'usage' }, activeTurnId: null }, NOW)).toMatchObject({ pill: 'Limited', detail: null });
 });
 
 test('an overload says when it tries again, or that a message does', () => {
     expect(limitView({ limit: { kind: 'overload' }, activeTurnId: null }, NOW)).toMatchObject({ pill: 'Overloaded', detail: 'Send a message to try again.' });
+
     expect(limitView({ limit: { kind: 'overload' }, resumeAt: LATER, activeTurnId: null }, NOW)).toMatchObject({
         pill: `Retry ${at}`,
         detail: `Retries at ${at}.`

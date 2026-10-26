@@ -47,18 +47,23 @@ export function mergeNewest(
     pageCursor: string | null
 ): { items: ChatItem[]; cursor: string | null } {
     const known = new Map(current.map((item, index) => [item.id, index]));
+
     if (current.length > 0 && page.length > 0 && !page.some((item) => known.has(item.id))) {
         return { items: page, cursor: pageCursor };
     }
+
     const items = [...current];
+
     for (const item of page) {
         const index = known.get(item.id);
+
         if (index === undefined) {
             items.push(item);
         } else {
             items[index] = item;
         }
     }
+
     return { items, cursor: current.length === 0 ? pageCursor : currentCursor };
 }
 
@@ -113,6 +118,7 @@ export class SubagentConversation {
                 }
             })
         );
+
         return this.enqueue(() => this.readNewest(true));
     }
 
@@ -121,9 +127,12 @@ export class SubagentConversation {
         if (this.refreshWaiting) {
             return this.queue;
         }
+
         this.refreshWaiting = true;
+
         return this.enqueue(() => {
             this.refreshWaiting = false;
+
             return this.readNewest(false);
         });
     }
@@ -132,10 +141,13 @@ export class SubagentConversation {
         // A page on its way answers every call made meanwhile; a scroll asks for one on every frame.
         this.earlier ??= this.enqueue(async () => {
             const cursor = this.state.cursor;
+
             if (cursor === null) {
                 return;
             }
+
             this.set({ loadingEarlier: true });
+
             try {
                 const page = await this.ask({ cursor, limit: SUBAGENT_PAGE });
                 const items = [...page.items, ...this.state.items];
@@ -145,13 +157,16 @@ export class SubagentConversation {
                     // The record was written again under this panel; what it holds now is the only truth.
                     this.set({ items: [], cursor: null, loadingEarlier: false });
                     await this.readNewest(false);
+
                     return;
                 }
+
                 this.set({ loadingEarlier: false, error: messageOf(error) });
             }
         }).finally(() => {
             this.earlier = null;
         });
+
         return this.earlier;
     }
 
@@ -159,10 +174,13 @@ export class SubagentConversation {
         if (this.disposed) {
             return;
         }
+
         this.disposed = true;
+
         for (const off of this.unsubscribe.splice(0)) {
             off();
         }
+
         if (this.transport.status === 'open') {
             void this.transport.request('chat.subagent', { chatId: this.chatId, toolUseId: this.toolUseId, limit: 1, watch: false }).catch(() => undefined);
         }
@@ -172,6 +190,7 @@ export class SubagentConversation {
         try {
             const page = await this.ask({ limit: SUBAGENT_PAGE, ...(watch ? { watch: true } : {}) });
             const merged = mergeNewest(this.state.items, this.state.cursor, page.items, page.history.cursor);
+
             this.set({
                 status: 'ready',
                 items: merged.items,
@@ -187,6 +206,7 @@ export class SubagentConversation {
                 // What is on screen stays; the socket that comes back asks again.
                 return;
             }
+
             const unsupported = errorCode(error) === 'unknown-request';
             this.set({ status: 'failed', error: messageOf(error), unsupported });
         }
@@ -199,6 +219,7 @@ export class SubagentConversation {
     private enqueue(work: () => Promise<void>): Promise<void> {
         const next = this.queue.then(() => (this.disposed ? undefined : work()));
         this.queue = next.catch(() => undefined);
+
         return next;
     }
 
@@ -206,6 +227,7 @@ export class SubagentConversation {
         if (this.disposed) {
             return;
         }
+
         this.state = { ...this.state, ...patch };
         this.onChange(this.state);
     }

@@ -45,9 +45,11 @@ function wrap(parent: HastParent): void {
                     : { type: 'element', tagName: 'span', properties: { className: [FADE_CLASS] }, children: [{ type: 'text', value: segment }] }
             );
         }
+
         if (child.type === 'element' && !SKIPPED.has(child.tagName)) {
             wrap(child);
         }
+
         return [child];
     });
 }

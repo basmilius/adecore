@@ -21,9 +21,11 @@ class FakeMap {
 
     constructor(options: Record<string, any>) {
         this.options = options;
+
         if (FakeMap.fail) {
             throw new Error('WebGL is not available');
         }
+
         FakeMap.made.push(this);
     }
 
@@ -100,11 +102,13 @@ class FakeMarker {
 
     setLngLat(lngLat: number[]): this {
         this.lngLat = lngLat;
+
         return this;
     }
 
     setOffset(offset: number[]): this {
         this.offset = offset;
+
         return this;
     }
 
@@ -125,6 +129,7 @@ beforeAll(async () => {
     if (typeof document === 'undefined') {
         return;
     }
+
     mock.module('maplibre-gl', () => ({ Map: FakeMap, Marker: FakeMarker, setWorkerUrl: (url: string) => workerUrls.push(url) }));
     mock.module('maplibre-gl/dist/maplibre-gl.css', () => ({}));
     ({ MapView } = await import('./map-view'));
@@ -158,6 +163,7 @@ beforeEach(() => {
     if (typeof document === 'undefined') {
         return;
     }
+
     FakeMap.made = [];
     FakeMap.fail = false;
     FakeMarker.made = [];
@@ -171,6 +177,7 @@ afterEach(async () => {
     if (typeof document === 'undefined') {
         return;
     }
+
     await act(async () => root.unmount());
     element.remove();
 });
@@ -189,6 +196,7 @@ test.skipIf(typeof document === 'undefined')('draws the style of the host, asks 
     expect(map.canvas.tabIndex).toBe(-1);
     expect(workerUrls).toHaveLength(1);
     expect(workerUrls[0]).toContain('maplibre-gl-worker.mjs');
+
     expect(map.fitted).toEqual([
         [
             [
@@ -198,10 +206,12 @@ test.skipIf(typeof document === 'undefined')('draws the style of the host, asks 
             { padding: 32, maxZoom: 16, duration: 0 }
         ]
     ]);
+
     expect(FakeMarker.made.map((marker) => [marker.lngLat, marker.element.textContent])).toEqual([
         [[5, 52], '1'],
         [[11, 48], '2']
     ]);
+
     expect(statuses).toEqual(['loading']);
     await act(async () => map.emit('load'));
     expect(statuses).toEqual(['loading', 'tiles']);
@@ -247,11 +257,13 @@ test.skipIf(typeof document === 'undefined')("a tile that fails now and then aft
     await draw();
     const [map] = FakeMap.made;
     await act(async () => map.emit('style.load'));
+
     for (let attempt = 0; attempt < 6; attempt++) {
         await act(async () => map.emit('error', { error: { status: 503 } }));
         await act(async () => map.emit('error', { error: { status: 503 } }));
         await act(async () => map.emit('sourcedata', { tile: {} }));
     }
+
     expect(map.styles).toEqual([]);
     expect(statuses).toEqual(['loading']);
 });
@@ -260,9 +272,11 @@ test.skipIf(typeof document === 'undefined')('tiles that keep failing, or that t
     await draw();
     const [map] = FakeMap.made;
     await act(async () => map.emit('style.load'));
+
     for (let attempt = 0; attempt < 3; attempt++) {
         await act(async () => map.emit('error', { error: { status: 500 } }));
     }
+
     expect(map.styles).toEqual([]);
     await act(async () => map.emit('error', { error: { status: 500 } }));
     expect(map.styles).toHaveLength(1);
@@ -324,6 +338,7 @@ test.skipIf(typeof document === 'undefined')('a browser that takes the graphics 
 test.skipIf(typeof document === 'undefined')('hands the headers of the host on with its address', async () => {
     const source: UiMapSource = { ...TILES, transformRequest: (url) => ({ url, headers: { 'X-Ticket': 't1' } }) };
     await draw({ source });
+
     expect(FakeMap.made[0].options.transformRequest('https://maps.example/tile/1')).toEqual({
         url: 'https://maps.example/tile/1',
         headers: { 'X-Ticket': 't1' }
@@ -333,12 +348,14 @@ test.skipIf(typeof document === 'undefined')('hands the headers of the host on w
 test.skipIf(typeof document === 'undefined')('draws the outline while the page is offline and says so', async () => {
     const online = Object.getOwnPropertyDescriptor(Navigator.prototype, 'onLine');
     Object.defineProperty(navigator, 'onLine', { configurable: true, value: false });
+
     try {
         await draw();
         expect(typeof FakeMap.made[0].options.style).toBe('object');
         expect(statuses).toEqual(['offline']);
     } finally {
         delete (navigator as { onLine?: boolean }).onLine;
+
         if (online) {
             Object.defineProperty(Navigator.prototype, 'onLine', online);
         }
@@ -390,6 +407,7 @@ test.skipIf(typeof document === 'undefined')('the zoom buttons zoom the map', as
 
 test.skipIf(typeof document === 'undefined')('points MapLibre to the worker the host names instead of the built-in address', async () => {
     const host = { maps: { useSource: () => TILES, workerUrl: 'https://app.example/assets/maplibre-gl-worker.mjs' } };
+
     await act(async () =>
         root.render(
             createElement(
@@ -399,10 +417,12 @@ test.skipIf(typeof document === 'undefined')('points MapLibre to the worker the 
             )
         )
     );
+
     expect(workerUrls.at(-1)).toBe('https://app.example/assets/maplibre-gl-worker.mjs');
     const count = workerUrls.length;
     await act(async () => root.unmount());
     root = createRoot(element);
+
     await act(async () =>
         root.render(
             createElement(
@@ -412,6 +432,7 @@ test.skipIf(typeof document === 'undefined')('points MapLibre to the worker the 
             )
         )
     );
+
     expect(workerUrls).toHaveLength(count);
 });
 
@@ -425,9 +446,11 @@ test.skipIf(typeof document === 'undefined')('the way back fits every place agai
     expect(map.fitted[1][1]).toMatchObject({ padding: map.fitted[0][1].padding, maxZoom: map.fitted[0][1].maxZoom });
     await draw({ source: { state: 'off', reason: 'disabled' } });
     const outline = FakeMap.made.at(-1)!;
+
     await act(async () =>
         [...element.querySelectorAll<HTMLButtonElement>('button')].find((button) => button.getAttribute('aria-label') === 'Show all places')!.click()
     );
+
     expect(outline.fitted.at(-1)![1]).toMatchObject({ padding: 32, maxZoom: 6 });
 });
 
@@ -444,13 +467,16 @@ test.skipIf(typeof document === 'undefined')('markers that would cover each othe
             { id: 'c', number: 3, lat: 40, lon: 5 }
         ]
     });
+
     const [map] = FakeMap.made;
     const [first, second, third] = FakeMarker.made;
+
     expect([first.offset, second.offset, third.offset]).toEqual([
         [0, 0],
         [20, 0],
         [0, 0]
     ]);
+
     map.scale = 2000;
     await act(async () => map.emit('zoomend'));
     expect(second.offset).toEqual([0, 0]);
@@ -480,11 +506,13 @@ let revision = 0;
  */
 function writePalette(colors: Partial<{ land: string; water: string }>): void {
     let sheet = document.getElementById('test-palette');
+
     if (sheet === null) {
         sheet = document.createElement('style');
         sheet.id = 'test-palette';
         document.head.append(sheet);
     }
+
     const tokens = Object.entries(colors).map(([name, color]) => `--map-${name}: ${color};`);
     sheet.textContent = `[aria-hidden="true"] { ${tokens.join(' ')} }`;
     document.documentElement.style.setProperty('--palette-revision', String(++revision));

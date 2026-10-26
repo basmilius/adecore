@@ -40,6 +40,7 @@ const thread: ChatItem[] = [
     { id: 't2', kind: 'turn', createdAt: 2, turnId: 't2', state: 'aborted', endedAt: 3, costUsd: 0, origin: 'agent', label: 'Woken by 2 tasks' },
     { id: 't3', kind: 'turn', createdAt: 4, turnId: 't3', state: 'running', endedAt: null, costUsd: 0 }
 ];
+
 const items = Object.fromEntries(thread.map((item) => [item.id, item]));
 const order = thread.map((item) => item.id);
 
@@ -66,6 +67,7 @@ describe('fork', () => {
 
     test('the point names the turn by its place and the first line of what was asked, or the label of a wake', () => {
         const first = forkPointOf(items, order, 't1', true)!;
+
         expect(first).toEqual({
             turnId: 't1',
             number: 1,
@@ -74,6 +76,7 @@ describe('fork', () => {
             last: false,
             prompt: 'Make the lexer handle unicode identifiers everywhere it reads a name'
         });
+
         expect(forkPointLabel(first)).toBe('After turn 1 of 3: "Make the lexer handle unicode identifiers everywhere it rea…"');
         expect(forkPointLabel(forkPointOf(items, order, 't3', true)!)).toBe('After the last turn');
         expect(forkPointOf(items, order, 't2', true)!.prompt).toBe('Woken by 2 tasks');
@@ -95,24 +98,29 @@ describe('the shape of a fork', () => {
         const base = { chatId: 'chat-1', turnId: 't1', title: 'Lexer (fork)' };
         expect(forkPayload({ ...base, shape: 'node' })).toEqual(base);
         expect(forkPayload({ ...base, shape: 'view' })).toEqual({ ...base, asView: true });
+
         expect(forkPayload({ ...base, shape: 'node', worktree: { branch: 'lexer-fork', filesAfterTurn: true } })).toEqual({
             ...base,
             worktree: { branch: 'lexer-fork' },
             filesAfterTurn: true
         });
+
         expect(forkPayload({ ...base, shape: 'node', worktree: { branch: 'lexer-fork', filesAfterTurn: false } })).toEqual({
             ...base,
             worktree: { branch: 'lexer-fork' }
         });
+
         expect(forkPayload({ ...base, shape: 'node', worktree: null })).toEqual(base);
         const original = { provider: 'claude' as const, selection: { model: 'opus', options: { effort: 'high' } } };
         expect(forkPayload({ ...base, shape: 'node', cli: { original, chosen: original } })).toEqual(base);
+
         expect(forkPayload({ ...base, shape: 'node', cli: { original, chosen: { provider: 'claude', selection: { model: 'sonnet', options: {} } } } })).toEqual(
             {
                 ...base,
                 selection: { model: 'sonnet', options: {} }
             }
         );
+
         expect(forkPayload({ ...base, shape: 'node', cli: { original, chosen: { provider: 'codex', selection: { model: 'gpt-5.5', options: {} } } } })).toEqual(
             {
                 ...base,
@@ -139,12 +147,14 @@ describe('the shape of a fork', () => {
 
     test('the forks after a turn are found among the chats this client knows', () => {
         const at = { chatId: 'chat-1', turnId: 't1', at: 0 };
+
         const infos = [
             info({ chatId: 'fork-1', forkOf: at }),
             info({ chatId: 'fork-2', forkOf: at }),
             info({ chatId: 'fork-3', forkOf: { ...at, turnId: 't2' } }),
             info()
         ];
+
         expect(forkIdsAfter(infos, 'chat-1', 't1')).toEqual(['fork-1', 'fork-2']);
         expect(forkIdsAfter(infos, 'chat-1', 't3')).toEqual([]);
         expect(forkedTurnIds(infos, 'chat-1')).toEqual(new Set(['t1', 't2']));

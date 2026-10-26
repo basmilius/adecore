@@ -28,6 +28,7 @@ export function AgentModelLabel({ provider, model, scopeId, size = 14, className
     const id = scopeId ?? scope?.id;
     const catalog = useProvidersStore((s) => (id === undefined ? undefined : s.byScope[id]?.providers.find((entry) => entry.kind === provider)));
     const name = model === undefined ? (catalog?.name ?? provider) : modelName(model, catalog?.models);
+
     return (
         <span className={clsx('flex min-w-0 items-center gap-1.5', className)}>
             {hasProviderLogo(provider) ? <ProviderLogo provider={provider} size={size} /> : <AgentIcon kind={provider} size={size} className="shrink-0" />}

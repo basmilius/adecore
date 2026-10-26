@@ -33,16 +33,20 @@ function ChildRow({ chatId, item }: { chatId: string; item: ChatItem }) {
         if (isImageGeneration(item)) {
             return <GeneratedImageRow chatId={chatId} tool={item} />;
         }
+
         return item.state === 'running' ? <WorkLiveRow chatId={chatId} tool={item} /> : <WorkRow chatId={chatId} tool={item} />;
     }
+
     if (item.kind === 'assistant') {
         return <ChildText chatId={chatId} item={item} />;
     }
+
     return null;
 }
 
 function ChildText({ chatId, item: derived }: { chatId: string; item: ChatAssistantItem }) {
     const item = useCurrentItem(chatId, derived);
+
     return (
         <div className="-mx-1 px-1 pb-2 text-xs text-text-muted select-text">
             <Markdown text={item.text} />
@@ -54,15 +58,19 @@ function StatusPill({ item, task }: { item: ChatSubagentItem; task: SubagentTask
     const { t } = useTranslation('agent-chat');
     const paused = statusWordOf(item, task) === 'paused';
     const now = useNow(60_000, paused);
+
     if (paused) {
         return <span className="shrink-0 text-xs text-text-faint tabular-nums">{entryTimeOf(item, task, now)}</span>;
     }
+
     if (item.status === 'running') {
         return <RunningFor startedAt={item.startedAt} />;
     }
+
     const failed = item.status === 'failed';
     const duration = item.finishedAt === null ? null : formatElapsedShort(item.finishedAt - item.startedAt);
     const outcome = failed ? 'failed' : 'done';
+
     return (
         <span className={clsx('shrink-0 text-xs tabular-nums', failed ? 'text-status-error' : 'text-text-faint')}>
             {duration === null ? t(`common.status.${outcome}`) : t(`rows.subagent.${outcome}In`, { duration })}
@@ -75,16 +83,19 @@ function SubagentWork({ chatId, item, work }: { chatId: string; item: ChatSubage
     const { t } = useTranslation('agent-chat');
     const scroller = useRef<HTMLDivElement>(null);
     const running = item.status === 'running';
+
     useLayoutEffect(() => {
         // While it works, the newest line is the one worth seeing.
         if (running && scroller.current) {
             scroller.current.scrollTop = scroller.current.scrollHeight;
         }
     }, [work.length, running]);
+
     if (work.length === 0) {
         // A line inside a chat row, where the centered block of an EmptyState would outweigh the row itself.
         return <div className="ml-6 pb-1 text-xs text-text-faint">{t('rows.subagent.nothingYet')}</div>;
     }
+
     return (
         <div ref={scroller} className="ml-6 overflow-y-auto" style={{ maxHeight: CHILDREN_MAX_PX }}>
             {item.itemsTruncated && <div className="pb-1 text-xs text-text-faint">{t('rows.subagent.truncated')}</div>}
@@ -100,6 +111,7 @@ function SubagentResult({ itemId, result }: { itemId: string; result: string }) 
     const { t } = useTranslation('agent-chat');
     const [open, setOpen] = useState(false);
     useOpenForFind(itemId, 'output', setOpen);
+
     return (
         <div className="ml-6 pb-1">
             <button className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text" onClick={() => setOpen((o) => !o)}>
@@ -146,6 +158,7 @@ export function SubagentRow({
     // A row that carries no pointer on a host that already said no has nothing to open.
     const refused = useSubagentSupport((s) => s.unsupported[id] === true);
     const press = onOpenConversation !== undefined && canOpenSubagent(item, refused) ? onOpenConversation : onToggle;
+
     return (
         <div data-find-item={item.id}>
             {item.origin === 'ruimte' ? (

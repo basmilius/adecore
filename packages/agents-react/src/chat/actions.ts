@@ -14,6 +14,7 @@ export function transportActions(transport: ChatTransport): ChatActions {
         },
         unqueue: async (chatId, messageId) => {
             const { message } = await transport.request('chat.unqueue', { chatId, messageId });
+
             // A host answers without the message once it went out, which is what the composer tells a person.
             if (message === undefined) {
                 throw new ChatTransportError('request-not-found', i18next.t('agent-chat:composer.queue.alreadySent'));
@@ -58,15 +59,19 @@ const byTransport = new WeakMap<ChatTransport, ChatActions>();
 /* The app's own actions when its host has them, and the requests of this scope's host of chats otherwise. */
 export function actionsOf(scope: ChatScope, host: Pick<ChatHost, 'actions'>): ChatActions {
     const own = host.actions;
+
     if (own !== null) {
         return own;
     }
+
     const { transport } = scope;
     let actions = byTransport.get(transport);
+
     if (actions === undefined) {
         actions = transportActions(transport);
         byTransport.set(transport, actions);
     }
+
     return actions;
 }
 

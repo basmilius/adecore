@@ -14,6 +14,7 @@ function themeOf(name: string, foreground: string): CodeTheme {
 
 function Probe() {
     useDiffTheme();
+
     return null;
 }
 
@@ -39,15 +40,19 @@ test('a theme the host adds after the first diff resolves once it is picked, and
     const late = themeOf('diff-theme-late', '#333333');
     let custom: CodeTheme[] = [first];
     let picked = first.name;
+
     const host = {
         code: codeOf(
             () => custom,
             () => ({ light: picked, dark: picked })
         )
     };
+
     const errors = spyOn(console, 'error');
+
     try {
         const render = () => renderToStaticMarkup(createElement(ChatHostProvider, { host }, createElement(Probe)));
+
         render();
         custom = [first, late];
         picked = late.name;
@@ -59,5 +64,6 @@ test('a theme the host adds after the first diff resolves once it is picked, and
     } finally {
         errors.mockRestore();
     }
+
     expect((await resolveTheme(late.name)).fg).toBe('#333333');
 });

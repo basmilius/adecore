@@ -21,10 +21,12 @@ export function niceScale(max: number, ticks = 4): { max: number; step: number }
     if (!Number.isFinite(max) || max <= 0) {
         return { max: 1, step: 1 };
     }
+
     const rough = max / ticks;
     const magnitude = 10 ** Math.floor(Math.log10(rough));
     const normalized = rough / magnitude;
     const step = (normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10) * magnitude;
+
     return { max: Math.ceil(max / step) * step, step };
 }
 
@@ -46,14 +48,17 @@ export function enumerateSlots(summary: Pick<UsageSummaryResult, 'from' | 'to' |
     if (summary.resolution === 'hour') {
         return Array.from({ length: 24 }, (_, hour) => `${summary.to}T${String(hour).padStart(2, '0')}`);
     }
+
     const slots: string[] = [];
     const at = new Date(`${summary.from}T00:00:00`);
     const end = new Date(`${summary.to}T00:00:00`);
+
     // A calendar loop rather than adding milliseconds, since a day is 23 or 25 hours long twice a year.
     while (at <= end && slots.length < 400) {
         slots.push(dayOf(at));
         at.setDate(at.getDate() + 1);
     }
+
     return slots;
 }
 
@@ -68,9 +73,11 @@ export function labelEveryFor(slots: number): number {
  */
 export function deriveUsage(summary: UsageSummaryResult, metric: UsageMetric): DerivedUsage {
     const bySlot = new Map<string, ChartSlot>();
+
     for (const slot of enumerateSlots(summary)) {
         bySlot.set(slot, { slot, byProvider: {}, total: 0 });
     }
+
     const byProvider = new Map<UsageProvider, ProviderTotal>();
     let totals = EMPTY_TOTALS;
     let costUsd = 0;
@@ -79,10 +86,12 @@ export function deriveUsage(summary: UsageSummaryResult, metric: UsageMetric): D
     for (const bucket of summary.buckets) {
         const value = metric === 'cost' ? (bucket.costUsd ?? 0) : totalTokensOf(bucket.totals);
         const slot = bySlot.get(bucket.slot);
+
         if (slot !== undefined) {
             slot.byProvider[bucket.provider] = (slot.byProvider[bucket.provider] ?? 0) + value;
             slot.total += value;
         }
+
         const provider = byProvider.get(bucket.provider) ?? { provider: bucket.provider, costUsd: 0, totals: EMPTY_TOTALS };
         provider.costUsd += bucket.costUsd ?? 0;
         provider.totals = addTotals(provider.totals, bucket.totals);
@@ -93,6 +102,7 @@ export function deriveUsage(summary: UsageSummaryResult, metric: UsageMetric): D
     }
 
     const providers = [...byProvider.values()].sort((a, b) => b.costUsd - a.costUsd);
+
     return {
         slots: [...bySlot.values()],
         providers,
@@ -118,6 +128,7 @@ export interface UsageDay {
  */
 export function deriveDays(summary: UsageSummaryResult): UsageDay[] {
     const rows = new Map<string, UsageDay>();
+
     for (const bucket of summary.buckets) {
         const day = bucket.slot.slice(0, 10);
         const row = rows.get(day) ?? { slot: day, costByProvider: {}, costUsd: 0, tokens: 0 };
@@ -127,5 +138,6 @@ export function deriveDays(summary: UsageSummaryResult): UsageDay[] {
         row.tokens += totalTokensOf(bucket.totals);
         rows.set(day, row);
     }
+
     return [...rows.values()].sort((a, b) => b.slot.localeCompare(a.slot));
 }

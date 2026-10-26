@@ -17,25 +17,30 @@ describe('recentChatMessages', () => {
             item('4', 'assistant', 'subagent', 'tool-1'),
             item('5', 'user', 'latest')
         ];
+
         const result = recentChatMessages(
             Object.fromEntries(items.map((entry) => [entry.id, entry])),
             items.map((entry) => entry.id),
             2
         );
+
         expect(result.messages).toEqual([
             { role: 'assistant', text: 'answer', createdAt: 2 },
             { role: 'user', text: 'latest', createdAt: 5 }
         ]);
+
         expect(result.truncated).toBe(true);
     });
 
     test('caps one large message and the total text sent to Voice', () => {
         const items = ['a', 'b', 'c', 'd', 'e'].map((text, index) => item(String(index + 1), 'user', text.repeat(4_000)));
+
         const result = recentChatMessages(
             Object.fromEntries(items.map((entry) => [entry.id, entry])),
             items.map((entry) => entry.id),
             20
         );
+
         expect(result.messages.map((message) => message.createdAt)).toEqual([2, 3, 4, 5]);
         expect(result.messages.every((message) => message.text.length === 3_000 && message.text.endsWith('…'))).toBe(true);
         expect(result.messages.at(-1)!.text).toBe(`${'e'.repeat(2_999)}…`);

@@ -5,11 +5,14 @@ import { IncrementalLines, TokenCache, type CodeToken, type Tokenize } from './c
 /* A tokenizer that turns every line into one token and records what it was asked to read. */
 function recording() {
     const calls: string[] = [];
+
     const tokenize: Tokenize<number> = (code, state) => {
         calls.push(code);
         const lines = code.split('\n').map((line) => [{ content: line }]);
+
         return { lines, state: (state ?? 0) + lines.length };
     };
+
     return { calls, tokenize };
 }
 
@@ -33,10 +36,12 @@ describe('IncrementalLines', () => {
         const { calls, tokenize } = recording();
         const lines = new IncrementalLines(tokenize);
         let code = '';
+
         for (let i = 0; i < 200; i++) {
             code += `line ${i}\n`;
             lines.update(`${code}next`, false);
         }
+
         const last = calls.slice(-2);
         expect(last).toEqual(['line 199', 'next']);
         expect(lines.update(`${code}next`, false)).toHaveLength(201);
@@ -70,17 +75,23 @@ describe('IncrementalLines', () => {
     test('with shiki, a comment and a template string across increments color the same as the whole block at once', async () => {
         const highlighter = await createHighlighter({ themes: ['github-dark'], langs: ['ts'] });
         const options = { lang: 'ts', theme: 'github-dark' } as const;
+
         const tokenize: Tokenize<ReturnType<typeof highlighter.getLastGrammarState>> = (code, state) => {
             const result = highlighter.codeToTokens(code, { ...options, ...(state ? { grammarState: state } : {}) });
+
             return { lines: result.tokens, state: result.grammarState };
         };
+
         const code = 'const a = 1;\n/* opens\nstill a comment */\nconst s = `x\n${a}`;\nlet b = 2;';
         const lines = new IncrementalLines(tokenize);
         let streamed: CodeToken[][] = [];
+
         for (let i = 1; i <= code.length; i++) {
             streamed = lines.update(code.slice(0, i), i === code.length);
         }
+
         const colors = (tokens: CodeToken[][]) => tokens.map((line) => line.map((token) => [token.content, token.color]));
+
         expect(colors(streamed)).toEqual(colors(highlighter.codeToTokens(code, options).tokens));
     });
 });
@@ -111,9 +122,11 @@ describe('TokenCache', () => {
     test('recent blocks survive entry eviction and oversized blocks never evict them', () => {
         const { calls, tokenize } = recording();
         const cached = new TokenCache<number>().wrap('text', tokenize);
+
         for (let i = 0; i < 128; i++) {
             cached(String(i), undefined);
         }
+
         cached('0', undefined);
         cached('new', undefined);
         calls.length = 0;
@@ -130,10 +143,13 @@ describe('TokenCache', () => {
 
     test('dense token streams also evict blocks to stay within the shared budget', () => {
         let calls = 0;
+
         const tokenize: Tokenize<never> = (code) => {
             calls++;
+
             return { lines: [Array.from({ length: 40000 }, () => ({ content: code }))], state: undefined };
         };
+
         const cache = new TokenCache<never>();
         const first = cache.wrap('one', tokenize);
         const second = cache.wrap('two', tokenize);
@@ -146,15 +162,19 @@ describe('TokenCache', () => {
 
 test('cached Shiki tokens retain multiline grammar state across remounts', async () => {
     const highlighter = await createHighlighter({ themes: ['github-dark'], langs: ['ts'] });
+
     try {
         type State = ReturnType<typeof highlighter.getLastGrammarState>;
         const options = { lang: 'ts', theme: 'github-dark' } as const;
         let calls = 0;
+
         const tokenize: Tokenize<State> = (code, state) => {
             calls++;
             const result = highlighter.codeToTokens(code, { ...options, ...(state ? { grammarState: state } : {}) });
+
             return { lines: result.tokens, state: result.grammarState };
         };
+
         const cached = new TokenCache<State>().wrap('ts:github-dark', tokenize);
         const prefix = '/* open\nstill open\n';
         const suffix = 'closed */\nconst value = 1;';
@@ -164,7 +184,9 @@ test('cached Shiki tokens retain multiline grammar state across remounts', async
         expect(calls).toBe(3);
         const result = returning.update(prefix + suffix, true);
         const fresh = highlighter.codeToTokens(prefix + suffix, options).tokens;
+
         const colors = (lines: CodeToken[][]) => lines.map((line) => line.map(({ content, color, fontStyle }) => ({ content, color, fontStyle })));
+
         expect(colors(result)).toEqual(colors(fresh));
     } finally {
         highlighter.dispose();

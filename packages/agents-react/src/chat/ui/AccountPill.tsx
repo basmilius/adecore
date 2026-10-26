@@ -9,10 +9,13 @@ import { Pill, Tooltip } from '@adecore/ui';
 function AccountPillOf({ provider, account }: { provider: AgentKind; account: string | undefined }) {
     const { t } = useTranslation('agent-chat');
     const choice = useAccountChoice(provider, account);
+
     if (choice === null) {
         return null;
     }
+
     const name = choice.current === null ? choice.currentId : choice.nameOf(choice.current);
+
     return (
         <Tooltip label={t('account.pill', { provider: choice.providerName, account: name })}>
             <Pill icon={<AccountDot color={choice.current?.account.color} className="size-1.75" />}>
@@ -27,5 +30,6 @@ export function AccountPill({ chatId }: { chatId: string }) {
     const { keyOf } = useChatScope();
     const provider = useChats((s) => s.statusByKey[keyOf(chatId)]?.info.provider);
     const account = useChats((s) => s.statusByKey[keyOf(chatId)]?.info.account);
+
     return provider === undefined ? null : <AccountPillOf provider={provider} account={account} />;
 }

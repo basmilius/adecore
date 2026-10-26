@@ -65,22 +65,27 @@ describe('the hooks of an account choice', () => {
         step: () => void
     ): Promise<{ fresh: NewAccountChoice[]; chat: Array<AccountChoice | null> }> {
         const seen = { fresh: [] as NewAccountChoice[], chat: [] as Array<AccountChoice | null> };
+
         function Probe() {
             seen.fresh.push(useNewAccountChoice(kind));
             seen.chat.push(useAccountChoice(kind, account));
+
             return null;
         }
+
         const scope = {
             id: SCOPE,
             keyOf: (chatId: string) => `${SCOPE}/${chatId}`,
             owns: (key: string) => key.startsWith(`${SCOPE}/`)
         } as unknown as ChatScope;
+
         const page = createPage();
         const names = ['window', 'IS_REACT_ACT_ENVIRONMENT'] as const;
         const previous = names.map((name) => Object.getOwnPropertyDescriptor(globalThis, name));
         Object.defineProperty(globalThis, 'window', { value: page.window, configurable: true });
         Object.defineProperty(globalThis, 'IS_REACT_ACT_ENVIRONMENT', { value: true, configurable: true });
         const root = createRoot(page.host);
+
         try {
             await act(async () =>
                 root.render(
@@ -89,11 +94,14 @@ describe('the hooks of an account choice', () => {
                     </ChatScopeContext.Provider>
                 )
             );
+
             await act(async () => step());
         } finally {
             await act(async () => root.unmount());
+
             names.forEach((name, index) => {
                 const descriptor = previous[index];
+
                 if (descriptor === undefined) {
                     Reflect.deleteProperty(globalThis, name);
                 } else {
@@ -101,6 +109,7 @@ describe('the hooks of an account choice', () => {
                 }
             });
         }
+
         return seen;
     }
 
@@ -109,6 +118,7 @@ describe('the hooks of an account choice', () => {
             useProvidersStore.getState().setProviders(SCOPE, [{ kind: 'claude', name: 'Claude Code' } as ProviderInfo]);
             useProviderAccountsStore.getState().set(SCOPE, defaultOff);
         });
+
         expect(seen.fresh[0]).toEqual({ status: 'loading' });
         const last = seen.fresh.at(-1)!;
         expect(last).toMatchObject({ status: 'ready', providerName: 'Claude Code' });

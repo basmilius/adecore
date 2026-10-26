@@ -22,6 +22,7 @@ interface DraftQuoteProps {
 export function DraftQuote({ chatId, quote, source, onRemove, onSourceGone }: DraftQuoteProps) {
     const { t } = useTranslation('agent-chat');
     const scope = useChatScope();
+
     return (
         <div className={`flex items-center gap-2 ${ROW}`}>
             {source === null ? (
@@ -45,6 +46,7 @@ export function DraftQuote({ chatId, quote, source, onRemove, onSourceGone }: Dr
 /* The files the message carries: an image as a thumbnail, anything else by its name and size. */
 export function DraftAttachments({ attachments, onRemove }: { attachments: readonly ChatAttachmentUpload[]; onRemove(index: number): void }) {
     const { t } = useTranslation('agent-chat');
+
     return (
         <div className={`flex flex-wrap gap-2 ${ROW}`}>
             {attachments.map((attachment, index) => (

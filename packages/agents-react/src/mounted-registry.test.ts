@@ -46,6 +46,7 @@ describe('what a client has mounted', () => {
 
         await mounted.reattachAll((id) => {
             asked.push(id);
+
             return id === 'a' ? Promise.reject(new Error('the socket went')) : Promise.resolve();
         });
 
@@ -54,9 +55,11 @@ describe('what a client has mounted', () => {
 
     test('an entry that unmounted before its turn is not attached again', async () => {
         const mounted = new MountedRegistry<Node>();
+
         for (const id of ['a', 'b', 'c', 'd', 'e']) {
             mounted.set(id, { attached: false });
         }
+
         const asked: string[] = [];
 
         await mounted.reattachAll(async (id) => {
@@ -70,9 +73,11 @@ describe('what a client has mounted', () => {
     test('attaches four at a time, in the order they were mounted', async () => {
         const mounted = new MountedRegistry<Node>();
         const ids = ['a', 'b', 'c', 'd', 'e', 'f'];
+
         for (const id of ids) {
             mounted.set(id, { attached: false });
         }
+
         const started: string[] = [];
         const finish = new Map<string, () => void>();
 
@@ -83,6 +88,7 @@ describe('what a client has mounted', () => {
                     finish.set(id, resolve);
                 })
         );
+
         expect(started).toEqual(['a', 'b', 'c', 'd']);
 
         finish.get('b')!();
@@ -93,6 +99,7 @@ describe('what a client has mounted', () => {
             finish.get(id)?.();
             await settle();
         }
+
         await pass;
         expect(started).toEqual(ids);
     });

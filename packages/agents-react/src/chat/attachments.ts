@@ -29,10 +29,13 @@ export function isImageAttachment(mime: string): boolean {
 /* The type on a file card: the extension, as long as it is short enough to read as one. */
 export function fileBadge(name: string): string | null {
     const dot = name.lastIndexOf('.');
+
     if (dot <= 0 || dot === name.length - 1) {
         return null;
     }
+
     const extension = name.slice(dot + 1);
+
     return extension.length <= 5 ? extension.toUpperCase() : null;
 }
 
@@ -46,6 +49,7 @@ export function checkAttachmentLimits<T extends IncomingFile>(current: number, i
     const accepted: T[] = [];
     const rejected: Array<{ name: string; reason: string }> = [];
     let bytes = currentBytes;
+
     for (const file of incoming) {
         if (file.bytes === 0) {
             rejected.push({ name: file.name, reason: i18next.t('agent-chat:attachments.rejected.empty') });
@@ -63,6 +67,7 @@ export function checkAttachmentLimits<T extends IncomingFile>(current: number, i
             bytes += file.bytes;
         }
     }
+
     return { accepted, rejected };
 }
 
@@ -75,10 +80,12 @@ function readAsBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onerror = () => reject(reader.error ?? new Error(i18next.t('agent-chat:attachments.unreadable', { name: file.name })));
+
         reader.onload = () => {
             const url = String(reader.result);
             resolve(url.slice(url.indexOf(',') + 1));
         };
+
         reader.readAsDataURL(file);
     });
 }
@@ -104,6 +111,7 @@ export async function readStoredAttachments(
     stored: readonly ChatAttachment[]
 ): Promise<ChatAttachmentUpload[]> {
     const files = await Promise.all(stored.map(async (attachment) => new File([await read(attachment)], attachment.name, { type: attachment.mime })));
+
     return readAttachments(files);
 }
 

@@ -6,6 +6,7 @@ import { accountColor } from './accounts';
 export function AccountDot({ color, className }: { color: string | undefined; className?: string }) {
     const { accents } = useChatHost();
     const paint = accountColor(color, accents.all);
+
     return (
         <span
             aria-hidden

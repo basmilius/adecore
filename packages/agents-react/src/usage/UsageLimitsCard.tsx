@@ -16,6 +16,7 @@ function CardBody() {
     if (limits === null) {
         return <p className="text-xs text-text-faint">{i18next.t('agent-usage:limits.loading')}</p>;
     }
+
     return hasSeveralAccounts(groups) ? <AccountLimitsList groups={groups} now={now} /> : <LimitsList limits={limits} now={now} compact />;
 }
 
@@ -25,6 +26,7 @@ function CardBody() {
  */
 export function UsageLimitsCard({ children }: { children: ReactElement<Record<string, unknown>> }) {
     const [opened, setOpened] = useState(false);
+
     return (
         <PreviewCard.Root onOpenChange={(open) => open && setOpened(true)}>
             <PreviewCard.Trigger render={children} delay={500} />

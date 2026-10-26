@@ -8,20 +8,24 @@ import { errorCode, isConnectionError } from './transport';
 function fakePort() {
     const sent: Array<Request | ServerFrame> = [];
     const listeners = new Set<(frame: unknown) => void>();
+
     const port: FramePort = {
         send: (frame) => {
             sent.push(frame);
         },
         onFrame: (listener) => {
             listeners.add(listener);
+
             return () => listeners.delete(listener);
         }
     };
+
     const deliver = (frame: unknown): void => {
         for (const listener of [...listeners]) {
             listener(frame);
         }
     };
+
     return { port, sent, deliver, listening: () => listeners.size };
 }
 
@@ -83,9 +87,11 @@ describe('portTransport', () => {
 
     test('a frame the port refuses to send fails its request instead of throwing', async () => {
         const { port } = fakePort();
+
         port.send = () => {
             throw new DOMException('could not be cloned', 'DataCloneError');
         };
+
         const transport = portTransport(port);
         const asked = transport.request('chat.list', {});
         const failure = await asked.catch((e: unknown) => e);

@@ -8,6 +8,7 @@ describe('bookmarks', () => {
             { itemId: 'b', excerpt: 'second', createdAt: 2 },
             { itemId: 'a', excerpt: 'first', name: 'Decision', createdAt: 3 }
         ];
+
         expect(bookmarksInThreadOrder(bookmarks, ['a', 'x', 'b']).map((bookmark) => bookmark.itemId)).toEqual(['a', 'b', 'gone']);
         expect(bookmarks.map(bookmarkLabel)).toEqual(['old', 'second', 'Decision']);
     });

@@ -12,10 +12,12 @@ afterEach(() => setSystemTime());
 test.skipIf(typeof document === 'undefined')('an event with a time nobody can read draws with the time as written and shows the person no note', async () => {
     const text =
         '```ui\n<Timeline><Event at="15:41:55" tone="success">Deployed</Event><Event at="soon" tone="info" detail="later">Rolled back</Event></Timeline>\n```';
+
     const blocks = compileUi(text, { id: 'timeline', final: true });
     const element = document.createElement('div');
     document.body.append(element);
     const root = createRoot(element);
+
     try {
         await act(async () =>
             root.render(
@@ -26,6 +28,7 @@ test.skipIf(typeof document === 'undefined')('an event with a time nobody can re
                 )
             )
         );
+
         expect(element.textContent).not.toContain('Could not show this part');
         const rows = [...element.querySelectorAll('li[aria-label]')];
         expect(rows).toHaveLength(2);
@@ -50,6 +53,7 @@ test.skipIf(typeof document === 'undefined')('a block with an error still shows 
     const element = document.createElement('div');
     document.body.append(element);
     const root = createRoot(element);
+
     try {
         await act(async () =>
             root.render(
@@ -60,6 +64,7 @@ test.skipIf(typeof document === 'undefined')('a block with an error still shows 
                 )
             )
         );
+
         expect(element.querySelector('[aria-expanded]')).not.toBeNull();
     } finally {
         await act(async () => root.unmount());
@@ -70,13 +75,16 @@ test.skipIf(typeof document === 'undefined')('a block with an error still shows 
 test.skipIf(typeof document === 'undefined')('an event written with time instead of at draws as a timeline row and shows the person no note', async () => {
     const text = '```ui\n<Timeline><Event time="14:30" tone="info">Rolled back</Event><Event time="14:45">Recovered</Event></Timeline>\n```';
     const blocks = compileUi(text, { id: 'alias', final: true });
+
     expect(blocks[0].diagnostics.map((diagnostic) => [diagnostic.code, diagnostic.severity])).toEqual([
         ['renamed_prop', 'warning'],
         ['renamed_prop', 'warning']
     ]);
+
     const element = document.createElement('div');
     document.body.append(element);
     const root = createRoot(element);
+
     try {
         await act(async () =>
             root.render(
@@ -87,6 +95,7 @@ test.skipIf(typeof document === 'undefined')('an event written with time instead
                 )
             )
         );
+
         expect(element.textContent).not.toContain('Could not show this part');
         const rows = [...element.querySelectorAll('li[aria-label]')];
         expect(rows).toHaveLength(2);

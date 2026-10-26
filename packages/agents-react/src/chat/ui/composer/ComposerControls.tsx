@@ -40,6 +40,7 @@ function SendButton({ send, writable }: SendButtonProps) {
     const { t } = useTranslation('agent-chat');
     const [box, setBox] = useState<HTMLDivElement | null>(null);
     const split = send.actions.length > 0;
+
     const button = (
         <Tooltip label={send.label} kbd={send.kbd} name>
             <button
@@ -54,10 +55,13 @@ function SendButton({ send, writable }: SendButtonProps) {
             </button>
         </Tooltip>
     );
+
     if (!split) {
         return button;
     }
+
     const { draft } = send;
+
     return (
         // One round shape that clips both halves, the way a split button of the library draws its frame.
         <div ref={setBox} className="flex h-9 shrink-0 overflow-clip rounded-full">
@@ -122,6 +126,7 @@ export function ComposerControls({
     const model = providers.find((entry) => entry.kind === info.provider)?.models.find((entry) => entry.slug === info.selection.model);
     // The CLI announces its session on the first message, so anything before that is still a blank chat.
     const started = info.agentSessionId !== null || info.usage.turns > 0;
+
     // A chat that has started keeps its provider (the CLI holds the thread), and so does one opened for a
     // named CLI; its models stay switchable, since the CLI takes a new one on the restart the next send does.
     const pickable =

@@ -13,21 +13,28 @@ export interface GoalView {
  */
 export function goalView(info: Pick<ChatInfo, 'goal' | 'activeTurnId'>, goals: ProviderCapabilities['goals'], canAct: boolean): GoalView | null {
     const goal = info.goal;
+
     if (goal === undefined) {
         return null;
     }
+
     if (!canAct || goals === undefined) {
         return { goal, actions: [] };
     }
+
     if (goals === 'command') {
         return { goal, actions: goal.status === 'complete' || info.activeTurnId !== null ? [] : ['clear'] };
     }
+
     const actions: ChatGoalAction[] = [];
+
     if (goal.status === 'active') {
         actions.push('pause');
     } else if (goal.status !== 'complete') {
         actions.push('resume');
     }
+
     actions.push('clear');
+
     return { goal, actions };
 }

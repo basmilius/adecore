@@ -14,22 +14,30 @@ export function persistedJson<T>(
 ): PersistedJson<T> {
     let memory = fallback;
     let unwritten = false;
+
     const currentKey = (): string => (typeof key === 'string' ? key : key());
+
     return {
         read: () => {
             hydrateChatStorage();
+
             if (unwritten) {
                 return memory;
             }
+
             try {
                 const storage = chatStorageAdapter();
+
                 if (!storage) {
                     return memory;
                 }
+
                 let raw = storage.getItem(currentKey());
+
                 if (raw === null) {
                     for (const legacy of legacyKeys()) {
                         raw = storage.getItem(legacy);
+
                         if (raw !== null) {
                             // Keep the old key for clients still using it, and migrate without changing the record.
                             try {
@@ -37,11 +45,14 @@ export function persistedJson<T>(
                             } catch {
                                 // A full storage still lets the existing record be read.
                             }
+
                             break;
                         }
                     }
                 }
+
                 memory = parse(raw);
+
                 return memory;
             } catch {
                 return memory;
@@ -51,13 +62,17 @@ export function persistedJson<T>(
             hydrateChatStorage();
             memory = value;
             unwritten = true;
+
             try {
                 const storage = chatStorageAdapter();
+
                 if (!storage) {
                     return false;
                 }
+
                 storage.setItem(currentKey(), JSON.stringify(value));
                 unwritten = false;
+
                 return true;
             } catch {
                 return false;

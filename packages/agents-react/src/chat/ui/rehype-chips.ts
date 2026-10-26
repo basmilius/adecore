@@ -35,6 +35,7 @@ function valueOf(segment: Exclude<ChipSegment, { kind: 'text' }>): string {
     if (segment.kind === 'mention') {
         return segment.path;
     }
+
     return segment.kind === 'skill' ? segment.name : segment.id;
 }
 
@@ -59,9 +60,11 @@ function split(parent: HastParent, tokenize: (text: string) => ChipSegment[], sk
         if (child.type === 'text') {
             return tokenize(child.value).map((segment) => (segment.kind === 'text' ? { type: 'text', value: segment.text } : chipElement(segment)));
         }
+
         if (child.type === 'element' && !skipped.has(child.tagName)) {
             split(child, tokenize, skipped);
         }
+
         return [child];
     });
 }
@@ -72,6 +75,7 @@ export function rehypeChips({ mentions = [], skills = [], references = [] }: Chi
         if (mentions.length === 0 && skills.length === 0 && references.length === 0) {
             return;
         }
+
         split(tree, (text) => tokenizeChips(text, mentions, skills, references), SKIPPED);
     };
 }
@@ -82,6 +86,7 @@ export function rehypeNamedReferences({ items, referenced = [] }: NamedReference
         if (items.length === 0) {
             return;
         }
+
         split(tree, (text) => (text.includes('#') ? tokenizeNamedReferences(text, items, referenced) : [{ kind: 'text', text }]), SKIPPED_IN_REPLIES);
     };
 }

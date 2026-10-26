@@ -12,13 +12,17 @@ beforeEach(() => {
     frames = new Map();
     nextFrame = 1;
     previous = NAMES.map((name) => Object.getOwnPropertyDescriptor(globalThis, name));
+
     const request = (callback: FrameRequestCallback): number => {
         frames.set(nextFrame, callback);
+
         return nextFrame++;
     };
+
     const cancel = (handle: number): void => {
         frames.delete(handle);
     };
+
     Object.defineProperty(globalThis, 'requestAnimationFrame', { value: request, configurable: true, writable: true });
     Object.defineProperty(globalThis, 'cancelAnimationFrame', { value: cancel, configurable: true, writable: true });
 });
@@ -26,6 +30,7 @@ beforeEach(() => {
 afterEach(() => {
     NAMES.forEach((name, index) => {
         const descriptor = previous[index];
+
         if (descriptor === undefined) {
             Reflect.deleteProperty(globalThis, name);
         } else {
@@ -40,6 +45,7 @@ async function nextPaint(): Promise<void> {
     await Promise.resolve();
     const due = [...frames.values()];
     frames.clear();
+
     for (const callback of due) {
         callback(0);
     }
@@ -78,12 +84,14 @@ test('an attribute that carries no theme is not told', async () => {
 test('nothing loops: what is told reads the theme and asks for no frame of its own', async () => {
     const { document } = createPage();
     let told = 0;
+
     const stop = watchTheme(document, () => {
         told++;
         // What a drawing does with the news: it reads the root and writes into its own element, never the root.
         document.documentElement.getAttribute('style');
         document.getElementById('host')!.setAttribute('style', `--drawn: ${told}`);
     });
+
     document.documentElement.style.setProperty('--palette-revision', '1');
     await nextPaint();
     await nextPaint();

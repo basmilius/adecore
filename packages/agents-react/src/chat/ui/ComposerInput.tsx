@@ -69,12 +69,14 @@ export function ComposerInput({
     const hostRef = useRef<HTMLDivElement>(null);
     const targetRef = useRef<HTMLDivElement>(null);
     const viewRef = useRef<EditorView | null>(null);
+
     const [compartments] = useState(() => ({
         attributes: new Compartment(),
         editable: new Compartment(),
         placeholder: new Compartment(),
         extensions: new Compartment()
     }));
+
     const latest = useRef({ value, handlers });
     // What the editor last reported. The parent handing that back is catching up, not setting a value of its own.
     const reported = useRef(value);
@@ -85,10 +87,13 @@ export function ComposerInput({
 
     useLayoutEffect(() => {
         const host = hostRef.current;
+
         if (!host) {
             return;
         }
+
         const initial = latest.current.value;
+
         const view = new EditorView({
             parent: host,
             state: EditorState.create({
@@ -109,24 +114,30 @@ export function ComposerInput({
                             cut: (event, target) => latest.current.handlers.onCopy?.(event, target) ?? false,
                             compositionstart: () => {
                                 latest.current.handlers.onComposing?.(true);
+
                                 return false;
                             },
                             compositionend: () => {
                                 latest.current.handlers.onComposing?.(false);
+
                                 return false;
                             }
                         })
                     ),
                     EditorView.updateListener.of((update) => {
                         const current = latest.current.handlers;
+
                         if (update.focusChanged && !update.view.hasFocus) {
                             current.onBlur?.();
                         }
+
                         if ((!update.docChanged && !update.selectionSet) || update.transactions.some((tr) => tr.annotation(externalChange))) {
                             return;
                         }
+
                         const text = update.state.doc.toString();
                         const { from, to } = update.state.selection.main;
+
                         if (update.docChanged) {
                             reported.current = text;
                             current.onChange(text, { from, to }, update.state);
@@ -137,7 +148,9 @@ export function ComposerInput({
                 ]
             })
         });
+
         viewRef.current = view;
+
         return () => {
             view.destroy();
             viewRef.current = null;
@@ -158,14 +171,18 @@ export function ComposerInput({
 
     useLayoutEffect(() => {
         const view = viewRef.current;
+
         if (!view || value === reported.current) {
             return;
         }
+
         reported.current = value;
         const doc = view.state.doc.toString();
+
         if (value === doc) {
             return;
         }
+
         view.dispatch({
             changes: { from: 0, to: doc.length, insert: value },
             selection: { anchor: value.length },
@@ -179,17 +196,21 @@ export function ComposerInput({
             focus: () => viewRef.current?.focus(),
             setCaret: (pos: number) => {
                 const view = viewRef.current;
+
                 if (!view) {
                     return;
                 }
+
                 view.dispatch({ selection: { anchor: Math.min(pos, view.state.doc.length) }, scrollIntoView: true });
                 view.focus();
             },
             insert: (text: string) => {
                 const view = viewRef.current;
+
                 if (!view) {
                     return;
                 }
+
                 view.dispatch(insertAtSelection(view.state, text));
                 view.focus();
             }
@@ -198,6 +219,7 @@ export function ComposerInput({
     );
 
     const Dictation = dictation.composer?.Control;
+
     return (
         <div ref={targetRef} className="min-w-0">
             <div ref={hostRef} className={className} />

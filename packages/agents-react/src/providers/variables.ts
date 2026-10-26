@@ -15,8 +15,10 @@ export interface VariableDraft {
 }
 
 let drafted = 0;
+
 function nextKey(): string {
     drafted += 1;
+
     return `variable-${drafted}`;
 }
 
@@ -45,23 +47,31 @@ function keepsValue(draft: VariableDraft): boolean {
 /* The first thing that keeps these from being saved, in a sentence; null when they can be. */
 export function variablesProblem(drafts: readonly VariableDraft[]): string | null {
     const words = (key: string, name: string): string => i18next.t(`agent-providers:account.variables.problem.${key}`, { name });
+
     const seen = new Set<string>();
+
     for (const draft of drafts) {
         const name = draft.name.trim();
+
         if (name === '') {
             return words('noName', '');
         }
+
         if (!NAME.test(name)) {
             return words('invalidName', name);
         }
+
         if (seen.has(name)) {
             return words('duplicate', name);
         }
+
         seen.add(name);
+
         if (draft.value === '' && !keepsValue({ ...draft, name })) {
             return words('noValue', name);
         }
     }
+
     return null;
 }
 
@@ -69,9 +79,11 @@ export function variablesProblem(drafts: readonly VariableDraft[]): string | nul
 export function variablesOf(drafts: readonly VariableDraft[]): ProviderAccountVariable[] {
     return drafts.map((draft) => {
         const name = draft.name.trim();
+
         if (keepsValue({ ...draft, name })) {
             return { name, value: '', sensitive: true, valueRedacted: true };
         }
+
         return { name, value: draft.value, sensitive: draft.sensitive };
     });
 }

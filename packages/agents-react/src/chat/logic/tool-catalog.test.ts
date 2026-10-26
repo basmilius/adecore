@@ -9,8 +9,10 @@ describe('the tool catalog', () => {
             if (!tool.grouped) {
                 continue;
             }
+
             expect(i18next.exists(`agent-chat:group.tools.${name}`, { count: 2 }), name).toBe(true);
         }
+
         // The one name that says it has none, so the check above is not passing on an empty answer.
         expect(TOOL_CATALOG.NotebookRead?.grouped).toBe(false);
         expect(i18next.exists('agent-chat:group.tools.NotebookRead', { count: 2 })).toBe(false);

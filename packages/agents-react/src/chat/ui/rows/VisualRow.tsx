@@ -18,11 +18,15 @@ export function VisualRow({ chatId, visual }: { chatId: string; visual: ChatVisu
     const host = useChatHost();
     const { t } = useTranslation('agent-chat');
     const { id: scopeId, keyOf } = useChatScope();
+
     if (host.visuals === null) {
         return null;
     }
+
     const extra = host.visuals.actions?.(scopeId, chatId, visual) ?? [];
+
     const open = (kind: 'expand' | 'remove'): void => useVisualDialog.getState().open(keyOf(chatId), visual.id, kind);
+
     return (
         <ErrorBoundary label={t('visuals.renderFailed')} resetKeys={[visual]} compact className="relative rounded-lg">
             <div className="group/visual relative">

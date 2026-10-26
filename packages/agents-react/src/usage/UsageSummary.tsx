@@ -22,6 +22,7 @@ interface UsageSummaryProps {
 export function UsageSummary({ metric, costUsd, totals, sessions, providers }: UsageSummaryProps) {
     const { t } = useTranslation('agent-usage');
     const money = useMoney();
+
     return (
         <div className="flex flex-col gap-4">
             <div>

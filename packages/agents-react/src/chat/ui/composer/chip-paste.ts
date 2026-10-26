@@ -32,6 +32,7 @@ export function pastedChipsIn(text: string, from: number, to: number, code: read
     const outside = [...code, { from: 0, to: from }, { from: to, to: text.length }];
     const skills = chipRanges(text, [], [...choices.skills], outside);
     const references = namedReferenceRanges(text, choices.referables, choices.referenced, outside);
+
     return clipboardChipsOf(
         text.slice(from, to),
         [...skills, ...references].map((range) =>
@@ -51,9 +52,12 @@ export function withPastedChips(draft: ChatDraft, chips: ClipboardChips, choices
         ...ids,
         ...more.filter((id, index) => !ids.includes(id) && more.indexOf(id) === index)
     ];
+
     const isChat = (token: ReferenceToken): boolean => choices.referables.some((item) => item.id === token.id && item.kind === 'chat');
+
     const chats = chips.references.filter(isChat);
     const references = chips.references.filter((token) => !isChat(token));
+
     return {
         ...draft,
         mentions: choices.mentions ? add(draft.mentions, chips.mentions) : draft.mentions,
@@ -80,20 +84,26 @@ export function withPastedChips(draft: ChatDraft, chips: ClipboardChips, choices
 export function pasteWithChips(view: EditorView, clip: string, copied: ClipboardChips | null, choices: PasteChoices): ClipboardChips | null {
     if (copied !== null && hasClipboardChips(copied)) {
         view.dispatch(view.state.replaceSelection(copied.text), { scrollIntoView: true, userEvent: 'input.paste' });
+
         return copied;
     }
+
     if (!mayHoldChips(clip)) {
         return null;
     }
+
     const from = view.state.selection.main.from;
     const inserted = view.state.replaceSelection(clip);
     const state = view.state.update(inserted).state;
     const to = state.selection.main.head;
     const found = pastedChipsIn(state.doc.toString(), from, to, codeRanges(state), choices);
+
     if (!hasClipboardChips(found)) {
         return null;
     }
+
     view.dispatch(inserted, { scrollIntoView: true, userEvent: 'input.paste' });
+
     return found;
 }
 
@@ -105,18 +115,24 @@ export function copyWithChipsFromEditor(
     references: readonly ReferenceToken[]
 ): boolean {
     const { from, to } = view.state.selection.main;
+
     if (from === to || event.clipboardData === null) {
         return false;
     }
+
     const text = view.state.sliceDoc(from, to);
     const chips = clipboardChipsOf(text, tokenizeChips(text, draft.mentions, draft.skills, references));
+
     if (!hasClipboardChips(chips)) {
         return false;
     }
+
     writeClipboardChips(event.clipboardData, chips);
     event.preventDefault();
+
     if (event.type === 'cut') {
         view.dispatch({ changes: { from, to }, scrollIntoView: true, userEvent: 'delete.cut' });
     }
+
     return true;
 }

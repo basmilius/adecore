@@ -18,6 +18,7 @@ function headingOf(line: string): string | null {
 /* What a folded thought shows on its one line: the heading it opens with, or the whole thought flattened for the row to cut off. */
 export function thoughtPreview(text: string): string {
     const heading = headingOf(text.trimStart().split('\n', 1)[0] ?? '');
+
     return flattenThought(heading ?? text);
 }
 
@@ -30,11 +31,15 @@ export function thoughtLine(text: string): string {
         .split('\n')
         .map(headingOf)
         .filter((heading): heading is string => heading !== null);
+
     const last = headings.at(-1);
+
     if (last !== undefined) {
         return flattenThought(last);
     }
+
     const flat = flattenThought(text);
     const end = SENTENCE_END.exec(flat);
+
     return end === null ? flat : flat.slice(0, end.index + end[0].length);
 }

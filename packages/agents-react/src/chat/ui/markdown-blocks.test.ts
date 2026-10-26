@@ -74,6 +74,7 @@ describe('a code fence at the top level', () => {
 
     test('reads its marker, info string and body the way markdown does', () => {
         const fence = (text: string) => splitMarkdownBlocks(text).at(-1)!.fence;
+
         expect(fence('~~~~ js  title="a b"  \nx\n~~~\n~~~~~ \n')).toEqual({
             marker: '~~~~',
             info: 'js  title="a b"',
@@ -81,6 +82,7 @@ describe('a code fence at the top level', () => {
             closed: true,
             source: '~~~~ js  title="a b"  \nx\n~~~\n~~~~~ '
         });
+
         expect(fence('  ```\n  two\n   three\n one\n\tfour\n  ```')!.body).toBe('two\n three\none\n  four');
         expect(fence('```bash\r\nprintf one\r\n\r\nprintf two\r\n```\r\n')).toMatchObject({ body: 'printf one\r\n\r\nprintf two', closed: true });
         expect(fence('```ts\nopen\n')).toEqual({ marker: '```', info: 'ts', body: 'open', closed: false, source: '```ts\nopen\n' });
@@ -90,6 +92,7 @@ describe('a code fence at the top level', () => {
 
     test('is no fence where markdown reads the line otherwise', () => {
         const fences = (text: string) => splitMarkdownBlocks(text).filter((block) => block.fence !== undefined).length;
+
         // A backtick in the info string of a backtick fence, indented code, and a language markdown decodes.
         expect(fences('``` a`b\ntext')).toBe(0);
         expect(fences('Text\n    ```\nmore')).toBe(0);
@@ -100,6 +103,7 @@ describe('a code fence at the top level', () => {
 
     test('belongs to a list item it is indented into, and ends one it is not', () => {
         const fences = (text: string) => splitMarkdownBlocks(text).map((block) => block.fence !== undefined);
+
         expect(fences('1. Step\n   ```sh\n   ls\n   ```\n2. Next\n   ```sh\n   pwd\n   ```')).toEqual([false]);
         expect(fences('- one\n  - two\n    ```ts\n    x\n    ```')).toEqual([false]);
         expect(fences('- item\n```ts\nx\n```')).toEqual([false, true]);

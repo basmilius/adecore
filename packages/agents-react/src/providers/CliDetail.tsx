@@ -21,6 +21,7 @@ function ModelOptionRows({ provider, model, options }: { provider: AgentKind; mo
     const setOption = (id: string, value: string | boolean): void => {
         rememberChatSelection(provider, { model: model.slug, options: { ...options, [id]: value } });
     };
+
     return (
         <>
             {model.options.map((option) => (
@@ -136,6 +137,7 @@ export function CliDetail({ provider, entries, defaults, login, onAddAccount, on
                 <SettingsSection title={t('cli.accounts')} footer={canAddAccount ? undefined : t('cli.onlyDefault', { provider: provider.name })}>
                     {entries.map((entry) => {
                         const status = accountStatusLine(entry.status, login === 'terminal');
+
                         return (
                             <button
                                 key={entry.id}

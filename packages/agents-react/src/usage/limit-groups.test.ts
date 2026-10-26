@@ -57,10 +57,12 @@ describe('limits per account', () => {
             { providers: [entry('claude', { id: 'claude', label: 'Claude Code' }), entry('claude', { id: 'claude_work', label: 'Old name' }), entry('codex')] },
             accounts
         );
+
         expect(groups.map((group) => [group.kind, group.accounts.map((account) => account.id)])).toEqual([
             ['claude', ['claude', 'claude_work', 'claude_out']],
             ['codex', ['codex']]
         ]);
+
         const work = groups[0]!.accounts[1]!;
         expect([work.name, work.color, work.status?.state]).toEqual(['Work', 'blue', 'ready']);
         const out = groups[0]!.accounts[2]!;
@@ -118,6 +120,7 @@ describe('where the numbers came from', () => {
 
 describe('the even pace of a window as words', () => {
     const HOUR = 3_600_000;
+
     const window = (used: number, extra: Partial<UsageWindow> = {}): UsageWindow => ({
         id: 'session',
         kind: 'session',

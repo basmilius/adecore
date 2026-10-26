@@ -34,9 +34,11 @@ export function advanceReveal(position: number, target: number, elapsedMs: numbe
     if (position >= target) {
         return target;
     }
+
     const elapsed = Math.min(Math.max(elapsedMs, 0), REVEAL_MAX_FRAME_MS);
     const eased = (target - position) * (1 - Math.exp(-elapsed / REVEAL_TAU_MS));
     const floor = ((finished ? REVEAL_FINISH_MIN_CPS : REVEAL_MIN_CPS) * elapsed) / 1000;
+
     return Math.min(target, position + Math.max(eased, floor));
 }
 
@@ -48,18 +50,24 @@ export function advanceReveal(position: number, target: number, elapsedMs: numbe
  */
 export function revealBoundary(text: string, position: number, complete: boolean): number {
     const end = Math.min(text.length, Math.max(0, Math.floor(position)));
+
     if (end === text.length && complete) {
         return end;
     }
+
     let cut = end;
+
     while (cut > 0 && !isSpace(text, cut) && !isSpace(text, cut - 1)) {
         cut -= 1;
     }
+
     if (end - cut <= REVEAL_MAX_HELD_WORD) {
         return cut;
     }
+
     // Half of a surrogate pair renders as a replacement box.
     const last = text.charCodeAt(end - 1);
+
     return last >= 0xd800 && last <= 0xdbff ? end - 1 : end;
 }
 
@@ -91,6 +99,7 @@ export function useRevealedText(text: string, streaming: boolean): RevealedText 
         if (!streaming || activeRef.current) {
             return;
         }
+
         position.current = latest.current.text.length;
         shownRef.current = revealBoundary(latest.current.text, position.current, false);
         activeRef.current = true;
@@ -102,9 +111,11 @@ export function useRevealedText(text: string, streaming: boolean): RevealedText 
         if (!active) {
             return;
         }
+
         let frame = 0;
         let previous: number | null = null;
         let grewAt = -Infinity;
+
         const tick = (now: number) => {
             const elapsed = previous === null ? 0 : now - previous;
             previous = now;
@@ -112,24 +123,31 @@ export function useRevealedText(text: string, streaming: boolean): RevealedText 
             const finished = !current.streaming;
             position.current = advanceReveal(position.current, current.text.length, elapsed, finished);
             const length = revealBoundary(current.text, position.current, finished);
+
             if (length !== shownRef.current) {
                 shownRef.current = length;
                 grewAt = now;
                 setShown(length);
             }
+
             if (finished && length >= current.text.length && now - grewAt >= FADE_SETTLE_MS) {
                 activeRef.current = false;
                 setActive(false);
+
                 return;
             }
+
             frame = requestAnimationFrame(tick);
         };
+
         frame = requestAnimationFrame(tick);
+
         return () => cancelAnimationFrame(frame);
     }, [active]);
 
     if (!active) {
         return { text, active: false };
     }
+
     return { text: text.slice(0, Math.min(shown, text.length)), active: true };
 }

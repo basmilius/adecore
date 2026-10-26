@@ -62,6 +62,7 @@ describe('withThreadCards', () => {
 
     test('a card from before the thread opens it, and one from after closes it', () => {
         const rows = deriveTimelineRows(settled, options);
+
         expect(shape(withThreadCards(rows, [card('late', 20_000), card('early', 10)]))).toEqual([
             'app-card-early',
             'user',
@@ -77,6 +78,7 @@ describe('withThreadCards', () => {
             { id: 'u2', kind: 'user', createdAt: 1000, turnId: 't2', text: 'again' },
             tool('b3', 2000, 't2', 'running')
         ];
+
         const rows = deriveTimelineRows(running, { ...options, activeTurnId: 't2' });
         expect(shape(withThreadCards(rows, [card('v2', 50_000)]))).toEqual(['user', 'work-live', 'app-card-v2', 'working']);
     });
@@ -108,6 +110,7 @@ describe('visuals among the rows', () => {
 
     test('a running turn shows a visual between the calls around it, and keeps its working row last', () => {
         const rows = deriveTimelineRows(running, { ...options, activeTurnId: 't2' });
+
         expect(shape(withTimedRows(rows, timedRowsOf([], [visual('early', 3000), visual('late', 9000)], null)))).toEqual([
             'user',
             'work',
@@ -120,6 +123,7 @@ describe('visuals among the rows', () => {
 
     test('a visual of the same moment as an app card comes first', () => {
         const rows = deriveTimelineRows(settled, options);
+
         expect(shape(withTimedRows(rows, timedRowsOf([card('version', 7000)], [visual('chart', 7000)], null)))).toEqual([
             'user',
             'turn-fold',
@@ -137,6 +141,7 @@ describe('visuals among the rows', () => {
 
     test('a visual from before the page the thread holds waits for that page', () => {
         const rows = deriveTimelineRows(settled, options);
+
         expect(shape(withTimedRows(rows, timedRowsOf([], [visual('older', 500), visual('held', 1500)], 1000)))).toEqual([
             'user',
             'turn-fold',

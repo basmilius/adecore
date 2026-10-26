@@ -29,21 +29,28 @@ type ModelOptionControlProps = {
 export function ModelOptionControl(props: ModelOptionControlProps) {
     const { options, layout = 'compact', disabled } = props;
     const option = localizedOption(props.option);
+
     if (option.type === 'boolean') {
         return <Switch checked={optionValue(option, options) === true} label={option.label} disabled={disabled} onCheckedChange={props.onChange} />;
     }
+
     const picked = props.defaultLabel !== undefined && options[option.id] === undefined ? MODEL_DEFAULT : String(optionValue(option, options));
+
     const choices = [
         ...(props.defaultLabel !== undefined ? [{ id: MODEL_DEFAULT, label: props.defaultLabel, description: undefined }] : []),
         ...option.choices
     ];
+
     const choose = (id: string): void => {
         if (props.defaultLabel !== undefined) {
             props.onChange(id === MODEL_DEFAULT ? undefined : id);
+
             return;
         }
+
         props.onChange(id);
     };
+
     if (layout === 'row' && choices.length <= MAX_SEGMENTS) {
         return (
             <Segmented
@@ -55,6 +62,7 @@ export function ModelOptionControl(props: ModelOptionControlProps) {
             />
         );
     }
+
     return (
         <Select
             value={picked}

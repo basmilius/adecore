@@ -46,7 +46,9 @@ describe('the base moving during a turn', () => {
             checkpointDiff: { files: [{ path: 'a.ts', status: 'modified', added: 1, deleted: 0, patch: '' }], truncated: false },
             ...heads
         };
+
         const rows = deriveTimelineRows([turn as ChatItem, ...thread.slice(1)], { ...options, expandedTurns: new Set(['t1']) });
+
         return rows.find((row) => row.kind === 'changed-files');
     };
 
@@ -68,6 +70,7 @@ describe('deriveTimelineRows', () => {
             tool('r2', 'Read', {}),
             thread[5]!
         ];
+
         const collapsed = deriveTimelineRows(items, options);
         expect(collapsed.map((row) => row.id)).toEqual(['u1', 'fold-t1', 'image', 'a1']);
         expect(collapsed[1]).toMatchObject({ hiddenCount: 2, work: ['Read 2 files'] });
@@ -103,6 +106,7 @@ describe('deriveTimelineRows', () => {
             tool('r2', 'Read', { file_path: '../other/a.ts' }),
             { id: 'a2', kind: 'assistant', createdAt: 4, turnId: 't1', text: 'Here is the result.', streaming: false }
         ];
+
         const active = deriveTimelineRows(conversation, { ...options, activeTurnId: 't1' });
         expect(active.filter((row) => row.kind === 'user' || row.kind === 'assistant').map((row) => row.id)).toEqual(['u1', 'a1', 'u2', 'a2']);
         const settled = deriveTimelineRows([{ ...conversation[0]!, state: 'done', endedAt: 5 } as ChatTurnItem, ...conversation.slice(1)], options);
@@ -138,6 +142,7 @@ describe('deriveTimelineRows', () => {
                 decision
             }
         ];
+
         expect(deriveTimelineRows(refusal('deny'), options).map((row) => row.id)).toEqual(['u5', 'fold-t5', 'a5', 'c5', 'p5']);
         expect(deriveTimelineRows(refusal('allow'), options).map((row) => row.kind)).toEqual(['user', 'turn-fold']);
     });
@@ -167,6 +172,7 @@ describe('deriveTimelineRows', () => {
             tool('b2', 'Bash', { command: 'bun test' }, 'running', 't2'),
             { id: 'a2', kind: 'assistant', createdAt: 2, turnId: 't2', text: '', streaming: true }
         ];
+
         const rows = deriveTimelineRows(active, { ...options, activeTurnId: 't2' });
         expect(rows.map((row) => row.kind)).toEqual(['user', 'work', 'work-live', 'assistant', 'working']);
     });
@@ -183,6 +189,7 @@ describe('deriveTimelineRows', () => {
             endedAt: 4000,
             costUsd: 0
         };
+
         const work = tool('r9', 'Read', { file_path: 'a.ts' }, 'done', 'ta');
         const items: ChatItem[] = [turn, work, { id: 'a9', kind: 'assistant', createdAt: 3000, turnId: 'ta', text: 'The report is ready.', streaming: false }];
         const rows = deriveTimelineRows(items, options);
@@ -221,17 +228,20 @@ describe('deriveTimelineRows', () => {
                 decision: 'deny'
             }
         ];
+
         const rows = deriveTimelineRows(items, { ...options, activeTurnId: 't3' });
         expect(rows.map((row) => row.kind)).toEqual(['approval', 'working']);
     });
 
     test("a turn's checkpoint diff carries the card, also when no tool call reported an edit", () => {
         const checkpointDiff = { files: [{ path: 'src/a.ts', kind: 'update' as const, added: 2, deleted: 1, diff: '@@\n+a\n' }], truncated: false };
+
         const items: ChatItem[] = [
             { id: 't4', kind: 'turn', createdAt: 1, turnId: 't4', state: 'done', endedAt: 2, costUsd: 0, checkpoint: 'abc', checkpointDiff },
             { id: 'u4', kind: 'user', createdAt: 1, turnId: 't4', text: 'patch it' },
             tool('s1', 'Bash', { command: 'sed -i s/a/b/ src/a.ts' }, 'done', 't4')
         ];
+
         const rows = deriveTimelineRows(items, options);
         expect(rows.map((row) => row.kind)).toEqual(['user', 'turn-fold', 'changed-files']);
         expect(rows[2]).toMatchObject({ diff: checkpointDiff, checkpoint: true, tools: [] });
@@ -253,6 +263,7 @@ describe('deriveTimelineRows', () => {
             { id: 'u5', kind: 'user', createdAt: 1, turnId: 't5', text: 'look around' },
             { ...tool('e5', 'Edit', { file_path: 'a.ts', old_string: 'x', new_string: 'y' }), turnId: 't5' }
         ];
+
         expect(deriveTimelineRows(items, options).map((row) => row.kind)).toEqual(['user', 'turn-fold']);
     });
 
@@ -276,6 +287,7 @@ describe('deriveTimelineRows', () => {
             lastTool: 'Grep',
             itemsTruncated: false
         };
+
         const items: ChatItem[] = [
             { id: 't6', kind: 'turn', createdAt: 1, turnId: 't6', state: 'running', endedAt: null, costUsd: 0 },
             { id: 'u6', kind: 'user', createdAt: 1, turnId: 't6', text: 'find it' },
@@ -283,6 +295,7 @@ describe('deriveTimelineRows', () => {
             { ...tool('c1', 'Grep', { pattern: 'x' }, 'done', 't6'), parentToolUseId: 'toolu_agent' },
             { id: 'c2', kind: 'assistant', createdAt: 3, turnId: 't6', text: 'the bug is in a.ts', streaming: false, parentToolUseId: 'toolu_agent' }
         ];
+
         const rows = deriveTimelineRows(items, { ...options, activeTurnId: 't6' });
         expect(rows.map((row) => row.kind)).toEqual(['user', 'subagent', 'working']);
         expect(rows[1]).toMatchObject({ id: 'sa1', expanded: false, children: [{ id: 'c1' }, { id: 'c2' }] });
@@ -310,6 +323,7 @@ describe('deriveTimelineRows', () => {
             itemsTruncated: false,
             ...(parentToolUseId === undefined ? {} : { parentToolUseId })
         });
+
         const items: ChatItem[] = [
             { id: 't7', kind: 'turn', createdAt: 1, turnId: 't7', state: 'running', endedAt: null, costUsd: 0 },
             { id: 'u7', kind: 'user', createdAt: 1, turnId: 't7', text: 'go' },
@@ -318,13 +332,16 @@ describe('deriveTimelineRows', () => {
             row('leaf', 'toolu_leaf', 'toolu_mid'),
             row('deep', 'toolu_deep', 'toolu_leaf')
         ];
+
         const rows = deriveTimelineRows(items, { ...options, activeTurnId: 't7' });
         expect(rows.map((entry) => entry.kind)).toEqual(['user', 'subagent', 'working']);
+
         expect(rows[1]).toMatchObject({
             id: 'middle',
             children: [{ id: 'c1' }],
             nested: [{ id: 'leaf', children: [], nested: [{ id: 'deep', nested: [] }] }]
         });
+
         expect(findSubagentBranch(rows, 'toolu_deep')).toMatchObject({ index: 1, branch: { id: 'deep' } });
         expect(findSubagentBranch(rows, 'toolu_none')).toBeNull();
     });
@@ -335,11 +352,13 @@ describe('deriveTimelineRows', () => {
             { ...tool('inner', 'Read', {}), turnId: null, parentToolUseId: 'task-1' },
             { id: 'a', kind: 'assistant', createdAt: 2, turnId: null, text: 'old answer', streaming: false }
         ];
+
         expect(deriveTimelineRows(items, options).map((row) => row.kind)).toEqual(['user', 'assistant']);
     });
 
     test('a workflow is a row of its own, and stays out of the fold of its settled turn until it ends', () => {
         const workflow = { name: 'review', phases: [{ index: 1, title: 'Read' }], agents: [] };
+
         const items = (state: ChatToolItem['state']): ChatItem[] => [
             thread[0]!,
             thread[1]!,
@@ -348,12 +367,14 @@ describe('deriveTimelineRows', () => {
             tool('r2', 'Read', { file_path: 'b.ts' }),
             { id: 'a1', kind: 'assistant', createdAt: 5000, turnId: 't1', text: 'It runs.', streaming: false }
         ];
+
         expect(deriveTimelineRows(items('running'), options).map((row) => [row.kind, row.id])).toEqual([
             ['user', 'u1'],
             ['turn-fold', 'fold-t1'],
             ['workflow', 'wf'],
             ['assistant', 'a1']
         ]);
+
         expect(deriveTimelineRows(items('done'), options).map((row) => row.kind)).toEqual(['user', 'turn-fold', 'assistant']);
         const unfolded = deriveTimelineRows(items('done'), { ...options, expandedTurns: new Set(['t1']) });
         expect(unfolded.map((row) => row.kind)).toEqual(['user', 'turn-fold', 'work', 'workflow', 'work', 'assistant']);
@@ -379,6 +400,7 @@ describe('deriveTimelineRows', () => {
             lastTool: null,
             itemsTruncated: false
         });
+
         const items = (status: ChatSubagentItem['status']): ChatItem[] => [
             thread[0]!,
             thread[1]!,
@@ -386,12 +408,14 @@ describe('deriveTimelineRows', () => {
             subagent(status),
             { id: 'a1', kind: 'assistant', createdAt: 5000, turnId: 't1', text: 'It runs in the background.', streaming: false }
         ];
+
         expect(deriveTimelineRows(items('running'), options).map((row) => [row.kind, row.id])).toEqual([
             ['user', 'u1'],
             ['turn-fold', 'fold-t1'],
             ['subagent', 'sa1'],
             ['assistant', 'a1']
         ]);
+
         expect(deriveTimelineRows(items('done'), options).map((row) => row.kind)).toEqual(['user', 'turn-fold', 'assistant']);
     });
 });
@@ -399,10 +423,12 @@ describe('deriveTimelineRows', () => {
 describe('labels', () => {
     test('summarizeTurn', () => {
         expect(summarizeTurn([tool('1', 'Read', {}), tool('2', 'Grep', {}), tool('3', 'Read', {})])).toEqual(['Read 2 files', 'Searched 1 pattern']);
+
         expect(summarizeTurn([tool('1', 'Write', { file_path: 'a' }), tool('2', 'Bash', {}), tool('3', 'Edit', { file_path: 'a' })])).toEqual([
             'Edited 1 file',
             'Ran 1 command'
         ]);
+
         expect(summarizeTurn([tool('1', 'Read', {}), tool('2', 'mcp__x', {}), tool('3', 'mcp__y', {})])).toEqual(['Read 1 file', '2 other tool calls']);
         expect(summarizeTurn([tool('1', 'mcp__x', {})])).toEqual(['1 tool call']);
         expect(summarizeTurn([])).toEqual([]);
@@ -425,10 +451,12 @@ describe('labels', () => {
 
     test('an edit that failed or was refused counts as a call, never as a file edited', () => {
         expect(summarizeTurn([tool('1', 'Write', { file_path: 'a' }, 'error')])).toEqual(['1 tool call']);
+
         expect(summarizeTurn([tool('1', 'Edit', { file_path: 'a' }), tool('2', 'Write', { file_path: 'b' }, 'error')])).toEqual([
             'Edited 1 file',
             '1 other tool call'
         ]);
+
         expect(summarizeGroup([tool('1', 'Write', { file_path: 'a' }), tool('2', 'Write', { file_path: 'b' }, 'error')])).toBe('Edited 1 file');
         expect(summarizeGroup([tool('1', 'Write', { file_path: 'a' }, 'error'), tool('2', 'Write', { file_path: 'b' }, 'error')])).toBe('Write 2 calls');
         expect(summarizeGroup([tool('1', 'Edit', { file_path: 'a' }, 'error'), tool('2', 'Edit', { file_path: 'b' }, 'error')])).toBe('Edit 2 calls');
@@ -442,7 +470,9 @@ describe('labels', () => {
 
     test('an aborted turn the machine ended after a restart is not one the person stopped', () => {
         const turn = { id: 't', kind: 'turn' as const, createdAt: 0, turnId: 't', state: 'aborted' as const, endedAt: 8000, costUsd: 0 };
+
         const note = (text: string, level: 'info' | 'warning' = 'warning'): ChatItem => ({ id: 'n', kind: 'note', createdAt: 1, turnId: 't', level, text });
+
         expect(turnLabel(turn, [turn, note(notResumedNote('the agent had not started a session to resume yet'))])).toBe('Stopped after 8s');
         // Any other warning in a turn a person stopped (a CLI that retried, say) leaves it theirs.
         expect(turnLabel(turn, [turn, note('Codex could not resume its thread. Started a new one.')])).toBe('You stopped after 8s');
@@ -455,9 +485,11 @@ describe('labels', () => {
         expect(agentTurnLabel({ ...turn, origin: 'agent' })).toBe('Continued on its own');
         expect(agentTurnLabel({ ...turn, origin: 'agent', label: 'Lexer', taskIds: ['task-1'] })).toBe('Woken by a task: Lexer');
         expect(agentTurnLabel({ ...turn, origin: 'agent', label: 'Lexer, Docs', taskIds: ['task-1', 'task-2'] })).toBe('Woken by 2 tasks: Lexer, Docs');
+
         expect(agentTurnLabel({ ...turn, origin: 'agent', label: 'Message from Lexer', messageFrom: ['chat-2'] })).toBe(
             'Woken by a message: Message from Lexer'
         );
+
         expect(agentTurnLabel({ ...turn, origin: 'agent', label: 'Messages from Lexer, Docs', messageFrom: ['chat-2', 'chat-3'] })).toBe(
             'Woken by 2 messages: Messages from Lexer, Docs'
         );
@@ -484,6 +516,7 @@ describe('thinking rows', () => {
             ],
             { ...options, activeTurnId: 't2' }
         );
+
         expect(rows.map((row) => row.kind)).toEqual(['user', 'thinking', 'working']);
     });
 
@@ -497,6 +530,7 @@ describe('thinking rows', () => {
             ],
             { ...options, expandedTurns: new Set(['t2']) }
         );
+
         expect(rows.map((row) => row.kind)).toEqual(['user', 'turn-fold', 'thinking', 'assistant']);
         expect(turnLabel({ id: 't2', kind: 'turn', createdAt: 1000, turnId: 't2', state: 'done', endedAt: 9000, costUsd: 0 })).toBe('Worked for 8s');
     });
@@ -505,6 +539,7 @@ describe('thinking rows', () => {
 describe('the live thought', () => {
     const running: ChatItem = { id: 't2', kind: 'turn', createdAt: 1000, turnId: 't2', state: 'running', endedAt: null, costUsd: 0 };
     const asked: ChatItem = { id: 'u2', kind: 'user', createdAt: 1000, turnId: 't2', text: 'fix it' };
+
     const thought = (id: string, text = 'The entry is written first.'): ChatItem => ({
         id,
         kind: 'thinking',
@@ -514,7 +549,9 @@ describe('the live thought', () => {
         streaming: false,
         endedAt: 2000
     });
+
     const call = (id: string, state: ChatToolItem['state']): ChatToolItem => ({ ...tool(id, 'Bash', { command: 'bun test' }, state, 't2'), createdAt: 3000 });
+
     const kinds = (items: ChatItem[], activeTurnId: string | null = 't2') => deriveTimelineRows(items, { ...options, activeTurnId }).map((row) => row.kind);
 
     test('stands over the running call the latest thought led to', () => {
@@ -548,6 +585,7 @@ describe('the live thought', () => {
             ...options,
             activeTurnId: 't2'
         });
+
         expect(rows.find((row) => row.kind === 'live-thought')).toMatchObject({ id: 'live-thought-k2' });
         expect(kinds([running, asked, call('r1', 'done'), call('b1', 'running'), thought('k1')])).not.toContain('live-thought');
     });
@@ -570,6 +608,7 @@ test("a subagent's handback call reads as its report, and one without a message 
         tool('h1', 'SubagentHandback', { message: '## Review\n\nAll good.' }, 'done', 'x'),
         tool('h2', 'SubagentHandback', {}, 'done', 'x')
     ].map((item) => ({ ...item, turnId: null }));
+
     const rows = deriveTimelineRows(items, options);
     expect(rows.map((row) => row.kind)).toEqual(['work', 'report', 'work']);
     expect(rows[1]).toEqual({ kind: 'report', id: 'h1', text: '## Review\n\nAll good.' });
@@ -585,8 +624,11 @@ describe('runs of a command look', () => {
             area === undefined ? null : { label: area, detailFrom: 1, group: { key: area, sentence: (count) => `Used Orbit ${area} ${count} times` } },
         sentence: (count) => `Used Orbit ${count} times`
     };
+
     const LOOKS = [ORBIT];
+
     const bash = (id: string, command: string): ChatToolItem => tool(id, 'Bash', { command });
+
     const loose = (calls: ChatToolItem[]): ChatItem[] => calls.map((call) => ({ ...call, turnId: null }));
 
     test('a group of one key reads as its sentence, and carries the look', () => {

@@ -10,6 +10,7 @@ export const SHELL_LANGUAGE = 'shellscript';
 
 // Past this a command is drawn without looking for code inside it; the scan is linear, the highlighting is not.
 export const EMBEDDED_CODE_LIMIT = 20_000;
+
 const MAX_DEPTH = 3;
 
 /* A stretch of a shell command, as offsets into it. */
@@ -113,6 +114,7 @@ const INTERPRETERS: Record<string, Interpreter> = {
 const WRAPPERS = new Set(['sudo', 'env', 'exec', 'nohup', 'time', 'command', 'nice']);
 // Tools that run a program of a project's environment as `<tool> run <program>`.
 const RUNNERS = new Set(['uv', 'poetry', 'pipenv']);
+
 // Where a heredoc written to a file goes, by the file's extension.
 const EXTENSIONS: Record<string, string> = {
     py: 'python',
@@ -143,6 +145,7 @@ const BLANKS = ' \t\r';
 /* The program a command name runs, as the table above knows it: `/usr/bin/python3.12` is `python`. */
 function programOf(word: string): string {
     const name = word.slice(word.lastIndexOf('/') + 1);
+
     return /^python\d*(\.\d+)?$/.test(name) ? 'python' : name;
 }
 
@@ -153,17 +156,21 @@ function parseCommands(source: string, from: number, to: number): SimpleCommand[
     const pending: { command: SimpleCommand; delimiter: string; strip: boolean; operator: Span }[] = [];
     // The start of the `2` of a `2>&1` just read, which the redirect after it begins at.
     let descriptorStart: number | null = null;
+
     const finish = (): void => {
         if (current.words.length > 0 || current.redirects.length > 0) {
             commands.push(current);
         }
+
         current = { words: [], redirects: [], heredocs: [] };
         descriptorStart = null;
     };
+
     const skipBlanks = (index: number): number => {
         while (index < to && BLANKS.includes(source[index]!)) {
             index++;
         }
+
         return index;
     };
 
@@ -173,12 +180,16 @@ function parseCommands(source: string, from: number, to: number): SimpleCommand[
         let quoted: Span | null = null;
         let parts = 0;
         let bare = true;
+
         while (index < to) {
             const char = source[index]!;
+
             if (BLANKS.includes(char) || char === '\n' || SEPARATORS.includes(char) || char === '<' || char === '>') {
                 break;
             }
+
             parts++;
+
             if (char === "'") {
                 const close = source.indexOf("'", index + 1);
                 const end = close === -1 || close >= to ? to : close;
@@ -188,6 +199,7 @@ function parseCommands(source: string, from: number, to: number): SimpleCommand[
                 index = Math.min(end + 1, to);
             } else if (char === '"') {
                 let end = index + 1;
+
                 while (end < to && source[end] !== '"') {
                     if (source[end] === '\\' && end + 1 < to && '$`"\\\n'.includes(source[end + 1]!)) {
                         text += source[end + 1];
@@ -197,6 +209,7 @@ function parseCommands(source: string, from: number, to: number): SimpleCommand[
                         end++;
                     }
                 }
+
                 quoted = { start: index + 1, end };
                 bare = false;
                 index = Math.min(end + 1, to);
@@ -213,38 +226,49 @@ function parseCommands(source: string, from: number, to: number): SimpleCommand[
                 index++;
             }
         }
+
         const end = Math.min(index, to);
         const body = bare ? { start, end } : parts === 1 && quoted !== null ? quoted : null;
+
         return { start, end, text, body };
     };
 
     const readHeredoc = (start: number, delimiter: string, strip: boolean): { body: Span; next: number } => {
         let index = start;
+
         while (index < to) {
             const newline = source.indexOf('\n', index);
             const lineEnd = newline === -1 || newline >= to ? to : newline;
             let line = source.slice(index, lineEnd).replace(/\r$/, '');
+
             if (strip) {
                 line = line.replace(/^\t+/, '');
             }
+
             if (line === delimiter) {
                 return { body: { start, end: index }, next: Math.min(lineEnd + 1, to) };
             }
+
             index = lineEnd + 1;
         }
+
         return { body: { start, end: to }, next: to };
     };
 
     let index = from;
+
     while (index < to) {
         const char = source[index]!;
+
         if (char === '\n') {
             index++;
+
             for (const heredoc of pending) {
                 const { body, next } = readHeredoc(index, heredoc.delimiter, heredoc.strip);
                 heredoc.command.heredocs.push({ ...heredoc.operator, body });
                 index = next;
             }
+
             pending.length = 0;
             finish();
         } else if (BLANKS.includes(char)) {
@@ -261,15 +285,19 @@ function parseCommands(source: string, from: number, to: number): SimpleCommand[
             index += 2;
             const strip = source[index] === '-';
             const word = readWord(skipBlanks(strip ? index + 1 : index));
+
             if (word.text !== '') {
                 pending.push({ command: current, delimiter: word.text, strip, operator: { start, end: word.end } });
             }
+
             index = word.end;
         } else if (char === '<' || char === '>' || (char === '&' && source[index + 1] === '>')) {
             let end = index + 1;
+
             while (end < to && '<>&|'.includes(source[end]!)) {
                 end++;
             }
+
             const op = source.slice(index, end);
             const target = readWord(skipBlanks(end));
             current.redirects.push({ start: descriptorStart ?? index, end: Math.max(target.end, end), op, target });
@@ -282,15 +310,19 @@ function parseCommands(source: string, from: number, to: number): SimpleCommand[
             const word = readWord(index);
             // The `2` of `2>&1` is a file descriptor, not an argument.
             const descriptor = /^\d+$/.test(word.text) && (source[word.end] === '>' || source[word.end] === '<');
+
             if (descriptor) {
                 descriptorStart = word.start;
             } else {
                 current.words.push(word);
             }
+
             index = Math.max(word.end, index + 1);
         }
     }
+
     finish();
+
     return commands;
 }
 
@@ -298,8 +330,10 @@ function parseCommands(source: string, from: number, to: number): SimpleCommand[
 function closingParen(source: string, open: number, to: number): number {
     let depth = 0;
     let quote: string | null = null;
+
     for (let index = open; index < to; index++) {
         const char = source[index]!;
+
         if (quote !== null) {
             if (char === quote) {
                 quote = null;
@@ -312,23 +346,28 @@ function closingParen(source: string, open: number, to: number): number {
             depth++;
         } else if (char === ')') {
             depth--;
+
             if (depth === 0) {
                 return index + 1;
             }
         }
     }
+
     return to;
 }
 
 /* The index of the word a command runs, past variable assignments, wrappers and runners; -1 for none. */
 function programIndex(words: readonly Word[]): number {
     let index = 0;
+
     while (index < words.length) {
         const text = words[index]!.text;
+
         if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(text)) {
             index++;
         } else if (WRAPPERS.has(programOf(text))) {
             index++;
+
             while (index < words.length && words[index]!.text.startsWith('-')) {
                 index++;
             }
@@ -338,6 +377,7 @@ function programIndex(words: readonly Word[]): number {
             return index;
         }
     }
+
     return -1;
 }
 
@@ -348,49 +388,64 @@ function codeOf(command: SimpleCommand): EmbeddedCode[] {
     const program = at === -1 ? '' : programOf(command.words[at]!.text);
     const interpreter = INTERPRETERS[program];
     let readsFile = false;
+
     if (interpreter !== undefined) {
         let positional = 0;
+
         for (let index = at + 1; index < command.words.length; index++) {
             const word = command.words[index]!;
+
             if (word.text.startsWith('-') && word.text !== '-') {
                 if (interpreter.script(word.text)) {
                     const script = command.words[index + 1];
+
                     if (script?.body) {
                         found.push({ ...script.body, language: interpreter.language });
                     }
+
                     readsFile = true;
                     index++;
                 } else if (interpreter.takesValue?.has(word.text)) {
                     index++;
                 } else if (interpreter === PYTHON && word.text === '-m') {
                     readsFile = true;
+
                     break;
                 }
+
                 continue;
             }
+
             if (interpreter.client !== true) {
                 // A script file; whatever follows is its own arguments.
                 readsFile = word.text !== '-';
+
                 break;
             }
+
             if (positional === interpreter.positional && word.body !== null) {
                 found.push({ ...word.body, language: interpreter.language });
             }
+
             positional++;
         }
     }
+
     const heredocLanguage = interpreter !== undefined && (!readsFile || interpreter.client === true) ? interpreter.language : writtenLanguage(command, program);
+
     if (heredocLanguage !== null) {
         for (const { body } of command.heredocs) {
             found.push({ ...body, language: heredocLanguage });
         }
     }
+
     return found;
 }
 
 /* The language of the file a `cat > file` or `tee file` writes, by its extension; null when nothing says. */
 function writtenLanguage(command: SimpleCommand, program: string): string | null {
     const targets = command.redirects.filter(({ op }) => op === '>' || op === '>>' || op === '>|').map(({ target }) => target.text);
+
     if (program === 'tee') {
         targets.push(
             ...command.words
@@ -399,13 +454,16 @@ function writtenLanguage(command: SimpleCommand, program: string): string | null
                 .filter((text) => !text.startsWith('-'))
         );
     }
+
     for (const target of targets) {
         const dot = target.lastIndexOf('.');
         const language = dot === -1 ? undefined : EXTENSIONS[target.slice(dot + 1).toLowerCase()];
+
         if (language !== undefined) {
             return language;
         }
     }
+
     return null;
 }
 
@@ -415,7 +473,9 @@ function collect(source: string, from: number, to: number, depth: number, into: 
             if (code.end <= code.start) {
                 continue;
             }
+
             into.push(code);
+
             if (code.language === SHELL_LANGUAGE && depth < MAX_DEPTH) {
                 collect(source, code.start, code.end, depth + 1, into);
             }
@@ -431,6 +491,7 @@ export function shellCommands(source: string): ShellSimpleCommand[] {
     return parseCommands(source, 0, source.length).map((command) => {
         const index = programIndex(command.words);
         const word = command.words[index];
+
         return {
             ...command,
             program: word === undefined ? null : { index, name: word.text.slice(word.text.lastIndexOf('/') + 1) }
@@ -449,7 +510,9 @@ export function embeddedCode(command: string): EmbeddedCode[] {
     if (command.length > EMBEDDED_CODE_LIMIT) {
         return [];
     }
+
     const found: EmbeddedCode[] = [];
     collect(command, 0, command.length, 0, found);
+
     return found.sort((left, right) => left.start - right.start || right.end - left.end);
 }

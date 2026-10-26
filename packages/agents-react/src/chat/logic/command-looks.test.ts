@@ -12,12 +12,15 @@ const ORBIT: CommandLook = {
     Mark,
     describe: (args) => {
         const [area] = args;
+
         if (area === undefined) {
             return null;
         }
+
         if (area === 'help') {
             return { label: 'Help', detailFrom: 1 };
         }
+
         return {
             label: area === 'probe' ? 'Probe' : '',
             detailFrom: 1,
@@ -95,9 +98,11 @@ describe('matchCommandLook', () => {
 
     test('a folded value stops past 40 characters and the words after it stay', () => {
         const prompt = 'The tokenizer drops a trailing heredoc marker when the line ends in a comment';
+
         expect(detailOf(`orbit agent codex --task "Fix" --prompt "${prompt}" --view Work`)).toBe(
             `codex --task "Fix" --prompt "${prompt.slice(0, 40)}…" --view Work`
         );
+
         expect(detailOf(`orbit agent codex --task "${prompt}"`)).toBe(`codex --task "${prompt}"`);
     });
 
@@ -108,6 +113,7 @@ describe('matchCommandLook', () => {
 
     test('the words a host may name are the ones that are no option', () => {
         const run = matchCommandLook('orbit probe go probe-3f2a --url https://example.com --view main', LOOKS)!;
+
         expect(run.words.map(({ start, end, text }) => [text, run.detail.slice(start, end)])).toEqual([
             ['go', 'go'],
             ['probe-3f2a', 'probe-3f2a'],
@@ -118,6 +124,7 @@ describe('matchCommandLook', () => {
 
     test('a word knows the option it follows', () => {
         const run = matchCommandLook('orbit probe go probe-3f2a --view main', LOOKS)!;
+
         expect(run.words.map(({ text, option }) => [text, option])).toEqual([
             ['go', null],
             ['probe-3f2a', null],

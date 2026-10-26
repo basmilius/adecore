@@ -7,6 +7,7 @@ import type { UiRenderContext } from '../render-context';
  */
 export function bindingOf<Value>(node: UiViewNode<{ value?: Value }>, context: UiRenderContext): UiBinding<Value> | null {
     const binding = node.bindings.value as UiBinding<Value> | undefined;
+
     return binding === undefined || !node.complete || context.answer !== null ? null : binding;
 }
 

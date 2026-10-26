@@ -35,6 +35,7 @@ describe('generatedImageView', () => {
 
     test('a finished call shows its attachment, trimmed prompt and transparency', () => {
         expect(generatedImageView(tool())).toEqual({ state: 'ready', attachment: ATTACHMENT, prompt: 'A watercolor rabbit', transparent: true });
+
         expect(generatedImageView(tool({ input: { attachment: ATTACHMENT, revisedPrompt: ' ' } }))).toEqual({
             state: 'ready',
             attachment: ATTACHMENT,
@@ -48,11 +49,13 @@ describe('generatedImageView', () => {
             state: 'failed',
             failure: { kind: 'provider', message: 'content_policy: refused' }
         });
+
         expect(generatedImageView(tool({ state: 'error', output: null }))).toEqual({ state: 'failed', failure: { kind: 'provider', message: null } });
     });
 
     test('a call without an attachment came back empty unless the provider said why', () => {
         expect(generatedImageView(tool({ input: {} }))).toEqual({ state: 'failed', failure: { kind: 'empty' } });
+
         expect(generatedImageView(tool({ input: 'garbage', output: 'no image' }))).toEqual({
             state: 'failed',
             failure: { kind: 'provider', message: 'no image' }
@@ -61,8 +64,10 @@ describe('generatedImageView', () => {
 
     test('checks what came back before it draws it', () => {
         const withAttachment = (patch: Partial<ChatAttachment>) => tool({ input: { attachment: { ...ATTACHMENT, ...patch } } });
+
         expect(generatedImageView(withAttachment({ size: 0 }))).toEqual({ state: 'failed', failure: { kind: 'empty' } });
         expect(generatedImageView(withAttachment({ mime: 'text/plain' }))).toEqual({ state: 'failed', failure: { kind: 'not-image' } });
+
         expect(generatedImageView(withAttachment({ size: CHAT_ATTACHMENT_MAX_BYTES + 1 }))).toEqual({
             state: 'failed',
             failure: { kind: 'too-large', limit: CHAT_ATTACHMENT_MAX_BYTES }

@@ -18,15 +18,20 @@ export function continuableTurn(info: ChatInfo, items: readonly ChatItem[]): str
     ) {
         return null;
     }
+
     const index = items.findLastIndex((item) => item.kind === 'turn');
     const turn = items[index];
+
     if (turn?.kind !== 'turn' || turn.state !== 'aborted' || turn.limit !== undefined || abortedByMachine(turn, items) || abortedByEnd(turn, items)) {
         return null;
     }
+
     // A message of this turn sits after the turn item too, so only one sent after the turn ended counts.
     const endedAt = turn.endedAt ?? turn.createdAt;
+
     if (items.slice(index + 1).some((item) => item.kind === 'user' && item.createdAt > endedAt)) {
         return null;
     }
+
     return turn.id;
 }

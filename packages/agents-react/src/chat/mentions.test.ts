@@ -90,10 +90,12 @@ describe('references in the text', () => {
     test('chipRanges finds a name with a space by the id it stands for, the longer name first', () => {
         const text = 'Compare #Onderzoek Q3 with #Onderzoek.';
         const ranges = chipRanges(text, [], [], [], tokens);
+
         expect(ranges).toEqual([
             { from: 8, to: 21, kind: 'reference', value: 'view-q3' },
             { from: 27, to: 37, kind: 'reference', value: 'view-research' }
         ]);
+
         expect(ranges.map((range) => text.slice(range.from, range.to))).toEqual(['#Onderzoek Q3', '#Onderzoek']);
     });
 
@@ -106,12 +108,14 @@ describe('references in the text', () => {
     test('tokenizeChips keeps the name the text spells and spells the text again', () => {
         const text = 'Draw a sun in #Sketch, see @a.ts';
         const segments = tokenizeChips(text, ['a.ts'], [], tokens);
+
         expect(segments).toEqual([
             { kind: 'text', text: 'Draw a sun in ' },
             { kind: 'reference', id: 'node-sketch', name: 'Sketch' },
             { kind: 'text', text: ', see ' },
             { kind: 'mention', path: 'a.ts' }
         ]);
+
         expect(segments.map(chipText).join('')).toBe(text);
     });
 
@@ -192,6 +196,7 @@ describe('chipText', () => {
 
     test('the segments of a prompt spell that prompt again', () => {
         const long = `${'nested/'.repeat(10)}2026-09-10-tekenview.html`;
+
         const cases: Array<[string, string[], string[]]> = [
             ['@docs/reports/2026-09-10-tekenview.html this is a test', ['docs/reports/2026-09-10-tekenview.html'], []],
             ['$unslop', [], ['unslop']],
@@ -202,6 +207,7 @@ describe('chipText', () => {
             ['nothing of the chosen is left', ['gone.ts'], ['gone']],
             ['', ['a.ts'], ['unslop']]
         ];
+
         for (const [text, mentions, skills] of cases) {
             expect(tokenizeChips(text, mentions, skills).map(chipText).join('')).toBe(text);
         }
@@ -212,11 +218,13 @@ describe('chipRanges', () => {
     test('finds the same tokens tokenizeChips draws, with their offsets', () => {
         const text = 'run $unslop over @README.md, then @docs/HANDOFF.md.';
         const ranges = chipRanges(text, ['README.md', 'docs/HANDOFF.md'], ['unslop']);
+
         expect(ranges).toEqual([
             { from: 4, to: 11, kind: 'skill', value: 'unslop' },
             { from: 17, to: 27, kind: 'mention', value: 'README.md' },
             { from: 34, to: 50, kind: 'mention', value: 'docs/HANDOFF.md' }
         ]);
+
         expect(ranges.map((range) => text.slice(range.from, range.to))).toEqual(['$unslop', '@README.md', '@docs/HANDOFF.md']);
         const chips = tokenizeChips(text, ['README.md', 'docs/HANDOFF.md'], ['unslop']).filter((segment) => segment.kind !== 'text');
         expect(chips.map(chipText)).toEqual(ranges.map((range) => text.slice(range.from, range.to)));
@@ -258,12 +266,14 @@ describe('pastedMentions', () => {
 test('mention drags read neutral and transitional formats and write both for older receivers', async () => {
     const { MENTION_DRAG_TYPE, LEGACY_MENTION_DRAG_TYPE, carriesMentions, droppedMentions, writeMentionDrag } = await import('./mentions');
     const values = new Map<string, string>();
+
     const data = {
         getData: (type: string) => values.get(type) ?? '',
         setData: (type: string, value: string) => {
             values.set(type, value);
         }
     };
+
     values.set(LEGACY_MENTION_DRAG_TYPE, 'src/a.ts src/b.ts');
     expect(carriesMentions([LEGACY_MENTION_DRAG_TYPE])).toBe(true);
     expect(droppedMentions(data)).toEqual(['src/a.ts', 'src/b.ts']);
@@ -309,6 +319,7 @@ describe('namedReferenceRanges', () => {
         { id: 'notes-a', name: 'Notes' },
         { id: 'notes-b', name: 'Notes' }
     ];
+
     const named = (text: string, referenced: string[] = []) =>
         namedReferenceRanges(text, items, referenced).map((range) => [text.slice(range.from, range.to), range.value]);
 
@@ -322,6 +333,7 @@ describe('namedReferenceRanges', () => {
             ['#Admin', 'admin'],
             ['#Admin', 'admin']
         ]);
+
         expect(named('#admin and #Administrator')).toEqual([]);
     });
 
@@ -330,6 +342,7 @@ describe('namedReferenceRanges', () => {
             ['#Admin', 'admin'],
             ['#Admin', 'admin']
         ]);
+
         expect(named('a#Admin and ##Admin')).toEqual([]);
     });
 
@@ -353,6 +366,7 @@ describe('namedReferenceRanges', () => {
 describe('the chips of a copy', () => {
     const transfer = (entries: Record<string, string> = {}) => {
         const values = new Map(Object.entries(entries));
+
         return { values, getData: (type: string) => values.get(type) ?? '', setData: (type: string, value: string) => void values.set(type, value) };
     };
 

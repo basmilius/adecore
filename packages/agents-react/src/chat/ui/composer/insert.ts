@@ -12,11 +12,13 @@ export function insertAtSelection(state: EditorState, text: string): Transaction
     if (text === '') {
         return {};
     }
+
     const { from, to } = state.selection.main;
     const before = state.doc.sliceString(Math.max(0, from - 1), from);
     const after = state.doc.sliceString(to, to + 1);
     const lead = before !== '' && !isSpace(before) && !isSpace(text) ? ' ' : '';
     const trail = (after === '' || !isSpace(after)) && !/\s$/.test(text) ? ' ' : '';
     const insert = `${lead}${text}${trail}`;
+
     return { changes: { from, to, insert }, selection: { anchor: from + insert.length }, scrollIntoView: true, userEvent: 'input' };
 }

@@ -11,6 +11,7 @@ export default function LegacyEditDiff({ change, maxHeight }: { change: FileChan
     const theme = useDiffTheme();
     const oldFile = { name: change.path, contents: change.before };
     const newFile = { name: change.path, contents: change.after };
+
     const options = {
         diffStyle: 'unified' as const,
         theme,
@@ -19,6 +20,7 @@ export default function LegacyEditDiff({ change, maxHeight }: { change: FileChan
         overflow: 'wrap' as const,
         hunkSeparators: 'simple' as const
     };
+
     return (
         <div className="chat-diff select-text" style={maxHeight === undefined ? undefined : { maxHeight, overflow: 'auto' }}>
             <LegacyDiffPool>

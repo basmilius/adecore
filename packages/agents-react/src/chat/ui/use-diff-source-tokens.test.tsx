@@ -10,10 +10,12 @@ import { useDiffSourceTokens } from './use-diff-source-tokens';
 
 function controlledRuntime() {
     const sessions: Array<{ definition: DiffSyntaxDocument; disposed: boolean; reply?: (packet: DiffSyntaxTokens | null) => void }> = [];
+
     const runtime: DiffSyntaxRuntime = {
         open(definition) {
             const entry: (typeof sessions)[number] = { definition, disposed: false };
             sessions.push(entry);
+
             return {
                 request: () =>
                     new Promise((resolve) => {
@@ -28,6 +30,7 @@ function controlledRuntime() {
         },
         dispose: () => {}
     };
+
     const reply = (entry: (typeof sessions)[number]) =>
         entry.reply?.({
             type: 'tokens',
@@ -39,6 +42,7 @@ function controlledRuntime() {
             lines: new Uint32Array([0, 1]),
             tokens: new Uint32Array([0, 1, 0])
         });
+
     return { runtime, sessions, reply };
 }
 
@@ -57,23 +61,31 @@ test('source hook opens only on committed reads, survives StrictMode replay and 
     const { runtime, sessions, reply } = controlledRuntime();
     let current!: DiffSourceTokens;
     let notices = 0;
+
     function Reader({ document, theme, read = true }: { document: DiffDocument; theme: string; read?: boolean }) {
         const tokens = useDiffSourceTokens(document, 'typescript', theme, runtime);
+
         useLayoutEffect(() => {
             current = tokens;
+
             if (read) {
                 tokens.get('old', 0);
                 tokens.get('new', 0);
             }
+
             return tokens.subscribe(() => {
                 notices++;
             });
         }, [tokens, read]);
+
         return null;
     }
+
     const document = documentOf('old', 'new');
+
     const render = (document: DiffDocument, theme: string, read = true) =>
         root.render(createElement(StrictMode, null, createElement(Reader, { document, theme, read })));
+
     try {
         const plain: DiffDocument = {
             sides: { old: Array.from({ length: 20001 }, () => 'hidden'), new: ['x'.repeat(10001), 'visible'] },
@@ -83,6 +95,7 @@ test('source hook opens only on committed reads, survives StrictMode replay and 
             ignoreWhitespace: false,
             partial: false
         };
+
         await act(async () => render(plain, 'github-dark'));
         expect(current.get('old', 15000)).toBeNull();
         expect(current.get('new', 1)).toBeNull();
@@ -91,11 +104,13 @@ test('source hook opens only on committed reads, survives StrictMode replay and 
         expect(sessions).toHaveLength(0);
         await act(async () => render(document, 'github-dark'));
         expect(sessions).toHaveLength(2);
+
         await act(async () => {
             for (const session of sessions) {
                 reply(session);
             }
         });
+
         const before = current;
         const cached = current.get('old', 0);
         expect(cached).toEqual([{ length: 3, color: '#336699', fontStyle: 0 }]);
@@ -108,26 +123,31 @@ test('source hook opens only on committed reads, survives StrictMode replay and 
         expect(current.get('old', 0)).toBeUndefined();
         expect(sessions[2]!.definition.theme).toBe('github-light');
         expect(sessions[2]!.definition.blocks).toEqual(['before']);
+
         await act(async () => {
             for (const session of sessions) {
                 reply(session);
             }
         });
+
         expect(current.get('old', 0)).toEqual([{ length: 6, color: '#336699', fontStyle: 0 }]);
         expect(notices).toBe(4);
         await act(async () => root.render(null));
         expect(sessions.every((session) => session.disposed)).toBe(true);
         await act(async () => render(document, 'github-dark'));
         expect(sessions.slice(-4).map((session) => session.disposed)).toEqual([true, true, false, false]);
+
         await act(async () => {
             for (const session of sessions.slice(-2)) {
                 reply(session);
             }
         });
+
         expect(current.get('old', 0)).toEqual([{ length: 3, color: '#336699', fontStyle: 0 }]);
     } finally {
         await act(async () => root.unmount());
         globals.IS_REACT_ACT_ENVIRONMENT = previousAct;
+
         if (previousWindow === undefined) {
             Reflect.deleteProperty(globalThis, 'window');
         } else {

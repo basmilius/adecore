@@ -29,7 +29,9 @@ export {
     type TextareaProps,
     type ResourceUrl
 } from './host';
+
 export { type ChatScope, ChatScopeContext, useChatScope } from './scope';
+
 export {
     type ChatRequestMap,
     type ChatEventMap,
@@ -39,6 +41,7 @@ export {
     errorCode,
     isConnectionError
 } from './transport';
+
 export { portTransport, type PortTransport } from './port-transport';
 export { configureAgentMarks, type AgentMark } from './agents/agent-marks';
 export { configureChatStorage, type ChatStorageRecord, type ChatStorageAdapter, type ChatStorageOptions } from './storage';

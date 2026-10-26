@@ -7,5 +7,6 @@ export function useContinuableTurn(chatId: string, info: ChatInfo): string | nul
     const order = useChatRow(chatId, (row) => row?.order);
     const structure = useChatRow(chatId, (row) => row?.structure);
     const items = (order ?? []).map((id) => structure?.[id]).filter((item): item is ChatItem => item !== undefined);
+
     return continuableTurn(info, items);
 }

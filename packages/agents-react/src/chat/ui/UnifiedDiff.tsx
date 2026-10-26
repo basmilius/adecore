@@ -25,6 +25,7 @@ export default function UnifiedDiff(props: UnifiedDiffProps) {
     const legacyAllowed = legacyMode && legacyDiffBudget(oldText, newText, change.diff);
     const rawAllowed = hasHunks || legacyDiffBudget('', '', change.diff);
     const omitted = <DiffOmitted path={change.path} />;
+
     const fallback = legacyAllowed ? (
         <DiffFallbackBoundary fallback={omitted} resetKeys={[change.path, change.diff, oldText, newText, diffStyle]}>
             <LazyBoundary fallback={<div className="px-3 py-2 text-xs text-text-faint">{t('work.loadingDiff')}</div>}>
@@ -34,16 +35,21 @@ export default function UnifiedDiff(props: UnifiedDiffProps) {
     ) : (
         omitted
     );
+
     if (!sourceAllowed) {
         return omitted;
     }
+
     if (!hasHunks) {
         return rawAllowed ? <RawDiff text={change.diff} overflow={overflow} fill={fill} maxHeight={maxHeight} /> : omitted;
     }
+
     if (legacyMode) {
         return fallback;
     }
+
     const unavailable = <DiffUnavailable path={change.path} />;
+
     return (
         <DiffFallbackBoundary fallback={unavailable} resetKeys={[change.path, change.diff, oldText, newText, ignoreWhitespace, diffStyle, loadEngine]}>
             <LazyBoundary fallback={<div className="px-3 py-2 text-xs text-text-faint">{t('work.loadingDiff')}</div>}>

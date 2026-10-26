@@ -27,13 +27,17 @@ const savedPaths = new Map<string, string>();
 /* True for `ms` after `start()`, for a check mark that says an action landed. */
 function useFlash(ms: number): [boolean, () => void] {
     const [on, setOn] = useState(false);
+
     useEffect(() => {
         if (!on) {
             return;
         }
+
         const timer = setTimeout(() => setOn(false), ms);
+
         return () => clearTimeout(timer);
     }, [on, ms]);
+
     return [on, () => setOn(true)];
 }
 
@@ -71,15 +75,18 @@ function SavedFile({ path }: { path: string }) {
     const { id } = useChatScope();
     const { fileLinks } = useChatHost();
     const openFileLink = useOpenFileLink();
+
     const chip = (
         <>
             <FileIcon path={path} size={14} />
             <span className="truncate">{path}</span>
         </>
     );
+
     if (fileLinks === null) {
         return <span className={clsx(CHIP_IN_MESSAGE, MENTION_TONE)}>{chip}</span>;
     }
+
     return (
         <button
             type="button"
@@ -124,8 +131,10 @@ function ReadyImage({ chatId, attachment, prompt, transparent }: { chatId: strin
             ? undefined
             : async (): Promise<void> => {
                   setSaving(true);
+
                   try {
                       const path = await saveToProject(scopeId, chatId, attachment.id, attachment.name);
+
                       if (path !== null) {
                           savedPaths.set(savedKey, path);
                           setSavedPath(path);
@@ -229,6 +238,7 @@ export function GeneratedImageRow({ chatId, tool: derived }: { chatId: string; t
     const { t } = useTranslation('agent-chat');
     const tool = useCurrentItem(chatId, derived);
     const view = generatedImageView(tool);
+
     switch (view.state) {
         case 'generating':
             return <HeadLine label={t('generatedImage.generating')} live startedAt={toolStartedAt(tool)} />;

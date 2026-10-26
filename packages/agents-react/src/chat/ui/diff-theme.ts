@@ -14,6 +14,7 @@ function registerThemes(custom: ChatHost['code']['custom']): void {
         if (registered.has(theme.name)) {
             continue;
         }
+
         registered.add(theme.name);
         registerCustomTheme(theme.name, () => Promise.resolve(theme));
     }
@@ -24,5 +25,6 @@ export function useDiffTheme(): ThemesType {
     const { code } = useChatHost();
     registerThemes(code.custom);
     const { light, dark } = useHostCodeThemes();
+
     return { light, dark };
 }

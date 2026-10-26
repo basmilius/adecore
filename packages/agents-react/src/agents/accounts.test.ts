@@ -40,10 +40,12 @@ const accounts: ProviderAccounts = {
 describe('the accounts of a CLI', () => {
     test('the default one first, then the others, each with what its CLI said', () => {
         const entries = accountsOfKind(accounts, 'claude');
+
         expect(entries.map((entry) => [entry.id, entry.isDefault, entry.status?.state])).toEqual([
             ['claude', true, 'ready'],
             ['claude_work', false, 'signed-out']
         ]);
+
         expect(accountsOfKind(null, 'claude')).toEqual([]);
     });
 
@@ -69,6 +71,7 @@ describe('the status line', () => {
 
 describe('a new account', () => {
     const featured = ['blue', 'orange', 'lime', 'indigo', 'pink'];
+
     const accents: ChatHost['accents'] = {
         all: [...featured, 'red'].map((id) => ({ id, color: '#000000' })),
         featured,
@@ -128,6 +131,7 @@ describe('a choice of account in a chat', () => {
             },
             'claude'
         );
+
         expect(offeredAccounts(entries, undefined).map((entry) => entry.id)).toEqual(['claude_work', 'claude_unsaid']);
         expect(offeredAccounts(entries, 'claude').map((entry) => entry.id)).toEqual(['claude', 'claude_work', 'claude_unsaid']);
     });

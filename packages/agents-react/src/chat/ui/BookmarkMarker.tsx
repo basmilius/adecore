@@ -39,6 +39,7 @@ export function BookmarkMarker({ chatId, itemId, bookmark }: BookmarkMarkerProps
                     initial={bookmark?.name ?? ''}
                     onDone={(name) => {
                         useBookmarkNaming.getState().close();
+
                         if (name !== null) {
                             void nameBookmark(scope, host, chatId, itemId, name, bookmark?.name);
                         }
@@ -73,6 +74,7 @@ function NameField({ initial, onDone }: { initial: string; onDone: (name: string
     useEffect(() => {
         ref.current?.focus();
         const frame = requestAnimationFrame(() => ref.current?.focus());
+
         return () => cancelAnimationFrame(frame);
     }, []);
 
@@ -80,6 +82,7 @@ function NameField({ initial, onDone }: { initial: string; onDone: (name: string
         if (settled.current) {
             return;
         }
+
         settled.current = true;
         onDone(name);
     };
@@ -98,9 +101,11 @@ function NameField({ initial, onDone }: { initial: string; onDone: (name: string
             onBlur={(e) => settle(e.currentTarget.value)}
             onKeyDown={(e) => {
                 e.stopPropagation();
+
                 if (e.key === 'Enter') {
                     settle(e.currentTarget.value);
                 }
+
                 if (e.key === 'Escape') {
                     settle(null);
                 }

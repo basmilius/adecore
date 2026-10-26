@@ -49,13 +49,16 @@ async function mounted(run: (page: ReturnType<typeof createPage>, root: HostedRo
     Object.defineProperty(globalThis, 'customElements', { value: page.window.customElements, configurable: true });
     Object.defineProperty(globalThis, 'IS_REACT_ACT_ENVIRONMENT', { value: true, configurable: true });
     const root = hostedRoot(createRoot(page.host));
+
     try {
         await run(page, root);
     } finally {
         await act(async () => root.unmount());
         setHost({});
+
         names.forEach((name, index) => {
             const descriptor = previous[index];
+
             if (descriptor === undefined) {
                 Reflect.deleteProperty(globalThis, name);
             } else {
@@ -101,6 +104,7 @@ test('the approval file toolbar follows card navigation and the editor hands app
         const engine = createSmartEditorEngine({ tokenizer: async () => null, apple: false });
         setHost({ isApplePlatform: () => false, code: { ...CODE, editor: async () => engine } });
         let approvals = 0;
+
         await act(async () =>
             root.render(
                 <PromptCard
@@ -119,13 +123,16 @@ test('the approval file toolbar follows card navigation and the editor hands app
                 </PromptCard>
             )
         );
+
         const buttons = [...page.host.querySelectorAll<HTMLButtonElement>('[aria-label="Changes to review"] button')];
         let focused = -1;
+
         buttons.forEach((button, index) => {
             button.focus = () => {
                 focused = index;
             };
         });
+
         expect(press(page.window, buttons[0]!, 'ArrowRight')).toBe(true);
         expect(focused).toBe(1);
         press(page.window, buttons[1]!, 'End');

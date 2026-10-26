@@ -37,6 +37,7 @@ export function AccountVariables({ id, account, secretsAvailable }: AccountVaria
         const env = variablesOf(drafts);
         const { env: _env, ...rest } = account;
         setSaving(true);
+
         try {
             await saveAccount(scope, host, id, env.length === 0 ? rest : { ...rest, env });
         } finally {
@@ -63,6 +64,7 @@ export function AccountVariables({ id, account, secretsAvailable }: AccountVaria
                 const lockLabel = draft.sensitive ? t('account.variables.unlock', { name }) : t('account.variables.lock', { name });
                 // Off a keychain a value can only be made plain, never secret.
                 const lockDisabled = !secretsAvailable && !draft.sensitive;
+
                 return (
                     <div key={draft.key} className="flex min-w-0 items-center gap-2 px-3.5 py-3 font-mono text-code">
                         <Input

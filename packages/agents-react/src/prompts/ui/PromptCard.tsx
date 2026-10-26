@@ -35,6 +35,7 @@ interface PromptCardProps {
 function onCardKeyDown(event: KeyboardEvent<HTMLDivElement>, apple: boolean) {
     const card = event.currentTarget;
     const target = event.target instanceof HTMLElement ? event.target : null;
+
     if (!event.defaultPrevented) {
         if (isPrimaryKey(event.nativeEvent, apple)) {
             event.preventDefault();
@@ -46,6 +47,7 @@ function onCardKeyDown(event: KeyboardEvent<HTMLDivElement>, apple: boolean) {
         } else {
             const toolbar = target?.closest('[role="toolbar"]');
             const step = toolbar ? toolbarKey(event.nativeEvent) : null;
+
             if (toolbar && step !== null) {
                 event.preventDefault();
                 const buttons = [...toolbar.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')];
@@ -54,6 +56,7 @@ function onCardKeyDown(event: KeyboardEvent<HTMLDivElement>, apple: boolean) {
             }
         }
     }
+
     if (event.defaultPrevented || staysInCard(event.nativeEvent)) {
         event.stopPropagation();
     }
@@ -63,6 +66,7 @@ function onCardKeyDown(event: KeyboardEvent<HTMLDivElement>, apple: boolean) {
 export function PromptCard({ kind, heading, meta, top, actions, busy, notice, error, children }: PromptCardProps) {
     const { t } = useTranslation('agent-prompts');
     const { isApplePlatform } = useChatHost();
+
     const card = (
         <div
             className="prompt-card flex min-h-0 flex-col gap-2 p-3"
@@ -96,9 +100,11 @@ export function PromptCard({ kind, heading, meta, top, actions, busy, notice, er
             </div>
         </div>
     );
+
     if (top === undefined) {
         return card;
     }
+
     return (
         <div className="flex min-h-0 flex-col">
             {top}

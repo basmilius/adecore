@@ -45,15 +45,19 @@ const localStates = new UiPageMemory<UiState>(64);
 
 function localState(key: string, block: UiBlock, answered?: ChatUiAnswer): UiState {
     let state = localStates.get(key);
+
     if (!state) {
         state = new UiState(block);
+
         if (answered && answered.revision === block.revision) {
             for (const [name, value] of Object.entries(answered.values ?? {})) {
                 state.set(name, value);
             }
         }
+
         localStates.set(key, state);
     }
+
     return state;
 }
 
@@ -102,6 +106,7 @@ function remarkInlineProse(this: { data(): object }) {
     // The field remark-parse reads its syntax extensions from, as remark-gfm adds its own.
     const data = this.data() as { micromarkExtensions?: unknown[] };
     data.micromarkExtensions = [...(data.micromarkExtensions ?? []), { disable: { null: BLOCK_CONSTRUCTS } }];
+
     return (tree: ProseTree) => {
         tree.children = [
             {
@@ -118,26 +123,35 @@ function remarkCitations() {
             if (['link', 'inlineCode', 'code'].includes(parent.type)) {
                 return;
             }
+
             parent.children = parent.children?.flatMap((child) => {
                 if (child.type !== 'text' || !child.value) {
                     visit(child);
+
                     return [child];
                 }
+
                 const parts: ProseTree[] = [];
                 let start = 0;
+
                 for (const match of child.value.matchAll(/\[(\d{1,3})\]/g)) {
                     parts.push({ type: 'text', value: child.value.slice(start, match.index) });
+
                     parts.push({
                         type: 'citation',
                         data: { hName: 'span', hProperties: { 'data-ui-citation': match[1] } },
                         children: [{ type: 'text', value: match[0] }]
                     });
+
                     start = match.index + match[0].length;
                 }
+
                 parts.push({ type: 'text', value: child.value.slice(start) });
+
                 return parts;
             });
         };
+
         visit(tree);
     };
 }
@@ -148,28 +162,35 @@ interface CitationTarget {
     url: string;
     ancestors: string[];
 }
+
 const CitationContext = createContext<{ sources: ReadonlyMap<number, CitationTarget>; reveal?: (source: CitationTarget) => void }>({ sources: new Map() });
 
 function ProseCitation({ number, children }: { number: number; children?: ReactNode }) {
     const { sources, reveal } = useContext(CitationContext);
     const source = sources.get(number);
+
     return source ? <UiSourceCitation number={number} title={source.title} url={source.url} onReveal={reveal ? () => reveal(source) : undefined} /> : children;
 }
 
 function sourceTargets(nodes: readonly UiViewNode[]): Map<number, CitationTarget> {
     const lists: CitationTarget[][] = [];
+
     const visit = (nodes: readonly UiViewNode[], ancestors: string[] = []) => {
         for (const node of nodes) {
             const path = ['Tab', 'Section'].includes(node.type) ? [...ancestors, node.id] : ancestors;
+
             if (node.type === 'Sources') {
                 lists.push(
                     uiChildrenOf(node, 'Source').map((source) => ({ id: source.id, title: source.props.title, url: source.props.url, ancestors: path }))
                 );
             }
+
             visit(node.children, path);
         }
     };
+
     visit(nodes);
+
     // Numbers restart in each Sources list, so multiple lists have no unambiguous prose target.
     return new Map(lists.length === 1 ? lists[0].map((source, index) => [index + 1, source]) : []);
 }
@@ -184,9 +205,11 @@ const ProseUrlContext = createContext<((url: string) => void) | undefined>(undef
 /* Through the host only, like a Source: the address is the model's, so nothing here navigates by itself. */
 function ProseLink({ href, children }: { href?: string; children?: ReactNode }) {
     const openUrl = useContext(ProseUrlContext);
+
     if (openUrl === undefined || href === undefined || !/^https?:\/\//i.test(href)) {
         return children;
     }
+
     return (
         <Tooltip label={uiUrlDomain(href)}>
             <button type="button" className="cursor-pointer text-accent underline underline-offset-2 select-text" onClick={() => openUrl(href)}>
@@ -215,9 +238,11 @@ const PROSE_COMPONENTS: Components = {
  */
 const UiProse = memo(function UiProse({ text, fade, openUrl }: { text: string; fade: boolean; openUrl?: (url: string) => void }) {
     const [, lead = '', body = '', trail = ''] = /^(\s*)([\s\S]*?)(\s*)$/.exec(text) ?? [];
+
     if (body === '') {
         return text;
     }
+
     return (
         <ProseUrlContext value={openUrl}>
             {lead}
@@ -241,8 +266,10 @@ function writtenTexts(nodes: readonly UiNode[], into = new Map<string, boolean>(
         if (node.type === '$text') {
             into.set(node.id, node.expressions.text === undefined);
         }
+
         writtenTexts(node.children, into);
     }
+
     return into;
 }
 
@@ -250,6 +277,7 @@ function isInline(node: UiViewNode): boolean {
     if (node.type === '$text') {
         return true;
     }
+
     return node.error === undefined && (node.type === 'Tag' || (LINKS.has(node.type) && node.children.length === 0));
 }
 
@@ -271,16 +299,21 @@ function UiNodes({ nodes, parent, texts, context }: UiNodesProps): ReactNode {
             <UiNodeBody node={node} parent={parent} texts={texts} context={context} />
         </UiNodeBoundary>
     );
+
     const paragraph = PARAGRAPHS[parent];
+
     if (parent === 'Choices') {
         // A primary choice stands first in the order a keyboard and a screen reader meet it too, not only on screen.
         return [...nodes].sort((a, b) => Number(b.props.primary === true) - Number(a.props.primary === true)).map(drawn);
     }
+
     if (paragraph === undefined) {
         return nodes.map(drawn);
     }
+
     const output: ReactNode[] = [];
     let run: UiViewNode[] = [];
+
     const close = () => {
         if (run.some((node) => !isBlank(node))) {
             output.push(
@@ -289,17 +322,23 @@ function UiNodes({ nodes, parent, texts, context }: UiNodesProps): ReactNode {
                 </div>
             );
         }
+
         run = [];
     };
+
     for (const node of nodes) {
         if (isInline(node)) {
             run.push(node);
+
             continue;
         }
+
         close();
         output.push(drawn(node));
     }
+
     close();
+
     return output;
 }
 
@@ -342,22 +381,28 @@ function UiNodeBody({
 }): ReactNode {
     if (node.type === '$text') {
         const text = String(node.props.text ?? '');
+
         return LITERAL_PARENTS.has(parent) || texts.get(node.sourceId ?? node.id) !== true ? (
             text
         ) : (
             <UiProse text={text} fade={context.phase === 'streaming'} openUrl={context.openUrl} />
         );
     }
+
     if (node.error !== undefined) {
         return <UiFallbackPart fallback={node.fallback} problem={{ kind: 'failed' }} />;
     }
+
     if (!isUiComponent(node.type)) {
         return <UiFallbackPart fallback={node.fallback} problem={{ kind: 'unknown', component: node.type }} />;
     }
+
     const Renderer = UI_RENDERERS[node.type] as UiRenderer<Record<string, unknown>> | null;
+
     if (Renderer === null) {
         return null;
     }
+
     return (
         <Renderer node={node} context={context}>
             <UiNodes nodes={node.children} parent={node.type} texts={texts} context={context} />
@@ -374,8 +419,10 @@ function placeReader(frozen: ChatUiQueryState['blocks'][string] | undefined, rev
     if (frozen === undefined || frozen.revision !== revision) {
         return () => (unrecorded ? null : undefined);
     }
+
     return (nodeId, address) => {
         const reading = Object.hasOwn(frozen.places ?? {}, nodeId) ? frozen.places![nodeId] : undefined;
+
         return reading?.address === address.trim() && reading.state === 'found' && reading.lat !== undefined && reading.lon !== undefined
             ? { lat: reading.lat, lon: reading.lon, label: reading.label }
             : null;
@@ -406,14 +453,17 @@ function UiBlockBody({
     const key = JSON.stringify([context.scopeId, context.chatId, context.itemId, block.id]);
     const [state] = useState(() => localState(key, block, answered));
     state.sync(block);
+
     const stateRevision = useSyncExternalStore(
         (listener) => state.subscribe(listener),
         () => state.snapshot(),
         () => state.snapshot()
     );
+
     const [optimistic, setOptimistic] = useState<{ revision: string; choiceId: string; state: 'sending' | 'sent' | 'queued' } | null>(null);
     const [failedChoiceId, setFailedChoiceId] = useState<string | null>(null);
     const pending = useRef(false);
+
     useEffect(() => {
         if (answered && answered.revision === block.revision && answered.values) {
             for (const [name, value] of Object.entries(answered.values)) {
@@ -421,17 +471,21 @@ function UiBlockBody({
             }
         }
     }, [state, answered, block.revision]);
+
     const answer =
         answered && answered.revision === block.revision
             ? { choiceId: answered.choiceId, state: answered.queued ? ('queued' as const) : ('sent' as const) }
             : optimistic?.revision === block.revision
               ? optimistic
               : null;
+
     const [element, setElement] = useState<HTMLDivElement | null>(null);
     const navigation = useContext(UiReplyNavigationContext);
     const flash = navigation?.flash;
+
     const flashing =
         navigation?.chatId === context.chatId && flash?.itemId === context.itemId && flash.blockId === block.id && flash.revision === block.revision;
+
     const queries = useUiQueries(block, state, context, element, frozen);
     const links = useUiLinks(block, state, context, queries.reads, frozen);
     // The state changes in place, so its revision is what tells this evaluation it went stale.
@@ -439,6 +493,7 @@ function UiBlockBody({
     const evaluation = useMemo(() => evaluateUiBlock(block, state), [block, state, stateRevision]);
     const texts = useMemo(() => writtenTexts(block.nodes), [block]);
     const sources = useMemo(() => sourceTargets(evaluation.nodes), [evaluation]);
+
     const citations = useMemo(
         () => ({
             sources,
@@ -450,9 +505,11 @@ function UiBlockBody({
         }),
         [sources, element]
     );
+
     const liveValue = useUiLiveValues(block, evaluation.nodes, queries.currentReadings);
     const sendChoice = host.intelligentUi?.sendChoice;
     const place = useMemo(() => placeReader(frozen, block.revision, unrecorded), [frozen, block.revision, unrecorded]);
+
     const rendering: UiRenderContext = {
         ...context,
         ...links,
@@ -470,15 +527,19 @@ function UiBlockBody({
                         if (pending.current || answer || queries.reading) {
                             return;
                         }
+
                         const values = uiInputValues(block, state);
                         const reads = queries.readsFor(values);
+
                         if (reads === null) {
                             return;
                         }
+
                         pending.current = true;
                         setFailedChoiceId(null);
                         const revision = block.revision!;
                         setOptimistic({ revision, choiceId, state: 'sending' });
+
                         void sendChoice(context.scopeId, {
                             chatId: context.chatId,
                             itemId: context.itemId,
@@ -499,9 +560,11 @@ function UiBlockBody({
                     }
                   : undefined
     };
+
     const unknown = block.catalogVersion !== UI_CATALOG_VERSION;
     const failed = !unknown && !block.nodes.length && block.diagnostics.length > 0;
     const shownAsText = unknown ? t('blocks.unreadable') : failed ? block.diagnostics[0].message : undefined;
+
     return (
         <div ref={setElement} className="relative" data-ui-block={block.id} data-ui-revision={block.revision} tabIndex={-1}>
             {flashing && <span key={flash.nonce} className="chat-flash pointer-events-none absolute inset-0 rounded-lg" aria-hidden />}

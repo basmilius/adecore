@@ -48,20 +48,25 @@ export function UsageChart({ slots, providers, format, labelEvery }: UsageChartP
                 <svg width={width} height={HEIGHT} role="presentation">
                     {ticks.map((tick) => {
                         const y = Math.round(HEIGHT - (tick / scale.max) * HEIGHT) + 0.5;
+
                         return <line key={tick} x1={0} x2={width} y1={y} y2={y} stroke="var(--border)" strokeWidth={1} />;
                     })}
                     {slots.map((slot, index) => {
                         const left = Math.round(index * band + (band - barWidth) / 2);
                         let bottom = HEIGHT;
+
                         return (
                             <g key={slot.slot} opacity={hovered === null || hovered === index ? 1 : DIMMED}>
                                 {providers.map((provider) => {
                                     const value = slot.byProvider[provider] ?? 0;
+
                                     if (value <= 0) {
                                         return null;
                                     }
+
                                     const height = Math.max(1, Math.round((value / scale.max) * HEIGHT));
                                     bottom -= height;
+
                                     return <rect key={provider} x={left} y={bottom} width={barWidth} height={height} fill={PROVIDER_COLORS[provider]} />;
                                 })}
                             </g>

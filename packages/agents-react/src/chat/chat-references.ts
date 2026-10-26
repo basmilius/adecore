@@ -38,6 +38,7 @@ export function referablesOfChats(chats: readonly ProjectChat[]): Referables {
 export function referenceTokens(ids: readonly string[], items: readonly Referable[], spelled: Readonly<Record<string, string>> = {}): ReferenceToken[] {
     return [...new Set(ids)].flatMap((id) => {
         const name = spelled[id] ?? items.find((item) => item.id === id)?.name;
+
         return name === undefined || name === '' ? [] : [{ id, name }];
     });
 }
@@ -45,8 +46,10 @@ export function referenceTokens(ids: readonly string[], items: readonly Referabl
 /* What a `#query` offers, the canvas first: never an id in `exclude`, and only chats where the machine takes no more. */
 export function referenceSuggestions(referables: Referables, query: string, exclude: readonly string[], limit: number): Referable[] {
     const needle = query.toLowerCase();
+
     const matches = referables.items.filter(
         (item) => item.name !== '' && (!referables.chatsOnly || item.kind === 'chat') && !exclude.includes(item.id) && item.name.toLowerCase().includes(needle)
     );
+
     return [...matches.filter((item) => item.group === 'canvas'), ...matches.filter((item) => item.group === 'views')].slice(0, limit);
 }

@@ -19,6 +19,7 @@ export const USAGE_PERIODS: readonly { id: UsagePeriod; days: number }[] = [
 const storageKey = (): string => chatStorageKey('usage');
 
 export let USAGE_PREFERENCES_KEY = storageKey();
+
 onChatStorageConfiguration(() => {
     USAGE_PREFERENCES_KEY = storageKey();
 });
@@ -35,6 +36,7 @@ const DEFAULTS: Preferences = { period: '7d', metric: 'cost', currency: 'USD' };
 function parsePreferences(raw: string | null): Preferences {
     try {
         const stored = JSON.parse(raw ?? '{}') as Partial<Preferences>;
+
         return {
             period: USAGE_PERIODS.some((period) => period.id === stored.period) ? stored.period! : DEFAULTS.period,
             metric: stored.metric === 'tokens' || stored.metric === 'cost' ? stored.metric : DEFAULTS.metric,
@@ -65,6 +67,7 @@ export function dayOf(date: Date): string {
 export function windowFor(period: UsagePeriod, now = new Date()): UsageSummaryPayload {
     const days = USAGE_PERIODS.find((entry) => entry.id === period)?.days ?? 7;
     const from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (days - 1));
+
     return {
         from: dayOf(from),
         to: dayOf(now),
@@ -129,9 +132,11 @@ export const useUsageStore = createChatStore<UsageStore>(
             storage.write({ ...chosen(get()), ...change });
             set(change);
         };
+
         const patchRow = (scopeId: string, change: Partial<UsageRow>): void => {
             set({ byScope: { ...get().byScope, [scopeId]: { ...(get().byScope[scopeId] ?? EMPTY), ...change } } });
         };
+
         return {
             ...DEFAULTS,
             byScope: {},
@@ -177,5 +182,6 @@ export type UsageView = Preferences & UsageRow;
 
 export function useUsage<T>(select: (view: UsageView) => T): T {
     const { id } = useChatScope();
+
     return useUsageStore((s) => select({ period: s.period, metric: s.metric, currency: s.currency, ...(s.byScope[id] ?? EMPTY) }));
 }

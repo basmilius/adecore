@@ -22,25 +22,32 @@ export class TokenCache<State> {
             if (state !== undefined) {
                 return tokenize(code, state);
             }
+
             const key = `${namespace}\0${code}`;
             const known = this.entries.get(key);
+
             if (known !== undefined) {
                 this.entries.delete(key);
                 this.entries.set(key, known);
+
                 return known.result;
             }
+
             const result = tokenize(code, state);
             // Account for tokens too, so dense code cannot fill the cache with tiny strings.
             const cost = key.length * 2 + result.lines.reduce((sum, line) => sum + line.length * 64, 0);
+
             if (cost <= TOKEN_CACHE_BUDGET) {
                 while (this.entries.size > 0 && (this.size + cost > TOKEN_CACHE_BUDGET || this.entries.size >= TOKEN_CACHE_ENTRIES)) {
                     const oldest = this.entries.keys().next().value!;
                     this.size -= this.entries.get(oldest)!.cost;
                     this.entries.delete(oldest);
                 }
+
                 this.entries.set(key, { result, cost });
                 this.size += cost;
             }
+
             return result;
         };
     }
@@ -68,24 +75,31 @@ export class IncrementalLines<State> {
         // A carriage return splits lines in ways a cut at newlines does not see, so that code starts over every time.
         if (code.includes('\r')) {
             this.reset();
+
             return this.tokenize(code, undefined).lines;
         }
+
         const end = complete ? code.length : code.lastIndexOf('\n') + 1;
         const stable = code.slice(0, end);
         const continues = (this.source === '' || this.source.endsWith('\n')) && stable.startsWith(this.source);
+
         if (!continues) {
             this.reset();
         }
+
         const added = stable.slice(this.source.length);
+
         if (added !== '') {
             const result = this.tokenize(added.endsWith('\n') ? added.slice(0, -1) : added, this.state);
             this.lines = [...this.lines, ...result.lines];
             this.state = result.state;
             this.source = stable;
         }
+
         if (complete) {
             return this.lines;
         }
+
         return [...this.lines, ...this.tokenize(code.slice(end), this.state).lines];
     }
 

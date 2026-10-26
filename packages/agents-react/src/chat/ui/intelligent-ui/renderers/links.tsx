@@ -15,6 +15,7 @@ const UI_CHIP = 'bg-ui-inset font-mono text-text shadow-[inset_0_0_0_1px_var(--b
 
 function baseName(path: string): string {
     const trimmed = path.replace(/\/+$/, '');
+
     return trimmed.slice(trimmed.lastIndexOf('/') + 1) || path;
 }
 
@@ -85,18 +86,23 @@ function chipFace(target: UiLinkTarget, link: UiLink): { face: ReactNode; hint: 
 export function UiLinkChip({ target, context }: { target: UiLinkTarget; context: UiRenderContext }) {
     const { t } = useTranslation('agent-chat');
     const link = context.link?.(target) ?? PLAIN;
+
     if (link.state === 'plain') {
         const reason = uiReasonText(t, link.code, link.reason) ?? (context.link === undefined ? null : t('blocks.outsideProject'));
+
         // Focusable only with a reason, so a keyboard reaches the tooltip.
         const text = (
             <span tabIndex={reason === null ? undefined : 0} className="font-mono text-code break-all text-text-muted">
                 {plainText(target, link)}
             </span>
         );
+
         return reason === null ? text : <Tooltip label={reason}>{text}</Tooltip>;
     }
+
     const { face, hint } = chipFace(target, link);
     const { openLink } = context;
+
     const chip =
         openLink === undefined ? (
             <span className={clsx(CHIP_IN_MESSAGE, UI_CHIP, 'transition-opacity duration-120 starting:opacity-0')}>{face}</span>
@@ -109,6 +115,7 @@ export function UiLinkChip({ target, context }: { target: UiLinkTarget; context:
                 {face}
             </button>
         );
+
     return hint === null ? chip : <Tooltip label={hint}>{chip}</Tooltip>;
 }
 
@@ -117,6 +124,7 @@ function LinkRow({ target, context, described, children }: { target: UiLinkTarge
     if (!described) {
         return <UiLinkChip target={target} context={context} />;
     }
+
     return (
         <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 text-xs">
             <span className="max-w-full min-w-0">
@@ -129,6 +137,7 @@ function LinkRow({ target, context, described, children }: { target: UiLinkTarge
 
 export function FileRenderer({ node, children, context }: UiRendererProps<UiProps<'File'>>) {
     const { path, line } = node.props;
+
     return (
         <LinkRow target={{ type: 'File', path, line }} context={context} described={node.children.length > 0}>
             {children}

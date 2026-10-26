@@ -37,12 +37,15 @@ interface MarkdownNode {
 /* The command a shell fence holds, read from the fence as written, so it keeps the indentation and line endings it has. */
 function shellFence(source: string): ShellFence | null {
     const opening = /^ {0,3}(`{3,}|~{3,})[ \t]*(sh|bash|zsh)[ \t]*\r?\n/.exec(source);
+
     if (opening === null) {
         return null;
     }
+
     const body = source.slice(opening[0].length);
     const closing = /(?:^|\r?\n) {0,3}(`{3,}|~{3,})[ \t]*$/.exec(body);
     const closed = closing !== null && closing[1]![0] === opening[1]![0] && closing[1]!.length >= opening[1]!.length;
+
     return { language: opening[2] as ShellFence['language'], code: closed ? body.slice(0, closing.index) : body, closed };
 }
 
@@ -53,15 +56,20 @@ function remarkShellCodeBlocks() {
             if (node.type !== 'code') {
                 continue;
             }
+
             const start = node.position?.start.offset;
             const end = node.position?.end.offset;
+
             if (start === undefined || end === undefined) {
                 continue;
             }
+
             const shell = shellFence(String(file.value).slice(start, end));
+
             if (shell === null) {
                 continue;
             }
+
             node.data = {
                 ...node.data,
                 hProperties: {
@@ -80,7 +88,9 @@ function shellCodeBlockActions(reply: ShellCodeBlockReply | null, shell: ShellFe
     if (reply === null || shell === null) {
         return undefined;
     }
+
     const { scopeId, chatId, itemId } = reply;
+
     return render?.({ scopeId, chatId, itemId, language: shell.language, code: shell.code, complete: !reply.streaming && shell.closed });
 }
 
@@ -98,6 +108,7 @@ function FileLink({ target, className, children }: { target: FileRef; className?
     const cwd = useFileLinkCwd();
     const scopeId = useFileLinkScopeId();
     const openFileLink = useOpenFileLink();
+
     return (
         // A button is not selectable on its own, and a thread is copied as often as it is clicked.
         <button
@@ -120,9 +131,11 @@ function FileLink({ target, className, children }: { target: FileRef; className?
 /* Inline code, which is a file reference often enough that it is worth asking every time. */
 function InlineCode({ text }: { text: string }) {
     const target = useFileLinkTarget(text);
+
     if (target === null) {
         return <code className={INLINE_CODE}>{text}</code>;
     }
+
     return (
         // The chip sits on a code inside the button, since a button is always a box of its own and its
         // background would fill the whole box once a long path wraps.
@@ -138,6 +151,7 @@ function InlineCode({ text }: { text: string }) {
  */
 function hrefPath(href: string): string {
     const bare = href.replace(/^file:\/\//, '');
+
     try {
         return decodeURI(bare);
     } catch {
@@ -148,6 +162,7 @@ function hrefPath(href: string): string {
 /* A markdown link, which is a file when its target names no scheme of its own. */
 function MarkdownLink({ href, children }: { href?: string; children?: ReactNode }) {
     const target = useFileLinkTarget(hrefPath(href ?? ''));
+
     if (target !== null) {
         return (
             <FileLink target={target} className="text-accent underline underline-offset-2">
@@ -155,6 +170,7 @@ function MarkdownLink({ href, children }: { href?: string; children?: ReactNode 
             </FileLink>
         );
     }
+
     return <ExternalLink href={href}>{children}</ExternalLink>;
 }
 
@@ -174,13 +190,17 @@ function localImagePath(src: string, cwd: string | null): string | null {
     if (src === '' || /^[a-z][a-z0-9+.-]*:/i.test(src)) {
         return null;
     }
+
     const target = hrefPath(src);
+
     if (target.startsWith('/')) {
         return target;
     }
+
     if (cwd === null) {
         return null;
     }
+
     return `${cwd.replace(/\/+$/, '')}/${target.replace(/^\.\//, '')}`;
 }
 
@@ -189,9 +209,11 @@ function MarkdownImage({ src, alt }: { src?: string; alt?: string }) {
     const { MarkdownImage: HostImage } = useChatHost();
     const cwd = useFileLinkCwd();
     const path = typeof src === 'string' ? localImagePath(src, cwd) : null;
+
     if (HostImage === undefined || path === null) {
         return <img src={src} alt={alt} />;
     }
+
     return <HostImage path={path} alt={alt ?? ''} />;
 }
 
@@ -202,6 +224,7 @@ function PlainImage({ src, alt }: { src?: string; alt?: string }) {
 /* A ```mermaid fence, which draws what it says. */
 function Diagram({ code }: { code: string }) {
     const { t } = useTranslation('agent-chat');
+
     return (
         <ErrorBoundary label={t('code.mermaid.crashed')} resetKeys={[code]} compact className="rounded-lg border border-border">
             <MermaidBlock code={code} />
@@ -212,11 +235,14 @@ function Diagram({ code }: { code: string }) {
 function MarkdownCode({ className, children, plain = false }: { className?: string; children?: ReactNode; plain?: boolean }) {
     const block = useContext(BlockCodeContext);
     const text = String(children ?? '');
+
     if (block) {
         const lang = languageOf(className);
         const code = text.replace(/\n$/, '');
+
         return lang === 'mermaid' ? <Diagram code={code} /> : <CodeBlock code={code} lang={lang} />;
     }
+
     return plain ? <code className={INLINE_CODE}>{text}</code> : <InlineCode text={text} />;
 }
 
@@ -259,6 +285,7 @@ const REPLY_HEADING_OFFSET = 3;
 
 function replyHeading(level: 1 | 2 | 3 | 4 | 5 | 6) {
     const Tag = `h${level}` as const;
+
     return function ReplyHeading({ children }: { children?: ReactNode }) {
         return <Tag aria-level={Math.min(6, level + REPLY_HEADING_OFFSET)}>{children}</Tag>;
     };
@@ -283,17 +310,22 @@ function ReplyCode({ className, children, node }: { className?: string; children
     const properties = node?.properties;
     const language = properties?.['data-shell-language'];
     const code = properties?.['data-shell-code'];
+
     const shell: ShellFence | null =
         (language === 'sh' || language === 'bash' || language === 'zsh') && typeof code === 'string'
             ? { language, code, closed: properties?.['data-shell-closed'] === true }
             : null;
+
     const text = String(children ?? '');
+
     if (block && languageOf(className) === 'mermaid') {
         return <Diagram code={text.replace(/\n$/, '')} />;
     }
+
     if (block) {
         return <CodeBlock code={text.replace(/\n$/, '')} lang={languageOf(className)} actions={shellCodeBlockActions(reply, shell, renderShellCodeBlock)} />;
     }
+
     return <InlineCode text={text} />;
 }
 
@@ -302,6 +334,7 @@ function Chip({ kind, value }: { kind: string; value: string }) {
     if (kind === 'reference') {
         return <ReferenceChip id={value} />;
     }
+
     if (kind === 'skill') {
         return (
             <TokenChip
@@ -314,6 +347,7 @@ function Chip({ kind, value }: { kind: string; value: string }) {
             />
         );
     }
+
     return (
         // The path is what the thread's menu opens in the preview from here.
         <TokenChip
@@ -336,6 +370,7 @@ function ChipSpan({ children, node: _node, 'data-chip': chip, 'data-value': valu
     if (chip === undefined || value === undefined) {
         return <span {...rest}>{children}</span>;
     }
+
     return <Chip kind={chip} value={value} />;
 }
 
@@ -352,8 +387,10 @@ const ReplyBlock = memo(function ReplyBlock({ text, fade, open, reply }: { text:
     const { items, referenced } = useContext(ReferenceLookupContext);
     // Chips first, so the fade wraps the words around a chip and never cuts a name in two.
     const named: NamedReferenceOptions = { items, referenced };
+
     const rehypePlugins: Options['rehypePlugins'] =
         items.length === 0 ? (fade ? FADE_PLUGINS : NO_PLUGINS) : [[rehypeNamedReferences, named], ...(fade ? FADE_PLUGINS : [])];
+
     return (
         // A context rather than a second set of components. A component that changed would mount the
         // code block again the moment its fence closes, and it would lose the lines it already has.
@@ -389,6 +426,7 @@ const ReplyFence = memo(function ReplyFence({
     // The class markdown gives the code, read back the way a parsed fence's is.
     const lang = languageOf(`language-${info.split(/[ \t]/, 1)[0]}`);
     const shell = reply === undefined ? null : shellFence(source);
+
     return (
         <CodeStreamingContext.Provider value={open}>
             {lang === 'mermaid' ? (
@@ -418,6 +456,7 @@ export const ReplyMarkdown = memo(function ReplyMarkdown({
     reply?: ShellCodeBlockReply;
 }) {
     const blocks = splitMarkdownBlocks(text);
+
     return (
         <div className="chat-markdown prose prose-sm max-w-none text-sm" data-arriving={arriving || undefined}>
             {blocks.map((block, index) =>
@@ -455,6 +494,7 @@ export const MessageMarkdown = memo(function MessageMarkdown({
     references?: readonly ReferenceToken[];
 }) {
     const rehypePlugins: [typeof rehypeChips, ChipOptions][] = [[rehypeChips, { mentions, skills, references }]];
+
     return (
         <div className="chat-markdown prose prose-sm max-w-none text-sm">
             <ReactMarkdown remarkPlugins={MESSAGE_PLUGINS} rehypePlugins={rehypePlugins} components={replyComponents}>
@@ -484,6 +524,7 @@ export const Markdown = memo(function Markdown({
     componentOverrides?: Components;
 }) {
     const renderComponents = { ...(fileLinks ? components : plainComponents), ...componentOverrides };
+
     return (
         <div className="chat-markdown prose prose-sm max-w-none text-sm" data-muted={muted || undefined}>
             <ReactMarkdown remarkPlugins={breaks ? PLUGINS_WITH_BREAKS : PLUGINS} rehypePlugins={rehypePlugins} components={renderComponents}>

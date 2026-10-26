@@ -22,14 +22,19 @@ export interface AccountChoice {
 export function useAccountChoice(kind: AgentKind | null, account: string | undefined): AccountChoice | null {
     const accounts = useProviderAccounts((row) => row.accounts);
     const providerName = useProviders((row) => row.providers.find((entry) => entry.kind === kind)?.name) ?? kind ?? '';
+
     if (kind === null || accounts === null) {
         return null;
     }
+
     const entries = accountsOfKind(accounts, kind);
+
     if (!hasAccountChoice(entries)) {
         return null;
     }
+
     const currentId = account ?? kind;
+
     return {
         accounts,
         offered: offeredAccounts(entries, currentId),
@@ -60,11 +65,14 @@ export function newAccountChoiceOf(row: ProviderAccountsRow, kind: AgentKind | n
     if (kind === null || !row.loaded) {
         return LOADING;
     }
+
     const entries = accountsOfKind(row.accounts, kind);
+
     // An older machine lists no accounts at all, or none of a CLI it does not know.
     if (entries.length === 0) {
         return UNSUPPORTED;
     }
+
     return {
         status: 'ready',
         offered: offeredAccounts(entries, undefined),
@@ -77,5 +85,6 @@ export function newAccountChoiceOf(row: ProviderAccountsRow, kind: AgentKind | n
 export function useNewAccountChoice(kind: AgentKind | null): NewAccountChoice {
     const row = useProviderAccounts((entry) => entry);
     const providerName = useProviders((entry) => entry.providers.find((provider) => provider.kind === kind)?.name) ?? kind ?? '';
+
     return newAccountChoiceOf(row, kind, providerName);
 }

@@ -33,6 +33,7 @@ export const useProviderAccountsStore = create<ProviderAccountsStore>((set, get)
 /* The accounts of the host in scope, like `useProviders`. */
 export function useProviderAccounts<T>(select: (row: ProviderAccountsRow) => T): T {
     const { id } = useChatScope();
+
     return useProviderAccountsStore((s) => select(s.byScope[id] ?? NONE));
 }
 
@@ -53,8 +54,10 @@ export function watchProviderAccounts(scopeId: string, transport: ChatTransport)
     const store = useProviderAccountsStore.getState();
     // A list asked for before a change arrived is older than that change, so it is dropped.
     let changes = 0;
+
     const load = (): void => {
         const asked = changes;
+
         transport
             .request('accounts.list', {})
             .then((accounts) => {
@@ -69,6 +72,7 @@ export function watchProviderAccounts(scopeId: string, transport: ChatTransport)
                 }
             });
     };
+
     const off = [
         transport.on('accounts.changed', (accounts) => {
             changes += 1;
@@ -76,5 +80,6 @@ export function watchProviderAccounts(scopeId: string, transport: ChatTransport)
         }),
         whenOpen(transport, load)
     ];
+
     return () => off.forEach((stop) => stop());
 }

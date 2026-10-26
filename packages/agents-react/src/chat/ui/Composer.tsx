@@ -70,9 +70,11 @@ function sendLabelKey(busy: boolean, steerable: boolean, delivery: 'queue' | 'st
     if (!busy) {
         return 'composer.send';
     }
+
     if (!steerable) {
         return 'composer.queueButton';
     }
+
     return delivery === 'steer' ? 'composer.steerButton' : 'composer.queueWithSteerButton';
 }
 
@@ -96,6 +98,7 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
     const notice = useNotice();
     const history = usePromptHistory(chatId, box.setText);
     const menus = useComposerMenus({ chatId, info, capabilities, providerName: provider?.name, draft: box, inputRef });
+
     const files = useDraftFiles({
         capabilities,
         providerName: provider?.name,
@@ -107,7 +110,9 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
         referables: menus.referables.chatsOnly ? menus.referables.items.filter((item) => item.kind === 'chat') : menus.referables.items,
         referenceChips: menus.referenceChips
     });
+
     const controls = useChatControls({ chatId, info, notice, onRetarget });
+
     useEffortStepper({
         chatId,
         info,
@@ -116,12 +121,14 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
         controls,
         setNotice: notice.setNotice
     });
+
     const guard = promptGuard(withQuote(draft.quote, draft.text));
     const continuable = useContinuableTurn(chatId, info);
     // The stopped turn something went out for, since the chat takes a moment to answer and Continue must not stand there meanwhile.
     const [sentFor, setSentFor] = useState<string | null>(null);
     const extraPrompts = useHostExtraPrompts(scope.id, chatId);
     const sendActions = useHostComposerSendActions(scope.id, chatId);
+
     const { submit, continueTurn, restoreStashed, toggleStash } = useComposerSubmit({
         chatId,
         writable,
@@ -138,6 +145,7 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
         onSend: (text, extras) => {
             setSentFor(continuable);
             const sent = onSend(text, extras);
+
             // A send the host did not take leaves Continue where it was; the original promise still reaches its caller.
             void Promise.resolve(sent).then(
                 (taken) => {
@@ -147,12 +155,15 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
                 },
                 (error: unknown) => {
                     setSentFor(null);
+
                     throw error;
                 }
             );
+
             return sent;
         }
     });
+
     const { takingBack, takeBack } = useTakeBack({
         chatId,
         draft: box,
@@ -162,16 +173,19 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
             inputRef.current?.focus();
         }
     });
+
     const pending = usePendingRequests(chatId);
     const compactionOffer = useCompactionOffer(chatId, info, capabilities?.compaction);
     const placeholder = useHintedPlaceholder({ chatId, disabled, readOnly, mentionable: capabilities?.mentions !== false, hasSkills: menus.hasSkills });
     const editorExtensions = [chipDecorations({ mentions: draft.mentions, skills: draft.skills, references: menus.referenceChips }), LEAVE_DROPS_TO_THE_CARD];
+
     /* The timeline owns the scroller; this is the one bit of it the composer needs to know. */
     const atEnd = useSyncExternalStore(
         subscribeTimelineEnd,
         () => timelineAtEnd(chatId),
         () => true
     );
+
     const queue = info.queue ?? [];
     const empty = isEmptyDraft(draft);
 
@@ -201,6 +215,7 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
         if (!writable || event.button !== 0 || event.defaultPrevented || surfacePartOf(event.target, event.currentTarget) !== 'surface') {
             return;
         }
+
         // Nothing around the field selects, so the default would only blur it on the way, closing its picker and lifting a held prompt card.
         event.preventDefault();
         inputRef.current?.setCaret(Infinity);

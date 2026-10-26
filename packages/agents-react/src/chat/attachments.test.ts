@@ -31,6 +31,7 @@ describe('checkAttachmentLimits', () => {
             [file('too-big.png', 'image/png', 7), file('fits.txt', 'text/plain', 4), file('last.png', 'image/png', 3)],
             CHAT_ATTACHMENTS_MAX_BYTES - 6
         );
+
         expect(checked.accepted.map((entry) => entry.name)).toEqual(['fits.txt']);
         expect(checked.rejected.map((entry) => entry.name)).toEqual(['too-big.png', 'last.png']);
         expect(checked.rejected[0]?.reason).toBe('At most 10 MB in total per message');

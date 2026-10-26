@@ -13,6 +13,7 @@ export function WelcomeGreeting({ chatId, now = localClock }: { chatId: string; 
     const { t } = useTranslation('agent-chat');
     const provider = useChatRow(chatId, (row) => row?.info.provider ?? null);
     const [part] = useState(() => dayPartOf(now()));
+
     return (
         <div className="flex items-center justify-center gap-3 px-3 pb-2 text-text">
             {provider && <AgentIcon kind={provider} size={32} className="shrink-0" />}

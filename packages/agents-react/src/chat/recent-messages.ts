@@ -30,18 +30,23 @@ export function recentMessages(eligible: readonly MessageItem[], limit: number):
     const messages: RecentChatMessage[] = [];
     let characters = 0;
     let truncated = candidates.length < eligible.length;
+
     for (const item of candidates.toReversed()) {
         const message = clipped(item.text.trim());
         const remaining = MAX_TOTAL_CHARACTERS - characters;
+
         if (remaining <= 0) {
             truncated = true;
+
             break;
         }
+
         const text = message.text.length <= remaining ? message.text : `${message.text.slice(0, Math.max(0, remaining - 1))}…`;
         messages.unshift({ role: item.kind, text, createdAt: item.createdAt });
         characters += text.length;
         truncated ||= message.truncated || text.length < message.text.length;
     }
+
     return { messages, truncated };
 }
 

@@ -33,13 +33,18 @@ const ACTIONS = [
 export function surfacePartOf(target: EventTarget | null, surface: Element): 'input' | 'action' | 'surface' {
     // Not `instanceof Element`, which fails for an element of another window.
     const element = target as Element | null;
+
     if (typeof element?.closest !== 'function' || !surface.contains(element)) {
         return 'action';
     }
+
     const input = element.closest('.cm-editor');
+
     if (input !== null && surface.contains(input)) {
         return 'input';
     }
+
     const action = element.closest(ACTIONS);
+
     return action !== null && surface.contains(action) ? 'action' : 'surface';
 }

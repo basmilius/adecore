@@ -34,6 +34,7 @@ function compiled(source: string, final = true) {
 function evaluate(source: string, final = true): { nodes: UiViewNode[]; state: UiState } {
     const block = compiled(source, final);
     const state = new UiState(block);
+
     return { nodes: evaluateUiBlock(block, state, { milliseconds: 5000 }).nodes, state };
 }
 
@@ -43,10 +44,13 @@ function drawn(nodes: readonly UiViewNode[], context: UiRenderContext): ReactNod
         if (node.type === '$text') {
             return createElement(Fragment, { key: node.id }, String(node.props.text));
         }
+
         const renderer = UI_RENDERERS[node.type as UiComponentName] as UiRenderer<unknown> | null;
+
         if (renderer === null) {
             return null;
         }
+
         return createElement(renderer as Drawable<UiRendererProps<unknown>>, { key: node.id, node, context }, drawn(node.children, context));
     });
 }
@@ -56,6 +60,7 @@ let host: Partial<ChatHost> = {};
 function markup(source: string, context: Partial<UiRenderContext> = {}, final = true): string {
     const full = { ...CONTEXT, ...context };
     const { nodes } = evaluate(source, final);
+
     return renderToStaticMarkup(createElement(ChatHostProvider, { host }, createElement(Frame, { nodes, phase: full.phase }, drawn(nodes, full))));
 }
 
@@ -68,10 +73,12 @@ describe('the registry of intelligent UI renderers', () => {
     test('accounts for every catalog name, and only those', () => {
         expect(Object.keys(UI_RENDERERS).sort()).toEqual(Object.keys(UI_CATALOG).sort());
         expect(Object.keys(UI_RENDERERS)).toHaveLength(45);
+
         const empty = Object.entries(UI_RENDERERS)
             .filter(([, renderer]) => renderer === null)
             .map(([name]) => name)
             .sort();
+
         expect(empty).toEqual(['Column', 'Each', 'Option', 'Place', 'Show']);
     });
 });
@@ -122,6 +129,7 @@ describe('the frame of a block', () => {
                 shownAsText: 'The block is too large to draw'
             })
         );
+
         const order = ['Live', 'Not read', 'Answered with “Fix 2”', '2 notes', 'Shown as text', 'The block is too large to draw'];
         expect(order.map((words) => html.indexOf(words))).toEqual([...order.map((words) => html.indexOf(words))].sort((a, b) => a - b));
         expect(order.every((words) => html.includes(words))).toBe(true);
@@ -150,9 +158,11 @@ test('closed choices of a live block say whether data is still read or why a rea
     const sources = ['status'];
     expect(uiLiveChoiceReason(t, { state: 'fresh', sources, readAt: 1 })).toBeNull();
     expect(uiLiveChoiceReason(t, { state: 'reading', sources, readAt: null })).toBe('Available once the live data is read');
+
     expect(uiLiveChoiceReason(t, { state: 'refused', sources, readAt: null, code: 'access-unavailable', reason: 'x' })).toBe(
         'The chat that made this no longer has access.'
     );
+
     expect(uiLiveChoiceReason(t, { state: 'failed', sources, readAt: null, source: 'status' })).toBe('Could not read status');
 });
 
@@ -212,6 +222,7 @@ describe('long text', () => {
         expect(step).toContain(long);
         const summary = markup(`<Summary badge="${long}">Result of the research</Summary>`);
         expect(summary).toContain(`<p class="text-2xs font-medium wrap-anywhere text-text-muted">${long}</p>`);
+
         expect(markup('<Summary badge="Draft">Release overview</Summary>')).toContain(
             '<p class="text-2xs font-medium wrap-anywhere text-text-muted">Draft</p>'
         );
@@ -230,6 +241,7 @@ describe('a choice the host would refuse', () => {
             expect(html).toContain('Could not show this part');
             expect(html).toContain('Run checks');
         }
+
         expect(markup('<Choices><Choice context="Run checks">Run checks</Choice></Choices>', { onChoose: () => undefined })).toContain('<button');
     });
 });
@@ -239,11 +251,14 @@ describe('local inputs', () => {
         const { nodes, state } = evaluate(REVIEW);
         const list = nodes.find((node) => node.type === 'Checklist') as UiViewNode<{ value: (string | number | boolean | null)[] }>;
         let element: ReactElement<{ value: { toggle(value: unknown): void } }> | null = null;
+
         // Called inside a render, since the compiled renderer keeps its memo in a hook.
         const Probe = (): null => {
             element = ChecklistRenderer({ node: list, children: null, context: CONTEXT }) as ReactElement<{ value: { toggle(value: unknown): void } }>;
+
             return null;
         };
+
         renderToStaticMarkup(createElement(Probe));
         element!.props.value.toggle('links');
         expect(state.scope().$selected).toEqual(['preload']);
@@ -251,9 +266,11 @@ describe('local inputs', () => {
 
     test('are disabled without a binding or before their node closed', () => {
         const readOnly = { ...evaluate('<Switch value={true}>Show nits</Switch>').nodes[0]!, bindings: {} };
+
         const html = renderToStaticMarkup(
             createElement(UI_RENDERERS.Switch! as Drawable<UiRendererProps<{ value: boolean }>>, { node: readOnly as never, context: CONTEXT }, 'Show nits')
         );
+
         expect(html).toContain('data-disabled');
         const partial = markup('$count = 4\n<Slider value={$count} min={1} max={16}>Agents', {}, false);
         expect(partial).toContain('pointer-events-none opacity-60');
@@ -261,9 +278,11 @@ describe('local inputs', () => {
 
     test('a segmented control with a sentence for a label stands in a column', () => {
         const long = 'Missing information and decisions before work go through the question tool';
+
         expect(markup(`$mode = "a"\n<Segmented value={$mode}><Option value="a">${long}</Option><Option value="b">Other</Option></Segmented>`)).toContain(
             'aria-orientation="vertical"'
         );
+
         expect(markup('$mode = "a"\n<Segmented value={$mode}><Option value="a">One</Option><Option value="b">Two</Option></Segmented>')).not.toContain(
             'aria-orientation'
         );
@@ -271,6 +290,7 @@ describe('local inputs', () => {
 
     test('a text field is a labeled input that stops at its limit and counts only when it nears it', () => {
         const field = (value: string, extra = '') => `$q = "${value}"\n<TextField value={$q} maxLength={10} placeholder="Name"${extra}>Who</TextField>`;
+
         const html = markup(field('Ada'));
         expect(html).toMatch(/<label for="[^"]+" class="px-0.5 text-2xs text-text-muted">Who<\/label>/);
         expect(html).toContain('maxLength="10"');
@@ -292,6 +312,7 @@ describe('local inputs', () => {
         expect(html).not.toContain('data-disabled=""');
         expect(markup(source, { answer: { choiceId: 'other', state: 'sent' } })).toContain('data-disabled=""');
         const readOnly = { ...evaluate('<Select value="bug"><Option value="bug">Bug</Option></Select>').nodes[0]!, bindings: {} };
+
         expect(renderToStaticMarkup(createElement(UI_RENDERERS.Select as Drawable<UiRendererProps<unknown>>, { node: readOnly, context: CONTEXT }))).toContain(
             'data-disabled=""'
         );
@@ -307,6 +328,7 @@ describe('local inputs', () => {
         const html = markup(
             '$count = 8\n$mode = "all"\n<Slider value={$count} min={1} max={16}>Parallel agents</Slider><Segmented value={$mode}><Option value="all">All</Option><Option value="failed">Failing</Option></Segmented>'
         );
+
         expect(html).toContain('Parallel agents');
         expect(html).toContain('aria-checked="true"');
         expect(html).toContain('Failing');
@@ -328,11 +350,13 @@ describe('text and status', () => {
 
     test('a timeline writes each time the way the region writes it, and reads a time without an offset as written', () => {
         setSystemTime(new Date(2026, 9, 14, 12));
+
         const source =
             '<Timeline><Event at="14:02" tone="warning" detail="p95 above 2 s">Alert fired</Event>' +
             '<Event at="2026-10-14" tone="info">Rolled back</Event>' +
             '<Event at="2026-10-14T14:14:00">Recovered</Event>' +
             '<Event at="2026-10-14T14:20:00+02:00" tone="success">Checked</Event></Timeline>';
+
         const html = markup(source);
         expect(html).toContain('<ol class="chat-ui-nodes');
         expect(html).toContain('<time dateTime="14:02"');
@@ -345,6 +369,7 @@ describe('text and status', () => {
         expect(html).toContain(`>${formatDayClock(new Date(Date.UTC(2026, 9, 14, 12, 20)))}</time>`);
         expect(html).toContain('text-status-needs-you');
         const previous = setFormatSource(Object.assign(fakeFormatSource(), { region: () => 'nl-NL' }) as FormatSource);
+
         try {
             expect(uiEventTime('14:02')).toBe('14:02');
             expect(uiEventTime('14:02')).toBe(formatClock(new Date(2000, 0, 1, 14, 2)));
@@ -355,6 +380,7 @@ describe('text and status', () => {
 
     test('a time that wrote seconds keeps them, and one that did not stays to the minute', () => {
         const previous = setFormatSource(Object.assign(fakeFormatSource(), { region: () => 'nl-NL' }) as FormatSource);
+
         try {
             expect(uiEventTime('15:41:55')).toBe('15:41:55');
             expect(uiEventTime('15:41:55.250')).toBe('15:41:55');
@@ -362,6 +388,7 @@ describe('text and status', () => {
         } finally {
             setFormatSource(previous);
         }
+
         const html = markup('<Timeline><Event at="15:41:55" tone="info">Deployed</Event></Timeline>');
         expect(html).toContain('<time dateTime="15:41:55"');
         expect(html).not.toContain('Could not show this part');
@@ -376,6 +403,7 @@ describe('text and status', () => {
         expect(uiEventTime('14:02', new Date(2031, 0, 1))).toBe(formatClock(new Date(2000, 0, 1, 14, 2)));
         const zone = process.env.TZ ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
         process.env.TZ = 'Europe/Amsterdam';
+
         try {
             expect(uiEventTime('2026-03-29T02:30')).toBe(formatDayClock(new Date(Date.UTC(2026, 2, 29, 2, 30)), 'UTC'));
             expect(uiEventTime('2026-03-29T02:30')).toContain('02:30');
@@ -400,12 +428,15 @@ describe('text and status', () => {
     test('a live stat lights up once it changed, stays muted when stale and keeps the comparison the agent wrote', () => {
         const source = '<Stats><Stat label="Changed files" value={4} previous={2}/></Stats>';
         const asked: [string, string][] = [];
+
         const changed = markup(source, {
             liveValue: (nodeId, prop) => {
                 asked.push([nodeId, prop]);
+
                 return { previous: 3, changed: true, stale: false };
             }
         });
+
         expect(asked.map(([, prop]) => prop)).toEqual(['value']);
         expect(changed).toMatch(/<span class="text-text chat-ui-changed max-w-full truncate text-lg font-semibold tabular-nums">4<\/span>/);
         expect(changed).toContain('100% from 2');
@@ -422,6 +453,7 @@ describe('tables', () => {
         const { nodes } = evaluate(
             '<Table rows={[{name: "Core", size: 32}, {name: "Client", size: "n/a"}]}><Column key="name"/><Column key="size" as="number" unit="ms"/><Column key="missing"/></Table>'
         );
+
         const columns = uiTableColumns(nodes[0] as never);
         expect(columns.map((column) => column.key)).toEqual(['name', 'size']);
         expect(uiTableCell('n/a', columns[1]!)).toEqual({ kind: 'text', text: 'n/a' });
@@ -431,9 +463,11 @@ describe('tables', () => {
 
     test('a date beyond what a Date can hold is text, and the rest of the table still draws', () => {
         const column = { key: 'at', title: 'at', as: 'date' as const };
+
         for (const value of [1e20, 8.64e15 + 1, -8.64e15 - 1]) {
             expect(uiTableCell(value, column).kind).toBe('text');
         }
+
         expect(uiTableCell(8.64e15, column)).toEqual({ kind: 'date', at: 8.64e15 });
         expect(uiTableCell('2026-10-11T08:00:00Z', column)).toEqual({ kind: 'date', at: Date.parse('2026-10-11T08:00:00Z') });
         const html = markup('<Table rows={[{at: 1e20, name: "Far"}, {at: 0, name: "Epoch"}]}><Column key="at" as="date"/><Column key="name"/></Table>');
@@ -456,19 +490,23 @@ describe('tables', () => {
 
     test('ask for the live state of numeric cells only, by row and key', () => {
         const asked: unknown[] = [];
+
         const html = markup(
             '<Table rows={[{name: "Core", size: 32}, {name: "Client", size: 40}]}><Column key="name"/><Column key="size" as="number"/></Table>',
             {
                 liveValue: (_nodeId, prop, path) => {
                     asked.push([prop, path]);
+
                     return path?.[0] === 1 ? { previous: 38, changed: true, stale: false } : { changed: false, stale: true };
                 }
             }
         );
+
         expect(asked).toEqual([
             ['rows', [0, 'size']],
             ['rows', [1, 'size']]
         ]);
+
         expect(html).toContain('<span class="text-text-muted">32</span>');
         expect(html).toContain('<span class="text-text chat-ui-changed">40</span>');
     });
@@ -490,11 +528,13 @@ describe('charts', () => {
             { label: 'Mon', a: 1, b: 'x', c: 2, d: 3, e: 4, f: 5, g: 6, h: 7 },
             { label: 'Tue', a: null, c: 1 }
         ];
+
         const chart = uiChartData(data, 'bar')!;
         expect(chart.series.map((series) => series.key)).toEqual(['a', 'c', 'd', 'e', 'f', 'g']);
         expect(chart.series).toHaveLength(UI_CHART_SERIES);
         expect(chart.series[0]!.values).toEqual([1, null]);
         expect(uiChartData([{ label: 'x', value: 'none' }], 'bar')).toBeNull();
+
         expect(
             uiChartData(
                 [
@@ -504,6 +544,7 @@ describe('charts', () => {
                 'stacked'
             )!.max
         ).toBe(7);
+
         expect([niceCeiling(41), niceCeiling(0.9), niceCeiling(212)]).toEqual([50, 1, 250]);
     });
 
@@ -532,9 +573,11 @@ describe('charts', () => {
     test('stacked data with a negative value stands side by side and says why', () => {
         const chart = uiChartData([{ label: 'Balance', income: 10, cost: -6 }], 'stacked')!;
         expect([chart.kind, chart.min, chart.max]).toEqual(['bar', -6, 10]);
+
         expect(markup('<Chart kind="stacked" data={[{label: "Balance", income: 10, cost: -6}]}/>')).toContain(
             'Negative values cannot stack. Series shown side by side.'
         );
+
         expect(uiChartData([{ label: 'Total', a: 2, b: 3 }], 'stacked')!.kind).toBe('stacked');
     });
 
@@ -574,6 +617,7 @@ describe('charts', () => {
         const large = uiChartAxis(['0', '500,000', '1,000,000'], 326, uiChartCharacter(32));
         expect(large.axisWidth).toBeGreaterThan(88);
         expect(large.axisWidth).toBeLessThanOrEqual(Math.floor(326 * 0.4));
+
         for (const text of large.tickTexts) {
             expect(uiChartTextWidth(text, uiChartCharacter(32)) + 8).toBeLessThanOrEqual(large.axisWidth);
         }
@@ -592,6 +636,7 @@ describe('charts', () => {
             expect(html).not.toMatch(/NaN|Infinity/);
             expect(html).toContain('Could not show this part');
         }
+
         expect(uiChartData([{ label: 'Wide', low: -9e307, high: 9e307 }], 'bar')).toBeNull();
         expect(uiChartRange(-3, 5)).toEqual({ low: -5, high: 5 });
         // A subnormal span would scale every coordinate by an infinite factor.
@@ -629,9 +674,11 @@ describe('content', () => {
 
     test('an image reads only an attachment of the chat', () => {
         expect(markup('<Image generated="latest" alt="A rabbit"/>')).not.toContain('<img');
+
         host = {
             attachments: { useUrl: (_scope, _chat, id) => ({ url: `blob:${id}`, failure: null }), read: () => Promise.reject(new Error('Not read here')) }
         };
+
         const html = markup('<Image attachment="rabbit" alt="A rabbit">The rabbit</Image>');
         expect(html).toContain('src="blob:rabbit"');
         expect(html).toContain('<figcaption');
@@ -644,9 +691,11 @@ describe('content', () => {
                 read: () => Promise.reject(new Error('Not read here'))
             }
         };
+
         const html = markup(
             '<Gallery><Image attachment="a1" alt="Login">First screen</Image><Image attachment="gone" alt="Home"/><Image generated="latest" alt="Never made"/></Gallery>'
         );
+
         expect(html).toContain('@container');
         expect(html).toContain('grid-cols-2');
         expect(html).toContain('@min-[420px]:grid-cols-3');
@@ -661,17 +710,22 @@ describe('content', () => {
 
     test('a model is drawn by the host in a frame of fixed height, and stays a row without a view or its bytes', () => {
         const source = '<Model attachment="m1" alt="Bracket">The printed bracket</Model>';
+
         const urls: Record<string, { url: string | null; failure: string | null }> = {
             m1: { url: 'blob:m1', failure: null },
             gone: { url: null, failure: 'Gone' },
             waiting: { url: null, failure: null }
         };
+
         const attachments: ChatHost['attachments'] = { useUrl: (_scope, _chat, id) => urls[id]!, read: () => Promise.reject(new Error('Not read here')) };
         const seen: UiModelViewProps[] = [];
+
         const ModelView = (props: UiModelViewProps) => {
             seen.push(props);
+
             return createElement('canvas', { 'data-model': props.url });
         };
+
         host = { attachments };
         const row = markup(source);
         expect(row).not.toContain('<canvas');
@@ -684,6 +738,7 @@ describe('content', () => {
         expect(drawn).toContain('h-80');
         expect(drawn).toContain('aria-label="Bracket"');
         expect(drawn).toContain('The printed bracket</figcaption>');
+
         expect(seen.at(-1)).toEqual({
             scopeId: CONTEXT.scopeId,
             chatId: CONTEXT.chatId,
@@ -693,6 +748,7 @@ describe('content', () => {
             alt: 'Bracket',
             caption: 'The printed bracket'
         });
+
         markup('<Model attachment="m1">The bracket</Model>');
         expect(seen.at(-1)).toMatchObject({ label: 'The bracket', alt: undefined, caption: 'The bracket' });
         const gone = markup('<Model attachment="gone"/>');
@@ -709,6 +765,7 @@ describe('content', () => {
         const use = (urls: Record<string, { url: string | null; failure: string | null }>) => {
             host = { attachments: { useUrl: (_scope, _chat, id) => urls[id]!, read: () => Promise.reject(new Error('Not read here')) } };
         };
+
         const source = '<Compare before="a1" after="a2" beforeLabel="Old" afterLabel="New">Header color</Compare>';
         use({ a1: { url: 'blob:a1', failure: null }, a2: { url: 'blob:a2', failure: null } });
         const both = markup(source);
@@ -760,6 +817,7 @@ describe('content', () => {
         const html = markup(
             '<Tabs><Tab title="First">One</Tab><Tab title="Second">Two</Tab></Tabs><Sections><Section title="Details">Text</Section></Sections>'
         );
+
         expect(html).toContain('First');
         expect(html).toContain('aria-expanded="true"');
     });

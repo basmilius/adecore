@@ -38,9 +38,11 @@ export function SubagentTimeline({ chatId, toolUseId }: { chatId: string; toolUs
     const threadRef = useRef<HTMLDivElement>(null);
     const [target, setTarget] = useState<TimelineTarget>(EMPTY_TARGET);
     const followRef = useRef(true);
+
     const stopFollowing = () => {
         followRef.current = false;
     };
+
     const groups = useToggleSet(stopFollowing);
     const subagents = useToggleSet(stopFollowing);
     // The row being read when an earlier page was asked for, so it stays where it was once that page is in.
@@ -52,6 +54,7 @@ export function SubagentTimeline({ chatId, toolUseId }: { chatId: string; toolUs
         const conversation = new SubagentConversation(scope.transport, chatId, toolUseId, setState);
         controller.current = conversation;
         void conversation.start();
+
         return () => {
             conversation.dispose();
             controller.current = null;
@@ -74,17 +77,21 @@ export function SubagentTimeline({ chatId, toolUseId }: { chatId: string; toolUs
 
     useLayoutEffect(() => {
         const element = scrollRef.current;
+
         if (element === null) {
             return;
         }
+
         const head = state.items[0]?.id;
         const moved = head !== headRef.current;
         headRef.current = head;
+
         if (moved && anchorRef.current !== null && !followRef.current) {
             restoreAnchor(element, anchorRef.current);
         } else if (followRef.current) {
             element.scrollTop = element.scrollHeight;
         }
+
         if (moved) {
             anchorRef.current = null;
         }
@@ -92,9 +99,11 @@ export function SubagentTimeline({ chatId, toolUseId }: { chatId: string; toolUs
 
     const loadEarlier = useCallback(() => {
         const element = scrollRef.current;
+
         if (element === null || state.cursor === null || !wantsEarlier(element)) {
             return;
         }
+
         // Taken on every call, since the reader may scroll on while a page is on its way.
         anchorRef.current = firstRowInView(element);
         void controller.current?.loadEarlier();
@@ -153,6 +162,7 @@ export function SubagentTimeline({ chatId, toolUseId }: { chatId: string; toolUs
                                     {rows.length === 0 && !state.live && <EmptyState icon={Bot}>{t('rows.subagent.nothingYet')}</EmptyState>}
                                     {rows.map((row, index) => {
                                         const previous = index > 0 ? rows[index - 1]! : null;
+
                                         return (
                                             <div key={row.id} data-item-id={row.id} className={rowRhythm(row, previous)}>
                                                 <Row

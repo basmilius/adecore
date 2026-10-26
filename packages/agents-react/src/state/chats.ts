@@ -105,14 +105,18 @@ export function isWaiting(item: ChatItem | undefined): item is ChatApprovalItem 
 function stateOf(info: ChatInfo, items: ChatItem[], page?: ChatPage): ChatState {
     const byId = Object.fromEntries(items.map((item) => [item.id, item]));
     const order = items.map((item) => item.id);
+
     if (page === undefined || page.history.cursor === null) {
         return { info, items: byId, structure: byId, order };
     }
+
     const before = page.pending.filter((item) => !(item.id in byId));
     const subagents = (page.subagents ?? []).filter((item) => !(item.id in byId));
+
     for (const item of [...before, ...subagents]) {
         byId[item.id] = item;
     }
+
     return {
         info,
         items: byId,
@@ -135,13 +139,17 @@ type ItemWriter = (state: ChatState, item: ChatItem, structural?: boolean) => Ch
 function withEarlierItem(state: ChatState, item: ChatItem, write: ItemWriter): ChatState {
     if (item.kind === 'subagent') {
         const subagents = state.subagentsBefore ?? [];
+
         return { ...write(state, item), subagentsBefore: subagents.includes(item.id) ? subagents : [...subagents, item.id] };
     }
+
     const waiting = state.waitingBefore ?? [];
     const held = waiting.includes(item.id);
+
     if (isWaiting(item)) {
         return { ...write(state, item), waitingBefore: held ? waiting : [...waiting, item.id] };
     }
+
     return held ? { ...write(state, item), waitingBefore: waiting.filter((id) => id !== item.id) } : state;
 }
 
@@ -150,22 +158,29 @@ export function prependPage(state: ChatState, cursor: string, page: ChatHistoryR
     if (state.history?.cursor !== cursor) {
         return state;
     }
+
     const { historyPending: _historyPending, ...loaded } = state;
     const held = new Set(state.order);
     const older = page.items.filter((item) => !held.has(item.id));
     const olderIds = new Set(older.map((item) => item.id));
     const items = { ...state.items };
+
     for (const item of older) {
         // A request from before the page that this client already holds came in live, which is never older than the page.
         items[item.id] = state.items[item.id] ?? item;
     }
+
     const order = [...olderIds, ...state.order];
+
     if (page.history.cursor === null) {
         const { history: _history, waitingBefore: _waitingBefore, subagentsBefore: _subagentsBefore, ...rest } = loaded;
+
         return { ...rest, items, structure: items, order };
     }
+
     const waitingBefore = (state.waitingBefore ?? []).filter((id) => !olderIds.has(id));
     const subagentsBefore = (state.subagentsBefore ?? []).filter((id) => !olderIds.has(id));
+
     return { ...loaded, items, structure: items, order, history: page.history, waitingBefore, subagentsBefore };
 }
 
@@ -176,6 +191,7 @@ export function waitingRequestsOf(chat: Pick<ChatState, 'structure' | 'order' | 
 
 function withItem(state: ChatState, item: ChatItem, structural = true): ChatState {
     const items = { ...state.items, [item.id]: item };
+
     return structural ? { ...state, items, structure: items } : { ...state, items };
 }
 
@@ -199,18 +215,23 @@ export function applyEvent(state: ChatState, event: ChatEvent): ChatState {
 
 function replayEvents(state: ChatState, events: readonly ChatEvent[]): ChatState {
     let draft: Record<string, ChatItem> | undefined;
+
     const write: ItemWriter = (current, item, structural = true) => {
         // A text delta must leave the last structural snapshot intact, including within this replay.
         if (draft !== current.items || (!structural && draft === current.structure)) {
             draft = { ...current.items };
         }
+
         // Item ids may be __proto__, so this must define an own data property.
         Object.defineProperty(draft, item.id, { value: item, enumerable: true, configurable: true, writable: true });
+
         return structural ? { ...current, items: draft, structure: draft } : { ...current, items: draft };
     };
+
     for (const event of events) {
         state = applyUpdate(state, event, write);
     }
+
     return state;
 }
 
@@ -220,33 +241,44 @@ function applyUpdate(state: ChatState, event: ChatEvent, write: ItemWriter): Cha
             if (isBeforePage(state, event.historyIndex)) {
                 return withEarlierItem(state, event.item, write);
             }
+
             const known = event.item.id in state.items;
+
             return { ...write(state, event.item), order: known ? state.order : [...state.order, event.item.id] };
         }
         case 'delta': {
             const item = state.items[event.itemId];
+
             if (event.uiQueries && item?.kind === 'assistant') {
                 // The text first, as the daemon's thread applies it, then the metadata on what it grew into.
                 const { uiQueries, ...text } = event;
                 const grown = event.text === '' ? state : applyUpdate(state, text, write);
                 const reply = grown.items[event.itemId] ?? item;
+
                 return write(grown, { ...reply, uiQueries } as ChatItem, false);
             }
+
             if (event.ui !== undefined && event.text === '') {
                 if (item?.kind === 'assistant' && item.streaming && event.textLength === item.text.length) {
                     return write(state, { ...item, ui: event.ui }, false);
                 }
+
                 return state;
             }
+
             if (item?.kind === 'assistant' || item?.kind === 'thinking') {
                 const grown = { ...item, text: item.text + event.text };
+
                 // The first text is structure after all, since an empty reply that is not streaming has no row.
                 return write(state, grown, item.text === '');
             }
+
             if (item?.kind === 'tool' && item.state === 'running') {
                 const progress = item.progress ?? { startedAt: null, description: null, output: null };
+
                 return write(state, { ...item, progress: { ...progress, output: appendToolOutput(progress.output, event.text) } }, false);
             }
+
             return state;
         }
         case 'info':
@@ -259,9 +291,11 @@ function applyUpdate(state: ChatState, event: ChatEvent, write: ItemWriter): Cha
 /* Fields of a held chat that are not part of its thread; a chat this client does not hold stays as it is. */
 function withFields(store: ChatsStore, key: string, fields: Pick<ChatState, 'bookmarks' | 'visuals'>): Partial<ChatsStore> {
     const current = store.byKey[key];
+
     if (!current) {
         return {};
     }
+
     return { byKey: { ...store.byKey, [key]: { ...current, ...fields } } };
 }
 
@@ -273,6 +307,7 @@ export const useChats = create<ChatsStore>((set) => ({
             // The bookmarks and the visuals are not part of the thread; they come in on their own and outlive a reset of it.
             const { bookmarks, visuals } = s.byKey[key] ?? {};
             const next = { ...stateOf(info, items, page), ...(bookmarks === undefined ? {} : { bookmarks }), ...(visuals === undefined ? {} : { visuals }) };
+
             return {
                 byKey: { ...s.byKey, [key]: next },
                 statusByKey: withStatus(s.statusByKey, key, info)
@@ -282,30 +317,39 @@ export const useChats = create<ChatsStore>((set) => ({
     prepend(key, cursor, page) {
         set((s) => {
             const current = s.byKey[key];
+
             if (!current) {
                 return {};
             }
+
             const next = prependPage(current, cursor, page);
+
             return next === current ? {} : { byKey: { ...s.byKey, [key]: next } };
         });
     },
     apply(key, event) {
         set((s) => {
             const current = s.byKey[key];
+
             if (!current) {
                 return {};
             }
+
             const next = applyEvent(current, event);
+
             return { byKey: { ...s.byKey, [key]: next }, statusByKey: withStatus(s.statusByKey, key, next.info) };
         });
     },
     replay(key, events) {
         set((store) => {
             const current = store.byKey[key];
+
             if (!current || events.length === 0) {
                 return store;
             }
+
             const next = replayEvents(current, events);
+
             return next === current ? store : { byKey: { ...store.byKey, [key]: next }, statusByKey: withStatus(store.statusByKey, key, next.info) };
         });
     },
@@ -316,13 +360,16 @@ export const useChats = create<ChatsStore>((set) => ({
     status(key, info) {
         set((s) => {
             const current = s.byKey[key];
+
             if (!current) {
                 return { byKey: { ...s.byKey, [key]: { ...stateOf(info, []), historyPending: true } }, statusByKey: withStatus(s.statusByKey, key, info) };
             }
+
             // An attached client already had this on `chat.event`; writing it again would redraw the thread.
             if (sameInfo(current.info, info)) {
                 return {};
             }
+
             return { byKey: { ...s.byKey, [key]: { ...current, info } }, statusByKey: withStatus(s.statusByKey, key, info) };
         });
     },
@@ -338,6 +385,7 @@ export const useChats = create<ChatsStore>((set) => ({
             delete next[key];
             const statuses = { ...s.statusByKey };
             delete statuses[key];
+
             return { byKey: next, statusByKey: statuses };
         });
     },
@@ -364,6 +412,7 @@ export function chatSink(keyOf: (chatId: string) => string): ChatSink {
 /* One chat's thread in the scope this is rendered in. The selector keeps a render tied to the field it reads. */
 export function useChatRow<T>(chatId: string, select: (row: ChatState | undefined) => T): T {
     const { keyOf } = useChatScope();
+
     return useChats((s) => select(s.byKey[keyOf(chatId)]));
 }
 
@@ -373,15 +422,19 @@ export function useChatRow<T>(chatId: string, select: (row: ChatState | undefine
  */
 export function useReportedModels(provider: AgentKind): ReadonlySet<string> {
     const scope = useContext(ChatScopeContext);
+
     const joined = useChats((s) => {
         const names = new Set<string>();
+
         for (const [key, state] of Object.entries(s.statusByKey)) {
             if (scope?.owns(key) === true && state.info.provider === provider && state.info.model !== null) {
                 names.add(state.info.model);
             }
         }
+
         return [...names].sort().join('\n');
     });
+
     return new Set(joined === '' ? [] : joined.split('\n'));
 }
 
@@ -394,6 +447,7 @@ export function useAwaitsApproval(chatId: string, toolUseId: string): boolean {
 export function useCurrentItem<T extends ChatItem>(chatId: string, derived: T): T {
     return useChatRow(chatId, (row) => {
         const item = row?.items[derived.id];
+
         return item?.kind === derived.kind ? (item as T) : derived;
     });
 }

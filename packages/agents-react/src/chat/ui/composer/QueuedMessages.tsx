@@ -18,6 +18,7 @@ interface QueuedMessagesProps {
 export function QueuedMessages({ chatId, queue, paused, takingBack, onEdit }: QueuedMessagesProps) {
     const { t } = useTranslation('agent-chat');
     const actions = useChatActions();
+
     return (
         <div className="flex flex-col gap-1 border-b border-border px-2 py-1.5">
             {paused && <p className="px-1.5 text-xs text-text-muted">{t('composer.queue.paused')}</p>}
@@ -26,8 +27,11 @@ export function QueuedMessages({ chatId, queue, paused, takingBack, onEdit }: Qu
                     scrollTimelineToEnd(chatId, 'instant');
                     void actions.sendNow(chatId, message.id).catch(() => undefined);
                 };
+
                 const unqueue = (): void => void actions.unqueue(chatId, message.id).catch(() => undefined);
+
                 const edit = (): void => onEdit(message);
+
                 return (
                     <ContextMenu.Root key={message.id}>
                         <ContextMenu.Trigger className="group/queued flex items-center gap-2 rounded-md px-1.5 py-1 text-xs text-text-muted">

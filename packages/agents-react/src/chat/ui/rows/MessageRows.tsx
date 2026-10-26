@@ -51,6 +51,7 @@ function useReplyAuthor(chatId: string) {
     const { id } = useChatScope();
     const context = useContext(ReplyContext);
     const author = useHostReplyAuthor(id, context?.chatId ?? chatId);
+
     return context !== null && context.chatId === undefined ? null : author;
 }
 
@@ -62,6 +63,7 @@ function AttachmentLink({ chatId, attachment }: { chatId: string; attachment: Ch
     const { id } = useChatScope();
     const { url } = useHostAttachmentUrl(id, chatId, attachment.id);
     const badge = fileBadge(attachment.name);
+
     return (
         <Tooltip label={attachment.name}>
             <a
@@ -86,6 +88,7 @@ function AttachmentLink({ chatId, attachment }: { chatId: string; attachment: Ch
 function AttachmentThumb({ chatId, attachment }: { chatId: string; attachment: ChatAttachment }) {
     const { id } = useChatScope();
     const source = useHostAttachmentUrl(id, chatId, attachment.id);
+
     return <ImageThumb source={source} alt={attachment.name} className="max-h-32 max-w-48 object-cover" />;
 }
 
@@ -113,6 +116,7 @@ export function UserRow({ chatId, item }: { chatId: string; item: ChatUserItem }
             jumpToTimelineItem(keyOf(chatId), source, { flash: true, onMissing: () => setMissing(true) });
         }
     }
+
     return (
         <ReferenceLookupContext value={lookup}>
             <div data-find-item={item.id} className="flex flex-col items-end" onCopy={(e) => copySelectionWithChips(e.nativeEvent)}>
@@ -189,6 +193,7 @@ function ChoiceLine({ chatId, choice }: { chatId: string; choice: ChatUiChoiceOr
     const inherited = useContext(UiReplyNavigationContext);
     const navigation = inherited?.chatId === chatId ? inherited : null;
     const Tag = navigation ? 'button' : 'div';
+
     return (
         <Tag
             type={navigation ? 'button' : undefined}
@@ -220,6 +225,7 @@ function MessageHeading({ children }: { children: ReactNode }) {
 /* The report a subagent handed back, drawn as a reply under a label of its own. */
 export function ReportRow({ id, text }: { id: string; text: string }) {
     const { t } = useTranslation('agent-chat');
+
     return (
         <div data-find-item={id} className="-mx-1 px-1 pb-2">
             <MessageHeading>{t('rows.report.heading')}</MessageHeading>
@@ -240,6 +246,7 @@ function ReplyHeading({ chatId }: { chatId: string }) {
     const author = useReplyAuthor(chatId);
     const kind = useChatRow(chatId, (row) => row?.info.provider);
     const name = useProviders((s) => s.providers.find((provider) => provider.kind === (context?.provider ?? kind))?.name);
+
     return <MessageHeading>{author?.name ?? name ?? t('rows.reply.agent')}</MessageHeading>;
 }
 
@@ -249,9 +256,11 @@ function ReplyHeading({ chatId }: { chatId: string }) {
  */
 export function ReplyHeader({ chatId, at }: { chatId: string; at: number | null }) {
     const author = useReplyAuthor(chatId);
+
     if (author === null) {
         return null;
     }
+
     return (
         <div aria-hidden className="mb-1 flex h-6 items-center gap-2 text-sm font-medium text-text select-none">
             {author.mark}
@@ -263,12 +272,14 @@ export function ReplyHeader({ chatId, at }: { chatId: string; at: number | null 
 
 function ReplyAge({ at }: { at: number }) {
     const ref = useTickingText(() => formatAgo(Date.now() - at), 30_000);
+
     return <span ref={ref} className="shrink-0 font-normal text-text-faint" />;
 }
 
 /* The line that stands where the next words will land; a component, so the word is read at render and not at import. */
 function Writing() {
     const { t } = useTranslation('agent-chat');
+
     return <span className="chat-live-text text-sm">{t('rows.reply.writing')}</span>;
 }
 
@@ -310,6 +321,7 @@ export function AssistantRow({ chatId, item: derived }: { chatId: string; item: 
 
     if (mode === 'blocks') {
         const settled = item.streaming ? settledBlocksText(item.text) : item.text;
+
         return (
             <div data-find-item={item.id} className="-mx-1 px-1 pb-2" onCopy={(e) => copySelectionWithChips(e.nativeEvent)}>
                 <ReplyHeading chatId={chatId} />
@@ -324,6 +336,7 @@ export function AssistantRow({ chatId, item: derived }: { chatId: string; item: 
             </div>
         );
     }
+
     if (mode === 'whole' && item.streaming) {
         return (
             <div className="-mx-1 px-1 pb-2">
@@ -332,6 +345,7 @@ export function AssistantRow({ chatId, item: derived }: { chatId: string; item: 
             </div>
         );
     }
+
     return (
         <div
             data-find-item={item.id}
@@ -369,6 +383,7 @@ export function ThinkingRow({ chatId, item: derived }: { chatId: string; item: C
     const preview = item.streaming ? '' : thoughtPreview(item.text);
     const duration = formatElapsedShort((item.endedAt ?? item.createdAt) - item.createdAt);
     useOpenForFind(item.id, 'text', setOpen);
+
     return (
         <div data-find-item={item.id} className="-mx-1 px-1 pb-2">
             <button
@@ -418,9 +433,11 @@ export function ThinkingRow({ chatId, item: derived }: { chatId: string; item: C
 export function LiveThoughtRow({ chatId, item: derived }: { chatId: string; item: ChatThinkingItem }) {
     const item = useCurrentItem(chatId, derived);
     const line = thoughtLine(item.text);
+
     if (line === '') {
         return null;
     }
+
     return (
         <div className="-mx-1 mb-0.5 flex min-h-7 items-start gap-2 px-1 py-1 text-xs text-text-muted">
             <span className={ROW_GUTTER}>
@@ -448,6 +465,7 @@ export function NoteRow({ id, level, text, from }: { id: string; level: 'info' |
     const head = breakAt === -1 ? text : text.slice(0, breakAt);
     const rest = breakAt === -1 ? '' : text.slice(breakAt + 1).trim();
     useOpenForFind(id, 'output', setOpen);
+
     return (
         <div
             data-find-item={id}
@@ -483,9 +501,11 @@ export function NoteRow({ id, level, text, from }: { id: string; level: 'info' |
 function OpenChatButton({ chatId, label }: { chatId: string; label: 'openFork' | 'openWaiting' }) {
     const { t } = useTranslation('agent-chat');
     const place = useHostChatPlace(chatId);
+
     if (place.title === null) {
         return null;
     }
+
     return (
         <button className="text-text-muted hover:text-text" onClick={place.go}>
             {t(`rows.note.${label}`)}
@@ -499,6 +519,7 @@ function OpenChatButton({ chatId, label }: { chatId: string; label: 'openFork' |
  */
 export function AgentTurnRow({ label, onOpen }: { label: string; onOpen?: () => void }) {
     const line = 'mb-0.5 flex h-7 w-full items-center gap-2 text-left text-xs text-text-muted';
+
     // A header with nowhere to go is text to read and copy; one that opens a row is a button.
     const content = (
         <>
@@ -508,9 +529,11 @@ export function AgentTurnRow({ label, onOpen }: { label: string; onOpen?: () => 
             <span className={clsx('min-w-0 truncate', onOpen === undefined && 'select-text')}>{label}</span>
         </>
     );
+
     if (onOpen === undefined) {
         return <div className={line}>{content}</div>;
     }
+
     return (
         <button className={clsx(line, 'hover:text-text')} onClick={onOpen}>
             {content}
@@ -521,6 +544,7 @@ export function AgentTurnRow({ label, onOpen }: { label: string; onOpen?: () => 
 /* A dashed line, since what stands above it is still there for the reader but only a summary to the agent. */
 export function CompactionRow({ preTokens }: { preTokens: number | null }) {
     const { t } = useTranslation('agent-chat');
+
     return (
         <div className="flex items-center gap-3 pb-3 text-xs text-text-faint">
             <span className="grow border-t border-dashed border-border" />
@@ -542,9 +566,11 @@ const DECISION_ICON: Record<Exclude<ChatApprovalItem['decision'], 'pending'>, Re
 /* The outcome of a permission request, one quiet line; the request itself lived on the composer. */
 export function ApprovalHistoryRow({ item }: { item: ChatApprovalItem }) {
     const { t } = useTranslation('agent-chat');
+
     if (item.decision === 'pending') {
         return null;
     }
+
     return (
         <div className="-mx-1 mb-0.5 flex h-7 items-center gap-2 px-1 text-xs text-text-faint">
             <span className={clsx(ROW_GUTTER, item.decision === 'deny' && 'text-status-error')}>{DECISION_ICON[item.decision]}</span>
@@ -563,6 +589,7 @@ export function ApprovalHistoryRow({ item }: { item: ChatApprovalItem }) {
 
 export function QuestionHistoryRow({ item }: { item: ChatQuestionItem }) {
     const { t } = useTranslation('agent-chat');
+
     return (
         <div>
             {item.questions.map((question) => (
