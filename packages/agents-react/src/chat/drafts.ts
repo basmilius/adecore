@@ -57,10 +57,6 @@ export const useDrafts = createChatStore<{ ids: string[] }>(
     (store) => store.setState({ ids: Object.keys(storage.read()) })
 );
 
-export function useHasDraft(chatId: string): boolean {
-    return useDrafts((s) => s.ids.includes(chatId));
-}
-
 function trackDraft(chatId: string, held: boolean): void {
     const { ids } = useDrafts.getState();
     if (ids.includes(chatId) === held) {
@@ -95,32 +91,27 @@ export function writeDraft(chatId: string, draft: ChatDraft): void {
         storage.write(drafts);
         return;
     }
-    drafts[chatId] = {
-        text: draft.text,
-        mentions: draft.mentions,
-        skills: draft.skills,
-        chats: draft.chats,
-        attachments: draft.attachments,
-        quote: draft.quote,
-        ...(draft.quoteSource === null ? {} : { quoteSource: draft.quoteSource }),
-        references: draft.references,
-        ...namesOf(draft)
-    };
+    drafts[chatId] = recordOf(draft, true);
     if (storage.write(drafts)) {
         return;
     }
     // A file can outgrow the storage quota; the text is the part worth keeping then.
-    drafts[chatId] = {
+    drafts[chatId] = recordOf(draft, false);
+    storage.write(drafts);
+}
+
+function recordOf(draft: ChatDraft, withFiles: boolean): DraftRecord {
+    return {
         text: draft.text,
         mentions: draft.mentions,
         skills: draft.skills,
         chats: draft.chats,
+        ...(withFiles ? { attachments: draft.attachments } : {}),
         quote: draft.quote,
         ...(draft.quoteSource === null ? {} : { quoteSource: draft.quoteSource }),
         references: draft.references,
         ...namesOf(draft)
     };
-    storage.write(drafts);
 }
 
 function namesOf(draft: ChatDraft): Pick<DraftRecord, 'referenceNames'> {

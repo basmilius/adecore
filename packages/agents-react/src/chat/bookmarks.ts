@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import type { ChatBookmark } from '@adecore/agent-contracts';
 import type { ChatHost } from '../host';
 import type { ChatScope } from '../scope';
+import { errorMessage } from '../transport';
 import { jumpToTimelineItem } from './timeline-scroll';
 
 /* The one message in the window whose bookmark has its name field open, by the scope's key of its chat. */
@@ -23,7 +24,7 @@ export const useBookmarkNaming = create<BookmarkNaming>((set) => ({
 type Notifier = Pick<ChatHost, 'notify'>;
 
 function failed(host: Notifier, title: string, e: unknown): void {
-    host.notify({ title, description: e instanceof Error ? e.message : String(e), kind: 'error' });
+    host.notify({ title, description: errorMessage(e), kind: 'error' });
 }
 
 async function add(scope: ChatScope, host: Notifier, chatId: string, itemId: string, name?: string): Promise<boolean> {

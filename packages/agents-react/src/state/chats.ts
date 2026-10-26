@@ -98,7 +98,7 @@ interface ChatsStore {
     forgetWhere(matches: (key: string) => boolean): void;
 }
 
-function isWaiting(item: ChatItem | undefined): item is ChatApprovalItem | ChatQuestionItem {
+export function isWaiting(item: ChatItem | undefined): item is ChatApprovalItem | ChatQuestionItem {
     return (item?.kind === 'approval' && item.decision === 'pending') || (item?.kind === 'question' && item.state === 'pending');
 }
 

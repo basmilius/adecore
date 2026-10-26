@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import type { AgentKind, ProviderAccounts } from '@adecore/agent-contracts';
 import { accountName, accountsOfKind, hasAccountChoice, offeredAccounts, type AccountEntry } from '../agents/accounts';
 import { useProviderAccounts, type ProviderAccountsRow } from '../state/provider-accounts';
@@ -23,24 +22,22 @@ export interface AccountChoice {
 export function useAccountChoice(kind: AgentKind | null, account: string | undefined): AccountChoice | null {
     const accounts = useProviderAccounts((row) => row.accounts);
     const providerName = useProviders((row) => row.providers.find((entry) => entry.kind === kind)?.name) ?? kind ?? '';
-    return useMemo(() => {
-        if (kind === null || accounts === null) {
-            return null;
-        }
-        const entries = accountsOfKind(accounts, kind);
-        if (!hasAccountChoice(entries)) {
-            return null;
-        }
-        const currentId = account ?? kind;
-        return {
-            accounts,
-            offered: offeredAccounts(entries, currentId),
-            currentId,
-            current: entries.find((entry) => entry.id === currentId) ?? null,
-            providerName,
-            nameOf: (entry: AccountEntry) => accountName(entry, providerName)
-        };
-    }, [accounts, kind, account, providerName]);
+    if (kind === null || accounts === null) {
+        return null;
+    }
+    const entries = accountsOfKind(accounts, kind);
+    if (!hasAccountChoice(entries)) {
+        return null;
+    }
+    const currentId = account ?? kind;
+    return {
+        accounts,
+        offered: offeredAccounts(entries, currentId),
+        currentId,
+        current: entries.find((entry) => entry.id === currentId) ?? null,
+        providerName,
+        nameOf: (entry: AccountEntry) => accountName(entry, providerName)
+    };
 }
 
 /*

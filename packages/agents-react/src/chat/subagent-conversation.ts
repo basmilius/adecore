@@ -1,5 +1,6 @@
 import i18next from 'i18next';
 import type { ChatApprovalItem, ChatItem, ChatQuestionItem, ChatSubagentResult } from '@adecore/agent-contracts';
+import { isWaiting } from '../state/chats';
 import { errorCode, isConnectionError, type ChatTransport } from '../transport';
 
 // What the panel opens on: the newest end of the conversation, which is where an agent that works is.
@@ -62,10 +63,7 @@ export function mergeNewest(
 }
 
 function pendingOf(items: readonly ChatItem[]): Array<ChatApprovalItem | ChatQuestionItem> {
-    return items.filter(
-        (item): item is ChatApprovalItem | ChatQuestionItem =>
-            (item.kind === 'approval' && item.decision === 'pending') || (item.kind === 'question' && item.state === 'pending')
-    );
+    return items.filter(isWaiting);
 }
 
 function messageOf(error: unknown): string {

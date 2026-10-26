@@ -61,7 +61,11 @@ export function usePromptSession<T>({ prompts, idOf, pick, disabled }: PromptSes
 
     const finish = (id: string) => {
         setCompleted((current) => [...current, id]);
-        setDrafts(({ [id]: _gone, ...rest }) => rest);
+        setDrafts((current) => {
+            const next = { ...current };
+            delete next[id];
+            return next;
+        });
     };
     const act = async (prompt: T, send: () => Promise<void>): Promise<'sent' | 'failed' | 'busy'> => {
         if (busy.current || disabled) {
