@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { ChatAttachmentUpload, ChatQueuedMessage } from '@adecore/agent-contracts';
 import { useChatHost } from '../../../host';
 import { useChatScope } from '../../../scope';
-import { errorCode } from '../../../transport';
+import { errorCode, errorMessage } from '../../../transport';
 import { useChatActions } from '../../actions';
 import { readStoredAttachments } from '../../attachments';
 import { takeBackIntoDraft, type ChatDraft } from '../../drafts';
@@ -34,7 +34,7 @@ export function useTakeBack({ chatId, draft: { latest, setDraft }, setNotice, on
             return;
         }
         const failed = (e: unknown): void => {
-            host.notify({ kind: 'error', title: t('composer.queue.editFailed'), description: e instanceof Error ? e.message : String(e) });
+            host.notify({ kind: 'error', title: t('composer.queue.editFailed'), description: errorMessage(e) });
         };
         const readFiles = async (): Promise<ChatAttachmentUpload[]> => {
             const stored = message.attachments ?? [];

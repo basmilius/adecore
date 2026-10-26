@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
@@ -9,20 +9,18 @@ export function ApprovalReview({ entries, maxHeight }: { entries: readonly Revie
     const { t } = useTranslation('agent-prompts');
     const [selected, setSelected] = useState<string | null>(null);
     const active = entries.find((entry) => entry.key === selected) ?? entries[0];
-    const labels = useMemo(() => {
-        const totals = new Map<string, number>();
-        const counts = new Map<string, number>();
-        for (const entry of entries) {
-            totals.set(entry.path, (totals.get(entry.path) ?? 0) + 1);
-        }
-        return entries.map((entry) => {
-            const count = (counts.get(entry.path) ?? 0) + 1;
-            counts.set(entry.path, count);
-            const total = totals.get(entry.path)!;
-            const suffix = total > 1 ? ` (${formatNumber(count)}/${formatNumber(total)})` : '';
-            return { short: `${entry.path.split(/[\\/]/).at(-1)}${suffix}`, full: `${entry.path}${suffix}` };
-        });
-    }, [entries]);
+    const totals = new Map<string, number>();
+    const counts = new Map<string, number>();
+    for (const entry of entries) {
+        totals.set(entry.path, (totals.get(entry.path) ?? 0) + 1);
+    }
+    const labels = entries.map((entry) => {
+        const count = (counts.get(entry.path) ?? 0) + 1;
+        counts.set(entry.path, count);
+        const total = totals.get(entry.path)!;
+        const suffix = total > 1 ? ` (${formatNumber(count)}/${formatNumber(total)})` : '';
+        return { short: `${entry.path.split(/[\\/]/).at(-1)}${suffix}`, full: `${entry.path}${suffix}` };
+    });
     if (active === undefined) {
         return null;
     }

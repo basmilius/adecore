@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useChatRow } from '../../../state/chats';
 
 // How many sent prompts the arrow keys walk back through, per chat.
@@ -23,17 +23,15 @@ export function usePromptHistory(chatId: string, setText: (next: string, mention
     const items = useChatRow(chatId, (row) => row?.structure);
     const [index, setIndex] = useState<number | null>(null);
 
-    const history = useMemo(() => {
-        const prompts: Array<{ text: string; mentions: string[] }> = [];
-        for (const id of order ?? []) {
-            const item = items?.[id];
-            if (item?.kind === 'user') {
-                prompts.push({ text: item.text, mentions: item.mentions ?? [] });
-            }
+    const prompts: Array<{ text: string; mentions: string[] }> = [];
+    for (const id of order ?? []) {
+        const item = items?.[id];
+        if (item?.kind === 'user') {
+            prompts.push({ text: item.text, mentions: item.mentions ?? [] });
         }
-        // Walking back further than this is faster with the timeline than with the arrow key.
-        return prompts.slice(-PROMPT_HISTORY);
-    }, [order, items]);
+    }
+    // Walking back further than this is faster with the timeline than with the arrow key.
+    const history = prompts.slice(-PROMPT_HISTORY);
 
     const recall = (direction: -1 | 1): boolean => {
         if (history.length === 0) {

@@ -155,21 +155,6 @@ export function loadTheme(theme: string, custom: ChatHost['code']['custom']): Pr
     return codeHighlighter().loadTheme(theme, custom);
 }
 
-/* The web bundle's highlighter once every one of `langs` and `theme` is in, or null while one is still on its way. */
-export function readyHighlighter(langs: Iterable<string>, theme: string): Highlighter | null {
-    return codeHighlighter().ready(langs, theme);
-}
-
-/* The language the web bundle draws `lang` in: the bundled grammar, or plain text. Only meaningful once a load settled. */
-export function loadedLanguage(lang: string): string {
-    return codeHighlighter().language(lang);
-}
-
-/* The web bundle's tokenizer for a language in a theme, or null while shiki, the grammar or the theme is still on its way. */
-export function tokenizerFor(lang: string, theme: string): { tokenize: Tokenize<GrammarState>; fg: string | undefined } | null {
-    return codeHighlighter().tokenizer(lang, theme);
-}
-
 /* The inline style of one token; undefined when it only has the surrounding color. */
 export function tokenStyle(token: CodeToken): CSSProperties | undefined {
     const style = token.fontStyle ?? 0;

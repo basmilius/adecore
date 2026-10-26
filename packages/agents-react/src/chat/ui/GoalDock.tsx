@@ -11,6 +11,7 @@ import { useChatScope } from '../../scope';
 import { useChats } from '../../state/chats';
 import { useChatActions } from '../actions';
 import { goalView } from '../logic/goal';
+import { errorMessage } from '../../transport';
 
 /* How far the goal got, in what its CLI counts: the checks that sent the agent on, or the tokens it spent. */
 function progressOf(goal: ChatGoal, t: TFunction<'agent-chat'>): string | null {
@@ -51,7 +52,7 @@ export function GoalDock({ chatId, info, goals }: { chatId: string; info: ChatIn
         setChanging(true);
         actions
             .goal(chatId, action)
-            .catch((e: unknown) => host.notify({ kind: 'error', title: t('goal.failed'), description: e instanceof Error ? e.message : String(e) }))
+            .catch((e: unknown) => host.notify({ kind: 'error', title: t('goal.failed'), description: errorMessage(e) }))
             .finally(() => setChanging(false));
     };
     return (

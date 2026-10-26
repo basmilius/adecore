@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState, type Dispatch, type RefObject, type SetStateAction } from 'react';
+import { useEffect, useId, useState, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ensureSyntaxTree, syntaxTree } from '@codemirror/language';
 import type { EditorState } from '@codemirror/state';
@@ -137,10 +137,7 @@ export function usePromptMenus<D extends PromptDraft>({
     }, [scope, cwd, mention, searchFiles]);
 
     const commandQuery = text.startsWith('/') && !text.includes('\n') ? text.slice(1).trim().toLowerCase() : null;
-    const commands = useMemo((): ComposerCommand[] => {
-        if (commandQuery === null) {
-            return [];
-        }
+    const commandsOf = (query: string): ComposerCommand[] => {
         const known = new Set(skills.map((skill) => skill.name));
         const own = localCommands.map((name) => ({ name, hint: t(`composer.commands.${name}`), local: true, skill: false }));
         // Every CLI with goals reads `/goal`, also one that lists no commands of its own.
@@ -153,16 +150,10 @@ export function usePromptMenus<D extends PromptDraft>({
                 local: false,
                 skill: known.has(name)
             }));
-        return [...own, ...goal, ...cli].filter((command) => command.name.startsWith(commandQuery)).slice(0, 8);
-    }, [commandQuery, goals, localCommands, slashCommands, providerName, skills, t]);
-
-    const skillMatches = useMemo(() => {
-        if (skillQuery === null) {
-            return [];
-        }
-        const query = skillQuery.query.toLowerCase();
-        return skills.filter((skill) => skill.name.toLowerCase().includes(query)).slice(0, 8);
-    }, [skillQuery, skills]);
+        return [...own, ...goal, ...cli].filter((command) => command.name.startsWith(query)).slice(0, 8);
+    };
+    const commands = commandQuery === null ? [] : commandsOf(commandQuery);
+    const skillMatches = skillQuery === null ? [] : skills.filter((skill) => skill.name.toLowerCase().includes(skillQuery.query.toLowerCase())).slice(0, 8);
 
     const commandMenuOpen = commandQuery !== null && commands.length > 0;
     const skillMenuOpen = !commandMenuOpen && skillQuery !== null && skillMatches.length > 0;

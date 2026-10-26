@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { errorMessage } from '../../../transport';
 
 const NOTICE_MS = 4000;
 
@@ -30,6 +31,6 @@ export function useNotice(): ComposerNotice {
         notice: shown?.text ?? null,
         tone: shown?.tone ?? 'error',
         setNotice,
-        showError: (error) => setNotice(error instanceof Error ? error.message : String(error))
+        showError: (error) => setNotice(errorMessage(error))
     };
 }

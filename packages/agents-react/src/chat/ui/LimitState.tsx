@@ -18,6 +18,7 @@ import { useChatActions } from '../actions';
 import { useUsageStore } from '../../state/usage';
 import { SessionLine } from './SessionLine';
 import { useHostResumeAtReset } from '../../host-hooks';
+import { errorMessage } from '../../transport';
 
 // A time a limit names reads as a clock today and with its day after that, so the words follow the minute.
 const MINUTE_MS = 60_000;
@@ -99,7 +100,7 @@ function ContinueOn({ chatId, info, choice }: { chatId: string; info: ChatInfo; 
                 host.notify({
                     kind: 'error',
                     title: t('limit.continueFailed', { account: choice.nameOf(entry) }),
-                    description: e instanceof Error ? e.message : String(e)
+                    description: errorMessage(e)
                 })
             )
             .finally(() => setBusy(false));
