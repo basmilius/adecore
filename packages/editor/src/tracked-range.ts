@@ -8,15 +8,20 @@ import type { DocumentChange } from '@adecore/editor-core';
  */
 export function mapTrackedRange(from: number, to: number, changes: readonly DocumentChange[]): { from: number; to: number } | null {
     let delta = 0;
+
     for (const change of changes) {
         if (change.to <= from) {
             delta += change.insertedLength - (change.to - change.from);
+
             continue;
         }
+
         if (change.from >= to) {
             break;
         }
+
         return null;
     }
+
     return { from: from + delta, to: to + delta };
 }

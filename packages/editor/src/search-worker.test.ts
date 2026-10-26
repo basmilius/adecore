@@ -6,6 +6,7 @@ function endpoint() {
     let listener: ((event: MessageEvent<EditorSearchInput>) => void) | undefined;
     const transfers: Transferable[][] = [];
     const sent: Exclude<EditorSearchOutput, { type: 'ready' }>[] = [];
+
     const port: EditorSearchWorkerEndpoint = {
         addEventListener(_type, next) {
             listener = next;
@@ -17,11 +18,13 @@ function endpoint() {
         },
         postMessage(message, options) {
             transfers.push(options?.transfer ?? []);
+
             if (message.type !== 'ready') {
                 sent.push(message);
             }
         }
     };
+
     return {
         port,
         sent,
@@ -50,6 +53,7 @@ test('the search worker transfers compact ranges with the core selection semanti
     const text = 'Name: Ada\nName: Bas\nName: Jo';
     const query = { text: 'Name: (?<name>\\w+)', regex: true, caseSensitive: true, wholeWord: false };
     wire.send(request(text, { query, from: 10, to: 19 }));
+
     expect(wire.sent).toEqual([
         {
             type: 'matches',
@@ -59,6 +63,7 @@ test('the search worker transfers compact ranges with the core selection semanti
             limited: false
         }
     ]);
+
     dispose();
 });
 
@@ -85,11 +90,13 @@ test('search limits distinguish an exact cap, another match and zero-width Unico
     wire.send(request('word word word', { maxResults: 2 }));
     expect(wire.sent[1]).toMatchObject({ type: 'matches', limited: true });
     wire.send(request('😀x', { query: { text: '(?=)', regex: true, caseSensitive: false, wholeWord: false }, maxResults: 2 }));
+
     expect(wire.sent[2]).toMatchObject({
         type: 'matches',
         ranges: new Uint32Array([0, 0, 2, 2]),
         limited: true
     });
+
     dispose();
 });
 
@@ -115,9 +122,11 @@ test('ranges omit large repeated captures and a large matched line', () => {
     wire.send(request('a'.repeat(3000), { query: { text: '(?=(a+))', regex: true, caseSensitive: false, wholeWord: false } }));
     const repeated = wire.sent[0]!;
     expect(repeated.type).toBe('matches');
+
     if (repeated.type !== 'matches') {
         throw new Error('Missing ranges');
     }
+
     expect(repeated.ranges.length).toBe(6000);
     expect(repeated).not.toHaveProperty('matches');
     expect(wire.transfers[1]).toEqual([repeated.ranges.buffer]);
@@ -141,6 +150,7 @@ test('one match supplies named captures without copying the matched text', () =>
 test('a single oversized capture fails without posting a large response', () => {
     const wire = endpoint();
     const dispose = serveEditorSearch(wire.port);
+
     wire.send({
         type: 'match',
         id: 1,
@@ -150,6 +160,7 @@ test('a single oversized capture fails without posting a large response', () => 
         from: 0,
         to: 4_000_001
     });
+
     expect(wire.sent).toHaveLength(1);
     expect(wire.sent[0]).toMatchObject({ type: 'error', kind: 'range', message: 'Search captures exceed the response size limit.' });
     dispose();
@@ -195,6 +206,7 @@ for (const fixture of [
     test(`worker cursor keeps the original match grid ${JSON.stringify(fixture)}`, () => {
         const wire = endpoint();
         const dispose = serveEditorSearch(wire.port);
+
         wire.send({
             type: 'next',
             id: 1,
@@ -205,6 +217,7 @@ for (const fixture of [
             backwards: fixture.backwards,
             wrap: fixture.wrap
         });
+
         expect(wire.sent[0]).toEqual({ type: 'next', id: 1, revision: 0, range: fixture.expected });
         dispose();
     });
@@ -223,6 +236,7 @@ function replacements(
     let from = options.from;
     let id = 0;
     let remaining = options.maxCharacters ?? 4_000_000;
+
     try {
         do {
             wire.send({
@@ -238,31 +252,41 @@ function replacements(
                 maxEdits: options.maxEdits ?? 1,
                 maxCharacters: remaining
             });
+
             const packet = wire.sent.at(-1)!;
+
             if (packet.type === 'error') {
                 return { error: packet, edits: [] };
             }
+
             if (packet.type !== 'replacements') {
                 throw new Error('Expected a replacement page');
             }
+
             expect(packet.ranges.length / 3).toBeLessThanOrEqual(options.maxEdits ?? 1);
             expect(wire.transfers.at(-1)).toEqual([packet.ranges.buffer]);
             let cursor = 0;
+
             for (let index = 0; index < packet.ranges.length; index += 3) {
                 const length = packet.ranges[index + 2]!;
                 edits.push({ from: packet.ranges[index]!, to: packet.ranges[index + 1]!, text: packet.text.slice(cursor, cursor + length) });
                 cursor += length;
             }
+
             expect(cursor).toBe(packet.text.length);
             remaining -= packet.text.length;
             continuations.push(packet.next);
+
             if (packet.next === null) {
                 break;
             }
+
             expect(packet.next).toBeGreaterThan(from ?? -1);
             from = packet.next;
         } while (id < 100);
+
         expect(continuations.at(-1)).toBeNull();
+
         return { edits, continuations };
     } finally {
         dispose();
@@ -297,6 +321,7 @@ for (const fixture of [
 test('zero-width replacement pagination resumes after the whole Unicode code point', () => {
     const result = replacements('😀x', '(?=)', '>', { maxEdits: 1 });
     expect(result.continuations).toEqual([2, 3, null]);
+
     expect(result.edits.map(({ from, to }) => [from, to])).toEqual([
         [0, 0],
         [2, 2],
@@ -306,10 +331,12 @@ test('zero-width replacement pagination resumes after the whole Unicode code poi
 
 test('replacement scope and multi-edit pages keep offsets in the original snapshot', () => {
     const result = replacements('aa aa aa aa', 'aa', 'entry', { from: 3, to: 8, maxEdits: 2 });
+
     expect(result.edits).toEqual([
         { from: 3, to: 5, text: 'entry' },
         { from: 6, to: 8, text: 'entry' }
     ]);
+
     expect(result.continuations).toEqual([null]);
 });
 
@@ -362,6 +389,7 @@ test('backward worker stepping skips the current zero-width match and wraps', ()
     const wire = endpoint();
     const dispose = serveEditorSearch(wire.port);
     const query = { text: 'a*', regex: true, caseSensitive: true, wholeWord: false };
+
     for (const [offset, expected] of [
         [3, { from: 2, to: 2 }],
         [2, { from: 0, to: 2 }],
@@ -370,5 +398,6 @@ test('backward worker stepping skips the current zero-width match and wraps', ()
         wire.send({ type: 'next', id: 1, revision: 0, text: 'aab', query, offset, backwards: true, wrap: true });
         expect(wire.sent.at(-1)).toMatchObject({ type: 'next', range: expected });
     }
+
     dispose();
 });

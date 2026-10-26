@@ -17,14 +17,18 @@ async function expectWholeDocument(language: string, blocks: readonly string[]):
     const text = blocks.join('\n');
     const grammar = documentLanguageOf(language);
     await loadGrammar(highlighter, grammar, text);
+
     const expected = highlighter.codeToTokensBase(text, { lang: grammar, theme: THEME, tokenizeTimeLimit: 0 } as Parameters<
         Highlighter['codeToTokensBase']
     >[1]);
+
     const tokenize = shikiDocumentTokens(async () => highlighter, blocks, language, THEME);
     const results = await Promise.all(blocks.map((_, index) => tokenize(index)));
     expect(withoutOffsets(results.flat())).toEqual(withoutOffsets(expected));
+
     for (const [index, lines] of results.entries()) {
         const code = index < blocks.length - 1 ? blocks[index]!.replace(/\r$/, '') : blocks[index]!;
+
         for (const token of lines.flat()) {
             expect(code.slice(token.offset, token.offset + token.content.length)).toBe(token.content);
         }
@@ -105,11 +109,13 @@ describe('Shiki document tokens', () => {
         using highlighter = await createHighlighter({ themes: [THEME], langs: ['typescript'] });
         const tokenize = shikiDocumentTokens(async () => highlighter, ['/* comment */'], 'typescript', THEME);
         const before = await tokenize(0);
+
         await highlighter.loadTheme({
             name: THEME,
             type: 'dark',
             tokenColors: [{ scope: 'comment', settings: { foreground: '#FF0000', fontStyle: 'italic bold' } }]
         });
+
         const after = await tokenize(0);
         expect(after).not.toEqual(before);
         expect(after).toEqual(highlighter.codeToTokensBase('/* comment */', { lang: 'typescript', theme: THEME }));

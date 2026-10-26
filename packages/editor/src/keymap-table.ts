@@ -151,8 +151,10 @@ const MODIFIERS = new Map<string, 'mod' | 'ctrl' | 'meta' | 'alt' | 'shift'>([
 export function parseChord(text: string): KeyChord {
     const words = text.endsWith('++') ? [...text.slice(0, -2).split('+'), '+'] : text.split('+');
     const chord = { mod: false, ctrl: false, meta: false, alt: false, shift: false, key: '' };
+
     for (const word of words) {
         const modifier = MODIFIERS.get(word);
+
         if (modifier !== undefined) {
             chord[modifier] = true;
         } else if (word === '' || chord.key !== '') {
@@ -161,9 +163,11 @@ export function parseChord(text: string): KeyChord {
             chord.key = word.length === 1 ? word.toUpperCase() : word;
         }
     }
+
     if (chord.key === '') {
         throw new Error(`The chord "${text}" names no key`);
     }
+
     return chord;
 }
 
@@ -184,10 +188,13 @@ const BASE_PUNCTUATION: Readonly<Record<string, string>> = {
 /* The character a physical key has with no layer on it, null for a key that has none, such as an arrow or Enter. */
 function baseCharacter(code: string): string | null {
     const letter = /^Key([A-Z])$/.exec(code);
+
     if (letter !== null) {
         return letter[1].toLowerCase();
     }
+
     const digit = /^(?:Digit|Numpad)([0-9])$/.exec(code);
+
     return digit !== null ? digit[1] : (BASE_PUNCTUATION[code] ?? null);
 }
 
@@ -200,6 +207,8 @@ export function typesInsteadOfChord(event: { key: string; code?: string; ctrlKey
     if (apple || !event.ctrlKey || !event.altKey || event.code === undefined || [...event.key].length !== 1) {
         return false;
     }
+
     const base = baseCharacter(event.code);
+
     return base !== null && event.key.toLowerCase() !== base;
 }

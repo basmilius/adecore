@@ -28,7 +28,9 @@ export function overviewTicks(spans: readonly OverviewSpan[], contentHeight: num
     if (trackHeight <= 0) {
         return [];
     }
+
     const scale = trackHeight / Math.max(contentHeight, trackHeight);
+
     const ticks = spans
         .map((span): OverviewTick => ({
             kind: span.kind,
@@ -38,18 +40,24 @@ export function overviewTicks(spans: readonly OverviewSpan[], contentHeight: num
             ...(span.title === undefined ? {} : { title: span.title })
         }))
         .sort((left, right) => left.y - right.y);
+
     const merged: OverviewTick[] = [];
     const last = new Map<OverviewKind, OverviewTick>();
+
     for (const tick of ticks) {
         const before = last.get(tick.kind);
+
         if (before && tick.y <= before.y + before.height) {
             before.height = Math.max(before.height, tick.y + tick.height - before.y);
+
             continue;
         }
+
         const next = { ...tick };
         last.set(tick.kind, next);
         merged.push(next);
     }
+
     return merged;
 }
 
@@ -58,7 +66,9 @@ const PAINT_ORDER: Partial<Record<OverviewKind, number>> = { warning: 1, error: 
 
 export function paintOverview(container: HTMLElement, ticks: readonly OverviewTick[]): void {
     const document = container.ownerDocument;
+
     const order = (tick: OverviewTick): number => PAINT_ORDER[tick.kind] ?? 0;
+
     container.replaceChildren(
         ...[...ticks]
             .sort((left, right) => order(left) - order(right))
@@ -67,12 +77,15 @@ export function paintOverview(container: HTMLElement, ticks: readonly OverviewTi
                 element.className = `se-tick se-tick-${tick.kind}`;
                 element.style.top = `${tick.y}px`;
                 element.style.height = `${tick.height}px`;
+
                 if (tick.offset !== undefined) {
                     element.setAttribute('data-offset', String(tick.offset));
                 }
+
                 if (tick.title !== undefined) {
                     element.setAttribute('data-title', tick.title);
                 }
+
                 return element;
             })
     );

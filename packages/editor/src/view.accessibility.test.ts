@@ -15,6 +15,7 @@ describe('input popup', () => {
         view.setInputPopup({ controls: 'list' });
         expect(input.hasAttribute('aria-activedescendant')).toBe(false);
         view.setInputPopup(null);
+
         for (const name of ['aria-expanded', 'aria-autocomplete', 'aria-controls', 'aria-activedescendant']) {
             expect(input.hasAttribute(name)).toBe(false);
         }
@@ -39,7 +40,9 @@ describe('fold controls', () => {
     test('name their lines, say whether they are open, and follow the host messages', () => {
         const { host, view } = mount(text);
         view.refreshFolds();
+
         const toggle = (): HTMLElement => host.querySelector('.se-fold-toggle') as HTMLElement;
+
         expect(toggle().getAttribute('aria-label')).toBe('Fold lines 1 to 4');
         expect(toggle().getAttribute('aria-expanded')).toBe('true');
         view.toggleFold(0);

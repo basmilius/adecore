@@ -12,33 +12,41 @@ function setup(text = 'head\nbody') {
     const model = new DocumentModel(text);
     const timers = new Set<() => void>();
     const changed = jest.fn();
+
     const preparation = new GrammarPreparation(model, changed, (callback, delay) => {
         expect(delay).toBe(200);
         timers.add(callback);
+
         return () => timers.delete(callback);
     });
+
     const prepare = jest.fn(async (_text: string) => false);
     const tokenizer: LineTokenizer = { prepare, tokenizeLine: () => ({ tokens: [], state: null }), sameState: () => true };
     preparation.ready(tokenizer);
+
     const subscription = model.subscribe((snapshot) => {
         if (snapshot.changes !== undefined) {
             preparation.edited(snapshot.changes);
         }
     });
+
     const flush = async (): Promise<void> => {
         const callbacks = [...timers];
         timers.clear();
         callbacks.forEach((callback) => callback());
         await settle();
     };
+
     const edit = (text: string): void => {
         const at = model.getText().length;
         model.applyEdits([{ from: at, to: at, text }]);
     };
+
     const dispose = (): void => {
         preparation.dispose();
         subscription.dispose();
     };
+
     return { model, preparation, prepare, tokenizer, changed, timers, flush, edit, dispose };
 }
 
@@ -70,9 +78,11 @@ describe('grammar preparation', () => {
             ['head\nbody', '\n```ts', 'body\n```ts']
         ] as const) {
             const fixture = setup(initial);
+
             for (const character of typed) {
                 fixture.edit(character);
             }
+
             expect(fixture.prepare).not.toHaveBeenCalled();
             expect(fixture.timers.size).toBe(1);
             await fixture.flush();
@@ -85,10 +95,12 @@ describe('grammar preparation', () => {
 
     test('maps separate edits to their final line positions', async () => {
         const fixture = setup('one\ntwo\nthree');
+
         fixture.model.applyEdits([
             { from: 0, to: 0, text: 'new\n' },
             { from: 8, to: 13, text: '```ts' }
         ]);
+
         await fixture.flush();
         expect(fixture.prepare.mock.calls[0]![0]).toContain('```ts');
         expect(fixture.prepare.mock.calls[0]![0]).toContain('new');
@@ -97,7 +109,9 @@ describe('grammar preparation', () => {
 
     test('serializes loads and flushes edits collected while one runs', async () => {
         const fixture = setup();
+
         let finish = (_loaded: boolean): void => {};
+
         fixture.prepare.mockImplementationOnce(() => new Promise<boolean>((resolve) => (finish = resolve)));
         fixture.edit('\n```ts');
         await fixture.flush();
@@ -113,7 +127,9 @@ describe('grammar preparation', () => {
 
     test('ignores the old load after a tokenizer replacement', async () => {
         const fixture = setup();
+
         let finish = (_loaded: boolean): void => {};
+
         fixture.prepare.mockImplementationOnce(() => new Promise<boolean>((resolve) => (finish = resolve)));
         fixture.edit('\n```ts');
         await fixture.flush();
@@ -152,15 +168,19 @@ describe('grammar preparation', () => {
     test('does not announce a load which finishes while paused or disposed', async () => {
         for (const state of ['paused', 'disposed']) {
             const fixture = setup();
+
             let finish = (_loaded: boolean): void => {};
+
             fixture.prepare.mockImplementationOnce(() => new Promise<boolean>((resolve) => (finish = resolve)));
             fixture.edit('\n```ts');
             await fixture.flush();
+
             if (state === 'paused') {
                 fixture.preparation.pause(true);
             } else {
                 fixture.dispose();
             }
+
             finish(true);
             await settle();
             expect(fixture.changed).not.toHaveBeenCalled();

@@ -108,23 +108,31 @@ const FOLD_CODES: Readonly<Record<string, readonly string[]>> = { '-': ['Minus',
 /* Letters and punctuation by the physical key when the event has one, since Option changes the character on macOS and Shift on every platform. */
 function keyMatches(chordKey: string, event: KeyLike): boolean {
     const code = event.code;
+
     if (/^[A-Z]$/.test(chordKey)) {
         return code ? code === `Key${chordKey}` : event.key.toUpperCase() === chordKey;
     }
+
     if (/^[0-9]$/.test(chordKey)) {
         return code ? code === `Digit${chordKey}` || code === `Numpad${chordKey}` : event.key === chordKey;
     }
+
     const fold = FOLD_CODES[chordKey];
+
     if (fold !== undefined) {
         return (code !== undefined && fold.includes(code)) || event.key === chordKey || (chordKey === '=' && event.key === '+');
     }
+
     const punctuation = PUNCTUATION_CODES[chordKey];
+
     if (punctuation !== undefined) {
         return code ? code === punctuation : event.key === chordKey;
     }
+
     if (chordKey === 'Space') {
         return event.key === ' ' || code === 'Space';
     }
+
     return event.key === chordKey;
 }
 
@@ -133,8 +141,10 @@ export function chordMatches(chord: KeyChord, event: KeyLike, apple: boolean): b
     if (typesInsteadOfChord(event, apple)) {
         return false;
     }
+
     const wantsMeta = chord.meta || (chord.mod && apple);
     const wantsCtrl = chord.ctrl || (chord.mod && !apple);
+
     return (
         wantsMeta === event.metaKey &&
         wantsCtrl === event.ctrlKey &&
@@ -155,6 +165,7 @@ function bound(apple: boolean, keymap: Keymap): BoundAction[] {
     return KEYMAP_IDS.flatMap((id) => {
         const text = chordOf(id, apple, keymap);
         const action = ACTIONS[id];
+
         return text === null || action === undefined ? [] : [{ chord: parseChord(text), action }];
     });
 }
@@ -165,47 +176,61 @@ function bound(apple: boolean, keymap: Keymap): BoundAction[] {
  */
 export function keyAction(event: KeyLike, apple: boolean, keymap: Keymap = KEYMAP): KeyAction | null {
     let resolved = bindings.get(keymap);
+
     if (resolved === undefined) {
         resolved = { mac: bound(true, keymap), other: bound(false, keymap) };
         bindings.set(keymap, resolved);
     }
+
     for (const { chord, action } of resolved[apple ? 'mac' : 'other']) {
         if (chordMatches(chord, event, apple)) {
             return action;
         }
     }
+
     const key = event.key.toLowerCase();
     const mod = apple ? event.metaKey : event.ctrlKey;
     const { altKey: alt, shiftKey: shift, ctrlKey: ctrl, metaKey: meta } = event;
+
     if (mod && !alt && (key === 'home' || key === 'end')) {
         return { type: 'edge', end: key === 'end', extend: shift };
     }
+
     if (mod || alt || ctrl || meta) {
         return null;
     }
+
     if (key === 'home') {
         return command(shift ? 'selectSmartHome' : 'smartHome');
     }
+
     if (key === 'end') {
         return command(shift ? 'selectSmartEnd' : 'smartEnd');
     }
+
     if (key === 'tab') {
         return command(shift ? 'outdent' : 'insertTab');
     }
+
     if (key === 'enter') {
         return command('insertNewline');
     }
+
     if (key === 'backspace') {
         return command('smartBackspace');
     }
+
     if (key === 'delete') {
         return command('deleteForward');
     }
+
     if (MOVES.has(event.key)) {
         return { type: 'move', key: event.key as MoveKey, extend: shift };
     }
+
     if (key === 'escape') {
         return { type: 'escape' };
     }
+
     return null;
 }

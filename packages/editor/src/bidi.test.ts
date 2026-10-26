@@ -67,6 +67,7 @@ describe('rendering', () => {
 
     test('lays the lines out left to right over any bidirectional run', () => {
         const css = Bun.file(new URL('./editor.css', import.meta.url));
+
         return css.text().then((text) => {
             expect(text).toMatch(/\.se-line \{[^}]*direction: ltr;[^}]*unicode-bidi: bidi-override;/);
             expect(text).toMatch(/\.se-run \{[^}]*unicode-bidi: bidi-override;/);

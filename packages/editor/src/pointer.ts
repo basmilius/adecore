@@ -82,6 +82,7 @@ function overshoot(value: number, low: number, high: number): number {
     if (value < low) {
         return value - low;
     }
+
     return value > high ? value - high : 0;
 }
 
@@ -107,6 +108,7 @@ export class PointerSelection {
         const head = this.host.offsetAt(event.clientX, event.clientY);
         const selections = model.getSelections();
         const base = event.altKey && area === 'text' ? selections : [];
+
         this.drag = {
             id: event.pointerId,
             anchor: event.shiftKey && !event.altKey ? model.getPrimary().anchor : head,
@@ -120,17 +122,23 @@ export class PointerSelection {
             x: event.clientX,
             y: event.clientY
         };
+
         this.host.focus();
         viewport.setPointerCapture?.(event.pointerId);
+
         // Alt on a caret that is there takes it away; there is no selection to drag after that.
         if (area === 'text' && event.altKey && count === 1 && selections.length > 1 && selections.some((selection) => selection.head === head)) {
             model.setSelections(selections.filter((selection) => selection.head !== head));
             this.drag = undefined;
+
             return;
         }
+
         const selected = count === 1 && area === 'text' && !event.shiftKey && !event.altKey ? this.host.selectionAt(event.clientX, event.clientY) : null;
+
         if (selected !== null) {
             this.drag.unit = 'drop';
+
             this.drag.carry = {
                 from: Math.min(selected.anchor, selected.head),
                 to: Math.max(selected.anchor, selected.head),
@@ -146,6 +154,7 @@ export class PointerSelection {
             this.selectUnit('line', this.host.lineAt(head), base);
         } else if (count === 2) {
             const word = model.wordSelectionAt(head, this.host.camelHumps());
+
             if (word === null) {
                 this.update();
             } else {
@@ -154,6 +163,7 @@ export class PointerSelection {
         } else {
             this.update();
         }
+
         if (this.drag && this.frame === undefined) {
             this.frame = viewport.ownerDocument.defaultView?.requestAnimationFrame?.(() => this.autoScroll());
         }
@@ -163,11 +173,14 @@ export class PointerSelection {
     private pressLineNumber(event: PointerEvent, offset: number): void {
         const { model } = this.host;
         const primary = model.getPrimary();
+
         if (event.shiftKey && primary.anchor !== primary.head) {
             model.setSelections([this.tweakedByLines(primary, offset)]);
             this.drag = undefined;
+
             return;
         }
+
         this.selectUnit('line', this.host.lineAt(offset), []);
     }
 
@@ -175,6 +188,7 @@ export class PointerSelection {
         if (this.drag === undefined) {
             return;
         }
+
         this.drag.unit = unit;
         this.drag.saved = saved;
         this.drag.selections = base;
@@ -189,33 +203,43 @@ export class PointerSelection {
         const first = host.visualLine(from);
         const last = host.visualLine(to - 1);
         const clicked = host.visualLine(offset);
+
         if (clicked.y < first.y) {
             return { anchor: to, head: clicked.start };
         }
+
         if (clicked.y > last.y) {
             return { anchor: from, head: clicked.end };
         }
+
         if (first.y === last.y) {
             return { anchor: selection.head, head: selection.head };
         }
+
         if (selection.anchor === to) {
             const line = clicked.y === first.y ? host.visualLine(first.next) : clicked;
+
             return { anchor: to, head: line.start };
         }
+
         const line = clicked.y === last.y ? host.visualLine(last.start - 1) : clicked;
+
         return { anchor: from, head: line.end };
     }
 
     /* Pointer events carry no click count, so the presses are counted here. */
     private countClick(event: PointerEvent): number {
         const last = this.lastPress;
+
         const repeated =
             last !== undefined &&
             event.timeStamp - last.time <= MULTI_CLICK_MS &&
             Math.abs(event.clientX - last.x) <= MULTI_CLICK_DISTANCE &&
             Math.abs(event.clientY - last.y) <= MULTI_CLICK_DISTANCE;
+
         const count = repeated ? Math.min(3, last.count + 1) : 1;
         this.lastPress = { time: event.timeStamp, x: event.clientX, y: event.clientY, count };
+
         return count;
     }
 
@@ -223,6 +247,7 @@ export class PointerSelection {
         if (!this.drag || event.pointerId !== this.drag.id) {
             return;
         }
+
         this.drag.x = event.clientX;
         this.drag.y = event.clientY;
         this.update();
@@ -232,18 +257,24 @@ export class PointerSelection {
     end(event?: PointerEvent): void {
         const { viewport } = this.host;
         const carry = this.drag?.carry;
+
         if (this.drag) {
             viewport.releasePointerCapture?.(this.drag.id);
         }
+
         this.drag = undefined;
         this.cancelFrame();
+
         if (carry === undefined) {
             return;
         }
+
         this.host.setDropCaret(null);
+
         if (event?.type === 'pointercancel') {
             return;
         }
+
         if (!carry.active) {
             this.host.model.setSelections([{ anchor: carry.pressOffset, head: carry.pressOffset }]);
         } else if (carry.target !== null && event !== undefined) {
@@ -257,8 +288,10 @@ export class PointerSelection {
             if (Math.abs(drag.x - carry.startX) < CARRY_THRESHOLD && Math.abs(drag.y - carry.startY) < CARRY_THRESHOLD) {
                 return;
             }
+
             carry.active = true;
         }
+
         const offset = this.host.offsetAt(drag.x, drag.y);
         carry.target = offset >= carry.from && offset <= carry.to ? null : offset;
         this.host.setDropCaret(carry.target);
@@ -273,6 +306,7 @@ export class PointerSelection {
         if (this.frame !== undefined) {
             this.host.viewport.ownerDocument.defaultView?.cancelAnimationFrame?.(this.frame);
         }
+
         this.frame = undefined;
     }
 
@@ -280,17 +314,23 @@ export class PointerSelection {
         if (!this.drag) {
             return;
         }
+
         if (this.drag.carry !== undefined) {
             this.updateCarry(this.drag, this.drag.carry);
+
             return;
         }
+
         if (this.drag.box && this.drag.unit === 'character') {
             const box = this.host.columnSelections(this.drag.anchorPoint, this.host.contentPoint(this.drag.x, this.drag.y));
+
             if (box) {
                 this.host.model.setSelections(this.drag.keep ? [...this.drag.selections, ...box] : box);
+
                 return;
             }
         }
+
         const head = this.host.offsetAt(this.drag.x, this.drag.y);
         const { anchor, target } = this.reach(this.drag, head);
         this.host.model.setSelections([...(this.drag.add ? this.drag.selections : []), { anchor, head: target }]);
@@ -300,35 +340,45 @@ export class PointerSelection {
     private reach(drag: Drag, head: number): { anchor: number; target: number } {
         const { model } = this.host;
         const backwards = head < drag.saved.from;
+
         if (drag.unit === 'word') {
             const camel = this.host.camelHumps();
+
             return backwards
                 ? { anchor: drag.saved.to, target: model.wordStartBefore(head, camel) }
                 : { anchor: drag.saved.from, target: model.wordEndAfter(head, camel) };
         }
+
         if (drag.unit === 'line') {
             const line = this.host.visualLine(head);
+
             return backwards ? { anchor: drag.saved.to, target: line.start } : { anchor: drag.saved.from, target: line.next };
         }
+
         return { anchor: drag.anchor, target: head };
     }
 
     /* Holding the pointer past an edge of the view keeps scrolling that way. */
     private autoScroll(): void {
         const { viewport } = this.host;
+
         if (!this.drag) {
             this.frame = undefined;
+
             return;
         }
+
         const rect = viewport.getBoundingClientRect();
         const dy = overshoot(this.drag.y, rect.top, rect.bottom);
         const dx = overshoot(this.drag.x, rect.left, rect.right);
+
         if (dy || dx) {
             viewport.scrollTop += Math.max(-SCROLL_STEP, Math.min(SCROLL_STEP, dy));
             viewport.scrollLeft += Math.max(-SCROLL_STEP, Math.min(SCROLL_STEP, dx));
             this.host.scrolled();
             this.update();
         }
+
         this.frame = viewport.ownerDocument.defaultView?.requestAnimationFrame?.(() => this.autoScroll());
     }
 }

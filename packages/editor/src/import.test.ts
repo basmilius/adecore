@@ -19,10 +19,13 @@ function intlBuiltAtImport(entry: string): number {
         await import(${JSON.stringify(entry)});
         console.log(built);
     `;
+
     const result = Bun.spawnSync([process.execPath, '--conditions=source', '-e', script], { stdout: 'pipe', stderr: 'pipe' });
+
     if (result.exitCode !== 0) {
         throw new Error(result.stderr.toString());
     }
+
     return Number(result.stdout.toString().trim());
 }
 

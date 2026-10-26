@@ -6,6 +6,7 @@ const element = {} as HTMLElement;
 describe('FakeEditorEngine', () => {
     test('mounts an editor with the options it was given', () => {
         const engine = new FakeEditorEngine();
+
         const editor = engine.mount(element, {
             text: 'a\nb',
             language: 'typescript',
@@ -15,6 +16,7 @@ describe('FakeEditorEngine', () => {
             column: 3,
             scrollTop: 40
         });
+
         expect(engine.last).toBe(editor);
         expect(editor.getText()).toBe('a\nb');
         expect(editor.language).toBe('typescript');
@@ -49,9 +51,11 @@ describe('FakeEditorEngine', () => {
     test('reports a typed change and never one set from outside', () => {
         const editor = new FakeEditorEngine().mount(element, { text: 'a', theme: 'light' });
         let changes = 0;
+
         editor.onChange(() => {
             changes += 1;
         });
+
         editor.type('ab');
         editor.setText('reloaded');
         expect(changes).toBe(1);
@@ -62,9 +66,11 @@ describe('FakeEditorEngine', () => {
         const editor = new FakeEditorEngine().mount(element, { text: 'a', theme: 'light', readOnly: true, readOnlyReason: 'Zoom in to edit' });
         expect(editor.readOnlyReason).toBe('Zoom in to edit');
         let changes = 0;
+
         editor.onChange(() => {
             changes += 1;
         });
+
         editor.type('b');
         editor.setReadOnly(false);
         expect(editor.readOnlyReason).toBeUndefined();
@@ -111,7 +117,9 @@ describe('FakeEditor.trackRange', () => {
 describe('FakeEditor.setWidgets', () => {
     test('keeps the widgets of each owner apart and answers `widgets` with the default owner', () => {
         const editor = new FakeEditorEngine().mount(element, { text: 'a', theme: 'light' });
+
         const row = (id: string) => ({ id, line: 0, render: () => undefined });
+
         editor.setWidgets([row('peek')]);
         editor.setWidgets([row('change')], 'review');
         expect(editor.widgets.map((widget) => widget.id)).toEqual(['peek']);

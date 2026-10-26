@@ -105,33 +105,42 @@ export class FindController {
     matchesBetween(from: number, to: number): readonly FindMark[] {
         let low = 0;
         let high = this.marks.length;
+
         while (low < high) {
             const middle = (low + high) >>> 1;
+
             if (this.marks[middle]!.to < from) {
                 low = middle + 1;
             } else {
                 high = middle;
             }
         }
+
         const first = low;
         high = this.marks.length;
+
         while (low < high) {
             const middle = (low + high) >>> 1;
+
             if (this.marks[middle]!.from <= to) {
                 low = middle + 1;
             } else {
                 high = middle;
             }
         }
+
         return this.marks.slice(first, low);
     }
 
     get currentMatch(): FindMatch | null {
         if (this.search !== undefined && this.query?.regex) {
             const mark = this.currentMark;
+
             return this.freshRegex && this.retained?.from === mark?.from && this.retained?.to === mark?.to ? this.retained : null;
         }
+
         const matches = this.cachedMatches;
+
         if (this.outside !== null && matches !== null) {
             return {
                 ...this.outside,
@@ -141,6 +150,7 @@ export class FindController {
                 revision: this.model.getRevision()
             };
         }
+
         return this.index === null || matches === null ? null : (matches[this.index] ?? null);
     }
 
@@ -155,6 +165,7 @@ export class FindController {
     private cacheKey(): string {
         const query = this.query;
         const scope = this.scope;
+
         return JSON.stringify([
             query?.text,
             query?.caseSensitive === true,
@@ -171,15 +182,18 @@ export class FindController {
         const oldKey = this.cacheKey();
         const wasInSelection = this.query?.inSelection === true;
         this.query = query === null || query.text === '' ? null : { ...query };
+
         if (this.query?.inSelection !== true) {
             this.bounds = null;
         } else if (!wasInSelection) {
             const selection = this.model.getPrimary();
+
             this.bounds =
                 selection.anchor === selection.head
                     ? null
                     : { from: Math.min(selection.anchor, selection.head), to: Math.max(selection.anchor, selection.head) };
         }
+
         if (this.cacheKey() !== oldKey) {
             this.pendingAnchor = undefined;
             this.pendingStep = undefined;
@@ -187,6 +201,7 @@ export class FindController {
             this.replaceFailed = undefined;
             this.replaced = undefined;
         }
+
         this.refresh();
     }
 
@@ -195,6 +210,7 @@ export class FindController {
         if (this.pendingAnchor !== undefined) {
             this.pendingAnchor = mapOffset(this.pendingAnchor, changes);
         }
+
         if (this.bounds !== null) {
             this.bounds = { from: mapOffset(this.bounds.from, changes), to: mapOffset(this.bounds.to, changes) };
         }
@@ -209,26 +225,35 @@ export class FindController {
             this.revision = this.model.getRevision();
             this.replaced = undefined;
         }
+
         const previous = this.currentMark;
         const query = this.query;
+
         if (this.search !== undefined && query?.regex) {
             this.refreshRegex(previous);
+
             return;
         }
+
         this.resetRegex(query === null || this.search?.busy === true);
 
         if (query === null) {
             this.marks = [];
             this.cache = undefined;
             this.index = null;
+
             return;
         }
+
         const revision = this.model.getRevision();
         const key = this.cacheKey();
+
         if (this.cache?.revision !== revision || this.cache.key !== key) {
             let found: FindMatch[] = [];
+
             try {
                 const inSelection = query.inSelection === true;
+
                 if (!inSelection || this.bounds !== null) {
                     found = this.model.find(query.text, {
                         caseSensitive: query.caseSensitive,
@@ -241,8 +266,10 @@ export class FindController {
             } catch {
                 // A pattern that does not parse finds nothing; the find bar says it is invalid.
             }
+
             this.cache = { revision, key, matches: found.slice(0, FIND_LIMIT), complete: found.length <= FIND_LIMIT };
         }
+
         const found = this.cache.matches;
         this.marks = found;
         const selection = this.model.getPrimary();
@@ -253,23 +280,32 @@ export class FindController {
 
     step(direction: 1 | -1): void {
         this.replaced = undefined;
+
         if (this.seeking) {
             this.pendingStep = direction;
+
             return;
         }
+
         if (this.search !== undefined && this.query?.regex && !this.freshRegex) {
             this.pendingStep = direction;
+
             if (!this.searching) {
                 this.startRegex(true);
             }
+
             return;
         }
+
         const count = this.marks.length;
+
         if (count === 0) {
             return;
         }
+
         const incomplete = this.regexCache?.complete === false || this.cache?.complete === false;
         const current = this.currentMark;
+
         if (
             this.search !== undefined &&
             incomplete &&
@@ -277,15 +313,20 @@ export class FindController {
             (this.outside !== null || (direction === 1 ? this.index === count - 1 : this.index === 0))
         ) {
             let offset = direction === -1 ? current.from : current.to;
+
             if (direction === 1 && current.from === current.to) {
                 offset += (this.model.getText().codePointAt(offset) ?? 0) > 0xffff ? 2 : 1;
             }
+
             if (offset > this.model.getLength()) {
                 offset = 0;
             }
+
             this.seek(offset, direction);
+
             return;
         }
+
         this.outside = null;
         this.index = this.index === null ? (direction === 1 ? 0 : count - 1) : (this.index + direction + count) % count;
         this.captureFailed = undefined;
@@ -312,6 +353,7 @@ export class FindController {
         this.searching = false;
         this.failed = undefined;
         this.captureFailed = undefined;
+
         if (release) {
             this.search?.release();
         }
@@ -321,6 +363,7 @@ export class FindController {
         if (this.freshRegex) {
             return;
         }
+
         const failure = this.failed;
         const retryBlocked = failure === 'timeout' || failure === 'unavailable';
         const sameQuery = this.regexCache?.key === this.cacheKey();
@@ -328,43 +371,54 @@ export class FindController {
         this.cache = undefined;
         this.marks = [];
         this.index = null;
+
         if (retryBlocked && sameQuery) {
             this.failed = failure;
             this.regexCache = { revision: this.model.getRevision(), key: this.cacheKey(), complete: false };
+
             return;
         }
+
         this.pendingAnchor ??= previous?.from;
         this.startRegex(false);
     }
 
     private startRegex(explicit: boolean): void {
         const query = this.query;
+
         if (query === null || this.search === undefined || this.disposed) {
             return;
         }
+
         if (query.inSelection && this.bounds === null) {
             return;
         }
+
         if (!explicit && this.model.getLength() > LIVE_REGEX_LIMIT) {
             this.pendingStep = undefined;
             this.pendingAnchor = undefined;
+
             return;
         }
+
         const epoch = this.epoch;
         const key = this.cacheKey();
         const revision = this.model.getRevision();
         this.failed = undefined;
         this.searching = true;
         this.cancelSearch?.();
+
         this.cancelSearch = (this.options?.schedule ?? scheduleFind)(
             () => {
                 this.cancelSearch = undefined;
                 const snapshot = this.snapshot();
+
                 void this.search!.request(
                     (client) => {
                         if (epoch !== this.epoch || this.disposed) {
                             throw new EditorSearchError('superseded', 'The find query changed.');
                         }
+
                         return client.search(snapshot, query, { ...this.scope, maxResults: FIND_LIMIT, ...(explicit ? { deadline: 10000 } : {}) });
                     },
                     explicit ? 'command' : 'live',
@@ -374,11 +428,14 @@ export class FindController {
                         if (epoch !== this.epoch || revision !== this.model.getRevision() || this.disposed) {
                             return;
                         }
+
                         this.regexCache = { revision, key, complete: !result.limited };
                         const marks: FindMark[] = [];
+
                         for (let index = 0; index < result.ranges.length; index += 2) {
                             marks.push({ from: result.ranges[index]!, to: result.ranges[index + 1]! });
                         }
+
                         this.marks = marks;
                         const selection = this.model.getPrimary();
                         const anchor = this.pendingAnchor ?? Math.min(selection.anchor, selection.head);
@@ -394,12 +451,16 @@ export class FindController {
                         if (epoch !== this.epoch || this.disposed) {
                             return;
                         }
+
                         this.searching = false;
+
                         if (error instanceof EditorSearchError && error.kind === 'superseded') {
                             this.options?.changed();
                             this.startRegex(this.pendingStep !== undefined);
+
                             return;
                         }
+
                         this.pendingAnchor = undefined;
                         this.pendingStep = undefined;
                         this.failed = searchFailure(error);
@@ -413,9 +474,11 @@ export class FindController {
 
     private snapshot(): EditorSearchSnapshot {
         const revision = this.model.getRevision();
+
         if (this.snapshotMemo?.revision !== revision) {
             this.snapshotMemo = { revision, text: this.model.getText() };
         }
+
         return this.snapshotMemo;
     }
 
@@ -427,6 +490,7 @@ export class FindController {
     private preparePreview(): void {
         this.cancelMatch?.();
         this.cancelMatch = undefined;
+
         if (
             this.preview &&
             this.search !== undefined &&
@@ -446,44 +510,55 @@ export class FindController {
         if (this.currentMatch !== null || this.search === undefined || !this.query?.regex || !this.freshRegex) {
             return this.currentMatch;
         }
+
         const mark = this.currentMark;
+
         if (mark === null) {
             return null;
         }
+
         const query = this.query;
         const epoch = this.epoch;
         const snapshot = this.snapshot();
+
         if (command) {
             this.captureFailed = undefined;
         }
+
         const current = (): boolean =>
             !this.disposed &&
             epoch === this.epoch &&
             this.model.getRevision() === snapshot.revision &&
             this.currentMark?.from === mark.from &&
             this.currentMark?.to === mark.to;
+
         try {
             const found = await this.search.request(
                 (client) => {
                     if (!current()) {
                         throw new EditorSearchError('superseded', 'The current find match changed.');
                     }
+
                     return client.match(snapshot, query, { ...mark, deadline: 10000 });
                 },
                 command ? 'command' : 'preview'
             );
+
             if (!current()) {
                 return null;
             }
+
             this.retained = found;
             this.captureFailed = undefined;
             this.options?.changed();
+
             return found;
         } catch (error) {
             if (current() && !(error instanceof EditorSearchError && error.kind === 'superseded')) {
                 this.captureFailed = error instanceof EditorSearchError && (error.kind === 'timeout' || error.kind === 'unavailable') ? error.kind : 'error';
                 this.options?.changed();
             }
+
             return null;
         }
     }
@@ -491,9 +566,12 @@ export class FindController {
     private chooseCurrent(anchor: number, direction: 1 | -1, limited: boolean): void {
         if (this.marks.length === 0) {
             this.index = null;
+
             return;
         }
+
         const next = direction === 1 ? this.marks.findIndex((mark) => mark.from >= anchor) : this.marks.findLastIndex((mark) => mark.from < anchor);
+
         if (limited && this.search !== undefined && (next === -1 || (direction === -1 && next === this.marks.length - 1))) {
             this.index = null;
             this.seek(anchor, direction);
@@ -504,34 +582,43 @@ export class FindController {
 
     private seek(offset: number, direction: 1 | -1): void {
         const query = this.query;
+
         if (this.search === undefined || query === null) {
             return;
         }
+
         const epoch = this.epoch;
         const snapshot = this.snapshot();
         const scope = this.scope;
+
         const valid = (): boolean => !this.disposed && epoch === this.epoch && snapshot.revision === this.model.getRevision();
+
         this.seeking = true;
         this.failed = undefined;
         this.retained = null;
         this.captureFailed = undefined;
+
         void this.search
             .request((client) => client.next(snapshot, query, offset, { ...scope, backwards: direction === -1, wrap: true, deadline: 10000 }), 'command', valid)
             .then((range) => {
                 if (!valid()) {
                     return;
                 }
+
                 this.seeking = false;
                 this.outside = null;
                 this.index = range === null ? null : this.marks.findIndex((mark) => mark.from === range.from && mark.to === range.to);
+
                 if (this.index === -1) {
                     this.index = null;
                     this.outside = range;
                 }
+
                 this.options?.changed(true);
                 this.preparePreview();
                 const pending = this.pendingStep;
                 this.pendingStep = undefined;
+
                 if (pending !== undefined) {
                     this.step(pending);
                 }
@@ -549,25 +636,32 @@ export class FindController {
         if (this.search === undefined) {
             return null;
         }
+
         const snapshot = this.snapshot();
         const epoch = this.epoch;
+
         const valid = (): boolean => !this.disposed && epoch === this.epoch && snapshot.revision === this.model.getRevision();
+
         this.cursorRequests++;
+
         try {
             const range = await this.search.request(
                 (client) => client.next(snapshot, query, offset, { backwards: direction === -1, wrap: true, deadline: 10000 }),
                 'command',
                 valid
             );
+
             return valid() ? range : null;
         } catch (error) {
             if (valid()) {
                 this.failed = searchFailure(error);
                 this.options?.changed();
             }
+
             return null;
         } finally {
             this.cursorRequests--;
+
             if (this.query === null && this.cursorRequests === 0) {
                 this.search.release();
             }
@@ -589,11 +683,14 @@ export class FindController {
     async replaceOne(replacement: string, preserveCase: boolean, canApply: () => boolean): Promise<boolean> {
         const query = this.query;
         const mark = this.currentMark;
+
         if (query === null || mark === null || this.search === undefined || !canApply()) {
             return false;
         }
+
         const snapshot = this.snapshot();
         const epoch = this.epoch;
+
         const valid = (): boolean =>
             !this.disposed &&
             epoch === this.epoch &&
@@ -601,10 +698,12 @@ export class FindController {
             canApply() &&
             this.currentMark?.from === mark.from &&
             this.currentMark?.to === mark.to;
+
         this.replacing++;
         this.replaceEpoch = epoch;
         this.replaceFailed = undefined;
         this.options?.changed();
+
         try {
             const page = await this.search.request(
                 (client) =>
@@ -619,25 +718,32 @@ export class FindController {
                 'command',
                 valid
             );
+
             if (!valid() || page.ranges.length !== 3 || page.ranges[0] !== mark.from || page.ranges[1] !== mark.to || page.next !== null) {
                 return false;
             }
+
             this.pendingAnchor = mark.to;
+
             const changed = this.model.applyEdits([{ from: mark.from, to: mark.to, text: page.text }], {
                 source: 'command',
                 expectedRevision: snapshot.revision
             });
+
             if (!changed) {
                 this.pendingAnchor = undefined;
             }
+
             return changed;
         } catch (error) {
             if (valid()) {
                 this.reportReplaceFailed(replaceFailure(error));
             }
+
             return false;
         } finally {
             this.replacing--;
+
             if (!this.disposed) {
                 this.options?.changed();
             }
@@ -646,18 +752,23 @@ export class FindController {
 
     async replaceAll(replacement: string, preserveCase: boolean, canApply: () => boolean): Promise<number> {
         const query = this.query;
+
         if (query === null || this.search === undefined || this.state.noSelection || !canApply()) {
             return 0;
         }
+
         const snapshot = this.snapshot();
         const epoch = this.epoch;
         const scope = this.scope;
+
         const valid = (): boolean => !this.disposed && epoch === this.epoch && snapshot.revision === this.model.getRevision() && canApply();
+
         this.replacing++;
         this.replaceEpoch = epoch;
         this.replaceFailed = undefined;
         this.replaced = undefined;
         this.options?.changed();
+
         try {
             const page = await this.search.request(
                 (client) =>
@@ -671,31 +782,40 @@ export class FindController {
                 'command',
                 valid
             );
+
             if (!valid()) {
                 return 0;
             }
+
             if (page.next !== null) {
                 this.replaceFailed = 'limit';
+
                 return 0;
             }
+
             const edits: TextEdit[] = [];
             let position = 0;
+
             for (let index = 0; index < page.ranges.length; index += 3) {
                 const length = page.ranges[index + 2]!;
                 edits.push({ from: page.ranges[index]!, to: page.ranges[index + 1]!, text: page.text.slice(position, position + length) });
                 position += length;
             }
+
             const changed = this.model.applyEdits(edits, { source: 'command', expectedRevision: snapshot.revision });
             const count = changed ? edits.length : 0;
             this.reportReplaced(count);
+
             return count;
         } catch (error) {
             if (!this.disposed && epoch === this.epoch) {
                 this.replaceFailed = replaceFailure(error);
             }
+
             return 0;
         } finally {
             this.replacing--;
+
             if (!this.disposed) {
                 this.options?.changed();
             }
@@ -723,6 +843,8 @@ function replaceFailure(error: unknown): NonNullable<EditorFindState['replaceFai
     if (error instanceof EditorSearchError && error.kind === 'range') {
         return 'limit';
     }
+
     const failure = searchFailure(error);
+
     return failure === 'invalid' ? 'error' : failure;
 }

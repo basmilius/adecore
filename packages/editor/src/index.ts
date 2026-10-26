@@ -4,6 +4,7 @@ export { findDocComments, MAX_DOC_COMMENTS, type DocComment } from '@adecore/edi
 export { createSmartEditorEngine } from './engine.ts';
 export { DEFAULT_SMART_KEYS } from './smart-keys.ts';
 export { shikiScopeColors, shikiTokenizers } from './shiki.ts';
+
 export type {
     Editor,
     EditorAttributionHover,

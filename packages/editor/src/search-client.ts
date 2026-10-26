@@ -62,6 +62,7 @@ function validateSearch(snapshot: EditorSearchSnapshot, query: EditorFindQuery, 
     const from = options.from ?? 0;
     const to = options.to ?? snapshot.text.length;
     const maximum = options.maxResults ?? SEARCH_LIMIT;
+
     if (
         !Number.isSafeInteger(snapshot.revision) ||
         snapshot.revision < 0 ||
@@ -73,12 +74,15 @@ function validateSearch(snapshot: EditorSearchSnapshot, query: EditorFindQuery, 
     ) {
         throw new EditorSearchError('range', 'Search bounds and revision must identify the current document.');
     }
+
     if (!Number.isInteger(maximum) || maximum < 0 || maximum > SEARCH_LIMIT) {
         throw new EditorSearchError('range', `Search results must be limited to ${SEARCH_LIMIT} matches or fewer.`);
     }
+
     if (options.deadline !== undefined && (!Number.isFinite(options.deadline) || options.deadline <= 0 || options.deadline > 2147483647)) {
         throw new EditorSearchError('range', 'A request deadline must fit a positive browser timer.');
     }
+
     if (query.regex) {
         try {
             // Compilation reports syntax errors without executing the expression on the page.
@@ -92,11 +96,13 @@ function validateSearch(snapshot: EditorSearchSnapshot, query: EditorFindQuery, 
 function splitsSurrogate(text: string, offset: number): boolean {
     const previous = text.charCodeAt(offset - 1),
         current = text.charCodeAt(offset);
+
     return previous >= 0xd800 && previous <= 0xdbff && current >= 0xdc00 && current <= 0xdfff;
 }
 
 export function createSearchClient(options: EditorSearchClientOptions): EditorSearchClient {
     let revision: number | undefined;
+
     const transport = createWorkerRequestClient<EditorSearchInput, Exclude<EditorSearchOutput, { type: 'ready' }>>({
         ...options,
         accepts: (reply, input) => reply.revision === input.revision,
@@ -108,12 +114,14 @@ export function createSearchClient(options: EditorSearchClientOptions): EditorSe
             const { text, ...rest } = input;
             const message = { ...rest, ...(revision !== input.revision ? { text } : {}) };
             revision = input.revision;
+
             return message;
         },
         stopped: () => {
             revision = undefined;
         }
     });
+
     const run = <Result>(
         snapshot: EditorSearchSnapshot,
         query: EditorFindQuery,
@@ -131,6 +139,7 @@ export function createSearchClient(options: EditorSearchClientOptions): EditorSe
                 if (reply.type === 'error') {
                     throw new EditorSearchError(reply.kind, reply.message);
                 }
+
                 return read(reply);
             })
             .catch((error) => {
@@ -141,6 +150,7 @@ export function createSearchClient(options: EditorSearchClientOptions): EditorSe
                       : new EditorSearchError('error', error instanceof Error ? error.message : String(error));
             });
     };
+
     return {
         search(snapshot, query, bounds = {}) {
             return run(
@@ -160,6 +170,7 @@ export function createSearchClient(options: EditorSearchClientOptions): EditorSe
                     if (reply.type !== 'matches') {
                         throw new EditorSearchError('error', 'The worker returned an unexpected search response.');
                     }
+
                     return { revision: reply.revision, ranges: reply.ranges, limited: reply.limited };
                 }
             );
@@ -167,7 +178,9 @@ export function createSearchClient(options: EditorSearchClientOptions): EditorSe
         match(snapshot, query, range) {
             const from = range.from,
                 to = range.to;
+
             const text = snapshot.text;
+
             return run(
                 snapshot,
                 query,
@@ -177,12 +190,15 @@ export function createSearchClient(options: EditorSearchClientOptions): EditorSe
                     if (reply.type !== 'match') {
                         throw new EditorSearchError('error', 'The worker returned an unexpected match response.');
                     }
+
                     if (reply.match === null) {
                         return null;
                     }
+
                     if (reply.match.from !== from || reply.match.to !== to) {
                         throw new EditorSearchError('error', 'The worker returned a different match range.');
                     }
+
                     return { ...reply.match, text: text.slice(from, to), revision: reply.revision };
                 }
             );
@@ -197,7 +213,9 @@ export function createSearchClient(options: EditorSearchClientOptions): EditorSe
                     if (reply.type !== 'next') {
                         throw new EditorSearchError('error', 'The worker returned an unexpected cursor response.');
                     }
+
                     const range = reply.range;
+
                     if (
                         range !== null &&
                         (!Number.isInteger(range.from) ||
@@ -210,6 +228,7 @@ export function createSearchClient(options: EditorSearchClientOptions): EditorSe
                     ) {
                         throw new EditorSearchError('error', 'The worker returned invalid cursor bounds.');
                     }
+
                     return range;
                 }
             );
@@ -218,6 +237,7 @@ export function createSearchClient(options: EditorSearchClientOptions): EditorSe
             const { from, to, preserveCase } = options;
             const maxEdits = options.maxEdits ?? 1000;
             const maxCharacters = options.maxCharacters ?? MAX_REPLACEMENT_CHARACTERS;
+
             return run(
                 snapshot,
                 query,
@@ -239,15 +259,19 @@ export function createSearchClient(options: EditorSearchClientOptions): EditorSe
                     if (reply.type !== 'replacements') {
                         throw new EditorSearchError('error', 'The worker returned an unexpected replacement response.');
                     }
+
                     if (reply.ranges.length % 3 !== 0 || reply.ranges.length / 3 > maxEdits || reply.text.length > maxCharacters) {
                         throw new EditorSearchError('error', 'The worker returned an invalid replacement page.');
                     }
+
                     let characters = 0;
                     let previous = from ?? 0;
                     let previousEmpty = false;
+
                     for (let index = 0; index < reply.ranges.length; index += 3) {
                         const start = reply.ranges[index]!,
                             end = reply.ranges[index + 1]!;
+
                         if (
                             start < previous ||
                             (previousEmpty && start === previous) ||
@@ -258,25 +282,33 @@ export function createSearchClient(options: EditorSearchClientOptions): EditorSe
                         ) {
                             throw new EditorSearchError('error', 'The worker returned invalid replacement bounds.');
                         }
+
                         previous = end;
                         previousEmpty = start === end;
                         characters += reply.ranges[index + 2]!;
                     }
+
                     if (characters !== reply.text.length) {
                         throw new EditorSearchError('error', 'The worker returned inconsistent replacement lengths.');
                     }
+
                     if (reply.next !== null) {
                         const index = reply.ranges.length - 3;
+
                         if (index < 0) {
                             throw new EditorSearchError('error', 'The worker returned an empty replacement continuation.');
                         }
+
                         const start = reply.ranges[index],
                             end = reply.ranges[index + 1];
+
                         const resume = end! + (start === end ? ((snapshot.text.codePointAt(end!) ?? 0) > 0xffff ? 2 : 1) : 0);
+
                         if (reply.next !== resume || reply.next > (to ?? snapshot.text.length)) {
                             throw new EditorSearchError('error', 'The worker returned an invalid replacement continuation.');
                         }
                     }
+
                     return { revision: reply.revision, ranges: reply.ranges, text: reply.text, next: reply.next };
                 },
                 () => {

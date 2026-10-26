@@ -2,10 +2,13 @@ import type { DocumentChange, DocumentModel } from '@adecore/editor-core';
 import type { LineTokenizer } from './types.ts';
 
 type Schedule = (callback: () => void, delay: number) => () => void;
+
 const scheduleTimer: Schedule = (callback, delay) => {
     const timer = setTimeout(callback, delay);
+
     return () => clearTimeout(timer);
 };
+
 const MAX_BUFFER = 64 * 1024;
 
 /* Edits collect language declarations without making every key wait for grammar loading. */
@@ -47,6 +50,7 @@ export class GrammarPreparation {
         if (this.disposed || this.paused) {
             return;
         }
+
         if (this.tokenizer === null || batches.length !== 1) {
             this.full = true;
             this.lastLine = -1;
@@ -55,32 +59,42 @@ export class GrammarPreparation {
         } else if (!this.full) {
             let shift = 0;
             let through = -1;
+
             for (const change of batches[0]!) {
                 const first = this.model.positionAt(change.from + shift).line;
                 const last = this.model.positionAt(change.from + shift + change.insertedLength).line;
                 shift += change.insertedLength - (change.to - change.from);
+
                 for (let line = Math.max(first, through + 1); line <= last; line++) {
                     const text = this.model.getLine(line).text;
                     const replacing = batches[0]!.length === 1 && first === last && line === this.lastLine;
+
                     if (replacing) {
                         this.size -= this.pending.pop()!.length + 1;
                     }
+
                     this.size += text.length + 1;
+
                     if (this.size > MAX_BUFFER) {
                         this.full = true;
                         this.pending = [];
                         this.lastLine = -1;
+
                         break;
                     }
+
                     this.pending.push(text);
                     this.lastLine = line;
                 }
+
                 through = last;
+
                 if (this.full) {
                     break;
                 }
             }
         }
+
         this.scheduleFlush();
     }
 
@@ -88,9 +102,11 @@ export class GrammarPreparation {
         if (this.paused === paused) {
             return;
         }
+
         this.paused = paused;
         this.generation++;
         this.clear();
+
         if (!paused) {
             this.full = true;
             this.scheduleFlush();
@@ -118,8 +134,10 @@ export class GrammarPreparation {
         if (this.disposed || this.paused || this.tokenizer?.prepare === undefined || (!this.full && this.pending.length === 0)) {
             return;
         }
+
         this.cancelTimer?.();
         this.due = false;
+
         this.cancelTimer = this.schedule(() => {
             this.cancelTimer = null;
             this.due = true;
@@ -129,9 +147,11 @@ export class GrammarPreparation {
 
     private async flush(): Promise<void> {
         const tokenizer = this.tokenizer;
+
         if (this.running || this.disposed || this.paused || tokenizer?.prepare === undefined || !this.due) {
             return;
         }
+
         const generation = this.generation;
         const text = this.full ? this.model.getText() : this.pending.join('\n');
         this.pending = [];
@@ -140,8 +160,10 @@ export class GrammarPreparation {
         this.full = false;
         this.due = false;
         this.running = true;
+
         try {
             await tokenizer.prepare(text);
+
             if (!this.disposed && !this.paused && generation === this.generation && tokenizer === this.tokenizer) {
                 // A load completed while paused may already have rebuilt this grammar.
                 this.changed();
@@ -150,6 +172,7 @@ export class GrammarPreparation {
             // Keep the current colors; a later edit may retry the failed load.
         } finally {
             this.running = false;
+
             if (this.due) {
                 void this.flush();
             }

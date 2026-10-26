@@ -236,6 +236,7 @@ test('regex previews and replacements never search the model on the page', async
     const pattern = '([a-z]+)(\\d+)';
     const mainSearch = spyOn(DocumentModel.prototype, 'find');
     const { editor, host } = setup({ text: 'cat12 cat34' });
+
     try {
         await findAsync(editor, { text: pattern, caseSensitive: false, wholeWord: false, regex: true });
         const preview = findEvent(editor, () => host.querySelector('.se-preview')?.textContent === 'cat:34');
@@ -245,12 +246,14 @@ test('regex previews and replacements never search the model on the page', async
         editor.findStep(1);
         await preview;
         expect(mainSearch).not.toHaveBeenCalled();
+
         const changed = new Promise<void>((resolve) => {
             const off = editor.onChange(() => {
                 off();
                 resolve();
             });
         });
+
         expect(editor.replace('$2')).toBe(true);
         await changed;
         expect(editor.getText()).toBe('cat12 34');
@@ -266,13 +269,17 @@ test('regex previews and replacements never search the model on the page', async
 test('limited replace-all refuses excess edits atomically while an empty selection replaces nothing', async () => {
     const original = DocumentModel.prototype.find;
     const revisions: number[] = [];
+
     const search = spyOn(DocumentModel.prototype, 'find').mockImplementation(function (this: DocumentModel, text, options) {
         if (text === 'a') {
             revisions.push(this.getRevision());
         }
+
         return original.call(this, text, options);
     });
+
     const { editor } = setup({ text: 'a '.repeat(10001) });
+
     try {
         editor.find({ text: 'a', caseSensitive: false, wholeWord: false, regex: false });
         const state = findEvent(editor, (value) => value.replaceFailed === 'limit' && !value.searching);
@@ -294,9 +301,11 @@ test('limited replace-all refuses excess edits atomically while an empty selecti
 test('the replacement anchor maps once and does not skip an adjacent match', () => {
     const { editor } = setup({ text: 'a a' });
     let state: EditorFindState = { count: 0, current: null };
+
     editor.onFind((value) => {
         state = value;
     });
+
     editor.find({ text: 'a', caseSensitive: false, wholeWord: false, regex: false });
     expect(editor.replace('aaa')).toBe(true);
     expect(editor.getText()).toBe('aaa a');
@@ -319,12 +328,14 @@ for (const regex of [false, true]) {
         const outside = findEvent(editor, (value) => !value.searching && value.current === null);
         editor.findStep(1);
         await outside;
+
         const changed = new Promise<void>((resolve) => {
             const off = editor.onChange(() => {
                 off();
                 resolve();
             });
         });
+
         expect(editor.replace('z')).toBe(true);
         await changed;
         expect(editor.getText()).toBe('a\n'.repeat(10000) + 'z\n');
@@ -356,6 +367,7 @@ test('zero-width steps beyond the cache wrap at EOF and skip their current posit
 test('regex find without a worker stays unavailable without searching the model', async () => {
     const { editor } = mount({ text: 'word' });
     const search = spyOn(DocumentModel.prototype, 'find');
+
     try {
         const state = await findAsync(editor, { text: 'word', regex: true, caseSensitive: true, wholeWord: false });
         expect(state.failed).toBe('unavailable');
@@ -369,9 +381,11 @@ test('regex find without a worker stays unavailable without searching the model'
 test('replacement output refusal leaves the text and undo history untouched', async () => {
     const { editor } = setup({ text: 'a a' });
     let state: EditorFindState = { count: 0, current: null };
+
     editor.onFind((value) => {
         state = value;
     });
+
     editor.find({ text: 'a', regex: false, caseSensitive: true, wholeWord: false });
     expect(await editor.replaceAllAsync('x'.repeat(2_000_001))).toBe(0);
     expect(state.replaceFailed).toBe('limit');

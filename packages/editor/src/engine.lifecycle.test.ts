@@ -8,7 +8,9 @@ describe('messages', () => {
     test('rename the fold controls without laying the text out again', () => {
         const { editor, host } = setup({ text: 'function a() {\n    one();\n}\n' });
         (editor as unknown as { view: EditorView }).view.refreshFolds();
+
         const toggle = (): HTMLElement => host.querySelector('.se-fold-toggle') as HTMLElement;
+
         const relayout = jest.spyOn(EditorView.prototype, 'applySettings');
         editor.setMessages({ fold: 'Close {start}-{end}' });
         expect(toggle().getAttribute('aria-label')).toBe('Close 1-3');
@@ -40,6 +42,7 @@ describe('mounting', () => {
 
     test('names its input with the label of the host, and takes a new one later', () => {
         const label = (host: HTMLElement): string | null => host.querySelector('.se-input')!.getAttribute('aria-label');
+
         expect(label(setup().host)).toBe('Code editor');
         const { editor, host } = setup({ label: 'Commit message' });
         expect(label(host)).toBe('Commit message');

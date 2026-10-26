@@ -35,10 +35,12 @@ describe('the primary caret', () => {
     test('is the one the view scrolls to', () => {
         const { model, view } = mount(text);
         const far = model.getLine(300).start;
+
         model.setSelections([
             { anchor: 0, head: 0 },
             { anchor: far, head: far }
         ]);
+
         view.revealCaret();
         expect(view.viewport.scrollTop).toBeGreaterThan(20 * 300 - 400);
     });
@@ -168,9 +170,12 @@ describe('the scroll width', () => {
     const CHAR = 7.8;
     const ROOM = 3 * CHAR;
     const widest = 'x'.repeat(200);
+
     const contentWidth = (host: HTMLElement): number => Number.parseFloat((host.querySelector('.se-content') as HTMLElement).style.width);
+
     const rule = (selector: string): string => {
         const css = readFileSync(new URL('./editor.css', import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+
         return css.split('}').find((block) => block.split('{')[0]!.trim() === selector) ?? '';
     };
 
@@ -218,6 +223,7 @@ describe('the scroll width', () => {
         view.setBlockWidgets('test', [{ id: 'w', at: 0, placement: 'below', height: 30, render: (container) => (container.textContent = 'peek') }]);
         const block = host.querySelector('.se-block') as HTMLElement;
         const width = contentWidth(host);
+
         for (const left of [0, 300, width - 736]) {
             view.viewport.scrollLeft = left;
             view.scrolled();

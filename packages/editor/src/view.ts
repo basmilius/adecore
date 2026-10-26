@@ -250,11 +250,13 @@ export class EditorView {
     private scopeKey = '';
     private readonly changeLayers = new Map<string, { kind: EditorChangeKind; from: number; to: number }[]>();
     private changeVersion = 0;
+
     private changeCache: {
         version: number;
         lines: Map<number, EditorChangeKind>;
         runs: { kind: EditorChangeKind; start: number; end: number }[];
     } | null = null;
+
     private readonly attribution = new AttributionRuns();
     private readonly highlights = new AttributionRuns();
     private remoteCarets: { id: string; name: string; color: string; at: number }[] = [];
@@ -331,11 +333,14 @@ export class EditorView {
         this.settings = settings;
         const document = container.ownerDocument;
         this.document = document;
+
         const make = <Tag extends keyof HTMLElementTagNameMap>(tag: Tag, className: string): HTMLElementTagNameMap[Tag] => {
             const element = document.createElement(tag);
             element.className = className;
+
             return element;
         };
+
         this.root = make('div', 'se-editor');
         this.gutter = make('div', 'se-gutter');
         this.gutterLines = make('div', 'se-gutter-lines');
@@ -353,9 +358,11 @@ export class EditorView {
         this.preview = make('div', 'se-preview');
         this.preview.setAttribute('aria-hidden', 'true');
         this.preview.hidden = true;
+
         for (const layer of [this.overlays, this.over, this.carets, this.remote]) {
             layer.setAttribute('aria-hidden', 'true');
         }
+
         code.setAttribute('aria-hidden', 'true');
         this.content.append(this.overlays, this.signs, code, this.over, this.carets, this.remote, this.actions, this.preview);
         // The gutter is in the scroller with the text and sticks to its left, so the browser moves both in the same frame.
@@ -369,9 +376,11 @@ export class EditorView {
         this.input = make('textarea', 'se-input');
         this.input.wrap = 'off';
         this.input.spellcheck = false;
+
         for (const name of ['autocapitalize', 'autocomplete', 'autocorrect']) {
             this.input.setAttribute(name, 'off');
         }
+
         this.input.setAttribute('enterkeyhint', 'enter');
         this.input.setAttribute('inputmode', 'text');
         this.input.setAttribute('aria-multiline', 'true');
@@ -395,36 +404,45 @@ export class EditorView {
 
         this.font = readEditorFont(this.root);
         this.layout = new EditorLayout(model, createMetrics(this.font, settings.tabSize, document));
+
         this.find = new FindController(model, {
             createClient: () => (settings.searchWorker === undefined ? null : createSearchClient({ workerFactory: settings.searchWorker })),
             changed: (reveal) => {
                 if (this.disposed) {
                     return;
                 }
+
                 this.announceFind();
+
                 if (reveal) {
                     this.revealFind();
                 }
+
                 this.paintPreview();
                 this.requestRender();
             }
         });
+
         this.tokens = new TokenCache({ getLineCount: () => model.getLineCount(), getLineText: (line) => model.getLine(line).text });
         const ResizeObserverClass = document.defaultView?.ResizeObserver;
+
         this.blockObserver = ResizeObserverClass
             ? new ResizeObserverClass((entries) => {
                   let changed = false;
+
                   this.anchorScroll(() => {
                       for (const entry of entries) {
                           const element = entry.target as HTMLElement;
                           changed = this.layout.setMeasuredHeight(element.dataset.rowKey!, element.getBoundingClientRect().height) || changed;
                       }
                   });
+
                   if (changed) {
                       this.render();
                   }
               })
             : undefined;
+
         this.resizeObserver = ResizeObserverClass ? new ResizeObserverClass(() => this.requestRender()) : undefined;
         this.resizeObserver?.observe(this.viewport);
         this.painter = new RowPainter(code, this.layout, this.blockObserver);
@@ -493,6 +511,7 @@ export class EditorView {
             text: inlay.text.replace(/[\r\n]/g, ' '),
             ...(inlay.parts === undefined ? {} : { parts: inlay.parts.map((part) => part.replace(/[\r\n]/g, ' ')) })
         }));
+
         this.configureText();
     }
 
@@ -502,6 +521,7 @@ export class EditorView {
         } else {
             this.blocks.set(owner, [...blocks]);
         }
+
         this.anchorScroll(() => this.layout.configure({ blocks: this.allBlocks() }));
         this.render();
     }
@@ -511,11 +531,13 @@ export class EditorView {
         if (replacements.length === 0 && !this.replacements.has(owner)) {
             return;
         }
+
         if (replacements.length === 0) {
             this.replacements.delete(owner);
         } else {
             this.replacements.set(owner, [...replacements]);
         }
+
         this.anchorScroll(() => this.layout.configure({ replacements: this.allReplacements() }));
         this.render();
     }
@@ -534,6 +556,7 @@ export class EditorView {
     /* Rows under the same line go by owner name and then by the order the owner gave them, so they never swap places when another owner sets its own. */
     private allBlocks(): BlockWidget[] {
         const owners = [...this.blocks.keys()].sort();
+
         return [...owners.flatMap((owner) => this.blocks.get(owner)!), ...this.lenses];
     }
 
@@ -541,6 +564,7 @@ export class EditorView {
         if (occurrences.length === 0 && this.occurrences.length === 0) {
             return;
         }
+
         this.occurrences = [...occurrences];
         this.render();
     }
@@ -570,51 +594,69 @@ export class EditorView {
     /* The grammar's colors of a line with the servers' laid over them, the same object for as long as neither changed. */
     private styledTokensOf(line: number): readonly LineToken[] | null {
         const base = this.lineTokenProvider === null ? this.tokens.tokensOf(line) : (this.lineTokenProvider(line) ?? null);
+
         if (base === null || this.semantic.length === 0 || this.scopeColors === null) {
             return base;
         }
+
         const spans = this.semanticSpans().get(line);
+
         if (spans === undefined) {
             return base;
         }
+
         const signature = spans.map((span) => `${span.from}:${span.to}:${span.color}:${span.fontStyle}:${span.within ?? ''}`).join('|');
         const cached = this.semanticLines.get(line);
+
         if (cached?.base === base && cached.signature === signature) {
             return cached.result;
         }
+
         if (this.semanticLines.size > 600) {
             this.semanticLines.clear();
         }
+
         const result = overlayTokens(base, spans);
         this.semanticLines.set(line, { base, signature, result });
+
         return result;
     }
 
     private semanticSpans(): Map<number, SemanticSpan[]> {
         const key = `${this.revision}|${this.semanticVersion}`;
+
         if (this.semanticIndex?.key === key) {
             return this.semanticIndex.lines;
         }
+
         const lines = new Map<number, SemanticSpan[]>();
         const colors = this.scopeColors;
+
         for (const token of this.semantic) {
             const style = colors?.(token.scopes);
+
             if (style === undefined || token.to <= token.from) {
                 continue;
             }
+
             const line = this.model.positionAt(token.from).line;
             const { start, end } = this.model.getLine(line);
+
             if (token.to > end) {
                 continue;
             }
+
             const list = lines.get(line) ?? [];
             list.push({ from: token.from - start, to: token.to - start, color: style.color, fontStyle: style.fontStyle, within: token.within });
             lines.set(line, list);
         }
+
         for (const list of lines.values()) {
             list.sort((left, right) => left.from - right.from);
         }
+
         this.semanticIndex = { key, lines };
+
         return lines;
     }
 
@@ -634,6 +676,7 @@ export class EditorView {
         this.notice.textContent = message;
         this.notice.hidden = false;
         clearTimeout(this.noticeTimer);
+
         this.noticeTimer = setTimeout(() => {
             this.notice.hidden = true;
         }, NOTICE_MS);
@@ -644,9 +687,11 @@ export class EditorView {
         if (!this.settings.readOnly) {
             return false;
         }
+
         if (this.settings.readOnlyReason) {
             this.notify(this.settings.readOnlyReason);
         }
+
         return true;
     }
 
@@ -654,7 +699,9 @@ export class EditorView {
         const template =
             (collapsed ? this.settings.messages.unfold : this.settings.messages.fold) ??
             (collapsed ? 'Unfold lines {start} to {end}' : 'Fold lines {start} to {end}');
+
         const end = this.foldAt(line)?.endLine ?? line;
+
         return template.replace('{start}', String(line + 1)).replace('{end}', String(end + 1));
     }
 
@@ -672,11 +719,14 @@ export class EditorView {
             for (const name of ['aria-expanded', 'aria-controls', 'aria-autocomplete', 'aria-activedescendant']) {
                 this.input.removeAttribute(name);
             }
+
             return;
         }
+
         this.input.setAttribute('aria-expanded', 'true');
         this.input.setAttribute('aria-autocomplete', 'list');
         this.input.setAttribute('aria-controls', popup.controls);
+
         if (popup.activeDescendant === undefined) {
             this.input.removeAttribute('aria-activedescendant');
         } else {
@@ -748,13 +798,16 @@ export class EditorView {
             this.rowEndCaret = null;
             this.hoverOffset = null;
             const batches = snapshot.changes ?? [];
+
             if (this.ghost !== null && batches.length > 0) {
                 this.ghost = null;
                 this.layoutGhostParts();
             }
+
             for (const changes of batches) {
                 this.followEdit(changes);
             }
+
             this.foldRanges = this.mappedFolds(batches);
             this.semanticVersion++;
             this.markerVersion++;
@@ -765,6 +818,7 @@ export class EditorView {
             this.outline.edited(batches);
             this.changeVersion++;
             this.tokens.edited(batches, (offset) => this.model.positionAt(offset).line);
+
             this.layout.configure({
                 textChanged: true,
                 changes: batches,
@@ -773,21 +827,27 @@ export class EditorView {
                 folds: this.foldStates(),
                 replacements: this.allReplacements()
             });
+
             if (anchor && this.viewport.scrollTop > 0) {
                 let offset = anchor.offset;
+
                 for (const changes of batches) {
                     offset = mapOffset(offset, changes);
                 }
+
                 this.viewport.scrollTop = Math.max(0, this.layout.rowForLine(this.model.positionAt(offset).line).top + anchor.delta);
             }
+
             this.find.refresh();
             this.announceFind();
             this.scheduleFolds();
             this.colorAhead(true);
         }
+
         if (this.rowEndCaret !== null && this.model.getPrimary().head !== this.rowEndCaret) {
             this.rowEndCaret = null;
         }
+
         this.requestRender();
     }
 
@@ -795,49 +855,60 @@ export class EditorView {
     private followEdit(changes: readonly DocumentChange[]): void {
         const map = offsetMapper(changes);
         this.inlays = this.inlays.map((inlay) => ({ ...inlay, at: map(inlay.at) }));
+
         for (const [owner, blocks] of this.blocks) {
             this.blocks.set(
                 owner,
                 blocks.map((block) => ({ ...block, at: map(block.at) }))
             );
         }
+
         this.lenses = this.lenses.map((lens) => ({ ...lens, at: map(lens.at) }));
+
         for (const [owner, entries] of this.replacements) {
             this.replacements.set(
                 owner,
                 entries.map((entry) => ({ ...entry, from: map(entry.from), to: map(entry.to) }))
             );
         }
+
         this.collapsed = new Set([...this.collapsed].map((anchor) => map(anchor)));
         this.settled = new Set([...this.settled].map((anchor) => map(anchor)));
+
         if (this.foldHints !== null) {
             this.foldHints = mapFoldHints(this.foldHints, map);
         }
+
         this.customFolds = this.customFolds.map((fold) => mapRange(fold, map));
         this.find.mapBounds(changes);
+
         for (const [layer, marks] of this.changeLayers) {
             this.changeLayers.set(
                 layer,
                 marks.map((mark) => mapRange(mark, map))
             );
         }
+
         this.markers = this.markers.map((marker) => mapRange(marker, map));
         this.mapTracked(changes);
         this.attribution.map(changes, map);
         this.highlights.map(changes, map);
         this.remoteCarets = this.remoteCarets.map((caret) => ({ ...caret, at: map(caret.at) }));
+
         for (const [owner, entries] of this.lineActions) {
             this.lineActions.set(
                 owner,
                 entries.map((entry) => ({ ...entry, at: map(entry.at) }))
             );
         }
+
         this.semantic = this.semantic.map((token) => mapRange(token, map));
     }
 
     private mapTracked(changes: readonly DocumentChange[]): void {
         for (const entry of this.tracked) {
             const mapped = mapTrackedRange(entry.from, entry.to, changes);
+
             if (mapped === null) {
                 entry.lost = true;
                 this.tracked.delete(entry);
@@ -852,6 +923,7 @@ export class EditorView {
     trackRange(from: number, to: number): { get(): { from: number; to: number } | null; dispose(): void } {
         const entry = { from, to, lost: false };
         this.tracked.add(entry);
+
         return {
             get: () => (entry.lost ? null : { from: entry.from, to: entry.to }),
             dispose: () => {
@@ -865,19 +937,24 @@ export class EditorView {
     private mappedFolds(batches: readonly (readonly DocumentChange[])[]): ViewFold[] {
         const mappers = batches.map(offsetMapper);
         const mapped: ViewFold[] = [];
+
         for (const range of this.foldRanges) {
             let from = range.from;
             let to = range.to;
+
             for (const map of mappers) {
                 from = map(from);
                 to = map(to);
             }
+
             const startLine = this.model.positionAt(from).line;
             const endLine = this.model.positionAt(to).line;
+
             if (endLine > startLine) {
                 mapped.push({ ...range, from, to, startLine, endLine });
             }
         }
+
         return mapped;
     }
 
@@ -885,7 +962,9 @@ export class EditorView {
         const inlays = this.composition
             ? [...this.inlays, { id: '__composition', at: this.model.getPrimary().head, text: this.composition, composition: true }]
             : this.inlays;
+
         const [first = ''] = this.ghost?.text.split(/\r?\n/) ?? [];
+
         return this.ghost === null || first === '' ? inlays : [...inlays, { id: '__ghost', at: this.ghost.at, text: first, ghost: true }];
     }
 
@@ -900,6 +979,7 @@ export class EditorView {
         const ghost = this.ghost;
         const [, ...rest] = ghost?.text.split(/\r?\n/) ?? [];
         const owner = '__ghost';
+
         this.setBlockWidgets(
             owner,
             ghost === null || rest.length === 0
@@ -917,6 +997,7 @@ export class EditorView {
                       }
                   ]
         );
+
         this.setLineActions(
             owner,
             ghost?.accessory === undefined
@@ -943,6 +1024,7 @@ export class EditorView {
     private foldStates(): FoldState[] {
         return this.foldRanges.map((range) => {
             const collapsed = this.collapsed.has(range.from);
+
             return {
                 startLine: range.startLine,
                 endLine: range.endLine,
@@ -956,9 +1038,11 @@ export class EditorView {
     /* The folds of the document, a moment after the last edit since they read all of it. */
     private scheduleFolds(): void {
         clearTimeout(this.foldTimer);
+
         if (this.settings.folding === false) {
             return;
         }
+
         this.foldTimer = setTimeout(() => this.refreshFolds(), FOLD_DELAY_MS);
     }
 
@@ -967,6 +1051,7 @@ export class EditorView {
         if (this.disposed || this.settings.folding === false) {
             return;
         }
+
         const ranges =
             this.model.getLength() > FOLD_LIMIT
                 ? []
@@ -976,7 +1061,9 @@ export class EditorView {
                       ...(this.settings.language === undefined ? {} : { language: this.settings.language }),
                       ...(this.foldHints === null ? {} : { hints: this.foldHints })
                   });
+
         this.foldRanges = this.withCustomFolds(ranges);
+
         this.outline.setStructure(
             structuralEntries(
                 ranges,
@@ -985,6 +1072,7 @@ export class EditorView {
                 (offset) => this.model.matchBracket(offset, this.settings.language)?.mate
             )
         );
+
         const anchors = new Set(this.foldRanges.map((range) => range.from));
         this.collapsed = new Set([...this.collapsed].filter((anchor) => anchors.has(anchor)));
         this.refoldLayout();
@@ -995,8 +1083,10 @@ export class EditorView {
         const custom = this.customFolds.flatMap((fold): ViewFold[] => {
             const startLine = this.model.positionAt(fold.from).line;
             const endLine = this.model.positionAt(fold.to).line;
+
             return endLine > startLine ? [{ startLine, endLine, from: fold.from, to: fold.to, kind: 'custom' }] : [];
         });
+
         return [...ranges, ...custom].sort((left, right) => left.startLine - right.startLine || right.endLine - left.endLine);
     }
 
@@ -1005,14 +1095,18 @@ export class EditorView {
         if (range.kind === 'comment') {
             return range.to - 2;
         }
+
         if (range.kind !== 'bracket') {
             return undefined;
         }
+
         const lineStart = this.model.getLine(range.endLine).start;
         let start = range.to - 1;
+
         while (start > lineStart && /[)\]}]/.test(this.model.slice(start - 1, start))) {
             start--;
         }
+
         return start;
     }
 
@@ -1024,6 +1118,7 @@ export class EditorView {
     /* The range that starts on a line when it is the only one, as the platform's fold commands read a line. */
     private soleFoldAt(line: number): ViewFold | undefined {
         const starting = this.foldRanges.filter((range) => range.startLine === line);
+
         return starting.length === 1 ? starting[0] : undefined;
     }
 
@@ -1038,6 +1133,7 @@ export class EditorView {
 
     private setCollapsed(range: ViewFold, collapse: boolean): void {
         this.settled.add(range.from);
+
         if (collapse) {
             this.collapsed.add(range.from);
         } else {
@@ -1048,16 +1144,21 @@ export class EditorView {
     /* A click on a line's control: the outermost range there folds, and unfolding opens every range that starts there. */
     toggleFold(line: number, collapse?: boolean): boolean {
         const range = this.foldAt(line);
+
         if (!range) {
             return false;
         }
+
         const next = collapse ?? !this.foldRanges.some((candidate) => candidate.startLine === line && this.isCollapsed(candidate));
+
         for (const candidate of this.foldRanges) {
             if (candidate.startLine === line && (next ? candidate === range : true)) {
                 this.setCollapsed(candidate, next);
             }
         }
+
         this.refoldLayout();
+
         return true;
     }
 
@@ -1065,17 +1166,21 @@ export class EditorView {
     collapseRegion(): void {
         const carets = this.model.getSelections();
         const primary = this.model.getPrimary().head;
+
         for (const caret of carets) {
             const range = this.soleFoldAt(this.model.positionAt(caret.head).line);
+
             if (range !== undefined && !this.isCollapsed(range)) {
                 this.setCollapsed(range, true);
             } else {
                 const open = this.foldsAt(primary).find((candidate) => !this.isCollapsed(candidate));
+
                 if (open !== undefined) {
                     this.setCollapsed(open, true);
                 }
             }
         }
+
         this.refoldLayout();
     }
 
@@ -1083,15 +1188,18 @@ export class EditorView {
     expandRegion(): void {
         for (const caret of this.model.getSelections()) {
             const range = this.soleFoldAt(this.model.positionAt(caret.head).line);
+
             if (range !== undefined && this.isCollapsed(range)) {
                 this.setCollapsed(range, false);
             } else {
                 const closed = this.foldsAt(caret.head).findLast((candidate) => this.isCollapsed(candidate));
+
                 if (closed !== undefined) {
                     this.setCollapsed(closed, false);
                 }
             }
         }
+
         this.refoldLayout();
     }
 
@@ -1099,9 +1207,11 @@ export class EditorView {
     private foldTreeAtCaret(collapse: boolean): ViewFold[] {
         const head = this.model.getPrimary().head;
         let root = this.soleFoldAt(this.model.positionAt(head).line);
+
         if (root === undefined || (collapse && this.isCollapsed(root))) {
             root = this.foldsAt(head).find((candidate) => !this.isCollapsed(candidate) === collapse);
         }
+
         return root === undefined ? [] : this.foldRanges.filter((range) => root.from <= range.from && range.to <= root.to);
     }
 
@@ -1109,6 +1219,7 @@ export class EditorView {
         for (const range of this.foldTreeAtCaret(true)) {
             this.setCollapsed(range, true);
         }
+
         this.refoldLayout();
     }
 
@@ -1116,6 +1227,7 @@ export class EditorView {
         for (const range of this.foldTreeAtCaret(false)) {
             this.setCollapsed(range, false);
         }
+
         this.refoldLayout();
     }
 
@@ -1125,9 +1237,11 @@ export class EditorView {
         const from = Math.min(anchor, head);
         const to = Math.max(anchor, head);
         const inside = from === to ? [] : this.foldRanges.filter((range) => from <= range.from && range.to <= to);
+
         for (const range of inside.length > 0 ? inside : this.foldRanges) {
             this.setCollapsed(range, collapse);
         }
+
         this.refoldLayout();
     }
 
@@ -1140,29 +1254,39 @@ export class EditorView {
         if (this.settings.folding === false) {
             return;
         }
+
         const { anchor, head } = this.model.getPrimary();
         let from = Math.min(anchor, head);
         let to = Math.max(anchor, head);
+
         if (from === to) {
             const around = this.foldsAt(head)[0];
+
             if (around?.kind === 'custom') {
                 this.customFolds = this.customFolds.filter((fold) => fold.from !== around.from);
                 this.collapsed.delete(around.from);
             } else if (around !== undefined) {
                 this.setCollapsed(around, !this.isCollapsed(around));
             }
+
             this.refreshFolds();
+
             return;
         }
+
         if (this.model.slice(to - 1, to) === '\n') {
             to--;
         }
+
         const startLine = this.model.positionAt(from).line;
+
         if (this.model.positionAt(to).line <= startLine) {
             return;
         }
+
         from = this.model.getLine(startLine).start;
         const existing = this.foldRanges.find((range) => range.kind === 'custom' && range.from === from && range.to === to);
+
         if (existing !== undefined) {
             this.customFolds = this.customFolds.filter((fold) => fold.from !== from);
             this.collapsed.delete(from);
@@ -1170,12 +1294,14 @@ export class EditorView {
             this.customFolds = [...this.customFolds, { from, to }];
             this.collapsed.add(from);
         }
+
         this.refreshFolds();
     }
 
     /* The lines that are folded and the ones a selection folded, for a host that opens the file again where it left it. */
     getFolds(): { collapsed: { startLine: number; endLine: number }[]; custom: { startLine: number; endLine: number }[] } {
         const lines = (range: ViewFold): { startLine: number; endLine: number } => ({ startLine: range.startLine, endLine: range.endLine });
+
         return {
             collapsed: this.foldRanges.filter((range) => this.isCollapsed(range)).map(lines),
             custom: this.foldRanges.filter((range) => range.kind === 'custom').map(lines)
@@ -1194,22 +1320,28 @@ export class EditorView {
         if (this.settings.folding === false) {
             return;
         }
+
         const last = this.model.getLineCount() - 1;
+
         if (state !== null) {
             this.customFolds = state.custom
                 .filter((fold) => fold.startLine < fold.endLine && fold.endLine <= last)
                 .map((fold) => ({ from: this.model.getLine(fold.startLine).start, to: this.model.getLine(fold.endLine).end }));
         }
+
         this.refreshFolds();
         this.defaultRoles = state === null && defaults.length > 0 ? new Set(defaults) : null;
+
         for (const remembered of state?.collapsed ?? []) {
             const match =
                 this.foldRanges.find((range) => range.startLine === remembered.startLine && range.endLine === remembered.endLine) ??
                 this.foldRanges.find((range) => range.startLine === remembered.startLine);
+
             if (match !== undefined) {
                 this.setCollapsed(match, true);
             }
         }
+
         this.applyFoldDefaults();
         this.refoldLayout();
     }
@@ -1225,14 +1357,18 @@ export class EditorView {
     /* Folds the ranges whose role is a default, except a range somebody decided on or one that has the caret or a selection in it. */
     private applyFoldDefaults(): void {
         const roles = this.defaultRoles;
+
         if (roles === null) {
             return;
         }
+
         const lines = this.model
             .getSelections()
             .flatMap((selection) => [this.model.positionAt(selection.anchor).line, this.model.positionAt(selection.head).line]);
+
         for (const range of this.foldRanges) {
             const hidesCaret = lines.some((line) => line > range.startLine && line <= range.endLine);
+
             if (range.role !== undefined && roles.has(range.role) && !this.settled.has(range.from) && !hidesCaret) {
                 this.setCollapsed(range, true);
             }
@@ -1246,6 +1382,7 @@ export class EditorView {
                 this.setCollapsed(range, collapse);
             }
         }
+
         this.refoldLayout();
     }
 
@@ -1255,17 +1392,21 @@ export class EditorView {
      */
     expandAllToLevel(level: number): void {
         const open: ViewFold[] = [];
+
         for (const range of this.foldRanges) {
             while (open.length > 0 && !(open.at(-1)!.from <= range.from && range.to <= open.at(-1)!.to)) {
                 open.pop();
             }
+
             if (open.length < level) {
                 this.setCollapsed(range, false);
             } else if (open.length === level) {
                 this.setCollapsed(range, true);
             }
+
             open.push(range);
         }
+
         this.refoldLayout();
     }
 
@@ -1281,11 +1422,15 @@ export class EditorView {
             if (!this.layout.hides(offset)) {
                 return offset;
             }
+
             const row = this.layout.rowForLine(this.model.positionAt(offset).line);
+
             return row.kind === 'text' && row.head !== null ? row.head : this.model.getLine(row.line).end;
         };
+
         const selections = this.model.getSelections();
         const moved = selections.map((selection) => ({ anchor: visible(selection.anchor), head: visible(selection.head) }));
+
         if (moved.some((selection, index) => selection.anchor !== selections[index]!.anchor || selection.head !== selections[index]!.head)) {
             this.model.setSelections(moved);
         }
@@ -1295,32 +1440,40 @@ export class EditorView {
     ensureVisible(offset: number): void {
         const line = this.model.positionAt(offset).line;
         const row = this.layout.rowForLine(line);
+
         if (row.kind === 'text') {
             row.replacement?.onReveal?.();
         }
+
         if (!this.layout.hides(offset)) {
             return;
         }
+
         for (const range of this.foldRanges) {
             if ((range.startLine < line && range.endLine >= line) || (range.startLine === line && range.head !== undefined && offset > range.head)) {
                 this.collapsed.delete(range.from);
                 this.settled.add(range.from);
             }
         }
+
         this.anchorScroll(() => this.layout.configure({ folds: this.foldStates() }));
     }
 
     /* Keeps the first row on screen where it is while the rows above it change height. */
     private anchorScroll(action: () => void): void {
         const top = this.viewport.scrollTop;
+
         if (top <= 0) {
             action();
+
             return;
         }
+
         const anchor = this.layout.rowAt(top);
         const offset = top - anchor.top;
         action();
         const next = this.layout.rowByKey(anchor.key);
+
         if (next) {
             // Unwrapping can shrink the anchor below its old offset.
             this.viewport.scrollTop = Math.max(0, next.top + Math.min(offset, Math.max(0, next.height - 1)));
@@ -1330,6 +1483,7 @@ export class EditorView {
     private syncWrap(): void {
         const width =
             this.settings.wrap && this.viewport.clientWidth > 0 ? Math.max(this.layout.metrics.charWidth * 8, this.viewportWidth - RIGHT_PADDING) : null;
+
         if (width !== this.wrapWidth) {
             this.wrapWidth = width;
             this.layoutVersion++;
@@ -1341,13 +1495,16 @@ export class EditorView {
         if (Math.abs(head - anchor) > 1) {
             return undefined;
         }
+
         const candidates = anchor !== head ? [Math.min(anchor, head)] : [head, head - 1];
+
         return candidates.find((at) => at >= 0 && /[()[\]{}]/.test(this.model.slice(at, at + 1)));
     }
 
     /* The offset a bracket at the caret pairs with, if it is one. */
     matchingBracket(selection: { anchor: number; head: number }): { at: number; mate: number | undefined } | null {
         const at = this.bracketAt(selection);
+
         return at === undefined ? null : { at, mate: this.model.matchBracket(at, this.settings.language)?.mate };
     }
 
@@ -1360,10 +1517,13 @@ export class EditorView {
     /* A point of the screen in the coordinates of the content, undoing the scale a canvas puts on a node. */
     contentPoint(clientX: number, clientY: number): { x: number; y: number } {
         const rect = this.viewport.getBoundingClientRect?.();
+
         if (!rect) {
             return { x: clientX - this.gutterWidth + this.viewport.scrollLeft, y: clientY + this.viewport.scrollTop };
         }
+
         const scale = this.screenScale(rect);
+
         return {
             x: (clientX - rect.left) / scale.x - this.gutterWidth + this.viewport.scrollLeft,
             y: (clientY - rect.top) / scale.y + this.viewport.scrollTop
@@ -1374,6 +1534,7 @@ export class EditorView {
         const point = this.contentPoint(clientX, clientY);
         const hit = this.layout.hitTestRow(point.x, point.y);
         this.rowEndCaret = hit.rowEnd ? hit.offset : null;
+
         return hit.offset;
     }
 
@@ -1388,13 +1549,16 @@ export class EditorView {
     /* The character cell at an offset in the page's pixels, undoing nothing: a popup placed by it is right at any zoom. */
     clientRectOf(offset: number): EditorRect | null {
         const rect = this.viewport.getBoundingClientRect?.();
+
         if (!rect) {
             return null;
         }
+
         const scale = this.screenScale(rect);
         const caret = this.layout.caret(offset);
         const left = rect.left + (caret.x + this.gutterWidth - this.viewport.scrollLeft) * scale.x;
         const top = rect.top + (caret.y - this.viewport.scrollTop) * scale.y;
+
         return { left, top, right: left + this.layout.metrics.charWidth * scale.x, bottom: top + caret.height * scale.y };
     }
 
@@ -1403,34 +1567,43 @@ export class EditorView {
         if (closestElement(target, '.se-inlay, .se-block, .se-line-action, .se-gutter, .se-sticky, .se-fold-chip, .se-overview')) {
             return null;
         }
+
         const point = this.contentPoint(clientX, clientY);
+
         if (point.y < 0 || point.y > this.layout.height) {
             return null;
         }
+
         const row = this.layout.rowAt(point.y);
+
         if (row.kind !== 'text') {
             return null;
         }
+
         const hit = this.layout.hitTestRow(point.x, point.y);
         const caret = this.layout.caret(hit.offset);
         const line = this.model.getLine(row.line);
         const offset = point.x >= caret.x ? hit.offset : hit.offset - 1;
+
         // Past the last character of a line the nearest stop is its end, which no character is under.
         if (offset < line.start || offset >= line.end || Math.abs(point.x - caret.x) > this.layout.metrics.charWidth * 1.5) {
             return null;
         }
+
         return offset;
     }
 
     /* The visual line an offset is on, where a caret drawn at the end of a wrapped row counts as being on that row. */
     rowOf(offset: number): { start: number; end: number } {
         const { start, end } = this.layout.visualLine(offset === this.rowEndCaret ? offset - 1 : offset);
+
         return { start, end };
     }
 
     /* The lines that stand on one row of the screen: a collapsed fold is a row, from its first line to its last. */
     lineSpan(line: number): { first: number; last: number } {
         const row = this.layout.rowForLine(line);
+
         return row.kind === 'text' ? { first: row.line, last: row.lastLine } : { first: line, last: line };
     }
 
@@ -1438,27 +1611,33 @@ export class EditorView {
     refoldMoved(folded: readonly { startLine: number; endLine: number }[], moves: readonly { from: number; to: number }[]): void {
         const moved = new Map(moves.map((move) => [move.from, move.to]));
         this.refreshFolds();
+
         for (const range of this.foldRanges) {
             if (moved.size > 0 && [...moved.values()].includes(range.startLine)) {
                 this.collapsed.delete(range.from);
             }
         }
+
         for (const fold of folded) {
             const start = moved.get(fold.startLine);
+
             const target =
                 start === undefined
                     ? undefined
                     : this.foldRanges.find((range) => range.startLine === start && range.endLine === start + fold.endLine - fold.startLine);
+
             if (target !== undefined) {
                 this.setCollapsed(target, true);
             }
         }
+
         this.refoldLayout();
     }
 
     /* A caret that went to the end of a wrapped row stays drawn there, though its offset is where the next row starts. */
     markRowEnd(offset: number): void {
         const line = this.model.getLine(this.model.positionAt(offset).line);
+
         if (offset > line.start && offset < line.end && this.layout.visualLine(offset).start === offset) {
             this.rowEndCaret = offset;
             this.requestRender();
@@ -1479,19 +1658,25 @@ export class EditorView {
         const from = only === null ? 0 : Math.min(only.anchor, only.head);
         const to = only === null ? 0 : Math.max(only.anchor, only.head);
         const key = `${this.revision}|${from}|${to}`;
+
         if (this.selectionOccurrenceCache.key === key) {
             return this.selectionOccurrenceCache.ranges;
         }
+
         let ranges: { from: number; to: number }[] = [];
         const text = to - from > 0 && to - from <= OCCURRENCE_TEXT_LIMIT ? this.model.slice(from, to) : '';
+
         if (text.trim() !== '' && !/[\r\n]/.test(text) && this.model.getLength() <= FOLD_LIMIT) {
             const found = this.model.find(text, { maxResults: OCCURRENCE_LIMIT + 1 });
+
             ranges =
                 found.length > OCCURRENCE_LIMIT
                     ? []
                     : found.filter((match) => match.from !== from || match.to !== to).map((match) => ({ from: match.from, to: match.to }));
         }
+
         this.selectionOccurrenceCache = { key, ranges };
+
         return ranges;
     }
 
@@ -1506,6 +1691,7 @@ export class EditorView {
     private visibleTextBounds(row: TextRow): { from: number; to: number } {
         const geometry = this.layout.geometry(row);
         const band = subRowBand(row.top, geometry.subRows, this.layout.metrics.lineHeight, this.paintWindow);
+
         return {
             from: geometry.start + offsetOfStop(geometry, geometry.rowStarts[band.first]!),
             to:
@@ -1520,25 +1706,32 @@ export class EditorView {
         if (!this.layout.wrapping) {
             return [];
         }
+
         const lineHeight = this.layout.metrics.lineHeight;
         const signs: WrapSign[] = [];
+
         for (const row of rows) {
             if (row.kind !== 'text' || row.subRows < 2) {
                 continue;
             }
+
             const geometry = this.layout.geometry(row);
             const band = subRowBand(row.top, geometry.subRows, lineHeight, this.paintWindow);
+
             for (let subRow = band.first; subRow <= band.last; subRow++) {
                 const y = row.top + subRow * lineHeight;
+
                 if (subRow + 1 < geometry.subRows) {
                     const x = geometry.rowEnds[subRow]!;
                     signs.push({ x, y, width: this.viewportWidth - x });
                 }
+
                 if (subRow > 0) {
                     signs.push({ x: 0, y, width: xOfStop(geometry, geometry.rowStarts[subRow]!) });
                 }
             }
         }
+
         return signs.filter((sign) => sign.width >= 3);
     }
 
@@ -1546,27 +1739,33 @@ export class EditorView {
     private indentOf(line: number): number | null {
         const text = this.model.getLine(line).text;
         const lead = /^[\t ]*/.exec(text)![0];
+
         return lead.length === text.length ? null : indentationColumn(lead, this.settings.tabSize);
     }
 
     /* The indentation a line is read at: a blank one takes the lesser of the lines around it, so a guide runs through it. */
     private effectiveIndent(line: number): number {
         const own = this.indentOf(line);
+
         if (own !== null) {
             return own;
         }
+
         return Math.min(this.nearestIndent(line, -1, GUIDE_SCAN_LINES), this.nearestIndent(line, 1, GUIDE_SCAN_LINES));
     }
 
     /* The indentation of the first line that is not blank within `reach` lines of `line` in `direction`, or 0. */
     private nearestIndent(line: number, direction: -1 | 1, reach: number): number {
         const last = this.model.getLineCount() - 1;
+
         for (let at = line + direction, steps = 0; at >= 0 && at <= last && steps < reach; at += direction, steps++) {
             const indent = this.indentOf(at);
+
             if (indent !== null) {
                 return indent;
             }
         }
+
         return 0;
     }
 
@@ -1574,9 +1773,11 @@ export class EditorView {
     private activeGuide(): { column: number; first: number; last: number } | null {
         const line = this.model.positionAt(this.model.getPrimary().head).line;
         const key = `${this.revision}|${line}|${this.settings.tabSize}`;
+
         if (this.activeGuideCache?.key !== key) {
             this.activeGuideCache = { key, guide: this.scopeGuide(line) };
         }
+
         return this.activeGuideCache.guide;
     }
 
@@ -1585,25 +1786,33 @@ export class EditorView {
         const size = this.settings.tabSize;
         const indent = this.effectiveIndent(line);
         const count = this.model.getLineCount();
+
         const deeper = (at: number, column: number): boolean => at >= 0 && at < count && this.effectiveIndent(at) > column;
+
         const next = this.nearestIndent(line, 1, GUIDE_SCAN_LINES - 1);
         const previous = this.nearestIndent(line, -1, GUIDE_SCAN_LINES - 1);
         // A line that opens a block, or closes one, is at the edge of its guide: the one that sits at its own indentation.
         const opens = indent % size === 0 && (next > indent || previous > indent) && this.indentOf(line) !== null;
         const column = opens ? indent : indent > 0 ? Math.ceil(indent / size - 1) * size : -1;
+
         if (column < 0) {
             return null;
         }
+
         const reaches = (from: number, direction: -1 | 1): number => {
             let at = from;
+
             while (deeper(at + direction, column) && Math.abs(at - line) < GUIDE_RUN_LINES) {
                 at += direction;
             }
+
             return at;
         };
+
         const inside = deeper(line, column);
         const first = inside ? reaches(line, -1) : next > indent ? line + 1 : reaches(line - 1, -1);
         const last = inside ? reaches(line, 1) : next > indent ? reaches(line + 1, 1) : line - 1;
+
         return { column, first, last };
     }
 
@@ -1611,9 +1820,11 @@ export class EditorView {
     private caretOnGuide(): { line: number; column: number } | null {
         const position = this.model.positionAt(this.model.getPrimary().head);
         const lead = this.model.getLine(position.line).text.slice(0, position.column);
+
         if (position.column === 0 || !/^[\t ]*$/.test(lead)) {
             return null;
         }
+
         return { line: position.line, column: indentationColumn(lead, this.settings.tabSize) };
     }
 
@@ -1628,13 +1839,16 @@ export class EditorView {
         const caret = this.caretOnGuide();
         const plain: LayoutRect[] = [];
         const marked: LayoutRect[] = [];
+
         interface Open {
             top: number;
             bottom: number;
             first: number;
             last: number;
         }
+
         const open = new Map<number, Open>();
+
         const close = (column: number): void => {
             const segment = open.get(column)!;
             open.delete(column);
@@ -1643,21 +1857,27 @@ export class EditorView {
             const under = caret !== null && caret.column === column && segment.first <= caret.line && caret.line <= segment.last;
             (scope || under ? marked : plain).push(rect);
         };
+
         for (const row of rows) {
             if (row.kind !== 'text') {
                 for (const segment of open.values()) {
                     segment.bottom = row.top + row.height;
                 }
+
                 continue;
             }
+
             const indent = this.effectiveIndent(row.line);
+
             for (const column of [...open.keys()]) {
                 if (column >= indent) {
                     close(column);
                 }
             }
+
             for (let column = 0; column < indent; column += size) {
                 const segment = open.get(column);
+
                 if (segment === undefined) {
                     open.set(column, { top: row.top, bottom: row.top + row.height, first: row.line, last: row.lastLine });
                 } else {
@@ -1666,9 +1886,11 @@ export class EditorView {
                 }
             }
         }
+
         for (const column of [...open.keys()]) {
             close(column);
         }
+
         return { plain, active: marked };
     }
 
@@ -1676,10 +1898,12 @@ export class EditorView {
     selectionAtPoint(clientX: number, clientY: number): EditorSelection | null {
         const point = this.contentPoint(clientX, clientY);
         const rows = this.layout.visibleRows(this.viewport.scrollTop, this.viewportHeight, 0);
+
         return (
             this.model.getSelections().find((selection) => {
                 const from = Math.min(selection.anchor, selection.head);
                 const to = Math.max(selection.anchor, selection.head);
+
                 return (
                     from !== to &&
                     this.layout
@@ -1707,6 +1931,7 @@ export class EditorView {
             'se-over-selection',
             !this.settings.readOnly && event.buttons === 0 && this.selectionAtPoint(event.clientX, event.clientY) !== null
         );
+
         this.setHover(event.buttons === 0 ? this.characterAtPoint(event.clientX, event.clientY, event.target) : null);
         this.setInlayHover(event.buttons === 0 ? event.target : null);
     }
@@ -1714,19 +1939,24 @@ export class EditorView {
     /* The hint, and the part of its label, an event happened on, or null anywhere else. */
     inlayAt(target: EventTarget | null): { id: string; part: number | null; element: HTMLElement } | null {
         const element = closestElement(target, '.se-inlay');
+
         if (!element?.dataset.inlayId) {
             return null;
         }
+
         const part = (target as HTMLElement).closest<HTMLElement>('[data-part]');
+
         return { id: element.dataset.inlayId, part: part === null ? null : Number(part.dataset.part), element: part ?? element };
     }
 
     /* Says which hint the pointer is on, or that it left them all. */
     setInlayHover(target: EventTarget | null): void {
         const found = this.inlayAt(target);
+
         if (found?.id === this.inlayHover?.id && found?.part === this.inlayHover?.part) {
             return;
         }
+
         this.inlayHover = found === null ? null : { id: found.id, part: found.part };
         emit(this.inlayHoverListeners, found === null ? null : { id: found.id, part: found.part, rect: found.element.getBoundingClientRect() });
     }
@@ -1743,20 +1973,26 @@ export class EditorView {
 
     private applyInlayLink(): void {
         const target = this.inlayLink;
+
         if (target === null && this.inlayLinkElement === null) {
             return;
         }
+
         let element: HTMLElement | undefined;
+
         if (target !== null) {
             const pill = Array.from(this.content.querySelectorAll<HTMLElement>('[data-inlay-id]')).find((candidate) => candidate.dataset.inlayId === target.id);
+
             element =
                 target.part === null
                     ? pill
                     : (Array.from(pill?.querySelectorAll<HTMLElement>('[data-part]') ?? []).find((part) => part.dataset.part === String(target.part)) ?? pill);
         }
+
         if (element === this.inlayLinkElement) {
             return;
         }
+
         this.inlayLinkElement?.classList.remove('se-inlay-link');
         element?.classList.add('se-inlay-link');
         this.inlayLinkElement = element ?? null;
@@ -1766,6 +2002,7 @@ export class EditorView {
         if (offset === this.hoverOffset) {
             return;
         }
+
         this.hoverOffset = offset;
         emit(this.hoverListeners, offset);
     }
@@ -1774,6 +2011,7 @@ export class EditorView {
         if (!Number.isInteger(line) || line < 0 || line >= this.model.getLineCount() || this.layout.isHidden(line)) {
             return 0;
         }
+
         return this.layout.rowForLine(line).height;
     }
 
@@ -1785,11 +2023,14 @@ export class EditorView {
         if (!Number.isFinite(top)) {
             return;
         }
+
         this.cancelScroll();
         const next = Math.max(0, top);
+
         if (this.viewport.scrollTop === next) {
             return;
         }
+
         this.viewport.scrollTop = next;
         this.render();
     }
@@ -1800,9 +2041,11 @@ export class EditorView {
 
     private announceView(): void {
         const key = `${this.scrollTop}|${this.scrollLeft}|${this.clientWidth}|${this.clientHeight}|${this.layout.height}`;
+
         if (key === this.viewKey) {
             return;
         }
+
         this.viewKey = key;
         emit(this.viewListeners);
     }
@@ -1836,27 +2079,36 @@ export class EditorView {
         const view = this.document.defaultView;
         const distance = Math.hypot(x - this.viewport.scrollLeft, y - this.viewport.scrollTop);
         const duration = scrollDuration(distance, this.layout.metrics.lineHeight);
+
         if (!animate || duration === 0 || view?.requestAnimationFrame === undefined || this.reducedMotion()) {
             this.viewport.scrollTop = y;
             this.viewport.scrollLeft = x;
+
             return;
         }
+
         const run = { frame: 0, from: { x: this.viewport.scrollLeft, y: this.viewport.scrollTop }, to: { x, y }, start: null as number | null, duration };
+
         const step = (time: number): void => {
             if (this.scrollRun !== run || this.disposed) {
                 return;
             }
+
             run.start ??= time;
             const fraction = Math.min(1, (time - run.start) / run.duration);
             const eased = easeOut(fraction);
             this.viewport.scrollTop = Math.round(run.from.y + (run.to.y - run.from.y) * eased);
             this.viewport.scrollLeft = Math.round(run.from.x + (run.to.x - run.from.x) * eased);
+
             if (fraction >= 1) {
                 this.scrollRun = null;
+
                 return;
             }
+
             run.frame = view.requestAnimationFrame(step);
         };
+
         this.scrollRun = run;
         run.frame = view.requestAnimationFrame(step);
     }
@@ -1875,6 +2127,7 @@ export class EditorView {
         const place = this.scrollPlace;
         let cover = this.stickyHeightAt(place.y);
         let position = place;
+
         for (let attempt = 0; attempt < 3; attempt++) {
             position = scrollPosition(
                 {
@@ -1891,12 +2144,16 @@ export class EditorView {
                 },
                 kind
             );
+
             const next = this.stickyHeightAt(position.y);
+
             if (next === cover) {
                 break;
             }
+
             cover = next;
         }
+
         this.scrollTo(position.x, position.y, animate);
         this.requestRender();
     }
@@ -1917,21 +2174,26 @@ export class EditorView {
         const match = this.find.currentMatch;
         const wanted = this.replacePreview;
         let shown: string | null = null;
+
         if (wanted !== null && match?.regex === true) {
             try {
                 if (wanted.text.length > 10000) {
                     throw new RangeError('The replacement preview is too large.');
                 }
+
                 const text = replacementText(this.model.getText(), match, wanted.text, false, wanted.preserveCase, 10000);
                 shown = text === wanted.text ? null : text;
             } catch {
                 shown = null;
             }
         }
+
         this.preview.hidden = shown === null;
+
         if (shown === null || match === null) {
             return;
         }
+
         const start = this.layout.caret(match.from);
         const end = this.layout.caret(match.to);
         this.preview.textContent = shown;
@@ -1942,9 +2204,11 @@ export class EditorView {
     setFind(query: EditorFindQuery | null, reveal: boolean): void {
         this.find.set(query);
         this.announceFind();
+
         if (reveal) {
             this.revealFind();
         }
+
         this.render();
     }
 
@@ -1965,6 +2229,7 @@ export class EditorView {
 
     revealFind(): void {
         const mark = this.find.currentMark;
+
         if (mark) {
             this.revealOffset(mark.from, 'center');
         }
@@ -1975,17 +2240,22 @@ export class EditorView {
         if (this.disposed || this.lineTokenProvider !== null || !this.tokens.ready) {
             return;
         }
+
         clearTimeout(this.colorTimer);
         const target = this.layout.rowAt(this.scrollTop + this.viewportHeight).line + COLOR_MARGIN;
+
         if (this.tokens.covers(target)) {
             return;
         }
+
         this.colorTimer = setTimeout(
             () => {
                 const changed = this.tokens.advance(target, COLOR_SLICE_MS);
+
                 if (changed) {
                     this.render();
                 }
+
                 this.colorAhead();
             },
             immediate ? 0 : 1
@@ -2001,8 +2271,10 @@ export class EditorView {
             this.lineNumberRevision = this.model.getRevision();
             this.stickyEntries = [];
         }
+
         const digits = this.lineNumberProvider === null ? String(this.model.getLineCount()).length : this.lineNumberWidth;
         const width = Math.max(MIN_GUTTER_WIDTH, Math.ceil(digits * this.layout.metrics.charWidth) + 40);
+
         if (width !== this.gutterWidth) {
             this.gutterWidth = width;
             this.root.style.setProperty('--se-gutter-width', `${width}px`);
@@ -2014,11 +2286,15 @@ export class EditorView {
         if (this.disposed || this.frame !== undefined) {
             return;
         }
+
         const view = this.document.defaultView;
+
         if (!view?.requestAnimationFrame) {
             this.render();
+
             return;
         }
+
         this.frame = view.requestAnimationFrame(() => {
             this.frame = undefined;
             this.render();
@@ -2040,26 +2316,34 @@ export class EditorView {
         if (this.disposed || this.rendering) {
             return;
         }
+
         this.rendering = true;
+
         try {
             this.syncGutter();
             this.syncWrap();
+
             this.frameGeometry = {
                 top: this.viewport.scrollTop,
                 left: this.viewport.scrollLeft,
                 width: this.viewport.clientWidth,
                 height: this.viewport.clientHeight
             };
+
             let rows = this.layout.visibleRows(this.scrollTop, this.viewportHeight, this.overscan);
+
             if (this.layout.syncRows(rows)) {
                 rows = this.layout.visibleRows(this.scrollTop, this.viewportHeight, this.overscan);
             }
+
             const lastLine = rows.at(-1)?.line ?? 0;
             const firstRow = this.layout.rowAt(this.scrollTop);
             this.topAnchor = { offset: this.model.getLine(firstRow.line).start, delta: this.scrollTop - firstRow.top };
+
             if (this.lineTokenProvider === null && lastLine - this.tokens.colored <= COLOR_MARGIN * 4) {
                 this.tokens.advance(lastLine, FIRST_PAINT_MS);
             }
+
             const paint = {
                 layoutVersion: this.layoutVersion,
                 whitespace: this.settings.whitespace,
@@ -2070,10 +2354,12 @@ export class EditorView {
                 hostWidth: this.viewportWidth + this.gutterWidth,
                 onUnfold: (line: number) => this.toggleFold(line, false)
             };
+
             if (this.painter.paint(rows, paint)) {
                 rows = this.layout.visibleRows(this.scrollTop, this.viewportHeight, this.overscan);
                 this.painter.paint(rows, paint);
             }
+
             this.applyInlayLink();
             this.content.style.height = `${this.layout.height}px`;
             this.content.style.width = `${Math.max(this.layout.width, this.viewportWidth)}px`;
@@ -2084,9 +2370,11 @@ export class EditorView {
             this.paintOverview();
             this.paintRemote();
             this.paintLineActions();
+
             if (this.attributionPointer !== null) {
                 this.refreshAttributionHover();
             }
+
             this.announceScope();
             this.announceView();
             this.colorAhead();
@@ -2094,6 +2382,7 @@ export class EditorView {
             this.frameGeometry = null;
             this.rendering = false;
         }
+
         if (!this.disposed && this.announcedLineHeights !== this.layout.lineHeightsVersion) {
             this.announcedLineHeights = this.layout.lineHeightsVersion;
             // Hosts may adjust rows in response; rendering must already have finished.
@@ -2106,15 +2395,18 @@ export class EditorView {
         const primary = this.model.getPrimary();
         const focused = this.focused;
         const foldable = new Map<number, boolean>();
+
         for (const range of this.foldRanges) {
             foldable.set(range.startLine, (foldable.get(range.startLine) ?? false) || this.collapsed.has(range.from));
         }
+
         const lastRow = rows.at(-1);
         const firstLine = rows[0]?.line ?? 0;
         const lastLine = lastRow?.kind === 'text' ? lastRow.lastLine : (lastRow?.line ?? 0);
         const highlighted = this.runLines(this.highlights, firstLine, lastLine);
         const shownFrom = this.model.offsetAt({ line: firstLine, column: 0 });
         const shownTo = lastLine + 1 < this.model.getLineCount() ? this.model.offsetAt({ line: lastLine + 1, column: 0 }) : this.model.getLength();
+
         paintGutter(this.gutterLines, this.layout, rows, {
             lineNumber: (line) => this.lineNumberLabel(line),
             changes: this.changedLines(firstLine, lastLine),
@@ -2131,14 +2423,18 @@ export class EditorView {
             action: this.gutterAction,
             markers: this.markersByLine()
         });
+
         const marks: { className: string; rects: LayoutRect[]; background?: string }[] = this.highlightMarks(rows, highlighted);
         const row = this.layout.rowForLine(this.model.positionAt(primary.head).line);
+
         const currentLine =
             primary.anchor === primary.head && row.kind === 'text'
                 ? { x: 0, y: row.top, width: Math.max(this.layout.width, this.viewportWidth), height: row.height }
                 : null;
+
         for (const kind of ['text', 'read', 'write'] as const) {
             const group = this.occurrences.filter((mark) => (mark.kind ?? 'text') === kind);
+
             if (group.length > 0) {
                 marks.push({
                     className: kind === 'write' ? 'se-occurrence se-occurrence-write' : 'se-occurrence',
@@ -2146,42 +2442,55 @@ export class EditorView {
                 });
             }
         }
+
         const marginX = this.settings.rightMargin === null ? null : this.settings.rightMargin * this.layout.metrics.charWidth;
+
         // A margin past the content would stretch the scroll extent to itself, so it shows only where the text or the view reaches it.
         if (marginX !== null && marginX < Math.max(this.layout.width, this.viewportWidth)) {
             marks.push({ className: 'se-margin', rects: [{ x: marginX, y: 0, width: 1, height: this.layout.height }] });
         }
+
         if (this.settings.guides) {
             const guides = this.guideRects(rows);
             marks.push({ className: 'se-guide', rects: guides.plain }, { className: 'se-guide se-guide-active', rects: guides.active });
         }
+
         paintSigns(this.signs, this.wrapSigns(rows), this.layout.metrics.lineHeight);
         const alike = this.selectionOccurrences();
+
         if (alike.length > 0) {
             marks.push({ className: 'se-occurrence', rects: alike.flatMap((range) => this.paintRectangles(range.from, range.to, rows)) });
         }
+
         const faded: LayoutRect[] = [];
         const struck: LayoutRect[] = [];
+
         for (const marker of this.markers) {
             if (marker.to <= marker.from) {
                 continue;
             }
+
             const rects = this.paintRectangles(marker.from, marker.to, rows);
+
             if (marker.severity !== 'hint') {
                 marks.push({ className: `se-squiggle se-squiggle-${marker.severity}`, rects });
             }
+
             if (marker.unnecessary) {
                 faded.push(...rects);
             }
+
             if (marker.deprecated) {
                 struck.push(...rects);
             }
         }
+
         const current = this.find.currentMark;
         const textRows = rows.filter((candidate) => candidate.kind === 'text');
         const visibleFrom = textRows.length > 0 ? this.visibleTextBounds(textRows[0]!).from : 0;
         const visibleTo = textRows.length > 0 ? this.visibleTextBounds(textRows.at(-1)!).to : 0;
         const found = this.find.matchesBetween(visibleFrom, visibleTo);
+
         const spans =
             current !== null &&
             !found.some((mark) => mark.from === current.from && mark.to === current.to) &&
@@ -2189,6 +2498,7 @@ export class EditorView {
             current.from <= visibleTo
                 ? [...found, current]
                 : found;
+
         for (const mark of spans) {
             if (mark.to > mark.from) {
                 marks.push({
@@ -2197,28 +2507,39 @@ export class EditorView {
                 });
             }
         }
+
         const seen = new Set<number>();
+
         for (const [index, selection] of selections.entries()) {
             // A caret off screen has no bracket to draw, except the primary one, whose mate may be on screen.
             if (index < selections.length - 1 && (selection.head < visibleFrom - 1 || selection.head > visibleTo + 1)) {
                 continue;
             }
+
             const at = this.bracketAt(selection);
+
             if (at === undefined) {
                 continue;
             }
+
             const match = this.model.matchBracket(at, this.settings.language, BRACKET_FRAME_LIMIT);
+
             if (match === null) {
                 this.scheduleBrackets();
+
                 break;
             }
+
             if (match === undefined) {
                 continue;
             }
+
             if (match.mate === undefined) {
                 marks.push({ className: 'se-bracket-unmatched', rects: this.paintRectangles(at, at + 1, rows) });
+
                 continue;
             }
+
             for (const offset of [at, match.mate]) {
                 if (!seen.has(offset)) {
                     seen.add(offset);
@@ -2226,28 +2547,36 @@ export class EditorView {
                 }
             }
         }
+
         const selected = selections.flatMap(({ anchor, head }) =>
             anchor === head ? [] : this.paintRectangles(Math.min(anchor, head), Math.max(anchor, head), rows)
         );
+
         paintOverlays(this.overlays, { currentLine, selections: selected, focused, marks });
+
         paintOver(this.over, [
             { className: 'se-faded', rects: faded },
             { className: 'se-struck', rects: struck },
             { className: 'se-link', rects: this.link === null ? [] : this.paintRectangles(this.link.from, this.link.to, rows) }
         ]);
+
         const top = this.scrollTop;
+
         const caretRects = focused
             ? selections
                   .map((selection) => ({ ...this.caretOf(selection.head), primary: selection === selections.at(-1) }))
                   .filter((rect) => rect.y + rect.height >= top - rect.height && rect.y <= top + this.viewportHeight)
             : [];
+
         const caretKey = caretRects.map((rect) => `${rect.x},${rect.y}`).join(' ');
+
         if (caretKey !== this.caretKey) {
             this.caretKey = caretKey;
             this.carets.dataset.moving = 'true';
             clearTimeout(this.caretTimer);
             this.caretTimer = setTimeout(() => delete this.carets.dataset.moving, CARET_SOLID_MS);
         }
+
         paintCarets(this.carets, [...caretRects, ...(this.dropCaret === null ? [] : [{ ...this.layout.caret(this.dropCaret), primary: false, drop: true }])]);
         const caret = this.caretOf(primary.head);
         this.input.style.left = `${this.gutterWidth + Math.max(0, Math.min(this.viewportWidth - 2, caret.x - this.scrollLeft))}px`;
@@ -2262,7 +2591,9 @@ export class EditorView {
      */
     setChangeMarks(marks: readonly EditorChangeMark[], layer = ''): void {
         const last = this.model.getLineCount();
+
         const clamp = (line: number): number => Math.min(last, Math.max(1, Math.trunc(line) || 1)) - 1;
+
         if (marks.length === 0) {
             this.changeLayers.delete(layer);
         } else {
@@ -2270,6 +2601,7 @@ export class EditorView {
                 layer,
                 marks.map((mark) => {
                     const from = this.model.getLine(clamp(mark.startLine)).start;
+
                     return {
                         kind: mark.kind,
                         from,
@@ -2278,6 +2610,7 @@ export class EditorView {
                 })
             );
         }
+
         this.changeVersion++;
         this.render();
     }
@@ -2290,45 +2623,58 @@ export class EditorView {
         if (this.changeCache?.version === this.changeVersion) {
             return this.changeCache;
         }
+
         const lines = new Map<number, EditorChangeKind>();
+
         for (const marks of this.changeLayers.values()) {
             const layer = new Map<number, EditorChangeKind>();
+
             for (const mark of marks) {
                 const start = this.model.positionAt(mark.from).line;
                 const end = mark.kind === 'deleted' ? start : this.model.positionAt(Math.max(mark.from, mark.to)).line;
+
                 for (let line = start; line <= end; line++) {
                     if (mark.kind !== 'deleted' || !layer.has(line)) {
                         layer.set(line, mark.kind);
                     }
                 }
             }
+
             for (const [line, kind] of layer) {
                 lines.set(line, kind);
             }
         }
+
         const runs: { kind: EditorChangeKind; start: number; end: number }[] = [];
+
         for (const line of [...lines.keys()].sort((left, right) => left - right)) {
             const kind = lines.get(line)!;
             const run = runs.at(-1);
+
             if (run !== undefined && kind !== 'deleted' && run.kind === kind && run.end === line - 1) {
                 run.end = line;
             } else {
                 runs.push({ kind, start: line, end: line });
             }
         }
+
         this.changeCache = { version: this.changeVersion, lines, runs };
+
         return this.changeCache;
     }
 
     private changedLines(first: number, last: number): Map<number, EditorChangeKind> {
         const { lines } = this.resolvedChanges();
         const visible = new Map<number, EditorChangeKind>();
+
         for (let line = first; line <= last; line++) {
             const kind = lines.get(line);
+
             if (kind !== undefined) {
                 visible.set(line, kind);
             }
         }
+
         return visible;
     }
 
@@ -2344,21 +2690,28 @@ export class EditorView {
         const top = this.scrollTop;
         const cover = this.stickyHeightAt(top);
         const carets: RemoteCaret[] = [];
+
         for (const remote of this.remoteCarets) {
             const line = this.model.positionAt(remote.at).line;
             const row = this.layout.rowForLine(line);
+
             if (row.kind !== 'text' || row.line !== line) {
                 continue;
             }
+
             const place = this.layout.caret(remote.at);
             const x = Math.round(place.x);
             const y = Math.round(place.y);
+
             if (y + lineHeight < top - REMOTE_LABEL_HEIGHT || y > top + this.viewportHeight) {
                 continue;
             }
+
             carets.push({ id: remote.id, name: remote.name, color: remote.color, x, y, height: lineHeight, below: y - top - cover < REMOTE_LABEL_HEIGHT });
         }
+
         const key = carets.map((caret) => `${caret.id}|${caret.name}|${caret.color}|${caret.x},${caret.y},${caret.below}`).join('\n');
+
         if (key !== this.remoteKey) {
             this.remoteKey = key;
             paintRemoteCarets(this.remote, carets);
@@ -2371,27 +2724,33 @@ export class EditorView {
             if (!this.lineActions.has(owner)) {
                 return;
             }
+
             this.lineActions.delete(owner);
         } else {
             this.lineActions.set(owner, [...actions]);
         }
+
         const wanted = new Set([...this.lineActions].flatMap(([name, entries]) => entries.map((entry) => `${name}\0${entry.id}`)));
+
         for (const [key, element] of [...this.actionElements]) {
             if (!wanted.has(key)) {
                 element.remove();
                 this.actionElements.delete(key);
             }
         }
+
         this.render();
     }
 
     private paintLineActions(): void {
         const lineHeight = this.layout.metrics.lineHeight;
         const top = this.scrollTop;
+
         for (const [owner, entries] of this.lineActions) {
             for (const entry of entries) {
                 const key = `${owner}\0${entry.id}`;
                 let element = this.actionElements.get(key);
+
                 if (element === undefined) {
                     element = this.document.createElement('div');
                     element.className = 'se-line-action';
@@ -2401,13 +2760,17 @@ export class EditorView {
                     this.actionElements.set(key, element);
                     entry.render(element);
                 }
+
                 const line = this.model.positionAt(entry.at).line;
                 const row = this.layout.rowForLine(line);
                 const place = row.kind === 'text' && row.line === line ? this.layout.caret(this.model.getLine(line).end) : null;
+
                 if (place === null || place.y + lineHeight < top - this.viewportHeight || place.y > top + 2 * this.viewportHeight) {
                     element.hidden = true;
+
                     continue;
                 }
+
                 element.hidden = false;
                 element.style.left = `${Math.round(place.x) + LINE_ACTION_GAP}px`;
                 element.style.top = `${Math.round(place.y)}px`;
@@ -2429,6 +2792,7 @@ export class EditorView {
             this.model.getLineCount(),
             (line) => this.model.getLine(line)
         );
+
         this.render();
     }
 
@@ -2444,24 +2808,30 @@ export class EditorView {
         const byBackground = new Map<string, LayoutRect[]>();
         const width = Math.max(this.layout.width, this.viewportWidth);
         const emphasisByColor = new Map<string, LayoutRect[]>();
+
         for (const row of rows) {
             const highlight = row.kind === 'text' ? lines.get(row.line) : undefined;
+
             if (highlight !== undefined) {
                 const background = highlight.fill === undefined ? tintValue(highlight.color) : colorValue(highlight.fill);
                 const rects = byBackground.get(background) ?? [];
                 rects.push({ x: 0, y: row.top, width, height: row.height });
                 byBackground.set(background, rects);
+
                 if (row.kind === 'text' && highlight.emphasis !== undefined) {
                     const bounds = this.model.getLine(row.line);
                     const emphasisBackground = `color-mix(in srgb, ${colorValue(highlight.color)} 22%, transparent)`;
                     const emphasized = emphasisByColor.get(emphasisBackground) ?? [];
+
                     for (const range of highlight.emphasis) {
                         emphasized.push(...this.paintRectangles(Math.max(bounds.start, range.from), Math.min(bounds.end, range.to), [row]));
                     }
+
                     emphasisByColor.set(emphasisBackground, emphasized);
                 }
             }
         }
+
         return [
             ...[...byBackground].map(([background, rects]) => ({ className: 'se-line-highlight', rects, background })),
             ...[...emphasisByColor].map(([background, rects]) => ({ className: 'se-line-emphasis', rects, background }))
@@ -2489,6 +2859,7 @@ export class EditorView {
             this.attributionPointer = { x: event.clientX, y: event.clientY };
             this.refreshAttributionHover();
         });
+
         this.gutter.addEventListener('pointerleave', () => {
             this.attributionPointer = null;
             this.refreshAttributionHover();
@@ -2498,9 +2869,11 @@ export class EditorView {
     private refreshAttributionHover(): void {
         const next = this.attributionPointer === null ? null : this.attributionUnder(this.attributionPointer.x, this.attributionPointer.y);
         const before = this.attributionHover;
+
         if (before === next || (before !== null && next !== null && before.id === next.id && sameRect(before.rect, next.rect))) {
             return;
         }
+
         this.attributionHover = next;
         emit(this.attributionListeners, next);
     }
@@ -2509,51 +2882,67 @@ export class EditorView {
         if (this.attribution.size === 0) {
             return null;
         }
+
         const point = this.contentPoint(clientX, clientY);
         const fromEdge = this.gutterWidth - (point.x + this.gutterWidth - this.viewport.scrollLeft);
+
         if (fromEdge < -ATTRIBUTION_REACH || fromEdge > ATTRIBUTION_REACH + ATTRIBUTION_WIDTH || point.y < 0 || point.y > this.layout.height) {
             return null;
         }
+
         const row = this.layout.rowAt(point.y);
+
         if (row.kind !== 'text') {
             return null;
         }
+
         const bar = this.runLines(this.attribution, row.line, row.line).get(row.line);
+
         if (bar === undefined) {
             return null;
         }
+
         const origin = this.viewport.getBoundingClientRect?.();
         const scale = origin ? this.screenScale(origin) : { x: 1, y: 1 };
         const right = (origin?.left ?? 0) + this.gutterWidth * scale.x;
         const top = (origin?.top ?? 0) + (row.top - this.viewport.scrollTop) * scale.y;
+
         return { id: bar.id, rect: { left: right - ATTRIBUTION_WIDTH * scale.x, top, right, bottom: top + row.height * scale.y } };
     }
 
     /* The first and last line in view, zero-based. */
     visibleLines(): { first: number; last: number } {
         const top = this.scrollTop;
+
         return { first: this.layout.rowAt(top).line, last: this.layout.rowAt(top + this.viewportHeight).line };
     }
 
     /* A problem's tick says what the problem is when the pointer rests on it, and a press goes to it. The rest of the track lets the pointer through. */
     private wireOverview(): void {
         const tickOf = (event: Event): HTMLElement | null => closestElement(event.target, '.se-tick[data-offset]');
+
         this.overview.addEventListener('pointerover', (event) => {
             const tick = tickOf(event);
             const title = tick?.getAttribute('data-title');
+
             if (tick === null || !title) {
                 this.tickTip.hidden = true;
+
                 return;
             }
+
             this.tickTip.textContent = title;
             this.tickTip.style.top = tick.style.top;
             this.tickTip.hidden = false;
         });
+
         this.overview.addEventListener('pointerout', () => {
             this.tickTip.hidden = true;
         });
+
         this.overview.addEventListener('pointerdown', (event) => {
             const tick = tickOf(event);
+
             if (tick !== null) {
                 event.preventDefault();
                 this.jumpTo(Number(tick.getAttribute('data-offset')));
@@ -2575,23 +2964,31 @@ export class EditorView {
         const current = this.find.current;
         const alike = this.selectionOccurrences();
         const key = `${this.revision}|${this.changeVersion}|${this.markerVersion}|${this.layout.height}|${trackHeight}|${matches.length}|${current}|${matches[0]?.from}|${matches.at(-1)?.from}|${this.selectionOccurrenceCache.key}`;
+
         if (key === this.overviewKey) {
             return;
         }
+
         this.overviewKey = key;
         const spans: OverviewSpan[] = [];
+
         const rowTop = (line: number): number => this.layout.rowForLine(line).top;
+
         const rowBottom = (line: number): number => {
             const row = this.layout.rowForLine(line);
+
             return row.top + row.height;
         };
+
         for (const { kind, start, end } of this.resolvedChanges().runs) {
             spans.push({ kind, top: rowTop(start), bottom: kind === 'deleted' ? rowTop(start) : rowBottom(end) });
         }
+
         for (const marker of this.markers) {
             if (marker.severity !== 'hint' && marker.to > marker.from) {
                 const start = this.model.positionAt(marker.from).line;
                 const end = this.model.positionAt(marker.to).line;
+
                 spans.push({
                     kind: marker.severity,
                     top: rowTop(start),
@@ -2601,14 +2998,17 @@ export class EditorView {
                 });
             }
         }
+
         for (const range of alike) {
             const line = this.model.positionAt(range.from).line;
             spans.push({ kind: 'occurrence', top: rowTop(line), bottom: rowBottom(line) });
         }
+
         matches.forEach((match, index) => {
             const line = this.model.positionAt(match.from).line;
             spans.push({ kind: index === current ? 'find-current' : 'find', top: rowTop(line), bottom: rowBottom(line) });
         });
+
         paintOverview(this.overview, overviewTicks(spans, this.layout.height, trackHeight));
     }
 
@@ -2624,16 +3024,20 @@ export class EditorView {
 
     private announceScope(): void {
         const line = this.model.positionAt(this.model.getPrimary().head).line;
+
         const scope = scopeChain(this.outline.blocks(this.model), line).map((block): EditorBlock => ({
             startLine: block.startLine + 1,
             endLine: block.endLine + 1,
             name: block.name!,
             ...(block.kind === undefined ? {} : { kind: block.kind })
         }));
+
         const key = scope.map((block) => `${block.startLine}:${block.endLine}:${block.name}:${block.kind ?? ''}`).join('|');
+
         if (key === this.scopeKey) {
             return;
         }
+
         this.scopeKey = key;
         emit(this.scopeListeners, scope);
     }
@@ -2646,16 +3050,21 @@ export class EditorView {
         if (this.settings.stickyScroll === false) {
             return [];
         }
+
         const { layout } = this;
+
         const bottomOf = (line: number): number => {
             const row = layout.rowForLine(line);
+
             return row.top + row.height;
         };
+
         return stickyPlacements(this.outline.blocks(this.model), scrollTop, layout.metrics.lineHeight, this.stickyLimit(), {
             top: (line) => layout.rowForLine(line).top,
             bottom: bottomOf,
             startsRow: (line) => {
                 const row = layout.rowForLine(line);
+
                 return row.kind === 'text' && row.line === line;
             }
         });
@@ -2669,8 +3078,10 @@ export class EditorView {
     private paintSticky(): void {
         const lineHeight = this.layout.metrics.lineHeight;
         const placements = this.scrollTop <= 0 ? [] : this.stickyAt(this.scrollTop);
+
         const entries = placements.map((placement): StickyEntry => {
             const row = this.layout.rowForLine(placement.block.startLine) as TextRow;
+
             return {
                 line: placement.block.startLine,
                 label: this.lineNumberLabel(placement.block.startLine),
@@ -2678,22 +3089,29 @@ export class EditorView {
                 tokens: this.styledTokensOf(placement.block.startLine)
             };
         });
+
         const changed =
             entries.length !== this.stickyEntries.length ||
             entries.some((entry, index) => {
                 const before = this.stickyEntries[index]!;
+
                 return entry.line !== before.line || entry.label !== before.label || entry.geometry !== before.geometry || entry.tokens !== before.tokens;
             });
+
         this.sticky.hidden = entries.length === 0;
         this.sticky.style.setProperty('--se-scroll-left', `${this.scrollLeft}px`);
         this.sticky.style.width = `${this.clientWidth}px`;
+
         if (changed) {
             this.stickyEntries = entries;
             paintSticky(this.sticky, entries, lineHeight);
         }
+
         this.sticky.style.height = `${stickyCover(placements, lineHeight)}px`;
+
         placements.forEach((placement, index) => {
             const row = this.sticky.children[index] as HTMLElement | undefined;
+
             if (row) {
                 row.style.transform = placement.offset === 0 ? '' : `translateY(${placement.offset}px)`;
                 row.style.zIndex = String(placements.length - index);
@@ -2714,6 +3132,7 @@ export class EditorView {
         if (action?.line === this.gutterAction?.line && action?.label === this.gutterAction?.label) {
             return;
         }
+
         this.gutterAction = action;
         this.render();
     }
@@ -2724,6 +3143,7 @@ export class EditorView {
 
     setGutterMarkers(owner: string, markers: readonly GutterMarker[]): void {
         const before = this.gutterMarkers.get(owner) ?? [];
+
         if (
             before.length === markers.length &&
             before.every(
@@ -2737,11 +3157,13 @@ export class EditorView {
         ) {
             return;
         }
+
         if (markers.length === 0) {
             this.gutterMarkers.delete(owner);
         } else {
             this.gutterMarkers.set(owner, markers);
         }
+
         this.render();
     }
 
@@ -2760,6 +3182,7 @@ export class EditorView {
     /* One marker per line: where two owners mark the same line, the owner that sorts first stays. */
     private markersByLine(): ReadonlyMap<number, GutterMarker> {
         const byLine = new Map<number, GutterMarker>();
+
         for (const owner of [...this.gutterMarkers.keys()].sort()) {
             for (const marker of this.gutterMarkers.get(owner)!) {
                 if (!byLine.has(marker.line)) {
@@ -2767,11 +3190,13 @@ export class EditorView {
                 }
             }
         }
+
         return byLine;
     }
 
     gutterActionLineOf(target: EventTarget | null): number | null {
         const button = closestElement(target, '[data-gutter-action]');
+
         return button ? Number(button.dataset.gutterAction) : null;
     }
 
@@ -2782,6 +3207,7 @@ export class EditorView {
     /* The line a fold control in the gutter folds. */
     foldLineOf(target: EventTarget | null): number | null {
         const button = closestElement(target, '[data-fold-line]');
+
         return button ? Number(button.dataset.foldLine) : null;
     }
 
@@ -2789,6 +3215,7 @@ export class EditorView {
         if (this.disposed) {
             return;
         }
+
         this.disposed = true;
         this.cancelScroll();
         this.find.dispose();
@@ -2801,9 +3228,11 @@ export class EditorView {
         clearTimeout(this.noticeTimer);
         clearTimeout(this.liveTimer);
         clearTimeout(this.caretTimer);
+
         if (this.frame !== undefined) {
             this.document.defaultView?.cancelAnimationFrame?.(this.frame);
         }
+
         this.findListeners.clear();
         this.scopeListeners.clear();
         this.viewListeners.clear();

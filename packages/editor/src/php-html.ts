@@ -38,6 +38,7 @@ export async function loadDocumentLanguage(highlighter: Highlighter, language: s
     if (language !== PHP_DOCUMENT_ID || highlighter.getLoadedLanguages().includes(PHP_DOCUMENT_ID)) {
         return;
     }
+
     await highlighter.loadLanguage('php');
     await highlighter.loadLanguage(PHP_DOCUMENT);
 }

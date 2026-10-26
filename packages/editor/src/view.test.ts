@@ -8,7 +8,9 @@ describe('the fold ranges a server hands over', () => {
     test('stay on their text through an edit before them, their first and last line cut where the server said', () => {
         const source = '<?php\nuse App\\A;\nuse App\\B;\nuse App\\C;\n\nfinal class D {}';
         const { host, model, view } = mount(source, { language: 'php' });
+
         const at = (line: number, column: number) => model.offsetAt({ line, column });
+
         view.setFoldHints({ ranges: [{ from: at(1, 0), to: at(3, 0), kind: 'imports', head: at(1, 3), tail: at(3, 9) }] });
         model.applyEdits([{ from: at(1, 0), to: at(1, 0), text: '// imports\n' }]);
         view.refreshFolds();
@@ -22,7 +24,9 @@ describe('a row of the host', () => {
     test('takes the height the browser measures for it once it is drawn', () => {
         const page = createPage();
         const observed: Element[] = [];
+
         let measure: (entries: { target: Element }[]) => void = () => {};
+
         const ResizeObserver = class {
             constructor(callback: (entries: { target: Element }[]) => void) {
                 measure = callback;
@@ -36,6 +40,7 @@ describe('a row of the host', () => {
 
             disconnect(): void {}
         };
+
         // On this page alone: a LinkeDOM window writes through to the global one, where every later test would find it.
         const scoped = new Proxy(page.window, { get: (target, key) => (key === 'ResizeObserver' ? ResizeObserver : Reflect.get(target, key)) });
         Object.defineProperty(page.document, 'defaultView', { value: scoped });
@@ -55,10 +60,13 @@ describe('a row of the host', () => {
 describe('a notice', () => {
     test('shows a while and then hides', () => {
         const timers: { callback: () => void; delay: number }[] = [];
+
         const set = spyOn(globalThis, 'setTimeout').mockImplementation(((callback: () => void, delay?: number) => {
             timers.push({ callback, delay: delay ?? 0 });
+
             return 0 as unknown as ReturnType<typeof setTimeout>;
         }) as typeof setTimeout);
+
         try {
             const { host, view } = mount('one');
             const notice = host.querySelector<HTMLElement>('.se-notice')!;

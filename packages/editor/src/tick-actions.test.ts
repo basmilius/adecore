@@ -6,17 +6,22 @@ const range = (line: number, start: number, end: number) => ({ start: { line, ch
 function setup() {
     const text = Array.from({ length: 40 }, (_, index) => `let value${index} = ${index};`).join('\n');
     const mounted = mountEditor({ text });
+
     mounted.editor.setMarkers([
         { range: range(3, 4, 10), severity: 'error', message: 'Cannot find name' },
         { range: range(30, 4, 10), severity: 'warning', message: 'Unused' },
         { range: range(12, 0, 3), severity: 'hint', deprecated: true, message: 'Not a tick' }
     ]);
+
     const { host, window } = mounted.page;
+
     const fire = (target: Element, type: string): Event => {
         const event = new (window as unknown as { Event: typeof Event }).Event(type, { bubbles: true, cancelable: true });
         target.dispatchEvent(event);
+
         return event;
     };
+
     return { ...mounted, host, fire };
 }
 

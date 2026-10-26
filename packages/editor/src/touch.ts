@@ -50,6 +50,7 @@ export class TouchSelection {
     start(event: PointerEvent, area: 'text' | 'gutter' = 'text', taken?: () => boolean): void {
         this.cancel();
         this.contact = { id: event.pointerId, x: event.clientX, y: event.clientY, area, moved: false, pressed: false, taken };
+
         if (area === 'text') {
             this.timer = setTimeout(() => this.press(), LONG_PRESS_MS);
         }
@@ -57,9 +58,11 @@ export class TouchSelection {
 
     move(event: PointerEvent): void {
         const contact = this.contact;
+
         if (contact === undefined || event.pointerId !== contact.id || contact.moved) {
             return;
         }
+
         if (Math.abs(event.clientX - contact.x) > TAP_SLOP || Math.abs(event.clientY - contact.y) > TAP_SLOP) {
             contact.moved = true;
             this.clearTimer();
@@ -69,13 +72,17 @@ export class TouchSelection {
     /* The finger lifted: a tap that did not scroll and was not a long press lands here. */
     end(event: PointerEvent): void {
         const contact = this.contact;
+
         if (contact === undefined || event.pointerId !== contact.id) {
             return;
         }
+
         this.cancel();
+
         if (event.type === 'pointercancel' || contact.moved || contact.pressed) {
             return;
         }
+
         this.tap(contact, event);
     }
 
@@ -87,20 +94,26 @@ export class TouchSelection {
         const { model } = this.host;
         const offset = this.host.offsetAt(contact.x, contact.y);
         this.host.focus();
+
         if (contact.area === 'gutter') {
             const line = this.host.lineAt(offset);
             model.setSelections([{ anchor: line.from, head: line.to }]);
+
             return;
         }
+
         if (contact.taken?.()) {
             return;
         }
+
         const last = this.lastTap;
+
         const double =
             last !== undefined &&
             event.timeStamp - last.time <= DOUBLE_TAP_MS &&
             Math.abs(contact.x - last.x) <= DOUBLE_TAP_DISTANCE &&
             Math.abs(contact.y - last.y) <= DOUBLE_TAP_DISTANCE;
+
         this.lastTap = double ? undefined : { time: event.timeStamp, x: contact.x, y: contact.y };
         const word = double ? model.wordSelectionAt(offset, this.host.camelHumps()) : null;
         model.setSelections([word === null ? { anchor: offset, head: offset } : { anchor: word.from, head: word.to }]);
@@ -109,9 +122,11 @@ export class TouchSelection {
     private press(): void {
         const contact = this.contact;
         this.timer = undefined;
+
         if (contact === undefined || contact.moved) {
             return;
         }
+
         contact.pressed = true;
         this.lastTap = undefined;
         const offset = this.host.offsetAt(contact.x, contact.y);
@@ -124,6 +139,7 @@ export class TouchSelection {
         if (this.timer !== undefined) {
             clearTimeout(this.timer);
         }
+
         this.timer = undefined;
     }
 

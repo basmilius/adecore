@@ -36,15 +36,19 @@ describe('coloring', () => {
                 scopeColors: async () => (scopes) => (scopes.includes('entity.name.function') ? { color: '#ff0000', fontStyle: 0 } : undefined)
             }
         );
+
         await settle();
+
         editor.setSemanticTokens([
             { line: 0, character: 11, length: 4, scopes: ['meta.function-call', 'entity.name.function'] },
             { line: 0, character: 4, length: 4, scopes: ['variable'] }
         ]);
+
         const colored = (): string[] =>
             [...host.querySelectorAll('.se-run span')]
                 .filter((span) => span.getAttribute('style')?.includes('255, 0, 0') || span.getAttribute('style')?.includes('#ff0000'))
                 .map((span) => span.textContent!);
+
         expect(colored()).toEqual(['call']);
         editor.setCaret({ line: 0, character: 0 });
         type('xx');
@@ -62,15 +66,18 @@ describe('coloring', () => {
 
     test('asks for a tokenizer for the language and theme, and again for a new theme', async () => {
         const asked: (string | undefined)[] = [];
+
         const { editor } = setup(
             { language: 'php', theme: 'light' },
             {
                 tokenizer: async (language, theme) => {
                     asked.push(`${language}:${theme}`);
+
                     return null;
                 }
             }
         );
+
         editor.setTheme('dark');
         editor.setTheme('dark');
         await settle();
@@ -79,16 +86,20 @@ describe('coloring', () => {
 
     test('keeps the latest theme when an earlier one answers last', async () => {
         let resolveFirst: (value: LineTokenizer | null) => void = () => {};
+
         let calls = 0;
+
         const { host, editor } = setup(
             { language: 'php', theme: 'light' },
             {
                 tokenizer: (_language, _theme) => {
                     calls++;
+
                     return calls === 1 ? new Promise((resolve) => (resolveFirst = resolve)) : Promise.resolve(null);
                 }
             }
         );
+
         editor.setTheme('dark');
         await settle();
         resolveFirst(tokenizer());
@@ -106,7 +117,9 @@ describe('prepared line tokens', () => {
         expect(tokenizeLine).not.toHaveBeenCalled();
         expect(host.querySelector('.se-run span')).toBeNull();
         const prepared = [{ length: 3, color: '#336699', fontStyle: 1 }];
+
         const provider = (line: number) => (line === 0 ? prepared : null);
+
         editor.setLineTokens(provider);
         expect([...host.querySelectorAll('.se-run span')].map((span) => span.textContent)).toEqual(['old']);
         expect((host.querySelector('.se-run span') as HTMLElement).style.fontStyle).toBe('italic');
@@ -118,12 +131,14 @@ describe('prepared line tokens', () => {
         expect(tokenizeLine).not.toHaveBeenCalled();
         // A stopped clock, so a slow runner cannot end the first paint's slice before both lines are colored.
         const clock = spyOn(performance, 'now').mockReturnValue(0);
+
         try {
             editor.setLineTokens(null);
             await settle();
         } finally {
             clock.mockRestore();
         }
+
         expect(tokenizeLine).toHaveBeenCalled();
         expect([...host.querySelectorAll('.se-run span')].map((span) => span.textContent)).toEqual(['old', 'newer']);
         editor.dispose();
@@ -133,10 +148,12 @@ describe('prepared line tokens', () => {
         const { editor, host, press, clip } = setup({ text: 'old\nnew', readOnly: true });
         editor.setLineNumbers((line) => (line === 0 ? '200' : '300'));
         editor.setLineTokens((line) => [{ length: 3, color: line === 0 ? '#336699' : '#884422', fontStyle: 0 }]);
+
         editor.setLineHighlights([
             { startLine: 1, endLine: 1, color: '--editor-deleted', sign: '-' },
             { startLine: 2, endLine: 2, color: '--editor-added', sign: '+' }
         ]);
+
         editor.setLineActions([
             {
                 id: 'noNL',
@@ -146,6 +163,7 @@ describe('prepared line tokens', () => {
                 }
             }
         ]);
+
         press('ArrowDown', { shiftKey: true });
         expect(clip('copy')).toBe('old\n');
         press('a', { ctrlKey: true });
@@ -164,7 +182,9 @@ describe('source line numbers', () => {
 
     test('hides null labels, sizes the gutter from source numbers and restores document numbering', () => {
         const { editor, host } = setup({ text: 'old\nnew\nlast' });
+
         const provider = (line: number) => ['123456', '123457', null][line] ?? null;
+
         editor.setLineNumbers(provider);
         expect(labels(host)).toEqual(['123456', '123457', '']);
         const root = host.querySelector('.se-editor') as HTMLElement;
@@ -178,7 +198,9 @@ describe('source line numbers', () => {
     test('updates labels with the text and when a provider changes in place', () => {
         const { editor, host } = setup({ text: 'old' });
         const source = ['200', '201'];
+
         const provider = (line: number) => source[line] ?? null;
+
         editor.setLineNumbers(provider);
         editor.setText('old\nnew');
         expect(labels(host)).toEqual(['200', '201']);
@@ -203,10 +225,12 @@ describe('markers', () => {
 
     test('draws a squiggle for an error, a tick in the scroll track, and none for a hint', () => {
         const { editor, host } = setup({ text: 'let a = 1;\nlet b = 2;' });
+
         editor.setMarkers([
             { range: range(0, 4, 5), severity: 'error' },
             { range: range(1, 4, 5), severity: 'hint', unnecessary: true }
         ]);
+
         expect(host.querySelectorAll('.se-squiggle-error')).toHaveLength(1);
         expect(host.querySelectorAll('.se-squiggle')).toHaveLength(1);
         expect(host.querySelectorAll('.se-faded')).toHaveLength(1);
@@ -237,10 +261,13 @@ describe('keys and positions', () => {
     test('lets a handler take a key before the editor does', () => {
         const { editor, press } = setup({ text: 'abc' });
         let seen = '';
+
         const off = editor.onKeyDown((event) => {
             seen += event.key;
+
             return event.key === 'Enter';
         });
+
         expect(press('Enter')).toBe(true);
         expect(editor.getText()).toBe('abc');
         press('Home');
@@ -261,32 +288,39 @@ describe('keys and positions', () => {
 
     test('applies edits in the coordinates of the current text, as one step', () => {
         const { editor } = setup({ text: 'one\ntwo' });
+
         const range = (line: number, start: number, end: number) => ({ start: { line, character: start }, end: { line, character: end } });
+
         expect(
             editor.applyEdits([
                 { range: range(0, 0, 3), text: 'uno' },
                 { range: range(1, 0, 3), text: 'dos' }
             ])
         ).toBe(true);
+
         expect(editor.getText()).toBe('uno\ndos');
     });
 });
 
 describe('setRemoteCursors', () => {
     const text = Array.from({ length: 12 }, (_, i) => `line ${i}`).join('\n');
+
     const carets = (host: HTMLElement) =>
         [...host.querySelectorAll('.se-remote-caret')].map((caret) => {
             const element = caret as HTMLElement;
             const label = element.querySelector('.se-remote-label') as HTMLElement;
+
             return `${label.textContent}@${element.style.left},${element.style.top}${label.dataset.below ? ' below' : ''}`;
         });
 
     test('draws a caret with its name, and the name under it on the first line where there is no room above', () => {
         const { editor, host } = setup({ text });
+
         editor.setRemoteCursors([
             { id: 'a', position: { line: 5, character: 3 }, name: 'Claude Code', color: '--agent-1' },
             { id: 'b', position: { line: 0, character: 0 }, name: 'Codex', color: '#336699' }
         ]);
+
         expect(carets(host)).toEqual(['Claude Code@23px,100px', 'Codex@0px,0px below']);
         const label = host.querySelector('.se-remote-label') as HTMLElement;
         expect(label.style.background).toBe('var(--agent-1)');
@@ -308,6 +342,7 @@ describe('setRemoteCursors', () => {
             language: 'typescript',
             folds: { collapsed: [{ startLine: 1, endLine: 3 }], custom: [] }
         });
+
         editor.setRemoteCursors([{ id: 'a', position: { line: 2, character: 0 }, name: 'Claude Code', color: '--agent-1' }]);
         expect(carets(host)).toEqual([]);
         editor.setRemoteCursors([{ id: 'a', position: { line: 1, character: 0 }, name: 'Claude Code', color: '--agent-1' }]);
@@ -324,6 +359,7 @@ describe('setRemoteCursors', () => {
 
 describe('setLineHighlights', () => {
     const text = Array.from({ length: 12 }, (_, i) => `line ${i}`).join('\n');
+
     const tinted = (host: HTMLElement): string[] =>
         [...host.querySelectorAll('.se-line-highlight')].map((element) => `${(element as HTMLElement).style.top}:${(element as HTMLElement).style.background}`);
 
@@ -340,10 +376,12 @@ describe('setLineHighlights', () => {
 
     test('fills the rows with the fill as it stands, and keeps the color for the sign', () => {
         const { editor, host } = setup({ text });
+
         editor.setLineHighlights([
             { startLine: 3, endLine: 3, color: '--accent', fill: '--editor-selection' },
             { startLine: 4, endLine: 4, color: '--accent' }
         ]);
+
         expect(tinted(host)).toEqual(['40px:var(--editor-selection)', '60px:color-mix(in srgb, var(--accent) 14%, transparent)']);
         const numbers = [...host.querySelectorAll('.se-line-number')] as HTMLElement[];
         expect(numbers.filter((number) => number.style.background !== '').map((number) => number.textContent)).toEqual(['3']);
@@ -392,10 +430,12 @@ describe('line emphasis', () => {
         const left = parseFloat(boxes(host)[0]!.style.left);
         expect(left).toBeGreaterThan(4 * 7.8);
         expect(parseFloat(boxes(host)[0]!.style.width)).toBeCloseTo(4 * 7.8);
+
         editor.setLineHighlights([
             { startLine: 1, endLine: 1, color: '--editor-added', emphasis: [[[3, 7]]] },
             { startLine: 1, endLine: 1, color: '--editor-deleted' }
         ]);
+
         expect(boxes(host)).toEqual([]);
     });
 
@@ -427,18 +467,22 @@ describe('renderCode', () => {
         const { editor, host } = setup({ language: 'typescript', text: 'source' }, { tokenizer: async () => ({ ...tokenizer, tokenizeLine }) });
         await settle();
         tokenizeLine.mockClear();
+
         for (let i = 0; i < 2; i++) {
             const container = host.ownerDocument.createElement('div');
+
             editor.renderCode(container, 'inside comment\r\nstill inside', {
                 tokens: [[{ length: 14, color: '#336699', fontStyle: 1, kind: 'comment' }], [{ length: 12, color: '#336699', fontStyle: 1, kind: 'comment' }]],
                 color: '--editor-deleted',
                 emphasis: [[[7, 14]]]
             });
+
             expect([...container.querySelectorAll('.se-code-text')].map((line) => line.textContent)).toEqual(['inside comment', 'still inside']);
             expect(container.querySelector('.se-code-emphasis')!.textContent).toBe('comment');
             expect((container.querySelector('.se-code-emphasis') as HTMLElement).style.fontStyle).toBe('italic');
             expect((container.querySelector('.se-code-emphasis') as HTMLElement).style.color).toBe('#336699');
         }
+
         expect(tokenizeLine).not.toHaveBeenCalled();
         const plain = host.ownerDocument.createElement('div');
         editor.renderCode(plain, 'plain', { tokens: null });
@@ -497,7 +541,9 @@ describe('line actions', () => {
         const { editor, host } = setup({ text });
         let renders = 0;
         editor.setLineActions([{ id: 'keep', line: 1, render: (container) => ((container.textContent = 'Keep'), renders++) }], 'review');
+
         const element = () => host.querySelector('.se-line-action') as HTMLElement;
+
         expect(element().textContent).toBe('Keep');
         expect(element().hidden).toBe(false);
         const before = element().style.top;
@@ -530,11 +576,13 @@ describe('content height', () => {
     test('tracks wrap and widget rows and includes a native horizontal scrollbar', () => {
         const { editor, viewport } = setup({ text: 'word '.repeat(80) });
         const unwrapped = editor.getContentHeight();
+
         Object.defineProperties(viewport, {
             clientWidth: { value: 400 },
             offsetHeight: { value: 500, configurable: true },
             clientHeight: { value: 485, configurable: true }
         });
+
         expect(editor.getContentHeight()).toBe(unwrapped + 15);
         Object.defineProperty(viewport, 'clientHeight', { value: 500 });
         editor.setWrap(true);
@@ -569,6 +617,7 @@ describe('linked read-only layouts', () => {
     test('fixed widgets ignore measurements and intrinsic heights exclude their rows', () => {
         const { editor, host } = setup({ text: 'old\nnext', wrap: false });
         const height = editor.getLineHeight(0);
+
         editor.setWidgets([
             {
                 id: 'space',
@@ -580,6 +629,7 @@ describe('linked read-only layouts', () => {
                 }
             }
         ]);
+
         expect(editor.getLineHeight(0)).toBe(height);
         expect(editor.getLineHeight(1)).toBe(height);
         expect((host.querySelector('.se-block') as HTMLElement).style.height).toBe('75px');
@@ -593,10 +643,12 @@ describe('linked read-only layouts', () => {
         const { editor, host } = setup({ text: 'word '.repeat(200), wrap: false });
         Object.defineProperty(host.querySelector('.se-viewport')!, 'clientWidth', { value: 200 });
         let changes = 0;
+
         const stop = editor.onLineHeights(() => {
             changes++;
             editor.setWidgets([{ id: 'space', line: 0, placement: 'above', height: 40, fixed: true, render: () => {} }]);
         });
+
         editor.setWrap(true);
         expect(changes).toBeGreaterThan(0);
         expect(editor.getLineHeight(0)).toBeGreaterThan(20);
@@ -631,6 +683,7 @@ describe('linked read-only layouts', () => {
             folding: false,
             folds: { collapsed: [{ startLine: 0, endLine: 2 }], custom: [] }
         });
+
         editor.setSelection({ start: { line: 0, character: 0 }, end: { line: 2, character: 1 } });
         expect(editor.runCommand('foldSelection')).toBe(false);
         expect(editor.runCommand('collapseAllRegions')).toBe(false);
@@ -646,7 +699,9 @@ describe('long wrapped lines', () => {
         const { editor, host, clip, viewport } = setup({ text, wrap: true, whitespace: true });
         Object.defineProperties(viewport, { clientWidth: { value: 220 }, clientHeight: { value: 100 } });
         editor.setWrap(true);
+
         const runs = (): Element[] => [...host.querySelectorAll('.se-code .se-run')];
+
         const first = host.querySelector('.se-code .se-line');
         expect(runs().length).toBeGreaterThan(0);
         expect(runs().length).toBeLessThan(256);

@@ -6,11 +6,13 @@ describe('the focus', () => {
         const { editor, page, input } = mountEditor();
         let blurs = 0;
         editor.onBlur(() => blurs++);
+
         const focusOut = (relatedTarget: EventTarget | null): void => {
             const event = new page.window.Event('focusout', { bubbles: true });
             Object.assign(event, { relatedTarget });
             input.dispatchEvent(event);
         };
+
         focusOut(page.host.querySelector('.se-viewport'));
         expect(blurs).toBe(0);
         focusOut(page.document.body);
@@ -48,10 +50,12 @@ describe('a pinned header', () => {
         const body = Array.from({ length: 200 }, (_, line) => `        call${line}();`).join('\n');
         const mounted = mountEditor({ text: `class A {\n    run() {\n${body}\n    }\n}` });
         Object.defineProperties(mounted.viewport, { clientWidth: { value: 600 }, clientHeight: { value: 400 } });
+
         mounted.editor.setBlocks([
             { startLine: 1, endLine: 204, name: 'A' },
             { startLine: 2, endLine: 203, name: 'run' }
         ]);
+
         mounted.editor.setScrollTop(20 * 100);
         mounted.viewport.dispatchEvent(new mounted.page.window.Event('scroll'));
         const header = [...mounted.page.host.querySelectorAll<HTMLElement>('.se-sticky-row')].find((row) => row.dataset.line === '1')!;

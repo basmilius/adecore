@@ -94,6 +94,7 @@ class SmartEditor implements Editor {
         this.model = new DocumentModel(options.text);
         this.language = options.language;
         this.theme = options.theme;
+
         this.settings = {
             searchWorker: engine.searchWorker,
             language: options.language,
@@ -112,8 +113,10 @@ class SmartEditor implements Editor {
             foldOutline: options.foldOutline ?? 'hover',
             folding: options.folding !== false
         };
+
         this.view = new EditorView(element, this.model, this.settings);
         this.grammarPreparation = new GrammarPreparation(this.model, () => this.view.grammarChanged());
+
         this.controller = new InputController(this.view, {
             handBack: [...(engine.handBack ?? []), ...(options.handBack ?? [])],
             keymap: engine.keymap,
@@ -121,25 +124,33 @@ class SmartEditor implements Editor {
             save: () => emit(this.saves),
             blur: () => emit(this.blurs)
         });
+
         this.revision = this.model.getRevision();
         this.caretOffset = this.model.getPrimary().head;
+
         this.subscription = this.model.subscribe((snapshot) => {
             this.caretMoved(snapshot.selections.at(-1)!.head);
+
             if (snapshot.revision !== this.revision) {
                 this.revision = snapshot.revision;
                 this.grammarPreparation.edited(snapshot.changes ?? []);
+
                 if (snapshot.contentEdits !== undefined && snapshot.contentEdits.length > 0) {
                     this.announceTextChange(snapshot.contentEdits, snapshot.source ?? 'external', snapshot.typed === true);
                 }
+
                 if (!this.settingText) {
                     emit(this.changes);
                 }
             }
         });
+
         this.loadTokenizer();
+
         if (options.folds !== undefined || options.foldDefaults !== undefined) {
             this.view.restoreFolds(options.folds ?? null, options.foldDefaults);
         }
+
         this.placeCursor(options);
     }
 
@@ -150,11 +161,13 @@ class SmartEditor implements Editor {
             const bounds = this.model.getLine(line);
             const offset = Math.min(bounds.end, bounds.start + Math.max(0, (options.column ?? 1) - 1));
             this.model.setSelections([{ anchor: offset, head: offset }]);
+
             if (options.scrollTop === undefined) {
                 // A file opens where it is told to, without travelling there.
                 this.view.revealOffset(offset, 'center', false);
             }
         }
+
         if (options.scrollTop !== undefined) {
             this.view.render();
             this.view.viewport.scrollTop = options.scrollTop;
@@ -165,6 +178,7 @@ class SmartEditor implements Editor {
     private loadTokenizer(): void {
         const request = ++this.tokenizerRequest;
         this.grammarPreparation.begin();
+
         void this.engine
             .scopeColors?.(this.theme)
             .catch(() => null)
@@ -173,6 +187,7 @@ class SmartEditor implements Editor {
                     this.view.setScopeColors(colors ?? null);
                 }
             });
+
         void this.engine
             .tokenizer(this.language, this.theme, this.model.getText())
             .catch(() => null)
@@ -190,10 +205,13 @@ class SmartEditor implements Editor {
 
     setText(text: string): void {
         const spans = changedSpans(this.model.getText(), text);
+
         if (spans.length === 0) {
             return;
         }
+
         this.settingText = true;
+
         try {
             // Edits and not a reset, which would drop the undo history and put the cursor on line one.
             this.model.applyEdits(
@@ -222,6 +240,7 @@ class SmartEditor implements Editor {
                 text: edit.text
             }))
         };
+
         emit(this.textChanges, change);
     }
 
@@ -229,6 +248,7 @@ class SmartEditor implements Editor {
         if (head === this.caretOffset) {
             return;
         }
+
         this.caretOffset = head;
         emit(this.carets, this.positionAt(head));
     }
@@ -292,9 +312,11 @@ class SmartEditor implements Editor {
 
     setSelections(ranges: readonly EditorRange[], reveal: EditorReveal = 'relative'): void {
         const last = ranges.at(-1);
+
         if (last === undefined) {
             return;
         }
+
         this.model.setSelections(ranges.map((range) => ({ anchor: this.offsetAt(range.start), head: this.offsetAt(range.end) })));
         this.view.revealOffset(this.offsetAt(last.end), reveal);
     }
@@ -338,8 +360,10 @@ class SmartEditor implements Editor {
         if (this.settings.readOnly || edits.length === 0) {
             return false;
         }
+
         try {
             const { mapSelections } = options;
+
             return this.model.applyEdits(
                 edits.map((edit) => ({ from: this.offsetAt(edit.range.start), to: this.offsetAt(edit.range.end), text: edit.text })),
                 {
@@ -351,9 +375,11 @@ class SmartEditor implements Editor {
                             const { start, end } = mapSelections(this.rangeOf(selection));
                             const from = { line: start.line, column: start.character };
                             const to = { line: end.line, column: end.character };
+
                             if (selection.head < selection.anchor) {
                                 return { anchor: to, head: from };
                             }
+
                             return {
                                 anchor: from,
                                 head: selection.head === selection.anchor && start.line === end.line && start.character === end.character ? from : to
@@ -414,6 +440,7 @@ class SmartEditor implements Editor {
                 ? null
                 : tokens.map((token) => {
                       const from = this.offsetAt({ line: token.line, character: token.character });
+
                       return { from, to: from + token.length, scopes: token.scopes, within: token.within };
                   })
         );
@@ -431,11 +458,13 @@ class SmartEditor implements Editor {
 
     getVisibleRange(): EditorRange {
         const { first, last } = this.view.visibleLines();
+
         return { start: { line: first, character: 0 }, end: this.positionAt(this.model.getLine(last).end) };
     }
 
     positionAt(offset: number): EditorPosition {
         const { line, column } = this.model.positionAt(offset);
+
         return { line, character: column };
     }
 
@@ -472,76 +501,103 @@ class SmartEditor implements Editor {
     replace(replacement: string, replaceOptions: EditorReplaceOptions = {}): boolean {
         const { find } = this.view;
         const match = find.currentMatch;
+
         if (this.blockedByReadOnly()) {
             return false;
         }
+
         if (find.activeQuery?.regex === true) {
             if (find.currentMark === null) {
                 return false;
             }
+
             void find.replaceOne(replacement, replaceOptions.preserveCase === true, () => !this.disposed && !this.settings.readOnly);
+
             return true;
         }
+
         if (match === null) {
             return false;
         }
+
         try {
             // The next match is looked for after what was written, or a replacement that holds the query would find itself again.
             find.pendingAnchor = match.to;
+
             if (!this.model.replace(match, replacement, { preserveCase: replaceOptions.preserveCase })) {
                 find.pendingAnchor = undefined;
+
                 return false;
             }
         } catch {
             find.pendingAnchor = undefined;
+
             return false;
         }
+
         this.view.revealFind();
         this.view.render();
+
         return true;
     }
 
     replaceAll(replacement: string, options: EditorReplaceOptions = {}): number {
         const { find } = this.view;
         const query = find.activeQuery;
+
         if (query === null || find.state.noSelection === true || this.blockedByReadOnly()) {
             return 0;
         }
+
         try {
             const matches = find.completeMatches;
+
             if (matches !== null) {
                 let characters = 0;
+
                 for (const match of matches) {
                     characters += replacementText('', match, replacement, false, options.preserveCase, MAX_REPLACEMENT_CHARACTERS).length;
+
                     if (characters > MAX_REPLACEMENT_CHARACTERS) {
                         find.reportReplaceFailed('limit');
+
                         return 0;
                     }
                 }
+
                 const count = this.model.replaceMatches(matches, replacement, { preserveCase: options.preserveCase });
                 find.reportReplaced(count);
+
                 return count;
             }
+
             void this.replaceAllAsync(replacement, options);
+
             return 0;
         } catch (error) {
             find.reportReplaceFailed(error instanceof RangeError ? 'limit' : 'error');
+
             return 0;
         }
     }
 
     async replaceAllAsync(replacement: string, options: EditorReplaceOptions = {}): Promise<number> {
         const { find } = this.view;
+
         if (this.disposed || this.blockedByReadOnly() || find.activeQuery === null || find.state.noSelection) {
             return 0;
         }
+
         if (find.state.limited) {
             find.reportReplaceFailed('limit');
+
             return 0;
         }
+
         if (find.completeMatches !== null) {
             return this.replaceAll(replacement, options);
         }
+
         return find.replaceAll(replacement, options.preserveCase === true, () => !this.disposed && !this.settings.readOnly);
     }
 
@@ -552,17 +608,22 @@ class SmartEditor implements Editor {
     selectFindMatches(): number {
         const { find } = this.view;
         const marks = find.matches;
+
         if (marks.length === 0) {
             return 0;
         }
+
         const current = find.current ?? marks.length - 1;
         const ordered = [...marks.slice(0, current), ...marks.slice(current + 1), marks[current]!];
         this.view.setFind(null, false);
+
         for (const mark of ordered) {
             this.view.ensureVisible(mark.from);
         }
+
         this.model.setSelections(ordered.map((mark) => ({ anchor: mark.from, head: mark.to })));
         this.view.revealCaret();
+
         return ordered.length;
     }
 
@@ -570,27 +631,36 @@ class SmartEditor implements Editor {
         if (query.text === '') {
             return false;
         }
+
         const { anchor, head } = this.model.getPrimary();
         const offset = direction === 1 ? Math.max(anchor, head) : Math.min(anchor, head);
+
         const reveal = (target: { from: number; to: number } | null): boolean => {
             if (target === null || this.disposed) {
                 return false;
             }
+
             this.view.ensureVisible(target.from);
             this.model.setSelections([direction === 1 ? { anchor: target.from, head: target.to } : { anchor: target.to, head: target.from }]);
             this.view.revealCaret(target.from > head ? 'centerDown' : 'centerUp');
+
             return true;
         };
+
         if (query.regex) {
             const revision = this.model.getRevision();
+
             void this.view.find.nextFromCursor(query, offset, direction).then((target) => {
                 const current = this.model.getPrimary();
+
                 if (this.model.getRevision() === revision && current.anchor === anchor && current.head === head) {
                     reveal(target);
                 }
             });
+
             return true;
         }
+
         try {
             return reveal(
                 this.model.findNext(query.text, offset, {
@@ -616,6 +686,7 @@ class SmartEditor implements Editor {
     endFind(): void {
         const mark = this.view.find.currentMark;
         this.view.setFind(null, false);
+
         if (mark) {
             this.view.ensureVisible(mark.from);
             this.model.setSelections([{ anchor: mark.from, head: mark.to }]);
@@ -625,9 +696,11 @@ class SmartEditor implements Editor {
 
     setWrap(wrap: boolean): void {
         this.settings.wrap = wrap;
+
         if (wrap) {
             this.view.viewport.scrollLeft = 0;
         }
+
         this.view.applySettings();
     }
 
@@ -730,9 +803,11 @@ class SmartEditor implements Editor {
 
     trackRange(range: EditorRange): EditorTrackedRange {
         const tracked = this.view.trackRange(this.offsetAt(range.start), this.offsetAt(range.end));
+
         return {
             get: () => {
                 const offsets = tracked.get();
+
                 return offsets === null ? null : { start: this.positionAt(offsets.from), end: this.positionAt(offsets.to) };
             },
             dispose: () => tracked.dispose()
@@ -742,16 +817,20 @@ class SmartEditor implements Editor {
     setCodeVision(rows: readonly EditorCodeVision[]): void {
         const current = new Map(rows.map((row) => [row.id, row]));
         const revisions = new Map<string, { signature: string; revision: number }>();
+
         for (const row of rows) {
             const signature = lensSignature(row.entries);
             const before = this.lensRevisions.get(row.id);
+
             revisions.set(row.id, {
                 signature,
                 revision: before === undefined || before.signature === signature ? (before?.revision ?? 0) : before.revision + 1
             });
         }
+
         this.lensRows = current;
         this.lensRevisions = revisions;
+
         this.view.setLenses(
             rows.map((row) => ({
                 id: `lens:${row.id}`,
@@ -768,6 +847,7 @@ class SmartEditor implements Editor {
     /* Where the text of a line begins after its indentation, so a row sitting there stays with the declaration when something is typed in front of it. */
     private indentOffsetOf(line: number): number {
         const { start, text } = this.model.getLine(Math.max(0, Math.min(line, this.model.getLineCount() - 1)));
+
         return start + (/^[ \t]*/.exec(text)?.[0].length ?? 0);
     }
 
@@ -831,7 +911,9 @@ class SmartEditor implements Editor {
 
     private foldHintsByOffset(hints: EditorFoldHints): FoldHints {
         const lineOf = (line: number): { start: number; end: number } => this.model.getLine(Math.min(line, this.model.getLineCount() - 1));
+
         const within = (line: { start: number; end: number }, character: number): number => Math.min(line.end, line.start + Math.max(0, character));
+
         return {
             symbols: (hints.symbols ?? []).map((symbol) => ({
                 from: this.offsetAt(symbol.range.start),
@@ -841,6 +923,7 @@ class SmartEditor implements Editor {
             ranges: (hints.ranges ?? []).map((range) => {
                 const first = lineOf(range.startLine);
                 const last = lineOf(range.endLine);
+
                 return {
                     from: first.start,
                     to: last.start,
@@ -860,6 +943,7 @@ class SmartEditor implements Editor {
         if (indentation.tabSize === this.settings.tabSize && indentation.insertSpaces === this.settings.insertSpaces) {
             return;
         }
+
         this.settings.tabSize = indentation.tabSize;
         this.settings.insertSpaces = indentation.insertSpaces;
         this.view.applySettings();
@@ -902,6 +986,7 @@ class SmartEditor implements Editor {
         if (this.disposed) {
             return;
         }
+
         this.disposed = true;
         this.grammarPreparation.dispose();
         this.changes.clear();

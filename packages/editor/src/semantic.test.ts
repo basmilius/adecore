@@ -27,6 +27,7 @@ describe('overlayTokens', () => {
                 { from: 8, to: 9, color: '#0f0', fontStyle: 0 }
             ]
         );
+
         expect(result).toEqual([token(4, '#f00'), token(4, '#a'), token(1, '#0f0'), token(3, '#a')]);
     });
 
@@ -37,6 +38,7 @@ describe('overlayTokens', () => {
     test('colors a span with a kind only over the tokens of that kind', () => {
         const base = [{ ...token(4, '#a'), kind: 'string' as const }, token(4, '#b'), { ...token(4, '#c'), kind: 'string' as const }];
         const result = overlayTokens(base, [{ from: 2, to: 10, color: '#f00', fontStyle: 0, within: 'string' }]);
+
         expect(result.map((entry) => [entry.length, entry.color])).toEqual([
             [2, '#a'],
             [2, '#f00'],

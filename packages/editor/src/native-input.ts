@@ -49,6 +49,7 @@ export class NativeInput {
         if (this.composing) {
             return;
         }
+
         const selection = this.model.getPrimary();
         const caretCount = this.model.getSelectionCount();
         const length = this.model.getLength();
@@ -56,33 +57,41 @@ export class NativeInput {
         const end = Math.max(selection.anchor, selection.head);
         let from = 0;
         let to = length;
+
         if (length > CONTEXT) {
             from = Math.max(0, Math.min(start, selection.head - 2048));
             to = Math.min(length, end + 2048);
+
             if (to - from > CONTEXT) {
                 from = Math.max(0, selection.head - CONTEXT / 2);
                 to = Math.min(length, from + CONTEXT);
             }
+
             // A boundary must not split a surrogate pair or a CRLF.
             if (from > 0 && /[\uDC00-\uDFFF\n]/.test(this.model.slice(from, from + 1))) {
                 from--;
             }
+
             if (to < length && /[\uDC00-\uDFFF\n]/.test(this.model.slice(to, to + 1))) {
                 to++;
             }
         }
+
         const source = this.model.slice(from, to);
         const value = textareaText(source);
         const nativeStart = textareaOffset(source, Math.max(0, start - from));
         const nativeEnd = textareaOffset(source, Math.max(0, end - from));
         this.context = { from, source, value, start: nativeStart, end: nativeEnd };
         this.writing = true;
+
         if (this.element.value !== value) {
             this.element.value = value;
         }
+
         this.element.setSelectionRange(nativeStart, nativeEnd, selection.head < selection.anchor ? 'backward' : 'forward');
         this.writing = false;
         const position = this.model.positionAt(selection.head);
+
         this.element.setAttribute(
             'aria-description',
             `Line ${position.line + 1}, column ${position.column + 1}. ${caretCount} caret${caretCount === 1 ? '' : 's'}.`
@@ -94,11 +103,14 @@ export class NativeInput {
         if (this.writing || this.composing || this.element.value !== this.context.value) {
             return;
         }
+
         const start = this.element.selectionStart;
         const end = this.element.selectionEnd;
+
         if (start === this.context.start && end === this.context.end) {
             return;
         }
+
         const from = this.context.from + modelOffset(this.context.source, start);
         const to = this.context.from + modelOffset(this.context.source, end);
         this.host.selectionChanged(this.element.selectionDirection === 'backward' ? { anchor: to, head: from } : { anchor: from, head: to });
@@ -107,26 +119,35 @@ export class NativeInput {
     onInput(): void {
         if (this.composing) {
             this.host.preview(this.composedText());
+
             return;
         }
+
         if (this.host.readOnly()) {
             this.sync();
+
             return;
         }
+
         const context = this.context;
         const change = findChange(context.value, this.element.value);
+
         if (change.from === change.to && !change.text) {
             return;
         }
+
         if (this.model.getSelections().length > 1) {
             this.host.replace(this.replacedText(context));
+
             return;
         }
+
         const edit = {
             from: context.from + modelOffset(context.source, change.from),
             to: context.from + modelOffset(context.source, change.to),
             text: this.normalizeNewlines(change.text)
         };
+
         const next = context.source.slice(0, edit.from - context.from) + edit.text + context.source.slice(edit.to - context.from);
         const start = context.from + modelOffset(next, this.element.selectionStart);
         const end = context.from + modelOffset(next, this.element.selectionEnd);
@@ -137,6 +158,7 @@ export class NativeInput {
         if (this.host.readOnly()) {
             return;
         }
+
         this.compositionContext = { ...this.context };
         this.composing = true;
     }
@@ -145,12 +167,14 @@ export class NativeInput {
         if (!this.composing) {
             return;
         }
+
         const text = this.composedText();
         const context = this.compositionContext!;
         const unchanged = this.element.value === context.value;
         this.composing = false;
         this.compositionContext = undefined;
         this.host.preview(undefined);
+
         if (data && !unchanged && !this.host.readOnly()) {
             if (DEAD_KEY_RESULT.test(text)) {
                 for (const character of text) {
@@ -160,6 +184,7 @@ export class NativeInput {
                 this.host.replace(text);
             }
         }
+
         this.sync();
     }
 
@@ -167,6 +192,7 @@ export class NativeInput {
     normalizeNewlines(text: string): string {
         const first = this.model.getLine(0);
         const newline = this.model.slice(first.end, first.next) === '\r\n' ? '\r\n' : '\n';
+
         return textareaText(text).replace(/\n/g, newline);
     }
 
@@ -177,6 +203,7 @@ export class NativeInput {
     /* What the textarea now holds where the selection of `context` was, the text after it kept. */
     private replacedText(context: InputContext): string {
         const suffix = context.value.length - context.end;
+
         return this.element.value.slice(context.start, Math.max(context.start, this.element.value.length - suffix));
     }
 }

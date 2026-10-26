@@ -24,6 +24,7 @@ function mount(text: string, settings: Partial<ViewSettings> = {}) {
     const model = new DocumentModel(text);
     const resolved = { ...SETTINGS, ...settings };
     const view = new EditorView(page.host, model, resolved);
+
     return { ...page, model, view, settings: resolved };
 }
 

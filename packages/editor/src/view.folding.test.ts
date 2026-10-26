@@ -75,7 +75,9 @@ describe('folding', () => {
     test('draws a fold a server starts within its first line up to there, and its last line from where it shows again', () => {
         const source = '<?php\nuse App\\A;\nuse App\\B;\nuse App\\C;\n\nfinal class D {}';
         const { host, model, view } = mount(source, { language: 'php' });
+
         const at = (line: number, column: number) => model.offsetAt({ line, column });
+
         view.setFoldHints({ ranges: [{ from: at(1, 0), to: at(3, 0), kind: 'imports', head: at(1, 3), tail: at(3, 9) }] });
         view.refreshFolds();
         model.setSelections([{ anchor: at(1, 6), head: at(1, 6) }]);
@@ -131,6 +133,7 @@ describe('folding', () => {
 
 describe('fold commands', () => {
     const nested = 'class A {\n    method() {\n        body();\n    }\n    other() {\n        more();\n    }\n}\nend();';
+
     const folded = (view: EditorView): { startLine: number; endLine: number }[] => [...view.getFolds().collapsed];
 
     test('collapse folds the range that starts on the caret line, or else the innermost open one around it', () => {
@@ -141,6 +144,7 @@ describe('fold commands', () => {
         expect(folded(view)).toEqual([{ startLine: 1, endLine: 3 }]);
         model.setSelections([{ anchor: model.getLine(1).start, head: model.getLine(1).start }]);
         view.collapseRegion();
+
         expect(folded(view)).toEqual([
             { startLine: 0, endLine: 7 },
             { startLine: 1, endLine: 3 }
@@ -232,6 +236,7 @@ describe('fold defaults and hints', () => {
     const source = '/**\n * Doc.\n */\nclass A {\n    run() {\n        body();\n    }\n    stop() {\n        more();\n    }\n}\n';
     const runBody = { from: source.indexOf('run()'), to: source.indexOf('    stop') - 1, body: 'method' as const };
     const stopBody = { from: source.indexOf('stop()'), to: source.lastIndexOf('}') - 1, body: 'method' as const };
+
     const folded = (view: EditorView): number[] => view.getFolds().collapsed.map((fold) => fold.startLine);
 
     test('folds a role the text gives at once, and one a server names when it answers', () => {

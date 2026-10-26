@@ -27,18 +27,23 @@ async function colorsOf(language: string, text: string): Promise<Map<string, str
     expect(tokenizer).not.toBeNull();
     const words = new Map<string, string>();
     let state: unknown = null;
+
     for (const line of text.split('\n')) {
         const result = tokenizer!.tokenizeLine(line, state);
         state = result.state;
         let at = 0;
+
         for (const token of result.tokens) {
             const word = line.slice(at, at + token.length).trim();
+
             if (word !== '' && !words.has(word)) {
                 words.set(word, token.color);
             }
+
             at += token.length;
         }
     }
+
     return words;
 }
 
@@ -122,6 +127,7 @@ describe('a PHP file', () => {
 describe('embedded grammars added while editing', () => {
     test('prepares a new fence once and invalidates its host once', async () => {
         const fresh = await createHighlighter({ themes: [THEME], langs: [] });
+
         try {
             const tokenizer = (await shikiTokenizers(async () => fresh)('markdown', THEME, '# Title'))!;
             expect(await tokenizer.prepare?.('```ts')).toBe(true);
@@ -135,6 +141,7 @@ describe('embedded grammars added while editing', () => {
 
     test('does not load languages named only in Markdown prose', async () => {
         const fresh = await createHighlighter({ themes: [THEME], langs: [] });
+
         try {
             const tokenizer = (await shikiTokenizers(async () => fresh)('markdown', THEME, 'go make a log diff'))!;
             const before = fresh.getLoadedLanguages();
@@ -147,6 +154,7 @@ describe('embedded grammars added while editing', () => {
 
     test('shares a language load between a new fence and another document', async () => {
         const fresh = await createHighlighter({ themes: [THEME], langs: [] });
+
         try {
             const tokenizer = (await shikiTokenizers(async () => fresh)('markdown', THEME, ''))!;
             const load = spyOn(fresh, 'loadLanguage');
@@ -160,6 +168,7 @@ describe('embedded grammars added while editing', () => {
 
     test('prepares a Vue lang attribute but not ordinary words', async () => {
         const fresh = await createHighlighter({ themes: [THEME], langs: [] });
+
         try {
             const tokenizer = (await shikiTokenizers(async () => fresh)('vue', THEME, '<template />'))!;
             expect(await tokenizer.prepare?.('scss')).toBe(false);
@@ -172,6 +181,7 @@ describe('embedded grammars added while editing', () => {
 
     test('a language without lazy embeds needs no further loads', async () => {
         const fresh = await createHighlighter({ themes: [THEME], langs: [] });
+
         try {
             const tokenizer = (await shikiTokenizers(async () => fresh)('typescript', THEME, ''))!;
             const load = spyOn(fresh, 'loadLanguage');
@@ -186,24 +196,30 @@ describe('embedded grammars added while editing', () => {
 
 test('Markdown states stay valid after a rebuild, partial recolor and edits far apart', async () => {
     const fresh = await createHighlighter({ themes: [THEME], langs: [] });
+
     try {
         const lines = ['# Doc', '', '```', 'x', '```', ''];
+
         for (let index = 0; index < 60; index++) {
             lines.push(`> quote ${index}`, `> more **${index}**`, '', `para ${index} line`, `second line *${index}*`, '');
         }
+
         const model = new DocumentModel(lines.join('\n'));
         const tokenizer = (await shikiTokenizers(async () => fresh)('markdown', THEME, model.getText()))!;
         const cache = new TokenCache({ getLineCount: () => model.getLineCount(), getLineText: (line) => model.getLine(line).text });
         cache.setTokenizer(tokenizer);
+
         const subscription = model.subscribe((snapshot) => {
             if (snapshot.changes !== undefined) {
                 cache.edited(snapshot.changes, (offset) => model.positionAt(offset).line);
             }
         });
+
         const insert = (line: number, text: string): void => {
             const at = model.getLine(line).end;
             model.applyEdits([{ from: at, to: at, text }]);
         };
+
         cache.advance(1000, 1000, stopped);
         insert(2, 'rust');
         expect(await tokenizer.prepare?.(model.getText())).toBe(true);

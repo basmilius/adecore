@@ -3,6 +3,7 @@ import { setup, settle } from './engine.fixture.test.ts';
 import type { Editor, LineTokenizer } from './types.ts';
 
 const disposals: (() => void)[] = [];
+
 afterEach(() => {
     while (disposals.length > 0) {
         disposals.pop()!();
@@ -14,31 +15,40 @@ function preparationClock() {
     const originalClear = globalThis.clearTimeout as (timer: unknown) => void;
     const pending = new Map<ReturnType<typeof setTimeout>, () => void>();
     const set = spyOn(globalThis, 'setTimeout');
+
     set.mockImplementation(((callback: () => void, delay?: number) => {
         if (delay !== 200) {
             return originalSet(callback, delay);
         }
+
         const timer = originalSet(() => {}, 1_000_000);
         pending.set(timer, callback);
+
         return timer;
     }) as typeof setTimeout);
+
     const clear = spyOn(globalThis, 'clearTimeout');
+
     clear.mockImplementation((timer) => {
         pending.delete(timer as ReturnType<typeof setTimeout>);
         originalClear(timer);
     });
+
     disposals.push(() => {
         pending.forEach((_callback, timer) => originalClear(timer));
         clear.mockRestore();
         set.mockRestore();
     });
+
     return async (): Promise<void> => {
         const callbacks = [...pending];
         pending.clear();
+
         callbacks.forEach(([timer, callback]) => {
             originalClear(timer);
             callback();
         });
+
         await settle();
     };
 }
@@ -46,21 +56,29 @@ function preparationClock() {
 function tokenizer() {
     let invalid = false;
     let color = '#112233';
+
     const prepare = jest.fn(async (text: string) => {
         if (text.includes('```ts') && color === '#112233') {
             invalid = true;
             color = '#336699';
+
             return true;
         }
+
         return false;
     });
+
     const tokenizeLine = jest.fn((text: string) => ({ tokens: [{ length: text.length, color, fontStyle: 0 }], state: null }));
+
     const stale = jest.fn(() => {
         const changed = invalid;
         invalid = false;
+
         return changed;
     });
+
     const source: LineTokenizer = { prepare, tokenizeLine, stale, sameState: () => true };
+
     return { source, prepare, tokenizeLine, stale };
 }
 
@@ -92,9 +110,11 @@ describe('embedded grammar edits in the editor', () => {
         const { editor, type } = setup({ text: '', language: 'markdown' }, { tokenizer: async () => grammar.source });
         keep(editor);
         await settle();
+
         for (const character of '```ts') {
             type(character);
         }
+
         await flush();
         editor.refreshFont();
         expect(grammar.prepare).toHaveBeenCalledTimes(1);
@@ -112,12 +132,16 @@ describe('embedded grammar edits in the editor', () => {
         const flush = preparationClock();
         const first = tokenizer();
         const second = tokenizer();
+
         let finish = (_loaded: boolean): void => {};
+
         first.prepare.mockImplementation(() => new Promise<boolean>((resolve) => (finish = resolve)));
+
         const { editor } = setup(
             { text: 'head', theme: 'light' },
             { tokenizer: async (_language, theme) => (theme === 'light' ? first.source : second.source) }
         );
+
         keep(editor);
         await settle();
         editor.setText('head\n```ts');
@@ -153,7 +177,9 @@ describe('embedded grammar edits in the editor', () => {
     test('disposal ignores a late answer and a large paste prepares the whole document', async () => {
         const flush = preparationClock();
         const grammar = tokenizer();
+
         let finish = (_loaded: boolean): void => {};
+
         grammar.prepare.mockImplementation(() => new Promise<boolean>((resolve) => (finish = resolve)));
         const { editor } = setup({ text: 'head' }, { tokenizer: async () => grammar.source });
         keep(editor);

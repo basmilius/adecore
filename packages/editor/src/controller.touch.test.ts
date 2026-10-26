@@ -12,6 +12,7 @@ function touchPage(text = 'alpha beta\nnext') {
     const mounted = mountEditor({ text });
     const { page, viewport } = mounted;
     const root = page.document.documentElement;
+
     return {
         ...mounted,
         down: (x: number, y: number, target: Element = viewport) => pointer(page.window, target, 'pointerdown', x, y, { pointerType: 'touch' }),
@@ -25,9 +26,11 @@ describe('touch', () => {
     test('a tap places the caret and focuses the input', () => {
         const { editor, input, down, up, type } = touchPage();
         let focused = 0;
+
         input.focus = () => {
             focused++;
         };
+
         down(column(3) + 1, row(1));
         up(column(3) + 1, row(1));
         expect(focused).toBe(1);
@@ -38,10 +41,13 @@ describe('touch', () => {
     test('a tap the host handles reaches its click handler and places no caret', () => {
         const { editor, down, up, type } = touchPage();
         const presses: { line: number; character: number }[] = [];
+
         editor.onClick((press) => {
             presses.push(press.position);
+
             return true;
         });
+
         down(column(3) + 1, row(1));
         up(column(3) + 1, row(1));
         expect(presses).toEqual([{ line: 1, character: 3 }]);
@@ -52,10 +58,13 @@ describe('touch', () => {
     test('a scroll does not reach the click handler', () => {
         const { editor, down, move, up } = touchPage();
         let calls = 0;
+
         editor.onClick(() => {
             calls++;
+
             return true;
         });
+
         down(column(3), row(0));
         move(column(3), row(0) + 40);
         up(column(3), row(0) + 40);
@@ -151,10 +160,12 @@ describe('the virtual keyboard', () => {
         const input = page.host.querySelector('.se-input')!;
         Object.defineProperty(page.document, 'activeElement', { configurable: true, get: () => input });
         const reveal = jest.spyOn(EditorView.prototype, 'revealCaret');
+
         const resize = (height: number): void => {
             viewport.height = height;
             listeners.forEach((listener) => listener());
         };
+
         resize(500);
         expect(reveal).toHaveBeenCalledTimes(1);
         resize(700);
@@ -167,12 +178,14 @@ describe('the virtual keyboard', () => {
 
     test('does not reveal the caret while the person zooms in', () => {
         const listeners = new Set<() => void>();
+
         const viewport = {
             height: 800,
             scale: 1,
             addEventListener: (_type: string, listener: () => void) => listeners.add(listener),
             removeEventListener: () => {}
         };
+
         const page = createPage();
         Object.defineProperty(page.window, 'visualViewport', { configurable: true, value: viewport });
         const editor = createSmartEditorEngine({ tokenizer: async () => null }).mount(page.host, { text: 'one\ntwo', theme: 'dark' });
@@ -198,6 +211,7 @@ describe('the virtual keyboard', () => {
     test('listens for a resize of the visual viewport while mounted and lets go on dispose', () => {
         const listeners = new Set<() => void>();
         const page = createPage();
+
         Object.defineProperty(page.window, 'visualViewport', {
             configurable: true,
             value: {
@@ -205,6 +219,7 @@ describe('the virtual keyboard', () => {
                 removeEventListener: (_type: string, listener: () => void) => listeners.delete(listener)
             }
         });
+
         const editor = createSmartEditorEngine({ tokenizer: async () => null }).mount(page.host, { text: 'one\ntwo', theme: 'dark' });
         expect(listeners.size).toBe(1);
         editor.focus();

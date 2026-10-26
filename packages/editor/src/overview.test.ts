@@ -22,6 +22,7 @@ describe('overviewTicks', () => {
             1000,
             1000
         );
+
         expect(ticks).toEqual([
             { kind: 'find', y: 0, height: 40 },
             { kind: 'find-current', y: 20, height: 20 },

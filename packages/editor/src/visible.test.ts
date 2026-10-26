@@ -8,9 +8,11 @@ describe('getVisibleRange', () => {
         const range = editor.getVisibleRange();
         expect(range.start).toEqual({ line: 0, character: 0 });
         expect(range.end.line).toBeLessThanOrEqual(2);
+
         expect(range.end.character).toBe(
             editor.textInRange({ start: { line: range.end.line, character: 0 }, end: { line: range.end.line, character: 99 } }).length
         );
+
         editor.dispose();
     });
 

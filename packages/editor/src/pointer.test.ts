@@ -22,6 +22,7 @@ function event({ x, y, time = 0, id = 1, alt = false, shift = false, type = 'poi
 
 function setup(text: string, options: { columnMode?: boolean; selected?: Selection | null } = {}) {
     const frames: (() => void)[] = [];
+
     // A stand-in for the view's element, so the frames it asks for are this test's: a LinkeDOM window writes through to the global one.
     const viewport = {
         scrollTop: 0,
@@ -36,10 +37,13 @@ function setup(text: string, options: { columnMode?: boolean; selected?: Selecti
         },
         getBoundingClientRect: () => VIEW
     } as unknown as HTMLElement;
+
     const model = new DocumentModel(text);
     const calls = { scrolled: 0, drops: [] as { from: number; to: number; offset: number; copy: boolean }[], dropCarets: [] as (number | null)[] };
+
     const offsetAt = (x: number, y: number): number =>
         model.offsetAt({ line: Math.max(0, Math.floor((y + viewport.scrollTop) / CELL.height)), column: Math.max(0, Math.round(x / CELL.width)) });
+
     const host: PointerHost = {
         model,
         viewport,
@@ -49,8 +53,10 @@ function setup(text: string, options: { columnMode?: boolean; selected?: Selecti
             if (Math.round(from.x / CELL.width) === Math.round(to.x / CELL.width)) {
                 return null;
             }
+
             const first = Math.floor(Math.min(from.y, to.y) / CELL.height);
             const last = Math.floor(Math.max(from.y, to.y) / CELL.height);
+
             return Array.from({ length: last - first + 1 }, (_, index) => ({
                 anchor: model.offsetAt({ line: first + index, column: Math.round(from.x / CELL.width) }),
                 head: model.offsetAt({ line: first + index, column: Math.round(to.x / CELL.width) })
@@ -58,10 +64,12 @@ function setup(text: string, options: { columnMode?: boolean; selected?: Selecti
         },
         visualLine: (offset) => {
             const line = model.getLine(model.positionAt(offset).line);
+
             return { start: line.start, end: line.end, next: line.next, y: model.positionAt(offset).line * CELL.height };
         },
         lineAt: (offset) => {
             const line = model.getLine(model.positionAt(offset).line);
+
             return { from: line.start, to: line.next };
         },
         camelHumps: () => false,
@@ -73,11 +81,14 @@ function setup(text: string, options: { columnMode?: boolean; selected?: Selecti
         focus: () => {},
         scrolled: () => calls.scrolled++
     };
+
     const pointer = new PointerSelection(host);
+
     const runFrame = (): void => {
         const pending = frames.splice(0);
         pending.forEach((frame) => frame());
     };
+
     return { model, pointer, viewport, calls, frames, runFrame };
 }
 
@@ -86,10 +97,12 @@ const selections = (model: DocumentModel): readonly Selection[] => model.getSele
 describe('clicks', () => {
     test('a second press soon after and close by is a double click, a third a triple, and a fourth stays a triple', () => {
         const { model, pointer } = setup('alpha beta\ngamma');
+
         const click = (time: number, x = 70): void => {
             pointer.start(event({ x, y: 5, time }));
             pointer.end(event({ x, y: 5, time, type: 'pointerup' }));
         };
+
         click(0);
         expect(selections(model)).toEqual([{ anchor: 7, head: 7 }]);
         click(100);
@@ -137,6 +150,7 @@ describe('dragging', () => {
         const { model, pointer } = setup('alpha\nbravo\ncharlie', { columnMode: true });
         pointer.start(event({ x: 10, y: 5 }));
         pointer.move(event({ x: 30, y: 45, type: 'pointermove' }));
+
         expect(selections(model)).toEqual([
             { anchor: 1, head: 3 },
             { anchor: 7, head: 9 },

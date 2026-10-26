@@ -50,21 +50,27 @@ export class AttributionRuns {
     /* Marks name lines one-based and inclusive; `lineBounds` answers for the document as it is now. */
     set(marks: readonly (EditorLineHighlight & { id: string })[], lineCount: number, lineBounds: (line: number) => { start: number; end: number }): void {
         const clamp = (line: number): number => Math.min(lineCount, Math.max(1, Math.trunc(line) || 1)) - 1;
+
         this.runs = marks.map((mark) => {
             const start = clamp(mark.startLine);
             const end = Math.max(start, clamp(mark.endLine));
+
             const emphasis = (mark.emphasis ?? []).slice(0, end - start + 1).flatMap((ranges, index) => {
                 const bounds = lineBounds(start + index);
                 const length = bounds.end - bounds.start;
+
                 return ranges.flatMap(([from, to]) => {
                     if (!Number.isFinite(from) || !Number.isFinite(to)) {
                         return [];
                     }
+
                     const first = Math.min(length, Math.max(0, Math.trunc(from)));
                     const last = Math.min(length, Math.max(0, Math.trunc(to)));
+
                     return last > first ? [{ from: bounds.start + first, to: bounds.start + last }] : [];
                 });
             });
+
             return {
                 id: mark.id,
                 color: mark.color,
@@ -93,29 +99,37 @@ export class AttributionRuns {
     /* The run on each line from `first` to `last`, zero-based, where `from` and `to` are the offsets they span; where runs overlap the one set last wins. */
     linesIn(first: number, last: number, from: number, to: number, lineOf: (offset: number) => number): Map<number, AttributedLines> {
         const lines = new Map<number, AttributedLines>();
+
         for (const run of this.runs) {
             if (run.to < from || run.from > to) {
                 continue;
             }
+
             const value = { id: run.id, color: run.color, sign: run.sign, fill: run.fill, bar: run.bar };
             const emphasis = new Map<number, { from: number; to: number }[]>();
+
             for (const range of run.emphasis) {
                 if (range.to <= from || range.from > to) {
                     continue;
                 }
+
                 const endLine = Math.min(lineOf(range.to - 1), last);
+
                 for (let line = Math.max(lineOf(range.from), first); line <= endLine; line++) {
                     const ranges = emphasis.get(line) ?? [];
                     ranges.push(range);
                     emphasis.set(line, ranges);
                 }
             }
+
             const end = Math.min(Math.max(lineOf(run.from), lineOf(run.to)), last);
+
             for (let line = Math.max(lineOf(run.from), first); line <= end; line++) {
                 const ranges = emphasis.get(line);
                 lines.set(line, ranges === undefined ? value : { ...value, emphasis: ranges });
             }
         }
+
         return lines;
     }
 }

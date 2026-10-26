@@ -15,6 +15,7 @@ function elementWith(style: Partial<CSSStyleDeclaration>): HTMLElement {
     const { document, window } = createPage();
     const original = Object.getOwnPropertyDescriptor(window, 'getComputedStyle');
     Object.defineProperty(window, 'getComputedStyle', { value: () => style, configurable: true, writable: true });
+
     restores.push(() => {
         if (original) {
             Object.defineProperty(window, 'getComputedStyle', original);
@@ -22,6 +23,7 @@ function elementWith(style: Partial<CSSStyleDeclaration>): HTMLElement {
             delete (window as unknown as Record<string, unknown>).getComputedStyle;
         }
     });
+
     return document.createElement('div');
 }
 

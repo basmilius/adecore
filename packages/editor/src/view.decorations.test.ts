@@ -57,10 +57,12 @@ describe('inlays and widgets', () => {
 
     test('marks occurrences the host asks for and drops them on an edit', () => {
         const { host, model, view } = mount('ab ab');
+
         view.setOccurrences([
             { from: 0, to: 2 },
             { from: 3, to: 5 }
         ]);
+
         expect(host.querySelectorAll('.se-occurrence').length).toBe(2);
         model.applyEdits([{ from: 0, to: 0, text: 'x' }]);
         expect(host.querySelectorAll('.se-occurrence').length).toBe(0);
@@ -90,10 +92,12 @@ describe('occurrences of the selected text', () => {
         model.setSelections([{ anchor: 0, head: 8 }]);
         view.render();
         expect(marks(host)).toBe(0);
+
         model.setSelections([
             { anchor: 0, head: 1 },
             { anchor: 4, head: 5 }
         ]);
+
         view.render();
         expect(marks(host)).toBe(0);
         model.setSelections([{ anchor: 12, head: 13 }]);
@@ -107,6 +111,7 @@ describe('occurrences of the selected text', () => {
 
 describe('indent guides, the right margin, whitespace and wrap signs', () => {
     const source = 'class A {\n    method() {\n        body();\n\n        more();\n    }\n}';
+
     const lefts = (host: HTMLElement, selector: string): string[] =>
         [...host.querySelectorAll(selector)].map((element) => `${(element as HTMLElement).style.left}/${(element as HTMLElement).style.height}`);
 
@@ -191,9 +196,11 @@ describe('brackets', () => {
         view.revealCaret();
         view.render();
         expect(host.querySelectorAll('.se-bracket-match').length).toBe(0);
+
         for (let frame = 0; frame < 40 && host.querySelectorAll('.se-bracket-match').length === 0; frame++) {
             await new Promise((resolve) => setTimeout(resolve, 5));
         }
+
         expect(host.querySelectorAll('.se-bracket-match').length).toBe(2);
     });
 });
@@ -213,29 +220,36 @@ describe('change marks', () => {
 
     test('draw a bar in the gutter beside each marked line and a triangle for a removal', () => {
         const { host, view } = mount(text);
+
         view.setChangeMarks([
             { kind: 'added', startLine: 2, endLine: 3 },
             { kind: 'modified', startLine: 5, endLine: 5 },
             { kind: 'deleted', startLine: 8, endLine: 8 },
             { kind: 'deleted', startLine: 2, endLine: 2 }
         ]);
+
         const marked = [...host.querySelectorAll('.se-line-number')].flatMap((item) => {
             const mark = item.querySelector('.se-change');
+
             return mark ? [`${item.textContent}:${mark.className.replace('se-change se-change-', '')}`] : [];
         });
+
         expect(marked).toEqual(['2:added', '3:added', '5:modified', '8:deleted']);
     });
 
     test('give way to the bar of a highlight that draws the gutter as a review, and keep the scroll ticks', () => {
         const { host, view } = mount(text);
+
         view.setChangeMarks([
             { kind: 'added', startLine: 2, endLine: 3 },
             { kind: 'deleted', startLine: 5, endLine: 5 }
         ]);
+
         view.setLineHighlights([
             { startLine: 2, endLine: 3, color: '--editor-added', bar: 'solid' },
             { startLine: 5, endLine: 5, color: '--editor-deleted', bar: 'hatched' }
         ]);
+
         expect(host.querySelectorAll('.se-change').length).toBe(0);
         expect(host.querySelectorAll('.se-line-bar-solid').length).toBe(2);
         expect(host.querySelectorAll('.se-line-bar-hatched').length).toBe(1);
@@ -256,11 +270,14 @@ describe('change marks', () => {
 
     test('layers draw together, the later layer wins a shared line and clearing one leaves the other', () => {
         const { host, view } = mount(text);
+
         const marked = (): string[] =>
             [...host.querySelectorAll('.se-line-number')].flatMap((item) => {
                 const mark = item.querySelector('.se-change');
+
                 return mark ? [`${item.textContent}:${mark.className.replace('se-change se-change-', '')}`] : [];
             });
+
         view.setChangeMarks([{ kind: 'added', startLine: 2, endLine: 3 }]);
         view.setChangeMarks([{ kind: 'modified', startLine: 3, endLine: 4 }], 'patch');
         expect(marked()).toEqual(['2:added', '3:modified', '4:modified']);
@@ -270,12 +287,16 @@ describe('change marks', () => {
 
     test('let the later layer win a shared line for every kind, in the gutter and in the scroll track', () => {
         const { host, view } = mount(text);
+
         const marked = (): string[] =>
             [...host.querySelectorAll('.se-line-number')].flatMap((item) => {
                 const mark = item.querySelector('.se-change');
+
                 return mark ? [`${item.textContent}:${mark.className.replace('se-change se-change-', '')}`] : [];
             });
+
         const ticks = (): string[] => [...new Set([...host.querySelectorAll('.se-tick')].map((tick) => tick.className.replace('se-tick se-tick-', '')))];
+
         view.setChangeMarks([{ kind: 'added', startLine: 2, endLine: 3 }]);
         view.setChangeMarks([{ kind: 'deleted', startLine: 3, endLine: 3 }], 'patch');
         expect(marked()).toEqual(['2:added', '3:deleted']);
@@ -288,10 +309,12 @@ describe('change marks', () => {
 
     test('keep a removal below an added line of the same layer', () => {
         const { host, view } = mount(text);
+
         view.setChangeMarks([
             { kind: 'added', startLine: 4, endLine: 4 },
             { kind: 'deleted', startLine: 4, endLine: 4 }
         ]);
+
         const marked = [...host.querySelectorAll('.se-line-number')].flatMap((item) => (item.querySelector('.se-change-added') ? [item.textContent] : []));
         expect(marked).toEqual(['4']);
     });
@@ -310,36 +333,44 @@ describe('change marks', () => {
 
 describe('attribution marks', () => {
     const text = Array.from({ length: 30 }, (_, i) => `line ${i + 1}`).join('\n');
+
     const barred = (host: HTMLElement): string[] =>
         [...host.querySelectorAll('.se-line-number')].flatMap((item) => {
             const bar = item.querySelector('.se-attribution') as HTMLElement | null;
+
             return bar ? [`${item.textContent}:${bar.dataset.attributionId}:${bar.style.background}`] : [];
         });
 
     test('draw a bar in the gutter on each line of a run, in the color of the mark', () => {
         const { host, view } = mount(text);
+
         view.setAttributionMarks([
             { id: 'a', startLine: 2, endLine: 3, color: '--agent-1' },
             { id: 'b', startLine: 6, endLine: 6, color: '#c4602f' }
         ]);
+
         expect(barred(host)).toEqual(['2:a:var(--agent-1)', '3:a:var(--agent-1)', '6:b:#c4602f']);
     });
 
     test('stand where the change mark of the same line would, and leave a removal', () => {
         const { host, view } = mount(text);
+
         view.setChangeMarks([
             { kind: 'added', startLine: 2, endLine: 4 },
             { kind: 'deleted', startLine: 6, endLine: 6 },
             { kind: 'modified', startLine: 8, endLine: 8 }
         ]);
+
         view.setAttributionMarks([
             { id: 'a', startLine: 2, endLine: 3, color: '--agent-1' },
             { id: 'b', startLine: 6, endLine: 6, color: '--agent-1' }
         ]);
+
         const marks = [...host.querySelectorAll('.se-line-number')].map(
             (item) =>
                 `${item.textContent}:${[...item.querySelectorAll('.se-attribution, .se-change')].map((mark) => mark.className.replace('se-change se-change-', 'git-')).join('+')}`
         );
+
         expect(marks.slice(1, 6)).toEqual(['2:se-attribution', '3:se-attribution', '4:git-added', '5:', '6:se-attribution+git-deleted']);
         expect(marks[7]).toBe('8:git-modified');
     });
@@ -383,6 +414,7 @@ describe('attribution marks', () => {
 function hoverable(text: string) {
     const mounted = mount(text);
     mounted.view.render();
+
     return {
         ...mounted,
         /* A pointer move in the gutter, `fromEdge` pixels left of the text and `line` rows down, zero-based. */
@@ -411,15 +443,18 @@ describe('drawing for the host', () => {
         const { host, view } = mount('one\ntwo\nthree');
         view.render();
         let drawn = firstNumber(host);
+
         const unchanged = (call: () => void): void => {
             call();
             expect(firstNumber(host)).toBe(drawn);
         };
+
         const changed = (call: () => void): void => {
             call();
             expect(firstNumber(host)).not.toBe(drawn);
             drawn = firstNumber(host);
         };
+
         unchanged(() => view.setGutterAction(null));
         changed(() => view.setGutterAction({ line: 1, label: 'Show' }));
         unchanged(() => view.setGutterAction({ line: 1, label: 'Show' }));
@@ -437,16 +472,19 @@ describe('drawing for the host', () => {
         view.render();
         const viewport = host.querySelector('.se-viewport') as HTMLElement;
         const reads: Record<string, number> = { clientWidth: 0, clientHeight: 0, scrollTop: 0, scrollLeft: 0 };
+
         for (const name of Object.keys(reads)) {
             Object.defineProperty(viewport, name, {
                 get: () => {
                     reads[name]!++;
+
                     return 0;
                 },
                 set: () => undefined,
                 configurable: true
             });
         }
+
         view.setGutterAction({ line: 0, label: 'Show' });
         expect(reads).toEqual({ clientWidth: 1, clientHeight: 1, scrollTop: 1, scrollLeft: 1 });
     });

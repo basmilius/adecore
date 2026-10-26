@@ -59,10 +59,12 @@ test('viewport queries include crossing and touching matches without another sea
     const find = new FindController(model);
     find.set(query('aa\nbb'));
     expect(find.matchesBetween(1, 3).map(({ from, to }) => [from, to])).toEqual([[0, 5]]);
+
     expect(find.matchesBetween(5, 6).map(({ from, to }) => [from, to])).toEqual([
         [0, 5],
         [6, 11]
     ]);
+
     expect(find.matchesBetween(12, 15)).toEqual([]);
     expect(find.matchesBetween(0, 0).map(({ from, to }) => [from, to])).toEqual([[0, 5]]);
 });

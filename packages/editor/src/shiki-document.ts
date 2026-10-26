@@ -18,6 +18,7 @@ export function shikiDocumentHighlighter(
 ): (index: number) => Promise<string> {
     return documentHighlighter(highlighter, blocks, language, theme, (loaded, code, grammar, theme, state) => {
         let root: Parameters<NonNullable<ShikiTransformer['root']>>[0] | undefined;
+
         const value = loaded.codeToHtml(code, {
             lang: grammar,
             theme,
@@ -31,6 +32,7 @@ export function shikiDocumentHighlighter(
                 }
             ]
         });
+
         return { value, state: root === undefined ? undefined : loaded.getLastGrammarState(root) };
     });
 }
@@ -56,6 +58,7 @@ export function shikiDocumentTokens(
                 tokenizeMaxLineLength: options.tokenizeMaxLineLength,
                 tokenizeTimeLimit: options.tokenizeTimeLimit
             } as TokenOptions);
+
             return { value, state: loaded.getLastGrammarState(value) };
         },
         options.reset
@@ -88,13 +91,18 @@ function documentHighlighter<Value>(
 
     const prepare = async (): Promise<{ highlighter: Highlighter; language: string }> => {
         const loaded = await highlighter();
+
         if (!loaded.getLoadedThemes().includes(theme)) {
             await loaded.loadTheme(theme as Parameters<Highlighter['loadTheme']>[0]);
         }
+
         const documentLanguage = documentLanguageOf(language);
+
         const known =
             loaded.getLoadedLanguages().includes(documentLanguage) || documentLanguage in loaded.getBundledLanguages() || documentLanguage !== language;
+
         const grammar = known && (await loadGrammar(loaded, documentLanguage, code.join('\n'))) ? documentLanguage : 'text';
+
         return { highlighter: loaded, language: grammar };
     };
 
@@ -102,15 +110,20 @@ function documentHighlighter<Value>(
         if (!Number.isInteger(index) || index < 0 || index >= code.length) {
             return Promise.reject(new RangeError('The highlighted block index is outside the document.'));
         }
+
         const result = pending.then(async () => {
             prepared ??= prepare().catch((error: unknown) => {
                 prepared = undefined;
+
                 throw error;
             });
+
             const { highlighter: loaded, language: grammarId } = await prepared;
+
             const refresh = (): void => {
                 const currentGrammar = grammarId === 'text' ? undefined : loaded.getLanguage(grammarId);
                 const currentTheme = loaded.getTheme(theme);
+
                 // Loading an embedded language rebuilds Shiki's grammar and invalidates its old states.
                 if (grammar !== currentGrammar || themeRegistration !== currentTheme) {
                     grammar = currentGrammar;
@@ -119,25 +132,31 @@ function documentHighlighter<Value>(
                     values = [];
                 }
             };
+
             refresh();
+
             while (values.length <= index) {
                 const block = values.length;
                 const rendered = render(loaded, code[block]!, grammarId, theme, state);
                 state = resets.has(block + 1) ? undefined : rendered.state;
                 values.push(rendered.value);
+
                 if (block < index) {
                     // A jump deep into a file must leave room for input and painting between blocks.
                     await new Promise<void>((resolve) => setTimeout(resolve, 0));
                     refresh();
                 }
             }
+
             return values[index]!;
         });
+
         // A failed theme or grammar load can be retried without rejecting every later request.
         pending = result.then(
             () => undefined,
             () => undefined
         );
+
         return result;
     };
 }

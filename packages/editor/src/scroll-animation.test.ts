@@ -38,12 +38,15 @@ describe('scrolling the view', () => {
         rightMargin: null,
         foldOutline: 'hover'
     };
+
     const text = Array.from({ length: 400 }, (_, i) => `line ${i}`).join('\n');
 
     // The test page is one window for every test file of the run, so what is put on it is taken off again.
     const touched: Record<string, unknown> = {};
+
     afterEach(() => {
         const target = createPage().window as unknown as Record<string, unknown>;
+
         for (const [name, value] of Object.entries(touched)) {
             if (value === undefined) {
                 delete target[name];
@@ -57,25 +60,33 @@ describe('scrolling the view', () => {
         const page = createPage();
         const frames: ((time: number) => void)[] = [];
         const target = page.window as unknown as Record<string, unknown>;
+
         for (const name of ['requestAnimationFrame', 'cancelAnimationFrame', 'matchMedia']) {
             if (!(name in touched)) {
                 touched[name] = target[name];
             }
         }
+
         target.requestAnimationFrame = (callback: (time: number) => void): number => frames.push(callback);
         target.cancelAnimationFrame = (): void => undefined;
+
         if (options.reducedMotion) {
             target.matchMedia = () => ({ matches: true });
         }
+
         const model = new DocumentModel(text);
         const view = new EditorView(page.host, model, SETTINGS);
+
         const run = (time: number): void => {
             const due = frames.splice(0);
+
             for (const frame of due) {
                 frame(time);
             }
         };
+
         run(0);
+
         return { view, model, run, frames };
     }
 

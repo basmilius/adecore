@@ -8,10 +8,12 @@ import type { EditorFindQuery } from './types.ts';
 function deferred<Result>() {
     let resolve!: (value: Result) => void;
     let reject!: (error: unknown) => void;
+
     const promise = new Promise<Result>((yes, no) => {
         resolve = yes;
         reject = no;
     });
+
     return { promise, resolve, reject };
 }
 
@@ -23,26 +25,32 @@ async function flush(): Promise<void> {
 
 function setup(text = 'word word') {
     const timers: Array<{ callback: () => void; delay: number; cancelled: boolean }> = [];
+
     const searches: Array<{
         snapshot: { revision: number; text: string };
         query: EditorFindQuery;
         options: unknown;
         result: ReturnType<typeof deferred<Awaited<ReturnType<EditorSearchClient['search']>>>>;
     }> = [];
+
     const captures: Array<{ range: { from: number; to: number }; result: ReturnType<typeof deferred<Awaited<ReturnType<EditorSearchClient['match']>>>> }> = [];
+
     let cancelled = 0,
         released = 0,
         disposed = 0,
         changed = 0;
+
     const client = {
         search(snapshot, query, options) {
             const result = deferred<Awaited<ReturnType<EditorSearchClient['search']>>>();
             searches.push({ snapshot, query, options, result });
+
             return result.promise;
         },
         match(_snapshot, _query, range) {
             const result = deferred<Awaited<ReturnType<EditorSearchClient['match']>>>();
             captures.push({ range, result });
+
             return result.promise;
         },
         cancel() {
@@ -58,12 +66,15 @@ function setup(text = 'word word') {
             this.cancel();
         }
     } as EditorSearchClient;
+
     const model = new DocumentModel(text);
+
     const options = {
         createClient: () => client,
         schedule(callback: () => void, delay: number) {
             const timer = { callback, delay, cancelled: false };
             timers.push(timer);
+
             return () => {
                 timer.cancelled = true;
             };
@@ -73,19 +84,25 @@ function setup(text = 'word word') {
             changed++;
         }
     };
+
     const find = new FindController(model, options);
+
     const fire = (delay: number): void => {
         const timer = timers.find((timer) => !timer.cancelled && timer.delay === delay);
+
         if (!timer) {
             throw new Error(`Missing timer ${delay}`);
         }
+
         timer.cancelled = true;
         timer.callback();
     };
+
     const reply = (ranges = [0, 4, 5, 9], limited = false): void => {
         const request = searches.at(-1)!;
         request.result.resolve({ revision: request.snapshot.revision, ranges: Uint32Array.from(ranges), limited });
     };
+
     return { model, find, searches, captures, client, options, timers, fire, reply, counts: () => ({ cancelled, released, disposed, changed }) };
 }
 
@@ -207,10 +224,12 @@ test('timeout does not retry on edits; an explicit step retries', async () => {
     host.searches[0]!.result.reject(new EditorSearchError('timeout', 'deadline'));
     await flush();
     expect(host.find.state).toEqual({ count: 0, current: null, failed: 'timeout' });
+
     for (let index = 0; index < 2; index++) {
         host.model.applyEdits([{ from: 0, to: 0, text: 'x' }]);
         host.find.refresh();
     }
+
     expect(host.searches).toHaveLength(1);
     expect(host.timers.filter((timer) => !timer.cancelled)).toHaveLength(0);
     host.find.step(1);
@@ -255,14 +274,17 @@ test('ending a find releases its snapshot and ignores a late result', async () =
 
 test('a host without a worker reports unavailable and still searches literal text', async () => {
     const model = new DocumentModel('word');
+
     const find = new FindController(model, {
         createClient: () => null,
         changed: () => {},
         schedule: (callback) => {
             callback();
+
             return () => {};
         }
     });
+
     find.set(query);
     await flush();
     expect(find.state).toEqual({ count: 0, current: null, failed: 'unavailable' });
@@ -273,12 +295,15 @@ test('a host without a worker reports unavailable and still searches literal tex
 
 test('ending a queued session cannot lazily create a worker afterward', async () => {
     let created = 0;
+
     const queue = new FindSearchQueue({
         createClient: () => {
             created++;
+
             return null;
         }
     });
+
     const request = queue.request(async () => 1).catch((error: EditorSearchError) => error.kind);
     queue.release();
     expect(await request).toBe('superseded');
@@ -291,11 +316,13 @@ test('only the newest waiting query survives an active search', async () => {
     host.find.set(query);
     host.fire(0);
     await flush();
+
     for (const text of ['middle', 'latest']) {
         host.find.set({ ...query, text });
         host.fire(0);
         await flush();
     }
+
     host.reply();
     await flush();
     expect(host.searches).toHaveLength(2);
@@ -368,21 +395,29 @@ test('a command cannot be displaced by live queries or preview lookups', async (
     const queue = new FindSearchQueue(host.options);
     const command = deferred<number>();
     const order: string[] = [];
+
     const first = queue.request(async () => {
         order.push('command');
+
         return command.promise;
     }, 'command');
+
     await flush();
+
     const preview = queue
         .request(async () => {
             order.push('preview');
+
             return 2;
         }, 'preview')
         .catch((error: EditorSearchError) => error.kind);
+
     const live = queue.request(async () => {
         order.push('live');
+
         return 3;
     }, 'live');
+
     expect(await preview).toBe('superseded');
     expect(host.timers.filter((timer) => !timer.cancelled)).toHaveLength(0);
     command.resolve(1);
@@ -397,15 +432,18 @@ test('release rejects an active multi-page job and prevents its later client cal
     const queue = new FindSearchQueue(host.options);
     const betweenPages = deferred<void>();
     let currentAfterRelease = true;
+
     const result = queue
         .request(async (client, isCurrent) => {
             await client.search({ revision: 0, text: 'word' }, query);
             await betweenPages.promise;
             currentAfterRelease = isCurrent();
             await client.search({ revision: 0, text: 'word' }, query);
+
             return 1;
         }, 'command')
         .catch((error: EditorSearchError) => error.kind);
+
     await flush();
     host.reply([0, 4]);
     await flush();
@@ -422,6 +460,7 @@ test('an obsolete explicit command yields to the latest live query', async () =>
     const host = setup();
     const queue = new FindSearchQueue(host.options);
     let valid = true;
+
     const command = queue
         .request(
             (client) => client.search({ revision: 0, text: 'word' }, query),
@@ -429,6 +468,7 @@ test('an obsolete explicit command yields to the latest live query', async () =>
             () => valid
         )
         .catch((error: EditorSearchError) => error.kind);
+
     await flush();
     valid = false;
     const live = queue.request((client) => client.search({ revision: 1, text: 'new' }, { ...query, text: 'new' }), 'live');
@@ -519,17 +559,21 @@ describe('a step past the marks of a limited search', () => {
     async function limited() {
         const host = setup('word word word');
         const seeks: { offset: number; result: ReturnType<typeof deferred<{ from: number; to: number } | null>> }[] = [];
+
         host.client.next = (_snapshot, _query, offset) => {
             const result = deferred<{ from: number; to: number } | null>();
             seeks.push({ offset, result });
+
             return result.promise;
         };
+
         host.find.set(query);
         host.fire(0);
         await flush();
         host.reply([0, 4, 5, 9], true);
         await flush();
         host.find.step(1);
+
         return { ...host, seeks };
     }
 

@@ -5,9 +5,13 @@ import { mountEditor, pointer } from './testing.ts';
 function setup() {
     const mounted = mountEditor({ text: 'one\ntwo\nthree' });
     const { editor, page, viewport } = mounted;
+
     const pills = (): HTMLElement[] => Array.from(page.host.querySelectorAll<HTMLElement>('.se-inlay'));
+
     const press = (element: Element, options = {}): void => pointer(page.window, element, 'pointerdown', 0, 0, options);
+
     const move = (element: Element): void => pointer(page.window, element, 'pointermove', 0, 0, { buttons: 0 } as never);
+
     return { ...mounted, viewport, pills, press, move, editor };
 }
 
@@ -23,11 +27,13 @@ describe('inlay hints', () => {
         const { editor, pills } = setup();
         editor.setInlayHints([{ position: { line: 0, character: 1 }, label: ': Map<K>', parts: [': ', 'Map', '<K>'] }]);
         const parts = Array.from(pills()[0]!.querySelectorAll<HTMLElement>('.se-inlay-part'));
+
         expect(parts.map((part) => [part.dataset.part, part.textContent])).toEqual([
             ['0', ': '],
             ['1', 'Map'],
             ['2', '<K>']
         ]);
+
         expect(pills()[0]!.textContent).toBe(': Map<K>');
     });
 
@@ -60,10 +66,13 @@ describe('inlay hints', () => {
         editor.setInlayHints([{ id: 'h', position: { line: 1, character: 1 }, label: 'ab', parts: ['a', 'b'] }]);
         editor.setCaret({ line: 0, character: 0 });
         const clicks: EditorInlayClick[] = [];
+
         editor.onInlayClick!((click) => {
             clicks.push(click);
+
             return true;
         });
+
         press(pills()[0]!.querySelectorAll('.se-inlay-part')[1]!, { ctrlKey: true });
         expect(clicks).toEqual([{ id: 'h', part: 1, mod: true, alt: false, shift: false, clicks: 1, touch: false }]);
         type('X');
@@ -74,10 +83,13 @@ describe('inlay hints', () => {
         const { editor, pills, press } = setup();
         editor.setInlayHints([{ id: 'h', position: { line: 0, character: 1 }, label: 'ab' }]);
         const clicks: number[] = [];
+
         editor.onInlayClick!((click) => {
             clicks.push(click.clicks);
+
             return true;
         });
+
         press(pills()[0]!);
         press(pills()[0]!);
         press(pills()[0]!);

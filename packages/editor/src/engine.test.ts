@@ -6,7 +6,9 @@ import type { EditorBlock, EditorHover } from './types.ts';
 describe('the settings a host changes after mounting', () => {
     test('draw the indentation guides until they are turned off', () => {
         const { editor, page } = mountEditor({ text: 'a {\n    b\n    c\n}' });
+
         const guides = (): number => page.host.querySelectorAll('.se-guide').length;
+
         expect(guides()).toBeGreaterThan(0);
         editor.setGuides(false);
         expect(guides()).toBe(0);
@@ -16,7 +18,9 @@ describe('the settings a host changes after mounting', () => {
 
     test('draw the right margin at its column, and none without one', () => {
         const { editor, page } = mountEditor();
+
         const margin = (): HTMLElement | null => page.host.querySelector('.se-margin');
+
         expect(margin()).toBeNull();
         editor.setRightMargin(10);
         expect(parseFloat(margin()!.style.left)).toBe(78);
@@ -62,10 +66,12 @@ describe('the settings a host changes after mounting', () => {
 describe('highlights', () => {
     test('mark the uses of a name, a write apart from a read, until the host takes them away', () => {
         const { editor, page } = mountEditor({ text: 'let a = a + 1;' });
+
         editor.setHighlights([
             { range: { start: { line: 0, character: 4 }, end: { line: 0, character: 5 } }, kind: 'write' },
             { range: { start: { line: 0, character: 8 }, end: { line: 0, character: 9 } }, kind: 'read' }
         ]);
+
         expect(page.host.querySelectorAll('.se-occurrence').length).toBe(2);
         expect(page.host.querySelectorAll('.se-occurrence-write').length).toBe(1);
         editor.setHighlights([]);
@@ -78,7 +84,9 @@ describe('listeners', () => {
         const { editor, page, viewport } = mountEditor();
         const seen: (EditorHover | null)[] = [];
         editor.onHover((hover) => seen.push(hover));
+
         const move = (x: number, y: number): void => pointer(page.window, viewport, 'pointermove', x, y, { buttons: 0 } as never);
+
         move(column(1) + 1, row(1));
         move(column(1) + 2, row(1));
         pointer(page.window, viewport, 'pointerleave' as never, 0, 0);
@@ -90,10 +98,12 @@ describe('listeners', () => {
         const { editor } = mountEditor({ text: 'class A {\n    run() {\n        go();\n    }\n}\nlast' });
         const scopes: (readonly EditorBlock[])[] = [];
         editor.onScope((scope) => scopes.push(scope));
+
         editor.setBlocks([
             { startLine: 1, endLine: 5, name: 'A', kind: 'class' },
             { startLine: 2, endLine: 4, name: 'run', kind: 'method' }
         ]);
+
         editor.setCaret({ line: 2, character: 8 });
         editor.setCaret({ line: 2, character: 9 });
         editor.setCaret({ line: 5, character: 0 });

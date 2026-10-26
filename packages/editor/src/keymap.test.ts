@@ -20,6 +20,7 @@ const chord = (name: string, modifiers: Partial<KeyChord> = {}): KeyChord => ({
 describe('chordMatches', () => {
     describe('Ctrl and Alt together', () => {
         const altGraph = (name: string): boolean => name === 'AltGraph';
+
         const both = { ctrlKey: true, altKey: true };
 
         test('leaves AltGr+Q to a layout that types an at sign with it', () => {
@@ -132,11 +133,14 @@ describe('the key table', () => {
 
         test(`reads every chord on ${platform} and gives no two commands the same one`, () => {
             const seen = new Map<string, string>();
+
             for (const id of KEYMAP_IDS) {
                 const text = chordOf(id, apple);
+
                 if (text === null) {
                     continue;
                 }
+
                 const chord = parseChord(text);
                 const signature = [apple ? chord.mod || chord.meta : false, chord.ctrl || (!apple && chord.mod), chord.alt, chord.shift, chord.key].join('|');
                 expect(seen.get(signature), `${id} and ${seen.get(signature)} share ${text}`).toBeUndefined();

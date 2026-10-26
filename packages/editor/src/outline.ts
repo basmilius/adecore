@@ -27,10 +27,13 @@ export interface OutlineDocument {
 
 const MODIFIERS =
     '(?:export\\s+|default\\s+|declare\\s+|abstract\\s+|async\\s+|pub(?:\\([^)]*\\))?\\s+|public\\s+|private\\s+|protected\\s+|static\\s+|final\\s+|readonly\\s+|override\\s+|unsafe\\s+|extern\\s+)*';
+
 const DECLARATION = new RegExp(
     `^${MODIFIERS}(function\\*?|class|interface|enum|type|namespace|module|trait|impl|struct|fn|def|func|object|record)\\s+([A-Za-z_$][\\w$]*)`
 );
+
 const VARIABLE = new RegExp(`^${MODIFIERS}(?:const|let|var)\\s+([A-Za-z_$][\\w$]*)`);
+
 const KEYWORDS = new Set([
     'if',
     'for',
@@ -49,8 +52,10 @@ const KEYWORDS = new Set([
     'super',
     'finally'
 ]);
+
 const METHOD = /^(?:(?:public|private|protected|static|async|get|set|override|readonly|abstract)\s+)*\*?\s*([A-Za-z_$#][\w$]*)\s*[(<]/;
 const PROPERTY = /^["']?([\w$-]+)["']?\s*:\s*[{[(]?$/;
+
 const KINDS: Record<string, string> = {
     'function*': 'function',
     fn: 'function',
@@ -62,30 +67,39 @@ const KINDS: Record<string, string> = {
     trait: 'interface',
     impl: 'class'
 };
+
 const LABEL_LIMIT = 48;
 
 /* What a header line declares, when it declares something a person would look for by name. */
 export function describeHeader(text: string): { name?: string; kind?: string } {
     const line = text.trim();
     const declaration = DECLARATION.exec(line);
+
     if (declaration) {
         return { name: declaration[2]!, kind: KINDS[declaration[1]!] ?? declaration[1]! };
     }
+
     const variable = VARIABLE.exec(line);
+
     if (variable) {
         return { name: variable[1]!, kind: 'variable' };
     }
+
     const method = METHOD.exec(line);
+
     if (method && !KEYWORDS.has(method[1]!)) {
         return { name: method[1]!, kind: 'method' };
     }
+
     const property = PROPERTY.exec(line);
+
     return property ? { name: property[1]!, kind: 'property' } : {};
 }
 
 /* The header line as a label: what a breadcrumb shows for a block that declares nothing. */
 export function headerLabel(text: string): string {
     const label = text.trim().replace(/[\s{(:]+$/, '');
+
     return label.length > LABEL_LIMIT ? `${label.slice(0, LABEL_LIMIT - 1)}…` : label;
 }
 
@@ -101,27 +115,34 @@ export function structuralEntries(
     mate: (offset: number) => number | undefined
 ): OutlineEntry[] {
     const entries: OutlineEntry[] = [];
+
     for (const range of ranges) {
         if (range.kind === 'comment' || (range.kind === 'bracket' && slice(range.from, range.from + 1) !== '{')) {
             continue;
         }
+
         let headerLine = range.startLine;
         const header = document.getLine(headerLine);
         const lead = header.text.length - header.text.trimStart().length;
+
         if (/^[)\]]/.test(header.text.slice(lead))) {
             const opener = mate(header.start + lead);
+
             if (opener !== undefined && opener < header.start) {
                 headerLine = document.positionAt(opener).line;
             }
         }
+
         const start = document.getLine(headerLine);
         entries.push({ from: start.start, to: document.getLine(range.endLine).end, ...describeHeader(start.text) });
     }
+
     return entries;
 }
 
 function toBlock(entry: OutlineEntry, document: OutlineDocument): OutlineBlock {
     const startLine = document.positionAt(entry.from).line;
+
     return {
         startLine,
         endLine: Math.max(startLine, document.positionAt(entry.to).line),
@@ -149,15 +170,21 @@ export class Outline {
     /* Blocks the host drew from its own source, in one-based lines; null goes back to the structure. */
     setProvided(blocks: readonly EditorBlock[] | null, document: OutlineDocument): void {
         this.version++;
+
         if (blocks === null) {
             this.provided = null;
+
             return;
         }
+
         const last = document.getLineCount() - 1;
+
         const clamp = (line: number): number => Math.min(last, Math.max(0, Math.trunc(line) - 1));
+
         this.provided = blocks.map((block) => {
             const start = document.getLine(clamp(block.startLine));
             const header = block.name === undefined ? headerLabel(start.text) : block.name;
+
             return {
                 from: start.start,
                 to: document.getLine(Math.max(clamp(block.startLine), clamp(block.endLine))).end,
@@ -169,16 +196,20 @@ export class Outline {
 
     edited(batches: readonly (readonly DocumentChange[])[]): void {
         const mappers = batches.map(offsetMapper);
+
         const move = (entries: OutlineEntry[]): OutlineEntry[] =>
             entries.map((entry) => {
                 let from = entry.from;
                 let to = entry.to;
+
                 for (const map of mappers) {
                     from = map(from);
                     to = map(to);
                 }
+
                 return { ...entry, from, to };
             });
+
         this.structure = move(this.structure);
         this.provided = this.provided === null ? null : move(this.provided);
         this.version++;
@@ -190,8 +221,10 @@ export class Outline {
             const sorted = (this.provided ?? this.structure)
                 .map((entry) => toBlock(entry, document))
                 .sort((left, right) => left.startLine - right.startLine || right.endLine - left.endLine);
+
             this.cache = { version: this.version, blocks: sorted.filter((block, index) => index === 0 || block.startLine !== sorted[index - 1]!.startLine) };
         }
+
         return this.cache.blocks;
     }
 }
@@ -220,9 +253,11 @@ export interface StickyPlacement {
  */
 export function stickyPlacements(blocks: readonly OutlineBlock[], scrollTop: number, lineHeight: number, max: number, rows: StickyRows): StickyPlacement[] {
     const placements: StickyPlacement[] = [];
+
     for (let depth = 0; depth < max; depth++) {
         const pinnedAt = scrollTop + depth * lineHeight;
         const parent = placements.at(-1)?.block;
+
         const next = blocks.find(
             (block) =>
                 (parent === undefined || (block.startLine > parent.startLine && block.endLine <= parent.endLine)) &&
@@ -230,11 +265,14 @@ export function stickyPlacements(blocks: readonly OutlineBlock[], scrollTop: num
                 rows.top(block.startLine) < pinnedAt &&
                 rows.bottom(block.endLine) > pinnedAt
         );
+
         if (next === undefined) {
             break;
         }
+
         placements.push({ block: next, depth, offset: Math.min(0, rows.bottom(next.endLine) - (pinnedAt + lineHeight)) });
     }
+
     return placements;
 }
 

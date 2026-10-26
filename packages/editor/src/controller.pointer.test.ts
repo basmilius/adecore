@@ -24,9 +24,11 @@ describe('the mouse', () => {
         type('X');
         expect(editor.getText()).toBe('alpha X\nnext');
         const second = mountEditor({ text: 'alpha beta\nnext' });
+
         for (let i = 0; i < 3; i++) {
             second.click(column(2), row(0));
         }
+
         second.type('X');
         expect(second.editor.getText()).toBe('Xnext');
     });
@@ -34,10 +36,13 @@ describe('the mouse', () => {
     describe('selecting by words and lines', () => {
         const press = (mounted: ReturnType<typeof mountEditor>, x: number, y: number, options = {}): void =>
             pointer(mounted.page.window, mounted.viewport, 'pointerdown', x, y, options);
+
         const move = (mounted: ReturnType<typeof mountEditor>, x: number, y: number): void =>
             pointer(mounted.page.window, mounted.page.document.documentElement, 'pointermove', x, y);
+
         const release = (mounted: ReturnType<typeof mountEditor>, x: number, y: number): void =>
             pointer(mounted.page.window, mounted.page.document.documentElement, 'pointerup', x, y);
+
         const gutterPress = (mounted: ReturnType<typeof mountEditor>, y: number, options = {}): void =>
             pointer(mounted.page.window, mounted.page.host.querySelector('.se-gutter')!, 'pointerdown', 4, y, options);
 
@@ -78,6 +83,7 @@ describe('the mouse', () => {
 
         test('a drag after a triple click grows the selection by lines', () => {
             const down = mountEditor({ text: 'one\ntwo\nthree\nfour' });
+
             for (let i = 0; i < 3; i++) {
                 if (i < 2) {
                     down.click(column(1), row(1));
@@ -85,11 +91,13 @@ describe('the mouse', () => {
                     press(down, column(1), row(1));
                 }
             }
+
             move(down, column(1), row(2));
             release(down, column(1), row(2));
             down.type('X');
             expect(down.editor.getText()).toBe('one\nXfour');
             const up = mountEditor({ text: 'one\ntwo\nthree\nfour' });
+
             for (let i = 0; i < 3; i++) {
                 if (i < 2) {
                     up.click(column(1), row(2));
@@ -97,6 +105,7 @@ describe('the mouse', () => {
                     press(up, column(1), row(2));
                 }
             }
+
             move(up, column(1), row(0));
             release(up, column(1), row(0));
             up.type('X');
@@ -140,6 +149,7 @@ describe('the mouse', () => {
             mounted.click(column(7) + 1, row(0));
             expect(mounted.editor.getSelection()).toEqual({ start: { line: 0, character: 6 }, end: { line: 0, character: 11 } });
         };
+
         const carry = (mounted: ReturnType<typeof mountEditor>, to: [number, number], release: Record<string, boolean> = {}): void => {
             const target = mounted.page.document.documentElement;
             pointer(mounted.page.window, mounted.viewport, 'pointerdown', column(8) + 1, row(0));

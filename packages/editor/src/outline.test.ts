@@ -6,6 +6,7 @@ function outlineOf(text: string, language = 'typescript'): Outline {
     const model = new DocumentModel(text);
     const outline = new Outline();
     const pairs = scanBrackets(text, language).pairs;
+
     outline.setStructure(
         structuralEntries(
             model.getFoldingRanges({ indentation: language === 'python' }),
@@ -14,6 +15,7 @@ function outlineOf(text: string, language = 'typescript'): Outline {
             (offset) => pairs.get(offset)
         )
     );
+
     return Object.assign(outline, { model });
 }
 
@@ -60,6 +62,7 @@ describe('structuralEntries', () => {
     test('headers the braces of a document and takes a signature from where its parameters open', () => {
         const outline = outlineOf(SOURCE);
         const model = (outline as unknown as { model: DocumentModel }).model;
+
         expect(outline.blocks(model).map((block) => [block.startLine, block.endLine, block.name ?? null])).toEqual([
             [0, 9, 'Matcher'],
             [1, 8, 'score'],
@@ -70,6 +73,7 @@ describe('structuralEntries', () => {
     test('has no block for an array and takes indented stretches as blocks in python', () => {
         const python = outlineOf('def a():\n    b = 1\n    if b:\n        c = 2\nz = 1', 'python');
         const model = (python as unknown as { model: DocumentModel }).model;
+
         expect(python.blocks(model).map((block) => [block.startLine, block.endLine, block.name ?? null])).toEqual([
             [0, 3, 'a'],
             [2, 3, null]
@@ -81,6 +85,7 @@ describe('structuralEntries', () => {
         const model = (outline as unknown as { model: DocumentModel }).model;
         model.subscribe((snapshot) => outline.edited(snapshot.changes ?? []));
         model.applyEdits([{ from: 0, to: 0, text: '// head\n' }]);
+
         expect(outline.blocks(model).map((block) => [block.startLine, block.endLine])).toEqual([
             [1, 10],
             [2, 9],
@@ -93,6 +98,7 @@ describe('provided blocks', () => {
     test('stand in for the structure until they are taken away', () => {
         const outline = outlineOf(SOURCE);
         const model = (outline as unknown as { model: DocumentModel }).model;
+
         outline.setProvided(
             [
                 { startLine: 2, endLine: 9, name: 'score', kind: 'method' },
@@ -100,10 +106,12 @@ describe('provided blocks', () => {
             ],
             model
         );
+
         expect(outline.blocks(model)).toEqual([
             { startLine: 1, endLine: 8, name: 'score', kind: 'method' },
             { startLine: 4, endLine: 6, name: 'if (a > b)' }
         ]);
+
         outline.setProvided(null, model);
         expect(outline.blocks(model).length).toBe(3);
     });
@@ -115,21 +123,26 @@ describe('stickyPlacements', () => {
         { startLine: 1, endLine: 8 },
         { startLine: 4, endLine: 6 }
     ];
+
     /* Every line a row of 20px, so the top of line n is 20n. */
     const rows = { top: (line: number) => line * 20, bottom: (line: number) => line * 20 + 20, startsRow: () => true };
+
     const summary = (scrollTop: number, max = 5) =>
         stickyPlacements(blocks, scrollTop, 20, max, rows).map((placement) => [placement.block.startLine, placement.depth, placement.offset]);
 
     test('pins a header from the moment its own row passes the place it is pinned at, not before and not a row later', () => {
         expect(summary(0)).toEqual([]);
+
         expect(summary(1)).toEqual([
             [0, 0, 0],
             [1, 1, 0]
         ]);
+
         expect(summary(40)).toEqual([
             [0, 0, 0],
             [1, 1, 0]
         ]);
+
         expect(summary(41)).toEqual([
             [0, 0, 0],
             [1, 1, 0],
@@ -143,24 +156,29 @@ describe('stickyPlacements', () => {
             [1, 1, 0],
             [4, 2, 0]
         ]);
+
         expect(summary(90)).toEqual([
             [0, 0, 0],
             [1, 1, 0],
             [4, 2, -10]
         ]);
+
         expect(summary(99)).toEqual([
             [0, 0, 0],
             [1, 1, 0],
             [4, 2, -19]
         ]);
+
         expect(summary(100)).toEqual([
             [0, 0, 0],
             [1, 1, 0]
         ]);
+
         expect(summary(150)).toEqual([
             [0, 0, 0],
             [1, 1, -10]
         ]);
+
         expect(summary(190)).toEqual([[0, 0, -10]]);
         expect(summary(200)).toEqual([]);
     });
@@ -180,6 +198,7 @@ describe('stickyCover', () => {
     test('reaches down to the lowest edge of the pinned headers, pushes included', () => {
         const block = { startLine: 0, endLine: 1 };
         expect(stickyCover([], 20)).toBe(0);
+
         expect(
             stickyCover(
                 [
@@ -199,6 +218,7 @@ describe('scopeChain', () => {
             { startLine: 1, endLine: 8, name: 'score' },
             { startLine: 4, endLine: 6 }
         ];
+
         expect(scopeChain(blocks, 5).map((block) => block.name)).toEqual(['Matcher', 'score']);
         expect(scopeChain(blocks, 9).map((block) => block.name)).toEqual(['Matcher']);
         expect(scopeChain(blocks, 10)).toEqual([]);

@@ -25,6 +25,7 @@ const implementations: [string, Mount][] = [
         (options = {}) => {
             const { editor } = mountEditor({ text: '', ...options });
             disposals.push(() => editor.dispose());
+
             return editor;
         }
     ],
@@ -33,6 +34,7 @@ const implementations: [string, Mount][] = [
         (options = {}) => {
             const editor = new FakeEditorEngine().mount(createPage().host, { text: '', theme: 'dark', ...options });
             disposals.push(() => editor.dispose());
+
             return editor;
         }
     ]
@@ -49,17 +51,22 @@ function range(startLine: number, startCharacter: number, endLine: number, endCh
 /* The text after the reported changes, applied one by one as a language server does. */
 function replay(before: string, changes: readonly EditorContentChange[]): string {
     let text = before;
+
     for (const change of changes) {
         const offsetOf = (position: EditorPosition): number => {
             const lines = text.split(/(?<=\r\n|\r(?!\n)|\n)/);
             let offset = 0;
+
             for (let line = 0; line < position.line; line++) {
                 offset += lines[line]!.length;
             }
+
             return offset + position.character;
         };
+
         text = text.slice(0, offsetOf(change.range.start)) + change.text + text.slice(offsetOf(change.range.end));
     }
+
     return text;
 }
 
@@ -68,6 +75,7 @@ function record(editor: Editor) {
     editor.onChange(() => events.changes++);
     editor.onTextChange((change) => events.textChanges.push(change));
     editor.onCaret((position) => events.carets.push(position));
+
     return events;
 }
 
@@ -78,6 +86,7 @@ describe.each(implementations)('%s', (_name, mount) => {
 
         test('count every kind of line break', () => {
             const editor = mount({ text });
+
             expect([0, 1, 2, 4, 5, 6, 7, 9, 10, 12].map((offset) => editor.positionAt(offset))).toEqual([
                 at(0, 0),
                 at(0, 1),
@@ -90,6 +99,7 @@ describe.each(implementations)('%s', (_name, mount) => {
                 at(3, 0),
                 at(3, 2)
             ]);
+
             expect([at(0, 2), at(1, 0), at(2, 1), at(3, 2)].map((position) => editor.offsetAt(position))).toEqual([2, 4, 8, 12]);
             expect(editor.textInRange(range(0, 1, 2, 1))).toBe('b\r\ncd\re');
         });
@@ -156,12 +166,14 @@ describe.each(implementations)('%s', (_name, mount) => {
         test('applies every edit in the coordinates of the text before them, as one change', () => {
             const editor = mount({ text: 'one\ntwo\nthree' });
             const events = record(editor);
+
             expect(
                 editor.applyEdits([
                     { range: range(2, 0, 2, 5), text: '3' },
                     { range: range(0, 0, 0, 3), text: '1' }
                 ])
             ).toBe(true);
+
             expect(editor.getText()).toBe('1\ntwo\n3');
             expect(events.changes).toBe(1);
             expect(events.textChanges.map((change) => change.source)).toEqual(['command']);
@@ -216,12 +228,14 @@ describe.each(implementations)('%s', (_name, mount) => {
             const events = record(editor);
             expect(editor.applyEdits([])).toBe(false);
             expect(editor.applyEdits([{ range: range(0, 0, 0, 3), text: 'one' }])).toBe(false);
+
             expect(
                 editor.applyEdits([
                     { range: range(0, 0, 0, 5), text: 'a' },
                     { range: range(0, 3, 0, 7), text: 'b' }
                 ])
             ).toBe(false);
+
             editor.setReadOnly(true);
             expect(editor.isReadOnly?.()).toBe(true);
             expect(editor.applyEdits([{ range: range(0, 0, 0, 0), text: 'x' }])).toBe(false);
@@ -412,7 +426,9 @@ describe.each(implementations)('%s', (_name, mount) => {
         test('draw a row once for as long as its id stays, and each owner keeps its own', () => {
             const editor = mount({ text: 'one\ntwo' });
             const drawn: string[] = [];
+
             const widget = (id: string): EditorWidget => ({ id, line: 0, height: 20, render: () => drawn.push(id) });
+
             editor.setWidgets([widget('a')]);
             editor.setWidgets([widget('a'), widget('b')]);
             editor.setWidgets([widget('c')], 'other');

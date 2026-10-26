@@ -5,6 +5,7 @@ function port() {
     const events = new EventTarget();
     const messages: { id: number }[] = [];
     let stops = 0;
+
     const worker: WorkerRequestPort = {
         addEventListener: events.addEventListener.bind(events),
         removeEventListener: events.removeEventListener.bind(events),
@@ -15,6 +16,7 @@ function port() {
             stops++;
         }
     };
+
     return {
         worker,
         messages,
@@ -27,12 +29,14 @@ function port() {
 
 test('protocol validator failures reject and terminate instead of escaping a worker event', async () => {
     const host = port();
+
     const client = createWorkerRequestClient<{ id: number }, { id: number }>({
         workerFactory: () => host.worker,
         accepts: () => {
             throw new Error('bad protocol');
         }
     });
+
     const request = client.request((id) => ({ id }));
     await Promise.resolve();
     host.reply({ id: host.messages[0]!.id });

@@ -119,10 +119,13 @@ export class InputController {
         this.options = options;
         this.gesture = new DoubleModifierGesture(options.apple ? 'Alt' : 'Control');
         const { model, input, viewport } = view;
+
         const lineAt = (offset: number): { from: number; to: number } => {
             const row = view.layout.rowForLine(model.positionAt(offset).line);
+
             return row.kind === 'text' ? { from: model.getLine(row.line).start, to: model.getLine(row.lastLine).next } : { from: offset, to: offset };
         };
+
         this.native = new NativeInput(input, model, {
             readOnly: () => view.settings.readOnly,
             replace: (text) => this.replaceSelections(text),
@@ -138,6 +141,7 @@ export class InputController {
                 view.revealCaret();
             }
         });
+
         this.pointer = new PointerSelection({
             model,
             viewport,
@@ -155,6 +159,7 @@ export class InputController {
             focus: () => view.focus(),
             scrolled: () => view.requestRender()
         });
+
         this.touch = new TouchSelection({
             model,
             offsetAt: (x, y) => view.offsetAtPoint(x, y),
@@ -162,12 +167,15 @@ export class InputController {
             lineAt,
             focus: () => view.focus()
         });
+
         this.subscription = model.subscribe(() => {
             if (!this.keepDesiredXs) {
                 this.desiredXs = [];
             }
+
             this.native.sync();
         });
+
         this.native.sync();
         this.attach();
     }
@@ -183,55 +191,69 @@ export class InputController {
         this.listen(input, 'keydown', (event) => this.keydown(event));
         this.listen(input, 'beforeinput', (event) => this.beforeInput(event));
         this.listen(input, 'input', () => this.native.onInput());
+
         this.listen(input, 'compositionstart', () => {
             this.historyGroup++;
             this.native.startComposition();
         });
+
         this.listen(input, 'compositionend', (event) => {
             this.native.endComposition(event.data);
             this.historyGroup++;
             this.view.render();
         });
+
         this.listen(input, 'select', () => this.native.readSelection());
         this.listen(input, 'focus', () => this.view.requestRender());
+
         this.listen(input, 'blur', () => {
             this.gesture.reset();
             this.view.requestRender();
         });
+
         this.listen(input, 'keyup', (event) => this.gesture.keyup(event));
+
         this.listen(root, 'focusout', (event) => {
             // A node by its type, as `instanceof Node` fails for one of another window, such as a window the opener mounted the editor in.
             const related = event.relatedTarget as Node | null;
+
             if (typeof related?.nodeType !== 'number' || !root.contains(related)) {
                 this.options.blur();
             }
         });
+
         this.listen(input, 'paste', (event) => {
             event.preventDefault();
             this.paste(event.clipboardData?.getData('text/plain') ?? '');
         });
+
         this.listen(input, 'copy', (event) => this.copy(event, false));
         this.listen(input, 'cut', (event) => this.copy(event, true));
         this.listen(viewport, 'scroll', () => this.view.scrolled());
         this.listen(viewport, 'wheel', () => this.view.cancelScroll());
         this.listen(viewport, 'pointermove', (event) => this.view.hoverMoved(event));
+
         this.listen(viewport, 'pointerleave', () => {
             this.view.setHover(null);
             this.view.setInlayHover(null);
         });
+
         this.listen(viewport, 'pointerdown', (event) => this.pointerDown(event));
         this.listen(viewport, 'contextmenu', (event) => this.contextMenu(event));
         this.listen(this.view.gutterElement, 'pointerdown', (event) => this.gutterDown(event));
         this.listen(this.view.stickyElement, 'pointerdown', (event) => this.stickyDown(event));
+
         const move = (event: Event): void => {
             this.pointer.move(event as PointerEvent);
             this.touch.move(event as PointerEvent);
         };
+
         const end = (event: Event): void => {
             this.pointer.end(event as PointerEvent);
             this.touch.end(event as PointerEvent);
             this.historyGroup++;
         };
+
         document.addEventListener('pointermove', move);
         document.addEventListener('pointerup', end);
         document.addEventListener('pointercancel', end);
@@ -239,6 +261,7 @@ export class InputController {
         const visualViewport = document.defaultView?.visualViewport;
         let keyboardHeight = visualViewport?.height ?? 0;
         let keyboardScale = visualViewport?.scale ?? 1;
+
         const keyboard = (): void => {
             const height = visualViewport?.height ?? 0;
             const scale = visualViewport?.scale ?? 1;
@@ -246,11 +269,14 @@ export class InputController {
             const shrunk = height < keyboardHeight && scale === keyboardScale;
             keyboardHeight = height;
             keyboardScale = scale;
+
             if (shrunk && this.view.focused) {
                 this.view.revealCaret();
             }
         };
+
         visualViewport?.addEventListener('resize', keyboard);
+
         this.cleanup.push(() => {
             visualViewport?.removeEventListener('resize', keyboard);
             document.removeEventListener('pointermove', move);
@@ -263,9 +289,11 @@ export class InputController {
         this.subscription.dispose();
         this.pointer.dispose();
         this.touch.dispose();
+
         for (const remove of this.cleanup) {
             remove();
         }
+
         this.cleanup.length = 0;
         this.keyHandlers.clear();
     }
@@ -276,10 +304,13 @@ export class InputController {
 
     private inputGroup(): string {
         const now = Date.now();
+
         if (now - this.lastInputAt > TYPING_PAUSE_MS) {
             this.historyGroup++;
         }
+
         this.lastInputAt = now;
+
         return `view-input-${this.historyGroup}`;
     }
 
@@ -287,6 +318,7 @@ export class InputController {
         if (this.view.settings.readOnly) {
             return false;
         }
+
         return this.view.model.applyEdits(edits, { selections, source: 'input', historyGroup: this.inputGroup() });
     }
 
@@ -294,6 +326,7 @@ export class InputController {
         if (this.blockedByReadOnly()) {
             return;
         }
+
         const { model } = this.view;
         this.unfoldCarets();
         const replacement = replacementEdits(model.getSelections(), this.native.normalizeNewlines(text));
@@ -311,6 +344,7 @@ export class InputController {
         if (this.blockedByReadOnly()) {
             return;
         }
+
         this.unfoldCarets();
         this.historyGroup++;
         this.view.model.paste(this.native.normalizeNewlines(text), { ...this.commandOptions(), wholeLines: text !== '' && text === lineClip });
@@ -321,6 +355,7 @@ export class InputController {
     private commandOptions(): CommandOptions {
         const { settings } = this.view;
         const keys = settings.smartKeys;
+
         return {
             tabSize: settings.tabSize,
             insertSpaces: settings.insertSpaces,
@@ -342,9 +377,11 @@ export class InputController {
     /* Folding is the view's, since it knows where the ranges are. */
     private viewCommand(name: EditorViewCommand): boolean {
         const { view } = this;
+
         if (view.settings.folding === false && name !== 'toggleColumnMode') {
             return false;
         }
+
         const run: Record<EditorViewCommand, () => void> = {
             collapseRegion: () => view.collapseRegion(),
             expandRegion: () => view.expandRegion(),
@@ -362,7 +399,9 @@ export class InputController {
             expandAllToLevel5: () => view.expandAllToLevel(5),
             toggleColumnMode: () => this.toggleColumnMode()
         };
+
         run[name]();
+
         return true;
     }
 
@@ -371,11 +410,14 @@ export class InputController {
         if (VIEW_COMMANDS.has(name as EditorViewCommand)) {
             return this.viewCommand(name as EditorViewCommand);
         }
+
         if (name === 'expandSelection' && this.selectionRanges !== null) {
             const provider = this.selectionRanges;
             this.expansions = this.expansions.then(() => this.expandThrough(provider));
+
             return true;
         }
+
         return this.modelCommand(name as EditorCommand);
     }
 
@@ -389,18 +431,25 @@ export class InputController {
         const selections = model.getSelections();
         const revision = model.getRevision();
         const stretches = selections.map(({ anchor, head }) => ({ from: Math.min(anchor, head), to: Math.max(anchor, head) }));
+
         const asked = stretches.map(({ from }) => {
             const { line, column } = model.positionAt(from);
+
             return { line, character: column };
         });
+
         const chains = await provider(asked).catch(() => null);
+
         if (model.getRevision() !== revision || selectionSignature(model.getSelections()) !== selectionSignature(selections)) {
             return;
         }
+
         if (chains === null) {
             this.modelCommand('expandSelection');
+
             return;
         }
+
         const ranges = stretches.map(
             ({ from, to }, index) =>
                 (chains[index] ?? [])
@@ -410,6 +459,7 @@ export class InputController {
                     }))
                     .find((range) => range.from <= from && range.to >= to && (range.from < from || range.to > to)) ?? null
         );
+
         this.historyGroup++;
         model.expandSelectionTo(ranges);
         this.view.revealCaret();
@@ -418,35 +468,46 @@ export class InputController {
     private modelCommand(name: EditorCommand): boolean {
         const { model } = this.view;
         const modifies = MODIFYING.has(name);
+
         if ((modifies || name === 'undo' || name === 'redo') && this.blockedByReadOnly()) {
             return false;
         }
+
         this.historyGroup++;
+
         if (modifies) {
             for (const selection of model.getSelections()) {
                 this.view.ensureVisible(selection.head);
                 const position = model.positionAt(selection.head);
                 const line = model.getLine(position.line);
+
                 if ((name === 'smartBackspace' || name === 'deleteWordLeft') && selection.head === line.start && position.line > 0) {
                     this.view.ensureVisible(model.getLine(position.line - 1).start);
                 }
+
                 if ((name === 'deleteForward' || name === 'deleteWordRight') && selection.head === line.end && position.line + 1 < model.getLineCount()) {
                     this.view.ensureVisible(model.getLine(position.line + 1).start);
                 }
             }
         }
+
         const folded = name === 'moveLineUp' || name === 'moveLineDown' ? this.view.getFolds().collapsed : [];
+
         const result = model.execute(name, {
             ...this.commandOptions(),
             onLinesMoved: (moves) => this.view.refoldMoved(folded, moves)
         });
+
         if (name === 'selectNextOccurrence' && model.occurrencesExhausted && this.view.settings.messages.noMoreOccurrences !== undefined) {
             this.view.notify(this.view.settings.messages.noMoreOccurrences);
         }
+
         if (name === 'smartEnd' || name === 'selectSmartEnd') {
             this.view.markRowEnd(model.getPrimary().head);
         }
+
         this.view.revealCaret();
+
         return result;
     }
 
@@ -454,7 +515,9 @@ export class InputController {
         if (this.blockedByReadOnly()) {
             return;
         }
+
         this.unfoldCarets();
+
         // Every key goes through the model, which decides by the key before it too, as for the arrow of PHP.
         if (text.length === 1) {
             this.view.model.typeText(text, { ...this.commandOptions(), historyGroup: this.inputGroup() });
@@ -474,11 +537,14 @@ export class InputController {
         const scrollTop = direction < 0 ? from.y - page : Math.min(layout.height - height, from.y + page);
         this.view.scrollTo(from.x, Math.max(0, layout.lineBase(scrollTop)));
         const distance = direction < 0 ? height : height + lineHeight - 1;
+
         const selections = model.getSelections().map((selection, index) => {
             this.desiredXs[index] ??= layout.caret(selection.head).x;
             const head = layout.verticalOffset(selection.head, direction, this.desiredXs[index]!, distance);
+
             return { anchor: extend ? selection.anchor : head, head };
         });
+
         this.keepDesiredXs = true;
         model.setSelections(selections);
         this.keepDesiredXs = false;
@@ -491,16 +557,20 @@ export class InputController {
         const { view } = this;
         const { model } = view;
         this.block = null;
+
         if (view.columnMode) {
             const first = model.getSelections()[0]!;
             const last = model.getPrimary();
             view.setColumnMode(false);
             model.setSelections([{ anchor: first.anchor, head: last.head }]);
+
             return;
         }
+
         view.setColumnMode(true);
         const primary = model.getPrimary();
         model.setSelections([primary]);
+
         if (primary.anchor !== primary.head) {
             this.block = this.blockOf(primary, '');
             this.extendBlock({ x: 0, y: 0 });
@@ -511,14 +581,18 @@ export class InputController {
     private extendBlock(step: { x: number; y: number }): void {
         const { model, layout } = this.view;
         const signature = selectionSignature(model.getSelections());
+
         if (this.block === null || (this.block.signature !== '' && this.block.signature !== signature)) {
             this.block = this.blockOf(model.getPrimary(), signature);
         }
+
         const block = this.block;
+
         block.head = {
             x: Math.max(0, block.head.x + step.x),
             y: Math.max(0, Math.min(layout.height - layout.metrics.lineHeight, block.head.y + step.y))
         };
+
         model.setSelections(columnSelections(layout, block.anchor, block.head));
         block.signature = selectionSignature(model.getSelections());
     }
@@ -528,52 +602,68 @@ export class InputController {
         const { layout } = this.view;
         const anchor = layout.caret(selection.anchor);
         const head = layout.caret(selection.head);
+
         return { anchor: { x: anchor.x, y: anchor.y }, head: { x: head.x, y: head.y }, signature };
     }
 
     private moveCarets(key: MoveKey, extend: boolean): void {
         if (this.view.columnMode && extend && (key === 'ArrowUp' || key === 'ArrowDown' || key === 'ArrowLeft' || key === 'ArrowRight')) {
             const { lineHeight, charWidth } = this.view.layout.metrics;
+
             this.extendBlock({
                 x: key === 'ArrowLeft' ? -charWidth : key === 'ArrowRight' ? charWidth : 0,
                 y: key === 'ArrowUp' ? -lineHeight : key === 'ArrowDown' ? lineHeight : 0
             });
+
             this.view.revealCaret();
+
             return;
         }
+
         if (key === 'PageUp' || key === 'PageDown') {
             this.movePages(key === 'PageUp' ? -1 : 1, extend);
+
             return;
         }
+
         const { model, layout } = this.view;
         const vertical = key === 'ArrowUp' || key === 'ArrowDown';
         const direction = key === 'ArrowLeft' || key === 'ArrowUp' ? -1 : 1;
+
         const edge = (selection: Selection): number =>
             direction < 0 ? Math.min(selection.anchor, selection.head) : Math.max(selection.anchor, selection.head);
+
         const selections = model.getSelections().map((selection, index) => {
             const collapses = !extend && selection.anchor !== selection.head;
             let head: number;
+
             if (!vertical && collapses) {
                 head = edge(selection);
             } else if (vertical) {
                 // A selection first gives way to the edge in the direction of the move, as the platform's Up and Down do.
                 const from = collapses ? edge(selection) : selection.head;
+
                 if (collapses) {
                     delete this.desiredXs[index];
                 }
+
                 this.desiredXs[index] ??= layout.caret(from).x;
                 head = layout.verticalOffset(from, direction, this.desiredXs[index]!);
             } else {
                 head = layout.horizontalOffset(selection.head, direction);
             }
+
             return { anchor: extend ? selection.anchor : head, head };
         });
+
         this.keepDesiredXs = vertical;
         model.setSelections(selections);
         this.keepDesiredXs = false;
+
         if (!vertical) {
             this.desiredXs = [];
         }
+
         this.historyGroup++;
         this.view.revealCaret();
     }
@@ -583,11 +673,13 @@ export class InputController {
         if (this.blockedByReadOnly()) {
             return;
         }
+
         const { model } = this.view;
         const text = model.slice(from, to);
         this.view.ensureVisible(offset);
         const start = copy || offset < from ? offset : offset - (to - from);
         this.historyGroup++;
+
         model.applyEdits(
             copy
                 ? [{ from: offset, to: offset, text }]
@@ -600,6 +692,7 @@ export class InputController {
                 selections: [{ anchor: start, head: start + text.length }]
             }
         );
+
         this.historyGroup++;
         this.view.revealCaret();
     }
@@ -607,17 +700,22 @@ export class InputController {
     private goToMatchingBracket(): void {
         const { model } = this.view;
         let changed = false;
+
         model.setSelections(
             model.getSelections().map((selection) => {
                 const bracket = this.view.matchingBracket(selection);
+
                 if (!bracket || bracket.mate === undefined) {
                     return selection;
                 }
+
                 const head = bracket.mate > bracket.at ? bracket.mate + 1 : bracket.mate;
                 changed = true;
+
                 return { anchor: head, head };
             })
         );
+
         if (changed) {
             this.view.revealCaret();
         }
@@ -625,45 +723,55 @@ export class InputController {
 
     private run(action: KeyAction, event: KeyboardEvent): void {
         const { model } = this.view;
+
         switch (action.type) {
             case 'save':
                 event.preventDefault();
                 this.options.save();
+
                 return;
             case 'command':
                 event.preventDefault();
                 this.command(action.command);
+
                 return;
             case 'move':
                 event.preventDefault();
                 this.moveCarets(action.key, action.extend);
+
                 return;
             case 'edge': {
                 event.preventDefault();
                 const head = action.end ? model.getLength() : 0;
                 model.setSelections([{ anchor: action.extend ? model.getPrimary().anchor : head, head }]);
                 this.view.revealCaret();
+
                 return;
             }
             case 'bracket':
                 event.preventDefault();
                 this.goToMatchingBracket();
+
                 return;
             case 'view':
                 event.preventDefault();
                 this.viewCommand(action.command);
+
                 return;
             case 'escape': {
                 const selections = model.getSelections();
+
                 if (selections.length > 1 || selections[0]!.anchor !== selections[0]!.head) {
                     event.preventDefault();
                     // The oldest caret stays; the newest ones go.
                     const head = selections[0]!.head;
                     model.setSelections([{ anchor: head, head }]);
+
                     if (selections.length > 1) {
                         this.view.revealCaret();
                     }
                 }
+
                 return;
             }
         }
@@ -690,23 +798,31 @@ export class InputController {
         if (event.isComposing || this.native.composing) {
             return;
         }
+
         const added = this.gesture.keydown(event);
+
         if (added !== null) {
             event.preventDefault();
             this.command(added === 'above' ? 'addCaretAbove' : 'addCaretBelow');
+
             return;
         }
+
         for (const handler of [...this.keyHandlers]) {
             if (handler(event)) {
                 event.preventDefault();
+
                 return;
             }
         }
+
         // The app's own shortcuts stay the app's, also where the editor has a binding for the same key.
         if (this.options.handBack.some((chord) => chordMatches(chord, event, this.options.apple))) {
             return;
         }
+
         const action = keyAction(event, this.options.apple, this.options.keymap);
+
         if (action) {
             this.run(action, event);
         }
@@ -716,36 +832,45 @@ export class InputController {
         if (this.view.settings.readOnly) {
             event.preventDefault();
             this.blockedByReadOnly();
+
             return;
         }
+
         if (this.native.composing || event.isComposing) {
             return;
         }
+
         switch (event.inputType) {
             case 'insertText':
             case 'insertReplacementText':
                 event.preventDefault();
+
                 if (event.data !== null) {
                     this.typeText(event.data);
                 }
+
                 return;
             case 'insertLineBreak':
             case 'insertParagraph':
                 event.preventDefault();
                 this.command('insertNewline');
+
                 return;
             case 'deleteContentBackward':
                 event.preventDefault();
                 this.command('smartBackspace');
+
                 return;
             case 'deleteContentForward':
                 event.preventDefault();
                 this.command('deleteForward');
+
                 return;
             case 'historyUndo':
             case 'historyRedo':
                 event.preventDefault();
                 this.command(event.inputType === 'historyUndo' ? 'undo' : 'redo');
+
                 return;
         }
     }
@@ -756,32 +881,40 @@ export class InputController {
         const { model } = this.view;
         const selections = model.getSelections();
         const empty = selections.every((selection) => selection.anchor === selection.head);
+
         const text = empty
             ? selections
                   .map((selection) => {
                       const { first, last } = this.view.lineSpan(model.positionAt(selection.head).line);
                       const end = model.getLine(last);
+
                       return model.slice(model.getLine(first).start, end.next) + (end.next === end.end ? '\n' : '');
                   })
                   .join('')
             : selections.map((selection) => model.slice(Math.min(selection.anchor, selection.head), Math.max(selection.anchor, selection.head))).join('\n');
+
         event.clipboardData?.setData('text/plain', text);
         lineClip = empty ? text : null;
+
         if (!cut || this.blockedByReadOnly()) {
             return;
         }
+
         this.historyGroup++;
+
         if (empty) {
             this.command('deleteLine');
         } else {
             this.replaceSelections('');
         }
+
         this.historyGroup++;
     }
 
     private pointerDown(event: PointerEvent): void {
         this.view.cancelScroll();
         const target = event.target as HTMLElement;
+
         // A press a part took already, such as a pinned header, which draws itself anew and so takes its target off the page before the press bubbles here.
         if (
             event.defaultPrevented ||
@@ -790,32 +923,42 @@ export class InputController {
         ) {
             return;
         }
+
         // Cancels the compatibility mouse events, whose focus change would close the keyboard a tap opened; scrolling is not affected.
         event.preventDefault();
+
         if (this.takenByInlayHandler(event)) {
             return;
         }
+
         if (event.pointerType === 'touch') {
             this.touch.start(event, 'text', () => this.takenByHost(event));
+
             return;
         }
+
         if (this.takenByHost(event)) {
             this.view.focus();
+
             return;
         }
+
         this.pointer.start(event);
     }
 
     /* Whether a handler of the host took a press on a hint, which then moves neither the caret nor the focus. */
     private takenByInlayHandler(event: PointerEvent): boolean {
         const inlay = this.inlayHandlers.size === 0 ? null : this.view.inlayAt(event.target);
+
         if (inlay === null) {
             return false;
         }
+
         const now = Date.now();
         const again = this.lastInlayPress?.id === inlay.id && now - this.lastInlayPress.at <= DOUBLE_PRESS_MS;
         this.lastInlayPress = again ? null : { id: inlay.id, at: now };
         const touch = event.pointerType === 'touch';
+
         const click: EditorInlayClick = {
             id: inlay.id,
             part: inlay.part,
@@ -825,12 +968,15 @@ export class InputController {
             clicks: again ? 2 : 1,
             touch
         };
+
         if (![...this.inlayHandlers].some((handler) => handler(click))) {
             return false;
         }
+
         if (!touch) {
             this.view.focus();
         }
+
         return true;
     }
 
@@ -839,37 +985,47 @@ export class InputController {
         if (this.clickHandlers.size === 0) {
             return false;
         }
+
         const offset = this.view.characterAtPoint(event.clientX, event.clientY, event.target);
+
         if (offset === null) {
             return false;
         }
+
         const click: EditorClick = {
             position: this.positionOf(offset),
             mod: this.options.apple ? event.metaKey : event.ctrlKey,
             alt: event.altKey,
             shift: event.shiftKey
         };
+
         return [...this.clickHandlers].some((handler) => handler(click));
     }
 
     private positionOf(offset: number): EditorPosition {
         const { line, column } = this.view.model.positionAt(offset);
+
         return { line, character: column };
     }
 
     private contextMenu(event: MouseEvent): void {
         if (this.contextListeners.size === 0 && this.touch.pressed) {
             event.preventDefault();
+
             return;
         }
+
         if (this.contextListeners.size === 0 || (event.target as HTMLElement | null)?.closest?.('.se-sticky')) {
             return;
         }
+
         event.preventDefault();
         const offset = this.view.offsetAtPoint(event.clientX, event.clientY);
+
         const selection = this.view.model
             .getSelections()
             .some((candidate) => Math.min(candidate.anchor, candidate.head) <= offset && offset <= Math.max(candidate.anchor, candidate.head));
+
         const menu: EditorContextMenu = { position: this.positionOf(offset), inSelection: selection, x: event.clientX, y: event.clientY };
         emit(this.contextListeners, menu);
     }
@@ -877,9 +1033,11 @@ export class InputController {
     /* A press on a pinned header goes to that header. */
     private stickyDown(event: PointerEvent): void {
         const row = (event.target as HTMLElement | null)?.closest?.<HTMLElement>('.se-sticky-row');
+
         if (event.button !== 0 || !row) {
             return;
         }
+
         event.preventDefault();
         this.view.jumpToHeader(Number(row.dataset.line), Number(row.dataset.depth));
         this.view.focus();
@@ -888,31 +1046,44 @@ export class InputController {
     /* A press on a line number selects the line. */
     private gutterDown(event: PointerEvent): void {
         this.view.cancelScroll();
+
         if (event.button !== 0) {
             return;
         }
+
         event.preventDefault();
         /* On the press and not on click: a repaint in between replaces the gutter's buttons, and a click whose button left the DOM never arrives. */
         const markerId = this.view.gutterMarkerIdOf(event.target);
+
         if (markerId !== null) {
             this.view.pressGutterMarker(markerId);
+
             return;
         }
+
         const actionLine = this.view.gutterActionLineOf(event.target);
+
         if (actionLine !== null) {
             this.view.pressGutterAction(actionLine);
+
             return;
         }
+
         const foldLine = this.view.foldLineOf(event.target);
+
         if (foldLine !== null) {
             this.view.toggleFold(foldLine);
             this.view.focus();
+
             return;
         }
+
         if (event.pointerType === 'touch') {
             this.touch.start(event, 'gutter');
+
             return;
         }
+
         this.pointer.start(event, 'gutter');
         this.view.focus();
     }

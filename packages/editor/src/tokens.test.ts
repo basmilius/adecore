@@ -12,13 +12,17 @@ function commentTokenizer(counter: { lines: number }): LineTokenizer {
         tokenizeLine(text, state) {
             counter.lines++;
             let open = state === true;
+
             if (text.includes('/*')) {
                 open = true;
             }
+
             const inside = state === true || text.includes('/*');
+
             if (text.includes('*/')) {
                 open = false;
             }
+
             return { tokens: [{ length: text.length, color: inside ? 'comment' : 'code', fontStyle: 0 }], state: open };
         },
         sameState: (left, right) => left === right
@@ -30,17 +34,22 @@ function setup(text: string) {
     const cache = new TokenCache({ getLineCount: () => model.getLineCount(), getLineText: (line) => model.getLine(line).text });
     const counter = { lines: 0 };
     cache.setTokenizer(commentTokenizer(counter));
+
     const lineOf = (offset: number): number => model.positionAt(offset).line;
+
     /* Applies the edit and tells the cache the way the view does. */
     function edit(from: number, to: number, text: string): void {
         let batches: DocumentModel['getSnapshot'] extends () => infer T ? T : never;
+
         const listener = model.subscribe((snapshot) => {
             batches = snapshot;
         });
+
         model.applyEdits([{ from, to, text }]);
         listener.dispose();
         cache.edited(batches!.changes ?? [], lineOf);
     }
+
     return { model, cache, counter, edit };
 }
 
@@ -75,14 +84,17 @@ describe('TokenCache', () => {
         const { cache, counter, edit } = setup('a\nb\nc\nd');
         let stale = false;
         const inner = commentTokenizer(counter);
+
         cache.setTokenizer({
             ...inner,
             stale: () => {
                 const answer = stale;
                 stale = false;
+
                 return answer;
             }
         });
+
         cache.advance(10, 1000, stopped);
         counter.lines = 0;
         stale = true;
@@ -167,14 +179,17 @@ describe('TokenCache', () => {
 test('revalidation keeps old colors and recolors all states from the top', () => {
     const { cache, counter } = setup('one\ntwo\nthree');
     let stale = false;
+
     cache.setTokenizer({
         ...commentTokenizer(counter),
         stale: () => {
             const changed = stale;
             stale = false;
+
             return changed;
         }
     });
+
     cache.advance(10, 1000, stopped);
     const previous = cache.tokensOf(1);
     expect(cache.revalidate()).toBe(false);
@@ -196,26 +211,32 @@ describe('grammar generations across partial recoloring', () => {
             let generation = 0;
             let changed = false;
             const seen = new Map<string, number>();
+
             cache.setTokenizer({
                 tokenizeLine(text, state) {
                     if (state !== null && state !== generation) {
                         throw new Error('State belongs to an old grammar');
                     }
+
                     seen.set(text, generation);
+
                     return { tokens: [{ length: text.length, color: `generation-${generation}`, fontStyle: 0 }], state: generation };
                 },
                 sameState: (left, right) => left === right,
                 stale() {
                     const stale = changed;
                     changed = false;
+
                     return stale;
                 }
             });
+
             const subscription = model.subscribe((snapshot) => {
                 if (snapshot.changes !== undefined) {
                     cache.edited(snapshot.changes, (offset) => model.positionAt(offset).line);
                 }
             });
+
             cache.advance(1000, 1000, stopped);
             generation++;
             changed = true;

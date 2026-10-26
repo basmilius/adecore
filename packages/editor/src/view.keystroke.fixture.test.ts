@@ -15,6 +15,7 @@ const LINES = 100_000;
 /* Short functions, where the scope guide of the caret stops at the function around it. */
 function codeDocument(): string {
     const lines: string[] = [];
+
     for (let index = 0; lines.length < LINES; index++) {
         lines.push(
             `function block${index}(alpha, beta) {`,
@@ -27,6 +28,7 @@ function codeDocument(): string {
             ''
         );
     }
+
     return lines.join('\n');
 }
 
@@ -60,6 +62,7 @@ const GUIDE_RUN_LINES = 5_000;
  */
 const CODE: Budget = { laidOut: 8, lexedLines: 8, getLine: 500, charactersRead: 16 * 1024, elementsCreated: 1_000 };
 const FLAT_GET_LINE = CODE.getLine + 2 * GUIDE_RUN_LINES;
+
 export const BUDGETS: Record<'code' | 'flat', Budget> = {
     code: CODE,
     // The scope guide of a run at one indentation reads its full bound each way, every line of it whole.
@@ -76,17 +79,20 @@ function countingGrammar(): { lines: number; tokenizer: LineTokenizer } {
         tokenizer: {
             tokenizeLine: (text: string, state: unknown) => {
                 grammar.lines++;
+
                 return { tokens: [{ length: text.length, color: '', fontStyle: 0 }], state };
             },
             sameState: (left: unknown, right: unknown) => left === right
         }
     };
+
     return grammar;
 }
 
 /* Lets the coloring the editor slices into timers run out, so its work counts against the keystroke that caused it. */
 async function idle(grammar: { lines: number }): Promise<void> {
     let before = -1;
+
     while (before !== grammar.lines) {
         before = grammar.lines;
         await pause(2);
@@ -127,15 +133,20 @@ function counters(mounted: MountedEditor) {
     const createElement = spyOn(mounted.page.document, 'createElement');
     const spies = [getLine, slice, getText, buildRows, createElement];
     restores.push(() => spies.forEach((spy) => spy.mockRestore()));
+
     const ours = (context: unknown): boolean => context === model;
+
     const oursLayout = (context: unknown): boolean => ours((context as { document: unknown }).document);
+
     const results = <Value>(spy: { mock: { contexts: unknown[]; results: { value: unknown }[] } }): Value[] =>
         spy.mock.results.filter((_, index) => ours(spy.mock.contexts[index])).map((result) => result.value as Value);
+
     return {
         reset: (): void => spies.forEach((spy) => spy.mockClear()),
         read: () => {
             const lines = results<{ text: string }>(getLine).map((line) => line.text);
             const texts = [...lines, ...results<string>(slice), ...results<string>(getText)];
+
             return {
                 laidOut: buildRows.mock.calls
                     .filter((_, index) => oursLayout(buildRows.mock.contexts[index]))
@@ -159,19 +170,24 @@ export async function measure(name: 'code' | 'flat', wrap: boolean) {
     restores.push(() => mounted.editor.dispose());
     Object.defineProperties(mounted.viewport, { clientWidth: { value: 800 }, clientHeight: { value: 600 } });
     mounted.editor.setWrap(wrap);
+
     if (wrap && name === 'flat') {
         expect(mounted.editor.getLineHeight(0)).toBeGreaterThan(mounted.editor.getBaseLineHeight!());
     }
+
     await idle(grammar);
+
     // The first Enter reads every line above the caret to fill the model's cache of typing contexts, once per document.
     for (let index = 0; index < 20; index++) {
         keystroke(mounted, index);
     }
+
     await idle(grammar);
 
     const count = counters(mounted);
     const work: (ReturnType<typeof count.read> & { lexedLines: number })[] = [];
     const times: number[] = [];
+
     for (let index = 0; index < KEYSTROKES; index++) {
         count.reset();
         grammar.lines = 0;
@@ -181,6 +197,8 @@ export async function measure(name: 'code' | 'flat', wrap: boolean) {
         await idle(grammar);
         work.push({ ...count.read(), lexedLines: grammar.lines });
     }
+
     times.sort((left, right) => left - right);
+
     return { mounted, work, medianMs: times[KEYSTROKES / 2]! };
 }

@@ -77,11 +77,14 @@ const LINE_BREAK = /\r\n|\r|\n/g;
 function linesOf(text: string): { start: number; end: number }[] {
     const lines: { start: number; end: number }[] = [];
     let start = 0;
+
     for (const match of text.matchAll(LINE_BREAK)) {
         lines.push({ start, end: match.index });
         start = match.index + match[0].length;
     }
+
     lines.push({ start, end: text.length });
+
     return lines;
 }
 
@@ -98,6 +101,7 @@ function clampOffset(text: string, value: number): number {
     const offset = Math.max(0, Math.min(text.length, Number.isFinite(value) ? Math.trunc(value) : 0));
     const splitsBreak = text[offset - 1] === '\r' && text[offset] === '\n';
     const splitsPair = isHighSurrogate(text.charCodeAt(offset - 1)) && isLowSurrogate(text.charCodeAt(offset));
+
     return splitsBreak || splitsPair ? offset - 1 : offset;
 }
 
@@ -105,9 +109,11 @@ function positionIn(text: string, offset: number): EditorPosition {
     const at = clampOffset(text, offset);
     const lines = linesOf(text);
     let line = lines.length - 1;
+
     while (line > 0 && lines[line]!.start > at) {
         line--;
     }
+
     return { line, character: Math.min(at, lines[line]!.end) - lines[line]!.start };
 }
 
@@ -115,28 +121,36 @@ function offsetIn(text: string, position: EditorPosition): number {
     const lines = linesOf(text);
     const line = lines[Math.max(0, Math.min(Number.isFinite(position.line) ? Math.trunc(position.line) : 0, lines.length - 1))]!;
     const character = Math.max(0, Math.min(Number.isFinite(position.character) ? Math.trunc(position.character) : 0, line.end - line.start));
+
     return clampOffset(text, line.start + character);
 }
 
 /* The line of a one-based line number, clamped to the text. */
 function lineNumbered(text: string, line: number): { start: number; end: number } {
     const lines = linesOf(text);
+
     return lines[Math.min(Math.max(1, Math.trunc(line) || 1), lines.length) - 1]!;
 }
 
 /* Clamps every selection and merges those that overlap or touch, each merge taking the place and direction of the last given of them, as the real document does. */
 function normalized(text: string, selections: readonly OffsetSelection[]): OffsetSelection[] {
     const input = selections.length > 0 ? selections : [{ anchor: 0, head: 0 }];
+
     const clamped = input.map((raw) => {
         const anchor = clampOffset(text, raw.anchor);
+
         return { anchor, head: raw.head === raw.anchor ? anchor : clampOffset(text, raw.head) };
     });
+
     const order = clamped
         .map((selection, index) => ({ from: Math.min(selection.anchor, selection.head), to: Math.max(selection.anchor, selection.head), index }))
         .sort((left, right) => left.from - right.from);
+
     const groups: { from: number; to: number; last: number }[] = [];
+
     for (const { from, to, index } of order) {
         const group = groups.at(-1);
+
         if (group !== undefined && from <= group.to) {
             group.to = Math.max(group.to, to);
             group.last = Math.max(group.last, index);
@@ -144,10 +158,12 @@ function normalized(text: string, selections: readonly OffsetSelection[]): Offse
             groups.push({ from, to, last: index });
         }
     }
+
     return groups
         .sort((left, right) => left.last - right.last)
         .map((group) => {
             const selection = clamped[group.last]!;
+
             return selection.anchor > selection.head ? { anchor: group.to, head: group.from } : { anchor: group.from, head: group.to };
         });
 }
@@ -156,28 +172,36 @@ function normalized(text: string, selections: readonly OffsetSelection[]): Offse
 function orderedEdits(edits: readonly Edit[]): Edit[] | null {
     const sorted = [...edits].sort((left, right) => left.from - right.from || left.to - right.to);
     const unique: Edit[] = [];
+
     for (const edit of sorted) {
         const previous = unique.at(-1);
+
         if (previous !== undefined && edit.from === previous.from && edit.to === previous.to && edit.text === previous.text) {
             continue;
         }
+
         if (previous !== undefined && (edit.from < previous.to || (edit.from === previous.from && edit.to === previous.to))) {
             return null;
         }
+
         unique.push(edit);
     }
+
     return unique;
 }
 
 /* Where an offset lands after ordered edits: one inside a replaced stretch, or at an insertion, ends up behind the new text. */
 function mapOffset(offset: number, edits: readonly Edit[]): number {
     let delta = 0;
+
     for (const edit of edits) {
         if (edit.to > offset) {
             return edit.from <= offset ? edit.from + delta + edit.text.length : offset + delta;
         }
+
         delta += edit.text.length - (edit.to - edit.from);
     }
+
     return offset + delta;
 }
 
@@ -233,6 +257,7 @@ export class FakeEditor implements Editor {
         this.revealedLine = options.line ?? null;
         this.column = options.column ?? null;
         this.scrollTop = options.scrollTop ?? null;
+
         if (options.line !== undefined) {
             const line = lineNumbered(this.text, options.line);
             const offset = Math.min(line.end, line.start + Math.max(0, (options.column ?? 1) - 1));
@@ -245,14 +270,18 @@ export class FakeEditor implements Editor {
     type(text: string): void {
         this.assertLive();
         const span = changedSpan(this.text, text);
+
         if (this.readOnly || span === null) {
             return;
         }
+
         const edit = { from: span.start, to: span.end, text: span.text };
         const end = span.start + span.text.length;
+
         const others = this.selections
             .slice(0, -1)
             .map((selection) => ({ anchor: mapOffset(selection.anchor, [edit]), head: mapOffset(selection.head, [edit]) }));
+
         this.edit([edit], 'input', false, () => [...others, { anchor: end, head: end }]);
     }
 
@@ -292,41 +321,53 @@ export class FakeEditor implements Editor {
         place?: (text: string) => readonly OffsetSelection[]
     ): boolean {
         const before = this.state();
+
         if (!this.rewrite(edits, source, place)) {
             return false;
         }
+
         const last = this.undoStack.at(-1);
+
         if (mergeUndo && last !== undefined && last.after.text === before.text) {
             last.after = this.state();
         } else {
             this.undoStack.push({ before, after: this.state() });
         }
+
         this.redoStack = [];
+
         if (source !== 'external') {
             emit(this.changes);
         }
+
         return true;
     }
 
     private rewrite(edits: readonly Edit[], source: EditorTextChange['source'], place?: (text: string) => readonly OffsetSelection[]): boolean {
         const before = this.text;
         let text = before;
+
         for (let index = edits.length - 1; index >= 0; index--) {
             const edit = edits[index]!;
             text = text.slice(0, edit.from) + edit.text + text.slice(edit.to);
         }
+
         if (text === before) {
             return false;
         }
+
         const changed = edits.filter((edit) => before.slice(edit.from, edit.to) !== edit.text);
         this.text = text;
+
         this.selections = normalized(
             text,
             place?.(text) ?? this.selections.map((selection) => ({ anchor: mapOffset(selection.anchor, edits), head: mapOffset(selection.head, edits) }))
         );
+
         this.followTracked(changed);
         this.ghost = null;
         this.announceCaret();
+
         // Last to first, so each change's range is also where it stands once the ones after it are applied, as the real editor reports them.
         const change: EditorTextChange = {
             source,
@@ -334,7 +375,9 @@ export class FakeEditor implements Editor {
                 .reverse()
                 .map((edit) => ({ range: { start: positionIn(before, edit.from), end: positionIn(before, edit.to) }, text: edit.text }))
         };
+
         emit(this.textChanges, change);
+
         return true;
     }
 
@@ -346,24 +389,30 @@ export class FakeEditor implements Editor {
     private restore(direction: 'undo' | 'redo'): boolean {
         const [from, to] = direction === 'undo' ? [this.undoStack, this.redoStack] : [this.redoStack, this.undoStack];
         const entry = this.readOnly ? undefined : from.pop();
+
         if (entry === undefined) {
             return false;
         }
+
         to.push(entry);
         const state = direction === 'undo' ? entry.before : entry.after;
         const span = changedSpan(this.text, state.text);
+
         if (span === null) {
             this.select(state.selections);
         } else {
             this.rewrite([{ from: span.start, to: span.end, text: span.text }], 'command', () => state.selections);
         }
+
         emit(this.changes);
+
         return true;
     }
 
     /* Tells the caret listeners where the primary caret is, when it moved since they last heard. */
     private announceCaret(): void {
         const head = this.selections.at(-1)!.head;
+
         if (head !== this.caretOffset) {
             this.caretOffset = head;
             emit(this.carets, positionIn(this.text, head));
@@ -374,8 +423,10 @@ export class FakeEditor implements Editor {
 
     private followTracked(edits: readonly Edit[]): void {
         const changes = edits.map((edit) => ({ from: edit.from, to: edit.to, insertedLength: edit.text.length }));
+
         for (const entry of this.tracked) {
             const mapped = mapTrackedRange(entry.from, entry.to, changes);
+
             if (mapped === null) {
                 this.tracked.delete(entry);
                 entry.lost = true;
@@ -388,6 +439,7 @@ export class FakeEditor implements Editor {
     trackRange(range: EditorRange): EditorTrackedRange {
         const entry = { from: this.offsetAt(range.start), to: this.offsetAt(range.end), lost: false };
         this.tracked.add(entry);
+
         return {
             get: () => (entry.lost ? null : { start: this.positionAt(entry.from), end: this.positionAt(entry.to) }),
             dispose: () => {
@@ -458,12 +510,14 @@ export class FakeEditor implements Editor {
     replace(replacement: string, options: EditorReplaceOptions = {}): boolean {
         this.replacements.push(replacement);
         this.replaceOptions.push(options);
+
         return !this.readOnly && this.findState.count > 0;
     }
 
     replaceAll(replacement: string, options: EditorReplaceOptions = {}): number {
         this.replacementsOfAll.push(replacement);
         this.replaceOptions.push(options);
+
         return this.readOnly ? 0 : this.findState.count;
     }
 
@@ -478,16 +532,19 @@ export class FakeEditor implements Editor {
     selectFindMatches(): number {
         this.selectedMatches = this.findState.count;
         this.find(null);
+
         return this.selectedMatches;
     }
 
     findFromCursor(query: EditorFindQuery, direction: 1 | -1): boolean {
         this.lastFindFromCursor = { query, direction };
+
         return true;
     }
 
     findStep(direction: 1 | -1): void {
         const { count, current } = this.findState;
+
         if (count > 0) {
             this.announceFind({ count, current: ((current ?? 0) + direction + count) % count });
         }
@@ -597,10 +654,12 @@ export class FakeEditor implements Editor {
     /* The pointer on the bar of a mark, or leaving it. The rect is where `rectAt` puts the mark's first line unless given. */
     hoverAttribution(id: string | null, rect?: EditorRect): void {
         const mark = id === null ? undefined : this.attributionMarks.find((candidate) => candidate.id === id);
+
         const hover =
             mark === undefined
                 ? null
                 : { id: mark.id, rect: rect ?? this.rectAt({ line: mark.startLine - 1, character: 0 }) ?? { left: 0, top: 0, right: 0, bottom: 0 } };
+
         emit(this.attributionHovers, hover);
     }
 
@@ -619,15 +678,19 @@ export class FakeEditor implements Editor {
         if (widgets.length === 0) {
             this.widgetsByOwner.delete(owner);
             this.drawnWidgets.delete(owner);
+
             return;
         }
+
         this.widgetsByOwner.set(owner, widgets);
         const before = this.drawnWidgets.get(owner) ?? new Set<string>();
+
         for (const widget of widgets) {
             if (!before.has(widget.id)) {
                 widget.render(this.element.ownerDocument?.createElement('div') ?? ({} as HTMLElement));
             }
         }
+
         this.drawnWidgets.set(owner, new Set(widgets.map((widget) => widget.id)));
     }
 
@@ -804,6 +867,7 @@ export class FakeEditor implements Editor {
     /* A press on a hint as the editor sees it first; true when a handler took it. */
     clickInlay(click: Partial<EditorInlayClick> & Pick<EditorInlayClick, 'id'>): boolean {
         const full: EditorInlayClick = { part: null, mod: false, alt: false, shift: false, clicks: 1, touch: false, ...click };
+
         return [...this.inlayHandlers].some((handler) => handler(full));
     }
 
@@ -864,6 +928,7 @@ export class FakeEditor implements Editor {
     /* The primary selection, or null when it is only a caret; setting it tells no listener. */
     get selection(): EditorRange | null {
         const primary = this.selections.at(-1)!;
+
         return primary.anchor === primary.head ? null : rangeIn(this.text, primary);
     }
 
@@ -920,6 +985,7 @@ export class FakeEditor implements Editor {
         if (ranges.length === 0) {
             return;
         }
+
         this.lastReveal = reveal;
         this.select(ranges.map((range) => ({ anchor: this.offsetAt(range.start), head: this.offsetAt(range.end) })));
     }
@@ -970,6 +1036,7 @@ export class FakeEditor implements Editor {
     rectAt(position: EditorPosition): EditorRect | null {
         const left = this.origin.left + position.character * this.charSize.width;
         const top = this.origin.top + position.line * this.charSize.height;
+
         return { left, top, right: left + this.charSize.width, bottom: top + this.charSize.height };
     }
 
@@ -989,6 +1056,7 @@ export class FakeEditor implements Editor {
         if (range !== undefined) {
             this.visibleRange = range;
         }
+
         emit(this.views);
     }
 
@@ -1027,18 +1095,23 @@ export class FakeEditor implements Editor {
     /* A key as the editor sees it first; true when a handler took it. */
     press(event: Pick<KeyboardEvent, 'key'> & Partial<KeyboardEvent>): boolean {
         const full = { ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, preventDefault: () => undefined, ...event } as KeyboardEvent;
+
         return [...this.keys].some((handler) => handler(full));
     }
 
     applyEdits(edits: readonly EditorContentChange[], options: EditorApplyEditsOptions = {}): boolean {
         const ordered = orderedEdits(edits.map((edit) => ({ from: this.offsetAt(edit.range.start), to: this.offsetAt(edit.range.end), text: edit.text })));
+
         if (this.readOnly || ordered === null || ordered.length === 0) {
             return false;
         }
+
         const { mapSelections } = options;
+
         const mapped =
             mapSelections &&
             this.selections.map((selection) => ({ backward: selection.head < selection.anchor, range: mapSelections(rangeIn(this.text, selection)) }));
+
         // A backward selection stays backward, as the real editor places it.
         const place =
             mapped &&
@@ -1046,8 +1119,10 @@ export class FakeEditor implements Editor {
                 mapped.map(({ backward, range }) => {
                     const from = offsetIn(text, range.start);
                     const to = offsetIn(text, range.end);
+
                     return backward ? { anchor: to, head: from } : { anchor: from, head: to };
                 }));
+
         return this.edit(ordered, 'command', options.mergeUndo === true, place);
     }
 
@@ -1073,6 +1148,7 @@ export class FakeEditor implements Editor {
 
     runCommand(command: EditorRunCommand): boolean {
         this.commands.push(command);
+
         return command === 'undo' || command === 'redo' ? this.restore(command) : false;
     }
 
@@ -1118,15 +1194,18 @@ export class FakeEditorEngine implements EditorEngine {
     mount(element: HTMLElement, options: EditorOptions): FakeEditor {
         const editor = new FakeEditor(element, options);
         this.editors.push(editor);
+
         return editor;
     }
 
     /* The editor mounted last, which is the one a test of a single surface drives. */
     get last(): FakeEditor {
         const editor = this.editors.at(-1);
+
         if (!editor) {
             throw new Error('No editor was mounted');
         }
+
         return editor;
     }
 }

@@ -26,19 +26,25 @@ function selectorScore(selector: string, stack: readonly string[]): number | nul
     const words = selector.trim().split(/\s+/);
     const last = words[words.length - 1]!;
     const innermost = stack[stack.length - 1];
+
     if (innermost === undefined || !nameMatches(last, innermost)) {
         return null;
     }
+
     let at = stack.length - 2;
+
     for (let word = words.length - 2; word >= 0; word--) {
         while (at >= 0 && !nameMatches(words[word]!, stack[at]!)) {
             at--;
         }
+
         if (at < 0) {
             return null;
         }
+
         at--;
     }
+
     return last.length * 100 + words.length;
 }
 
@@ -55,21 +61,29 @@ export function scopeColorsOf(rules: readonly ThemeRule[]): ScopeColors {
             order
         }))
     );
+
     const cache = new Map<string, ScopeStyle | undefined>();
+
     return (stack) => {
         const key = stack.join(' ');
+
         if (cache.has(key)) {
             return cache.get(key);
         }
+
         let best: { score: number; order: number; style: ScopeStyle } | undefined;
+
         for (const entry of flat) {
             const score = entry.selector === '' ? null : selectorScore(entry.selector, stack);
+
             if (score !== null && (best === undefined || score > best.score || (score === best.score && entry.order > best.order))) {
                 best = { score, order: entry.order, style: entry.style };
             }
         }
+
         const style = best !== undefined && best.style.color !== '' ? best.style : undefined;
         cache.set(key, style);
+
         return style;
     };
 }

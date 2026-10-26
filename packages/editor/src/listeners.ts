@@ -2,6 +2,7 @@ export type Listener = () => void;
 
 export function subscribe<T>(listeners: Set<T>, listener: T): () => void {
     listeners.add(listener);
+
     return () => {
         listeners.delete(listener);
     };

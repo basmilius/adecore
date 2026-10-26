@@ -17,27 +17,35 @@ export interface SemanticSpan {
  */
 export function overlayTokens(base: readonly LineToken[], spans: readonly SemanticSpan[]): LineToken[] {
     const result: LineToken[] = [];
+
     const push = (length: number, color: string, fontStyle: number): void => {
         if (length <= 0) {
             return;
         }
+
         const last = result[result.length - 1];
+
         if (last !== undefined && last.color === color && last.fontStyle === fontStyle) {
             result[result.length - 1] = { length: last.length + length, color, fontStyle };
         } else {
             result.push({ length, color, fontStyle });
         }
     };
+
     let span = 0;
     let start = 0;
+
     for (const token of base) {
         const end = start + token.length;
         let at = start;
+
         while (at < end) {
             while (span < spans.length && spans[span]!.to <= at) {
                 span++;
             }
+
             const current = spans[span];
+
             if (current === undefined || current.from >= end) {
                 push(end - at, token.color, token.fontStyle);
                 at = end;
@@ -46,15 +54,19 @@ export function overlayTokens(base: readonly LineToken[], spans: readonly Semant
                 at = current.from;
             } else {
                 const stop = Math.min(end, current.to);
+
                 if (current.within === undefined || token.kind === current.within) {
                     push(stop - at, current.color, current.fontStyle);
                 } else {
                     push(stop - at, token.color, token.fontStyle);
                 }
+
                 at = stop;
             }
         }
+
         start = end;
     }
+
     return result;
 }

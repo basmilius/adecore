@@ -63,16 +63,21 @@ export class TokenCache {
     /* The colors of text that is not part of the document, a line at a time, or null without a tokenizer. */
     tokenizeText(lines: readonly string[]): (readonly LineToken[])[] | null {
         const tokenizer = this.tokenizer;
+
         if (tokenizer === null) {
             return null;
         }
+
         let state: unknown = null;
+
         return lines.map((text) => {
             if (text.length > LONGEST_COLORED_LINE) {
                 return [{ length: text.length, color: '', fontStyle: 0 }];
             }
+
             const result = tokenizer.tokenizeLine(text, state);
             state = result.state;
+
             return result.tokens;
         });
     }
@@ -87,27 +92,35 @@ export class TokenCache {
         const lineCount = this.source.getLineCount();
         const delta = lineCount - this.lines;
         this.lines = lineCount;
+
         if (this.tokenizer === null) {
             return;
         }
+
         const first = batches[0]?.[0];
+
         if (first === undefined) {
             this.entries = [];
             this.staleFrom = Number.POSITIVE_INFINITY;
             this.frontier = 0;
             this.forgetPivot();
+
             return;
         }
+
         const firstLine = lineOf(first.from);
         const changes = batches.length === 1 ? batches[0]! : [];
         let shift = 0;
+
         for (let i = 0; i < changes.length - 1; i++) {
             shift += changes[i]!.insertedLength - (changes[i]!.to - changes[i]!.from);
         }
+
         const last = changes.at(-1);
         const lastNew = last === undefined ? -1 : lineOf(last.from + shift + last.insertedLength);
         const lastOld = lastNew - delta;
         this.frontier = Math.min(this.frontier, firstLine);
+
         if (last === undefined && Number.isFinite(this.staleFrom)) {
             // A history batch has no single mapping for the old grammar boundary.
             this.staleFrom = 0;
@@ -117,14 +130,19 @@ export class TokenCache {
         } else if (this.staleFrom > firstLine) {
             this.staleFrom = firstLine;
         }
+
         if (last === undefined || lastOld < firstLine || this.entries.length <= firstLine) {
             this.entries.length = Math.min(this.entries.length, firstLine);
+
             if (this.staleFrom >= this.entries.length) {
                 this.staleFrom = Number.POSITIVE_INFINITY;
             }
+
             this.forgetPivot();
+
             return;
         }
+
         const old = this.entries[lastOld];
         this.pivotLine = old ? lastNew : -1;
         this.pivotState = old?.state;
@@ -138,9 +156,11 @@ export class TokenCache {
         if (this.tokenizer?.stale?.() !== true) {
             return false;
         }
+
         this.frontier = 0;
         this.staleFrom = 0;
         this.forgetPivot();
+
         return true;
     }
 
@@ -151,45 +171,56 @@ export class TokenCache {
      */
     advance(until: number, budget: number, now: () => number = () => performance.now()): { from: number; to: number } | null {
         const tokenizer = this.tokenizer;
+
         if (tokenizer === null) {
             return null;
         }
+
         this.revalidate();
         const count = this.source.getLineCount();
         const limit = Math.min(until, count - 1);
         const deadline = now() + budget;
         const from = this.frontier;
+
         while (this.frontier <= limit && this.frontier < count) {
             const line = this.frontier;
             const text = this.source.getLineText(line);
             const state = line === 0 ? null : (this.entries[line - 1]?.state ?? null);
             const previous = this.entries[line];
             let next: Entry;
+
             if (text.length > LONGEST_COLORED_LINE) {
                 next = { tokens: [{ length: text.length, color: '', fontStyle: 0 }], state };
             } else {
                 const result = tokenizer.tokenizeLine(text, state);
                 next = { tokens: result.tokens, state: result.state };
             }
+
             this.entries[line] = next;
             this.frontier = line + 1;
             const fresh = line < this.staleFrom;
+
             if (line === this.staleFrom) {
                 this.staleFrom = line + 1 >= this.entries.length ? Number.POSITIVE_INFINITY : line + 1;
             }
+
             const settled =
                 fresh &&
                 ((line === this.pivotLine && tokenizer.sameState(this.pivotState, next.state)) ||
                     (previous !== undefined && line >= this.reusableFrom && tokenizer.sameState(previous.state, next.state)));
+
             if (settled) {
                 this.frontier = Math.min(this.entries.length, this.staleFrom);
                 this.forgetPivot();
+
                 break;
             }
+
             if (now() > deadline) {
                 break;
             }
         }
+
         return this.frontier > from ? { from, to: this.frontier - 1 } : null;
     }
 

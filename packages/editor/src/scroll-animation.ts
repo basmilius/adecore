@@ -13,6 +13,7 @@ const FULL_LINES = 11;
 export function scrollDuration(distance: number, lineHeight: number): number {
     const lines = distance / lineHeight;
     const part = Math.min(1, Math.max(0, (lines - FREE_LINES) / (FULL_LINES - FREE_LINES)));
+
     return Math.round(part * SCROLL_DURATION_MS);
 }
 
@@ -21,28 +22,37 @@ export function easeOut(fraction: number): number {
     if (fraction <= 0) {
         return 0;
     }
+
     if (fraction >= 1) {
         return 1;
     }
+
     const x1 = 0;
     const y1 = 0;
     const x2 = 0.58;
     const y2 = 1;
+
     const bezier = (t: number, a: number, b: number): number => 3 * (1 - t) * (1 - t) * t * a + 3 * (1 - t) * t * t * b + t * t * t;
+
     let low = 0;
     let high = 1;
     let t = fraction;
+
     for (let step = 0; step < 24; step++) {
         const x = bezier(t, x1, x2);
+
         if (Math.abs(x - fraction) < 1e-5) {
             break;
         }
+
         if (x < fraction) {
             low = t;
         } else {
             high = t;
         }
+
         t = (low + high) / 2;
     }
+
     return bezier(t, y1, y2);
 }

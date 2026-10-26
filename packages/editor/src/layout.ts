@@ -21,6 +21,7 @@ export interface SubRowBand {
 export function subRowBand(top: number, subRows: number, lineHeight: number, window: VerticalWindow, block = 1): SubRowBand {
     const first = Math.max(0, Math.min(subRows - 1, Math.floor((window.top - top) / lineHeight)));
     const last = Math.max(first, Math.min(subRows - 1, Math.ceil((window.bottom - top) / lineHeight) - 1));
+
     return {
         first: Math.floor(first / block) * block,
         last: Math.min(subRows - 1, Math.ceil((last + 1) / block) * block - 1)
@@ -194,22 +195,27 @@ const WRAP_INDENT_STEP = 2;
 const GEOMETRY_CACHE_SIZE = 400;
 const PLAIN = /^[\x20-\x7e\t]*$/;
 const GRAPHEME_LIMIT = 20000;
+
 let segmenter: Intl.Segmenter | undefined;
 
 /* Where each character starts, with the length last. A very long line is cut by code unit, since splitting it by grapheme would cost more than it shows. */
 function characterOffsets(text: string): number[] {
     const offsets: number[] = [];
+
     if (text.length > GRAPHEME_LIMIT || PLAIN.test(text)) {
         for (let i = 0; i < text.length; i++) {
             offsets.push(i);
         }
     } else {
         segmenter ??= new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+
         for (const part of segmenter.segment(text)) {
             offsets.push(part.index);
         }
     }
+
     offsets.push(text.length);
+
     return offsets;
 }
 
@@ -220,23 +226,29 @@ function isSpace(character: string | undefined): boolean {
 function characterWidth(metrics: LayoutMetrics, text: string, x: number): number {
     if (text === '\t') {
         const tab = metrics.tabSize * metrics.charWidth;
+
         return (Math.floor(x / tab) + 1) * tab - x;
     }
+
     if (text.length === 1 && text >= ' ' && text <= '~') {
         return metrics.charWidth;
     }
+
     return bidiControl(text) !== null ? BIDI_COLUMNS * metrics.charWidth : metrics.measureText(text);
 }
 
 /* Where the continuation rows of a wrapped line start, kept to half the row so a deep indent never leaves no room for text. */
 export function wrapIndent(text: string, metrics: LayoutMetrics, limit: number): number {
     let x = 0;
+
     for (const character of text) {
         if (!isSpace(character)) {
             break;
         }
+
         x += characterWidth(metrics, character, x);
     }
+
     return Math.min(x + WRAP_INDENT_STEP * metrics.charWidth, limit / 2);
 }
 
@@ -253,9 +265,11 @@ function wrapRows(text: string, offsets: readonly number[] | null, metrics: Layo
     let opportunity = -1;
     let x = 0;
     let index = 0;
+
     while (index < count) {
         const character = offsets === null ? text[index]! : text.slice(offsets[index]!, offsets[index + 1]!);
         const width = characterWidth(metrics, character, x);
+
         if (index > rowStart && x + width > limit && !isSpace(character)) {
             const target = opportunity > rowStart ? opportunity : index;
             breaks.push(target);
@@ -264,15 +278,21 @@ function wrapRows(text: string, offsets: readonly number[] | null, metrics: Layo
             opportunity = -1;
             x = indent;
             index = target;
+
             continue;
         }
+
         x += width;
+
         if (isSpace(character) && index + 1 < count && !isSpace(text[offsets === null ? index + 1 : offsets[index + 1]!])) {
             opportunity = index + 1;
         }
+
         index++;
     }
+
     triggers.push(count);
+
     return { breaks, triggers };
 }
 
@@ -292,6 +312,7 @@ export function scanDenseLine(
     const wrapped = limit === null ? { breaks: [], triggers: [offsets.length - 1] } : wrapRows(text, offsets, metrics, limit);
     const breakStops = wrapped.breaks;
     const indent = limit === null ? 0 : wrapIndent(text, metrics, limit);
+
     const geometry: LineGeometry = {
         start: line.start,
         end: line.end,
@@ -309,20 +330,25 @@ export function scanDenseLine(
         subRows: breakStops.length + 1,
         width: 0
     };
+
     let x = 0;
     let row = 0;
     let nextBreak = 0;
     let nextInlay = 0;
     let runStart = -1;
     let runX = 0;
+
     const flushRun = (end: number): void => {
         if (runStart >= 0 && end > runStart) {
             geometry.runs.push({ from: runStart, to: end, x: runX, subRow: row, text: text.slice(runStart, end) });
         }
+
         runStart = -1;
     };
+
     for (let stop = 0; stop < offsets.length; stop++) {
         const offset = offsets[stop]!;
+
         if (nextBreak < breakStops.length && breakStops[nextBreak] === stop) {
             flushRun(offset);
             geometry.rowEnds.push(x);
@@ -331,38 +357,50 @@ export function scanDenseLine(
             row++;
             x = indent;
         }
+
         geometry.before.push(x);
         geometry.rowOf.push(row);
+
         while (nextInlay < lineInlays.length && lineInlays[nextInlay]!.at - line.start <= offset) {
             flushRun(offset);
             const inlay = lineInlays[nextInlay++]!;
             const shown = visibleBidi(inlay.text);
+
             const width =
                 inlay.composition || inlay.ghost
                     ? metrics.measureText(shown)
                     : Math.max(8, metrics.measureInlay(shown) + 12) + (inlay.gapLeft ?? 0) + (inlay.gapRight ?? 0);
+
             geometry.inlays.push({ inlay, x, width, subRow: row });
             x += width;
         }
+
         geometry.after.push(x);
+
         if (stop === offsets.length - 1) {
             break;
         }
+
         const character = text.slice(offset, offsets[stop + 1]!);
         const width = characterWidth(metrics, character, x);
+
         if (character === '\t' || bidiControl(character) !== null) {
             flushRun(offset);
         } else if (runStart < 0) {
             runStart = offset;
             runX = x;
         }
+
         x += width;
     }
+
     flushRun(text.length);
     geometry.rowEnds.push(x);
+
     for (const end of geometry.rowEnds) {
         geometry.width = Math.max(geometry.width, end);
     }
+
     return geometry;
 }
 
@@ -375,10 +413,12 @@ export function scanLine(
     if (limit !== null && line.text.length > GRAPHEME_LIMIT && lineInlays.length === 0 && /^[\x20-\x7e]*$/.test(line.text)) {
         const wrapped = wrapRows(line.text, null, metrics, limit);
         const geometry = uniformGeometry(line, metrics, wrapped.breaks, wrapped.triggers, wrapIndent(line.text, metrics, limit));
+
         if (geometry !== null) {
             return geometry;
         }
     }
+
     return scanDenseLine(line, metrics, limit, lineInlays);
 }
 
@@ -448,14 +488,17 @@ class LineRow implements TextRow {
 function mergeRanges(ranges: LineRange[]): LineRange[] {
     ranges.sort((left, right) => left.first - right.first);
     const merged: LineRange[] = [];
+
     for (const range of ranges) {
         const previous = merged.at(-1);
+
         if (previous !== undefined && range.first <= previous.last + 1) {
             previous.last = Math.max(previous.last, range.last);
         } else {
             merged.push({ ...range });
         }
     }
+
     return merged;
 }
 
@@ -502,30 +545,38 @@ export class EditorLayout {
 
     configure(config: LayoutConfig): void {
         let measureAgain = false;
+
         if (config.metrics) {
             this.metrics = config.metrics;
             this.measuredHeights.clear();
             measureAgain = true;
         }
+
         if (config.wrapWidth !== undefined && config.wrapWidth !== this.wrapWidth) {
             this.wrapWidth = config.wrapWidth;
             measureAgain = true;
         }
+
         if (config.inlays) {
             this.inlays = config.inlays;
         }
+
         if (config.blocks) {
             this.blocks = config.blocks;
         }
+
         if (config.folds) {
             this.folds = config.folds;
             this.lineHeightsVersion++;
         }
+
         if (config.replacements) {
             this.replacements = config.replacements;
             this.lineHeightsVersion++;
         }
+
         let edit: LineEdit | undefined;
+
         if (measureAgain || (config.textChanged && !config.changes?.length)) {
             this.lineHeightsVersion++;
             this.geometryCache.clear();
@@ -537,6 +588,7 @@ export class EditorLayout {
                 this.retainGeometry(config.changes);
                 this.lineHeightsVersion++;
             }
+
             if (config.inlays !== undefined) {
                 if (!config.changes?.length) {
                     for (const line of this.inlaysByLine.keys()) {
@@ -544,20 +596,25 @@ export class EditorLayout {
                         this.measuredRows.delete(line);
                     }
                 }
+
                 for (const inlay of config.inlays) {
                     const line = this.document.positionAt(inlay.at).line;
                     this.geometryCache.delete(line);
                     this.measuredRows.delete(line);
                 }
+
                 this.lineHeightsVersion++;
             }
+
             this.width = 0;
+
             if (this.wrapWidth === null) {
                 for (const geometry of this.geometryCache.values()) {
                     this.width = Math.max(this.width, geometry.width + ADDITIONAL_COLUMNS * this.metrics.charWidth);
                 }
             }
         }
+
         this.rebuild(edit);
     }
 
@@ -565,69 +622,91 @@ export class EditorLayout {
     private lineEdit(batches: readonly (readonly DocumentChange[])[]): LineEdit | undefined {
         let from = Number.POSITIVE_INFINITY;
         let to = Number.NEGATIVE_INFINITY;
+
         for (const changes of batches) {
             if (Number.isFinite(to)) {
                 to = offsetMapper(changes)(to);
             }
+
             let delta = 0;
+
             for (const change of changes) {
                 from = Math.min(from, change.from);
                 to = Math.max(to, change.from + delta + change.insertedLength);
                 delta += change.insertedLength - (change.to - change.from);
             }
         }
+
         if (!Number.isFinite(from)) {
             return undefined;
         }
+
         // The line above too, since an edit at the start of a line can turn the `\r` that ends it into a `\r\n`.
         const first = Math.max(0, this.document.positionAt(from).line - 1);
         const newLast = this.document.positionAt(to).line;
         const oldLast = newLast - (this.document.getLineCount() - this.lineRows.length);
+
         return oldLast < first ? undefined : { first, oldLast, newLast };
     }
 
     private retainGeometry(batches: readonly (readonly DocumentChange[])[]): void {
         const map = lineChangeMapper(batches);
+
         const remap = (bounds: { start: number; end: number; next: number }): { line: number; start: number; end: number; next: number } | null => {
             const next = map({ start: bounds.start, end: Math.max(bounds.end, bounds.next - 1) });
+
             if (next === null) {
                 return null;
             }
+
             const delta = next.start - bounds.start;
+
             return { start: next.start, end: bounds.end + delta, next: bounds.next + delta, line: this.document.positionAt(next.start).line };
         };
+
         const geometries = new Map<number, LineGeometry>();
+
         for (const geometry of this.geometryCache.values()) {
             const next = remap(geometry);
+
             if (next !== null && geometry.inlays.length === 0) {
                 geometries.set(next.line, next.start === geometry.start ? geometry : { ...geometry, start: next.start, end: next.end, next: next.next });
             }
         }
+
         const measured = new Map<number, { start: number; end: number; next: number; subRows: number }>();
+
         for (const [line, bounds] of this.measuredRows) {
             const next = remap(bounds);
+
             if (next !== null && !this.inlaysByLine.has(line)) {
                 measured.set(next.line, { start: next.start, end: next.end, next: next.next, subRows: bounds.subRows });
             }
         }
+
         this.geometryCache = geometries;
         this.measuredRows = measured;
     }
 
     private rowCountOf(line: number, length: number): number {
         const limit = this.wrapWidth;
+
         if (limit === null) {
             return 1;
         }
+
         const measured = this.measuredRows.get(line);
+
         if (measured !== undefined) {
             return measured.subRows;
         }
+
         return Math.max(1, Math.ceil((length * this.metrics.charWidth) / Math.max(limit, this.metrics.charWidth)));
     }
 
     private rebuild(edit?: LineEdit): void {
         const structure = this.structure();
+
         if (edit === undefined || !this.patch(edit, structure)) {
             this.keyed.clear();
             const built = this.buildRows(structure, 0, this.document.getLineCount() - 1, 0);
@@ -635,57 +714,73 @@ export class EditorLayout {
             this.lineRows = built.lineRows;
             this.reflow(0);
         }
+
         this.special = structure.special;
     }
 
     private structure(): RowStructure {
         this.inlaysByLine.clear();
+
         for (const inlay of this.inlays) {
             const line = this.document.positionAt(inlay.at).line;
             const list = this.inlaysByLine.get(line) ?? [];
             list.push(inlay);
             this.inlaysByLine.set(line, list);
         }
+
         for (const list of this.inlaysByLine.values()) {
             list.sort((left, right) => left.at - right.at);
         }
+
         const above = new Map<number, BlockWidget[]>();
         const below = new Map<number, BlockWidget[]>();
+
         for (const block of this.blocks) {
             const line = this.document.positionAt(block.at).line;
             const target = block.placement === 'above' ? above : below;
             const list = target.get(line);
+
             if (list === undefined) {
                 target.set(line, [block]);
             } else {
                 list.push(block);
             }
         }
+
         const folds = new Map<number, FoldState>();
+
         for (const fold of this.folds) {
             if (fold.collapsed && fold.endLine > (folds.get(fold.startLine)?.endLine ?? 0)) {
                 folds.set(fold.startLine, fold);
             }
         }
+
         const replaced = new Map<number, { replacement: BlockReplacement; endLine: number }>();
+
         for (const replacement of this.replacements) {
             const startLine = this.document.positionAt(replacement.from).line;
             const endLine = Math.max(startLine, this.document.positionAt(replacement.to).line);
+
             // A fold the person collapsed shows its own placeholder, so folding a replaced comment keeps working.
             if (!folds.has(startLine) && !replaced.has(startLine)) {
                 replaced.set(startLine, { replacement, endLine });
             }
         }
+
         const special: LineRange[] = [];
+
         for (const line of [...this.inlaysByLine.keys(), ...above.keys(), ...below.keys()]) {
             special.push({ first: line, last: line });
         }
+
         for (const fold of folds.values()) {
             special.push({ first: fold.startLine, last: Math.max(fold.startLine, fold.endLine) });
         }
+
         for (const [startLine, entry] of replaced) {
             special.push({ first: startLine, last: entry.endLine });
         }
+
         return { above, below, folds, replaced, special: mergeRanges(special) };
     }
 
@@ -696,84 +791,109 @@ export class EditorLayout {
     private patch(edit: LineEdit, structure: RowStructure): boolean {
         const count = this.document.getLineCount();
         const delta = edit.newLast - edit.oldLast;
+
         if (this.rows.length === 0 || this.lineRows.length + delta !== count) {
             return false;
         }
+
         const moved = (range: LineRange): LineRange => {
             if (range.last < edit.first) {
                 return range;
             }
+
             if (range.first > edit.oldLast) {
                 return { first: range.first + delta, last: range.last + delta };
             }
+
             return { first: Math.min(range.first, edit.first), last: range.last > edit.oldLast ? range.last + delta : edit.newLast };
         };
+
         const ranges = mergeRanges([{ first: edit.first, last: edit.newLast }, ...structure.special, ...this.special.map(moved)]).filter(
             (range) => range.first < count
         );
+
         let lines = 0;
+
         for (const range of ranges) {
             range.last = Math.min(range.last, count - 1);
             lines += range.last - range.first + 1;
         }
+
         if (lines > Math.min(PATCH_LIMIT, count / 2)) {
             return false;
         }
+
         const rows = this.rows;
         const built = new Set<LayoutRow>();
         let first = rows.length;
         let resized = delta !== 0;
+
         // From the bottom up, so the rows and lines of the ranges above keep their indices. Rows not built again keep their old lines until the end.
         for (let index = ranges.length - 1; index >= 0; index--) {
             const range = ranges[index]!;
             const oldFirst = range.first > edit.newLast ? range.first - delta : range.first;
             const oldLast = range.last >= edit.newLast ? range.last - delta : range.last;
             let start = this.lineRows[oldFirst]!;
+
             while (start > 0 && rows[start - 1]!.kind === 'block' && rows[start - 1]!.line >= oldFirst) {
                 start--;
             }
+
             let end = this.lineRows[oldLast]!;
+
             while (end + 1 < rows.length && rows[end + 1]!.kind === 'block' && rows[end + 1]!.line <= oldLast) {
                 end++;
             }
+
             const fresh = this.buildRows(structure, range.first, range.last, start);
             const removed = rows.splice(start, end - start + 1, ...fresh.rows);
             this.lineRows.splice(oldFirst, oldLast - oldFirst + 1, ...fresh.lineRows);
             let height = 0;
+
             for (const row of removed) {
                 height -= row.height;
+
                 if (this.keyed.get(row.key) === row) {
                     this.keyed.delete(row.key);
                 }
             }
+
             let top = start > 0 ? rows[start - 1]!.top + rows[start - 1]!.height : 0;
+
             for (const row of fresh.rows) {
                 built.add(row);
                 height += row.height;
                 row.top = top;
                 top += row.height;
             }
+
             resized ||= height !== 0 || removed.length !== fresh.rows.length;
             first = start;
         }
+
         if (resized) {
             for (let index = first; index < rows.length; index++) {
                 const row = rows[index]!;
                 row.index = index;
+
                 if (!built.has(row) && row.line > edit.oldLast) {
                     row.line += delta;
+
                     if (row.kind === 'text') {
                         row.lastLine += delta;
                     }
                 }
+
                 if (row.kind === 'text') {
                     for (let covered = row.line; covered <= row.lastLine; covered++) {
                         this.lineRows[covered] = index;
                     }
                 }
             }
+
             this.reflow(first);
         }
+
         return true;
     }
 
@@ -783,8 +903,10 @@ export class EditorLayout {
         const count = this.document.getLineCount();
         const rows: LayoutRow[] = [];
         const lineRows = new Array<number>(to - from + 1);
+
         const addBlock = (widget: BlockWidget, line: number): void => {
             const key = `block:${widget.id}`;
+
             const row: BlockRow = {
                 key,
                 kind: 'block',
@@ -798,18 +920,23 @@ export class EditorLayout {
                       ? Math.max(1, widget.height ?? DEFAULT_BLOCK_HEIGHT)
                       : (this.measuredHeights.get(key) ?? widget.height ?? DEFAULT_BLOCK_HEIGHT)
             };
+
             rows.push(row);
             this.keyed.set(key, row);
         };
+
         for (let line = from; line <= to; line++) {
             for (const block of above.get(line) ?? []) {
                 addBlock(block, line);
             }
+
             const standIn = replaced.get(line);
+
             if (standIn !== undefined) {
                 const last = Math.min(count - 1, standIn.endLine);
                 const key = `replaced:${standIn.replacement.id}`;
                 const rowIndex = index + rows.length;
+
                 const row: TextRow = {
                     key,
                     kind: 'text',
@@ -823,17 +950,23 @@ export class EditorLayout {
                     height: this.measuredHeights.get(key) ?? standIn.replacement.height ?? DEFAULT_BLOCK_HEIGHT,
                     replacement: standIn.replacement
                 };
+
                 rows.push(row);
                 this.keyed.set(key, row);
+
                 for (let covered = line; covered <= last; covered++) {
                     lineRows[covered - from] = rowIndex;
                 }
+
                 for (const block of below.get(last) ?? []) {
                     addBlock(block, last);
                 }
+
                 line = last;
+
                 continue;
             }
+
             const fold = folds.get(line);
             const last = Math.max(line, Math.min(count - 1, fold?.endLine ?? line));
             const tail = fold?.closer !== undefined && last > line ? this.clampToLine(fold.closer, last) : null;
@@ -842,20 +975,25 @@ export class EditorLayout {
             const bounds = this.wrapWidth === null ? null : this.document.getLine(line);
             const subRows = this.rowCountOf(line, bounds === null ? 0 : bounds.end - bounds.start);
             rows.push(new LineRow(rowIndex, line, last, tail, head, subRows, subRows * this.metrics.lineHeight));
+
             for (let covered = line; covered <= last; covered++) {
                 lineRows[covered - from] = rowIndex;
             }
+
             for (const block of below.get(line) ?? []) {
                 addBlock(block, line);
             }
+
             line = last;
         }
+
         return { rows, lineRows };
     }
 
     /* An offset of a fold clamped to its line, since the fold may be a moment older than an edit. */
     private clampToLine(offset: number, line: number): number {
         const bounds = this.document.getLine(line);
+
         return Math.min(bounds.end, Math.max(bounds.start, offset));
     }
 
@@ -863,11 +1001,13 @@ export class EditorLayout {
     private reflow(from: number): void {
         const previous = this.rows[from - 1];
         let top = previous === undefined ? 0 : previous.top + previous.height;
+
         for (let index = from; index < this.rows.length; index++) {
             const row = this.rows[index]!;
             row.top = top;
             top += row.height;
         }
+
         this.height = top + BOTTOM_PADDING;
     }
 
@@ -875,8 +1015,10 @@ export class EditorLayout {
     rowByKey(key: string): LayoutRow | undefined {
         if (key.startsWith('line:')) {
             const row = this.rowForLine(Number(key.slice(5)));
+
             return row.key === key ? row : undefined;
         }
+
         return this.keyed.get(key);
     }
 
@@ -884,71 +1026,89 @@ export class EditorLayout {
     setMeasuredHeight(key: string, height: number): boolean {
         const row = this.rowByKey(key);
         const next = Math.max(1, Math.round(height));
+
         if (!row || (row.kind === 'block' && row.widget.fixed) || !Number.isFinite(next) || row.height === next) {
             return false;
         }
+
         this.measuredHeights.set(key, next);
         row.height = next;
         this.reflow(row.index);
+
         return true;
     }
 
     /* The visual lines a drawn row really has, which its estimate may have missed. Returns whether any row changed. */
     syncRows(rows: readonly LayoutRow[]): boolean {
         let first = this.rows.length;
+
         for (const row of rows) {
             if (row.kind !== 'text' || row.replacement !== undefined) {
                 continue;
             }
+
             const geometry = this.geometry(row);
             const subRows = geometry.subRows;
+
             if (row.head === null && this.wrapWidth !== null) {
                 if (!this.measuredRows.has(row.line) && this.measuredRows.size >= GEOMETRY_CACHE_SIZE) {
                     this.measuredRows.delete(this.measuredRows.keys().next().value!);
                 }
+
                 this.measuredRows.set(row.line, { start: geometry.start, end: geometry.end, next: geometry.next, subRows });
             } else {
                 this.measuredRows.delete(row.line);
             }
+
             if (subRows !== row.subRows) {
                 row.subRows = subRows;
                 row.height = subRows * this.metrics.lineHeight;
                 first = Math.min(first, row.index);
             }
         }
+
         if (first < this.rows.length) {
             this.lineHeightsVersion++;
             this.reflow(first);
+
             return true;
         }
+
         return false;
     }
 
     rowAt(y: number): LayoutRow {
         let low = 0;
         let high = this.rows.length - 1;
+
         while (low < high) {
             const middle = Math.ceil((low + high) / 2);
+
             if (this.rows[middle]!.top <= y) {
                 low = middle;
             } else {
                 high = middle - 1;
             }
         }
+
         return this.rows[low]!;
     }
 
     /* Where a line's text starts after its indentation, which is where a lens row begins. */
     indentX(line: number): number {
         const row = this.rowForLine(line);
+
         if (row.kind !== 'text') {
             return TEXT_PADDING;
         }
+
         const geometry = this.geometry(row);
         let stop = 0;
+
         while (stop < geometry.text.length && isSpace(geometry.text[stop])) {
             stop++;
         }
+
         return TEXT_PADDING + xOfStop(geometry, Math.min(stop, stopCount(geometry) - 1));
     }
 
@@ -958,6 +1118,7 @@ export class EditorLayout {
 
     isHidden(line: number): boolean {
         const row = this.rowForLine(line);
+
         return row.kind === 'text' && line > row.line && line <= row.lastLine;
     }
 
@@ -965,14 +1126,17 @@ export class EditorLayout {
     hides(offset: number): boolean {
         const line = this.document.positionAt(offset).line;
         const row = this.rowForLine(line);
+
         return row.kind === 'text' && (this.isHidden(line) || (row.head !== null && line === row.line && offset > row.head));
     }
 
     visibleRows(top: number, height: number, overscan = 120): LayoutRow[] {
         const result: LayoutRow[] = [];
+
         for (let index = this.rowAt(top - overscan).index; index < this.rows.length && this.rows[index]!.top < top + height + overscan; index++) {
             result.push(this.rows[index]!);
         }
+
         return result;
     }
 
@@ -981,6 +1145,7 @@ export class EditorLayout {
             // The first line of a fold that starts within it, laid out up to there; seldom drawn, so never kept.
             const line = this.document.getLine(row.line);
             const shown = { ...line, end: row.head, text: line.text.slice(0, row.head - line.start) };
+
             return scanLine(
                 shown,
                 this.metrics,
@@ -988,18 +1153,25 @@ export class EditorLayout {
                 (this.inlaysByLine.get(row.line) ?? []).filter((inlay) => inlay.at <= row.head!)
             );
         }
+
         const cached = this.geometryCache.get(row.line);
+
         if (cached) {
             return cached;
         }
+
         const result = scanLine(this.document.getLine(row.line), this.metrics, this.wrapWidth, this.inlaysByLine.get(row.line) ?? []);
+
         if (this.wrapWidth === null) {
             this.width = Math.max(this.width, result.width + ADDITIONAL_COLUMNS * this.metrics.charWidth);
         }
+
         if (this.geometryCache.size >= GEOMETRY_CACHE_SIZE) {
             this.geometryCache.delete(this.geometryCache.keys().next().value!);
         }
+
         this.geometryCache.set(row.line, result);
+
         return result;
     }
 
@@ -1017,25 +1189,30 @@ export class EditorLayout {
      */
     offsetAtX(geometry: LineGeometry, subRow: number, x: number): { offset: number; rowEnd: boolean } {
         const local = x - TEXT_PADDING;
+
         for (const box of geometry.inlays) {
             if (box.subRow === subRow && local >= box.x && local <= box.x + box.width) {
                 return { offset: box.inlay.at, rowEnd: false };
             }
         }
+
         const first = geometry.rowStarts[subRow] ?? 0;
         const last = subRow + 1 < geometry.rowStarts.length ? geometry.rowStarts[subRow + 1]! : stopCount(geometry) - 1;
         const wrapped = subRow + 1 < geometry.rowStarts.length;
         let best = first;
         let distance = Math.abs(local - xOfStop(geometry, first));
+
         // The stop that starts the next visual line stands in for the end of this one.
         for (let stop = first + 1; stop <= last; stop++) {
             const edge = stop === last && wrapped ? geometry.rowEnds[subRow]! : xOfStop(geometry, stop);
             const candidate = Math.abs(local - edge);
+
             if (candidate < distance) {
                 distance = candidate;
                 best = stop;
             }
         }
+
         return { offset: geometry.start + offsetOfStop(geometry, best), rowEnd: wrapped && best === last };
     }
 
@@ -1043,12 +1220,15 @@ export class EditorLayout {
     caret(offset: number, affinity: Affinity = 'after', rowEnd = false): LayoutRect {
         const position = this.document.positionAt(offset);
         const row = this.rowForLine(position.line);
+
         if (row.kind !== 'text') {
             return { x: TEXT_PADDING, y: row.top, width: 1, height: Math.min(row.height, this.metrics.lineHeight) };
         }
+
         const geometry = this.geometry(row);
         const stop = this.stopOf(geometry, offset);
         const subRow = rowOfStop(geometry, stop);
+
         if (rowEnd && subRow > 0 && geometry.rowStarts[subRow] === stop) {
             return {
                 x: TEXT_PADDING + geometry.rowEnds[subRow - 1]!,
@@ -1057,6 +1237,7 @@ export class EditorLayout {
                 height: this.metrics.lineHeight
             };
         }
+
         return {
             x: TEXT_PADDING + xOfStop(geometry, stop, affinity),
             y: row.top + subRow * this.metrics.lineHeight,
@@ -1068,10 +1249,13 @@ export class EditorLayout {
     /* A height snapped up to the top of the visual line it is in, so a page scrolls to whole lines. */
     lineBase(y: number): number {
         const row = this.rowAt(y);
+
         if (row.kind !== 'text') {
             return y;
         }
+
         const base = row.top + Math.floor((y - row.top) / this.metrics.lineHeight) * this.metrics.lineHeight;
+
         return y > base && y < base + this.metrics.lineHeight ? base : y;
     }
 
@@ -1083,9 +1267,11 @@ export class EditorLayout {
         const position = this.document.positionAt(offset);
         const row = this.rowForLine(position.line);
         const line = this.document.getLine(row.kind === 'text' ? row.line : position.line);
+
         if (row.kind !== 'text') {
             return { start: line.start, end: line.end, next: line.next, y: row.top };
         }
+
         const geometry = this.geometry(row);
         const lastLine = this.document.getLine(row.lastLine);
         const hidden = position.line > row.line;
@@ -1093,6 +1279,7 @@ export class EditorLayout {
         const last = subRow + 1 >= geometry.subRows;
         const start = line.start + offsetOfStop(geometry, geometry.rowStarts[subRow]!);
         const end = last ? lastLine.end : line.start + offsetOfStop(geometry, geometry.rowStarts[subRow + 1]!);
+
         return { start, end, next: last ? lastLine.next : end, y: row.top + subRow * this.metrics.lineHeight };
     }
 
@@ -1102,11 +1289,14 @@ export class EditorLayout {
 
     hitTestRow(x: number, y: number): { offset: number; rowEnd: boolean } {
         const row = this.rowAt(y);
+
         if (row.kind === 'block') {
             return { offset: row.widget.at, rowEnd: false };
         }
+
         const geometry = this.geometry(row);
         const subRow = Math.max(0, Math.min(geometry.subRows - 1, Math.floor((y - row.top) / this.metrics.lineHeight)));
+
         return this.offsetAtX(geometry, subRow, x);
     }
 
@@ -1114,6 +1304,7 @@ export class EditorLayout {
     rectangles(from: number, to: number, rows: readonly LayoutRow[], window?: VerticalWindow): LayoutRect[] {
         const result: LayoutRect[] = [];
         const lineHeight = this.metrics.lineHeight;
+
         for (const row of rows) {
             if (
                 row.kind !== 'text' ||
@@ -1122,14 +1313,18 @@ export class EditorLayout {
             ) {
                 continue;
             }
+
             const geometry = this.geometry(row);
+
             if (from === to || from > geometry.end || to <= geometry.start) {
                 continue;
             }
+
             const lastStop = stopCount(geometry) - 1;
             const fromStop = this.stopOf(geometry, Math.max(from, geometry.start));
             const toStop = this.stopOf(geometry, Math.min(to, geometry.end));
             const band = window === undefined ? { first: 0, last: geometry.subRows - 1 } : subRowBand(row.top, geometry.subRows, lineHeight, window);
+
             for (let subRow = band.first; subRow <= band.last; subRow++) {
                 const last = subRow + 1 === geometry.subRows;
                 const rowFirst = geometry.rowStarts[subRow]!;
@@ -1137,11 +1332,14 @@ export class EditorLayout {
                 const first = Math.max(fromStop, rowFirst);
                 const stop = Math.min(toStop, rowEnd);
                 const newline = last && to > geometry.end;
+
                 if (first >= stop && !newline) {
                     continue;
                 }
+
                 const startX = first === fromStop ? xOfStop(geometry, first, 'after') : xOfStop(geometry, first);
                 const endX = stop < rowEnd || last ? xOfStop(geometry, stop) : geometry.rowEnds[subRow]!;
+
                 result.push({
                     x: TEXT_PADDING + startX,
                     y: row.top + subRow * lineHeight,
@@ -1150,6 +1348,7 @@ export class EditorLayout {
                 });
             }
         }
+
         return result;
     }
 
@@ -1161,43 +1360,57 @@ export class EditorLayout {
     verticalOffset(offset: number, direction: -1 | 1, x: number, distance = this.metrics.lineHeight): number {
         const caret = this.caret(offset);
         let y = caret.y + direction * distance;
+
         if (y < 0) {
             return 0;
         }
+
         let row = this.rowAt(y);
+
         while (row.kind === 'block' || (row.replacement !== undefined && row.replacement.enterable !== true)) {
             const next = this.rows[row.index + direction];
+
             if (!next) {
                 return direction < 0 ? 0 : this.document.getLine(this.document.getLineCount() - 1).end;
             }
+
             row = next;
             y = direction < 0 ? row.top + row.height - 1 : row.top;
         }
+
         if (y >= this.height - BOTTOM_PADDING) {
             return this.document.getLine(this.document.getLineCount() - 1).end;
         }
+
         return this.hitTest(x, y);
     }
 
     /* One character left or right, over the end of a line onto the next visible one. */
     horizontalOffset(offset: number, direction: -1 | 1): number {
         const row = this.rowForLine(this.document.positionAt(offset).line);
+
         if (row.kind === 'text') {
             const geometry = this.geometry(row);
             const stop = this.stopOf(geometry, offset);
             const next = stop + direction;
+
             if (next >= 0 && next < stopCount(geometry) && offset >= geometry.start && offset <= geometry.end) {
                 return geometry.start + offsetOfStop(geometry, next);
             }
         }
+
         for (let index = row.index + direction; index >= 0 && index < this.rows.length; index += direction) {
             const next = this.rows[index]!;
+
             if (next.kind !== 'text') {
                 continue;
             }
+
             const line = this.document.getLine(next.line);
+
             return direction < 0 ? line.end : line.start;
         }
+
         return offset;
     }
 }

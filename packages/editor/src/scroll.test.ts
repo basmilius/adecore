@@ -4,6 +4,7 @@ import { type ScrollKind, type ScrollRequest, scrollPosition } from './scroll.ts
 /* A view 400px tall over 20px lines, in a document of 1000 lines. */
 function request(line: number, view: { x?: number; y: number }, extra: Partial<ScrollRequest> = {}): ScrollRequest {
     const y = line * 20;
+
     return {
         target: { x: 0, y },
         view: { x: view.x ?? 0, y: view.y, width: 800, height: 400 },

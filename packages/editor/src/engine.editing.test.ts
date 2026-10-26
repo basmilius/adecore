@@ -28,6 +28,7 @@ describe('folding by default', () => {
         editor.runCommand('expandAllToLevel1');
         expect(editor.getFolds().collapsed).toEqual([{ startLine: 4, endLine: 6 }]);
         editor.runCommand('collapseDocComments');
+
         expect(editor.getFolds().collapsed).toEqual([
             { startLine: 0, endLine: 2 },
             { startLine: 4, endLine: 6 }
@@ -83,6 +84,7 @@ describe('typing', () => {
 
 describe('a collapsed fold as one unit', () => {
     const text = 'one\nfunction a() {\n    body();\n}\ntwo\nthree';
+
     const folded = (extra: Partial<EditorOptions> = {}) =>
         setup({ text, language: 'typescript', folds: { collapsed: [{ startLine: 1, endLine: 3 }], custom: [] }, line: 2, column: 1, ...extra });
 
@@ -160,8 +162,10 @@ describe('setText', () => {
             ...Array.from({ length: 8 }, (_, row) => `    body(${block}, ${row});`),
             '}'
         ]);
+
         const lines = blocks.flat();
         const text = lines.join('\n');
+
         const { editor, viewport, window } = setup({
             text,
             language: 'typescript',
@@ -175,12 +179,15 @@ describe('setText', () => {
             line: 151,
             column: 5
         });
+
         editor.setSelection({ start: { line: 150, character: 4 }, end: { line: 150, character: 4 } });
         editor.runCommand('addCaretBelow');
         editor.runCommand('addCaretBelow');
         viewport.scrollTop = 124 * 20;
         viewport.dispatchEvent(new (window as unknown as { Event: typeof Event }).Event('scroll'));
+
         const caretLines = (): number[] => editor.getSelections().map((range) => range.start.line);
+
         const before = { carets: caretLines(), top: editor.getVisibleRange().start.line };
         expect(before.carets).toEqual([150, 151, 152]);
         const changed = [...lines];
@@ -188,10 +195,12 @@ describe('setText', () => {
         changed[290] = '    rewritten();';
         editor.setText(changed.join('\n'));
         expect(caretLines()).toEqual([151, 152, 153]);
+
         expect(editor.getFolds().collapsed).toEqual([
             { startLine: 101, endLine: 110 },
             { startLine: 201, endLine: 210 }
         ]);
+
         expect(editor.getVisibleRange().start.line).toBe(before.top + 1);
     });
 
@@ -327,10 +336,13 @@ describe('Extend Selection through the ranges of a language server', () => {
     test('grows through the ranges it is given, one press after the other, and Shrink Selection walks back', async () => {
         const { editor, press: key } = setup({ text: 'call(one, two)\nnext' });
         const asked: unknown[] = [];
+
         editor.setSelectionRanges(async (positions) => {
             asked.push(positions);
+
             return [[range(0, 5, 0, 8), range(0, 5, 0, 13), range(0, 0, 1, 4)]];
         });
+
         editor.setCaret({ line: 0, character: 6 });
         key('w', { ctrlKey: true });
         key('w', { ctrlKey: true });
@@ -349,9 +361,11 @@ describe('Extend Selection through the ranges of a language server', () => {
         key('w', { ctrlKey: true });
         await flush();
         expect(editor.getSelection()).toEqual(range(0, 4, 0, 7));
+
         editor.setSelectionRanges(async () => {
             throw new Error('The server went away');
         });
+
         key('w', { ctrlKey: true });
         await flush();
         expect(editor.getSelection()).toEqual(range(0, 0, 0, 7));
@@ -359,13 +373,16 @@ describe('Extend Selection through the ranges of a language server', () => {
 
     test('leaves a selection alone when the text changed while the server answered', async () => {
         const { editor, press: key, type } = setup({ text: 'one two', language: 'typescript' });
+
         let answer: () => void = () => undefined;
+
         editor.setSelectionRanges(
             () =>
                 new Promise((resolve) => {
                     answer = () => resolve([[range(0, 0, 0, 7)]]);
                 })
         );
+
         editor.setCaret({ line: 0, character: 1 });
         key('w', { ctrlKey: true });
         await flush();

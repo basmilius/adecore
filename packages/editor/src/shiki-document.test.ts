@@ -8,6 +8,7 @@ beforeEach(() => setSystemTime(Date.now()));
 afterEach(() => setSystemTime());
 
 const THEME = 'github-dark';
+
 const DROP_LINE_BREAKS: ShikiTransformer = {
     code(node) {
         node.children = node.children.filter((child) => child.type !== 'text' || child.value !== '\n');
@@ -16,6 +17,7 @@ const DROP_LINE_BREAKS: ShikiTransformer = {
 
 function linesOf(html: string): string[] {
     const { document } = parseHTML(html);
+
     return [...document.querySelectorAll('.line')].map((line) => line.outerHTML);
 }
 
@@ -108,6 +110,7 @@ describe('a Shiki document split into blocks', () => {
         using highlighter = await createHighlighter({ themes: [THEME], langs: ['typescript'] });
         const blocks = ['/* opening', 'comment */'];
         let replacement: Promise<void> | undefined;
+
         const highlight = shikiDocumentHighlighter(async () => highlighter, blocks, 'typescript', THEME, [
             {
                 root() {
@@ -115,6 +118,7 @@ describe('a Shiki document split into blocks', () => {
                 }
             }
         ]);
+
         const last = await highlight(1);
         await replacement;
         const first = await highlight(0);
@@ -126,9 +130,11 @@ describe('a Shiki document split into blocks', () => {
 
     test('runs Shiki HTML postprocessors as well as tree transformers', async () => {
         using highlighter = await createHighlighter({ themes: [THEME], langs: ['typescript'] });
+
         const highlight = shikiDocumentHighlighter(async () => highlighter, ['/* opening', 'comment */'], 'typescript', THEME, [
             { postprocess: (html) => `<section>${html}</section>` }
         ]);
+
         expect(await highlight(1)).toStartWith('<section><pre');
     });
 
@@ -139,18 +145,22 @@ describe('a Shiki document split into blocks', () => {
     test('retries a failed provider without poisoning subsequent requests', async () => {
         using highlighter = await createHighlighter({ themes: [THEME], langs: [] });
         let calls = 0;
+
         const highlight = shikiDocumentHighlighter(
             async () => {
                 calls += 1;
+
                 if (calls === 1) {
                     throw new Error('temporary failure');
                 }
+
                 return highlighter;
             },
             ['const answer = 42;'],
             'typescript',
             THEME
         );
+
         await expect(highlight(0)).rejects.toThrow('temporary failure');
         expect(await highlight(0)).toContain('<span');
         expect(calls).toBe(2);
@@ -158,18 +168,22 @@ describe('a Shiki document split into blocks', () => {
 
     test('rejects invalid indexes before loading a highlighter', async () => {
         let calls = 0;
+
         const highlight = shikiDocumentHighlighter(
             async () => {
                 calls += 1;
+
                 throw new Error('should not load');
             },
             ['one'],
             'text',
             THEME
         );
+
         for (const index of [-1, 1, 0.5, Number.NaN]) {
             await expect(highlight(index)).rejects.toBeInstanceOf(RangeError);
         }
+
         expect(calls).toBe(0);
     });
 });

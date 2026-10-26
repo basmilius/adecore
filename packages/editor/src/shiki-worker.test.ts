@@ -15,11 +15,13 @@ const DOCUMENT: DiffSyntaxDocument = { language: 'typescript', theme: THEME, blo
 
 function harness(highlighter: Highlighter, pause: () => Promise<void> = async () => undefined) {
     const messages: DiffSyntaxOutput[] = [];
+
     // Protocol assertions bypass the wall-clock deadline; limit forwarding is tested separately.
     const untimed: Highlighter = {
         ...highlighter,
         codeToTokensBase: (code, options) => highlighter.codeToTokensBase(code, { ...options, tokenizeTimeLimit: 0 })
     };
+
     const service = createSyntaxService({
         highlighter: async () => untimed,
         yield: pause,
@@ -28,13 +30,16 @@ function harness(highlighter: Highlighter, pause: () => Promise<void> = async ()
             messages.push(structuredClone(message, { transfer }));
         }
     });
+
     const tokens = (): DiffSyntaxTokens[] => messages.filter((message) => message.type === 'tokens');
+
     return { service, messages, tokens };
 }
 
 function steps() {
     const pending: Array<() => void> = [];
     let notice: (() => void) | undefined;
+
     return {
         pause: () =>
             new Promise<void>((resolve) => {
@@ -54,13 +59,16 @@ function steps() {
 
 function slices(packet: DiffSyntaxTokens, block: string): Array<Array<{ content: string; color: string; fontStyle: number }>> {
     const text = block.split(/\r\n|\n/);
+
     return text.map((line, index) => {
         const result: Array<{ content: string; color: string; fontStyle: number }> = [];
+
         for (let token = packet.lines[index]!; token < packet.lines[index + 1]!; token++) {
             const from = packet.tokens[token * 3]!;
             const to = token + 1 < packet.lines[index + 1]! ? packet.tokens[(token + 1) * 3]! : line.length;
             result.push({ content: line.slice(from, to), color: packet.colors[packet.tokens[token * 3 + 1]!]!, fontStyle: packet.tokens[token * 3 + 2]! });
         }
+
         return result;
     });
 }
@@ -88,9 +96,11 @@ describe('diff syntax service', () => {
         const block = 'const cat = "😺";\r\nconst number = 42;';
         await service.handle({ type: 'request', generation: 1, index: 0, document: { ...DOCUMENT, blocks: [block] } });
         const expected = highlighter.codeToTokensBase(block, { lang: 'typescript', theme: THEME, tokenizeTimeLimit: 0 });
+
         expect(slices(tokens()[0]!, block)).toEqual(
             expected.map((line) => line.map((token) => ({ content: token.content, color: token.color ?? '', fontStyle: token.fontStyle ?? 0 })))
         );
+
         service.dispose();
     });
 
@@ -101,8 +111,10 @@ describe('diff syntax service', () => {
         await service.handle({ type: 'request', generation: 1, index: 0, document: { ...DOCUMENT, blocks: [block] } });
         const packet = tokens()[0]!;
         const expected = highlighter.codeToTokensBase(block, { lang: 'typescript', theme: THEME, tokenizeTimeLimit: 0 });
+
         for (const [index, text] of block.split(/\r\n|\n/).entries()) {
             const decoded = lineTokensOf(packet, index, text);
+
             expect(decoded).toEqual(
                 expected[index]!.filter((token) => token.content.length > 0).map((token) => ({
                     length: token.content.length,
@@ -110,31 +122,39 @@ describe('diff syntax service', () => {
                     fontStyle: token.fontStyle ?? 0
                 }))
             );
+
             expect(decoded.reduce((length, token) => length + token.length, 0)).toBe(text.length);
         }
+
         expect(() => lineTokensOf(packet, -1, '')).toThrow(RangeError);
         expect(() => lineTokensOf(packet, 3, '')).toThrow(RangeError);
         const plain = { ...packet, lines: new Uint32Array([0, 2]), tokens: new Uint32Array([0, 0, 1, 2, 0, 6]) };
+
         expect(lineTokensOf(plain, 0, 'abcd')).toEqual([
             { length: 2, color: '', fontStyle: 1 },
             { length: 2, color: '', fontStyle: 6 }
         ]);
+
         service.dispose();
     });
 
     test('keeps a real blank line and resets state for partial hunks', async () => {
         using highlighter = await createHighlighter({ themes: [THEME], langs: [] });
         const { service, tokens } = harness(highlighter);
+
         await service.handle({
             type: 'request',
             generation: 1,
             index: 2,
             document: { ...DOCUMENT, blocks: ['/* opening', '', 'const answer = 42;'], resets: [2] }
         });
+
         const expected = highlighter.codeToTokensBase(DOCUMENT.blocks[2]!, { lang: 'typescript', theme: THEME, tokenizeTimeLimit: 0 });
+
         expect(slices(tokens()[0]!, DOCUMENT.blocks[2]!)).toEqual(
             expected.map((line) => line.map((token) => ({ content: token.content, color: token.color ?? '', fontStyle: token.fontStyle ?? 0 })))
         );
+
         await service.handle({ type: 'request', generation: 1, index: 1 });
         expect(tokens()[1]!.lines).toEqual(new Uint32Array([0, 0]));
         service.dispose();
@@ -156,11 +176,13 @@ describe('diff syntax service', () => {
     test('loads custom themes before serving requests', async () => {
         using highlighter = await createHighlighter({ themes: [], langs: [] });
         const { service, tokens } = harness(highlighter);
+
         const custom: ThemeRegistration = {
             name: 'custom',
             type: 'dark',
             tokenColors: [{ scope: 'comment', settings: { foreground: '#FF0000', fontStyle: 'italic bold' } }]
         };
+
         const start = service.handle({ type: 'start', themes: [custom], maxLines: 100 });
         const request = service.handle({ type: 'request', generation: 1, index: 0, document: { ...DOCUMENT, theme: 'custom', blocks: ['/* comment */'] } });
         await Promise.all([start, request]);
@@ -172,11 +194,13 @@ describe('diff syntax service', () => {
         using highlighter = await createHighlighter({ themes: [], langs: [] });
         const load = spyOn(highlighter, 'loadTheme');
         const { service, tokens, messages } = harness(highlighter);
+
         const late: ThemeRegistration = {
             name: 'late',
             type: 'dark',
             tokenColors: [{ scope: 'comment', settings: { foreground: '#00FF00' } }]
         };
+
         await service.handle({ type: 'start', themes: [], maxLines: 100 });
         const themes = service.handle({ type: 'themes', themes: [late] });
         const request = service.handle({ type: 'request', generation: 1, index: 0, document: { ...DOCUMENT, theme: 'late', blocks: ['/* comment */'] } });
@@ -191,9 +215,11 @@ describe('diff syntax service', () => {
 
     test('a theme that fails to load fails only the requests drawn in it', async () => {
         using highlighter = await createHighlighter({ themes: [THEME], langs: [] });
+
         const load = spyOn(highlighter, 'loadTheme').mockImplementation(async () => {
             throw new Error('Broken theme');
         });
+
         const { service, tokens, messages } = harness(highlighter);
         await service.handle({ type: 'start', themes: [], maxLines: 100 });
         await service.handle({ type: 'themes', themes: [{ name: 'broken', type: 'dark', settings: [] }] });
@@ -287,17 +313,20 @@ describe('diff syntax service', () => {
         using highlighter = await createHighlighter({ themes: [THEME], langs: [] });
         const messages: DiffSyntaxOutput[] = [];
         let calls = 0;
+
         const service = createSyntaxService({
             highlighter: async () => {
                 if (++calls === 1) {
                     throw new Error('unavailable');
                 }
+
                 return highlighter;
             },
             send: (message) => {
                 messages.push(message);
             }
         });
+
         await service.handle({ type: 'start', themes: [], maxLines: 10 });
         expect(messages.at(-1)).toEqual({ type: 'error', message: 'unavailable' });
         await service.handle({ type: 'start', themes: [], maxLines: 10 });
@@ -308,6 +337,7 @@ describe('diff syntax service', () => {
 
     test('the worker entry registers explicitly and cleans up without loading Shiki', () => {
         const listeners = new Set<(event: MessageEvent<DiffSyntaxInput>) => void>();
+
         const stop = serveDiffSyntax({
             addEventListener: (_type, listener) => {
                 listeners.add(listener);
@@ -319,6 +349,7 @@ describe('diff syntax service', () => {
                 throw new Error('No request was sent');
             }
         });
+
         expect(listeners.size).toBe(1);
         stop();
         expect(listeners.size).toBe(0);

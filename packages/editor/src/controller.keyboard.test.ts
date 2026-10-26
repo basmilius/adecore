@@ -54,9 +54,11 @@ describe('the keyboard', () => {
         press('ArrowDown');
         expect(viewport.scrollTop).toBe(40);
         viewport.scrollTop = 400;
+
         for (let i = 0; i < 3; i++) {
             press('ArrowUp');
         }
+
         press('ArrowUp');
         expect(viewport.scrollTop).toBeLessThan(400);
     });
@@ -269,6 +271,7 @@ describe('the clipboard', () => {
         const written: string[] = [];
         const event = new (window as unknown as { Event: typeof Event }).Event(name, { bubbles: true, cancelable: true });
         Object.assign(event, { clipboardData: { getData: () => data.text ?? '', setData: (_type: string, text: string) => written.push(text) } });
+
         return { event, written };
     }
 

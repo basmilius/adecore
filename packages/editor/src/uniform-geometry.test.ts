@@ -16,14 +16,18 @@ function verify(text: string, charWidth: number, limit: number): void {
     expect(compact.before).toHaveLength(0);
     expect(compact.after).toHaveLength(0);
     expect(compact.rowOf).toHaveLength(0);
+
     for (const key of ['start', 'end', 'next', 'text', 'rowStarts', 'rowEnds', 'rowTriggers', 'runs', 'inlays', 'subRows', 'width'] as const) {
         expect(compact[key]).toEqual(dense[key]);
     }
+
     const stops = new Set([0, 1, text.length - 1, text.length]);
+
     for (const first of compact.rowStarts) {
         stops.add(first);
         stops.add(Math.min(text.length, first + 1));
     }
+
     for (const stop of stops) {
         expect(offsetOfStop(compact, stop)).toBe(dense.offsets[stop]!);
         expect(rowOfStop(compact, stop)).toBe(dense.rowOf[stop]!);
@@ -31,6 +35,7 @@ function verify(text: string, charWidth: number, limit: number): void {
         expect(xOfStop(compact, stop, 'after')).toBe(dense.after[stop]!);
         expect(stopAtOffset(compact, stop + 0.5)).toBe(stopAtOffset(dense, stop + 0.5));
     }
+
     expect(stopCount(compact)).toBe(stopCount(dense));
 }
 
@@ -44,10 +49,12 @@ for (const charWidth of [10, 7.8, 8.4140625, 0.1]) {
 
 test('nonuniform text, inlays, very wide visual rows and unwrapped lines use dense geometry', () => {
     const values = ['x'.repeat(24000) + '\t', 'x'.repeat(24000) + '😀', ' '.repeat(24000)];
+
     for (const text of values) {
         const line = { start: 0, end: text.length, text };
         expect(scanLine(line, metrics(7.8), 200, []).uniform).toBeUndefined();
     }
+
     const line = { start: 0, end: 24000, text: 'x'.repeat(24000) };
     expect(scanLine(line, metrics(7.8), null, []).uniform).toBeUndefined();
     expect(scanLine(line, metrics(7.8), 200, [{ id: 'ime', at: 6, text: 'か', composition: true }]).uniform).toBeUndefined();
@@ -59,10 +66,13 @@ test('compact geometry retains caret, hit testing, navigation and selection acro
     layout.configure({ wrapWidth: 213 });
     const subscription = model.subscribe((snapshot) => layout.configure({ textChanged: true, changes: snapshot.changes }));
     let seed = 12345;
+
     const random = (limit: number): number => {
         seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+
         return seed % limit;
     };
+
     for (let edit = 0; edit < 24; edit++) {
         const from = random(model.getLength() - 1);
         model.applyEdits([{ from, to: from + 1, text: ['Z', ' ', 'xyz', ''][random(4)]! }]);
@@ -72,6 +82,7 @@ test('compact geometry retains caret, hit testing, navigation and selection acro
         expect(compact.uniform).toBeDefined();
         expect(compact.rowStarts).toEqual(dense.rowStarts);
         expect(compact.rowTriggers).toEqual(dense.rowTriggers);
+
         for (let sample = 0; sample < 12; sample++) {
             const offset = random(model.getLength());
             const caret = layout.caret(offset);
@@ -80,10 +91,12 @@ test('compact geometry retains caret, hit testing, navigation and selection acro
             expect(layout.hitTest(caret.x, caret.y + 1)).toBe(offset);
             expect(layout.horizontalOffset(offset, 1)).toBe(offset + 1);
         }
+
         const row = random(compact.subRows);
         const window = { top: row * 20, bottom: row * 20 + 80 };
         const rects = layout.rectangles(0, model.getLength(), layout.rows, window);
         expect(rects.length).toBeLessThanOrEqual(4);
     }
+
     subscription.dispose();
 });

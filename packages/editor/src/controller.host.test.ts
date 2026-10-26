@@ -18,7 +18,9 @@ describe('the fold control', () => {
         const { page, viewport } = mountEditor({ text: 'function a() {\n    one();\n}\nconst b = 1;\n' });
         jest.runAllTimers();
         jest.useRealTimers();
+
         const toggle = (): HTMLElement => page.host.querySelector('.se-fold-toggle') as HTMLElement;
+
         expect(toggle()).not.toBeNull();
         pointer(page.window, toggle(), 'pointerdown', 0, 0);
         pointer(page.window, viewport, 'pointerup', 0, 0);
@@ -58,7 +60,9 @@ describe('gutter markers', () => {
         editor.onGutterMarker((id) => pressed.push(id));
         editor.setGutterMarkers([{ id: 'edit', line: 2, label: 'Show inline edit' }], 'inline-edit');
         editor.setGutterMarkers([{ id: 'other', line: 0, label: 'Other' }], 'other');
+
         const buttons = () => [...page.host.querySelectorAll('.se-gutter-marker')] as HTMLElement[];
+
         expect(buttons().map((button) => button.getAttribute('aria-label'))).toEqual(['Other', 'Show inline edit']);
         const caret = editor.getCaret();
         pointer(page.window, buttons()[1]!, 'pointerdown', 0, 0);
@@ -74,14 +78,18 @@ describe('clicks the host answers', () => {
     test('offers a press on a character to the host, which can take it and leave the caret alone', () => {
         const { editor, click, type } = mountEditor({ text: 'abcdef' }, { apple: false });
         const seen: unknown[] = [];
+
         editor.onClick((press) => {
             seen.push(press);
+
             return press.mod;
         });
+
         click(column(2) + 1, row(0));
         click(column(4) + 1, row(0), { ctrlKey: true });
         type('-');
         expect(editor.getText()).toBe('ab-cdef');
+
         expect(seen).toEqual([
             { position: { line: 0, character: 2 }, mod: false, alt: false, shift: false },
             { position: { line: 0, character: 4 }, mod: true, alt: false, shift: false }
@@ -128,8 +136,10 @@ describe('widgets', () => {
         const mounted = mountEditor({ text: 'one\ntwo\nthree' });
         jest.runAllTimers();
         jest.useRealTimers();
+
         return mounted;
     }
+
     const row = (id: string, line: number, placement?: 'above' | 'below') => ({
         id,
         line,
@@ -137,6 +147,7 @@ describe('widgets', () => {
         placement,
         render: (container: HTMLElement) => (container.textContent = id)
     });
+
     const drawn = (host: HTMLElement): string[] =>
         [...host.querySelectorAll('.se-widget')]
             .sort((left, right) => Number.parseFloat((left as HTMLElement).style.top) - Number.parseFloat((right as HTMLElement).style.top))
@@ -185,9 +196,12 @@ describe('code vision', () => {
         const mounted = mountEditor({ text });
         jest.runAllTimers();
         jest.useRealTimers();
+
         return mounted;
     }
+
     const pressed: string[] = [];
+
     const entry = (id: string, text: string, icon?: 'user' | 'users') => ({ id, text, ...(icon ? { icon } : {}), activate: () => void pressed.push(id) });
 
     test('draws a row above the declaration, in its indentation, and the entries as buttons', () => {
@@ -202,7 +216,9 @@ describe('code vision', () => {
 
     test('holds its height with no entries, so the text stays put when they arrive', () => {
         const { editor, page } = mountLens();
+
         const second = () => (page.host.querySelector('[data-line="1"]') as HTMLElement).style.top;
+
         editor.setCodeVision([{ id: 'two', line: 1, entries: [] }]);
         const reserved = second();
         expect(reserved).toBe('40px');

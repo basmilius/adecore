@@ -16,9 +16,11 @@ class SearchWorker {
     addEventListener(type: string, listener: EventListenerOrEventListenerObject | null): void {
         if (listener !== null) {
             let group = this.listeners.get(type);
+
             if (group === undefined) {
                 this.listeners.set(type, (group = new Set()));
             }
+
             group.add(listener);
         }
     }
@@ -33,6 +35,7 @@ class SearchWorker {
         if (this.throws) {
             throw new Error('post failed');
         }
+
         this.messages.push(message);
     }
 
@@ -58,25 +61,31 @@ class SearchWorker {
 function setup() {
     const workers: SearchWorker[] = [];
     const timers: Array<{ callback: () => void; delay: number; cancelled: boolean }> = [];
+
     const options: EditorSearchClientOptions = {
         workerFactory: () => {
             const worker = new SearchWorker();
             workers.push(worker);
+
             return worker as unknown as Worker;
         },
         schedule(callback, delay) {
             const timer = { callback, delay, cancelled: false };
             timers.push(timer);
+
             return () => {
                 timer.cancelled = true;
             };
         }
     };
+
     const client = createSearchClient(options);
+
     const result = (worker = workers.at(-1)!): void => {
         const message = worker.messages.at(-1)!;
         worker.reply({ type: 'matches', id: message.id, revision: message.revision, ranges: new Uint32Array(), limited: false });
     };
+
     return { options, client, workers, timers, result };
 }
 
@@ -134,9 +143,11 @@ test('superseding a running regex terminates it and ignores replies from the old
     const active = host.workers[1]!;
     expect(active.messages[0]).toHaveProperty('text', 'next');
     const message = previous.messages[0]!;
+
     for (const listener of oldListeners) {
         listener({ data: { type: 'matches', id: message.id, revision: message.revision, ranges: new Uint32Array(), limited: false } } as MessageEvent);
     }
+
     expect(host.timers[1]!.cancelled).toBe(false);
     host.result();
     expect((await current).revision).toBe(1);
@@ -189,12 +200,14 @@ test('syntax, factory, post and worker errors have distinct outcomes without a m
     host.workers[0]!.reply({ type: 'ready' });
     host.workers[0]!.emit('error', { message: 'worker crashed' } as ErrorEvent);
     expect((await crashed).kind).toBe('error');
+
     const client = createSearchClient({
         ...host.options,
         workerFactory: () => {
             throw new Error('blocked worker');
         }
     });
+
     expect((await caught(client.search(snapshot, query))).kind).toBe('unavailable');
     client.dispose();
     const failedPost = new SearchWorker();
@@ -250,12 +263,15 @@ test('a worker load error stays unavailable without repeated starts', async () =
 
 test('an unavailable factory is not retried on every query', async () => {
     let starts = 0;
+
     const client = createSearchClient({
         workerFactory: () => {
             starts++;
+
             throw new Error('unavailable');
         }
     });
+
     expect((await caught(client.search(snapshot, query))).kind).toBe('unavailable');
     expect((await caught(client.search(snapshot, query))).kind).toBe('unavailable');
     expect(starts).toBe(1);
@@ -280,9 +296,11 @@ test('a message decode error fails immediately and a later query gets a fresh wo
 test('invalid client input does not start a worker or discard an idle snapshot', async () => {
     const host = setup();
     expect((await caught(host.client.search(snapshot, { ...query, text: '(' }))).kind).toBe('syntax');
+
     for (const options of [{ from: -1 }, { from: 3, to: 2 }, { to: 5 }, { maxResults: 10001 }, { maxResults: -1 }]) {
         expect((await caught(host.client.search(snapshot, query, options))).kind).toBe('range');
     }
+
     expect((await caught(host.client.search({ ...snapshot, revision: -1 }, query))).kind).toBe('range');
     expect(host.workers).toHaveLength(0);
     const first = host.client.search(snapshot, query);
@@ -386,9 +404,11 @@ test('replacement requests carry one bounded page and reuse the immutable snapsh
 
 test('invalid replacement limits never start a worker', async () => {
     const host = setup();
+
     for (const limits of [{ maxEdits: 0 }, { maxEdits: 10001 }, { maxEdits: 1.5 }, { maxCharacters: -1 }, { maxCharacters: 4_000_001 }]) {
         expect((await caught(host.client.replacements(snapshot, query, 'entry', limits))).kind).toBe('range');
     }
+
     expect(host.workers).toHaveLength(0);
     host.client.dispose();
 });
@@ -488,8 +508,10 @@ test('an explicit request can override the default deadline without changing lat
     expect(host.timers[1]!.delay).toBe(1500);
     host.result();
     await next;
+
     for (const deadline of [0, -1, Infinity, 2147483648]) {
         expect((await caught(host.client.search(snapshot, query, { deadline }))).kind).toBe('range');
     }
+
     host.client.dispose();
 });

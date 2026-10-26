@@ -43,6 +43,7 @@ function clamp(value: number, maximum: number): number {
 function centerOf(request: ScrollRequest): number {
     const { target, view, lineHeight, topBound } = request;
     const third = target.y - Math.trunc(view.height / 3);
+
     return third < topBound ? third : target.y - Math.trunc(Math.max(0, view.height - lineHeight) / 2);
 }
 
@@ -53,6 +54,7 @@ function verticalPosition(request: ScrollRequest, kind: ScrollKind): number {
     const above = view.y > topBound;
     const below = view.y + height < bottomBound;
     let position = view.y;
+
     if (kind === 'center') {
         position = center;
     } else if (kind === 'centerUp') {
@@ -70,7 +72,9 @@ function verticalPosition(request: ScrollRequest, kind: ScrollKind): number {
         const highest = target.y - height < 0 ? 0 : bottomBound - height;
         position = Math.min(topBound, Math.max(highest, view.y));
     }
+
     const inset = request.inset ?? 0;
+
     return Math.min(Math.max(inset, position), Math.max(inset, content.height - height));
 }
 
@@ -80,6 +84,7 @@ function horizontalPosition(request: ScrollRequest, kind: ScrollKind): number {
     const left = target.x - SIDE_MARGIN * charWidth;
     const right = target.x + SIDE_MARGIN * charWidth;
     let position = view.x;
+
     if (right - left > width) {
         position = target.x - Math.trunc(width / 2);
     } else if (left < view.x) {
@@ -87,6 +92,7 @@ function horizontalPosition(request: ScrollRequest, kind: ScrollKind): number {
     } else if (right > view.x + width) {
         position = right - width;
     }
+
     return clamp(position, content.width - width);
 }
 
@@ -95,6 +101,7 @@ export function scrollPosition(request: ScrollRequest, kind: ScrollKind): { x: n
     const { target, view } = request;
     const inView = target.x >= view.x && target.x < view.x + view.width && target.y >= view.y && target.y < view.y + view.height;
     const effective: ScrollKind = request.refrain && inView && (kind === 'center' || kind === 'centerDown' || kind === 'centerUp') ? 'relative' : kind;
+
     return {
         x: request.horizontal ? horizontalPosition(request, effective) : view.x,
         y: verticalPosition(request, effective) - (request.inset ?? 0)

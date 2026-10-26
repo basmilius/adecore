@@ -59,13 +59,17 @@ export function styleSpan(span: HTMLElement, token: LineToken): void {
     if (token.color !== '') {
         span.style.color = token.color;
     }
+
     if (token.fontStyle & ITALIC) {
         span.style.fontStyle = 'italic';
     }
+
     if (token.fontStyle & BOLD) {
         span.style.fontWeight = 'bold';
     }
+
     const decorations = [token.fontStyle & UNDERLINE ? 'underline' : '', token.fontStyle & STRIKETHROUGH ? 'line-through' : ''].filter(Boolean);
+
     if (decorations.length > 0) {
         span.style.textDecoration = decorations.join(' ');
     }
@@ -75,9 +79,12 @@ export function styleSpan(span: HTMLElement, token: LineToken): void {
 function setText(element: HTMLElement, text: string, whitespace: boolean): void {
     if (!whitespace || !text.includes(' ')) {
         element.textContent = text;
+
         return;
     }
+
     const document = element.ownerDocument;
+
     for (const part of text.split(/( +)/)) {
         if (part.startsWith(' ')) {
             const dots = document.createElement('span');
@@ -102,20 +109,26 @@ function fillRun(
 ): void {
     if (tokens === null) {
         setText(run, geometry.text.slice(from - geometry.start, to - geometry.start), whitespace);
+
         return;
     }
+
     let tokenStart = tokensFrom;
+
     for (const token of tokens) {
         const tokenEnd = tokenStart + token.length;
         const start = Math.max(from, tokenStart);
         const end = Math.min(to, tokenEnd);
+
         if (start < end) {
             const span = run.ownerDocument.createElement('span');
             setText(span, geometry.text.slice(start - geometry.start, end - geometry.start), whitespace);
             styleSpan(span, token);
             run.append(span);
         }
+
         tokenStart = tokenEnd;
+
         if (tokenStart >= to) {
             break;
         }
@@ -135,19 +148,24 @@ export function lineElement(
     element.style.width = `${geometry.width}px`;
     let first = 0;
     let last = geometry.runs.length;
+
     while (first < last) {
         const middle = (first + last) >>> 1;
+
         if (geometry.runs[middle]!.subRow < band.first) {
             first = middle + 1;
         } else {
             last = middle;
         }
     }
+
     for (let index = first; index < geometry.runs.length; index++) {
         const run = geometry.runs[index]!;
+
         if (run.subRow > band.last) {
             break;
         }
+
         const span = document.createElement('span');
         span.className = 'se-run';
         span.style.left = `${run.x}px`;
@@ -155,18 +173,23 @@ export function lineElement(
         fillRun(span, geometry, geometry.start + run.from, geometry.start + run.to, tokens, whitespace);
         element.append(span);
     }
+
     if (whitespace) {
         appendTabSigns(element, geometry, lineHeight, band);
     }
+
     appendBidiSigns(element, geometry, lineHeight, band);
+
     for (const box of geometry.inlays) {
         if (box.subRow < band.first || box.subRow > band.last) {
             continue;
         }
+
         const span = document.createElement('span');
         span.className = box.inlay.ghost ? 'se-ghost' : box.inlay.composition ? 'se-composition' : 'se-inlay';
         span.dataset.inlayId = box.inlay.id;
         const { parts } = box.inlay;
+
         if (parts === undefined) {
             span.textContent = visibleBidi(box.inlay.text);
         } else {
@@ -178,12 +201,14 @@ export function lineElement(
                 span.append(element);
             });
         }
+
         const gapLeft = box.inlay.gapLeft ?? 0;
         span.style.left = `${box.x + gapLeft}px`;
         span.style.top = `${box.subRow * lineHeight}px`;
         span.style.width = `${box.width - gapLeft - (box.inlay.gapRight ?? 0)}px`;
         element.append(span);
     }
+
     return element;
 }
 
@@ -207,6 +232,7 @@ export class RowPainter {
     /* Draws the rows and takes the rest away. Returns whether a widget's height moved the layout. */
     paint(rows: readonly LayoutRow[], paint: RowPaint): boolean {
         const visible = new Set(rows.map((row) => row.key));
+
         for (const [key, entry] of this.rows) {
             if (!visible.has(key)) {
                 this.observer?.unobserve(entry.element);
@@ -214,7 +240,9 @@ export class RowPainter {
                 this.rows.delete(key);
             }
         }
+
         let measured = false;
+
         for (const row of rows) {
             if (row.kind === 'text' && row.replacement !== undefined) {
                 measured = this.paintReplacement(row, row.replacement, paint) || measured;
@@ -224,22 +252,26 @@ export class RowPainter {
                 measured = this.paintBlock(row, paint) || measured;
             }
         }
+
         return measured;
     }
 
     private paintText(row: TextRow, paint: RowPaint): void {
         const geometry = this.layout.geometry(row);
         const tokens = paint.tokensOf(row.line);
+
         // Block boundaries keep a scroll within the band from rebuilding its text DOM.
         const band =
             geometry.subRows <= 64
                 ? { first: 0, last: geometry.subRows - 1 }
                 : subRowBand(row.top, geometry.subRows, this.layout.metrics.lineHeight, paint.window, 64);
+
         const folded = row.lastLine > row.line;
         const lastLine = folded && row.tail !== null ? this.layout.document.getLine(row.lastLine) : null;
         const tail = lastLine === null ? '' : lastLine.text.slice(row.tail! - lastLine.start);
         const tailTokens = tail === '' ? null : paint.tokensOf(row.lastLine);
         let entry = this.rows.get(row.key);
+
         if (
             !entry ||
             entry.text !== geometry.text ||
@@ -253,11 +285,13 @@ export class RowPainter {
             entry.band?.last !== band.last
         ) {
             const element = this.buildText(row, geometry, tokens, paint, tail, tailTokens, band);
+
             if (entry) {
                 entry.element.replaceWith(element);
             } else {
                 this.code.append(element);
             }
+
             entry = {
                 element,
                 text: geometry.text,
@@ -270,8 +304,10 @@ export class RowPainter {
                 revision: 0,
                 band
             };
+
             this.rows.set(row.key, entry);
         }
+
         entry.element.style.top = `${row.top}px`;
         entry.element.style.height = `${row.height}px`;
         entry.element.dataset.line = String(row.line);
@@ -289,6 +325,7 @@ export class RowPainter {
         const document = this.code.ownerDocument;
         const lineHeight = this.layout.metrics.lineHeight;
         const element = lineElement(document, geometry, tokens, lineHeight, band, paint.whitespace);
+
         if (row.lastLine > row.line && band.last === geometry.subRows - 1) {
             const chip = document.createElement('button');
             chip.type = 'button';
@@ -303,10 +340,12 @@ export class RowPainter {
             chip.addEventListener('pointerdown', (event) => event.stopPropagation());
             chip.addEventListener('click', () => paint.onUnfold(row.line));
             element.append(chip);
+
             if (tail !== '' && row.tail !== null) {
                 this.appendTail(element, row, geometry, tail, tailTokens, chipLeft + chipWidth + FOLD_GAP);
             }
         }
+
         return element;
     }
 
@@ -315,6 +354,7 @@ export class RowPainter {
         const document = this.code.ownerDocument;
         const lineStart = this.layout.document.getLine(row.lastLine).start;
         const geometry = scanLine({ start: row.tail!, end: row.tail! + tail.length, text: tail }, this.layout.metrics, null, []);
+
         for (const run of geometry.runs) {
             const span = document.createElement('span');
             span.className = 'se-run';
@@ -323,6 +363,7 @@ export class RowPainter {
             fillRun(span, geometry, geometry.start + run.from, geometry.start + run.to, tokens, false, lineStart);
             element.append(span);
         }
+
         appendBidiSigns(element, geometry, this.layout.metrics.lineHeight, { first: 0, last: 0 }, left, (header.subRows - 1) * this.layout.metrics.lineHeight);
     }
 
@@ -330,15 +371,18 @@ export class RowPainter {
     private paintReplacement(row: TextRow, replacement: BlockReplacement, paint: RowPaint): boolean {
         const revision = replacement.revision ?? 0;
         let entry = this.rows.get(row.key);
+
         if (!entry) {
             const element = this.code.ownerDocument.createElement('div');
             element.className = 'se-block se-replacement';
             element.dataset.rowKey = row.key;
             element.dataset.replacementId = replacement.id;
             element.setAttribute('role', 'group');
+
             if (replacement.label !== undefined) {
                 element.setAttribute('aria-label', replacement.label);
             }
+
             replacement.render(element);
             this.code.append(element);
             entry = this.hostEntry(row.key, element, revision);
@@ -347,16 +391,19 @@ export class RowPainter {
             replacement.render(entry.element);
             entry.revision = revision;
         }
+
         const indent = this.layout.indentX(row.line);
         entry.element.style.top = `${row.top}px`;
         entry.element.style.left = `${indent}px`;
         entry.element.style.width = `${Math.max(80, paint.viewportWidth - indent)}px`;
+
         return this.measure(row.key, entry.element);
     }
 
     private hostEntry(key: string, element: HTMLElement, revision: number): PaintedRow {
         const entry = { element, text: '', tokens: null, layoutVersion: 0, whitespace: false, folded: false, tail: '', tailTokens: null, revision };
         this.rows.set(key, entry);
+
         return entry;
     }
 
@@ -365,6 +412,7 @@ export class RowPainter {
         element.style.height = '';
         this.observer?.observe(element);
         const height = element.getBoundingClientRect?.().height ?? 0;
+
         return height > 0 && this.layout.setMeasuredHeight(key, height);
     }
 
@@ -372,6 +420,7 @@ export class RowPainter {
         const { widget } = row;
         const revision = widget.revision ?? 0;
         let entry = this.rows.get(row.key);
+
         if (!entry) {
             const element = this.code.ownerDocument.createElement('div');
             element.className = 'se-block';
@@ -379,32 +428,41 @@ export class RowPainter {
             element.dataset.widgetId = widget.id;
             this.fillBlock(element, widget);
             this.code.append(element);
+
             if (!widget.lens && !widget.fixed) {
                 this.observer?.observe(element);
             }
+
             entry = this.hostEntry(row.key, element, revision);
         } else if (entry.revision !== revision) {
             entry.element.replaceChildren();
             this.fillBlock(entry.element, widget);
             entry.revision = revision;
         }
+
         entry.element.style.top = `${row.top}px`;
+
         if (widget.lens) {
             entry.element.style.left = `${this.layout.indentX(row.line)}px`;
             entry.element.style.height = `${row.height}px`;
+
             return false;
         }
+
         if (widget.render) {
             entry.element.style.left = `${paint.hostLeft}px`;
             entry.element.style.width = `${paint.hostWidth}px`;
         } else {
             entry.element.style.width = `${Math.max(80, paint.viewportWidth)}px`;
         }
+
         if (widget.fixed) {
             this.observer?.unobserve(entry.element);
             entry.element.style.height = `${row.height}px`;
+
             return false;
         }
+
         return this.measure(row.key, entry.element);
     }
 
@@ -421,6 +479,7 @@ export class RowPainter {
             this.observer?.unobserve(entry.element);
             entry.element.remove();
         }
+
         this.rows.clear();
     }
 }
@@ -452,6 +511,7 @@ function gutterButton(document: Document, className: string, label: string): HTM
     button.className = className;
     button.tabIndex = -1;
     button.setAttribute('aria-label', label);
+
     return button;
 }
 
@@ -459,75 +519,96 @@ function gutterButton(document: Document, className: string, label: string): HTM
 export function paintGutter(container: HTMLElement, layout: EditorLayout, rows: readonly LayoutRow[], paint: GutterPaint): void {
     const document = container.ownerDocument;
     const fragment = document.createDocumentFragment();
+
     for (const row of rows) {
         if (row.kind !== 'text') {
             continue;
         }
+
         const item = document.createElement('div');
         item.className = paint.activeLines.has(row.line) ? 'se-line-number se-active-number' : 'se-line-number';
         item.style.top = `${row.top}px`;
         item.style.height = `${layout.metrics.lineHeight}px`;
         const highlight = paint.highlights.get(row.line);
         const fill = highlight?.fill;
+
         if (fill !== undefined) {
             item.style.background = colorValue(fill);
         }
+
         if (highlight?.bar !== undefined) {
             item.classList.add('se-line-marked');
             item.style.height = `${row.height}px`;
             item.style.setProperty('--se-line', `${layout.metrics.lineHeight}px`);
             item.style.setProperty('--se-mark', colorValue(highlight.color));
+
             if (fill === undefined) {
                 item.style.setProperty('--se-tint', tintValue(highlight.color));
             }
         }
+
         const number = document.createElement('span');
         number.textContent = paint.lineNumber(row.line);
         const label = paint.lineLabel(row.line);
+
         if (label !== null) {
             number.setAttribute('aria-hidden', 'true');
         }
+
         item.append(number);
+
         if (label !== null) {
             const hidden = document.createElement('span');
             hidden.className = 'se-sr-only';
             hidden.textContent = label;
             item.append(hidden);
         }
+
         if (paint.action?.line === row.line) {
             const button = gutterButton(document, 'se-gutter-action', paint.action.label);
             button.dataset.gutterAction = String(row.line);
             item.append(button);
         }
+
         const marker = paint.markers.get(row.line);
+
         if (marker !== undefined) {
             const button = gutterButton(document, 'se-gutter-marker', marker.label);
             button.dataset.gutterMarker = marker.id;
+
             if (marker.icon !== undefined) {
                 button.dataset.icon = marker.icon;
             }
+
             if (marker.pressed !== undefined) {
                 button.setAttribute('aria-pressed', String(marker.pressed));
             }
+
             item.append(button);
         }
+
         if (highlight?.sign) {
             const mark = document.createElement('span');
             mark.className = 'se-line-sign';
             mark.textContent = highlight.sign;
+
             if (label !== null) {
                 mark.setAttribute('aria-hidden', 'true');
             }
+
             mark.style.color = colorValue(highlight.color);
             item.append(mark);
         }
+
         if (highlight?.bar !== undefined) {
             const mark = document.createElement('span');
             mark.className = `se-line-bar se-line-bar-${highlight.bar}`;
             mark.setAttribute('aria-hidden', 'true');
             item.append(mark);
         }
+
         const bar = paint.attribution.get(row.line);
+
         if (bar) {
             const mark = document.createElement('span');
             mark.className = 'se-attribution';
@@ -536,25 +617,33 @@ export function paintGutter(container: HTMLElement, layout: EditorLayout, rows: 
             mark.style.height = `${row.height}px`;
             item.append(mark);
         }
+
         const change = paint.changes.get(row.line);
+
         // The bar of an agent stands where the mark of a change would, and a removal is a triangle between lines that the bar never hides.
         if (change && (!bar || change === 'deleted') && highlight?.bar === undefined) {
             const mark = document.createElement('span');
             mark.className = `se-change se-change-${change}`;
+
             if (change !== 'deleted') {
                 mark.style.height = `${row.height}px`;
             }
+
             item.append(mark);
         }
+
         const collapsed = paint.foldable.get(row.line);
+
         if (collapsed !== undefined) {
             const button = gutterButton(document, collapsed ? 'se-fold-toggle se-folded' : 'se-fold-toggle', paint.foldName(row.line, collapsed));
             button.setAttribute('aria-expanded', String(!collapsed));
             button.dataset.foldLine = String(row.line);
             item.append(button);
         }
+
         fragment.append(item);
     }
+
     container.replaceChildren(fragment);
 }
 
@@ -572,6 +661,7 @@ function box(document: Document, className: string, rect: LayoutRect): HTMLEleme
     element.style.top = `${rect.y}px`;
     element.style.width = `${Math.max(1, rect.width)}px`;
     element.style.height = `${rect.height}px`;
+
     return element;
 }
 
@@ -579,21 +669,27 @@ function box(document: Document, className: string, rect: LayoutRect): HTMLEleme
 export function paintOverlays(container: HTMLElement, paint: OverlayPaint): void {
     const document = container.ownerDocument;
     const fragment = document.createDocumentFragment();
+
     if (paint.currentLine) {
         fragment.append(box(document, 'se-current-line', paint.currentLine));
     }
+
     for (const mark of paint.marks) {
         for (const rect of mark.rects) {
             const element = box(document, mark.className, rect);
+
             if (mark.background) {
                 element.style.background = mark.background;
             }
+
             fragment.append(element);
         }
     }
+
     for (const rect of paint.selections) {
         fragment.append(box(document, paint.focused ? 'se-selection' : 'se-selection se-selection-inactive', rect));
     }
+
     container.replaceChildren(fragment);
 }
 
@@ -601,16 +697,19 @@ export function paintOverlays(container: HTMLElement, paint: OverlayPaint): void
 export function paintOver(container: HTMLElement, layers: readonly { className: string; rects: readonly LayoutRect[] }[]): void {
     const document = container.ownerDocument;
     const fragment = document.createDocumentFragment();
+
     for (const layer of layers) {
         for (const rect of layer.rects) {
             fragment.append(box(document, layer.className, rect));
         }
     }
+
     container.replaceChildren(fragment);
 }
 
 export function paintCarets(container: HTMLElement, carets: readonly (LayoutRect & { primary: boolean; drop?: boolean })[]): void {
     const document = container.ownerDocument;
+
     container.replaceChildren(
         ...carets.map((rect) => box(document, rect.drop ? 'se-drop-caret' : rect.primary ? 'se-caret se-primary-caret' : 'se-caret', { ...rect, width: 2 }))
     );
@@ -630,6 +729,7 @@ export interface RemoteCaret {
 /* The carets of agents with their names, above the text; they take no pointer and never move the real caret. */
 export function paintRemoteCarets(container: HTMLElement, carets: readonly RemoteCaret[]): void {
     const document = container.ownerDocument;
+
     container.replaceChildren(
         ...carets.map((caret) => {
             const element = box(document, 'se-remote-caret', { x: caret.x, y: caret.y, width: 2, height: caret.height });
@@ -639,10 +739,13 @@ export function paintRemoteCarets(container: HTMLElement, carets: readonly Remot
             label.className = 'se-remote-label';
             label.textContent = caret.name;
             label.style.background = colorValue(caret.color);
+
             if (caret.below) {
                 label.dataset.below = 'true';
             }
+
             element.append(label);
+
             return element;
         })
     );
@@ -658,6 +761,7 @@ export interface StickyEntry {
 /* The headers pinned at the top: a line number in the gutter's column, then the header's own text. */
 export function paintSticky(container: HTMLElement, entries: readonly StickyEntry[], lineHeight: number): void {
     const document = container.ownerDocument;
+
     container.replaceChildren(
         ...entries.map((entry, depth) => {
             const row = document.createElement('div');
@@ -671,6 +775,7 @@ export function paintSticky(container: HTMLElement, entries: readonly StickyEntr
             code.className = 'se-sticky-code';
             code.append(lineElement(document, entry.geometry, entry.tokens, lineHeight, { first: 0, last: 0 }));
             row.append(number, code);
+
             return row;
         })
     );
@@ -699,6 +804,7 @@ export function arrowSign(document: Document, width: number, lineHeight: number,
     path.setAttribute('stroke', 'currentColor');
     path.setAttribute('stroke-width', '1');
     svg.append(path);
+
     return svg as SVGSVGElement;
 }
 
@@ -707,18 +813,23 @@ function appendTabSigns(element: HTMLElement, geometry: LineGeometry, lineHeight
     if (geometry.uniform !== undefined) {
         return;
     }
+
     const document = element.ownerDocument;
     const end = geometry.rowStarts[band.last + 1] ?? stopCount(geometry) - 1;
+
     for (let stop = geometry.rowStarts[band.first]!; stop < end; stop++) {
         if (geometry.text[offsetOfStop(geometry, stop)] !== '\t') {
             continue;
         }
+
         const row = rowOfStop(geometry, stop);
         const left = xOfStop(geometry, stop);
         const right = rowOfStop(geometry, stop + 1) === row ? xOfStop(geometry, stop + 1) : geometry.rowEnds[row]!;
+
         if (right - left < 3) {
             continue;
         }
+
         const sign = arrowSign(document, right - left - 2, lineHeight, 'se-tab-sign');
         sign.style.left = `${left + 1}px`;
         sign.style.top = `${row * lineHeight}px`;
@@ -734,11 +845,13 @@ function appendBidiSigns(element: HTMLElement, geometry: LineGeometry, lineHeigh
     if (geometry.uniform !== undefined) {
         return;
     }
+
     const document = element.ownerDocument;
     const from = offsetOfStop(geometry, geometry.rowStarts[band.first]!);
     const to = geometry.rowStarts[band.last + 1] === undefined ? geometry.text.length : offsetOfStop(geometry, geometry.rowStarts[band.last + 1]!);
     const pattern = new RegExp(BIDI_PATTERN.source, 'g');
     pattern.lastIndex = from;
+
     for (let match = pattern.exec(geometry.text); match !== null && match.index < to; match = pattern.exec(geometry.text)) {
         const stop = stopAtOffset(geometry, match.index);
         const row = rowOfStop(geometry, stop);
@@ -765,11 +878,13 @@ export interface WrapSign {
 /* The signs of the soft wraps: an arrow where a row ends in the middle of a line, and one at the start of the row that goes on. */
 export function paintSigns(container: HTMLElement, signs: readonly WrapSign[], lineHeight: number): void {
     const document = container.ownerDocument;
+
     container.replaceChildren(
         ...signs.map((sign) => {
             const arrow = arrowSign(document, sign.width, lineHeight, 'se-wrap-sign');
             arrow.style.left = `${sign.x}px`;
             arrow.style.top = `${sign.y}px`;
+
             return arrow;
         })
     );

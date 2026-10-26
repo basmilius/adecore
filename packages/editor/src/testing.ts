@@ -10,32 +10,40 @@ export function createPage(): { document: Document; window: Window & typeof glob
     const { document, window } = parseHTML('<html><body><div id="host"></div></body></html>');
     const prototype = (window as unknown as { HTMLTextAreaElement: { prototype: Record<string, unknown> } }).HTMLTextAreaElement.prototype;
     const selections = new WeakMap<object, { start: number; end: number; direction: string }>();
+
     const read = (element: object): { start: number; end: number; direction: string } => selections.get(element) ?? { start: 0, end: 0, direction: 'none' };
+
     Object.defineProperty(prototype, 'selectionStart', {
         get: function (this: object) {
             return read(this).start;
         },
         configurable: true
     });
+
     Object.defineProperty(prototype, 'selectionEnd', {
         get: function (this: object) {
             return read(this).end;
         },
         configurable: true
     });
+
     Object.defineProperty(prototype, 'selectionDirection', {
         get: function (this: object) {
             return read(this).direction;
         },
         configurable: true
     });
+
     prototype.setSelectionRange = function (this: object, start: number, end: number, direction = 'none'): void {
         selections.set(this, { start, end, direction });
     };
+
     const element = (window as unknown as { HTMLElement: { prototype: object } }).HTMLElement.prototype;
+
     for (const name of ['scrollTop', 'scrollLeft']) {
         Object.defineProperty(element, name, { value: 0, writable: true, configurable: true });
     }
+
     return {
         document: document as unknown as Document,
         window: window as unknown as Window & typeof globalThis,
@@ -61,6 +69,7 @@ export function press(window: Window, target: Element, key: string, options: Key
     const event = createEvent(window, 'keydown');
     Object.assign(event, { key, ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, isComposing: false, ...options });
     target.dispatchEvent(event);
+
     return event.defaultPrevented;
 }
 
@@ -86,6 +95,7 @@ export function clipboard(
     data: { text: string } = { text: '' }
 ): { prevented: boolean; text: string } {
     const event = createEvent(window, type);
+
     Object.assign(event, {
         clipboardData: {
             getData: () => data.text,
@@ -94,7 +104,9 @@ export function clipboard(
             }
         }
     });
+
     target.dispatchEvent(event);
+
     return { prevented: event.defaultPrevented, text: data.text };
 }
 
@@ -108,6 +120,7 @@ export function pointer(
     options: KeyOptions = {}
 ): void {
     const event = createEvent(window, type);
+
     Object.assign(event, {
         clientX: x,
         clientY: y,
@@ -120,6 +133,7 @@ export function pointer(
         metaKey: false,
         ...options
     });
+
     target.dispatchEvent(event);
 }
 
@@ -139,13 +153,16 @@ export interface MountedEditor {
 /* An editor on a page of its own, with the helpers that drive it the way a person would. */
 export function mountEditor(options: Partial<EditorOptions> = {}, engineOptions: Partial<SmartEditorEngineOptions> = {}): MountedEditor {
     const page = createPage();
+
     const editor = createSmartEditorEngine({ tokenizer: async () => null, ...engineOptions }).mount(page.host, {
         text: 'one\ntwo\nthree',
         theme: 'dark',
         ...options
     });
+
     const input = page.host.querySelector('textarea')!;
     const viewport = page.host.querySelector('.se-viewport') as HTMLElement;
+
     return {
         editor,
         page,

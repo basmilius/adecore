@@ -46,6 +46,7 @@ export class DoubleModifierGesture {
     /* Another modifier held with the one that counts spoils the gesture. */
     private spoiled(event: GestureEvent): boolean {
         const other = this.modifier === 'Alt' ? event.ctrlKey : event.altKey;
+
         return other || event.metaKey || event.shiftKey;
     }
 
@@ -54,24 +55,34 @@ export class DoubleModifierGesture {
             if (event.repeat === true) {
                 return null;
             }
+
             if (this.spoiled(event)) {
                 this.reset();
+
                 return null;
             }
+
             if (this.firstPressed && event.timeStamp - this.last > FORGET_MS) {
                 this.reset();
             }
+
             this.step(event, 'press');
+
             return null;
         }
+
         if (this.armed) {
             const held = this.modifier === 'Alt' ? event.altKey : event.ctrlKey;
+
             if (held && !this.spoiled(event) && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
                 return event.key === 'ArrowUp' ? 'above' : 'below';
             }
+
             return null;
         }
+
         this.reset();
+
         return null;
     }
 
@@ -79,8 +90,10 @@ export class DoubleModifierGesture {
         if (event.key === this.modifier) {
             if (this.spoiled(event)) {
                 this.reset();
+
                 return;
             }
+
             this.step(event, 'release');
         } else if (!this.armed) {
             this.reset();
@@ -90,8 +103,10 @@ export class DoubleModifierGesture {
     private step(event: GestureEvent, kind: 'press' | 'release'): void {
         if (this.firstPressed && event.timeStamp - this.last > TAP_MS) {
             this.reset();
+
             return;
         }
+
         if (kind === 'press') {
             if (!this.firstPressed) {
                 this.reset();
@@ -103,8 +118,10 @@ export class DoubleModifierGesture {
             } else {
                 this.reset();
             }
+
             return;
         }
+
         if (this.firstPressed && !this.firstReleased) {
             this.firstReleased = true;
             this.last = event.timeStamp;
