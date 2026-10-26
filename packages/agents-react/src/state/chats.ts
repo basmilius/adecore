@@ -21,10 +21,8 @@ export interface ChatState {
     historyPending?: boolean;
     items: Record<string, ChatItem>;
     /*
-     * The items as the timeline groups them: the same map as `items`, except that a delta growing a
-     * reply or a thought that already has text, or the output of a running call, leaves it as it was.
-     * The rows are derived from this, so a word arriving touches the row that draws it and not the
-     * whole thread; that row reads its text from `items` with `useCurrentItem`.
+     * `items`, except that a delta growing a reply or thought that has text, or a running call's output,
+     * leaves it as it was. The rows derive from this, so a word redraws only its row (`useCurrentItem`).
      */
     structure: Record<string, ChatItem>;
     order: string[];
@@ -243,15 +241,11 @@ function applyUpdate(state: ChatState, event: ChatEvent, write: ItemWriter): Cha
             if (item?.kind === 'assistant' || item?.kind === 'thinking') {
                 const grown = { ...item, text: item.text + event.text };
                 // The first text is structure after all, since an empty reply that is not streaming has no row.
-                if (item.text === '') {
-                    return write(state, grown);
-                }
-                return write(state, grown, false);
+                return write(state, grown, item.text === '');
             }
             if (item?.kind === 'tool' && item.state === 'running') {
                 const progress = item.progress ?? { startedAt: null, description: null, output: null };
-                const grown = { ...item, progress: { ...progress, output: appendToolOutput(progress.output, event.text) } };
-                return write(state, grown, false);
+                return write(state, { ...item, progress: { ...progress, output: appendToolOutput(progress.output, event.text) } }, false);
             }
             return state;
         }
@@ -316,9 +310,8 @@ export const useChats = create<ChatsStore>((set) => ({
         });
     },
     /*
-     * The status of a chat this window is not reading, which the host sends for every chat it has
-     * loaded. The thread stays empty until somebody attaches, since this is what a header, a list and
-     * the counters need, and they ask the info and never the items.
+     * The host sends this for every chat it has loaded. The thread stays empty until somebody attaches,
+     * since a header, a list and the counters read the info and never the items.
      */
     status(key, info) {
         set((s) => {

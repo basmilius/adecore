@@ -1,9 +1,7 @@
 'use no memo';
 /*
- * The hooks a host hands the views, each called through a hook of its own here. To the React Compiler a
- * hook read from a context may be another function on the next render, so it leaves a component that
- * calls one as written. `ChatHostProvider` pins its host and a command look's hooks stay with its row's
- * key, so they never change under a mounted view; only these wrappers go uncompiled for it.
+ * The React Compiler leaves a component that calls a hook read from a context as written, so the host's
+ * hooks are called through these wrappers only. `ChatHostProvider` pins its host, so they never change.
  */
 import type { ProviderPlatform } from '@adecore/agent-contracts';
 import { referablesOfChats, type Referables } from './chat/chat-references';

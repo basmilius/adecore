@@ -1,10 +1,11 @@
 import { useContext } from 'react';
 import clsx from 'clsx';
-import type { AgentKind, UsageProvider } from '@adecore/agent-contracts';
+import type { AgentKind } from '@adecore/agent-contracts';
 import { ChatScopeContext } from '../scope';
 import { useProvidersStore } from '../state/providers';
 import { AgentIcon } from './AgentIcon';
 import { modelName } from './model-name';
+import { hasProviderLogo } from './provider-paths';
 import { ProviderLogo } from './ProviderLogo';
 
 interface AgentModelLabelProps {
@@ -29,11 +30,7 @@ export function AgentModelLabel({ provider, model, scopeId, size = 14, className
     const name = model === undefined ? (catalog?.name ?? provider) : modelName(model, catalog?.models);
     return (
         <span className={clsx('flex min-w-0 items-center gap-1.5', className)}>
-            {provider === 'claude' || provider === 'codex' ? (
-                <ProviderLogo provider={provider as UsageProvider} size={size} />
-            ) : (
-                <AgentIcon kind={provider} size={size} className="shrink-0" />
-            )}
+            {hasProviderLogo(provider) ? <ProviderLogo provider={provider} size={size} /> : <AgentIcon kind={provider} size={size} className="shrink-0" />}
             <span className="truncate">{name}</span>
         </span>
     );

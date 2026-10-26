@@ -1,5 +1,6 @@
 import type { AgentKind, ModelInfo, ProviderInfo } from '@adecore/agent-contracts';
 import { useProviders } from '../state/providers';
+import { hasProviderLogo } from './provider-paths';
 
 /*
  * A model id as a person reads it, for a model no catalog names: without its vendor prefix and its
@@ -35,7 +36,7 @@ export interface AgentChip {
 export function agentChipOf(providers: readonly ProviderInfo[], provider: AgentKind, model: string): AgentChip {
     const owner = providers.find((entry) => entry.kind === provider);
     return {
-        mark: provider === 'claude' || provider === 'codex' ? 'logo' : 'icon',
+        mark: hasProviderLogo(provider) ? 'logo' : 'icon',
         name: owner?.name ?? provider,
         model: modelName(model, owner?.models)
     };
