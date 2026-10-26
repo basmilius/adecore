@@ -50,6 +50,7 @@ const DEFAULT_INDENTATION: EditorIndentation = { tabSize: 4, insertSpaces: true 
 /* The names of the fold controls in the editor's `{start}` and `{end}` placeholders, which the editor fills in per control. */
 function foldMessages(t: TFunction<'editor'>): Pick<EditorMessages, 'fold' | 'unfold'> {
     const lines = { start: '{start}', end: '{end}' };
+
     return { fold: t('language.fold.fold', lines), unfold: t('language.fold.unfold', lines) };
 }
 
@@ -57,10 +58,13 @@ function sameFields<T extends object>(left: T | undefined, right: T | undefined)
     if (left === right) {
         return true;
     }
+
     if (left === undefined || right === undefined) {
         return false;
     }
+
     const keys = new Set([...Object.keys(left), ...Object.keys(right)] as (keyof T)[]);
+
     return [...keys].every((key) => left[key] === right[key]);
 }
 
@@ -69,34 +73,44 @@ function applyChangedOptions(editor: Editor, before: EditorOptions, after: Edito
     if (before.theme !== after.theme) {
         editor.setTheme(after.theme);
     }
+
     if (before.readOnly !== after.readOnly || before.readOnlyReason !== after.readOnlyReason) {
         editor.setReadOnly(after.readOnly ?? false, after.readOnlyReason);
     }
+
     if (before.wrap !== after.wrap) {
         editor.setWrap(after.wrap ?? false);
     }
+
     if (!sameFields(before.indentation, after.indentation)) {
         editor.setIndentation(after.indentation ?? DEFAULT_INDENTATION);
     }
+
     if (!sameFields<Partial<EditorSmartKeys>>(before.smartKeys, after.smartKeys)) {
         // The setter keeps the keys left out, where the options mean the default.
         editor.setSmartKeys({ ...DEFAULT_SMART_KEYS, ...after.smartKeys });
     }
+
     if (before.guides !== after.guides) {
         editor.setGuides(after.guides ?? true);
     }
+
     if (before.stickyScroll !== after.stickyScroll) {
         editor.setStickyScroll?.(after.stickyScroll ?? true);
     }
+
     if (before.whitespace !== after.whitespace) {
         editor.setWhitespace(after.whitespace ?? false);
     }
+
     if (before.rightMargin !== after.rightMargin) {
         editor.setRightMargin(after.rightMargin ?? null);
     }
+
     if (before.foldOutline !== after.foldOutline) {
         editor.setFoldOutline(after.foldOutline ?? 'hover');
     }
+
     if (after.label !== undefined && before.label !== after.label) {
         editor.setLabel(after.label);
     }
@@ -124,24 +138,31 @@ export function EditorView({
     const applied = useRef(options);
     const holder = useMemo(() => createHolder<EditorLanguage>(), []);
     const language = useSyncExternalStore(holder.subscribe, holder.get, holder.get);
+
     useLayoutEffect(() => {
         latest.current = { options, timers, languageOptions, onMount };
     });
+
     useLayoutEffect(() => {
         const host = element.current;
+
         if (host === null) {
             return;
         }
+
         const inputs = latest.current;
         const editor = engine.mount(host, { ...inputs.options, messages: { ...foldMessages(words.current), ...inputs.options.messages } });
         mounted.current = editor;
         applied.current = inputs.options;
+
         const attached =
             project === undefined || uri === undefined || languageId === undefined
                 ? null
                 : new EditorLanguage(project, editor, uri, languageId, inputs.timers, inputs.languageOptions);
+
         holder.set(attached);
         const stop = inputs.onMount?.(editor, attached);
+
         return () => {
             mounted.current = null;
             holder.set(null);
@@ -150,24 +171,31 @@ export function EditorView({
             editor.dispose();
         };
     }, [engine, project, uri, languageId, holder]);
+
     useLayoutEffect(() => {
         const editor = mounted.current;
+
         if (editor === null || applied.current === options) {
             return;
         }
+
         applyChangedOptions(editor, applied.current, options);
         applied.current = options;
     });
+
     const { fold, unfold, noMoreOccurrences } = options.messages ?? {};
+
     useLayoutEffect(() => {
         words.current = t;
         const localized = foldMessages(t);
+
         mounted.current?.setMessages({
             fold: fold ?? localized.fold,
             unfold: unfold ?? localized.unfold,
             ...(noMoreOccurrences === undefined ? {} : { noMoreOccurrences })
         });
     }, [t, fold, unfold, noMoreOccurrences]);
+
     return (
         <div className={className} ref={ref} style={{ position: 'relative', minHeight: 0 }}>
             <div ref={element} style={{ position: 'absolute', inset: 0 }} />

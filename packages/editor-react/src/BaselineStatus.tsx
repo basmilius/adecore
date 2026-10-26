@@ -11,6 +11,7 @@ const BASELINE_MARKS: Record<BaselineLevel, { icon: typeof CircleCheck; color: s
 /* Where a web feature stands across browsers, as one line under a CSS property. */
 export function BaselineStatus({ baseline }: { baseline: Baseline }) {
     const { icon, color } = BASELINE_MARKS[baseline.level];
+
     return (
         <div className="flex items-start gap-1.5 text-xs/[18px] text-text-muted select-text">
             <Icon icon={icon} size={14} className={`mt-px shrink-0 ${color}`} />

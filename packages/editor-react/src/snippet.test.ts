@@ -6,6 +6,7 @@ import { compileSnippet, parseSnippet, tabOrder } from './snippet.ts';
 describe('parseSnippet', () => {
     test('turns placeholders, choices and bare stops into text and stops', () => {
         const parsed = parseSnippet('for (const ${1:item} of ${2|items,list|}) {\n\t$0\n}');
+
         expect(parsed.text).toBe('for (const item of items) {\n\t\n}');
         expect(parsed.stops).toEqual([
             { index: 1, start: 11, end: 15 },
@@ -21,6 +22,7 @@ describe('parseSnippet', () => {
 
     test('reads a placeholder inside a placeholder as its text, with a stop of its own', () => {
         const parsed = parseSnippet('${1:a ${2:b}} $0');
+
         expect(parsed.text).toBe('a b ');
         expect(parsed.stops).toEqual([
             { index: 1, start: 0, end: 3 },
@@ -37,6 +39,7 @@ describe('parseSnippet', () => {
 describe('tabOrder', () => {
     test('visits 1, 2 and on, once per index, and ends on the final stop', () => {
         const order = tabOrder(parseSnippet('f(${2:b}, ${1:a}, ${1:a})$0'));
+
         expect(order.map((stop) => stop.index)).toEqual([1, 2, 0]);
         expect(order[0]!.start).toBe(5);
     });
@@ -86,6 +89,7 @@ for (const [source, text, ranges] of [
 ] as const) {
     test(`mirrors use the defining value in ${source}`, () => {
         const parsed = parseSnippet(source);
+
         expect(parsed.text).toBe(text);
         expect(parsed.fields?.find((field) => field.index === 1)?.ranges.map((range) => [range.start, range.end])).toEqual(ranges.map((range) => [...range]));
     });
@@ -93,12 +97,14 @@ for (const [source, text, ranges] of [
 
 test('the defining occurrence is primary even when a bare mirror comes first', () => {
     const parsed = parseSnippet('$1 x ${1:foo}');
+
     expect(parsed.fields?.[0]?.primary).toBe(1);
     expect(tabOrder(parsed)[0]).toEqual({ index: 1, start: 6, end: 9 });
 });
 
 test('nested fields occur once, with linked projections into parent mirrors', () => {
     const parsed = parseSnippet('${1:a ${2:b}} $1');
+
     expect(parsed.text).toBe('a b a b');
     expect(parsed.stops.filter((stop) => stop.index === 2)).toEqual([{ index: 2, start: 2, end: 3 }]);
     expect(parsed.fields?.find((field) => field.index === 2)).toEqual({
@@ -116,11 +122,13 @@ test('cyclic defaults terminate without recursively expanding their own field', 
 
 test('acyclic exponential mirrors fall back to their original text', () => {
     const source = '${1:x}' + Array.from({ length: 30 }, (_, index) => '${' + (index + 2) + ':$' + (index + 1) + '$' + (index + 1) + '}').join('');
+
     expect(parseSnippet(source)).toEqual({ text: source, stops: [], limited: true });
 });
 
 test('empty mirror expansion also respects its work budget', () => {
     const source = '${1:}' + Array.from({ length: 30 }, (_, index) => '${' + (index + 2) + ':$' + (index + 1) + '$' + (index + 1) + '}').join('');
+
     expect(parseSnippet(source)).toEqual({ text: source, stops: [], limited: true });
 });
 
@@ -132,6 +140,7 @@ test('deeply nested and oversized snippets fall back without recursion or partia
 
 test('unknown variables share an editable field after numbered stops', () => {
     const parsed = parseSnippet('${2:value} $MISSING ${MISSING:default} $0');
+
     expect(parsed.text).toBe('value default default ');
     expect(tabOrder(parsed).map((stop) => stop.index)).toEqual([2, 3, 0]);
     expect(parsed.fields?.find((field) => field.index === 3)?.ranges).toHaveLength(2);
@@ -141,10 +150,13 @@ test('unknown variables share an editable field after numbered stops', () => {
 test('variable values are literal, memoized per render and isolated between template renders', () => {
     const template = compileSnippet('$TM_LINE_NUMBER ${1:$CUSTOM} $1 $CUSTOM');
     let calls = 0;
+
     const first = template.render((name) => {
         calls++;
+
         return name === 'TM_LINE_NUMBER' ? '3' : '$literal';
     });
+
     expect(first.text).toBe('3 $literal $literal $literal');
     expect(calls).toBe(2);
     expect(template.render((name) => (name === 'TM_LINE_NUMBER' ? '8' : 'other')).text).toBe('8 other other other');
@@ -153,6 +165,7 @@ test('variable values are literal, memoized per render and isolated between temp
 
 test('an empty known variable uses its default and exposes nested numbered stops', () => {
     const parsed = parseSnippet('${TM_SELECTED_TEXT:${1:fallback}}', () => '');
+
     expect(parsed.text).toBe('fallback');
     expect(tabOrder(parsed).map((stop) => stop.index)).toEqual([1, 0]);
 });
@@ -164,12 +177,14 @@ test('unknown-variable chains and huge resolved values respect expansion budgets
             { length: 25 },
             (_, index) => '${V' + index + ':$' + (index === 0 ? 'A' : 'V' + (index - 1)) + '$' + (index === 0 ? 'A' : 'V' + (index - 1)) + '}'
         ).join('');
+
     expect(parseSnippet(source)).toEqual({ text: source, stops: [], limited: true });
     expect(parseSnippet('$TM_CURRENT_LINE', () => 'x'.repeat(100001))).toEqual({ text: '$TM_CURRENT_LINE', stops: [], limited: true });
 });
 
 test('unknown variable indices belong to the template rather than its resolver', () => {
     const template = compileSnippet('$FOO $BAR $0');
+
     expect(template.render((name) => (name === 'FOO' ? 'provided' : undefined)).fields?.map((field) => field.index)).toEqual([2, 0]);
     expect(template.render().fields?.map((field) => field.index)).toEqual([1, 2, 0]);
 });
@@ -177,6 +192,7 @@ test('unknown variable indices belong to the template rather than its resolver',
 for (const transform of ['${1/(.*)/${1:/upcase}/}', '${1/[}]/x/}', '${1/[{]/x/}', '${1/a\\/b/${1:?yes:no}/g}']) {
     test(`unsupported field transform keeps its mirror and its parent boundary: ${transform}`, () => {
         const parsed = parseSnippet('${2:${1:foo} ' + transform + ' end} done');
+
         expect(parsed.text).toBe('foo foo end done');
         expect(tabOrder(parsed).map((stop) => stop.index)).toEqual([1, 2, 0]);
         expect(parsed.fields?.find((field) => field.index === 1)?.ranges).toHaveLength(2);
@@ -193,41 +209,55 @@ test('transforms share one scanner for escaped patterns and slash-containing bra
     const bs = String.fromCharCode(92);
     const parsed = parseSnippet('${1:foo} ${1/a' + bs + '/b/${1:+a/b}/gi}');
     const transform = parsed.fields![0]!.ranges[1]!.transform!;
+
     expect(parsed.text).toBe('foo foo');
     expect(transform).toEqual({ pattern: 'a/b', flags: 'gi', format: [{ kind: 'conditional', index: 1, if: 'a/b' }] });
     expect(parsed.stops[1]!.transform).toBe(transform);
+
     const escaped = parseSnippet('${1/' + bs + 'd+/$0/}');
+
     expect(escaped.fields![0]!.ranges[0]!.transform!.pattern).toBe(bs + 'd+');
 });
 
 test('transformed mirrors leave plain occurrences primary and keep children linked', () => {
     const parsed = parseSnippet('${1/(.*)/${1:/upcase}/} ${1:a ${2:b}}');
+
     expect(parsed.text).toBe('a b a b');
+
     const first = parsed.fields!.find((field) => field.index === 1)!;
+
     expect(first.primary).toBe(1);
     expect(tabOrder(parsed)[0]!.start).toBe(4);
     expect(tabOrder(parsed)[0]!.transform).toBeUndefined();
     expect(parsed.fields!.find((field) => field.index === 2)!.linked).toHaveLength(1);
+
     const only = parseSnippet('${1/(.*)/$0/}');
+
     expect(tabOrder(only)[0]!.transform?.pattern).toBe('(.*)');
 });
 
 test('resolved variables retain transforms at zero-width and indented ranges', () => {
     const parsed = parseSnippet('head\n${TM_FILENAME/^$/fallback/}!', () => '');
+
     expect(parsed.text).toBe('head\n!');
     expect(parsed.stops).toEqual([]);
     expect(parsed.transforms).toHaveLength(1);
     expect(parsed.transforms![0]).toMatchObject({ start: 5, end: 5, transform: { pattern: '^$', flags: '' } });
+
     const indented = indentSnippet(parsed, '  ');
+
     expect(indented.transforms![0]).toMatchObject({ start: 7, end: 7 });
     expect(indented.transforms![0]!.transform).toBe(parsed.transforms![0]!.transform);
+
     const fields = indentSnippet(parseSnippet('head\n${1:x} ${1/(.*)/$1/}'), '  ');
+
     expect(fields.fields![0]!.ranges[1]!.transform?.pattern).toBe('(.*)');
     expect(fields.stops[1]!.transform?.pattern).toBe('(.*)');
 });
 
 test('unresolved names keep occurrence transforms without taking the primary mirror', () => {
     const parsed = parseSnippet('${UNKNOWN/(.*)/$1/} $UNKNOWN');
+
     expect(parsed.text).toBe('UNKNOWN UNKNOWN');
     expect(parsed.fields![0]!.primary).toBe(1);
     expect(parsed.fields![0]!.ranges[0]!.transform?.pattern).toBe('(.*)');
@@ -237,26 +267,34 @@ test('unresolved names keep occurrence transforms without taking the primary mir
 test('metadata scanning validates flags and budgets without compiling the regex', () => {
     for (const flags of ['y', 'gg']) {
         const source = '${1/a/x/' + flags + '} tail';
+
         expect(parseSnippet(source)).toEqual({ text: source, stops: [] });
     }
+
     for (const source of ['${1/a/$100/}', '${1/' + 'x'.repeat(1025) + '/x/}', '${1/a/' + 'x'.repeat(10001) + '/}']) {
         expect(parseSnippet(source)).toEqual({ text: source, stops: [], limited: true });
     }
+
     const invalidRegex = parseSnippet('${1:foo} ${1/(/$1/}');
+
     expect(invalidRegex.text).toBe('foo foo');
     expect(invalidRegex.fields![0]!.ranges[1]!.transform?.pattern).toBe('(');
+
     const brace = parseSnippet('${1:foo} ${1/a/}/}');
+
     expect(brace.fields![0]!.ranges[1]!.transform?.format).toEqual([{ kind: 'text', text: '}' }]);
 });
 
 test('variable transforms share the range budget with fields and linked projections', () => {
     const source = '${TM_FILENAME/a/x/}'.repeat(1001);
+
     expect(parseSnippet(source, () => '')).toEqual({ text: source, stops: [], limited: true });
 });
 
 test('a pattern backslash leaves the following backslash available to escape the slash', () => {
     const bs = String.fromCharCode(92);
     const source = '${1/' + bs + bs + '/z//}';
+
     expect(parseSnippet(source).fields![0]!.ranges[0]!.transform).toEqual({
         pattern: bs + '/z',
         flags: '',
@@ -266,13 +304,16 @@ test('a pattern backslash leaves the following backslash available to escape the
 
 test('a nonempty field or variable ending after a newline excludes the next lines indentation', () => {
     const field = indentSnippet(parseSnippet('${1:foo\n}$2'), '  ');
+
     expect(field.text).toBe('foo\n  ');
     expect(field.fields![0]!.ranges[0]).toMatchObject({ start: 0, end: 4 });
     expect(field.fields![1]!.ranges[0]).toMatchObject({ start: 6, end: 6 });
+
     const variable = indentSnippet(
         parseSnippet('${TM_FILENAME/a/b/}$1', () => 'foo\n'),
         '  '
     );
+
     expect(variable.transforms![0]).toMatchObject({ start: 0, end: 4 });
     expect(variable.fields![0]!.ranges[0]).toMatchObject({ start: 6, end: 6 });
 });
@@ -280,6 +321,7 @@ test('a nonempty field or variable ending after a newline excludes the next line
 test('precomputed variable values render in occurrence order and require the matching count', () => {
     const template = compileSnippet('${TM_FILENAME/a/b/}$1 ${TM_FILENAME/a/c/}');
     const parsed = template.render(() => 'a', ['left', 'right']);
+
     expect(parsed.text).toBe('left right');
     expect(parsed.fields![0]!.ranges[0]).toMatchObject({ start: 4, end: 4 });
     expect(() => template.render(() => 'a', [])).toThrow(RangeError);
@@ -288,6 +330,7 @@ test('precomputed variable values render in occurrence order and require the mat
 
 test('indentation keeps a trailing empty child inside its parent', () => {
     const parsed = indentSnippet(parseSnippet('${1:foo\n$2}'), '  ');
+
     expect(parsed.fields!.find((field) => field.index === 1)!.ranges[0]).toMatchObject({ start: 0, end: 6 });
     expect(parsed.fields!.find((field) => field.index === 2)!.ranges[0]).toMatchObject({ start: 6, end: 6, parents: [1] });
     expect(parsed.stops.find((stop) => stop.index === 1)).toMatchObject({ start: 0, end: 6 });
@@ -298,6 +341,7 @@ test('indentation also contains an empty resolved variable transform at the pare
         parseSnippet('${1:foo\n${TM_FILENAME/a/x/}}', () => ''),
         '  '
     );
+
     expect(parsed.fields![0]!.ranges[0]).toMatchObject({ start: 0, end: 6 });
     expect(parsed.transforms![0]).toMatchObject({ start: 6, end: 6, parents: [1] });
 });
@@ -305,12 +349,15 @@ test('indentation also contains an empty resolved variable transform at the pare
 test('indentation containment belongs to the occurrence that rendered the child', () => {
     const parsed = indentSnippet(parseSnippet('${1:${2}a\n}$1'), '  ');
     const parent = parsed.fields!.find((field) => field.index === 1)!;
+
     expect(parent.ranges.map(({ start, end }) => ({ start, end }))).toEqual([
         { start: 0, end: 2 },
         { start: 4, end: 6 }
     ]);
     expect(parsed.stops.find((stop) => stop.index === 1)).toMatchObject({ start: 0, end: 2 });
+
     const ownTail = indentSnippet(parseSnippet('${1:a\n$2}$1'), '  ');
+
     expect(ownTail.fields!.find((field) => field.index === 1)!.ranges.map(({ start, end }) => ({ start, end }))).toEqual([
         { start: 0, end: 4 },
         { start: 4, end: 8 }

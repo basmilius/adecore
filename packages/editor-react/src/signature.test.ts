@@ -34,18 +34,22 @@ async function setup(
 ) {
     const service = new FakeLanguageService();
     let active = 0;
+
     service.respond('textDocument/signatureHelp', () => (active < 0 ? null : { signatures, activeParameter: active }), {
         triggerCharacters: ['(', ','],
         retriggerCharacters: [')']
     });
+
     const timers = new ManualTimers();
     const project = new ProjectLanguage(service);
     const editor = new FakeEditorEngine().mount({} as HTMLElement, { text: 'score', theme: 'light' });
     const language = new EditorLanguage(project, editor, uri, 'typescript', timers);
     await language.document.ready;
     opened.push({ language, project });
+
     const contexts = () =>
         service.calls.filter((call) => call.method === 'textDocument/signatureHelp').map((call) => (call.params as { context: unknown }).context);
+
     return {
         editor,
         timers,
@@ -64,13 +68,18 @@ describe('overloads', () => {
         editor.type('score(');
         timers.advance(100);
         await settle();
+
         expect(view()?.model).toMatchObject({ index: 0, count: 3, label: OVERLOADS[0]!.label });
         expect(editor.press({ key: 'ArrowDown' })).toBe(true);
         expect(view()?.model).toMatchObject({ index: 1, label: OVERLOADS[1]!.label });
+
         editor.press({ key: 'ArrowDown' });
         editor.press({ key: 'ArrowDown' });
+
         expect(view()?.model.index).toBe(0);
+
         editor.press({ key: 'ArrowUp' });
+
         expect(view()?.model.index).toBe(2);
         expect(editor.press({ key: 'ArrowDown', shiftKey: true })).toBe(false);
     });
@@ -80,8 +89,11 @@ describe('overloads', () => {
         single.editor.type('score(');
         single.timers.advance(100);
         await settle();
+
         expect(single.editor.press({ key: 'ArrowDown' })).toBe(false);
+
         const none = await setup(OVERLOADS);
+
         expect(none.editor.press({ key: 'ArrowUp' })).toBe(false);
     });
 
@@ -94,6 +106,7 @@ describe('overloads', () => {
         editor.type('score(a');
         timers.advance(100);
         await settle();
+
         expect(contexts().at(-1)).toMatchObject({ activeSignatureHelp: { activeSignature: 1 } });
         expect(view()).not.toBeNull();
     });
@@ -104,9 +117,12 @@ describe('overloads', () => {
         timers.advance(100);
         await settle();
         editor.press({ key: 'Escape' });
+
         expect(editor.press(keyOf(language.shortcuts.parameterInfo))).toBe(true);
+
         timers.advance(100);
         await settle();
+
         expect(view()).not.toBeNull();
         expect(contexts().at(-1)).toEqual({ triggerKind: 1, isRetrigger: false });
     });
@@ -118,14 +134,17 @@ describe('signature help', () => {
         editor.type('score(');
         timers.advance(100);
         await settle();
+
         expect(view()?.model).toMatchObject({ active: { start: 6, end: 26 }, parameterName: 'candidate' });
         expect(contexts()[0]).toEqual({ triggerKind: 2, triggerCharacter: '(', isRetrigger: false });
+
         const anchor = view()!.anchor;
         setActive(1);
         editor.type('score(a');
         editor.type('score(a,');
         timers.advance(100);
         await settle();
+
         expect(view()?.model.parameterName).toBe('vacancy');
         expect(view()?.anchor).toEqual(anchor);
         expect(contexts().at(-1)).toMatchObject({ isRetrigger: true, triggerCharacter: ',' });
@@ -140,12 +159,15 @@ describe('signature help', () => {
         editor.type('score()');
         timers.advance(100);
         await settle();
+
         expect(view()).toBeNull();
+
         setActive(0);
         editor.setText('score');
         editor.type('score(');
         timers.advance(100);
         await settle();
+
         expect(editor.press({ key: 'Escape' })).toBe(true);
         expect(view()).toBeNull();
         expect(editor.press({ key: 'Escape' })).toBe(false);
@@ -156,6 +178,7 @@ describe('signature help', () => {
         editor.type('scores');
         timers.advance(100);
         await settle();
+
         expect(view()).toBeNull();
     });
 });

@@ -21,38 +21,49 @@ afterEach(() => {
 
 async function setup(answer: (() => unknown) | null) {
     const service = new FakeLanguageService();
+
     if (answer !== null) {
         service.respond('textDocument/selectionRange', answer);
     }
+
     const project = new ProjectLanguage(service);
     const editor = new FakeEditorEngine().mount({} as HTMLElement, { text: 'let value = 1;\nnext', theme: 'light' });
     const language = new EditorLanguage(project, editor, uri, 'typescript', new ManualTimers());
     open.push(project, language);
     await language.document.ready;
+
     const asked = () => service.calls.filter((call) => call.method === 'textDocument/selectionRange');
+
     return { editor, language, asked };
 }
 
 describe('selection ranges', () => {
     test('hands the editor the chain of each position when a server offers them', async () => {
         const { editor, asked } = await setup(() => [CHAIN]);
+
         expect(await editor.selectionRanges?.([at(0, 5)])).toEqual([[range(0, 4, 9), range(0, 0, 14), range(0, 0, 20)]]);
         expect(asked()).toMatchObject([{ uri, params: { positions: [at(0, 5)] } }]);
     });
 
     test('has the editor use its own rule when no server offers them, and when the document goes', async () => {
         const { editor, language, asked } = await setup(null);
+
         expect(await editor.selectionRanges?.([at(0, 5)])).toBeNull();
         expect(asked()).toEqual([]);
+
         language.dispose();
+
         expect(editor.selectionRanges).toBeNull();
     });
 
     test('has the editor use its own rule when the server answers nothing or not one chain per position', async () => {
         let answer: unknown = null;
         const { editor } = await setup(() => answer);
+
         expect(await editor.selectionRanges?.([at(0, 5)])).toBeNull();
+
         answer = [CHAIN];
+
         expect(await editor.selectionRanges?.([at(0, 5), at(1, 2)])).toBeNull();
     });
 

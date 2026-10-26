@@ -27,6 +27,7 @@ async function mount(service: FakeLanguageService, text: string, host: LanguageH
     const language = new EditorLanguage(project, editor, uri, 'typescript');
     await language.document.ready;
     opened.push({ language, project });
+
     return { editor, language };
 }
 
@@ -45,6 +46,7 @@ describe('rename', () => {
     async function setup(options: { prepare?: 'server' | 'word' | 'none'; prepared?: unknown; edit?: unknown } = {}) {
         const service = new FakeLanguageService();
         const prepare = options.prepare ?? 'server';
+
         const edit =
             options.edit !== undefined
                 ? options.edit
@@ -56,31 +58,40 @@ describe('rename', () => {
                           ]
                       }
                   };
+
         if (prepare !== 'none') {
             service.respond('textDocument/rename', () => edit, { prepareProvider: prepare === 'server' });
         }
+
         if (prepare === 'server') {
             service.respond('textDocument/prepareRename', () =>
                 options.prepared !== undefined ? options.prepared : { range: range(0, 6, 13), placeholder: 'weights' }
             );
+
             service.respond('textDocument/references', () => [
                 { uri, range: range(0, 6, 13) },
                 { uri, range: range(1, 4, 11) },
                 { uri: otherUri, range: range(2, 0, 7) }
             ]);
         }
+
         const notices: EditorNotification[] = [];
         const { editor, language } = await mount(service, TEXT, { notify: (notice) => notices.push(notice), files: filesWith('a\nb\nweights') });
+
         const renames = () => service.calls.filter((call) => call.method === 'textDocument/rename');
+
         return { renames, notices, editor, language };
     }
 
     test('puts the input on the symbol the server prepared and lights up every place the name has', async () => {
         const { editor, language } = await setup();
         editor.moveCaret(at(0, 8));
+
         expect(editor.press(keyOf(language.shortcuts.rename))).toBe(true);
+
         await settle();
         const view = language.popups.getState().rename!;
+
         expect(view).toMatchObject({ phase: 'input', original: 'weights', placeholder: 'weights', range: range(0, 6, 13) });
         expect(view.occurrences).toEqual({ count: 3, files: 2 });
         expect(editor.highlights.map((highlight) => highlight.range)).toEqual([range(0, 6, 13), range(1, 4, 11)]);
@@ -91,6 +102,7 @@ describe('rename', () => {
         editor.moveCaret(at(0, 8));
         await language.rename.start();
         await language.rename.submit(' scores ', false);
+
         expect(renames()[0]?.params).toMatchObject({ newName: 'scores', position: at(0, 6) });
         expect(editor.getText()).toBe('const scores = {};\nuse(scores);');
         expect(language.popups.getState().rename).toBeNull();
@@ -103,6 +115,7 @@ describe('rename', () => {
         await language.rename.start();
         await language.rename.submit('scores', true);
         const view = language.popups.getState().rename!;
+
         expect(view.phase).toBe('preview');
         expect(view.files).toEqual([
             {
@@ -114,7 +127,9 @@ describe('rename', () => {
             }
         ]);
         expect(editor.getText()).toBe(TEXT);
+
         await language.rename.confirm();
+
         expect(editor.getText()).toBe('const scores = {};\nuse(scores);');
     });
 
@@ -123,11 +138,14 @@ describe('rename', () => {
         editor.moveCaret(at(0, 8));
         await language.rename.start();
         language.rename.cancel();
+
         expect(language.popups.getState().rename).toBeNull();
+
         await language.rename.start();
         await language.rename.submit('weights', false);
         await language.rename.start();
         await language.rename.submit('  ', false);
+
         expect(renames()).toHaveLength(0);
         expect(editor.getText()).toBe(TEXT);
     });
@@ -136,12 +154,14 @@ describe('rename', () => {
         const { editor, language } = await setup({ prepare: 'word' });
         editor.moveCaret(at(1, 6));
         await language.rename.start();
+
         expect(language.popups.getState().rename).toMatchObject({ original: 'weights', range: range(1, 4, 11) });
     });
 
     test('says so when there is nothing to rename here', async () => {
         const { language, notices } = await setup({ prepared: null });
         await language.rename.start();
+
         expect(notices.map((notice) => notice.title)).toEqual(['Nothing to rename here']);
     });
 
@@ -150,6 +170,7 @@ describe('rename', () => {
         editor.moveCaret(at(0, 8));
         await language.rename.start();
         await language.rename.submit('scores', false);
+
         expect(language.popups.getState().rename).toMatchObject({
             phase: 'input',
             busy: false,
@@ -157,13 +178,16 @@ describe('rename', () => {
         });
         expect(language.rename.isOpen).toBe(true);
         expect(notices).toEqual([]);
+
         language.rename.edited();
+
         expect(language.popups.getState().rename?.error).toBeNull();
     });
 
     test('says so when no server renames in the file', async () => {
         const { language, notices } = await setup({ prepare: 'none' });
         await language.rename.start();
+
         expect(notices.map((notice) => notice.title)).toEqual(['Rename unavailable in this file']);
     });
 });
@@ -173,37 +197,46 @@ describe('rename suggestions', () => {
 
     async function setup(suggestNames?: LanguageHost['suggestNames'], outline?: unknown) {
         const service = new FakeLanguageService();
+
         if (outline !== undefined) {
             service.respond('textDocument/documentSymbol', () => outline);
         }
+
         service.respond('textDocument/rename', () => null, { prepareProvider: true });
         service.respond('textDocument/prepareRename', () => ({ range: range(0, 6, 10), placeholder: 'hits' }));
+
         service.respond('textDocument/references', () => [
             { uri, range: range(0, 6, 10) },
             { uri, range: range(1, 7, 11) },
             { uri: otherUri, range: range(0, 4, 8) }
         ]);
+
         const { editor, language } = await mount(service, TEXT, { files: filesWith('log(hits);'), ...(suggestNames ? { suggestNames } : {}) });
         editor.moveCaret(at(0, 7));
         editor.press(keyOf(language.shortcuts.rename));
         await settle();
+
         const renames = () => service.calls.filter((call) => call.method === 'textDocument/rename');
+
         return { renames, language };
     }
 
     function pending() {
         const asked: { request: RenameSuggestionsRequest; signal: AbortSignal; answer: (names: readonly string[]) => void; fail: (error: Error) => void }[] =
             [];
+
         const suggestNames = (request: RenameSuggestionsRequest, signal: AbortSignal) =>
             new Promise<readonly string[]>((answer, fail) => {
                 asked.push({ request, signal, answer, fail });
             });
+
         return { asked, suggestNames };
     }
 
     test('asks the host about the lines around the symbol and the lines that use it', async () => {
         const { asked, suggestNames } = pending();
         await setup(suggestNames);
+
         expect(asked).toHaveLength(1);
         expect(asked[0]!.request).toEqual({
             uri,
@@ -217,6 +250,7 @@ describe('rename suggestions', () => {
     test('names the kind of the symbol when the outline of the file lists it', async () => {
         const { asked, suggestNames } = pending();
         await setup(suggestNames, [{ name: 'hits', kind: 14, range: range(0, 6, 40), selectionRange: range(0, 6, 10) }]);
+
         expect(asked[0]!.request).toMatchObject({ name: 'hits', kind: 'constant' });
     });
 
@@ -225,6 +259,7 @@ describe('rename suggestions', () => {
         const { language, renames } = await setup(suggestNames);
         asked[0]!.answer(['matchedSkills', 'matches', 'foundSkills']);
         await settle();
+
         expect(language.popups.getState().rename!.suggestions).toEqual(['matchedSkills', 'matches', 'foundSkills']);
         expect(language.popups.getState().rename!.name).toBe('hits');
         expect(renames()).toHaveLength(0);
@@ -232,6 +267,7 @@ describe('rename suggestions', () => {
 
     test('offers none when the host has no suggester', async () => {
         const { language } = await setup();
+
         expect(language.popups.getState().rename).toMatchObject({ phase: 'input', suggestions: [] });
     });
 
@@ -239,9 +275,12 @@ describe('rename suggestions', () => {
         const { asked, suggestNames } = pending();
         const { language } = await setup(suggestNames);
         language.rename.cancel();
+
         expect(asked[0]!.signal.aborted).toBe(true);
+
         asked[0]!.answer(['matches']);
         await settle();
+
         expect(language.popups.getState().rename).toBeNull();
     });
 
@@ -250,6 +289,7 @@ describe('rename suggestions', () => {
         const { language } = await setup(suggestNames);
         asked[0]!.fail(new Error('The model is busy'));
         await settle();
+
         expect(language.popups.getState().rename).toMatchObject({ suggestions: [], phase: 'input', error: null });
     });
 });

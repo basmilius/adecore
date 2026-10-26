@@ -108,18 +108,22 @@ function isHierarchical(symbols: readonly (DocumentSymbol | SymbolInformation)[]
 /* The symbols of a file, parents before their children, in the order of the file. */
 export function entriesOf(result: DocumentSymbolResult): SymbolEntry[] {
     const entries: SymbolEntry[] = [];
+
     const add = (name: string, kind: number, container: string, detail: string, at: EditorRange['start']): void => {
         entries.push({ id: String(entries.length), name, kind, container, detail, line: at.line, character: at.character });
     };
+
     const walk = (symbols: readonly DocumentSymbol[], container: string): void => {
         for (const symbol of symbols) {
             add(symbol.name, symbol.kind, container, symbol.detail ?? '', symbol.selectionRange.start);
             walk(symbol.children ?? [], container === '' ? symbol.name : `${container}.${symbol.name}`);
         }
     };
+
     if (result === null || result.length === 0) {
         return entries;
     }
+
     if (isHierarchical(result)) {
         walk(result, '');
     } else {
@@ -127,6 +131,7 @@ export function entriesOf(result: DocumentSymbolResult): SymbolEntry[] {
             add(symbol.name, symbol.kind, symbol.containerName ?? '', '', symbol.location.range.start);
         }
     }
+
     return entries;
 }
 
@@ -134,22 +139,29 @@ export function entriesOf(result: DocumentSymbolResult): SymbolEntry[] {
 export function scoreOf(name: string, query: string): number {
     const haystack = name.toLowerCase();
     const needle = query.toLowerCase();
+
     if (needle === '') {
         return 1;
     }
+
     if (haystack.startsWith(needle)) {
         return 3;
     }
+
     if (haystack.includes(needle)) {
         return 2;
     }
+
     let from = 0;
+
     for (const character of needle) {
         from = haystack.indexOf(character, from) + 1;
+
         if (from === 0) {
             return 0;
         }
     }
+
     return 1;
 }
 
@@ -157,6 +169,7 @@ export function scoreOf(name: string, query: string): number {
 export function filterEntries(entries: readonly SymbolEntry[], query: string): SymbolEntry[] {
     const trimmed = query.trim();
     const scored = entries.map((entry, index) => ({ entry, index, score: scoreOf(entry.name, trimmed) })).filter((candidate) => candidate.score > 0);
+
     return scored
         .sort((left, right) => (trimmed === '' ? left.index - right.index : right.score - left.score || left.index - right.index))
         .map((candidate) => candidate.entry);
@@ -171,6 +184,7 @@ export interface EntryGroup {
 export function groupEntries(entries: readonly SymbolEntry[]): EntryGroup[] {
     return SYMBOL_GROUPS.flatMap((group) => {
         const own = entries.filter((entry) => groupOfKind(entry.kind) === group);
+
         return own.length === 0 ? [] : [{ group, entries: own }];
     });
 }
@@ -185,10 +199,13 @@ export function modeOf(input: string): PickerMode {
     if (input.startsWith('#')) {
         return { mode: 'workspace', text: input.slice(1).trim() };
     }
+
     if (input.startsWith(':')) {
         const line = Number.parseInt(input.slice(1), 10);
+
         return { mode: 'line', line: Number.isFinite(line) && line > 0 ? line : null };
     }
+
     return { mode: 'symbol', text: input };
 }
 

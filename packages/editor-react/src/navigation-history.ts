@@ -27,10 +27,12 @@ export class NavigationHistory {
             this.backs[this.backs.length - 1] = from;
         } else {
             this.backs.push(from);
+
             if (this.backs.length > LIMIT) {
                 this.backs.shift();
             }
         }
+
         this.forwards = [];
     }
 
@@ -59,11 +61,14 @@ export class NavigationHistory {
     private walk(from: Place[], to: Place[], current: Place): Place | null {
         while (from.length > 0) {
             const place = from.pop()!;
+
             if (!samePlace(place, current)) {
                 to.push(current);
+
                 return place;
             }
         }
+
         return null;
     }
 }

@@ -17,14 +17,19 @@ export interface SignatureViewModel {
 /* Where a parameter's label stands in the signature's: given as a pair of offsets, or as the text to find in it. */
 function parameterSpan(signature: SignatureInformation, index: number): { start: number; end: number } | null {
     const parameter = signature.parameters?.[index];
+
     if (parameter === undefined) {
         return null;
     }
+
     if (typeof parameter.label !== 'string') {
         const [start, end] = parameter.label;
+
         return start >= 0 && end <= signature.label.length && start < end ? { start, end } : null;
     }
+
     const start = signature.label.indexOf(parameter.label);
+
     return start < 0 ? null : { start, end: start + parameter.label.length };
 }
 
@@ -32,11 +37,13 @@ export function signatureViewOf(help: SignatureHelp | null): SignatureViewModel 
     if (help === null || help.signatures.length === 0) {
         return null;
     }
+
     const index = Math.min(Math.max(0, help.activeSignature ?? 0), help.signatures.length - 1);
     const signature = help.signatures[index]!;
     const parameterIndex = signature.activeParameter ?? help.activeParameter ?? 0;
     const active = parameterSpan(signature, parameterIndex);
     const parameter = signature.parameters?.[parameterIndex];
+
     return {
         label: signature.label,
         active,

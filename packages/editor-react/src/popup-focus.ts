@@ -21,6 +21,7 @@ export function keepFocusOutOfList(focusBack: () => void): {
 export function useInputPopup(language: EditorLanguage, controls: string, activeDescendant: string | undefined): void {
     useLayoutEffect(() => {
         language.editor.setInputPopup({ controls, activeDescendant });
+
         return () => language.editor.setInputPopup(null);
     }, [language, controls, activeDescendant]);
 }

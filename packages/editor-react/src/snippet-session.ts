@@ -30,6 +30,7 @@ interface Field {
     choices?: readonly string[];
     divergent?: boolean;
 }
+
 interface Instance {
     fields: Field[];
     hull: EditorRange;
@@ -42,6 +43,7 @@ function mapRange<Range extends EditorRange>(
     grow: boolean | ((change: EditorContentChange) => boolean)
 ): Range {
     let { start, end } = range;
+
     for (const change of changes) {
         const grows = typeof grow === 'boolean' ? grow : grow(change);
         const empty = comparePositions(start, end) === 0;
@@ -50,16 +52,19 @@ function mapRange<Range extends EditorRange>(
         start = grows && comparePositions(start, change.range.start) === 0 ? change.range.start : shiftPosition(start, change);
         end = !grows && !empty && insertAtEnd ? end : shiftPosition(end, change);
     }
+
     return { ...range, start, end };
 }
 
 function selectionsOf(field: Field): SessionRange[] {
     const primary = field.ranges[field.primary]!;
     const sorted = [...field.ranges].sort((left, right) => comparePositions(left.start, right.start));
+
     // The editor merges touching selections; keep these mirrors static instead of editing their union.
     if (sorted.some((range, index) => index > 0 && comparePositions(sorted[index - 1]!.end, range.start) >= 0)) {
         return [primary];
     }
+
     return [...field.ranges.filter((range) => range !== primary), primary];
 }
 
@@ -79,6 +84,7 @@ export interface SnippetInsertion {
 }
 
 type SnippetHost = Pick<EditorLanguage, 'editor' | 'onDispose'> & Partial<Pick<EditorLanguage, 'popups' | 'pick' | 'project' | 'onKey'>>;
+
 const MAX_FRAMES = 8;
 const MAX_RANGES = 1000;
 
@@ -86,9 +92,11 @@ function frameOf(insertions: readonly SnippetInsertion[]): Frame | null {
     const primary = insertions.at(-1);
     const positions = [...insertions].sort((left, right) => comparePositions(left.start, right.start));
     const instanceOrder = new Map(positions.map((insertion, index) => [insertion.start, index]));
+
     if (primary === undefined || primary.stops.length === 0) {
         return null;
     }
+
     return {
         order: primary.stops.map((stop) => stop.index),
         current: 0,
@@ -99,6 +107,7 @@ function frameOf(insertions: readonly SnippetInsertion[]): Frame | null {
             selected: [],
             fields: stops.map((stop): Field => {
                 const field = fields?.find((field) => field.index === stop.index);
+
                 return {
                     index: stop.index,
                     primary: field?.primary ?? 0,
@@ -123,41 +132,54 @@ function rangeCount(frame: Frame): number {
 
 function selectedOf(frame: Frame): SessionRange[] {
     const stop = frame.order[frame.current]!;
+
     const selections = frame.instances.flatMap((instance) => {
         const field = instance.fields.find((field) => field.index === stop);
         instance.selected = field === undefined ? [] : stop === 0 ? [field.ranges[field.primary]!] : selectionsOf(field);
+
         return instance.selected;
     });
+
     const sorted = [...selections].sort((left, right) => comparePositions(left.start, right.start));
+
     if (sorted.some((range, index) => index > 0 && comparePositions(sorted[index - 1]!.end, range.start) >= 0)) {
         const primary = selections.at(-1)!;
+
         for (const instance of frame.instances) {
             instance.selected = instance.selected.includes(primary) ? [primary] : [];
         }
+
         return [primary];
     }
+
     return selections;
 }
 
 function activeOwners(active: readonly SessionRange[], changes: readonly EditorContentChange[]): ReadonlyMap<EditorContentChange, SessionRange> {
     const sorted = [...active].sort((left, right) => comparePositions(left.start, right.start) || comparePositions(left.end, right.end));
     const owners = new Map<EditorContentChange, SessionRange>();
+
     for (const edit of changes) {
         let low = 0;
         let high = sorted.length;
+
         while (low < high) {
             const middle = (low + high) >>> 1;
+
             if (comparePositions(sorted[middle]!.start, edit.range.start) <= 0) {
                 low = middle + 1;
             } else {
                 high = middle;
             }
         }
+
         const range = sorted[low - 1];
+
         if (range !== undefined && rangeHolds(range, edit.range.start) && rangeHolds(range, edit.range.end)) {
             owners.set(edit, range);
         }
     }
+
     return owners;
 }
 
@@ -173,6 +195,7 @@ export class SnippetFeature {
     private readonly transforms: SnippetTransformLease | null;
     private readonly fieldTransforms: SnippetFieldTransforms;
     private exitGeneration = 0;
+
     private detached: {
         targets: readonly FieldTransformTarget[];
         ranges: ReadonlyMap<symbol, EditorRange>;
@@ -184,15 +207,19 @@ export class SnippetFeature {
         this.transforms = language.project === undefined ? null : acquireSnippetTransforms(language.project, timers);
         const { editor } = language;
         this.fieldTransforms = new SnippetFieldTransforms(editor, this.transforms, (targets, values) => this.applyFieldTransforms(targets, values));
+
         const key = (event: KeyboardEvent): boolean => this.key(event);
+
         const offs = [
             language.onKey === undefined ? editor.onKeyDown(key) : language.onKey(key, KEY_PRIORITY.snippets),
             editor.onTextChange((change) => this.edited(change)),
             editor.onCaret(() => this.moved())
         ];
+
         language.onDispose(() => {
             this.transforms?.dispose();
             this.end();
+
             for (const off of offs) {
                 off();
             }
@@ -203,12 +230,14 @@ export class SnippetFeature {
         if (this.transforms === null) {
             return null;
         }
+
         try {
             return await this.transforms.request(jobs, { current });
         } catch (error) {
             if (error instanceof SnippetTransformError && ['timeout', 'unavailable', 'superseded', 'disposed'].includes(error.kind)) {
                 return null;
             }
+
             throw error;
         }
     }
@@ -223,6 +252,7 @@ export class SnippetFeature {
     ): Promise<boolean> {
         let selections = this.language.editor.getSelections(),
             valid = true;
+
         const off = this.language.editor.onTextChange((change) => {
             if (this.detached === null) {
                 valid = false;
@@ -231,12 +261,15 @@ export class SnippetFeature {
                 edited?.(change.changes, this.detached.map);
             }
         });
+
         try {
             await this.fieldTransforms.settle();
         } finally {
             off();
         }
+
         const now = this.language.editor.getSelections();
+
         return valid && current() && now.length === selections.length && now.every((range, index) => sameRange(range, selections[index]!));
     }
 
@@ -262,18 +295,25 @@ export class SnippetFeature {
                     : insertion.fields.reduce((count, field) => count + field.ranges.length + (field.linked?.length ?? 0), 1)),
             0
         );
+
         if (ranges > MAX_RANGES) {
             this.end();
+
             return;
         }
+
         const frame = frameOf(insertions);
+
         if (frame === null) {
             if (!options.nested) {
                 this.end();
             }
+
             return;
         }
+
         const parent = this.frames.at(-1);
+
         const nested =
             options.nested &&
             parent !== undefined &&
@@ -282,13 +322,17 @@ export class SnippetFeature {
                     parent.selected.some((range) => rangeHolds(range, instance.hull.start) && rangeHolds(range, instance.hull.end))
                 )
             );
+
         if (nested && parent !== undefined) {
             const selectedParents = new Set(this.frames.flatMap((frame) => frame.instances.flatMap((parent) => parent.selected.map((range) => range.id))));
+
             for (const instance of frame.instances) {
                 const enclosing = parent.instances
                     .flatMap((parent) => parent.selected)
                     .find((range) => rangeHolds(range, instance.hull.start) && rangeHolds(range, instance.hull.end));
+
                 const emptyHull = comparePositions(instance.hull.start, instance.hull.end) === 0;
+
                 const ancestors = this.frames
                     .flatMap((frame) => frame.instances.flatMap((parent) => parent.fields.flatMap((field) => field.ranges)))
                     .filter(
@@ -301,17 +345,21 @@ export class SnippetFeature {
                                 (comparePositions(range.start, instance.hull.start) < 0 && comparePositions(instance.hull.end, range.end) < 0))
                     )
                     .map((range) => range.id);
+
                 for (const field of instance.fields) {
                     field.ranges = field.ranges.map((range) => ({ ...range, order: [...(enclosing?.order ?? []), ...range.order], ancestors }));
                 }
             }
         }
+
         if (!nested || this.frames.length >= MAX_FRAMES || this.frames.reduce((total, frame) => total + rangeCount(frame), rangeCount(frame)) > MAX_RANGES) {
             this.end();
         }
+
         if (rangeCount(frame) > MAX_RANGES) {
             return;
         }
+
         this.closeChoices();
         this.frames.push(frame);
         this.generation++;
@@ -321,6 +369,7 @@ export class SnippetFeature {
     /* Imports can touch a hull's edge; their affinity must differ from edits inside its active field. */
     applyEdits(changes: readonly EditorContentChange[], token: number, extras: readonly EditorContentChange[] = []): boolean {
         const frame = this.frames.at(-1);
+
         const fits =
             frame !== undefined &&
             changes.every((edit) =>
@@ -332,12 +381,16 @@ export class SnippetFeature {
                           instance.selected.some((range) => rangeHolds(range, edit.range.start) && rangeHolds(range, edit.range.end))
                       )
             );
+
         if (token !== this.generation || !fits) {
             this.end();
+
             return this.language.editor.applyEdits(changes);
         }
+
         this.applying = true;
         this.extras = extras;
+
         try {
             return this.language.editor.applyEdits(changes);
         } finally {
@@ -357,9 +410,11 @@ export class SnippetFeature {
 
     private closeChoices(): void {
         const view = this.language.popups?.getState().pick;
+
         if (this.choicePrefix !== null && view?.groups.some((group) => group.rows.some((row) => row.id.startsWith(this.choicePrefix!)))) {
             this.language.pick?.close();
         }
+
         this.choicePrefix = null;
     }
 
@@ -368,6 +423,7 @@ export class SnippetFeature {
         this.frames.pop();
         this.generation++;
         const parent = this.frames.at(-1);
+
         if (parent !== undefined) {
             selectedOf(parent);
             parent.expectedSelections = this.language.editor.getSelections().length;
@@ -376,9 +432,11 @@ export class SnippetFeature {
 
     private visit(index: number, choices = true): void {
         const frame = this.frames.at(-1);
+
         if (frame === undefined) {
             return;
         }
+
         this.closeChoices();
         this.generation++;
         frame.current = index;
@@ -387,20 +445,26 @@ export class SnippetFeature {
         this.fieldTransforms.prune();
         const selections = selectedOf(frame);
         this.placed = selections;
+
         if (selections.length === 0) {
             this.end();
+
             return;
         }
+
         this.visiting = true;
+
         try {
             this.language.editor.setSelections(selections.map(({ start, end }) => ({ start, end })));
             frame.expectedSelections = this.language.editor.getSelections().length;
         } finally {
             this.visiting = false;
         }
+
         if (choices && stop !== 0) {
             this.announceField(frame, index);
         }
+
         if (stop === 0 || index === frame.order.length - 1) {
             this.pop();
         } else if (choices) {
@@ -411,12 +475,15 @@ export class SnippetFeature {
     /* Says which field the caret moved to, with the number of choices when the field is a list. */
     private announceField(frame: Frame, index: number): void {
         const i18n = this.language.project?.i18n;
+
         if (i18n === undefined) {
             return;
         }
+
         const total = frame.order.filter((stop) => stop !== 0).length;
         const options = { current: index + 1, total };
         const choices = this.fieldOf(frame)?.choices?.length ?? 0;
+
         this.language.editor.announce(
             choices > 0 && index < frame.order.length - 1
                 ? i18n.t('editor:language.announce.fieldChoices', { ...options, count: choices })
@@ -430,12 +497,15 @@ export class SnippetFeature {
 
     private openChoices(frame: Frame, activeChoice?: number): void {
         const field = this.fieldOf(frame);
+
         if (field?.choices === undefined || field.choices.length === 0 || this.language.pick === undefined) {
             return;
         }
+
         const token = this.generation;
         const prefix = `snippet-${token}-`;
         this.choicePrefix = prefix;
+
         this.language.pick.open({
             anchor: field.ranges[field.primary]!.start,
             title: this.language.project?.i18n.t('editor:language.snippet.choices'),
@@ -445,12 +515,16 @@ export class SnippetFeature {
                 if (token !== this.generation) {
                     return;
                 }
+
                 const text = field.choices![Number(id.slice(prefix.length))];
+
                 if (text === undefined) {
                     return;
                 }
+
                 const changes = frame.instances.flatMap((instance) => instance.selected.map((range) => ({ range, text })));
                 this.applyEdits(changes, token);
+
                 if (this.frames.at(-1) === frame) {
                     this.visit(frame.current, false);
                 }
@@ -465,10 +539,13 @@ export class SnippetFeature {
 
     private step(backwards: boolean): void {
         const frame = this.frames.at(-1);
+
         if (frame === undefined) {
             return;
         }
+
         this.exitField(frame);
+
         if (backwards && frame.current === 0 && this.frames.length > 1) {
             this.pop();
             this.visit(this.frames.at(-1)!.current);
@@ -481,26 +558,34 @@ export class SnippetFeature {
         if ((!this.isActive && !this.fieldTransforms.pending) || event.ctrlKey || event.metaKey || event.altKey || event.isComposing) {
             return false;
         }
+
         if (event.key === 'Tab' && this.isActive) {
             this.step(event.shiftKey);
+
             return true;
         }
+
         if (event.key === 'Escape') {
             const popups = this.language.popups?.getState();
+
             if (
                 popups !== undefined &&
                 [popups.completion, popups.signature, popups.hover, popups.pick, popups.peek, popups.callHierarchy].some((popup) => popup !== null)
             ) {
                 return false;
             }
+
             const active = this.isActive;
             const caret = this.language.editor.getCaret();
             this.end();
+
             if (active) {
                 this.language.editor.setCaret(caret);
             }
+
             return true;
         }
+
         return false;
     }
 
@@ -510,12 +595,15 @@ export class SnippetFeature {
         frame.exits.set(index, seq);
         const generation = this.exitGeneration;
         const targets: FieldTransformTarget[] = [];
+
         for (const instance of frame.instances) {
             const field = instance.fields.find((field) => field.index === index);
+
             for (const range of field?.ranges ?? []) {
                 if (range.transform === undefined) {
                     continue;
                 }
+
                 targets.push({
                     id: range.id,
                     range,
@@ -529,6 +617,7 @@ export class SnippetFeature {
                 });
             }
         }
+
         if (
             targets.length === 0 ||
             this.transforms === null ||
@@ -536,18 +625,23 @@ export class SnippetFeature {
         ) {
             return;
         }
+
         for (const instance of frame.instances) {
             for (const field of instance.fields) {
                 const primary = field.ranges[field.primary];
+
                 field.ranges = field.ranges.filter(
                     (range) =>
                         !range.parents?.includes(index) ||
                         !targets.some((target) => target.owner === instance && rangeHolds(target.range, range.start) && rangeHolds(target.range, range.end))
                 );
+
                 field.primary = Math.max(0, field.ranges.indexOf(primary!));
             }
+
             instance.fields = instance.fields.filter((field) => field.ranges.length > 0);
         }
+
         frame.order = frame.order.filter((stop) => frame.instances.at(-1)?.fields.some((field) => field.index === stop));
         frame.current = frame.order.indexOf(index);
         this.fieldTransforms.enqueue(targets, () => generation === this.exitGeneration && frame.exits.get(index) === seq);
@@ -557,6 +651,7 @@ export class SnippetFeature {
         const { editor } = this.language;
         const activeFrame = this.frames.at(-1);
         const active = activeFrame?.instances.flatMap((instance) => instance.selected) ?? [];
+
         if (
             targets.some(
                 (target) =>
@@ -566,25 +661,34 @@ export class SnippetFeature {
         ) {
             return;
         }
+
         const groups: { change: EditorContentChange; targets: { target: FieldTransformTarget; text: string }[] }[] = [];
         let characters = 0;
+
         for (const [index, target] of targets.entries()) {
             const before = textBeforeOf(editor, target.range.start);
             const prefix = /^[\t ]*/.exec(before)?.[0] ?? '';
             const value = values[index]!;
             let newlines = 0;
+
             for (let at = value.indexOf('\n'); at !== -1; at = value.indexOf('\n', at + 1)) {
                 newlines++;
             }
+
             characters += value.length + newlines * prefix.length;
+
             if (characters > MAX_TRANSFORM_CHARACTERS) {
                 return;
             }
+
             const text = value.replace(/\n/g, '\n' + prefix);
+
             if (text === editor.textInRange(target.range)) {
                 continue;
             }
+
             const empty = comparePositions(target.range.start, target.range.end) === 0;
+
             const group = empty
                 ? groups.find(
                       (group) =>
@@ -592,6 +696,7 @@ export class SnippetFeature {
                           comparePositions(group.change.range.start, target.range.start) === 0
                   )
                 : undefined;
+
             if (group === undefined) {
                 groups.push({ change: { range: target.range, text }, targets: [{ target, text }] });
             } else {
@@ -599,25 +704,32 @@ export class SnippetFeature {
                 group.targets.push({ target, text });
             }
         }
+
         if (groups.length === 0) {
             return;
         }
+
         for (const group of groups) {
             group.targets.sort((left, right) => compareSnippetOrder(left.target.order, right.target.order));
             group.change = { range: group.change.range, text: group.targets.map(({ text }) => text).join('') };
         }
+
         const changes = groups.map((group) => group.change).sort((left, right) => comparePositions(right.range.start, left.range.start));
         const peersOf = new Map(groups.map((group) => [group.change, group.targets.map(({ target }) => target)]));
         const ranges = new Map<symbol, EditorRange>();
         const steps = new Map<symbol, EditorRange>();
+
         for (const group of groups) {
             let start = group.change.range.start;
+
             for (const edit of changes) {
                 if (comparePositions(edit.range.start, group.change.range.start) < 0) {
                     start = shiftPosition(start, edit);
                 }
             }
+
             let local = group.change.range.start;
+
             for (const { target, text } of group.targets) {
                 const localEnd = positionInInsertion(local, text, text.length);
                 steps.set(target.id, { start: local, end: localEnd });
@@ -627,12 +739,16 @@ export class SnippetFeature {
                 start = end;
             }
         }
+
         const frame = this.frames.at(-1);
         const pick = this.language.popups?.getState().pick;
+
         const activeChoice =
             this.choicePrefix !== null && pick?.active.startsWith(this.choicePrefix) ? Number(pick.active.slice(this.choicePrefix.length)) : undefined;
+
         const trackedFrames = [...new Set([...this.frames, ...targets.map((target) => target.frame as Frame)])];
         const transformIds = new Set(targets.map((target) => target.id));
+
         const captured = [
             ...this.placed,
             ...active,
@@ -644,6 +760,7 @@ export class SnippetFeature {
                 )
             )
         ];
+
         const ancestorsOf = new Map(
             targets.map((target) => [
                 target,
@@ -661,33 +778,43 @@ export class SnippetFeature {
                 ])
             ])
         );
+
         const map = <Range extends EditorRange>(range: Range, parent?: (target: FieldTransformTarget) => boolean): Range => {
             const tracked = 'order' in range ? (range as Range & SessionRange) : captured.find((candidate) => sameRange(candidate, range));
             let { start, end } = range;
+
             for (const change of changes) {
                 const peers = peersOf.get(change)!;
                 const descendants = peers.filter((peer) => parent?.(peer) ?? (tracked !== undefined && ancestorsOf.get(peer)!.has(tracked.id)));
                 const grows = descendants.length > 0;
                 const empty = comparePositions(start, end) === 0;
+
                 const boundary = (position: EditorPosition): EditorPosition => {
                     if (comparePositions(position, change.range.start) !== 0 || peers.length === 0) {
                         return shiftPosition(position, change);
                     }
+
                     let low = 0,
                         high = peers.length;
+
                     while (low < high) {
                         const middle = (low + high) >>> 1;
+
                         if (compareSnippetOrder(peers[middle]!.order, tracked?.order ?? [Infinity]) < 0) {
                             low = middle + 1;
                         } else {
                             high = middle;
                         }
                     }
+
                     return low === 0 ? steps.get(peers[0]!.id)!.start : steps.get(peers[low - 1]!.id)!.end;
                 };
+
                 // A grown range takes in only its own descendants' output; a sibling's output at the same point stays outside.
                 const atChange = (position: EditorPosition): boolean => comparePositions(position, change.range.start) === 0;
+
                 start = grows && atChange(start) ? steps.get(descendants[0]!.id)!.start : grows ? shiftPosition(start, change) : boundary(start);
+
                 end = grows
                     ? atChange(end)
                         ? steps.get(descendants.at(-1)!.id)!.end
@@ -696,16 +823,20 @@ export class SnippetFeature {
                       ? end
                       : boundary(end);
             }
+
             return { ...range, start, end };
         };
+
         this.detached = { targets, ranges, map };
         this.applying = true;
+
         try {
             editor.applyEdits(changes, { mapSelections: (range) => map(range) });
         } finally {
             this.applying = false;
             this.detached = null;
         }
+
         // The generic picker closes on any text edit, including an exit elsewhere in the snippet.
         if (frame !== undefined && frame === this.frames.at(-1) && activeChoice !== undefined && this.language.popups?.getState().pick === null) {
             this.openChoices(frame, activeChoice);
@@ -715,24 +846,31 @@ export class SnippetFeature {
     private mapFrame(frame: Frame, changes: readonly EditorContentChange[], extras: ReadonlySet<EditorContentChange>): boolean {
         const index = frame.order[frame.current]!;
         const owned = this.detached === null ? changes.filter((edit) => !extras.has(edit)) : [];
+
         for (const instance of frame.instances) {
             const active = instance.fields.find((field) => field.index === index)?.ranges ?? [];
             const owners = activeOwners(active, owned);
+
             instance.selected = instance.selected.map((range) =>
                 this.detached === null ? mapRange(range, changes, (edit) => !extras.has(edit)) : this.detached.map(range)
             );
+
             const values = instance.selected.map((range) => this.language.editor.textInRange(range));
             const field = instance.fields.find((field) => field.index === index);
+
             if (values.some((value) => value !== values[0])) {
                 if (field === undefined || (!this.applying && !field.divergent)) {
                     return false;
                 }
+
                 // Per-caret completion variables intentionally give parent mirrors different values.
                 field.divergent = true;
             } else if (field !== undefined) {
                 field.divergent = false;
             }
+
             const rangeIds = new Set(instance.fields.flatMap((field) => field.ranges.map((range) => range.id)));
+
             instance.hull = mapRange(instance.hull, changes, (edit) =>
                 this.detached === null
                     ? !extras.has(edit)
@@ -742,8 +880,10 @@ export class SnippetFeature {
                               comparePositions(target.range.start, edit.range.start) === 0
                       )
             );
+
             for (const field of instance.fields) {
                 const primary = field.ranges[field.primary];
+
                 field.ranges = field.ranges.filter(
                     (range) =>
                         !range.parents?.includes(index) ||
@@ -755,13 +895,18 @@ export class SnippetFeature {
                                     : comparePositions(edit.range.start, range.end) < 0 && comparePositions(range.start, edit.range.end) < 0)
                         )
                 );
+
                 field.primary = Math.max(0, field.ranges.indexOf(primary!));
+
                 field.ranges = field.ranges.map((range) => {
                     const replacement = this.detached?.ranges.get(range.id);
+
                     if (replacement !== undefined) {
                         field.divergent = true;
+
                         return { ...range, ...replacement };
                     }
+
                     if (this.detached !== null) {
                         return this.detached.map(
                             range,
@@ -774,8 +919,10 @@ export class SnippetFeature {
                                     rangeHolds(range, target.range.end))
                         );
                     }
+
                     return mapRange(range, changes, (edit) => {
                         const owner = owners.get(edit);
+
                         return (
                             owner !== undefined &&
                             (field.index === index
@@ -785,7 +932,9 @@ export class SnippetFeature {
                     });
                 });
             }
+
             instance.fields = instance.fields.filter((field) => field.ranges.length > 0);
+
             if (!instance.fields.some((field) => field.index === 0)) {
                 instance.fields.push({
                     index: 0,
@@ -794,29 +943,37 @@ export class SnippetFeature {
                 });
             }
         }
+
         frame.order = frame.order.filter((index) => frame.instances.at(-1)?.fields.some((field) => field.index === index));
         frame.current = frame.order.indexOf(index);
+
         return frame.current !== -1;
     }
 
     private edited(change: EditorTextChange): void {
         if (change.source !== 'input' && !this.applying) {
             this.end();
+
             return;
         }
+
         this.fieldTransforms.edited(change.changes, this.detached?.map);
         this.placed = this.placed.map((range) => (this.detached === null ? mapRange(range, change.changes, true) : this.detached.map(range)));
+
         if (!this.isActive) {
             return;
         }
+
         const extras = new Set(
             change.changes.filter((change) => this.extras.some((extra) => sameRange(extra.range, change.range) && extra.text === change.text))
         );
+
         for (const frame of this.frames) {
             if (!this.mapFrame(frame, change.changes, extras)) {
                 const caret = this.language.editor.getCaret();
                 this.end();
                 this.language.editor.setCaret(caret);
+
                 return;
             }
         }
@@ -824,20 +981,27 @@ export class SnippetFeature {
 
     private moved(): void {
         const frame = this.frames.at(-1);
+
         if (frame === undefined || this.visiting || this.applying) {
             return;
         }
+
         const { editor } = this.language;
+
         if (editor.getSelections().length < frame.expectedSelections) {
             this.end();
+
             return;
         }
+
         const generation = this.generation;
+
         // The caret event precedes text changes; wait until ranges have followed the edit.
         queueMicrotask(() => {
             if (generation !== this.generation) {
                 return;
             }
+
             while (this.frames.length > 0 && !rangeHolds(this.frames.at(-1)!.instances.at(-1)!.hull, editor.getCaret())) {
                 this.pop();
             }

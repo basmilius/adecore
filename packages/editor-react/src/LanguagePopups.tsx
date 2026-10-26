@@ -53,6 +53,7 @@ export function LanguagePopups<Language extends EditorLanguage>({ language, cont
     const pickRect = pick === null ? null : language.editor.rectAt(pick.anchor);
     const renameRect = rename === null ? null : language.editor.rectAt(rename.range.start);
     const renameEnd = rename === null ? null : language.editor.rectAt(rename.range.end);
+
     return (
         <>
             <RenderedDocs language={language} />

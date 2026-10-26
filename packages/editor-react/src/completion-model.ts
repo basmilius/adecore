@@ -22,18 +22,23 @@ export function identifierPrefix(before: string): string {
     if (before === lastBefore) {
         return lastPrefix;
     }
+
     const characters = Array.from(before);
     let start = characters.length;
+
     while (start > 0 && IDENTIFIER_CHARACTER.test(characters[start - 1]!)) {
         start--;
     }
+
     lastBefore = before;
     lastPrefix = characters.slice(start).join('');
+
     return lastPrefix;
 }
 
 const OPENS_VALUE =
     /(?:[-=!<>&|?+*/%^:,]|(?:^|[^\p{L}\p{N}_$])(?:return|new|case|in|of|instanceof|typeof|keyof|await|yield|throw|extends|implements|as|is|not|and|or|echo|print|use|import|from|clone))$/u;
+
 const NOT_A_VALUE = /(?:\+\+|--|\/\/|\/\*\*?|^\s*[-+*])$/;
 
 /*
@@ -45,6 +50,7 @@ export function opensCompletion(before: string, text: string): boolean {
     if (text === '(' || text === '()' || text === '[' || text === '[]') {
         return true;
     }
+
     return text === ' ' && OPENS_VALUE.test(before) && !NOT_A_VALUE.test(before);
 }
 
@@ -73,10 +79,13 @@ const shapes = new Map<string, LabelShape>();
 /* What matching reads of a label, which is the same at every keystroke of a word and costs a regular expression pass to find. */
 function shapeOf(value: string): LabelShape {
     const known = shapes.get(value);
+
     if (known !== undefined) {
         return known;
     }
+
     const boundaries = [...value.matchAll(/(?:^|[_$\s-])([\p{L}\p{N}])|(\p{Lu})/gu)];
+
     const shape: LabelShape = {
         lower: value.toLocaleLowerCase(),
         offsets: boundaries.map((boundary) => boundary.index! + (boundary[1] ? boundary[0].length - boundary[1].length : 0)),
@@ -85,10 +94,13 @@ function shapeOf(value: string): LabelShape {
             .join('')
             .toLocaleLowerCase()
     };
+
     if (shapes.size >= SHAPE_LIMIT) {
         shapes.clear();
     }
+
     shapes.set(value, shape);
+
     return shape;
 }
 
@@ -102,35 +114,46 @@ export function matchDetail(value: string, prefix: string): MatchDetail | undefi
     if (prefix === '') {
         return { score: 0, positions: [] };
     }
+
     if (value.startsWith(prefix)) {
         return { score: 0, positions: run(0, prefix.length) };
     }
+
     const { lower, offsets, initials } = shapeOf(value);
     const query = prefix.toLocaleLowerCase();
+
     if (lower.startsWith(query)) {
         return { score: 1, positions: run(0, query.length) };
     }
+
     for (const offset of offsets) {
         if (lower.slice(offset).startsWith(query)) {
             return { score: 2 + offset / 1000, positions: run(offset, query.length) };
         }
     }
+
     if (initials.startsWith(query)) {
         return { score: 3, positions: offsets.slice(0, query.length) };
     }
+
     if (query.length < 2 || lower[0] !== query[0]) {
         return undefined;
     }
+
     let cursor = 0;
     const positions: number[] = [];
+
     for (const character of query) {
         const next = lower.indexOf(character, cursor);
+
         if (next < 0) {
             return undefined;
         }
+
         positions.push(next);
         cursor = next + character.length;
     }
+
     return { score: 4 + cursor / 1000, positions };
 }
 
@@ -141,12 +164,15 @@ export function matchScore(value: string, prefix: string): number | undefined {
 /* The range an item replaces when it is accepted; for an insert-or-replace edit, the one `replace` asks for. */
 export function editRangeOf(item: CompletionItem, replace: boolean): EditorRange | null {
     const edit = item.textEdit;
+
     if (edit === undefined) {
         return null;
     }
+
     if ('range' in edit) {
         return edit.range;
     }
+
     return replace ? edit.replace : edit.insert;
 }
 
@@ -154,18 +180,21 @@ export function editRangeOf(item: CompletionItem, replace: boolean): EditorRange
 export function itemsOf(result: CompletionResult): { items: CompletionItem[]; incomplete: boolean } {
     const list = result === null || Array.isArray(result) ? undefined : result;
     const items = result === null ? [] : Array.isArray(result) ? result : result.items;
+
     return {
         incomplete: list?.isIncomplete ?? false,
         items: items.flatMap((item) => {
             if (typeof item?.label !== 'string') {
                 return [];
             }
+
             try {
                 return [applyCompletionDefaults(item, list?.itemDefaults, { onInvalidRange: () => undefined })];
             } catch (error) {
                 if (error instanceof TypeError || error instanceof RangeError) {
                     return [];
                 }
+
                 throw error;
             }
         })
@@ -179,9 +208,11 @@ export function itemsOf(result: CompletionResult): { items: CompletionItem[]; in
  */
 export function prefixFor(item: CompletionItem, caret: EditorPosition, lineBefore: string, textBetween: (range: EditorRange) => string): string {
     const range = editRangeOf(item, false);
+
     if (range !== null && range.start.line === caret.line && comparePositions(range.start, caret) <= 0 && comparePositions(caret, range.end) <= 0) {
         return textBetween({ start: range.start, end: caret });
     }
+
     return identifierPrefix(lineBefore);
 }
 
@@ -203,9 +234,11 @@ export function rankCompletions(
     limit = 150
 ): Ranked[] {
     const { compare } = labelCollator();
+
     return items
         .map((item, index) => {
             const prefix = prefixOf(item);
+
             return { item, index, prefix, score: matchScore(item.filterText ?? item.label, prefix), recent: recency(item) };
         })
         .filter((entry): entry is typeof entry & { score: number } => entry.score !== undefined)
@@ -230,12 +263,14 @@ export function matchedCharacters(label: string, prefix: string): readonly numbe
 function sourceOf(item: CompletionItem): string {
     const detail = item.detail?.split('\n')[0]?.trim() ?? '';
     const imported = /^use\s+(.+)$/.exec(detail);
+
     return imported === null ? detail : imported[1]!.slice(0, Math.max(0, imported[1]!.lastIndexOf('\\')));
 }
 
 /* What stands right-aligned after a row: the module or namespace the item comes from, else what the server calls its type. */
 export function qualifierOf(item: CompletionItem): string {
     const description = item.labelDetails?.description?.trim() ?? '';
+
     return description !== '' ? description : sourceOf(item);
 }
 
@@ -247,16 +282,20 @@ export function qualifiersOf(items: readonly CompletionItem[]): string[] {
     const result = items.map(qualifierOf);
     const groups = new Map<string, number[]>();
     items.forEach((item, index) => groups.set(item.label, [...(groups.get(item.label) ?? []), index]));
+
     for (const indexes of groups.values()) {
         if (indexes.length < 2 || new Set(indexes.map((index) => result[index])).size === indexes.length) {
             continue;
         }
+
         const alternate = indexes.map((index) => sourceOf(items[index]!) || result[index]!);
         const distinct = new Set(alternate).size === indexes.length && !alternate.includes('');
+
         indexes.forEach((index, position) => {
             result[index] = distinct ? alternate[position]! : `${result[index] ?? ''} #${position + 1}`.trim();
         });
     }
+
     return result;
 }
 
@@ -278,6 +317,7 @@ export function isCallableKind(kind: number | undefined): boolean {
 /* A call snippet with the call cut off, for a name that already has its parentheses: `log(${1:value})$0` becomes `log`. */
 function withoutCall(snippet: string): string {
     const open = snippet.search(/(?<!\\)\(/);
+
     return open > 0 ? snippet.slice(0, open) : snippet;
 }
 
@@ -313,23 +353,28 @@ export function insertionOf(
 ): Insertion {
     const raw = item.textEdit?.newText ?? item.insertText ?? item.label;
     const edit = editRangeOf(item, replace);
+
     const range =
         edit === null
             ? { start: { line: caret.line, character: caret.character - identifierPrefix(lineBefore).length }, end: caret }
             : // The word grew since the answer came, so what was typed since belongs to what is replaced.
               { start: edit.start, end: comparePositions(edit.end, caret) < 0 && edit.end.line === caret.line ? caret : edit.end };
+
     if (item.insertTextFormat !== SNIPPET_FORMAT) {
         const adjusted =
             item.insertTextMode === 2
                 ? indentSnippet({ text: raw, stops: [] }, options.indentationBefore ?? lineBefore.slice(0, range.start.character))
                 : { text: raw, stops: [] };
+
         return { range, text: adjusted.text, stops: [], ...(adjusted.limited ? { limited: true } : {}) };
     }
+
     const followed = range.end.line === caret.line && lineAfter.slice(Math.max(0, range.end.character - caret.character)).startsWith('(');
     const source = followed && isCallableKind(item.kind) ? withoutCall(raw) : raw;
     const template = options.template?.source === source ? options.template : compileSnippet(source);
     const rendered = template.render(options.resolve, options.variableTransforms);
     const parsed = item.insertTextMode === 2 ? indentSnippet(rendered, options.indentationBefore ?? lineBefore.slice(0, range.start.character)) : rendered;
+
     return {
         range,
         text: parsed.text,
@@ -358,23 +403,30 @@ export function mirroredInsertions(
 ): EditorContentChange[] {
     const before = insertion.range.start.line === caret.line ? caret.character - insertion.range.start.character : -1;
     const after = insertion.range.end.line === caret.line ? insertion.range.end.character - caret.character : -1;
+
     if (before < 0 || after < 0) {
         return [];
     }
+
     const typed = text({ start: insertion.range.start, end: caret });
     const replaced = text({ start: caret, end: insertion.range.end });
+
     return carets.flatMap((other): EditorContentChange[] => {
         const at = includeSelections ? other.end : other.start;
+
         if (sameRange(other, primary)) {
             return [];
         }
+
         if ((!includeSelections && comparePositions(other.start, other.end) !== 0) || at.character < before) {
             return [];
         }
+
         const range = { start: { line: at.line, character: at.character - before }, end: { line: at.line, character: at.character + after } };
         const preceding = range.start.character > 0 ? text({ start: { line: at.line, character: range.start.character - 1 }, end: range.start }) : '';
         const startsWord = preceding === '' || !isIdentifierCharacter(preceding);
         const matches = startsWord && text({ start: range.start, end: at }) === typed && text({ start: at, end: range.end }) === replaced;
+
         return matches ? [{ range, text: insertion.text }] : [];
     });
 }
@@ -383,6 +435,7 @@ export function documentationText(documentation: string | MarkupContent | undefi
     if (documentation === undefined) {
         return '';
     }
+
     return typeof documentation === 'string' ? documentation : documentation.kind === 'plaintext' ? escapeMarkdown(documentation.value) : documentation.value;
 }
 
@@ -400,10 +453,12 @@ export function completionDocsOf(item: CompletionItem, highlightLanguage: string
     const source = hasSource ? lines[0]!.trim() : '';
     const code = (hasSource ? lines.slice(1) : lines).join('\n').trim();
     const parsed = splitSignatures(documentationText(item.documentation));
+
     const text: HoverText = {
         signatures: code === '' ? parsed.signatures : [{ language: highlightLanguage, code }, ...parsed.signatures],
         markdown: parsed.markdown
     };
+
     return source === '' && isEmptyHover(text) ? null : { source, text };
 }
 
@@ -475,6 +530,7 @@ export interface RowWindow {
  */
 export function rowWindow(scrollTop: number, active: number, total: number, rowHeight: number, visible: number, margin: number, padding: number): RowWindow {
     const shown = Math.floor(Math.max(0, scrollTop - padding) / rowHeight);
+
     return {
         first: Math.max(0, Math.min(shown, active) - margin),
         last: Math.min(total, Math.max(shown + visible + 1, active + 1) + margin)

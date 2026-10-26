@@ -19,6 +19,7 @@ const FIX = {
     isPreferred: true,
     edit: { changes: { [uri]: [{ range: range(0, 4, 10), newText: 'salaryMin' }] } }
 };
+
 const EXTRACT = { title: 'Extract to constant', kind: 'refactor.extract', data: 'extract' };
 const ORGANIZE = { title: 'Organize imports', kind: 'source.organizeImports', command: { title: 'Organize', command: 'ts.organize' } };
 const REWRITE = { title: 'Convert to a ternary', kind: 'refactor.rewrite', data: 'rewrite' };
@@ -45,17 +46,22 @@ async function setup(
     } = {}
 ) {
     const service = new FakeLanguageService();
+
     if (options.served !== false) {
         service.respond('textDocument/codeAction', () => options.actions ?? [FIX, EXTRACT, ORGANIZE], { resolveProvider: true });
+
         service.respond('codeAction/resolve', (call) => {
             const action = call.params as CodeAction;
+
             return options.resolve?.(action) ?? { ...action, edit: { changes: { [uri]: [{ range: range(0, 0, 3), newText: 'const' }] } } };
         });
+
         service.respond('workspace/executeCommand', () => null);
         service.respond('textDocument/formatting', () => [{ range: range(0, 0, 0), newText: '    ' }]);
         service.respond('textDocument/prepareRename', () => ({ range: range(0, 6, 12), placeholder: 'salary' }));
         service.respond('textDocument/rename', () => null, { prepareProvider: true });
     }
+
     const notices: EditorNotification[] = [];
     const project = new ProjectLanguage(service, { notify: (notice) => notices.push(notice), ...(options.files ? { files: options.files } : {}) });
     const editor = new FakeEditorEngine().mount({} as HTMLElement, { text: 'let salary = 1;', theme: 'light' });
@@ -63,7 +69,9 @@ async function setup(
     const language = new EditorLanguage(project, editor, uri, 'typescript', timers);
     await language.document.ready;
     opened.push({ language, project });
+
     const requests = (method = 'textDocument/codeAction'): LanguageCall[] => service.calls.filter((call) => call.method === method);
+
     return { service, requests, notices, timers, editor, language };
 }
 
@@ -75,12 +83,17 @@ describe('the lightbulb', () => {
     test('shows on the caret line when a server offers something to do there, after a pause', async () => {
         const { editor, timers, requests } = await setup();
         editor.moveCaret(at(0, 8));
+
         expect(editor.gutterAction).toBeNull();
+
         timers.advance(250);
         await settle();
+
         expect(editor.gutterAction).toMatchObject({ line: 0 });
         expect(contextOf(requests()[0])).toMatchObject({ context: { triggerKind: 2 } });
+
         editor.moveCaret(at(0, 9));
+
         expect(editor.gutterAction).toBeNull();
     });
 
@@ -89,26 +102,34 @@ describe('the lightbulb', () => {
         source.editor.moveCaret(at(0, 3));
         source.timers.advance(250);
         await settle();
+
         expect(source.editor.gutterAction).toBeNull();
+
         const none = await setup({ actions: [] });
         none.editor.moveCaret(at(0, 3));
         none.timers.advance(250);
         await settle();
+
         expect(none.editor.gutterAction).toBeNull();
     });
 
     test('never lights on the line the caret moved to for what was asked where it was', async () => {
         const { service, editor, timers, requests } = await setup();
         editor.type('let salary = 1;\nconsole.log(salary);');
+
         let answer: (actions: unknown[]) => void = () => undefined;
+
         service.respond('textDocument/codeAction', () => new Promise<unknown[]>((resolve) => (answer = resolve)));
         editor.moveCaret(at(0, 8));
         timers.advance(250);
         await settle();
+
         expect(contextOf(requests().at(-1))).toMatchObject({ range: range(0, 8, 8) });
+
         editor.moveCaret(at(1, 3));
         answer([EXTRACT]);
         await settle();
+
         expect(editor.gutterAction).toBeNull();
     });
 
@@ -119,6 +140,7 @@ describe('the lightbulb', () => {
         editor.moveCaret(at(0, 6));
         timers.advance(250);
         await settle();
+
         expect(contextOf(requests().at(-1))).toMatchObject({ range: range(0, 6, 6), context: { diagnostics: [diagnostic] } });
     });
 });
@@ -132,10 +154,13 @@ describe('a problem elsewhere on the line', () => {
         editor.press(keyOf(language.shortcuts.codeActions));
         await settle();
         const asked = requests();
+
         expect(asked).toHaveLength(2);
         expect(contextOf(asked[0])).toMatchObject({ range: range(0, 14, 14), context: { diagnostics: [] } });
         expect(contextOf(asked[1])).toMatchObject({ range: range(0, 4, 10), context: { diagnostics: [diagnostic], only: ['quickfix'] } });
+
         const rows = language.popups.getState().pick!.groups.flatMap((group) => group.rows.map((row) => row.label));
+
         expect(rows).toEqual(["Change spelling to 'salaryMin'", 'Extract to constant', 'Organize imports']);
     });
 
@@ -145,11 +170,13 @@ describe('a problem elsewhere on the line', () => {
         editor.moveCaret(at(0, 14));
         timers.advance(250);
         await settle();
+
         expect(editor.gutterAction).toMatchObject({ line: 0 });
     });
 
     test('is left out when a problem touches the caret, is on another line, or is only a hint', async () => {
         const { service, editor, requests, language } = await setup();
+
         service.report({
             uri,
             source: 'typescript',
@@ -159,13 +186,17 @@ describe('a problem elsewhere on the line', () => {
                 { range: range(0, 11, 12), message: 'hint', severity: 4 }
             ]
         });
+
         editor.moveCaret(at(0, 5));
         editor.press(keyOf(language.shortcuts.codeActions));
         await settle();
+
         expect(requests()).toHaveLength(1);
+
         editor.moveCaret(at(0, 14));
         editor.press(keyOf(language.shortcuts.codeActions));
         await settle();
+
         expect(requests()).toHaveLength(3);
     });
 });
@@ -174,21 +205,28 @@ describe('the list', () => {
     test('opens under the caret on its shortcut grouped by kind, preferred first, and shows what the active action would change', async () => {
         const { editor, timers, language } = await setup();
         editor.moveCaret(at(0, 8));
+
         expect(editor.press(keyOf(language.shortcuts.codeActions))).toBe(true);
+
         await settle();
         const view = language.popups.getState().pick!;
+
         expect(view.groups.map((group) => [group.title, group.rows.map((row) => row.label)])).toEqual([
             ['Quick fix', ["Change spelling to 'salaryMin'"]],
             ['Extract', ['Extract to constant']],
             ['Source', ['Organize imports']]
         ]);
         expect(view.active).toBe(view.groups[0]!.rows[0]!.id);
+
         timers.advance(120);
         await settle();
+
         expect(language.popups.getState().pick?.preview).toEqual({ removed: ['let salary = 1;'], added: ['let salaryMin = 1;'], note: null });
+
         editor.press({ key: 'ArrowDown' });
         timers.advance(120);
         await settle();
+
         // A refactor has no edit until it is resolved, which the preview asks for.
         expect(language.popups.getState().pick?.preview?.added).toEqual(['const salary = 1;']);
     });
@@ -197,11 +235,14 @@ describe('the list', () => {
         const { editor, language } = await setup();
         editor.moveCaret(at(0, 8));
         await language.codeActions.open();
+
         expect(editor.press({ key: 'Escape' })).toBe(true);
         expect(language.popups.getState().pick).toBeNull();
+
         await language.codeActions.open();
         editor.press({ key: 'Enter' });
         await settle();
+
         expect(editor.getText()).toBe('let salaryMin = 1;');
         expect(language.popups.getState().pick).toBeNull();
     });
@@ -210,9 +251,11 @@ describe('the list', () => {
         const { editor, language, requests } = await setup({
             actions: [{ title: 'Extract', kind: 'refactor.extract', data: 'x', command: { title: 'Rename', command: 'ts.rename' } }]
         });
+
         await language.codeActions.open();
         editor.press({ key: 'Enter' });
         await settle();
+
         expect(requests('codeAction/resolve')).toHaveLength(1);
         expect(editor.getText()).toBe('const salary = 1;');
         expect(requests('workspace/executeCommand')[0]?.params).toMatchObject({ command: 'ts.rename' });
@@ -221,9 +264,12 @@ describe('the list', () => {
     test('tells a person when there is nothing to do, and when the file has no server for it', async () => {
         const empty = await setup({ actions: [] });
         await empty.language.codeActions.open();
+
         expect(empty.notices.map((notice) => notice.title)).toEqual(['No code actions here']);
+
         const off = await setup({ served: false });
         await off.language.codeActions.open();
+
         expect(off.notices.map((notice) => notice.title)).toEqual(['Code actions unavailable here']);
     });
 
@@ -231,6 +277,7 @@ describe('the list', () => {
         const { language, requests } = await setup();
         const diagnostic: Diagnostic = { range: range(0, 4, 10), message: 'nope', severity: 1 };
         await language.codeActions.quickFixFor({ diagnostic, server: 'typescript' });
+
         expect(contextOf(requests().at(-1))).toMatchObject({
             range: diagnostic.range,
             context: { only: ['quickfix'], diagnostics: [diagnostic], triggerKind: 1 }
@@ -243,6 +290,7 @@ describe('the commands', () => {
     test('organizes imports through the server action of that kind', async () => {
         const { language, requests } = await setup();
         await language.codeActions.organizeImports();
+
         expect(contextOf(requests()[0])).toMatchObject({ context: { only: ['source.organizeImports'] } });
         expect(requests('workspace/executeCommand')[0]?.params).toMatchObject({ command: 'ts.organize' });
     });
@@ -250,12 +298,14 @@ describe('the commands', () => {
     test('says so when there is nothing to organize', async () => {
         const { language, notices } = await setup({ actions: [] });
         await language.codeActions.organizeImports();
+
         expect(notices.map((notice) => notice.title)).toEqual(['Imports already organized']);
     });
 
     test('formats the document with the editor indentation as one edit', async () => {
         const { language, editor, requests } = await setup();
         await language.codeActions.formatDocument();
+
         expect(requests('textDocument/formatting')[0]?.params).toMatchObject({ options: { tabSize: 4, insertSpaces: true } });
         expect(editor.getText()).toBe('    let salary = 1;');
     });
@@ -267,8 +317,11 @@ describe('Refactor This', () => {
     test('lists only the refactorings, grouped by what they do, structure first', async () => {
         const { editor, language, requests } = await setup({ actions: everything });
         editor.moveCaret(at(0, 8));
+
         expect(editor.press(keyOf(language.shortcuts.refactorThis))).toBe(true);
+
         await settle();
+
         expect(contextOf(requests()[0])).toMatchObject({ context: { only: ['refactor'] } });
         expect(language.popups.getState().pick!.groups.map((group) => [group.title, group.rows.map((row) => row.label)])).toEqual([
             ['Extract', ['Extract to constant']],
@@ -281,6 +334,7 @@ describe('Refactor This', () => {
     test('is also a command a menu can call', async () => {
         const { language } = await setup({ actions: everything });
         await language.codeActions.refactorThis();
+
         expect(language.popups.getState().pick?.groups).toHaveLength(4);
     });
 
@@ -289,18 +343,21 @@ describe('Refactor This', () => {
         editor.moveCaret(at(0, 8));
         editor.press(keyOf(language.shortcuts.codeActions));
         await settle();
+
         expect(language.popups.getState().pick!.groups.map((group) => group.title)).toEqual(['Quick fix', 'Rewrite', 'Extract', 'Inline', 'Move', 'Source']);
     });
 
     test('the menu lists the refactorings in the same order', async () => {
         const { language } = await setup({ actions: everything });
         const entries = await language.codeActions.list(['refactor']);
+
         expect(entries!.map((entry) => entry.group)).toEqual(['extract', 'inline', 'move', 'rewrite']);
     });
 });
 
 describe('a refactor the server refuses', () => {
     const REASON = 'The expression only runs when the left side allows it';
+
     const refusing = () => {
         throw new LspError(REASON, ErrorCodes.InternalError);
     };
@@ -310,6 +367,7 @@ describe('a refactor the server refuses', () => {
         await language.codeActions.open();
         timers.advance(120);
         await settle();
+
         expect(language.popups.getState().pick?.preview).toEqual({ removed: [], added: [], note: null, refusal: REASON });
         expect(editor.getText()).toBe('let salary = 1;');
         expect(notices).toEqual([]);
@@ -320,10 +378,13 @@ describe('a refactor the server refuses', () => {
         await language.codeActions.open();
         editor.press({ key: 'Enter' });
         await settle();
+
         expect(language.popups.getState().pick?.preview?.refusal).toBe(REASON);
         expect(editor.getText()).toBe('let salary = 1;');
         expect(notices).toEqual([]);
+
         editor.press({ key: 'Escape' });
+
         expect(language.popups.getState().pick).toBeNull();
     });
 
@@ -331,6 +392,7 @@ describe('a refactor the server refuses', () => {
         const { language, notices } = await setup({ actions: [EXTRACT], resolve: refusing });
         const [entry] = (await language.codeActions.list(['refactor']))!;
         await language.codeActions.apply(entry!);
+
         expect(notices).toEqual([{ id: 'language-action', kind: 'error', title: `Could not apply action: ${REASON}` }]);
     });
 
@@ -341,9 +403,11 @@ describe('a refactor the server refuses', () => {
                 throw new LspError('No resolve', ErrorCodes.MethodNotFound);
             }
         });
+
         await language.codeActions.open();
         editor.press({ key: 'Enter' });
         await settle();
+
         expect(editor.getText()).toBe('const salary = 1;');
     });
 });
@@ -355,6 +419,7 @@ describe('the rename after an extraction', () => {
         await language.codeActions.open();
         editor.press({ key: 'Enter' });
         await settle();
+
         expect(editor.getText()).toBe('const salary = 1;');
         expect(requests('workspace/executeCommand')).toHaveLength(0);
         expect(editor.getCaret()).toEqual(at(0, 8));
@@ -367,6 +432,7 @@ describe('the rename after an extraction', () => {
         await language.codeActions.open();
         editor.press({ key: 'Enter' });
         await settle();
+
         expect(language.popups.getState().rename).toBeNull();
     });
 });
@@ -386,6 +452,7 @@ describe('an action that moves a file', () => {
             save: async () => null,
             rename: async (from, to) => {
                 moves.push([from, to]);
+
                 return reason;
             }
         };
@@ -397,6 +464,7 @@ describe('an action that moves a file', () => {
         await language.codeActions.open();
         editor.press({ key: 'Enter' });
         await settle();
+
         expect(editor.getText()).toBe('let pay = 1;');
         expect(moves).toEqual([['/work/app/src/a.ts', '/work/app/src/b.ts']]);
     });
@@ -406,9 +474,12 @@ describe('an action that moves a file', () => {
         await language.codeActions.open();
         timers.advance(120);
         await settle();
+
         expect(language.popups.getState().pick?.preview).toMatchObject({ note: 'moves 1 file' });
+
         const [entry] = (await language.codeActions.list(['refactor']))!;
         await language.codeActions.apply(entry!);
+
         expect(notices.at(-1)?.title).toBe('Could not apply action: b.ts is taken');
     });
 });

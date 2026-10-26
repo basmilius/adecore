@@ -22,9 +22,11 @@ function spoken(host: HTMLElement): string[] {
 function fakeTimer(): PatchTimer & { pending(): number; run(): void } {
     const callbacks = new Map<number, () => void>();
     let next = 0;
+
     return {
         set: (callback) => {
             callbacks.set(++next, callback);
+
             return next;
         },
         clear: (handle) => {
@@ -45,13 +47,16 @@ describe('decoratePatch', () => {
     test('draws old and new numbers from the hunk header, bars on changed lines and no sign or triangle', () => {
         const { editor, page } = mountEditor({ text: PATCH });
         const decoration = decoratePatch(editor, { labels: LABELS });
+
         expect(decoration.layout.files).toHaveLength(1);
         expect(numbers(page.host).slice(0, 8)).toEqual(['', '', '', '', '10', '11', '11', '12']);
         expect(page.host.querySelectorAll('.se-line-bar-hatched')).toHaveLength(1);
         expect(page.host.querySelectorAll('.se-line-bar-solid')).toHaveLength(1);
         expect(page.host.querySelectorAll('.se-line-sign, .se-change')).toHaveLength(0);
         expect(spoken(page.host)).toEqual(['Old line 10, new line 10', 'Removed, old line 11', 'Added, new line 11', 'Old line 12, new line 12']);
+
         const removed = [...page.host.querySelectorAll('.se-line-number')].find((item) => item.querySelector('.se-line-bar-hatched'))!;
+
         expect(removed.querySelectorAll('.se-sr-only')).toHaveLength(1);
         expect(removed.classList.contains('se-line-marked')).toBe(true);
     });
@@ -59,6 +64,7 @@ describe('decoratePatch', () => {
     test('shows both numbers when asked', () => {
         const { editor, page } = mountEditor({ text: PATCH });
         decoratePatch(editor, { numbers: 'both' });
+
         expect(numbers(page.host).slice(4, 8)).toEqual(['10 10', '11   ', '   11', '12 12']);
     });
 
@@ -66,6 +72,7 @@ describe('decoratePatch', () => {
         const { editor, page } = mountEditor({ text: ['@@ -1,3 +1,3 @@', '-a', '-b', '-c', '+d', '+e', '+f'].join('\n') });
         decoratePatch(editor);
         const bars = [...page.host.querySelectorAll('.se-line-bar')].map((bar) => bar.className);
+
         expect(bars).toHaveLength(6);
         expect(bars.slice(0, 3).every((name) => name.includes('hatched'))).toBe(true);
         expect(bars.slice(3).every((name) => name.includes('solid'))).toBe(true);
@@ -76,20 +83,29 @@ describe('decoratePatch', () => {
         const seen: number[] = [];
         const timer = fakeTimer();
         const decoration = decoratePatch(editor, { timer, onLayout: (layout) => seen.push(layout.lines.length) });
+
         expect(seen).toHaveLength(1);
+
         seen.length = 0;
         editor.setCaret({ line: 7, character: 5 });
         type('x');
         type('y');
+
         expect(seen).toEqual([]);
+
         await settle();
+
         expect(seen).toEqual([]);
         expect(decoration.layout.lines[7]).toEqual({ role: 'context', old: 12, new: 12 });
+
         timer.run();
+
         expect(seen).toHaveLength(1);
+
         editor.setCaret({ line: 7, character: 0 });
         type('+inserted\n');
         await settle();
+
         expect(decoration.layout.files[0]!.hunks[0]!.consistent).toBe(false);
         expect(decoration.layout.files[0]!.added).toBe(2);
         expect(numbers(page.host)[7]).toBe('12');
@@ -102,13 +118,17 @@ describe('decoratePatch', () => {
         decoratePatch(editor, { timer, onLayout: (layout) => seen.push(layout.lines.length) });
         seen.length = 0;
         editor.setCaret({ line: 8, character: 0 });
+
         for (const key of 'abc') {
             type(key);
             await settle();
         }
+
         expect(seen).toEqual([]);
         expect(timer.pending()).toBe(1);
+
         timer.run();
+
         expect(seen).toHaveLength(1);
     });
 
@@ -119,8 +139,11 @@ describe('decoratePatch', () => {
         editor.setCaret({ line: 7, character: 0 });
         type('+');
         await settle();
+
         expect(page.host.querySelectorAll('.se-line-bar-solid')).toHaveLength(1);
+
         timer.run();
+
         expect(page.host.querySelectorAll('.se-line-bar-solid')).toHaveLength(2);
     });
 
@@ -129,16 +152,20 @@ describe('decoratePatch', () => {
         const timer = fakeTimer();
         const delays: Array<number | undefined> = [];
         const set = timer.set;
+
         timer.set = (callback, delay) => {
             delays.push(delay);
+
             return set(callback, delay);
         };
+
         decoratePatch(editor, { timer, immediateBelow: 10, delay: 40 });
         editor.setCaret({ line: 7, character: 0 });
         type('+');
         await settle();
         type('+');
         await settle();
+
         expect(delays).toEqual([40, 40]);
         expect(timer.pending()).toBe(1);
     });
@@ -148,6 +175,7 @@ describe('decoratePatch', () => {
         editor.setChangeMarks([{ kind: 'modified', startLine: 1, endLine: 1 }]);
         const decoration = decoratePatch(editor);
         decoration.dispose();
+
         expect(page.host.querySelectorAll('.se-change-modified')).toHaveLength(1);
     });
 
@@ -157,18 +185,24 @@ describe('decoratePatch', () => {
         editor.setCaret({ line: 8, character: 0 });
         type('z');
         await settle();
+
         expect(editor.getText()).toContain('z');
+
         decoration.dispose();
+
         expect(page.host.querySelectorAll('.se-line-bar')).toHaveLength(0);
         expect(numbers(page.host)[4]).toBe('5');
+
         type('q');
         await settle();
+
         expect(page.host.querySelectorAll('.se-line-bar')).toHaveLength(0);
     });
 
     test('goes quiet past the limits', () => {
         const { editor, page } = mountEditor({ text: PATCH });
         const decoration = decoratePatch(editor, { limits: { maxLines: 5 } });
+
         expect(decoration.layout.truncated).toBe(true);
         expect(page.host.querySelectorAll('.se-line-bar')).toHaveLength(0);
     });

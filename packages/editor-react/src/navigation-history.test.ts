@@ -11,6 +11,7 @@ describe('the history of jumps', () => {
         const history = new NavigationHistory();
         history.record(place(a, 1));
         history.record(place(b, 7));
+
         expect(history.back(place(a, 40))).toEqual(place(b, 7));
         expect(history.back(place(b, 7))).toEqual(place(a, 1));
         expect(history.back(place(a, 1))).toBeNull();
@@ -24,6 +25,7 @@ describe('the history of jumps', () => {
         history.record(place(a, 1));
         history.back(place(a, 9));
         history.record(place(a, 2));
+
         expect(history.canGoForward(place(a, 2))).toBe(false);
     });
 
@@ -32,6 +34,7 @@ describe('the history of jumps', () => {
         history.record(place(a, 3, 1));
         history.record(place(a, 3, 8));
         history.record(place(b, 2));
+
         expect(history.recent(place(b, 2))).toEqual([place(a, 3, 8)]);
         expect(history.back(place(b, 2))).toEqual(place(a, 3, 8));
         expect(history.back(place(a, 3, 8))).toBeNull();
@@ -44,14 +47,17 @@ describe('the history of jumps', () => {
         history.record(place(a, 3));
         history.back(place(a, 4));
         history.back(place(a, 3));
+
         expect(history.recent(place(a, 2)).map((entry) => entry.position.line)).toEqual([1, 3, 4]);
     });
 
     test('keeps the last hundred places', () => {
         const history = new NavigationHistory();
+
         for (let line = 0; line < 150; line++) {
             history.record(place(a, line));
         }
+
         expect(history.recent(place(b, 0))).toHaveLength(100);
         expect(history.recent(place(b, 0))[99]!.position.line).toBe(50);
     });

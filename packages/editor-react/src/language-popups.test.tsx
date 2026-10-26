@@ -21,6 +21,7 @@ test('the hover card carries the sections of the app at its foot, and the layer 
         const editor = new FakeEditorEngine().mount(page.host, { text: 'const total = 1;', theme: 'light' });
         const language = new NamedLanguage(project, editor, 'file:///work/a.ts', 'typescript', new ManualTimers());
         const footers: Array<{ view: HoverView; label: string }> = [];
+
         await act(async () =>
             root.render(
                 createElement(
@@ -29,6 +30,7 @@ test('the hover card carries the sections of the app at its foot, and the layer 
                         language,
                         hoverFooter: (view, owner) => {
                             footers.push({ view, label: owner.label });
+
                             return createElement('div', { 'data-testid': 'footer' }, 'Explain');
                         }
                     },
@@ -36,16 +38,20 @@ test('the hover card carries the sections of the app at its foot, and the layer 
                 )
             )
         );
+
         expect(page.document.querySelector('[data-testid="layer"]')).not.toBeNull();
         expect(page.document.querySelector('[data-testid="footer"]')).toBeNull();
 
         const view: HoverView = { anchor: at(0, 6), position: at(0, 8), subject: { start: at(0, 6), end: at(0, 11) }, problems: [], info: null };
         await act(async () => language.popups.setState({ hover: view }));
+
         expect(page.document.querySelector('[data-testid="footer"]')?.textContent).toBe('Explain');
         expect(footers.at(-1)).toEqual({ view, label: 'named' });
 
         await act(async () => language.popups.setState({ hover: null }));
+
         expect(page.document.querySelector('[data-testid="footer"]')).toBeNull();
+
         await act(async () => {
             language.dispose();
             project.dispose();
@@ -64,6 +70,7 @@ test('the rename field leaves the character after the name uncovered', async () 
         await act(async () => root.render(createElement(LanguagePopups<NamedLanguage>, { language })));
 
         const range = { start: at(0, 16), end: at(0, 24) };
+
         await act(async () =>
             language.popups.setState({
                 rename: {
@@ -80,10 +87,12 @@ test('the rename field leaves the character after the name uncovered', async () 
                 }
             })
         );
+
         const input = page.document.querySelector('input') as HTMLInputElement;
         const start = editor.rectAt(range.start)!;
         const end = editor.rectAt(range.end)!;
         const border = 1;
+
         expect(Number.parseFloat(input.style.left)).toBe(start.left - border);
         expect(Number.parseFloat(input.style.left) + Number.parseFloat(input.style.minWidth)).toBe(end.left + border);
         expect(input.className).toContain('px-0');

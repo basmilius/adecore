@@ -35,8 +35,10 @@ export class KeyDispatcher {
         const entry = { handler, priority };
         const index = this.entries.findIndex((other) => other.priority < priority);
         this.entries.splice(index === -1 ? this.entries.length : index, 0, entry);
+
         return () => {
             const at = this.entries.indexOf(entry);
+
             if (at !== -1) {
                 this.entries.splice(at, 1);
             }

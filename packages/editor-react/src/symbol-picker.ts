@@ -18,13 +18,17 @@ export class SymbolPickerFeature {
 
     constructor(language: EditorLanguage) {
         this.language = language;
+
         const off = language.onKey((event) => {
             if (!isShortcut(this.language.shortcuts.goToSymbol, event)) {
                 return false;
             }
+
             void this.open();
+
             return true;
         }, KEY_PRIORITY.symbolPicker);
+
         language.onDispose(() => {
             off();
             this.close();
@@ -33,10 +37,13 @@ export class SymbolPickerFeature {
 
     async open(): Promise<void> {
         const { project, uri, popups } = this.language;
+
         if (!project.service.supports('textDocument/documentSymbol', uri)) {
             this.language.project.host.notify?.({ id: TOAST_ID, kind: 'error', title: this.language.project.i18n.t('editor:language.symbols.unavailable') });
+
             return;
         }
+
         try {
             const entries = entriesOf(await project.service.documentSymbols(uri));
             popups.setState({ symbols: { file: basenameOf(this.language.uri), entries } });
@@ -73,9 +80,11 @@ export class SymbolPickerFeature {
     /* The symbols of the project that answer to a name, which is a request to the server and so waits for a pause in the typing. */
     async search(text: string, signal: AbortSignal): Promise<WorkspaceEntry[]> {
         const { project, uri } = this.language;
+
         if (text === '' || !project.service.supports('workspace/symbol', uri)) {
             return [];
         }
+
         return workspaceEntriesOf(await project.service.workspaceSymbols(uri, text, { signal }));
     }
 

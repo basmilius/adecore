@@ -7,6 +7,7 @@ describe('splitSignatures', () => {
         const text = splitSignatures(
             '```typescript\nfunction skillOverlap(have: string[]): number\n```\n---\nShare of required skills.\n\n```ts\nexample()\n```'
         );
+
         expect(text.signatures).toEqual([{ language: 'typescript', code: 'function skillOverlap(have: string[]): number' }]);
         expect(text.markdown).toBe('Share of required skills.\n\n```ts\nexample()\n```');
     });
@@ -21,7 +22,9 @@ describe('hoverTextOf', () => {
     test('reads markup content, a marked string and a list of them', () => {
         expect(hoverTextOf({ contents: { kind: 'markdown', value: '```ts\nlet a: number\n```' } }).signatures).toHaveLength(1);
         expect(hoverTextOf({ contents: { language: 'ts', value: 'let a' } }).signatures).toEqual([{ language: 'ts', code: 'let a' }]);
+
         const list = hoverTextOf({ contents: [{ language: 'php', value: 'function f()' }, 'Does a thing.'] });
+
         expect(list.signatures).toHaveLength(1);
         expect(list.markdown).toBe('Does a thing.');
     });
@@ -38,6 +41,7 @@ describe('hoverTextOf', () => {
 describe('locationsOf', () => {
     test('lands links on the name of the symbol', () => {
         const range = { start: { line: 1, character: 2 }, end: { line: 1, character: 5 } };
+
         expect(locationsOf([{ targetUri: 'file:///a.ts', targetRange: range, targetSelectionRange: range }])).toEqual([{ uri: 'file:///a.ts', range }]);
         expect(locationsOf(null)).toEqual([]);
         expect(locationsOf({ uri: 'file:///b.ts', range })).toEqual([{ uri: 'file:///b.ts', range }]);
@@ -47,6 +51,7 @@ describe('locationsOf', () => {
 describe('splitDocTags', () => {
     test('takes the tags of the PHP server, a paragraph each', () => {
         const split = splitDocTags('Returns the cost.\n\n_@since_ 04-08-2024\n\n_@author_ Bas Milius <bas@mili.us>\n\n_@package_ Passly\\Data\\Dto');
+
         expect(split.markdown).toBe('Returns the cost.');
         expect(split.tags).toEqual([
             { name: 'author', markdown: 'Bas Milius <bas@mili.us>' },
@@ -57,6 +62,7 @@ describe('splitDocTags', () => {
 
     test('drops the dashes the TypeScript server puts between a tag, its parameter and its text', () => {
         const split = splitDocTags('Share.\n\n*@returns* \u2014 a fraction\n\n*@param* `have` \u2014 the skills\n\n*@param* `need` \u2014 the required');
+
         expect(split.tags).toEqual([
             { name: 'param', markdown: '`have` the skills' },
             { name: 'param', markdown: '`need` the required' },
@@ -66,6 +72,7 @@ describe('splitDocTags', () => {
 
     test('leaves prose that mentions an @ and an example as they are', () => {
         const text = 'Mail @bas about it.\n\n*@example*\n```ts\nshare()\n```';
+
         expect(splitDocTags(text)).toEqual({ markdown: text, tags: [] });
     });
 });
@@ -76,6 +83,7 @@ describe('the Baseline status of a CSS property', () => {
     test('is taken out of the prose with its level, whichever image the server drew', () => {
         const markdown = `Sets the color of an element's text\n\n${icon} _Widely available across major browsers (Baseline since 2015)_\n\nSyntax: <color>\n\n[MDN Reference](https://developer.mozilla.org/docs/Web/CSS/Reference/Properties/color)`;
         const [section] = hoverSectionsOf({ signatures: [], markdown });
+
         expect(section!.baseline).toEqual({ level: 'widely', text: 'Widely available across major browsers (Baseline since 2015)' });
         expect(section!.markdown).not.toContain('data:');
         expect(section!.markdown).toContain('Syntax: <color>');
@@ -84,6 +92,7 @@ describe('the Baseline status of a CSS property', () => {
 
     test('tells newly and limited availability from widely', () => {
         const levelOf = (status: string) => hoverSectionsOf({ signatures: [], markdown: `Text\n\n${icon} _${status}_` })[0]!.baseline?.level;
+
         expect(levelOf('Newly available across major browsers (Baseline since 2024)')).toBe('newly');
         expect(levelOf('Limited availability across major browsers (Not fully implemented in Firefox)')).toBe('limited');
     });
@@ -101,6 +110,7 @@ describe('hoverSectionsOf', () => {
 
     test("splits the PHP server's symbols at its rules, with the snippet as the signature and the tags apart", () => {
         const sections = hoverSectionsOf(hoverTextOf({ contents: { kind: 'markdown', value: php } }));
+
         expect(sections).toHaveLength(2);
         expect(sections[0]).toEqual({
             title: 'Passly\\Message\\IssueTicketsMessage',
@@ -115,6 +125,7 @@ describe('hoverSectionsOf', () => {
 
     test("keeps the TypeScript server's leading signature with the prose after its rule", () => {
         const sections = hoverSectionsOf(splitSignatures('```ts\nfunction share(): number\n```\n---\nShare.\n\n*@returns* \u2014 a fraction'));
+
         expect(sections).toEqual([
             {
                 title: null,
@@ -131,6 +142,7 @@ describe('docblockMarkdown', () => {
     test("turns an example in <code> into a block in the symbol's language and inline tags into code", () => {
         const raw =
             "Used within {@see Foo::bar()} and {@see\nBaz::qux()}, or {@link Model the model}.\n\n<code>\nclass Post extends Model {\n    #[Alias('user_id')]\n}\n</code>\n\nThen <code>a &lt; b</code>.";
+
         expect(docblockMarkdown(raw, 'php')).toBe(
             "Used within `Foo::bar()` and `Baz::qux()`, or the model.\n\n```php\nclass Post extends Model {\n    #[Alias('user_id')]\n}\n```\n\nThen `a < b`."
         );
@@ -139,7 +151,9 @@ describe('docblockMarkdown', () => {
     test('reaches a hover section from the PHP server', () => {
         const value =
             '__Alias__\n\nClass Alias\n\n```php\n<?php\nfinal class Alias { }\n```\n\nDefines an alias.\n\n<code>\nclass Post {\n}\n</code>\n\n_@since_ 1.0.17';
+
         const [section] = hoverSectionsOf(hoverTextOf({ contents: { kind: 'markdown', value } }));
+
         expect(markdownParts(section!.markdown)).toEqual([
             { kind: 'prose', text: 'Class Alias\n\nDefines an alias.' },
             { kind: 'code', block: { language: 'php', code: 'class Post {\n}' } }

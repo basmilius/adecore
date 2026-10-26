@@ -9,11 +9,15 @@ import { realTimers, type Timers } from './timers.ts';
 import { placeKey } from './unique.ts';
 
 const REFERENCES = 'textDocument/references';
+
 /* Lines asked about above and below what is in view, so a little scrolling stays inside what is counted. */
 const MARGIN_LINES = 40;
+
 /* References are the slowest question a server is asked here, so only this many are in flight at once. */
 const MAX_PARALLEL = 3;
+
 const SCROLL_PAUSE_MS = 150;
+
 /* Past this many lines a file gets no rows at all, which is also what keeps blame and the walk of symbols cheap. */
 export const MAX_LINES = 20_000;
 
@@ -41,18 +45,25 @@ export class CodeVisionFeature {
     private readonly timers: Timers;
     private settings: CodeVisionSettings = { usages: false, authors: false };
     private declarations: CodeVisionDeclaration[] = [];
+
     /* What the declarations were read from, so a count never outlives the text it was asked for. */
     private epoch = 0;
+
     private edited = false;
     private readonly counts = new Map<string, { count: number; epoch: number }>();
     private queue: CodeVisionDeclaration[] = [];
+
     /* Scrolling changes the pending queue but keeps requests already in flight. */
     private readonly running = new Map<string, AbortController>();
+
     /* Declarations a server could not count for this text, which are not asked again until it says it can. */
     private failed = new Set<string>();
+
     private blame: BlameSource | null = null;
+
     /* The text the declarations were read from, which the lines of their authors are counted in. */
     private lines: readonly string[] = [];
+
     private mapped: { blame: GitBlameResult; lines: Int32Array | null } | null = null;
     private readonly authorships = new Map<string, CodeAuthorship>();
     private scrollTimer: unknown;
@@ -63,6 +74,7 @@ export class CodeVisionFeature {
         this.language = language;
         this.timers = timers;
         const { editor } = language;
+
         const offs = [
             onSymbols((result) => this.read(result)),
             editor.onTextChange(() => {
@@ -74,21 +86,27 @@ export class CodeVisionFeature {
                 this.scrollTimer = this.timers.set(() => this.plan(), SCROLL_PAUSE_MS);
             })
         ];
+
         const providers = language.onProvidersChanged(() => {
             this.failed.clear();
             this.publish();
             this.plan();
         });
+
         language.onDispose(() => {
             this.disposed = true;
+
             for (const off of offs) {
                 off();
             }
+
             providers();
             this.timers.clear(this.scrollTimer);
+
             for (const controller of this.running.values()) {
                 controller.abort();
             }
+
             this.closeAuthors();
             editor.setCodeVision([]);
         });
@@ -99,6 +117,7 @@ export class CodeVisionFeature {
         if (settings.usages === this.settings.usages && settings.authors === this.settings.authors) {
             return;
         }
+
         this.settings = settings;
         this.publish();
         this.plan();
@@ -119,8 +138,10 @@ export class CodeVisionFeature {
         this.mapped = null;
         this.authorships.clear();
         this.edited = false;
+
         this.declarations =
             lines.length > MAX_LINES ? [] : declarationsOf(result, { lineCount: lines.length, lineAt: (line) => lines[line] ?? '', languageId });
+
         this.epoch++;
         this.failed.clear();
         this.publish();
@@ -136,9 +157,11 @@ export class CodeVisionFeature {
         if (this.disposed || this.edited || !this.canCount) {
             return;
         }
+
         const view = this.language.editor.getVisibleRange();
         const first = view.start.line - MARGIN_LINES;
         const last = view.end.line + MARGIN_LINES;
+
         this.queue = this.declarations
             .filter(
                 (declaration) =>
@@ -150,6 +173,7 @@ export class CodeVisionFeature {
                     !this.failed.has(declaration.id)
             )
             .sort((left, right) => Math.abs(left.line - view.start.line) - Math.abs(right.line - view.start.line));
+
         while (this.running.size < MAX_PARALLEL && this.queue.length > 0) {
             void this.count(this.queue.shift()!);
         }
@@ -160,8 +184,10 @@ export class CodeVisionFeature {
         const controller = new AbortController();
         this.running.set(declaration.id, controller);
         const epoch = this.epoch;
+
         try {
             const locations = await project.service.references(uri, declaration.position, false, { signal: controller.signal, parallel: true });
+
             if (!this.disposed && epoch === this.epoch) {
                 this.counts.set(declaration.id, { count: distinctPlaces(locations ?? []), epoch });
                 this.publish();
@@ -182,9 +208,12 @@ export class CodeVisionFeature {
         if (this.publishing) {
             return;
         }
+
         this.publishing = true;
+
         queueMicrotask(() => {
             this.publishing = false;
+
             if (!this.disposed) {
                 this.language.editor.setCodeVision(this.rows());
             }
@@ -198,14 +227,18 @@ export class CodeVisionFeature {
         const withAuthors = this.settings.authors && this.blame !== null;
         const commits = this.blame?.kind === 'ready' ? this.blame.blame.commits : [];
         const mapped = this.blame?.kind === 'ready' && this.settings.authors ? this.mapOfBlame(this.blame) : null;
+
         for (const declaration of this.declarations) {
             const reserved = (counted && declaration.usages) || (withAuthors && declaration.authors);
+
             if (!reserved || taken.has(declaration.line)) {
                 continue;
             }
+
             taken.add(declaration.line);
             const entries: EditorCodeVisionEntry[] = [];
             const known = this.counts.get(declaration.id);
+
             if (counted && declaration.usages && known !== undefined) {
                 entries.push({
                     id: 'usages',
@@ -213,8 +246,10 @@ export class CodeVisionFeature {
                     activate: () => void this.language.peek.open(declaration.position)
                 });
             }
+
             if (mapped !== null && declaration.authors) {
                 const authorship = this.authorshipOf(declaration, commits, mapped);
+
                 entries.push({
                     id: 'authors',
                     text: authorsText(authorship, this.language.project.i18n),
@@ -222,18 +257,23 @@ export class CodeVisionFeature {
                     activate: (anchor) => this.showAuthors(declaration, authorship, anchor)
                 });
             }
+
             rows.push({ id: declaration.id, line: declaration.line, entries });
         }
+
         return rows;
     }
 
     private authorshipOf(declaration: CodeVisionDeclaration, commits: readonly GitBlameCommit[], mapped: Int32Array): CodeAuthorship {
         const known = this.authorships.get(declaration.id);
+
         if (known !== undefined) {
             return known;
         }
+
         const authorship = authorshipOf(commits, mapped, this.lines, declaration.authorFrom, declaration.authorTo);
         this.authorships.set(declaration.id, authorship);
+
         return authorship;
     }
 
@@ -241,12 +281,14 @@ export class CodeVisionFeature {
         if (this.mapped?.blame !== source.blame) {
             this.mapped = { blame: source.blame, lines: mapBlame(source.blame, source.base, this.lines) };
         }
+
         return this.mapped.lines;
     }
 
     private showAuthors(declaration: CodeVisionDeclaration, authorship: CodeAuthorship, anchor: EditorRect): void {
         const source = this.blame;
         const openCommit = source?.kind === 'ready' ? source.openCommit : undefined;
+
         this.language.popups.setState({
             authors: {
                 anchor,
@@ -261,6 +303,7 @@ export class CodeVisionFeature {
     closeAuthors(restoreFocus = false): void {
         if (this.language.popups.getState().authors !== null) {
             this.language.popups.setState({ authors: null });
+
             if (restoreFocus) {
                 this.language.editor.focus();
             }

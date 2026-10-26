@@ -26,18 +26,24 @@ export function DiffOverlays({
     blocked?: ReadonlySet<number>;
 }) {
     const { t } = useTranslation('editor');
+
     const getRows = () => mounted.rows.getContainers();
     const getActions = () => mounted.actions.getContainers();
+
     const rows = useSyncExternalStore((listener) => mounted.rows.subscribe(listener), getRows, getRows);
     const actions = useSyncExternalStore((listener) => mounted.actions.subscribe(listener), getActions, getActions);
+
     return (
         <>
             {display.gaps.map(({ row }) => {
                 const container = rows.get(`gap-${row.id}`);
+
                 if (container === undefined) {
                     return null;
                 }
+
                 const text = t('diff.hidden', { count: formatNumber(Math.max(row.oldCount, row.newCount)) });
+
                 return createPortal(
                     <div className="adecore-editor-diff-gap">
                         {row.unfoldable && blocked?.has(row.id) === true ? (
@@ -65,7 +71,9 @@ export function DiffOverlays({
                 if (row.noNewline === undefined) {
                     return null;
                 }
+
                 const container = actions.get(`no-newline-${index}`);
+
                 return container === undefined
                     ? null
                     : createPortal(<span className="adecore-editor-diff-no-newline">{t('diff.noNewline')}</span>, container, `no-newline-${index}`);

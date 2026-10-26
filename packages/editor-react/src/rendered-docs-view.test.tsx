@@ -17,33 +17,42 @@ test('scrolling over rendered documentation draws the popups again without rende
     const globals = globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean };
     const previousAct = globals.IS_REACT_ACT_ENVIRONMENT;
     globals.IS_REACT_ACT_ENVIRONMENT = true;
+
     // The caret stays on the first line, outside every comment, which would otherwise show as source.
     const text = ['let total = 0;', ...Array.from({ length: 20 }, (_, index) => `/** Adds **${index}** to the total. */\nfunction add${index}() {}`)].join(
         '\n'
     );
+
     const editor = new FakeEditorEngine().mount(page.host, { text, theme: 'light' });
     const project = new ProjectLanguage(new FakeLanguageService());
     const language = new EditorLanguage(project, editor, 'file:///work/add.ts', 'typescript', new ManualTimers());
     const root = createRoot(page.window.document.createElement('div'));
     const renders = spyOn(markdown, 'Markdown');
+
     try {
         await act(async () => root.render(createElement(LanguagePopups, { language })));
+
         await act(async () => {
             language.renderedDocs.configure({ renderDocComments: true });
+
             for (const row of editor.replacementsByOwner.get('rendered-docs') ?? []) {
                 const container = page.window.document.createElement('div');
                 page.host.append(container);
                 row.render(container);
             }
         });
+
         expect(page.host.querySelectorAll('.adecore-rendered-doc')).toHaveLength(20);
         expect(renders).toHaveBeenCalledTimes(20);
+
         renders.mockClear();
+
         await act(async () => {
             for (let step = 0; step < 10; step++) {
                 editor.scroll();
             }
         });
+
         expect(renders).toHaveBeenCalledTimes(0);
     } finally {
         renders.mockRestore();
@@ -51,6 +60,7 @@ test('scrolling over rendered documentation draws the popups again without rende
         language.dispose();
         project.dispose();
         globals.IS_REACT_ACT_ENVIRONMENT = previousAct;
+
         if (previousWindow === undefined) {
             Reflect.deleteProperty(globalThis, 'window');
         } else {

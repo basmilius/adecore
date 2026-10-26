@@ -25,10 +25,13 @@ export function neighborRange(ranges: readonly EditorRange[], from: EditorPositi
     if (ranges.length === 0) {
         return null;
     }
+
     const ordered = [...ranges].sort((left, right) => comparePositions(left.start, right.start));
+
     if (direction === 1) {
         return ordered.find((range) => comparePositions(range.start, from) > 0) ?? ordered[0]!;
     }
+
     return [...ordered].reverse().find((range) => comparePositions(range.start, from) < 0) ?? ordered[ordered.length - 1]!;
 }
 
@@ -44,13 +47,17 @@ export class HighlightsFeature {
     constructor(language: EditorLanguage, timers: Timers = realTimers) {
         this.language = language;
         const { editor, project, uri } = language;
+
         this.refresher = new Refresher(
             async (signal) => {
                 if (!project.service.supports(METHOD, uri) || !this.onName()) {
                     this.clear();
+
                     return;
                 }
+
                 const result = await project.service.documentHighlights(uri, editor.getCaret(), { signal });
+
                 if (!signal.aborted) {
                     this.set(result === null ? [] : editorHighlightsOf(result));
                 }
@@ -58,12 +65,14 @@ export class HighlightsFeature {
             PAUSE_MS,
             timers
         );
+
         const offs = [
             editor.onCaret((position) => {
                 // Moving along the same name keeps its marks, which is what makes stepping through them quiet.
                 if (!this.current.some((highlight) => rangeHolds(highlight.range, position))) {
                     this.clear();
                 }
+
                 this.refresher.later();
             }),
             editor.onTextChange(() => {
@@ -73,16 +82,20 @@ export class HighlightsFeature {
             }),
             language.onKey((event) => {
                 const next = isShortcut(this.language.shortcuts.nextHighlight, event);
+
                 if (!next && !isShortcut(this.language.shortcuts.previousHighlight, event)) {
                     return false;
                 }
+
                 return this.step(next ? 1 : -1);
             }, KEY_PRIORITY.highlights)
         ];
+
         language.onDispose(() => {
             for (const off of offs) {
                 off();
             }
+
             this.refresher.dispose();
             editor.setHighlights([]);
         });
@@ -91,15 +104,19 @@ export class HighlightsFeature {
     /* Puts the caret on the next use of the name, or the one before; false when there are none. */
     step(direction: 1 | -1): boolean {
         const { editor } = this.language;
+
         const target = neighborRange(
             this.current.map((highlight) => highlight.range),
             editor.getCaret(),
             direction
         );
+
         if (target === null) {
             return false;
         }
+
         editor.setCaret(target.start, comparePositions(target.start, editor.getCaret()) > 0 ? 'centerDown' : 'centerUp');
+
         return true;
     }
 
@@ -108,6 +125,7 @@ export class HighlightsFeature {
         const caret = editor.getCaret();
         const before = caret.character > 0 ? editor.textInRange({ start: { line: caret.line, character: caret.character - 1 }, end: caret }) : '';
         const after = editor.textInRange({ start: caret, end: { line: caret.line, character: caret.character + 1 } });
+
         return (before !== '' && isIdentifierCharacter(before)) || (after !== '' && isIdentifierCharacter(after));
     }
 

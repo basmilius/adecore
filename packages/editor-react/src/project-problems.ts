@@ -38,6 +38,7 @@ export type ProblemSource = (listener: (report: ProblemReport) => void) => () =>
 export function serviceProblems(service: LanguageService, pathOf: (uri: string) => string = (uri) => uri): ProblemSource {
     return (listener) => {
         const subscription = service.onDiagnostics((report) => listener({ path: pathOf(report.uri), server: report.source, diagnostics: report.diagnostics }));
+
         return () => subscription.dispose();
     };
 }
@@ -51,8 +52,10 @@ export class ProjectProblems {
     private readonly files = new Map<string, ProblemFile>();
     private readonly listeners = new Set<() => void>();
     private readonly stop: () => void;
+
     /* The paths of `files` in order; null once a file came or went. */
     private order: string[] | null = [];
+
     /* Made on first read after a report, so a project nobody lists does no sorting. */
     private snapshot: readonly ProblemFile[] | null = [];
 
@@ -65,15 +68,18 @@ export class ProjectProblems {
     report(path: string, server: string, diagnostics: readonly Diagnostic[]): void {
         const kept = diagnostics.filter((diagnostic) => severityOf(diagnostic) !== 'hint');
         const servers = this.reports.get(path) ?? new Map<string, readonly Diagnostic[]>();
+
         if (kept.length === 0 && !servers.has(server)) {
             // A clean file reported clean again, as servers do after every edit.
             return;
         }
+
         if (kept.length === 0) {
             servers.delete(server);
         } else {
             servers.set(server, kept);
         }
+
         if (servers.size === 0) {
             this.reports.delete(path);
             this.files.delete(path);
@@ -82,11 +88,14 @@ export class ProjectProblems {
             if (!this.files.has(path)) {
                 this.order = null;
             }
+
             this.reports.set(path, servers);
             const rows = [...servers].flatMap(([name, list]) => list.map((diagnostic): ProblemRow => ({ diagnostic, server: name }))).sort(compareRows);
             this.files.set(path, { path, rows });
         }
+
         this.snapshot = null;
+
         for (const listener of [...this.listeners]) {
             listener();
         }
@@ -98,11 +107,13 @@ export class ProjectProblems {
             this.order ??= [...this.files.keys()].sort((left, right) => left.localeCompare(right));
             this.snapshot = this.order.map((path) => this.files.get(path)!);
         }
+
         return this.snapshot;
     };
 
     subscribe = (listener: () => void): (() => void) => {
         this.listeners.add(listener);
+
         return () => {
             this.listeners.delete(listener);
         };

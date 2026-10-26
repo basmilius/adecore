@@ -37,24 +37,29 @@ export class PickFeature {
     private active = '';
     private previewTimer: unknown;
     private controller: AbortController | null = null;
+
     /* The rows that said why they cannot be taken, by id. */
     private refusals = new Map<string, string>();
+
     private attempting = false;
 
     constructor(language: EditorLanguage, timers: Timers = realTimers) {
         this.language = language;
         this.timers = timers;
         const { editor } = language;
+
         const offs = [
             language.onKey((event) => this.key(event), KEY_PRIORITY.pick),
             editor.onTextChange(() => this.close()),
             editor.onCaret(() => this.close()),
             editor.onBlur(() => this.close())
         ];
+
         language.onDispose(() => {
             for (const off of offs) {
                 off();
             }
+
             this.close();
         });
     }
@@ -66,9 +71,11 @@ export class PickFeature {
     open(spec: PickSpec): void {
         this.close();
         const ids = spec.groups.flatMap((group) => group.rows.map((row) => row.id));
+
         if (ids.length === 0) {
             return;
         }
+
         this.spec = spec;
         this.refusals = new Map();
         this.ids = ids;
@@ -81,6 +88,7 @@ export class PickFeature {
         if (this.spec === null) {
             return;
         }
+
         this.spec = null;
         this.timers.clear(this.previewTimer);
         this.controller?.abort();
@@ -96,28 +104,37 @@ export class PickFeature {
     /* Takes a row, by a click or Enter. */
     choose(id: string): void {
         const spec = this.spec;
+
         if (spec === null || !this.ids.includes(id) || this.attempting) {
             return;
         }
+
         if (spec.attempt === undefined) {
             this.close();
             spec.accept(id);
+
             return;
         }
+
         this.attempting = true;
+
         void spec
             .attempt(id)
             .catch(() => null)
             .then((reason) => {
                 this.attempting = false;
+
                 if (this.spec !== spec) {
                     return;
                 }
+
                 if (reason === null) {
                     this.close();
                     spec.accept(id);
+
                     return;
                 }
+
                 this.refusals.set(id, reason);
                 this.publish(null);
             });
@@ -127,6 +144,7 @@ export class PickFeature {
         if (id === this.active) {
             return;
         }
+
         this.active = id;
         this.controller?.abort();
         this.publish(null);
@@ -137,40 +155,51 @@ export class PickFeature {
         if (this.spec === null || event.metaKey || event.ctrlKey || event.altKey) {
             return false;
         }
+
         switch (event.key) {
             case 'ArrowDown':
                 this.move(1);
+
                 return true;
             case 'ArrowUp':
                 this.move(-1);
+
                 return true;
             case 'PageDown':
                 this.move(8);
+
                 return true;
             case 'PageUp':
                 this.move(-8);
+
                 return true;
             case 'Home':
                 this.activate(this.ids[0]!);
+
                 return true;
             case 'End':
                 this.activate(this.ids[this.ids.length - 1]!);
+
                 return true;
             case 'Enter':
                 this.choose(this.active);
+
                 return true;
             case 'Tab': {
                 const spec = this.spec;
+
                 if (spec.onTab !== undefined) {
                     this.close();
                     spec.onTab(event.shiftKey);
                 } else {
                     this.choose(this.active);
                 }
+
                 return true;
             }
             case 'Escape':
                 this.close();
+
                 return true;
             default:
                 return false;
@@ -180,13 +209,17 @@ export class PickFeature {
     private schedulePreview(): void {
         const spec = this.spec;
         this.timers.clear(this.previewTimer);
+
         if (spec?.preview === undefined) {
             return;
         }
+
         const id = this.active;
+
         this.previewTimer = this.timers.set(() => {
             const controller = new AbortController();
             this.controller = controller;
+
             spec.preview!(id, controller.signal)
                 .then((preview) => {
                     if (this.spec === spec && this.active === id && !controller.signal.aborted) {
@@ -199,9 +232,11 @@ export class PickFeature {
 
     private publish(preview: PickPreview | null): void {
         const spec = this.spec;
+
         if (spec === null) {
             return;
         }
+
         const refusal = this.refusals.get(this.active);
         const shown = refusal === undefined ? preview : { removed: [], added: [], note: null, refusal };
         this.language.popups.setState({ pick: { anchor: spec.anchor, groups: spec.groups, active: this.active, preview: shown, title: spec.title ?? null } });

@@ -32,12 +32,15 @@ class DocumentSync {
         this.uri = uri;
         this.editor = editor;
         this.stop = editor.onTextChange((change) => this.changed(change.changes));
+
         this.ready = service.openDocument({ uri, languageId, text: editor.getText() }).then(() => {
             this.opened = true;
+
             if (!this.disposed) {
                 this.flush();
             }
         });
+
         // A failed open is also a document nothing can be asked of; the features' own requests say so.
         this.ready.catch(() => undefined);
     }
@@ -54,6 +57,7 @@ class DocumentSync {
 
     private changed(changes: readonly ContentChange[]): void {
         this.pending.push(...changes);
+
         if (this.opened) {
             this.flush();
         }
@@ -63,6 +67,7 @@ class DocumentSync {
         if (this.pending.length === 0) {
             return;
         }
+
         const changes = this.pending;
         this.pending = [];
         void this.service.changeDocument(this.uri, changes).catch(() => undefined);
@@ -82,6 +87,7 @@ function filesOf(targets: readonly FileOperationTarget[]): Array<{ uri: string; 
     return targets.map((target) => {
         const { path, directory } =
             typeof target === 'string' ? { path: target, directory: false } : { path: target.path, directory: target.directory === true };
+
         return { uri: pathToFileUri(path), directory };
     });
 }
@@ -99,8 +105,10 @@ export class ProjectLanguage {
     readonly history = new NavigationHistory();
     private readonly holders = new Map<string, Holder>();
     private readonly files: ProjectFiles | null;
+
     /* The body height of the peek and call hierarchy panels, shared by the editors of the project. */
     panelBodyHeight: number;
+
     private readonly panelListeners = new Set<(height: number) => void>();
     private pendingCaret: Place | null = null;
     private lastPlace: Place | null = null;
@@ -119,6 +127,7 @@ export class ProjectLanguage {
     /* Open panels of other editors of the project follow a resize. */
     onPanelBodyChange(listener: (height: number) => void): () => void {
         this.panelListeners.add(listener);
+
         return () => this.panelListeners.delete(listener);
     }
 
@@ -126,6 +135,7 @@ export class ProjectLanguage {
         if (height === this.panelBodyHeight) {
             return;
         }
+
         this.panelBodyHeight = height;
         this.panelListeners.forEach((listener) => listener(height));
         this.host.onPanelResize?.(height);
@@ -135,13 +145,16 @@ export class ProjectLanguage {
         if (this.host.pathOfUri !== undefined) {
             return this.host.pathOfUri(uri);
         }
+
         const path = fileUriToPath(uri);
+
         return path !== null && this.folder !== '' ? relativeTo(path, this.folder) : path;
     }
 
     /* Makes an edit of a language server: an open document takes it as one undo step and any other file gets an unsaved draft. */
     applyWorkspaceEdit(edit: WorkspaceEdit): Promise<ApplyWorkspaceEditResult> {
         const { service } = this;
+
         return applyWorkspaceEdit(edit, {
             editorOf: (uri) => this.holders.get(uri)?.editors[0],
             files: this.files,
@@ -175,10 +188,13 @@ export class ProjectLanguage {
     /* The text of a file as it stands now: an open document's, else a draft's or the machine's; null when it is no text file. */
     async readText(uri: string): Promise<string | null> {
         const open = this.holders.get(uri)?.sync.text;
+
         if (open !== undefined) {
             return open;
         }
+
         const path = fileUriToPath(uri);
+
         return path === null || this.files === null ? null : ((await this.files.read(path))?.text ?? null);
     }
 
@@ -201,16 +217,20 @@ export class ProjectLanguage {
         if (this.lastPlace !== null) {
             this.history.record(this.lastPlace);
         }
+
         this.openPlace(place);
     }
 
     /* The column an opened place waits for, once the editor of its file has put its caret on the line; each place is asked for once. */
     takeCaret(uri: string, line: number): EditorPosition | null {
         const pending = this.pendingCaret;
+
         if (pending === null || pending.uri !== uri || pending.position.line !== line) {
             return null;
         }
+
         this.pendingCaret = null;
+
         return pending.position;
     }
 
@@ -219,13 +239,17 @@ export class ProjectLanguage {
         if (this.disposed) {
             throw new Error('The project language is disposed');
         }
+
         let holder = this.holders.get(uri);
+
         if (holder === undefined) {
             holder = { editors: [], sync: new DocumentSync(this.service, uri, languageId, editor), languageId };
             this.holders.set(uri, holder);
         }
+
         holder.editors.push(editor);
         let released = false;
+
         return {
             uri,
             service: this.service,
@@ -243,20 +267,25 @@ export class ProjectLanguage {
 
     private release(uri: string, editor: Editor): void {
         const holder = this.holders.get(uri);
+
         if (holder === undefined) {
             return;
         }
+
         holder.editors.splice(holder.editors.indexOf(editor), 1);
         const next = holder.editors[0];
+
         if (next === undefined) {
             holder.sync.dispose();
             this.holders.delete(uri);
+
             void holder.sync.ready
                 .catch(() => undefined)
                 .then(() => {
                     if (this.holders.has(uri)) {
                         return undefined;
                     }
+
                     return this.service.closeDocument(uri);
                 })
                 .catch(() => undefined);
@@ -271,15 +300,19 @@ export class ProjectLanguage {
         if (this.disposed) {
             return;
         }
+
         this.disposed = true;
         disposeSnippetTransforms(this);
+
         for (const [uri, holder] of this.holders) {
             holder.sync.dispose();
+
             void holder.sync.ready
                 .catch(() => undefined)
                 .then(() => this.service.closeDocument(uri))
                 .catch(() => undefined);
         }
+
         this.holders.clear();
         this.problems.dispose();
     }

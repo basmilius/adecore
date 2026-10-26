@@ -18,6 +18,7 @@ export class ManualTimers implements Timers {
     set(callback: () => void, delay: number): unknown {
         const id = this.next++;
         this.pending.set(id, { at: this.now + delay, callback });
+
         return id;
     }
 
@@ -27,15 +28,19 @@ export class ManualTimers implements Timers {
 
     advance(milliseconds: number): void {
         const until = this.now + milliseconds;
+
         for (;;) {
             const due = [...this.pending].filter(([, entry]) => entry.at <= until).sort((left, right) => left[1].at - right[1].at)[0];
+
             if (due === undefined) {
                 break;
             }
+
             this.now = due[1].at;
             this.pending.delete(due[0]);
             due[1].callback();
         }
+
         this.now = until;
     }
 

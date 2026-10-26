@@ -13,23 +13,29 @@ export const UNCOMMITTED = -1;
  */
 export function mapBlame(blame: GitBlameResult, base: string, current: readonly string[]): Int32Array | null {
     const baseLines = splitLines(base);
+
     if (blame.lines.length !== baseLines.length) {
         return null;
     }
+
     const mapped = new Int32Array(current.length).fill(UNCOMMITTED);
     let basePosition = 0;
     let position = 0;
+
     const carry = (until: number): void => {
         for (; position < until; position++, basePosition++) {
             mapped[position] = blame.lines[basePosition]!;
         }
     };
+
     for (const change of diffLines(baseLines, current)) {
         carry(change.otherStart);
         position = change.otherEnd;
         basePosition = change.baseEnd;
     }
+
     carry(current.length);
+
     return mapped;
 }
 
@@ -65,40 +71,54 @@ export function authorshipOf(commits: readonly GitBlameCommit[], mapped: Int32Ar
     let uncommittedLines = 0;
     let modified = false;
     let latest: GitBlameCommit | null = null;
+
     for (let line = from; line <= to && line < mapped.length; line++) {
         const index = mapped[line]!;
+
         if (index === UNCOMMITTED) {
             modified = true;
         }
+
         if (lines[line]!.trim() === '') {
             continue;
         }
+
         if (index === UNCOMMITTED) {
             uncommittedLines++;
+
             continue;
         }
+
         const commit = commits[index]!;
         const name = shortName(commit.author);
+
         if (name === '') {
             continue;
         }
+
         const author = byName.get(name) ?? { name, email: commit.email, lines: 0 };
         author.lines++;
         byName.set(name, author);
+
         if (latest === null || commit.at > latest.at) {
             latest = commit;
         }
     }
+
     const authors = [...byName.values()].sort((left, right) => right.lines - left.lines || (left.name < right.name ? -1 : left.name > right.name ? 1 : 0));
+
     return { authors, uncommittedLines, modified, latest };
 }
 
 /* The row's words: the author with most lines, how many others wrote some, and a star when the range is edited since the commit. */
 export function authorsText(authorship: CodeAuthorship, i18n: i18n): string {
     const main = authorship.authors[0];
+
     if (main === undefined) {
         return i18n.t('editor:language.codeVision.newCode');
     }
+
     const others = authorship.authors.length - 1;
+
     return `${main.name}${others > 0 ? ` +${formatNumber(others)}` : ''}${authorship.modified ? ' *' : ''}`;
 }

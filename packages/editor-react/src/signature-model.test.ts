@@ -14,6 +14,7 @@ const signature = {
 describe('signatureViewOf', () => {
     test('marks the active parameter and carries what is said about it', () => {
         const view = signatureViewOf({ signatures: [signature], activeParameter: 1 });
+
         expect(view).toMatchObject({
             active: { start: 37, end: 53 },
             parameterName: 'vacancy',
@@ -27,6 +28,7 @@ describe('signatureViewOf', () => {
 
     test('picks the overload the server names, and says nothing for no signatures', () => {
         const other = { label: 'f(a)', parameters: [{ label: 'a' }] };
+
         expect(signatureViewOf({ signatures: [signature, other], activeSignature: 1 })?.label).toBe('f(a)');
         expect(signatureViewOf({ signatures: [] })).toBeNull();
         expect(signatureViewOf(null)).toBeNull();

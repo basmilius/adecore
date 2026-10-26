@@ -47,6 +47,7 @@ async function setup(incoming: (name: string) => CallHierarchyIncomingCall[], re
     languages.push(language);
     await language.callHierarchy.open();
     await settle();
+
     return { ...mounted, language, view: () => language.popups.getState().callHierarchy! };
 }
 
@@ -58,8 +59,11 @@ describe('call hierarchy in the real editor', () => {
     test('selects the first call that show more brought', async () => {
         const { press, view } = await setup(() => callers(CALL_LEVEL_LIMIT + 3));
         press('End');
+
         expect(view().active).toBe('r0:more');
+
         press('Enter');
+
         expect(view().active).toBe(`r0.${CALL_LEVEL_LIMIT}`);
         expect(view().rows.some((row) => row.id === view().active)).toBe(true);
     });
@@ -70,8 +74,11 @@ describe('call hierarchy in the real editor', () => {
         press('ArrowRight');
         await settle();
         press('End');
+
         expect(view().active).toBe('r0.0:more');
+
         language.callHierarchy.toggle('r0.0');
+
         expect(view().active).toBe('r0.0');
         expect(view().rows.some((row) => row.id === view().active)).toBe(true);
     });
@@ -79,21 +86,28 @@ describe('call hierarchy in the real editor', () => {
     test('leaves Shift combinations to the editor', async () => {
         const { press, view, editor } = await setup(() => callers(2));
         press('ArrowDown', { shiftKey: true });
+
         expect(view().active).toBe('r0');
         expect(editor.getSelection().end).not.toEqual(editor.getSelection().start);
     });
 
     test('shows no code while the code of the new row is on its way', async () => {
         let release: (value: { text: string; mtime: number }) => void = () => undefined;
+
         const { language, view } = await setup(
             (name) => (name === 'run' ? [...callers(1), { from: item('far', other, 3), fromRanges: [at(3)] }] : []),
             () => new Promise((resolve) => (release = resolve))
         );
+
         expect(view().preview).not.toBeNull();
+
         language.callHierarchy.select('r0.1');
+
         expect(view().preview).toBeNull();
+
         release({ text: 'a\nb\nc\nd\n', mtime: 1 });
         await settle();
+
         expect(view().preview).not.toBeNull();
     });
 
@@ -102,8 +116,10 @@ describe('call hierarchy in the real editor', () => {
             (name) => (name === 'run' ? [{ from: item('far', other, 3), fromRanges: [at(3)] }] : []),
             () => Promise.reject(new Error('gone'))
         );
+
         language.callHierarchy.select('r0.0');
         await settle();
+
         expect(view().active).toBe('r0.0');
         expect(view().preview).toBeNull();
     });
@@ -112,6 +128,7 @@ describe('call hierarchy in the real editor', () => {
         const { press, language } = await setup(() => callers(1));
         language.popups.setState({ hover: {} as HoverView, signature: {} as SignatureView });
         press('Escape');
+
         expect(language.callHierarchy.isOpen).toBe(false);
     });
 });

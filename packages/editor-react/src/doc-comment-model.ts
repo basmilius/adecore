@@ -35,36 +35,47 @@ const ALIASES: Readonly<Record<string, string>> = {
 
 /* Tags that carry a type before their subject. */
 const TYPED = new Set(['param', 'property', 'return', 'throws', 'var', 'type', 'yield', 'template', 'this']);
+
 /* Tags whose first word is the thing they are about. */
 const SUBJECT_FIRST = new Set(['param', 'property', 'var', 'template']);
 
 const TAG_START = /^@([A-Za-z][\w-]*)(?::[\w-]+)?[ \t]*(.*)$/;
 const FENCE = /^\s*(```|~~~)/;
 const DASH = /^[—–-][ \t]+/;
+
 const DANGEROUS =
     /<(script|style|iframe|object|embed|svg|math|form)\b[\s\S]*?<\/\1\s*>|<\/?(script|style|iframe|object|embed|link|meta|base|svg|math|form|img|video|audio|source|input|button|textarea|select|canvas|frame|frameset)\b[^>]*>/gi;
+
 const SAFE_SCHEME = /^(https?:|mailto:)/i;
 
 /* Reads a type that starts the text: in braces as JSDoc writes it, or as one word with its brackets as PHPDoc does. */
 function takeType(text: string, braces: boolean): { type: string | null; rest: string } {
     const trimmed = text.trimStart();
+
     if (trimmed.startsWith('{')) {
         let depth = 0;
+
         for (let i = 0; i < trimmed.length; i++) {
             depth += trimmed[i] === '{' ? 1 : trimmed[i] === '}' ? -1 : 0;
+
             if (depth === 0) {
                 return { type: trimmed.slice(1, i).trim(), rest: trimmed.slice(i + 1).trimStart() };
             }
         }
+
         return { type: null, rest: trimmed };
     }
+
     if (braces || /^[$&.]/.test(trimmed)) {
         return { type: null, rest: trimmed };
     }
+
     let depth = 0;
     let end = 0;
+
     for (; end < trimmed.length; end++) {
         const character = trimmed[end]!;
+
         if ('<([{'.includes(character)) {
             depth++;
         } else if ('>)]}'.includes(character)) {
@@ -73,19 +84,24 @@ function takeType(text: string, braces: boolean): { type: string | null; rest: s
             break;
         }
     }
+
     return { type: end === 0 ? null : trimmed.slice(0, end), rest: trimmed.slice(end).trimStart() };
 }
 
 /* The first word of a tag's text: a name with its sigils and the `[name=default]` form of JSDoc. */
 function takeSubject(text: string): { subject: string | null; rest: string } {
     const optional = /^\[([^\]]+)\]\s*/.exec(text);
+
     if (optional !== null) {
         return { subject: optional[1]!, rest: text.slice(optional[0].length) };
     }
+
     const word = /^(?:\.\.\.|&)?[$\w.\\:-]+/.exec(text);
+
     if (word === null) {
         return { subject: null, rest: text };
     }
+
     return { subject: word[0], rest: text.slice(word[0].length).trimStart() };
 }
 
@@ -94,11 +110,14 @@ function splitTags(body: string): { description: string; raw: { name: string; te
     const description: string[] = [];
     const raw: { name: string; text: string }[] = [];
     let fenced = false;
+
     for (const line of body.split('\n')) {
         if (FENCE.test(line)) {
             fenced = !fenced;
         }
+
         const start = fenced ? null : TAG_START.exec(line.trimStart());
+
         if (start !== null) {
             raw.push({ name: start[1]!.toLowerCase(), text: start[2]! });
         } else if (raw.length > 0) {
@@ -107,6 +126,7 @@ function splitTags(body: string): { description: string; raw: { name: string; te
             description.push(line);
         }
     }
+
     return { description: description.join('\n').trim(), raw };
 }
 
@@ -114,10 +134,12 @@ function entryOf(name: string, text: string, php: boolean): DocTagEntry {
     let rest = text.trim();
     let type: string | null = null;
     let subject: string | null = null;
+
     if (TYPED.has(name)) {
         const taken = name === 'return' && rest.startsWith('$this') ? { type: '$this', rest: rest.slice(5).trimStart() } : takeType(rest, !php);
         type = taken.type;
         rest = taken.rest;
+
         // A type that stands alone is the whole text of a tag that has no subject.
         if (SUBJECT_FIRST.has(name) || (name === 'throws' && type === null)) {
             const word = takeSubject(rest);
@@ -129,10 +151,12 @@ function entryOf(name: string, text: string, php: boolean): DocTagEntry {
         subject = target === null ? null : target[0];
         rest = target === null ? rest : rest.slice(target[0].length).trimStart();
     }
+
     if (name === 'throws' && type === null && subject !== null) {
         type = subject;
         subject = null;
     }
+
     return { name, type, subject, text: rest.replace(DASH, '').trim() };
 }
 
@@ -151,8 +175,10 @@ export function decodeEntities(text: string): string {
     return text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (match, code: string) => {
         if (code[0] === '#') {
             const point = code[1]!.toLowerCase() === 'x' ? Number.parseInt(code.slice(2), 16) : Number.parseInt(code.slice(1), 10);
+
             return Number.isFinite(point) && point > 0 && point <= 0x10ffff ? String.fromCodePoint(point) : match;
         }
+
         return ENTITIES[code.toLowerCase()] ?? match;
     });
 }
@@ -161,6 +187,7 @@ export function dedent(text: string): string {
     const lines = text.replace(/^\n+|\s+$/g, '').split('\n');
     const indents = lines.filter((line) => line.trim() !== '').map((line) => line.length - line.trimStart().length);
     const common = indents.length === 0 ? 0 : Math.min(...indents);
+
     return lines.map((line) => line.slice(common)).join('\n');
 }
 
@@ -175,6 +202,7 @@ function stripTags(html: string): string {
 /* The address of a link when it is one a reader may follow; null for everything else, such as a script address. */
 export function safeAddress(address: string): string | null {
     const trimmed = decodeEntities(address.trim());
+
     return SAFE_SCHEME.test(trimmed) || trimmed.startsWith(DOC_LINK_PREFIX) ? trimmed.replace(/\s/g, '%20').replace(/\(/g, '%28').replace(/\)/g, '%29') : null;
 }
 
@@ -188,12 +216,15 @@ export function htmlToMarkdown(source: string): string {
     if (!source.includes('<') && !source.includes('&')) {
         return source;
     }
+
     const lists: ('ul' | 'ol')[] = [];
     const counters: number[] = [];
     let anchor: string | null = null;
+
     const blocks = source
         .replace(/<pre\b[^>]*>([\s\S]*?)<\/pre\s*>/gi, (_match, body: string) => fenced(body))
         .replace(/<code>([^<]*\n[^<]*)<\/code>/gi, (_match, body: string) => fenced(body));
+
     const converted = outsideCode(blocks, (text) =>
         text
             .replace(DANGEROUS, '')
@@ -201,6 +232,7 @@ export function htmlToMarkdown(source: string): string {
                 /<(\/?)(p|br|b|strong|i|em|u|code|tt|kbd|samp|var|a|ul|ol|li|h[1-6]|blockquote|hr|div|span|dl|dt|dd|sup|sub|small|center)\b([^>]*?)(\/?)>/gi,
                 (_match, close: string, tag: string, attributes: string) => {
                     const closing = close === '/';
+
                     switch (tag.toLowerCase()) {
                         case 'p':
                         case 'div':
@@ -226,10 +258,13 @@ export function htmlToMarkdown(source: string): string {
                             if (closing) {
                                 const target = anchor;
                                 anchor = null;
+
                                 return target === null ? '' : `](${target})`;
                             }
+
                             const href = /\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i.exec(attributes);
                             anchor = href === null ? null : safeAddress(href[1] ?? href[2] ?? href[3] ?? '');
+
                             return anchor === null ? '' : '[';
                         }
                         case 'ul':
@@ -241,13 +276,16 @@ export function htmlToMarkdown(source: string): string {
                                 lists.push(tag.toLowerCase() as 'ul' | 'ol');
                                 counters.push(0);
                             }
+
                             return '\n';
                         case 'li': {
                             if (closing) {
                                 return '';
                             }
+
                             const depth = Math.max(0, lists.length - 1);
                             const marker = lists.at(-1) === 'ol' ? `${(counters[depth] = (counters[depth] ?? 0) + 1)}.` : '-';
+
                             return `\n${'  '.repeat(depth)}${marker} `;
                         }
                         case 'blockquote':
@@ -260,11 +298,13 @@ export function htmlToMarkdown(source: string): string {
                             if (/^h[1-6]$/i.test(tag)) {
                                 return closing ? '\n\n' : `\n\n${'#'.repeat(Number(tag[1]))} `;
                             }
+
                             return '';
                     }
                 }
             )
     );
+
     // Entities last, so `&lt;b&gt;` stays the text it spells and is not read as a tag above.
     return outsideCode(converted, decodeEntities).replace(/\n{3,}/g, '\n\n');
 }
@@ -279,6 +319,7 @@ export function inlineTagsToMarkdown(markdown: string): string {
             .replace(/\{@(?:link|linkcode|linkplain|see)\s+([^}\s|]+)(?:\s*[|\s]\s*([^}]+?))?\s*\}/g, (_match, target: string, label: string | undefined) => {
                 const address = /^https?:\/\//i.test(target) ? safeAddress(target) : `${DOC_LINK_PREFIX}${encodeURIComponent(target)}`;
                 const shown = label ?? target;
+
                 return address === null ? `\`${shown}\`` : `[${label === undefined ? `\`${shown}\`` : shown}](${address})`;
             })
             .replace(/\{@code\s+([^}]*)\}/g, (_match, code: string) => `\`${code.trim()}\``)
@@ -290,6 +331,7 @@ export function inlineTagsToMarkdown(markdown: string): string {
 function exampleOf(text: string): string {
     const code = text.replace(/^\s*<caption>[\s\S]*?<\/caption>[ \t]*\n?/i, '');
     const [head = '', ...tail] = code.split('\n');
+
     return head.trim() === '' ? dedent(code) : [head.trim(), dedent(tail.join('\n'))].join('\n').trim();
 }
 
@@ -301,16 +343,20 @@ function proseOf(text: string): string {
 export function parseDocComment(body: string, options: { php?: boolean } = {}): ParsedDocComment {
     const php = options.php === true;
     const { description, raw } = splitTags(body);
+
     const tags = raw.map(({ name, text }) => {
         const bare = name.replace(/^(?:psalm|phpstan)-/, '');
         const canonical = ALIASES[bare] ?? bare;
         const entry = entryOf(canonical, text, php);
+
         // An example is code: it keeps its lines and gets no prose treatment, only its caption removed.
         if (canonical === 'example') {
             return { ...entry, text: exampleOf(text) };
         }
+
         return { ...entry, text: proseOf(entry.text) };
     });
+
     return { description: proseOf(description), tags };
 }
 
@@ -325,12 +371,16 @@ export interface DocTagSection {
 /* The tags gathered by name, so a list of parameters is one section, in reading order. */
 export function sectionsOf(tags: readonly DocTagEntry[]): DocTagSection[] {
     const byName = new Map<string, DocTagEntry[]>();
+
     for (const tag of tags) {
         byName.set(tag.name, [...(byName.get(tag.name) ?? []), tag]);
     }
+
     const rank = (name: string): number => {
         const index = ORDER.indexOf(name);
+
         return index === -1 ? ORDER.length : index;
     };
+
     return [...byName].map(([name, entries]) => ({ name, tags: entries })).sort((left, right) => rank(left.name) - rank(right.name));
 }

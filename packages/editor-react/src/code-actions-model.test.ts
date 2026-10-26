@@ -28,6 +28,7 @@ describe('code action groups', () => {
             { title: 'Best fix', kind: 'quickfix', isPreferred: true },
             { title: 'Run', command: 'x.run' }
         ]);
+
         expect(entries.map((entry) => entry.action.title)).toEqual(['Best fix', 'Second fix', 'Extract', 'Run']);
         expect(entries.map((entry) => entry.group)).toEqual(['quickfix', 'quickfix', 'extract', 'other']);
         expect(entries[3]!.action.command).toEqual({ title: 'Run', command: 'x.run' });
@@ -42,6 +43,7 @@ describe('code action groups', () => {
             { title: 'Inline', kind: 'refactor.inline' },
             { title: 'Extract', kind: 'refactor.extract' }
         ];
+
         expect(actionsOf(answer).map((entry) => entry.action.title)).toEqual(['Fix', 'Rewrite', 'Extract', 'Inline', 'Move']);
         expect(actionsOf(answer, REFACTOR_GROUPS).map((entry) => entry.action.title)).toEqual(['Extract', 'Inline', 'Move', 'Rewrite']);
     });
@@ -54,6 +56,7 @@ describe('code action groups', () => {
                 { title: 'Extract', kind: 'refactor.extract' }
             ])
         ]);
+
         expect(merged.map((entry) => [entry.id, entry.action.title])).toEqual([
             ['0', 'Fix'],
             ['1', 'Extract']
@@ -71,12 +74,14 @@ describe('code action groups', () => {
             ],
             2
         );
+
         expect(picked.map((diagnostic) => diagnostic.message)).toEqual(['spans the line', 'error', 'warning']);
     });
 
     test('hands a server the problems that touch the range it was asked about', () => {
         const near = { range: range(2, 4, 8), message: 'near' };
         const far = { range: range(5, 0, 3), message: 'far' };
+
         expect(diagnosticsAt([near, far], range(2, 8, 8))).toEqual([near]);
         expect(diagnosticsAt([near, far], range(2, 9, 9))).toEqual([]);
     });
@@ -87,6 +92,7 @@ describe('preview of an edit', () => {
 
     test('shows the lines an edit replaces and the lines that replace them', () => {
         const edit = { changes: { [uri]: [{ range: range(1, 15, 18), newText: 'fresh' }] } };
+
         expect(previewOf(text, edit, uri)).toEqual({
             removed: ['const salary = old(x);'],
             added: ['const salary = fresh(x);'],
@@ -100,13 +106,16 @@ describe('preview of an edit', () => {
 
     test('cuts a long change short and counts the files it reaches besides this one', () => {
         const long = Array.from({ length: 6 }, (_, index) => `line ${index}`).join('\n');
+
         const edit = {
             changes: {
                 [uri]: [{ range: range(0, 0, 0), newText: `${long}\n` }],
                 'file:///work/b.ts': [{ range: range(0, 0, 0), newText: 'x' }]
             }
         };
+
         const preview = previewOf(text, edit, uri)!;
+
         expect(preview.added).toHaveLength(3);
         expect(preview.hiddenLines).toBe(3);
         expect(preview.otherFiles).toBe(1);
@@ -114,11 +123,13 @@ describe('preview of an edit', () => {
 
     test('counts the files an edit moves, and shows them even when no line changes', () => {
         const edit = { documentChanges: [{ kind: 'rename' as const, oldUri: uri, newUri: 'file:///work/b.ts' }] };
+
         expect(previewOf(text, edit, uri)).toEqual({ removed: [], added: [], hiddenLines: 0, otherFiles: 0, moves: 1, creates: 0, deletes: 0 });
     });
 
     test('counts a file an edit creates apart from the other files it edits', () => {
         const created = 'file:///work/BInterface.ts';
+
         const edit = {
             documentChanges: [
                 { kind: 'create' as const, uri: created },
@@ -126,18 +137,22 @@ describe('preview of an edit', () => {
                 { textDocument: { uri, version: null }, edits: [{ range: range(0, 0, 0), newText: '// B\n' }] }
             ]
         };
+
         expect(previewOf(text, edit, uri)).toMatchObject({ added: ['// B'], otherFiles: 0, creates: 1, moves: 0 });
     });
 
     test('counts the files an edit deletes, and still shows the lines it changes', () => {
         const gone = { documentChanges: [{ kind: 'delete' as const, uri: 'file:///work/old.ts' }] };
+
         expect(previewOf(text, gone, uri)).toEqual({ removed: [], added: [], hiddenLines: 0, otherFiles: 0, moves: 0, creates: 0, deletes: 1 });
+
         const mixed = {
             documentChanges: [
                 { textDocument: { uri, version: null }, edits: [{ range: range(1, 15, 18), newText: 'fresh' }] },
                 { kind: 'delete' as const, uri: 'file:///work/old.ts' }
             ]
         };
+
         expect(previewOf(text, mixed, uri)).toMatchObject({ added: ['const salary = fresh(x);'], deletes: 1 });
     });
 

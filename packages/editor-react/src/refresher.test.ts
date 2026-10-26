@@ -13,6 +13,7 @@ const uri = 'file:///work/src/a.ts';
 function counting(delay = 100) {
     const signals: AbortSignal[] = [];
     const timers = new ManualTimers();
+
     const refresher = new Refresher(
         async (signal) => {
             signals.push(signal);
@@ -20,6 +21,7 @@ function counting(delay = 100) {
         delay,
         timers
     );
+
     return { refresher, signals, timers };
 }
 
@@ -28,8 +30,11 @@ describe('Refresher', () => {
         const { refresher, signals, timers } = counting();
         refresher.later();
         timers.advance(99);
+
         expect(signals).toHaveLength(0);
+
         timers.advance(1);
+
         expect(signals).toHaveLength(1);
     });
 
@@ -39,10 +44,15 @@ describe('Refresher', () => {
         timers.advance(80);
         refresher.later();
         timers.advance(80);
+
         expect(signals).toHaveLength(0);
+
         timers.advance(20);
+
         expect(signals).toHaveLength(1);
+
         timers.advance(1000);
+
         expect(signals).toHaveLength(1);
     });
 
@@ -51,10 +61,13 @@ describe('Refresher', () => {
         refresher.now();
         refresher.later();
         refresher.now();
+
         expect(signals).toHaveLength(2);
         expect(signals[0]!.aborted).toBe(true);
         expect(signals[1]!.aborted).toBe(false);
+
         timers.advance(1000);
+
         expect(signals).toHaveLength(2);
     });
 
@@ -63,11 +76,16 @@ describe('Refresher', () => {
         refresher.now();
         refresher.later();
         refresher.cancel();
+
         expect(signals[0]!.aborted).toBe(true);
+
         timers.advance(1000);
+
         expect(signals).toHaveLength(1);
+
         refresher.later();
         timers.advance(100);
+
         expect(signals).toHaveLength(2);
         expect(signals[1]!.aborted).toBe(false);
     });
@@ -77,11 +95,14 @@ describe('Refresher', () => {
         refresher.now();
         refresher.later();
         refresher.dispose();
+
         expect(signals[0]!.aborted).toBe(true);
+
         timers.advance(1000);
         refresher.now();
         refresher.later();
         timers.advance(1000);
+
         expect(signals).toHaveLength(1);
     });
 
@@ -103,6 +124,7 @@ describe('Refresher', () => {
 
         test('stays quiet when the text moved on', async () => {
             await failWith(new StaleResultError(uri));
+
             expect(warn).not.toHaveBeenCalled();
         });
 
@@ -110,11 +132,13 @@ describe('Refresher', () => {
             for (const code of [ErrorCodes.ServerNotInitialized, ErrorCodes.MethodNotFound, ErrorCodes.RequestCancelled, ErrorCodes.ContentModified]) {
                 await failWith(new LspError('quiet', code));
             }
+
             expect(warn).not.toHaveBeenCalled();
         });
 
         test('stays quiet when a newer ask aborted it', async () => {
             let fail = (): void => undefined;
+
             const refresher = new Refresher(
                 () =>
                     new Promise<void>((_, reject) => {
@@ -123,11 +147,13 @@ describe('Refresher', () => {
                 0,
                 new ManualTimers()
             );
+
             refresher.now();
             const first = fail;
             refresher.now();
             first();
             await settle();
+
             expect(warn).not.toHaveBeenCalled();
         });
 
@@ -135,6 +161,7 @@ describe('Refresher', () => {
             const error = new LspError('broken', ErrorCodes.InternalError);
             await failWith(error);
             await failWith(new Error('crashed'));
+
             expect(warn).toHaveBeenCalledTimes(2);
             expect(warn.mock.calls[0]).toEqual(['Language request failed', error]);
         });
@@ -157,32 +184,41 @@ describe('features that refresh', () => {
     test('ask for inlay hints and semantic tokens once the document is open, draw them, and ask again when the providers change', async () => {
         const service = new FakeLanguageService();
         service.respond('textDocument/inlayHint', () => [{ position: { line: 0, character: 5 }, label: [{ value: ': ' }, { value: 'number' }] }]);
+
         service.respond('textDocument/semanticTokens/full', () => ({ data: [0, 10, 4, 0, 0] }), {
             legend: { tokenTypes: ['function'], tokenModifiers: [] },
             full: true
         });
+
         const project = new ProjectLanguage(service);
         const editor = new FakeEditorEngine().mount({} as HTMLElement, { text: 'let a = call();', theme: 'light' });
         const language = new EditorLanguage(project, editor, uri, 'typescript', new ManualTimers());
         open.push(project, language);
         await language.document.ready;
         await settle();
+
         expect(asked(service, 'textDocument/inlayHint')).toBe(1);
         expect(asked(service, 'textDocument/semanticTokens/full')).toBe(1);
         expect(editor.inlayHints).toEqual([expect.objectContaining({ position: { line: 0, character: 5 }, label: ': number' })]);
         expect(editor.semanticTokens).toEqual([expect.objectContaining({ line: 0, character: 10, length: 4 })]);
+
         service.refresh('file:///work/src/other.ts');
         await settle();
+
         expect(asked(service, 'textDocument/inlayHint')).toBe(1);
+
         service.refresh(uri);
         await settle();
+
         expect(asked(service, 'textDocument/inlayHint')).toBe(2);
         expect(asked(service, 'textDocument/semanticTokens/full')).toBe(2);
     });
 
     test('ask every offered feature once, code vision included, only after the document is open', async () => {
         const service = new FakeLanguageService();
+
         let opened = (): void => undefined;
+
         service.respond(
             'open',
             () =>
@@ -190,6 +226,7 @@ describe('features that refresh', () => {
                     opened = resolve;
                 })
         );
+
         service.respond('textDocument/documentSymbol', () => [
             {
                 name: 'score',
@@ -198,6 +235,7 @@ describe('features that refresh', () => {
                 selectionRange: { start: { line: 0, character: 9 }, end: { line: 0, character: 14 } }
             }
         ]);
+
         service.respond('textDocument/foldingRange', () => []);
         service.respond('textDocument/inlayHint', () => []);
         service.respond('textDocument/semanticTokens/full', () => ({ data: [] }), { legend: { tokenTypes: [], tokenModifiers: [] }, full: true });
@@ -211,13 +249,16 @@ describe('features that refresh', () => {
         await settle();
         timers.advance(1000);
         await settle();
+
         expect(service.calls.map((call) => call.method)).toEqual(['open']);
+
         opened();
         await language.document.ready;
         await settle();
         timers.advance(1000);
         await settle();
         const requests = service.calls.map((call) => call.method).filter((method) => method !== 'open');
+
         expect(requests.sort()).toEqual([
             'textDocument/documentSymbol',
             'textDocument/foldingRange',
@@ -240,6 +281,7 @@ describe('features that refresh', () => {
         await settle();
         service.refresh(uri);
         await settle();
+
         expect(asked(service, 'textDocument/documentSymbol')).toBe(2);
         expect(asked(service, 'textDocument/foldingRange')).toBe(2);
     });

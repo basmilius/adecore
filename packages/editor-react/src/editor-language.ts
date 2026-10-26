@@ -50,8 +50,10 @@ export class EditorLanguage {
     readonly project: ProjectLanguage;
     readonly document: LanguageDocumentHandle;
     readonly languageId: string;
+
     /* What the features of this editor have open over it: the hover card, the suggestions, the signature. */
     readonly popups = createPopupStore();
+
     readonly diagnostics: DiagnosticsFeature;
     readonly hover: HoverFeature;
     readonly inlayHints: InlayHintsFeature;
@@ -161,6 +163,7 @@ export class EditorLanguage {
      */
     onProvidersChanged(listener: () => void): () => void {
         let listening = true;
+
         void this.document.ready.then(
             () => {
                 if (listening && !this.disposed) {
@@ -169,11 +172,13 @@ export class EditorLanguage {
             },
             () => undefined
         );
+
         const providers = this.project.service.onProvidersChanged((uri) => {
             if (uri === this.uri) {
                 listener();
             }
         });
+
         return () => {
             listening = false;
             providers.dispose();
@@ -197,20 +202,26 @@ export class EditorLanguage {
         if (this.disposed) {
             return;
         }
+
         this.disposed = true;
+
         for (const dispose of this.disposers.splice(0).reverse()) {
             dispose();
         }
+
         this.document.release();
     }
 
     /* A file opened from another one lands on the line; this puts the caret on the column the jump meant. */
     private placeOpenedCaret(position: EditorPosition): void {
         const column = this.project.takeCaret(this.uri, position.line);
+
         if (column !== null && column.character !== position.character) {
             this.editor.setCaret(column);
+
             return;
         }
+
         this.project.noteCaret({ uri: this.uri, position });
     }
 }

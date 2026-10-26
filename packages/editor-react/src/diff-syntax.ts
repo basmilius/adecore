@@ -20,27 +20,35 @@ export function repaintOnTokens(ownerWindow: Window | null | undefined, tokens: 
     let pending = false;
     let stopped = false;
     let frame: number | undefined;
+
     const schedule = (): void => {
         if (pending) {
             return;
         }
+
         pending = true;
+
         const paint = (): void => {
             pending = false;
+
             if (!stopped) {
                 refresh();
             }
         };
+
         if (ownerWindow?.requestAnimationFrame !== undefined) {
             frame = ownerWindow.requestAnimationFrame(paint);
         } else {
             queueMicrotask(paint);
         }
     };
+
     const stop = tokens?.subscribe(schedule);
+
     return () => {
         stopped = true;
         stop?.();
+
         if (frame !== undefined) {
             ownerWindow?.cancelAnimationFrame?.(frame);
         }
@@ -51,45 +59,59 @@ function canTokenize(source: readonly string[]): boolean {
     if (source.length > 20000) {
         return false;
     }
+
     let characters = Math.max(0, source.length - 1);
+
     for (const line of source) {
         characters += line.length;
+
         if (line.length > 10000 || characters > 2000000) {
             return false;
         }
     }
+
     return true;
 }
 
 export function diffSyntaxDocument(document: DiffDocument, language: string, theme: string): DiffSyntaxSources {
     const locations: Record<DiffSourceSide, Array<{ block: number; line: number }>> = { old: [], new: [] };
+
     const build = (side: DiffSourceSide): DiffSyntaxDocument => {
         const source = document.sides[side];
+
         // Skipping a long hidden line loses grammar state; keep the entire side plain instead.
         if (!canTokenize(source)) {
             return { language, theme, blocks: [], resets: [] };
         }
+
         const blocks: string[] = [];
         const resets: number[] = [];
+
         const ranges = document.snapshots
             ? [{ from: 0, to: source.length }]
             : document.offsets.map((offset, index) => ({ from: offset[side], to: document.offsets[index + 1]?.[side] ?? source.length }));
+
         for (const range of ranges) {
             if (!document.snapshots && range.from < range.to) {
                 resets.push(blocks.length);
             }
+
             for (let from = range.from; from < range.to; from += 200) {
                 const to = Math.min(from + 200, range.to);
                 const block = blocks.length;
                 blocks.push(source.slice(from, to).join('\n'));
+
                 for (let index = from; index < to; index++) {
                     locations[side][index] = { block, line: index - from };
                 }
             }
         }
+
         return { language, theme, blocks, resets };
     };
+
     const documents = { old: build('old'), new: build('new') };
+
     return {
         documents,
         locate(side, index) {

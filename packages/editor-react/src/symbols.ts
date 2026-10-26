@@ -41,13 +41,17 @@ function walk(symbols: readonly DocumentSymbol[], spans: SymbolSpan[]): void {
 /* Every symbol of an answer, a parent before its children, whether the server sent a tree or a flat list. */
 export function symbolSpansOf(result: DocumentSymbolResult): SymbolSpan[] {
     const spans: SymbolSpan[] = [];
+
     if (result === null || result.length === 0) {
         return spans;
     }
+
     if ('range' in result[0]!) {
         walk(result as DocumentSymbol[], spans);
+
         return spans;
     }
+
     return (result as SymbolInformation[]).map((symbol) => ({ name: symbol.name, kind: symbol.kind, range: symbol.location.range }));
 }
 
@@ -60,29 +64,37 @@ const PRELUDE = /^\s*(?:$|\/\/|\/\*|\*|#\[)/;
  */
 function headerLineOf({ name, range, nameLine }: SymbolSpan, lines: readonly string[] | undefined): number {
     const { start, end } = range;
+
     if (nameLine !== undefined && nameLine >= start.line && nameLine <= end.line) {
         return nameLine;
     }
+
     if (lines === undefined) {
         return start.line;
     }
+
     const last = Math.min(end.line, lines.length - 1);
     let first = start.line;
+
     while (first < last && PRELUDE.test(lines[first] ?? '')) {
         first++;
     }
+
     const short = name.slice(name.lastIndexOf('\\') + 1);
+
     for (let line = first; line <= last; line++) {
         if (!PRELUDE.test(lines[line] ?? '') && (lines[line] ?? '').includes(short)) {
             return line;
         }
     }
+
     return first;
 }
 
 function blockOf(span: SymbolSpan, lines: readonly string[] | undefined): EditorBlock | null {
     const { name, kind, range } = span;
     const label = KINDS[kind];
+
     // A one-line symbol has no body to pin, and a property or an enum member is part of the block around it.
     return label === undefined || range.end.line <= range.start.line
         ? null
@@ -96,6 +108,7 @@ function blockOf(span: SymbolSpan, lines: readonly string[] | undefined): Editor
 export function blocksOf(result: DocumentSymbolResult, text?: string): EditorBlock[] {
     const lines = text?.split('\n');
     const blocks = symbolSpansOf(result).flatMap((span) => blockOf(span, lines) ?? []);
+
     return blocks.sort((left, right) => left.startLine - right.startLine || right.endLine - left.endLine);
 }
 
@@ -109,14 +122,18 @@ export class SymbolsFeature {
 
     constructor(language: EditorLanguage, timers: Timers = realTimers) {
         const { editor, project, uri } = language;
+
         this.refresher = new Refresher(
             async (signal) => {
                 if (!project.service.supports(METHOD, uri)) {
                     return;
                 }
+
                 const result = await project.service.documentSymbols(uri, { signal });
+
                 if (!signal.aborted) {
                     editor.setBlocks(result === null ? null : blocksOf(result, editor.getText()));
+
                     for (const listener of [...this.listeners]) {
                         listener(result);
                     }
@@ -125,10 +142,13 @@ export class SymbolsFeature {
             PAUSE_MS,
             timers
         );
+
         const edits = editor.onTextChange(() => this.refresher.later());
+
         const providers = language.onProvidersChanged(() => {
             this.refresher.now();
         });
+
         language.onDispose(() => {
             edits();
             providers();
@@ -140,6 +160,7 @@ export class SymbolsFeature {
     /* Called with every answer that was not replaced before it came. */
     onResult(listener: (result: DocumentSymbolResult) => void): () => void {
         this.listeners.add(listener);
+
         return () => {
             this.listeners.delete(listener);
         };

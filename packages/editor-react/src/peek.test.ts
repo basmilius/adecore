@@ -22,16 +22,19 @@ function at(line: number) {
 
 async function setup() {
     const service = new FakeLanguageService();
+
     service.respond('textDocument/references', () => [
         { uri, range: at(1) },
         { uri, range: at(2) }
     ]);
+
     const project = new ProjectLanguage(service, { notify: () => {}, openPlace: () => {} });
     const editor = new FakeEditorEngine().mount({} as HTMLElement, { text: TEXT, theme: 'light' });
     const timers = new ManualTimers();
     const language = new EditorLanguage(project, editor, uri, 'typescript', timers);
     await language.document.ready;
     open.push(language);
+
     return { language, editor, timers };
 }
 
@@ -42,8 +45,11 @@ describe('peek', () => {
         await language.peek.open();
         const scrolled: unknown[] = [];
         editor.widgetsByOwner.get('default')![0]!.render({ scrollIntoView: (options: unknown) => scrolled.push(options) } as unknown as HTMLElement);
+
         expect(scrolled).toEqual([]);
+
         timers.advance(0);
+
         expect(scrolled).toEqual([{ block: 'nearest' }]);
     });
 });

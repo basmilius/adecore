@@ -17,17 +17,21 @@ function MarkedLabel({ label, matches }: { label: string; matches: readonly numb
     if (matches.length === 0) {
         return <>{label}</>;
     }
+
     const marked = new Set(matches);
     const runs: { text: string; marked: boolean }[] = [];
+
     for (let at = 0; at < label.length; at++) {
         const isMarked = marked.has(at);
         const last = runs[runs.length - 1];
+
         if (last !== undefined && last.marked === isMarked) {
             last.text += label[at];
         } else {
             runs.push({ text: label[at]!, marked: isMarked });
         }
     }
+
     return (
         <>
             {runs.map((run, index) =>
@@ -46,10 +50,13 @@ function MarkedLabel({ label, matches }: { label: string; matches: readonly numb
 const CARD = 'fixed top-0 left-0 z-(--z-popup) overflow-hidden rounded-lg border border-border bg-surface-raised text-text shadow-(--float-shadow)';
 const ROW_HEIGHT = 24;
 const VISIBLE_ROWS = 8;
+
 /* Rows drawn past the visible ones on each side, so a wheel turn lands on rows that exist. */
 const OVERSCAN_ROWS = 6;
+
 /* The padding the listbox has around its rows. */
 const LIST_PADDING = 4;
+
 /* What a row takes besides its name and namespace: padding, the kind badge and the gaps. */
 const ROW_CHROME = 72;
 
@@ -71,6 +78,7 @@ export function CompletionPopup({ language, view, rect }: { language: EditorLang
     // Only the rows near the visible ones are drawn: a list of 150 is mostly out of sight, and every keystroke makes it again.
     const [listTop, setListTop] = useState(0);
     const need = Math.max(0, ...view.rows.slice(0, VISIBLE_ROWS * 2).map((row) => row.label.length + 2 + row.description.length));
+
     if (need > widest) {
         setWidest(need);
     }
@@ -78,13 +86,16 @@ export function CompletionPopup({ language, view, rect }: { language: EditorLang
     // Every render: the word moves when the editor scrolls, and the list and the documentation change size with what they hold.
     useLayoutEffect(() => {
         const card = list.current;
+
         if (card === null) {
             return;
         }
+
         const viewport = {
             width: window.innerWidth,
             height: window.innerHeight
         };
+
         const side = docs.current;
         // Every size is read before the first write, so the page is laid out once and not after each of them.
         const size = { width: card.offsetWidth, height: card.offsetHeight };
@@ -93,12 +104,14 @@ export function CompletionPopup({ language, view, rect }: { language: EditorLang
         card.style.left = `${Math.round(placed.left)}px`;
         card.style.top = `${Math.round(placed.top)}px`;
         card.style.visibility = 'visible';
+
         if (side !== null && sideSize !== null) {
             const box = {
                 left: Math.round(placed.left),
                 top: Math.round(placed.top),
                 ...size
             };
+
             const beside = placeBeside(box, sideSize, viewport);
             side.style.left = `${Math.round(beside.left)}px`;
             side.style.top = `${Math.round(beside.top)}px`;
@@ -113,7 +126,9 @@ export function CompletionPopup({ language, view, rect }: { language: EditorLang
 
     const total = view.rows.length;
     const { first, last } = rowWindow(listTop, view.active, total, ROW_HEIGHT, VISIBLE_ROWS, OVERSCAN_ROWS, LIST_PADDING);
+
     const optionId = (index: number): string => `${listId}-option-${index}`;
+
     const activeId = view.active >= first && view.active < last ? optionId(view.active) : undefined;
 
     useInputPopup(language, listId, activeId);
@@ -145,6 +160,7 @@ export function CompletionPopup({ language, view, rect }: { language: EditorLang
                     <div aria-hidden style={{ height: first * ROW_HEIGHT }} />
                     {view.rows.slice(first, last).map((row, offset) => {
                         const index = first + offset;
+
                         return (
                             <button
                                 key={`${index}:${row.label}`}

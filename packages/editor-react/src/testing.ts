@@ -72,9 +72,11 @@ export class FakeLanguageService implements LanguageService {
 
     async changeDocument(uri: string, changes: readonly ContentChange[]): Promise<void> {
         const held = this.documents.get(uri);
+
         if (held === undefined) {
             throw new LspError('Document is not open', ErrorCodes.ServerNotInitialized);
         }
+
         held.text = applyContentChanges(held.text, changes);
         held.version++;
         this.calls.push({ method: 'change', uri, params: changes, options: {} });
@@ -95,11 +97,13 @@ export class FakeLanguageService implements LanguageService {
 
     onProvidersChanged(listener: (uri: string) => void): Disposable {
         this.changes.add(listener);
+
         return { dispose: () => this.changes.delete(listener) };
     }
 
     onDiagnostics(listener: (report: DiagnosticsReport) => void): Disposable {
         this.diagnostics.add(listener);
+
         return { dispose: () => this.diagnostics.delete(listener) };
     }
 
@@ -119,15 +123,18 @@ export class FakeLanguageService implements LanguageService {
         if (!this.supports(method, uri)) {
             throw new LspError(`${method} is unavailable`, ErrorCodes.MethodNotFound);
         }
+
         options.signal?.throwIfAborted();
         const version = this.documents.get(uri)?.version;
         const call = { method, uri, params, options };
         this.calls.push(call);
         const result = await this.answers.get(method)?.(call);
         options.signal?.throwIfAborted();
+
         if (this.documents.get(uri)?.version !== version) {
             throw new StaleResultError(uri);
         }
+
         return result as Result;
     }
 

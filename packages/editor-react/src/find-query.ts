@@ -34,10 +34,12 @@ export function compileFind(query: FindQuery): CompiledFind {
     if (query.text === '') {
         return { kind: 'empty' };
     }
+
     const body = query.regex ? query.text : escapeRegExp(query.text);
     const source = query.wholeWord ? `(?<!${WORD_CHAR})(?:${body})(?!${WORD_CHAR})` : body;
     // Multiline, so `^` and `$` in a pattern mean a line, the way an editor's find reads them.
     const flags = `gmu${query.caseSensitive ? '' : 'i'}`;
+
     try {
         return { kind: 'pattern', pattern: new RegExp(source, flags) };
     } catch {
@@ -50,6 +52,7 @@ export function matchesIn(text: string, pattern: RegExp, limit: number = MATCH_L
     const matches: TextMatch[] = [];
     const global = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`);
     let found = global.exec(text);
+
     while (found !== null && matches.length < limit) {
         if (found[0] === '') {
             // A `u` pattern moves a lastIndex inside a surrogate pair back to its start, so one step would never leave it.
@@ -57,8 +60,10 @@ export function matchesIn(text: string, pattern: RegExp, limit: number = MATCH_L
         } else {
             matches.push({ start: found.index, end: found.index + found[0].length });
         }
+
         found = global.exec(text);
     }
+
     return matches;
 }
 
@@ -67,8 +72,10 @@ export function stepIndex(current: number | null, count: number, direction: 1 | 
     if (count === 0) {
         return null;
     }
+
     if (current === null) {
         return direction === 1 ? 0 : count - 1;
     }
+
     return (current + direction + count) % count;
 }

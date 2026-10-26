@@ -31,6 +31,7 @@ async function setup() {
     const language = new EditorLanguage(project, editor, uri, 'typescript', new ManualTimers());
     open.push(project, language);
     await language.document.ready;
+
     return { engine, editor, language, project, visits, answer: (value: unknown) => (answer = value) };
 }
 
@@ -40,6 +41,7 @@ describe('back and forward', () => {
         answer({ uri, range: range(3, 4, 9) });
         editor.moveCaret(at(0, 2));
         await language.navigation.go('definition');
+
         expect(editor.getCaret()).toEqual(at(3, 4));
         expect(editor.press(keyOf(language.shortcuts.historyBack))).toBe(true);
         expect(editor.getCaret()).toEqual(at(0, 2));
@@ -52,13 +54,16 @@ describe('back and forward', () => {
         answer({ uri: other, range: range(5, 3, 8) });
         editor.moveCaret(at(2, 4));
         await language.navigation.go('definition');
+
         expect(visits).toEqual([{ uri: other, position: at(5, 3) }]);
+
         const secondEditor = engine.mount({} as HTMLElement, { text: '\n\n\n\n\nlet target = 1;\n', theme: 'light' });
         const second = new EditorLanguage(project, secondEditor, other, 'typescript', new ManualTimers());
         open.push(second);
         await second.document.ready;
         // A file opens on a line only; the column of the jump arrives with its editor.
         secondEditor.moveCaret(at(5, 0));
+
         expect(secondEditor.getCaret()).toEqual(at(5, 3));
         expect(second.history.back()).toBe(true);
         expect(visits.at(-1)).toEqual({ uri, position: at(2, 4) });
@@ -68,6 +73,7 @@ describe('back and forward', () => {
     test('stays put without a history', async () => {
         const { editor, language, visits } = await setup();
         editor.moveCaret(at(1, 1));
+
         expect(language.history.back()).toBe(false);
         expect(language.history.forward()).toBe(false);
         expect(editor.getCaret()).toEqual(at(1, 1));
@@ -78,8 +84,11 @@ describe('back and forward', () => {
         const { editor, language } = await setup();
         editor.moveCaret(at(0, 1));
         language.symbolPicker.goToLine(4);
+
         expect(editor.getCaret()).toEqual(at(3, 0));
+
         language.history.back();
+
         expect(editor.getCaret()).toEqual(at(0, 1));
     });
 
@@ -87,6 +96,7 @@ describe('back and forward', () => {
         const { editor, project, visits } = await setup();
         editor.moveCaret(at(2, 1));
         project.jumpTo({ uri: other, position: at(8, 2) });
+
         expect(visits).toEqual([{ uri: other, position: at(8, 2) }]);
         expect(project.history.recent({ uri: other, position: at(8, 2) })).toEqual([{ uri, position: at(2, 1) }]);
     });
@@ -98,12 +108,17 @@ describe('recent locations', () => {
         editor.moveCaret(at(0, 0));
         language.jump(at(1, 0));
         language.jump(at(3, 0));
+
         expect(editor.press(keyOf(language.shortcuts.recentLocations))).toBe(true);
+
         await settle();
         const view = language.popups.getState().pick!;
+
         expect(view.title).toBe('Recent locations');
         expect(view.groups[0]!.rows.map((row) => row.label)).toEqual(['a.ts:2', 'a.ts:1']);
+
         language.pick.choose(view.groups[0]!.rows[1]!.id);
+
         expect(editor.getCaret()).toEqual(at(0, 0));
     });
 });

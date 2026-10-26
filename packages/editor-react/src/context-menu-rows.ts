@@ -36,5 +36,6 @@ export interface MenuGroups {
 /* The language rows of the context menu in their groups, each holding only the rows a server answers. */
 export function menuGroupsOf(supports: (method: string) => boolean): MenuGroups {
     const supported = (rows: readonly MenuRowSpec[]): MenuRowSpec[] => rows.filter((row) => supports(row.method));
+
     return { goTo: supported(GO_TO), references: supported(REFERENCES), changes: supported(CHANGES) };
 }

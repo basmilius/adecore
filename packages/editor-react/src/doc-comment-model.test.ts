@@ -6,6 +6,7 @@ describe('JSDoc and TSDoc tags', () => {
         const parsed = parseDocComment(
             'Adds two numbers.\n\n@param {number} a The first.\n@param {number} [b=2] - The second.\n@returns {number} The sum.\n@throws {RangeError} When too big.'
         );
+
         expect(parsed.description).toBe('Adds two numbers.');
         expect(parsed.tags).toEqual([
             { name: 'param', type: 'number', subject: 'a', text: 'The first.' },
@@ -17,6 +18,7 @@ describe('JSDoc and TSDoc tags', () => {
 
     test('reads TSDoc tags without braces and with a dash', () => {
         const parsed = parseDocComment('@param name - The name.\n@returns The greeting.\n@throws Error if empty');
+
         expect(parsed.tags).toEqual([
             { name: 'param', type: null, subject: 'name', text: 'The name.' },
             { name: 'return', type: null, subject: null, text: 'The greeting.' },
@@ -26,6 +28,7 @@ describe('JSDoc and TSDoc tags', () => {
 
     test('continues a tag over the lines that follow it and keeps a fence in the description whole', () => {
         const parsed = parseDocComment('Text.\n\n```ts\n@notATag\n```\n\n@param a First\n  and more\n@deprecated Use other.');
+
         expect(parsed.description).toContain('@notATag');
         expect(parsed.tags[0]).toMatchObject({ name: 'param', subject: 'a', text: 'First\n  and more' });
         expect(parsed.tags[1]).toMatchObject({ name: 'deprecated', text: 'Use other.' });
@@ -33,11 +36,13 @@ describe('JSDoc and TSDoc tags', () => {
 
     test('keeps an example as code and drops its caption', () => {
         const parsed = parseDocComment('@example <caption>Usage</caption>\n  add(1, 2);\n  add(3, 4);');
+
         expect(parsed.tags).toEqual([{ name: 'example', type: null, subject: null, text: 'add(1, 2);\nadd(3, 4);' }]);
     });
 
     test('reads the target of a see tag and unknown tags as they are', () => {
         const parsed = parseDocComment('@see Other::method for details\n@since 1.2.0\n@custom thing');
+
         expect(parsed.tags).toEqual([
             { name: 'see', type: null, subject: 'Other::method', text: 'for details' },
             { name: 'since', type: null, subject: null, text: '1.2.0' },
@@ -52,6 +57,7 @@ describe('PHPDoc tags', () => {
             'Finds users.\n@param array<string, int>|null $filter The filter.\n@param int ...$ids\n@param $plain Anything.\n@return Collection<User> The users.\n@throws \\InvalidArgumentException When invalid.\n@var string $name\n@return $this',
             { php: true }
         );
+
         expect(parsed.tags).toEqual([
             { name: 'param', type: 'array<string, int>|null', subject: '$filter', text: 'The filter.' },
             { name: 'param', type: 'int', subject: '...$ids', text: '' },
@@ -71,6 +77,7 @@ describe('PHPDoc tags', () => {
 describe('inline tags', () => {
     test('turns link tags into links the view resolves, or links to an address', () => {
         const text = inlineTagsToMarkdown('See {@link Foo}, {@link Foo.bar the bar}, {@link Foo|label}, {@linkcode Baz} and {@link https://example.com Docs}.');
+
         expect(text).toBe(
             `See [\`Foo\`](${DOC_LINK_PREFIX}Foo), [the bar](${DOC_LINK_PREFIX}Foo.bar), [label](${DOC_LINK_PREFIX}Foo), [\`Baz\`](${DOC_LINK_PREFIX}Baz) and [Docs](https://example.com).`
         );
@@ -95,6 +102,7 @@ describe('HTML in documentation', () => {
         const markdown = htmlToMarkdown(
             '<p>One <b>bold</b> and <i>it</i> with <code>code</code>.</p><p>Two<br>lines &amp; more &lt;T&gt; &#65; &#x42;</p><ul><li>a</li><li>b</li></ul><ol><li>x</li><li>y</li></ol>'
         );
+
         expect(markdown).toContain('One **bold** and *it* with `code`.');
         expect(markdown).toContain('Two\nlines & more <T> A B');
         expect(markdown).toContain('- a\n- b');
@@ -105,6 +113,7 @@ describe('HTML in documentation', () => {
         const markdown = htmlToMarkdown(
             '<pre>\n    $a = 1 &lt; 2;\n    echo $a;\n</pre> see <a href="https://example.com/a?b=1" onclick="evil()">the page</a>'
         );
+
         expect(markdown).toContain('```\n$a = 1 < 2;\necho $a;\n```');
         expect(markdown).toContain('[the page](https://example.com/a?b=1)');
         expect(markdown).not.toContain('onclick');
@@ -114,6 +123,7 @@ describe('HTML in documentation', () => {
         const markdown = htmlToMarkdown(
             'a<script>alert(1)</script>b<style>x{}</style><iframe src="x"></iframe><a href="javascript:alert(1)">bad</a><img src=x onerror=alert(1)><b onclick="x()">ok</b>'
         );
+
         expect(markdown).not.toContain('script');
         expect(markdown).not.toContain('alert');
         expect(markdown).not.toContain('style');
@@ -134,6 +144,7 @@ describe('HTML in documentation', () => {
 
     test('runs through a whole comment', () => {
         const parsed = parseDocComment('<p>Hello <b>you</b>.</p>\n@return <code>string</code> the {@link Name}', { php: true });
+
         expect(parsed.description).toBe('Hello **you**.');
         expect(parsed.tags[0]!.text).toContain(`[\`Name\`](${DOC_LINK_PREFIX}Name)`);
     });

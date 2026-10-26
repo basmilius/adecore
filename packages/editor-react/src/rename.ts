@@ -11,8 +11,10 @@ import { messageOf } from './error-message.ts';
 
 const METHOD = 'textDocument/rename';
 const TOAST_ID = 'language-rename';
+
 /* How much is read to tell a name suggester how the symbol is used: its first places, other files and lines around it. */
 const SAMPLE_LOCATIONS = 8;
+
 const SAMPLE_OTHER_FILES = 3;
 const CONTEXT_LINES = 3;
 
@@ -37,20 +39,25 @@ export class RenameFeature {
     constructor(language: EditorLanguage) {
         this.language = language;
         const { editor } = language;
+
         const offs = [
             language.onKey((event) => {
                 if (!isShortcut(this.language.shortcuts.rename, event)) {
                     return false;
                 }
+
                 void this.start();
+
                 return true;
             }, KEY_PRIORITY.rename),
             editor.onTextChange(() => this.cancel())
         ];
+
         language.onDispose(() => {
             for (const off of offs) {
                 off();
             }
+
             this.cancel();
         });
     }
@@ -61,31 +68,40 @@ export class RenameFeature {
 
     async start(): Promise<void> {
         const { editor, project, uri } = this.language;
+
         if (!project.service.supports(METHOD, uri)) {
             this.tell('error', this.say('unavailable'));
+
             return;
         }
+
         this.cancel();
         const caret = editor.getCaret();
         const prepare = project.service.providerOptions(METHOD, uri)?.prepareProvider === true;
         let answer: PrepareRenameResult;
+
         try {
             answer = prepare ? await project.service.prepareRename(uri, caret) : { defaultBehavior: true };
         } catch (error) {
             if (!(error instanceof StaleResultError)) {
                 this.tell('error', this.say('nothing'));
             }
+
             return;
         }
+
         const target = renameTargetOf(
             answer,
             (range) => editor.textInRange(range),
             () => wordRangeAt(lineTextOf(editor, caret.line), caret)
         );
+
         if (target === null) {
             this.tell('error', this.say('nothing'));
+
             return;
         }
+
         const session: Session = { target, original: editor.textInRange(target.range), edit: null, names: new AbortController() };
         this.session = session;
         this.publish({ phase: 'input', busy: false, name: target.placeholder, files: [], operations: [], occurrences: null, suggestions: [] });
@@ -96,33 +112,47 @@ export class RenameFeature {
     async submit(name: string, preview: boolean): Promise<void> {
         const session = this.session;
         const next = name.trim();
+
         if (session === null) {
             return;
         }
+
         if (next === '' || next === session.original) {
             this.finish();
+
             return;
         }
+
         this.publish({ phase: 'input', busy: true, name: next, error: null });
         const { project, uri } = this.language;
+
         try {
             const edit = await project.service.rename(uri, session.target.range.start, next);
+
             if (this.session !== session) {
                 return;
             }
+
             if (edit === null) {
                 this.fail(this.say('refused'));
+
                 return;
             }
+
             session.edit = edit;
+
             if (!preview) {
                 await this.apply(session);
+
                 return;
             }
+
             const files = await renamePreviewOf(edit, (target) => project.readText(target));
+
             if (this.session !== session) {
                 return;
             }
+
             this.publish({ phase: 'preview', busy: false, name: next, files, operations: resourceOperationsOf(edit) });
         } catch (error) {
             if (this.session === session) {
@@ -134,6 +164,7 @@ export class RenameFeature {
     /* Applies the edit the preview showed. */
     async confirm(): Promise<void> {
         const session = this.session;
+
         if (session?.edit) {
             await this.apply(session);
         }
@@ -143,6 +174,7 @@ export class RenameFeature {
         if (this.session === null) {
             return;
         }
+
         this.finish();
     }
 
@@ -155,9 +187,11 @@ export class RenameFeature {
 
     private async apply(session: Session): Promise<void> {
         const result = await this.language.project.applyWorkspaceEdit(session.edit!);
+
         if (this.session !== session) {
             return;
         }
+
         if (result.applied) {
             this.finish();
         } else {
@@ -185,17 +219,22 @@ export class RenameFeature {
     /* Lights up the places the name has in this file, and counts them all; what the servers listed, or null when they did not. */
     private async light(session: Session): Promise<readonly Location[] | null> {
         const { editor, project, uri } = this.language;
+
         if (!project.service.supports('textDocument/references', uri)) {
             return null;
         }
+
         try {
             const locations = await project.service.references(uri, session.target.range.start, true);
+
             if (this.session !== session || locations === null) {
                 return null;
             }
+
             const found = occurrencesOf(locations, uri);
             editor.setHighlights(found.inFile.map((range: EditorRange) => ({ range, kind: 'write' as const })));
             this.publish({ occurrences: { count: found.count, files: found.files } });
+
             return locations;
         } catch {
             // The count is a courtesy; renaming does not wait for it.
@@ -209,19 +248,25 @@ export class RenameFeature {
      */
     private async suggest(session: Session, locations: readonly Location[] | null): Promise<void> {
         const suggestNames = this.language.project.host.suggestNames;
+
         if (suggestNames === undefined || this.session !== session) {
             return;
         }
+
         const { editor, languageId, uri } = this.language;
+
         try {
             const line = session.target.range.start.line;
+
             const context = editor.textInRange({
                 start: { line: Math.max(0, line - CONTEXT_LINES), character: 0 },
                 end: { line: line + CONTEXT_LINES, character: Number.MAX_SAFE_INTEGER }
             });
+
             const [uses, kind] = await Promise.all([this.linesOf(locations ?? []), this.kindOf(session, locations ?? [])]);
             const request = { uri, languageId, name: session.original, ...(kind === undefined ? {} : { kind }), context, uses };
             const names = await suggestNames(request, session.names.signal);
+
             if (this.session === session && names.length > 0) {
                 this.publish({ suggestions: names });
             }
@@ -233,11 +278,14 @@ export class RenameFeature {
     /* So a suggester knows a function from a variable; a rename on a use finds the kind through the declaration's place in this file. */
     private async kindOf(session: Session, locations: readonly Location[]): Promise<string | undefined> {
         const { project, uri } = this.language;
+
         if (!project.service.supports('textDocument/documentSymbol', uri)) {
             return undefined;
         }
+
         try {
             const symbols = await project.service.documentSymbols(uri, { signal: session.names.signal, parallel: true });
+
             return renameKindOf(symbols, session.original, [session.target.range, ...occurrencesOf(locations, uri).inFile]);
         } catch {
             return undefined;
@@ -250,28 +298,36 @@ export class RenameFeature {
         const texts = new Map<string, string[] | null>();
         const lines: string[] = [];
         let others = 0;
+
         for (const location of locations.slice(0, SAMPLE_LOCATIONS)) {
             if (!texts.has(location.uri)) {
                 if (location.uri !== this.language.uri && others++ >= SAMPLE_OTHER_FILES) {
                     continue;
                 }
+
                 texts.set(location.uri, (await project.readText(location.uri))?.split('\n') ?? null);
             }
+
             const text = texts.get(location.uri)?.[location.range.start.line];
+
             if (text !== undefined && text.trim() !== '' && !lines.includes(text)) {
                 lines.push(text);
             }
         }
+
         return lines;
     }
 
     private publish(patch: Partial<RenameView>): void {
         const session = this.session;
+
         if (session === null) {
             return;
         }
+
         const { popups } = this.language;
         const current = popups.getState().rename;
+
         popups.setState({
             rename: {
                 phase: 'input',

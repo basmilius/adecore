@@ -16,9 +16,11 @@ describe('document sync in the real editor', () => {
         mounted.editor.setSelection({ start: mounted.editor.positionAt(4), end: mounted.editor.positionAt(5) });
         mounted.type('X');
         await new Promise<void>((resolve) => setImmediate(resolve));
+
         expect(mounted.editor.getText()).toBe('a\rb\nX');
         expect(service.calls.at(-1)?.params).toEqual([{ range: { start: { line: 2, character: 0 }, end: { line: 2, character: 1 } }, text: 'X' }]);
         expect(service.documents.get(uri)?.text).toBe(mounted.editor.getText());
+
         held.release();
         project.dispose();
     });

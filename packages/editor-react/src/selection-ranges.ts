@@ -7,9 +7,11 @@ const METHOD = 'textDocument/selectionRange';
 /* The links of one answer, the smallest range first. */
 export function selectionChainOf(selection: SelectionRange): EditorRange[] {
     const chain: EditorRange[] = [];
+
     for (let link: SelectionRange | undefined = selection; link; link = link.parent) {
         chain.push(link.range);
     }
+
     return chain;
 }
 
@@ -20,13 +22,17 @@ export function selectionChainOf(selection: SelectionRange): EditorRange[] {
 export class SelectionRangesFeature {
     constructor(language: EditorLanguage) {
         const { editor, project, uri } = language;
+
         editor.setSelectionRanges(async (positions) => {
             if (!project.service.supports(METHOD, uri)) {
                 return null;
             }
+
             const chains = await project.service.selectionRanges(uri, positions);
+
             return chains === null || chains.length !== positions.length ? null : chains.map(selectionChainOf);
         });
+
         language.onDispose(() => editor.setSelectionRanges(null));
     }
 }

@@ -24,11 +24,13 @@ describe('applySemanticEdits', () => {
             { start: 10, deleteCount: 0, data: [1, 1, 1, 1, 1] },
             { start: 15, deleteCount: 0, data: [2, 2, 2, 2, 2] }
         ]);
+
         expect(result).toEqual([...data.slice(5, 10), 1, 1, 1, 1, 1, ...data.slice(10), 2, 2, 2, 2, 2]);
     });
 
     test('keeps the data when there are no edits and leaves the input alone', () => {
         const copy = [...data];
+
         expect(applySemanticEdits(data, [])).toEqual(copy);
         expect(data).toEqual(copy);
     });

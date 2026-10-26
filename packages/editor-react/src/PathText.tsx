@@ -8,6 +8,7 @@ export function PathText({ path, className = '' }: { path: string; className?: s
     if (path === '') {
         return null;
     }
+
     return (
         <Tooltip label={path}>
             <span className={`min-w-0 overflow-hidden text-left text-ellipsis whitespace-nowrap [direction:rtl] ${className}`}>

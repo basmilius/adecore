@@ -25,9 +25,11 @@ export function AnchoredPopup({ rect, className, overflow = 'scroll', children, 
     // Every render, since the character moves when the editor scrolls and the card's own size follows its content.
     useLayoutEffect(() => {
         const popup = element.current;
+
         if (popup === null) {
             return;
         }
+
         popup.style.maxHeight = '';
         const size = { width: popup.offsetWidth, height: popup.offsetHeight };
         const placed = placePopup(rect, size, { width: window.innerWidth, height: window.innerHeight }, placement);

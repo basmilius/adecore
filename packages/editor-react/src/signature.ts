@@ -27,6 +27,7 @@ export class SignatureFeature {
         this.language = language;
         this.timers = timers;
         const { editor } = language;
+
         const offs = [
             editor.onTextChange((change) => this.edited(change)),
             editor.onCaret(() => this.retrigger()),
@@ -34,22 +35,29 @@ export class SignatureFeature {
             language.onKey((event) => {
                 if (event.key === 'Escape' && this.isOpen && this.language.popups.getState().callHierarchy === null) {
                     this.close();
+
                     return true;
                 }
+
                 if (isShortcut(this.language.shortcuts.parameterInfo, event)) {
                     this.invoke();
+
                     return true;
                 }
+
                 if ((event.key === 'ArrowUp' || event.key === 'ArrowDown') && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) {
                     return this.cycle(event.key === 'ArrowDown' ? 1 : -1);
                 }
+
                 return false;
             }, KEY_PRIORITY.signature)
         ];
+
         language.onDispose(() => {
             for (const off of offs) {
                 off();
             }
+
             this.close();
         });
     }
@@ -71,17 +79,22 @@ export class SignatureFeature {
     /* Shows the next or previous overload; false when the card has fewer than two, which leaves the arrow to the caret. */
     private cycle(step: 1 | -1): boolean {
         const { help } = this;
+
         if (help === null || help.signatures.length < 2 || !this.isOpen) {
             return false;
         }
+
         const count = help.signatures.length;
         const next = { ...help, activeSignature: (Math.min(Math.max(0, help.activeSignature ?? 0), count - 1) + step + count) % count };
         const model = signatureViewOf(next);
+
         if (model === null || this.anchor === null) {
             return false;
         }
+
         this.help = next;
         this.language.popups.setState({ signature: { anchor: this.anchor, model } });
+
         return true;
     }
 
@@ -91,6 +104,7 @@ export class SignatureFeature {
         this.timers.clear(this.timer);
         this.help = null;
         this.anchor = null;
+
         if (this.isOpen) {
             this.language.popups.setState({ signature: null });
         }
@@ -99,17 +113,22 @@ export class SignatureFeature {
     private options(): { triggers: readonly string[]; retriggers: readonly string[] } | null {
         const { project, uri } = this.language;
         const options = project.service.providerOptions(METHOD, uri);
+
         return options === undefined ? null : { triggers: options.triggerCharacters ?? [], retriggers: options.retriggerCharacters ?? [] };
     }
 
     private edited(change: EditorTextChange): void {
         const options = this.options();
+
         if (change.source !== 'input' || options === null) {
             this.close();
+
             return;
         }
+
         const text = change.changes.length === 1 ? change.changes[0]!.text : '';
         const last = Array.from(text).at(-1) ?? '';
+
         if (text.length === 1 && options.triggers.includes(last)) {
             this.ask({ triggerKind: 2, triggerCharacter: last, isRetrigger: this.isOpen });
         } else if (this.isOpen) {
@@ -129,9 +148,11 @@ export class SignatureFeature {
 
     private ask(context: Omit<SignatureHelpContext, 'activeSignatureHelp'>): void {
         const { project, uri } = this.language;
+
         if (!project.service.supports(METHOD, uri)) {
             return;
         }
+
         this.timers.clear(this.timer);
         const request = ++this.request;
         const full: SignatureHelpContext = { ...context, ...(this.help === null ? {} : { activeSignatureHelp: this.help }) };
@@ -145,19 +166,25 @@ export class SignatureFeature {
         const controller = new AbortController();
         this.controller = controller;
         let help: SignatureHelp | null;
+
         try {
             help = await project.service.signatureHelp(uri, caret, context, { signal: controller.signal });
         } catch {
             return;
         }
+
         if (request !== this.request) {
             return;
         }
+
         const model = signatureViewOf(help);
+
         if (model === null) {
             this.close();
+
             return;
         }
+
         this.help = help;
         this.anchor ??= caret;
         this.language.popups.setState({ signature: { anchor: this.anchor, model } });

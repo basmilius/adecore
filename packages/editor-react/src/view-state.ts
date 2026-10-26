@@ -32,12 +32,15 @@ export function openingPlace(
     foldDefaults: readonly FoldRole[]
 ): { line?: number; column?: number; scrollTop?: number; folds?: EditorFolds; foldDefaults?: readonly FoldRole[] } {
     const folds = last === undefined ? { foldDefaults } : { folds: last.folds };
+
     if (reveal !== null) {
         return { line: reveal.line, ...folds };
     }
+
     if (last !== undefined) {
         return { line: last.line, column: last.column, scrollTop: last.scrollTop, ...folds };
     }
+
     return { scrollTop: placeholderScroll, ...folds };
 }
 
@@ -48,6 +51,7 @@ function movedKey(key: string, from: string, to: string): string | null {
     if (key === from) {
         return to;
     }
+
     return key.startsWith(`${from}/`) ? `${to}${key.slice(from.length)}` : null;
 }
 
@@ -59,13 +63,16 @@ function movedKey(key: string, from: string, to: string): string | null {
 export function followViewStates(endpointId: string, from: string, to: string): void {
     const oldKey = endpointKey(endpointId, from);
     const newKey = endpointKey(endpointId, to);
+
     for (const [key, state] of [...viewStates]) {
         const target = movedKey(key, oldKey, newKey);
+
         if (target !== null) {
             viewStates.delete(key);
             viewStates.set(target, state);
         }
     }
+
     moves.push({ from: oldKey, to: newKey });
 }
 
@@ -73,10 +80,12 @@ export function followViewStates(endpointId: string, from: string, to: string): 
 export function viewStateKey(key: string): string {
     for (const { from, to } of moves) {
         const target = movedKey(key, from, to);
+
         if (target !== null) {
             return target;
         }
     }
+
     return key;
 }
 

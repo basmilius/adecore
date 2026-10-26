@@ -31,14 +31,18 @@ describe('where an editor was after its file moved', () => {
         viewStates.set('m:/p/src/a.ts', place);
         viewStates.set('m:/p/src2/b.ts', place);
         followViewStates('m', '/p/src', '/p/lib');
+
         expect([...viewStates.keys()].sort()).toEqual(['m:/p/lib/a.ts', 'm:/p/src2/b.ts']);
     });
 
     test('an editor still open on the old path leaves its place under the new one, until an editor opens there again', () => {
         followViewStates('m', '/p/x.ts', '/p/y.ts');
+
         expect(viewStateKey('m:/p/x.ts')).toBe('m:/p/y.ts');
         expect(viewStateKey('m:/p/z.ts')).toBe('m:/p/z.ts');
+
         forgetMovesFrom('m:/p/x.ts');
+
         expect(viewStateKey('m:/p/x.ts')).toBe('m:/p/x.ts');
     });
 });

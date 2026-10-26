@@ -47,14 +47,17 @@ export function placesOfName(result: WorkspaceSymbolResult, name: string, fileTe
     const found: Found[] = ((result ?? []) as (SymbolInformation | WorkspaceSymbol)[]).filter((symbol) => symbol.name === name);
     const types = found.filter((symbol) => TYPE_KINDS.has(symbol.kind));
     let candidates = types.length > 0 ? types : found;
+
     if (candidates.length > 1) {
         const named = candidates.filter(
             (symbol) => symbol.containerName !== undefined && symbol.containerName !== '' && fileText.includes(symbol.containerName)
         );
+
         if (named.length > 0) {
             candidates = named;
         }
     }
+
     return uniqueBy(
         candidates.map((symbol): Location =>
             'range' in symbol.location

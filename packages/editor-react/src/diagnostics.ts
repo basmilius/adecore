@@ -35,22 +35,29 @@ export class DiagnosticsFeature {
     constructor(language: EditorLanguage) {
         this.language = language;
         const { editor, project, uri } = language;
+
         const reports = project.service.onDiagnostics((report) => {
             if (report.uri === uri) {
                 this.reports.set(report.source, report.diagnostics);
                 this.rebuild();
             }
         });
+
         const edits = editor.onTextChange((change) => this.shift(change.changes));
+
         // These keys are the editor's while it has the keyboard; elsewhere the menu's commands answer.
         const keys = language.onKey((event) => {
             const next = isShortcut(this.language.shortcuts.nextProblem, event);
+
             if (!next && !isShortcut(this.language.shortcuts.previousProblem, event)) {
                 return false;
             }
+
             this.step(next ? 1 : -1);
+
             return true;
         }, KEY_PRIORITY.diagnostics);
+
         language.onDispose(() => {
             keys();
             reports.dispose();
@@ -76,26 +83,33 @@ export class DiagnosticsFeature {
     step(direction: 1 | -1): boolean {
         const caret = this.language.editor.getCaret();
         const target = neighborProblem(this.list, caret, direction);
+
         if (target === null) {
             return false;
         }
+
         const { start } = target.diagnostic.range;
         this.reveal(target, comparePositions(start, caret) > 0 ? 'centerDown' : 'centerUp');
+
         return true;
     }
 
     /* Puts the caret on the first problem of the file. */
     goToFirst(): boolean {
         const target = neighborProblem(this.list, { line: -1, character: 0 }, 1);
+
         if (target === null) {
             return false;
         }
+
         this.reveal(target, 'center');
+
         return true;
     }
 
     onChange(listener: () => void): () => void {
         this.listeners.add(listener);
+
         return () => {
             this.listeners.delete(listener);
         };
@@ -113,20 +127,25 @@ export class DiagnosticsFeature {
     /* The problems follow the edit as the markers do. Their number does not change, so nobody is told. */
     private shift(changes: readonly EditorContentChange[]): void {
         let moved = false;
+
         for (const [server, diagnostics] of this.reports) {
             let shifted: Diagnostic[] | null = null;
+
             for (const [index, diagnostic] of diagnostics.entries()) {
                 const range = shiftRange(diagnostic.range, changes);
+
                 if (!sameRange(range, diagnostic.range)) {
                     shifted ??= [...diagnostics];
                     shifted[index] = { ...diagnostic, range };
                 }
             }
+
             if (shifted !== null) {
                 this.reports.set(server, shifted);
                 moved = true;
             }
         }
+
         if (moved) {
             this.collect();
         }
@@ -135,6 +154,7 @@ export class DiagnosticsFeature {
     private rebuild(): void {
         this.collect();
         this.language.editor.setMarkers(this.list.map((problem) => markerOf(problem.diagnostic)));
+
         for (const listener of [...this.listeners]) {
             listener();
         }

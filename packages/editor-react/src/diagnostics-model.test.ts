@@ -52,6 +52,7 @@ describe('problemsAt', () => {
         const warning = problem({ range: range(0, 4, 9), message: 'w', severity: 2 });
         const error = problem({ range: range(0, 6, 8), message: 'e', severity: 1 });
         const hint = problem({ range: range(0, 4, 9), message: 'h', severity: 4 });
+
         expect(problemsAt([warning, error, hint], at(0, 7)).map((entry) => entry.diagnostic.message)).toEqual(['e', 'w']);
         expect(problemsAt([warning, error, hint], at(0, 3))).toEqual([]);
     });

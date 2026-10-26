@@ -35,6 +35,7 @@ describe('blocks of document symbols', () => {
             { name: 'Authenticate', kind: 5, location: location(6, 19), containerName: 'Passly\\Auth' },
             { name: 'createSession', kind: 6, location: location(12, 18), containerName: 'Authenticate' }
         ];
+
         expect(blocksOf(result, SOURCE)).toEqual([
             { startLine: 5, endLine: 20, name: 'Passly\\Auth', kind: 'namespace' },
             { startLine: 11, endLine: 20, name: 'Authenticate', kind: 'class' },
@@ -51,11 +52,13 @@ describe('blocks of document symbols', () => {
                 selectionRange: { start: { line: 10, character: 12 }, end: { line: 10, character: 24 } }
             }
         ];
+
         expect(blocksOf(result, SOURCE)).toEqual([{ startLine: 11, endLine: 20, name: 'Authenticate', kind: 'class' }]);
     });
 
     test('without the text a range stays as the server gave it', () => {
         const result: DocumentSymbolResult = [{ name: 'Authenticate', kind: 5, location: location(6, 19) }];
+
         expect(blocksOf(result)).toEqual([{ startLine: 7, endLine: 20, name: 'Authenticate', kind: 'class' }]);
     });
 });

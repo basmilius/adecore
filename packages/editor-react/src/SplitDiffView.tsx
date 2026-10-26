@@ -52,19 +52,25 @@ export function SplitDiffView({
     const [failure, setFailure] = useState<{ error: unknown } | null>(null);
     const [mounted, setMounted] = useState<MountedSplit | null>(null);
     const [height, setHeight] = useState(0);
+
     useLayoutEffect(() => {
         current.current = { display, tokens, theme, wrap, label };
     });
+
     useLayoutEffect(() => {
         const oldHost = oldElement.current;
         const newHost = newElement.current;
+
         if (oldHost === null || newHost === null) {
             return;
         }
+
         const initial = current.current;
         applied.current = { theme: initial.theme, wrap: initial.wrap, label: initial.label };
+
         const mount = (side: DiffSourceSide, host: HTMLElement): MountedDiff => {
             const initial = current.current;
+
             const editor = engine.mount(host, {
                 text: initial.display[side].text,
                 theme: initial.theme,
@@ -76,21 +82,29 @@ export function SplitDiffView({
                 foldOutline: 'off',
                 handBack: [parseChord('Mod+Enter')]
             });
+
             editor.setBlocks([]);
+
             editor.setLineTokens((line) => {
                 const row = current.current.display[side].rows[line];
+
                 return row === undefined ? null : current.current.tokens?.get(side, row[side]!.index);
             });
+
             return { engine, editor, rows: new RowHost(editor, 'diff-alignment'), actions: new LineActionHost(editor, 'diff-status') };
         };
+
         const old = mount('old', oldHost);
         let fresh: MountedDiff;
+
         try {
             fresh = mount('new', newHost);
         } catch (error) {
             old.editor.dispose();
+
             throw error;
         }
+
         const sides = { old, new: fresh };
         let stopped = false;
         let pending = false;
@@ -98,37 +112,48 @@ export function SplitDiffView({
         const scroll = new SplitScroll({ old: old.editor, new: fresh.editor });
         let aligning = false;
         let updating = false;
+
         const fail = (error: unknown): void => {
             failed = true;
             setFailure({ error });
         };
+
         const measure = (): void => setHeight(Math.max(sides.old.editor.getContentHeight(), sides.new.editor.getContentHeight()));
+
         const align = (): void => {
             if (pending || stopped || failed) {
                 return;
             }
+
             pending = true;
+
             // Intrinsic measurements arrive after each render; align both editors before the next paint.
             queueMicrotask(() => {
                 pending = false;
+
                 if (stopped || failed) {
                     return;
                 }
+
                 aligning = true;
+
                 try {
                     const rows = splitAlignment(
                         current.current.display.aligned,
                         (line) => sides.old.editor.getLineHeight(line),
                         (line) => sides.new.editor.getLineHeight(line)
                     );
+
                     sides.old.rows.set(rows.old);
                     sides.new.rows.set(rows.new);
                 } catch (error) {
                     fail(error);
+
                     return;
                 } finally {
                     aligning = false;
                 }
+
                 try {
                     measure();
                     scroll.sync();
@@ -137,21 +162,26 @@ export function SplitDiffView({
                 }
             });
         };
+
         const update = (run: () => void): void => {
             updating = true;
+
             try {
                 run();
             } finally {
                 updating = false;
             }
+
             align();
         };
+
         const stops = SIDES.flatMap((side) => [
             sides[side].editor.onLineHeights(align),
             sides[side].editor.onViewChange(() => {
                 if (stopped || failed || aligning || updating) {
                     return;
                 }
+
                 try {
                     measure();
                     scroll.changed(side);
@@ -160,35 +190,46 @@ export function SplitDiffView({
                 }
             })
         ]);
+
         setMounted({ old: sides.old, new: sides.new, align, update, drive: (side) => scroll.drive(side) });
         measure();
+
         return () => {
             stopped = true;
+
             for (const stop of stops) {
                 stop();
             }
+
             for (const side of SIDES) {
                 sides[side].editor.dispose();
             }
         };
     }, [engine]);
+
     useLayoutEffect(() => {
         if (mounted === null || mounted.old.engine !== engine) {
             return;
         }
+
         mounted.update(() => {
             for (const side of SIDES) {
                 const { editor, actions } = mounted[side];
                 editor.setText(display[side].text);
+
                 editor.setLineNumbers((line) => {
                     const row = current.current.display[side].rows[line];
+
                     return row === undefined ? null : String(row[side]!.number);
                 });
+
                 const highlights: EditorLineHighlight[] = [];
+
                 for (const [index, row] of display[side].rows.entries()) {
                     if (row.change === 'context') {
                         continue;
                     }
+
                     highlights.push({
                         startLine: index + 1,
                         endLine: index + 1,
@@ -197,78 +238,102 @@ export function SplitDiffView({
                         emphasis: [emphasis[side].get(row[side]!.index) ?? []]
                     });
                 }
+
                 editor.setLineHighlights(highlights);
+
                 editor.setChangeMarks(
                     highlights.map((highlight) => ({ startLine: highlight.startLine, endLine: highlight.endLine, kind: side === 'old' ? 'deleted' : 'added' }))
                 );
+
                 actions.set(display[side].rows.flatMap((row, line) => (row.noNewline === undefined ? [] : [{ id: `no-newline-${line}`, line }])));
             }
         });
     }, [mounted, engine, display, emphasis]);
+
     useLayoutEffect(() => {
         if (mounted === null || mounted.old.engine !== engine) {
             return;
         }
+
         for (const side of SIDES) {
             mounted[side].editor.setLineLabels((line) => {
                 const row = display[side].rows[line];
+
                 if (row === undefined || row.change === 'context') {
                     return null;
                 }
+
                 return t(side === 'old' ? 'diff.removed' : 'diff.added', { number: row[side]!.number });
             });
         }
     }, [mounted, engine, display, t]);
+
     useLayoutEffect(() => {
         if (mounted === null || mounted.old.engine !== engine) {
             return;
         }
+
         mounted.update(() => {
             for (const side of SIDES) {
                 const previous = applied.current;
+
                 if (previous.theme !== theme) {
                     mounted[side].editor.setTheme(theme);
                 }
+
                 if (previous.wrap !== wrap) {
                     mounted[side].editor.setWrap(wrap);
                 }
+
                 if (previous.label !== label) {
                     mounted[side].editor.setLabel(label);
                 }
             }
         });
+
         applied.current = { theme, wrap, label };
     }, [mounted, engine, theme, wrap, label]);
+
     useLayoutEffect(() => {
         if (mounted === null || mounted.old.engine !== engine) {
             return;
         }
+
         const refresh = (): void => {
             for (const side of SIDES) {
                 mounted[side].editor.setLineTokens((line) => {
                     const row = current.current.display[side].rows[line];
+
                     return row === undefined ? null : current.current.tokens?.get(side, row[side]!.index);
                 });
             }
         };
+
         refresh();
+
         return repaintOnTokens(oldElement.current?.ownerDocument.defaultView, tokens, refresh);
     }, [mounted, engine, display, tokens]);
+
     useLayoutEffect(() => {
         if (mounted === null || mounted.old.engine !== engine) {
             return;
         }
+
         const stops = SIDES.map((side) => onMount?.(mounted[side].editor, side));
+
         return () => {
             for (const stop of stops) {
                 stop?.();
             }
         };
     }, [mounted, engine, onMount]);
+
     const limit = maxHeight !== undefined && Number.isFinite(maxHeight) && maxHeight > 0 ? maxHeight : Infinity;
+
     if (failure !== null) {
         throw failure.error;
     }
+
     return (
         <div
             className={`adecore-editor-diff adecore-editor-diff-split ${className ?? ''}`}
@@ -282,6 +347,7 @@ export function SplitDiffView({
                 const drive = (): void => {
                     mounted?.drive(side);
                 };
+
                 return (
                     <div
                         key={side}

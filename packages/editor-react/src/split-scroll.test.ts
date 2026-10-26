@@ -23,14 +23,20 @@ test('a delayed, clamped follower scroll does not pull the driven side back', ()
     const stopNew = fresh.onViewChange(() => scroll.changed('new'));
     scroll.drive('old');
     old.setScrollTop(1000);
+
     expect(fresh.getScrollTop()).toBe(980);
+
     scroll.changed('new');
     scroll.sync();
+
     expect(old.getScrollTop()).toBe(1000);
     expect(fresh.getScrollTop()).toBe(980);
+
     scroll.drive('new');
     fresh.setScrollTop(900);
+
     expect(old.getScrollTop()).toBe(900);
+
     stopOld();
     stopNew();
 });
@@ -44,6 +50,7 @@ test('a programmatic reveal on the other side becomes the leader and survives al
     fresh.setScrollTop(600);
     old.setScrollTop(200);
     scroll.sync();
+
     expect(old.getScrollTop()).toBe(200);
     expect(fresh.getScrollTop()).toBe(200);
 });

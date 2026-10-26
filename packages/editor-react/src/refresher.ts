@@ -29,10 +29,12 @@ export class Refresher {
         if (this.disposed) {
             return;
         }
+
         this.timers.clear(this.timer);
         this.controller?.abort();
         const controller = new AbortController();
         this.controller = controller;
+
         this.run(controller.signal).catch((error: unknown) => {
             // A server that cannot answer yet is asked again when it says it can; a stale text is asked again by its own change.
             if (!(error instanceof StaleResultError) && !controller.signal.aborted && !isQuiet(error)) {
@@ -64,5 +66,6 @@ const QUIET_CODES: ReadonlySet<number> = new Set([
 /* A server that is not up, does not offer the feature or was asked to stop is not worth a line in the console. */
 function isQuiet(error: unknown): boolean {
     const code = (error as { code?: number } | null)?.code;
+
     return code !== undefined && QUIET_CODES.has(code);
 }

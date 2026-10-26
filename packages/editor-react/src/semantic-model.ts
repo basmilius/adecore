@@ -34,9 +34,11 @@ export function scopesOf(type: string, modifiers: ReadonlySet<string>, scoped = 
             if (modifiers.has('static')) {
                 return ['entity.name.function.static'];
             }
+
             if (modifiers.has('declaration')) {
                 return ['entity.name.function'];
             }
+
             return [type === 'method' ? 'entity.name.function.method' : 'entity.name.function.call'];
         case 'decorator':
             return ['meta.decorator'];
@@ -46,6 +48,7 @@ export function scopesOf(type: string, modifiers: ReadonlySet<string>, scoped = 
             if (scoped) {
                 return modifiers.has('local') ? null : ['variable.other.constant'];
             }
+
             return modifiers.has('readonly') ? ['variable.other.constant'] : null;
         default:
             return null;
@@ -71,25 +74,33 @@ export function decodeSemanticTokens(tokens: SemanticTokens, legend: SemanticTok
     const scoped = legend.tokenModifiers.includes('local');
     let line = 0;
     let character = 0;
+
     for (let at = 0; at + 4 < data.length; at += 5) {
         const deltaLine = data[at]!;
         line += deltaLine;
         character = deltaLine === 0 ? character + data[at + 1]! : data[at + 1]!;
         const type = legend.tokenTypes[data[at + 3]!];
+
         if (type === undefined) {
             continue;
         }
+
         const bits = data[at + 4]!;
         const modifiers = new Set(legend.tokenModifiers.filter((_, index) => (bits & (1 << index)) !== 0));
         const scopes = scopesOf(type, modifiers, scoped);
+
         if (scopes !== null) {
             result.push({ line, character, length: data[at + 2]!, scopes });
+
             continue;
         }
+
         const embedded = EMBEDDED_SCOPES[type];
+
         if (embedded !== undefined) {
             result.push({ line, character, length: data[at + 2]!, scopes: embedded, within: 'string' });
         }
     }
+
     return result;
 }

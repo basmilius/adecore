@@ -37,13 +37,16 @@ async function setup(names: string[], options: SetupOptions = {}) {
     const state = { value: names };
     const text = options.text ?? state.value.map((name) => `function ${name}() {}`).join('\n');
     service.respond('textDocument/documentSymbol', () => state.value.map((name, line) => functionSymbol(name, line, options.end ?? line)));
+
     if (options.references !== false) {
         service.respond('textDocument/references', (call: LanguageCall) => {
             const name = state.value[(call.params as { position: { line: number } }).position.line]!;
             asked.push(name);
+
             return Array.from({ length: places.get(name) ?? 0 }, (_, index) => ({ uri, range: { start: at(index + 10), end: at(index + 10, 3) } }));
         });
     }
+
     const timers = new ManualTimers();
     const project = new ProjectLanguage(service);
     const editor = new FakeEditorEngine().mount({} as HTMLElement, { text, theme: 'light' });
@@ -51,6 +54,7 @@ async function setup(names: string[], options: SetupOptions = {}) {
     open.push(project, language);
     await language.document.ready;
     await settle();
+
     return { service, editor, language, timers, asked, places, names: state };
 }
 
@@ -62,8 +66,11 @@ describe('usages', () => {
         places.set('alpha', 3);
         places.set('beta', 1);
         language.codeVision.configure({ usages: true, authors: false });
+
         expect(editor.codeVision).toEqual([]);
+
         await settle();
+
         expect(editor.codeVision.map((row) => row.line)).toEqual([0, 1]);
         expect(wordsOf(editor)).toEqual([['3 usages'], ['1 usage']]);
     });
@@ -72,6 +79,7 @@ describe('usages', () => {
         const { editor, language } = await setup(['alpha']);
         language.codeVision.configure({ usages: true, authors: false });
         await settle();
+
         expect(wordsOf(editor)).toEqual([['No usages']]);
     });
 
@@ -79,23 +87,31 @@ describe('usages', () => {
         const { service, editor, language, places } = await setup(['alpha']);
         language.codeVision.configure({ usages: true, authors: false });
         await settle();
+
         expect(wordsOf(editor)).toEqual([['No usages']]);
+
         places.set('alpha', 83);
         service.refresh(uri);
         await settle();
+
         expect(wordsOf(editor)).toEqual([['83 usages']]);
     });
 
     test('count a place once however many ways the server named it, and never the declaration', async () => {
         const { service, language, editor } = await setup(['alpha']);
+
         service.respond('textDocument/references', () => [
             { uri, range: { start: at(5), end: at(5, 2) } },
             { uri, range: { start: at(5), end: at(5, 2) } }
         ]);
+
         language.codeVision.configure({ usages: true, authors: false });
         await settle();
+
         expect(wordsOf(editor)).toEqual([['1 usage']]);
+
         const request = service.calls.find((call) => call.method === 'textDocument/references');
+
         expect((request!.params as { context: unknown }).context).toEqual({ includeDeclaration: false });
     });
 
@@ -103,9 +119,12 @@ describe('usages', () => {
         const { editor, language } = await setup(['alpha']);
         language.codeVision.configure({ usages: true, authors: false });
         await settle();
+
         expect(editor.codeVision).toHaveLength(1);
+
         language.codeVision.configure({ usages: false, authors: false });
         await settle();
+
         expect(editor.codeVision).toEqual([]);
     });
 
@@ -113,6 +132,7 @@ describe('usages', () => {
         const { editor, language } = await setup(['alpha'], { references: false });
         language.codeVision.configure({ usages: true, authors: false });
         await settle();
+
         expect(editor.codeVision).toEqual([]);
     });
 
@@ -122,13 +142,16 @@ describe('usages', () => {
         editor.scroll({ start: at(0), end: at(30) });
         language.codeVision.configure({ usages: true, authors: false });
         await settle();
+
         expect(asked).toHaveLength(71);
         expect(asked.at(-1)).toBe('f70');
         expect(wordsOf(editor).filter((words) => words.length > 0)).toHaveLength(71);
         expect(editor.codeVision).toHaveLength(200);
+
         editor.scroll({ start: at(150), end: at(170) });
         timers.advance(200);
         await settle();
+
         expect(asked).toContain('f130');
         expect(asked).toContain('f199');
         expect(asked.filter((name) => name === 'f0')).toHaveLength(1);
@@ -141,10 +164,12 @@ describe('usages', () => {
         let peak = 0;
         const seen: string[] = [];
         const releases: Array<() => void> = [];
+
         service.respond('textDocument/references', (call: LanguageCall) => {
             flying++;
             seen.push(names[(call.params as { position: { line: number } }).position.line]!);
             peak = Math.max(peak, flying);
+
             return new Promise((resolve) => {
                 releases.push(() => {
                     flying--;
@@ -152,21 +177,29 @@ describe('usages', () => {
                 });
             });
         });
+
         editor.scroll({ start: at(0), end: at(10) });
         language.codeVision.configure({ usages: true, authors: false });
         await settle();
+
         expect(flying).toBe(3);
+
         releases.shift()!();
         await settle();
+
         expect(flying).toBe(3);
+
         editor.scroll({ start: at(190), end: at(199) });
         timers.advance(200);
         await settle();
+
         expect(flying).toBe(3);
+
         while (releases.length > 0) {
             releases.shift()!();
             await settle();
         }
+
         expect(peak).toBe(3);
         expect(seen).not.toContain('f45');
         expect(seen).toContain('f199');
@@ -177,13 +210,18 @@ describe('usages', () => {
         places.set('alpha', 2);
         language.codeVision.configure({ usages: true, authors: false });
         await settle();
+
         expect(wordsOf(editor)).toEqual([['2 usages']]);
+
         places.set('alpha', 5);
         editor.type('function alpha() {}\n');
         await settle();
+
         expect(wordsOf(editor)).toEqual([['2 usages']]);
+
         timers.advance(600);
         await settle();
+
         expect(wordsOf(editor)).toEqual([['5 usages']]);
     });
 
@@ -194,6 +232,7 @@ describe('usages', () => {
         await settle();
         editor.codeVision[0]!.entries[0]!.activate({ left: 0, top: 0, right: 10, bottom: 10 });
         await settle();
+
         expect(language.popups.getState().peek).toMatchObject({ kind: 'references', count: 2 });
     });
 
@@ -201,6 +240,7 @@ describe('usages', () => {
         const { editor, language, asked } = await setup(['alpha'], { text: `function alpha() {}\n${'x\n'.repeat(20_000)}` });
         language.codeVision.configure({ usages: true, authors: false });
         await settle();
+
         expect(editor.codeVision).toEqual([]);
         expect(asked).toEqual([]);
     });
@@ -209,8 +249,11 @@ describe('usages', () => {
         const { editor, language } = await setup(['alpha']);
         language.codeVision.configure({ usages: true, authors: false });
         await settle();
+
         expect(editor.codeVision).toHaveLength(1);
+
         language.dispose();
+
         expect(editor.codeVision).toEqual([]);
     });
 });
@@ -224,6 +267,7 @@ describe('authors', () => {
         at: time,
         summary: `By ${author}`
     });
+
     /* The blame of the text a setup opens with, one line per entry of `lines`. */
     const ready = (
         lines: number[],
@@ -241,12 +285,15 @@ describe('authors', () => {
         language.codeVision.configure({ usages: false, authors: true });
         language.codeVision.setBlame({ kind: 'pending' });
         await settle();
+
         expect(editor.codeVision.map((row) => [row.line, row.entries.length])).toEqual([
             [0, 0],
             [1, 0]
         ]);
+
         language.codeVision.setBlame(ready([0, 1]));
         await settle();
+
         expect(wordsOf(editor)).toEqual([['Ada'], ['Bob']]);
         expect(editor.codeVision[0]!.entries[0]).toMatchObject({ id: 'authors', icon: 'user' });
     });
@@ -257,6 +304,7 @@ describe('authors', () => {
         language.codeVision.configure({ usages: true, authors: true });
         language.codeVision.setBlame(ready([0]));
         await settle();
+
         expect(wordsOf(editor)).toEqual([['2 usages', 'Ada']]);
     });
 
@@ -265,10 +313,13 @@ describe('authors', () => {
         language.codeVision.configure({ usages: false, authors: true });
         language.codeVision.setBlame(null);
         await settle();
+
         expect(editor.codeVision).toEqual([]);
+
         language.codeVision.setBlame(ready([0, 0]));
         language.codeVision.configure({ usages: false, authors: false });
         await settle();
+
         expect(editor.codeVision).toEqual([]);
     });
 
@@ -278,10 +329,13 @@ describe('authors', () => {
         language.codeVision.configure({ usages: false, authors: true });
         language.codeVision.setBlame(ready([0, 1, 1, 0], [], text));
         await settle();
+
         expect(wordsOf(editor)).toEqual([['Bob +1']]);
+
         editor.type('function alpha() {\n    one();\n    typed();\n}');
         timers.advance(600);
         await settle();
+
         expect(wordsOf(editor)).toEqual([['Ada +1 *']]);
     });
 
@@ -291,6 +345,7 @@ describe('authors', () => {
         language.codeVision.configure({ usages: false, authors: true });
         language.codeVision.setBlame(ready([0, 1, 1, 0], [], text));
         await settle();
+
         expect(wordsOf(editor)).toEqual([['Bob +1']]);
         expect(editor.codeVision[0]!.entries[0]!.icon).toBe('users');
     });
@@ -304,6 +359,7 @@ describe('authors', () => {
         editor.type('function alpha() {}\nfunction gamma() {}\n');
         timers.advance(600);
         await settle();
+
         expect(wordsOf(editor)).toEqual([['Ada'], ['new *']]);
         expect(editor.codeVision[1]!.entries[0]!.icon).toBeUndefined();
     });
@@ -317,11 +373,16 @@ describe('authors', () => {
         const anchor = { left: 4, top: 8, right: 40, bottom: 28 };
         editor.codeVision[0]!.entries[0]!.activate(anchor);
         const view = language.popups.getState().authors!;
+
         expect(view).toMatchObject({ anchor, name: 'alpha' });
         expect(view.authorship.authors).toEqual([{ name: 'Bob', email: 'bob@example.com', lines: 1 }]);
+
         view.openCommit!();
+
         expect(opened).toEqual([commit('Bob', 20).hash]);
+
         language.codeVision.closeAuthors();
+
         expect(language.popups.getState().authors).toBeNull();
     });
 
@@ -331,8 +392,11 @@ describe('authors', () => {
         language.codeVision.setBlame(ready([0, 0]));
         await settle();
         editor.codeVision[0]!.entries[0]!.activate({ left: 0, top: 0, right: 1, bottom: 1 });
+
         expect(language.popups.getState().authors).not.toBeNull();
+
         editor.type('x');
+
         expect(language.popups.getState().authors).toBeNull();
     });
 
@@ -344,6 +408,7 @@ describe('authors', () => {
         editor.codeVision[0]!.entries[0]!.activate({ left: 0, top: 0, right: 1, bottom: 1 });
         editor.focused = false;
         language.codeVision.closeAuthors(true);
+
         expect(language.popups.getState().authors).toBeNull();
         expect(editor.focused).toBe(true);
     });

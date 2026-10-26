@@ -20,6 +20,7 @@ const SYMBOLS = [
 describe('the symbols of a file', () => {
     test('are listed parents first, with where each sits', () => {
         const entries = entriesOf(SYMBOLS);
+
         expect(entries.map((entry) => [entry.name, entry.container, entry.line])).toEqual([
             ['DEFAULT_WEIGHTS', '', 3],
             ['Scorer', '', 5],
@@ -31,12 +32,14 @@ describe('the symbols of a file', () => {
 
     test('are read from a flat list too, and from nothing', () => {
         const flat = [{ name: 'a', kind: 12 as const, containerName: 'M', location: { uri: 'file:///a', range: range(2) } }];
+
         expect(entriesOf(flat)).toMatchObject([{ name: 'a', container: 'M', line: 2 }]);
         expect(entriesOf(null)).toEqual([]);
     });
 
     test('are grouped by kind in the order of the groups', () => {
         const groups = groupEntries(entriesOf(SYMBOLS));
+
         expect(groups.map((group) => [group.group, group.entries.map((entry) => entry.name)])).toEqual([
             ['classes', ['Scorer']],
             ['functions', ['scoreCandidate']],
@@ -58,6 +61,7 @@ describe('filtering', () => {
 
     test('keeps the order of the file without a query and puts the best match first with one', () => {
         const entries = entriesOf(SYMBOLS);
+
         expect(filterEntries(entries, '').map((entry) => entry.name)).toEqual(['DEFAULT_WEIGHTS', 'Scorer', 'score', 'scoreCandidate']);
         expect(filterEntries(entries, 'score').map((entry) => entry.name)).toEqual(['Scorer', 'score', 'scoreCandidate']);
         expect(filterEntries(entries, 'candidate').map((entry) => entry.name)).toEqual(['scoreCandidate']);

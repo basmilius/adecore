@@ -10,16 +10,21 @@ export function followModKey(apple: boolean, onHeld: (held: boolean) => void): (
     if (typeof window === 'undefined') {
         return () => {};
     }
+
     const modKey = apple ? 'Meta' : 'Control';
+
     const keys = (event: KeyboardEvent): void => {
         if (event.key === modKey) {
             onHeld(event.type === 'keydown');
         }
     };
+
     const lost = (): void => onHeld(false);
+
     window.addEventListener('keydown', keys);
     window.addEventListener('keyup', keys);
     window.addEventListener('blur', lost);
+
     return () => {
         window.removeEventListener('keydown', keys);
         window.removeEventListener('keyup', keys);
@@ -44,6 +49,7 @@ export class DefinitionLinkFeature {
     constructor(language: EditorLanguage) {
         this.language = language;
         const { editor } = language;
+
         const offs = [
             editor.onHover((hover) => {
                 this.pointer = hover?.position ?? null;
@@ -53,10 +59,12 @@ export class DefinitionLinkFeature {
             editor.onViewChange(() => this.clear()),
             followModKey(language.apple, (held) => this.setModHeld(held))
         ];
+
         language.onDispose(() => {
             for (const off of offs) {
                 off();
             }
+
             this.clear();
         });
     }
@@ -72,6 +80,7 @@ export class DefinitionLinkFeature {
         this.request++;
         this.lookup?.abort();
         this.shownKey = '';
+
         if (this.drawn) {
             this.drawn = false;
             this.language.editor.setLink(null);
@@ -80,26 +89,35 @@ export class DefinitionLinkFeature {
 
     private update(): void {
         const { pointer } = this;
+
         if (!this.held || pointer === null || !this.language.project.service.supports('textDocument/definition', this.language.uri)) {
             this.clear();
+
             return;
         }
+
         const { editor, project, uri } = this.language;
         const line = lineTextOf(editor, pointer.line);
         const word = isIdentifierCharacter(line[pointer.character] ?? '') ? wordRangeAt(line, pointer) : null;
+
         if (word === null) {
             this.clear();
+
             return;
         }
+
         const key = `${word.start.line}:${word.start.character}`;
+
         if (key === this.shownKey) {
             return;
         }
+
         this.clear();
         this.shownKey = key;
         const request = ++this.request;
         const controller = new AbortController();
         this.lookup = controller;
+
         project.service
             .definition(uri, pointer, { signal: controller.signal })
             .then((result) => {

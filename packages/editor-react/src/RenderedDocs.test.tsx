@@ -9,12 +9,15 @@ import { RenderedDocBlock } from './RenderedDocs.tsx';
 
 function markup(source: string, options: { php?: boolean; follow?: boolean } = {}): string {
     const [comment] = findDocComments(source, options.php === true ? 'php' : 'typescript');
+
     const language = {
         apple: false,
         languageId: options.php === true ? 'php' : 'typescript',
         renderedDocs: { follow: () => {} }
     } as unknown as EditorLanguage;
+
     const parsed = parseDocComment(comment!.body, { php: options.php });
+
     return renderToStaticMarkup(createElement(RenderedDocBlock, { language, comment: comment!, parsed, linkable: options.follow ?? true }));
 }
 
@@ -37,11 +40,14 @@ const SOURCE = [
 describe('the rendered block', () => {
     test('shows the description, the tags in sections and the deprecation first', () => {
         const html = markup(SOURCE);
+
         expect(html).toContain('Adds <strong>two</strong> numbers');
         expect(html.indexOf('Deprecated')).toBeLessThan(html.indexOf('Adds'));
+
         for (const heading of ['Parameters', 'Returns', 'Throws', 'Since', 'Example', 'custom:']) {
             expect(html).toContain(heading);
         }
+
         expect(html).toContain('<code class="font-mono text-code break-words text-text">a</code>');
         expect(html).toContain('<code class="font-mono text-code break-words text-text-faint">number</code>');
         expect(html).toContain('add(1, 2);');
@@ -51,7 +57,9 @@ describe('the rendered block', () => {
 
     test('draws a name in a link tag as a link, or as code where nothing can follow it', () => {
         expect(markup(SOURCE)).toContain('href="#doc-link:Calculator"');
+
         const plain = markup(SOURCE, { follow: false });
+
         expect(plain).not.toContain('doc-link');
         expect(plain).toContain('<code>Calculator</code>');
     });
@@ -60,6 +68,7 @@ describe('the rendered block', () => {
         const html = markup(
             '/**\n * Hi <script>alert(1)</script><img src=x onerror=alert(2)> <a href="javascript:alert(3)">x</a> <i onclick="y()">t</i>\n * @see https://example.com/page\n */'
         );
+
         expect(html).not.toContain('<script');
         expect(html).not.toContain('<img');
         expect(html).not.toContain('javascript:');
@@ -70,6 +79,7 @@ describe('the rendered block', () => {
 
     test('reads PHPDoc types without braces', () => {
         const html = markup('<?php\n/**\n * Finds.\n * @param array<string,int> $filter The filter.\n * @return Collection The users.\n */', { php: true });
+
         expect(html).toContain('$filter');
         expect(html).toContain('array&lt;string,int&gt;');
         expect(html).toContain('Collection');
@@ -77,6 +87,7 @@ describe('the rendered block', () => {
 
     test('lays the tags out as one table of labels and values, without lines', () => {
         const html = markup(SOURCE);
+
         expect(html.match(/<dl\b/g)).toHaveLength(1);
         expect(html).toContain('grid-cols-[max-content_minmax(0,1fr)]');
         expect(html).toContain('items-baseline');
@@ -90,6 +101,7 @@ describe('the rendered block', () => {
 
     test('draws a Markdown image as its alt text and never as an image', () => {
         const html = markup('/**\n * Logo ![the logo](https://example.com/track.png) here.\n */');
+
         expect(html).not.toContain('<img');
         expect(html).not.toContain('example.com/track.png');
         expect(html).toContain('the logo');

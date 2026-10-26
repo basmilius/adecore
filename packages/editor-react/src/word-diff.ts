@@ -16,18 +16,23 @@ function replacedRanges(removed: string, added: string): Array<[number, number]>
     const after = added.match(TOKEN) ?? [];
     const starts: number[] = [];
     let offset = 0;
+
     for (const token of before) {
         starts.push(offset);
         offset += token.length;
     }
+
     starts.push(offset);
     const ranges: Array<[number, number]> = [];
+
     for (const change of diffLines(before, after)) {
         const text = removed.slice(starts[change.baseStart]!, starts[change.baseEnd]!);
+
         if (text.trim() !== '') {
             const start = starts[change.baseStart]! + (text.length - text.trimStart().length);
             ranges.push([start, start + text.trim().length]);
         }
     }
+
     return ranges;
 }

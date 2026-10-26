@@ -7,10 +7,12 @@ import { fakeFormatSource } from '@adecore/ui/testing';
 import { LatestCommit } from './CodeAuthorsCard.tsx';
 
 const DAY = 24 * 60 * 60;
+
 // Blame writes when a commit was made in seconds since the epoch.
 const COMMITTED = new Date(2026, 8, 19, 8, 5).getTime() / 1000;
 
 const source = fakeFormatSource();
+
 let previous: FormatSource;
 
 beforeAll(() => {
@@ -25,11 +27,13 @@ afterAll(() => {
 
 const ageAt = (now: number): string => {
     setSystemTime(new Date(now * 1000));
+
     const markup = renderToStaticMarkup(
         createElement(LatestCommit, {
             commit: { hash: 'abc1234def', shortHash: 'abc1234', author: 'Ada', email: 'ada@example.com', at: COMMITTED, summary: 'Run it' }
         })
     );
+
     return /<span class="shrink-0">([^<]*)<\/span>/.exec(markup)?.[1] ?? '';
 };
 

@@ -20,6 +20,7 @@ describe('placePopup', () => {
 
     test('takes the side with more room and shortens to it when neither fits', () => {
         const placement = placePopup(anchor(100, 500), { width: 300, height: 600 }, window);
+
         expect(placement.side).toBe('above');
         expect(placement.maxHeight).toBe(500 - 4 - 8);
         expect(placement.top).toBe(500 - 4 - placement.maxHeight);
@@ -34,6 +35,7 @@ describe('placePopup', () => {
 describe('placeBeside', () => {
     test('goes right of the first box, then left, then under it', () => {
         const first = { left: 100, top: 100, width: 300, height: 200 };
+
         expect(placeBeside(first, { width: 280, height: 150 }, window)).toMatchObject({ left: 404, top: 100 });
         expect(placeBeside({ ...first, left: 700 }, { width: 280, height: 150 }, window).left).toBe(700 - 4 - 280);
         expect(placeBeside({ ...first, left: 350 }, { width: 400, height: 150 }, window)).toMatchObject({ left: 350, top: 304 });

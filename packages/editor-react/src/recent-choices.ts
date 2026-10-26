@@ -20,6 +20,7 @@ export class RecentChoices {
         const key = RecentChoices.keyOf(item);
         this.order.delete(key);
         this.order.set(key, ++this.tick);
+
         if (this.order.size > LIMIT) {
             this.order.delete(this.order.keys().next().value!);
         }
@@ -35,9 +36,11 @@ const stores = new Map<string, RecentChoices>();
 
 export function recentChoicesOf(languageId: string): RecentChoices {
     let store = stores.get(languageId);
+
     if (store === undefined) {
         store = new RecentChoices();
         stores.set(languageId, store);
     }
+
     return store;
 }

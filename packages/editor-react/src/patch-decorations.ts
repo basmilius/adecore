@@ -49,10 +49,13 @@ function numberOf(line: PatchLayoutLine, numbers: 'single' | 'both', width: numb
     if (line.old === null && line.new === null) {
         return null;
     }
+
     if (numbers === 'single') {
         return String(line.new ?? line.old);
     }
+
     const pad = (value: number | null): string => (value === null ? '' : String(value)).padStart(width, ' ');
+
     return `${pad(line.old)} ${pad(line.new)}`;
 }
 
@@ -61,28 +64,35 @@ function highlightsOf(layout: PatchLayout): { highlights: EditorLineHighlight[];
     const highlights: EditorLineHighlight[] = [];
     const marks: EditorChangeMark[] = [];
     const lines = layout.lines;
+
     for (let index = 0; index < lines.length; index++) {
         const role = lines[index]!.role;
+
         if (role === 'file-header') {
             highlights.push({ startLine: index + 1, endLine: index + 1, color: '--text-muted', fill: '--surface-raised' });
         } else if (role === 'hunk-header') {
             highlights.push({ startLine: index + 1, endLine: index + 1, color: '--accent' });
         } else if (role === 'added' || role === 'removed') {
             let end = index;
+
             while (end + 1 < lines.length && lines[end + 1]!.role === role) {
                 end++;
             }
+
             const removed = role === 'removed';
+
             highlights.push({
                 startLine: index + 1,
                 endLine: end + 1,
                 color: removed ? '--editor-deleted' : '--editor-added',
                 bar: removed ? 'hatched' : 'solid'
             });
+
             marks.push({ startLine: index + 1, endLine: end + 1, kind: removed ? 'deleted' : 'added' });
             index = end;
         }
     }
+
     return { highlights, marks };
 }
 
@@ -101,86 +111,111 @@ export function decoratePatch(editor: Editor, options: PatchDecorationOptions = 
     const timer = options.timer ?? DEFAULT_TIMER;
     const delay = options.delay ?? 150;
     const immediateBelow = options.immediateBelow ?? 100_000;
+
     const clearWait = (): void => {
         if (wait !== null) {
             timer.clear(wait);
             wait = null;
         }
     };
+
     const after = (callback: () => void): void => {
         clearWait();
+
         wait = timer.set(() => {
             wait = null;
             callback();
         }, delay);
     };
+
     const apply = (): void => {
         const numbers = options.numbers ?? 'single';
         const lines = layout.lines;
         const width = lines.reduce((digits, line) => Math.max(digits, String(Math.max(line.old ?? 0, line.new ?? 0)).length), 1);
+
         editor.setLineNumbers((line) => {
             const entry = lines[line];
+
             return entry === undefined ? null : numberOf(entry, numbers, width);
         });
+
         const labels = options.labels;
+
         editor.setLineLabels(
             labels === undefined
                 ? null
                 : (line) => {
                       const entry = lines[line];
+
                       if (entry?.role === 'removed') {
                           return labels.removed(entry.old!);
                       }
+
                       if (entry?.role === 'added') {
                           return labels.added(entry.new!);
                       }
+
                       return entry?.role === 'context' ? labels.unchanged(entry.old!, entry.new!) : null;
                   }
         );
+
         const { highlights, marks } = highlightsOf(layout);
         editor.setLineHighlights(highlights);
         editor.setChangeMarks(marks, CHANGE_LAYER);
     };
+
     const decorate = (): void => {
         pending = false;
+
         if (disposed) {
             return;
         }
+
         const text = editor.getText();
         length = text.length;
         layout = patchLayoutOf(text, options.limits);
         apply();
     };
+
     const announce = (): void => {
         if (!disposed) {
             options.onLayout?.(layout);
         }
     };
+
     const read = (): void => {
         clearWait();
         decorate();
         announce();
     };
+
     const schedule = (): void => {
         if (length < immediateBelow) {
             if (pending) {
                 return;
             }
+
             pending = true;
+
             queueMicrotask(() => {
                 decorate();
                 after(announce);
             });
+
             return;
         }
+
         pending = true;
+
         after(() => {
             decorate();
             announce();
         });
     };
+
     const stop = editor.onTextChange(schedule);
     read();
+
     return {
         get layout() {
             return layout;
@@ -204,10 +239,12 @@ export function usePatchDecorations(editor: Editor | null, options: Omit<PatchDe
     const [state, setState] = useState<{ editor: Editor; layout: PatchLayout } | null>(null);
     const { numbers } = options;
     const { maxLines, maxCharacters } = options.limits ?? {};
+
     useEffect(() => {
         if (editor === null) {
             return;
         }
+
         const decoration = decoratePatch(editor, {
             ...(numbers === undefined ? {} : { numbers }),
             limits: { ...(maxLines === undefined ? {} : { maxLines }), ...(maxCharacters === undefined ? {} : { maxCharacters }) },
@@ -218,7 +255,9 @@ export function usePatchDecorations(editor: Editor | null, options: Omit<PatchDe
             },
             onLayout: (layout) => setState({ editor, layout })
         });
+
         return () => decoration.dispose();
     }, [editor, numbers, maxLines, maxCharacters, t]);
+
     return state !== null && state.editor === editor ? state.layout : null;
 }

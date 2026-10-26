@@ -18,6 +18,7 @@ import type { PeekView } from './popups.ts';
 import { useEditorRendering } from './rendering-context.ts';
 
 const TAB_SIZE = 4;
+
 const CODE =
     'font-mono text-(length:--code-font-size) [tab-size:4] [&_.line]:block [&_.line]:h-(--code-line-height) [&_.line]:leading-(--code-line-height) [&_pre]:m-0 [&_pre]:bg-transparent! [&_pre]:p-0 [&_pre]:whitespace-pre [&_code]:font-mono';
 
@@ -33,10 +34,13 @@ export function Preview({ preview }: { preview: PeekView['preview'] }) {
         if (preview === null || highlight === undefined) {
             return;
         }
+
         let alive = true;
+
         highlight(preview.text, shikiLanguageOfPath(path ?? preview.uri), theme)
             .then((result) => alive && setHtml({ key, html: result }))
             .catch(() => undefined);
+
         return () => {
             alive = false;
         };
@@ -49,8 +53,10 @@ export function Preview({ preview }: { preview: PeekView['preview'] }) {
     if (preview === null) {
         return <div className="min-w-0 flex-1" />;
     }
+
     const lines = preview.text.split('\n');
     const name = preview.name === null ? null : columnsOf(lines[preview.active] ?? '', preview.name);
+
     return (
         <div ref={scroller} className="relative min-w-0 flex-1 overflow-auto pt-1">
             <div className="relative flex min-w-max">
@@ -94,6 +100,7 @@ export function Preview({ preview }: { preview: PeekView['preview'] }) {
 /* The name's stretch of a line in monospace columns, which is what the code is laid out in. */
 function columnsOf(line: string, name: NameRange): NameRange {
     const start = visualColumnOf(line, name.start, TAB_SIZE);
+
     return { start, end: visualColumnOf(line, name.end, TAB_SIZE) };
 }
 
@@ -106,10 +113,13 @@ function PlaceText({ place }: { place: PeekPlace }) {
     if (place.text === '') {
         return <span className="min-w-0 truncate text-text-muted">{`:${place.line + 1}`}</span>;
     }
+
     const { name } = place;
+
     if (name === null) {
         return <span className="min-w-0 truncate text-text-muted">{place.text}</span>;
     }
+
     return (
         <span className="min-w-0 truncate text-text-muted">
             {place.text.slice(0, name.start)}
@@ -134,6 +144,7 @@ function Places({ language, view }: { language: EditorLanguage; view: PeekView }
         <div className="w-1/3 shrink-0 overflow-y-auto border-l border-border py-1">
             {view.files.map((file, fileIndex) => {
                 const collapsed = view.collapsed.includes(file.uri);
+
                 return (
                     <div key={file.uri}>
                         <Tooltip label={paths[fileIndex]!} side="left">
@@ -183,9 +194,11 @@ export function PeekPanel({ language, view }: { language: EditorLanguage; view: 
     const folder = language.project.folder;
     const shown = path === null ? '' : folderOf(relativeTo(path, folder));
     const body = usePanelBody(language);
+
     if (view.container === null) {
         return null;
     }
+
     return createPortal(
         <div
             className="flex flex-col bg-surface pt-[2px] font-sans text-xs text-text"

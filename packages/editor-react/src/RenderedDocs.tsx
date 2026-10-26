@@ -10,6 +10,7 @@ import { shikiLanguageOf } from './language-ids.ts';
 import { Markdown } from './Markdown.tsx';
 
 const LINK = /\[([^\]]*)\]\(#doc-link:[^)]*\)/g;
+
 const KNOWN = new Set([
     'deprecated',
     'template',
@@ -35,6 +36,7 @@ function Code({ children, faint = false }: { children: string; faint?: boolean }
 /* Markdown prose and fenced code as the hover draws them: the blocks in the code face, the rest muted. */
 function Prose({ text, language, linkable, compact = false }: { text: string; language: string; linkable: boolean; compact?: boolean }) {
     const plain = linkable ? text : text.replace(LINK, '$1');
+
     return (
         <>
             {markdownParts(plain).map((part, index) =>
@@ -55,8 +57,10 @@ function Prose({ text, language, linkable, compact = false }: { text: string; la
 /* A value of a tag, in the second column of the table; `spaced` opens a new section with more room above. */
 function TagRow({ tag, language, linkable, spaced }: { tag: DocTagEntry; language: string; linkable: boolean; spaced: boolean }) {
     const target = tag.name === 'see' && tag.subject !== null ? tag.subject : null;
+
     const link =
         target === null ? null : /^https?:\/\//i.test(target) ? `[${target}](${target})` : `[\`${target}\`](${DOC_LINK_PREFIX}${encodeURIComponent(target)})`;
+
     return (
         <dd className={`col-start-2 m-0 flex min-w-0 flex-wrap items-baseline gap-x-2 ${spaced ? 'mt-1' : ''}`}>
             {tag.name === 'example' ? (
@@ -102,15 +106,19 @@ function DocBlock({ language, comment, parsed, linkable }: DocBlockProps) {
     // One handler for every link, since the links are made by the Markdown renderer and not by us.
     const follow = (event: MouseEvent<HTMLDivElement>): void => {
         const anchor = (event.target as HTMLElement).closest<HTMLAnchorElement>('a');
+
         if (anchor === null) {
             return;
         }
+
         event.preventDefault();
         const mod = language.apple ? event.metaKey : event.ctrlKey;
         const href = anchor.getAttribute('href') ?? '';
+
         if (!mod) {
             return;
         }
+
         if (href.startsWith(DOC_LINK_PREFIX)) {
             feature.follow(decodeURIComponent(href.slice(DOC_LINK_PREFIX.length)), comment);
         } else if (/^(https?:|mailto:)/i.test(href)) {
@@ -159,9 +167,12 @@ export const RenderedDocBlock = memo(DocBlock);
  */
 export function RenderedDocs({ language }: { language: EditorLanguage }) {
     const feature = language.renderedDocs;
+
     const getEntries = () => feature.getEntries();
+
     const entries = useSyncExternalStore((listener) => feature.subscribe(listener), getEntries, getEntries);
     const linkable = feature.canFollow;
+
     return (
         <>
             {entries.map((entry) =>

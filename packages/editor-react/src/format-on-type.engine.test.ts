@@ -35,7 +35,9 @@ async function setup(text: string, answer: (call: LanguageCall) => TextEdit[] | 
     language.formatOnType.configure(true);
     await language.document.ready;
     open.push(language);
+
     const questions = (): string[] => service.calls.filter((call) => call.method === METHOD).map((call) => (call.params as { ch: string }).ch);
+
     return { ...mounted, questions };
 }
 
@@ -44,6 +46,7 @@ describe('format on type in the real editor', () => {
         const { press, questions } = await setup('foo()');
         press('Enter');
         await settle();
+
         expect(questions()).toEqual(['\n']);
     });
 
@@ -51,6 +54,7 @@ describe('format on type in the real editor', () => {
         const { type, questions } = await setup('foo()');
         type(';');
         await settle();
+
         expect(questions()).toEqual([';']);
     });
 
@@ -58,6 +62,7 @@ describe('format on type in the real editor', () => {
         const { type, questions, editor } = await setup('  if (a) {\n        ');
         type('}');
         await settle();
+
         expect(editor.getText()).toBe('  if (a) {\n  }');
         expect(questions()).toEqual(['}']);
     });
@@ -68,12 +73,18 @@ describe('format on type in the real editor', () => {
                 ? [{ range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } }, newText: '    ' }]
                 : null
         );
+
         type(';');
         await settle();
+
         expect(editor.getText()).toBe('    foo();');
+
         press('z', { ctrlKey: true });
+
         expect(editor.getText()).toBe('foo()');
+
         press('z', { ctrlKey: true, shiftKey: true });
+
         expect(editor.getText()).toBe('    foo();');
     });
 });

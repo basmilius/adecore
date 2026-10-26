@@ -30,7 +30,9 @@ function columnsOf(range: Range, line: number, length: number): NameRange | null
     if (range.start.line !== line) {
         return null;
     }
+
     const end = Math.min(length, range.end.line === line ? range.end.character : length);
+
     return range.start.character < end ? { start: range.start.character, end } : null;
 }
 
@@ -39,9 +41,11 @@ function trimmedNameOf(raw: string, range: Range, line: number): NameRange | nul
     const leading = raw.length - raw.trimStart().length;
     const columns = columnsOf(range, line, raw.length);
     const length = raw.trim().length;
+
     if (columns === null || columns.start < leading || columns.start >= leading + length) {
         return null;
     }
+
     return { start: columns.start - leading, end: Math.min(length, columns.end - leading) };
 }
 
@@ -52,22 +56,28 @@ function trimmedNameOf(raw: string, range: Range, line: number): NameRange | nul
 export function peekFilesOf(locations: readonly Location[], current: string, textOf: (uri: string) => string | null): PeekFile[] {
     const order: string[] = [];
     const byFile = new Map<string, Location[]>();
+
     for (const location of locations) {
         if (!byFile.has(location.uri)) {
             order.push(location.uri);
             byFile.set(location.uri, []);
         }
+
         byFile.get(location.uri)!.push(location);
     }
+
     const uris = [...order.filter((uri) => uri === current), ...order.filter((uri) => uri !== current)];
+
     return uris.map((uri, fileIndex) => {
         const text = textOf(uri);
         const lines = text === null ? null : text.split(/\r\n|\r|\n/);
+
         const places = [...byFile.get(uri)!]
             .sort((left, right) => left.range.start.line - right.range.start.line || left.range.start.character - right.range.start.character)
             .map((location, index) => {
                 const line = location.range.start.line;
                 const raw = lines?.[line] ?? '';
+
                 return {
                     id: `${fileIndex}:${index}`,
                     location,
@@ -76,6 +86,7 @@ export function peekFilesOf(locations: readonly Location[], current: string, tex
                     name: lines === null ? null : trimmedNameOf(raw, location.range, line)
                 };
             });
+
         return { uri, places };
     });
 }
@@ -97,6 +108,7 @@ export function snippetOf(text: string, line: number, range: Range): PeekSnippet
     const lines = text.split(/\r\n|\r|\n/);
     const startLine = Math.max(0, line - BEFORE);
     const end = Math.min(lines.length, line + AFTER + 1);
+
     return { startLine, text: lines.slice(startLine, end).join('\n'), active: line - startLine, name: columnsOf(range, line, (lines[line] ?? '').length) };
 }
 
@@ -110,6 +122,7 @@ export function definitionSnippetOf(text: string, line: number, declaration: Ran
     const lines = text.split(/\r\n|\r|\n/);
     const startLine = declaration === null ? Math.max(0, line - 2) : Math.min(declaration.start.line, line);
     const end = Math.min(lines.length - 1, declaration === null ? line + DEFINITION_LINES / 2 : Math.min(declaration.end.line, startLine + DEFINITION_LINES));
+
     return { startLine, text: lines.slice(startLine, end + 1).join('\n'), active: line - startLine, name: columnsOf(range, line, (lines[line] ?? '').length) };
 }
 
@@ -120,19 +133,25 @@ export function definitionSnippetOf(text: string, line: number, declaration: Ran
 export function distinguishingFolders(paths: readonly string[]): string[] {
     const folders = paths.map((path) => path.split('/').slice(0, -1));
     const names = paths.map((path) => path.slice(path.lastIndexOf('/') + 1));
+
     return paths.map((path, index) => {
         const same = paths.map((_, other) => other).filter((other) => names[other] === names[index] && paths[other] !== path);
+
         if (same.length === 0) {
             return '';
         }
+
         const rivals = [...new Set(same.map((other) => paths[other]!))].map((other) => folders[paths.indexOf(other)]!);
         const mine = folders[index]!;
+
         for (let depth = 1; depth <= mine.length; depth++) {
             const tail = mine.slice(-depth).join('/');
+
             if (rivals.every((rival) => rival.slice(-depth).join('/') !== tail)) {
                 return tail;
             }
         }
+
         return mine.join('/');
     });
 }
@@ -140,8 +159,10 @@ export function distinguishingFolders(paths: readonly string[]): string[] {
 /* The column a character stands at once tabs are expanded to their stops, which is where a monospace face draws it. */
 export function visualColumnOf(line: string, character: number, tabSize: number): number {
     let column = 0;
+
     for (let i = 0; i < Math.min(character, line.length); i++) {
         column += line[i] === '\t' ? tabSize - (column % tabSize) : 1;
     }
+
     return column;
 }

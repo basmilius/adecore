@@ -11,8 +11,10 @@ const OWNER = 'rendered-docs';
 const DOCS_PREFIX = 'docs-';
 const SUMMARY_WORDS = 6;
 const SETTLE_MS = 100;
+
 /* What a row is taken to be tall until its content is in and measured. */
 const ESTIMATED_LINE_HEIGHT = 20;
+
 const MAX_ESTIMATED_LINES = 8;
 const MAX_PARSED = 200;
 
@@ -45,10 +47,13 @@ function touches(range: EditorRange, comment: DocComment): boolean {
     if (range.end.line < comment.startLine || range.start.line > comment.endLine) {
         return false;
     }
+
     const empty = comparePositions(range.start, range.end) === 0;
+
     if (!empty && range.end.line === comment.startLine && range.end.character === 0) {
         return false;
     }
+
     return empty || range.start.line >= comment.startLine || range.end.line <= comment.endLine;
 }
 
@@ -57,6 +62,7 @@ function summaryOf(body: string): string {
     const lines = body.split('\n');
     const lead = lines.findIndex((line) => /^\s*@/.test(line));
     const text = (lead === -1 ? body : lines.slice(0, lead).join('\n')).replace(/[`*_#>[\]()]/g, ' ');
+
     return text
         .split(/\s+/)
         .filter((word) => word !== '')
@@ -85,8 +91,10 @@ export class RenderedDocsFeature {
     private readonly markerLines = new Map<string, number>();
     private readonly parsed = new Map<string, ParsedDocComment>();
     private indexes = new Map<DocComment, number>();
+
     /* Comments a reveal showed as source until the caret has settled where it was going, or the comment has scrolled out of view if the caret never moves. */
     private readonly revealed = new Set<DocComment>();
+
     private readonly listeners = new Set<() => void>();
     private version = 0;
     private shown: { version: number; entries: readonly RenderedDocEntry[] } | null = null;
@@ -94,14 +102,17 @@ export class RenderedDocsFeature {
     private caretTimer: unknown;
     private drawn = '';
     private marked = '';
+
     /* The comments are from before the last edit, so nothing is decided from them until they are read again. */
     private stale = false;
+
     private disposed = false;
 
     constructor(language: EditorLanguage, timers: Timers = realTimers) {
         this.language = language;
         this.timers = timers;
         const { editor } = language;
+
         const offs = [
             editor.onTextChange(() => {
                 this.stale = true;
@@ -111,6 +122,7 @@ export class RenderedDocsFeature {
             // The caret is told before the text change that moved it, so what the lines are is decided a moment later.
             editor.onCaret(() => {
                 this.timers.clear(this.caretTimer);
+
                 this.caretTimer = this.timers.set(() => {
                     this.revealed.clear();
                     this.publish();
@@ -118,6 +130,7 @@ export class RenderedDocsFeature {
             }),
             editor.onGutterMarker((id) => {
                 const line = this.markerLines.get(id);
+
                 if (line !== undefined) {
                     this.toggleAt(line);
                 }
@@ -130,11 +143,14 @@ export class RenderedDocsFeature {
                 this.releaseRevealed();
             })
         ];
+
         language.onDispose(() => {
             this.disposed = true;
+
             for (const off of offs) {
                 off();
             }
+
             this.timers.clear(this.settleTimer);
             this.timers.clear(this.caretTimer);
             this.clearOverrides();
@@ -143,21 +159,26 @@ export class RenderedDocsFeature {
             this.containers.clear();
             this.bump();
         });
+
         this.read();
     }
 
     /* Whether every documentation comment is drawn as text until a person switches it. Changing it puts every comment back under it. */
     configure(settings: RenderedDocsSettings): void {
         const enabled = settings.enabled !== false;
+
         if (settings.renderDocComments === this.settings.renderDocComments && enabled === this.enabled) {
             return;
         }
+
         const sameRendering = settings.renderDocComments === this.settings.renderDocComments;
         this.settings = settings;
         this.enabled = enabled;
+
         if (!sameRendering) {
             this.clearOverrides();
         }
+
         this.publish();
     }
 
@@ -174,12 +195,14 @@ export class RenderedDocsFeature {
     /* Switches the comment the caret is in between formatted and source. False when the caret is in none. */
     toggle(): boolean {
         this.settle();
+
         return this.switch(this.at(this.language.editor.getCaret().line));
     }
 
     /* Switches the comment that starts on a line, which is what its gutter button does. */
     toggleAt(startLine: number): boolean {
         this.settle();
+
         return this.switch(this.comments.find((candidate) => candidate.startLine === startLine));
     }
 
@@ -187,19 +210,24 @@ export class RenderedDocsFeature {
         if (!this.enabled || comment === undefined || !this.canRender(comment)) {
             return false;
         }
+
         this.setRendered(comment, !this.wantsRendered(comment));
+
         return true;
     }
 
     /* The elements of the rows now in view, for a host that draws them itself; `RenderedDocs` does. */
     entries(): readonly RenderedDocEntry[] {
         const result: RenderedDocEntry[] = [];
+
         for (const [id, container] of this.containers) {
             const comment = this.comments[Number(id.slice(DOCS_PREFIX.length))];
+
             if (comment !== undefined) {
                 result.push({ id, comment, parsed: this.parse(comment), container });
             }
         }
+
         return result;
     }
 
@@ -212,11 +240,13 @@ export class RenderedDocsFeature {
         if (this.shown?.version !== this.version) {
             this.shown = { version: this.version, entries: this.entries() };
         }
+
         return this.shown.entries;
     }
 
     subscribe(listener: () => void): () => void {
         this.listeners.add(listener);
+
         return () => {
             this.listeners.delete(listener);
         };
@@ -225,6 +255,7 @@ export class RenderedDocsFeature {
     /* Whether names in `{@link}` and `@see` can be followed, which takes a server that finds symbols by name. */
     get canFollow(): boolean {
         const { project, uri } = this.language;
+
         return project.service.supports('workspace/symbol', uri);
     }
 
@@ -249,8 +280,10 @@ export class RenderedDocsFeature {
         if (!this.enabled || !this.canRender(comment)) {
             return false;
         }
+
         const start = startOf(comment);
         const override = this.overrides.find((candidate) => samePlace(candidate.tracked.get(), start));
+
         return override?.rendered ?? this.settings.renderDocComments;
     }
 
@@ -265,17 +298,21 @@ export class RenderedDocsFeature {
     private setRendered(comment: DocComment, rendered: boolean): void {
         const start = startOf(comment);
         const existing = this.overrides.find((candidate) => samePlace(candidate.tracked.get(), start));
+
         if (existing !== undefined) {
             existing.tracked.dispose();
             this.overrides = this.overrides.filter((candidate) => candidate !== existing);
         }
+
         if (rendered !== this.settings.renderDocComments) {
             const { editor } = this.language;
             this.overrides.push({ tracked: editor.trackRange({ start, end: editor.positionAt(comment.to) }), rendered });
         }
+
         if (rendered) {
             this.leave(comment);
         }
+
         this.publish();
     }
 
@@ -283,14 +320,18 @@ export class RenderedDocsFeature {
     private leave(comment: DocComment): void {
         const { editor } = this.language;
         const selections = editor.getSelections();
+
         if (!selections.some((range) => touches(range, comment))) {
             return;
         }
+
         const count = editor.positionAt(Number.MAX_SAFE_INTEGER).line + 1;
         const line = comment.endLine + 1 < count ? comment.endLine + 1 : comment.startLine - 1;
+
         if (line < 0) {
             return;
         }
+
         const text = lineTextOf(editor, line);
         const character = line > comment.endLine ? (/^[ \t]*/.exec(text)?.[0].length ?? 0) : text.length;
         const place = { line, character };
@@ -307,8 +348,10 @@ export class RenderedDocsFeature {
         if (this.revealed.size === 0) {
             return;
         }
+
         const { start, end } = this.language.editor.getVisibleRange();
         const away = [...this.revealed].filter((comment) => comment.endLine < start.line || comment.startLine > end.line);
+
         if (away.length > 0) {
             away.forEach((comment) => this.revealed.delete(comment));
             this.publish();
@@ -319,6 +362,7 @@ export class RenderedDocsFeature {
         for (const override of this.overrides) {
             override.tracked.dispose();
         }
+
         this.overrides = [];
     }
 
@@ -334,19 +378,24 @@ export class RenderedDocsFeature {
         if (this.disposed) {
             return;
         }
+
         this.stale = false;
         const { editor, languageId } = this.language;
         this.comments = findDocComments(editor.getText(), languageId);
         this.indexes = new Map(this.comments.map((comment, index) => [comment, index]));
         this.revealed.clear();
         const starts = this.comments.map(startOf);
+
         this.overrides = this.overrides.filter((override) => {
             const kept = starts.some((start) => samePlace(override.tracked.get(), start));
+
             if (!kept) {
                 override.tracked.dispose();
             }
+
             return kept;
         });
+
         // An edit that replaced everything leaves the rows on offsets at the end, which only a new set of rows repairs.
         this.publish(true);
         this.bump();
@@ -355,13 +404,16 @@ export class RenderedDocsFeature {
     private parse(comment: DocComment): ParsedDocComment {
         const key = comment.body;
         let result = this.parsed.get(key);
+
         if (result === undefined) {
             if (this.parsed.size >= MAX_PARSED) {
                 this.parsed.delete(this.parsed.keys().next().value!);
             }
+
             result = parseDocComment(comment.body, { php: /^php$/i.test(this.language.languageId) });
             this.parsed.set(key, result);
         }
+
         return result;
     }
 
@@ -370,13 +422,18 @@ export class RenderedDocsFeature {
         if (this.disposed || this.stale) {
             return;
         }
+
         const { editor } = this.language;
+
         const t = (key: string, options?: Record<string, string>): string => this.language.project.i18n.t(`editor:language.docs.${key}`, options);
+
         const rendered = this.comments.filter((comment) => this.isRendered(comment));
         const signature = rendered.map((comment) => `${this.idOf(comment)}@${comment.startLine}-${comment.endLine}`).join('|');
+
         if (force || signature !== this.drawn) {
             this.drawn = signature;
             const lineHeight = Math.max(editor.getBaseLineHeight?.() ?? 0, ESTIMATED_LINE_HEIGHT);
+
             const rows = rendered.map((comment): EditorReplacement => ({
                 id: this.idOf(comment),
                 startLine: comment.startLine,
@@ -386,23 +443,31 @@ export class RenderedDocsFeature {
                 onReveal: () => this.reveal(comment),
                 render: (container) => this.mounted(this.idOf(comment), container)
             }));
+
             const kept = new Set(rows.map((row) => row.id));
+
             for (const id of [...this.containers.keys()]) {
                 if (!kept.has(id)) {
                     this.containers.delete(id);
                 }
             }
+
             editor.setReplacements?.(rows, OWNER);
             this.bump();
         }
+
         this.markerLines.clear();
+
         const markers = (this.enabled ? this.comments : []).map((comment) => {
             const id = `docs:${comment.startLine}`;
             this.markerLines.set(id, comment.startLine);
             const on = this.wantsRendered(comment);
+
             return { id, line: comment.startLine, label: t(on ? 'showSource' : 'render'), icon: 'book-open' as const, pressed: on };
         });
+
         const marking = markers.map((marker) => `${marker.line}${marker.pressed}`).join('|');
+
         if (marking !== this.marked) {
             this.marked = marking;
             editor.setGutterMarkers(markers, OWNER);
@@ -411,6 +476,7 @@ export class RenderedDocsFeature {
 
     private labelOf(comment: DocComment, t: (key: string, options?: Record<string, string>) => string): string {
         const summary = summaryOf(comment.body);
+
         return summary === '' ? t('label') : t('labelNamed', { summary });
     }
 
@@ -423,12 +489,14 @@ export class RenderedDocsFeature {
     /* The editor drops the element of a row that scrolled out of view, and what React drew into it goes with it. The element just made is not in the page yet. */
     private sweep(fresh?: HTMLElement): void {
         let removed = false;
+
         for (const [id, container] of this.containers) {
             if (container !== fresh && !container.isConnected) {
                 this.containers.delete(id);
                 removed = true;
             }
         }
+
         if (removed && fresh === undefined) {
             this.bump();
         }
@@ -436,6 +504,7 @@ export class RenderedDocsFeature {
 
     private bump(): void {
         this.version++;
+
         for (const listener of [...this.listeners]) {
             listener();
         }

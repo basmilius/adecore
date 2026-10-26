@@ -28,14 +28,17 @@ async function setup(configure: (service: FakeLanguageService) => void) {
     open.push(project, language);
     await language.document.ready;
     await settle();
+
     return { service, editor, language, timers };
 }
 
 describe('folding feature', () => {
     test('hands the editor the symbols and the ranges the servers name, and again after an edit', async () => {
         let endLine: number | null = 3;
+
         const { service, editor, language, timers } = await setup((service) => {
             service.respond('textDocument/documentSymbol', () => [SYMBOL]);
+
             service.respond('textDocument/foldingRange', () =>
                 endLine === null
                     ? null
@@ -45,20 +48,27 @@ describe('folding feature', () => {
                       ]
             );
         });
+
         expect(editor.foldHints).toEqual({
             symbols: [{ range: range(0, 3), body: 'function' }],
             ranges: [{ startLine: 0, startCharacter: 3, endLine: 3, endCharacter: 9, kind: 'imports' }]
         });
+
         endLine = 4;
         editor.type('function a() {\n}\n// x');
         timers.advance(600);
         await settle();
+
         expect(editor.foldHints?.ranges).toEqual([{ startLine: 0, startCharacter: 3, endLine: 4, endCharacter: 9, kind: 'imports' }]);
+
         endLine = null;
         service.refresh(uri);
         await settle();
+
         expect(editor.foldHints?.ranges).toEqual([]);
+
         language.dispose();
+
         expect(editor.foldHints).toBeNull();
     });
 
@@ -66,6 +76,7 @@ describe('folding feature', () => {
         const { service, editor } = await setup((fake) => {
             fake.respond('textDocument/documentSymbol', () => [SYMBOL]);
         });
+
         expect(editor.foldHints).toEqual({ symbols: [{ range: range(0, 3), body: 'function' }], ranges: [] });
         expect(service.calls.some((call) => call.method === 'textDocument/foldingRange')).toBe(false);
     });
@@ -75,10 +86,12 @@ describe('folding feature', () => {
             fake.respond('textDocument/documentSymbol', () => [SYMBOL]);
             fake.respond('textDocument/foldingRange', () => [{ startLine: 0, endLine: 2, kind: 'region' }]);
         });
+
         service.respond('textDocument/documentSymbol', () => []);
         service.respond('textDocument/foldingRange', () => new Promise(() => undefined));
         service.refresh(uri);
         await settle();
+
         expect(editor.foldHints).toEqual({ symbols: [], ranges: [{ startLine: 0, endLine: 2, kind: 'region' }] });
     });
 });

@@ -69,6 +69,7 @@ function SymbolRow({ language, row, active, id, ref }: { language: EditorLanguag
     const { item } = row;
     const path = relativeTo(fileUriToPath(item.uri) ?? item.uri, language.project.folder);
     const tool = language.callHierarchy;
+
     return (
         <Line
             ref={ref}
@@ -112,7 +113,9 @@ function Tree({ language, view }: { language: EditorLanguage; view: CallHierarch
     const { t } = useTranslation('editor');
     const treeId = useId();
     const activeRow = useRef<HTMLDivElement>(null);
+
     const idOf = (row: CallRow): string => `${treeId}-${row.id}`;
+
     const activeId = view.rows.some((row) => row.id === view.active) ? `${treeId}-${view.active}` : undefined;
 
     useEffect(() => {
@@ -126,11 +129,14 @@ function Tree({ language, view }: { language: EditorLanguage; view: CallHierarch
             {view.rows.map((row) => {
                 const active = row.id === view.active;
                 const ref = active ? activeRow : undefined;
+
                 if (row.kind === 'node') {
                     return <SymbolRow key={row.id} ref={ref} language={language} row={row} active={active} id={idOf(row)} />;
                 }
+
                 if (row.kind === 'more') {
                     const next = Math.min(row.hidden, CALL_LEVEL_LIMIT);
+
                     return (
                         <Line key={row.id} ref={ref} row={row} id={idOf(row)} active={active} onClick={() => language.callHierarchy.showMore(row.parent)}>
                             <span className="font-sans text-xs text-accent">
@@ -139,6 +145,7 @@ function Tree({ language, view }: { language: EditorLanguage; view: CallHierarch
                         </Line>
                     );
                 }
+
                 return (
                     <Line key={row.id} row={row} id={idOf(row)} active={false} onClick={() => language.callHierarchy.retry(row.parent)}>
                         <StatusText row={row} direction={view.direction} />
@@ -151,6 +158,7 @@ function Tree({ language, view }: { language: EditorLanguage; view: CallHierarch
 
 function StatusText({ row, direction }: { row: Extract<CallRow, { kind: 'status' }>; direction: CallDirection }) {
     const { t } = useTranslation('editor');
+
     if (row.status === 'loading') {
         return (
             <span className="flex items-center gap-2 font-sans text-xs text-text-muted">
@@ -159,11 +167,13 @@ function StatusText({ row, direction }: { row: Extract<CallRow, { kind: 'status'
             </span>
         );
     }
+
     if (row.status === 'failed') {
         return (
             <span className="min-w-0 truncate font-sans text-xs text-status-error">{t('language.callHierarchy.retry', { message: row.message ?? '' })}</span>
         );
     }
+
     return (
         <span className="font-sans text-xs text-text-muted">
             {t(direction === 'incoming' ? 'language.callHierarchy.noIncoming' : 'language.callHierarchy.noOutgoing')}
@@ -179,12 +189,15 @@ function StatusText({ row, direction }: { row: Extract<CallRow, { kind: 'status'
 export function CallHierarchyPanel({ language, view }: { language: EditorLanguage; view: CallHierarchyView }) {
     const { t } = useTranslation('editor');
     const body = usePanelBody(language);
+
     if (view.container === null) {
         return null;
     }
+
     const folder = language.project.folder;
     const path = view.preview === null ? null : fileUriToPath(view.preview.uri);
     const shown = path === null ? '' : folderOf(relativeTo(path, folder));
+
     return createPortal(
         <div
             className="flex flex-col bg-surface pt-[2px] font-sans text-xs text-text"

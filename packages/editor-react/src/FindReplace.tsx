@@ -14,12 +14,15 @@ export function FindReplace({ editor, className, onClose }: { editor: Editor; cl
     const root = useRef<HTMLDivElement>(null);
     const compiled = compileFind(query);
     useEffect(() => editor.onFind(setState), [editor]);
+
     useEffect(() => {
         editor.find(compiled.kind === 'pattern' ? query : null);
     }, [editor, query, compiled]);
+
     useEffect(() => {
         editor.setReplacePreview(compiled.kind === 'pattern' ? replacement : null, { preserveCase });
     }, [editor, compiled, replacement, preserveCase]);
+
     useEffect(
         () => () => {
             editor.endFind();
@@ -27,6 +30,7 @@ export function FindReplace({ editor, className, onClose }: { editor: Editor; cl
         },
         [editor]
     );
+
     // The host closes the widget by unmounting it, with the keyboard in it or not; only a keyboard in it is handed back.
     useLayoutEffect(
         () => () => {
@@ -36,7 +40,9 @@ export function FindReplace({ editor, className, onClose }: { editor: Editor; cl
         },
         [editor]
     );
+
     const failure = state.failed ?? state.captureFailed;
+
     const label =
         compiled.kind === 'invalid'
             ? t('find.invalid')
@@ -61,6 +67,7 @@ export function FindReplace({ editor, className, onClose }: { editor: Editor; cl
                                 total: formatNumber(state.count),
                                 current: state.current === null ? '0' : formatNumber(state.current + 1)
                             });
+
     return (
         <div
             ref={root}
@@ -87,6 +94,7 @@ export function FindReplace({ editor, className, onClose }: { editor: Editor; cl
                         if (event.nativeEvent.isComposing) {
                             return;
                         }
+
                         if (event.key === 'Enter') {
                             event.preventDefault();
                             editor.findStep(event.shiftKey ? -1 : 1);

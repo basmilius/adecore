@@ -23,6 +23,7 @@ test('the React view mounts the real engine, forwards edits and releases its doc
     const mounted = { editor: null as Editor | null, ready: null as Promise<void> | null };
     let unmounted = false;
     let stopped = false;
+
     try {
         await act(async () =>
             root.render(
@@ -35,6 +36,7 @@ test('the React view mounts the real engine, forwards edits and releases its doc
                     onMount: (editor, language) => {
                         mounted.editor = editor;
                         mounted.ready = language!.document.ready;
+
                         return () => {
                             stopped = true;
                         };
@@ -42,24 +44,32 @@ test('the React view mounts the real engine, forwards edits and releases its doc
                 })
             )
         );
+
         await mounted.ready;
+
         expect(page.host.querySelector('.se-editor')).not.toBeNull();
         expect(service.documents.get('file:///example.ts')?.text).toBe('hello');
+
         await act(async () => typeInto(page.window, page.host.querySelector('textarea')!, '!'));
+
         expect(mounted.editor!.getText()).toBe('!hello');
         expect(service.documents.get('file:///example.ts')?.text).toBe('!hello');
+
         await act(async () => root.unmount());
         unmounted = true;
         await Promise.resolve();
         await Promise.resolve();
+
         expect(stopped).toBe(true);
         expect(service.documents.size).toBe(0);
     } finally {
         if (!unmounted) {
             await act(async () => root.unmount());
         }
+
         project.dispose();
         globals.IS_REACT_ACT_ENVIRONMENT = previousAct;
+
         if (previousWindow === undefined) {
             Reflect.deleteProperty(globalThis, 'window');
         } else {
@@ -74,9 +84,11 @@ test('the view hands its language to the rows the app adds to the context menu',
     const scope = { window: page.window, document: page.window.document, MouseEvent: page.window.MouseEvent ?? page.window.Event };
     const names = Object.keys(scope) as (keyof typeof scope)[];
     const previous = Object.fromEntries(names.map((name) => [name, Object.getOwnPropertyDescriptor(globalThis, name)]));
+
     for (const name of names) {
         Object.defineProperty(globalThis, name, { value: scope[name], configurable: true });
     }
+
     const globals = globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean };
     const previousAct = globals.IS_REACT_ACT_ENVIRONMENT;
     globals.IS_REACT_ACT_ENVIRONMENT = true;
@@ -84,6 +96,7 @@ test('the view hands its language to the rows the app adds to the context menu',
     const project = new ProjectLanguage(new FakeLanguageService());
     const asked: EditorLanguage[] = [];
     let attached: EditorLanguage | null = null;
+
     try {
         await act(async () =>
             root.render(
@@ -98,21 +111,27 @@ test('the view hands its language to the rows the app adds to the context menu',
                     },
                     contextMenuItems: (language) => {
                         asked.push(language);
+
                         return null;
                     }
                 })
             )
         );
+
         expect(asked).toHaveLength(0);
+
         await act(async () => attached!.popups.setState({ menu: { x: 10, y: 20, refactors: [] } }));
+
         expect(asked.length).toBeGreaterThan(0);
         expect(asked.every((language) => language === attached)).toBe(true);
     } finally {
         await act(async () => root.unmount());
         project.dispose();
         globals.IS_REACT_ACT_ENVIRONMENT = previousAct;
+
         for (const name of names) {
             const descriptor = previous[name];
+
             if (descriptor === undefined) {
                 Reflect.deleteProperty(globalThis, name);
             } else {
@@ -132,15 +151,19 @@ test('the view lets the host name the fold controls and does not lay the text ou
     const root = createRoot(page.host);
     const real = createSmartEditorEngine({ tokenizer: async () => null });
     let relayout: ReturnType<typeof spyOn> | null = null;
+
     const engine = {
         ...real,
         mount: (...args: Parameters<typeof real.mount>) => {
             const mounted = real.mount(...args);
             relayout = spyOn((mounted as unknown as { view: { applySettings(): void } }).view, 'applySettings');
+
             return mounted;
         }
     } as typeof real;
+
     let editor: Editor | null = null;
+
     try {
         await act(async () =>
             root.render(
@@ -153,13 +176,16 @@ test('the view lets the host name the fold controls and does not lay the text ou
                 })
             )
         );
+
         (editor as unknown as { view: { refreshFolds(): void } }).view.refreshFolds();
+
         expect(page.host.querySelector('.se-fold-toggle')!.getAttribute('aria-label')).toBe('Host 1 to 3');
         expect(relayout).toHaveBeenCalledTimes(0);
     } finally {
         (relayout as ReturnType<typeof spyOn> | null)?.mockRestore();
         await act(async () => root.unmount());
         globals.IS_REACT_ACT_ENVIRONMENT = previousAct;
+
         if (previousWindow === undefined) {
             Reflect.deleteProperty(globalThis, 'window');
         } else {
@@ -181,6 +207,7 @@ test('a new options object or onMount function per render keeps the editor, and 
     const mount = spyOn(engine, 'mount');
     const timers = new ManualTimers();
     const languages: (EditorLanguage | null)[] = [];
+
     const render = (props: { engine?: FakeEditorEngine; uri?: string; languageId?: string; theme?: string; wrap?: boolean }) =>
         act(async () =>
             root.render(
@@ -198,27 +225,37 @@ test('a new options object or onMount function per render keeps the editor, and 
                 })
             )
         );
+
     try {
         await render({});
         await render({});
         await render({});
+
         expect(mount).toHaveBeenCalledTimes(1);
         expect(languages).toHaveLength(1);
+
         const editor = engine.last;
         editor.type('typed');
         await render({ theme: 'dark', wrap: true });
+
         expect(mount).toHaveBeenCalledTimes(1);
         expect(editor.theme).toBe('dark');
         expect(editor.wrap).toBe(true);
         expect(editor.getText()).toBe('typed');
         expect(editor.disposed).toBe(false);
+
         await render({ theme: 'dark', wrap: true, uri: 'file:///other.ts' });
+
         expect(mount).toHaveBeenCalledTimes(2);
         expect(editor.disposed).toBe(true);
+
         await render({ theme: 'dark', wrap: true, uri: 'file:///other.ts', languageId: 'javascript' });
+
         expect(mount).toHaveBeenCalledTimes(3);
+
         const other = new FakeEditorEngine();
         await render({ engine: other, theme: 'dark', wrap: true, uri: 'file:///other.ts', languageId: 'javascript' });
+
         expect(mount).toHaveBeenCalledTimes(3);
         expect(other.editors).toHaveLength(1);
         expect(other.last.theme).toBe('dark');
@@ -228,6 +265,7 @@ test('a new options object or onMount function per render keeps the editor, and 
         await act(async () => root.unmount());
         project.dispose();
         globals.IS_REACT_ACT_ENVIRONMENT = previousAct;
+
         if (previousWindow === undefined) {
             Reflect.deleteProperty(globalThis, 'window');
         } else {

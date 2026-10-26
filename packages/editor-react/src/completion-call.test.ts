@@ -92,6 +92,7 @@ describe('planCall', () => {
 
     test('adds none in a PHP use statement, group use or attribute, and Python import', () => {
         const php = (before: string, extra: Partial<CallSite> = {}) => planCall(site({ languageId: 'php', before, ...extra }));
+
         expect(php('use function Raxos\\')).toEqual({ action: 'none' });
         expect(php('use Raxos\\{Foo, ', { item: method({ kind: 3 }) })).toEqual({ action: 'none' });
         expect(php('#[', { item: method({ kind: 4 }) })).toEqual({ action: 'none' });
@@ -105,6 +106,7 @@ describe('planCall', () => {
 describe('withParentheses', () => {
     test('puts the one stop inside the parentheses, or behind them', () => {
         const insertion = { range: { start: at(0, 4), end: at(0, 6) }, text: 'open', stops: [] };
+
         expect(withParentheses(insertion, true)).toEqual({ ...insertion, text: 'open()', stops: [{ index: 0, start: 5, end: 5 }] });
         expect(withParentheses(insertion, false)).toEqual({ ...insertion, text: 'open()', stops: [{ index: 0, start: 6, end: 6 }] });
     });

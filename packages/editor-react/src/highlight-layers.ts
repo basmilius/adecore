@@ -21,6 +21,7 @@ export class HighlightLayers {
         } else {
             this.owners.set(owner, provider);
         }
+
         this.editor.setLineHighlights([...this.owners.values()].flatMap((read) => read()));
     }
 }
@@ -29,9 +30,11 @@ const layers = new WeakMap<Editor, HighlightLayers>();
 
 export function highlightLayers(editor: Editor): HighlightLayers {
     let found = layers.get(editor);
+
     if (found === undefined) {
         found = new HighlightLayers(editor);
         layers.set(editor, found);
     }
+
     return found;
 }

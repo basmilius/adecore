@@ -63,6 +63,7 @@ async function setup(
     await language.document.ready;
     const result = { timers, service, editor, language, notices, visits };
     open.push(result);
+
     return result;
 }
 
@@ -92,6 +93,7 @@ describe('call hierarchy', () => {
         const { service, language, notices } = await setup();
         service.providers.delete('textDocument/prepareCallHierarchy');
         await language.callHierarchy.open();
+
         expect(language.popups.getState().callHierarchy).toBeNull();
         expect(calls(service, 'textDocument/prepareCallHierarchy')).toHaveLength(0);
         expect(notices).toMatchObject([{ kind: 'error', title: 'Calls unavailable in this file' }]);
@@ -100,8 +102,11 @@ describe('call hierarchy', () => {
     test('is unavailable when the service has no call hierarchy methods', async () => {
         const { service, language, notices } = await setup();
         (service as { incomingCalls?: unknown }).incomingCalls = undefined;
+
         expect(language.callHierarchy.supported).toBe(false);
+
         await language.callHierarchy.open();
+
         expect(language.popups.getState().callHierarchy).toBeNull();
         expect(notices).toHaveLength(1);
     });
@@ -112,8 +117,11 @@ describe('call hierarchy', () => {
         await language.callHierarchy.open();
         const scrolled: unknown[] = [];
         editor.widgetsByOwner.get('call-hierarchy')![0]!.render({ scrollIntoView: (options: unknown) => scrolled.push(options) } as unknown as HTMLElement);
+
         expect(scrolled).toEqual([]);
+
         timers.advance(0);
+
         expect(scrolled).toEqual([{ block: 'nearest' }]);
     });
 
@@ -122,6 +130,7 @@ describe('call hierarchy', () => {
         editor.setCaret({ line: 0, character: 10 });
         await language.callHierarchy.open();
         await settle();
+
         expect(rows(language)).toEqual(['run', 'alpha', 'zebra']);
         expect(calls(service, 'textDocument/prepareCallHierarchy')[0]!.params).toEqual({ position: { line: 0, character: 10 } });
         expect(view(language).direction).toBe('incoming');
@@ -134,17 +143,25 @@ describe('call hierarchy', () => {
         const { service, language } = await setup({
             incoming: (parent) => (parent.name === 'alpha' ? [{ from: item('beta', uri, 2), fromRanges: [at(2)] }] : (callers[parent.name] ?? []))
         });
+
         await language.callHierarchy.open();
         await settle();
+
         expect(calls(service, 'callHierarchy/incomingCalls')).toHaveLength(1);
+
         const alpha = view(language).rows[1]!.id;
         language.callHierarchy.toggle(alpha);
         await settle();
+
         expect(rows(language)).toEqual(['run', 'alpha', 'beta', 'zebra']);
         expect(calls(service, 'callHierarchy/incomingCalls')).toHaveLength(2);
+
         language.callHierarchy.toggle(alpha);
+
         expect(rows(language)).toEqual(['run', 'alpha', 'zebra']);
+
         language.callHierarchy.toggle(alpha);
+
         expect(rows(language)).toEqual(['run', 'alpha', 'beta', 'zebra']);
         expect(calls(service, 'callHierarchy/incomingCalls')).toHaveLength(2);
         expect((calls(service, 'callHierarchy/incomingCalls')[1]!.params as { item: CallHierarchyItem }).item.name).toBe('alpha');
@@ -153,7 +170,9 @@ describe('call hierarchy', () => {
 
     test('shows loading while a node waits and drops an answer for a tree that was closed', async () => {
         let answer = (): void => undefined;
+
         const { service, language } = await setup();
+
         service.respond(
             'callHierarchy/incomingCalls',
             () =>
@@ -161,12 +180,16 @@ describe('call hierarchy', () => {
                     answer = () => resolve([{ from: item('late'), fromRanges: [] }]);
                 })
         );
+
         await language.callHierarchy.open();
         await settle();
+
         expect(rows(language)).toEqual(['run', 'loading']);
+
         language.callHierarchy.close();
         answer();
         await settle();
+
         expect(language.popups.getState().callHierarchy).toBeNull();
         expect(language.callHierarchy.isOpen).toBe(false);
     });
@@ -175,9 +198,12 @@ describe('call hierarchy', () => {
         const { language } = await setup();
         await language.callHierarchy.open();
         await settle();
+
         expect(rows(language)).toEqual(['run', 'empty']);
+
         language.callHierarchy.setDirection('outgoing');
         await settle();
+
         expect(rows(language)).toEqual(['run', 'empty']);
         expect(view(language).direction).toBe('outgoing');
     });
@@ -185,20 +211,28 @@ describe('call hierarchy', () => {
     test('shows a failed level and loads it again on request', async () => {
         let fail = true;
         const { service, language } = await setup();
+
         service.respond('callHierarchy/incomingCalls', () => {
             if (fail) {
                 throw new Error('server stopped');
             }
+
             return [{ from: item('alpha'), fromRanges: [] }];
         });
+
         await language.callHierarchy.open();
         await settle();
+
         expect(rows(language)).toEqual(['run', 'failed']);
+
         const status = view(language).rows[1]!;
+
         expect(status).toMatchObject({ kind: 'status', message: 'server stopped' });
+
         fail = false;
         language.callHierarchy.retry((status as { parent: string }).parent);
         await settle();
+
         expect(rows(language)).toEqual(['run', 'alpha']);
     });
 
@@ -207,18 +241,26 @@ describe('call hierarchy', () => {
             from: item(`caller${String(index).padStart(3, '0')}`),
             fromRanges: [at(1)]
         }));
+
         const { language } = await setup({ incoming: () => many });
         await language.callHierarchy.open();
         await settle();
+
         expect(rows(language)).toHaveLength(1 + CALL_LEVEL_LIMIT + 1);
         expect(rows(language).at(-1)).toBe(`more ${CALL_LEVEL_LIMIT + 7}`);
+
         const more = view(language).rows.at(-1)!;
+
         if (more.kind !== 'more') {
             throw new Error('Expected a row that shows more');
         }
+
         language.callHierarchy.showMore(more.parent);
+
         expect(rows(language).at(-1)).toBe('more 7');
+
         language.callHierarchy.showMore(more.parent);
+
         expect(rows(language)).toHaveLength(1 + many.length);
         expect(rows(language).at(-1)).toBe(`caller${String(many.length - 1).padStart(3, '0')}`);
     });
@@ -228,35 +270,48 @@ describe('call hierarchy', () => {
             incoming: () => [{ from: item('caller'), fromRanges: [at(1)] }],
             outgoing: () => [{ to: item('callee'), fromRanges: [at(1)] }]
         });
+
         await language.callHierarchy.open();
         await settle();
+
         expect(rows(language)).toEqual(['run', 'caller']);
+
         language.callHierarchy.setDirection('outgoing');
         await settle();
+
         expect(rows(language)).toEqual(['run', 'callee']);
         expect(calls(service, 'textDocument/prepareCallHierarchy')).toHaveLength(1);
         // The shortcut that opened the tree flips it.
         expect(editor.press({ key: 'h', code: 'KeyH', ctrlKey: true, altKey: true })).toBe(true);
+
         await settle();
+
         expect(view(language).direction).toBe('incoming');
         expect(rows(language)).toEqual(['run', 'caller']);
     });
 
     test('opens from the shortcut of the key table', async () => {
         const { language, editor } = await setup();
+
         expect(editor.press({ key: 'h', code: 'KeyH', ctrlKey: true, altKey: true })).toBe(true);
+
         await settle();
+
         expect(language.callHierarchy.isOpen).toBe(true);
     });
 
     test('says so when no symbol is found or the question fails', async () => {
         const { language, notices, service } = await setup({}, []);
         await language.callHierarchy.open();
+
         expect(notices.map((notice) => notice.title)).toEqual(['No calls here']);
+
         service.respond('textDocument/prepareCallHierarchy', () => {
             throw new Error('nope');
         });
+
         await language.callHierarchy.open();
+
         expect(notices.at(-1)!.title).toBe('Could not look up calls: nope');
         expect(language.callHierarchy.isOpen).toBe(false);
     });
@@ -267,15 +322,20 @@ describe('call hierarchy', () => {
         await settle();
         const [root, alpha, zebra] = view(language).rows.map((row) => row.id);
         language.callHierarchy.go(zebra!);
+
         expect(visits).toEqual([{ uri: 'file:///work/src/z.ts', position: { line: 5, character: 2 } }]);
         expect(language.callHierarchy.isOpen).toBe(false);
+
         await language.callHierarchy.open();
         await settle();
         language.callHierarchy.go(alpha!);
+
         expect(editor.getCaret()).toEqual({ line: 1, character: 0 });
+
         await language.callHierarchy.open();
         await settle();
         language.callHierarchy.go(root!);
+
         expect(editor.getCaret()).toEqual({ line: 0, character: 9 });
     });
 
@@ -286,17 +346,24 @@ describe('call hierarchy', () => {
         const alpha = view(language).rows[1]!.id;
         language.callHierarchy.select(alpha);
         await settle();
+
         expect(view(language)).toMatchObject({ active: alpha, site: 0, sites: 2 });
         expect(view(language).preview).toMatchObject({ uri, active: 1 });
+
         language.callHierarchy.stepSite(1);
         await settle();
+
         expect(view(language)).toMatchObject({ site: 1 });
         expect(view(language).preview!.active).toBe(2);
+
         language.callHierarchy.stepSite(1);
+
         expect(view(language).site).toBe(0);
+
         const { visits } = open[0]!;
         language.callHierarchy.stepSite(-1);
         language.callHierarchy.go(alpha);
+
         expect(open[0]!.editor.getCaret()).toEqual({ line: 2, character: 0 });
         expect(visits).toEqual([]);
     });
@@ -305,34 +372,54 @@ describe('call hierarchy', () => {
         const { language, editor } = await setup({
             incoming: (parent) => (parent.name === 'alpha' ? [{ from: item('beta', uri, 2), fromRanges: [at(2)] }] : (callers[parent.name] ?? []))
         });
+
         await language.callHierarchy.open();
         await settle();
         const [root, alpha, zebra] = view(language).rows.map((row) => row.id);
+
         expect(view(language).active).toBe(root!);
         expect(editor.press({ key: 'ArrowDown' })).toBe(true);
         expect(view(language).active).toBe(alpha!);
+
         editor.press({ key: 'ArrowRight' });
         await settle();
+
         expect(rows(language)).toEqual(['run', 'alpha', 'beta', 'zebra']);
         expect(view(language).active).toBe(alpha!);
+
         editor.press({ key: 'ArrowRight' });
+
         expect(view(language).active).toBe(`${alpha}.0`);
+
         editor.press({ key: 'ArrowLeft' });
+
         expect(view(language).active).toBe(alpha!);
+
         editor.press({ key: 'ArrowLeft' });
+
         expect(rows(language)).toEqual(['run', 'alpha', 'zebra']);
+
         editor.press({ key: 'ArrowLeft' });
+
         expect(view(language).active).toBe(root!);
+
         editor.press({ key: 'End' });
+
         expect(view(language).active).toBe(zebra!);
+
         editor.press({ key: 'Home' });
+
         expect(view(language).active).toBe(root!);
+
         editor.press({ key: 'ArrowDown' });
         editor.press({ key: 'Enter' });
+
         expect(language.callHierarchy.isOpen).toBe(false);
         expect(editor.getCaret()).toEqual({ line: 1, character: 0 });
+
         await language.callHierarchy.open();
         await settle();
+
         expect(editor.press({ key: 'Escape' })).toBe(true);
         expect(language.callHierarchy.isOpen).toBe(false);
         expect(editor.widgetsByOwner.has('call-hierarchy')).toBe(false);
@@ -344,8 +431,11 @@ describe('call hierarchy', () => {
         await language.callHierarchy.open();
         await settle();
         editor.press({ key: 'End' });
+
         expect(view(language).active.endsWith(':more')).toBe(true);
+
         editor.press({ key: 'Enter' });
+
         expect(rows(language)).toHaveLength(1 + many.length);
         expect(language.callHierarchy.isOpen).toBe(true);
     });
@@ -354,15 +444,20 @@ describe('call hierarchy', () => {
         const { language, editor } = await setup();
         await language.callHierarchy.open();
         await settle();
+
         expect(editor.press({ key: 'ArrowDown', ctrlKey: true })).toBe(false);
         expect(editor.press({ key: 'a' })).toBe(false);
+
         editor.type(`${TEXT}x`);
+
         expect(language.callHierarchy.isOpen).toBe(false);
     });
 
     test('drops an answer that arrives after the text changed', async () => {
         let answer = (): void => undefined;
+
         const { service, language, editor } = await setup();
+
         service.respond(
             'callHierarchy/incomingCalls',
             () =>
@@ -370,22 +465,28 @@ describe('call hierarchy', () => {
                     answer = () => resolve([{ from: item('late'), fromRanges: [] }]);
                 })
         );
+
         await language.callHierarchy.open();
         await settle();
         editor.type(`${TEXT}x`);
         answer();
         await settle();
+
         expect(language.callHierarchy.isOpen).toBe(false);
     });
 
     test('closes the tree when the server says the text moved on', async () => {
         const { service, language } = await setup();
+
         service.respond('callHierarchy/incomingCalls', async () => {
             await service.changeDocument(uri, [{ text: 'other' }]);
+
             return [];
         });
+
         await language.callHierarchy.open();
         await settle();
+
         expect(language.callHierarchy.isOpen).toBe(false);
     });
 
@@ -393,12 +494,17 @@ describe('call hierarchy', () => {
         const { service, language } = await setup();
         service.respond('textDocument/references', () => [{ uri, range: at(1) }]);
         await language.peek.open({ line: 0, character: 9 });
+
         expect(language.peek.isOpen).toBe(true);
+
         await language.callHierarchy.open();
         await settle();
+
         expect(language.peek.isOpen).toBe(false);
         expect(language.callHierarchy.isOpen).toBe(true);
+
         await language.peek.open({ line: 0, character: 9 });
+
         expect(language.callHierarchy.isOpen).toBe(false);
     });
 
@@ -407,6 +513,7 @@ describe('call hierarchy', () => {
         await language.callHierarchy.open();
         await settle();
         language.dispose();
+
         expect(language.callHierarchy.isOpen).toBe(false);
         expect(editor.widgetsByOwner.has('call-hierarchy')).toBe(false);
     });

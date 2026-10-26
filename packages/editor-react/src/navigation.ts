@@ -36,6 +36,7 @@ const TOAST_ID = 'language-navigation';
 /* The places of a result, each once: the two servers of a Vue file may both know the same one. `target` is the whole declaration when the server gave it. */
 export function uniquePlaces(result: NavigationResult): { location: Location; target: Range | null }[] {
     const list = result === null ? [] : Array.isArray(result) ? (result as (Location | LocationLink)[]) : [result];
+
     return uniqueBy(
         list.map((entry) =>
             'targetUri' in entry
@@ -62,23 +63,30 @@ export class NavigationFeature {
     constructor(language: EditorLanguage) {
         this.language = language;
         const { editor } = language;
+
         const offs = [
             editor.onClick((click) => {
                 if (!click.mod || click.alt || click.shift || !this.supports('definition')) {
                     return false;
                 }
+
                 void this.go('definition', click.position);
+
                 return true;
             }),
             language.onKey((event) => {
                 const found = SHORTCUT_KINDS.find(([, name]) => isShortcut(this.language.shortcuts[name], event));
+
                 if (found === undefined) {
                     return false;
                 }
+
                 void this.go(found[0]);
+
                 return true;
             }, KEY_PRIORITY.navigation)
         ];
+
         language.onDispose(() => {
             for (const off of offs) {
                 off();
@@ -92,20 +100,27 @@ export class NavigationFeature {
 
     async go(kind: NavigationKind, position: EditorPosition = this.language.editor.getCaret()): Promise<void> {
         const { project, uri, editor } = this.language;
+
         if (!this.supports(kind)) {
             this.tell(this.say('unavailable'));
+
             return;
         }
+
         let result: NavigationResult;
+
         try {
             result = await REQUESTS[kind](project.service, uri, position);
         } catch (error) {
             if (!(error instanceof StaleResultError)) {
                 this.tell(this.say('failed', { message: messageOf(error) }));
             }
+
             return;
         }
+
         const places = uniqueLocations(result);
+
         if (places.length === 0) {
             this.tell(this.say('none'));
         } else if (kind === 'definition' && places.length === 1 && places[0]!.uri === uri && rangeHolds(places[0]!.range, position)) {
@@ -116,6 +131,7 @@ export class NavigationFeature {
         } else {
             this.language.locations(places, position, this.say(`titles.${kind}`));
         }
+
         editor.focus();
     }
 
@@ -126,15 +142,20 @@ export class NavigationFeature {
      */
     async goToName(name: string, anchor: EditorPosition, own: Location | null): Promise<void> {
         const { project, uri, editor } = this.language;
+
         if (own !== null) {
             this.language.goTo(own);
+
             return;
         }
+
         if (!project.service.supports('workspace/symbol', uri)) {
             return;
         }
+
         try {
             const places = placesOfName(await project.service.workspaceSymbols(uri, name), name, editor.getText());
+
             if (places.length === 1) {
                 this.language.goTo(places[0]!);
             } else if (places.length > 1) {
@@ -159,5 +180,6 @@ export function locationRow(location: Location, stored: string | null): { label:
     const path = stored ?? fileUriToPath(location.uri) ?? location.uri;
     const name = basenameOf(path);
     const folder = path.slice(0, Math.max(0, path.length - name.length)).replace(/\/$/, '');
+
     return { label: `${name}:${location.range.start.line + 1}`, detail: folder, path: true };
 }

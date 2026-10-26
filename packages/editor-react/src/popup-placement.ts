@@ -38,6 +38,7 @@ export function placePopup(anchor: EditorRect, size: PopupSize, window: PopupSiz
     const maxHeight = Math.max(0, below ? roomBelow : roomAbove);
     const height = Math.min(size.height, maxHeight);
     const left = Math.max(margin, Math.min(anchor.left, window.width - size.width - margin));
+
     return { left, top: below ? anchor.bottom + gap : anchor.top - gap - height, maxHeight, side: below ? 'below' : 'above' };
 }
 
@@ -54,11 +55,15 @@ export function placeBeside(
 ): PopupPlacement {
     const fitsRight = first.left + first.width + gap + size.width <= window.width - margin;
     const fitsLeft = first.left - gap - size.width >= margin;
+
     if (fitsRight || fitsLeft) {
         const top = Math.max(margin, Math.min(first.top, window.height - size.height - margin));
+
         return { left: fitsRight ? first.left + first.width + gap : first.left - gap - size.width, top, maxHeight: window.height - margin * 2, side: 'below' };
     }
+
     const top = first.top + first.height + gap;
     const maxHeight = Math.max(0, window.height - margin - top);
+
     return { left: Math.max(margin, Math.min(first.left, window.width - size.width - margin)), top, maxHeight, side: 'below' };
 }

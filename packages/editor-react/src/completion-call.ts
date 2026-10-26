@@ -43,10 +43,13 @@ export function isCallItem(item: CompletionItem, lineBefore: string): boolean {
 function listedParameters(signature: string): boolean | null {
     const text = signature.replace(SIGNATURE_KIND_PREFIX, '');
     const open = text.indexOf('(');
+
     if (open < 0) {
         return null;
     }
+
     let depth = 0;
+
     for (let i = open; i < text.length; i++) {
         if (text[i] === '(') {
             depth++;
@@ -54,24 +57,29 @@ function listedParameters(signature: string): boolean | null {
             return text.slice(open + 1, i).trim() !== '';
         }
     }
+
     return null;
 }
 
 /* From what the server says of the item: `(method) Box.open(flag: boolean): void` has parameters and `(): void` has none. Null when it says nothing about them. */
 export function hasParameters(item: CompletionItem): boolean | null {
     const lines = (item.detail ?? '').split('\n').filter((line) => !SOURCE_LINE.test(line.trim()));
+
     for (const signature of [item.labelDetails?.detail ?? '', ...lines]) {
         const listed = listedParameters(signature);
+
         if (listed !== null) {
             return listed;
         }
     }
+
     return null;
 }
 
 /* The text before the innermost brace that is still open, which says whether the caret is in an import or export list. */
 function beforeOpenBrace(before: string): string | null {
     let depth = 0;
+
     for (let i = before.length - 1; i >= 0; i--) {
         if (before[i] === '}') {
             depth++;
@@ -79,6 +87,7 @@ function beforeOpenBrace(before: string): string | null {
             return before.slice(0, i);
         }
     }
+
     return null;
 }
 
@@ -86,12 +95,15 @@ function beforeOpenBrace(before: string): string | null {
 function isNameOnly(languageId: string, before: string): boolean {
     const lineBefore = before.slice(before.lastIndexOf('\n') + 1);
     const brace = beforeOpenBrace(before);
+
     if (brace !== null && (IMPORT_BRACE.test(brace) || (languageId === 'php' && PHP_USE_BRACE.test(brace)))) {
         return true;
     }
+
     if (TYPE_OPERATOR.test(lineBefore) || /^\s*export\s+default\s+[\w$]*$/.test(lineBefore)) {
         return true;
     }
+
     switch (languageId) {
         case 'php':
             return /^\s*use\s/.test(lineBefore) || /#\[[^\]]*$/.test(lineBefore);
@@ -111,19 +123,25 @@ function isNameOnly(languageId: string, before: string): boolean {
 export function planCall(site: CallSite): CallPlan {
     const { item, languageId, insertion, before, rest, replace } = site;
     const lineBefore = before.slice(before.lastIndexOf('\n') + 1);
+
     if (!CALL_LANGUAGES.has(languageId) || !isCallItem(item, lineBefore) || item.insertTextFormat === SNIPPET_FORMAT || insertion.text.includes('(')) {
         return { action: 'none' };
     }
+
     if (isNameOnly(languageId, before)) {
         return { action: 'none' };
     }
+
     const existing = EXISTING_CALL.exec(rest);
+
     if (existing !== null) {
         return replace ? { action: 'enter', shift: existing[0].length } : { action: 'none' };
     }
+
     if (rest.startsWith('<')) {
         return { action: 'none' };
     }
+
     return { action: 'add', inside: hasParameters(item) !== false };
 }
 
@@ -131,5 +149,6 @@ export function planCall(site: CallSite): CallPlan {
 export function withParentheses(insertion: Insertion, inside: boolean): Insertion {
     const text = `${insertion.text}()`;
     const caret = inside ? text.length - 1 : text.length;
+
     return { range: insertion.range, text, stops: [{ index: 0, start: caret, end: caret }] };
 }

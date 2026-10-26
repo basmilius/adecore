@@ -4,6 +4,7 @@ import { isShortcut, shortcutsOf } from './shortcut-keys.ts';
 
 function press(key: string, code: string, extra: Partial<KeyboardEvent> = {}): KeyboardEvent {
     const altGraph = (name: string): boolean => name === 'AltGraph';
+
     return { key, code, ctrlKey: true, altKey: true, shiftKey: false, metaKey: false, getModifierState: altGraph, ...extra } as KeyboardEvent;
 }
 

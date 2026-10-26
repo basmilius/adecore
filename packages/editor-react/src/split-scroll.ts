@@ -23,14 +23,18 @@ export class SplitScroll {
         if (this.syncing) {
             return;
         }
+
         const top = this.editors[side].getScrollTop();
+
         if (side !== this.leader) {
             // Native scroll echoes arrive after setScrollTop returns, including a clamped follower position.
             if (Math.abs(top - this.expected[side]) < 1) {
                 return;
             }
+
             this.leader = side;
         }
+
         this.sync();
     }
 
@@ -39,11 +43,15 @@ export class SplitScroll {
         const other = side === 'old' ? 'new' : 'old';
         const top = this.editors[side].getScrollTop();
         this.expected[side] = top;
+
         if (Math.abs(this.editors[other].getScrollTop() - top) < 1) {
             this.expected[other] = this.editors[other].getScrollTop();
+
             return;
         }
+
         this.syncing = true;
+
         try {
             this.editors[other].setScrollTop(top);
         } finally {

@@ -15,6 +15,7 @@ describe('the word to rename', () => {
 
     test('follows what a server prepared, and falls back to the text when it leaves the name open', () => {
         const textOf = () => 'weights';
+
         expect(renameTargetOf(null, textOf, () => range(0, 0, 1))).toBeNull();
         expect(renameTargetOf({ range: range(0, 6, 13), placeholder: 'weights!' }, textOf, () => null)).toEqual({
             range: range(0, 6, 13),
@@ -35,6 +36,7 @@ describe('the rows of a rename preview', () => {
             { range: range(1, 13, 20), newText: 'scores' },
             { range: range(0, 6, 13), newText: 'scores' }
         ]);
+
         expect(rows).toEqual([
             { line: 1, before: 'const weights = {};', after: 'const scores = {};' },
             { line: 2, before: 'use(weights, weights);', after: 'use(scores, scores);' }
@@ -45,17 +47,21 @@ describe('the rows of a rename preview', () => {
         const edit = {
             changes: { 'file:///a.ts': [{ range: range(0, 6, 13), newText: 'scores' }], 'file:///b.ts': [{ range: range(0, 0, 1), newText: 'x' }] }
         };
+
         const files = await renamePreviewOf(edit, async (uri) => (uri === 'file:///a.ts' ? text : null));
+
         expect(files).toEqual([
             { uri: 'file:///a.ts', rows: [{ line: 1, before: 'const weights = {};', after: 'const scores = {};' }] },
             { uri: 'file:///b.ts', rows: [] }
         ]);
+
         const deleting = {
             documentChanges: [
                 { textDocument: { uri: 'file:///a.ts', version: null }, edits: [{ range: range(0, 6, 13), newText: 'scores' }] },
                 { kind: 'delete' as const, uri: 'file:///b.ts' }
             ]
         };
+
         expect(await renamePreviewOf(deleting, async () => text)).toEqual([
             { uri: 'file:///a.ts', rows: [{ line: 1, before: 'const weights = {};', after: 'const scores = {};' }] }
         ]);
@@ -91,6 +97,7 @@ describe('the kind of the symbol to rename', () => {
             { name: 'greetAll', kind: 12 as const, location: { uri: 'file:///a.ts', range: { start: at(1, 0), end: at(3, 1) } } },
             { name: 'names', kind: 13 as const, location: { uri: 'file:///a.ts', range: range(2, 4, 30) } }
         ];
+
         expect(renameKindOf(flat, 'greetAll', [range(1, 9, 17)])).toBe('function');
         expect(renameKindOf(flat, 'names', [range(1, 18, 23)])).toBeUndefined();
         expect(renameKindOf(flat, 'names', [range(2, 10, 15)])).toBe('variable');

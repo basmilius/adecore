@@ -27,6 +27,7 @@ const BODIES: Readonly<Record<number, EditorFoldSymbol['body']>> = {
 export function foldSymbolsOf(result: DocumentSymbolResult): EditorFoldSymbol[] {
     return symbolSpansOf(result).flatMap(({ kind, range }) => {
         const body = BODIES[kind];
+
         return body !== undefined && range.end.line > range.start.line ? [{ range, body }] : [];
     });
 }
@@ -58,12 +59,15 @@ export class FoldingFeature {
     constructor(language: EditorLanguage, onSymbols: (listener: (result: DocumentSymbolResult) => void) => () => void, timers: Timers = realTimers) {
         this.language = language;
         const { editor, project, uri } = language;
+
         this.refresher = new Refresher(
             async (signal) => {
                 if (!project.service.supports(METHOD, uri)) {
                     return;
                 }
+
                 const ranges = await project.service.foldingRanges(uri, { signal });
+
                 if (!signal.aborted) {
                     this.ranges = foldRangesOf(ranges);
                     this.publish();
@@ -72,14 +76,18 @@ export class FoldingFeature {
             PAUSE_MS,
             timers
         );
+
         const symbols = onSymbols((result) => {
             this.symbols = foldSymbolsOf(result);
             this.publish();
         });
+
         const edits = editor.onTextChange(() => this.refresher.later());
+
         const providers = language.onProvidersChanged(() => {
             this.refresher.now();
         });
+
         language.onDispose(() => {
             symbols();
             edits();

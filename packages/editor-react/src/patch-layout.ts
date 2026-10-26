@@ -101,18 +101,23 @@ function unquote(raw: string): string {
     if (raw.length < 2 || !raw.startsWith('"') || !raw.endsWith('"')) {
         return raw;
     }
+
     const bytes: number[] = [];
     const encoder = new TextEncoder();
     const body = raw.slice(1, -1);
+
     for (let i = 0; i < body.length; i++) {
         if (body[i] !== '\\') {
             const point = String.fromCodePoint(body.codePointAt(i)!);
             bytes.push(...encoder.encode(point));
             i += point.length - 1;
+
             continue;
         }
+
         const octal = /^[0-3][0-7]{2}/.exec(body.slice(i + 1, i + 4));
         const escaped = ESCAPES[body[i + 1] ?? ''];
+
         if (octal !== null) {
             bytes.push(Number.parseInt(octal[0], 8));
             i += 3;
@@ -123,6 +128,7 @@ function unquote(raw: string): string {
             bytes.push(92);
         }
     }
+
     return new TextDecoder().decode(new Uint8Array(bytes));
 }
 
@@ -130,6 +136,7 @@ function unquote(raw: string): string {
 function pathOf(raw: string): string | null {
     const tab = raw.indexOf('\t');
     const name = unquote(tab === -1 ? raw : raw.slice(0, tab));
+
     return name === '/dev/null' ? null : name;
 }
 
@@ -141,23 +148,30 @@ function stripPrefix(path: string | null, prefix: 'a/' | 'b/'): string | null {
 function gitPaths(rest: string): { oldPath: string | null; newPath: string | null; prefixed: boolean } {
     if (rest.startsWith('"')) {
         const end = rest.indexOf('" ', 1);
+
         if (end !== -1) {
             const oldName = unquote(rest.slice(0, end + 1));
             const newName = unquote(rest.slice(end + 2));
             const prefixed = oldName.startsWith('a/') && newName.startsWith('b/');
+
             return prefixed ? { oldPath: oldName.slice(2), newPath: newName.slice(2), prefixed } : { oldPath: oldName, newPath: newName, prefixed };
         }
     }
+
     const middle = rest.indexOf(' b/');
+
     if (rest.startsWith('a/') && middle !== -1) {
         for (let at = middle; at !== -1; at = rest.indexOf(' b/', at + 1)) {
             if (rest.slice(2, at) === rest.slice(at + 3)) {
                 return { oldPath: rest.slice(2, at), newPath: rest.slice(at + 3), prefixed: true };
             }
         }
+
         return { oldPath: rest.slice(2, middle), newPath: unquote(rest.slice(middle + 3)), prefixed: true };
     }
+
     const split = rest.indexOf(' ');
+
     return split === -1
         ? { oldPath: unquote(rest), newPath: null, prefixed: false }
         : { oldPath: unquote(rest.slice(0, split)), newPath: unquote(rest.slice(split + 1)), prefixed: false };
@@ -187,30 +201,39 @@ function statusOf(section: Section): PatchFileStatus {
     if (section.binary) {
         return 'binary';
     }
+
     if (section.created || (!section.git && section.oldPath === null && section.newPath !== null)) {
         return 'added';
     }
+
     if (section.deleted || (!section.git && section.newPath === null && section.oldPath !== null)) {
         return 'deleted';
     }
+
     if (section.renamed) {
         return 'renamed';
     }
+
     return section.copied ? 'copied' : 'modified';
 }
 
 function linesOf(text: string, limits: Required<PatchLimits>): { lines: string[]; truncated: boolean } {
     const lines: string[] = [];
     let start = 0;
+
     while (lines.length < limits.maxLines && start <= limits.maxCharacters) {
         const end = text.indexOf('\n', start);
+
         if (end === -1) {
             lines.push(text.slice(start).replace(/\r$/, ''));
+
             return { lines, truncated: false };
         }
+
         lines.push(text.slice(start, end).replace(/\r$/, ''));
         start = end + 1;
     }
+
     // Stopping right after a final newline leaves nothing unread.
     return { lines, truncated: start < text.length };
 }
@@ -228,33 +251,42 @@ export function patchLayoutOf(text: string, limits: PatchLimits = {}): PatchLayo
     let section: Section | undefined;
     let hunk: OpenHunk | undefined;
     let binaryData = false;
+
     const seal = (): void => {
         if (hunk !== undefined && (hunk.oldLeft > 0 || hunk.newLeft > 0)) {
             hunk.layout.consistent = false;
         }
+
         hunk = undefined;
     };
+
     const open = (line: number, git: boolean): Section => {
         seal();
         binaryData = false;
         section = emptySection(line, git);
         sections.push(section);
+
         return section;
     };
+
     // A removed line can read `-- x`, so `---` starts a file only with `+++` under it.
     const startsFile = (index: number): boolean => source[index]!.startsWith('--- ') && (source[index + 1]?.startsWith('+++ ') ?? false);
+
     const push = (line: PatchLayoutLine, index: number): void => {
         lines.push(line);
+
         if (section !== undefined) {
             section.lastLine = index;
         }
     };
+
     for (let index = 0; index < source.length; index++) {
         const line = source[index]!;
         const remaining = hunk !== undefined && (hunk.oldLeft > 0 || hunk.newLeft > 0);
         const gitStart = line.startsWith('diff --git ');
         const header = line.startsWith('@@') ? parseHunkHeader(line) : undefined;
         const fileStart = startsFile(index) && (!remaining || source[index + 2]?.startsWith('@@') === true);
+
         if (remaining && !gitStart && header === undefined && !fileStart) {
             if (isContent(line) || line === '' || line.startsWith('\\')) {
                 push(contentLine(line, hunk!, section!), index);
@@ -262,14 +294,18 @@ export function patchLayoutOf(text: string, limits: PatchLimits = {}): PatchLayo
                 hunk!.layout.consistent = false;
                 push(OTHER, index);
             }
+
             continue;
         }
+
         if (gitStart) {
             const created = open(index, true);
             ({ oldPath: created.oldPath, newPath: created.newPath, prefixed: created.prefixed } = gitPaths(line.slice('diff --git '.length)));
             push(FILE_HEADER, index);
+
             continue;
         }
+
         if (fileStart) {
             const reuse = section !== undefined && section.git && !section.named && section.hunks.length === 0;
             const target = reuse ? section! : open(index, false);
@@ -278,8 +314,10 @@ export function patchLayoutOf(text: string, limits: PatchLimits = {}): PatchLayo
             push(FILE_HEADER, index);
             push(FILE_HEADER, index + 1);
             index++;
+
             continue;
         }
+
         if (header !== undefined) {
             seal();
             const target = section ?? open(index, false);
@@ -287,8 +325,10 @@ export function patchLayoutOf(text: string, limits: PatchLimits = {}): PatchLayo
             target.hunks.push(layout);
             hunk = { layout, oldLeft: header.oldCount, newLeft: header.newCount, oldNumber: header.oldStart, newNumber: header.newStart };
             push(HUNK_HEADER, index);
+
             continue;
         }
+
         if (section === undefined) {
             push(OTHER, index);
         } else if (hunk !== undefined && line.startsWith('\\')) {
@@ -312,7 +352,9 @@ export function patchLayoutOf(text: string, limits: PatchLimits = {}): PatchLayo
             push(OTHER, index);
         }
     }
+
     seal();
+
     return {
         lines,
         truncated,
@@ -338,21 +380,26 @@ function contentLine(line: string, hunk: OpenHunk, section: Section): PatchLayou
     if (line.startsWith('\\')) {
         return NO_NEWLINE;
     }
+
     const kind = line.startsWith('+') ? 'added' : line.startsWith('-') ? 'removed' : 'context';
     const takesOld = kind !== 'added';
     const takesNew = kind !== 'removed';
+
     if ((takesOld && hunk.oldLeft === 0) || (takesNew && hunk.newLeft === 0)) {
         hunk.layout.consistent = false;
     }
+
     if (kind === 'added') {
         section.added++;
     } else if (kind === 'removed') {
         section.removed++;
     }
+
     const oldNumber = takesOld ? hunk.oldNumber++ : null;
     const newNumber = takesNew ? hunk.newNumber++ : null;
     hunk.oldLeft = takesOld ? Math.max(0, hunk.oldLeft - 1) : hunk.oldLeft;
     hunk.newLeft = takesNew ? Math.max(0, hunk.newLeft - 1) : hunk.newLeft;
+
     return { role: kind, old: oldNumber, new: newNumber };
 }
 

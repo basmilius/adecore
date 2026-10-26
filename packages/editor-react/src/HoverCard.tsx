@@ -22,12 +22,15 @@ export function DefinitionPlace({ definition, uri, folder }: { definition: Locat
     const { t } = useTranslation('editor');
     const path = fileUriToPath(definition.uri);
     const line = formatNumber(definition.range.start.line + 1);
+
     if (path === null || (folder !== '' && !path.startsWith(`${folder}/`))) {
         return null;
     }
+
     if (definition.uri === uri) {
         return <span className="text-text-faint">{t('language.hover.line', { line })}</span>;
     }
+
     return (
         <span className="flex min-w-0 font-mono text-text-faint">
             <span className="truncate">{basenameOf(path)}</span>
@@ -40,9 +43,12 @@ function ProblemSection({ problem, language }: { problem: Problem; language: Edi
     const { t } = useTranslation('editor');
     const { diagnostic } = problem;
     const severity = severityOf(diagnostic);
+
     const label =
         diagnostic.source === undefined ? [codeLabelOf(diagnostic), problem.server].filter((part) => part !== '').join(' · ') : codeLabelOf(diagnostic);
+
     const supported = language.codeActions.supported;
+
     return (
         <div className="flex flex-col gap-1.5 px-3 py-2.5">
             <div className="flex items-start gap-2">
@@ -52,6 +58,7 @@ function ProblemSection({ problem, language }: { problem: Problem; language: Edi
             {label !== '' && <div className="pl-[22px] text-xs text-text-muted select-text">{label}</div>}
             {diagnostic.relatedInformation?.map((related, index) => {
                 const path = fileUriToPath(related.location.uri);
+
                 return (
                     <div key={index} className="pl-[22px] text-xs text-text-muted">
                         {path !== null && (
@@ -101,6 +108,7 @@ export function HoverCard({
     footer?: ReactNode;
 }) {
     const { t } = useTranslation('editor');
+
     return (
         <div className="flex w-max min-w-[280px] max-w-[min(520px,calc(100vw-16px))] flex-col divide-y divide-border">
             {info !== null && (

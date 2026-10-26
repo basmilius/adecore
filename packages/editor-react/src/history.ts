@@ -9,21 +9,29 @@ export class HistoryFeature {
 
     constructor(language: EditorLanguage) {
         this.language = language;
+
         const off = language.onKey((event) => {
             if (isShortcut(this.language.shortcuts.historyBack, event)) {
                 this.back();
+
                 return true;
             }
+
             if (isShortcut(this.language.shortcuts.historyForward, event)) {
                 this.forward();
+
                 return true;
             }
+
             if (isShortcut(this.language.shortcuts.recentLocations, event)) {
                 this.recent();
+
                 return true;
             }
+
             return false;
         }, KEY_PRIORITY.history);
+
         language.onDispose(off);
     }
 
@@ -39,6 +47,7 @@ export class HistoryFeature {
     /* Lists the places of the history under the caret; choosing one jumps there like any other jump. */
     recent(): void {
         const places = this.language.project.history.recent(this.language.place);
+
         this.language.locations(
             places.map((place) => ({ uri: place.uri, range: { start: place.position, end: place.position } })),
             this.language.editor.getCaret(),
@@ -50,7 +59,9 @@ export class HistoryFeature {
         if (place === null) {
             return false;
         }
+
         this.language.visit(place);
+
         return true;
     }
 }

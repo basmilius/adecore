@@ -22,6 +22,7 @@ export interface ActionEntry {
 function inGroupOrder(entries: readonly ActionEntry[], order: readonly ActionGroup[]): ActionEntry[] {
     return order.flatMap((group) => {
         const own = entries.filter((entry) => entry.group === group);
+
         return [...own.filter((entry) => entry.action.isPreferred === true), ...own.filter((entry) => entry.action.isPreferred !== true)];
     });
 }
@@ -31,17 +32,21 @@ export function groupOf(kind: string | undefined): ActionGroup {
     if (kind === 'quickfix' || kind?.startsWith('quickfix.')) {
         return 'quickfix';
     }
+
     for (const group of ['extract', 'inline', 'move', 'rewrite'] as const) {
         if (kind === `refactor.${group}` || kind?.startsWith(`refactor.${group}.`)) {
             return group;
         }
     }
+
     if (kind === 'refactor' || kind?.startsWith('refactor.')) {
         return 'refactor';
     }
+
     if (kind === 'source' || kind?.startsWith('source.')) {
         return 'source';
     }
+
     return 'other';
 }
 
@@ -54,12 +59,14 @@ export function actionsOf(result: readonly (CodeAction | Command)[] | null, orde
         .map((item) => (typeof item.command === 'string' ? ({ title: item.title, command: item as Command } satisfies CodeAction) : (item as CodeAction)))
         .filter((action) => action.disabled === undefined)
         .map((action, index) => ({ id: String(index), action, group: groupOf(action.kind) }));
+
     return inGroupOrder(entries, order);
 }
 
 /* Entries from several requests as one list: the same order as a single answer, and an id of its own for each row. Two actions with a title and kind alike are one. */
 export function mergeEntries(lists: readonly (readonly ActionEntry[])[]): ActionEntry[] {
     const unique = uniqueBy(lists.flat(), (entry) => `${entry.action.kind ?? ''}\0${entry.action.title}`);
+
     return inGroupOrder(unique, ACTION_GROUPS).map((entry, index) => ({ ...entry, id: String(index) }));
 }
 
@@ -110,7 +117,9 @@ function linesOf(text: string): string[] {
 export function previewOf(text: string, edit: WorkspaceEdit, uri: string): EditPreview | null {
     const entries = textEntriesOf(edit);
     const operations = resourceOperationsOf(edit);
+
     const count = (kind: string): number => operations.filter((operation) => operation.kind === kind).length;
+
     const moves = count('rename');
     const creates = count('create');
     const deletes = count('delete');
@@ -119,29 +128,39 @@ export function previewOf(text: string, edit: WorkspaceEdit, uri: string): EditP
     const otherFiles = [...entries.keys()].filter((key) => key !== uri && !made.has(key)).length;
     let removed: string[] = [];
     let added: string[] = [];
+
     if (own !== undefined) {
         let after: string;
+
         try {
             after = applyTextEdits(text, own.flat());
         } catch {
             return null;
         }
+
         const before = linesOf(text);
         const next = linesOf(after);
         let head = 0;
+
         while (head < before.length && head < next.length && before[head] === next[head]) {
             head++;
         }
+
         let tail = 0;
+
         while (tail < before.length - head && tail < next.length - head && before[before.length - 1 - tail] === next[next.length - 1 - tail]) {
             tail++;
         }
+
         removed = before.slice(head, before.length - tail);
         added = next.slice(head, next.length - tail);
     }
+
     if (removed.length === 0 && added.length === 0 && otherFiles === 0 && moves === 0 && creates === 0 && deletes === 0) {
         return null;
     }
+
     const hiddenLines = Math.max(0, removed.length - PREVIEW_LINES) + Math.max(0, added.length - PREVIEW_LINES);
+
     return { removed: removed.slice(0, PREVIEW_LINES), added: added.slice(0, PREVIEW_LINES), hiddenLines, otherFiles, moves, creates, deletes };
 }

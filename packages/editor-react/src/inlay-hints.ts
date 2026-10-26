@@ -14,8 +14,10 @@ const METHOD = 'textDocument/inlayHint';
 const RESOLVE_METHOD = 'inlayHint/resolve';
 const TOAST_ID = 'language-inlay-hint';
 const PAUSE_MS = 300;
+
 /* How long a click on a hint that a double click would also act on waits for its second press; the editor's own interval for a double press. */
 const DOUBLE_PRESS_MS = 500;
+
 /* Lines asked for above and below what is in view, so a little scrolling stays inside what is already drawn. */
 const MARGIN_LINES = 60;
 
@@ -42,6 +44,7 @@ export function editorHintOf(hint: InlayHint, id: string): EditorInlayHint {
 export function withMargin(visible: EditorRange, endOfDocument: EditorPosition, endOfLine: (line: number) => EditorPosition): EditorRange {
     const first = Math.max(0, visible.start.line - MARGIN_LINES);
     const last = Math.min(endOfDocument.line, visible.end.line + MARGIN_LINES);
+
     return { start: { line: first, character: 0 }, end: last === endOfDocument.line ? endOfDocument : endOfLine(last) };
 }
 
@@ -54,7 +57,9 @@ export function tooltipTextOf(tooltip: string | MarkupContent | undefined): Hove
     if (tooltip === undefined) {
         return null;
     }
+
     const text = hoverTextOf({ contents: typeof tooltip === 'string' ? { kind: 'plaintext', value: tooltip } : tooltip });
+
     return isEmptyHover(text) ? null : text;
 }
 
@@ -66,9 +71,11 @@ export function partOf(hint: InlayHint, index: number | null): InlayHintLabelPar
 export function tooltipOf(hint: InlayHint, index: number | null): HoverText | null {
     const part = partOf(hint, index);
     const own = part?.tooltip ?? hint.tooltip;
+
     if (own !== undefined || index !== null || typeof hint.label === 'string') {
         return tooltipTextOf(own);
     }
+
     return tooltipTextOf(hint.label.find((candidate) => candidate.tooltip !== undefined)?.tooltip);
 }
 
@@ -77,13 +84,16 @@ export function lacksInfo(hint: InlayHint, index: number | null): boolean {
     if (hint.tooltip !== undefined) {
         return false;
     }
+
     const parts = typeof hint.label === 'string' ? [] : index === null ? hint.label : [hint.label[index]];
+
     return !parts.some((part) => part !== undefined && (part.tooltip !== undefined || part.location !== undefined || part.command !== undefined));
 }
 
 /* Whether the edits fit the text as it is now: positions inside it, each range in order, none overlapping the next. */
 export function editsFit(editor: Editor, edits: readonly TextEdit[]): boolean {
     const end = editor.positionAt(Number.MAX_SAFE_INTEGER);
+
     const inside = (position: EditorPosition): boolean =>
         Number.isInteger(position.line) &&
         Number.isInteger(position.character) &&
@@ -91,10 +101,14 @@ export function editsFit(editor: Editor, edits: readonly TextEdit[]): boolean {
         position.character >= 0 &&
         position.line <= end.line &&
         position.character <= lineTextOf(editor, position.line).length;
+
     const before = (left: EditorPosition, right: EditorPosition): boolean => comparePositions(left, right) <= 0;
+
     const ordered = [...edits].sort((left, right) => (before(left.range.start, right.range.start) ? -1 : 1));
+
     return ordered.every((edit, index) => {
         const next = ordered[index + 1];
+
         return (
             inside(edit.range.start) &&
             inside(edit.range.end) &&
@@ -114,10 +128,13 @@ export function actionOf(hint: InlayHint, click: Pick<EditorInlayClick, 'part' |
     if (click.clicks === 2) {
         return hint.textEdits !== undefined && hint.textEdits.length > 0 ? { kind: 'insert', edits: hint.textEdits } : null;
     }
+
     const part = partOf(hint, click.part);
+
     if (click.mod) {
         return part?.location === undefined ? null : { kind: 'go', location: part.location };
     }
+
     return part?.command === undefined ? null : { kind: 'run', command: part.command };
 }
 
@@ -144,20 +161,27 @@ export class InlayHintsFeature {
     private readonly language: EditorLanguage;
     private readonly timers: Timers;
     private readonly refresher: Refresher;
+
     /* The lines the hints on screen were asked for. */
     private asked: EditorRange | null = null;
+
     private readonly entries = new Map<string, Entry>();
     private shown: EditorInlayHint[] = [];
     private generation = 0;
+
     /* Counts the edits of the text, which hints and answers made for an earlier one are tested against. */
     private epoch = 0;
+
     private target: { id: string; part: number | null } | null = null;
     private modHeld = false;
     private showTimer: unknown;
+
     /* The command of a click that may still become a double click. */
     private commandTimer: unknown;
+
     /* Counts presses, so one that waited for a resolve gives way to a later one. */
     private pressCount = 0;
+
     /* Counts what the pointer does, so a tooltip that was waited for is dropped once the pointer has moved on. */
     private request = 0;
 
@@ -165,19 +189,24 @@ export class InlayHintsFeature {
         this.language = language;
         this.timers = timers;
         const { editor, project, uri } = language;
+
         this.refresher = new Refresher(
             async (signal) => {
                 const { service } = project;
+
                 if (!service.supports(METHOD, uri)) {
                     return;
                 }
+
                 const range = withMargin(editor.getVisibleRange(), editor.positionAt(Number.MAX_SAFE_INTEGER), (line) => ({
                     line,
                     character: lineTextOf(editor, line).length
                 }));
+
                 this.asked = range;
                 const epoch = this.epoch;
                 const hints = await service.inlayHints(uri, range, { signal });
+
                 if (!signal.aborted && epoch === this.epoch) {
                     this.install(hints === null ? [] : drawableHints(hints), epoch);
                 }
@@ -185,6 +214,7 @@ export class InlayHintsFeature {
             PAUSE_MS,
             timers
         );
+
         const offs = [
             editor.onTextChange(() => {
                 this.epoch++;
@@ -200,17 +230,22 @@ export class InlayHintsFeature {
                 this.refresher.now();
             })
         ];
+
         if (editor.onInlayHover !== undefined) {
             offs.push(editor.onInlayHover((target) => this.hovered(target === null ? null : { id: target.id, part: target.part })));
         }
+
         if (editor.onInlayClick !== undefined) {
             offs.push(editor.onInlayClick((click) => this.pressed(click)));
         }
+
         offs.push(followModKey(language.apple, (held) => this.setModHeld(held)));
+
         language.onDispose(() => {
             for (const off of offs) {
                 off();
             }
+
             this.cancelHover();
             this.timers.clear(this.commandTimer);
             this.refresher.dispose();
@@ -230,20 +265,25 @@ export class InlayHintsFeature {
     /* The tooltip of a hint that sits at a position, as a card; false when there is none. This is how the keyboard reaches it. */
     async showTooltipAt(position: EditorPosition): Promise<boolean> {
         const found = [...this.entries].find(([, entry]) => entry.epoch === this.epoch && comparePositions(entry.hint.position, position) === 0);
+
         if (found === undefined) {
             return false;
         }
+
         return this.showTooltip({ id: found[0], part: null }, this.request, false);
     }
 
     private install(hints: readonly InlayHint[], epoch: number): void {
         this.generation++;
         this.entries.clear();
+
         this.shown = hints.map((hint, index) => {
             const id = `hint-${this.generation}-${index}`;
             this.entries.set(id, { id, hint, epoch, resolution: null, answered: false });
+
             return editorHintOf(hint, id);
         });
+
         this.language.editor.setInlayHints(this.shown);
         this.target = null;
         this.updateLink();
@@ -254,15 +294,19 @@ export class InlayHintsFeature {
         this.timers.clear(this.showTimer);
         const request = ++this.request;
         this.updateLink();
+
         if (target === null) {
             if (this.cardOpen()) {
                 this.language.hover.release();
             }
+
             return;
         }
+
         this.showTimer = this.timers.set(() => void this.showTooltip(target, request), SHOW_DELAY_MS);
         // A press has to know what the hint offers when it comes, so the answer is asked for as the pointer arrives.
         const entry = this.entries.get(target.id);
+
         if (entry !== undefined && this.resolvable(entry)) {
             void this.resolve(entry).then(() => this.updateLink());
         }
@@ -273,6 +317,7 @@ export class InlayHintsFeature {
         this.request++;
         this.target = null;
         this.updateLink();
+
         if (this.cardOpen()) {
             this.language.hover.hide();
         }
@@ -286,24 +331,32 @@ export class InlayHintsFeature {
     /* The card for a hint or part, once the server has said what it can. Says whether it opened. */
     private async showTooltip(target: { id: string; part: number | null }, request: number, pointer = true): Promise<boolean> {
         const entry = this.entries.get(target.id);
+
         if (entry === undefined) {
             return false;
         }
+
         if (lacksInfo(entry.hint, target.part)) {
             await this.resolve(entry);
             this.updateLink();
         }
+
         if ((pointer && request !== this.request) || entry.epoch !== this.epoch) {
             return false;
         }
+
         const text = tooltipOf(entry.hint, target.part);
+
         if (text === null) {
             if (this.cardOpen()) {
                 this.language.hover.hide();
             }
+
             return false;
         }
+
         this.language.hover.showText(entry.hint.position, text);
+
         return true;
     }
 
@@ -312,22 +365,27 @@ export class InlayHintsFeature {
         if (entry.resolution !== null) {
             return entry.resolution;
         }
+
         const { service } = this.language.project;
+
         if (entry.epoch !== this.epoch || !service.supports(RESOLVE_METHOD, this.language.uri)) {
             return Promise.resolve(entry.hint);
         }
+
         entry.resolution = service
             .resolveInlayHint(this.language.uri, entry.hint)
             .then((resolved) => {
                 if (entry.epoch === this.epoch) {
                     entry.hint = { ...entry.hint, ...resolved, position: entry.hint.position };
                 }
+
                 return entry.hint;
             })
             .catch(() => entry.hint)
             .finally(() => {
                 entry.answered = true;
             });
+
         return entry.resolution;
     }
 
@@ -347,23 +405,30 @@ export class InlayHintsFeature {
 
     private pressed(click: EditorInlayClick): boolean {
         const entry = this.entries.get(click.id);
+
         if (entry === undefined || entry.epoch !== this.epoch) {
             return false;
         }
+
         if (click.touch) {
             this.timers.clear(this.showTimer);
             const request = ++this.request;
             const worth = tooltipOf(entry.hint, click.part) !== null || this.resolvable(entry);
+
             if (worth) {
                 void this.showTooltip({ id: click.id, part: click.part }, request);
             }
+
             return worth;
         }
+
         if (click.alt || click.shift) {
             return false;
         }
+
         this.timers.clear(this.commandTimer);
         const press = ++this.pressCount;
+
         if (this.resolvable(entry) && (click.clicks === 2 || actionOf(entry.hint, click) !== null)) {
             // The server may still add edits, which would make this the first press of a double click.
             void this.resolve(entry).then(() => {
@@ -371,8 +436,10 @@ export class InlayHintsFeature {
                     this.press(entry, click);
                 }
             });
+
             return true;
         }
+
         return this.press(entry, click);
     }
 
@@ -380,26 +447,33 @@ export class InlayHintsFeature {
         this.timers.clear(this.commandTimer);
         const action = actionOf(entry.hint, click);
         const insertable = entry.hint.textEdits !== undefined && entry.hint.textEdits.length > 0;
+
         if (action?.kind === 'run' && insertable) {
             // A double click inserts the edits, so the command of its first press waits to see whether a second one comes.
             const epoch = this.epoch;
+
             this.commandTimer = this.timers.set(() => {
                 if (epoch === this.epoch) {
                     void this.perform(entry, action);
                 }
             }, DOUBLE_PRESS_MS);
+
             return true;
         }
+
         if (action !== null) {
             void this.perform(entry, action);
+
             return true;
         }
+
         // The first press of a double click must not move the caret either, or the second would land beside the hint.
         return click.clicks === 1 && !click.mod && insertable;
     }
 
     private async perform(entry: Entry, action: Action): Promise<void> {
         const { editor, project, uri } = this.language;
+
         try {
             if (action.kind === 'go') {
                 this.cancelHover();
@@ -409,6 +483,7 @@ export class InlayHintsFeature {
             } else if (entry.epoch === this.epoch && editsFit(editor, action.edits)) {
                 this.cancelHover();
                 const applied = editor.applyEdits(action.edits.map((edit) => ({ range: edit.range, text: edit.newText })));
+
                 if (applied) {
                     this.shown = this.shown.filter((hint) => hint.id !== entry.id);
                     editor.setInlayHints(this.shown);

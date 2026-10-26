@@ -12,6 +12,7 @@ export { type ActionGroup, type ActionEntry, type EditPreview } from './code-act
 export { type ResourceOperationView } from './workspace-edit.ts';
 export { type CodeVisionDeclaration, type DeclarationSource } from './code-vision-model.ts';
 export { type CodeAuthor, type CodeAuthorship } from './code-authors.ts';
+
 export {
     type SnippetTransform,
     type SnippetStop,
@@ -24,6 +25,7 @@ export {
     parseSnippet,
     tabOrder
 } from './snippet.ts';
+
 export {
     type LineSpan,
     lineSpanOf,
@@ -40,8 +42,10 @@ export {
     replaceRange,
     locateSelection
 } from './proposal-model.ts';
+
 export { type LineReplacement, replaceLines, replaceAllLines } from './line-edits.ts';
 export { replacedWords } from './word-diff.ts';
+
 export {
     type FindOptions,
     type FindQuery,
@@ -53,8 +57,10 @@ export {
     matchesIn,
     stepIndex
 } from './find-query.ts';
+
 export { type PopupSize, type PopupPlacement, type PlaceOptions } from './popup-placement.ts';
 export { planConflict, type ConflictStretch, type ConflictPlan } from './conflict-model.ts';
+
 export {
     patchLayoutOf,
     type PatchLayout,

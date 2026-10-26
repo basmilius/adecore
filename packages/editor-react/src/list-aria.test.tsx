@@ -21,13 +21,16 @@ async function inPage(run: (page: ReturnType<typeof createPage>, root: ReturnTyp
     const previousAct = globals.IS_REACT_ACT_ENVIRONMENT;
     globals.IS_REACT_ACT_ENVIRONMENT = true;
     const root = createRoot(page.host);
+
     try {
         await run(page, root);
     } finally {
         await act(async () => root.unmount());
         globals.IS_REACT_ACT_ENVIRONMENT = previousAct;
+
         for (const [index, name] of names.entries()) {
             const descriptor = previous[index];
+
             if (descriptor === undefined) {
                 Reflect.deleteProperty(globalThis, name);
             } else {
@@ -44,6 +47,7 @@ test('the suggestions list is what the input points at, and the active option fo
     await inPage(async (page, root) => {
         const editor = new FakeEditor(page.host, { text: 'fo' } as never);
         const language = { editor, shortcuts: { triggerCompletion: null }, completion: { accept: () => Promise.resolve() } } as unknown as EditorLanguage;
+
         const view = (active: number): CompletionView => ({
             anchor: { line: 0, character: 0 },
             rows: [row('foo'), row('food'), row('fool')],
@@ -53,14 +57,20 @@ test('the suggestions list is what the input points at, and the active option fo
             server: 'ts',
             highlightLanguage: 'typescript'
         });
+
         await act(async () => root.render(createElement(CompletionPopup, { language, view: view(1), rect })));
         const list = page.document.querySelector('[role="listbox"]')!;
         const options = [...list.querySelectorAll('[role="option"]')];
+
         expect(editor.inputPopup).toEqual({ controls: list.id, activeDescendant: options[1]!.id });
         expect(new Set(options.map((option) => option.id)).size).toBe(3);
+
         await act(async () => root.render(createElement(CompletionPopup, { language, view: view(2), rect })));
+
         expect(editor.inputPopup!.activeDescendant).toBe(options[2]!.id);
+
         await act(async () => root.render(createElement('div')));
+
         expect(editor.inputPopup).toBeNull();
     });
 });
@@ -69,6 +79,7 @@ test('a pick list is what the input points at while it is open', async () => {
     await inPage(async (page, root) => {
         const editor = new FakeEditor(page.host, { text: 'fo' } as never);
         const language = { editor, pick: { choose: () => undefined } } as unknown as EditorLanguage;
+
         const view: PickView = {
             anchor: { line: 0, character: 0 },
             title: null,
@@ -79,12 +90,16 @@ test('a pick list is what the input points at while it is open', async () => {
                 { title: 'Two', rows: [{ id: 'b', label: 'B', detail: '' }] }
             ]
         };
+
         await act(async () => root.render(createElement(PickPopup, { language, view, rect })));
         const list = page.document.querySelector('[role="listbox"]')!;
         const options = [...list.querySelectorAll('[role="option"]')];
+
         expect(editor.inputPopup).toEqual({ controls: list.id, activeDescendant: options[1]!.id });
         expect(options[0]!.id).not.toBe(options[1]!.id);
+
         await act(async () => root.render(createElement('div')));
+
         expect(editor.inputPopup).toBeNull();
     });
 });

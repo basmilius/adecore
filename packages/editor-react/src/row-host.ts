@@ -40,11 +40,13 @@ abstract class ContainerHost {
         if (this.shown?.version !== this.version) {
             this.shown = { version: this.version, containers: new Map(this.containers) };
         }
+
         return this.shown.containers;
     }
 
     subscribe(listener: () => void): () => void {
         this.listeners.add(listener);
+
         return () => {
             this.listeners.delete(listener);
         };
@@ -59,13 +61,16 @@ abstract class ContainerHost {
         if (signature === this.signature) {
             return false;
         }
+
         this.signature = signature;
         const kept = new Set(ids);
+
         for (const id of [...this.containers.keys()]) {
             if (!kept.has(id)) {
                 this.containers.delete(id);
             }
         }
+
         return true;
     }
 
@@ -76,6 +81,7 @@ abstract class ContainerHost {
 
     protected bump(): void {
         this.version++;
+
         for (const listener of [...this.listeners]) {
             listener();
         }
@@ -90,6 +96,7 @@ abstract class ContainerHost {
 export class RowHost extends ContainerHost {
     set(rows: readonly HostedRow[]): void {
         const signature = rows.map((row) => `${row.id}@${row.line}${row.placement}:${row.height}:${row.fixed}:${row.filler}`).join('|');
+
         if (
             !this.replace(
                 signature,
@@ -98,6 +105,7 @@ export class RowHost extends ContainerHost {
         ) {
             return;
         }
+
         this.editor.setWidgets(
             rows.map((row) => ({
                 id: row.filler ? `${row.id}-filler` : row.id,
@@ -115,6 +123,7 @@ export class RowHost extends ContainerHost {
             })),
             this.owner
         );
+
         this.bump();
     }
 
@@ -131,6 +140,7 @@ export class RowHost extends ContainerHost {
 export class LineActionHost extends ContainerHost {
     set(actions: readonly HostedAction[]): void {
         const signature = actions.map((action) => `${action.id}@${action.line}`).join('|');
+
         if (
             !this.replace(
                 signature,
@@ -139,6 +149,7 @@ export class LineActionHost extends ContainerHost {
         ) {
             return;
         }
+
         this.editor.setLineActions(
             actions.map((action) => ({
                 id: action.id,
@@ -147,6 +158,7 @@ export class LineActionHost extends ContainerHost {
             })),
             this.owner
         );
+
         this.bump();
     }
 

@@ -10,6 +10,7 @@ export interface LineSpan {
 
 export function lineSpanOf(range: EditorRange): LineSpan {
     const endsOnBreak = range.end.character === 0 && range.end.line > range.start.line;
+
     return { startLine: range.start.line + 1, endLine: endsOnBreak ? range.end.line : range.end.line + 1 };
 }
 
@@ -22,7 +23,9 @@ export function inlineRangeOf(selection: EditorRange, lineLength: (line: number)
     if (!isEmptyRange(selection)) {
         return selection;
     }
+
     const { line } = selection.start;
+
     return { start: { line, character: 0 }, end: { line, character: lineLength(line) } };
 }
 
@@ -58,19 +61,24 @@ const OPENING = /^( {0,3})(`{3,}|~{3,})(.*)$/;
 
 function openingOf(line: string): FenceStart | null {
     const match = OPENING.exec(line);
+
     if (match === null) {
         return null;
     }
+
     const [, indent = '', marks = '', info = ''] = match;
+
     // The info string of a backtick fence holds no backtick, which is what keeps a line of inline code from opening one.
     if (marks.startsWith('`') && info.includes('`')) {
         return null;
     }
+
     return { char: marks[0]!, length: marks.length, indent: indent.length, info: info.trim() };
 }
 
 function closes(line: string, start: FenceStart): boolean {
     const match = /^ {0,3}(`+|~+)\s*$/.exec(line);
+
     return match !== null && match[1]![0] === start.char && match[1]!.length >= start.length;
 }
 
@@ -97,26 +105,35 @@ export function parseAnswer(text: string): InlineAnswer {
     const lines = text.replace(/\r\n/g, '\n').split('\n');
     let open: { start: FenceStart; from: number; body: string[] } | null = null;
     let found: { from: number; to: number; body: string[] } | null = null;
+
     for (const [index, line] of lines.entries()) {
         if (open === null) {
             const start = openingOf(line);
+
             if (start !== null) {
                 open = { start, from: index, body: [] };
             }
+
             continue;
         }
+
         if (closes(line, open.start)) {
             if (isReplacement(open.start.info)) {
                 found = { from: open.from, to: index, body: open.body };
             }
+
             open = null;
+
             continue;
         }
+
         open.body.push(line.replace(new RegExp(`^ {0,${open.start.indent}}`), ''));
     }
+
     if (found === null) {
         return { replacement: null, rest: text.trim() };
     }
+
     return {
         replacement: found.body.join('\n'),
         rest: [...lines.slice(0, found.from), ...lines.slice(found.to + 1)]
@@ -131,11 +148,13 @@ export function fitReplacement(selected: string, replacement: string): string {
     const breaks = selected.includes('\r\n') ? '\r\n' : '\n';
     let fitted = replacement.replace(/\r\n/g, '\n');
     const endsOnBreak = selected.endsWith('\n');
+
     if (fitted !== '' && endsOnBreak && !fitted.endsWith('\n')) {
         fitted += '\n';
     } else if (!endsOnBreak && fitted.endsWith('\n')) {
         fitted = fitted.slice(0, -1);
     }
+
     return breaks === '\n' ? fitted : fitted.replace(/\n/g, breaks);
 }
 
@@ -151,6 +170,7 @@ export interface DiffSegment {
 
 function linesOf(text: string): string[] {
     const lines = text.replace(/\r\n/g, '\n').split('\n');
+
     return lines.length > 1 && lines.at(-1) === '' ? lines.slice(0, -1) : lines;
 }
 
@@ -164,13 +184,16 @@ export function diffSegments(selected: string, proposal: string, startLine: numb
     const other = linesOf(proposal);
     const segments: DiffSegment[] = [];
     let cursor = 0;
+
     const same = (until: number): void => {
         if (until > cursor) {
             segments.push({ kind: 'same', text: other.slice(cursor, until).join('\n'), firstLine: startLine + cursor });
         }
     };
+
     for (const change of diffLines(base, other)) {
         same(change.otherStart);
+
         if (change.otherEnd > change.otherStart) {
             segments.push({
                 kind: 'added',
@@ -181,9 +204,12 @@ export function diffSegments(selected: string, proposal: string, startLine: numb
         } else {
             segments.push({ kind: 'removed', text: base.slice(change.baseStart, change.baseEnd).join('\n') });
         }
+
         cursor = change.otherEnd;
     }
+
     same(other.length);
+
     return segments;
 }
 
@@ -192,22 +218,29 @@ export function emphasisOf(segment: DiffSegment): Array<Array<[number, number]>>
     if (segment.kind !== 'added' || segment.replaces === undefined) {
         return undefined;
     }
+
     const ranges = replacedWords(linesOf(segment.text), linesOf(segment.replaces));
+
     return ranges.some((line) => line.length > 0) ? ranges : undefined;
 }
 
 /* The offset of a position in a text whose lines end in `\n` or `\r\n`; null when the text is not that long. */
 export function offsetOf(text: string, position: EditorPosition): number | null {
     let offset = 0;
+
     for (let line = 0; line < position.line; line++) {
         const end = text.indexOf('\n', offset);
+
         if (end === -1) {
             return null;
         }
+
         offset = end + 1;
     }
+
     const lineEnd = text.indexOf('\n', offset);
     const length = (lineEnd === -1 ? text.length : lineEnd) - offset;
+
     return position.character > length ? null : offset + position.character;
 }
 
@@ -215,6 +248,7 @@ export function offsetOf(text: string, position: EditorPosition): number | null 
 export function textInRange(text: string, range: EditorRange): string | null {
     const from = offsetOf(text, range.start);
     const to = offsetOf(text, range.end);
+
     return from === null || to === null || to < from ? null : text.slice(from, to);
 }
 
@@ -222,6 +256,7 @@ export function textInRange(text: string, range: EditorRange): string | null {
 export function replaceRange(text: string, range: EditorRange, replacement: string): string | null {
     const from = offsetOf(text, range.start);
     const to = offsetOf(text, range.end);
+
     return from === null || to === null || to < from ? null : `${text.slice(0, from)}${replacement}${text.slice(to)}`;
 }
 
@@ -233,18 +268,23 @@ export function locateSelection(text: string, range: EditorRange, selected: stri
     if (textInRange(text, range) === selected) {
         return range;
     }
+
     if (selected === '') {
         return null;
     }
+
     const first = text.indexOf(selected);
+
     if (first === -1 || text.indexOf(selected, first + 1) !== -1) {
         return null;
     }
+
     return { start: positionAt(text, first), end: positionAt(text, first + selected.length) };
 }
 
 function positionAt(text: string, offset: number): EditorPosition {
     const before = text.slice(0, offset);
     const line = before.split('\n').length - 1;
+
     return { line, character: offset - (before.lastIndexOf('\n') + 1) };
 }

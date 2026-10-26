@@ -25,6 +25,7 @@ function staysInside(target: EventTarget | null): boolean {
  */
 function Suggestions({ names, active, onPick, onFocusBack }: { names: readonly string[]; active: number; onPick(name: string): void; onFocusBack(): void }) {
     const { t } = useTranslation('editor');
+
     return (
         <div className="flex w-[250px] flex-col p-1.25" {...keepFocusOutOfList(onFocusBack)}>
             <div className="flex items-center gap-1.5 px-2.25 pt-1.25 pb-1 text-xs font-semibold text-text-faint">
@@ -54,6 +55,7 @@ function Suggestions({ names, active, onPick, onFocusBack }: { names: readonly s
 function Hints({ view, active, onPick, onFocusBack }: { view: RenameView; active: number; onPick(name: string): void; onFocusBack(): void }) {
     const { t } = useTranslation('editor');
     const { occurrences } = view;
+
     return (
         <div className="flex flex-col">
             {view.error !== null && (
@@ -88,16 +90,20 @@ function Preview({ language, view }: { language: EditorLanguage; view: RenameVie
     const { t } = useTranslation('editor');
     const folder = language.project.folder;
     const operations = view.operations ?? [];
+
     const shownPath = (uri: string): string => {
         const path = fileUriToPath(uri);
+
         return path === null ? uri : relativeTo(path, folder);
     };
+
     return (
         <div className="flex w-[520px] max-w-full flex-col" onPointerDown={(event) => event.preventDefault()}>
             <div className="max-h-[320px] overflow-y-auto">
                 {view.files.map((file) => {
                     const path = fileUriToPath(file.uri);
                     const shown = path === null ? file.uri : relativeTo(path, folder);
+
                     return (
                         <div key={file.uri} className="border-b border-border last:border-b-0">
                             <div className="flex items-center gap-2 px-3 py-1.5 text-xs">
@@ -170,19 +176,24 @@ export function RenameCard({ language, view, rect, endRect }: { language: Editor
 
     function onKeyDown(event: KeyboardEvent<HTMLInputElement>): void {
         const names = view.phase === 'input' ? view.suggestions : [];
+
         if (names.length > 0 && !event.nativeEvent.isComposing && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey) {
             const step = event.key === 'ArrowDown' ? 1 : event.key === 'ArrowUp' ? -1 : 0;
+
             if (step !== 0 || event.key === 'Tab') {
                 event.preventDefault();
                 event.stopPropagation();
+
                 if (event.key === 'Tab') {
                     fill(names[Math.min(active, names.length - 1)]!);
                 } else {
                     setActive((active + step + names.length) % names.length);
                 }
+
                 return;
             }
         }
+
         if (event.key === 'Escape') {
             event.preventDefault();
             event.stopPropagation();
@@ -190,6 +201,7 @@ export function RenameCard({ language, view, rect, endRect }: { language: Editor
         } else if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
             event.preventDefault();
             event.stopPropagation();
+
             if (view.phase === 'preview') {
                 void language.rename.confirm();
             } else if (!view.busy) {
@@ -199,6 +211,7 @@ export function RenameCard({ language, view, rect, endRect }: { language: Editor
     }
 
     const symbolWidth = endRect === null ? 0 : Math.max(0, endRect.left - rect.left);
+
     return createPortal(
         <>
             <input

@@ -44,14 +44,17 @@ export function SymbolPicker({ language, view }: { language: EditorLanguage; vie
         if (searchText === '') {
             return;
         }
+
         const controller = new AbortController();
         const text = searchText;
+
         const timer = setTimeout(() => {
             language.symbolPicker
                 .search(text, controller.signal)
                 .then((entries) => !controller.signal.aborted && setFound({ text, entries }))
                 .catch(() => undefined);
         }, SEARCH_DELAY_MS);
+
         return () => {
             clearTimeout(timer);
             controller.abort();
@@ -69,6 +72,7 @@ export function SymbolPicker({ language, view }: { language: EditorLanguage; vie
             }
         } else if (mode.mode === 'workspace') {
             const place = places[index];
+
             if (place !== undefined) {
                 language.symbolPicker.goToWorkspace(place);
             }
@@ -93,6 +97,7 @@ export function SymbolPicker({ language, view }: { language: EditorLanguage; vie
     }
 
     let offset = 0;
+
     return createPortal(
         <div
             className="fixed top-[12vh] left-1/2 z-(--z-popup) flex w-[560px] max-w-[calc(100vw-16px)] -translate-x-1/2 flex-col overflow-hidden rounded-lg border border-border bg-surface-raised text-text shadow-(--float-shadow)"
@@ -127,6 +132,7 @@ export function SymbolPicker({ language, view }: { language: EditorLanguage; vie
                 {mode.mode === 'workspace' &&
                     places.map((place, index) => {
                         const path = fileUriToPath(place.uri);
+
                         return (
                             <button
                                 key={place.id}
@@ -151,11 +157,13 @@ export function SymbolPicker({ language, view }: { language: EditorLanguage; vie
                     groups.map((group) => {
                         const start = offset;
                         offset += group.entries.length;
+
                         return (
                             <div key={group.group} role="group">
                                 <div className="px-2 pt-1.5 pb-0.5 text-xs font-medium text-text-faint">{t(`language.symbols.groups.${group.group}`)}</div>
                                 {group.entries.map((entry, index) => {
                                     const position = start + index;
+
                                     return (
                                         <button
                                             key={entry.id}

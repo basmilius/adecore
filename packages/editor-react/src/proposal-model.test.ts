@@ -181,10 +181,15 @@ describe('the words of a proposal that differ', () => {
 
     test('are left out for lines that stand where nothing stood, for lines that stayed, and for a change with no pairing of lines', () => {
         const [added] = diffSegments('a', 'a\nb', 1).filter((segment) => segment.kind === 'added');
+
         expect(emphasisOf(added!)).toBeUndefined();
+
         const [same] = diffSegments('a', 'a', 1);
+
         expect(emphasisOf(same!)).toBeUndefined();
+
         const [many] = diffSegments('one', 'two\nthree', 1);
+
         expect(emphasisOf(many!)).toBeUndefined();
     });
 });

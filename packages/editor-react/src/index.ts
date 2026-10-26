@@ -4,6 +4,7 @@ export { realTimers, type Timers } from './timers.ts';
 export { type SemanticTokensOptions } from './semantic-tokens.ts';
 export { ProjectLanguage, type FileOperationTarget } from './project-language.ts';
 export type { LanguageDocumentHandle } from './project-language.ts';
+
 export type {
     SnippetVariableContext,
     LanguageHost,
@@ -13,6 +14,7 @@ export type {
     EditorNotification,
     RenameSuggestionsRequest
 } from './host-types.ts';
+
 export { EditorView } from './EditorView.tsx';
 export { createHolder } from './holder.ts';
 export type { EditorViewProps } from './EditorView.tsx';
@@ -36,6 +38,7 @@ export { useProblemCounts } from './use-problem-counts.ts';
 export type { ProblemCounts } from './diagnostics.ts';
 export type { BlameSource, CodeVisionSettings } from './code-vision.ts';
 export type { HoverSettings } from './hover.ts';
+
 export type {
     PopupState,
     PopupStore,
@@ -57,6 +60,7 @@ export type {
     MenuView,
     AuthorsView
 } from './popups.ts';
+
 export { RowHost, LineActionHost } from './row-host.ts';
 export type { HostedRow, HostedAction } from './row-host.ts';
 export { type HighlightLayers, highlightLayers } from './highlight-layers.ts';

@@ -31,6 +31,7 @@ export function planConflict(base: string, ours: string, theirs: string): Confli
     let oursAt = 0;
     let theirsAt = 0;
     let mergedAt = 0;
+
     for (const block of blocks) {
         if (block.kind === 'theirs') {
             merges.push({ from: oursAt, to: oursAt + block.ours.length, lines: block.theirs });
@@ -47,10 +48,13 @@ export function planConflict(base: string, ours: string, theirs: string): Confli
                     theirsEnd: theirsAt + block.theirs.length
                 });
             }
+
             mergedAt += block.ours.length;
         }
+
         oursAt += block.ours.length;
         theirsAt += block.theirs.length;
     }
+
     return { merges, conflicts };
 }

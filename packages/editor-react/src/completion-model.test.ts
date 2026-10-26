@@ -56,6 +56,7 @@ describe('opensCompletion', () => {
         for (const before of ['', 'foo', 'x', '$return', 'returns', '//', '/*', '/**', '     *', '- ', '-', 'i++', 'i--']) {
             expect(opensCompletion(before, ' ')).toBe(false);
         }
+
         expect(opensCompletion('x ===', '  ')).toBe(false);
         expect(opensCompletion('x', '{')).toBe(false);
     });
@@ -70,6 +71,7 @@ describe('matchScore', () => {
             matchScore('findLastIndex', 'fli'),
             matchScore('filesystem', 'fsm')
         ];
+
         expect(scores[0]).toBe(0);
         expect(scores[1]).toBe(1);
         expect(scores[2]).toBeGreaterThanOrEqual(2);
@@ -99,7 +101,9 @@ describe('rankCompletions', () => {
             item('filter', { sortText: '3' }),
             item('floor', { preselect: true })
         ];
+
         const ranked = rankCompletions(items, () => 'fil').map((entry) => entry.item.label);
+
         expect(ranked).toEqual(['fill', 'filter', 'Filter', 'findLast']);
     });
 });
@@ -110,6 +114,7 @@ describe('prefixFor', () => {
 
     test("uses the start of the item's own range when the caret is in it", () => {
         const withRange = item('filter', { textEdit: { range: { start: at(0, 8), end: at(0, 11) }, newText: 'filter' } });
+
         expect(prefixFor(withRange, at(0, 11), 'thisArg.fil', text)).toBe('fil');
         expect(prefixFor(item('filter'), at(0, 11), 'thisArg.fil', text)).toBe('fil');
     });
@@ -134,6 +139,7 @@ const PHP_PROPERTY_ORM = item('Property', {
     detail: 'use Raxos\\Database\\Orm\\Property',
     labelDetails: { description: 'Raxos\\Database\\Orm' }
 });
+
 const PHP_PROPERTY_OPENAPI = item('Property', {
     kind: 4,
     detail: 'use Raxos\\OpenApi\\Attribute\\Property',
@@ -160,10 +166,12 @@ describe('qualifiers', () => {
             '',
             'Raxos\\OpenApi\\Attribute'
         ]);
+
         const sameNamespace = [
             item('Property', { detail: 'use A\\B\\Property', labelDetails: { description: 'A\\B' } }),
             item('Property', { detail: 'use A\\B\\Other\\Property', labelDetails: { description: 'A\\B' } })
         ];
+
         expect(qualifiersOf(sameNamespace)).toEqual(['A\\B', 'A\\B\\Other']);
         expect(qualifiersOf([item('Property'), item('Property')])).toEqual(['#1', '#2']);
     });
@@ -172,7 +180,9 @@ describe('qualifiers', () => {
 describe('ranking by choice', () => {
     test('puts the item chosen lately first among equal matches, and never above a better match', () => {
         const items = [item('fill', { sortText: '0' }), item('filter', { sortText: '1' }), item('Fillet', { sortText: '2' })];
+
         const recent = (chosen: string) => (candidate: CompletionItem) => (candidate.label === chosen ? 1 : 0);
+
         expect(rankCompletions(items, () => 'fil', recent('filter')).map((entry) => entry.item.label)).toEqual(['filter', 'fill', 'Fillet']);
         expect(rankCompletions(items, () => 'fil', recent('Fillet')).map((entry) => entry.item.label)).toEqual(['fill', 'filter', 'Fillet']);
     });
@@ -187,17 +197,20 @@ describe('insertionOf', () => {
         const both = item('filter', {
             textEdit: { newText: 'filter', insert: { start: at(0, 8), end: at(0, 11) }, replace: { start: at(0, 8), end: at(0, 14) } }
         });
+
         expect(insertionOf(both, at(0, 11), 'thisArg.fil', false).range.end).toEqual(at(0, 11));
         expect(insertionOf(both, at(0, 11), 'thisArg.fil', true).range.end).toEqual(at(0, 14));
     });
 
     test('takes what was typed since the answer came into the range it replaces', () => {
         const stale = item('filter', { textEdit: { range: { start: at(0, 8), end: at(0, 10) }, newText: 'filter' } });
+
         expect(insertionOf(stale, at(0, 12), 'thisArg.fill', false).range).toEqual({ start: at(0, 8), end: at(0, 12) });
     });
 
     test('inserts a snippet as its text, with the stops Tab goes through', () => {
         const insertion = insertionOf(item('log', { insertText: 'console.log(${1:value})$0', insertTextFormat: 2 }), at(0, 3), 'log', false);
+
         expect(insertion.text).toBe('console.log(value)');
         expect(insertion.stops).toEqual([
             { index: 1, start: 12, end: 17 },
@@ -207,9 +220,12 @@ describe('insertionOf', () => {
 
     test('leaves the call off a function that already has its parentheses', () => {
         const call = item('log', { kind: 3, insertText: 'log(${1:value})$0', insertTextFormat: 2 });
+
         expect(insertionOf(call, at(0, 3), 'log', false, '(1)').text).toBe('log');
         expect(insertionOf(call, at(0, 3), 'log', false, ' + 1').text).toBe('log(value)');
+
         const variable = item('log', { kind: 6, insertText: 'log(${1:value})$0', insertTextFormat: 2 });
+
         expect(insertionOf(variable, at(0, 3), 'log', false, '(1)').text).toBe('log(value)');
     });
 
@@ -219,6 +235,7 @@ describe('insertionOf', () => {
             textEdit: { newText: 'log(${1:a})$0', insert: { start: at(0, 0), end: at(0, 2) }, replace: { start: at(0, 0), end: at(0, 3) } },
             insertTextFormat: 2
         });
+
         expect(insertionOf(call, at(0, 2), 'lo', true, 'g(x)').text).toBe('log');
         expect(insertionOf(call, at(0, 2), 'lo', false, 'g(x)').text).toBe('log(a)');
     });
@@ -226,13 +243,17 @@ describe('insertionOf', () => {
 
 describe('mirroredInsertions', () => {
     const lines = ['fo + 1', 'xfo + 2', 'fo;', 'fo + fo'];
+
     const text = (range: { start: { line: number; character: number }; end: { line: number; character: number } }): string =>
         lines[range.start.line]!.slice(range.start.character, range.end.line === range.start.line ? range.end.character : undefined);
+
     const caret = (line: number, character: number) => ({ start: at(line, character), end: at(line, character) });
+
     const insertion = { range: { start: at(0, 0), end: at(0, 2) }, text: 'foo()', stops: [] };
 
     test('inserts the same text at each other caret that has the same word before it', () => {
         const edits = mirroredInsertions([caret(2, 2), caret(3, 2), caret(0, 2)], caret(0, 2), at(0, 2), text, insertion);
+
         expect(edits).toEqual([
             { range: { start: at(2, 0), end: at(2, 2) }, text: 'foo()' },
             { range: { start: at(3, 0), end: at(3, 2) }, text: 'foo()' }
@@ -241,15 +262,19 @@ describe('mirroredInsertions', () => {
 
     test('leaves a caret with another word before it, a selection and the primary caret alone', () => {
         const other = { start: at(1, 1), end: at(1, 3) };
+
         expect(mirroredInsertions([caret(1, 3), other, caret(0, 2)], caret(0, 2), at(0, 2), text, insertion)).toEqual([]);
     });
 
     test('takes what the primary replaces after its caret along, where the other has the same', () => {
         const replacing = { range: { start: at(0, 0), end: at(0, 5) }, text: 'foo', stops: [] };
         const rows = ['fo + 1', 'fo + 2', 'fo;'];
+
         const read = (range: { start: { line: number; character: number }; end: { line: number; character: number } }): string =>
             rows[range.start.line]!.slice(range.start.character, range.end.character);
+
         const edits = mirroredInsertions([caret(1, 2), caret(2, 2), caret(0, 2)], caret(0, 2), at(0, 2), read, replacing);
+
         expect(edits).toEqual([{ range: { start: at(1, 0), end: at(1, 5) }, text: 'foo' }]);
     });
 });
@@ -268,6 +293,7 @@ describe('itemsOf', () => {
             itemDefaults: { editRange: { start: at(1, 2), end: at(1, 4) }, insertTextFormat: 2 },
             items: [item('a', { textEditText: 'aa' })]
         });
+
         expect(result.incomplete).toBe(true);
         expect(result.items[0]).toMatchObject({ textEdit: { newText: 'aa', range: { start: at(1, 2), end: at(1, 4) } }, insertTextFormat: 2 });
         expect(itemsOf(null)).toEqual({ items: [], incomplete: false });
@@ -297,6 +323,7 @@ describe('completionDocsOf', () => {
             item('PrimaryKey', { detail: 'use Raxos\\Database\\Orm\\Attribute\\PrimaryKey', documentation: { kind: 'markdown', value: phpDoc } }),
             'php'
         );
+
         expect(docs?.source).toBe('use Raxos\\Database\\Orm\\Attribute\\PrimaryKey');
         expect(docs?.text.signatures).toEqual([]);
         expect(docs?.text.markdown).toContain('Marks the primary key');
@@ -304,6 +331,7 @@ describe('completionDocsOf', () => {
 
     test('splits the auto import line of a TypeScript item from the signature that follows', () => {
         const docs = completionDocsOf(item('parseFoo', { detail: "Auto import from './lib.ts'\nfunction parseFoo(a: number): void" }), 'typescript');
+
         expect(docs).toEqual({
             source: "Auto import from './lib.ts'",
             text: { signatures: [{ language: 'typescript', code: 'function parseFoo(a: number): void' }], markdown: '' }
@@ -321,6 +349,7 @@ describe('completionDocsOf', () => {
 describe('matching a label again', () => {
     test('finds the same match the second time, which is read from what was kept of the label', () => {
         const first = matchDetail('getUserById', 'gubi');
+
         expect(matchDetail('getUserById', 'gubi')).toEqual(first);
         expect(matchDetail('getUserById', 'U')).toEqual({ score: 2 + 3 / 1000, positions: [3] });
         expect(matchDetail('getUserById', 'USER')).toEqual({ score: 2 + 3 / 1000, positions: [3, 4, 5, 6] });
@@ -357,6 +386,7 @@ test('completion list indentation defaults apply unless an item overrides them',
             { label: 'plain', insertText: 'a\nb', insertTextMode: 1 }
         ]
     });
+
     expect(insertionOf(items[0]!, { line: 0, character: 4 }, '  bl', false).text).toBe('a\n  b');
     expect(insertionOf(items[1]!, { line: 0, character: 4 }, '  pl', false).text).toBe('a\nb');
 });
@@ -368,6 +398,7 @@ test('an edit-start indentation prefix can differ from the caret line', () => {
         insertTextMode: 2 as const,
         textEdit: { range: { start: { line: 0, character: 2 }, end: { line: 1, character: 2 } }, newText: 'a\n${1:b}' }
     };
+
     expect(insertionOf(item, { line: 1, character: 2 }, '\tfo', false, '', { indentationBefore: '  ' }).text).toBe('a\n  b');
 });
 
@@ -377,7 +408,9 @@ test('a malformed default edit range retains suggestions and their other default
         itemDefaults: { editRange: {}, insertTextFormat: 2, insertTextMode: 2, commitCharacters: [';'] },
         items: [{ label: 'foo', insertText: 'foo($1)' }, { label: 'food' }]
     };
+
     const result = itemsOf(list as unknown as import('@adecore/lsp').CompletionList);
+
     expect(result.items).toEqual([
         { label: 'foo', insertText: 'foo($1)', insertTextFormat: 2, insertTextMode: 2, commitCharacters: [';'] },
         { label: 'food', insertTextFormat: 2, insertTextMode: 2, commitCharacters: [';'] }
@@ -393,7 +426,9 @@ test('malformed ranking fields and explicit edits do not reach a completion list
         { label: 'bad', textEdit: { newText: 'bad', range: {} } },
         { label: 'bad', textEdit: { newText: 1, range: { start: at(0, 0), end: at(0, 0) } } }
     ];
+
     const result = itemsOf([...malformed, item('good')] as CompletionItem[]);
+
     expect(result.items).toEqual([item('good')]);
     expect(rankCompletions(result.items, () => '').map((entry) => entry.item.label)).toEqual(['good']);
 });

@@ -47,15 +47,18 @@ export function PickPopup({ language, view, rect }: { language: EditorLanguage; 
     // Every render: the character moves with the scroll, and the list changes size with its preview.
     useLayoutEffect(() => {
         const element = card.current;
+
         if (element === null) {
             return;
         }
+
         const placed = placePopup(
             rect,
             { width: element.offsetWidth, height: element.offsetHeight },
             { width: window.innerWidth, height: window.innerHeight },
             { gap: 2 }
         );
+
         element.style.left = `${Math.round(placed.left)}px`;
         element.style.top = `${Math.round(placed.top)}px`;
         element.style.maxHeight = `${Math.floor(placed.maxHeight)}px`;
@@ -67,11 +70,13 @@ export function PickPopup({ language, view, rect }: { language: EditorLanguage; 
     }, [view.active]);
 
     const optionIds = new Map<string, string>();
+
     for (const group of view.groups) {
         for (const row of group.rows) {
             optionIds.set(row.id, `${listId}-option-${optionIds.size}`);
         }
     }
+
     const activeId = optionIds.get(view.active);
 
     useInputPopup(language, listId, activeId);

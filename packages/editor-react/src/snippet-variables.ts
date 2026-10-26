@@ -15,8 +15,11 @@ export function createSnippetResolver(
     const filename = path?.replace(/\\/g, '/').split('/').at(-1);
     const folder = context.folder?.replace(/\\/g, '/').replace(/\/$/, '');
     const normalized = path?.replace(/\\/g, '/');
+
     const pad = (value: number): string => String(value).padStart(2, '0');
+
     const timezone = -now.getTimezoneOffset();
+
     const values: Record<string, string | undefined> = {
         TM_SELECTED_TEXT: context.selectedText,
         TM_CURRENT_LINE: context.currentLine,
@@ -46,16 +49,20 @@ export function createSnippetResolver(
         CURRENT_SECONDS_UNIX: String(Math.floor(now.getTime() / 1000)),
         CURRENT_TIMEZONE_OFFSET: (timezone < 0 ? '-' : '+') + pad(Math.floor(Math.abs(timezone) / 60)) + pad(Math.abs(timezone) % 60)
     };
+
     const builtins = new Map(Object.entries(values));
     const cache = new Map<string, string | undefined>();
+
     return (name) => {
         if (!cache.has(name)) {
             let supplied: string | undefined;
+
             try {
                 supplied = custom?.(name, context);
             } catch {
                 // A failed host override leaves the built-in or editable variable available.
             }
+
             const value =
                 supplied ??
                 (name === 'RANDOM'
@@ -67,8 +74,10 @@ export function createSnippetResolver(
                       : name === 'UUID'
                         ? (sources.uuid?.() ?? globalThis.crypto?.randomUUID())
                         : builtins.get(name));
+
             cache.set(name, value);
         }
+
         return cache.get(name);
     };
 }

@@ -20,17 +20,21 @@ export function PanelResizeHandle({ container, height, onHeight, onCommit }: Pro
     useEffect(() => {
         const viewport = container.closest<HTMLElement>('.se-viewport');
         const Observer = viewport?.ownerDocument.defaultView?.ResizeObserver;
+
         if (viewport === null || viewport === undefined || Observer === undefined) {
             return;
         }
+
         const observer = new Observer(() => setMax(panelBodyMax(availableHeightOf(container))));
         observer.observe(viewport);
+
         return () => observer.disconnect();
     }, [container]);
 
     function settle(value: number, from: number): void {
         const next = clampPanelBody(value, availableHeightOf(container));
         onHeight(next);
+
         if (next !== from) {
             onCommit(next);
             revealRow(realTimers, container);
@@ -45,6 +49,7 @@ export function PanelResizeHandle({ container, height, onHeight, onCommit }: Pro
         if (event.button !== 0) {
             return;
         }
+
         event.currentTarget.setPointerCapture(event.pointerId);
         drag.current = { startY: event.clientY, startHeight: height, lastY: event.clientY };
         setDragging(true);
@@ -62,6 +67,7 @@ export function PanelResizeHandle({ container, height, onHeight, onCommit }: Pro
         if (drag.current === null) {
             return;
         }
+
         const { startHeight } = drag.current;
         const next = heightAt(drag.current.lastY);
         drag.current = null;
@@ -74,9 +80,11 @@ export function PanelResizeHandle({ container, height, onHeight, onCommit }: Pro
         const step = event.shiftKey ? PANEL_KEY_STEP * 4 : PANEL_KEY_STEP;
         const end = panelBodyMax(availableHeightOf(container));
         const target = { ArrowUp: height - step, ArrowDown: height + step, Home: PANEL_BODY_MIN, End: end }[event.key];
+
         if (target === undefined) {
             return;
         }
+
         event.preventDefault();
         event.stopPropagation();
         settle(target, height);

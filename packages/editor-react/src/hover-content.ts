@@ -22,10 +22,12 @@ const FENCE = /^```([\w+#.-]*)[^\n]*\n([\s\S]*?)\n```[ \t]*(?:\n|$)/;
 export function splitSignatures(markdown: string): HoverText {
     const signatures: SignatureBlock[] = [];
     let rest = markdown.replace(/^\s+/, '');
+
     for (let match = FENCE.exec(rest); match !== null; match = FENCE.exec(rest)) {
         signatures.push({ language: match[1] || 'text', code: match[2]! });
         rest = rest.slice(match[0].length).replace(/^\s+/, '');
     }
+
     return { signatures, markdown: rest.replace(/^(?:-{3,}|\*{3,})\s*(?:\n|$)/, '').trim() };
 }
 
@@ -33,14 +35,17 @@ function markedStringText(content: MarkedString): HoverText {
     if (typeof content !== 'string') {
         return { signatures: [{ language: content.language || 'text', code: content.value }], markdown: '' };
     }
+
     return splitSignatures(content);
 }
 
 /* The text of a hover, whichever of the three shapes the protocol allows it in. */
 export function hoverTextOf(hover: Hover): HoverText {
     const { contents } = hover;
+
     if (Array.isArray(contents)) {
         const parts = contents.map(markedStringText);
+
         return {
             signatures: parts.flatMap((part) => part.signatures),
             markdown: parts
@@ -49,9 +54,11 @@ export function hoverTextOf(hover: Hover): HoverText {
                 .join('\n\n')
         };
     }
+
     if (typeof contents === 'string' || 'language' in contents) {
         return markedStringText(contents);
     }
+
     return contents.kind === 'plaintext' ? { signatures: [], markdown: escapeMarkdown(contents.value).trim() } : splitSignatures(contents.value);
 }
 
@@ -73,7 +80,9 @@ export function locationsOf(result: NavigationResult): Location[] {
     if (result === null) {
         return [];
     }
+
     const list = Array.isArray(result) ? (result as (Location | LocationLink)[]) : [result];
+
     return list.map((entry) => (isLink(entry) ? { uri: entry.targetUri, range: entry.targetSelectionRange } : entry));
 }
 
@@ -96,20 +105,25 @@ const BLOCK_TAGS = new Set(['example']);
 export function splitDocTags(markdown: string): { readonly markdown: string; readonly tags: readonly DocTag[] } {
     const tags: DocTag[] = [];
     const kept: string[] = [];
+
     for (const paragraph of markdown.split(/\n{2,}/)) {
         const lines = paragraph.split('\n');
         const matches = lines.map((line) => TAG_LINE.exec(line.trim()));
         const names = matches.map((match) => (match === null ? null : (match[1] ?? match[2] ?? match[3])!));
+
         if (paragraph.trim() === '' || names.some((name) => name === null || BLOCK_TAGS.has(name))) {
             kept.push(paragraph);
+
             continue;
         }
+
         matches.forEach((match, index) => {
             // The TypeScript server puts a dash between a tag, its parameter and its text.
             const text = match![4]!.replace(/^[\u2014\u2013-]\s*/, '').replace(/^(`[^`]+`)\s+[\u2014\u2013-]\s+/, '$1 ');
             tags.push({ name: names[index]!, markdown: text.trim() });
         });
     }
+
     // By name, and in the order written within one name, so parameters keep the order of the signature.
     return { markdown: kept.join('\n\n').trim(), tags: tags.toSorted((left, right) => left.name.localeCompare(right.name)) };
 }
@@ -138,11 +152,14 @@ const BASELINE = /!\[Baseline icon\]\([^)\s]*\)[ \t]*_([^\n]+?)_[ \t]*(?:\n|$)/;
 /* The Baseline status a text carries, which the card draws with a mark of its own, and the text without it. */
 function takeBaseline(markdown: string): { baseline: Baseline | null; rest: string } {
     const match = BASELINE.exec(markdown);
+
     if (match === null) {
         return { baseline: null, rest: markdown };
     }
+
     const text = match[1]!.trim();
     const level = text.startsWith('Widely') ? 'widely' : text.startsWith('Newly') ? 'newly' : 'limited';
+
     return { baseline: { level, text }, rest: (markdown.slice(0, match.index) + markdown.slice(match.index + match[0].length)).replace(/\n{3,}/g, '\n\n') };
 }
 
@@ -176,6 +193,7 @@ export function docblockMarkdown(markdown: string, language: string): string {
     return markdown
         .replace(HTML_CODE, (_match, _tag: string, body: string) => {
             const code = decodeEntities(body);
+
             return code.includes('\n') ? `\n\n\`\`\`${language}\n${dedent(code)}\n\`\`\`\n\n` : `\`${code.trim()}\``;
         })
         .replace(INLINE_TAG, (_match, _tag: string, target: string, label: string | undefined) => (label === undefined ? `\`${target}\`` : label))
@@ -189,17 +207,22 @@ export type MarkdownPart = { readonly kind: 'prose'; readonly text: string } | {
 export function markdownParts(markdown: string): MarkdownPart[] {
     const parts: MarkdownPart[] = [];
     let rest = markdown;
+
     for (let match = ANY_FENCE.exec(rest); match !== null; match = ANY_FENCE.exec(rest)) {
         const prose = rest.slice(0, match.index).trim();
+
         if (prose !== '') {
             parts.push({ kind: 'prose', text: prose });
         }
+
         parts.push({ kind: 'code', block: { language: match[1] || 'text', code: match[2]! } });
         rest = rest.slice(match.index + match[0].length);
     }
+
     if (rest.trim() !== '') {
         parts.push({ kind: 'prose', text: rest.trim() });
     }
+
     return parts;
 }
 
@@ -211,18 +234,23 @@ function unescapeMarkdown(text: string): string {
 function sectionOf(chunk: string, leading: readonly SignatureBlock[]): HoverSection {
     let rest = chunk.trim();
     const title = TITLE.exec(rest);
+
     if (title !== null) {
         rest = rest.slice(title[0].length).trim();
     }
+
     const signatures = [...leading];
     // A section's own snippet is its first block; one further down after the prose, such as an example, stays prose.
     const fence = ANY_FENCE.exec(rest);
+
     if (fence !== null && !/@example/.test(rest.slice(0, fence.index))) {
         signatures.push({ language: fence[1] || 'text', code: fence[2]! });
         rest = (rest.slice(0, fence.index) + rest.slice(fence.index + fence[0].length)).trim();
     }
+
     const taken = takeBaseline(rest);
     const doc = splitDocTags(docblockMarkdown(taken.rest, signatures[0]?.language ?? 'text'));
+
     return {
         title: title === null ? null : unescapeMarkdown((title[1] ?? title[2])!.trim()),
         signatures: signatures.map(withoutOpenTag),
@@ -237,14 +265,19 @@ export function hoverSectionsOf(text: HoverText): HoverSection[] {
     const chunks = text.markdown === '' ? [''] : text.markdown.split(RULE);
     const sections = chunks.map((chunk, index) => sectionOf(chunk, index === 0 ? text.signatures : []));
     const seen = new Set<string>();
+
     return sections.filter((section) => {
         const empty =
             section.title === null && section.signatures.length === 0 && section.markdown === '' && section.tags.length === 0 && section.baseline === null;
+
         const key = JSON.stringify([section.title, section.signatures, section.markdown, section.baseline]);
+
         if (empty || seen.has(key)) {
             return false;
         }
+
         seen.add(key);
+
         return true;
     });
 }

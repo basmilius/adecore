@@ -7,6 +7,7 @@ import { replaceAllLines, replaceLines } from './line-edits.ts';
 function apply(text: string, from: number, to: number, lines: string[]): string {
     const editor = new FakeEditorEngine().mount({} as HTMLElement, { text, theme: 'light' });
     editor.applyEdits([replaceLines(text, { from, to, lines })]);
+
     return editor.getText();
 }
 
@@ -36,9 +37,12 @@ describe('replacing whole lines', () => {
             { from: 2, to: 3, lines: ['C'] },
             { from: 1, to: 2, lines: ['B'] }
         ]);
+
         expect(edits).toHaveLength(1);
+
         const editor = new FakeEditorEngine().mount({} as HTMLElement, { text: 'a\nb\nc\nd\n', theme: 'light' });
         editor.applyEdits(edits);
+
         expect(editor.getText()).toBe('a\nB\nC\nd\n');
     });
 });
@@ -48,6 +52,7 @@ describe('the plan of a conflict', () => {
 
     test('what only the other side changed merges, what both changed asks, and what only we changed is ours', () => {
         const plan = planConflict(base, 'A\nb\nc\nD\ne\nf\ng\n', 'a\nb\nc\nD2\ne\nF\ng\nh\n');
+
         expect(plan.merges).toEqual([
             { from: 5, to: 6, lines: ['F'] },
             { from: 7, to: 7, lines: ['h'] }
@@ -57,11 +62,13 @@ describe('the plan of a conflict', () => {
 
     test('the same change on both sides asks nothing', () => {
         const plan = planConflict(base, 'a\nX\nc\nd\ne\nf\ng\n', 'a\nX\nc\nd\ne\nf\ng\n');
+
         expect(plan).toEqual({ merges: [], conflicts: [] });
     });
 
     test('a stretch removed by one side and changed by the other is a conflict with nothing on one side', () => {
         const plan = planConflict(base, 'a\nc\nd\ne\nf\ng\n', 'a\nB\nc\nd\ne\nf\ng\n');
+
         expect(plan.conflicts).toEqual([{ base: ['b'], ours: [], theirs: ['B'], from: 1, to: 1, theirsStart: 2, theirsEnd: 2 }]);
     });
 });

@@ -19,9 +19,11 @@ async function hoverFor(referenceCount: boolean | undefined) {
     const timers = new ManualTimers();
     const language = new EditorLanguage(project, editor, uri, 'typescript', timers);
     await language.document.ready;
+
     if (referenceCount !== undefined) {
         language.hover.configure({ referenceCount });
     }
+
     editor.hover({ line: 0, character: 8 });
     timers.advance(300);
     await settle();
@@ -31,6 +33,7 @@ async function hoverFor(referenceCount: boolean | undefined) {
     const shown = language.popups.getState().hover?.info?.references ?? null;
     language.dispose();
     project.dispose();
+
     return { references, shown };
 }
 
@@ -62,7 +65,9 @@ async function setup(configure: (service: FakeLanguageService) => void = () => u
     const language = new EditorLanguage(project, editor, fileUri, 'typescript', timers);
     open.push(project, language);
     await language.document.ready;
+
     const report = (diagnostics: Diagnostic[]) => service.report({ uri: fileUri, source: 'typescript', diagnostics });
+
     return { service, editor, language, hover: language.hover, timers, report, notifications };
 }
 
@@ -72,14 +77,19 @@ describe('hover card', () => {
         report([{ range: range(0, 8, 17), message: 'Cannot find name', severity: 1 }]);
         editor.hover({ line: 0, character: 10 });
         timers.advance(200);
+
         expect(language.popups.getState().hover).toBeNull();
+
         timers.advance(150);
         await settle();
         const shown = language.popups.getState().hover;
+
         expect(shown?.problems).toHaveLength(1);
         expect(shown?.anchor).toEqual({ line: 0, character: 8 });
+
         editor.hover({ line: 0, character: 12 });
         timers.advance(1000);
+
         expect(language.popups.getState().hover).toBe(shown);
     });
 
@@ -88,6 +98,7 @@ describe('hover card', () => {
         editor.hover({ line: 0, character: 2 });
         timers.advance(400);
         await settle();
+
         expect(language.popups.getState().hover).toBeNull();
     });
 
@@ -100,30 +111,41 @@ describe('hover card', () => {
         editor.hover(null);
         hover.holdCard(true);
         timers.advance(1000);
+
         expect(language.popups.getState().hover).not.toBeNull();
+
         hover.holdCard(false);
         timers.advance(300);
+
         expect(language.popups.getState().hover).toBeNull();
     });
 
     test('goes when the text is edited, the editor scrolls, or Escape is pressed', async () => {
         const { language, editor, timers, report } = await setup();
         report([{ range: range(0, 8, 17), message: 'Cannot find name' }]);
+
         const show = async () => {
             editor.hover({ line: 0, character: 10 });
             timers.advance(300);
             await settle();
+
             expect(language.popups.getState().hover).not.toBeNull();
         };
+
         await show();
         editor.scroll();
+
         expect(language.popups.getState().hover).toBeNull();
+
         await show();
+
         expect(editor.press({ key: 'Escape' })).toBe(true);
         expect(language.popups.getState().hover).toBeNull();
         expect(editor.press({ key: 'Escape' })).toBe(false);
+
         await show();
         editor.type('let a = salaryFit(1);\nlet b = 3;');
+
         expect(language.popups.getState().hover).toBeNull();
     });
 });
@@ -131,13 +153,17 @@ describe('hover card', () => {
 describe('the reference count', () => {
     async function counted() {
         let asked = 0;
+
         const mounted = await setup((service) => {
             service.respond('textDocument/hover', () => ({ contents: { kind: 'markdown', value: SIGNATURE }, range: range(0, 8, 17) }));
+
             service.respond('textDocument/references', () => {
                 asked++;
+
                 return [{ uri: fileUri, range: range(0, 8, 17) }];
             });
         });
+
         return { ...mounted, asked: () => asked };
     }
 
@@ -151,11 +177,13 @@ describe('the reference count', () => {
         await settle();
         timers.advance(1000);
         await settle();
+
         expect(asked()).toBe(0);
     });
 
     test('is asked for once per name until the text changes', async () => {
         const { editor, timers, asked, language } = await counted();
+
         const rest = async (character: number) => {
             editor.hover({ line: 0, character });
             timers.advance(300);
@@ -163,15 +191,21 @@ describe('the reference count', () => {
             timers.advance(500);
             await settle();
         };
+
         await rest(10);
+
         expect(asked()).toBe(1);
+
         editor.hover(null);
         timers.advance(300);
         await rest(11);
+
         expect(asked()).toBe(1);
         expect(language.popups.getState().hover?.info?.references).toBe(1);
+
         editor.type('let a = salaryFit(1);\nlet b = 3;');
         await rest(10);
+
         expect(asked()).toBe(2);
     });
 });
@@ -181,20 +215,32 @@ describe('quick info', () => {
         const { language, editor, report } = await setup((service) => {
             service.respond('textDocument/hover', () => ({ contents: { kind: 'markdown', value: SIGNATURE } }));
         });
+
         report([{ range: range(0, 8, 17), message: 'Cannot find name', severity: 1 }]);
         editor.moveCaret({ line: 0, character: 10 });
+
         expect(editor.press(keyOf(language.shortcuts.quickInfo))).toBe(true);
+
         await settle();
+
         expect(language.popups.getState().hover?.problems).toHaveLength(1);
         expect(language.popups.getState().hover?.info?.text.signatures[0]?.code).toBe('function salaryFit(): number');
+
         editor.scroll();
+
         expect(language.popups.getState().hover).not.toBeNull();
+
         editor.press({ key: 'Escape' });
+
         expect(language.popups.getState().hover).toBeNull();
+
         editor.press(keyOf(language.shortcuts.quickInfo));
         await settle();
+
         expect(language.popups.getState().hover).not.toBeNull();
+
         editor.moveCaret({ line: 1, character: 0 });
+
         expect(language.popups.getState().hover).toBeNull();
     });
 
@@ -202,9 +248,11 @@ describe('quick info', () => {
         const { language, editor, notifications } = await setup((service) => {
             service.respond('textDocument/hover', () => null);
         });
+
         editor.moveCaret({ line: 1, character: 0 });
         editor.press(keyOf(language.shortcuts.quickInfo));
         await settle();
+
         expect(language.popups.getState().hover).toBeNull();
         expect(notifications.map((notification) => notification.id)).toEqual(['language-hover']);
     });
@@ -217,13 +265,16 @@ describe('hover information', () => {
                 contents: { kind: 'markdown', value: `${SIGNATURE}\n---\nHow well it fits.` },
                 range: range(0, 8, 17)
             }));
+
             fake.respond('textDocument/definition', () => [{ uri: 'file:///work/src/b.ts', range: range(3, 0, 9) }]);
         });
+
         editor.hover({ line: 0, character: 10 });
         timers.advance(300);
         await settle();
         const shown = language.popups.getState().hover;
         const asked = service.calls.map((call) => call.method).filter((method) => method === 'textDocument/hover' || method === 'textDocument/definition');
+
         expect(asked.sort()).toEqual(['textDocument/definition', 'textDocument/hover']);
         expect(shown?.info?.text.signatures[0]).toEqual({ language: 'typescript', code: 'function salaryFit(): number' });
         expect(shown?.info?.text.markdown).toBe('How well it fits.');
@@ -235,17 +286,22 @@ describe('hover information', () => {
     test('counts the references after the card is up, and says which word the pointer is on', async () => {
         const { language, editor, timers } = await setup((service) => {
             service.respond('textDocument/hover', () => ({ contents: { kind: 'markdown', value: SIGNATURE }, range: range(0, 8, 17) }));
+
             service.respond('textDocument/references', () => [
                 { uri: fileUri, range: range(0, 8, 17) },
                 { uri: fileUri, range: range(1, 0, 3) }
             ]);
         });
+
         editor.hover({ line: 0, character: 10 });
         timers.advance(300);
         await settle();
+
         expect(language.popups.getState().hover?.info).toMatchObject({ word: 'salaryFit', references: null });
+
         timers.advance(500);
         await settle();
+
         expect(language.popups.getState().hover?.info).toMatchObject({ word: 'salaryFit', references: 2 });
         expect(language.popups.getState().hover?.position).toEqual({ line: 0, character: 10 });
     });

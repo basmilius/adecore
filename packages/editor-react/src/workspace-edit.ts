@@ -71,20 +71,25 @@ function refused(failureReason: string): ApplyWorkspaceEditResult {
 /* The text edits of an edit per document, as the entries a document has in it, whatever else the edit does. */
 export function textEntriesOf(edit: WorkspaceEdit): Map<string, TextEdit[][]> {
     const entries = new Map<string, TextEdit[][]>();
+
     const add = (uri: string, edits: TextEdit[]): void => {
         entries.set(uri, [...(entries.get(uri) ?? []), edits]);
     };
+
     if (edit.documentChanges === undefined) {
         for (const [uri, edits] of Object.entries(edit.changes ?? {})) {
             add(uri, edits);
         }
+
         return entries;
     }
+
     for (const change of edit.documentChanges) {
         if ('textDocument' in change) {
             add(change.textDocument.uri, change.edits);
         }
     }
+
     return entries;
 }
 
@@ -101,12 +106,15 @@ export function renamesOf(edit: WorkspaceEdit): RenameFile[] {
 /* Every file an edit makes, moves or deletes, in the order it says. */
 export function resourceOperationsOf(edit: WorkspaceEdit): ResourceOperationView[] {
     const operations: ResourceOperationView[] = [];
+
     for (const change of edit.documentChanges ?? []) {
         if ('textDocument' in change) {
             continue;
         }
+
         operations.push(change.kind === 'rename' ? { kind: 'rename', uri: change.oldUri, newUri: change.newUri } : { kind: change.kind, uri: change.uri });
     }
+
     return operations;
 }
 
@@ -125,15 +133,19 @@ interface Reads {
 /* The resource operations a project has a way to carry out; pass it as the session's `resourceOperations` so servers only ask for what can be done. */
 export function supportedResourceOperations(files: ProjectFiles | null | undefined): ResourceOperationKind[] {
     const operations: ResourceOperationKind[] = [];
+
     if (files?.create !== undefined) {
         operations.push('create');
     }
+
     if (files?.rename !== undefined) {
         operations.push('rename');
     }
+
     if (files?.delete !== undefined) {
         operations.push('delete');
     }
+
     return operations;
 }
 
@@ -144,8 +156,10 @@ function within(uri: string, folder: string): boolean {
 /* Where a deleted URI stood before the renames that ran ahead of it, and what was moved into it: the places unsaved work can be. */
 function placesOf(uri: string, renames: readonly RenameFile[]): string[] {
     const found = new Set([uri]);
+
     for (let i = renames.length - 1; i >= 0; i--) {
         const { oldUri, newUri } = renames[i]!;
+
         for (const place of [...found]) {
             if (place === newUri || within(place, newUri)) {
                 found.add(oldUri + place.slice(newUri.length));
@@ -154,22 +168,28 @@ function placesOf(uri: string, renames: readonly RenameFile[]): string[] {
             }
         }
     }
+
     return [...found];
 }
 
 /* Whether deleting or replacing loses work nobody saved at any of the places. Without `isUnsaved` that is an editor on, or under, a place. A `recursive` one may be a folder. */
 function losesWork(recursive: boolean, places: readonly string[], host: WorkspaceEditHost): boolean {
     const files = host.files!;
+
     if (files.isUnsaved !== undefined) {
         return places.some((place) => {
             const path = fileUriToPath(place);
+
             return path !== null && files.isUnsaved!(path);
         });
     }
+
     if (host.openUris === undefined && recursive) {
         return true;
     }
+
     const open = host.openUris?.() ?? [];
+
     return places.some((place) => host.editorOf(place) !== undefined || open.some((uri) => uri === place || within(uri, place)));
 }
 
@@ -186,62 +206,81 @@ function overwriteProblem(
     reads: Reads
 ): string | null {
     const path = fileUriToPath(target)!;
+
     if (host.files?.supportsOverwrite !== true) {
         return `${path} already exists`;
     }
+
     // A target no text was read from may be a folder, with unsaved work anywhere under it.
     const isText = step.kind === 'create' || reads.open.has(target) || reads.disks.has(target);
+
     if (losesWork(!isText, places, host)) {
         return `${path} has changes that are not saved`;
     }
+
     const editor = host.editorOf(target);
+
     return editor !== undefined && step.kind === 'create' && readOnlyAt(host, target, editor) ? `${path} is read only` : null;
 }
 
 /* Checks a plan against what only the host can see: paths, overwrites, unsaved work and the editors it touches. Null when it fits. */
 function problemWith(steps: readonly WorkspaceEditStep[], host: WorkspaceEditHost, reads: Reads): string | null {
     const renames: RenameFile[] = [];
+
     for (const step of steps) {
         if (step.kind === 'edits') {
             if (step.open && readOnlyAt(host, step.readUri, host.editorOf(step.readUri))) {
                 return `${step.uri} is read only`;
             }
+
             continue;
         }
+
         const uris = step.kind === 'rename' ? [step.oldUri, step.newUri] : [step.uri];
         const paths = uris.map((uri) => fileUriToPath(uri));
+
         if (paths.includes(null)) {
             return `${uris[0]} cannot be changed from here`;
         }
+
         if ((step.kind === 'create' || step.kind === 'rename') && step.overwrite) {
             const target = step.kind === 'create' ? step.uri : step.newUri;
             const refusal = overwriteProblem(step, target, placesOf(target, renames), host, reads);
+
             if (refusal !== null) {
                 return refusal;
             }
         }
+
         if (step.kind === 'rename') {
             renames.push({ kind: 'rename', oldUri: step.oldUri, newUri: step.newUri });
         }
+
         if (step.kind === 'delete' && losesWork(step.recursive, placesOf(step.uri, renames), host)) {
             return `${paths[0]} has changes that are not saved`;
         }
     }
+
     for (const [uri, planned] of reads.open) {
         const editor = host.editorOf(uri);
+
         if (editor === undefined || editor.getText() !== planned.text) {
             return `${uri} changed while the edit was being prepared`;
         }
+
         const version = host.versionOf?.(uri) ?? null;
+
         if (planned.version !== null && version !== planned.version) {
             return `${uri} changed while the edit was being prepared`;
         }
     }
+
     for (const uri of reads.disks.keys()) {
         if (host.editorOf(uri) !== undefined) {
             return `${uri} was opened while the edit was being prepared`;
         }
     }
+
     return null;
 }
 
@@ -266,23 +305,30 @@ export async function applyWorkspaceEdit(edit: WorkspaceEdit, host: WorkspaceEdi
     const reads: Reads = { open: new Map(), disks: new Map() };
     const files = host.files;
     let steps: readonly WorkspaceEditStep[];
+
     try {
         ({ steps } = await planWorkspaceOperations(edit, {
             operations: supportedResourceOperations(files),
             read: async (uri) => {
                 const editor = host.editorOf(uri);
+
                 if (editor !== undefined) {
                     const text = editor.getText();
                     const version = host.versionOf?.(uri) ?? null;
                     reads.open.set(uri, { text, version });
+
                     return { text, version, open: true };
                 }
+
                 const path = fileUriToPath(uri);
                 const disk = path === null || files === null ? null : await files.read(path);
+
                 if (disk === null) {
                     return null;
                 }
+
                 reads.disks.set(uri, disk);
+
                 return { text: disk.text, version: null, open: false };
             },
             ...(files?.exists === undefined
@@ -290,6 +336,7 @@ export async function applyWorkspaceEdit(edit: WorkspaceEdit, host: WorkspaceEdi
                 : {
                       exists: async (uri: string) => {
                           const path = fileUriToPath(uri);
+
                           return path !== null && (await files.exists!(path));
                       }
                   }),
@@ -298,6 +345,7 @@ export async function applyWorkspaceEdit(edit: WorkspaceEdit, host: WorkspaceEdi
                 : {
                       isFolder: async (uri: string) => {
                           const path = fileUriToPath(uri);
+
                           return path === null || (await files.isFolder!(path));
                       }
                   })
@@ -305,21 +353,28 @@ export async function applyWorkspaceEdit(edit: WorkspaceEdit, host: WorkspaceEdi
     } catch (error) {
         return refused(messageOf(error));
     }
+
     const problem = problemWith(steps, host, reads);
+
     if (problem !== null) {
         return refused(problem);
     }
+
     const running: Running = { ahead: [], reads, saving: steps.some((step) => step.kind === 'rename'), staged: [], touched: new Set() };
+
     for (const [index, step] of steps.entries()) {
         running.ahead = steps.slice(index + 1);
         const reason = await run(step, host, running);
+
         if (reason !== null) {
             return refused(reason);
         }
     }
+
     if (running.staged.length > 0) {
         files?.stage(running.staged);
     }
+
     return { applied: true };
 }
 
@@ -340,56 +395,74 @@ function driftOf(step: PlannedTextStep, host: WorkspaceEditHost, uri: string, ed
     if (editor.getText() !== step.before) {
         return `${step.uri} changed while the edit was being applied`;
     }
+
     const version = uri === step.readUri && !touched.has(editor) ? host.versionOf?.(uri) : undefined;
+
     if (version !== undefined && step.version !== null && version !== step.version) {
         return `${step.uri} changed while the edit was being applied`;
     }
+
     return readOnlyAt(host, uri, editor) ? `${step.uri} is read only` : null;
 }
 
 /* Does one step; the reason it could not, or null. */
 async function run(step: WorkspaceEditStep, host: WorkspaceEditHost, running: Running): Promise<string | null> {
     const files = host.files!;
+
     if (step.kind === 'create') {
         return step.overwrite ? overwriteFile(step, host) : files.create!(fileUriToPath(step.uri)!, step.text);
     }
+
     if (step.kind === 'rename') {
         const [from, to] = [fileUriToPath(step.oldUri)!, fileUriToPath(step.newUri)!];
+
         if (!step.overwrite) {
             return files.rename(from, to);
         }
+
         // The steps before this one ran, so the unsaved work at the target is looked for once more.
         return losesWork(!running.reads.disks.has(step.newUri) && !running.reads.open.has(step.newUri), [step.newUri], host)
             ? `${to} has changes that are not saved`
             : files.rename(from, to, { overwrite: true });
     }
+
     if (step.kind === 'delete') {
         const path = fileUriToPath(step.uri)!;
+
         if (losesWork(step.recursive, [step.uri], host)) {
             return `${path} has changes that are not saved`;
         }
+
         return files.delete!(path, { recursive: step.recursive });
     }
+
     if (step.after === step.before) {
         return null;
     }
+
     if (step.open) {
         const uri = host.editorOf(step.uri) === undefined ? step.readUri : step.uri;
+
         return editOpen(step, host, running, uri, host.editorOf(uri));
     }
+
     return runDraft(step, host, running);
 }
 
 /* Empties a file that is there and gives it its text; the editor that still holds it is set to the same text. */
 async function overwriteFile(step: PlannedCreateStep, host: WorkspaceEditHost): Promise<string | null> {
     const path = fileUriToPath(step.uri)!;
+
     if (losesWork(false, [step.uri], host)) {
         return `${path} has changes that are not saved`;
     }
+
     const reason = await host.files!.create!(path, step.text, { overwrite: true });
+
     if (reason === null) {
         host.editorOf(step.uri)?.setText(step.text);
     }
+
     return reason;
 }
 
@@ -397,11 +470,15 @@ function editOpen(step: PlannedTextStep, host: WorkspaceEditHost, running: Runni
     if (editor === undefined) {
         return `${step.uri} is not open any more`;
     }
+
     const drift = driftOf(step, host, uri, editor, running.touched);
+
     if (drift !== null) {
         return drift;
     }
+
     running.touched.add(editor);
+
     // The edits stay apart, so the caret and what is drawn over the text stay where they were between them.
     return editor.applyEdits(step.edits.map(contentChangeOf)) ? null : `${step.uri} is read only`;
 }
@@ -414,18 +491,25 @@ function deletedAhead(uri: string, ahead: readonly WorkspaceEditStep[]): boolean
 async function runDraft(step: PlannedTextStep, host: WorkspaceEditHost, running: Running): Promise<string | null> {
     const { reads, saving, staged, ahead } = running;
     const uri = [step.uri, step.readUri].find((candidate) => host.editorOf(candidate) !== undefined);
+
     if (uri !== undefined) {
         return editOpen(step, host, running, uri, host.editorOf(uri));
     }
+
     const path = fileUriToPath(step.uri);
     const disk = reads.disks.get(step.readUri);
+
     if (path === null || disk === undefined || deletedAhead(step.uri, ahead)) {
         return null;
     }
+
     const file = { path, disk, text: step.after };
+
     if (!saving) {
         staged.push(file);
+
         return null;
     }
+
     return host.files!.save([file]);
 }

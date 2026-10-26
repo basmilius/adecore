@@ -87,6 +87,7 @@ export function rootsOf(items: readonly CallHierarchyItem[]): CallNode[] {
  */
 export function childrenOf(direction: CallDirection, parent: CallNode, calls: readonly (CallHierarchyIncomingCall | CallHierarchyOutgoingCall)[]): CallNode[] {
     const entries = calls.map((call) => ({ item: 'from' in call ? call.from : call.to, sites: call.fromRanges }));
+
     return entries.map((entry, index) => ({
         id: `${parent.id}.${index}`,
         parent: parent.id,
@@ -105,8 +106,10 @@ export function childrenOf(direction: CallDirection, parent: CallNode, calls: re
 /* The lines the tree draws: every root, and under an expanded node its status, its calls and the row that shows more. */
 export function rowsOf(nodes: ReadonlyMap<string, CallNode>, roots: readonly string[]): CallRow[] {
     const rows: CallRow[] = [];
+
     const visit = (id: string, position: number, size: number): void => {
         const node = nodes.get(id)!;
+
         rows.push({
             kind: 'node',
             id,
@@ -119,9 +122,11 @@ export function rowsOf(nodes: ReadonlyMap<string, CallNode>, roots: readonly str
             position,
             size
         });
+
         if (!node.expanded) {
             return;
         }
+
         if (node.load === 'loading') {
             rows.push({ kind: 'status', id: statusIdOf(id), parent: id, level: node.level + 1, status: 'loading', message: null });
         } else if (node.load === 'failed') {
@@ -129,13 +134,17 @@ export function rowsOf(nodes: ReadonlyMap<string, CallNode>, roots: readonly str
         } else if (node.load === 'loaded' && node.children.length === 0) {
             rows.push({ kind: 'status', id: statusIdOf(id), parent: id, level: node.level + 1, status: 'empty', message: null });
         }
+
         const shown = node.children.slice(0, node.shown);
         shown.forEach((child, index) => visit(child, index + 1, node.children.length));
+
         if (node.children.length > node.shown) {
             rows.push({ kind: 'more', id: moreIdOf(id), level: node.level + 1, parent: id, hidden: node.children.length - node.shown });
         }
     };
+
     roots.forEach((root, index) => visit(root, index + 1, roots.length));
+
     return rows;
 }
 
@@ -147,5 +156,6 @@ export function stepsOf(rows: readonly CallRow[]): CallRow[] {
 /* The place a node goes to: its first call site, or the symbol itself for a root. */
 export function targetOf(node: CallNode, site = 0): { uri: string; range: Range } {
     const range = node.sites[site];
+
     return range === undefined || node.siteUri === null ? { uri: node.item.uri, range: node.item.selectionRange } : { uri: node.siteUri, range };
 }

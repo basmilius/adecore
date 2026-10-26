@@ -17,6 +17,7 @@ export class ReviewGroup {
 
     join(member: ReviewMember): () => void {
         this.members.add(member);
+
         return () => {
             this.members.delete(member);
         };
@@ -50,14 +51,17 @@ export function joinReviewGroup(key: string): { group: ReviewGroup; leave(): voi
     groups.set(key, held);
     held.holders++;
     let left = false;
+
     return {
         group: held.group,
         leave: () => {
             if (left) {
                 return;
             }
+
             left = true;
             held.holders--;
+
             if (held.holders === 0 && groups.get(key) === held) {
                 groups.delete(key);
             }

@@ -18,10 +18,13 @@ export function Signature({ code, language, onName }: { code: string; language: 
         if (highlight === undefined) {
             return;
         }
+
         let alive = true;
+
         highlight(code, language, theme)
             .then((result) => alive && setHtml({ key, html: linked ? linkTypeNames(result) : result }))
             .catch(() => undefined);
+
         return () => {
             alive = false;
         };
@@ -29,13 +32,16 @@ export function Signature({ code, language, onName }: { code: string; language: 
 
     const className =
         'font-mono text-code break-words whitespace-pre-wrap [&_.line]:block [&_pre]:m-0 [&_pre]:bg-transparent! [&_pre]:whitespace-pre-wrap [&_code]:font-mono';
+
     // One handler for every name, since the names are part of the highlighted HTML and not elements of ours.
     const follow = (event: MouseEvent<HTMLDivElement>): void => {
         const name = (event.target as HTMLElement).closest<HTMLElement>('[data-symbol]')?.dataset.symbol;
+
         if (name !== undefined && onName !== undefined) {
             onName(name);
         }
     };
+
     return html?.key === key ? (
         <div className={className} onClick={follow} dangerouslySetInnerHTML={{ __html: html.html }} />
     ) : (
@@ -63,6 +69,7 @@ export function DocTags({ tags }: { tags: readonly DocTag[] }) {
 export function SymbolSection({ section, onName }: { section: HoverSection; onName?: (name: string, declared: string | null) => void }) {
     const declared = declaredNameOf(section.signatures[0]?.code ?? '');
     const follow = onName === undefined ? undefined : (name: string): void => onName(name, declared);
+
     return (
         <div className="flex flex-col gap-1.5 px-3 py-2">
             {section.title !== null && <div className="truncate font-mono text-xs text-text-faint select-text">{section.title}</div>}
@@ -113,10 +120,13 @@ export function SourceLine({ text, language }: { text: string; language: string 
         if (!highlighted || highlight === undefined) {
             return;
         }
+
         let alive = true;
+
         highlight(`<?php ${text}`, 'php', theme)
             .then((result) => alive && setHtml({ key, html: phpWithoutOpenTag(result) }))
             .catch(() => undefined);
+
         return () => {
             alive = false;
         };
@@ -124,6 +134,7 @@ export function SourceLine({ text, language }: { text: string; language: string 
 
     const className =
         'block overflow-hidden text-left font-mono text-code text-ellipsis whitespace-nowrap [direction:rtl] [&_code]:font-mono [&_pre]:m-0 [&_pre]:inline [&_pre]:bg-transparent! [&_pre]:p-0 [&_code]:inline [&_.line]:inline';
+
     return (
         <Tooltip label={text}>
             {highlighted && html?.key === key ? (

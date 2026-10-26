@@ -14,15 +14,20 @@ export interface ChangeReviewProps {
 
 export function ChangeReview({ editor, selected, proposal, startLine = 1, actions, className, label }: ChangeReviewProps) {
     const code = useRef<HTMLDivElement>(null);
+
     useLayoutEffect(() => {
         const element = code.current;
+
         if (element === null) {
             return;
         }
+
         element.replaceChildren();
+
         for (const segment of diffSegments(selected, proposal, startLine)) {
             const row = element.ownerDocument.createElement('div');
             element.append(row);
+
             editor.renderCode(row, segment.text, {
                 firstLine: segment.firstLine,
                 ...(segment.kind === 'same'
@@ -32,8 +37,10 @@ export function ChangeReview({ editor, selected, proposal, startLine = 1, action
                 emphasis: emphasisOf(segment)
             });
         }
+
         return () => element.replaceChildren();
     }, [editor, selected, proposal, startLine]);
+
     return (
         <section className={className} aria-label={label}>
             <div ref={code} />

@@ -11,6 +11,7 @@ import { realTimers, revealRow, type Timers } from './timers.ts';
 import { placeKey, uniqueBy } from './unique.ts';
 
 const TOAST_ID = 'language-peek';
+
 /* The block as the panel draws it: a hatched band, the header, eight lines of code and a hatched band, until the editor has measured it. */
 export const PEEK_HEIGHT = 241;
 
@@ -30,8 +31,10 @@ export class PeekFeature {
     private readonly language: EditorLanguage;
     private readonly timers: Timers;
     private kind: PeekKind = 'references';
+
     /* The whole declaration of each place of a definition peek, where the server gave it. */
     private targets = new Map<string, Range>();
+
     private texts = new Map<string, string>();
     private places = new Map<string, Location>();
     private order: string[] = [];
@@ -42,24 +45,31 @@ export class PeekFeature {
         this.language = language;
         this.timers = timers;
         const { editor } = language;
+
         const offs = [
             language.onKey((event) => {
                 if (isShortcut(this.language.shortcuts.peekReferences, event)) {
                     void this.open();
+
                     return true;
                 }
+
                 if (isShortcut(this.language.shortcuts.peekDefinition, event)) {
                     void this.openDefinition();
+
                     return true;
                 }
+
                 return this.key(event);
             }, KEY_PRIORITY.peek),
             editor.onTextChange(() => this.close())
         ];
+
         language.onDispose(() => {
             for (const off of offs) {
                 off();
             }
+
             this.close();
         });
     }
@@ -71,53 +81,69 @@ export class PeekFeature {
     async open(position: EditorPosition = this.language.editor.getCaret(), kind: PeekKind = 'references'): Promise<void> {
         const { editor, project, uri } = this.language;
         const method = KINDS[kind].method;
+
         if (!project.service.supports(method, uri)) {
             this.tell(this.say(KINDS[kind].unavailable));
+
             return;
         }
+
         const token = ++this.token;
         let found: { locations: Location[]; targets: Map<string, Range> };
+
         try {
             found = await this.fetch(kind, position);
         } catch (error) {
             if (!(error instanceof StaleResultError)) {
                 this.tell(this.say('failed', { message: messageOf(error) }));
             }
+
             return;
         }
+
         if (token !== this.token) {
             return;
         }
+
         const { targets } = found;
         const unique = uniqueBy(found.locations, placeKey);
+
         if (unique.length === 0) {
             this.tell(this.say(KINDS[kind].none));
+
             return;
         }
+
         const uris = [...new Set(unique.map((location) => location.uri))].slice(0, PEEK_READ_FILES);
         const texts = new Map<string, string>();
+
         await Promise.all(
             uris.map(async (target) => {
                 const text = await project.readText(target);
+
                 if (text !== null) {
                     texts.set(target, text);
                 }
             })
         );
+
         if (token !== this.token) {
             return;
         }
+
         this.texts = texts;
         this.kind = kind;
         this.targets = targets;
         const files = peekFilesOf(unique, uri, (target) => texts.get(target) ?? null);
         this.places = new Map(files.flatMap((file: PeekFile) => file.places.map((place) => [place.id, place.location] as const)));
         this.order = files.flatMap((file) => file.places.map((place) => place.id));
+
         // The references open on the first place that is not the one the caret is on, which is what a person came to see.
         const first =
             kind === 'definitions'
                 ? files[0]!.places[0]!
                 : (files.flatMap((file) => file.places).find((place) => !(place.location.uri === uri && place.line === position.line)) ?? files[0]!.places[0]!);
+
         this.line = position.line;
         this.language.callHierarchy.close();
         this.language.popups.setState({ peek: { kind, container: null, files, active: first.id, collapsed: [], count: unique.length, preview: null } });
@@ -135,20 +161,25 @@ export class PeekFeature {
 
     private async fetch(kind: PeekKind, position: EditorPosition): Promise<{ locations: Location[]; targets: Map<string, Range> }> {
         const { project, uri } = this.language;
+
         if (kind === 'references') {
             // Without the declaration, so the list holds what the usages count above a declaration counts.
             return { locations: (await project.service.references(uri, position, false)) ?? [], targets: new Map() };
         }
+
         const places = uniquePlaces(await project.service.definition(uri, position));
         const targets = new Map(places.flatMap(({ location, target }) => (target === null ? [] : [[placeKey(location), target] as const])));
+
         return { locations: places.map(({ location }) => location), targets };
     }
 
     close(): void {
         this.token++;
+
         if (this.language.popups.getState().peek === null) {
             return;
         }
+
         this.language.popups.setState({ peek: null });
         this.language.editor.setWidgets([]);
         this.language.editor.focus();
@@ -158,23 +189,28 @@ export class PeekFeature {
     select(id: string): void {
         const view = this.language.popups.getState().peek;
         const location = this.places.get(id);
+
         if (view === null || location === undefined) {
             return;
         }
+
         const text = this.texts.get(location.uri);
         const line = location.range.start.line;
+
         const snippet =
             text === undefined
                 ? null
                 : this.kind === 'definitions'
                   ? definitionSnippetOf(text, line, this.targets.get(placeKey(location)) ?? null, location.range)
                   : snippetOf(text, line, location.range);
+
         this.language.popups.setState({ peek: { ...view, active: id, preview: snippet === null ? null : { ...snippet, uri: location.uri } } });
     }
 
     /* Folds the places of a file away from the list, or brings them back. */
     toggleFile(uri: string): void {
         const view = this.language.popups.getState().peek;
+
         if (view !== null) {
             const collapsed = view.collapsed.includes(uri) ? view.collapsed.filter((other) => other !== uri) : [...view.collapsed, uri];
             this.language.popups.setState({ peek: { ...view, collapsed } });
@@ -184,6 +220,7 @@ export class PeekFeature {
     /* Goes to a place and closes the peek. */
     go(id: string): void {
         const location = this.places.get(id);
+
         if (location !== undefined) {
             this.close();
             this.language.goTo(location);
@@ -192,6 +229,7 @@ export class PeekFeature {
 
     private mounted(container: HTMLElement): void {
         const view = this.language.popups.getState().peek;
+
         if (view !== null && view.container !== container) {
             this.language.popups.setState({ peek: { ...view, container } });
             revealRow(this.timers, container);
@@ -200,21 +238,27 @@ export class PeekFeature {
 
     private key(event: KeyboardEvent): boolean {
         const view = this.language.popups.getState().peek;
+
         if (view === null || event.metaKey || event.ctrlKey || event.altKey) {
             return false;
         }
+
         switch (event.key) {
             case 'ArrowDown':
                 this.step(view, 1);
+
                 return true;
             case 'ArrowUp':
                 this.step(view, -1);
+
                 return true;
             case 'Enter':
                 this.go(view.active);
+
                 return true;
             case 'Escape':
                 this.close();
+
                 return true;
             default:
                 return false;
@@ -224,10 +268,13 @@ export class PeekFeature {
     /* The next place in the list a person can see, which a folded file has none of. */
     private step(view: PeekView, direction: 1 | -1): void {
         const index = this.order.indexOf(view.active);
+
         for (let next = index + direction; next >= 0 && next < this.order.length; next += direction) {
             const id = this.order[next]!;
+
             if (!view.collapsed.includes(this.places.get(id)!.uri)) {
                 this.select(id);
+
                 return;
             }
         }

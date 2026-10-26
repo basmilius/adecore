@@ -14,7 +14,9 @@ describe('type names in a snippet', () => {
     test('become links when they are a whole token, and nothing else does', () => {
         const html =
             '<span class="line"><span style="color:#a">final</span><span style="color:#b">IssueTicketsMessage</span><span style="color:#c"> implements </span><span>MessageInterface</span><span>"Quoted"</span><span>// Not a Name</span></span>';
+
         const linked = linkTypeNames(html);
+
         expect(linked.match(/data-symbol="([^"]+)"/g)).toEqual(['data-symbol="IssueTicketsMessage"', 'data-symbol="MessageInterface"']);
         expect(linked).toContain('hover:underline');
         expect(linked).toContain('"Quoted"');
@@ -34,19 +36,23 @@ describe('where a name leads', () => {
 
     test('keeps the exact name, types ahead of the rest', () => {
         const places = placesOfName([symbol('Message', 5, uriA), symbol('MessageBus', 5, uriB), symbol('Message', 13, uriB)], 'Message', '');
+
         expect(places.map((place) => place.uri)).toEqual([uriA]);
         expect(placesOfName([symbol('Message', 13, uriB)], 'Message', '').map((place) => place.uri)).toEqual([uriB]);
     });
 
     test('takes the one whose namespace the file names when there are several', () => {
         const result = [symbol('Message', 5, uriA, 'App\\Chat'), symbol('Message', 5, uriB, 'Vendor\\Mail')];
+
         expect(placesOfName(result, 'Message', 'use Vendor\\Mail;').map((place) => place.uri)).toEqual([uriB]);
         expect(placesOfName(result, 'Message', '')).toHaveLength(2);
     });
 
     test('has none for no result, and a place on the first line for a symbol without a range', () => {
         expect(placesOfName(null, 'Message', '')).toEqual([]);
+
         const bare = [{ name: 'Message', kind: 5 as SymbolKind, location: { uri: uriA } }];
+
         expect(placesOfName(bare, 'Message', '')[0]!.range.start.line).toBe(0);
     });
 });

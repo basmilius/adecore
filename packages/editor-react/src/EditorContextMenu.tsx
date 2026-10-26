@@ -13,11 +13,14 @@ import type { MenuView } from './popups.ts';
 export function EditorContextMenu({ language, view, children }: { language: EditorLanguage; view: MenuView; children?: ReactNode }) {
     const { t } = useTranslation('editor');
     const trigger = useRef<HTMLDivElement>(null);
+
     useEffect(() => {
         trigger.current?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: view.x, clientY: view.y }));
     }, [view.x, view.y]);
+
     const { service } = language.project;
     const groups = menuGroupsOf((method) => service.supports(method, language.uri));
+
     const run: Record<MenuRowId, () => void> = {
         definition: () => void language.navigation.go('definition'),
         declaration: () => void language.navigation.go('declaration'),
@@ -28,6 +31,7 @@ export function EditorContextMenu({ language, view, children }: { language: Edit
         renameSymbol: () => void language.rename.start(),
         codeActions: () => void language.codeActions.open()
     };
+
     const label = (id: MenuRowId): string => {
         switch (id) {
             case 'definition':
@@ -41,8 +45,10 @@ export function EditorContextMenu({ language, view, children }: { language: Edit
                 return t(`commands.${id}`);
         }
     };
+
     const item = (row: MenuRowSpec): ReactNode => {
         const shortcut = row.shortcut === null ? null : language.shortcuts[row.shortcut];
+
         return (
             <ContextMenu.Item key={row.id} onClick={run[row.id]}>
                 {label(row.id)}
@@ -50,6 +56,7 @@ export function EditorContextMenu({ language, view, children }: { language: Edit
             </ContextMenu.Item>
         );
     };
+
     return (
         <ContextMenu.Root onOpenChange={(open) => !open && language.contextMenu.close()}>
             <ContextMenu.Trigger ref={trigger} className="fixed top-0 left-0 h-0 w-0" aria-hidden />

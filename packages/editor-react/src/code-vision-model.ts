@@ -7,6 +7,7 @@ export const MAX_DECLARATIONS = 3000;
 
 /* LSP's SymbolKind: the kinds a row is drawn for and the ones whose children can be declarations too. */
 const CLASS = 5;
+
 const METHOD = 6;
 const PROPERTY = 7;
 const FIELD = 8;
@@ -62,6 +63,7 @@ function isUsageKind(kind: number, parentKind: number | null): boolean {
     if (TYPES.has(kind) || CALLABLES.has(kind)) {
         return true;
     }
+
     return (kind === PROPERTY || kind === FIELD || kind === CONSTANT) && (parentKind === CLASS || parentKind === STRUCT);
 }
 
@@ -80,6 +82,7 @@ function walk(symbols: readonly DocumentSymbol[], path: readonly string[], paren
             path,
             parentKind
         });
+
         // What a function or a method holds is local to it, and a row for a callback is noise.
         if (CONTAINERS.has(symbol.kind)) {
             walk(symbol.children ?? [], [...path, symbol.name], symbol.kind, out);
@@ -89,20 +92,27 @@ function walk(symbols: readonly DocumentSymbol[], path: readonly string[], paren
 
 function candidatesOf(result: DocumentSymbolResult): Candidate[] {
     const out: Candidate[] = [];
+
     if (result === null || result.length === 0) {
         return out;
     }
+
     if ('range' in result[0]!) {
         walk(result as DocumentSymbol[], [], null, out);
+
         return out;
     }
+
     const flat = result as SymbolInformation[];
     const containers = new Map(flat.filter((symbol) => CONTAINERS.has(symbol.kind)).map((symbol) => [symbol.name, symbol.kind]));
+
     for (const symbol of flat) {
         const container = symbol.containerName ?? '';
+
         if (container !== '' && !containers.has(container)) {
             continue;
         }
+
         out.push({
             name: symbol.name,
             kind: symbol.kind,
@@ -113,6 +123,7 @@ function candidatesOf(result: DocumentSymbolResult): Candidate[] {
             parentKind: container === '' ? null : (containers.get(container) ?? null)
         });
     }
+
     return out;
 }
 
@@ -124,38 +135,51 @@ export function startAfterComments(source: DeclarationSource, from: Position, to
     const hash = HASH_COMMENTS.has(source.languageId);
     let line = from.line;
     let character = from.character;
+
     while (line <= to.line && line < source.lineCount) {
         const text = source.lineAt(line);
         let at = character;
+
         while (at < text.length && (text[at] === ' ' || text[at] === '\t')) {
             at++;
         }
+
         if (at >= text.length) {
             line++;
             character = 0;
+
             continue;
         }
+
         if (text.startsWith('/*', at)) {
             let end = text.indexOf('*/', at + 2);
             let scan = line;
+
             while (end === -1 && scan + 1 <= to.line && scan + 1 < source.lineCount) {
                 scan++;
                 end = source.lineAt(scan).indexOf('*/');
             }
+
             if (end === -1) {
                 return null;
             }
+
             line = scan;
             character = end + 2;
+
             continue;
         }
+
         if (text.startsWith('//', at) || (hash && text[at] === '#' && text[at + 1] !== '[')) {
             line++;
             character = 0;
+
             continue;
         }
+
         return line > to.line ? null : { line, character: at };
     }
+
     return null;
 }
 
@@ -168,12 +192,14 @@ function lastLineWithCode(source: DeclarationSource, from: number, to: number): 
             return line;
         }
     }
+
     return from;
 }
 
 /* Where the name starts when a server gave only a range: its first occurrence on the line the declaration starts on. */
 function nameIn(source: DeclarationSource, name: string, start: Position): Position | null {
     const at = source.lineAt(start.line).indexOf(name, start.character);
+
     return at === -1 ? null : { line: start.line, character: at };
 }
 
@@ -185,26 +211,35 @@ function nameIn(source: DeclarationSource, name: string, start: Position): Posit
 export function declarationsOf(result: DocumentSymbolResult, source: DeclarationSource): CodeVisionDeclaration[] {
     const declarations: CodeVisionDeclaration[] = [];
     const seen = new Map<string, number>();
+
     for (const candidate of candidatesOf(result)) {
         if (isLocalName(candidate.name)) {
             continue;
         }
+
         const usages = isUsageKind(candidate.kind, candidate.parentKind) && !candidate.name.startsWith('__');
         const authors = isAuthorKind(candidate.kind);
+
         if (!usages && !authors) {
             continue;
         }
+
         const start = startAfterComments(source, candidate.start, candidate.end);
+
         if (start === null || source.lineAt(start.line).slice(0, start.character).trim() !== '') {
             continue;
         }
+
         const position = candidate.namePosition ?? nameIn(source, candidate.name, start);
+
         if (position === null) {
             continue;
         }
+
         const key = `${candidate.path.join('>')}>${candidate.name}#${candidate.kind}`;
         const index = seen.get(key) ?? 0;
         seen.set(key, index + 1);
+
         declarations.push({
             id: `${key}#${index}`,
             name: candidate.name,
@@ -215,10 +250,12 @@ export function declarationsOf(result: DocumentSymbolResult, source: Declaration
             authorFrom: position.line,
             authorTo: lastLineWithCode(source, position.line, candidate.end.line)
         });
+
         if (declarations.length > MAX_DECLARATIONS) {
             return [];
         }
     }
+
     return declarations;
 }
 
