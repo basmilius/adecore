@@ -50,9 +50,11 @@ export function ChartFrontier({ lowerX = true, higherY = true, width = 14, tone,
     // On pixels a higher value stands lower, so the y is turned around before the frontier compares it.
     const placed = chart.positions.flatMap((position) => (position === null ? [] : [{ x: position[0], y: -position[1] }]));
     const band = frontierOf(placed, lowerX, higherY);
+
     if (band.length < 2) {
         return null;
     }
+
     return (
         <polyline
             ref={ref}
@@ -78,32 +80,39 @@ export function ChartEndLabels<Row>({ children, width, className, ref }: ChartEn
     useBeforePaint(() => {
         store.setAxis('end', room);
     });
+
     useBeforePaint(() => () => store.setAxis('end', null), [store]);
 
     const ends = pointGroups.flatMap((run) => {
         const last = run.indexes.findLast((index) => positions[index] !== null);
+
         return last === undefined ? [] : [{ run, point: positions[last]! }];
     });
+
     const centers = spreadLabels(
         ends.map(({ point }) => point[1]),
         LABEL_SPACING,
         plot.top,
         plot.bottom - 8
     );
+
     const rows = chart.data as Row[];
     const left = Math.round(plot.right);
+
     return (
         <g ref={ref} className={clsx('pointer-events-none', className)} aria-hidden>
             {ends.map(({ run, point }, i) => {
                 const first = run.indexes[0]!;
                 const color = chart.pointColor(first);
                 const center = Math.round(centers[i]!);
+
                 const series = {
                     key: run.key,
                     label: chart.groupLabels?.[first] ?? run.key,
                     rows: run.indexes.map((index) => rows[index]!),
                     color
                 };
+
                 return (
                     <g key={run.key} opacity={chart.dimmedGroups.has(run.key) ? DIMMED_POINT : 1} style={{ color }}>
                         <line x1={point[0] + 7} y1={point[1]} x2={left + LEADER_END} y2={center} stroke="currentColor" opacity={0.3} />

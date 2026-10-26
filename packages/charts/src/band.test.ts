@@ -50,6 +50,7 @@ describe('columns', () => {
 
     test('take the width the chart gives them, within the bucket and never under 2px', () => {
         const slotMinusFour = (bucket: number): number => Math.max(6, Math.min(44, Math.floor(bucket) - 4));
+
         expect(columnsIn(0, 30, 1, slotMinusFour)[0]!.width).toBe(26);
         expect(columnsIn(0, 100, 1, slotMinusFour)[0]!.width).toBe(44);
         expect(columnsIn(0, 4, 1, slotMinusFour)[0]!.width).toBe(4);
@@ -91,6 +92,7 @@ describe('value labels', () => {
             { center: 50, top: 101, width: 28 },
             { center: 200, top: 102, width: 28 }
         ]);
+
         expect(first).toBe(100 - LABEL_LIFT);
         expect(first! - second!).toBeGreaterThanOrEqual(16);
         expect(first! - second!).toBeLessThan(32);
@@ -104,6 +106,7 @@ describe('value labels', () => {
             { center: 10, top: 100, width: 28 },
             { center: 30, top: 100, width: 28 }
         ];
+
         const [small, smallAbove] = placeValueLabels(columns);
         const [large, largeAbove] = placeValueLabels(columns, 'xs');
         expect(large).toBe(small);

@@ -22,6 +22,7 @@ export interface ChartApi<Row> {
 export function useChart<Row = unknown>(): ChartApi<Row> {
     const chart = useChartContext('useChart');
     const active = chart.activeIndex >= 0 ? chart.activeIndex : null;
+
     return {
         plot: chart.plot,
         data: chart.data as Row[],

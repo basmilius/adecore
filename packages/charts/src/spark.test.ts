@@ -10,6 +10,7 @@ test('the columns of a sparkline fill its width on whole pixels, 2px apart', () 
 
 test('a zero is a one-pixel baseline, and the smallest count is a 4px bar rounded by half its width', () => {
     const columns = sparkColumns([100, 0, 1], 22, 16);
+
     expect(columns.map((column) => [column.height, column.radius, column.zero])).toEqual([
         [16, 3, false],
         [1, 0, true],

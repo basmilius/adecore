@@ -14,6 +14,7 @@ export function colorOf(tone: ChartColor | undefined): string | null {
     if (tone === undefined) {
         return null;
     }
+
     return typeof tone === 'string' ? TONES[tone] : tone.color;
 }
 

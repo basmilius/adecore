@@ -79,17 +79,22 @@ export function SeriesLegend<Item extends SeriesLegendItem>({
     const query = queryProp ?? ownQuery;
     const off = new Set(hidden);
     const shown = matchingItems(items, query);
+
     const sections =
         groups === undefined ? [{ key: '', label: null as string | null }] : groups.map((group) => ({ key: group.key, label: group.label as string | null }));
+
     const searchLabel = search === undefined ? t('legend.search') : search;
 
     const setQuery = (next: string): void => {
         if (queryProp === undefined) {
             setOwnQuery(next);
         }
+
         onQueryChange?.(next);
     };
+
     const toggle = (key: string): void => onHiddenChange(off.has(key) ? hidden.filter((entry) => entry !== key) : [...hidden, key]);
+
     const highlight = (key: string | null): void => {
         if (key !== highlighted) {
             onHighlightedChange?.(key);
@@ -104,11 +109,14 @@ export function SeriesLegend<Item extends SeriesLegendItem>({
             <div role="group" aria-label={label} className="flex min-h-0 flex-col gap-4">
                 {sections.map((section) => {
                     const own = shown.filter((item) => groups === undefined || item.group === section.key);
+
                     if (own.length === 0) {
                         return null;
                     }
+
                     const members = items.filter((item) => item.group === section.key && item.disabled !== true);
                     const allOn = members.every((item) => !off.has(item.key));
+
                     return (
                         <div key={section.key} className="flex flex-col">
                             {section.label !== null && (
@@ -126,6 +134,7 @@ export function SeriesLegend<Item extends SeriesLegendItem>({
                                 const statusId = `${id}-${item.key}`;
                                 const color = item.color ?? 'var(--text-muted)';
                                 const name = item.name ?? item.label;
+
                                 return (
                                     <Tooltip key={item.key} label={item.status ?? name} side="left">
                                         <button

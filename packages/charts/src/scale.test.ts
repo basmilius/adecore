@@ -11,6 +11,7 @@ describe('stacking', () => {
             ],
             2
         );
+
         expect(stacked.get('output')).toEqual({ base: [3, 1], top: [5, null] });
         expect(stacked.get('errors')).toEqual({ base: [0, 0], top: [5, 4] });
     });
@@ -24,6 +25,7 @@ describe('stacking', () => {
             ],
             1
         );
+
         expect(stacked.get('more')).toEqual({ base: [-3], top: [-5] });
     });
 
@@ -35,6 +37,7 @@ describe('stacking', () => {
             ],
             2
         );
+
         const scale = yScaleOf('linear', extentOf(stacked.values(), 'linear'), {}, [200, 0], 5);
         expect(scale.domain).toEqual([0, 70]);
     });

@@ -179,10 +179,13 @@ export function ChartRoot<Row>({
 
     const points = rows === 'points';
     const band = xScale === 'band' && !points;
+
     const xs = data.map((row, index) => {
         const value = readValue(x, row, index);
+
         return value === null || value === undefined ? Number.NaN : xOf(value);
     });
+
     const keys = points ? data.map((row, index) => (rowKey === undefined ? String(index) : String(readValue(rowKey, row, index)))) : null;
     const rowLabels = rowLabel !== undefined ? data.map((row, index) => String(readValue(rowLabel, row, index))) : null;
     const groupKeys = (band || points) && group !== undefined ? data.map((row, index) => String(readValue(group, row, index))) : null;
@@ -208,6 +211,7 @@ export function ChartRoot<Row>({
     const right = width - marginRight - (axes.end ?? 0);
     const plot = { left: marginLeft, top, right, bottom, width: Math.max(0, right - marginLeft), height: Math.max(0, bottom - top) };
     const continuousKind = xScale === 'band' ? 'linear' : xScale;
+
     const continuous = band
         ? null
         : points
@@ -219,6 +223,7 @@ export function ChartRoot<Row>({
     // A reference line stays on the plot, also where the data does not reach it.
     const ruleValues = [...rules.values()].map((rule) => rule.value);
     const yOptions = ruleValues.length === 0 ? y : { ...y, include: [...(y.include ?? []), ...ruleValues] };
+
     const scaleY = yScaleOf(
         yScale,
         extentOf(stacked.values(), yScale, !points),
@@ -227,23 +232,30 @@ export function ChartRoot<Row>({
         leftY?.ticks ?? rightY?.ticks ?? tickCount(plot.height, Y_TICK_SPACING),
         !points
     );
+
     const yStep = scaleY.ticks.length > 1 ? scaleY.ticks[1]! - scaleY.ticks[0]! : 1;
+
     // A value past `y.max` or `y.min` stops at the edge of the plot, which the svg does not clip.
     const pixelOfY = (value: number): number | null => {
         const pixel = scaleY.at(value);
+
         return pixel === null ? null : Math.min(plot.bottom, Math.max(plot.top, pixel));
     };
 
     const colors = new Map<string, string>();
     let next = 0;
+
     for (const [seriesId, entry] of series) {
         colors.set(seriesId, entry.color ?? seriesColor(next++));
     }
+
     const slots = new Map<string, { slot: number; count: number }>();
     const members = new Map<string, string[]>();
+
     for (const [seriesId, entry] of series) {
         if (entry.kind === 'bar') {
             const ids = members.get(entry.bars ?? '');
+
             if (ids === undefined) {
                 members.set(entry.bars ?? '', [seriesId]);
             } else {
@@ -251,6 +263,7 @@ export function ChartRoot<Row>({
             }
         }
     }
+
     for (const ids of members.values()) {
         const stackedBars = ids.some((seriesId) => series.get(seriesId)!.stack !== null);
         ids.forEach((seriesId, index) => slots.set(seriesId, stackedBars ? { slot: 0, count: 1 } : { slot: index, count: ids.length }));
@@ -260,97 +273,129 @@ export function ChartRoot<Row>({
     const placing = points ? [...series.values()].find((entry) => entry.kind === 'point' || entry.kind === 'line') : undefined;
     const pointGroups: { key: string; indexes: number[] }[] = [];
     const groupIndexes: number[] = [];
+
     if (points) {
         const found = new Map<string, number>();
+
         data.forEach((_, index) => {
             const key = groupKeys?.[index] ?? '';
             let at = found.get(key);
+
             if (at === undefined) {
                 at = pointGroups.length;
                 found.set(key, at);
                 pointGroups.push({ key, indexes: [] });
             }
+
             pointGroups[at]!.indexes.push(index);
             groupIndexes.push(at);
         });
     }
+
     const placed: PlacedPoint[] = [];
+
     const positions: ([number, number] | null)[] = data.map((_, index) => {
         const value = placing?.values[index];
         const left = continuous === null || !points ? Number.NaN : continuous.at(xs[index] as number);
         const pixel = value === null || value === undefined ? null : pixelOfY(value);
+
         if (pixel === null || !Number.isFinite(left)) {
             return null;
         }
+
         placed.push({ index, x: left, y: pixel });
+
         return [left, pixel];
     });
+
     // A point and the line through it often read the same value, which a person hears once.
     const readable = [...series].filter(([, entry], index, all) => !points || all.findIndex(([, other]) => other.label === entry.label) === index);
+
     const groupColorOf = (index: number): string => seriesColor(groupIndexes[index] ?? 0);
+
     const pointColor = (index: number): string => placing?.rowColors?.[index] ?? placing?.color ?? groupColorOf(index);
 
     const centerOf = (index: number): number => {
         if (layout !== null) {
             return plot.left + (layout.lefts[index] ?? 0) + layout.bucket / 2;
         }
+
         return continuous!.at((xs[index] as number) + bucketStep / 2);
     };
+
     const bucketAt = (index: number): { left: number; width: number } | null => {
         if (layout !== null) {
             return { left: plot.left + (layout.lefts[index] ?? 0), width: layout.bucket };
         }
+
         if (bucketStep <= 0 || xs[index] === undefined) {
             return null;
         }
+
         const left = continuous!.at(xs[index] as number);
+
         return { left, width: continuous!.at((xs[index] as number) + bucketStep) - left };
     };
+
     const pixelOfX = (value: ChartX): number | null => {
         if (layout !== null) {
             const index = keyIndexOf(xs, value);
+
             return index < 0 ? null : centerOf(index);
         }
+
         return typeof value === 'number' ? continuous!.at(value) : null;
     };
 
     const span = continuous === null ? 0 : continuous.domain[1] - continuous.domain[0];
     // A row under another names something wider, such as the model under its effort, so a bucket reads from the bottom row up.
     const rowFormats = xRows.flatMap((row) => (row.format === undefined ? [] : [row.format])).toReversed();
+
     const formatX = (value: ChartX): string => {
         if (rowFormats.length > 0) {
             return rowFormats.map((format) => format(value)).join(', ');
         }
+
         if (xScale === 'time' && typeof value === 'number') {
             return formatTime(value, timeLabelOf(span, bucketStep));
         }
+
         return typeof value === 'number' ? defaultValue(value) : value;
     };
+
     // Both axes share one scale, so the tooltip, the live region and the table write a value as the left one does.
     const formatY = format ?? leftY?.format ?? rightY?.format ?? defaultValue;
+
     /* The x of a point with the title of its axis, as a person reads it out: "Cost per task $0.12". */
     const xValueOf = (index: number): string => {
         const text = formatX(xs[index]!);
+
         return points && formats.xTitle !== undefined ? `${formats.xTitle} ${text}` : text;
     };
 
     const notesAt = (index: number): ChartNote[] => {
         const at = xs[index];
+
         if (at === undefined) {
             return [];
         }
+
         const notes: ChartNote[] = [];
+
         for (const marker of markers.values()) {
             // The points of a chart stand in no order, so a moment belongs to none of them.
             const inside = band
                 ? String(marker.at) === String(at)
                 : !points && typeof marker.at === 'number' && containingIndex(xs as number[], marker.at, bucketStep || undefined) === index;
+
             if (inside) {
                 notes.push({ kind: 'marker', label: marker.label, detail: marker.detail, color: marker.color });
             }
         }
+
         for (const range of bands.values()) {
             let inside: boolean;
+
             if (band) {
                 const from = keyIndexOf(xs, range.from);
                 const to = keyIndexOf(xs, range.to);
@@ -360,26 +405,33 @@ export function ChartRoot<Row>({
             } else {
                 inside = (at as number) >= (range.from as number) && (at as number) < (range.to as number);
             }
+
             if (inside) {
                 notes.push({ kind: 'band', label: range.label, detail: range.detail, color: range.color });
             }
         }
+
         return notes;
     };
 
     const controlled = activeX !== undefined;
     const cursorX = controlled ? activeX : sharedCursor !== null ? sharedCursor.x : ownX;
+
     const indexAt = (value: ChartX | null): number => {
         if (keys === null) {
             return snapIndex(xs, xScale, value, bucketStep);
         }
+
         const index = value === null ? -1 : keys.indexOf(String(value));
+
         return positions[index] == null ? -1 : index;
     };
+
     const activeIndex = indexAt(cursorX);
     const keyIndex = indexAt(keyX);
     const from = keyIndex >= 0 ? keyIndex : activeIndex;
     const ownsCursor = controlled || sharedCursor === null || sharedCursor.owner === id;
+
     const setActiveX = (value: ChartX | null): void => {
         if (!controlled) {
             if (sharedCursor !== null) {
@@ -388,6 +440,7 @@ export function ChartRoot<Row>({
                 setOwnX(value);
             }
         }
+
         onActiveXChange?.(value);
     };
 
@@ -398,10 +451,12 @@ export function ChartRoot<Row>({
     // A label under a column follows it: dimmed with it, and stronger while it is under the cursor or picked.
     const anyPicked = selectedRows.some(Boolean);
     const columnDim = [...series.values()].find((entry) => entry.kind === 'bar')?.dimOpacity ?? null;
+
     const labelFocus = xs.map((_, index): 'strong' | 'dim' | null => {
         if (index === activeIndex || selectedRows[index]) {
             return 'strong';
         }
+
         return dimmedRows[index] || anyPicked ? 'dim' : null;
     });
 
@@ -409,12 +464,15 @@ export function ChartRoot<Row>({
         const parts = (
             points ? [groupLabels?.[index], rowLabels?.[index], xValueOf(index)] : [groupLabels?.[index], rowLabels?.[index] ?? xValueOf(index)]
         ).filter((part): part is string => part !== undefined);
+
         for (const [, entry] of readable) {
             const value = entry.values[index];
+
             if (value !== null && value !== undefined) {
                 parts.push(`${entry.label} ${formatY(value)}`);
             }
         }
+
         return [...parts, ...notesAt(index).map((note) => (note.detail === null ? note.label : `${note.label}, ${note.detail}`))].join(', ');
     };
 
@@ -425,9 +483,11 @@ export function ChartRoot<Row>({
     const indexAtPointer = (e: MouseEvent<SVGSVGElement>): number => {
         const box = e.currentTarget.getBoundingClientRect();
         const pixel = e.clientX - box.left;
+
         if (points) {
             return nearestPoint(placed, pixel, e.clientY - box.top, POINT_REACH);
         }
+
         return nearestIndex(
             xs.map((_, index) => centerOf(index)),
             pixel
@@ -436,33 +496,43 @@ export function ChartRoot<Row>({
 
     const onPointerMove = (e: PointerEvent<SVGSVGElement>): void => {
         setAnnounce(false);
+
         if (xs.length === 0) {
             return;
         }
+
         if (keys !== null) {
             const index = indexAtPointer(e);
+
             if (index !== activeIndex) {
                 setActiveX(index < 0 ? null : keys[index]!);
             }
+
             return;
         }
+
         if (continuous !== null) {
             const pixel = e.clientX - e.currentTarget.getBoundingClientRect().left;
             // The end of the last bucket is the start of none, so the pointer stops a pixel short of it.
             const index = snapIndex(xs, xScale, continuous.invert(Math.min(plot.right - 1, Math.max(plot.left, pixel))), bucketStep);
             const value = index < 0 ? null : xs[index]!;
+
             if (value !== cursorX) {
                 setActiveX(value);
             }
+
             return;
         }
+
         const index = indexAtPointer(e);
+
         if (index >= 0 && String(xs[index]) !== String(cursorX)) {
             setActiveX(xs[index]!);
         }
     };
 
     const pressable = interactive && onActivate !== undefined && (layout !== null || points);
+
     const activate = (index: number): void => {
         if (pressable && index >= 0) {
             onActivate(data[index]!, index);
@@ -473,9 +543,12 @@ export function ChartRoot<Row>({
         if (pressable && from >= 0 && (e.key === 'Enter' || e.key === ' ')) {
             e.preventDefault();
             activate(from);
+
             return;
         }
+
         const groupStarts = layout?.groups.map((run) => run.first) ?? [];
+
         const target =
             keys === null
                 ? moveIndex(e.key, from, xs.length, groupStarts)
@@ -484,25 +557,32 @@ export function ChartRoot<Row>({
                       from,
                       e.key
                   );
+
         if (target === undefined) {
             return;
         }
+
         e.preventDefault();
+
         if (target === null) {
             // A dialog around the chart closes on an Escape that reaches the document, whether or not it was prevented.
             e.stopPropagation();
             setKeyX(null);
             setActiveX(null);
+
             return;
         }
+
         setAnnounce(true);
         const value = keys === null ? xs[target]! : keys[target]!;
         setKeyX(value);
         setActiveX(value);
         const box = scroller.current;
+
         if (box !== null && box.scrollWidth > box.clientWidth) {
             const center = centerOf(target);
             const visible = box.clientWidth - overhang;
+
             if (center < box.scrollLeft || center > box.scrollLeft + visible) {
                 box.scrollLeft = Math.max(0, center - visible / 2);
             }
@@ -568,6 +648,7 @@ export function ChartRoot<Row>({
 
     // A reference line holds for every bucket, so a screen reader hears it once with the chart instead of in every bucket.
     const ruleText = rules.size === 0 ? null : `${[...rules.values()].map((rule) => `${rule.label} ${formatY(rule.value)}`).join(', ')}.`;
+
     const hint = [
         ruleText,
         points ? t('keyboard.points') : t('keyboard.move'),
@@ -576,6 +657,7 @@ export function ChartRoot<Row>({
     ]
         .filter(Boolean)
         .join(' ');
+
     const highlighted = layout === null ? [] : xs.flatMap((_, index) => ((cursor === 'full' && index === activeIndex) || selectedRows[index] ? [index] : []));
 
     return (
@@ -619,6 +701,7 @@ export function ChartRoot<Row>({
                             onBlur={() => {
                                 setAnnounce(false);
                                 setKeyX(null);
+
                                 // A bucket the keyboard left, or any point, keeps no preview open where the focus went on.
                                 if (activeIndex >= 0 && (points || announce)) {
                                     setActiveX(null);
@@ -722,12 +805,14 @@ export function ChartRoot<Row>({
 function Crosshair({ context, dots }: { context: ChartContextValue; dots: boolean }) {
     const { activeIndex, centerOf, plot, series, stacked, colors, pixelOfY } = context;
     const left = Math.round(centerOf(activeIndex)) + 0.5;
+
     return (
         <g className="pointer-events-none">
             <line x1={left} x2={left} y1={plot.top} y2={plot.bottom} className="stroke-border-strong" />
             {[...series].map(([seriesId, entry]) => {
                 const top = stacked.get(seriesId)?.top[activeIndex];
                 const pixel = !dots || top === null || top === undefined || entry.kind === 'bar' ? null : pixelOfY(top);
+
                 return pixel === null ? null : (
                     <circle
                         key={seriesId}
@@ -749,19 +834,24 @@ const HALO = { strokeWidth: 4, strokeLinejoin: 'round', paintOrder: 'stroke' } a
 /* Dashed guides from the point under the cursor and every picked point to both axes, with their values on the axes. */
 function Guides({ context }: { context: ChartContextValue }) {
     const { activeIndex, positions, selected, plot, xs, formatX, formatY, series, data } = context;
+
     const shown = [...new Set([activeIndex, ...selected.flatMap((picked, index) => (picked ? [index] : []))])].filter(
         (index) => index >= 0 && positions[index] != null
     );
+
     const placing = [...series.values()].find((entry) => entry.kind === 'point' || entry.kind === 'line');
+
     if (shown.length === 0 || placing === undefined || data.length === 0) {
         return null;
     }
+
     return (
         <g className="pointer-events-none" aria-hidden>
             {shown.map((index) => {
                 const [left, top] = positions[index]!;
                 const x = Math.round(left);
                 const y = Math.round(top);
+
                 return (
                     <g key={index}>
                         <path d={`M${plot.left} ${y + 0.5} H${x + 0.5} V${plot.bottom}`} fill="none" className="stroke-text-muted" strokeDasharray="4 4" />

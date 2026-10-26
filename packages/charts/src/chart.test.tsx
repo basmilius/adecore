@@ -8,6 +8,7 @@ import { Chart, SeriesLegend, type ChartX } from './index.ts';
 import { CHARTS_NAMESPACE, CHARTS_RESOURCES } from './locales.ts';
 
 const i18n = i18next.createInstance();
+
 await i18n.init({ lng: 'en', fallbackLng: 'en', resources: { en: { [CHARTS_NAMESPACE]: CHARTS_RESOURCES.en! } }, interpolation: { escapeValue: false } });
 
 interface Score {
@@ -34,6 +35,7 @@ test('a chart is one named stop for the keyboard and says how to move', () => {
             </Chart.Root>
         )
     );
+
     expect(markup).toContain('role="group"');
     expect(markup).toContain('aria-roledescription="chart"');
     expect(markup).toContain('aria-label="Scores"');
@@ -49,6 +51,7 @@ test('a chart without data says so', () => {
             </Chart.Root>
         )
     );
+
     expect(markup).toContain('No data');
 });
 
@@ -69,9 +72,11 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
     ): Promise<SVGSVGElement> => {
         const { createRoot } = await import('react-dom/client');
         root = createRoot(container);
+
         await act(async () => {
             root.render(wrap(node));
         });
+
         return container.querySelector<SVGSVGElement>('svg[role="group"]')!;
     };
 
@@ -80,15 +85,18 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
         const width = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientWidth');
         const measure = SVGTextElement.prototype.getComputedTextLength;
         Object.defineProperty(HTMLElement.prototype, 'clientWidth', { configurable: true, get: () => 600 });
+
         SVGTextElement.prototype.getComputedTextLength = function (this: SVGTextElement) {
             return (this.textContent?.length ?? 0) * 7;
         };
+
         return () => {
             if (width === undefined) {
                 Reflect.deleteProperty(HTMLElement.prototype, 'clientWidth');
             } else {
                 Object.defineProperty(HTMLElement.prototype, 'clientWidth', width);
             }
+
             SVGTextElement.prototype.getComputedTextLength = measure;
         };
     };
@@ -102,6 +110,7 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
     };
 
     const live = (): string => container.querySelector('[aria-live="polite"]')!.textContent ?? '';
+
     const active = (plot: SVGSVGElement): string | null =>
         document.getElementById(plot.getAttribute('aria-activedescendant') ?? '')?.getAttribute('aria-label') ?? null;
 
@@ -125,6 +134,7 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
                 <Chart.Bar value="score" label="Score" />
             </Chart.Root>
         );
+
         await press(plot, 'ArrowRight');
         expect(live()).toBe('Alpha, low, Score 40');
         await press(plot, 'ArrowRight');
@@ -146,6 +156,7 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
                 <Chart.Tooltip />
             </Chart.Root>
         );
+
         await press(plot, 'ArrowRight');
         expect(live()).toBe('Model Alpha, low, Score 40');
         expect(container.querySelector('.inset-0 p')!.textContent).toBe('Model Alpha · low');
@@ -158,7 +169,9 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
                 <Chart.GroupAxis>{(group) => group.label}</Chart.GroupAxis>
             </Chart.Root>
         );
+
         const boxes = [...container.querySelectorAll<HTMLDivElement>('.col-start-1')].map((box) => [box.style.marginLeft, box.style.width]);
+
         expect(boxes).toEqual([
             ['0px', '300px'],
             ['300px', '300px']
@@ -177,35 +190,41 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
     test('x labels of different widths settle on one set instead of flipping between two', async () => {
         // Twelve buckets of 50px: the short labels fit under every bucket, the long ones under every other.
         const days = Array.from({ length: 12 }, (_, index) => ({ day: index % 2 === 0 ? `d${index}` : `long label ${index}`, value: index }));
+
         await mount(
             <Chart.Root data={days} x="day" label="Days">
                 <Chart.XAxis />
                 <Chart.Bar value="value" label="Value" />
             </Chart.Root>
         );
+
         const labels = [...container.querySelectorAll('text')].filter((text) => text.closest('[visibility="hidden"]') === null);
         expect(labels.map((text) => text.textContent)).toEqual(['d0', 'd2', 'd4', 'd6', 'd8', 'd10']);
     });
 
     test('columns stand on a time scale, one per bucket of the step, a missing row leaving its slot empty', async () => {
         const hours = [0, 1, 3].map((hour) => ({ at: hour * 3_600_000, count: hour + 1 }));
+
         await mount(
             <Chart.Root data={hours} x="at" xScale="time" step={3_600_000} label="Per hour">
                 <Chart.Bar value="count" label="Count" />
             </Chart.Root>
         );
+
         // Four hours across 600px: the columns stand in the slots of hour 0, 1 and 3.
         expect(columns().map((column) => Math.floor(Number(column.getAttribute('x')) / 150))).toEqual([0, 1, 3]);
     });
 
     test('columns on a time scale with one row and no step say why they are missing', async () => {
         const warn = spyOn(console, 'warn').mockImplementation(() => {});
+
         try {
             await mount(
                 <Chart.Root data={[{ at: 0, count: 3 }]} x="at" xScale="time" label="Per hour">
                     <Chart.Bar value="count" label="Count" />
                 </Chart.Root>
             );
+
             expect(columns()).toHaveLength(0);
             expect(warn).toHaveBeenCalledWith('Chart.Bar: a time scale with one row draws no columns without a `step` on the root.');
         } finally {
@@ -215,11 +234,13 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
 
     test('Enter on a time scale presses nothing, as its buckets are no buttons', async () => {
         const hours = [0, 1, 3].map((hour) => ({ at: hour * 3_600_000, count: hour + 1 }));
+
         const plot = await mount(
             <Chart.Root data={hours} x="at" xScale="time" step={3_600_000} label="Per hour" onActivate={(row) => activated.push(String(row.at))}>
                 <Chart.Bar value="count" label="Count" />
             </Chart.Root>
         );
+
         await press(plot, 'End');
         await press(plot, 'Enter');
         await press(plot, ' ');
@@ -233,6 +254,7 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
                 <Chart.Line value="score" label="Score" />
             </Chart.Root>
         );
+
         expect(Math.min(...columns().map((column) => Number(column.getAttribute('y'))))).toBe(8);
         const line = container.querySelector('path[fill="none"]')!.getAttribute('d')!;
         expect(Math.min(...[...line.matchAll(/,(-?[\d.]+)/g)].map((match) => Number(match[1])))).toBe(8);
@@ -241,16 +263,19 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
     test('the pointer on a time scale hands on the x of a bucket, once per bucket it enters', async () => {
         const hours = [0, 1, 3].map((hour) => ({ at: hour * 3_600_000, count: hour + 1 }));
         const changes: (ChartX | null)[] = [];
+
         const plot = await mount(
             <Chart.Root data={hours} x="at" xScale="time" step={3_600_000} label="Per hour" onActiveXChange={(x) => changes.push(x)}>
                 <Chart.Bar value="count" label="Count" />
             </Chart.Root>
         );
+
         for (const clientX of [10, 40, 140, 160, 200, 320, 340, 500]) {
             await act(async () => {
                 plot.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX, clientY: 50 }));
             });
         }
+
         // Hour 2 has no row, so the pointer over its slot is on no bucket.
         expect(changes).toEqual([0, 3_600_000, null, 10_800_000]);
     });
@@ -258,6 +283,7 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
     test('samples with no step stand at their moment in a window the app fixed, and the pointer takes the nearest', async () => {
         const samples = [250, 500, 750].map((at) => ({ at, load: 1 }));
         const changes: (ChartX | null)[] = [];
+
         const plot = await mount(
             <Chart.Root
                 data={samples}
@@ -272,11 +298,14 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
                 <Chart.Line value="load" label="Load" />
             </Chart.Root>
         );
+
         const line = container.querySelector('path[fill="none"]')!.getAttribute('d')!;
         expect([...line.matchAll(/[ML](-?[\d.]+),/g)].map((match) => Number(match[1]))).toEqual([150, 300, 450]);
+
         await act(async () => {
             plot.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: 260, clientY: 50 }));
         });
+
         expect(changes).toEqual([500]);
     });
 
@@ -287,6 +316,7 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
                 <Chart.Line value="score" label="Score" width={1} />
             </Chart.Root>
         );
+
         const paths = [...container.querySelectorAll('path')];
         expect(paths.map((path) => path.getAttribute('fill'))).toEqual(['currentColor', 'none']);
         expect(paths[0]!.getAttribute('fill-opacity')).toBe('0.28');
@@ -302,10 +332,13 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
                     <Chart.Bar value="score" label="Score" />
                 </Chart.Root>
             );
+
             const classes = [...container.querySelectorAll('line')].map((line) => line.getAttribute('class') ?? '');
             await act(async () => root.unmount());
+
             return classes;
         };
+
         const all = await grid();
         expect(all.filter((name) => name === 'stroke-border-strong')).toHaveLength(1);
         expect(all.filter((name) => name === 'stroke-border-soft').length).toBeGreaterThan(1);
@@ -320,6 +353,7 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
                 <Chart.Rule value={45} label="A" />
             </Chart.Root>
         );
+
         const halos = [...container.querySelectorAll<SVGTextElement>('text[paint-order]')].map((text) => text.style.stroke);
         expect(halos).toHaveLength(5);
         expect(new Set(halos)).toEqual(new Set(['var(--surface-raised)']));
@@ -327,12 +361,14 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
 
     test('a line with dots draws one per value, also when its first render had no width', async () => {
         const error = spyOn(console, 'error').mockImplementation(() => {});
+
         try {
             await mount(
                 <Chart.Root data={SCORES} x="key" label="Scores">
                     <Chart.Line value="score" label="Score" dots />
                 </Chart.Root>
             );
+
             expect(container.querySelectorAll('circle')).toHaveLength(SCORES.length);
             expect(error.mock.calls.some((call) => String(call[0]).includes('same key'))).toBe(false);
         } finally {
@@ -345,13 +381,16 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
             [...container.querySelectorAll<SVGTextElement>('text')].filter(
                 (text) => text.closest('[visibility="hidden"]') === null && text.textContent !== 'No data'
             );
+
         const hours = Array.from({ length: 48 }, (_, index) => ({ at: index * 3_600_000, count: index }));
+
         await mount(
             <Chart.Root data={hours} x="at" xScale="linear" label="Per hour">
                 <Chart.XAxis ticks={40} format={(x) => `t ${Number(x) / 3_600_000}`} />
                 <Chart.Line value="count" label="Count" />
             </Chart.Root>
         );
+
         const xs = visibleLabels().map((text) => Number(text.getAttribute('x')));
         const widest = Math.max(...visibleLabels().map((text) => (text.textContent?.length ?? 0) * 7));
         expect(xs.length).toBeGreaterThan(2);
@@ -364,16 +403,19 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
                 <Chart.Line value="count" label="Count" />
             </Chart.Root>
         );
+
         expect(visibleLabels()).toHaveLength(0);
         await act(async () => root.unmount());
 
         const days = [0, 1, 2].map((day) => ({ at: day * 86_400_000, count: day + 1 }));
+
         await mount(
             <Chart.Root data={days} x="at" xScale="time" step={86_400_000} label="Per day">
                 <Chart.XAxis align="bucket" format={(x) => `d${Number(x) / 86_400_000}`} />
                 <Chart.Bar value="count" label="Count" />
             </Chart.Root>
         );
+
         const centers = columns().map((column) => Number(column.getAttribute('x')) + Number(column.getAttribute('width')) / 2);
         expect(visibleLabels().map((text) => text.textContent)).toEqual(['d0', 'd1', 'd2']);
         expect(visibleLabels().map((text) => Number(text.getAttribute('x')))).toEqual(centers.map(Math.round));
@@ -381,6 +423,7 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
 
     test('markers and bands name themselves in the tooltip with a swatch, and stay off the plot outside the axis', async () => {
         const hours = [0, 1, 2, 3].map((hour) => ({ at: hour * 3_600_000, count: hour + 1 }));
+
         const plot = await mount(
             <Chart.Root data={hours} x="at" xScale="time" step={3_600_000} label="Per hour">
                 <Chart.Bar value="count" label="Count" />
@@ -390,6 +433,7 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
                 <Chart.Tooltip />
             </Chart.Root>
         );
+
         expect(container.querySelectorAll('circle')).toHaveLength(1);
         const hatch = [...container.querySelectorAll('rect')].find((rect) => rect.getAttribute('fill')?.startsWith('url('));
         expect(Number(hatch!.getAttribute('width'))).toBe(4);
@@ -411,6 +455,7 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
                 <Chart.Table />
             </Chart.Root>
         );
+
         await press(plot, 'ArrowRight');
         expect(live()).toBe('Alpha low, Score 40 pts');
         const texts = [...container.querySelectorAll('text')].map((text) => text.textContent);
@@ -426,6 +471,7 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
                 <Chart.Point value="score" label="Score" />
             </Chart.Root>
         );
+
         expect([...container.querySelectorAll('text')].some((text) => text.textContent === 'Cost per task (USD, lower is better) · log scale')).toBe(true);
         await press(plot, 'ArrowRight');
         expect(live()).toStartWith('Cost 0.5');
@@ -438,13 +484,16 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
                 <Chart.Tooltip />
             </Chart.Root>
         );
+
         const image = container.querySelector('svg[role="img"]')!;
         expect(image.getAttribute('aria-label')).toBe('Scores');
         expect(image.hasAttribute('tabindex')).toBe(false);
         expect(container.querySelector('[aria-live]')).toBeNull();
+
         await act(async () => {
             image.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: 10, clientY: 50 }));
         });
+
         expect(container.querySelector('[aria-hidden].absolute')!.textContent).toContain('Score40');
     });
 
@@ -461,15 +510,20 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
                     <Chart.Line value="score" label="Score" />
                 </Chart.Root>
             );
+
             await press(plot, 'Home');
+
             const counts: [number, number, number] = [
                 container.querySelectorAll('rect.fill-surface-hover').length,
                 container.querySelectorAll('line.stroke-border-strong').length,
                 container.querySelectorAll('circle').length
             ];
+
             await act(async () => root.unmount());
+
             return counts;
         };
+
         expect(await marks('full', 'band')).toEqual([1, 0, 0]);
         expect(await marks('none', 'band')).toEqual([0, 0, 0]);
         expect(await marks('full', 'linear')).toEqual([0, 1, 1]);
@@ -485,7 +539,9 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
                 <Chart.Bar value="score" label="Score" dimOpacity={0.3} />
             </Chart.Root>
         );
+
         const labels = [...container.querySelectorAll('text')].filter((text) => text.closest('[visibility="hidden"]') === null);
+
         expect(labels.map((text) => [text.textContent, text.getAttribute('opacity'), text.getAttribute('class')?.split(' ')[0]])).toEqual([
             ['a-low', '0.3', 'fill-text-faint'],
             ['a-high', null, 'fill-text'],
@@ -496,20 +552,26 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
 
     test('the pointer passes over another bucket and leaves the keyboard where it was', async () => {
         const changes: (ChartX | null)[] = [];
+
         const plot = await mount(
             <Chart.Root data={SCORES} x="key" label="Scores" onActivate={(row: Score) => activated.push(row.key)} onActiveXChange={(x) => changes.push(x)}>
                 <Chart.Bar value="score" label="Score" />
             </Chart.Root>
         );
+
         await press(plot, 'End');
+
         await act(async () => {
             plot.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: 10, clientY: 50 }));
         });
+
         expect(active(plot)).toBe('b-mid, Score 38');
+
         await act(async () => {
             plot.dispatchEvent(new PointerEvent('pointerout', { bubbles: true, clientX: 10, clientY: 50 }));
             plot.dispatchEvent(new PointerEvent('pointerleave', { bubbles: false, clientX: 10, clientY: 50 }));
         });
+
         expect(changes).toEqual(['b-mid', 'a-low', 'b-mid']);
         await press(plot, 'ArrowLeft');
         await press(plot, 'Enter');
@@ -519,6 +581,7 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
     test('a growing chart takes the height of its box, never less than its height', async () => {
         const original = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientHeight');
         let box = 400;
+
         // An empty slot, such as the row of group labels, takes no height.
         Object.defineProperty(HTMLElement.prototype, 'clientHeight', {
             configurable: true,
@@ -526,20 +589,24 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
                 return this.childElementCount === 0 ? 0 : box;
             }
         });
+
         try {
             await mount(
                 <Chart.Root data={SCORES} x="key" grow height={260} label="Scores">
                     <Chart.Bar value="score" label="Score" />
                 </Chart.Root>
             );
+
             expect(container.querySelector('svg[role="group"]')!.getAttribute('height')).toBe('400');
             await act(async () => root.unmount());
             box = 100;
+
             await mount(
                 <Chart.Root data={SCORES} x="key" grow height={260} label="Scores">
                     <Chart.Bar value="score" label="Score" />
                 </Chart.Root>
             );
+
             expect(container.querySelector('svg[role="group"]')!.getAttribute('height')).toBe('260');
         } finally {
             if (original === undefined) {
@@ -552,12 +619,14 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
 
     test('a tooltip in a corner stays there, and moves to the other side where it would cover the bucket', async () => {
         const width = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientWidth')!;
+
         Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
             configurable: true,
             get(this: HTMLElement) {
                 return this.classList.contains('min-w-36') ? 120 : 600;
             }
         });
+
         try {
             const plot = await mount(
                 <Chart.Root data={SCORES} x="key" label="Scores">
@@ -565,7 +634,9 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
                     <Chart.Tooltip placement="top-right" />
                 </Chart.Root>
             );
+
             const card = (): HTMLElement => container.querySelector<HTMLElement>('.min-w-36')!;
+
             await press(plot, 'Home');
             await press(plot, 'End');
             await press(plot, 'Home');
@@ -579,12 +650,14 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
 
     test('the table of values hides its button, follows an app that holds it open, and shows rows of its own', async () => {
         const opened: boolean[] = [];
+
         await mount(
             <Chart.Root data={SCORES} x="key" label="Scores">
                 <Chart.Bar value="score" label="Score" />
                 <Chart.Table toggle={false} />
             </Chart.Root>
         );
+
         expect(container.querySelector('button')).toBeNull();
         expect(container.querySelectorAll('tbody tr')).toHaveLength(4);
         await act(async () => root.unmount());
@@ -599,12 +672,15 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
                 />
             </Chart.Root>
         );
+
         const button = container.querySelector('button')!;
         expect(button.getAttribute('aria-expanded')).toBe('true');
         expect([...container.querySelectorAll('tbody tr')].map((row) => row.textContent)).toEqual(['Hidden model12left out']);
+
         await act(async () => {
             button.click();
         });
+
         expect(opened).toEqual([false]);
         expect(button.getAttribute('aria-expanded')).toBe('true');
     });
@@ -612,21 +688,25 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
     test('an x axis says when it left labels of buckets out', async () => {
         const reports: boolean[] = [];
         const many = Array.from({ length: 30 }, (_, index) => ({ key: `bucket ${index}`, value: index }));
+
         await mount(
             <Chart.Root data={many} x="key" label="Buckets">
                 <Chart.XAxis onThinnedChange={(thinned) => reports.push(thinned)} />
                 <Chart.Bar value="value" label="Value" />
             </Chart.Root>
         );
+
         expect(reports.at(-1)).toBe(true);
         await act(async () => root.unmount());
         reports.length = 0;
+
         await mount(
             <Chart.Root data={many.slice(0, 3)} x="key" label="Buckets">
                 <Chart.XAxis onThinnedChange={(thinned) => reports.push(thinned)} />
                 <Chart.Bar value="value" label="Value" />
             </Chart.Root>
         );
+
         expect(reports).toEqual([false]);
     });
 
@@ -636,6 +716,7 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
                 <Chart.Bar value="score" label="Score" animate />
             </Chart.Root>
         );
+
         const group = columns()[0]!.parentElement!;
         expect(group.getAttribute('class')).toContain('starting:scale-y-0');
         expect(group.getAttribute('class')).toContain('motion-reduce:transition-none');
@@ -650,6 +731,7 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
                 <Chart.Bar value="score" label="Score" />
             </Chart.Root>
         );
+
         const rows = [...container.querySelectorAll('text')].filter((text) => text.closest('[visibility="hidden"]') === null);
         const baselines = [...new Set(rows.map((text) => Number(text.getAttribute('y'))))];
         expect(baselines).toHaveLength(2);
@@ -665,6 +747,7 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
                 <Chart.Bar value="score" label="Score" />
             </Chart.Root>
         );
+
         const bottoms = columns().map((column) => Number(column.getAttribute('y')) + Number(column.getAttribute('height')));
         expect(Math.max(...bottoms)).toBe(200);
     });
@@ -677,6 +760,7 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
                 <Chart.Bar value="score" label="Score" />
             </Chart.Root>
         );
+
         const label = [...container.querySelectorAll('text')].find((text) => text.textContent === 'A · 70')!;
         expect(label).toBeDefined();
         const column = columns()[0]!;
@@ -695,6 +779,7 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
                 <Chart.Bar value="score" label="Score" valueLabels={(value) => `${value} pts`} />
             </Chart.Root>
         );
+
         const labels = [...container.querySelectorAll('text')].map((text) => text.textContent);
         expect(labels).toEqual(['40 pts', '52 pts', '31 pts', '38 pts']);
         // The tallest column reaches the top of the plot, and its label still stands inside the svg.
@@ -708,18 +793,21 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
                 <Chart.Bar value="score" label="Score" />
             </Chart.Root>
         );
+
         const drawn = columns();
         // Four buckets share the 584px left of the margin, and every column stands on the bottom of the svg.
         expect(Math.max(...drawn.map((column) => Number(column.getAttribute('x')) + Number(column.getAttribute('width'))))).toBeLessThanOrEqual(584);
         expect(Math.max(...drawn.map((column) => Number(column.getAttribute('x'))))).toBeGreaterThan(438);
         expect(drawn.map((column) => Number(column.getAttribute('y')) + Number(column.getAttribute('height')))).toEqual([200, 200, 200, 200]);
         await act(async () => root.unmount());
+
         await mount(
             <Chart.Root data={SCORES} x="key" label="Scores">
                 <Chart.XAxis />
                 <Chart.Bar value="score" label="Score" />
             </Chart.Root>
         );
+
         // Under an x axis the plot keeps 4px below its labels; without one it reaches the bottom by default.
         expect(Math.max(...columns().map((column) => Number(column.getAttribute('y')) + Number(column.getAttribute('height'))))).toBeLessThan(200 - 16);
     });
@@ -731,6 +819,7 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
                 <Chart.Bar value="score" label="Score" valueLabels />
             </Chart.Root>
         );
+
         const scroller = plot.parentElement!;
         const axis = Number(scroller.previousElementSibling!.getAttribute('width'));
         expect(axis).toBeGreaterThan(0);
@@ -741,11 +830,13 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
     test('value labels stack by the width they measure, not by an estimate per character', async () => {
         // Eighteen buckets of 33px; labels of four characters measure 28px here and are estimated at 32px, which would collide.
         const columns = Array.from({ length: 18 }, (_, index) => ({ key: `c${index}`, value: 10 }));
+
         await mount(
             <Chart.Root data={columns} x="key" label="Columns">
                 <Chart.Bar value="value" label="Value" valueLabels={() => 'abcd'} />
             </Chart.Root>
         );
+
         const baselines = new Set([...container.querySelectorAll('text')].map((text) => text.getAttribute('y')));
         expect(baselines.size).toBe(1);
     });
@@ -755,6 +846,7 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
             { at: 0, errors: null, warnings: 3 },
             { at: 3_600_000, errors: 2, warnings: 4 }
         ];
+
         const plot = await mount(
             <Chart.Root data={hours} x="at" xScale="time" label="Events">
                 <Chart.Line value="errors" label="Errors" />
@@ -762,6 +854,7 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
                 <Chart.Tooltip />
             </Chart.Root>
         );
+
         await press(plot, 'ArrowRight');
         const rows = [...container.querySelectorAll('.inset-0 p')].slice(1).map((row) => row.textContent);
         expect(rows).toEqual(['Errors-', 'Warnings3']);
@@ -780,6 +873,7 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
                 </Chart.Root>
             </Chart.Group>
         );
+
         await press(plot, 'ArrowRight');
         const tooltips = [...container.querySelectorAll('.inset-0')].map((slot) => slot.childElementCount);
         expect(tooltips).toEqual([1, 0]);
@@ -788,14 +882,17 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
 
     test('a controlled cursor hears that the pointer left', async () => {
         const changes: unknown[] = [];
+
         const plot = await mount(
             <Chart.Root data={SCORES} x="key" label="Scores" activeX="a-low" onActiveXChange={(x) => changes.push(x)}>
                 <Chart.Bar value="score" label="Score" />
             </Chart.Root>
         );
+
         await act(async () => {
             plot.dispatchEvent(new PointerEvent('pointerout', { bubbles: true, relatedTarget: document.body }));
         });
+
         expect(changes).toEqual([null]);
     });
 
@@ -805,6 +902,7 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
         { key: 'b-low', model: 'Beta', effort: 'low', cost: 0.05, score: 39 },
         { key: 'b-mid', model: 'Beta', effort: 'mid', cost: 2, score: 58 }
     ];
+
     type Measured = (typeof MEASURED)[number];
 
     const scatter = (props: { onActiveXChange?: (x: unknown) => void } = {}): ReactNode => (
@@ -834,12 +932,14 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
 
     test('the table of a point chart leaves out a row the chart draws no point for', async () => {
         const rows = [...MEASURED, { key: 'c-low', model: 'Gamma', effort: 'low', cost: null, score: 45 }];
+
         await mount(
             <Chart.Root data={rows} rows="points" x="cost" xScale="log" rowKey="key" rowLabel="effort" group="model" label="Cost">
                 <Chart.Point value="score" label="Intelligence" />
                 <Chart.Table />
             </Chart.Root>
         );
+
         const labels = [...container.querySelectorAll('tbody tr')].map((row) => row.textContent);
         expect(labels).toHaveLength(MEASURED.length);
         expect(labels.some((label) => label?.startsWith('Gamma'))).toBe(false);
@@ -852,6 +952,7 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
                 <Chart.Point value="score" label="Intelligence" />
             </Chart.Root>
         );
+
         const labels = [...container.querySelectorAll('text')].map((text) => [text.textContent, Number(text.getAttribute('x'))] as const);
         expect(labels.map(([text]) => text)).toEqual(['$0.01', '$0.1', '$1', '$10']);
         const [first, last] = [labels[0]![1], labels.at(-1)![1]];
@@ -865,9 +966,11 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
         const target = container.querySelector<SVGCircleElement>('circle[role="button"][aria-label^="Alpha, high"]')!;
         const x = Number(target.getAttribute('cx'));
         const y = Number(target.getAttribute('cy'));
+
         await act(async () => {
             plot.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: x + 6, clientY: y - 6 }));
         });
+
         expect(changes).toEqual(['a-high']);
         const texts = [...container.querySelectorAll('text')].map((text) => text.textContent);
         // The guides write the x and the value of the point on the axes, beside the picked point's.
@@ -878,9 +981,11 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
         expect(texts).toContain('30');
         expect(texts).not.toContain('0');
         expect(container.querySelectorAll('path[stroke-dasharray="4 4"]')).toHaveLength(2);
+
         await act(async () => {
             plot.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: x + 40, clientY: y + 40 }));
         });
+
         expect(changes).toEqual(['a-high', null]);
     });
 
@@ -913,6 +1018,7 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
                 <Chart.Bar value="score" label="Score" />
             </Chart.Root>
         );
+
         const title = [...container.querySelectorAll('text')].find((text) => text.textContent === 'Index points, higher is better')!;
         expect(title.getAttribute('y')).toBe('15');
         const tops = columns().map((column) => Number(column.getAttribute('y')));
@@ -927,6 +1033,7 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
                 <Chart.Bar value="score" label="Score" />
             </Chart.Root>
         );
+
         const texts = [...container.querySelectorAll('text')].map((text) => text.textContent ?? '');
         expect(texts).toContain('Index points');
         const right = texts.filter((text) => /^\d+$/.test(text));
@@ -940,6 +1047,7 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
     test('the series legend toggles a series, highlights the one under the pointer and finds by name', async () => {
         const hidden: string[][] = [];
         const highlighted: (string | null)[] = [];
+
         await mount(
             <SeriesLegend
                 label="Models"
@@ -957,23 +1065,29 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
                 onHighlightedChange={(key) => highlighted.push(key)}
             />
         );
+
         const button = (name: string): HTMLButtonElement => container.querySelector<HTMLButtonElement>(`button[aria-label="${name}"]`)!;
+
         expect(button('North Alpha').getAttribute('aria-pressed')).toBe('true');
         expect(button('North Alpha').textContent).toBe('Alpha');
         expect(button('Beta').getAttribute('aria-pressed')).toBe('false');
         expect(button('Gamma').disabled).toBe(true);
+
         await act(async () => {
             button('Beta').click();
             button('North Alpha').dispatchEvent(new PointerEvent('pointerover', { bubbles: true }));
         });
+
         expect(hidden).toEqual([[]]);
         expect(highlighted).toEqual(['a']);
         const search = container.querySelector('input')!;
+
         await act(async () => {
             const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!;
             setter.call(search, 'gam');
             search.dispatchEvent(new Event('input', { bubbles: true }));
         });
+
         expect([...container.querySelectorAll('button[aria-pressed]')].map((entry) => entry.getAttribute('aria-label'))).toEqual(['Gamma']);
     });
 
@@ -988,27 +1102,34 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
 
     test('a bucket the keyboard moved to lets go when the focus leaves, one under the pointer stays', async () => {
         const plot = await mount();
+
         const leave = async (): Promise<void> => {
             await act(async () => {
                 plot.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: document.body }));
             });
         };
+
         await press(plot, 'End');
         await leave();
         expect(plot.getAttribute('aria-activedescendant')).toBeNull();
+
         await act(async () => {
             plot.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: 10, clientY: 50 }));
         });
+
         await leave();
         expect(plot.getAttribute('aria-activedescendant')).not.toBeNull();
     });
 
     test('an Escape that clears the cursor stops at the chart, so a dialog around it stays open', async () => {
         const reached: string[] = [];
+
         const listen = (e: globalThis.KeyboardEvent): void => {
             reached.push(e.key);
         };
+
         document.addEventListener('keydown', listen);
+
         try {
             const plot = await mount();
             await press(plot, 'End');

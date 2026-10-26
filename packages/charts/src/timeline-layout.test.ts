@@ -26,6 +26,7 @@ describe('timelineTree', () => {
             { id: 'a', parent: 'b', label: 'a', start: 0, duration: 1 },
             { id: 'b', parent: 'a', label: 'b', start: 1, duration: 1 }
         ]);
+
         expect(ids(rows)).toEqual(['a', 'b']);
         expect(rows.map((row) => row.depth)).toEqual([0, 1]);
     });

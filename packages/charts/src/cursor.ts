@@ -5,19 +5,24 @@ export function nearestIndex(xs: readonly number[], x: number): number {
     if (xs.length === 0 || !Number.isFinite(x)) {
         return -1;
     }
+
     let low = 0;
     let high = xs.length - 1;
+
     while (low < high) {
         const middle = (low + high) >> 1;
+
         if (xs[middle]! < x) {
             low = middle + 1;
         } else {
             high = middle;
         }
     }
+
     if (low > 0 && Math.abs(xs[low - 1]! - x) <= Math.abs(xs[low]! - x)) {
         return low - 1;
     }
+
     return low;
 }
 
@@ -30,18 +35,25 @@ export function containingIndex(xs: readonly number[], at: number, step?: number
     if (xs.length === 0 || at < xs[0]!) {
         return -1;
     }
+
     let index = nearestIndex(xs, at);
+
     if (xs[index]! > at) {
         index -= 1;
     }
+
     const last = xs.length - 1;
+
     if (step === undefined && index < last) {
         return index;
     }
+
     const length = step ?? (last > 0 ? xs[last]! - xs[last - 1]! : 0);
+
     if (length <= 0) {
         return at === xs[index] ? index : -1;
     }
+
     return at < xs[index]! + length ? index : -1;
 }
 
@@ -58,12 +70,15 @@ export function snapIndex(xs: readonly ChartX[], scale: ChartXScale, x: ChartX |
     if (x === null) {
         return -1;
     }
+
     if (scale === 'band') {
         return keyIndexOf(xs, x);
     }
+
     if (typeof x !== 'number') {
         return -1;
     }
+
     return scale === 'time' && step > 0 ? containingIndex(xs as number[], x, step) : nearestIndex(xs as number[], x);
 }
 
@@ -76,6 +91,7 @@ export function moveIndex(key: string, current: number, count: number, groupStar
     if (count === 0) {
         return undefined;
     }
+
     switch (key) {
         case 'ArrowRight':
             return current < 0 ? 0 : Math.min(count - 1, current + 1);
@@ -92,8 +108,10 @@ export function moveIndex(key: string, current: number, count: number, groupStar
             if (groupStarts.length === 0) {
                 return undefined;
             }
+
             const at = current < 0 ? -1 : groupStarts.findLastIndex((start) => start <= current);
             const next = key === 'PageDown' ? Math.min(groupStarts.length - 1, at + 1) : Math.max(0, at - 1);
+
             return groupStarts[next];
         }
         default:

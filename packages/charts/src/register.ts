@@ -32,6 +32,7 @@ export function useRegistration<Kind extends keyof Entries>(store: ChartStore, k
     useBeforePaint(() => {
         write(store, kind, id, entry);
     });
+
     useBeforePaint(() => () => write(store, kind, id, null), [store, kind, id]);
 }
 

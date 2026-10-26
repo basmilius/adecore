@@ -8,6 +8,7 @@ import { Timeline, type TimelineSpan } from './index.ts';
 import { CHARTS_NAMESPACE, CHARTS_RESOURCES } from './locales.ts';
 
 const i18n = i18next.createInstance();
+
 await i18n.init({ lng: 'en', fallbackLng: 'en', resources: { en: { [CHARTS_NAMESPACE]: CHARTS_RESOURCES.en! } }, interpolation: { escapeValue: false } });
 
 const SPANS: TimelineSpan[] = [
@@ -32,6 +33,7 @@ test('a row is named by its label, kind, start and duration', () => {
             </Timeline.Root>
         )
     );
+
     expect(markup).toContain('role="tree"');
     expect(markup).toContain('aria-label="SELECT orders, Database, starts at +12 ms, takes 40 ms"');
 });
@@ -44,6 +46,7 @@ test('the keyboard hint stands beside the tree, where it is no item of it', () =
             </Timeline.Root>
         )
     );
+
     const hintId = /role="tree"[^>]*aria-describedby="([^"]+)"/.exec(markup)![1]!;
     const tree = markup.slice(markup.indexOf('role="tree"'), markup.lastIndexOf('role="treeitem"'));
     expect(tree).not.toContain(`id="${hintId}"`);
@@ -59,6 +62,7 @@ describe.skipIf(typeof document === 'undefined')('a mounted timeline', () => {
     const mount = async (): Promise<HTMLElement> => {
         const { createRoot } = await import('react-dom/client');
         root = createRoot(container);
+
         await act(async () => {
             root.render(
                 wrap(
@@ -68,11 +72,14 @@ describe.skipIf(typeof document === 'undefined')('a mounted timeline', () => {
                 )
             );
         });
+
         return container.querySelector<HTMLElement>('[role="tree"]')!;
     };
 
     const rows = (): HTMLElement[] => [...container.querySelectorAll<HTMLElement>('[role="treeitem"]')];
+
     const shown = (): string[] => rows().map((row) => row.dataset.span!);
+
     const stop = (): string[] => rows().flatMap((row) => (row.tabIndex === 0 ? [row.dataset.span!] : []));
 
     const focus = async (index: number): Promise<void> => {
@@ -118,9 +125,11 @@ describe.skipIf(typeof document === 'undefined')('a mounted timeline', () => {
     test('folding the row that hides the focus hands the tab stop to the folded row', async () => {
         await mount();
         await focus(3);
+
         await act(async () => {
             rows()[0]!.querySelector<HTMLButtonElement>('button')!.click();
         });
+
         expect(shown()).toEqual(['request']);
         expect(stop()).toEqual(['request']);
     });

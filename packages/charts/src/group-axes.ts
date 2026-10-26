@@ -15,20 +15,25 @@ export function createAxisWidths(): AxisWidths {
     const widths = new Map<string, [number, number]>();
     let left = 0;
     let right = 0;
+
     const settle = (): void => {
         const nextLeft = Math.max(0, ...[...widths.values()].map(([width]) => width));
         const nextRight = Math.max(0, ...[...widths.values()].map(([, width]) => width));
+
         if (nextLeft !== left || nextRight !== right) {
             left = nextLeft;
             right = nextRight;
+
             for (const listener of listeners) {
                 listener();
             }
         }
     };
+
     return {
         subscribe(listener) {
             listeners.add(listener);
+
             return () => listeners.delete(listener);
         },
         set(id, nextLeft, nextRight) {
@@ -50,11 +55,14 @@ const ZERO = (): number => 0;
 /* The y axes of a chart, widened to the widest of its group; outside a group they stay as they are. */
 export function useAlignedAxes(widths: AxisWidths | null, left: number, right: number): [number, number] {
     const id = useId();
+
     useBeforePaint(() => {
         widths?.set(id, left, right);
     });
+
     useBeforePaint(() => () => widths?.remove(id), [widths, id]);
     const sharedLeft = useSyncExternalStore(widths?.subscribe ?? NONE, widths?.left ?? ZERO, widths?.left ?? ZERO);
     const sharedRight = useSyncExternalStore(widths?.subscribe ?? NONE, widths?.right ?? ZERO, widths?.right ?? ZERO);
+
     return [Math.max(left, sharedLeft), Math.max(right, sharedRight)];
 }

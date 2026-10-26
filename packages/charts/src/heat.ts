@@ -11,6 +11,7 @@ export function heatStep(value: number | null, max: number, steps: number): numb
     if (value === null || !Number.isFinite(value) || value <= 0 || max <= 0) {
         return 0;
     }
+
     return Math.min(steps, Math.max(1, Math.ceil((value / max) * steps)));
 }
 
@@ -19,6 +20,7 @@ export function heatShare(step: number, steps: number): number {
     if (step <= 0) {
         return 0;
     }
+
     return steps <= 1 ? 100 : Math.round(FLOOR + ((step - 1) / (steps - 1)) * (100 - FLOOR));
 }
 
@@ -27,9 +29,11 @@ export function heatMix(value: number | null, max: number, steps?: number): numb
     if (steps !== undefined) {
         return heatShare(heatStep(value, max, steps), steps);
     }
+
     if (heatStep(value, max, 1) === 0) {
         return 0;
     }
+
     return Math.round(FLOOR + Math.min(1, value! / max) * (100 - FLOOR));
 }
 
@@ -41,7 +45,9 @@ export function moveCell(key: string, current: HeatCell | null, rows: number, co
     if (rows === 0 || columns === 0) {
         return undefined;
     }
+
     const at = current ?? { row: 0, column: 0 };
+
     switch (key) {
         case 'ArrowRight':
             return current === null ? at : { row: at.row, column: Math.min(columns - 1, at.column + 1) };

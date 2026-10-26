@@ -103,6 +103,7 @@ type Point = readonly [number, number] | null;
 const pointsOf = (chart: ChartContextValue, values: readonly (number | null)[]): Point[] =>
     values.map((value, index) => {
         const pixel = value === null ? null : chart.pixelOfY(value);
+
         return pixel === null ? null : [chart.centerOf(index), pixel];
     });
 
@@ -117,6 +118,7 @@ function useSeriesValues<Row>(part: string, value: ChartAccessor<Row, number | n
     const chart = useChartContext(part);
     const id = useId();
     useKeyCheck(value, chart.data, part);
+
     return [chart, id, (chart.data as Row[]).map((row, index) => numberOf(readValue(value, row, index)))];
 }
 
@@ -136,13 +138,16 @@ function LinePath({
     if (width === 0) {
         return null;
     }
+
     const path = line<Point>()
         .defined((point) => point !== null)
         .x((point) => point![0])
         .y((point) => point![1])
         .curve(CURVES[curve])(points);
+
     // Keyed by index: before the chart is measured every point stands at the same x.
     const marked = dots ? points.flatMap((point, index) => (point === null ? [] : [index])) : lonePoints(points);
+
     return (
         <>
             {path !== null && (
@@ -167,6 +172,7 @@ function LinePath({
 function tonesOf<Row>(chart: ChartContextValue, tone: ChartBarTone<Row> | undefined): [string | null, string[] | null] {
     const rows = chart.data as Row[];
     const rowColors = typeof tone === 'function' ? rows.map((row, index) => colorOf(tone(row, index))!) : null;
+
     return [typeof tone === 'function' ? (rowColors?.[0] ?? null) : colorOf(tone), rowColors];
 }
 
@@ -174,6 +180,7 @@ function tonesOf<Row>(chart: ChartContextValue, tone: ChartBarTone<Row> | undefi
 export function ChartLine<Row>({ value, label, tone, icon, curve = 'linear', dashed = false, dots = false, width = 2, className, ref }: ChartLineProps<Row>) {
     const [chart, id, values] = useSeriesValues('Chart.Line', value);
     const [color, rowColors] = tonesOf(chart, tone);
+
     useRegistration(chart.store, 'series', id, {
         kind: 'line',
         label,
@@ -186,16 +193,20 @@ export function ChartLine<Row>({ value, label, tone, icon, curve = 'linear', das
         icon: icon ?? null,
         valueLabels: false
     });
+
     if (chart.points) {
         return (
             <g ref={ref} className={clsx('pointer-events-none', className)}>
                 {chart.pointGroups.map((run) => {
                     const first = run.indexes[0]!;
+
                     const placed = run.indexes.map((index) => {
                         const pixel = values[index] === null ? null : chart.pixelOfY(values[index]!);
                         const left = chart.positions[index]?.[0] ?? null;
+
                         return pixel === null || left === null ? null : ([left, pixel] as const);
                     });
+
                     return (
                         <g
                             key={run.key}
@@ -209,6 +220,7 @@ export function ChartLine<Row>({ value, label, tone, icon, curve = 'linear', das
             </g>
         );
     }
+
     return (
         <g ref={ref} className={clsx('pointer-events-none', className)} style={{ color: chart.colors.get(id) ?? color ?? seriesColor(0) }}>
             <LinePath points={pointsOf(chart, values)} curve={curve} dashed={dashed} dots={dots} width={width} />
@@ -223,6 +235,7 @@ export function ChartLine<Row>({ value, label, tone, icon, curve = 'linear', das
 export function ChartPoint<Row>({ value, label, tone, icon, className, ref }: ChartPointProps<Row>) {
     const [chart, id, values] = useSeriesValues('Chart.Point', value);
     const [color, rowColors] = tonesOf(chart, tone);
+
     useRegistration(chart.store, 'series', id, {
         kind: 'point',
         label,
@@ -235,18 +248,23 @@ export function ChartPoint<Row>({ value, label, tone, icon, className, ref }: Ch
         icon: icon ?? null,
         valueLabels: false
     });
+
     const fallback = chart.colors.get(id) ?? seriesColor(0);
+
     return (
         <g ref={ref} className={clsx('pointer-events-none', className)}>
             {values.map((amount, index) => {
                 const pixel = amount === null ? null : chart.pixelOfY(amount);
                 const left = chart.points ? (chart.positions[index]?.[0] ?? null) : chart.centerOf(index);
+
                 if (pixel === null || left === null || !Number.isFinite(left)) {
                     return null;
                 }
+
                 const active = index === chart.activeIndex;
                 const picked = chart.selected[index] === true;
                 const fill = rowColors?.[index] ?? color ?? (chart.points ? chart.groupColorOf(index) : fallback);
+
                 return (
                     <g key={chart.keys?.[index] ?? index} opacity={chart.dimmed[index] === true ? DIMMED_POINT : 1}>
                         <circle cx={left} cy={pixel} r={active || picked ? 5 : 4} strokeWidth={1} style={{ fill, stroke: chart.halo }} />
@@ -276,6 +294,7 @@ export function ChartArea<Row>({
     const [chart, id, values] = useSeriesValues('Chart.Area', value);
     const flat = stack || fillKind === 'flat';
     const gradient = `chart-area-${id.replace(/[^\w-]/g, '')}`;
+
     useRegistration(chart.store, 'series', id, {
         kind: 'area',
         label,
@@ -288,15 +307,18 @@ export function ChartArea<Row>({
         icon: icon ?? null,
         valueLabels: false
     });
+
     const stacked = chart.stacked.get(id);
     const tops = pointsOf(chart, stacked?.top ?? values);
     const ground = groundOf(chart);
+
     const fill = area<number>()
         .defined((index) => tops[index] !== null)
         .x((index) => tops[index]![0])
         .y1((index) => tops[index]![1])
         .y0((index) => (stacked === undefined ? ground : (chart.pixelOfY(stacked.base[index]!) ?? ground)))
         .curve(CURVES[curve])(tops.map((_, index) => index));
+
     return (
         <g ref={ref} className={clsx('pointer-events-none', className)} style={{ color: chart.colors.get(id) ?? colorOf(tone) ?? seriesColor(0) }}>
             {flat ? null : (
@@ -316,6 +338,7 @@ export function ChartArea<Row>({
 /* A group of `Chart.Bar` that shares the width of a bucket, side by side or stacked. */
 export function ChartBars({ stack = false, children, className, ref }: ChartBarsProps) {
     const id = useId();
+
     return (
         <BarsContext value={{ id, stack }}>
             <g ref={ref} className={className}>
@@ -351,6 +374,7 @@ export function ChartBar<Row>({
     const rows = chart.data as Row[];
     const [color, rowColors] = tonesOf(chart, tone);
     const labeled = valueLabels !== undefined && valueLabels !== false;
+
     useRegistration(chart.store, 'series', id, {
         kind: 'bar',
         label,
@@ -364,43 +388,55 @@ export function ChartBar<Row>({
         valueLabels: labeled,
         dimOpacity
     });
+
     // A time scale learns how long a bucket is from the distance between two rows, so one row alone has no slot.
     const noSlot = chart.xScale === 'time' && chart.data.length > 0 && chart.bucketAt(0) === null;
+
     useEffect(() => {
         if (noSlot) {
             warnOnce('Chart.Bar: a time scale with one row draws no columns without a `step` on the root.');
         }
     }, [noSlot]);
+
     const { slot, count } = chart.slots.get(id) ?? { slot: 0, count: 1 };
     const stacked = chart.stacked.get(id);
     const fallback = chart.colors.get(id) ?? seriesColor(0);
     const anySelected = chart.selected.some(Boolean);
+
     const groupOf = (index: number): { first: number; last: number } =>
         chart.band?.groups.find((run) => index >= run.first && index <= run.last) ?? { first: 0, last: values.length - 1 };
+
     const writeValue = typeof valueLabels === 'function' ? valueLabels : (amount: number): string => chart.formatY(amount);
+
     const drawn = values.flatMap((amount, index) => {
         const top = stacked?.top[index];
         const base = stacked?.base[index] ?? 0;
         const topPixel = top === null || top === undefined ? null : chart.pixelOfY(top);
         const basePixel = chart.pixelOfY(base) ?? chart.plot.bottom;
         const bucket = chart.bucketAt(index);
+
         if (amount === null || topPixel === null || bucket === null) {
             return [];
         }
+
         const column = columnsIn(bucket.left, bucket.width, count, columnWidth)[slot]!;
         const { y, height } = segmentOf(topPixel, basePixel, base === 0, amount, bars?.stack === true ? 0 : minHeight);
         const focused = index === chart.activeIndex || chart.selected[index] === true;
         const outOfFocus = chart.dimmed[index] === true || (anySelected && !focused);
         const run = groupOf(index);
         let alpha = focused ? 1 : (opacity?.(rows[index]!, index - run.first, run.last - run.first + 1) ?? 1);
+
         if (outOfFocus) {
             alpha *= dimOpacity;
         } else if (chart.activeIndex >= 0 && !focused) {
             alpha *= hoverOpacity;
         }
+
         const text = labeled ? writeValue(amount, rows[index]!, index) : '';
+
         return [{ index, column, y, height, alpha, outOfFocus, text }];
     });
+
     const labelTops = placeValueLabels(
         drawn.map(({ column, y, text }) => ({ center: column.x + column.width / 2, top: y, width: widths.get(text) ?? guessLabelWidth(text, valueLabelSize) })),
         valueLabelSize
@@ -408,10 +444,13 @@ export function ChartBar<Row>({
 
     useBeforePaint(() => {
         const texts = [...(labels.current?.querySelectorAll('text') ?? [])];
+
         if (texts.length === 0 || typeof texts[0]!.getComputedTextLength !== 'function') {
             return;
         }
+
         const next = new Map(texts.map((node) => [node.textContent ?? '', Math.ceil(node.getComputedTextLength())]));
+
         if (next.size !== widths.size || [...next].some(([text, width]) => widths.get(text) !== width)) {
             setWidths(next);
         }
@@ -426,6 +465,7 @@ export function ChartBar<Row>({
                 {drawn.map(({ index, column, y, height, alpha }) => {
                     const corner = bars?.stack === true ? 0 : Math.min(radius, Math.floor(column.width / 4));
                     const fill = rowColors?.[index] ?? color ?? fallback;
+
                     return rounded === 'end' && corner > 0 ? (
                         <path
                             key={index}
@@ -443,6 +483,7 @@ export function ChartBar<Row>({
                     drawn.map(({ index, column, y, outOfFocus, text }, i) => {
                         const center = Math.round(column.x + column.width / 2);
                         const baseline = labelTops[i]!;
+
                         return (
                             <g key={`label-${index}`} opacity={outOfFocus ? dimOpacity : 1} aria-hidden>
                                 {baseline < y - LABEL_LIFT - 2 && (

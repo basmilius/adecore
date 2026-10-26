@@ -56,11 +56,14 @@ export function ChartRule({ value, label, tone = 'muted', dashed = false, classN
     useRegistration(chart.store, 'rule', id, { value, label });
     const pixel = chart.pixelOfY(value);
     const target = chart.elements.rules;
+
     if (pixel === null || target === null) {
         return null;
     }
+
     const top = Math.round(pixel) + 0.5;
     const below = top - RULE_LABEL < 0;
+
     return createPortal(
         <g ref={ref} className={clsx('pointer-events-none', className)} style={{ color: colorOf(tone)! }} aria-hidden>
             <line x1={chart.plot.left} x2={chart.plot.right} y1={top} y2={top} stroke="currentColor" strokeDasharray={dashed ? '4 4' : undefined} />
@@ -89,11 +92,14 @@ export function ChartMarker({ at, label, detail, tone = 'muted', className, ref 
     const x = xOf(at);
     useRegistration(chart.store, 'marker', id, { at: x, label, detail: detail ?? null, color });
     const pixel = chart.pixelOfX(x);
+
     // A moment outside the axis, such as a deploy before the first bucket, has no place on the plot.
     if (pixel === null || pixel < chart.plot.left || pixel > chart.plot.right) {
         return null;
     }
+
     const left = Math.round(pixel) + 0.5;
+
     return (
         <g ref={ref} className={clsx('pointer-events-none', className)} style={{ color }} aria-hidden>
             <line x1={left} x2={left} y1={chart.plot.top} y2={chart.plot.bottom} stroke="currentColor" strokeDasharray="3 3" opacity={0.7} />
@@ -114,23 +120,28 @@ export function ChartBand({ from, to, label, detail, tone = 'muted', className, 
     const { plot, band, continuous } = chart;
     let left: number | null = null;
     let right: number | null = null;
+
     if (continuous !== null && typeof start === 'number' && typeof end === 'number') {
         left = Math.max(plot.left, continuous.at(Math.min(start, end)));
         right = Math.min(plot.right, continuous.at(Math.max(start, end)));
     } else if (band !== null) {
         const first = keyIndexOf(chart.xs, start);
         const last = keyIndexOf(chart.xs, end);
+
         if (first >= 0 && last >= 0) {
             left = plot.left + band.lefts[Math.min(first, last)]!;
             right = plot.left + band.lefts[Math.max(first, last)]! + band.bucket;
         }
     }
+
     if (left === null || right === null || right <= left) {
         return null;
     }
+
     const x = Math.round(left);
     // A short range still reads as a band, not as a line like a marker.
     const width = Math.max(MIN_BAND, Math.round(right) - x);
+
     return (
         <g ref={ref} className={clsx('pointer-events-none', className)} style={{ color }} aria-hidden>
             <defs>

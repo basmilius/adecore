@@ -103,14 +103,17 @@ const crisp = (pixel: number): number => Math.round(pixel) + 0.5;
  */
 const apart = <Label extends { readonly x: number; readonly end?: boolean }>(labels: readonly Label[], spacing: number): Label[] => {
     const kept: Label[] = [];
+
     for (const label of labels) {
         const last = kept.at(-1);
+
         if (last === undefined || label.x - last.x >= spacing) {
             kept.push(label);
         } else if (label.end === true && last.end !== true) {
             kept[kept.length - 1] = label;
         }
     }
+
     return kept;
 };
 
@@ -119,23 +122,28 @@ export function ChartGrid({ axis = 'y', dashed = false, lines = 'all', className
     const chart = useChartContext('Chart.Grid');
     const { plot, y, continuous, band } = chart;
     const ground = y.domain[0] <= 0 && y.domain[1] >= 0 ? 0 : y.domain[0];
+
     if (lines === 'ground') {
         const pixel = y.at(ground);
+
         return pixel === null ? null : (
             <g ref={ref} className={clsx('pointer-events-none', className)} aria-hidden>
                 <line x1={plot.left} x2={plot.right} y1={crisp(pixel)} y2={crisp(pixel)} className={dashed ? 'stroke-border' : 'stroke-border-strong'} />
             </g>
         );
     }
+
     const columns =
         continuous !== null
             ? continuous.ticks(tickCount(plot.width, X_TICK_SPACING)).map((tick) => continuous.at(tick))
             : chart.xs.map((_, index) => chart.centerOf(index));
+
     return (
         <g ref={ref} className={clsx('pointer-events-none', className)} aria-hidden>
             {axis !== 'x' &&
                 y.ticks.map((tick) => {
                     const pixel = y.at(tick);
+
                     return pixel === null ? null : (
                         <line
                             key={tick}
@@ -190,12 +198,15 @@ export function ChartXAxis({
     const rows = useSyncExternalStore(store.subscribe, store.xAxes, store.xAxes);
     const widest = rows.get(id)?.widest ?? GUESS;
     let above = 0;
+
     for (const [rowId, row] of rows) {
         if (rowId === id) {
             break;
         }
+
         above += row.room;
     }
+
     const baseline = plot.bottom + LABEL_GAP + above;
     const domainKey = continuous === null ? '' : `${continuous.domain.join(':')}:${Math.round(plot.width)}`;
     const write = format ?? chart.formatX;
@@ -204,17 +215,22 @@ export function ChartXAxis({
         // Measuring only the placed labels can flip between two sets forever, since the widest decides how many are placed.
         // A band scale measures every label; the ticks of a continuous one only let the width grow per domain.
         let width = Math.ceil(widestIn(continuous === null ? candidates.current : labels.current));
+
         if (continuous !== null) {
             width = grown.current.key === domainKey ? Math.max(width, grown.current.width) : width;
             grown.current = { key: domainKey, width };
         }
+
         store.setXAxis(id, { widest: width, room: roomOf(width, angle) + (title === undefined ? 0 : X_TITLE_ROOM), format });
     });
+
     useBeforePaint(() => () => store.setXAxis(id, null), [store, id]);
 
     const inward = (x: number): number => Math.min(Math.max(x, widest / 2 - chart.leftAxis), chart.width - widest / 2);
+
     let placed: { key: string; x: number; text: string; end?: boolean; index?: number }[];
     const buckets = align === 'bucket' && chart.xScale === 'time' && !chart.points ? chart.bucketAt(0) : null;
+
     if (continuous !== null && xs.length === 0) {
         placed = [];
     } else if (continuous !== null && buckets !== null && buckets.width > 0) {
@@ -222,6 +238,7 @@ export function ChartXAxis({
         const span = continuous.domain[1] - continuous.domain[0];
         const label = timeLabelOf(span, (buckets.width / Math.max(1, plot.width)) * span);
         const every = thin ? Math.max(1, Math.ceil((widest + BAND_LABEL_GAP) / buckets.width)) : 1;
+
         placed = xs.flatMap((key, index) =>
             index % every !== 0
                 ? []
@@ -232,10 +249,12 @@ export function ChartXAxis({
         const step = values.length > 1 ? values[1]! - values[0]! : continuous.domain[1] - continuous.domain[0];
         const label = timeLabelOf(continuous.domain[1] - continuous.domain[0], step);
         const decimals = decimalsOf(step);
+
         placed = values
             .map((tick) => {
                 // A tick on an end of the axis, such as the last decade of a log scale, still names that end when moved in.
                 const end = tick === continuous.domain[0] || tick === continuous.domain[1];
+
                 return {
                     key: String(tick),
                     x: end ? inward(continuous.at(tick)) : continuous.at(tick),
@@ -245,23 +264,29 @@ export function ChartXAxis({
             })
             // Any other label that would hang past the end of the chart is left out rather than moved off its tick.
             .filter((tick) => tick.x - widest / 2 >= -chart.leftAxis && tick.x + widest / 2 <= chart.width + 1);
+
         placed = apart(placed, widest + LABEL_GAP);
     } else if (band !== null && band.bucket > 0) {
         const every = thin ? Math.max(1, Math.ceil((angle === 0 ? widest + BAND_LABEL_GAP : X_LABEL_LINE) / band.bucket)) : 1;
+
         placed = xs.flatMap((key, index) => {
             if (index % every !== 0) {
                 return [];
             }
+
             const center = chart.centerOf(index);
+
             return [{ key: String(key), x: angle === 0 ? inward(center) : center, text: write(key), index }];
         });
     } else {
         placed = [];
     }
+
     // Only an axis with a label per bucket leaves a bucket unnamed; round ticks of a continuous one name no bucket.
     const named = (band !== null && band.bucket > 0) || buckets !== null;
     const thinned = named ? placed.length < xs.length : null;
     const reported = useRef<boolean | null>(null);
+
     useEffect(() => {
         if (thinned !== null && reported.current !== thinned) {
             reported.current = thinned;
@@ -284,6 +309,7 @@ export function ChartXAxis({
                 {placed.map((tick) => {
                     const focus = tick.index === undefined ? null : (chart.labelFocus[tick.index] ?? null);
                     const opacity = focus === 'dim' ? chart.labelDim : undefined;
+
                     return angle === 0 ? (
                         <text
                             key={tick.key}
@@ -327,11 +353,13 @@ export function ChartXAxis({
 /* Tells the root the title of the x axis, which a point chart reads out with each x; an axis without one says nothing. */
 function useAxisTitle(title: string | undefined): void {
     const { store } = useChartContext('Chart.XAxis');
+
     useBeforePaint(() => {
         if (title !== undefined) {
             store.setFormat('xTitle', title);
         }
     });
+
     useBeforePaint(
         () => () => {
             if (title !== undefined) {
@@ -357,17 +385,21 @@ export function ChartYAxis({ format, ticks, side = 'left', title, className, ref
             format
         });
     });
+
     useBeforePaint(() => () => store.setYAxis(side, null), [store, side]);
 
     if (target === null) {
         return null;
     }
+
     const decimals = decimalsOf(yStep);
+
     return createPortal(
         <g ref={ref} className={className}>
             <g ref={labels}>
                 {y.ticks.map((tick) => {
                     const pixel = y.at(tick);
+
                     return pixel === null ? null : (
                         <text
                             key={tick}
@@ -402,11 +434,14 @@ export function ChartYAxis({ format, ticks, side = 'left', title, className, ref
 export function ChartGroupAxis<Row>({ children, className, ref }: ChartGroupAxisProps<Row>) {
     const chart = useChartContext('Chart.GroupAxis');
     const target = chart.elements.groups;
+
     if (target === null || chart.band === null) {
         return null;
     }
+
     const rows = chart.data as Row[];
     const band = chart.band;
+
     return createPortal(
         <div ref={ref} aria-hidden className={clsx('grid pt-1 text-xs', className)}>
             {band.groups.map((run) => (

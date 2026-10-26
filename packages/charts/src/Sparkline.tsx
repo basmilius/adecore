@@ -33,6 +33,7 @@ export function Sparkline({ values, kind = 'line', label, tone = 'accent', forma
     const high = Math.max(...present);
     const low = Math.min(...present);
     const step = values.length > 1 ? (width - 2) / (values.length - 1) : 0;
+
     const path =
         kind === 'line'
             ? line<number | null>()
@@ -40,6 +41,7 @@ export function Sparkline({ values, kind = 'line', label, tone = 'accent', forma
                   .x((_, index) => 1 + index * step)
                   .y((value) => 1 + (high === low ? height / 2 : ((high - value!) / (high - low)) * (height - 2)))(values)
             : null;
+
     return (
         <Tooltip label={text}>
             <svg

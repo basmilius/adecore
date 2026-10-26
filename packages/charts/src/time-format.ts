@@ -13,6 +13,7 @@ export function timeLabelOf(span: number, step: number): TimeLabel {
     if (step >= DAY) {
         return 'day';
     }
+
     return span <= DAY ? 'clock' : 'dayClock';
 }
 

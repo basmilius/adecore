@@ -42,19 +42,24 @@ const byStart = <Span extends TimelineSpan>(first: Span, second: Span): number =
 export function timelineTree<Span extends TimelineSpan>(spans: readonly Span[]): TimelineTreeRow<Span>[] {
     const known = new Set(spans.map((span) => span.id));
     const children = new Map<string | null, Span[]>();
+
     for (const span of spans) {
         const parent = span.parent !== undefined && span.parent !== null && span.parent !== span.id && known.has(span.parent) ? span.parent : null;
         const siblings = children.get(parent);
+
         if (siblings === undefined) {
             children.set(parent, [span]);
         } else {
             siblings.push(span);
         }
     }
+
     const rows: TimelineTreeRow<Span>[] = [];
     const placed = new Set<string>();
+
     const visit = (siblings: readonly Span[], ancestors: readonly string[]): void => {
         const sorted = siblings.filter((span) => !placed.has(span.id)).toSorted(byStart);
+
         sorted.forEach((span, index) => {
             placed.add(span.id);
             const own = (children.get(span.id) ?? []).filter((child) => !placed.has(child.id));
@@ -62,13 +67,16 @@ export function timelineTree<Span extends TimelineSpan>(spans: readonly Span[]):
             visit(own, [...ancestors, span.id]);
         });
     };
+
     visit(children.get(null) ?? [], []);
+
     // Spans of a parent cycle reach no root; each that is left starts a tree of its own.
     for (const span of spans.toSorted(byStart)) {
         if (!placed.has(span.id)) {
             visit([span], []);
         }
     }
+
     return rows;
 }
 
@@ -87,8 +95,10 @@ export function timelineExtent(spans: readonly TimelineSpan[], fixedEnd?: number
     if (spans.length === 0) {
         return { origin: 0, total: 1 };
     }
+
     const origin = Math.min(...spans.map((span) => span.start));
     const end = fixedEnd ?? Math.max(...spans.map((span) => span.start + span.duration));
+
     return { origin, total: Math.max(end - origin, 0.001) };
 }
 
@@ -100,14 +110,17 @@ export function durationTicks(total: number, count = 5): number[] {
     if (!(total > 0) || !(count > 0)) {
         return [0];
     }
+
     const raw = total / count;
     const power = 10 ** Math.floor(Math.log10(Math.max(raw, 0.001)));
     const step = [1, 2, 5, 10].map((factor) => factor * power).find((candidate) => candidate >= raw) ?? raw;
     const ticks: number[] = [];
+
     // Counted, not summed, so 0.1 + 0.2 never drifts past the end.
     for (let i = 0; i * step <= total + step * 1e-9; i++) {
         ticks.push(Number((i * step).toPrecision(12)));
     }
+
     return ticks;
 }
 
@@ -133,17 +146,20 @@ export function barOf(span: TimelineSpan, origin: number, total: number): Timeli
     const left = Math.min(percentOf(span.start, origin, total), 100 - MIN_WIDTH);
     // A span that runs past a fixed end is cut off there.
     const width = Math.max(MIN_WIDTH, Math.min((span.duration / total) * 100, 100 - left));
+
     return { left, width, label: width > INSIDE_FROM ? 'inside' : left + width > BEFORE_FROM ? 'before' : 'after' };
 }
 
 /* The time the spans of each kind take, the roots left out: a root covers the whole trace and would outweigh every kind. */
 export function kindTimes(rows: readonly TimelineTreeRow<TimelineSpan>[]): Map<string, number> {
     const times = new Map<string, number>();
+
     for (const { span, depth } of rows) {
         if (depth > 0 && span.kind !== undefined) {
             times.set(span.kind, (times.get(span.kind) ?? 0) + span.duration);
         }
     }
+
     return times;
 }
 
@@ -161,9 +177,11 @@ export function timelineMove(
     expanded: ReadonlySet<string>
 ): TimelineMove | undefined {
     const row = rows[current];
+
     if (row === undefined) {
         return undefined;
     }
+
     switch (key) {
         case 'ArrowDown':
             return { focus: Math.min(rows.length - 1, current + 1) };
@@ -177,13 +195,16 @@ export function timelineMove(
             if (row.children === 0) {
                 return undefined;
             }
+
             return expanded.has(row.span.id) ? { focus: current + 1 } : { expand: row.span.id };
         case 'ArrowLeft': {
             if (row.children > 0 && expanded.has(row.span.id)) {
                 return { collapse: row.span.id };
             }
+
             const parent = row.ancestors.at(-1);
             const index = parent === undefined ? -1 : rows.findIndex((candidate) => candidate.span.id === parent);
+
             return index < 0 ? undefined : { focus: index };
         }
         case 'Enter':

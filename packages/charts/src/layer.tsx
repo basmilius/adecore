@@ -22,6 +22,7 @@ export interface ChartGroupProps {
 /* A `<g>` in the plot for a drawing of the app's own, above the series. */
 export function ChartLayer({ children, className, ref }: ChartLayerProps) {
     useChartContext('Chart.Layer');
+
     return (
         <g ref={ref} className={className}>
             {children}
@@ -33,7 +34,9 @@ export function ChartLayer({ children, className, ref }: ChartLayerProps) {
 export function ChartGroup({ shareCursor = true, alignAxes = true, children, className, ref }: ChartGroupProps) {
     const [cursor, setCursor] = useState<{ x: ChartX | null; owner: string | null }>({ x: null, owner: null });
     const [widths] = useState(createAxisWidths);
+
     const setX = (x: ChartX | null, owner: string): void => setCursor({ x, owner: x === null ? null : owner });
+
     return (
         <GroupContext value={{ cursor: shareCursor ? { ...cursor, setX } : null, widths: alignAxes ? widths : null }}>
             <div ref={ref} className={className}>

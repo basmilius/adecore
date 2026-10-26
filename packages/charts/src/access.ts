@@ -23,6 +23,7 @@ export function warnOnce(message: string): void {
     if ((typeof process !== 'undefined' && process.env.NODE_ENV === 'production') || warned.has(message)) {
         return;
     }
+
     warned.add(message);
     console.warn(message);
 }
@@ -32,7 +33,9 @@ export function warnMissingKey(accessor: unknown, data: readonly unknown[], part
     if (typeof accessor !== 'string' || data.length === 0) {
         return;
     }
+
     const first = data[0];
+
     if (typeof first === 'object' && first !== null && !(accessor in first)) {
         warnOnce(`${part}: the rows have no key "${accessor}".`);
     }

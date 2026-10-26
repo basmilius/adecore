@@ -8,13 +8,16 @@ export interface PlacedPoint {
 export function nearestPoint(points: readonly PlacedPoint[], x: number, y: number, reach: number): number {
     let nearest = -1;
     let distance = reach;
+
     for (const point of points) {
         const away = Math.hypot(point.x - x, point.y - y);
+
         if (away <= distance) {
             distance = away;
             nearest = point.index;
         }
     }
+
     return nearest;
 }
 
@@ -25,22 +28,30 @@ export function nearestPoint(points: readonly PlacedPoint[], x: number, y: numbe
  */
 export function movePoint(lines: readonly (readonly number[])[], current: number, key: string): number | null | undefined {
     const filled = lines.filter((line) => line.length > 0);
+
     if (filled.length === 0) {
         return undefined;
     }
+
     const line = filled.findIndex((indexes) => indexes.includes(current));
+
     if (line < 0) {
         if (key === 'Escape') {
             return undefined;
         }
+
         const arrows = ['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp', 'Home', 'End'];
+
         if (!arrows.includes(key)) {
             return undefined;
         }
+
         return key === 'ArrowLeft' || key === 'ArrowUp' || key === 'End' ? filled.at(-1)!.at(-1)! : filled[0]![0]!;
     }
+
     const indexes = filled[line]!;
     const at = indexes.indexOf(current);
+
     switch (key) {
         case 'ArrowRight':
             return indexes[Math.min(indexes.length - 1, at + 1)];
@@ -49,6 +60,7 @@ export function movePoint(lines: readonly (readonly number[])[], current: number
         case 'ArrowDown':
         case 'ArrowUp': {
             const next = filled[line + (key === 'ArrowDown' ? 1 : -1)];
+
             return next === undefined ? current : next[Math.min(at, next.length - 1)];
         }
         case 'Home':
@@ -71,12 +83,14 @@ export function frontierOf<Point extends { readonly x: number; readonly y: numbe
     const sorted = [...points].sort((one, other) => sign.x * (one.x - other.x) || sign.y * (other.y - one.y));
     const kept: Point[] = [];
     let best = -Infinity;
+
     for (const point of sorted) {
         if (sign.y * point.y > best) {
             kept.push(point);
             best = sign.y * point.y;
         }
     }
+
     return kept.sort((one, other) => one.x - other.x);
 }
 
@@ -88,15 +102,20 @@ export function spreadLabels(wishes: readonly number[], wanted: number, top: num
     const order = wishes.map((wish, index) => ({ wish, index })).sort((one, other) => one.wish - other.wish || one.index - other.index);
     const placed = order.map(({ wish }) => wish);
     const gap = placed.length > 1 ? Math.min(wanted, Math.max(0, bottom - top) / (placed.length - 1)) : wanted;
+
     for (let i = 0; i < placed.length; i++) {
         placed[i] = Math.max(top, placed[i]!, i === 0 ? top : placed[i - 1]! + gap);
     }
+
     for (let i = placed.length - 1; i >= 0; i--) {
         placed[i] = Math.min(placed[i]!, i === placed.length - 1 ? bottom : placed[i + 1]! - gap);
     }
+
     const result: number[] = [];
+
     order.forEach(({ index }, i) => {
         result[index] = placed[i]!;
     });
+
     return result;
 }

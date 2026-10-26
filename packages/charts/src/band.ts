@@ -30,14 +30,17 @@ export interface BandLayout {
 /* The run of equal keys each bucket belongs to, in the order of the data; a key that comes back later starts a run of its own. */
 export function groupRuns(keys: readonly string[]): { key: string; first: number; last: number }[] {
     const runs: { key: string; first: number; last: number }[] = [];
+
     keys.forEach((key, index) => {
         const run = runs.at(-1);
+
         if (run !== undefined && run.key === key) {
             run.last = index;
         } else {
             runs.push({ key, first: index, last: index });
         }
     });
+
     return runs;
 }
 
@@ -48,25 +51,32 @@ export function groupRuns(keys: readonly string[]): { key: string; first: number
 export function bandLayout(count: number, groupKeys: readonly string[] | null, room: number, minBucketWidth = 0, groupGap = GROUP_GAP): BandLayout {
     const runs = groupKeys === null ? [] : groupRuns(groupKeys);
     const gaps = runs.length * groupGap;
+
     if (count === 0) {
         return { bucket: 0, width: Math.max(0, room), lefts: [], groups: [], gap: 0 };
     }
+
     const bucket = Math.max(minBucketWidth, (room - gaps) / count);
     const width = Math.max(room, bucket * count + gaps);
     const lefts: number[] = [];
     const groups: BandGroup[] = [];
+
     if (runs.length === 0) {
         for (let i = 0; i < count; i++) {
             lefts.push(i * bucket);
         }
+
         return { bucket, width, lefts, groups, gap: 0 };
     }
+
     runs.forEach((run, groupIndex) => {
         for (let i = run.first; i <= run.last; i++) {
             lefts.push(i * bucket + (groupIndex + 0.5) * groupGap);
         }
+
         groups.push({ ...run, left: lefts[run.first]!, right: lefts[run.last]! + bucket });
     });
+
     return { bucket, width, lefts, groups, gap: groupGap };
 }
 
@@ -84,11 +94,14 @@ export function columnsIn(left: number, bucket: number, count: number, widthOf?:
     if (count <= 0) {
         return [];
     }
+
     const room =
         widthOf !== undefined ? Math.min(bucket, widthOf(bucket)) : Math.min(bucket - Math.max(1, bucket * (1 - COLUMN_SHARE)), MAX_COLUMN * count + count - 1);
+
     const width = Math.max(2, Math.floor((room - (count - 1)) / count));
     const total = width * count + count - 1;
     const start = Math.round(left + (bucket - total) / 2);
+
     return Array.from({ length: count }, (_, i) => ({ x: start + i * (width + 1), width }));
 }
 
@@ -101,26 +114,32 @@ export function segmentOf(topPixel: number, basePixel: number, onGround: boolean
     const upward = topPixel <= basePixel;
     let top = Math.round(Math.min(topPixel, basePixel));
     let bottom = Math.round(Math.max(topPixel, basePixel));
+
     if (!onGround && upward) {
         bottom -= 1;
     } else if (!onGround) {
         top += 1;
     }
+
     if (least > 0 && bottom - top < least) {
         return upward ? { y: bottom - least, height: least } : { y: top, height: least };
     }
+
     if (value !== 0 && bottom - top < 1) {
         return upward ? { y: bottom - 1, height: 1 } : { y: top, height: 1 };
     }
+
     return { y: top, height: Math.max(0, bottom - top) };
 }
 
 /* The outline of a column rounded only at its end away from the ground: the top for a value upward, else the bottom. */
 export function endRoundedColumn(x: number, y: number, width: number, height: number, radius: number, upward: boolean): string {
     const corner = Math.max(0, Math.min(radius, height, width / 2));
+
     if (upward) {
         return `M${x},${y + height}V${y + corner}A${corner},${corner} 0 0 1 ${x + corner},${y}H${x + width - corner}A${corner},${corner} 0 0 1 ${x + width},${y + corner}V${y + height}Z`;
     }
+
     return `M${x},${y}H${x + width}V${y + height - corner}A${corner},${corner} 0 0 1 ${x + width - corner},${y + height}H${x + corner}A${corner},${corner} 0 0 1 ${x},${y + height - corner}Z`;
 }
 
@@ -130,6 +149,7 @@ export const LABEL_LIFT = 10;
 const LABEL_SIZES = { '2xs': { row: 16, char: 8 }, xs: { row: 18, char: 9 } } as const;
 
 export type ValueLabelSize = keyof typeof LABEL_SIZES;
+
 const LABEL_AIR = 3;
 
 /* The width a value label is taken to have before it is measured. */
@@ -142,9 +162,11 @@ export const guessLabelWidth = (text: string, size: ValueLabelSize = '2xs'): num
 export function placeValueLabels(columns: readonly { center: number; top: number; width: number }[], size: ValueLabelSize = '2xs'): number[] {
     const row = LABEL_SIZES[size].row;
     const boxes: { left: number; right: number; top: number; bottom: number }[] = [];
+
     return columns.map(({ center, top, width }) => {
         const half = width / 2;
         let baseline = top - LABEL_LIFT;
+
         const blocking = () =>
             boxes.find(
                 (box) =>
@@ -153,10 +175,13 @@ export function placeValueLabels(columns: readonly { center: number; top: number
                     box.top < baseline + LABEL_AIR &&
                     box.bottom > baseline - row
             );
+
         for (let box = blocking(); box !== undefined; box = blocking()) {
             baseline = box.top - LABEL_AIR;
         }
+
         boxes.push({ left: center - half, right: center + half, top: baseline - row, bottom: baseline + LABEL_AIR });
+
         return baseline;
     });
 }

@@ -99,9 +99,11 @@ export const ChartContext = createContext<ChartContextValue | null>(null);
 
 export function useChartContext(part: string): ChartContextValue {
     const context = useContext(ChartContext);
+
     if (context === null) {
         throw new Error(`${part} draws inside a Chart.Root.`);
     }
+
     return context;
 }
 

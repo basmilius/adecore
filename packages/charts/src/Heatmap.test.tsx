@@ -8,17 +8,20 @@ import { Heatmap } from './index.ts';
 import { CHARTS_NAMESPACE, CHARTS_RESOURCES } from './locales.ts';
 
 const i18n = i18next.createInstance();
+
 await i18n.init({ lng: 'en', fallbackLng: 'en', resources: { en: { [CHARTS_NAMESPACE]: CHARTS_RESOURCES.en! } }, interpolation: { escapeValue: false } });
 
 const ROWS = [
     { key: 'mon', label: 'Monday', short: 'Mon' },
     { key: 'tue', label: 'Tuesday', short: 'Tue' }
 ];
+
 const COLUMNS = [
     { key: 0, label: '00:00', short: '0' },
     { key: 1, label: '01:00', short: null },
     { key: 2, label: '02:00', short: null }
 ];
+
 const VALUES = [
     [0, 1, 100],
     [null, 50, 4]
@@ -46,9 +49,11 @@ describe.skipIf(typeof document === 'undefined')('a mounted heatmap', () => {
     const mount = async (node: ReactNode = heatmap): Promise<HTMLElement> => {
         const { createRoot } = await import('react-dom/client');
         root = createRoot(container);
+
         await act(async () => {
             root.render(wrap(node));
         });
+
         return container.querySelector<HTMLElement>('[role="group"]')!;
     };
 
@@ -59,6 +64,7 @@ describe.skipIf(typeof document === 'undefined')('a mounted heatmap', () => {
     };
 
     const cells = (): HTMLElement[] => [...container.querySelectorAll<HTMLElement>('[data-mix]')];
+
     const live = (): string => container.querySelector('[aria-live="polite"]')!.textContent ?? '';
 
     beforeEach(() => {
@@ -100,14 +106,17 @@ describe.skipIf(typeof document === 'undefined')('a mounted heatmap', () => {
 
     test('tells the app which cell the pointer or the keyboard is on, once per change', async () => {
         const heard: ({ row: number; column: number } | null)[] = [];
+
         const group = await mount(
             <Heatmap rows={ROWS} columns={COLUMNS} values={VALUES} label="Events" valueLabel="Events" onActiveChange={(cell) => heard.push(cell)} />
         );
+
         const hover = async (): Promise<void> => {
             await act(async () => {
                 cells()[4]!.dispatchEvent(new PointerEvent('pointerover', { bubbles: true }));
             });
         };
+
         await hover();
         await hover();
         await press(group, 'ArrowRight');
@@ -119,22 +128,28 @@ describe.skipIf(typeof document === 'undefined')('a mounted heatmap', () => {
         const group = await mount();
         await press(group, 'ArrowRight');
         expect(cells()[0]!.firstElementChild).not.toBeNull();
+
         await act(async () => {
             group.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
         });
+
         expect(cells().some((cell) => cell.firstElementChild !== null)).toBe(false);
     });
 
     test('shows the exact value of the cell under the pointer in a card', async () => {
         await mount();
+
         await act(async () => {
             cells()[4]!.dispatchEvent(new PointerEvent('pointerover', { bubbles: true }));
         });
+
         const card = cells()[4]!.firstElementChild!;
         expect(card.textContent).toBe('Tuesday · 01:00Events50');
+
         await act(async () => {
             cells()[3]!.dispatchEvent(new PointerEvent('pointerover', { bubbles: true }));
         });
+
         expect(cells()[3]!.firstElementChild!.textContent).toBe('Tuesday · 00:00EventsNo data');
         // The pointer is not the keyboard: the live region stays quiet.
         expect(live()).toBe('');

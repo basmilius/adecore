@@ -96,6 +96,7 @@ const same = (one: unknown, other: unknown): boolean => {
     if (Array.isArray(one) && Array.isArray(other)) {
         return one.length === other.length && one.every((value, i) => Object.is(value, other[i]));
     }
+
     return Object.is(one, other);
 };
 
@@ -119,6 +120,7 @@ export function createChartStore(): ChartStore {
 
     const keyed = <Key, Entry extends object>() => {
         let map: ReadonlyMap<Key, Entry> = new Map();
+
         return {
             get: (): ReadonlyMap<Key, Entry> => map,
             set: (id: Key, entry: Entry | null): void => {
@@ -126,6 +128,7 @@ export function createChartStore(): ChartStore {
                     if (!map.has(id)) {
                         return;
                     }
+
                     const next = new Map(map);
                     next.delete(id);
                     map = next;
@@ -135,10 +138,12 @@ export function createChartStore(): ChartStore {
                     // A changed entry keeps its place, so a series keeps its color while its values change.
                     map = new Map(map).set(id, entry);
                 }
+
                 emit();
             }
         };
     };
+
     const series = keyed<string, SeriesEntry>();
     const xAxes = keyed<string, XAxisEntry>();
     const yAxes = keyed<YAxisSide, YAxisEntry>();
@@ -149,6 +154,7 @@ export function createChartStore(): ChartStore {
     return {
         subscribe(listener) {
             listeners.add(listener);
+
             return () => listeners.delete(listener);
         },
         series: series.get,

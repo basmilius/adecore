@@ -87,19 +87,26 @@ export function Heatmap({
     const [shown, setShown] = useState(false);
 
     const color = colorOf(tone)!;
+
     const valueAt = (row: number, column: number): number | null => values[row]?.[column] ?? null;
+
     const top = max ?? Math.max(0, ...values.flatMap((line) => line.filter((value): value is number => value !== null && Number.isFinite(value))));
     const empty = rows.length === 0 || columns.length === 0;
+
     const write = (value: number | null): string => (value === null ? t('noData') : format(value));
+
     const describe = (cell: HeatCell): string => {
         const value = valueAt(cell.row, cell.column);
+
         return `${rows[cell.row]!.label}, ${columns[cell.column]!.label}, ${value === null ? t('noData') : `${valueLabel} ${format(value)}`}`;
     };
+
     const current = active !== null && active.row < rows.length && active.column < columns.length ? active : null;
     const classes = tableClasses(table && shown);
 
     const activate = (cell: HeatCell | null): void => {
         setActive(cell);
+
         if (!sameCell(cell, current)) {
             onActiveChange?.(cell);
         }
@@ -107,9 +114,11 @@ export function Heatmap({
 
     const onKeyDown = (e: KeyboardEvent<HTMLDivElement>): void => {
         const target = moveCell(e.key, current, rows.length, columns.length, e.ctrlKey || e.metaKey);
+
         if (target === undefined) {
             return;
         }
+
         e.preventDefault();
         setAnnounce(target !== null);
         activate(target);
@@ -152,6 +161,7 @@ export function Heatmap({
                                     const value = valueAt(rowIndex, columnIndex);
                                     const mix = heatMix(value, top, steps);
                                     const isActive = current !== null && current.row === rowIndex && current.column === columnIndex;
+
                                     return (
                                         <span
                                             key={column.key}
@@ -245,6 +255,7 @@ export function Heatmap({
                                         </th>
                                         {columns.map((column, columnIndex) => {
                                             const value = valueAt(rowIndex, columnIndex);
+
                                             return (
                                                 <td key={column.key} className={classes.cell}>
                                                     {value === null ? '' : format(value)}

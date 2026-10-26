@@ -103,9 +103,11 @@ const TimelineContext = createContext<TimelineContextValue | null>(null);
 
 const useTimeline = (part: string): TimelineContextValue => {
     const context = useContext(TimelineContext);
+
     if (context === null) {
         throw new Error(`${part} draws inside a Timeline.Root.`);
     }
+
     return context;
 };
 
@@ -134,10 +136,12 @@ export function TimelineRoot<Span extends TimelineSpan>({
 }: TimelineRootProps<Span>) {
     const rows = timelineTree(data);
     const parents = parentIds(rows);
+
     // Uncontrolled, the root keeps what was folded rather than what is open, so a span that arrives later opens.
     const [folded, setFolded] = useState<ReadonlySet<string>>(() =>
         defaultExpanded === undefined ? new Set() : new Set(parents.filter((id) => !defaultExpanded.includes(id)))
     );
+
     const [ownValue, setOwnValue] = useState<string | null>(defaultValue);
     const expanded = new Set(expandedProp ?? parents.filter((id) => !folded.has(id)));
     const value = valueProp === undefined ? ownValue : valueProp;
@@ -146,9 +150,11 @@ export function TimelineRoot<Span extends TimelineSpan>({
 
     const colorOfKind = (kind: string | undefined): string => {
         const index = kind === undefined ? undefined : kindIndex.get(kind);
+
         if (index === undefined) {
             return colorOf('accent')!;
         }
+
         return colorOf(kinds[index]!.tone) ?? seriesColor(index);
     };
 
@@ -156,22 +162,27 @@ export function TimelineRoot<Span extends TimelineSpan>({
         if (expandedProp === undefined) {
             setFolded((current) => {
                 const next = new Set(current);
+
                 if (open) {
                     next.delete(id);
                 } else {
                     next.add(id);
                 }
+
                 return next;
             });
         }
+
         onExpandedChange?.(open ? [...expanded, id] : [...expanded].filter((entry) => entry !== id));
     };
 
     const select = (id: string): void => {
         const next = value === id ? null : id;
+
         if (valueProp === undefined) {
             setOwnValue(next);
         }
+
         onValueChange?.(next);
     };
 
@@ -204,9 +215,11 @@ export function TimelineLegend({ className, ref }: TimelineLegendProps) {
     const timeline = useTimeline('Timeline.Legend');
     const times = kindTimes(timeline.rows);
     const shown = timeline.kinds.filter((kind) => (times.get(kind.id) ?? 0) > 0);
+
     if (shown.length === 0) {
         return null;
     }
+
     return (
         <div ref={ref} className={clsx('flex flex-wrap gap-x-4 gap-y-1 border-b border-border-soft px-4 py-2.5 text-xs text-text-muted', className)}>
             {shown.map((kind) => (
@@ -224,12 +237,14 @@ export function TimelineLegend({ className, ref }: TimelineLegendProps) {
 export function TimelineAxis({ heading, children, className, ref }: TimelineAxisProps) {
     const timeline = useTimeline('Timeline.Axis');
     const { origin, total, ticks } = timeline;
+
     return (
         <div ref={ref} className={clsx(COLUMNS, className)}>
             <div className="hidden border-b border-border-soft px-4 py-2 text-xs text-text-muted @xl:block">{heading}</div>
             <div className="relative mx-4 h-8 border-b border-border-soft @xl:ml-0">
                 {ticks.map((tick, index) => {
                     const left = percentOf(origin + tick, origin, total);
+
                     // The first label starts at its tick and one near the end ends at it, so neither hangs past the axis.
                     return (
                         <span
@@ -256,6 +271,7 @@ export function TimelineMoment({ at, label, tone = 'error' }: TimelineMomentProp
     const timeline = useTimeline('Timeline.Moment');
     const { t } = useTranslation('charts');
     const text = t('timeline.moment', { label, offset: timeline.format(Math.max(0, at - timeline.origin)) });
+
     return (
         <Tooltip label={text} name>
             <span
@@ -279,21 +295,26 @@ export function TimelineRows<Span extends TimelineSpan>({ label, detail, classNa
 
     // The row that takes the tab stop: the one last focused, or the open row that hides it, else the selected or the first.
     const indexOf = (target: string | null): number => shown.findIndex((row) => row.span.id === target);
+
     let current = indexOf(focusId);
+
     if (current < 0 && focusId !== null) {
         const hidden = rows.find((row) => row.span.id === focusId);
         const ancestor = hidden?.ancestors.find((ancestorId) => !expanded.has(ancestorId));
         current = indexOf(ancestor ?? null);
     }
+
     if (current < 0) {
         current = Math.max(0, indexOf(timeline.value));
     }
 
     const focusRow = (box: HTMLElement, index: number): void => {
         const target = shown[index];
+
         if (target === undefined) {
             return;
         }
+
         setFocusId(target.span.id);
         const node = [...box.querySelectorAll<HTMLElement>('[role="treeitem"]')].find((item) => item.dataset.span === target.span.id);
         node?.focus();
@@ -304,11 +325,15 @@ export function TimelineRows<Span extends TimelineSpan>({ label, detail, classNa
         if ((e.target as HTMLElement).getAttribute('role') !== 'treeitem') {
             return;
         }
+
         const move = timelineMove(e.key, shown, current, expanded);
+
         if (move === undefined) {
             return;
         }
+
         e.preventDefault();
+
         if ('focus' in move) {
             focusRow(e.currentTarget, move.focus);
         } else if ('expand' in move) {
@@ -345,6 +370,7 @@ export function TimelineRows<Span extends TimelineSpan>({ label, detail, classNa
                     const color = colorOf(span.tone) ?? timeline.colorOfKind(span.kind);
                     const bar = barOf(span, origin, total);
                     const kind = timeline.kinds.find((entry) => entry.id === span.kind);
+
                     const name = [
                         span.label,
                         kind?.label,
@@ -353,8 +379,10 @@ export function TimelineRows<Span extends TimelineSpan>({ label, detail, classNa
                     ]
                         .filter(Boolean)
                         .join(', ');
+
                     const detailId = `${id}-${index}-detail`;
                     const shownDetail = selected && detail !== undefined;
+
                     return (
                         <div
                             key={span.id}

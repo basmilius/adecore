@@ -88,6 +88,7 @@ const bucketOf = <Row,>(chart: ChartContextValue, index: number): ChartBucket<Ro
     groupLabel: chart.groupLabels?.[index] ?? null,
     values: chart.readable.flatMap(([id, entry]) => {
         const value = entry.values[index];
+
         return value === null || value === undefined ? [] : [{ label: entry.label, color: colorAt(chart, id, entry, index), value }];
     }),
     notes: chart.notesAt(index)
@@ -102,6 +103,7 @@ function Swatch({ color, entry, size }: { color: string; entry: SeriesEntry; siz
             </span>
         );
     }
+
     return <span className={clsx('shrink-0', entry.kind === 'bar' ? 'size-2 rounded-xs' : 'h-0.5 w-3 rounded-full')} style={{ background: color }} />;
 }
 
@@ -122,14 +124,17 @@ export function ChartTooltip<Row>({ total = false, format, children, placement =
     const { t } = useTranslation('charts');
     const [measure, card] = useContentSize();
     const { activeIndex, elements } = chart;
+
     if (activeIndex < 0 || elements.tooltip === null || !chart.ownsCursor) {
         return null;
     }
+
     const bucket = bucketOf<Row>(chart, activeIndex);
     const write = format ?? chart.formatY;
     const position = chart.points ? chart.positions[activeIndex] : null;
     const pixel = chart.leftAxis + (position?.[0] ?? chart.centerOf(activeIndex)) - chart.scroll;
     let place: CSSProperties;
+
     if (placement === 'cursor') {
         // The card hangs on the side with the most room, so it never covers the cursor and never runs off.
         place = {
@@ -143,23 +148,30 @@ export function ChartTooltip<Row>({ total = false, format, children, placement =
         const plotRight = Math.min(chart.box - chart.rightAxis, chart.leftAxis + chart.plot.right - chart.scroll);
         const reach = (chart.bucketAt(activeIndex)?.width ?? 2 * POINT_ROOM) / 2;
         const [vertical, horizontal] = placement.split('-') as ['top' | 'bottom', 'left' | 'right'];
+
         const covers = (side: 'left' | 'right'): boolean => (side === 'left' ? pixel - reach < plotLeft + card.width : pixel + reach > plotRight - card.width);
+
         const side = covers(horizontal) && !covers(horizontal === 'left' ? 'right' : 'left') ? (horizontal === 'left' ? 'right' : 'left') : horizontal;
+
         place = {
             ...(side === 'left' ? { left: Math.round(plotLeft) } : { right: Math.round(chart.box - plotRight) }),
             top: vertical === 'top' ? Math.round(chart.plot.top) : Math.round(chart.plot.bottom - card.height),
             maxWidth: Math.max(0, Math.round(plotRight - plotLeft))
         };
     }
+
     const sum = bucket.values.reduce((all, entry) => all + entry.value, 0);
+
     // A point names its series and itself; its x is a value like the others, under the title of its axis.
     const heading = chart.points
         ? [bucket.groupLabel, chart.rowLabels?.[activeIndex]].filter(Boolean).join(' · ') || chart.formatX(bucket.x)
         : [bucket.groupLabel, chart.rowLabels?.[activeIndex] ?? chart.formatX(bucket.x)].filter(Boolean).join(' · ');
+
     return createPortal(
         <Surface
             ref={(node: HTMLDivElement | null) => {
                 measure(node);
+
                 if (typeof ref === 'function') {
                     ref(node);
                 } else if (ref) {
@@ -183,6 +195,7 @@ export function ChartTooltip<Row>({ total = false, format, children, placement =
                     )}
                     {chart.readable.map(([id, entry]) => {
                         const value = entry.values[activeIndex];
+
                         // A series without a value here still gets its row, so a gap reads as nothing measured.
                         return (
                             <p key={id} className="flex items-center gap-2 text-text-muted">
@@ -217,9 +230,11 @@ export function ChartTooltip<Row>({ total = false, format, children, placement =
 /* The series with their color, in the order of the children; on a point chart the series of its groups. */
 export function ChartLegend({ className, ref }: ChartLegendProps) {
     const chart = useChartContext('Chart.Legend');
+
     if (chart.elements.legend === null) {
         return null;
     }
+
     return createPortal(
         <ul ref={ref} className={clsx('flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-muted', className)}>
             {chart.points && chart.groupKeys !== null
@@ -246,20 +261,26 @@ export function ChartTable({ toggle = true, open, defaultOpen = false, onOpenCha
     const { t } = useTranslation('charts');
     const [ownOpen, setOwnOpen] = useState(defaultOpen);
     const id = useId();
+
     if (chart.elements.table === null) {
         return null;
     }
+
     const shown = toggle && (open ?? ownOpen);
+
     const setShown = (next: boolean): void => {
         if (open === undefined) {
             setOwnOpen(next);
         }
+
         onOpenChange?.(next);
     };
+
     const grouped = data === undefined && chart.groupKeys !== null;
     // A point names itself by its label where it has one, and its x stands in a column of its own.
     const xColumn = data === undefined && chart.points && chart.rowLabels !== null;
     const columns = data?.columns ?? [...(xColumn ? [chart.xTitle ?? ''] : []), ...chart.readable.map(([, entry]) => entry.label)];
+
     const rows: { key: string; group: string | null; label: string; cells: readonly string[] }[] =
         data?.rows.map((row) => ({ ...row, group: null })) ??
         chart.xs.flatMap((key, index) =>
@@ -275,13 +296,16 @@ export function ChartTable({ toggle = true, open, defaultOpen = false, onOpenCha
                               ...(xColumn ? [Number.isFinite(key) ? chart.formatX(key) : ''] : []),
                               ...chart.readable.map(([, entry]) => {
                                   const value = entry.values[index];
+
                                   return value === null || value === undefined ? '' : chart.formatY(value);
                               })
                           ]
                       }
                   ]
         );
+
     const classes = tableClasses(shown);
+
     return createPortal(
         <div ref={ref} className={clsx('flex flex-col items-start gap-2', className)}>
             {toggle && (
