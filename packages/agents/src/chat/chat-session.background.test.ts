@@ -9,16 +9,20 @@ test('a launched workflow stays open, warns on stalled progress and clears its w
     const clock = new ManualClock();
     const run = rig({ clock });
     const stopped: string[] = [];
+
     run.backend.stopTask = (taskId) => {
         stopped.push(taskId);
     };
+
     run.session.send('launch');
     await flush();
     run.event({ type: 'tool.started', ref: 'workflow', name: 'Workflow', input: {}, parentRef: null });
     run.event({ type: 'tool.done', ref: 'workflow', state: 'done', output: 'Workflow launched in background. Task ID: wf' });
     run.event({ type: 'workflow.progress', ref: 'workflow', workflow: { name: 'Build', taskId: 'wf', phases: [], agents: [] } });
     run.event({ type: 'turn.done', state: 'done', costUsd: 0 });
+
     const workflow = () => run.session.thread.list().find((item) => item.kind === 'tool' && item.name === 'Workflow');
+
     expect(workflow()).toMatchObject({ state: 'running' });
     clock.advance(5 * 60_000);
     expect(workflow()).toMatchObject({ state: 'running', workflow: { stalledAt: clock.now() } });
@@ -46,10 +50,12 @@ test('streamed output and progress keep a workflow alive without a walk through 
     run.event({ type: 'tool.started', ref: 'workflow', name: 'Workflow', input: {}, parentRef: null });
     run.event({ type: 'tool.started', ref: 'build', name: 'Bash', input: { command: 'make' }, parentRef: null });
     const list = spyOn(run.session.thread, 'list');
+
     for (let i = 0; i < 100; i++) {
         run.event({ type: 'tool.output', ref: 'build', text: `line ${i}\n` });
         run.event({ type: 'tool.progress', ref: 'build', startedAt: null, description: null });
     }
+
     expect(list).not.toHaveBeenCalled();
     list.mockRestore();
     clock.advance(4 * 60_000);
@@ -72,6 +78,7 @@ describe('background work recovered from a stored chat', () => {
         state: 'done',
         costUsd: 0
     };
+
     const row: import('@adecore/agent-contracts').ChatSubagentItem = {
         id: 'worker',
         kind: 'subagent',
@@ -91,6 +98,7 @@ describe('background work recovered from a stored chat', () => {
         lastTool: null,
         itemsTruncated: false
     };
+
     test('a lost workflow and native agent keep one durable notice for the next provider prompt', async () => {
         const first = rig({
             items: [
@@ -110,16 +118,19 @@ describe('background work recovered from a stored chat', () => {
                 }
             ]
         });
+
         first.session.settleStored(first.session.info.selection, { resumeTurnId: null, reason: null });
         await first.session.settleOrphanedSubagents();
         expect(first.session.thread.get('worker')).toMatchObject({ status: 'failed' });
         expect(first.session.thread.get('wf')).toMatchObject({ state: 'error' });
         expect(first.session.preambles).toHaveLength(2);
+
         const second = rig({
             info: structuredClone(first.session.info),
             items: structuredClone(first.session.thread.list()),
             preambles: [...first.session.preambles]
         });
+
         second.session.settleStored(second.session.info.selection, { resumeTurnId: null, reason: null });
         await second.session.settleOrphanedSubagents();
         expect(second.session.preambles).toHaveLength(2);
@@ -149,6 +160,7 @@ describe('subagents still at work after the turn', () => {
         const run = rig({ emit: (event) => (event.type === 'info' ? infos.push(event.info) : undefined) });
         run.session.send('go');
         await flush();
+
         run.event({
             type: 'tool.started',
             ref: 'toolu_agent',
@@ -156,6 +168,7 @@ describe('subagents still at work after the turn', () => {
             input: { description: 'Scan', subagent_type: 'Explore', prompt: 'look around', run_in_background: true },
             parentRef: null
         });
+
         run.event({ type: 'task.started', ref: 'toolu_agent', description: 'Scan', subagentType: 'Explore', prompt: null, background: true });
         run.event({ type: 'turn.done', state: 'done', costUsd: 0 });
         expect(run.session.info).toMatchObject({ status: 'idle', delegating: true });
@@ -178,14 +191,17 @@ describe('stopping one subagent of the CLI', () => {
         prompt: null,
         background: false
     });
+
     const row = (session: ChatSession, toolUseId: string) => session.thread.find('subagent', (item) => item.toolUseId === toolUseId);
 
     test('the process that started it gets one stop_task, and the row settles as failed with a note', async () => {
         const run = rig();
         const stopped: string[] = [];
+
         run.backend.stopTask = (taskId) => {
             stopped.push(taskId);
         };
+
         run.session.send('go');
         await flush();
         run.event(started('t1', 'a-one'));
@@ -237,9 +253,11 @@ describe('stopping one subagent of the CLI', () => {
     test('a process that did not start it refuses while a turn runs and marks it otherwise', async () => {
         const run = rig();
         const stopped: string[] = [];
+
         run.backend.stopTask = (taskId) => {
             stopped.push(taskId);
         };
+
         run.session.send('go');
         await flush();
         run.event(started('t1', 'a-one'));

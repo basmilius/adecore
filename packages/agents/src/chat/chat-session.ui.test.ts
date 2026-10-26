@@ -19,9 +19,11 @@ describe('streamed intelligent UI', () => {
         run.event({ type: 'text.delta', ref: 'answer', text: streamed });
         const item = run.session.thread.list().find((row) => row.kind === 'assistant');
         expect(item?.kind).toBe('assistant');
+
         if (item?.kind !== 'assistant') {
             throw new Error('Missing assistant');
         }
+
         expect(item.ui).toBeUndefined();
         expect(run.session.uiPreviews).toHaveLength(1);
         expect(run.session.previewItems([item])[0]).toHaveProperty('ui');
@@ -146,6 +148,7 @@ function choiceReply() {
     const choices = evaluateUiBlock(block, undefined, { milliseconds: Number.MAX_SAFE_INTEGER }).nodes[0].children;
     const item: ChatItem = { id: 'answer', kind: 'assistant', createdAt: 5, turnId: null, streaming: false, text, ui: [block] };
     const payload = { chatId: 'child', itemId: 'answer', blockId: 'block', revision: block.revision, choiceId: choices[0].id };
+
     return { item, payload, other: choices[1].id };
 }
 
@@ -188,12 +191,15 @@ describe('choices from saved UI blocks', () => {
 
     test('stale, streaming and subagent blocks cannot submit', async () => {
         const { item, payload } = choiceReply();
+
         for (const edited of [{ ...item, streaming: true }, { ...item, parentToolUseId: 'agent' }, item]) {
             const run = rig({ items: [edited] });
             expect(() => run.session.choose({ ...payload, revision: 'stale' })).toThrow();
+
             if (edited !== item) {
                 expect(() => run.session.choose(payload)).toThrow();
             }
+
             expect(run.session.thread.list().some((entry) => entry.kind === 'user')).toBe(false);
             await run.session.dispose();
         }

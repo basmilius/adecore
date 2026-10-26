@@ -35,10 +35,13 @@ const STDOUT_DRAIN_MS = 250;
 
 export function spawnChatProcess(options: ChatSpawnOptions): ChatProcess {
     const [command, ...args] = options.command;
+
     if (command === undefined) {
         throw new Error('No command to start');
     }
+
     const target = spawnTarget(command, args, { env: options.env });
+
     const child = spawn(target.file, target.args, {
         cwd: options.cwd,
         env: options.env,
@@ -49,13 +52,17 @@ export function spawnChatProcess(options: ChatSpawnOptions): ChatProcess {
         detached: process.platform !== 'win32',
         windowsHide: true
     });
+
     // Node reports a missing executable as an event after the call; a start that failed says so on the spot.
     child.on('error', () => undefined);
     const pid = child.pid;
+
     if (pid === undefined) {
         throw new Error(`Could not start ${command}: no such executable`);
     }
+
     child.stdin.on('error', (error) => options.onError?.(error));
+
     child.on('exit', (exitCode, signal) => {
         // The last lines may still be on their way through the pipe; they belong before the exit.
         const report = (): void => {
@@ -63,13 +70,18 @@ export function spawnChatProcess(options: ChatSpawnOptions): ChatProcess {
             child.stdout.off('end', report);
             setImmediate(() => options.onExit(exitCode, signal));
         };
+
         const timer = setTimeout(report, STDOUT_DRAIN_MS);
+
         if (child.stdout.readableEnded) {
             report();
+
             return;
         }
+
         child.stdout.once('end', report);
     });
+
     return {
         pid,
         stdin: {
@@ -92,10 +104,13 @@ export interface ProcessTreeKillOptions {
 /* Signals a process and everything it started. Windows has no process groups and no SIGTERM, so there the tree is ended at once. */
 export function killProcessTree(pid: number, signal: 'SIGTERM' | 'SIGKILL', options: ProcessTreeKillOptions = {}): void {
     const { platform = process.platform, kill = process.kill, run = runQuietly } = options;
+
     if (platform === 'win32') {
         run(['taskkill', '/pid', String(pid), '/t', '/f']);
+
         return;
     }
+
     try {
         kill(-pid, signal);
     } catch {
@@ -107,6 +122,7 @@ function runQuietly([command, ...args]: string[]): void {
     if (command === undefined) {
         return;
     }
+
     const child = spawn(command, args, { stdio: 'ignore', windowsHide: true });
     // A tree that already ended makes taskkill fail, which is what the caller wanted anyway.
     child.on('error', () => undefined);
@@ -140,19 +156,24 @@ export class StreamTail {
             .map((line) => line.trimEnd())
             .filter((line) => line.trim() !== '')
             .slice(-NOTE_TAIL_LINES);
+
         const tail = lines.join('\n').slice(-NOTE_TAIL_CHARS);
+
         return tail === '' ? null : tail;
     }
 
     private async read(stream: ReadableStream<Uint8Array>): Promise<void> {
         const reader = stream.getReader();
         const decoder = new TextDecoder();
+
         try {
             while (true) {
                 const { value, done } = await reader.read();
+
                 if (done) {
                     break;
                 }
+
                 this.text = (this.text + decoder.decode(value, { stream: true })).slice(-STDERR_TAIL_CHARS);
             }
         } catch {
@@ -186,21 +207,26 @@ export class LineSplitter {
     push(text: string): void {
         let start = 0;
         let newline = text.indexOf('\n');
+
         while (newline >= 0) {
             this.add(text.slice(start, newline));
             const line = this.take();
+
             if (line !== null) {
                 this.onLine(line);
             }
+
             start = newline + 1;
             newline = text.indexOf('\n', start);
         }
+
         this.add(text.slice(start));
     }
 
     /* Hands on what came after the last line break, for a stream that ended without one. */
     end(): void {
         const line = this.take();
+
         if (line !== null && line !== '') {
             this.onLine(line);
         }
@@ -210,13 +236,17 @@ export class LineSplitter {
         if (this.dropping || piece === '') {
             return;
         }
+
         this.length += piece.length;
+
         if (this.length > this.max) {
             this.parts = [];
             this.dropping = true;
             this.onOverflow();
+
             return;
         }
+
         this.parts.push(piece);
     }
 
@@ -225,6 +255,7 @@ export class LineSplitter {
         this.parts = [];
         this.length = 0;
         this.dropping = false;
+
         return line;
     }
 }
@@ -242,14 +273,18 @@ export async function readStreamLines(
     const reader = stream.getReader();
     const decoder = new TextDecoder();
     const lines = new LineSplitter(onLine, onOverflow, max);
+
     try {
         while (true) {
             const { value, done } = await reader.read();
+
             if (done) {
                 break;
             }
+
             lines.push(decoder.decode(value, { stream: true }));
         }
+
         lines.end();
     } finally {
         reader.releaseLock();
@@ -278,10 +313,13 @@ export class ChatChild {
 
     constructor(options: ChatChildOptions) {
         let settle: () => void = () => undefined;
+
         this.exited = new Promise((resolve) => {
             settle = resolve;
         });
+
         const spawn = options.spawn ?? spawnChatProcess;
+
         this.process = spawn({
             command: options.command,
             cwd: options.cwd,
@@ -294,6 +332,7 @@ export class ChatChild {
                 void this.report(exitCode, signal, options.onExit);
             }
         });
+
         this.tail = this.process.stderr ? new StreamTail(this.process.stderr) : null;
     }
 
@@ -306,31 +345,38 @@ export class ChatChild {
         if (this.hasExited || this.graceTimer !== null || this.ending !== null) {
             return;
         }
+
         this.graceTimer = setTimeout(() => {
             this.graceTimer = null;
             void this.end();
         }, EXIT_GRACE_MS);
+
         this.graceTimer.unref?.();
     }
 
     /* SIGTERM to the group now and SIGKILL after the grace; settles once the CLI exited or was sent the SIGKILL. */
     end(): Promise<void> {
         this.clearGrace();
+
         if (this.hasExited) {
             return Promise.resolve();
         }
+
         if (this.ending === null) {
             this.process.kill('SIGTERM');
+
             this.ending = new Promise((resolve) => {
                 // Sent even when the CLI left in time: what it started may still be shutting down, or ignoring the SIGTERM.
                 const timer = setTimeout(() => {
                     this.process.kill('SIGKILL');
                     resolve();
                 }, KILL_GRACE_MS);
+
                 timer.unref?.();
                 void this.exited.then(resolve);
             });
         }
+
         return this.ending;
     }
 
@@ -344,16 +390,21 @@ export class ChatChild {
     private async report(exitCode: number | null, signal: string | null, onExit: ChatChildOptions['onExit']): Promise<void> {
         if (exitCode === null || exitCode === 0 || this.tail === null) {
             onExit(exitCode, null, signal);
+
             return;
         }
+
         let release: () => void = () => undefined;
+
         const timer = setTimeout(() => release(), STDERR_DRAIN_MS);
+
         await Promise.race([
             this.tail.done,
             new Promise<void>((resolve) => {
                 release = resolve;
             })
         ]);
+
         clearTimeout(timer);
         onExit(exitCode, this.tail.lines(), signal);
     }

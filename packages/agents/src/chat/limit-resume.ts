@@ -6,6 +6,7 @@ export const LIMIT_RETRY_DELAYS_MS: readonly number[] = [60_000, 5 * 60_000, 15 
 /* The last turn of a thread, when it stopped on a limit. */
 export function limitedTurn(items: readonly ChatItem[]): (ChatTurnItem & { limit: ChatTurnLimit }) | null {
     const last = items.findLast((item) => item.kind === 'turn');
+
     return last?.kind === 'turn' && last.state === 'error' && last.limit !== undefined ? (last as ChatTurnItem & { limit: ChatTurnLimit }) : null;
 }
 
@@ -13,20 +14,27 @@ export function limitedTurn(items: readonly ChatItem[]): (ChatTurnItem & { limit
 function limitedInARow(items: readonly ChatItem[], turn: ChatTurnItem): number {
     let count = 0;
     let seen = false;
+
     for (let i = items.length - 1; i >= 0; i--) {
         const item = items[i]!;
+
         if (item.kind !== 'turn') {
             continue;
         }
+
         seen ||= item.id === turn.id;
+
         if (!seen) {
             continue;
         }
+
         if (item.state !== 'error' || item.limit === undefined) {
             break;
         }
+
         count += 1;
     }
+
     return count;
 }
 
@@ -39,17 +47,22 @@ export function limitResumeAt(items: readonly ChatItem[], turn: ChatTurnItem, no
     if (turn.state !== 'error' || turn.limit === undefined) {
         return null;
     }
+
     const tries = limitedInARow(items, turn);
     const delay = LIMIT_RETRY_DELAYS_MS[tries - 1];
+
     if (delay === undefined) {
         return null;
     }
+
     if (turn.limit.kind === 'overload') {
         return now + delay;
     }
+
     if (turn.limit.resetsAt === undefined) {
         return null;
     }
+
     return tries === 1 ? turn.limit.resetsAt : Math.max(turn.limit.resetsAt, now + delay);
 }
 

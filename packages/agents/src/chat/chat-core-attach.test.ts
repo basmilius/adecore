@@ -49,6 +49,7 @@ class SlowVisuals extends VisualStore {
     override async list(chatId: string): Promise<ChatVisual[]> {
         this.asked.resolve();
         await this.released.promise;
+
         return super.list(chatId);
     }
 }
@@ -58,6 +59,7 @@ test('a client attaches to a chat on disk that nobody loaded since the host star
     const attachments = new AttachmentStore(home);
     const before = new ChatCore({ attachments, store: new ChatStore(home, { attachments }), providers });
     const after = new ChatCore({ attachments, store: new ChatStore(home, { attachments }), providers });
+
     try {
         await before.create({ chatId: 'chat', cwd: home });
         await before.addNote('chat', 'info', 'Written before the restart');
@@ -79,13 +81,16 @@ test('a bookmark made while the visuals are read reaches the client that attache
     const visuals = new SlowVisuals(home, attachments);
     const manager = new ChatCore({ attachments, store: new ChatStore(home, { attachments }), providers, bookmarks, visuals });
     const told: string[][] = [];
+
     try {
         await manager.create({ chatId: 'chat', cwd: home });
+
         manager.subscribe('client', (event) => {
             if (event.event === 'chat.bookmarks') {
                 told.push(event.payload.bookmarks.map((bookmark) => bookmark.itemId));
             }
         });
+
         const attaching = manager.attachWithBookmarks('chat', 'client');
         await visuals.reading();
         await bookmarks.add('chat', { itemId: 'late', excerpt: 'Late' }, 1);

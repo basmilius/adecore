@@ -31,23 +31,29 @@ const catalog = new ModelCatalog({
 /* Every event the captured turn maps to, with the permission request answered as the capture says. */
 function replay(protocol: AcpProtocol): BackendEvent[] {
     const events: BackendEvent[] = [];
+
     for (const frame of turnCapture.frames) {
         if (frame.method === 'session/request_permission') {
             const { id, response } = frame as unknown as { id: number; response: { decision: 'allow'; result: unknown } };
             const permission = protocol.permission(id, turnCapture.sessionId, frame.params);
             events.push(...(permission?.events ?? []));
             expect(protocol.answer(permission!.requestId, response.decision)).toMatchObject({ rpcId: id, result: response.result });
+
             continue;
         }
+
         events.push(...protocol.update(turnCapture.sessionId, frame.params));
     }
+
     events.push(...protocol.finish(turnCapture.promptResponse.result, 'prompt-1'));
+
     return events;
 }
 
 describe('AcpProtocol', () => {
     test('reads what initialize and session/new advertise, skipping entries that do not parse', () => {
         const capabilities = parseInitialize(turnCapture.initialize.result);
+
         expect(capabilities).toEqual({
             protocolVersion: 1,
             loadSession: true,
@@ -59,7 +65,9 @@ describe('AcpProtocol', () => {
             authMethods: ['api-key'],
             agent: { name: 'example-agent', title: 'Example Agent', version: '1.4.0' }
         });
+
         const info = parseSessionInfo(turnCapture.sessionNew.result, 'sess_7f2a', capabilities.agent);
+
         expect(info.models).toEqual({
             current: 'example-fast',
             configId: 'model',
@@ -98,6 +106,7 @@ describe('AcpProtocol', () => {
                 options: [{ value: 'high', name: 'High', description: 'Thinks longer' }]
             }
         ];
+
         expect(parseSessionInfo({ sessionId: 's', configOptions: options }, 's', null).thoughtLevel).toEqual({
             configId: 'reasoning_effort',
             current: 'high',
@@ -114,12 +123,14 @@ describe('AcpProtocol', () => {
             's',
             null
         );
+
         expect(info.models).toEqual({ current: 'a', configId: null, models: [{ id: 'a', name: 'A', description: 'First', contextWindow: null }] });
         expect(info.modes).toBeNull();
     });
 
     test('reads the context window an agent names in a model meta, and only a positive whole number', () => {
         const meta = (totalContextTokens: unknown) => ({ _meta: { totalContextTokens } });
+
         const legacy = parseSessionInfo(
             {
                 sessionId: 's',
@@ -136,7 +147,9 @@ describe('AcpProtocol', () => {
             's',
             null
         );
+
         expect(legacy.models?.models.map((model) => model.contextWindow)).toEqual([256000, null, null, null]);
+
         const option = parseSessionInfo(
             {
                 sessionId: 's',
@@ -147,11 +160,13 @@ describe('AcpProtocol', () => {
             's',
             null
         );
+
         expect(option.models?.models[0]?.contextWindow).toBe(128000);
     });
 
     test('maps a captured turn onto backend events', () => {
         const events = replay(new AcpProtocol(1, MODES, acpStopWords('Example'), true));
+
         expect(events).toEqual([
             { type: 'session', agentSessionId: null, model: null, slashCommands: ['review', 'init'] },
             { type: 'thinking.delta', ref: 'thought-1', text: 'The test fails on ' },
@@ -236,11 +251,14 @@ describe('AcpProtocol', () => {
             usage: { contextTokens: 0, contextWindow: null, costUsd: 0, turns: 0 },
             createdAt: 1
         });
+
         thread.upsert({ id: 'turn-1', kind: 'turn', createdAt: 1, turnId: 'turn-1', state: 'running', promptItemId: null } as never);
         const projector = new ThreadProjector(thread, { providerName: 'Example' });
+
         for (const event of replay(new AcpProtocol(1, MODES, acpStopWords('Example')))) {
             projector.project(1, event);
         }
+
         const kinds = thread.list().map((item) => (item.kind === 'tool' ? `tool:${item.name}:${item.state}` : item.kind));
         expect(kinds).toEqual(['turn', 'thinking', 'assistant', 'tool:Bash:error', 'approval', 'tool:TodoWrite:done', 'tool:Edit:done', 'assistant']);
         // The approval stays open: answering it is the session's, which this test leaves out.
@@ -255,7 +273,9 @@ describe('AcpProtocol', () => {
 
     test('takes a session title as a client can show it, and leaves out one that only repeats the prompt', () => {
         const protocol = new AcpProtocol(1, MODES, acpStopWords('Example'), true);
+
         const titled = (title: unknown) => protocol.update('s', { sessionId: 's', update: { sessionUpdate: 'session_info_update', title } });
+
         const prompt = `You work in a workspace of projects.\n\n${'Read every file of it and say what it holds. '.repeat(4)}`;
         protocol.prompted(prompt);
         expect(titled(prompt)).toEqual([]);
@@ -274,7 +294,9 @@ describe('AcpProtocol', () => {
 
     test('a stop reason other than the end of the turn says why', () => {
         const words = acpStopWords('Example');
+
         const finish = (stopReason: string, cancelled = false) => new AcpProtocol(1, MODES, words).finish({ stopReason }, undefined, cancelled);
+
         expect(finish('end_turn', true)).toEqual([{ type: 'turn.done', costUsd: 0, state: 'aborted' }]);
         // Only a cancel the client sent stops the turn; an agent that cancels by itself has ended it.
         expect(finish('cancelled')).toEqual([{ type: 'turn.done', costUsd: 0, state: 'done' }]);
@@ -289,16 +311,20 @@ describe('AcpProtocol', () => {
 
     test('after a refusal, a message that only starts like the refusal line still reaches the thread', () => {
         const protocol = new AcpProtocol(1, MODES, acpStopWords('Example'));
+
         const permission = protocol.permission(7, 's', {
             sessionId: 's',
             toolCall: { toolCallId: 'c', title: 'Write a.txt', kind: 'edit', content: [{ type: 'diff', path: 'a.txt', newText: 'hi' }] },
             options: [{ optionId: 'no', name: 'Deny', kind: 'reject_once' }]
         })!;
+
         expect(protocol.answer(permission.requestId, 'deny')?.events).toEqual([
             { type: 'tool.started', ref: 'c', name: 'Change', input: { description: 'Write a.txt' }, parentRef: null }
         ]);
+
         const chunk = (text: string) =>
             protocol.update('s', { sessionId: 's', update: { sessionUpdate: 'agent_message_chunk', content: { type: 'text', text } } });
+
         expect(chunk('Info: ')).toEqual([]);
         expect(chunk('the file stays as it was.')).toEqual([{ type: 'text.delta', ref: 'message-1', text: 'Info: the file stays as it was.' }]);
         expect(protocol.finish({ stopReason: 'end_turn' }, undefined)[0]).toEqual({
@@ -310,11 +336,13 @@ describe('AcpProtocol', () => {
 
     test('reads the command of a call from the field the agent names it by, for a host to judge', () => {
         const protocol = new AcpProtocol(1, MODES, acpStopWords('Example'));
+
         const permission = protocol.permission(7, 's', {
             sessionId: 's',
             toolCall: { toolCallId: 'c', title: 'ruimte-context list', kind: 'execute', rawInput: { CommandLine: 'ruimte-context list', Cwd: '/project' } },
             options: [{ optionId: 'once', name: 'Allow', kind: 'allow_once' }]
         })!;
+
         expect(permission.request.commands).toEqual(['ruimte-context list']);
         expect(permission.events.find((event) => event.type === 'approval.requested')).toMatchObject({ input: { command: 'ruimte-context list' } });
     });
@@ -322,25 +350,31 @@ describe('AcpProtocol', () => {
     test('answers a permission with an option the agent offered, never a wider one', () => {
         const ask = (options: Array<{ optionId: string; kind: string }>) => {
             const protocol = new AcpProtocol(1, MODES, acpStopWords('Example'));
+
             const permission = protocol.permission(7, 's', {
                 sessionId: 's',
                 toolCall: { toolCallId: 'c', title: 'Do it', kind: 'execute' },
                 options: options.map((option) => ({ ...option, name: option.optionId }))
             })!;
+
             return (decision: 'allow' | 'allow-always' | 'deny') => protocol.answer(permission.requestId, decision)?.result;
         };
+
         const full = [
             { optionId: 'once', kind: 'allow_once' },
             { optionId: 'always', kind: 'allow_always' },
             { optionId: 'no', kind: 'reject_once' }
         ];
+
         expect(ask(full)('allow')).toEqual({ outcome: { outcome: 'selected', optionId: 'once' } });
         expect(ask(full)('allow-always')).toEqual({ outcome: { outcome: 'selected', optionId: 'always' } });
         expect(ask(full)('deny')).toEqual({ outcome: { outcome: 'selected', optionId: 'no' } });
+
         const noAlways = [
             { optionId: 'once', kind: 'allow_once' },
             { optionId: 'never', kind: 'reject_always' }
         ];
+
         expect(ask(noAlways)('allow-always')).toEqual({ outcome: { outcome: 'selected', optionId: 'once' } });
         expect(ask(noAlways)('deny')).toEqual({ outcome: { outcome: 'selected', optionId: 'never' } });
         expect(ask([{ optionId: 'once', kind: 'allow_once' }])('deny')).toEqual({ outcome: { outcome: 'cancelled' } });
@@ -351,6 +385,7 @@ describe('AcpProtocol', () => {
         const params = { sessionId: 's', toolCall: { toolCallId: 'c' }, options: [{ optionId: 'once', name: 'Once', kind: 'allow_once' }] };
         protocol.permission(1, 's', params);
         protocol.permission('two', 's', params);
+
         expect(protocol.cancelRequests()).toEqual([
             { requestId: 'acp-2-1', rpcId: 1, result: { outcome: { outcome: 'cancelled' } } },
             { requestId: 'acp-2-two', rpcId: 'two', result: { outcome: { outcome: 'cancelled' } } }
@@ -361,6 +396,7 @@ describe('AcpProtocol', () => {
 
     test('refuses a permission request of another session or without options', () => {
         const protocol = new AcpProtocol(1, MODES, acpStopWords('Example'));
+
         expect(
             protocol.permission(1, 's', {
                 sessionId: 'other',
@@ -373,7 +409,9 @@ describe('AcpProtocol', () => {
 
     test('chunks without a message id are one message until a tool call cuts it', () => {
         const protocol = new AcpProtocol(1, MODES, acpStopWords('Example'));
+
         const chunk = (text: string) => ({ sessionId: 's', update: { sessionUpdate: 'agent_message_chunk', content: { type: 'text', text } } });
+
         const events = [
             ...protocol.update('s', chunk('a')),
             ...protocol.update('s', chunk('b')),
@@ -384,6 +422,7 @@ describe('AcpProtocol', () => {
             ...protocol.update('s', chunk('c')),
             ...protocol.abort(undefined, null)
         ];
+
         expect(events.filter((event) => event.type === 'text.done')).toEqual([
             { type: 'text.done', ref: 'message-1', text: 'ab' },
             { type: 'text.done', ref: 'message-2', text: 'c' }
@@ -425,6 +464,7 @@ describe('tool rows', () => {
                 { type: 'diff', path: 'b.ts', oldText: null, newText: 'new\n' }
             ]
         });
+
         expect(row).toEqual({
             name: 'ApplyPatch',
             input: { summary: 'a.ts, b.ts', description: 'Rename' },
@@ -477,6 +517,7 @@ describe('a count of the context outside the protocol', () => {
         update: { sessionUpdate: 'agent_message_chunk', content: { type: 'text', text } },
         ...(totalTokens === undefined ? {} : { _meta: { totalTokens } })
     });
+
     const usageOf = (events: BackendEvent[]) => events.filter((event) => event.type === 'usage');
 
     test('fills the meter from `_meta.totalTokens` of an update and of the response, once per change', () => {
@@ -507,6 +548,7 @@ describe('a count of the context outside the protocol', () => {
             's',
             null
         );
+
         expect(info.models?.models).toEqual([{ id: 'big', name: 'Big', description: null, contextWindow: 256000 }]);
     });
 });

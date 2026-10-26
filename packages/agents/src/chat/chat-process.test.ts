@@ -4,14 +4,18 @@ import { ChatChild, killProcessTree, LineSplitter, readStreamLines, StreamTail, 
 /* A process that only records what it is told, and exits when the test says so. */
 function fakeChild(onExit: (exitCode: number | null, stderr: string | null) => void = () => undefined) {
     const signals: string[] = [];
+
     let exit: ChatSpawnOptions['onExit'] = () => undefined;
+
     let stderr: ReadableStreamDefaultController<Uint8Array> | null = null;
+
     const child = new ChatChild({
         command: ['cli'],
         cwd: '/',
         env: {},
         spawn: (options) => {
             exit = options.onExit;
+
             return {
                 pid: 4242,
                 stdin: { write: () => 0, flush: () => 0, end: () => 0 },
@@ -28,6 +32,7 @@ function fakeChild(onExit: (exitCode: number | null, stderr: string | null) => v
         },
         onExit
     });
+
     return {
         child,
         signals,
@@ -55,6 +60,7 @@ describe('ChatChild', () => {
                     onExit: (...args) => resolve(args)
                 });
             });
+
             expect(await reported).toEqual([null, null, signal]);
         }
     );
@@ -76,9 +82,11 @@ describe('ChatChild', () => {
         jest.useFakeTimers();
         const { child, signals } = fakeChild();
         let settled = false;
+
         void child.end().then(() => {
             settled = true;
         });
+
         expect(child.end()).toBe(child.end());
         jest.advanceTimersByTime(2000);
         await child.end();
@@ -105,11 +113,14 @@ describe('ChatChild', () => {
     test('an exit with an error code carries the last lines of stderr, a clean one none', async () => {
         const report = () => {
             let heard: (exit: [number | null, string | null, string | null | undefined]) => void = () => undefined;
+
             const exit = new Promise<[number | null, string | null, string | null | undefined]>((resolve) => {
                 heard = resolve;
             });
+
             return { exit, onExit: (code: number | null, stderr: string | null, signal?: string | null) => heard([code, stderr, signal]) };
         };
+
         const crashReport = report();
         const crashed = fakeChild(crashReport.onExit);
         crashed.say('loading\n'.repeat(50));
@@ -129,11 +140,13 @@ describe('killProcessTree', () => {
     test('signals the process group on a platform that has one', () => {
         const signaled: Array<[number, string]> = [];
         const started: string[][] = [];
+
         killProcessTree(4242, 'SIGTERM', {
             platform: 'darwin',
             kill: (pid, signal) => signaled.push([pid, signal]),
             run: (command) => started.push(command)
         });
+
         expect(signaled).toEqual([[-4242, 'SIGTERM']]);
         expect(started).toEqual([]);
     });
@@ -141,6 +154,7 @@ describe('killProcessTree', () => {
     test('ends the whole tree with taskkill on Windows, which has no process groups', () => {
         const signaled: Array<[number, string]> = [];
         const started: string[][] = [];
+
         for (const signal of ['SIGTERM', 'SIGKILL'] as const) {
             killProcessTree(4242, signal, {
                 platform: 'win32',
@@ -148,6 +162,7 @@ describe('killProcessTree', () => {
                 run: (command) => started.push(command)
             });
         }
+
         expect(signaled).toEqual([]);
         expect(started).toEqual([
             ['taskkill', '/pid', '4242', '/t', '/f'],
@@ -171,6 +186,7 @@ describe('killProcessTree', () => {
 describe('StreamTail', () => {
     test('keeps no more than the tail of a long stream, and a note gets less than that', async () => {
         const encoder = new TextEncoder();
+
         const tail = new StreamTail(
             new ReadableStream<Uint8Array>({
                 start: (controller) => {
@@ -180,6 +196,7 @@ describe('StreamTail', () => {
                 }
             })
         );
+
         await tail.done;
         expect(tail.lines()).toBe('y'.repeat(2000));
     });
@@ -193,6 +210,7 @@ describe('StreamTail', () => {
                 }
             })
         );
+
         await tail.done;
         expect(tail.lines()).toBeNull();
     });
@@ -202,6 +220,7 @@ describe('LineSplitter', () => {
     const split = (max?: number) => {
         const lines: string[] = [];
         let overflows = 0;
+
         const splitter = new LineSplitter(
             (line) => lines.push(line),
             () => {
@@ -210,14 +229,17 @@ describe('LineSplitter', () => {
             },
             max
         );
+
         return { splitter, lines, overflows: () => overflows };
     };
 
     test('joins a line that came over several chunks and hands on what ends without a line break', () => {
         const { splitter, lines } = split();
+
         for (const chunk of ['{"a"', ':1}\n{"b":', '2}\n\n', '{"c":3}']) {
             splitter.push(chunk);
         }
+
         expect(lines).toEqual(['{"a":1}', '{"b":2}', '']);
         splitter.end();
         expect(lines).toEqual(['{"a":1}', '{"b":2}', '', '{"c":3}']);
@@ -226,6 +248,7 @@ describe('LineSplitter', () => {
     test('searches every character once, however many chunks a line takes', () => {
         const { splitter, lines } = split();
         let scanned = 0;
+
         // A chunk that counts what is searched in it; the splitter searches nothing but the chunks it is handed.
         const counted = (text: string): string =>
             ({
@@ -233,13 +256,17 @@ describe('LineSplitter', () => {
                 slice: (start?: number, end?: number) => text.slice(start, end),
                 indexOf: (search: string, position = 0) => {
                     scanned += text.length - position;
+
                     return text.indexOf(search, position);
                 }
             }) as unknown as string;
+
         const chunk = 'x'.repeat(64 * 1024);
+
         for (let i = 0; i < 80; i++) {
             splitter.push(counted(chunk));
         }
+
         splitter.push(counted('\n'));
         expect(lines.map((line) => line.length)).toEqual([80 * chunk.length]);
         expect(scanned).toBe(80 * chunk.length + 1);
@@ -261,9 +288,11 @@ describe('readStreamLines', () => {
     // One chunk per read, so a failure comes after the chunks before it rather than in place of them.
     const streamOf = (chunks: Uint8Array[], failure?: Error) => {
         const left = [...chunks];
+
         return new ReadableStream<Uint8Array>({
             pull(controller) {
                 const chunk = left.shift();
+
                 if (chunk !== undefined) {
                     controller.enqueue(chunk);
                 } else if (failure) {
@@ -280,21 +309,25 @@ describe('readStreamLines', () => {
         // Cut between the two bytes of the Ü and inside the second frame.
         const chunks = [bytes.slice(0, 9), bytes.slice(9, 10), bytes.slice(10, 25), bytes.slice(25)];
         const lines: string[] = [];
+
         await readStreamLines(
             streamOf(chunks),
             (line) => lines.push(line),
             () => lines.push('<dropped>')
         );
+
         expect(lines).toEqual(['{"text":"Übersicht"}', '{"done":true}']);
     });
 
     test('rejects a read that failed, after the lines that came before it', async () => {
         const lines: string[] = [];
+
         const read = readStreamLines(
             streamOf([new TextEncoder().encode('{"a":1}\n{"b"')], new Error('pipe closed')),
             (line) => lines.push(line),
             () => undefined
         );
+
         await expect(read).rejects.toThrow('pipe closed');
         expect(lines).toEqual(['{"a":1}']);
     });
@@ -302,6 +335,7 @@ describe('readStreamLines', () => {
     test('drops a frame past the limit and reads on', async () => {
         const lines: string[] = [];
         let overflows = 0;
+
         await readStreamLines(
             streamOf([new TextEncoder().encode('0123456789abc\n{"ok":1}\n')]),
             (line) => lines.push(line),
@@ -310,6 +344,7 @@ describe('readStreamLines', () => {
             },
             10
         );
+
         expect(lines).toEqual(['{"ok":1}']);
         expect(overflows).toBe(1);
     });

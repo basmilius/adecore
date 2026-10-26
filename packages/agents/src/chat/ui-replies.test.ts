@@ -36,6 +36,7 @@ function rig() {
     const emitted: ChatEvent[] = [];
     const repairs: string[] = [];
     const audiences: string[] = [];
+
     const replies = new UiReplies({
         thread,
         fenceLanguage: 'ui',
@@ -46,6 +47,7 @@ function rig() {
             audiences.push(audience);
         }
     });
+
     return { thread, emitted, repairs, audiences, replies };
 }
 

@@ -33,26 +33,32 @@ export class ClaudeTitleReader {
     /* The title of a session found by its id, for a chat, which knows no transcript path; in the projects of its account, its own folder first. */
     async forSession(agentSessionId: string, projectsDir: string = this.projectsDir, cwd?: string): Promise<string | null> {
         const path = await findClaudeSession(projectsDir, agentSessionId, cwd);
+
         return path === null ? null : await this.forTranscript(path);
     }
 
     async forTranscript(path: string): Promise<string | null> {
         let size: number;
+
         try {
             size = (await stat(path)).size;
         } catch {
             return null;
         }
+
         let progress = this.progress.get(path);
+
         // Smaller than where we were is a file that was replaced, not one that grew.
         if (!progress || size < progress.offset) {
             progress = { offset: 0, aiTitle: null, customTitle: null };
             this.progress.set(path, progress);
         }
+
         if (size > progress.offset) {
             const current = progress;
             current.offset = await readLines(path, current.offset, size, this.chunkBytes, (line) => this.take(line, current));
         }
+
         return progress.customTitle ?? progress.aiTitle;
     }
 
@@ -60,15 +66,19 @@ export class ClaudeTitleReader {
         if (!MARKERS.some((marker) => line.includes(marker))) {
             return;
         }
+
         let record: unknown;
+
         try {
             record = JSON.parse(line);
         } catch {
             return;
         }
+
         if (!isRecord(record)) {
             return;
         }
+
         if (record.type === 'ai-title') {
             progress.aiTitle = cleanTitle(record.aiTitle) ?? progress.aiTitle;
         } else if (record.type === 'custom-title') {

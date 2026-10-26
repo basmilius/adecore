@@ -20,6 +20,7 @@ describe('buildUserMessage', () => {
 
     test('attachments are named by path under the text, since both CLIs read a file themselves', () => {
         const frame = buildUserMessage({ text: 'what is this', attachments: [png] });
+
         expect((frame.message as { content: unknown[] }).content).toEqual([
             { type: 'text', text: 'what is this\n\nAttached files:\n- /home/x/.ruimte/attachments/chat-1/a1.png (shot.png)' }
         ]);
@@ -27,6 +28,7 @@ describe('buildUserMessage', () => {
 
     test('an attachment without text carries the note alone', () => {
         const frame = buildUserMessage({ text: '  ', attachments: [png] });
+
         expect((frame.message as { content: Array<{ text: string }> }).content).toEqual([
             { type: 'text', text: 'Attached files:\n- /home/x/.ruimte/attachments/chat-1/a1.png (shot.png)' }
         ] as never);
@@ -36,6 +38,7 @@ describe('buildUserMessage', () => {
 describe('skill dispatch', () => {
     test('a picked skill becomes the last text block, starting with a slash', () => {
         const frame = buildUserMessage({ text: 'look at the notes and $unslop them', skills: ['unslop'] });
+
         expect((frame.message as { content: unknown[] }).content).toEqual([
             { type: 'text', text: 'look at the notes and' },
             { type: 'text', text: '/unslop them' }
@@ -49,6 +52,7 @@ describe('skill dispatch', () => {
 
     test('only the last skill is invoked; the earlier ones become slash names in the leading block', () => {
         const frame = buildUserMessage({ text: 'run $lint first, then $unslop it', skills: ['unslop', 'lint'] });
+
         expect((frame.message as { content: unknown[] }).content).toEqual([
             { type: 'text', text: 'run /lint first, then' },
             { type: 'text', text: '/unslop it' }
@@ -65,6 +69,7 @@ describe('skill dispatch', () => {
 
     test('the prefix stays the first thing the model reads', () => {
         const frame = buildUserMessage({ text: '$unslop it', skills: ['unslop'], prefix: 'ultrathink\n\n' });
+
         expect((frame.message as { content: unknown[] }).content).toEqual([
             { type: 'text', text: 'ultrathink' },
             { type: 'text', text: '/unslop it' }

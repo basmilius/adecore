@@ -28,6 +28,7 @@ function info(patch: Partial<ChatInfo> = {}): ChatInfo {
 function user(id: string, text: string): ChatItem {
     return { id, kind: 'user', createdAt: 1, turnId: null, text };
 }
+
 function assistant(id: string, text: string): ChatItem {
     return { id, kind: 'assistant', createdAt: 1, turnId: null, text, streaming: true };
 }
@@ -46,10 +47,13 @@ afterEach(async () => {
 
 function logEvents(events: ChatEvent[], from = 0): ChatLog {
     const log = new ChatLog(store.logPath('chat'), { seq: from, resetSeq: 0, lines: [] });
+
     for (const event of events) {
         log.append(event, 1);
     }
+
     log.close();
+
     return log;
 }
 
@@ -71,6 +75,7 @@ describe('ChatStore', () => {
             { type: 'item', item: user('u1', 'hi') },
             { type: 'item', item: assistant('a1', 'he') }
         ]);
+
         await store.write('chat', info(), [user('u1', 'hi'), assistant('a1', 'he')], { seq: log.seq, resetSeq: 0 });
         // Written after the snapshot and before the next one: only the log has these.
         const late = new ChatLog(store.logPath('chat'), { seq: 2, resetSeq: 0, lines: [] });
@@ -107,6 +112,7 @@ describe('ChatStore', () => {
 
     test('a reset in the log empties the thread and says where it happened', async () => {
         await store.write('chat', info(), [user('u1', 'old')], { seq: 3, resetSeq: 0 });
+
         logEvents(
             [
                 { type: 'reset', info: info(), items: [] },
@@ -114,6 +120,7 @@ describe('ChatStore', () => {
             ],
             3
         );
+
         const record = await store.read('chat');
         expect(record?.items).toEqual([user('u2', 'new')]);
         expect(record?.resetSeq).toBe(4);
@@ -124,6 +131,7 @@ describe('ChatStore', () => {
             { type: 'item', item: user('u1', 'hi') },
             { type: 'info', info: info({ status: 'running' }) }
         ]);
+
         const record = await store.read('chat');
         expect(record).toMatchObject({ items: [user('u1', 'hi')], info: { status: 'running' }, seq: 0 });
         expect(await store.list()).toEqual(['chat']);
@@ -155,6 +163,7 @@ describe('ChatStore', () => {
 
     test('leaves a chat to a full read when its log says more or its record starts otherwise', async () => {
         await store.write('chat', info(), [], { seq: 1, resetSeq: 0 });
+
         logEvents(
             [
                 { type: 'info', info: info({ activeTurnId: 't1', status: 'running' }) },
@@ -162,6 +171,7 @@ describe('ChatStore', () => {
             ],
             1
         );
+
         expect(await store.settled('chat')).toBe(false);
         logEvents([{ type: 'info', info: info() }], 3);
         expect(await store.settled('chat')).toBe(true);

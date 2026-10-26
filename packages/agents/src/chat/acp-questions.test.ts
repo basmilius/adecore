@@ -15,6 +15,7 @@ async function open(capture: AcpCapture, runtimeMode: RuntimeMode = 'supervised'
     const answers: unknown[] = [];
     const waiters: Array<{ type: BackendEvent['type']; resolve(event: BackendEvent): void }> = [];
     const fake = inProcess(fakeAcpCapture(capture, answers));
+
     const backend: ChatBackend = createAcpBackend({ name: 'Agent' })(
         {
             command: ['agent'],
@@ -32,6 +33,7 @@ async function open(capture: AcpCapture, runtimeMode: RuntimeMode = 'supervised'
         {
             onEvent: (event) => {
                 events.push(event);
+
                 for (const waiter of waiters.splice(0)) {
                     if (waiter.type === event.type) {
                         waiter.resolve(event);
@@ -42,17 +44,22 @@ async function open(capture: AcpCapture, runtimeMode: RuntimeMode = 'supervised'
             }
         }
     );
+
     const next = <T extends BackendEvent['type']>(type: T): Promise<Extract<BackendEvent, { type: T }>> => {
         const raised = events.find((event) => event.type === type);
+
         if (raised) {
             return Promise.resolve(raised as Extract<BackendEvent, { type: T }>);
         }
+
         return new Promise((resolve) => {
             waiters.push({ type, resolve: (event) => resolve(event as Extract<BackendEvent, { type: T }>) });
         });
     };
+
     await backend.start();
     backend.sendTurn({ promptId: 'prompt-1', text: 'Set it up.', preamble: null, attachments: [], mentions: [], skills: [] });
+
     return { backend, events, answers, next };
 }
 
@@ -60,6 +67,7 @@ describe('Grok 1.0.62', () => {
     test('asks its questions on the question card, multi-select included', async () => {
         const { backend, next } = await open(grokQuestion);
         const asked: QuestionEvent = await next('question.requested');
+
         expect(asked.questions).toEqual([
             {
                 id: '0',
@@ -84,16 +92,20 @@ describe('Grok 1.0.62', () => {
             },
             { id: '2', header: '', question: 'Anything else to keep in mind?', choices: [{ label: 'No', description: 'Nothing' }], multiSelect: false }
         ]);
+
         await backend.dispose();
     });
 
     test('answers in its own shape: labels per question text, and words of the person under Other', async () => {
         const { backend, answers, next } = await open(grokQuestion);
         const asked = await next('question.requested');
+
         expect(backend.respondQuestion(asked.requestId, { '0': 'SQLite', '1': 'Tests, Lint, strict', '2': 'Keep the old schema around for a week.' })).toBe(
             true
         );
+
         await next('turn.done');
+
         expect(answers).toEqual([
             {
                 outcome: 'accepted',
@@ -105,6 +117,7 @@ describe('Grok 1.0.62', () => {
                 annotations: { 'Anything else to keep in mind?': { notes: 'Keep the old schema around for a week.' } }
             }
         ]);
+
         await backend.dispose();
     });
 
@@ -129,6 +142,7 @@ describe('Antigravity 1.4.1', () => {
     test('asks a question it sends as a permission request on the question card, even in full access', async () => {
         const { backend, events, answers, next } = await open(antigravityQuestion, 'full-access');
         const asked = await next('question.requested');
+
         expect(asked.questions).toEqual([
             {
                 id: '0',

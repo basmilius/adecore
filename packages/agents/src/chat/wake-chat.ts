@@ -29,8 +29,10 @@ export async function loadChat(deps: ChatOpenerDeps, chatId: string): Promise<Ch
         if (!deps.placed(chatId) || !(await deps.chats.hasStored(chatId))) {
             return null;
         }
+
         await deps.chats.create({ chatId });
     }
+
     return deps.chats.get(chatId) ?? null;
 }
 
@@ -38,6 +40,7 @@ export async function loadChat(deps: ChatOpenerDeps, chatId: string): Promise<Ch
 export function chatOpener(deps: ChatOpenerDeps) {
     return async (chatId: string): Promise<WakeChat | null> => {
         const session = await loadChat(deps, chatId);
+
         return session
             ? {
                   items: () => session.thread.list(),

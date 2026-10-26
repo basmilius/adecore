@@ -24,12 +24,16 @@ export class DeltaCoalescer {
         if (event.type !== 'delta' || event.uiQueries !== undefined) {
             this.flush();
             this.send(event);
+
             return;
         }
+
         if (this.pending !== null && this.pending.itemId === event.itemId) {
             this.pending.text += event.text;
+
             return;
         }
+
         this.flush();
         this.pending = { itemId: event.itemId, text: event.text };
         this.timer = setTimeout(() => this.flush(), this.tickMs);
@@ -43,10 +47,13 @@ export class DeltaCoalescer {
             clearTimeout(this.timer);
             this.timer = null;
         }
+
         const pending = this.pending;
+
         if (pending === null) {
             return;
         }
+
         this.pending = null;
         this.send({ type: 'delta', itemId: pending.itemId, text: pending.text });
     }
@@ -57,6 +64,7 @@ export class DeltaCoalescer {
             clearTimeout(this.timer);
             this.timer = null;
         }
+
         this.pending = null;
     }
 }

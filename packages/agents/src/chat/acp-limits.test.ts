@@ -14,11 +14,15 @@ const HOUR = 3_600_000;
 /* Runs one turn of a capture on the ACP backend and answers with every event up to its end. */
 async function turnOf(capture: AcpCapture, runtimeMode: RuntimeMode = 'supervised', kind?: AgentKind): Promise<BackendEvent[]> {
     const events: BackendEvent[] = [];
+
     let settle: () => void = () => {};
+
     const done = new Promise<void>((resolve) => {
         settle = resolve;
     });
+
     const fake = inProcess(fakeAcpCapture(capture));
+
     const backend = createAcpBackend({ name: 'Agent', ...(kind === undefined ? {} : { kind }) })(
         {
             command: ['agent'],
@@ -37,16 +41,19 @@ async function turnOf(capture: AcpCapture, runtimeMode: RuntimeMode = 'supervise
         {
             onEvent: (event) => {
                 events.push(event);
+
                 if (event.type === 'turn.done') {
                     settle();
                 }
             }
         }
     );
+
     await backend.start();
     backend.sendTurn({ promptId: 'prompt-1', text: 'Go on.', preamble: null, attachments: [], mentions: [], skills: [] });
     await done;
     await backend.dispose();
+
     return events;
 }
 
@@ -56,6 +63,7 @@ function turnDone(events: BackendEvent[]): Extract<BackendEvent, { type: 'turn.d
 
 describe('Grok 1.0.62', () => {
     const failing = (error: unknown): AcpCapture => ({ ...grokLimits, promptError: error });
+
     const grokTurn = (capture: AcpCapture) => turnOf(capture, 'supervised', 'grok');
 
     test('ends a turn the free tier ran out on as a usage limit, with no reset since Grok names none', async () => {
@@ -124,6 +132,7 @@ describe('Antigravity 1.4.1', () => {
                 sessionId: 's',
                 update: { sessionUpdate: 'agent_message_chunk', content: { type: 'text', text: antigravityQuota.noReset } }
             });
+
         const stopped = new AcpProtocol(1, {}, acpStopWords('Agent'), false, () => NOW);
         quota(stopped);
         const finished = stopped.finish({ stopReason: 'cancelled' }, 'prompt-1', true);
@@ -144,6 +153,7 @@ describe('Antigravity 1.4.1', () => {
                 { sessionUpdate: 'agent_message_chunk', content: { type: 'text', text: 'ge is fine.' } }
             ]
         };
+
         const events = await turnOf(capture);
         expect(events.filter((event) => event.type === 'text.delta')).toEqual([{ type: 'text.delta', ref: 'message-1', text: 'Usage is fine.' }]);
         expect(turnDone(events)).toMatchObject({ state: 'done' });

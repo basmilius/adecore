@@ -21,12 +21,14 @@ describe('limitResumeAt', () => {
     test('an overload is tried again after 1, 5 and 15 minutes, and after that not at all', () => {
         const items: ChatItem[] = [turn('t0')];
         const delays: Array<number | null> = [];
+
         for (let i = 1; i <= 4; i++) {
             const limited = turn(`t${i}`, { kind: 'overload' });
             items.push(limited);
             const at = limitResumeAt(items, limited, NOW);
             delays.push(at === null ? null : at - NOW);
         }
+
         expect(delays).toEqual([60_000, 300_000, 900_000, null]);
     });
 

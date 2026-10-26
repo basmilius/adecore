@@ -29,15 +29,20 @@ export function codexGoal(raw: unknown): ChatGoal | null {
     if (!isRecord(raw)) {
         return null;
     }
+
     const objective = str(raw.objective)?.trim() ?? '';
     const status = GOAL_STATUSES[str(raw.status) ?? ''];
+
     if (objective === '' || status === undefined) {
         return null;
     }
+
     const count = (value: unknown): number | undefined => (typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : undefined);
+
     const tokensUsed = count(raw.tokensUsed);
     const tokenBudget = count(raw.tokenBudget);
     const secondsUsed = count(raw.timeUsedSeconds);
+
     return {
         objective,
         status,
@@ -52,11 +57,14 @@ const SHELL_WRAPPER = /^(?:\/bin\/|\/usr\/bin\/)?(?:zsh|bash|sh) -lc (.*)$/s;
 
 export function unwrapCommand(command: string): string {
     const match = SHELL_WRAPPER.exec(command);
+
     if (!match) {
         return command;
     }
+
     const inner = match[1]!;
     const quoted = /^(["'])([\s\S]*)\1$/.exec(inner);
+
     return quoted ? quoted[2]! : inner;
 }
 
@@ -64,9 +72,11 @@ function textOf(content: unknown): string {
     if (typeof content === 'string') {
         return content;
     }
+
     if (!Array.isArray(content)) {
         return '';
     }
+
     return content
         .map((block) => (isRecord(block) ? (str(block.text) ?? null) : null))
         .filter((text): text is string => text !== null)
@@ -81,10 +91,12 @@ function collabAgentOutput(states: unknown): string {
     if (!isRecord(states)) {
         return '';
     }
+
     return Object.entries(states)
         .map(([thread, state]) => {
             const status = isRecord(state) ? (str(state.status) ?? 'unknown') : 'unknown';
             const message = isRecord(state) ? str(state.message) : null;
+
             return message ? `${thread}: ${status}, ${message}` : `${thread}: ${status}`;
         })
         .join('\n');
@@ -95,6 +107,7 @@ function parseBlockingQuestions(questions: unknown): ChatQuestion[] {
     if (!Array.isArray(questions)) {
         return [];
     }
+
     return questions.filter(isRecord).map((question, index) => ({
         id: str(question.id) ?? String(index),
         header: str(question.header) ?? '',
@@ -111,6 +124,7 @@ function parseAsyncQuestions(questions: unknown): ChatQuestion[] {
     if (!Array.isArray(questions)) {
         return [];
     }
+
     return questions.filter(isRecord).map((question, index) => ({
         id: String(index),
         header: '',
@@ -133,8 +147,10 @@ function parseChanges(value: unknown): ChatFileChange[] {
     if (!Array.isArray(value)) {
         return [];
     }
+
     return value.filter(isRecord).map((change) => {
         const kind = isRecord(change.kind) ? str(change.kind.type) : str(change.kind);
+
         return {
             path: str(change.path) ?? '',
             kind: kind !== null && CHANGE_KINDS.has(kind as ChatFileChange['kind']) ? (kind as ChatFileChange['kind']) : 'update',
@@ -146,13 +162,17 @@ function parseChanges(value: unknown): ChatFileChange[] {
 // Partial command output arrives as text or as the raw bytes of it, depending on the build.
 function outputChunk(params: Frame): string | null {
     const text = str(params.delta) ?? str(params.chunk);
+
     if (text !== null) {
         return text;
     }
+
     const bytes = params.chunk ?? params.delta;
+
     if (!Array.isArray(bytes)) {
         return null;
     }
+
     return new TextDecoder().decode(Uint8Array.from(bytes.filter((byte): byte is number => typeof byte === 'number')));
 }
 
@@ -180,26 +200,31 @@ function isConfirmation(params: Frame): boolean {
 /* The widest remembering the MCP server offers, which the one "always" button of a card stands for. */
 function elicitationPersist(meta: Frame): ElicitationPersist | null {
     const offered = Array.isArray(meta.persist) ? meta.persist : [];
+
     return offered.includes('always') ? 'always' : offered.includes('session') ? 'session' : null;
 }
 
 /* The arguments as the MCP server shows them to a person, keyed by name, so the card sums up the call. */
 function elicitationInput(meta: Frame): Frame {
     const input: Frame = {};
+
     for (const param of Array.isArray(meta.tool_params_display) ? meta.tool_params_display : []) {
         if (isRecord(param) && typeof param.name === 'string') {
             input[param.name] = param.value;
         }
     }
+
     return input;
 }
 
 // The latest reset of every spent window; one without a known reset leaves resuming to a person.
 function spentUntil(windows: readonly UsageWindow[]): number | null {
     const spent = windows.filter((window) => window.used >= 1);
+
     if (spent.length === 0 || spent.some((window) => window.resetsAt === null)) {
         return null;
     }
+
     return Math.max(...spent.map((window) => window.resetsAt!));
 }
 
@@ -240,6 +265,7 @@ export class CodexProtocol {
         const policy = isRecord(result) ? str(result.approvalPolicy) : null;
         const sandbox = isRecord(result) && isRecord(result.sandbox) ? str(result.sandbox.type) : null;
         const effectiveRuntimeMode = policy && sandbox ? codexRuntimeMode(policy, sandbox) : undefined;
+
         return [
             {
                 type: 'session',
@@ -254,28 +280,38 @@ export class CodexProtocol {
 
     handle(frame: CodexFrame): BackendEvent[] {
         const events: BackendEvent[] = [];
+
         if (typeof frame.method !== 'string') {
             return events;
         }
+
         const params = isRecord(frame.params) ? frame.params : {};
+
         if (frame.id !== undefined) {
             this.handleServerRequest(frame.method, frame.id as CodexRpcId, params, events);
+
             return events;
         }
+
         if (frame.method === 'serverRequest/resolved') {
             const rpcId = params.requestId;
+
             if (typeof rpcId === 'number' || typeof rpcId === 'string') {
                 const requestId = this.requestId(rpcId);
                 this.pending.delete(requestId);
                 events.push({ type: 'request.withdrawn', requestId });
             }
+
             return events;
         }
+
         if (frame.method === 'item/started' || frame.method === 'item/completed') {
             this.rememberPatch(params);
         }
+
         // Codex 0.156.1 streams a spawned agent's turns, items and usage here too, under that agent's thread id.
         const threadId = frame.method === 'thread/started' ? (isRecord(params.thread) ? str(params.thread.id) : null) : str(params.threadId);
+
         if (threadId !== null && this.ownThreadId !== null && threadId !== this.ownThreadId) {
             if (frame.method === 'turn/completed') {
                 this.withdrawOwner(
@@ -287,167 +323,213 @@ export class CodexProtocol {
             } else if (frame.method === 'thread/closed') {
                 this.withdrawOwner(threadId, null, events);
             }
+
             return events;
         }
+
         switch (frame.method) {
             case 'thread/started':
                 this.ownThreadId = threadId ?? this.ownThreadId;
                 events.push({ type: 'session', agentSessionId: threadId, model: null });
+
                 break;
             case 'thread/name/updated': {
                 const title = cleanTitle(params.threadName);
+
                 if (title !== null) {
                     events.push({ type: 'title', title });
                 }
+
                 break;
             }
             case 'turn/started':
                 this.codexTurnId = isRecord(params.turn) ? str(params.turn.id) : null;
+
                 break;
             case 'turn/completed':
                 this.handleTurnCompleted(params, events);
+
                 break;
             case 'thread/goal/updated':
                 events.push({ type: 'goal', goal: codexGoal(params.goal) });
+
                 break;
             case 'thread/goal/cleared':
                 events.push({ type: 'goal', goal: null });
+
                 break;
             case 'thread/closed':
                 this.withdrawOwner(threadId ?? this.ownThreadId, null, events);
+
                 break;
             case 'item/started':
             case 'item/completed':
                 this.handleItem(params, frame.method === 'item/completed', events);
+
                 break;
             case 'item/agentMessage/delta': {
                 const ref = str(params.itemId);
                 const text = str(params.delta);
+
                 if (ref && text) {
                     events.push({ type: 'text.delta', ref, text });
                 }
+
                 break;
             }
             case 'item/reasoning/summaryTextDelta':
             case 'item/reasoning/textDelta': {
                 const ref = str(params.itemId);
                 const text = str(params.delta);
+
                 if (ref && text) {
                     events.push({ type: 'thinking.delta', ref, text });
                 }
+
                 break;
             }
             case 'item/reasoning/summaryPartAdded': {
                 // A new part of the same summary; without a break the parts run into each other.
                 const ref = str(params.itemId);
+
                 if (ref && num(params.summaryIndex) > 0) {
                     events.push({ type: 'thinking.delta', ref, text: '\n\n' });
                 }
+
                 break;
             }
             case 'item/commandExecution/outputDelta': {
                 const ref = str(params.itemId);
                 const text = outputChunk(params);
+
                 if (ref && text) {
                     events.push({ type: 'tool.output', ref, text });
                 }
+
                 break;
             }
             case 'thread/tokenUsage/updated': {
                 const usage = isRecord(params.tokenUsage) ? params.tokenUsage : {};
                 const last = isRecord(usage.last) ? usage.last : {};
                 const contextWindow = num(usage.modelContextWindow);
+
                 events.push({
                     type: 'usage',
                     contextTokens: num(last.totalTokens),
                     ...(contextWindow > 0 ? { contextWindow } : {})
                 });
+
                 break;
             }
             case 'error': {
                 const error = isRecord(params.error) ? params.error : {};
                 events.push({ type: 'note', level: params.willRetry === true ? 'warning' : 'error', text: str(error.message) ?? 'Codex reported an error' });
+
                 break;
             }
             case 'account/rateLimits/updated': {
                 // The plan's own numbers, sent beside a token usage tick; the usage monitor keeps them.
                 const reading = readCodexLimits(isRecord(params.rateLimits) ? params.rateLimits : params);
+
                 if (reading !== null) {
                     this.spentUntil = spentUntil(reading.windows);
+
                     if (reading.windows.length > 0) {
                         events.push({ type: 'limits', update: { kind: 'codex', plan: reading.plan, windows: reading.windows } });
                     }
                 }
+
                 break;
             }
             case 'model/rerouted': {
                 const model = str(params.toModel);
+
                 if (model) {
                     events.push({ type: 'model', model });
                 }
+
                 break;
             }
             default:
                 break;
         }
+
         return events;
     }
 
     /* The reply that settles an approval, or null when nothing waits under that id. */
     approvalDecision(requestId: string, decision: ApprovalDecision): { rpcId: CodexRpcId; result: unknown } | null {
         const pending = this.pending.get(requestId);
+
         if (pending?.type === 'permissions') {
             this.pending.delete(requestId);
+
             return {
                 rpcId: pending.rpcId,
                 result: { permissions: decision === 'deny' ? {} : pending.permissions, scope: decision === 'allow-always' ? 'session' : 'turn' }
             };
         }
+
         if (pending?.type === 'elicitation') {
             this.pending.delete(requestId);
+
             return { rpcId: pending.rpcId, result: elicitationAnswer(decision, pending.persist) };
         }
+
         if (pending?.type !== 'approval') {
             return null;
         }
+
         this.pending.delete(requestId);
+
         return { rpcId: pending.rpcId, result: { decision: codexDecision(decision, pending) } };
     }
 
     /* An RPC reply, or plain text that continues the chat, for a question that still waits. */
     questionAnswer(requestId: string, answers: Record<string, string>): CodexAnswer | null {
         const pending = this.pending.get(requestId);
+
         if (pending?.type !== 'question') {
             return null;
         }
+
         this.pending.delete(requestId);
         const given = pending.questionIds.map((id) => answers[id]).filter((answer): answer is string => answer !== undefined);
+
         if (pending.rpcId === null) {
             // An async question is answered like a message from the person, into the running turn.
             return { kind: 'steer', text: given.join('\n') };
         }
+
         const byId: Record<string, { answers: string[] }> = {};
+
         for (const id of pending.questionIds) {
             const answer = answers[id];
+
             if (answer !== undefined) {
                 byId[id] = { answers: [answer] };
             }
         }
+
         return { kind: 'respond', rpcId: pending.rpcId, result: { answers: byId } };
     }
 
     dismissQuestionAnswer(requestId: string): CodexAnswer | null {
         const pending = this.pending.get(requestId);
+
         return pending?.type === 'question' && pending.async === true && pending.rpcId !== null ? this.questionAnswer(requestId, {}) : null;
     }
 
     /* Drops an asynchronous question the person walked away from; a blocking one has to be answered. */
     dismissQuestion(requestId: string): boolean {
         const pending = this.pending.get(requestId);
+
         if (pending?.type !== 'question' || pending.rpcId !== null) {
             return false;
         }
+
         this.pending.delete(requestId);
+
         return true;
     }
 
@@ -459,18 +541,23 @@ export class CodexProtocol {
 
     declineRequest(requestId: string): { rpcId: CodexRpcId; result: unknown } | null {
         const pending = this.pending.get(requestId);
+
         if (!pending) {
             return null;
         }
+
         if (pending.type !== 'question') {
             return this.approvalDecision(requestId, 'deny');
         }
+
         this.pending.delete(requestId);
+
         return pending.rpcId === null ? null : { rpcId: pending.rpcId, result: { answers: {} } };
     }
 
     private owner(params: Frame): RequestOwner {
         const threadId = str(params.threadId) ?? this.ownThreadId;
+
         return { threadId, turnId: str(params.turnId) ?? (threadId === this.ownThreadId ? this.codexTurnId : null) };
     }
 
@@ -480,12 +567,15 @@ export class CodexProtocol {
 
     private rememberPatch(params: Frame): void {
         const item = isRecord(params.item) ? params.item : null;
+
         if (item?.type !== 'fileChange' || typeof item.id !== 'string') {
             return;
         }
+
         const owner = this.owner(params);
         const changes = parseChanges(item.changes);
         this.toolInputs.set(this.toolKey(owner.threadId, item.id), { ...owner, input: { summary: changes.map((change) => change.path).join(', ') }, changes });
+
         // An approval copies its input into the event, so evicting cached metadata cannot change an open card.
         if (this.toolInputs.size > 512) {
             this.toolInputs.delete(this.toolInputs.keys().next().value!);
@@ -494,12 +584,14 @@ export class CodexProtocol {
 
     private withdrawOwner(threadId: string | null, turnId: string | null, events: BackendEvent[], keepAsyncQuestions = false): void {
         const belongs = (owner: RequestOwner): boolean => owner.threadId === threadId && (turnId === null || owner.turnId === null || owner.turnId === turnId);
+
         for (const [requestId, pending] of this.pending) {
             if (belongs(pending) && !(keepAsyncQuestions && pending.type === 'question' && pending.async === true)) {
                 this.pending.delete(requestId);
                 events.push({ type: 'request.withdrawn', requestId });
             }
         }
+
         for (const [key, input] of this.toolInputs) {
             if (belongs(input)) {
                 this.toolInputs.delete(key);
@@ -509,6 +601,7 @@ export class CodexProtocol {
 
     private isChildRequest(params: Frame): boolean {
         const threadId = str(params.threadId);
+
         return threadId !== null && this.ownThreadId !== null && threadId !== this.ownThreadId;
     }
 
@@ -516,8 +609,10 @@ export class CodexProtocol {
         if (!this.isChildRequest(params)) {
             return description;
         }
+
         const threadId = str(params.threadId)!;
         const label = this.agentRows.get(threadId)?.label || threadId;
+
         return [`Requested by subagent ${label}.`, description].filter(Boolean).join(' ');
     }
 
@@ -527,11 +622,14 @@ export class CodexProtocol {
 
     private handleServerRequest(method: string, rpcId: CodexRpcId, params: Frame, events: BackendEvent[]): void {
         const requestId = this.requestId(rpcId);
+
         if (method === 'item/tool/requestUserInput') {
             const questions = parseBlockingQuestions(params.questions);
+
             if (questions.length === 0) {
                 return;
             }
+
             this.pending.set(requestId, {
                 ...this.owner(params),
                 type: 'question',
@@ -539,6 +637,7 @@ export class CodexProtocol {
                 questionIds: questions.map((question) => question.id),
                 async: params.isBlocking === false
             });
+
             events.push({
                 type: 'question.requested',
                 requestId,
@@ -546,14 +645,18 @@ export class CodexProtocol {
                 ...(params.isBlocking === false ? { async: true } : {}),
                 ...(this.isChildRequest(params) ? { background: true } : {})
             });
+
             return;
         }
+
         if (method === 'item/permissions/requestApproval') {
             if (!isRecord(params.permissions)) {
                 return;
             }
+
             const permissions = params.permissions;
             this.pending.set(requestId, { ...this.owner(params), type: 'permissions', rpcId, permissions });
+
             events.push({
                 type: 'approval.requested',
                 requestId,
@@ -565,31 +668,41 @@ export class CodexProtocol {
                 allowAlways: { label: 'Allow for this session', description: 'Grant these permissions for the rest of this session.' },
                 ...(this.isChildRequest(params) ? { background: true } : {})
             });
+
             return;
         }
+
         if (method === 'mcpServer/elicitation/request') {
             this.elicitation(requestId, rpcId, params, events);
+
             return;
         }
+
         const kind = method === 'item/commandExecution/requestApproval' ? 'command' : method === 'item/fileChange/requestApproval' ? 'fileChange' : null;
+
         if (!kind) {
             return;
         }
+
         const itemId = str(params.itemId);
         const known = itemId ? this.toolInputs.get(this.toolKey(this.owner(params).threadId, itemId)) : undefined;
+
         const decisions = Array.isArray(params.availableDecisions)
             ? params.availableDecisions.map((decision) =>
                   typeof decision === 'string' ? decision : (Object.keys(isRecord(decision) ? decision : {})[0] ?? '')
               )
             : [];
+
         const amendment = Array.isArray(params.proposedExecpolicyAmendment)
             ? params.proposedExecpolicyAmendment.filter((word): word is string => typeof word === 'string')
             : null;
+
         // The person must see what they are approving, so a file change repeats its diffs here.
         const input =
             kind === 'command'
                 ? { command: unwrapCommand(str(params.command) ?? ''), cwd: str(params.cwd) ?? undefined }
                 : { ...(isRecord(known?.input) ? known.input : { itemId }), changes: known?.changes ?? [] };
+
         this.pending.set(requestId, {
             ...this.owner(params),
             type: 'approval',
@@ -598,6 +711,7 @@ export class CodexProtocol {
             amendment: amendment && amendment.length > 0 ? amendment : null,
             decisions
         });
+
         events.push({
             type: 'approval.requested',
             requestId,
@@ -628,9 +742,11 @@ export class CodexProtocol {
         if (!isConfirmation(params)) {
             return;
         }
+
         const meta = isRecord(params._meta) ? params._meta : {};
         const persist = elicitationPersist(meta);
         this.pending.set(requestId, { ...this.owner(params), type: 'elicitation', rpcId, persist });
+
         events.push({
             type: 'approval.requested',
             requestId,
@@ -651,17 +767,21 @@ export class CodexProtocol {
     private handleItem(params: Frame, completed: boolean, events: BackendEvent[]): void {
         const item = isRecord(params.item) ? params.item : null;
         const ref = item ? str(item.id) : null;
+
         if (!item || !ref) {
             return;
         }
+
         switch (item.type) {
             case 'agentMessage': {
                 const questions = parseAsyncQuestions(item.questions);
+
                 if (questions.length > 0) {
                     // Codex keeps polling for an answer to this one; the id it carries is the item's own.
                     if (!completed || this.pending.has(ref)) {
                         return;
                     }
+
                     this.pending.set(ref, {
                         ...this.owner(params),
                         type: 'question',
@@ -669,21 +789,28 @@ export class CodexProtocol {
                         questionIds: questions.map((question) => question.id),
                         async: true
                     });
+
                     events.push({ type: 'question.requested', requestId: ref, questions, async: true });
+
                     return;
                 }
+
                 this.text(ref, str(item.text) ?? '', completed, events, str(item.phase) ?? undefined);
+
                 return;
             }
             case 'plan':
                 this.text(`plan-${ref}`, str(item.text) ?? '', completed, events);
+
                 return;
             case 'reasoning': {
                 // The deltas already streamed this; the completed item is what a resumed thread replays.
                 const lines = [...toLines(item.summary), ...toLines(item.content)];
+
                 if (completed && lines.length > 0) {
                     events.push({ type: 'thinking.done', ref, text: lines.join('\n\n') });
                 }
+
                 return;
             }
             case 'commandExecution': {
@@ -691,18 +818,23 @@ export class CodexProtocol {
                 const succeeded = str(item.status) === 'completed';
                 // Its turn is long over, so only the row learns how it ended; a start again would open a turn nobody ends.
                 const backgroundId = this.backgroundTerminals.get(ref);
+
                 if (completed && backgroundId !== undefined) {
                     this.backgroundTerminals.delete(ref);
                     events.push({ type: 'tool.done', ref, output, state: succeeded ? 'done' : 'error' });
                     events.push({ type: 'background.ended', taskId: backgroundId });
+
                     return;
                 }
+
                 const processId = str(item.processId);
+
                 if (!completed && processId !== null) {
                     this.openTerminals.set(ref, processId);
                 } else {
                     this.openTerminals.delete(ref);
                 }
+
                 this.tool(
                     ref,
                     'Bash',
@@ -712,10 +844,12 @@ export class CodexProtocol {
                     succeeded,
                     events
                 );
+
                 return;
             }
             case 'fileChange': {
                 const changes = parseChanges(item.changes);
+
                 this.tool(
                     ref,
                     'ApplyPatch',
@@ -726,11 +860,13 @@ export class CodexProtocol {
                     events,
                     changes
                 );
+
                 return;
             }
             case 'mcpToolCall': {
                 const result = isRecord(item.result) ? textOf(item.result.content) : '';
                 const error = isRecord(item.error) ? (str(item.error.message) ?? '') : '';
+
                 this.tool(
                     ref,
                     `${str(item.server) ?? 'mcp'}/${str(item.tool) ?? 'tool'}`,
@@ -740,62 +876,78 @@ export class CodexProtocol {
                     str(item.status) === 'completed',
                     events
                 );
+
                 return;
             }
             case 'dynamicToolCall':
                 this.tool(ref, str(item.tool) ?? 'tool', item.arguments ?? {}, completed, textOf(item.contentItems), item.success !== false, events);
+
                 return;
             case 'imageGeneration': {
                 const revisedPrompt = str(item.revisedPrompt) ?? undefined;
                 const transparentBackground = typeof item.transparentBackground === 'boolean' ? item.transparentBackground : undefined;
+
                 const input = {
                     ...(revisedPrompt === undefined ? {} : { revisedPrompt }),
                     ...(transparentBackground === undefined ? {} : { transparentBackground })
                 };
+
                 if (!completed) {
                     this.tool(ref, 'ImageGeneration', input, false, '', true, events);
+
                     return;
                 }
+
                 try {
                     if (item.failure || item.status !== 'completed') {
                         throw new Error(
                             isRecord(item.failure) ? (str(item.failure.message) ?? 'Image generation failed') : (str(item.failure) ?? 'Image generation failed')
                         );
                     }
+
                     const image = generatedImage(str(item.result) ?? '', revisedPrompt);
                     events.push({ type: 'image.generated', ref, ...image, ...input });
                 } catch (error) {
                     this.tool(ref, 'ImageGeneration', input, true, error instanceof Error ? error.message : 'Image generation failed', false, events);
                 }
+
                 return;
             }
             case 'imageView':
                 this.tool(ref, 'ImageView', { path: str(item.path) ?? '' }, completed, '', true, events);
+
                 return;
             case 'webSearch': {
                 const action = isRecord(item.action) ? item.action : {};
                 this.tool(ref, 'WebSearch', { query: str(item.query) ?? str(action.query) ?? '' }, completed, '', true, events);
+
                 return;
             }
             case 'collabAgentToolCall': {
                 // Codex's own multi-agent calls; spawnAgent is the one handled as a delegation.
                 const tool = str(item.tool) ?? 'collabAgent';
                 const input = { tool, prompt: str(item.prompt) ?? undefined, model: str(item.model) ?? undefined, threads: item.receiverThreadIds ?? [] };
+
                 if (tool === 'spawnAgent') {
                     this.spawnedAgent(ref, item, input, events);
+
                     return;
                 }
+
                 this.tool(ref, tool, input, completed, collabAgentOutput(item.agentsStates), str(item.status) === 'completed', events);
                 this.settleEndedAgents(item.agentsStates, events);
+
                 return;
             }
             case 'subAgentActivity':
                 this.subAgentActivity(item, events);
+
                 return;
             case 'contextCompaction':
                 if (completed) {
                     events.push({ type: 'compaction', preTokens: null });
                 }
+
                 return;
             default:
                 return;
@@ -810,12 +962,15 @@ export class CodexProtocol {
         const turnId = str(turn.id) ?? this.codexTurnId;
         this.codexTurnId = null;
         this.withdrawOwner(str(params.threadId) ?? this.ownThreadId, turnId, events, status === 'completed');
+
         // A terminal session still open as the turn ends is one Codex left running; it only completes once its process does.
         for (const [ref, processId] of this.openTerminals) {
             this.backgroundTerminals.set(ref, processId);
             events.push({ type: 'background.started', taskId: processId, ref, monitor: false, description: null });
         }
+
         this.openTerminals.clear();
+
         events.push({
             type: 'turn.done',
             state: status === 'interrupted' ? 'aborted' : status === 'failed' ? 'error' : 'done',
@@ -836,9 +991,11 @@ export class CodexProtocol {
         if (info === 'usageLimitExceeded') {
             return { kind: 'usage', ...(this.spentUntil === null ? {} : { resetsAt: this.spentUntil }) };
         }
+
         if (info === 'serverOverloaded' || info === 'rateLimitExceeded') {
             return { kind: 'overload' };
         }
+
         return null;
     }
 
@@ -856,6 +1013,7 @@ export class CodexProtocol {
         // One spawn opens one thread; Codex only knows its id once the call went through.
         const threadId = Array.isArray(item.receiverThreadIds) ? str(item.receiverThreadIds[0]) : null;
         events.push({ type: 'tool.started', ref, name: 'Agent', input, parentRef: null });
+
         events.push({
             type: 'task.started',
             ref,
@@ -866,15 +1024,19 @@ export class CodexProtocol {
             background: true,
             ...(threadId ? { threadId } : {})
         });
+
         if (threadId === null) {
             if (str(item.status) === 'failed') {
                 events.push({ type: 'task.done', ref, summary: summary || null, ok: false });
             }
+
             return;
         }
+
         if (!this.agentRows.has(threadId)) {
             this.agentRows.set(threadId, { ref, label: (str(item.prompt) ?? '').split('\n')[0] ?? '', settled: false });
         }
+
         if (!this.settleEndedAgents(item.agentsStates, events)) {
             events.push({ type: 'task.progress', ref, summary: summary || null, lastTool: null, usage: null });
         }
@@ -883,17 +1045,21 @@ export class CodexProtocol {
     /* Settles the row of every agent a collab call reports stopped; true when one of them did just now. */
     private settleEndedAgents(states: unknown, events: BackendEvent[]): boolean {
         let settled = false;
+
         for (const [threadId, state] of Object.entries(isRecord(states) ? states : {})) {
             const status = isRecord(state) ? str(state.status) : null;
             const row = this.agentRows.get(threadId);
+
             if (row === undefined || row.settled || status === null || !ENDED_AGENT_STATES.has(status)) {
                 continue;
             }
+
             row.settled = true;
             this.withdrawOwner(threadId, null, events, status === 'completed');
             settled = true;
             events.push({ type: 'task.done', ref: row.ref, summary: collabAgentOutput({ [threadId]: state }), ok: status === 'completed' });
         }
+
         return settled;
     }
 
@@ -906,21 +1072,27 @@ export class CodexProtocol {
         const ref = str(item.id);
         const threadId = str(item.agentThreadId);
         const kind = str(item.kind);
+
         if (ref === null || threadId === null) {
             return;
         }
+
         const row = this.agentRows.get(threadId);
+
         if ((kind === 'started' || kind === 'interacted') && row === undefined) {
             // The path ends in the name the parent gave the agent, which is all the stream says about its task.
             const path = str(item.agentPath) ?? '';
             this.agentRows.set(threadId, { ref, label: path.split('/').at(-1) ?? '', settled: false, ...(kind === 'interacted' ? { interaction: ref } : {}) });
             events.push({ type: 'tool.started', ref, name: 'Agent', input: { agentPath: path }, parentRef: null });
             events.push({ type: 'task.started', ref, description: path.split('/').at(-1) ?? '', subagentType: null, prompt: null, background: true, threadId });
+
             return;
         }
+
         if (kind === 'interacted' && row !== undefined && row.interaction !== ref) {
             row.interaction = ref;
             row.settled = false;
+
             events.push({
                 type: 'task.started',
                 ref: row.ref,
@@ -931,8 +1103,10 @@ export class CodexProtocol {
                 threadId,
                 resumed: true
             });
+
             return;
         }
+
         if ((kind === 'completed' || kind === 'interrupted') && row !== undefined && !row.settled) {
             row.settled = true;
             this.withdrawOwner(threadId, null, events, kind === 'completed');
@@ -951,6 +1125,7 @@ export class CodexProtocol {
         changes?: ChatFileChange[]
     ): void {
         events.push({ type: 'tool.started', ref, name, input, parentRef: null, ...(changes && changes.length > 0 ? { changes } : {}) });
+
         if (completed) {
             events.push({ type: 'tool.done', ref, output, state: succeeded ? 'done' : 'error', ...(changes && changes.length > 0 ? { changes } : {}) });
         }
@@ -965,12 +1140,15 @@ function codexDecision(decision: ApprovalDecision, pending: Extract<Pending, { t
     if (decision === 'deny') {
         return 'decline';
     }
+
     if (decision === 'allow') {
         return 'accept';
     }
+
     if (pending.amendment) {
         return { acceptWithExecpolicyAmendment: { execpolicy_amendment: pending.amendment } };
     }
+
     return pending.kind === 'fileChange' || pending.decisions.includes('acceptForSession') ? 'acceptForSession' : 'accept';
 }
 
@@ -979,5 +1157,6 @@ function elicitationAnswer(decision: ApprovalDecision, persist: ElicitationPersi
     if (decision === 'deny') {
         return { action: 'decline' };
     }
+
     return decision === 'allow-always' && persist !== null ? { action: 'accept', content: {}, _meta: { persist } } : { action: 'accept', content: {} };
 }

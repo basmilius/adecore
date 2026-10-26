@@ -35,11 +35,13 @@ test('a host hold puts a running chat at needs-you and its release puts it back'
     const attachments = new AttachmentStore(home);
     const manager = new ChatCore({ attachments, store: new ChatStore(home, { attachments }), providers });
     const statuses: AgentStatus[] = [];
+
     manager.observe((event) => {
         if (event.event === 'chat.event' && event.payload.event.type === 'info') {
             statuses.push(event.payload.event.info.status);
         }
     });
+
     try {
         await manager.create({ chatId: 'chat', cwd: home });
         await manager.send('chat', 'Set up the API');

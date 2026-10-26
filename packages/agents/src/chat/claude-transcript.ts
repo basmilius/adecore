@@ -18,10 +18,13 @@ export function spokenText(content: unknown): string | null {
     if (typeof content === 'string') {
         return content;
     }
+
     if (!Array.isArray(content) || content.some((block) => isRecord(block) && block.type === 'tool_result')) {
         return null;
     }
+
     const texts = content.filter((block) => isRecord(block) && block.type === 'text').map((block) => String((block as { text?: unknown }).text ?? ''));
+
     return texts.length === 0 ? null : texts.join('\n');
 }
 
@@ -53,67 +56,89 @@ export async function findClaudeSession(projectsDir: string, sessionId: string, 
     if (projectsDir === '' || sessionId === '' || /[/\\]|\.\./.test(sessionId)) {
         return null;
     }
+
     const file = `${sessionId}.jsonl`;
     const key = `${projectsDir}\n${sessionId}`;
     const own = cwd === undefined ? null : join(projectsDir, claudeProjectSlug(cwd), file);
+
     if (own !== null && (await fileExists(own))) {
         sessionPaths.set(key, own);
+
         return own;
     }
+
     const known = sessionPaths.get(key);
+
     if (known !== undefined && known !== own && (await fileExists(known))) {
         return known;
     }
+
     sessionPaths.delete(key);
     let dirs: string[];
+
     try {
         dirs = await readdir(projectsDir);
     } catch {
         return null;
     }
+
     const candidates = dirs.map((dir) => join(projectsDir, dir, file)).filter((candidate) => candidate !== own);
     const present = await Promise.all(candidates.map(fileExists));
     const found = candidates.find((_candidate, i) => present[i]) ?? null;
+
     if (found !== null) {
         sessionPaths.set(key, found);
     }
+
     return found;
 }
 
 /* Where the subagents of a session keep their transcripts: the folder beside its own transcript, once the CLI made it. */
 export async function findSubagentsDir(projectsDir: string, cwd: string, sessionId: string): Promise<string | null> {
     const transcript = await findClaudeSession(projectsDir, sessionId, cwd);
+
     if (transcript === null) {
         return null;
     }
+
     const dir = join(dirname(transcript), sessionId, 'subagents');
+
     return (await fileExists(dir)) ? dir : null;
 }
 
 /* Every meta file in a subagents folder that says which agent it is about; one that does not parse is left out. */
 export async function readSubagentMetas(dir: string): Promise<SubagentMeta[]> {
     let names: string[];
+
     try {
         names = await readdir(dir);
     } catch {
         return [];
     }
+
     const metas: SubagentMeta[] = [];
+
     for (const name of names) {
         const match = /^agent-(.+)\.meta\.json$/.exec(name);
+
         if (!match) {
             continue;
         }
+
         let parsed: unknown;
+
         try {
             parsed = JSON.parse(await readFile(join(dir, name), 'utf8'));
         } catch {
             continue;
         }
+
         if (!isRecord(parsed)) {
             continue;
         }
+
         const agentId = match[1]!;
+
         metas.push({
             agentId,
             toolUseId: str(parsed.toolUseId),
@@ -122,6 +147,7 @@ export async function readSubagentMetas(dir: string): Promise<SubagentMeta[]> {
             transcript: join(dir, `agent-${agentId}.jsonl`)
         });
     }
+
     return metas;
 }
 
@@ -133,20 +159,25 @@ export async function findWorkflowAgent(subagentsDir: string, agentId: string): 
     if (!/^[\w-]+$/.test(agentId)) {
         return null;
     }
+
     const workflowsDir = join(subagentsDir, 'workflows');
     let runs: string[];
+
     try {
         runs = await readdir(workflowsDir);
     } catch {
         return null;
     }
+
     for (const run of runs) {
         const dir = join(workflowsDir, run);
         const transcript = join(dir, `agent-${agentId}.jsonl`);
+
         if (existsSync(transcript)) {
             return { agentId, toolUseId: null, parentAgentId: null, description: null, transcript };
         }
     }
+
     return null;
 }
 
@@ -175,19 +206,24 @@ export class TranscriptProjection {
     /* Reads what was added since the last call; false when the file is not there. */
     async refresh(): Promise<boolean> {
         let info: { size: number; mtimeMs: number };
+
         try {
             info = await stat(this.path);
         } catch {
             return false;
         }
+
         if (info.size < this.size || info.mtimeMs < this.mtimeMs) {
             this.reset();
         }
+
         this.size = info.size;
         this.mtimeMs = info.mtimeMs;
+
         if (info.size > this.offset) {
             this.offset = await readLines(this.path, this.offset, info.size, CHUNK_BYTES, (line) => this.take(line));
         }
+
         return true;
     }
 
@@ -198,6 +234,7 @@ export class TranscriptProjection {
     /* The page before `cursor`, or the newest page without one; the cursors are the thread's own. */
     page(limit: number, cursor?: string): ChatHistoryResult {
         const page = this.thread.history(limit, cursor);
+
         return { items: page.items.map(settledReading), history: page.history };
     }
 
@@ -215,21 +252,28 @@ export class TranscriptProjection {
         if (line.trim() === '') {
             return;
         }
+
         let entry: unknown;
+
         try {
             entry = JSON.parse(line);
         } catch {
             return;
         }
+
         if (!isRecord(entry) || (entry.type !== 'user' && entry.type !== 'assistant')) {
             return;
         }
+
         const time = typeof entry.timestamp === 'string' ? Date.parse(entry.timestamp) : Number.NaN;
+
         if (Number.isFinite(time)) {
             this.lineTime = time;
         }
+
         const message = isRecord(entry.message) ? entry.message : {};
         const said = entry.type === 'user' ? spokenText(message.content) : null;
+
         if (said !== null) {
             // The prompt it was given, or a message sent to it later; a reminder the CLI slipped in is not somebody talking.
             if (entry.isMeta !== true && said.trim() !== '') {
@@ -241,8 +285,10 @@ export class TranscriptProjection {
                     text: said
                 });
             }
+
             return;
         }
+
         for (const event of this.protocol.handle({ type: entry.type, message })) {
             this.projector.project(0, event);
         }

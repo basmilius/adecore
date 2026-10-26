@@ -15,9 +15,11 @@ function rig() {
     let reads = 0;
     let captures = 0;
     let value: unknown = { count: 7 };
+
     const host: ChatUiHost = {
         capture: async () => {
             captures++;
+
             return { readable: permitted };
         },
         sources: {
@@ -31,11 +33,13 @@ function rig() {
                 },
                 read: async () => {
                     reads++;
+
                     return value;
                 }
             }
         }
     };
+
     const block = {
         ...compileUiBlock(
             '$data = @Query("status", {repo: "."})\n<Stats><Stat label="Count" value={$data.count}/></Stats>\n<Choices><Choice context={"Count " + $data.count}>Choose</Choice></Choices>',
@@ -43,6 +47,7 @@ function rig() {
         ),
         revision: 'rev'
     };
+
     const item: ChatAssistantItem = {
         id: 'reply',
         kind: 'assistant',
@@ -53,6 +58,7 @@ function rig() {
         ui: [block],
         uiQueries: { authorChatId: 'chat', blocks: {} }
     };
+
     const info: ChatInfo = {
         chatId: 'chat',
         provider: 'claude',
@@ -68,8 +74,10 @@ function rig() {
         usage: { contextTokens: 0, contextWindow: 200000, costUsd: 0, turns: 0 },
         createdAt: 1
     };
+
     const events: ChatEvent[] = [];
     const frozen = Promise.withResolvers<void>();
+
     const session = new ChatSession({
         info,
         items: [item],
@@ -79,6 +87,7 @@ function rig() {
         env: () => ({}),
         emit: (event) => {
             events.push(event);
+
             if (event.type === 'delta' && event.uiQueries && Object.keys(event.uiQueries.blocks).length > 0) {
                 frozen.resolve();
             }
@@ -86,8 +95,10 @@ function rig() {
         persist: () => {},
         persistSoon: () => {}
     });
+
     const queries = new ChatUiQueries(host);
     const payload = { chatId: 'chat', itemId: 'reply', blockId: 'block', revision: 'rev', query: '$data' };
+
     return {
         host,
         queries,
@@ -116,6 +127,7 @@ describe('stored UI queries', () => {
         expect(await r.queries.query(r.session, r.payload)).toEqual(first);
         expect(r.counts().reads).toBe(1);
     });
+
     test('checks revoked access before returning a cached value', async () => {
         const r = rig();
         await r.queries.query(r.session, r.payload);
@@ -125,31 +137,39 @@ describe('stored UI queries', () => {
         expect(reading.value).toBeUndefined();
         expect(r.counts().reads).toBe(1);
     });
+
     test('refuses a stale block and an invented query', async () => {
         const r = rig();
         expect((await r.queries.query(r.session, { ...r.payload, revision: 'other' })).state).toBe('refused');
         expect((await r.queries.query(r.session, { ...r.payload, query: '$other' })).state).toBe('refused');
         expect(r.counts().reads).toBe(0);
     });
+
     test('a refusal of the host carries its own code and reason', async () => {
         const r = rig();
         const source = r.host.sources.status!;
+
         source.authorize = async () => {
             throw new ChatUiRefusal('project-closed', 'The project is closed.');
         };
+
         expect(await r.queries.query(r.session, r.payload)).toMatchObject({ state: 'refused', code: 'project-closed', reason: 'The project is closed.' });
         source.authorize = async () => {};
+
         source.read = async () => {
             throw new ChatUiRefusal('rate-limited', 'The service asked to wait.');
         };
+
         expect(await r.queries.query(r.session, r.payload)).toMatchObject({ state: 'failed', code: 'rate-limited', reason: 'The service asked to wait.' });
     });
+
     test('a denied capture survives restart without capturing wider rights', async () => {
         const r = rig();
         r.session.setUiAccess('reply', null);
         expect(await r.queries.query(r.session, r.payload)).toMatchObject({ state: 'refused', code: 'access-unavailable' });
         expect(r.counts().captures).toBe(0);
     });
+
     test('a fork captures the current chat’s rights', async () => {
         const r = rig();
         r.session.thread.upsert({ ...r.item, uiQueries: { authorChatId: 'original', blocks: {} } });
@@ -157,6 +177,7 @@ describe('stored UI queries', () => {
         expect((await r.queries.query(r.session, r.payload)).state).toBe('refused');
         expect(r.counts().captures).toBe(1);
     });
+
     test('validates the host result before it reaches the UI', async () => {
         const r = rig();
         r.setValue({ count: 'bad' });
@@ -164,6 +185,7 @@ describe('stored UI queries', () => {
         expect(reading.state).toBe('failed');
         expect(reading.value).toBeUndefined();
     });
+
     test('a choice receives only the issued query value', async () => {
         const r = rig();
         const reading = await r.queries.query(r.session, r.payload);
@@ -175,6 +197,7 @@ describe('stored UI queries', () => {
         r.revoke();
         await expect(r.queries.choiceValues(r.session, payload)).rejects.toThrow('No access');
     });
+
     test('freezes the first values and fallback in metadata, without logging a second tree', async () => {
         const r = rig();
         r.queries.observe(r.session, r.item, true);
@@ -206,6 +229,7 @@ test('a frozen read id survives cache loss and schema defaults after restart', a
 test('opening a stored link resolves its node again and refuses stale or invented nodes', async () => {
     const r = rig();
     let allowed = true;
+
     const queries = new ChatUiQueries({
         capture: async () => ({ readable: true }),
         sources: {},
@@ -213,9 +237,11 @@ test('opening a stored link resolves its node again and refuses stale or invente
             if (!allowed) {
                 throw new Error('Removed');
             }
+
             return { state: 'chip', target };
         }
     });
+
     const block = { ...compileUiBlock('<File path="readme.md"/>', { id: 'block', final: true }), revision: 'rev' };
     r.session.thread.upsert({ ...r.item, ui: [block] });
     const payload = { ...r.payload, nodeId: block.nodes[0]!.id };
@@ -246,6 +272,7 @@ describe('reading again', () => {
 
     test('a changed input reads at once, and the same input waits for the refresh interval', async () => {
         const r = rig();
+
         const block = {
             ...compileUiBlock('$rows = @Query("status", {repo: ".", limit: $limit})\n$limit = 3\n<Slider min={1} max={10} value={$limit}>Rows</Slider>', {
                 id: 'block',
@@ -254,6 +281,7 @@ describe('reading again', () => {
             }),
             revision: 'rev'
         };
+
         r.session.thread.upsert({ ...r.item, ui: [block] });
         const payload = { ...r.payload, query: '$rows' };
         setSystemTime(new Date(0));
@@ -273,6 +301,7 @@ describe('a query that reads a text field', () => {
 
     test('reads again after the text changed, once the interval between two reads has passed, and refuses a text past its limit', async () => {
         const r = rig();
+
         const block = {
             ...compileUiBlock('$q = "a"\n$rows = @Query("status", {repo: $q})\n<TextField value={$q} maxLength={5}>Repository</TextField>', {
                 id: 'block',
@@ -281,6 +310,7 @@ describe('a query that reads a text field', () => {
             }),
             revision: 'rev'
         };
+
         expect(block.diagnostics).toEqual([]);
         r.session.thread.upsert({ ...r.item, ui: [block] });
         const payload = { ...r.payload, query: '$rows' };
@@ -311,6 +341,7 @@ test('a choice needs a fresh read of every query its block declares', async () =
 
 test('a choice from options a query read is refreshed and sent against the reading it came from', async () => {
     const r = rig();
+
     const source = {
         args: z.object({}).strict(),
         result: z.array(z.object({ id: z.string(), name: z.string() }).strict()),
@@ -320,6 +351,7 @@ test('a choice from options a query read is refreshed and sent against the readi
             { id: 'b', name: 'B' }
         ]
     };
+
     const block = {
         ...compileUiBlock(
             '$picked = "a"\n$rows = @Query("rows", {})\n<Segmented value={$picked}><Each items={$rows} as="row"><Option value={row.id}>{row.name}</Option></Each></Segmented>\n<Choices><Choice context={"Picked " + $picked}>Choose</Choice></Choices>',
@@ -327,6 +359,7 @@ test('a choice from options a query read is refreshed and sent against the readi
         ),
         revision: 'rev'
     };
+
     const session = new ChatSession({
         info: r.session.info,
         items: [{ ...r.item, ui: [block] }],
@@ -338,6 +371,7 @@ test('a choice from options a query read is refreshed and sent against the readi
         persist: () => {},
         persistSoon: () => {}
     });
+
     const queries = new ChatUiQueries({ ...r.host, sources: { rows: source } });
     const payload = { ...r.payload, query: '$rows' };
     const reading = await queries.query(session, payload);
@@ -349,6 +383,7 @@ test('a choice from options a query read is refreshed and sent against the readi
 
     const choice = block.nodes[1]!.children[0]!;
     const choose = { ...r.payload, choiceId: choice.id, reads: { $rows: reading.readId! }, values: { $picked: 'b' } };
+
     expect(await queries.choiceValues(session, choose)).toEqual({
         $rows: [
             { id: 'a', name: 'A' },
@@ -371,11 +406,14 @@ describe('places looked up beside a block', () => {
         r.session.thread.upsert(item);
         const queries = new ChatUiQueries({ capture: async () => ({}), sources: {}, place });
         const ids = evaluateUiBlock(block).nodes[0]!.children.map((child) => child.id);
+
         const stored = () => (r.session.thread.get('reply') as ChatAssistantItem).uiQueries!.blocks.places;
+
         const observe = async () => {
             queries.observe(r.session, item, true);
             await queries.whenFrozen(r.session, 'reply');
         };
+
         return { ...r, queries, block, item, ids, stored, observe };
     }
 
@@ -395,10 +433,13 @@ describe('places looked up beside a block', () => {
 
     test('freezes the point of each place that names an address, and none for a place with coordinates alone', async () => {
         const asked: string[] = [];
+
         const r = placesRig(async (_info, query) => {
             asked.push(`${query.name}|${query.address}`);
+
             return query.name === 'Dom' ? { state: 'found', lat: 52.0907, lon: 5.1214, label: 'Domplein, Utrecht' } : { state: 'missing', code: 'no-match' };
         });
+
         await r.observe();
         expect(asked.sort()).toEqual(['Dom|Domplein 1, Utrecht', 'Lost|Nowhere 1']);
         expect(r.stored()!.places).toEqual({
@@ -423,8 +464,10 @@ describe('places looked up beside a block', () => {
                 throw new Error('connect ECONNREFUSED 10.0.0.7:443 with key sk-secret');
             }
         ];
+
         const r = placesRig(async () => (await answers.shift()!()) as Reading);
         await r.observe();
+
         expect(r.stored()!.places![r.ids[1]!]).toEqual({
             state: 'missing',
             address: 'Domplein 1, Utrecht',
@@ -444,6 +487,7 @@ describe('places looked up beside a block', () => {
         const answers: unknown[] = [{ state: 'found', lat: 120, lon: 5 }, { state: 'found' }];
         const r = placesRig(async () => answers.shift() as Reading);
         await r.observe();
+
         for (const id of [r.ids[1]!, r.ids[2]!]) {
             expect(r.stored()!.places![id]!.state).toBe('missing');
             expect(r.stored()!.places![id]!.lat).toBeUndefined();
@@ -453,10 +497,13 @@ describe('places looked up beside a block', () => {
     test('a lookup that takes longer than five seconds is aborted and frozen as missing', async () => {
         jest.useFakeTimers();
         const signals: AbortSignal[] = [];
+
         const r = placesRig((_info, _query, signal) => {
             signals.push(signal);
+
             return new Promise<Reading>(() => undefined);
         });
+
         r.queries.observe(r.session, r.item, true);
         await flush();
         expect(signals).toHaveLength(2);
@@ -471,10 +518,12 @@ describe('places looked up beside a block', () => {
         const open: Array<() => void> = [];
         let running = 0;
         let peak = 0;
+
         const r = placesRig(
             () =>
                 new Promise<Reading>((resolve) => {
                     peak = Math.max(peak, ++running);
+
                     open.push(() => {
                         running--;
                         resolve({ state: 'found', lat: 1, lon: 2 });
@@ -482,13 +531,16 @@ describe('places looked up beside a block', () => {
                 }),
             streets(10)
         );
+
         r.queries.observe(r.session, r.item, true);
         await flush();
         expect(running).toBe(4);
+
         while (open.length > 0) {
             open.shift()!();
             await flush();
         }
+
         await r.queries.whenFrozen(r.session, 'reply');
         expect(peak).toBe(4);
         expect(Object.keys(r.stored()!.places!)).toHaveLength(10);
@@ -497,19 +549,24 @@ describe('places looked up beside a block', () => {
     test('a block has fifteen seconds for its lookups, after which the rest are frozen as missing without being asked', async () => {
         jest.useFakeTimers();
         let asked = 0;
+
         const r = placesRig((_info, _query, signal) => {
             asked++;
+
             return new Promise<Reading>((resolve) => {
                 // Each takes four seconds, which is fine alone and too slow for twenty of them four at a time.
                 const timer = setTimeout(() => resolve({ state: 'found', lat: 1, lon: 2 }), 4_000);
                 signal.addEventListener('abort', () => clearTimeout(timer));
             });
         }, streets(20));
+
         r.queries.observe(r.session, r.item, true);
+
         for (let second = 0; second < 16; second++) {
             await flush();
             jest.advanceTimersByTime(1_000);
         }
+
         await r.queries.whenFrozen(r.session, 'reply');
         const readings = Object.values(r.stored()!.places!);
         expect(readings).toHaveLength(20);
@@ -521,10 +578,13 @@ describe('places looked up beside a block', () => {
     test('stops asking after three timeouts in a row', async () => {
         jest.useFakeTimers();
         let asked = 0;
+
         const r = placesRig(() => {
             asked++;
+
             return new Promise<Reading>(() => undefined);
         }, streets(12));
+
         r.queries.observe(r.session, r.item, true);
         await flush();
         jest.advanceTimersByTime(5_000);
@@ -542,11 +602,14 @@ describe('places looked up beside a block', () => {
         const called = Promise.withResolvers<void>();
         const release = Promise.withResolvers<Reading>();
         let asked = 0;
+
         const r = placesRig(async () => {
             asked++;
             called.resolve();
+
             return release.promise;
         }, streets(8));
+
         r.queries.observe(r.session, r.item, true);
         await called.promise;
         r.session.thread.upsert({ ...r.item, ui: [{ ...r.block, revision: 'other' }] });
@@ -559,11 +622,14 @@ describe('places looked up beside a block', () => {
     test('a chat that ends aborts the lookups under way and writes nothing', async () => {
         const signals: AbortSignal[] = [];
         const called = Promise.withResolvers<void>();
+
         const r = placesRig((_info, _query, signal) => {
             signals.push(signal);
             called.resolve();
+
             return new Promise<Reading>(() => undefined);
         });
+
         r.queries.observe(r.session, r.item, true);
         await called.promise;
         r.queries.forget('chat');
@@ -577,10 +643,13 @@ describe('places looked up beside a block', () => {
         await r.observe();
         expect(r.stored()!.places).toBeUndefined();
         let asked = 0;
+
         const known = placesRig(async () => {
             asked++;
+
             return { state: 'missing' };
         }, '<Map><Place lat={52} lon={5}>Known</Place></Map>');
+
         await known.observe();
         expect(asked).toBe(0);
     });

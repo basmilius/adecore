@@ -18,6 +18,7 @@ export interface ThreadItemsParams {
 export function parseThreadItemsPage(result: unknown): { entries: Record<string, unknown>[]; nextCursor: string | null } {
     const data = isRecord(result) && Array.isArray(result.data) ? result.data.filter(isRecord) : [];
     const nextCursor = isRecord(result) && typeof result.nextCursor === 'string' && result.nextCursor !== '' ? result.nextCursor : null;
+
     return { entries: data, nextCursor };
 }
 
@@ -40,23 +41,31 @@ function userText(content: unknown): string {
 export function projectCodexItems(entriesOldestFirst: Record<string, unknown>[], now: number): ChatItem[] {
     const { thread, projector } = readingThread('Codex', () => now);
     const protocol = new CodexProtocol(0);
+
     for (const entry of entriesOldestFirst) {
         const item = isRecord(entry.item) ? entry.item : null;
+
         if (!item || typeof item.id !== 'string') {
             continue;
         }
+
         projector.reset();
+
         if (item.type === 'userMessage') {
             const text = userText(item.content);
+
             if (text !== '') {
                 thread.upsert({ id: `user-${item.id}`, kind: 'user', createdAt: now, turnId: null, text });
             }
+
             continue;
         }
+
         for (const event of protocol.handle({ method: 'item/completed', params: { item } })) {
             projector.project(0, event);
         }
     }
+
     return thread.list().map(settledReading);
 }
 
@@ -78,12 +87,15 @@ async function withAppServer<T>(spec: CodexProcessSpec, work: (transport: CodexT
         onFrame: () => undefined,
         onExit: () => undefined
     });
+
     try {
         await transport.request('initialize', {
             clientInfo: spec.client ?? DEFAULT_CODEX_CLIENT,
             capabilities: { experimentalApi: true, requestAttestation: false }
         });
+
         transport.notify('initialized', {});
+
         return await work(transport);
     } finally {
         transport.end();
@@ -112,17 +124,21 @@ export interface ThreadForkParams {
 async function nthTurnId(transport: CodexTransport, threadId: string, turns: number): Promise<string | null> {
     let seen = 0;
     let cursor: string | null = null;
+
     do {
         const page = parseThreadItemsPage(
             await transport.request('thread/turns/list', { threadId, limit: 100, sortDirection: 'asc', ...(cursor === null ? {} : { cursor }) })
         );
+
         for (const turn of page.entries) {
             if (++seen === turns) {
                 return typeof turn.id === 'string' ? turn.id : null;
             }
         }
+
         cursor = page.nextCursor;
     } while (cursor !== null);
+
     return null;
 }
 
@@ -134,13 +150,17 @@ async function nthTurnId(transport: CodexTransport, threadId: string, turns: num
 export function forkThreadOnce(spec: CodexProcessSpec, params: ThreadForkParams): Promise<string> {
     return withAppServer(spec, async (transport) => {
         let lastTurnId: string | null = null;
+
         if (params.at !== null) {
             lastTurnId = 'turnId' in params.at ? params.at.turnId : await nthTurnId(transport, params.threadId, params.at.turns);
+
             if (lastTurnId === null) {
                 throw new ChatError('turn-not-found', 'Codex keeps fewer turns in this thread than the chat shows, so the turn could not be found');
             }
         }
+
         let result: unknown;
+
         try {
             result = await transport.request('thread/fork', {
                 threadId: params.threadId,
@@ -151,10 +171,13 @@ export function forkThreadOnce(spec: CodexProcessSpec, params: ThreadForkParams)
         } catch (error) {
             throw new ChatError('fork-failed', errorText(error));
         }
+
         const thread = isRecord(result) && isRecord(result.thread) ? result.thread : null;
+
         if (thread === null || typeof thread.id !== 'string' || thread.id === '') {
             throw new ChatError('fork-failed', 'Codex answered the fork without a thread');
         }
+
         return thread.id;
     });
 }

@@ -29,7 +29,9 @@ function wordStart(text: string, from: number, limit: number): number {
     if (from === 0 || /\s/.test(text[from - 1]!) || /\s/.test(text[from]!)) {
         return from;
     }
+
     const space = text.slice(from, limit).search(/\s/);
+
     return space === -1 ? from : from + space + 1;
 }
 
@@ -38,7 +40,9 @@ function wordEnd(text: string, to: number, limit: number): number {
     if (to === text.length || /\s/.test(text[to - 1]!) || /\s/.test(text[to]!)) {
         return to;
     }
+
     const space = text.slice(limit, to).search(/\s\S*$/);
+
     return space === -1 ? to : limit + space;
 }
 
@@ -48,6 +52,7 @@ function snippetOf(text: string, index: number, length: number): { snippet: stri
     const before = `${from > 0 ? '…' : ''}${plain(text.slice(from, index))}`;
     const match = plain(text.slice(index, index + length));
     const after = `${plain(text.slice(index + length, to))}${to < text.length ? '…' : ''}`;
+
     return { snippet: `${before}${match}${after}`, matchStart: before.length, matchLength: match.length };
 }
 
@@ -59,19 +64,25 @@ export function searchThreadItems(items: readonly ChatItem[], query: string, { l
     if (query === '' || limit <= 0) {
         return [];
     }
+
     const pattern = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
     const hits: ThreadHit[] = [];
+
     for (const item of items) {
         if (item.kind !== 'user' && item.kind !== 'assistant') {
             continue;
         }
+
         if (item.kind === 'assistant' && item.parentToolUseId) {
             continue;
         }
+
         const found = pattern.exec(item.text);
+
         if (found === null) {
             continue;
         }
+
         hits.push({
             itemId: item.id,
             author: item.kind === 'user' ? 'person' : 'agent',
@@ -79,9 +90,11 @@ export function searchThreadItems(items: readonly ChatItem[], query: string, { l
             createdAt: item.createdAt,
             turnId: item.turnId
         });
+
         if (hits.length >= limit) {
             break;
         }
     }
+
     return hits;
 }

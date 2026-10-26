@@ -50,18 +50,22 @@ export class UiReplies {
     /* The preview of every reply still streaming, as deltas, for a client that attached in the middle of one. */
     previews(): ChatEvent[] {
         const events: ChatEvent[] = [];
+
         for (const [itemId, preview] of this.compiled) {
             const item = this.options.thread.get(itemId);
+
             if (item?.kind === 'assistant' && item.streaming && item.text.length === preview.textLength) {
                 events.push({ type: 'delta', itemId, text: '', ui: preview.blocks, textLength: preview.textLength });
             }
         }
+
         return events;
     }
 
     previewItems(items: ChatItem[]): ChatItem[] {
         return items.map((item) => {
             const preview = this.compiled.get(item.id);
+
             return item.kind === 'assistant' && preview?.textLength === item.text.length ? { ...item, ui: preview.blocks } : item;
         });
     }
@@ -69,27 +73,38 @@ export class UiReplies {
     /* Hands one event of the chat on, with the blocks of a reply it finished in place of its fences. */
     pass(event: ChatEvent): void {
         const { thread, emit } = this.options;
+
         if (event.type === 'reset') {
             this.clear();
         }
+
         if (event.type === 'item' && event.item.kind === 'tool') {
             this.attachments.delete(event.item.turnId);
         }
+
         const item = event.type === 'item' ? event.item : event.type === 'delta' ? thread.get(event.itemId) : null;
+
         if (item?.kind !== 'assistant' || item.parentToolUseId) {
             emit(event);
+
             return;
         }
+
         const tail = this.unscannedText(item, event.type === 'item');
+
         if (uiMayReferenceHost(tail)) {
             this.referencing.add(item.id);
         }
+
         let stream = this.streams.get(item.id);
+
         if (!stream && !uiHasFence(tail, this.options.fenceLanguage)) {
             this.forgetScan(item);
             emit(event);
+
             return;
         }
+
         if (!stream) {
             stream = new UiStream({
                 querySchemas: this.options.host?.schemas,
@@ -101,21 +116,28 @@ export class UiReplies {
                     emit({ type: 'delta', itemId: item.id, text: '', ui: preview.blocks, textLength: preview.textLength });
                 }
             });
+
             this.streams.set(item.id, stream);
         }
+
         if (this.referencing.has(item.id)) {
             this.options.host?.observe(item, false);
         }
+
         this.forgetScan(item);
         const latestAttachment = this.latestAttachment(item.turnId);
+
         if (event.type !== 'item' || item.streaming) {
             emit(event);
             stream.update(item.text, latestAttachment);
+
             return;
         }
+
         const ui = stream
             .finish(item.text, latestAttachment)
             .map((block) => ({ ...block, revision: createHash('sha256').update(JSON.stringify(block)).digest('hex') }));
+
         this.streams.delete(item.id);
         this.compiled.delete(item.id);
         this.repair(ui.flatMap((block) => block.diagnostics));
@@ -128,6 +150,7 @@ export class UiReplies {
     private repair(diagnostics: UiDiagnostic[]): void {
         const say = (found: UiDiagnostic[], audience: 'person' | 'agent') => {
             const messages = [...new Set(found.map((diagnostic) => diagnostic.message))].slice(0, 6);
+
             if (messages.length > 0) {
                 this.options.repair(
                     `Your last ${this.options.fenceLanguage} block had these diagnostics: ${messages.join(' ')} Use the catalog's supported props and components.`.slice(
@@ -138,10 +161,12 @@ export class UiReplies {
                 );
             }
         };
+
         say(
             diagnostics.filter((diagnostic) => diagnostic.severity !== 'warning'),
             'person'
         );
+
         say(
             diagnostics.filter((diagnostic) => diagnostic.severity === 'warning'),
             'agent'
@@ -152,6 +177,7 @@ export class UiReplies {
         for (const stream of this.streams.values()) {
             stream.dispose();
         }
+
         this.streams.clear();
         this.compiled.clear();
         this.scanned.clear();
@@ -166,11 +192,14 @@ export class UiReplies {
     private unscannedText(item: ChatAssistantItem, whole: boolean): string {
         const scanned = whole ? 0 : (this.scanned.get(item.id) ?? 0);
         this.scanned.set(item.id, item.text.length);
+
         if (scanned === 0 || scanned > item.text.length) {
             return item.text;
         }
+
         const line = item.text.lastIndexOf('\n', scanned - 1) + 1;
         const from = Math.max(line, scanned - UI_SCAN_OVERLAP);
+
         return from === line ? item.text.slice(from) : `\0${item.text.slice(from)}`;
     }
 
@@ -186,8 +215,10 @@ export class UiReplies {
         if (this.attachments.has(turnId)) {
             return this.attachments.get(turnId);
         }
+
         const attachment = this.findAttachment(turnId);
         this.attachments.set(turnId, attachment);
+
         return attachment;
     }
 
@@ -196,11 +227,14 @@ export class UiReplies {
             if (item.kind !== 'tool' || item.turnId !== turnId || item.name !== 'ImageGeneration' || item.state !== 'done') {
                 continue;
             }
+
             const input = GeneratedImageInputSchema.safeParse(item.input);
+
             if (input.success && input.data.attachment?.mime.startsWith('image/')) {
                 return input.data.attachment.id;
             }
         }
+
         return undefined;
     }
 }

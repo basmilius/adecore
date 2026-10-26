@@ -50,6 +50,7 @@ describe('estimateContextBreakdown', () => {
             tool('b1', 'Bash', text(1000)),
             assistant('a1', text(200))
         ];
+
         const breakdown = estimateContextBreakdown(items, 20_000);
         // `{}` as input is two characters, which rounds up to one token per call.
         expect(breakdown).toEqual({ filesRead: 7002, toolOutput: 1001, conversation: 300, system: 11_697 });
@@ -93,6 +94,7 @@ describe('estimateContextBreakdown', () => {
             tool('r1', 'Read', text(9000), 's1'),
             assistant('a1', text(900), 's1')
         ];
+
         expect(estimateContextBreakdown(items, 1000)).toEqual({ filesRead: 0, toolOutput: 200, conversation: 0, system: 800 });
     });
 
@@ -101,6 +103,7 @@ describe('estimateContextBreakdown', () => {
             { id: 'p', name: 'shot.png', mime: 'image/png', size: 4_000_000, path: '/tmp/shot.png' },
             { id: 'd', name: 'notes.txt', mime: 'text/plain', size: 4_000_000, path: '/tmp/notes.txt' }
         ];
+
         expect(estimateContextBreakdown([user('u1', '', { attachments })], 10_000)).toEqual({ filesRead: 1600, toolOutput: 0, conversation: 0, system: 8400 });
     });
 

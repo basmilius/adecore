@@ -92,6 +92,7 @@ const MAX_EMBEDDED_BYTES = 1024 * 1024;
 
 function inside(folder: string, path: string): boolean {
     const rest = relative(folder, path);
+
     return rest === '' || (!rest.startsWith('..') && !isAbsolute(rest));
 }
 
@@ -144,6 +145,7 @@ export class AcpBackend implements ChatBackend {
         if (this.transport) {
             return;
         }
+
         const transport = new JsonRpcTransport({
             command: this.launch.command,
             cwd: this.launch.cwd,
@@ -157,7 +159,9 @@ export class AcpBackend implements ChatBackend {
             onFrame: (frame) => this.handleFrame(transport, frame),
             onExit: (exitCode, stderr) => this.handleExit(transport, exitCode, stderr)
         });
+
         this.transport = transport;
+
         try {
             await this.handshake(transport);
         } catch (error) {
@@ -166,6 +170,7 @@ export class AcpBackend implements ChatBackend {
                 this.transport = null;
                 void transport.dispose();
             }
+
             throw error;
         }
     }
@@ -178,9 +183,11 @@ export class AcpBackend implements ChatBackend {
                 clientInfo: { name: this.client.name, title: nameOf(this.client), version: this.client.version }
             })
         );
+
         if (capabilities.protocolVersion !== ACP_PROTOCOL_VERSION) {
             throw new Error(`${this.spec.name} speaks ACP version ${capabilities.protocolVersion}; only version ${ACP_PROTOCOL_VERSION} is supported`);
         }
+
         this.capabilities = capabilities;
         const info = await this.openSession(transport, capabilities);
         const modeId = await this.applyMode(transport, info);
@@ -188,6 +195,7 @@ export class AcpBackend implements ChatBackend {
         this.model = model;
         await this.applyThoughtLevel(transport, thoughtLevel);
         this.spec.onSession?.(info);
+
         this.emit({
             type: 'session',
             agentSessionId: this.sessionId,
@@ -195,6 +203,7 @@ export class AcpBackend implements ChatBackend {
             effectiveRuntimeMode: this.launch.runtimeMode,
             ...(modeId === null ? {} : { permissionMode: modeId })
         });
+
         for (const params of this.early.splice(0)) {
             this.emitAll(this.protocol.update(this.sessionId, params));
         }
@@ -202,6 +211,7 @@ export class AcpBackend implements ChatBackend {
 
     private sessionParams(): Record<string, unknown> {
         const folders = this.launch.folders ?? [];
+
         return {
             cwd: this.launch.cwd,
             mcpServers: [],
@@ -211,8 +221,10 @@ export class AcpBackend implements ChatBackend {
 
     private async openSession(transport: JsonRpcTransport, capabilities: AcpAgentCapabilities): Promise<AcpSessionInfo> {
         const resume = this.launch.resume;
+
         if (resume) {
             const method = capabilities.resumeSession ? 'session/resume' : capabilities.loadSession ? 'session/load' : null;
+
             if (method === null) {
                 this.emit({ type: 'note', level: 'warning', text: `${this.spec.name} cannot continue a session it ran before. Started a new one.` });
             } else {
@@ -221,12 +233,14 @@ export class AcpBackend implements ChatBackend {
                     const result = await this.authenticated(transport, method, { sessionId: resume, ...this.sessionParams() });
                     this.sessionId = resume;
                     this.contextPending = [this.launch.resumeInstructions ?? null, this.launch.resumeNote].filter((part) => part !== null).join('\n\n') || null;
+
                     return parseSessionInfo(result, resume, capabilities.agent);
                 } catch (error) {
                     // A refusal means the agent no longer has the session and a fresh one keeps the chat usable; a silence or an exit says nothing about it.
                     if (!(error instanceof JsonRpcError)) {
                         throw error;
                     }
+
                     this.emit({
                         type: 'note',
                         level: 'warning',
@@ -237,13 +251,17 @@ export class AcpBackend implements ChatBackend {
                 }
             }
         }
+
         const result = await this.authenticated(transport, 'session/new', this.sessionParams());
         const sessionId = sessionIdOf(result);
+
         if (sessionId === null) {
             throw new Error(`session/new failed: ${this.spec.name} answered without a session id`);
         }
+
         this.sessionId = sessionId;
         this.contextPending = this.launch.instructions;
+
         return parseSessionInfo(result, sessionId, capabilities.agent);
     }
 
@@ -255,12 +273,16 @@ export class AcpBackend implements ChatBackend {
             if (!(error instanceof JsonRpcError) || error.code !== ACP_AUTH_REQUIRED) {
                 throw error;
             }
+
             const methodId = this.spec.authMethod ?? null;
             const offered = this.capabilities?.authMethods ?? [];
+
             if (methodId === null || (offered.length > 0 && !offered.includes(methodId))) {
                 throw new Error(`${this.spec.name} is not signed in.${this.spec.loginHint ? ` ${this.spec.loginHint}` : ''}`, { cause: error });
             }
+
             await transport.request('authenticate', { methodId }, { timeoutMs: null });
+
             return transport.request(method, params);
         }
     }
@@ -268,31 +290,40 @@ export class AcpBackend implements ChatBackend {
     /* Puts the session in the agent mode the runtime mode maps to; answers the mode it runs in, or null for an agent without modes. */
     private async applyMode(transport: JsonRpcTransport, info: AcpSessionInfo): Promise<string | null> {
         const modes = info.modes;
+
         if (modes === null || modes.modes.length === 0) {
             return null;
         }
+
         const map = this.spec.modes ?? {};
         const requested = this.launch.runtimeMode;
+
         const resolved = resolveAcpMode(
             requested,
             map,
             modes.modes.map((mode) => mode.id)
         );
+
         if (resolved === null) {
             const current = runtimeModeOf(modes.current, map);
+
             if (current !== null && MODE_ORDER.indexOf(current) > MODE_ORDER.indexOf(requested)) {
                 throw new Error(`${this.spec.name} runs in ${modes.current}, which allows more than ${requested}, and offers no narrower mode`);
             }
+
             return modes.current;
         }
+
         if (resolved.modeId === modes.current) {
             return modes.current;
         }
+
         if (modes.configId === null) {
             await transport.request('session/set_mode', { sessionId: this.sessionId, modeId: resolved.modeId });
         } else {
             await transport.request('session/set_config_option', { sessionId: this.sessionId, configId: modes.configId, value: resolved.modeId });
         }
+
         return resolved.modeId;
     }
 
@@ -304,30 +335,39 @@ export class AcpBackend implements ChatBackend {
         const models = info.models;
         const thoughtLevel = info.thoughtLevel;
         const wanted = this.spec.model ? this.spec.model(this.launch.selection) : this.launch.selection.model;
+
         if (models === null || wanted === null || wanted === models.current) {
             return { model: models?.current ?? wanted, thoughtLevel };
         }
+
         if (!models.models.some((model) => model.id === wanted)) {
             this.emit({ type: 'note', level: 'warning', text: `${this.spec.name} does not offer ${this.launch.modelName}. It runs ${models.current}.` });
+
             return { model: models.current, thoughtLevel };
         }
+
         try {
             if (models.configId === null) {
                 await transport.request('session/set_model', { sessionId: this.sessionId, modelId: wanted });
+
                 return { model: wanted, thoughtLevel };
             }
+
             const result = await transport.request('session/set_config_option', { sessionId: this.sessionId, configId: models.configId, value: wanted });
             const after = thoughtLevelOf(result);
+
             return { model: wanted, thoughtLevel: after === undefined ? thoughtLevel : after };
         } catch (error) {
             if (!(error instanceof JsonRpcError)) {
                 throw error;
             }
+
             this.emit({
                 type: 'note',
                 level: 'warning',
                 text: `${this.spec.name} did not switch to ${this.launch.modelName} (${errorText(error)}). It runs ${models.current}.`
             });
+
             return { model: models.current, thoughtLevel };
         }
     }
@@ -336,15 +376,18 @@ export class AcpBackend implements ChatBackend {
     private async applyThoughtLevel(transport: JsonRpcTransport, level: AcpThoughtLevel | null): Promise<void> {
         const effort = this.launch.selection.options.effort;
         const choice = level?.choices.find((entry) => entry.id === effort);
+
         if (level === null || choice === undefined || effort === level.current) {
             return;
         }
+
         try {
             await transport.request('session/set_config_option', { sessionId: this.sessionId, configId: level.configId, value: choice.id });
         } catch (error) {
             if (!(error instanceof JsonRpcError)) {
                 throw error;
             }
+
             const current = level.choices.find((entry) => entry.id === level.current)?.name ?? level.current;
             this.emit({ type: 'note', level: 'warning', text: `${this.spec.name} kept its reasoning at ${current} instead of ${choice.name}.` });
         }
@@ -353,20 +396,25 @@ export class AcpBackend implements ChatBackend {
     private promptBlocks(input: TurnInput): unknown[] {
         const sendsImages = this.capabilities?.images === true;
         const images = sendsImages ? input.attachments.filter((attachment) => attachmentImageMime(attachment) !== null) : [];
+
         const blocks = images.map((attachment) => {
             let data: string;
+
             try {
                 data = readFileSync(attachment.path).toString('base64');
             } catch {
                 throw new Error(`Could not read attached image "${attachment.name}". Attach it again and retry.`);
             }
+
             return { type: 'image', mimeType: attachmentImageMime(attachment), data };
         });
+
         const named: ChatAttachment[] = input.attachments.filter((attachment) => !images.includes(attachment));
         const parts = [this.contextPending, input.preamble, input.text, attachmentNote(named)].filter((part): part is string => part !== null && part !== '');
         this.contextPending = null;
         const text = parts.join('\n\n');
         this.protocol.prompted(text);
+
         return [{ type: 'text', text }, ...blocks, ...this.mentionBlocks(input.mentions)];
     }
 
@@ -379,6 +427,7 @@ export class AcpBackend implements ChatBackend {
         if (this.capabilities?.embeddedContext !== true || mentions.length === 0) {
             return [];
         }
+
         const real = (path: string): string | null => {
             try {
                 return realpathSync(path);
@@ -386,42 +435,56 @@ export class AcpBackend implements ChatBackend {
                 return null;
             }
         };
+
         const folders = [this.launch.cwd, ...(this.launch.folders ?? [])].flatMap((folder) => real(folder) ?? []);
         const blocks: unknown[] = [];
         let budget = MAX_EMBEDDED_BYTES;
+
         for (const mention of new Set(mentions)) {
             const path = real(resolve(this.launch.cwd, mention));
+
             if (path === null || !folders.some((folder) => inside(folder, path))) {
                 continue;
             }
+
             let text: string;
+
             try {
                 const stat = statSync(path);
+
                 if (!stat.isFile() || stat.size > MAX_EMBEDDED_FILE_BYTES || stat.size > budget) {
                     continue;
                 }
+
                 text = readFileSync(path, 'utf8');
             } catch {
                 continue;
             }
+
             if (text.includes('\u0000')) {
                 continue;
             }
+
             budget -= Buffer.byteLength(text);
             blocks.push({ type: 'resource', resource: { uri: pathToFileURL(path).href, text } });
         }
+
         return blocks;
     }
 
     sendTurn(input: TurnInput): void {
         const transport = this.transport;
+
         if (!transport) {
             this.emit({ type: 'failed', message: `${this.spec.name} is not running` });
+
             return;
         }
+
         const prompt = this.promptBlocks(input);
         const turn = { promptId: input.promptId, cancelled: false };
         this.prompt = turn;
+
         transport
             .request('session/prompt', { sessionId: this.sessionId, prompt }, { timeoutMs: null })
             .then((result) => {
@@ -445,8 +508,10 @@ export class AcpBackend implements ChatBackend {
     compact(): void {
         if (this.commands.includes('compact')) {
             this.sendTurn({ text: '/compact', preamble: null, attachments: [], mentions: [], skills: [] });
+
             return;
         }
+
         this.emit({ type: 'note', level: 'warning', text: `${this.spec.name} cannot compact its context.` });
         this.emit({ type: 'turn.done', state: 'done', costUsd: 0 });
     }
@@ -454,19 +519,25 @@ export class AcpBackend implements ChatBackend {
     /* Cancels the turn: every permission request still open is answered as cancelled, and the turn ends on the prompt's response. */
     interrupt(): void {
         const transport = this.transport;
+
         if (!transport) {
             return;
         }
+
         if (this.prompt === null) {
             this.emit({ type: 'turn.done', state: 'aborted', costUsd: 0 });
+
             return;
         }
+
         this.prompt.cancelled = true;
+
         try {
             for (const cancelled of this.protocol.cancelRequests()) {
                 transport.respond(cancelled.rpcId, cancelled.result);
                 this.emit({ type: 'request.withdrawn', requestId: cancelled.requestId });
             }
+
             transport.notify('session/cancel', { sessionId: this.sessionId });
         } catch (error) {
             this.fail(error);
@@ -475,33 +546,43 @@ export class AcpBackend implements ChatBackend {
 
     respondApproval(requestId: string, decision: ApprovalDecision): boolean {
         const answer = this.protocol.answer(requestId, decision);
+
         if (!answer) {
             return false;
         }
+
         if (!this.respond(requestId, answer.rpcId, answer.result)) {
             return false;
         }
+
         this.emitAll(answer.events);
+
         return true;
     }
 
     respondQuestion(requestId: string, answers: Record<string, string>): boolean {
         const answer = this.protocol.answerQuestion(requestId, answers);
+
         if (!answer) {
             return false;
         }
+
         if (!this.respond(requestId, answer.rpcId, answer.result)) {
             return false;
         }
+
         this.emitAll(answer.events);
+
         return true;
     }
 
     declineRequest(requestId: string): boolean {
         if (this.protocol.hasQuestion(requestId)) {
             const cancelled = this.protocol.cancelQuestion(requestId);
+
             return cancelled !== null && this.respond(requestId, cancelled.rpcId, cancelled.result);
         }
+
         return this.protocol.hasPermission(requestId) && this.respondApproval(requestId, 'deny');
     }
 
@@ -512,6 +593,7 @@ export class AcpBackend implements ChatBackend {
     dispose(): Promise<void> {
         const transport = this.transport;
         this.transport = null;
+
         return transport?.dispose() ?? Promise.resolve();
     }
 
@@ -520,11 +602,14 @@ export class AcpBackend implements ChatBackend {
             if (!this.transport) {
                 throw new Error(`${this.spec.name} is not running`);
             }
+
             this.transport.respond(rpcId, result);
+
             return true;
         } catch (error) {
             this.emit({ type: 'request.withdrawn', requestId });
             this.fail(error);
+
             return false;
         }
     }
@@ -537,58 +622,84 @@ export class AcpBackend implements ChatBackend {
         if (this.transport !== transport) {
             return;
         }
+
         const id = typeof frame.id === 'number' || typeof frame.id === 'string' ? frame.id : null;
+
         if (frame.method === 'session/update' && id === null) {
             if (this.sessionId === '' || this.replaying) {
                 this.holdEarly(frame.params);
+
                 return;
             }
+
             this.emitAll(this.protocol.update(this.sessionId, frame.params));
+
             return;
         }
+
         if (id === null) {
             return;
         }
+
         if (typeof frame.method === 'string' && GROK_QUESTION_METHODS.includes(frame.method)) {
             const question = this.protocol.question(id, this.sessionId, frame.params);
+
             if (question === null) {
                 transport.respondError(id, -32602, 'Not a question of this session');
+
                 return;
             }
+
             this.ask(transport, question);
+
             return;
         }
+
         if (frame.method !== 'session/request_permission') {
             transport.respondError(id, -32601, `${nameOf(this.client)} does not handle ${String(frame.method)}`);
+
             return;
         }
+
         // Before any runtime mode answers it: a question is never the agent's to allow.
         const interaction = this.protocol.interaction(id, this.sessionId, frame.params);
+
         if (interaction !== null) {
             this.ask(transport, interaction);
+
             return;
         }
+
         const permission = this.protocol.permission(id, this.sessionId, frame.params);
+
         if (permission === null) {
             transport.respondError(id, -32602, 'Not a permission request of this session');
+
             return;
         }
+
         if (this.prompt?.cancelled) {
             this.emitAll(permission.events.filter((event) => event.type !== 'approval.requested'));
             const answer = this.protocol.cancelRequests().find((cancelled) => cancelled.requestId === permission.requestId);
+
             if (answer) {
                 transport.respond(answer.rpcId, answer.result);
             }
+
             return;
         }
+
         if (autoAllows(this.launch.runtimeMode, permission.kind) || this.hostAllows(permission.request)) {
             this.emitAll(permission.events.filter((event) => event.type !== 'approval.requested'));
             const answer = this.protocol.answer(permission.requestId, 'allow');
+
             if (answer) {
                 this.respond(permission.requestId, answer.rpcId, answer.result);
             }
+
             return;
         }
+
         this.emitAll(permission.events);
     }
 
@@ -597,17 +708,21 @@ export class AcpBackend implements ChatBackend {
         if (this.prompt?.cancelled) {
             this.emitAll(question.events.filter((event) => event.type !== 'question.requested'));
             const cancelled = this.protocol.cancelQuestion(question.requestId);
+
             if (cancelled) {
                 transport.respond(cancelled.rpcId, cancelled.result);
             }
+
             return;
         }
+
         this.emitAll(question.events);
     }
 
     /* Holds an update until the session is known; of a history a load replays, only the commands, since the thread has the rest. */
     private holdEarly(params: unknown): void {
         const update = sessionUpdateOf(params);
+
         if (update !== null && (!this.replaying || update.commands !== null)) {
             this.early.push(params);
         }
@@ -625,6 +740,7 @@ export class AcpBackend implements ChatBackend {
         if (this.transport !== transport) {
             return;
         }
+
         this.transport = null;
         this.prompt = null;
         this.protocol.cancelRequests();
@@ -634,9 +750,11 @@ export class AcpBackend implements ChatBackend {
     /* A cancelled turn still spent what it reports. A host that fails to keep it costs the record, never the end of the turn. */
     private report(result: unknown): void {
         const usage = this.spec.onUsage === undefined ? null : promptUsageOf(result);
+
         if (usage === null) {
             return;
         }
+
         try {
             this.spec.onUsage?.({ ...usage, sessionId: this.sessionId, cwd: this.launch.cwd, model: this.model ?? this.launch.selection.model });
         } catch (error) {
@@ -654,14 +772,17 @@ export class AcpBackend implements ChatBackend {
         if (event.type === 'model') {
             this.model = event.model;
         }
+
         if (event.type === 'session' && event.slashCommands !== undefined) {
             this.commands = event.slashCommands;
             this.spec.onCommands?.(event.slashCommands);
         }
+
         if (event.type === 'usage' && event.contextWindow !== undefined && !this.contextReported) {
             this.contextReported = true;
             this.spec.onContextReport?.();
         }
+
         this.host.onEvent(event);
     }
 }

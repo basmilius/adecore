@@ -22,27 +22,34 @@ function isTokenEnd(char: string | undefined): boolean {
 function findSkillToken(text: string, name: string, from: number): number {
     const token = `$${name}`;
     let index = text.indexOf(token, from);
+
     while (index >= 0) {
         if (isBoundary(text[index - 1]) && isTokenEnd(text[index + token.length])) {
             return index;
         }
+
         index = text.indexOf(token, index + 1);
     }
+
     return -1;
 }
 
 /* The last `$name` in the text that names one of the skills, longest name first on a tie. */
 export function lastSkillToken(text: string, skills: string[]): { index: number; name: string } | null {
     let best: { index: number; name: string } | null = null;
+
     for (const name of [...new Set(skills)].sort((a, b) => b.length - a.length)) {
         let index = findSkillToken(text, name, 0);
+
         while (index >= 0) {
             if (best === null || index > best.index) {
                 best = { index, name };
             }
+
             index = findSkillToken(text, name, index + 1);
         }
     }
+
     return best;
 }
 
@@ -55,11 +62,14 @@ export function lastSkillToken(text: string, skills: string[]): { index: number;
  */
 export function splitSkillPrompt(text: string, skills: string[]): { lead: string; invocation: string | null } {
     const last = lastSkillToken(text, skills);
+
     if (last === null) {
         return { lead: text, invocation: null };
     }
+
     const lead = text.slice(0, last.index).replace(/\$([A-Za-z][A-Za-z0-9_:-]*)/g, (match, name: string) => (skills.includes(name) ? `/${name}` : match));
     const rest = text.slice(last.index + last.name.length + 1).replace(/^[ \t]+/, '');
+
     return { lead: lead.trimEnd(), invocation: rest === '' ? `/${last.name}` : `/${last.name} ${rest}` };
 }
 
@@ -79,11 +89,14 @@ export function buildUserMessage({ text, attachments = [], prefix = '', skills =
     const note = attachmentNote(attachments);
     // The prefix must be the first thing the model reads, so it joins the leading block.
     const prompt = [`${prefix}${lead}`.trimEnd(), note].filter((part) => part.trim() !== '').join('\n\n');
+
     if (prompt !== '') {
         content.push({ type: 'text', text: prompt });
     }
+
     if (invocation !== null) {
         content.push({ type: 'text', text: invocation });
     }
+
     return { type: 'user', message: { role: 'user', content }, parent_tool_use_id: null, session_id: '', ...(promptId ? { uuid: promptId } : {}) };
 }

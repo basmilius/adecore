@@ -21,9 +21,11 @@ function resultText(content: unknown): string {
     if (typeof content === 'string') {
         return content;
     }
+
     if (!Array.isArray(content)) {
         return '';
     }
+
     return content
         .map((block) => (isRecord(block) && block.type === 'text' ? str(block.text) : null))
         .filter((text): text is string => text !== null)
@@ -48,10 +50,13 @@ const CACHE_TTL_MS: Record<string, number> = { ephemeral_5m_input_tokens: 5 * 60
  */
 function cacheTtlWritten(usage: unknown): number | null {
     const creation = isRecord(usage) && isRecord(usage.cache_creation) ? usage.cache_creation : null;
+
     if (creation === null) {
         return null;
     }
+
     const written = Object.entries(CACHE_TTL_MS).filter(([field]) => num(creation[field]) > 0);
+
     return written.length === 0 ? null : Math.min(...written.map(([, ttl]) => ttl));
 }
 
@@ -76,14 +81,18 @@ function intOrNull(value: unknown): number | null {
 function parseWorkflowProgress(entries: unknown[]): Pick<ChatWorkflow, 'phases' | 'agents'> {
     const phases = new Map<number, ChatWorkflowPhase>();
     const agents = new Map<number, ChatWorkflowAgent>();
+
     for (const entry of entries) {
         if (!isRecord(entry)) {
             continue;
         }
+
         const index = intOrNull(entry.index);
+
         if (index === null) {
             continue;
         }
+
         if (entry.type === 'workflow_phase') {
             phases.set(index, { index, title: str(entry.title) ?? '' });
         } else if (entry.type === 'workflow_agent') {
@@ -92,6 +101,7 @@ function parseWorkflowProgress(entries: unknown[]): Pick<ChatWorkflow, 'phases' 
             const promptPreview = str(entry.promptPreview);
             const resultPreview = str(entry.resultPreview);
             const error = str(entry.error);
+
             agents.set(index, {
                 index,
                 label: str(entry.label) ?? '',
@@ -108,7 +118,9 @@ function parseWorkflowProgress(entries: unknown[]): Pick<ChatWorkflow, 'phases' 
             });
         }
     }
+
     const byIndex = (a: { index: number }, b: { index: number }): number => a.index - b.index;
+
     return { phases: [...phases.values()].sort(byIndex), agents: [...agents.values()].sort(byIndex) };
 }
 
@@ -117,6 +129,7 @@ function parseQuestions(input: unknown): ChatQuestion[] {
     if (!isRecord(input) || !Array.isArray(input.questions)) {
         return [];
     }
+
     return input.questions.filter(isRecord).map((question, index) => ({
         id: String(index),
         header: str(question.header) ?? '',
@@ -144,20 +157,27 @@ const GOAL_GONE = ['Goal cleared: ', 'Goal cleared after ', 'No goal set'];
 
 export function claudeGoalFromCommand(text: string, current: ChatGoal | null): ChatGoal | null | undefined {
     const said = text.trim();
+
     if (said.startsWith(GOAL_SET)) {
         const objective = said.slice(GOAL_SET.length).trim();
+
         return objective === '' ? undefined : { objective, status: 'active', checks: 0 };
     }
+
     if (GOAL_GONE.some((prefix) => said.startsWith(prefix))) {
         return null;
     }
+
     const active = GOAL_ACTIVE.exec(said);
+
     if (!active) {
         return undefined;
     }
+
     const objective = active[1]!;
     const checks = /\d+/.exec(active[2]!)?.[0];
     const lastCheck = active[3]?.trim();
+
     return {
         ...(current?.objective === objective ? current : {}),
         objective,
@@ -175,9 +195,11 @@ function nextOrdinal(counts: Map<string, number>, messageId: string): number {
     const ordinal = counts.get(messageId) ?? 0;
     counts.delete(messageId);
     counts.set(messageId, ordinal + 1);
+
     if (counts.size > COUNTED_MESSAGES) {
         counts.delete(counts.keys().next().value!);
     }
+
     return ordinal;
 }
 
@@ -189,11 +211,15 @@ export function claudeGoalCheck(text: string, current: ChatGoal | null): ChatGoa
     if (current === null) {
         return undefined;
     }
+
     const prefix = `Stop hook feedback:\n[${current.objective}]: `;
+
     if (!text.startsWith(prefix)) {
         return undefined;
     }
+
     const lastCheck = text.slice(prefix.length).trim();
+
     return { ...current, status: 'active', checks: (current.checks ?? 0) + 1, ...(lastCheck === '' ? {} : { lastCheck }) };
 }
 
@@ -277,65 +303,83 @@ export class ClaudeProtocol {
 
     handle(frame: unknown): BackendEvent[] {
         const events: BackendEvent[] = [];
+
         if (!isRecord(frame)) {
             return events;
         }
+
         switch (frame.type) {
             case 'system':
                 this.handleSystem(frame, events);
+
                 break;
             case 'stream_event':
                 this.handleStreamEvent(frame, events);
+
                 break;
             case 'assistant':
                 this.handleAssistant(frame, events);
+
                 break;
             case 'user':
                 this.handleUser(frame, events);
+
                 break;
             case 'result':
                 this.handleResult(frame, events);
+
                 break;
             case 'control_request':
                 this.handleControlRequest(frame, events);
+
                 break;
             case 'control_response':
                 this.handleControlResponse(frame, events);
+
                 break;
             case 'control_cancel_request': {
                 const requestId = str(frame.request_id);
+
                 if (requestId) {
                     this.pending.delete(requestId);
                     events.push({ type: 'request.withdrawn', requestId });
                 }
+
                 break;
             }
             case 'tool_progress':
                 this.handleToolProgress(frame, events);
+
                 break;
             case 'rate_limit_event': {
                 this.noteRefusal(frame.rate_limit_info);
                 // The plan's own numbers, streamed while a turn runs; the usage monitor keeps them.
                 const update = readClaudeEvent(frame.rate_limit_info);
+
                 if (update !== null) {
                     events.push({ type: 'limits', update });
                 }
+
                 break;
             }
             default:
                 break;
         }
+
         return events;
     }
 
     /* The `control_response` that answers a permission request, or null when nothing waits under that id. */
     approvalResponse(requestId: string, decision: ApprovalDecision, message?: string): unknown | null {
         const pending = this.pending.get(requestId);
+
         if (pending?.type !== 'approval') {
             return null;
         }
+
         this.pending.delete(requestId);
         const toolUseID = pending.toolUseId ?? undefined;
+
         const response =
             decision === 'deny'
                 ? { behavior: 'deny', message: message?.trim() || 'The user declined this action', toolUseID }
@@ -346,25 +390,32 @@ export class ClaudeProtocol {
                       // The CLI's own suggestion of a rule; sending it back is what makes "always" stick.
                       ...(decision === 'allow-always' && pending.suggestions.length > 0 ? { updatedPermissions: pending.suggestions } : {})
                   };
+
         return { type: 'control_response', response: { subtype: 'success', request_id: requestId, response } };
     }
 
     /* The `control_response` that answers an AskUserQuestion, or null when nothing waits under that id. */
     questionResponse(requestId: string, answers: Record<string, string>): unknown | null {
         const pending = this.pending.get(requestId);
+
         if (pending?.type !== 'question') {
             return null;
         }
+
         this.pending.delete(requestId);
         // The CLI keys answers by the question text, the client by the question's id.
         const byText: Record<string, string> = {};
+
         for (const question of parseQuestions(pending.input)) {
             const given = answers[question.id];
+
             if (given !== undefined) {
                 byText[question.question] = given;
             }
         }
+
         const input = isRecord(pending.input) ? pending.input : {};
+
         return {
             type: 'control_response',
             response: {
@@ -378,10 +429,13 @@ export class ClaudeProtocol {
     /* The `control_response` that turns down an approval or a question the CLI still holds, or null when nothing waits under that id. */
     declineResponse(requestId: string, message: string): unknown | null {
         const pending = this.pending.get(requestId);
+
         if (pending === undefined) {
             return null;
         }
+
         this.pending.delete(requestId);
+
         return {
             type: 'control_response',
             response: { subtype: 'success', request_id: requestId, response: { behavior: 'deny', message, toolUseID: pending.toolUseId ?? undefined } }
@@ -397,9 +451,11 @@ export class ClaudeProtocol {
             const commands = Array.isArray(frame.slash_commands)
                 ? frame.slash_commands.filter((command): command is string => typeof command === 'string')
                 : [];
+
             const skills = Array.isArray(frame.skills) ? frame.skills.filter((skill): skill is string => typeof skill === 'string') : [];
             const permissionMode = str(frame.permissionMode);
             const effectiveRuntimeMode = permissionMode === null ? undefined : claudeRuntimeMode(permissionMode);
+
             events.push({
                 type: 'session',
                 agentSessionId: str(frame.session_id),
@@ -418,9 +474,11 @@ export class ClaudeProtocol {
             this.handleTaskUpdated(frame, events);
         } else if (frame.subtype === 'task_progress') {
             const ref = str(frame.tool_use_id);
+
             if (!ref) {
                 return;
             }
+
             // Only some of a workflow's progress frames carry it; the rest only count what it spent.
             if (Array.isArray(frame.workflow_progress)) {
                 events.push({
@@ -433,6 +491,7 @@ export class ClaudeProtocol {
                     }
                 });
             }
+
             // Only a subagent reports what it spent; a task without that is a command with a description.
             if (frame.task_type === 'local_agent' || str(frame.subagent_type)) {
                 events.push({
@@ -445,21 +504,26 @@ export class ClaudeProtocol {
                 });
             } else {
                 const description = str(frame.description);
+
                 if (description) {
                     events.push({ type: 'tool.progress', ref, startedAt: null, description });
                 }
             }
         } else if (frame.subtype === 'task_notification') {
             const ref = str(frame.tool_use_id);
+
             if (ref) {
                 this.subagentModels.delete(ref);
             }
+
             const taskId = str(frame.task_id);
+
             if (taskId) {
                 this.endBackground(taskId, events);
                 this.workflows.delete(taskId);
                 this.backgroundAgents.delete(taskId);
             }
+
             // The CLI wakes the main agent itself when a background task settles; this frame is the only
             // thing that says what it was about, and it arrives before the turn nobody asked for.
             events.push({
@@ -480,11 +544,14 @@ export class ClaudeProtocol {
 
     private handleTaskStarted(frame: Frame, events: BackendEvent[]): void {
         const ref = str(frame.tool_use_id);
+
         if (frame.task_type === 'local_agent') {
             const agentTask = str(frame.task_id);
+
             if (agentTask && frame.is_backgrounded === true) {
                 this.backgroundAgents.add(agentTask);
             }
+
             if (ref) {
                 events.push({
                     type: 'task.started',
@@ -497,14 +564,18 @@ export class ClaudeProtocol {
                     ...(typeof frame.spawn_depth === 'number' ? { depth: frame.spawn_depth } : {})
                 });
             }
+
             return;
         }
+
         const taskId = str(frame.task_id);
         const description = str(frame.description);
+
         if (taskId && ref && frame.task_type === 'local_workflow') {
             this.workflows.set(taskId, ref);
             events.push({ type: 'workflow.progress', ref, workflow: { name: str(frame.workflow_name), taskId, phases: [], agents: [] } });
         }
+
         if (taskId && typeof frame.task_type === 'string' && BACKGROUND_TASK_TYPES.has(frame.task_type) && frame.ambient !== true) {
             if (frame.is_backgrounded === false) {
                 this.foregroundShells.set(taskId, { ref, description });
@@ -512,6 +583,7 @@ export class ClaudeProtocol {
                 this.startBackground(taskId, ref, frame.task_type !== 'local_bash', description, events);
             }
         }
+
         // A Bash call became a task; its description is the CLI's own words for the work.
         if (ref && description) {
             events.push({ type: 'tool.progress', ref, startedAt: null, description });
@@ -522,15 +594,20 @@ export class ClaudeProtocol {
     private handleTaskUpdated(frame: Frame, events: BackendEvent[]): void {
         const taskId = str(frame.task_id);
         const patch = isRecord(frame.patch) ? frame.patch : {};
+
         if (!taskId) {
             return;
         }
+
         const shell = this.foregroundShells.get(taskId);
+
         if (shell && patch.is_backgrounded === true) {
             this.foregroundShells.delete(taskId);
             this.startBackground(taskId, shell.ref, false, str(patch.description) ?? shell.description, events);
         }
+
         const status = str(patch.status);
+
         if (status !== null && ENDED_TASK_STATUSES.has(status)) {
             this.foregroundShells.delete(taskId);
             this.backgroundAgents.delete(taskId);
@@ -543,6 +620,7 @@ export class ClaudeProtocol {
         if (this.backgroundTasks.has(taskId)) {
             return;
         }
+
         this.backgroundTasks.add(taskId);
         events.push({ type: 'background.started', taskId, ref, monitor, description });
     }
@@ -559,9 +637,11 @@ export class ClaudeProtocol {
      */
     private endWorkflow(taskId: string, summary: string | null, ok: boolean, events: BackendEvent[]): void {
         const ref = this.workflows.get(taskId);
+
         if (ref === undefined) {
             return;
         }
+
         this.workflows.delete(taskId);
         events.push({ type: 'task.done', ref, taskId, summary, ok });
     }
@@ -570,6 +650,7 @@ export class ClaudeProtocol {
     stopTaskRequest(taskId: string): unknown {
         const requestId = `stop-task-${taskId}-${Date.now()}`;
         this.stopRequests.set(requestId, taskId);
+
         return { type: 'control_request', request_id: requestId, request: { subtype: 'stop_task', task_id: taskId } };
     }
 
@@ -578,10 +659,13 @@ export class ClaudeProtocol {
         const response = isRecord(frame.response) ? frame.response : null;
         const requestId = str(response?.request_id);
         const taskId = requestId === null ? undefined : this.stopRequests.get(requestId);
+
         if (response === null || requestId === null || taskId === undefined) {
             return;
         }
+
         this.stopRequests.delete(requestId);
+
         if (response.subtype === 'error') {
             events.push({ type: 'stop.refused', taskId, message: str(response.error) ?? 'The CLI refused to stop it' });
         }
@@ -589,9 +673,11 @@ export class ClaudeProtocol {
 
     private handleStreamEvent(frame: Frame, events: BackendEvent[]): void {
         const event = frame.event;
+
         if (!isRecord(event) || str(frame.parent_tool_use_id)) {
             return;
         }
+
         if (event.type === 'message_start') {
             const message = isRecord(event.message) ? event.message : {};
             this.noteCache(str(message.id), message.usage, events);
@@ -599,29 +685,38 @@ export class ClaudeProtocol {
             this.streamTextCount = 0;
             this.streamThinkingCount = 0;
             this.streamBlocks.clear();
+
             return;
         }
+
         const index = num(event.index);
+
         if (event.type === 'content_block_start' && isRecord(event.content_block) && this.streamMessageId) {
             if (event.content_block.type === 'text') {
                 const ref = this.textRef(this.streamMessageId, this.streamTextCount++);
                 this.streamBlocks.set(index, ref);
                 events.push({ type: 'text.delta', ref, text: str(event.content_block.text) ?? '' });
+
                 return;
             }
+
             if (event.content_block.type === 'thinking') {
                 const ref = this.thinkingRef(this.streamMessageId, this.streamThinkingCount++);
                 this.streamBlocks.set(index, ref);
                 events.push({ type: 'thinking.delta', ref, text: str(event.content_block.thinking) ?? '' });
+
                 return;
             }
         }
+
         if (event.type === 'content_block_delta' && isRecord(event.delta)) {
             const ref = this.streamBlocks.get(index);
             const text = str(event.delta.text) ?? str(event.delta.thinking);
+
             if (!ref || !text) {
                 return;
             }
+
             if (event.delta.type === 'text_delta') {
                 events.push({ type: 'text.delta', ref, text });
             } else if (event.delta.type === 'thinking_delta') {
@@ -639,13 +734,16 @@ export class ClaudeProtocol {
         if (messageId === null || messageId === this.cacheMessageId || !isRecord(usage)) {
             return;
         }
+
         this.cacheMessageId = messageId;
         const written = cacheTtlWritten(usage);
+
         if (written !== null) {
             this.cacheTtlMs = written;
         } else if (num(usage.cache_read_input_tokens) === 0) {
             return;
         }
+
         if (this.cacheTtlMs !== null) {
             events.push({ type: 'usage', cacheTtlMs: this.cacheTtlMs, cacheExpiresAt: this.now() + this.cacheTtlMs });
         }
@@ -657,25 +755,32 @@ export class ClaudeProtocol {
         const parentRef = str(frame.parent_tool_use_id);
         const content = Array.isArray(message.content) ? message.content : [];
         const uuid = str(frame.uuid);
+
         if (!parentRef && uuid) {
             this.lastUuid = uuid;
         }
+
         if (!parentRef && typeof frame.error === 'string') {
             this.apiError = frame.error;
         }
+
         const model = str(message.model);
+
         if (!parentRef) {
             this.trackGoal(model, content, events);
         }
+
         // The CLI answers some frames itself and names them `<synthetic>`; no model wrote those.
         if (parentRef && model && model !== '<synthetic>' && this.subagentModels.get(parentRef) !== model) {
             this.subagentModels.set(parentRef, model);
             events.push({ type: 'task.model', ref: parentRef, model });
         }
+
         for (const block of content) {
             if (!isRecord(block)) {
                 continue;
             }
+
             if (block.type === 'text') {
                 const ordinal = nextOrdinal(this.frameTextCount, messageId);
                 // A subagent's text is its own report, not the thread's answer; the parent says whose row it is.
@@ -693,14 +798,19 @@ export class ClaudeProtocol {
                 });
             }
         }
+
         const tokens = parentRef ? 0 : contextTokens(message.usage);
+
         if (tokens > 0) {
             events.push({ type: 'usage', contextTokens: tokens });
         }
+
         if (!parentRef) {
             this.noteCache(str(message.id), message.usage, events);
         }
+
         const error = str(frame.error);
+
         if (error) {
             events.push({ type: 'note', level: 'error', text: `The request failed: ${error.replaceAll('_', ' ')}` });
         }
@@ -709,15 +819,20 @@ export class ClaudeProtocol {
     private trackGoal(model: string | null, content: unknown[], events: BackendEvent[]): void {
         if (model === '<synthetic>') {
             const next = claudeGoalFromCommand(resultText(content), this.goal);
+
             if (next !== undefined) {
                 this.setGoal(next, events);
             }
+
             return;
         }
+
         if (this.goal === null) {
             return;
         }
+
         this.goalAnswered = true;
+
         // A message after a stop takes the goal up again; its hook never went away.
         if (this.goal.status === 'paused') {
             this.goal = { ...this.goal, status: 'active' };
@@ -735,9 +850,11 @@ export class ClaudeProtocol {
         const goal = this.goal;
         const interrupted = this.interrupting;
         this.interrupting = false;
+
         if (goal?.status !== 'active') {
             return;
         }
+
         if (failed || interrupted) {
             this.setGoal({ ...goal, status: 'paused' }, events);
         } else if (this.goalAnswered && this.backgroundTasks.size === 0 && this.workflows.size === 0 && this.backgroundAgents.size === 0) {
@@ -753,9 +870,11 @@ export class ClaudeProtocol {
     private handleToolProgress(frame: Frame, events: BackendEvent[]): void {
         const elapsed = frame.elapsed_time_seconds;
         const ref = str(frame.tool_use_id);
+
         if (!ref || typeof elapsed !== 'number' || !Number.isFinite(elapsed) || elapsed < 0) {
             return;
         }
+
         events.push({ type: 'tool.progress', ref, startedAt: Date.now() - Math.round(elapsed * 1000), description: null });
     }
 
@@ -763,28 +882,36 @@ export class ClaudeProtocol {
         if (this.promptId !== null && frame.uuid === this.promptId) {
             events.push({ type: 'turn.accepted', promptId: this.promptId });
         }
+
         const message = isRecord(frame.message) ? frame.message : {};
         const content = Array.isArray(message.content) ? message.content : [];
+
         if (frame.isSynthetic === true && !str(frame.parent_tool_use_id)) {
             const checked = claudeGoalCheck(resultText(message.content), this.goal);
+
             if (checked !== undefined) {
                 this.setGoal(checked, events);
                 events.push({ type: 'note', level: 'info', text: `Goal not met yet: ${checked.lastCheck ?? checked.objective}` });
             }
         }
+
         for (const block of content) {
             if (!isRecord(block) || block.type !== 'tool_result') {
                 continue;
             }
+
             const ref = str(block.tool_use_id);
+
             if (ref) {
                 this.subagentModels.delete(ref);
                 const output = resultText(block.content);
                 const workflow = WORKFLOW_LAUNCHED.exec(output)?.[1];
+
                 if (workflow) {
                     this.workflows.set(workflow, ref);
                     events.push({ type: 'workflow.progress', ref, workflow: { name: null, taskId: workflow, phases: [], agents: [] } });
                 }
+
                 events.push({ type: 'tool.done', ref, output, state: block.is_error === true ? 'error' : 'done' });
             }
         }
@@ -793,6 +920,7 @@ export class ClaudeProtocol {
     private handleResult(frame: Frame, events: BackendEvent[]): void {
         const echoed = Array.isArray(frame.user_message_uuids) ? frame.user_message_uuids.filter((value): value is string => typeof value === 'string') : [];
         const origin = str(frame.origin) ?? (isRecord(frame.origin) ? str(frame.origin.kind) : null);
+
         if (
             this.promptId !== null &&
             (echoed.length > 0
@@ -802,29 +930,37 @@ export class ClaudeProtocol {
             if (typeof frame.total_cost_usd === 'number') {
                 events.push({ type: 'usage', costUsd: num(frame.total_cost_usd) });
             }
+
             if (frame.is_error === true) {
                 events.push({ type: 'note', level: 'warning', text: 'Claude could not finish a turn in the background. Your message is still waiting.' });
             }
+
             return;
         }
+
         const promptId = this.promptId !== null && echoed.includes(this.promptId) ? this.promptId : null;
         this.promptId = null;
+
         for (const id of echoed) {
             this.steerIds.delete(id);
         }
+
         const failed = frame.is_error === true || (typeof frame.subtype === 'string' && frame.subtype.startsWith('error'));
         const errors = Array.isArray(frame.errors) ? frame.errors.filter((error): error is string => typeof error === 'string') : [];
         const lastUuid = this.lastUuid;
         this.lastUuid = null;
         const limit = failed ? this.limit() : null;
         const replaceProcess = failed && this.apiError === 'authentication_failed';
+
         if (limit?.kind !== 'usage') {
             this.refusedResets.clear();
         }
+
         this.apiError = null;
         this.refusedWindows.clear();
         // Before the turn ends, so whoever settles work on that end already reads where the goal stands.
         this.settleGoal(failed, events);
+
         events.push({
             type: 'turn.done',
             ...(promptId === null ? {} : { promptId }),
@@ -841,16 +977,20 @@ export class ClaudeProtocol {
         if (!isRecord(info) || typeof info.status !== 'string') {
             return;
         }
+
         this.expireRefusedResets();
         const namedWindow = str(info.rateLimitType);
         const window = namedWindow ?? 'unknown';
+
         const overageAllowed =
             info.overageStatus === 'allowed' || info.overageStatus === 'allowed_warning' || info.isUsingOverage === true || info.overageInUse === true;
+
         if (info.status === 'rejected' && !overageAllowed) {
             const resetsAt = typeof info.resetsAt === 'number' ? info.resetsAt * 1000 : NaN;
             const validReset = Number.isFinite(resetsAt) && resetsAt > this.now() && resetsAt < 8.64e15 ? resetsAt : null;
             const reset = validReset ?? (info.resetsAt === undefined && namedWindow ? (this.refusedResets.get(window) ?? null) : null);
             this.refusedWindows.set(window, reset);
+
             if (namedWindow && reset !== null && reset > this.now()) {
                 this.refusedResets.set(window, reset);
             } else {
@@ -864,6 +1004,7 @@ export class ClaudeProtocol {
 
     private expireRefusedResets(): void {
         const now = this.now();
+
         for (const [window, reset] of this.refusedResets) {
             if (reset <= now) {
                 this.refusedResets.delete(window);
@@ -879,40 +1020,53 @@ export class ClaudeProtocol {
     private limit(): ChatTurnLimit | null {
         if (this.refusedWindows.size > 0) {
             let resetsAt = 0;
+
             for (const reset of this.refusedWindows.values()) {
                 if (reset === null || reset <= this.now()) {
                     return { kind: 'usage' };
                 }
+
                 resetsAt = Math.max(resetsAt, reset);
             }
+
             return { kind: 'usage', resetsAt };
         }
+
         if (this.apiError === 'rate_limit' || this.apiError === 'overloaded') {
             return { kind: 'overload' };
         }
+
         return null;
     }
 
     private handleControlRequest(frame: Frame, events: BackendEvent[]): void {
         const request = isRecord(frame.request) ? frame.request : {};
         const requestId = str(frame.request_id);
+
         if (!requestId || request.subtype !== 'can_use_tool') {
             return;
         }
+
         const toolUseId = str(request.tool_use_id);
         const toolName = str(request.tool_name) ?? 'tool';
         const background = Boolean(str(request.agent_id));
+
         if (toolName === 'AskUserQuestion') {
             const questions = parseQuestions(request.input);
+
             if (questions.length === 0) {
                 return;
             }
+
             this.pending.set(requestId, { type: 'question', toolUseId, input: request.input });
             events.push({ type: 'question.requested', requestId, questions, ...(background ? { background: true } : {}) });
+
             return;
         }
+
         const suggestions = Array.isArray(request.permission_suggestions) ? request.permission_suggestions : [];
         this.pending.set(requestId, { type: 'approval', toolUseId, input: request.input ?? {}, suggestions });
+
         events.push({
             type: 'approval.requested',
             ...(background ? { background: true } : {}),

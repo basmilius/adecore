@@ -26,6 +26,7 @@ describe('ChatLog', () => {
         const log = new ChatLog(path);
         expect([log.append(delta('a'), 10), log.append(delta('b'), 11)]).toEqual([1, 2]);
         log.close();
+
         expect(parseLog(await readFile(path, 'utf8'))).toEqual([
             { seq: 1, at: 10, event: delta('a') },
             { seq: 2, at: 11, event: delta('b') }
@@ -50,6 +51,7 @@ describe('ChatLog', () => {
         log.append(delta('b'), 12);
         log.append(delta('c'), 13);
         log.close();
+
         expect(parseLog(await readFile(path, 'utf8')).map((line) => `${line.seq}:${line.event.type === 'delta' ? line.event.text : ''}`)).toEqual([
             '1:a',
             '2:b',
@@ -84,9 +86,11 @@ describe('ChatLog', () => {
 
     test('folding keeps the lines a snapshot does not hold yet and appends after them', async () => {
         const log = new ChatLog(path);
+
         for (const text of ['a', 'b', 'c']) {
             log.append(delta(text), 1);
         }
+
         log.compact(2);
         expect(parseLog(await readFile(path, 'utf8')).map((line) => line.seq)).toEqual([3]);
         expect(log.after(1)).toBeNull();

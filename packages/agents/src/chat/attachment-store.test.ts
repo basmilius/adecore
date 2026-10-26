@@ -84,6 +84,7 @@ describe('migrateInlineAttachments', () => {
                 }
             ]
         };
+
         const migrated = (await migrateInlineAttachments('old', record, store)) as { items: Array<{ attachments: Array<Record<string, unknown>> }> };
         const attachment = migrated.items[0]!.attachments[0]!;
         expect(attachment).toMatchObject({ name: 'shot.png', mime: 'image/png', size: 9 });
@@ -94,6 +95,7 @@ describe('migrateInlineAttachments', () => {
 
     test('a chat store opening a record with an image inline moves it to a file and writes the record back without it', async () => {
         const chats = new ChatStore(home, { attachments: store });
+
         const info: ChatInfo = {
             chatId: 'old',
             provider: 'claude',
@@ -109,9 +111,11 @@ describe('migrateInlineAttachments', () => {
             usage: { contextTokens: 0, contextWindow: null, costUsd: 0, turns: 0 },
             createdAt: 0
         };
+
         const inline = { name: 'shot.png', mediaType: 'image/png', data: Buffer.from('png bytes').toString('base64') };
         const path = join(chats.dir, recordFileName('old'));
         await mkdir(chats.dir, { recursive: true });
+
         await writeFile(
             path,
             JSON.stringify({ info, items: [{ id: 'user-1', kind: 'user', createdAt: 1, turnId: 't1', text: 'look', attachments: [inline] }] })

@@ -9,6 +9,7 @@ import { info, flush, rig } from './chat-session.fixture.test.ts';
 describe('a queue behind a usage limit', () => {
     test('an unknown reset preserves the queue without owing an automatic resume', async () => {
         let owed = 0;
+
         const run = rig({
             limitResume: {
                 allowed: () => true,
@@ -20,6 +21,7 @@ describe('a queue behind a usage limit', () => {
                 owed: () => false
             }
         });
+
         run.session.send('original');
         await flush();
         run.session.send('queued');
@@ -39,6 +41,7 @@ describe('a queue behind a usage limit', () => {
     for (const allowed of [false, true]) {
         test(`waits across a restart with automatic resume ${allowed}`, async () => {
             let owed = 0;
+
             const hooks = {
                 allowed: () => allowed,
                 now: () => 1000,
@@ -50,6 +53,7 @@ describe('a queue behind a usage limit', () => {
                 },
                 owed: () => owed > 0
             };
+
             const first = rig({ limitResume: hooks });
             first.session.send('original');
             await flush();
@@ -66,6 +70,7 @@ describe('a queue behind a usage limit', () => {
             second.session.settleOwedResume();
             await flush();
             expect(second.sent).toEqual([]);
+
             if (allowed) {
                 expect(second.session.takeUpAfterLimit(limitedId)).toBe('opened');
                 expect(second.session.takeUpAfterLimit(limitedId)).toBe('lapsed');
@@ -82,6 +87,7 @@ describe('a queue behind a usage limit', () => {
                 await flush();
                 expect(second.sent[0]?.text).toBe('queued one');
             }
+
             await first.session.dispose();
             await second.session.dispose();
         });
@@ -92,6 +98,7 @@ describe('Stop while a turn is starting', () => {
     for (const stage of ['handshake', 'checkpoint']) {
         test(`stops without waiting for the ${stage} and ignores its late completion`, async () => {
             const checkpoint = Promise.withResolvers<string | null>();
+
             const blocked = rig(
                 stage === 'checkpoint'
                     ? {
@@ -104,6 +111,7 @@ describe('Stop while a turn is starting', () => {
                     : {},
                 stage === 'handshake'
             );
+
             blocked.session.send('never send this');
             await flush();
             blocked.session.cancel();
@@ -160,14 +168,17 @@ describe('a queue after Stop or failure', () => {
         expect(run.sent.map((input) => input.text)).toEqual(['original', 'continue']);
         await run.session.dispose();
     });
+
     test('a CLI permission fallback updates and persists the effective mode without changing the selected one', async () => {
         let saves = 0;
+
         const run = rig({
             info: { ...info(), runtimeMode: 'auto' },
             persist: () => {
                 saves += 1;
             }
         });
+
         run.session.send('go');
         await flush();
         run.event({ type: 'session', agentSessionId: 'sid', model: 'haiku', permissionMode: 'auto', effectiveRuntimeMode: 'auto' });
@@ -177,6 +188,7 @@ describe('a queue after Stop or failure', () => {
         expect(saves).toBeGreaterThan(before);
         await run.session.dispose();
     });
+
     for (const end of ['stop', 'error', 'exit'] as const) {
         test(`holds after ${end}, across reload, until an explicit send`, async () => {
             const first = rig();
@@ -184,11 +196,13 @@ describe('a queue after Stop or failure', () => {
             await flush();
             first.session.send('one');
             first.session.send('two');
+
             if (end === 'stop') {
                 first.session.cancel();
             } else {
                 first.event(end === 'exit' ? { type: 'exit', exitCode: 1 } : { type: 'turn.done', state: 'error', costUsd: 0, error: 'failed' });
             }
+
             await flush();
             expect(first.sent.map((input) => input.text)).toEqual(['original']);
             expect(first.session.info.queuePaused).toBe(true);
@@ -200,11 +214,13 @@ describe('a queue after Stop or failure', () => {
             await flush();
             expect(second.sent.map((input) => input.text)).toEqual(['one']);
             expect(second.session.info.queuePaused).toBe(false);
+
             for (const text of ['two', 'three']) {
                 second.event({ type: 'turn.done', state: 'done', costUsd: 0 });
                 await flush();
                 expect(second.sent.at(-1)?.text).toBe(text);
             }
+
             await first.session.dispose();
             await second.session.dispose();
         });
@@ -283,26 +299,34 @@ describe('provider acceptance of a wake', () => {
             let notices = ['A native task was lost', 'A message from another node'];
             const first = rig({ promptNotes: { next: () => ({ shown: [], heard: notices.splice(0) }), reset: () => undefined } }, failure === 'start');
             Object.defineProperty(first.backend, 'acknowledgesTurns', { value: true });
+
             if (failure === 'write') {
                 first.backend.sendTurn = () => {
                     throw new Error('broken pipe');
                 };
             }
+
             const turnId = first.session.wake({ text: 'result', label: 'Task', taskIds: ['task'] })!;
+
             if (failure === 'start') {
                 first.start.reject(new Error('failed start'));
             }
+
             await flush();
+
             if (failure === 'exit') {
                 first.event({ type: 'exit', exitCode: 1 });
             }
+
             expect(first.session.thread.get(turnId)).toMatchObject({ state: 'error', deliveryPending: true });
             expect(first.session.preambles.join('\n')).toContain('A message from another node');
+
             const second = rig({
                 info: structuredClone(first.session.info),
                 items: structuredClone(first.session.thread.list()),
                 preambles: [...first.session.preambles]
             });
+
             second.session.send('continue consciously');
             await flush();
             expect(second.sent[0]?.preamble).toContain('A native task was lost');
@@ -323,11 +347,13 @@ test('a legacy result proves wake acceptance, while a failed durable save sends 
     await flush();
     legacy.event({ type: 'turn.done', state: 'done', costUsd: 0 });
     expect(legacy.session.thread.get(turnId)).not.toHaveProperty('deliveryPending', true);
+
     const failed = rig({
         save: async () => {
             throw new Error('disk full');
         }
     });
+
     const failedTurn = failed.session.wake({ text: 'result', label: 'Task', taskIds: ['task'] })!;
     await flush();
     expect(failed.sent).toEqual([]);
@@ -341,6 +367,7 @@ for (const unknown of [false, true]) {
         const protocol = new ClaudeProtocol(null, () => 1000);
         const owed: { at: number; resumeAt: number | undefined; queue: string[] }[] = [];
         let persisted: ChatInfo | null = null;
+
         const run = rig({
             persist: () => {
                 persisted = structuredClone(run.session.info);
@@ -355,16 +382,20 @@ for (const unknown of [false, true]) {
                 lapse: async () => undefined
             }
         });
+
         run.session.send('original');
         await flush();
         protocol.beginPrompt(run.sent[0]!.promptId!);
         run.session.send('queued');
+
         protocol.handle({
             type: 'rate_limit_event',
             rate_limit_info: { status: 'rejected', rateLimitType: 'seven_day', ...(unknown ? {} : { resetsAt: 900 }) }
         });
+
         protocol.handle({ type: 'rate_limit_event', rate_limit_info: { status: 'rejected', rateLimitType: 'five_hour', resetsAt: 500 } });
         protocol.handle({ type: 'assistant', error: 'rate_limit', message: { id: 'limited', content: [] } });
+
         for (const event of protocol.handle({
             type: 'result',
             subtype: 'error_during_execution',
@@ -373,9 +404,11 @@ for (const unknown of [false, true]) {
         })) {
             run.event(event);
         }
+
         await flush();
         expect(run.session.info.queuePaused).toBe(true);
         expect(run.sent.map((input) => input.text)).toEqual(['original']);
+
         if (unknown) {
             expect(owed).toEqual([]);
             expect(run.session.info.resumeAt).toBeUndefined();
@@ -389,6 +422,7 @@ for (const unknown of [false, true]) {
             await flush();
             expect(run.sent[2]?.text).toBe('queued');
         }
+
         await run.session.dispose();
     });
 }
@@ -396,6 +430,7 @@ for (const unknown of [false, true]) {
 describe('a resume owed after a limit', () => {
     const owing = () => {
         const owed = { count: 0, lapsed: 0 };
+
         const hooks = {
             allowed: () => true,
             now: () => 1000,
@@ -407,6 +442,7 @@ describe('a resume owed after a limit', () => {
             },
             owed: () => owed.count > owed.lapsed
         };
+
         return { owed, hooks };
     };
 
@@ -449,10 +485,13 @@ describe('input during an active turn', () => {
     test('explicit steering reaches the backend without interrupting or opening another turn', async () => {
         const run = rig();
         const steered: TurnInput[] = [];
+
         run.backend.steerTurn = async (input) => {
             steered.push(input);
+
             return true;
         };
+
         run.session.send('original');
         await flush();
         const turnId = run.session.info.activeTurnId!;
@@ -466,16 +505,20 @@ describe('input during an active turn', () => {
                 .filter((item) => item.kind === 'user')
                 .map((item) => item.text)
         ).toEqual(['original', 'change direction']);
+
         await run.session.dispose();
     });
 
     test('default input waits for completion even with a steering backend', async () => {
         const run = rig();
         let steers = 0;
+
         run.backend.steerTurn = async () => {
             steers += 1;
+
             return true;
         };
+
         run.session.send('original');
         await flush();
         expect(await run.session.sendInput('next task')).toMatchObject({ queued: true });
@@ -531,9 +574,11 @@ test('a steer refused at completion falls back to exactly one new turn', async (
 
 test('a lost steering acknowledgement retains the message and pauses automatic replay', async () => {
     const run = rig();
+
     run.backend.steerTurn = async () => {
         throw new Error('lost connection');
     };
+
     run.session.send('original');
     await flush();
     await expect(run.session.sendInput('followup', { delivery: 'steer' })).rejects.toThrow('lost connection');
@@ -549,10 +594,13 @@ test('multiple followups enter the native queue before either is acknowledged', 
     const run = rig();
     const acceptance = Promise.withResolvers<boolean>();
     const texts: string[] = [];
+
     run.backend.steerTurn = (input) => {
         texts.push(input.text);
+
         return acceptance.promise;
     };
+
     run.session.send('original');
     await flush();
     const first = run.session.sendInput('one', { delivery: 'steer' });
@@ -562,12 +610,14 @@ test('multiple followups enter the native queue before either is acknowledged', 
     expect(run.session.info.queue?.map((entry) => entry.text)).toEqual(['one', 'two']);
     acceptance.resolve(true);
     await Promise.all([first, second]);
+
     expect(
         run.session.thread
             .list()
             .filter((item) => item.kind === 'user')
             .map((item) => item.text)
     ).toEqual(['original', 'one', 'two']);
+
     await run.session.dispose();
 });
 

@@ -56,7 +56,9 @@ export class ClaudeBackend implements ChatBackend {
         if (this.child) {
             return Promise.resolve();
         }
+
         const { selection, runtimeMode, resume, folders, projectConfig } = this.launch;
+
         const args = [
             ...this.launch.command,
             ...claudeArgs({
@@ -68,10 +70,13 @@ export class ClaudeBackend implements ChatBackend {
                 ...(projectConfig === undefined ? {} : { projectConfig })
             })
         ];
+
         if (this.launch.instructions !== null) {
             args.push('--append-system-prompt', this.launch.instructions);
         }
+
         this.stdinClosed = false;
+
         const child: ChatChild = new ChatChild({
             command: args,
             cwd: this.launch.cwd,
@@ -80,8 +85,10 @@ export class ClaudeBackend implements ChatBackend {
             onError: (error) => this.broken(error),
             onExit: (exitCode, stderr) => this.handleExit(child, exitCode, stderr)
         });
+
         this.child = child;
         void this.readLines(child);
+
         return Promise.resolve();
     }
 
@@ -96,10 +103,13 @@ export class ClaudeBackend implements ChatBackend {
         if (!this.child || !this.active || this.stdinClosed) {
             return Promise.resolve(false);
         }
+
         const promptId = input.promptId ?? randomUUID();
+
         return new Promise((resolve, reject) => {
             this.steers.set(promptId, { resolve, reject });
             this.protocol.beginSteer(promptId);
+
             try {
                 this.write(this.userMessage(input, promptId));
             } catch (error) {
@@ -118,6 +128,7 @@ export class ClaudeBackend implements ChatBackend {
         this.interrupted = true;
         this.protocol.noteInterrupt();
         this.write({ type: 'control_request', request_id: `interrupt-${Date.now()}`, request: { subtype: 'interrupt' } });
+
         // A steer the CLI has not taken in survives a plain interrupt and would run after the Stop; it goes back to the queue instead.
         for (const promptId of this.steers.keys()) {
             this.write({
@@ -134,25 +145,31 @@ export class ClaudeBackend implements ChatBackend {
 
     respondApproval(requestId: string, decision: ApprovalDecision, message?: string): boolean {
         const frame = this.protocol.approvalResponse(requestId, decision, message);
+
         if (frame === null) {
             return false;
         }
+
         return this.respond(requestId, frame);
     }
 
     respondQuestion(requestId: string, answers: Record<string, string>): boolean {
         const frame = this.protocol.questionResponse(requestId, answers);
+
         if (frame === null) {
             return false;
         }
+
         return this.respond(requestId, frame);
     }
 
     declineRequest(requestId: string, message: string): boolean {
         const frame = this.protocol.declineResponse(requestId, message);
+
         if (frame === null) {
             return false;
         }
+
         return this.respond(requestId, frame);
     }
 
@@ -165,12 +182,14 @@ export class ClaudeBackend implements ChatBackend {
         this.rejectSteers('Claude stopped before acknowledging your message');
         const child = this.child;
         this.child = null;
+
         return child?.end() ?? Promise.resolve();
     }
 
     private userMessage(input: TurnInput, promptId: string): Record<string, unknown> {
         // What the CLI must see first (ultrathink), then the preamble, then what was typed.
         const prefix = `${promptPrefix(this.launch.selection)}${input.preamble === null ? '' : `${input.preamble}\n\n`}`;
+
         return buildUserMessage({ text: input.text, attachments: input.attachments, prefix, skills: input.skills, promptId });
     }
 
@@ -196,33 +215,43 @@ export class ClaudeBackend implements ChatBackend {
         if (this.child !== child || line.trim() === '') {
             return;
         }
+
         let frame: unknown;
+
         try {
             frame = JSON.parse(line);
         } catch {
             return;
         }
+
         const echoed = typeof frame === 'object' && frame !== null ? (frame as Record<string, unknown>) : null;
+
         if (echoed?.type === 'control_response' && this.cancelledSteer(echoed.response)) {
             return;
         }
+
         if (echoed?.type === 'user' && typeof echoed.uuid === 'string' && echoed.parent_tool_use_id == null) {
             this.steers.get(echoed.uuid)?.resolve(true);
             this.steers.delete(echoed.uuid);
+
             if (this.steers.size === 0) {
                 this.clearSteerTimer();
             }
         }
+
         for (const event of this.protocol.handle(frame)) {
             if (event.type === 'turn.done') {
                 this.active = false;
                 this.awaitSteers();
             }
+
             if (event.type === 'turn.done' && this.interrupted) {
                 this.interrupted = false;
                 this.host.onEvent({ ...event, state: 'aborted' });
+
                 continue;
             }
+
             this.host.onEvent(event);
         }
     }
@@ -240,18 +269,24 @@ export class ClaudeBackend implements ChatBackend {
         if (typeof response !== 'object' || response === null) {
             return false;
         }
+
         const { request_id: requestId, response: body } = response as { request_id?: unknown; response?: unknown };
+
         if (typeof requestId !== 'string' || !requestId.startsWith(CANCEL_STEER)) {
             return false;
         }
+
         const promptId = requestId.slice(CANCEL_STEER.length);
+
         if (typeof body === 'object' && body !== null && (body as { cancelled?: unknown }).cancelled === true) {
             this.steers.get(promptId)?.resolve(false);
             this.steers.delete(promptId);
+
             if (this.steers.size === 0) {
                 this.clearSteerTimer();
             }
         }
+
         return true;
     }
 
@@ -259,13 +294,17 @@ export class ClaudeBackend implements ChatBackend {
         if (this.steers.size === 0 || this.steerTimer !== null) {
             return;
         }
+
         this.steerTimer = setTimeout(() => {
             this.steerTimer = null;
+
             for (const pending of this.steers.values()) {
                 pending.reject(new Error('Claude ended its turn without taking your message'));
             }
+
             this.steers.clear();
         }, STEER_GRACE_MS);
+
         this.steerTimer.unref?.();
     }
 
@@ -279,9 +318,11 @@ export class ClaudeBackend implements ChatBackend {
     private rejectSteers(reason: string): void {
         this.active = false;
         this.clearSteerTimer();
+
         for (const pending of this.steers.values()) {
             pending.reject(new Error(reason));
         }
+
         this.steers.clear();
     }
 
@@ -294,6 +335,7 @@ export class ClaudeBackend implements ChatBackend {
     private failed(error: unknown): void {
         this.rejectSteers(`Lost the connection to Claude: ${errorText(error)}`);
         this.protocol.forgetPending();
+
         try {
             this.host.onEvent({ type: 'failed', message: `Lost the connection to Claude: ${errorText(error)}`, processAlive: this.running });
         } catch (reportError) {
@@ -304,24 +346,29 @@ export class ClaudeBackend implements ChatBackend {
     private respond(requestId: string, frame: unknown): boolean {
         try {
             this.write(frame);
+
             return true;
         } catch (error) {
             this.host.onEvent({ type: 'request.withdrawn', requestId });
             this.failed(error);
+
             return false;
         }
     }
 
     private write(frame: unknown): void {
         const child = this.child;
+
         if (!child || this.stdinClosed) {
             throw new Error('Claude stdin is closed');
         }
+
         try {
             child.process.stdin.write(`${JSON.stringify(frame)}\n`);
             child.process.stdin.flush();
         } catch (error) {
             this.stdinClosed = true;
+
             throw error;
         }
     }
@@ -330,7 +377,9 @@ export class ClaudeBackend implements ChatBackend {
         if (!this.child || this.stdinClosed) {
             return;
         }
+
         this.stdinClosed = true;
+
         try {
             this.child.process.stdin.end();
         } catch {
@@ -342,6 +391,7 @@ export class ClaudeBackend implements ChatBackend {
         if (this.child !== child) {
             return;
         }
+
         this.child = null;
         this.rejectSteers('Claude stopped before it got your message');
         this.protocol.forgetPending();

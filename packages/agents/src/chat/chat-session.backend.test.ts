@@ -10,6 +10,7 @@ import { info, flush, rig } from './chat-session.fixture.test.ts';
 function replacementRig(provider = claudeProvider, options: Partial<ChatSessionOptions> = {}) {
     let folders: readonly string[] = [];
     let failNextStart = false;
+
     const instances: {
         launch: BackendLaunch;
         host: BackendHost;
@@ -17,6 +18,7 @@ function replacementRig(provider = claudeProvider, options: Partial<ChatSessionO
         sent: TurnInput[];
         requests: Set<string>;
     }[] = [];
+
     const session = new ChatSession({
         info: { ...info(), provider: provider.kind, selection: provider.catalog.normalize(undefined) },
         command: ['unused'],
@@ -33,6 +35,7 @@ function replacementRig(provider = claudeProvider, options: Partial<ChatSessionO
                 instances.push(instance);
                 const fail = failNextStart;
                 failNextStart = false;
+
                 const backend: ChatBackend = {
                     get running() {
                         return !instance.stopped;
@@ -53,20 +56,27 @@ function replacementRig(provider = claudeProvider, options: Partial<ChatSessionO
                         instance.stopped = true;
                     }
                 };
+
                 return backend;
             }
         }
     });
+
     const event = (frame: BackendEvent, index = instances.length - 1) => {
         const instance = instances[index]!;
+
         if (frame.type === 'approval.requested' || frame.type === 'question.requested') {
             instance.requests.add(frame.requestId);
         }
+
         instance.host.onEvent(frame);
     };
+
     const agent = () =>
         event({ type: 'task.started', ref: 'agent', taskId: 'native-agent', description: 'Research', subagentType: null, prompt: null, background: true });
+
     const done = () => event({ type: 'turn.done', state: 'done', costUsd: 0 });
+
     return {
         session,
         instances,
@@ -93,6 +103,7 @@ describe('backend replacement with live work', () => {
             run.session.send('start research');
             await flush();
             run.agent();
+
             run.event({
                 type: 'approval.requested',
                 requestId: 'permission',
@@ -103,26 +114,33 @@ describe('backend replacement with live work', () => {
                 canAllowAlways: false,
                 background: true
             });
+
             if (change === 'auth') {
                 run.event({ type: 'turn.done', state: 'error', costUsd: 0, replaceProcess: true });
             } else {
                 run.done();
             }
+
             if (change === 'model') {
                 run.session.configure({ selection: { model: 'haiku', options: {} } });
             }
+
             if (change === 'options') {
                 run.session.configure({ selection: { ...run.session.info.selection, options: { ...run.session.info.selection.options, effort: 'low' } } });
             }
+
             if (change === 'mode') {
                 run.session.configure({ runtimeMode: 'auto' });
             }
+
             if (change === 'account') {
                 run.session.setAccount('other');
             }
+
             if (change === 'folders') {
                 run.setFolders(['/extra']);
             }
+
             const queued = run.session.send('after research', { mentions: ['mention'], skills: ['skill'] });
             expect(queued.queued).toBe(true);
             expect(run.session.info.activeTurnId).toBeNull();
@@ -147,21 +165,27 @@ describe('backend replacement with live work', () => {
             expect(run.session.info.activeTurnId).toBe(queued.turnId);
             expect(run.session.thread.find('subagent', (item) => item.toolUseId === 'agent')?.status).toBe('done');
             expect(run.session.thread.pending()).toEqual([]);
+
             if (change === 'model') {
                 expect(current.launch.selection.model).toBe(claudeProvider.catalog.normalize({ model: 'haiku', options: {} }).model);
             }
+
             if (change === 'options') {
                 expect(current.launch.selection.options.effort).toBe('low');
             }
+
             if (change === 'mode') {
                 expect(current.launch.runtimeMode).toBe('auto');
             }
+
             if (change === 'account') {
                 expect(current.launch.env.PROBE_ACCOUNT).toBe('other');
             }
+
             if (change === 'folders') {
                 expect(current.launch.folders).toEqual(['/extra']);
             }
+
             run.event({ type: 'exit', exitCode: 0 }, 0);
             expect(run.session.info.activeTurnId).toBe(queued.turnId);
             run.done();
@@ -171,9 +195,11 @@ describe('backend replacement with live work', () => {
 
     test('the backend expires limits on the same clock that schedules their retry', async () => {
         let now = 1000;
+
         const run = replacementRig(claudeProvider, {
             limitResume: { now: () => now, allowed: () => false, owe: async () => undefined, lapse: async () => undefined, owed: () => false }
         });
+
         run.session.send('first');
         await flush();
         expect(run.instances[0]!.launch.now?.()).toBe(1000);
@@ -204,9 +230,11 @@ describe('backend replacement with live work', () => {
         await flush();
         run.event({ type: 'session', agentSessionId: 'native-session', model: null });
         protocol.handle({ type: 'assistant', error: 'authentication_failed', message: { content: [] } });
+
         for (const event of protocol.handle({ type: 'result', is_error: true, result: 'Log in again' })) {
             run.event(event);
         }
+
         expect(run.instances).toHaveLength(1);
         expect(run.instances[0]!.stopped).toBe(false);
         run.session.send('try with refreshed credentials');
@@ -228,6 +256,7 @@ describe('backend replacement with live work', () => {
             const run = replacementRig();
             run.session.send('start work');
             await flush();
+
             if (work === 'command') {
                 run.event({ type: 'background.started', taskId: 'work', ref: null, monitor: false, description: 'build' });
             } else {
@@ -235,14 +264,17 @@ describe('backend replacement with live work', () => {
                 run.event({ type: 'workflow.progress', ref: 'work', workflow: { name: 'Research', taskId: 'work', phases: [], agents: [] } });
                 run.event({ type: 'tool.done', ref: 'work', state: 'done', output: 'Workflow launched in background. Task ID: work' });
             }
+
             run.done();
             run.session.configure({ runtimeMode: 'auto' });
             expect(run.session.send('next').queued).toBe(true);
+
             if (work === 'command') {
                 run.event({ type: 'background.ended', taskId: 'work' });
             } else {
                 run.event({ type: 'task.done', ref: 'work', taskId: 'work', summary: 'complete', ok: true });
             }
+
             await flush();
             expect(run.instances).toHaveLength(1);
             run.event({ type: 'text.done', ref: 'report', text: 'Work complete', parentRef: null });
@@ -310,6 +342,7 @@ describe('backend replacement with live work', () => {
             run.done();
             run.session.configure({ runtimeMode: 'auto' });
             run.session.send('next');
+
             if (action === 'stop') {
                 run.session.cancel();
                 expect(run.instances[0]!.stopped).toBe(false);
@@ -323,12 +356,14 @@ describe('backend replacement with live work', () => {
                     run.session.clear(true);
                     expect(run.session.thread.list()).toEqual([]);
                 }
+
                 expect(run.instances[0]!.stopped).toBe(true);
                 expect(run.session.info.queue).toEqual([]);
                 run.session.send('fresh prompt');
                 await flush();
                 expect(run.instances[1]!.sent[0]?.text).toBe('fresh prompt');
             }
+
             await run.session.dispose();
         }
     });
@@ -372,6 +407,7 @@ describe('backend replacement with live work', () => {
         const { turnId } = run.session.send('start');
         await flush();
         run.agent();
+
         run.event({
             type: 'approval.requested',
             requestId: 'permission',
@@ -382,6 +418,7 @@ describe('backend replacement with live work', () => {
             canAllowAlways: false,
             background: true
         });
+
         run.session.configure({ runtimeMode: 'auto' });
         await expect(run.session.resume(turnId, 2, { prompt: 'resume', note: 'Resume', preamble: null })).rejects.toThrow('current work and open requests');
         await flush();
@@ -393,11 +430,13 @@ describe('backend replacement with live work', () => {
 
     test('work discovered while preparing a wake keeps requests and an unaccepted durable preamble', async () => {
         let revealWork = false;
+
         const run = replacementRig(claudeProvider, {
             promptNotes: {
                 next: () => {
                     if (revealWork) {
                         run.agent();
+
                         run.event({
                             type: 'approval.requested',
                             requestId: 'permission',
@@ -409,11 +448,13 @@ describe('backend replacement with live work', () => {
                             background: true
                         });
                     }
+
                     return { shown: [], heard: ['Important context'] };
                 },
                 reset: () => undefined
             }
         });
+
         run.session.send('start');
         await flush();
         run.done();
@@ -438,12 +479,14 @@ describe('backend replacement with live work', () => {
         run.session.send('start');
         await flush();
         run.done();
+
         run.event({
             type: 'question.requested',
             requestId: 'question',
             background: true,
             questions: [{ id: 'file', question: 'Which file?', header: 'File', choices: [], multiSelect: false }]
         });
+
         run.session.configure({ runtimeMode: 'auto' });
         expect(run.session.send('next').queued).toBe(true);
         expect(run.instances[0]!.stopped).toBe(false);
@@ -460,14 +503,17 @@ describe('backend replacement with live work', () => {
         test(`withdrawing the last Claude question applies the new ${change} and sends the queued prompt once`, async () => {
             const run = replacementRig();
             const protocol = new ClaudeProtocol();
+
             const frame = (input: unknown) => {
                 for (const event of protocol.handle(input)) {
                     run.event(event, 0);
                 }
             };
+
             run.session.send('start');
             await flush();
             run.done();
+
             for (const requestId of ['first', 'last']) {
                 frame({
                     type: 'control_request',
@@ -480,6 +526,7 @@ describe('backend replacement with live work', () => {
                     }
                 });
             }
+
             run.session.configure(change === 'model' ? { selection: { model: 'haiku', options: {} } } : { runtimeMode: 'auto' });
             const queued = run.session.send('next', { mentions: ['README.md'] });
             expect(queued.queued).toBe(true);
@@ -511,6 +558,7 @@ describe('backend replacement with live work', () => {
             const run = replacementRig();
             run.session.send('start');
             await flush();
+
             if (work === 'child') {
                 run.agent();
             } else if (work === 'workflow') {
@@ -520,6 +568,7 @@ describe('backend replacement with live work', () => {
             } else {
                 run.event({ type: 'background.started', taskId: 'work', ref: null, monitor: false, description: 'build' });
             }
+
             run.done();
             run.event({ type: 'question.requested', requestId: 'question', background: true, questions: [] });
             run.session.configure({ runtimeMode: 'auto' });
@@ -530,6 +579,7 @@ describe('backend replacement with live work', () => {
             expect(run.instances).toHaveLength(1);
             expect(run.instances[0]!.stopped).toBe(false);
             expect(run.session.info.queue?.map((message) => message.text)).toEqual(['next']);
+
             if (work === 'command') {
                 run.event({ type: 'background.ended', taskId: 'work' });
             } else {
@@ -541,6 +591,7 @@ describe('backend replacement with live work', () => {
                     ok: true
                 });
             }
+
             run.event({ type: 'request.withdrawn', requestId: 'question' });
             await flush();
             expect(run.instances).toHaveLength(1);
@@ -562,11 +613,13 @@ describe('backend replacement with live work', () => {
             run.event({ type: 'question.requested', requestId: 'question', background: true, questions: [] });
             run.session.configure({ runtimeMode: 'auto' });
             run.session.send('next');
+
             if (pause === 'stop') {
                 run.session.cancel();
             } else {
                 run.event({ type: 'turn.done', state: 'error', costUsd: 0, limit: { kind: 'usage' }, error: 'reset unknown' });
             }
+
             run.event({ type: 'request.withdrawn', requestId: 'question' });
             await flush();
             expect(run.session.thread.pending()).toEqual([]);
@@ -608,6 +661,7 @@ describe('backend replacement with live work', () => {
         run.session.send('start');
         await flush();
         run.agent();
+
         run.event({
             type: 'approval.requested',
             requestId: 'permission',
@@ -618,6 +672,7 @@ describe('backend replacement with live work', () => {
             canAllowAlways: false,
             background: true
         });
+
         run.done();
         run.session.configure({ runtimeMode: 'auto' });
         run.session.send('queued');
@@ -663,6 +718,7 @@ describe('a message sent while a settings change waits', () => {
         let host: BackendHost | null = null;
         const sent: TurnInput[] = [];
         let made = 0;
+
         const session = new ChatSession({
             info: { ...info(), provider: provider.kind, selection: provider.catalog.normalize(undefined) },
             provider: {
@@ -670,6 +726,7 @@ describe('a message sent while a settings change waits', () => {
                 createBackend: (_launch, madeHost) => {
                     made += 1;
                     host = madeHost;
+
                     return {
                         running: true,
                         pid: null,
@@ -692,6 +749,7 @@ describe('a message sent while a settings change waits', () => {
             persist: () => undefined,
             persistSoon: () => undefined
         });
+
         return { session, sent, made: () => made, event: (event: BackendEvent) => host!.onEvent(event) };
     };
 
@@ -741,6 +799,7 @@ describe('ids across a restart of the host', () => {
     const codexRig = (chatInfo: ChatInfo, items: ChatItem[]) => {
         let host: BackendHost | null = null;
         const generations: number[] = [];
+
         const session = new ChatSession({
             info: chatInfo,
             items,
@@ -749,6 +808,7 @@ describe('ids across a restart of the host', () => {
                 createBackend: (launch, madeHost) => {
                     host = madeHost;
                     generations.push(launch.generation);
+
                     return {
                         running: true,
                         pid: null,
@@ -769,8 +829,10 @@ describe('ids across a restart of the host', () => {
             persist: () => undefined,
             persistSoon: () => undefined
         });
+
         return { session, generations, event: (event: BackendEvent) => host!.onEvent(event) };
     };
+
     // Codex numbers the requests of every process from 0, and the backend names one after its generation.
     const approval = (generation: number): BackendEvent => ({
         type: 'approval.requested',
@@ -809,8 +871,10 @@ describe('ids across a restart of the host', () => {
 
 describe('the HEAD a turn checkpoint is taken on', () => {
     const diff = { files: [], truncated: false };
+
     const hosts = (heads: string[] | undefined) => {
         const asked: string[] = [];
+
         const checkpoints = {
             take: () => Promise.resolve('tree-before'),
             diff: () => Promise.resolve(diff),
@@ -820,12 +884,15 @@ describe('the HEAD a turn checkpoint is taken on', () => {
                 : {
                       head: () => {
                           asked.push('head');
+
                           return Promise.resolve(heads.shift() ?? null);
                       }
                   })
         };
+
         return { checkpoints, asked };
     };
+
     const turnOf = (session: ChatSession) => session.thread.list().find((item) => item.kind === 'turn');
 
     test('is recorded when the turn starts and when it settles', async () => {
@@ -859,9 +926,11 @@ describe('the HEAD a turn checkpoint is taken on', () => {
 
     test('dispose waits for a turn that still settles its checkpoint', async () => {
         let finish = () => {};
+
         const settling = new Promise<{ diff: typeof diff; after: string }>((resolve) => {
             finish = () => resolve({ diff, after: 'tree-after' });
         });
+
         const run = rig({ checkpoints: { ...hosts(undefined).checkpoints, settle: () => settling } });
         run.session.send('go');
         await flush();
@@ -869,9 +938,11 @@ describe('the HEAD a turn checkpoint is taken on', () => {
         await flush();
 
         let disposed = false;
+
         const disposing = run.session.dispose().then(() => {
             disposed = true;
         });
+
         await flush();
         expect(disposed).toBe(false);
 
@@ -915,14 +986,17 @@ describe('restarting the agent session', () => {
 
 test('a launch the host fails to prepare ends the opened turn with the reason, and the next message starts again', async () => {
     let broken = true;
+
     const run = rig({
         instructions: () => {
             if (broken) {
                 throw new Error('No space left on device');
             }
+
             return null;
         }
     });
+
     expect(() => run.session.send('first')).not.toThrow();
     await flush();
     expect(run.session.info.activeTurnId).toBeNull();

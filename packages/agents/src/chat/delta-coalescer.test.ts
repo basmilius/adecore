@@ -18,15 +18,18 @@ const note: ChatItem = { kind: 'note', id: 'n', turnId: null, level: 'info', tex
 
 function recorder() {
     const sent: ChatEvent[] = [];
+
     return { sent, coalescer: new DeltaCoalescer((event) => sent.push(event), 5) };
 }
 
 describe('DeltaCoalescer', () => {
     test('ten deltas on one item within a tick go out as one delta with the joined text', () => {
         const { sent, coalescer } = recorder();
+
         for (let i = 0; i < 10; i++) {
             coalescer.push(delta('a', String(i)));
         }
+
         expect(sent).toEqual([]);
         jest.advanceTimersByTime(4);
         expect(sent).toEqual([]);

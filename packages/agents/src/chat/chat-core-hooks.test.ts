@@ -23,6 +23,7 @@ const providers = new ProviderRegistry({
             ...claudeProvider,
             createBackend: (launch) => {
                 launches.push(launch);
+
                 return {
                     running: true,
                     pid: null,
@@ -42,6 +43,7 @@ const providers = new ProviderRegistry({
 
 function open(hooks: ChatCoreHooks = {}): ChatCore {
     core = new ChatCore({ providers, store, attachments: new AttachmentStore(home), env: { HOME: home, PATH: '/bin' }, hooks });
+
     return core;
 }
 
@@ -96,6 +98,7 @@ describe('the hooks of ChatCore', () => {
             runtimeModeFor: () => 'supervised',
             hiddenFor: (chatId) => chatId === 'hidden'
         });
+
         await expect(chats.create({ chatId: 'elsewhere', cwd: '/somewhere/else' })).rejects.toThrow('not a project: /somewhere/else');
         const info = await chats.create({ chatId: 'hidden', cwd: home, runtimeMode: 'full-access' });
         expect(info).toMatchObject({ hidden: true, runtimeMode: 'supervised', selection: { model: 'claude-opus-5' } });
@@ -109,9 +112,11 @@ describe('the hooks of ChatCore', () => {
             foldersFor: () => ['/brand/kit'],
             envFor: (chatId, base) => ({ ...base, APP_CHAT: chatId })
         });
+
         await chats.create({ chatId: 'briefed', cwd: home });
         await chats.send('briefed', 'hello');
         await settle();
+
         expect(launches.at(-1)).toMatchObject({
             instructions: 'You are the agent of briefed.',
             resumeNote: 'Remember the brief.',
@@ -139,6 +144,7 @@ describe('the hooks of ChatCore', () => {
             detect: async () => ({ installed: true, version: 'test' }),
             providers: [{ ...providers.get('claude'), ignoresProjectConfig: false }]
         });
+
         core = new ChatCore({
             providers: incapable,
             store,
@@ -146,6 +152,7 @@ describe('the hooks of ChatCore', () => {
             env: { HOME: home, PATH: '/bin' },
             hooks: { projectConfigFor: () => false }
         });
+
         await core.create({ chatId: 'refused', cwd: home });
         const before = launches.length;
         await core.send('refused', 'hello');
@@ -165,25 +172,30 @@ describe('the hooks of ChatCore', () => {
 
     test('hear a chat open and keep extras in its record', async () => {
         const opened: { chatId: string; stored: boolean }[] = [];
+
         const chats = open({
             opened: async (session, stored) => {
                 opened.push({ chatId: session.id, stored: stored !== null });
             },
             recordExtras: () => ({ pinned: true })
         });
+
         await store.write('kept', storedInfo('kept'), [said('before')]);
         await chats.create({ chatId: 'kept' });
         await chats.create({ chatId: 'fresh', cwd: home });
+
         expect(opened).toEqual([
             { chatId: 'kept', stored: true },
             { chatId: 'fresh', stored: false }
         ]);
+
         await chats.save('fresh');
         expect((await store.read('fresh'))?.extras).toEqual({ pinned: true });
     });
 
     test('run along with a clear and a removal, in their order', async () => {
         const calls: string[] = [];
+
         const chats = open({
             clearing: async (chatId) => {
                 calls.push(`clearing ${chatId}`);
@@ -198,6 +210,7 @@ describe('the hooks of ChatCore', () => {
                 calls.push(`removed ${chatId} with ${chat.items.length} items`);
             }
         });
+
         await store.write('chat-1', storedInfo('chat-1'), [said('one'), said('two')]);
         await chats.create({ chatId: 'chat-1' });
         await chats.clear('chat-1');
@@ -209,11 +222,13 @@ describe('the hooks of ChatCore', () => {
 
     test('see every event a chat sends, and the host can send a client one of its own', async () => {
         const seen: ChatEvent['type'][] = [];
+
         const chats = open({
             broadcasted: (_chatId, event) => {
                 seen.push(event.type);
             }
         });
+
         const heard: AgentEvent[] = [];
         chats.subscribe('client-1', (event) => heard.push(event));
         await chats.create({ chatId: 'chat-1', cwd: home });
@@ -232,15 +247,20 @@ describe('the hooks of ChatCore', () => {
             onInterruptedRun: async () => false,
             hooks: { unownedReason: () => 'no project holds this chat any more' }
         });
+
         core = chats;
+
         await store.write('chat-1', { ...storedInfo('chat-1'), agentSessionId: 'session-1', status: 'running', activeTurnId: 'turn-1' }, [
             { id: 'turn-1', kind: 'turn', createdAt: 1, turnId: 'turn-1', state: 'running', origin: 'user', endedAt: null, costUsd: 0 }
         ]);
+
         await chats.create({ chatId: 'chat-1' });
+
         const notes = chats
             .get('chat-1')!
             .thread.list()
             .filter((item) => item.kind === 'note');
+
         expect(notes.map((note) => (note.kind === 'note' ? note.text : ''))).toEqual([expect.stringContaining('no project holds this chat any more')]);
     });
 });

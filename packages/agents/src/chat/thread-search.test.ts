@@ -3,6 +3,7 @@ import type { ChatItem } from '@adecore/agent-contracts';
 import { searchThreadItems } from './thread-search.ts';
 
 const user = (id: string, text: string): ChatItem => ({ id, kind: 'user', createdAt: 1, turnId: 't1', text });
+
 const assistant = (id: string, text: string, parentToolUseId?: string): ChatItem => ({
     id,
     kind: 'assistant',
@@ -15,6 +16,7 @@ const assistant = (id: string, text: string, parentToolUseId?: string): ChatItem
 
 test('matches without regard to case and names who said it', () => {
     const hits = searchThreadItems([user('u', 'Where is the Cache?'), assistant('a', 'The cache is per machine.')], 'CACHE', { limit: 10 });
+
     expect(hits.map((hit) => [hit.itemId, hit.author])).toEqual([
         ['u', 'person'],
         ['a', 'agent']
@@ -28,6 +30,7 @@ test('skips what a subagent said and every kind of item that is no message', () 
         { id: 'turn', kind: 'turn', createdAt: 0, turnId: 't1', state: 'done', endedAt: 1, costUsd: 0 },
         assistant('own', 'cache in the main thread')
     ];
+
     expect(searchThreadItems(items, 'cache', { limit: 10 }).map((hit) => hit.itemId)).toEqual(['own']);
 });
 

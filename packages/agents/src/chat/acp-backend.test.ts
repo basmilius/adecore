@@ -39,8 +39,10 @@ function run(options: FakeAcpOptions = {}, overrides: Partial<BackendLaunch> = {
     const sent: Frame[] = [];
     const events: BackendEvent[] = [];
     const waiters: Array<{ match(event: BackendEvent): boolean; resolve(event: BackendEvent): void }> = [];
+
     const fake = inProcess((io) => {
         const program = fakeAcpWith(options)(io);
+
         return {
             onLine: (line) => {
                 sent.push(JSON.parse(line) as Frame);
@@ -48,11 +50,13 @@ function run(options: FakeAcpOptions = {}, overrides: Partial<BackendLaunch> = {
             }
         };
     });
+
     const backend: ChatBackend = createAcpBackend(spec)(
         { ...launch, ...overrides, spawn: fake.spawn },
         {
             onEvent: (event) => {
                 events.push(event);
+
                 for (const waiter of waiters.splice(0)) {
                     if (waiter.match(event)) {
                         waiter.resolve(event);
@@ -63,22 +67,28 @@ function run(options: FakeAcpOptions = {}, overrides: Partial<BackendLaunch> = {
             }
         }
     );
+
     /* The next event that matches, or one already raised. */
     const next = <T extends BackendEvent['type']>(type: T, match: (event: Extract<BackendEvent, { type: T }>) => boolean = () => true) => {
         const fits = (event: BackendEvent): boolean => event.type === type && match(event as Extract<BackendEvent, { type: T }>);
+
         const raised = events.find(fits);
+
         if (raised) {
             return Promise.resolve(raised as Extract<BackendEvent, { type: T }>);
         }
+
         return new Promise<Extract<BackendEvent, { type: T }>>((resolve) => {
             waiters.push({ match: fits, resolve: (event) => resolve(event as Extract<BackendEvent, { type: T }>) });
         });
     };
+
     return { backend, events, sent, next, methods: () => sent.flatMap((frame) => (frame.method ? [frame.method] : [])) };
 }
 
 function sessionOf(events: BackendEvent[]): string {
     const session = events.find((event) => event.type === 'session');
+
     return session?.type === 'session' ? (session.agentSessionId ?? '') : '';
 }
 
@@ -110,9 +120,11 @@ test('a turn whose response reports usage hands it to the spec, with the session
     await fake.backend.start();
     fake.backend.sendTurn(turn('hello'));
     await fake.next('turn.done');
+
     expect(reports).toEqual([
         { sessionId: sessionOf(fake.events), cwd: '/tmp', model: 'fake-large', input: 100, cacheRead: 1000, cacheWrite: 0, output: 400, reasoning: 50 }
     ]);
+
     await fake.backend.dispose();
 });
 
@@ -161,6 +173,7 @@ for (const [runtimeMode, prompt, asks] of [
         await fake.backend.start();
         expect(fake.events[0]).not.toHaveProperty('permissionMode');
         fake.backend.sendTurn(turn(prompt));
+
         if (asks) {
             await fake.next('approval.requested');
             expect(fake.events.some((event) => event.type === 'turn.done')).toBe(false);
@@ -169,16 +182,20 @@ for (const [runtimeMode, prompt, asks] of [
             expect(fake.events.some((event) => event.type === 'approval.requested')).toBe(false);
             expect(fake.sent.find((frame) => frame.method === undefined)).toMatchObject({ result: { outcome: { outcome: 'selected', optionId: 'once' } } });
         }
+
         await fake.backend.dispose();
     });
 }
 
 test("a request the host's autoAllow passes is allowed once without an approval, and the call still shows", async () => {
     const asked: AcpPermissionRequest[] = [];
+
     const autoAllow = (request: AcpPermissionRequest): boolean => {
         asked.push(request);
+
         return true;
     };
+
     const fake = run({}, {}, { ...SPEC, autoAllow });
     await fake.backend.start();
     fake.backend.sendTurn(turn('tool: ruimte-context help'));
@@ -288,12 +305,15 @@ test('a session the agent no longer has, or cannot continue, starts a new one wi
 
 test('the runtime mode picks the agent mode, the selection the model, and the host hears what the session offers', async () => {
     const sessions: AcpSessionInfo[] = [];
+
     const fake = run(
         {},
         { runtimeMode: 'full-access', selection: { model: 'fake-large', options: {} } },
         { ...SPEC, onSession: (info) => sessions.push(info) }
     );
+
     await fake.backend.start();
+
     expect(fake.sent.filter((frame) => frame.method?.startsWith('session/set')).map((frame) => [frame.method, frame.params])).toEqual([
         ['session/set_mode', { sessionId: sessionOf(fake.events), modeId: 'yolo' }],
         ['session/set_config_option', { sessionId: sessionOf(fake.events), configId: 'model', value: 'fake-large' }]
@@ -309,6 +329,7 @@ test('the runtime mode picks the agent mode, the selection the model, and the ho
 test('an effort is set after the model, against the efforts the selected model offers', async () => {
     const fake = run({ reasoningEffort: 'accept' }, { selection: { model: 'fake-large', options: { effort: 'xhigh' } } });
     await fake.backend.start();
+
     expect(fake.sent.filter((frame) => frame.method === 'session/set_config_option').map((frame) => frame.params)).toEqual([
         { sessionId: sessionOf(fake.events), configId: 'model', value: 'fake-large' },
         { sessionId: sessionOf(fake.events), configId: 'reasoning_effort', value: 'xhigh' }
@@ -325,11 +346,13 @@ test('an effort is set after the model, against the efforts the selected model o
 test('an effort the agent refuses leaves a note and the session starts', async () => {
     const fake = run({ reasoningEffort: 'reject' }, { selection: { model: 'fake-small', options: { effort: 'high' } } });
     await fake.backend.start();
+
     expect(fake.events).toContainEqual({
         type: 'note',
         level: 'warning',
         text: 'Fake kept its reasoning at Low instead of High.'
     });
+
     fake.backend.sendTurn(turn('hello'));
     expect(await fake.next('turn.done')).toMatchObject({ state: 'done' });
     await fake.backend.dispose();
@@ -377,6 +400,7 @@ test('an image goes along as an image block, and one that cannot be read refuses
     expect(() => fake.backend.sendTurn({ ...turn('again'), attachments: [{ ...image, path: join(folder, 'gone.png') }] })).toThrow(
         'Could not read attached image "shot.png". Attach it again and retry.'
     );
+
     await fake.backend.dispose();
     rmSync(folder, { recursive: true, force: true });
 });
@@ -426,16 +450,20 @@ test('a mentioned text file inside the folder goes along as a resource block whe
     writeFileSync(join(cwd, 'blob.bin'), Buffer.from([1, 0, 2]));
     writeFileSync(join(base, 'outside.txt'), 'secret');
     const mentions = ['src/a.ts', 'big.txt', 'blob.bin', '../outside.txt', join(base, 'outside.txt'), 'missing.ts', 'src'];
+
     const prompted = async (embeddedContext: boolean): Promise<Array<Record<string, unknown>>> => {
         const fake = run({ embeddedContext }, { cwd });
         await fake.backend.start();
         fake.backend.sendTurn({ ...turn('read @src/a.ts'), mentions });
         await fake.next('turn.done');
         await fake.backend.dispose();
+
         return fake.sent.find((frame) => frame.method === 'session/prompt')?.params?.prompt as Array<Record<string, unknown>>;
     };
+
     try {
         const embedded = await prompted(true);
+
         expect(embedded).toEqual([
             { type: 'text', text: 'read @src/a.ts' },
             { type: 'resource', resource: { uri: pathToFileURL(join(cwd, 'src', 'a.ts')).href, text: 'export const a = 1;\n' } }

@@ -28,12 +28,15 @@ async function flush(): Promise<void> {
 
 function rig(options: Partial<ChatSessionOptions> = {}, blocked = false) {
     const start = Promise.withResolvers<void>();
+
     if (!blocked) {
         start.resolve();
     }
+
     let host: BackendHost;
     const sent: TurnInput[] = [];
     let stops = 0;
+
     const backend: ChatBackend = {
         running: true,
         pid: null,
@@ -50,12 +53,14 @@ function rig(options: Partial<ChatSessionOptions> = {}, blocked = false) {
         },
         dispose: () => Promise.resolve()
     };
+
     const session = new ChatSession({
         info: info(),
         provider: {
             ...claudeProvider,
             createBackend: (_launch, madeHost) => {
                 host = madeHost;
+
                 return backend;
             }
         },
@@ -66,6 +71,7 @@ function rig(options: Partial<ChatSessionOptions> = {}, blocked = false) {
         persistSoon: () => undefined,
         ...options
     });
+
     return { session, sent, start, backend, stops: () => stops, event: (event: BackendEvent) => host.onEvent(event) };
 }
 

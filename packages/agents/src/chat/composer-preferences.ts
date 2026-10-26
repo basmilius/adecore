@@ -39,22 +39,27 @@ export class ComposerPreferences {
     /* The newest pick among the connected clients, narrowed to this provider; empty with none. */
     for(provider: AgentKind): ComposerPreference {
         const newest = this.newest();
+
         if (newest === null) {
             return {};
         }
+
         const { runtimeMode, selections, accounts } = newest.preference;
         const selection = selections?.[provider];
         const account = accounts?.[provider];
+
         return { ...(runtimeMode ? { runtimeMode } : {}), ...(selection ? { selection } : {}), ...(account ? { account } : {}) };
     }
 
     private newest(): Held | null {
         let newest: Held | null = null;
+
         for (const held of this.byClient.values()) {
             if (newest === null || isNewer(held, newest)) {
                 newest = held;
             }
         }
+
         return newest;
     }
 }
@@ -62,5 +67,6 @@ export class ComposerPreferences {
 function isNewer(held: Held, than: Held): boolean {
     const changedAt = held.preference.changedAt ?? 0;
     const otherChangedAt = than.preference.changedAt ?? 0;
+
     return changedAt === otherChangedAt ? held.told > than.told : changedAt > otherChangedAt;
 }

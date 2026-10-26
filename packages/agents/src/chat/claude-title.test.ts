@@ -64,6 +64,7 @@ describe('ClaudeTitleReader', () => {
             transcript,
             [line({ type: 'user', content: 'ü'.repeat(50) }), line({ type: 'ai-title', aiTitle: 'Übersicht der Änderungen' })].join('')
         );
+
         expect(await new ClaudeTitleReader(root, 7).forTranscript(transcript)).toBe('Übersicht der Änderungen');
     });
 

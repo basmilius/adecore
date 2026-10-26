@@ -21,6 +21,7 @@ function inputTokens(input: unknown): number {
     if (input === undefined || input === null) {
         return 0;
     }
+
     return textTokens(typeof input === 'string' ? input : JSON.stringify(input));
 }
 
@@ -35,27 +36,33 @@ export function estimateContextBreakdown(items: readonly ChatItem[], contextToke
     let filesRead = 0;
     let conversation = 0;
     const start = items.findLastIndex((item) => item.kind === 'compaction') + 1;
+
     for (const item of items.slice(start)) {
         switch (item.kind) {
             case 'user':
                 conversation += textTokens(item.text);
                 filesRead += (item.attachments ?? []).filter((attachment) => attachmentImageMime(attachment) !== null).length * IMAGE_TOKENS;
+
                 break;
             case 'assistant':
                 if (!item.parentToolUseId) {
                     conversation += textTokens(item.text);
                 }
+
                 break;
             case 'tool': {
                 if (item.parentToolUseId !== null) {
                     break;
                 }
+
                 const tokens = inputTokens(item.input) + textTokens(item.output ?? item.progress?.output ?? '');
+
                 if (isReadTool(item.name)) {
                     filesRead += tokens;
                 } else {
                     toolOutput += tokens;
                 }
+
                 break;
             }
             case 'subagent':
@@ -63,18 +70,22 @@ export function estimateContextBreakdown(items: readonly ChatItem[], contextToke
                 if (item.origin !== HOST_TASK_ORIGIN) {
                     toolOutput += textTokens(item.prompt ?? '') + textTokens(item.result ?? '');
                 }
+
                 break;
             default:
                 break;
         }
     }
+
     const total = Math.max(0, Math.round(contextTokens));
     const estimated = toolOutput + filesRead + conversation;
     const scale = estimated > total ? total / estimated : 1;
+
     const parts = {
         toolOutput: Math.floor(toolOutput * scale),
         filesRead: Math.floor(filesRead * scale),
         conversation: Math.floor(conversation * scale)
     };
+
     return { ...parts, system: Math.max(0, total - parts.toolOutput - parts.filesRead - parts.conversation) };
 }

@@ -16,11 +16,13 @@ function textInput(text: string) {
 export function parseSkillsList(result: unknown): ChatSkill[] {
     const data = isRecord(result) && Array.isArray(result.data) ? result.data : [];
     const skills = new Map<string, ChatSkill>();
+
     for (const entry of data) {
         for (const skill of isRecord(entry) && Array.isArray(entry.skills) ? entry.skills : []) {
             if (!isRecord(skill) || typeof skill.name !== 'string' || skill.enabled === false || skills.has(skill.name)) {
                 continue;
             }
+
             skills.set(skill.name, {
                 name: skill.name,
                 description: typeof skill.description === 'string' ? skill.description : '',
@@ -28,6 +30,7 @@ export function parseSkillsList(result: unknown): ChatSkill[] {
             });
         }
     }
+
     return [...skills.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
@@ -39,20 +42,26 @@ const CLEAR_WORDS = new Set(['clear', 'stop', 'off', 'reset', 'none', 'cancel'])
 /* A `/goal` message the way the CLIs read one: a bare `/goal` shows the goal, a control word acts on it, and anything else is a new objective. Null for any other message. */
 export function parseGoalCommand(text: string): GoalCommand | null {
     const match = /^\/goal(?:\s+([\s\S]*))?$/.exec(text.trim());
+
     if (!match) {
         return null;
     }
+
     const argument = (match[1] ?? '').trim();
     const word = argument.toLowerCase();
+
     if (word === '') {
         return { kind: 'show' };
     }
+
     if (CLEAR_WORDS.has(word)) {
         return { kind: 'clear' };
     }
+
     if (word === 'pause' || word === 'resume') {
         return { kind: word };
     }
+
     return { kind: 'set', objective: argument };
 }
 
@@ -111,6 +120,7 @@ export class CodexBackend implements ChatBackend {
         if (this.transport) {
             return;
         }
+
         const transport = new CodexTransport({
             command: this.launch.command,
             cwd: this.launch.cwd,
@@ -120,7 +130,9 @@ export class CodexBackend implements ChatBackend {
             onFrame: (frame) => this.handleFrame(transport, frame),
             onExit: (exitCode, stderr) => this.handleExit(transport, exitCode, stderr)
         });
+
         this.transport = transport;
+
         try {
             await this.handshake(transport);
         } catch (error) {
@@ -129,6 +141,7 @@ export class CodexBackend implements ChatBackend {
                 this.transport = null;
                 void transport.dispose();
             }
+
             throw error;
         }
     }
@@ -137,14 +150,17 @@ export class CodexBackend implements ChatBackend {
         await transport.request('initialize', { clientInfo: this.client, capabilities: { experimentalApi: true, requestAttestation: false } });
         transport.notify('initialized', {});
         const tier = codexServiceTier(this.launch.selection);
+
         const params = {
             cwd: this.launch.cwd,
             model: this.launch.selection.model,
             ...(tier === null ? {} : { serviceTier: tier }),
             ...codexThreadOptions(this.launch.runtimeMode)
         };
+
         const instructions = this.launch.instructions === null ? {} : { developerInstructions: this.launch.instructions };
         let result: unknown;
+
         if (this.launch.resume) {
             try {
                 result = await transport.request('thread/resume', { threadId: this.launch.resume, excludeTurns: true, ...params });
@@ -154,19 +170,24 @@ export class CodexBackend implements ChatBackend {
                 if (!(error instanceof Error) || error.name !== 'CodexRpcError') {
                     throw error;
                 }
+
                 this.emit({ type: 'note', level: 'warning', text: `Codex could not resume its thread (${errorText(error)}). Started a new one.` });
                 result = await transport.request('thread/start', { ...params, ...instructions });
             }
         } else {
             result = await transport.request('thread/start', { ...params, ...instructions });
         }
+
         this.imageInputSupported = await this.readImageSupport(transport);
+
         for (const event of this.protocol.threadReady(result)) {
             if (event.type === 'session' && event.agentSessionId) {
                 this.threadId = event.agentSessionId;
             }
+
             this.emit(event);
         }
+
         await this.readGoal(transport).catch(() => {
             // An app-server without goals, or with the feature turned off, has none to report.
         });
@@ -178,6 +199,7 @@ export class CodexBackend implements ChatBackend {
      */
     private async resumeContext(transport: CodexTransport, threadId: string): Promise<string | null> {
         const instructions = this.launch.resumeInstructions ?? null;
+
         if (instructions !== null) {
             try {
                 const items = [{ type: 'message', role: 'developer', content: [{ type: 'input_text', text: instructions }] }];
@@ -186,26 +208,32 @@ export class CodexBackend implements ChatBackend {
                 if (!(error instanceof Error) || error.name !== 'CodexRpcError') {
                     throw error;
                 }
+
                 return [instructions, this.launch.resumeNote].filter((part) => part !== null).join('\n\n');
             }
         }
+
         return this.launch.resumeNote;
     }
 
     private async readGoal(transport: CodexTransport): Promise<ChatGoal | null> {
         const result = await transport.request('thread/goal/get', { threadId: this.threadId });
         const goal = codexGoal(isRecord(result) ? result.goal : null);
+
         if (this.transport === transport) {
             this.emit({ type: 'goal', goal });
         }
+
         return goal;
     }
 
     private turnInput(input: TurnInput): unknown[] {
         const images = input.attachments.filter((attachment) => attachmentImageMime(attachment) !== null);
+
         if (images.length > 0 && this.imageInputSupported === false) {
             throw new Error(`${this.launch.modelName} does not support image input. Choose a model that accepts images.`);
         }
+
         for (const attachment of images) {
             try {
                 accessSync(attachment.path, constants.R_OK);
@@ -213,28 +241,37 @@ export class CodexBackend implements ChatBackend {
                 throw new Error(`Could not read attached image "${attachment.name}". Attach it again and retry.`);
             }
         }
+
         const parts: string[] = [];
+
         if (this.contextPending !== null) {
             parts.push(`${this.contextPending}\n\n`);
             this.contextPending = null;
         }
+
         if (input.preamble !== null) {
             parts.push(`${input.preamble}\n\n`);
         }
+
         parts.push(input.text);
         const note = attachmentNote(input.attachments);
+
         if (note !== '') {
             parts.push(`\n\n${note}`);
         }
+
         return [...textInput(parts.join('')), ...images.map((attachment) => ({ type: 'localImage', path: attachment.path }))];
     }
 
     sendTurn(input: TurnInput): void {
         const command = input.attachments.length === 0 ? parseGoalCommand(input.text) : null;
+
         if (command !== null) {
             void this.runGoalCommand(command, input);
+
             return;
         }
+
         const nativeInput = this.turnInput(input);
         this.turnUnnamed = true;
         this.promptId = input.promptId ?? null;
@@ -244,6 +281,7 @@ export class CodexBackend implements ChatBackend {
     private turnStartParams(nativeInput: unknown[]): Record<string, unknown> {
         const effort = this.launch.selection.options.effort;
         const tier = codexServiceTier(this.launch.selection);
+
         return {
             threadId: this.threadId,
             input: nativeInput,
@@ -261,52 +299,71 @@ export class CodexBackend implements ChatBackend {
      */
     private async runGoalCommand(command: GoalCommand, input: TurnInput): Promise<void> {
         const transport = this.transport;
+
         if (!transport) {
             this.emit({ type: 'failed', message: 'Codex is not running' });
+
             return;
         }
+
         const threadId = this.threadId;
+
         const setGoal = async (params: Record<string, unknown>): Promise<void> => {
             const result = await transport.request('thread/goal/set', { threadId, origin: 'user', ...params });
+
             if (this.transport === transport) {
                 this.emit({ type: 'goal', goal: codexGoal(isRecord(result) ? result.goal : null) });
             }
         };
+
         try {
             const current = await this.readGoal(transport);
+
             if (command.kind === 'show') {
                 this.reply(input.promptId, current === null ? 'No goal is set.' : goalLine(current));
+
                 return;
             }
+
             if (command.kind === 'clear') {
                 const result = await transport.request('thread/goal/clear', { threadId, origin: 'user' });
                 this.emit({ type: 'goal', goal: null });
                 this.reply(input.promptId, isRecord(result) && result.cleared === true ? 'Goal cleared.' : 'No goal to clear.');
+
                 return;
             }
+
             if (current === null && command.kind !== 'set') {
                 this.reply(input.promptId, 'No goal is set. Set one with /goal and the objective.');
+
                 return;
             }
+
             if (command.kind === 'pause') {
                 await setGoal({ status: 'paused' });
                 this.reply(input.promptId, 'Goal paused. /goal resume takes it up again.');
+
                 return;
             }
+
             if (command.kind === 'set') {
                 // A new objective starts over, its tokens and time included.
                 if (current !== null) {
                     await transport.request('thread/goal/clear', { threadId, origin: 'user' });
                 }
+
                 await setGoal({ objective: command.objective, status: 'paused' });
             }
+
             const nativeInput = command.kind === 'set' ? this.turnInput({ ...input, text: command.objective }) : [];
             this.turnUnnamed = true;
             this.promptId = input.promptId ?? null;
             await transport.request('turn/start', this.turnStartParams(nativeInput));
+
             if (this.transport !== transport) {
                 return;
             }
+
             this.acceptPrompt(input.promptId);
             await setGoal({ status: 'active' });
         } catch (error) {
@@ -321,27 +378,34 @@ export class CodexBackend implements ChatBackend {
         if (promptId !== undefined) {
             this.emit({ type: 'turn.accepted', promptId });
         }
+
         this.emit({ type: 'text.done', ref: `goal-${randomUUID()}`, text });
         this.emit({ type: 'turn.done', ...(promptId === undefined ? {} : { promptId }), state: 'done', costUsd: 0 });
     }
 
     async goal(action: ChatGoalAction): Promise<void> {
         const transport = this.transport;
+
         if (!transport) {
             throw new Error('Codex is not running');
         }
+
         if (action === 'clear') {
             await transport.request('thread/goal/clear', { threadId: this.threadId, origin: 'user' });
+
             if (this.transport === transport) {
                 this.emit({ type: 'goal', goal: null });
             }
+
             return;
         }
+
         const result = await transport.request('thread/goal/set', {
             threadId: this.threadId,
             status: action === 'pause' ? 'paused' : 'active',
             origin: 'user'
         });
+
         if (this.transport === transport) {
             this.emit({ type: 'goal', goal: codexGoal(isRecord(result) ? result.goal : null) });
         }
@@ -350,18 +414,23 @@ export class CodexBackend implements ChatBackend {
     async steerTurn(input: TurnInput): Promise<boolean> {
         const transport = this.transport;
         const turnId = this.protocol.turnId;
+
         if (!transport || !turnId || this.turnUnnamed) {
             return false;
         }
+
         try {
             await transport.request('turn/steer', { threadId: this.threadId, expectedTurnId: turnId, input: this.turnInput(input) });
+
             return true;
         } catch (error) {
             const rejected = error instanceof Error && error.name === 'CodexRpcError';
+
             // A compact or review turn takes no steer (codex 0.162: "cannot steer a compact turn"); the message waits for the next turn.
             if (rejected && /no active turn|not.*active|turn.*mismatch|expected.*turn|method not found|cannot steer|not steerable/i.test(error.message)) {
                 return false;
             }
+
             throw error;
         }
     }
@@ -382,11 +451,14 @@ export class CodexBackend implements ChatBackend {
             if (!this.transport) {
                 throw new Error('Codex is not running');
             }
+
             this.transport.respond(rpcId, result);
+
             return true;
         } catch (error) {
             this.emit({ type: 'request.withdrawn', requestId });
             this.fail(error);
+
             return false;
         }
     }
@@ -394,27 +466,35 @@ export class CodexBackend implements ChatBackend {
     private async readImageSupport(transport: CodexTransport): Promise<boolean | null> {
         let cursor: string | null = null;
         const seen = new Set<string>();
+
         try {
             do {
                 const result = await transport.request('model/list', { includeHidden: true, ...(cursor === null ? {} : { cursor }) });
+
                 if (!isRecord(result) || !Array.isArray(result.data)) {
                     return null;
                 }
+
                 const model = result.data.find((entry) => isRecord(entry) && entry.model === this.launch.selection.model);
+
                 if (isRecord(model)) {
                     return Array.isArray(model.inputModalities) ? model.inputModalities.includes('image') : null;
                 }
+
                 cursor = typeof result.nextCursor === 'string' ? result.nextCursor : null;
+
                 if (cursor !== null) {
                     if (seen.has(cursor)) {
                         return null;
                     }
+
                     seen.add(cursor);
                 }
             } while (cursor !== null);
         } catch {
             // Older app-servers may not report modalities; their turn response remains authoritative.
         }
+
         return null;
     }
 
@@ -428,43 +508,54 @@ export class CodexBackend implements ChatBackend {
         if (!this.transport || this.threadId === '') {
             return;
         }
+
         void this.transport.request('thread/name/set', { threadId: this.threadId, name: title }).catch(() => undefined);
     }
 
     /* Codex keeps its own skill index, so the running app-server is the authority on what it will run. */
     async listSkills(): Promise<ChatSkill[]> {
         const transport = this.transport;
+
         if (!transport) {
             return [];
         }
+
         return parseSkillsList(await transport.request('skills/list', { cwds: [this.launch.cwd] }));
     }
 
     listThreadItems(params: { threadId: string; cursor?: string; limit: number; sortDirection: 'asc' | 'desc' }): Promise<unknown> {
         const transport = this.transport;
+
         if (!transport) {
             return Promise.reject(new Error('Codex is not running'));
         }
+
         return transport.request('thread/items/list', params);
     }
 
     interrupt(): void {
         const turnId = this.protocol.turnId;
+
         if (!this.transport) {
             return;
         }
+
         // As Codex's own TUI does: paused first, so no goal turn opens after the one this stops.
         if (this.goalNow?.status === 'active') {
             void this.transport.request('thread/goal/set', { threadId: this.threadId, status: 'paused', origin: 'user' }).catch(() => undefined);
         }
+
         if (!turnId) {
             this.interruptOwed = this.turnUnnamed;
+
             // A child request can open a host turn after the root's native turn already ended.
             if (!this.turnUnnamed) {
                 this.emit({ type: 'turn.done', state: 'aborted', costUsd: 0 });
             }
+
             return;
         }
+
         void this.transport.request('turn/interrupt', { threadId: this.threadId, turnId }).catch(() => {
             // A turn that already ended has nothing to interrupt.
         });
@@ -474,6 +565,7 @@ export class CodexBackend implements ChatBackend {
         if (!this.transport) {
             return;
         }
+
         void this.transport.request('thread/backgroundTerminals/terminate', { threadId: this.threadId, processId: taskId }).catch(() => {
             // A process that already ended has nothing to terminate; its item says so on its own.
         });
@@ -483,10 +575,13 @@ export class CodexBackend implements ChatBackend {
         if (!this.transport) {
             return false;
         }
+
         const answer = this.protocol.approvalDecision(requestId, decision);
+
         if (!answer) {
             return false;
         }
+
         return this.respond(requestId, answer.rpcId, answer.result);
     }
 
@@ -494,27 +589,36 @@ export class CodexBackend implements ChatBackend {
         if (!this.transport) {
             return false;
         }
+
         const answer = this.protocol.questionAnswer(requestId, answers);
+
         if (!answer) {
             return false;
         }
+
         if (answer.kind === 'respond') {
             return this.respond(requestId, answer.rpcId, answer.result);
         }
+
         const turnId = this.protocol.turnId;
+
         if (!turnId) {
             // An optional question can outlive its turn; its answer resumes the same chat as plain text.
             this.turnUnnamed = true;
             this.promptId = null;
             this.request('turn/start', this.turnStartParams(textInput(answer.text)));
+
             return true;
         }
+
         this.request('turn/steer', { threadId: this.threadId, expectedTurnId: turnId, input: textInput(answer.text) });
+
         return true;
     }
 
     dismissRequest(requestId: string): boolean {
         const answer = this.protocol.dismissQuestionAnswer(requestId);
+
         return answer?.kind === 'respond' ? this.respond(requestId, answer.rpcId, answer.result) : this.protocol.dismissQuestion(requestId);
     }
 
@@ -522,10 +626,13 @@ export class CodexBackend implements ChatBackend {
         if (this.protocol.dismissQuestion(requestId)) {
             return true;
         }
+
         const answer = this.protocol.declineRequest(requestId);
+
         if (!this.transport || !answer) {
             return false;
         }
+
         return this.respond(requestId, answer.rpcId, answer.result);
     }
 
@@ -536,16 +643,20 @@ export class CodexBackend implements ChatBackend {
     dispose(): Promise<void> {
         const transport = this.transport;
         this.transport = null;
+
         return Promise.all([transport?.dispose(), this.imageWrites]).then(() => undefined);
     }
 
     /* A request whose failure the person has to hear about, since it is the turn that cannot go on. */
     private request(method: string, params: unknown, accepted?: () => void): void {
         const transport = this.transport;
+
         if (!transport) {
             this.emit({ type: 'failed', message: 'Codex is not running' });
+
             return;
         }
+
         void transport
             .request(method, params)
             .then(() => {
@@ -564,18 +675,24 @@ export class CodexBackend implements ChatBackend {
         if (this.transport !== transport) {
             return;
         }
+
         const events = this.protocol.handle(frame);
+
         // A server request the protocol did not take still needs an answer, or Codex waits forever.
         if (frame.id !== undefined && events.length === 0 && (typeof frame.id === 'number' || typeof frame.id === 'string')) {
             transport.respondError(frame.id, -32601, `${this.client.title} does not handle ${String(frame.method)}`);
         }
+
         const nativeTurnId = frame.method === 'turn/started' && isRecord(frame.params) && frame.params.threadId === this.threadId ? this.protocol.turnId : null;
+
         if (nativeTurnId !== null) {
             if (this.turnUnnamed && this.promptId !== null) {
                 this.nativePrompt = { turnId: nativeTurnId, promptId: this.promptId };
             }
+
             this.acceptPrompt(this.promptId ?? undefined);
         }
+
         for (const event of events) {
             if (event.type === 'turn.done' && this.nativePrompt !== null && event.native?.turnId === this.nativePrompt.turnId) {
                 const promptId = this.nativePrompt.promptId;
@@ -585,8 +702,10 @@ export class CodexBackend implements ChatBackend {
                 this.emit(event);
             }
         }
+
         if (this.turnUnnamed && nativeTurnId !== null) {
             this.turnUnnamed = false;
+
             if (this.interruptOwed) {
                 this.interruptOwed = false;
                 this.interrupt();
@@ -598,6 +717,7 @@ export class CodexBackend implements ChatBackend {
         if (this.transport !== transport) {
             return;
         }
+
         this.transport = null;
         this.protocol.forgetPending();
         this.emit({ type: 'exit', exitCode, ...(stderr === null ? {} : { stderr }) });
@@ -607,6 +727,7 @@ export class CodexBackend implements ChatBackend {
         if (event.type === 'goal') {
             this.goalNow = event.goal;
         }
+
         // An older autonomous turn can finish while the next prompt still waits for its own turn/started.
         if ((event.type === 'turn.done' && (!this.turnUnnamed || event.promptId !== undefined)) || event.type === 'failed' || event.type === 'exit') {
             this.turnUnnamed = false;
@@ -614,6 +735,7 @@ export class CodexBackend implements ChatBackend {
             this.promptId = null;
             this.nativePrompt = null;
         }
+
         if (event.type === 'image.generated' || this.imageWrites !== null) {
             const pending = (this.imageWrites ?? Promise.resolve()).then(async () => {
                 if (event.type === 'image.generated') {
@@ -622,7 +744,9 @@ export class CodexBackend implements ChatBackend {
                     this.host.onEvent(event);
                 }
             });
+
             this.imageWrites = pending;
+
             void pending
                 .finally(() => {
                     if (this.imageWrites === pending) {
@@ -630,24 +754,30 @@ export class CodexBackend implements ChatBackend {
                     }
                 })
                 .catch(() => undefined);
+
             return;
         }
+
         this.host.onEvent(event);
     }
 
     private async storeImage(event: Extract<BackendEvent, { type: 'image.generated' }>): Promise<void> {
         const input = { revisedPrompt: event.revisedPrompt, transparentBackground: event.transparentBackground };
         let attachment;
+
         try {
             if (!this.launch.saveGeneratedImage) {
                 throw new Error('This machine cannot save generated images');
             }
+
             attachment = await this.launch.saveGeneratedImage(event.ref, event.upload);
         } catch (error) {
             this.host.onEvent({ type: 'tool.started', ref: event.ref, name: 'ImageGeneration', input, parentRef: null });
             this.host.onEvent({ type: 'tool.done', ref: event.ref, output: errorText(error), state: 'error' });
+
             return;
         }
+
         this.host.onEvent({
             type: 'tool.started',
             ref: event.ref,
@@ -662,6 +792,7 @@ export class CodexBackend implements ChatBackend {
             },
             parentRef: null
         });
+
         this.host.onEvent({ type: 'tool.done', ref: event.ref, output: null, state: 'done' });
     }
 }

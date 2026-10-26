@@ -25,7 +25,9 @@ function setup(generation = 1) {
     thread.upsert({ id: 'turn-1', kind: 'turn', createdAt: 0, turnId: 'turn-1', state: 'running', origin: 'user', endedAt: null, costUsd: 0 });
     let clock = 1;
     const projector = new ThreadProjector(thread, { providerName: 'Test CLI', now: () => clock++ });
+
     const project = (...events: BackendEvent[]) => events.flatMap((event) => projector.project(generation, event));
+
     return { thread, projector, project };
 }
 
@@ -34,8 +36,11 @@ function idleSetup() {
     const thread = new ChatThread({ ...info, status: 'idle', activeTurnId: null });
     let clock = 1;
     const projector = new ThreadProjector(thread, { providerName: 'Test CLI', now: () => clock++ });
+
     const project = (...events: BackendEvent[]) => events.flatMap((event) => projector.project(1, event));
+
     const openTurn = () => thread.list().find((item) => item.kind === 'turn');
+
     return { thread, project, openTurn };
 }
 
@@ -58,6 +63,7 @@ describe('ThreadProjector', () => {
 
     test('text streams into one item per ref and the generation keeps a resumed process apart', () => {
         const { thread, project } = setup();
+
         expect(project({ type: 'text.delta', ref: 'msg_1:t0', text: '' })[0]).toMatchObject({
             type: 'item',
             item: { id: '1:msg_1:t0', kind: 'assistant', text: '', streaming: true, turnId: 'turn-1' }
@@ -98,15 +104,18 @@ describe('ThreadProjector', () => {
         project({ type: 'tool.started', ref: 'toolu_1', name: 'Bash', input: { command: 'yes' }, parentRef: null });
         const chunk = 'y\n'.repeat(32 * 1024);
         let largest = 0;
+
         for (let i = 0; i < 800; i++) {
             const [delta] = project({ type: 'tool.output', ref: 'toolu_1', text: chunk });
             expect(delta).toEqual({ type: 'delta', itemId: '1:toolu_1', text: chunk });
+
             if (i % 100 === 0) {
                 const [report] = project({ type: 'tool.progress', ref: 'toolu_1', startedAt: 1000, description: null });
                 const reported = report?.type === 'item' && report.item.kind === 'tool' ? (report.item.progress?.output ?? '') : '';
                 largest = Math.max(largest, reported.length);
             }
         }
+
         const tool = thread.get('1:toolu_1');
         const output = tool?.kind === 'tool' ? (tool.progress?.output ?? '') : '';
         expect(output.length).toBeLessThanOrEqual(TOOL_OUTPUT_TAIL);
@@ -168,6 +177,7 @@ describe('ThreadProjector', () => {
 
     test('an approval waits under its request id and a withdrawal cancels it', () => {
         const { thread, project } = setup();
+
         project({
             type: 'approval.requested',
             requestId: 'r1',
@@ -177,6 +187,7 @@ describe('ThreadProjector', () => {
             description: 'Change a file',
             canAllowAlways: false
         });
+
         expect(thread.get('approval-r1')).toMatchObject({ kind: 'approval', toolUseId: 'toolu_9', toolName: 'Edit', decision: 'pending' });
         expect(thread.info.status).toBe('needs-you');
 
@@ -195,6 +206,7 @@ describe('ThreadProjector', () => {
             description: null,
             canAllowAlways: false
         });
+
         const { thread, project } = setup();
         project(approval('r1'), { type: 'turn.done', state: 'done', costUsd: 0 });
         expect(thread.get('approval-r1')).toMatchObject({ decision: 'pending' });
@@ -315,6 +327,7 @@ describe('ThreadProjector', () => {
     test('the last of stderr follows the reason in a code block that its own backticks cannot close', () => {
         const { thread, project } = setup();
         project({ type: 'exit', exitCode: 2, stderr: 'Error: no key\n```oops```' });
+
         expect(thread.list().at(-1)).toMatchObject({
             kind: 'note',
             level: 'error',
@@ -334,11 +347,13 @@ describe('ThreadProjector', () => {
 describe('thinking', () => {
     test('consecutive blocks are one item, and the first answer closes it', () => {
         const { thread, project } = setup();
+
         project(
             { type: 'thinking.delta', ref: 'm1:k0', text: 'first ' },
             { type: 'thinking.delta', ref: 'm1:k0', text: 'thought' },
             { type: 'thinking.delta', ref: 'm1:k1', text: 'second thought' }
         );
+
         const thinking = thread.list().filter((item) => item.kind === 'thinking');
         expect(thinking).toHaveLength(1);
         expect(thinking[0]).toMatchObject({ text: 'first thought\n\nsecond thought', streaming: true, endedAt: null, turnId: 'turn-1' });
@@ -353,11 +368,13 @@ describe('thinking', () => {
 
     test('a second stretch after the answer is its own item', () => {
         const { thread, project } = setup();
+
         project(
             { type: 'thinking.delta', ref: 'm1:k0', text: 'before' },
             { type: 'text.done', ref: 'm1:t0', text: 'partial' },
             { type: 'thinking.delta', ref: 'm2:k0', text: 'after' }
         );
+
         expect(
             thread
                 .list()
@@ -369,6 +386,7 @@ describe('thinking', () => {
     test('a done for a ref that already streamed adds nothing, and one that did not opens the item', () => {
         const { thread, project } = setup();
         project({ type: 'thinking.delta', ref: 'm1:k0', text: 'streamed' }, { type: 'thinking.done', ref: 'm1:k0', text: 'streamed' });
+
         expect(
             thread
                 .list()
@@ -378,6 +396,7 @@ describe('thinking', () => {
 
         const other = setup();
         other.project({ type: 'thinking.done', ref: 'r1', text: 'replayed' });
+
         expect(
             other.thread
                 .list()
@@ -408,6 +427,7 @@ describe('thinking', () => {
 describe('subagents', () => {
     test('a delegation opens a subagent row and its own work hangs under it', () => {
         const { thread, project } = setup();
+
         project({
             type: 'tool.started',
             ref: 'toolu_agent',
@@ -415,6 +435,7 @@ describe('subagents', () => {
             input: { description: 'Find the bug', subagent_type: 'general-purpose', prompt: 'look around' },
             parentRef: null
         });
+
         expect(thread.get('1:toolu_agent')).toMatchObject({
             kind: 'subagent',
             toolUseId: 'toolu_agent',
@@ -430,6 +451,7 @@ describe('subagents', () => {
         expect(thread.list().some((item) => item.kind === 'tool')).toBe(false);
 
         project({ type: 'task.started', ref: 'toolu_agent', description: 'Find the bug', subagentType: 'explorer', prompt: null, background: true });
+
         project({
             type: 'task.progress',
             ref: 'toolu_agent',
@@ -437,6 +459,7 @@ describe('subagents', () => {
             lastTool: 'Grep',
             usage: { totalTokens: 10, toolUses: 1, durationMs: 5 }
         });
+
         expect(thread.get('1:toolu_agent')).toMatchObject({
             background: true,
             summary: 'Running Grep',
@@ -449,6 +472,7 @@ describe('subagents', () => {
             { type: 'tool.done', ref: 'toolu_child', output: 'found', state: 'done' },
             { type: 'text.done', ref: 'msg_9:t0', text: 'the bug is in a.ts', parentRef: 'toolu_agent' }
         );
+
         const child = thread.get('1:toolu_child');
         expect(child).toMatchObject({ kind: 'tool', parentToolUseId: 'toolu_agent', state: 'done', turnId: 'turn-1' });
         expect(thread.get('1:msg_9:t0')).toMatchObject({ kind: 'assistant', parentToolUseId: 'toolu_agent', text: 'the bug is in a.ts' });
@@ -474,11 +498,13 @@ describe('subagents', () => {
 
     test('the turn a background subagent outlives keeps it running, and the process taking it down fails it', () => {
         const { thread, project } = setup();
+
         project(
             { type: 'tool.started', ref: 'toolu_agent', name: 'Agent', input: { run_in_background: true }, parentRef: null },
             { type: 'tool.done', ref: 'toolu_agent', output: 'Async agent launched successfully. agentId: a1 output_file: /tmp/a1.output', state: 'done' },
             { type: 'turn.done', state: 'done', costUsd: 0 }
         );
+
         expect(thread.get('1:toolu_agent')).toMatchObject({ status: 'running', background: true, outputFile: '/tmp/a1.output' });
 
         project({ type: 'exit', exitCode: 0 });
@@ -487,13 +513,16 @@ describe('subagents', () => {
 
     test('a foreground call settles its subagent with the report, without the footer the CLI appends', () => {
         const { thread, project } = setup();
+
         const footer =
             "\n\nagentId: agent_1 (use SendMessage with to: 'agent_1', summary: 'the report' to continue this agent)" +
             '\n<usage>subagent_tokens: 1500\ntool_uses: 2\nduration_ms: 250</usage>';
+
         project(
             { type: 'tool.started', ref: 'toolu_agent', name: 'Agent', input: { description: 'Read it' }, parentRef: null },
             { type: 'tool.done', ref: 'toolu_agent', output: `# Report\n\n- one${footer}`, state: 'done' }
         );
+
         expect(thread.get('1:toolu_agent')).toMatchObject({
             status: 'done',
             result: '# Report\n\n- one',
@@ -503,15 +532,18 @@ describe('subagents', () => {
 
         // A call that failed leaves the row failed, with whatever it did say.
         const other = setup();
+
         other.project(
             { type: 'tool.started', ref: 'toolu_agent', name: 'Task', input: {}, parentRef: null },
             { type: 'tool.done', ref: 'toolu_agent', output: 'it went wrong', state: 'error' }
         );
+
         expect(other.thread.get('1:toolu_agent')).toMatchObject({ status: 'failed', result: 'it went wrong' });
     });
 
     test('a notification settles a background subagent and names the turn the CLI opens next', () => {
         const { thread, project } = setup();
+
         project(
             { type: 'tool.started', ref: 'toolu_agent', name: 'Agent', input: { run_in_background: true }, parentRef: null },
             { type: 'tool.done', ref: 'toolu_agent', output: 'Async agent launched successfully.', state: 'done' },
@@ -520,6 +552,7 @@ describe('subagents', () => {
             { type: 'text.done', ref: 'msg_9:t0', text: 'the report', parentRef: 'toolu_agent' },
             { type: 'task.done', ref: 'toolu_agent', summary: 'read the docs', ok: true, usage: { totalTokens: 20, toolUses: 3, durationMs: 40 } }
         );
+
         expect(thread.get('1:toolu_agent')).toMatchObject({
             status: 'done',
             summary: 'read the docs',
@@ -539,6 +572,7 @@ describe('subagents', () => {
 
     test('a message that wakes a settled subagent runs its own row again, under the call that sent it', () => {
         const { thread, project } = setup();
+
         project(
             { type: 'tool.started', ref: 'toolu_agent', name: 'Agent', input: { description: 'Get a word' }, parentRef: null },
             { type: 'task.started', ref: 'toolu_agent', taskId: 'a522', description: 'Get a word', subagentType: null, prompt: null, background: false },
@@ -549,6 +583,7 @@ describe('subagents', () => {
             { type: 'task.started', ref: 'toolu_send', taskId: 'a522', description: 'Get a word', subagentType: null, prompt: null, background: true },
             { type: 'tool.done', ref: 'toolu_send', output: 'Resuming agent a522', state: 'done' }
         );
+
         expect(thread.get('1:toolu_agent')).toMatchObject({ status: 'running', background: true, finishedAt: null, native: { agentId: 'a522' } });
         expect(thread.get('1:toolu_send')).toMatchObject({ kind: 'tool' });
 
@@ -558,13 +593,17 @@ describe('subagents', () => {
             { type: 'text.done', ref: 'msg_5:t0', text: 'BANANA', parentRef: 'toolu_agent' },
             { type: 'task.done', ref: 'toolu_send', taskId: 'a522', summary: 'said banana', ok: true }
         );
+
         expect(thread.get('1:toolu_agent')).toMatchObject({ status: 'done', result: 'BANANA', summary: 'said banana', finishedAt: expect.any(Number) });
     });
 
     test('a subagent woken after its CLI started again writes into the row it had, not into nothing', () => {
         const { thread, projector } = setup();
+
         const first = (...events: BackendEvent[]) => events.flatMap((event) => projector.project(1, event));
+
         const second = (...events: BackendEvent[]) => events.flatMap((event) => projector.project(2, event));
+
         first(
             { type: 'tool.started', ref: 'toolu_agent', name: 'Agent', input: { description: 'Get a word' }, parentRef: null },
             { type: 'task.started', ref: 'toolu_agent', taskId: 'a522', description: 'Get a word', subagentType: null, prompt: null, background: false },
@@ -572,6 +611,7 @@ describe('subagents', () => {
             { type: 'task.done', ref: 'toolu_agent', taskId: 'a522', summary: null, ok: true },
             { type: 'tool.done', ref: 'toolu_agent', output: 'APPLE', state: 'done' }
         );
+
         // A new process, as after a restart or a change of model, wakes the agent with a message.
         second(
             { type: 'tool.started', ref: 'toolu_send', name: 'SendMessage', input: { to: 'a522' }, parentRef: null },
@@ -580,6 +620,7 @@ describe('subagents', () => {
             { type: 'text.done', ref: 'msg_1:t0', text: 'BANANA', parentRef: 'toolu_agent' },
             { type: 'task.done', ref: 'toolu_send', taskId: 'a522', summary: 'said banana', ok: true }
         );
+
         expect(thread.get('1:toolu_agent')).toMatchObject({ status: 'done', result: 'BANANA', summary: 'said banana' });
         expect(thread.get('2:toolu_read')).toMatchObject({ kind: 'tool', parentToolUseId: 'toolu_agent', turnId: 'turn-1' });
         expect(thread.get('2:toolu_agent')).toBeUndefined();
@@ -588,9 +629,11 @@ describe('subagents', () => {
     test('a subagent that works past the cap keeps the beginning and says it was cut', () => {
         const { thread, project } = setup();
         project({ type: 'tool.started', ref: 'toolu_agent', name: 'Agent', input: {}, parentRef: null });
+
         for (let i = 0; i < 205; i++) {
             project({ type: 'tool.started', ref: `child_${i}`, name: 'Read', input: {}, parentRef: 'toolu_agent' });
         }
+
         const children = thread.list().filter((item) => item.kind === 'tool' && item.parentToolUseId === 'toolu_agent');
         expect(children).toHaveLength(200);
         expect(thread.get('1:toolu_agent')).toMatchObject({ itemsTruncated: true });
@@ -598,25 +641,30 @@ describe('subagents', () => {
 
     test('a subagent whose text outgrows the cap stops collecting', () => {
         const { thread, project } = setup();
+
         project(
             { type: 'tool.started', ref: 'toolu_agent', name: 'Agent', input: {}, parentRef: null },
             { type: 'text.done', ref: 'msg_1:t0', text: 'x'.repeat(70 * 1024), parentRef: 'toolu_agent' },
             { type: 'tool.started', ref: 'child_late', name: 'Read', input: {}, parentRef: 'toolu_agent' }
         );
+
         expect(thread.get('1:child_late')).toBeUndefined();
         expect(thread.get('1:toolu_agent')).toMatchObject({ itemsTruncated: true });
     });
 
     test('a report handed in as the summary is one line on the header and stays whole on the row', () => {
         const { thread, project } = setup();
+
         const report =
             'Rewrote the parser so it reads the header before the body, which is what the spec asks for and what the old code only did by accident\n\n- the tests pass\n- nothing else changed';
+
         project(
             { type: 'tool.started', ref: 'toolu_agent', name: 'Agent', input: { run_in_background: true }, parentRef: null },
             { type: 'tool.done', ref: 'toolu_agent', output: 'Async agent launched successfully.', state: 'done' },
             { type: 'turn.done', state: 'done', costUsd: 0 },
             { type: 'task.done', ref: 'toolu_agent', summary: report, ok: true }
         );
+
         project({ type: 'text.done', ref: 'msg_1:t0', text: 'here is what it found' });
 
         const turn = thread.list().find((item) => item.kind === 'turn' && item.origin === 'agent');
@@ -678,6 +726,7 @@ describe('an agent a subagent opened', () => {
     test('hangs its row under the subagent that opened it, and keeps its own work out of the thread', () => {
         const { thread, project } = setup();
         project(...launch());
+
         expect(thread.get('1:toolu_leaf')).toMatchObject({
             kind: 'subagent',
             parentToolUseId: 'toolu_mid',
@@ -696,6 +745,7 @@ describe('an agent a subagent opened', () => {
             { type: 'tool.started', ref: 'toolu_bash', name: 'Bash', input: { command: 'echo PONG' }, parentRef: 'toolu_leaf' },
             { type: 'text.done', ref: 'msg_7:t0', text: 'PONG', parentRef: 'toolu_leaf' }
         );
+
         expect(thread.get('1:toolu_bash')).toBeUndefined();
         expect(thread.get('1:msg_7:t0')).toBeUndefined();
 
@@ -707,23 +757,27 @@ describe('an agent a subagent opened', () => {
             { type: 'task.done', ref: 'toolu_leaf', taskId: 'a-leaf', summary: 'PONG', ok: true },
             { type: 'tool.done', ref: 'toolu_leaf', output: "PONG\n\nagentId: a-leaf (use SendMessage with to: 'a-leaf')", state: 'done' }
         );
+
         expect(thread.get('1:toolu_leaf')).toMatchObject({ status: 'done', result: 'PONG' });
         expect(thread.get('1:toolu_mid')).toMatchObject({ status: 'running' });
     });
 
     test('a turn a person stops takes a foreground grandchild down with its foreground parent', () => {
         const { thread, project } = setup();
+
         project(
             { type: 'tool.started', ref: 'toolu_mid', name: 'Agent', input: { description: 'middle agent' }, parentRef: null },
             { type: 'tool.started', ref: 'toolu_leaf', name: 'Agent', input: { description: 'leaf agent' }, parentRef: 'toolu_mid' },
             { type: 'turn.done', state: 'aborted', costUsd: 0 }
         );
+
         expect(thread.get('1:toolu_mid')).toMatchObject({ status: 'failed' });
         expect(thread.get('1:toolu_leaf')).toMatchObject({ status: 'failed' });
     });
 
     test('its notification never takes the header of the turn its parent wakes', () => {
         const { thread, project } = setup();
+
         project(
             ...launch(),
             { type: 'task.done', ref: 'toolu_mid', taskId: 'a-mid', summary: 'The leaf said PONG', ok: true },
@@ -731,6 +785,7 @@ describe('an agent a subagent opened', () => {
             { type: 'task.done', ref: 'toolu_leaf', taskId: 'a-leaf', summary: 'PONG', ok: true },
             { type: 'text.done', ref: 'msg_9:t0', text: 'The chain is done' }
         );
+
         const woken = thread.list().find((item) => item.kind === 'turn' && item.origin === 'agent');
         expect(woken).toMatchObject({ label: 'The leaf said PONG', taskToolUseId: 'toolu_mid' });
         expect(thread.get('1:toolu_leaf')).toMatchObject({ status: 'done', summary: 'PONG' });
@@ -738,17 +793,20 @@ describe('an agent a subagent opened', () => {
 
     test('names the turn when a grandchild alone woke the agent', () => {
         const { thread, project } = setup();
+
         project(
             ...launch(),
             { type: 'task.done', ref: 'toolu_leaf', taskId: 'a-leaf', summary: 'PONG', ok: true },
             { type: 'text.done', ref: 'msg_9:t0', text: 'The leaf is done' }
         );
+
         const woken = thread.list().find((item) => item.kind === 'turn' && item.origin === 'agent');
         expect(woken).toMatchObject({ label: 'PONG', taskToolUseId: 'toolu_leaf' });
     });
 
     test('one opened by a grandchild, whose call the stream never showed, gets no row of its own', () => {
         const { thread, project } = setup();
+
         project(
             ...launch(),
             {
@@ -765,6 +823,7 @@ describe('an agent a subagent opened', () => {
             { type: 'task.done', ref: 'toolu_deep', taskId: 'a-deep', summary: 'deep', ok: true },
             { type: 'text.done', ref: 'msg_9:t0', text: 'done' }
         );
+
         expect(thread.get('1:toolu_deep')).toBeUndefined();
         expect(thread.list().find((item) => item.kind === 'turn' && item.origin === 'agent')).toMatchObject({ label: 'The leaf said PONG' });
     });
@@ -774,11 +833,13 @@ describe('background tasks', () => {
     test('a workflow call runs on past its turn and settles when its task ends, with what the notification says', () => {
         const { thread, project } = setup();
         const launched = 'Workflow launched in background. Task ID: w1\nRun ID: wf_1';
+
         project(
             { type: 'tool.started', ref: 'toolu_wf', name: 'Workflow', input: { script: 'export const meta = {}' }, parentRef: null },
             { type: 'tool.done', ref: 'toolu_wf', output: launched, state: 'done' },
             { type: 'turn.done', state: 'done', costUsd: 0 }
         );
+
         expect(thread.get('1:toolu_wf')).toMatchObject({ kind: 'tool', state: 'running', output: launched });
 
         project({ type: 'task.done', ref: 'toolu_wf', taskId: 'w1', summary: 'Dynamic workflow "Review" completed', ok: true });
@@ -789,21 +850,25 @@ describe('background tasks', () => {
 
         // One the process takes down with it failed.
         const other = setup();
+
         other.project(
             { type: 'tool.started', ref: 'toolu_wf', name: 'Workflow', input: {}, parentRef: null },
             { type: 'tool.done', ref: 'toolu_wf', output: launched, state: 'done' },
             { type: 'exit', exitCode: 0 }
         );
+
         expect(other.thread.get('1:toolu_wf')).toMatchObject({ state: 'error' });
     });
 
     test("a workflow's row carries the latest report of its phases and agents, after its turn as well", () => {
         const { thread, project } = setup();
         const writer = { index: 1, label: 'write-file', phaseIndex: 1, agentId: 'a8a1', startedAt: 10, durationMs: null, lastTool: null };
+
         const phases = [
             { index: 1, title: 'Write' },
             { index: 2, title: 'Read' }
         ];
+
         project(
             { type: 'tool.started', ref: 'toolu_wf', name: 'Workflow', input: {}, parentRef: null },
             { type: 'workflow.progress', ref: 'toolu_wf', workflow: { name: 'write-and-read', phases: [], agents: [] } },
@@ -811,6 +876,7 @@ describe('background tasks', () => {
             { type: 'workflow.progress', ref: 'toolu_wf', workflow: { name: null, phases, agents: [{ ...writer, status: 'running' }] } },
             { type: 'turn.done', state: 'done', costUsd: 0 }
         );
+
         expect(thread.get('1:toolu_wf')).toMatchObject({ state: 'running', workflow: { name: 'write-and-read', phases, agents: [{ status: 'running' }] } });
 
         const reader = {
@@ -823,16 +889,20 @@ describe('background tasks', () => {
             durationMs: 5,
             lastTool: 'Read'
         };
+
         const settled = { name: null, phases, agents: [{ ...writer, status: 'done' as const, durationMs: 9 }, reader] };
+
         project(
             { type: 'workflow.progress', ref: 'toolu_wf', workflow: settled },
             { type: 'task.done', ref: 'toolu_wf', taskId: 'w1', summary: null, ok: true }
         );
+
         expect(thread.get('1:toolu_wf')).toMatchObject({ state: 'done', workflow: { ...settled, name: 'write-and-read' } });
     });
 
     test('a task takes its kind and command from the call that started it and leaves with its process', () => {
         const { thread, project } = setup();
+
         project(
             { type: 'tool.started', ref: 'toolu_b', name: 'Bash', input: { command: 'bun run dev', run_in_background: true }, parentRef: null },
             { type: 'tool.started', ref: 'toolu_m', name: 'Monitor', input: { command: 'tail -f log' }, parentRef: null },
@@ -840,10 +910,12 @@ describe('background tasks', () => {
             { type: 'background.started', taskId: 'm', ref: 'toolu_m', monitor: false, description: 'Watch the log' },
             { type: 'background.started', taskId: 'b', ref: 'toolu_b', monitor: false, description: 'Start the dev server' }
         );
+
         expect(thread.info.background).toEqual([
             { id: 'b', kind: 'shell', description: 'Start the dev server', command: 'bun run dev', startedAt: expect.any(Number) },
             { id: 'm', kind: 'monitor', description: 'Watch the log', command: 'tail -f log', startedAt: expect.any(Number) }
         ]);
+
         project({ type: 'background.ended', taskId: 'b' });
         expect(thread.info.background?.map((task) => task.id)).toEqual(['m']);
         project({ type: 'exit', exitCode: 0 });
@@ -852,11 +924,13 @@ describe('background tasks', () => {
 
     test('a call that runs on past its turn keeps its row running and settles it without opening a turn', () => {
         const { thread, project } = setup();
+
         project(
             { type: 'tool.started', ref: 'exec', name: 'Bash', input: { command: 'bun run dev' }, parentRef: null },
             { type: 'background.started', taskId: '44653', ref: 'exec', monitor: false, description: null },
             { type: 'turn.done', state: 'done', costUsd: 0 }
         );
+
         expect(thread.get('1:exec')).toMatchObject({ state: 'running' });
         expect(thread.info.background).toEqual([{ id: '44653', kind: 'shell', description: '', command: 'bun run dev', startedAt: expect.any(Number) }]);
         project({ type: 'tool.done', ref: 'exec', output: 'stopped', state: 'error' }, { type: 'background.ended', taskId: '44653' });
@@ -961,23 +1035,29 @@ describe('the wire', () => {
 
     test('every event the projector writes, and the thread it leaves, passes the chat.event schema', () => {
         const kinds = new Set<string>();
+
         for (const scenario of scenarios) {
             const thread = new ChatThread(scenario.idle ? { ...info, status: 'idle', activeTurnId: null } : info);
+
             if (!scenario.idle) {
                 thread.upsert({ id: 'turn-1', kind: 'turn', createdAt: 0, turnId: 'turn-1', state: 'running', origin: 'user', endedAt: null, costUsd: 0 });
             }
+
             let clock = 1;
             const projector = new ThreadProjector(thread, { providerName: 'Test CLI', now: () => clock++ });
             const events: ChatEvent[] = scenario.events.flatMap((event) => projector.project(1, event));
             events.push({ type: 'reset', info: thread.info, items: thread.list() });
+
             events.forEach((event, index) => {
                 const parsed = AGENT_EVENT_SCHEMAS['chat.event'].safeParse({ chatId: 'c', event, seq: index + 1 });
                 expect(parsed.error?.issues ?? []).toEqual([]);
+
                 if (event.type === 'item') {
                     kinds.add(event.item.kind);
                 }
             });
         }
+
         expect([...kinds].sort()).toEqual(['approval', 'assistant', 'compaction', 'note', 'question', 'subagent', 'thinking', 'tool', 'turn']);
     });
 });
@@ -985,6 +1065,7 @@ describe('the wire', () => {
 test('a nested start and model snapshot arriving before its tool retain their known parent and native identity', () => {
     const { thread, project, projector } = setup();
     project({ type: 'tool.started', ref: 'parent', name: 'Agent', input: {}, parentRef: null });
+
     project({
         type: 'task.started',
         ref: 'child',
@@ -995,9 +1076,11 @@ test('a nested start and model snapshot arriving before its tool retain their kn
         background: true,
         depth: 2
     });
+
     project({ type: 'task.model', ref: 'child', model: 'first-model' });
     expect(thread.get('1:child')).toBeUndefined();
     project({ type: 'tool.started', ref: 'child', name: 'Agent', input: {}, parentRef: 'parent' });
+
     expect(thread.get('1:child')).toMatchObject({
         parentToolUseId: 'parent',
         model: 'first-model',
@@ -1006,6 +1089,7 @@ test('a nested start and model snapshot arriving before its tool retain their kn
         background: true,
         native: { agentId: 'native-child' }
     });
+
     project({ type: 'task.model', ref: 'child', model: 'updated-model' });
     expect(thread.get('1:child')).toMatchObject({ parentToolUseId: 'parent', model: 'updated-model' });
     project({ type: 'task.model', ref: 'never-placed', model: 'old' });
@@ -1017,6 +1101,7 @@ test('a nested start and model snapshot arriving before its tool retain their kn
 test('a live transport failure withdraws requests without declaring its background agent dead or opening a phantom turn', () => {
     const { thread, project } = idleSetup();
     project({ type: 'task.started', ref: 'native', description: 'Native child', subagentType: null, prompt: null, background: true });
+
     project({
         type: 'approval.requested',
         requestId: 'background-approval',
@@ -1027,6 +1112,7 @@ test('a live transport failure withdraws requests without declaring its backgrou
         canAllowAlways: false,
         background: true
     });
+
     project({ type: 'failed', message: 'pipe unavailable', processAlive: true });
     expect(thread.list().some((item) => item.kind === 'turn')).toBe(false);
     expect(thread.get('1:native')).toMatchObject({ status: 'running' });
@@ -1043,8 +1129,10 @@ test('provider completion preserves UI query metadata and its replay', () => {
     const final = project({ type: 'text.done', ref: 'answer', text: 'final', parentRef: null });
     expect(thread.get('1:answer')).toMatchObject({ text: 'final', uiQueries });
     const restored = new ChatThread(info);
+
     for (const event of [...initial, patch, ...final]) {
         restored.apply(event);
     }
+
     expect(restored.get('1:answer')).toMatchObject({ text: 'final', uiQueries });
 });

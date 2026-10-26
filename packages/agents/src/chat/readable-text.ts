@@ -10,9 +10,12 @@ export function readableAssistantText(item: Pick<ChatAssistantItem, 'text' | 'ui
     if (!item.ui?.length) {
         return item.text;
     }
+
     const blocks = item.ui.map((block) => {
         const frozen = item.uiQueries?.blocks[block.id];
+
         return frozen && frozen.revision === block.revision ? { ...block, fallback: frozen.fallback } : block;
     });
+
     return uiFallbackText(item.text, blocks);
 }

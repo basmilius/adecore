@@ -9,6 +9,7 @@ afterEach(() => setSystemTime());
 
 function reply(text: string, fenceLanguage?: string): ChatAssistantItem {
     const ui = compileUi(text, { id: 'reply', final: true, ...(fenceLanguage ? { fenceLanguage } : {}) });
+
     return { id: 'reply', kind: 'assistant', createdAt: 1, turnId: 't', text, streaming: false, ui };
 }
 
@@ -33,6 +34,7 @@ describe('the readable text of an assistant', () => {
                 '```ui\n<Summary badge="2 blocking">Review</Summary><Steps><Step state="pending" detail="Make a backup first; otherwise changes are lost.">Migration</Step></Steps><Stats><Stat label="Build" value={42} unit="s"/></Stats>\n```'
             )
         );
+
         expect(text).toContain('Review (2 blocking)');
         expect(text).toContain('Migration (pending): Make a backup first; otherwise changes are lost.');
         expect(text).toContain('Build: 42 s');
@@ -41,10 +43,12 @@ describe('the readable text of an assistant', () => {
     test('takes the frozen fallback of a block only at the revision it was frozen for', () => {
         const item = reply('```ui\n<Summary>Overview</Summary>\n```');
         const block = item.ui![0]!;
+
         const frozen = (revision: string): ChatAssistantItem => ({
             ...item,
             uiQueries: { authorChatId: 'c', blocks: { [block.id]: { revision, readings: {}, fallback: 'Overview with 7 runs' } } }
         });
+
         expect(readableAssistantText(frozen(block.revision!))).toContain('Overview with 7 runs');
         expect(readableAssistantText(frozen('older'))).not.toContain('7 runs');
     });

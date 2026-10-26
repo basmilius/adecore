@@ -15,15 +15,18 @@ describe('ClaudeProtocol', () => {
         let now = 0;
         const protocol = new ClaudeProtocol(null, () => now);
         const cache: Array<{ at: number; event: unknown }> = [];
+
         for (const [index, frame] of nativeChildrenCapture.frames.entries()) {
             // A clock that moves a second per frame, so each lifetime shows when its request started.
             now = index * 1000;
+
             for (const event of protocol.handle(frame)) {
                 if (event.type === 'usage' && event.cacheTtlMs !== undefined) {
                     cache.push({ at: index, event });
                 }
             }
         }
+
         // The capture runs on a subscription: the main agent writes for an hour, its subagents for five minutes.
         expect(cache.length).toBeGreaterThan(1);
         expect(cache[0]).toEqual({ at: 11, event: { type: 'usage', cacheTtlMs: 3_600_000, cacheExpiresAt: 11_000 + 3_600_000 } });
@@ -37,12 +40,16 @@ describe('ClaudeProtocol', () => {
     test('takes the shorter lifetime of a mixed write, keeps it through a response that only read, and names none it does not know', () => {
         let now = 0;
         const protocol = new ClaudeProtocol(null, () => now);
+
         const start = (id: string, usage: unknown) => protocol.handle({ type: 'stream_event', event: { type: 'message_start', message: { id, usage } } });
+
         expect(start('msg-1', { cache_creation_input_tokens: 10, cache_read_input_tokens: 0 })).toEqual([]);
         expect(start('msg-2', { cache_creation: { ephemeral_5m_input_tokens: 4, ephemeral_1h_input_tokens: 6 }, cache_read_input_tokens: 0 })).toEqual([
             { type: 'usage', cacheTtlMs: 300_000, cacheExpiresAt: 300_000 }
         ]);
+
         now = 60_000;
+
         expect(start('msg-3', { cache_creation: { ephemeral_5m_input_tokens: 0, ephemeral_1h_input_tokens: 0 }, cache_read_input_tokens: 900 })).toEqual([
             { type: 'usage', cacheTtlMs: 300_000, cacheExpiresAt: 360_000 }
         ]);
@@ -50,10 +57,12 @@ describe('ClaudeProtocol', () => {
         expect(start('msg-4', { cache_creation: { ephemeral_5m_input_tokens: 0, ephemeral_1h_input_tokens: 0 }, cache_read_input_tokens: 0 })).toEqual([]);
         // Without partial messages, the first assistant frame of a response stands in for its start.
         now = 90_000;
+
         const assistant = (id: string) => ({
             type: 'assistant',
             message: { id, content: [], usage: { cache_creation: { ephemeral_1h_input_tokens: 5 }, cache_read_input_tokens: 0 } }
         });
+
         expect(protocol.handle(assistant('msg-5'))).toContainEqual({ type: 'usage', cacheTtlMs: 3_600_000, cacheExpiresAt: 3_690_000 });
         now = 95_000;
         expect(protocol.handle(assistant('msg-5')).some((event) => event.type === 'usage' && event.cacheTtlMs !== undefined)).toBe(false);
@@ -62,6 +71,7 @@ describe('ClaudeProtocol', () => {
     test('a new process that only reads the cache moves the expiry by the lifetime the chat knew from before', () => {
         const start = (protocol: ClaudeProtocol) =>
             protocol.handle({ type: 'stream_event', event: { type: 'message_start', message: { id: 'msg-1', usage: { cache_read_input_tokens: 900 } } } });
+
         expect(start(new ClaudeProtocol(null, () => 1000, 300_000))).toEqual([{ type: 'usage', cacheTtlMs: 300_000, cacheExpiresAt: 301_000 }]);
         expect(start(new ClaudeProtocol(null, () => 1000))).toEqual([]);
     });
@@ -72,6 +82,7 @@ describe('ClaudeProtocol', () => {
             const protocol = new ClaudeProtocol(null, () => 0);
             protocol.beginPrompt('compact-prompt');
             protocol.handle({ type: 'rate_limit_event', rate_limit_info: { status: 'rejected', resetsAt: 500 } });
+
             expect(
                 protocol.handle({ type: 'result', subtype: 'success', origin, num_turns: 0, total_cost_usd: 0.2 }).some((event) => event.type === 'turn.done')
             ).toBe(false);
@@ -106,6 +117,7 @@ describe('ClaudeProtocol', () => {
 
     test('live native children retain nine identities through nesting and SendMessage reuse', () => {
         const protocol = new ClaudeProtocol();
+
         const thread = new ChatThread({
             chatId: 'native-fixture',
             provider: 'claude',
@@ -121,11 +133,14 @@ describe('ClaudeProtocol', () => {
             usage: { contextTokens: 0, contextWindow: null, costUsd: 0, turns: 0 },
             createdAt: 1
         });
+
         const projector = new ThreadProjector(thread, { providerName: 'Claude' });
         const events = nativeChildrenCapture.frames.flatMap((frame) => protocol.handle(frame));
+
         for (const event of events) {
             projector.project(1, event);
         }
+
         const rows = thread.list().filter((item) => item.kind === 'subagent');
         expect(rows).toHaveLength(9);
         expect(new Set(rows.map((item) => item.native?.agentId)).size).toBe(9);
@@ -133,10 +148,12 @@ describe('ClaudeProtocol', () => {
         const nested = rows.find((item) => item.summary === 'OCT1-NATIVE-NESTED');
         expect(nested).toBeDefined();
         expect(nested?.parentToolUseId).toBe(rows.find((item) => item.description?.includes('agent 8'))?.toolUseId);
+
         for (const number of [1, 2]) {
             const reused = rows.find((item) => item.description === `OCT1-NATIVE agent ${number}`);
             expect(reused).toMatchObject({ status: 'done', result: `OCT1-NATIVE-REUSED-${number}` });
         }
+
         expect(events.filter((event) => event.type === 'task.started')).toHaveLength(11);
         expect(events.filter((event) => event.type === 'task.done')).toHaveLength(11);
     });
@@ -148,6 +165,7 @@ describe('ClaudeProtocol', () => {
         expect(protocol.handle({ type: 'result', subtype: 'success', origin: 'human', user_message_uuids: ['current'] })).toContainEqual(
             expect.objectContaining({ type: 'turn.done', promptId: 'current' })
         );
+
         protocol.beginPrompt('legacy');
         expect(protocol.handle({ type: 'result', subtype: 'success' })).toContainEqual({ type: 'turn.done', state: 'done', costUsd: 0 });
         expect(protocol.handle({ type: 'result', subtype: 'success', origin: { kind: 'task-notification' } })).toContainEqual(
@@ -161,6 +179,7 @@ describe('ClaudeProtocol', () => {
     ] as const) {
         test(`a late background ${toolName} request waits without opening a main turn`, () => {
             const protocol = new ClaudeProtocol();
+
             const thread = new ChatThread({
                 chatId: 'probe',
                 provider: 'claude',
@@ -176,22 +195,29 @@ describe('ClaudeProtocol', () => {
                 usage: { contextTokens: 0, contextWindow: null, costUsd: 0, turns: 0 },
                 createdAt: 1
             });
+
             const projector = new ThreadProjector(thread, { providerName: 'Claude' });
+
             const events = protocol.handle({
                 type: 'control_request',
                 request_id: 'child-request',
                 request: { subtype: 'can_use_tool', tool_name: toolName, input, tool_use_id: 'child-tool', agent_id: 'background-agent' }
             });
+
             expect(events).toHaveLength(1);
+
             for (const event of events) {
                 projector.project(1, event);
             }
+
             expect(thread.info).toMatchObject({ status: 'needs-you', activeTurnId: null });
             expect(thread.list().some((item) => item.kind === 'turn')).toBe(false);
             expect(thread.pending()).toHaveLength(1);
+
             for (const event of protocol.handle({ type: 'control_cancel_request', request_id: 'child-request' })) {
                 projector.project(1, event);
             }
+
             expect(thread.info).toMatchObject({ status: 'idle', activeTurnId: null });
         });
     }
@@ -203,6 +229,7 @@ describe('ClaudeProtocol', () => {
                 request_id: 'root-request',
                 request: { subtype: 'can_use_tool', tool_name: 'Bash', input: {}, agent_id: agentId }
             });
+
             expect(events).toHaveLength(1);
             expect(events[0]).not.toHaveProperty('background');
         }
@@ -215,6 +242,7 @@ describe('ClaudeProtocol', () => {
             { type: 'permissions', permissionMode: 'default', effectiveRuntimeMode: 'supervised' }
         ]);
     });
+
     test('reports the actual init permission mode, including a fallback from Auto', () => {
         for (const [permissionMode, effectiveRuntimeMode] of Object.entries({
             default: 'supervised',
@@ -224,16 +252,20 @@ describe('ClaudeProtocol', () => {
         })) {
             expect(new ClaudeProtocol().handle({ type: 'system', subtype: 'init', permissionMode })[0]).toMatchObject({ permissionMode, effectiveRuntimeMode });
         }
+
         expect(new ClaudeProtocol().handle({ type: 'system', subtype: 'init', permissionMode: 'plan' })[0]).toMatchObject({ permissionMode: 'plan' });
         expect(new ClaudeProtocol().handle({ type: 'system', subtype: 'init', permissionMode: 'plan' })[0]).not.toHaveProperty('effectiveRuntimeMode');
     });
+
     test('the init frame reports the session, and text streams under one ref per block', () => {
         const protocol = new ClaudeProtocol();
+
         expect(protocol.handle({ type: 'system', subtype: 'init', session_id: 'sid', model: 'm', slash_commands: ['compact'], skills: ['unslop'] })).toEqual([
             { type: 'session', agentSessionId: 'sid', model: 'm', slashCommands: ['compact'], skills: ['unslop'] }
         ]);
 
         protocol.handle({ type: 'stream_event', event: { type: 'message_start', message: { id: 'msg_1' } } });
+
         expect(protocol.handle({ type: 'stream_event', event: { type: 'content_block_start', index: 0, content_block: { type: 'thinking' } } })).toEqual([
             { type: 'thinking.delta', ref: 'msg_1:k0', text: '' }
         ]);
@@ -260,17 +292,23 @@ describe('ClaudeProtocol', () => {
 
     test('blocks of a message keep counting while other messages come between, and the counts stay bounded', () => {
         const protocol = new ClaudeProtocol();
+
         const text = (id: string, parent?: string) =>
             protocol.handle({ type: 'assistant', parent_tool_use_id: parent, message: { id, content: [{ type: 'text', text: id }] } });
+
         expect(text('long')[0]).toMatchObject({ ref: 'long:t0' });
+
         for (let i = 0; i < 100; i++) {
             text(`agent-${i}`, 'toolu_task');
         }
+
         expect(text('long')[0]).toMatchObject({ ref: 'long:t1' });
+
         for (let i = 0; i < 10_000; i++) {
             text(`msg-${i}`);
             protocol.handle({ type: 'assistant', message: { id: `msg-${i}`, content: [{ type: 'thinking', thinking: 'hm' }] } });
         }
+
         const counts = protocol as unknown as { frameTextCount: Map<string, number>; frameThinkingCount: Map<string, number> };
         expect(counts.frameTextCount.size).toBeLessThanOrEqual(256);
         expect(counts.frameThinkingCount.size).toBeLessThanOrEqual(256);
@@ -278,6 +316,7 @@ describe('ClaudeProtocol', () => {
 
     test('a tool call and its result carry the CLI tool use id as the ref', () => {
         const protocol = new ClaudeProtocol();
+
         expect(
             protocol.handle({
                 type: 'assistant',
@@ -296,11 +335,13 @@ describe('ClaudeProtocol', () => {
             type: 'user',
             message: { role: 'user', content: [{ tool_use_id: 'toolu_1', type: 'tool_result', content: [{ type: 'text', text: 'nope' }], is_error: true }] }
         });
+
         expect(failed).toEqual([{ type: 'tool.done', ref: 'toolu_1', output: 'nope', state: 'error' }]);
     });
 
     test('a subagent frame keeps the call that spawned it and reports no context of its own', () => {
         const protocol = new ClaudeProtocol();
+
         expect(
             protocol.handle({
                 type: 'assistant',
@@ -323,7 +364,9 @@ describe('ClaudeProtocol', () => {
 
     test('a subagent frame names its model once, and again only when it changes', () => {
         const protocol = new ClaudeProtocol();
+
         const frame = (id: string, model: string) => ({ type: 'assistant', parent_tool_use_id: 'toolu_task', message: { id, model, content: [] } });
+
         expect(protocol.handle(frame('msg_1', 'claude-sonnet-5'))).toEqual([{ type: 'task.model', ref: 'toolu_task', model: 'claude-sonnet-5' }]);
         expect(protocol.handle(frame('msg_2', 'claude-sonnet-5'))).toEqual([]);
         expect(protocol.handle(frame('msg_3', '<synthetic>'))).toEqual([]);
@@ -334,6 +377,7 @@ describe('ClaudeProtocol', () => {
 
     test('a delegation reports itself as a task, with what it is and what it spends', () => {
         const protocol = new ClaudeProtocol();
+
         expect(
             protocol.handle({
                 type: 'assistant',
@@ -410,11 +454,14 @@ describe('ClaudeProtocol', () => {
 
     test('progress frames report a description and how long a call has run', () => {
         const protocol = new ClaudeProtocol();
+
         expect(protocol.handle({ type: 'system', subtype: 'task_started', tool_use_id: 'toolu_2', description: 'Wait a while' })).toEqual([
             { type: 'tool.progress', ref: 'toolu_2', startedAt: null, description: 'Wait a while' }
         ]);
+
         // A clock that stands still, so the start is exactly thirty seconds back however slow the runner is.
         jest.useFakeTimers();
+
         try {
             const now = Date.now();
             const [progress] = protocol.handle({ type: 'tool_progress', tool_use_id: 'toolu_2', tool_name: 'Bash', elapsed_time_seconds: 30 });
@@ -423,6 +470,7 @@ describe('ClaudeProtocol', () => {
         } finally {
             jest.useRealTimers();
         }
+
         expect(protocol.handle({ type: 'tool_progress', tool_use_id: 'toolu_2', elapsed_time_seconds: 'soon' })).toEqual([]);
         // A background subagent reports through task_progress instead.
         expect(protocol.handle({ type: 'system', subtype: 'task_progress', tool_use_id: 'toolu_3', description: 'Running Sleep for 20 seconds' })).toEqual([
@@ -432,6 +480,7 @@ describe('ClaudeProtocol', () => {
 
     test('a task notification carries what the background task came to', () => {
         const protocol = new ClaudeProtocol();
+
         expect(
             protocol.handle({
                 type: 'system',
@@ -486,6 +535,7 @@ describe('ClaudeProtocol', () => {
     test('a permission request waits for an answer and its response carries the suggested rule', () => {
         const protocol = new ClaudeProtocol();
         const suggestions = [{ type: 'addRules', rules: [{ toolName: 'Bash', ruleContent: 'date:*' }] }];
+
         expect(
             protocol.handle({
                 type: 'control_request',
@@ -526,11 +576,13 @@ describe('ClaudeProtocol', () => {
 
     test('a decline carries the reason the person typed', () => {
         const protocol = new ClaudeProtocol();
+
         protocol.handle({
             type: 'control_request',
             request_id: 'r2',
             request: { subtype: 'can_use_tool', tool_name: 'Bash', input: {}, tool_use_id: 'toolu_1' }
         });
+
         expect(protocol.approvalResponse('r2', 'deny', 'not that')).toMatchObject({
             response: { response: { behavior: 'deny', message: 'not that' } }
         });
@@ -538,6 +590,7 @@ describe('ClaudeProtocol', () => {
 
     test('AskUserQuestion becomes a question, answered by id and sent back keyed by text', () => {
         const protocol = new ClaudeProtocol();
+
         const events = protocol.handle({
             type: 'control_request',
             request_id: 'q1',
@@ -548,6 +601,7 @@ describe('ClaudeProtocol', () => {
                 tool_use_id: 'toolu_q'
             }
         });
+
         expect(events).toEqual([
             {
                 type: 'question.requested',
@@ -569,6 +623,7 @@ describe('ClaudeProtocol', () => {
 
     test("a background agent's request outlives the result, and a decline turns it down under the agent's own call", () => {
         const protocol = new ClaudeProtocol();
+
         protocol.handle({
             type: 'control_request',
             request_id: 'r4',
@@ -580,7 +635,9 @@ describe('ClaudeProtocol', () => {
                 agent_id: 'a-1'
             }
         });
+
         protocol.handle({ type: 'result', subtype: 'success', is_error: false, total_cost_usd: 0 });
+
         expect(protocol.declineResponse('r4', 'The user stopped the turn')).toEqual({
             type: 'control_response',
             response: { subtype: 'success', request_id: 'r4', response: { behavior: 'deny', message: 'The user stopped the turn', toolUseID: 'toolu_q' } }
@@ -591,6 +648,7 @@ describe('ClaudeProtocol', () => {
     test('the result frame ends the turn with the cost, and the window it reports is left alone', () => {
         const protocol = new ClaudeProtocol();
         protocol.handle({ type: 'system', subtype: 'init', session_id: 'sid', model: 'm' });
+
         // `modelUsage.contextWindow` is the model's maximum even on a run without `[1m]`, so nothing reads it.
         expect(
             protocol.handle({ type: 'result', subtype: 'success', is_error: false, total_cost_usd: 0.02, modelUsage: { m: { contextWindow: 1000000 } } })
@@ -605,6 +663,7 @@ describe('ClaudeProtocol', () => {
         protocol.handle({ type: 'assistant', uuid: 'u-1', message: { id: 'm1', content: [{ type: 'text', text: 'first' }] } });
         protocol.handle({ type: 'assistant', uuid: 'u-2', message: { id: 'm2', content: [{ type: 'text', text: 'last' }] } });
         protocol.handle({ type: 'assistant', uuid: 'u-sub', parent_tool_use_id: 'toolu_9', message: { id: 'm3', content: [{ type: 'text', text: 'sub' }] } });
+
         expect(protocol.handle({ type: 'result', subtype: 'success', is_error: false, total_cost_usd: 0 })).toEqual([
             { type: 'turn.done', state: 'done', costUsd: 0, native: { lastUuid: 'u-2' } }
         ]);
@@ -616,6 +675,7 @@ describe('ClaudeProtocol', () => {
 
     test('a compaction boundary reports the size before the fold', () => {
         const protocol = new ClaudeProtocol();
+
         expect(protocol.handle({ type: 'system', subtype: 'compact_boundary', compact_metadata: { trigger: 'auto', pre_tokens: 150000 } })).toEqual([
             { type: 'compaction', preTokens: 150000 }
         ]);
@@ -630,6 +690,7 @@ describe('ClaudeProtocol', () => {
     // The frames Claude Code 2.1.281 writes when the API turns a request away.
     const refused = (protocol: ClaudeProtocol, error: string, text: string): unknown[] => {
         protocol.handle({ type: 'assistant', uuid: 'u-1', message: { id: 'm1', model: '<synthetic>', content: [{ type: 'text', text }] }, error });
+
         return protocol.handle({ type: 'result', subtype: 'success', is_error: true, api_error_status: 429, result: text, total_cost_usd: 0 });
     };
 
@@ -637,6 +698,7 @@ describe('ClaudeProtocol', () => {
         test(`only an explicit main-chain authentication failure replaces the process: ${error}`, () => {
             const protocol = new ClaudeProtocol();
             const done = refused(protocol, error, 'Please /login again')[0];
+
             if (error === 'authentication_failed') {
                 expect(done).toHaveProperty('replaceProcess', true);
             } else {
@@ -657,11 +719,13 @@ describe('ClaudeProtocol', () => {
     test('sparse rejections preserve a future reset within a turn and across usage failures', () => {
         const protocol = new ClaudeProtocol();
         const reset = Math.ceil(Date.now() / 1000) + 600;
+
         const rejection = (resetsAt?: number) =>
             protocol.handle({
                 type: 'rate_limit_event',
                 rate_limit_info: { status: 'rejected', rateLimitType: 'five_hour', ...(resetsAt === undefined ? {} : { resetsAt }) }
             });
+
         protocol.beginPrompt('first');
         rejection(reset);
         rejection();
@@ -677,14 +741,17 @@ describe('ClaudeProtocol', () => {
         test(`a cached reset cannot survive ${recovery}`, () => {
             let protocol = new ClaudeProtocol();
             const reset = Math.ceil(Date.now() / 1000) + 600;
+
             const rejection = (extra: Record<string, unknown> = {}) =>
                 protocol.handle({
                     type: 'rate_limit_event',
                     rate_limit_info: { status: 'rejected', rateLimitType: 'five_hour', ...extra }
                 });
+
             rejection({ resetsAt: reset });
             refused(protocol, 'rate_limit', 'Usage limit');
             protocol.beginPrompt('next');
+
             if (recovery === 'success' || recovery === 'other-error') {
                 protocol.handle({ type: 'result', is_error: recovery === 'other-error' });
             } else if (recovery === 'overload') {
@@ -698,7 +765,9 @@ describe('ClaudeProtocol', () => {
             } else if (recovery === 'new-process') {
                 protocol = new ClaudeProtocol();
             }
+
             const clock = recovery === 'expired' ? jest.spyOn(Date, 'now').mockReturnValue(reset * 1000) : null;
+
             try {
                 rejection();
                 const done = refused(protocol, 'rate_limit', 'Usage limit')[0];
@@ -720,10 +789,12 @@ describe('ClaudeProtocol', () => {
 
     test('a cached reset in one window cannot hide an unknown current window', () => {
         const protocol = new ClaudeProtocol();
+
         protocol.handle({
             type: 'rate_limit_event',
             rate_limit_info: { status: 'rejected', rateLimitType: 'five_hour', resetsAt: Math.ceil(Date.now() / 1000) + 600 }
         });
+
         refused(protocol, 'rate_limit', 'Usage limit');
         protocol.beginPrompt('next');
         protocol.handle({ type: 'rate_limit_event', rate_limit_info: { status: 'rejected', rateLimitType: 'five_hour' } });
@@ -733,10 +804,12 @@ describe('ClaudeProtocol', () => {
 
     test('a different or unidentified sparse window cannot borrow a cached reset', () => {
         const protocol = new ClaudeProtocol();
+
         protocol.handle({
             type: 'rate_limit_event',
             rate_limit_info: { status: 'rejected', rateLimitType: 'five_hour', resetsAt: Math.ceil(Date.now() / 1000) + 600 }
         });
+
         refused(protocol, 'rate_limit', 'Usage limit');
         protocol.beginPrompt('next');
         protocol.handle({ type: 'rate_limit_event', rate_limit_info: { status: 'rejected', rateLimitType: 'seven_day' } });
@@ -746,10 +819,12 @@ describe('ClaudeProtocol', () => {
 
     test('a turn a spent window of the plan refused ends with a usage limit and its reset', () => {
         const protocol = new ClaudeProtocol(null, () => 0);
+
         protocol.handle({
             type: 'rate_limit_event',
             rate_limit_info: { status: 'rejected', resetsAt: 1_789_000_000, rateLimitType: 'five_hour', utilization: 1 }
         });
+
         expect(refused(protocol, 'rate_limit', "You've hit your session limit · resets 3pm")).toEqual([
             {
                 type: 'turn.done',
@@ -777,13 +852,16 @@ describe('ClaudeProtocol', () => {
     for (const reverse of [false, true]) {
         test(`all refused windows use the latest reset with reverse order ${reverse}`, () => {
             const protocol = new ClaudeProtocol(null, () => 0);
+
             const windows = [
                 { status: 'rejected', rateLimitType: 'seven_day', resetsAt: 900 },
                 { status: 'rejected', rateLimitType: 'five_hour', resetsAt: 500 }
             ];
+
             for (const window of reverse ? windows.toReversed() : windows) {
                 protocol.handle({ type: 'rate_limit_event', rate_limit_info: window });
             }
+
             expect(refused(protocol, 'rate_limit', 'Usage limit')).toMatchObject([{ limit: { kind: 'usage', resetsAt: 900000 } }]);
         });
     }
@@ -839,6 +917,7 @@ describe('ClaudeProtocol', () => {
     test('a refused window on a turn that still answered is no limit', () => {
         const protocol = new ClaudeProtocol(null, () => 0);
         protocol.handle({ type: 'rate_limit_event', rate_limit_info: { status: 'rejected', resetsAt: 1_789_000_000, rateLimitType: 'five_hour' } });
+
         expect(protocol.handle({ type: 'result', subtype: 'success', is_error: false, total_cost_usd: 0 })).toEqual([
             { type: 'turn.done', state: 'done', costUsd: 0 }
         ]);
@@ -846,6 +925,7 @@ describe('ClaudeProtocol', () => {
 
     test('what a turn says about the plan leaves the chat as a limits event', () => {
         const protocol = new ClaudeProtocol(null, () => 0);
+
         expect(
             protocol.handle({ type: 'rate_limit_event', rate_limit_info: { rateLimitType: 'five_hour', utilization: 0.31, resetsAt: 1_789_000_000 } })
         ).toEqual([
@@ -861,8 +941,10 @@ describe('ClaudeProtocol', () => {
 
     test('a command or a monitor in the background is started once and ended by whatever says so first', () => {
         const protocol = new ClaudeProtocol();
+
         const started = (taskId: string, extra: Record<string, unknown>) =>
             protocol.handle({ type: 'system', subtype: 'task_started', task_id: taskId, description: 'Watch the build', ...extra });
+
         expect(started('b1', { task_type: 'local_bash', tool_use_id: 'toolu_b1', is_backgrounded: true })).toEqual([
             { type: 'background.started', taskId: 'b1', ref: 'toolu_b1', monitor: false, description: 'Watch the build' },
             { type: 'tool.progress', ref: 'toolu_b1', startedAt: null, description: 'Watch the build' }
@@ -886,6 +968,7 @@ describe('ClaudeProtocol', () => {
 
     test('a foreground command joins the background only once the CLI moves it there', () => {
         const protocol = new ClaudeProtocol();
+
         expect(
             protocol.handle({
                 type: 'system',
@@ -932,7 +1015,9 @@ describe('ClaudeProtocol', () => {
                     ]
                 }
             });
+
         const byStatus = new ClaudeProtocol();
+
         expect(launch(byStatus)).toEqual([
             { type: 'workflow.progress', ref: 'toolu_wf', workflow: { name: null, taskId: 'wtbdiuq1l', phases: [], agents: [] } },
             { type: 'tool.done', ref: 'toolu_wf', output: expect.stringMatching(/^Workflow launched in background/), state: 'done' }
@@ -943,6 +1028,7 @@ describe('ClaudeProtocol', () => {
         expect(byStatus.handle({ type: 'system', subtype: 'task_updated', task_id: 'wtbdiuq1l', patch: { status: 'failed' } })).toEqual([]);
 
         const byNotification = new ClaudeProtocol();
+
         byNotification.handle({
             type: 'system',
             subtype: 'task_started',
@@ -952,7 +1038,9 @@ describe('ClaudeProtocol', () => {
             task_type: 'local_workflow',
             workflow_name: 'review'
         });
+
         const summary = 'Dynamic workflow "Review the PR" completed';
+
         expect(
             byNotification.handle({ type: 'system', subtype: 'task_notification', task_id: 'w2', tool_use_id: 'toolu_wf2', status: 'completed', summary })
         ).toEqual([{ type: 'task.done', ref: 'toolu_wf2', taskId: 'w2', summary, ok: true, usage: null, outputFile: null }]);
@@ -962,6 +1050,7 @@ describe('ClaudeProtocol', () => {
     // As Claude Code 2.1.282 streamed a two-phase workflow, trimmed to what is read.
     test("a workflow's progress is its phases and agents, whole, from the frames that carry it", () => {
         const protocol = new ClaudeProtocol();
+
         expect(
             protocol.handle({
                 type: 'system',
@@ -976,6 +1065,7 @@ describe('ClaudeProtocol', () => {
             { type: 'workflow.progress', ref: 'toolu_wf', workflow: { name: 'write-and-read-workflow', taskId: 'w4u5arky1', phases: [], agents: [] } },
             { type: 'tool.progress', ref: 'toolu_wf', startedAt: null, description: 'Write alpha to a.txt in phase 1, then read it in phase 2' }
         ]);
+
         const progress = (extra: Record<string, unknown>) =>
             protocol.handle({
                 type: 'system',
@@ -987,6 +1077,7 @@ describe('ClaudeProtocol', () => {
                 last_tool_name: 'read-file',
                 ...extra
             });
+
         // Most frames only count; they say nothing about the phases.
         expect(progress({})).toEqual([{ type: 'tool.progress', ref: 'toolu_wf', startedAt: null, description: 'Read: read-file' }]);
         expect(
@@ -1086,6 +1177,7 @@ describe('goals', () => {
         protocol.beginPrompt('33333333-3333-4333-8333-333333333333');
         const events = goalCapture.frames.flatMap((frame) => protocol.handle(frame));
         const goals = events.filter((event) => event.type === 'goal');
+
         expect(goals.map((event) => event.goal)).toEqual([
             { objective, status: 'active', checks: 0 },
             expect.objectContaining({ objective, status: 'active', checks: 1 }),
@@ -1115,6 +1207,7 @@ describe('goals', () => {
     test('a turn that ends while a background agent still runs leaves the goal active, since the check waits for it', () => {
         const protocol = new ClaudeProtocol({ objective: 'docs written', status: 'active', checks: 0 });
         protocol.beginPrompt('prompt');
+
         protocol.handle({
             type: 'system',
             subtype: 'task_started',
@@ -1123,6 +1216,7 @@ describe('goals', () => {
             task_type: 'local_agent',
             is_backgrounded: true
         });
+
         protocol.handle({ type: 'assistant', message: { id: 'm1', model: 'claude', content: [{ type: 'text', text: 'started a helper' }] } });
         const ended = protocol.handle({ type: 'result', subtype: 'success', is_error: false, user_message_uuids: ['prompt'] });
         expect(ended.some((event) => event.type === 'goal')).toBe(false);

@@ -114,17 +114,21 @@ export interface AcpTurnUsage {
  */
 export function promptUsageOf(result: unknown): AcpTurnUsage | null {
     const response = z.looseObject({ usage: PromptUsageSchema }).safeParse(result);
+
     if (!response.success) {
         return null;
     }
+
     const usage = response.data.usage;
     const cacheRead = usage.cachedReadTokens ?? 0;
     const cacheWrite = usage.cachedWriteTokens ?? 0;
     const apart = usage.inputTokens + usage.outputTokens + cacheRead + cacheWrite <= usage.totalTokens;
     const input = apart ? usage.inputTokens : Math.max(0, usage.inputTokens - cacheRead - cacheWrite);
+
     if (input + cacheRead + cacheWrite + usage.outputTokens === 0) {
         return null;
     }
+
     return { input, cacheRead, cacheWrite, output: usage.outputTokens, reasoning: usage.thoughtTokens ?? 0 };
 }
 
@@ -157,6 +161,7 @@ const ModelEntrySchema = z.looseObject({ modelId: z.string(), name: z.string(), 
 /* The context window an agent names for a model in the model's `_meta` (`totalContextTokens`, not part of the protocol); null where it names none. */
 function contextWindowOf(meta: unknown): number | null {
     const tokens = isRecord(meta) ? meta.totalContextTokens : undefined;
+
     return typeof tokens === 'number' && Number.isSafeInteger(tokens) && tokens > 0 ? tokens : null;
 }
 
@@ -166,6 +171,7 @@ function contextWindowOf(meta: unknown): number | null {
  */
 function vendorContextTokens(meta: unknown): number | null {
     const tokens = isRecord(meta) ? meta.totalTokens : undefined;
+
     return typeof tokens === 'number' && Number.isSafeInteger(tokens) && tokens > 0 ? tokens : null;
 }
 
@@ -196,6 +202,7 @@ const SessionResponseSchema = z.looseObject({ sessionId: z.string().optional() }
 function validItems<T>(schema: z.ZodType<T>, items: readonly unknown[] | null | undefined): T[] {
     return (items ?? []).flatMap((item) => {
         const parsed = schema.safeParse(item);
+
         return parsed.success ? [parsed.data] : [];
     });
 }
@@ -223,12 +230,15 @@ export interface AcpAgentCapabilities {
 
 export function parseInitialize(result: unknown): AcpAgentCapabilities {
     const parsed = InitializeResponseSchema.safeParse(result);
+
     if (!parsed.success) {
         throw new Error('initialize failed: the agent answered with something that is not an initialize response');
     }
+
     const capabilities = parsed.data.agentCapabilities;
     const sessions = capabilities?.sessionCapabilities;
     const agent = parsed.data.agentInfo;
+
     return {
         protocolVersion: parsed.data.protocolVersion,
         loadSession: capabilities?.loadSession === true,
@@ -297,6 +307,7 @@ type ConfigOption = z.infer<typeof ConfigOptionSchema>;
 /* The values of a select option, grouped or not. */
 function selectValues(option: ConfigOption): Array<z.infer<typeof SelectValueSchema>> {
     const flat = (option.options ?? []).flatMap((entry) => (isRecord(entry) && Array.isArray(entry.options) ? entry.options : [entry]));
+
     return validItems(SelectValueSchema, flat);
 }
 
@@ -317,12 +328,14 @@ export function thoughtLevelOf(result: unknown): AcpThoughtLevel | null | undefi
     if (!isRecord(result) || !Array.isArray(result.configOptions)) {
         return undefined;
     }
+
     return sessionState(validItems(ConfigOptionSchema, result.configOptions), null, null).thoughtLevel;
 }
 
 export function parseSessionInfo(result: unknown, sessionId: string, agent: AcpAgentInfo | null): AcpSessionInfo {
     const record = isRecord(result) ? result : {};
     const options = validItems(ConfigOptionSchema, Array.isArray(record.configOptions) ? record.configOptions : []);
+
     return { sessionId, agent, ...sessionState(options, record.modes, record.models) };
 }
 
@@ -335,6 +348,7 @@ function sessionState(options: ConfigOption[], modes: unknown, models: unknown):
     const entries = modelState.success ? validItems(ModelEntrySchema, modelState.data.availableModels) : [];
     // Grok CLI 1.0.62 offers its models as a config option too, but names their windows only in the older field.
     const windows = new Map(entries.map((model) => [model.modelId, contextWindowOf(model._meta)]));
+
     return {
         models: modelOption
             ? {
@@ -389,10 +403,13 @@ function commandNames(commands: unknown): string[] {
 /* The session a `session/update` notification is for, and the commands it lists when it is an `available_commands_update`; null when it does not parse. */
 export function sessionUpdateOf(params: unknown): { sessionId: string; commands: string[] | null } | null {
     const notification = SessionNotificationSchema.safeParse(params);
+
     if (!notification.success) {
         return null;
     }
+
     const update = notification.data.update;
+
     return {
         sessionId: notification.data.sessionId,
         commands: update.sessionUpdate === 'available_commands_update' ? commandNames(update.availableCommands) : null
@@ -401,6 +418,7 @@ export function sessionUpdateOf(params: unknown): { sessionId: string; commands:
 
 export function sessionIdOf(result: unknown): string | null {
     const parsed = SessionResponseSchema.safeParse(result);
+
     return parsed.success ? (parsed.data.sessionId ?? null) : null;
 }
 
@@ -415,10 +433,12 @@ export function resolveAcpMode(requested: RuntimeMode, map: AcpModeMap, offered:
     for (let index = MODE_ORDER.indexOf(requested); index >= 0; index--) {
         const runtimeMode = MODE_ORDER[index]!;
         const modeId = (map[runtimeMode] ?? []).find((candidate) => offered.includes(candidate));
+
         if (modeId !== undefined) {
             return { modeId, runtimeMode };
         }
     }
+
     return null;
 }
 
@@ -426,10 +446,12 @@ export function resolveAcpMode(requested: RuntimeMode, map: AcpModeMap, offered:
 export function runtimeModeOf(modeId: string, map: AcpModeMap): RuntimeMode | null {
     for (let index = MODE_ORDER.length - 1; index >= 0; index--) {
         const runtimeMode = MODE_ORDER[index]!;
+
         if ((map[runtimeMode] ?? []).includes(modeId)) {
             return runtimeMode;
         }
     }
+
     return null;
 }
 
@@ -443,6 +465,7 @@ const AUTO_ALLOWED: Record<RuntimeMode, ReadonlySet<string> | 'all'> = {
 
 export function autoAllows(mode: RuntimeMode, kind: string | null): boolean {
     const allowed = AUTO_ALLOWED[mode];
+
     return allowed === 'all' || (kind !== null && allowed.has(kind));
 }
 
@@ -450,27 +473,37 @@ export function autoAllows(mode: RuntimeMode, kind: string | null): boolean {
 export function unifiedDiff(oldText: string, newText: string): string | null {
     const lines = (text: string): string[] => {
         const split = text === '' ? [] : text.split('\n');
+
         if (split.at(-1) === '') {
             split.pop();
         }
+
         return split;
     };
+
     const before = lines(oldText);
     const after = lines(newText);
     let prefix = 0;
+
     while (prefix < before.length && prefix < after.length && before[prefix] === after[prefix]) {
         prefix++;
     }
+
     let suffix = 0;
+
     while (suffix < before.length - prefix && suffix < after.length - prefix && before[before.length - 1 - suffix] === after[after.length - 1 - suffix]) {
         suffix++;
     }
+
     const removed = before.slice(prefix, before.length - suffix);
     const added = after.slice(prefix, after.length - suffix);
+
     if (removed.length === 0 && added.length === 0) {
         return null;
     }
+
     const range = (count: number): string => `${count === 0 ? prefix : prefix + 1},${count}`;
+
     return (
         [`@@ -${range(removed.length)} +${range(added.length)} @@`, ...removed.map((line) => `-${line}`), ...added.map((line) => `+${line}`)].join('\n') + '\n'
     );
@@ -534,15 +567,19 @@ function rawField(raw: unknown, ...keys: string[]): string | null {
     if (!isRecord(raw)) {
         return null;
     }
+
     for (const key of keys) {
         const value = raw[key];
+
         if (Array.isArray(value) && value.every((part) => typeof part === 'string') && value.length > 0) {
             return value.join(' ');
         }
+
         if (filledStr(value) !== null) {
             return value as string;
         }
     }
+
     return null;
 }
 
@@ -554,28 +591,38 @@ export function toolRow(tool: Pick<ToolState, 'title' | 'name' | 'kind' | 'rawIn
 } {
     const description = tool.title;
     const path = tool.locations[0] ?? rawField(tool.rawInput, 'file_path', 'path', 'filePath') ?? null;
+
     if (tool.diffs.length > 0) {
         const paths = new Set(tool.diffs.map((diff) => diff.path));
+
         if (paths.size === 1) {
             const [first] = tool.diffs;
+
             if (tool.diffs.length === 1 && (first!.oldText ?? null) === null) {
                 return { name: 'Write', input: { file_path: first!.path, content: first!.newText, description } };
             }
+
             if (tool.diffs.length === 1) {
                 return { name: 'Edit', input: { file_path: first!.path, old_string: first!.oldText, new_string: first!.newText, description } };
             }
+
             return {
                 name: 'MultiEdit',
                 input: { file_path: first!.path, edits: tool.diffs.map((diff) => ({ old_string: diff.oldText ?? '', new_string: diff.newText })), description }
             };
         }
+
         const changes = tool.diffs.flatMap((diff): ChatFileChange[] => {
             const text = unifiedDiff(diff.oldText ?? '', diff.newText);
+
             return text === null ? [] : [{ path: diff.path, kind: (diff.oldText ?? null) === null ? 'add' : 'update', diff: text }];
         });
+
         return { name: 'ApplyPatch', input: { summary: [...paths].join(', '), description }, changes };
     }
+
     const raw = isRecord(tool.rawInput) ? tool.rawInput : {};
+
     switch (tool.kind) {
         case 'execute':
             return { name: 'Bash', input: { ...raw, description, command: rawField(tool.rawInput, ...COMMAND_KEYS) ?? description } };
@@ -585,6 +632,7 @@ export function toolRow(tool: Pick<ToolState, 'title' | 'name' | 'kind' | 'rawIn
             return { name: 'Grep', input: { ...raw, description, pattern: rawField(tool.rawInput, 'pattern', 'query', 'regex') ?? description } };
         case 'fetch': {
             const url = rawField(tool.rawInput, 'url', 'uri');
+
             return url === null
                 ? { name: 'WebSearch', input: { ...raw, description, query: rawField(tool.rawInput, 'query') ?? description } }
                 : { name: 'WebFetch', input: { ...raw, description, url } };
@@ -601,13 +649,17 @@ function toolOutput(tool: ToolState): string | null {
     if (tool.text.length > 0) {
         return tool.text.join('\n');
     }
+
     if (typeof tool.rawOutput === 'string') {
         return tool.rawOutput;
     }
+
     if (isRecord(tool.rawOutput)) {
         const text = rawField(tool.rawOutput, 'output', 'stdout', 'content', 'result', 'error', 'message');
+
         return text ?? JSON.stringify(tool.rawOutput);
     }
+
     return null;
 }
 
@@ -670,14 +722,18 @@ const OVERLOADED_TYPES = /\b(overloaded_error|service_unavailable_error)\b/;
  */
 export function acpErrorLimit(code: number | null, data: unknown, kind: AgentKind | null): ChatTurnLimit | null {
     const text = typeof data === 'string' ? data : isRecord(data) && typeof data.message === 'string' ? data.message : '';
+
     if (code === GROK_RATE_LIMITED && kind === 'grok') {
         return text.includes(GROK_FREE_USAGE) ? { kind: 'usage' } : { kind: 'overload' };
     }
+
     if (code !== -32603) {
         return null;
     }
+
     const status = isRecord(data) && typeof data.http_status === 'number' ? data.http_status : null;
     const overloaded = status === 529 || OVERLOADED_TYPES.test(text) || (status !== null && status >= 500 && /overloaded/i.test(text));
+
     return overloaded ? { kind: 'overload' } : null;
 }
 
@@ -696,25 +752,33 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
  */
 export function quotaResetOf(text: string, now: number): number | null {
     const relative = /will reset in ([^.]+)\./.exec(text);
+
     if (relative) {
         let total = 0;
         let smallest = Infinity;
+
         for (const part of relative[1]!.split(',')) {
             const amount = /^(\d+) (second|minute|hour|day)s?$/.exec(part.trim());
+
             if (!amount) {
                 return null;
             }
+
             const unit = UNIT_MS[amount[2]!]!;
             total += Number(amount[1]) * unit;
             smallest = Math.min(smallest, unit);
         }
+
         return now + total + smallest;
     }
+
     const absolute = /will reset on ([A-Z][a-z]{2}) (\d{1,2}), (\d{4}) (\d{2}):(\d{2}) UTC\./.exec(text);
     const month = absolute ? MONTHS.indexOf(absolute[1]!) : -1;
+
     if (!absolute || month === -1) {
         return null;
     }
+
     return Date.UTC(Number(absolute[3]), month, Number(absolute[2]), Number(absolute[4]), Number(absolute[5])) + UNIT_MS.minute!;
 }
 
@@ -723,19 +787,24 @@ function pickedLabels(answer: string, labels: readonly string[], multiSelect: bo
     if (labels.includes(answer)) {
         return [answer];
     }
+
     if (!multiSelect) {
         return null;
     }
+
     // A label may hold `, ` itself, so the pieces join up again until they make one.
     const picked: string[] = [];
     let part = '';
+
     for (const piece of answer.split(', ')) {
         part = part === '' ? piece : `${part}, ${piece}`;
+
         if (labels.includes(part)) {
             picked.push(part);
             part = '';
         }
     }
+
     return part === '' && picked.length > 0 ? picked : null;
 }
 
@@ -789,9 +858,11 @@ export class AcpProtocol {
     /* One `session/update` notification; empty for another session, an unknown update or one that does not parse. */
     update(sessionId: string, params: unknown): BackendEvent[] {
         const notification = SessionNotificationSchema.safeParse(params);
+
         if (!notification.success || notification.data.sessionId !== sessionId) {
             return [];
         }
+
         return [...this.mapUpdate(notification.data.update), ...this.vendorUsage(notification.data._meta)];
     }
 
@@ -804,6 +875,7 @@ export class AcpProtocol {
             case 'tool_call':
             case 'tool_call_update': {
                 const call = ToolCallSchema.safeParse(update);
+
                 return call.success ? [...this.closeText(), ...this.closeThought(), ...this.toolCall(call.data)] : [];
             }
             case 'plan':
@@ -815,6 +887,7 @@ export class AcpProtocol {
             case 'config_option_update': {
                 const options = validItems(ConfigOptionSchema, Array.isArray(update.configOptions) ? update.configOptions : []);
                 const state = sessionState(options, null, null);
+
                 return [
                     ...(state.models === null ? [] : [{ type: 'model', model: state.models.current } as const]),
                     ...(state.modes === null ? [] : [this.modeEvent(state.modes.current)])
@@ -822,21 +895,27 @@ export class AcpProtocol {
             }
             case 'usage_update': {
                 const usage = UsageSchema.safeParse(update);
+
                 if (!usage.success) {
                     return [];
                 }
+
                 this.standardUsage = true;
                 const cost = usage.data.cost?.currency === 'USD' ? usage.data.cost.amount : undefined;
+
                 if (cost !== undefined) {
                     this.costUsd = cost;
                 }
+
                 return [{ type: 'usage', contextTokens: usage.data.used, contextWindow: usage.data.size, ...(cost === undefined ? {} : { costUsd: cost }) }];
             }
             case 'session_info_update': {
                 if (!this.titles) {
                     return [];
                 }
+
                 const title = cleanTitle(update.title);
+
                 return title === null || this.restatesPrompt(title) ? [] : [{ type: 'title', title }];
             }
             default:
@@ -847,10 +926,13 @@ export class AcpProtocol {
     /* The fallback for an agent that sends no `usage_update`: its own count of the context, once each time it changes. */
     private vendorUsage(meta: unknown): BackendEvent[] {
         const tokens = this.standardUsage ? null : vendorContextTokens(meta);
+
         if (tokens === null || tokens === this.vendorTokens) {
             return [];
         }
+
         this.vendorTokens = tokens;
+
         return [{ type: 'usage', contextTokens: tokens }];
     }
 
@@ -867,26 +949,31 @@ export class AcpProtocol {
      */
     private restatesPrompt(title: string): boolean {
         const start = foldSpace(title.endsWith('…') ? title.slice(0, -1) : title);
+
         return start !== '' && this.prompts.some((prompt) => prompt.startsWith(start));
     }
 
     modeEvent(modeId: string): BackendEvent {
         const runtimeMode = runtimeModeOf(modeId, this.modes);
+
         return { type: 'permissions', permissionMode: modeId, ...(runtimeMode === null ? {} : { effectiveRuntimeMode: runtimeMode }) };
     }
 
     /* A `session/request_permission` request; null when it does not parse, which the caller answers with an error. */
     permission(rpcId: number | string, sessionId: string, params: unknown): AcpPermission | null {
         const request = PermissionRequestSchema.safeParse(params);
+
         if (!request.success || request.data.sessionId !== sessionId) {
             return null;
         }
+
         const requestId = `acp-${this.generation}-${String(rpcId)}`;
         const events = [...this.closeText(), ...this.closeThought(), ...this.toolCall(request.data.toolCall, false)];
         const tool = this.tools.get(request.data.toolCall.toolCallId)!;
         const row = toolRow(tool);
         const options = request.data.options;
         this.permissions.set(requestId, { rpcId, toolCallId: request.data.toolCall.toolCallId, options });
+
         events.push({
             type: 'approval.requested',
             requestId,
@@ -896,8 +983,10 @@ export class AcpProtocol {
             description: tool.title === '' ? null : tool.title,
             canAllowAlways: options.some((option) => option.kind === 'allow_always')
         });
+
         const command = rawField(tool.rawInput, ...COMMAND_KEYS);
         const asked = { kind: tool.kind, title: tool.title === '' ? null : tool.title, commands: [...(command === null ? [] : [command]), ...tool.text] };
+
         return { requestId, rpcId, kind: tool.kind, request: asked, events };
     }
 
@@ -908,41 +997,53 @@ export class AcpProtocol {
      */
     answer(requestId: string, decision: ApprovalDecision): { rpcId: number | string; result: unknown; events: BackendEvent[] } | null {
         const pending = this.permissions.get(requestId);
+
         if (!pending) {
             return null;
         }
+
         this.permissions.delete(requestId);
+
         const byKind = (...kinds: string[]): string | null => {
             for (const kind of kinds) {
                 const option = pending.options.find((candidate) => candidate.kind === kind);
+
                 if (option) {
                     return option.optionId;
                 }
             }
+
             return null;
         };
+
         const optionId =
             decision === 'allow-always'
                 ? byKind('allow_always', 'allow_once')
                 : decision === 'allow'
                   ? byKind('allow_once', 'allow_always')
                   : byKind('reject_once', 'reject_always');
+
         const result = { outcome: optionId === null ? { outcome: 'cancelled' } : { outcome: 'selected', optionId } };
         const tool = this.tools.get(pending.toolCallId);
+
         if (decision !== 'deny' || tool === undefined) {
             return { rpcId: pending.rpcId, result, events: [] };
         }
+
         tool.refused = true;
         this.refusalLine = true;
+
         return { rpcId: pending.rpcId, result, events: this.toolCall({ toolCallId: pending.toolCallId }, false) };
     }
 
     /* A Grok `ask_user_question` request; null when it does not parse or asks nothing, which the caller answers with an error. */
     question(rpcId: number | string, sessionId: string, params: unknown): AcpQuestion | null {
         const request = GrokQuestionRequestSchema.safeParse(params);
+
         if (!request.success || request.data.sessionId !== sessionId) {
             return null;
         }
+
         const questions = validItems(GrokQuestionSchema, request.data.questions).map((question, index): ChatQuestion => ({
             id: String(index),
             header: question.header ?? '',
@@ -950,9 +1051,11 @@ export class AcpProtocol {
             choices: validItems(GrokChoiceSchema, question.options).map((choice) => ({ label: choice.label, description: choice.description ?? '' })),
             multiSelect: question.multiSelect === true
         }));
+
         if (questions.length === 0) {
             return null;
         }
+
         return this.ask(rpcId, { shape: 'grok', rpcId, questions });
     }
 
@@ -962,15 +1065,19 @@ export class AcpProtocol {
      */
     interaction(rpcId: number | string, sessionId: string, params: unknown): AcpQuestion | null {
         const request = PermissionRequestSchema.safeParse(params);
+
         if (!request.success || request.data.sessionId !== sessionId) {
             return null;
         }
+
         const call = request.data.toolCall;
         const raw = call.rawInput;
         const bare = raw === undefined || raw === null || (isRecord(raw) && Object.keys(raw).length === 0);
+
         if (!call.toolCallId.startsWith(INTERACTION_PREFIX) || !bare || call.kind || request.data.options.length === 0) {
             return null;
         }
+
         const question: ChatQuestion = {
             id: '0',
             header: '',
@@ -978,6 +1085,7 @@ export class AcpProtocol {
             choices: request.data.options.map((option) => ({ label: option.name, description: '' })),
             multiSelect: false
         };
+
         return this.ask(rpcId, { shape: 'interaction', rpcId, question, options: request.data.options });
     }
 
@@ -985,19 +1093,24 @@ export class AcpProtocol {
         const requestId = `acp-${this.generation}-${String(rpcId)}`;
         this.questions.set(requestId, pending);
         const questions = pending.shape === 'grok' ? pending.questions : [pending.question];
+
         return { requestId, rpcId, events: [...this.closeText(), ...this.closeThought(), { type: 'question.requested', requestId, questions }] };
     }
 
     /* The answer to a question in the agent's own shape, from the card's answers keyed by question id. */
     answerQuestion(requestId: string, answers: Record<string, string>): { rpcId: number | string; result: unknown; events: BackendEvent[] } | null {
         const pending = this.questions.get(requestId);
+
         if (!pending) {
             return null;
         }
+
         this.questions.delete(requestId);
+
         if (pending.shape === 'interaction') {
             const given = (answers[pending.question.id] ?? '').trim();
             const option = pending.options.find((candidate) => candidate.name === given) ?? pending.options.find((candidate) => candidate.optionId === given);
+
             if (option === undefined) {
                 return {
                     rpcId: pending.rpcId,
@@ -1005,25 +1118,33 @@ export class AcpProtocol {
                     events: [{ type: 'note', level: 'warning', text: this.words.ownAnswer }]
                 };
             }
+
             return { rpcId: pending.rpcId, result: { outcome: { outcome: 'selected', optionId: option.optionId } }, events: [] };
         }
+
         const picked: Record<string, string[]> = {};
         const notes: Record<string, { notes: string }> = {};
+
         for (const question of pending.questions) {
             const given = answers[question.id];
+
             if (given === undefined) {
                 continue;
             }
+
             const labels = pickedLabels(
                 given,
                 question.choices.map((choice) => choice.label),
                 question.multiSelect
             );
+
             picked[question.question] = labels ?? [GROK_OWN_ANSWER];
+
             if (labels === null) {
                 notes[question.question] = { notes: given };
             }
         }
+
         return {
             rpcId: pending.rpcId,
             result: { outcome: 'accepted', answers: picked, ...(Object.keys(notes).length === 0 ? {} : { annotations: notes }) },
@@ -1034,10 +1155,13 @@ export class AcpProtocol {
     /* Turns one question down, in the shape its agent takes a refusal in. */
     cancelQuestion(requestId: string): { rpcId: number | string; result: unknown } | null {
         const pending = this.questions.get(requestId);
+
         if (!pending) {
             return null;
         }
+
         this.questions.delete(requestId);
+
         return { rpcId: pending.rpcId, result: cancelledAnswer(pending) };
     }
 
@@ -1051,8 +1175,10 @@ export class AcpProtocol {
             })),
             ...[...this.questions].map(([requestId, pending]) => ({ requestId, rpcId: pending.rpcId, result: cancelledAnswer(pending) }))
         ];
+
         this.permissions.clear();
         this.questions.clear();
+
         return cancelled;
     }
 
@@ -1078,29 +1204,38 @@ export class AcpProtocol {
         const base = { ...(promptId === undefined ? {} : { promptId }), costUsd: this.costUsd };
         const quota = this.quota;
         this.quota = null;
+
         if (quota !== null && reason !== 'cancelled') {
             events.push({ type: 'turn.done', ...base, state: 'error', error: quota.text, limit: quotaLimit(quota) });
+
             return events;
         }
+
         if (quota !== null) {
             events.push({ type: 'text.done', ref: quota.ref, text: quota.text });
         }
+
         switch (reason) {
             case 'cancelled':
                 events.push({ type: 'turn.done', ...base, state: 'aborted' });
+
                 break;
             case 'refusal':
                 events.push({ type: 'turn.done', ...base, state: 'error', error: this.words.refusal });
+
                 break;
             case 'max_tokens':
                 events.push({ type: 'note', level: 'warning', text: this.words.maxTokens }, { type: 'turn.done', ...base, state: 'done' });
+
                 break;
             case 'max_turn_requests':
                 events.push({ type: 'note', level: 'warning', text: this.words.maxTurnRequests }, { type: 'turn.done', ...base, state: 'done' });
+
                 break;
             default:
                 events.push({ type: 'turn.done', ...base, state: 'done' });
         }
+
         return events;
     }
 
@@ -1111,81 +1246,103 @@ export class AcpProtocol {
         const events = [...this.closeText(), ...this.closeThought()];
         const quota = this.quota;
         this.quota = null;
+
         if (quota !== null) {
             events.push({ type: 'text.done', ref: quota.ref, text: quota.text });
         }
+
         // A failed request after the limit message still ran into that limit, so it pauses as one when the error names none.
         const named = limit ?? (quota === null ? null : quotaLimit(quota));
+
         events.push(
             error === null
                 ? { type: 'turn.done', ...base, state: 'aborted' }
                 : { type: 'turn.done', ...base, state: 'error', error, ...(named === null ? {} : { limit: named }) }
         );
+
         return events;
     }
 
     private messageChunk(update: Record<string, unknown>): BackendEvent[] {
         const chunk = ContentChunkSchema.safeParse(update);
+
         if (!chunk.success || chunk.data.content.type !== 'text' || chunk.data.content.text === undefined) {
             return [];
         }
+
         const messageId = chunk.data.messageId ?? null;
         const events = this.closeThought();
+
         if (this.text !== null && messageId !== null && this.text.messageId !== messageId) {
             events.push(...this.closeText());
         }
+
         if (this.text === null) {
             const ref = messageId === null ? `message-${++this.counter}` : `message-${messageId}`;
             this.text = { ref, messageId, text: '', held: true, afterRefusal: this.refusalLine };
             this.refusalLine = false;
         }
+
         const text = this.text;
         text.text += chunk.data.content.text;
+
         if (text.held && !withheld(text.text, text.afterRefusal)) {
             text.held = false;
             events.push({ type: 'text.delta', ref: text.ref, text: text.text });
         } else if (!text.held) {
             events.push({ type: 'text.delta', ref: text.ref, text: chunk.data.content.text });
         }
+
         return events;
     }
 
     private thoughtChunk(update: Record<string, unknown>): BackendEvent[] {
         const chunk = ContentChunkSchema.safeParse(update);
+
         if (!chunk.success || chunk.data.content.type !== 'text' || chunk.data.content.text === undefined) {
             return [];
         }
+
         const events = this.closeText();
+
         if (this.thought === null) {
             this.thought = { ref: `thought-${++this.counter}`, text: '' };
         }
+
         this.thought.text += chunk.data.content.text;
         events.push({ type: 'thinking.delta', ref: this.thought.ref, text: chunk.data.content.text });
+
         return events;
     }
 
     private closeText(): BackendEvent[] {
         const text = this.text;
         this.text = null;
+
         if (text === null || (text.held && text.afterRefusal && text.text === REFUSAL_LINE)) {
             return [];
         }
+
         if (text.held && text.text.startsWith(QUOTA_HEAD)) {
             this.quota = { ref: text.ref, text: text.text.trim(), resetsAt: quotaResetOf(text.text, this.now()) };
+
             return [];
         }
+
         return [{ type: 'text.done', ref: text.ref, text: text.text }];
     }
 
     private closeThought(): BackendEvent[] {
         const thought = this.thought;
         this.thought = null;
+
         return thought === null ? [] : [{ type: 'thinking.done', ref: thought.ref, text: thought.text }];
     }
 
     /* A tool call or an update to one; fields an update leaves out keep what the call said before, and a list it sends replaces the old one. */
     private toolCall(call: z.infer<typeof ToolCallSchema>, settle = true): BackendEvent[] {
         const known = this.tools.get(call.toolCallId);
+
         const tool: ToolState = known ?? {
             title: '',
             name: null,
@@ -1200,27 +1357,34 @@ export class AcpProtocol {
             settled: false,
             refused: false
         };
+
         tool.title = call.title ?? tool.title;
         tool.name = call.name ?? tool.name;
         tool.kind = call.kind ?? tool.kind;
         tool.status = call.status ?? tool.status;
         tool.rawInput = call.rawInput ?? tool.rawInput;
         tool.rawOutput = call.rawOutput ?? tool.rawOutput;
+
         if (call.locations) {
             tool.locations = validItems(LocationSchema, call.locations).map((location) => location.path);
         }
+
         if (call.content) {
             tool.diffs = validItems(DiffSchema, call.content);
+
             tool.text = validItems(ToolContentSchema, call.content).flatMap((entry) =>
                 entry.content.type === 'text' && entry.content.text ? [entry.content.text] : []
             );
         }
+
         this.tools.set(call.toolCallId, tool);
         const events: BackendEvent[] = [];
         const row = toolRow(tool.refused ? { ...tool, diffs: [] } : tool);
         const shown = JSON.stringify(row);
+
         if (shown !== tool.shown) {
             tool.shown = shown;
+
             events.push({
                 type: 'tool.started',
                 ref: call.toolCallId,
@@ -1230,8 +1394,10 @@ export class AcpProtocol {
                 ...(row.changes ? { changes: row.changes } : {})
             });
         }
+
         if (settle && !tool.settled && (tool.status === 'completed' || tool.status === 'failed')) {
             tool.settled = true;
+
             events.push({
                 type: 'tool.done',
                 ref: call.toolCallId,
@@ -1240,6 +1406,7 @@ export class AcpProtocol {
                 ...(row.changes ? { changes: row.changes } : {})
             });
         }
+
         return events;
     }
 
@@ -1247,12 +1414,14 @@ export class AcpProtocol {
     private plan(update: Record<string, unknown>): BackendEvent[] {
         const entries = validItems(PlanEntrySchema, Array.isArray(update.entries) ? update.entries : []);
         const ref = `plan-${++this.counter}`;
+
         const todos = entries.map((entry) => ({
             content: entry.content,
             status: entry.status,
             activeForm: entry.content,
             ...(entry.priority ? { priority: entry.priority } : {})
         }));
+
         return [
             ...this.closeText(),
             ...this.closeThought(),

@@ -43,11 +43,13 @@ const AGENTS = {
 /* A chat in supervised mode on a recorded turn whose one permission request is denied; `answers` holds what the agent was told. */
 function open(kind: keyof typeof AGENTS, options: Partial<AcpProviderSpec> = {}) {
     const agent = AGENTS[kind];
+
     const catalog = new ModelCatalog({
         defaultModel: 'default',
         profiles: { agent: { options: [], contextWindowTokens: {} } },
         models: [{ slug: 'default', name: 'Default', profile: 'agent' }]
     });
+
     const provider = createAcpProvider({
         kind: kind as AgentKind,
         name: agent.name,
@@ -58,6 +60,7 @@ function open(kind: keyof typeof AGENTS, options: Partial<AcpProviderSpec> = {})
         accountProbe: false,
         ...options
     });
+
     const answers: unknown[] = [];
     const fake = inProcess(fakeAcpCapture(agent.capture as AcpCapture, answers));
     const providers = new ProviderRegistry({ detect: async () => ({ installed: true, version: agent.version }), providers: [provider] });
@@ -66,26 +69,33 @@ function open(kind: keyof typeof AGENTS, options: Partial<AcpProviderSpec> = {})
     let info: ChatInfo | null = null;
     const items = new Map<string, ChatItem>();
     const waiters: Array<() => void> = [];
+
     chats.observe((event: AgentEvent) => {
         if (event.event === 'chat.event') {
             const chatEvent = event.payload.event;
+
             if (chatEvent.type === 'info') {
                 info = chatEvent.info;
             } else if (chatEvent.type === 'item') {
                 items.set(chatEvent.item.id, chatEvent.item);
             }
         }
+
         for (const wake of waiters.splice(0)) {
             wake();
         }
     });
+
     const until = async (done: () => boolean): Promise<void> => {
         while (!done()) {
             await new Promise<void>((resolve) => waiters.push(resolve));
         }
     };
+
     const list = () => [...items.values()];
+
     const chatId = `${kind}-${++opened}`;
+
     const run = async (): Promise<void> => {
         await chats.create({ chatId, cwd: home, provider: kind, runtimeMode: 'supervised' });
         await chats.send(chatId, 'Create probe.txt.');
@@ -94,6 +104,7 @@ function open(kind: keyof typeof AGENTS, options: Partial<AcpProviderSpec> = {})
         chats.approve(chatId, approval?.kind === 'approval' ? approval.requestId : '', 'deny');
         await until(() => info?.activeTurnId === null && list().some((item) => item.kind === 'turn' && item.state !== 'running'));
     };
+
     return { run, answers, info: () => info, items: list };
 }
 

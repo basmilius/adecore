@@ -22,20 +22,25 @@ const LineSchema = z.object({ seq: z.number().int().positive(), at: z.number(), 
  */
 export function parseLog(raw: string): ChatLogLine[] {
     const lines: ChatLogLine[] = [];
+
     for (const text of raw.split('\n')) {
         if (text === '') {
             continue;
         }
+
         let parsed: ReturnType<typeof LineSchema.safeParse>;
+
         try {
             parsed = LineSchema.safeParse(JSON.parse(text));
         } catch {
             continue;
         }
+
         if (parsed.success && parsed.data.seq > (lines.at(-1)?.seq ?? 0)) {
             lines.push(parsed.data);
         }
     }
+
     return lines;
 }
 
@@ -72,6 +77,7 @@ export class ChatLog {
         const first = state.lines[0];
         // A log with a hole in front of it only answers from after the hole.
         this.base = first === undefined ? this.seqValue : first.seq - 1;
+
         for (let i = 1; i < state.lines.length; i++) {
             if (state.lines[i]!.seq !== state.lines[i - 1]!.seq + 1) {
                 this.base = state.lines[i - 1]!.seq;
@@ -102,12 +108,15 @@ export class ChatLog {
     append(event: ChatEvent, at: number): number {
         this.seqValue += 1;
         const line: ChatLogLine = { seq: this.seqValue, at, event };
+
         if (event.type === 'reset') {
             this.resetSeqValue = line.seq;
         }
+
         const text = `${JSON.stringify(line)}\n`;
         this.lines.push(line);
         this.bytes += Buffer.byteLength(text);
+
         if (this.path !== null) {
             try {
                 this.fd ??= this.open(this.path);
@@ -118,6 +127,7 @@ export class ChatLog {
                 console.error(`Appending to ${this.path} failed:`, errorText(e));
             }
         }
+
         return line.seq;
     }
 
@@ -130,6 +140,7 @@ export class ChatLog {
         if (since < this.resetSeqValue || since < this.base || since > this.seqValue) {
             return null;
         }
+
         return this.lines.filter((line) => line.seq > since).map((line) => line.event);
     }
 
@@ -143,20 +154,25 @@ export class ChatLog {
         if (seq <= this.base) {
             return;
         }
+
         this.lines = this.lines.filter((line) => line.seq > seq);
         this.base = seq;
         const text = this.lines.map((line) => `${JSON.stringify(line)}\n`).join('');
         this.bytes = Buffer.byteLength(text);
+
         if (this.path === null) {
             return;
         }
+
         this.close();
+
         try {
             if (text === '') {
                 rmSync(this.path, { force: true });
             } else {
                 writeAtomicSync(this.path, text);
             }
+
             this.written = true;
         } catch (e) {
             console.error(`Compacting ${this.path} failed:`, errorText(e));
@@ -175,13 +191,16 @@ export class ChatLog {
         mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
         const fd = openSync(path, 'a+', 0o600);
         const { size } = fstatSync(fd);
+
         if (size > 0) {
             const last = Buffer.alloc(1);
             readSync(fd, last, 0, 1, size - 1);
+
             if (last[0] !== 0x0a) {
                 writeSync(fd, '\n');
             }
         }
+
         return fd;
     }
 }

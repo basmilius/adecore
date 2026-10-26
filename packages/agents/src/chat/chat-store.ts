@@ -81,13 +81,17 @@ function liftUiAccess(record: unknown): unknown {
     if (typeof record !== 'object' || record === null || 'uiAccess' in record || !Array.isArray((record as { items?: unknown }).items)) {
         return record;
     }
+
     const uiAccess: Record<string, unknown> = {};
+
     for (const item of (record as { items: unknown[] }).items) {
         const queries = (item as { uiQueries?: unknown } | null)?.uiQueries;
+
         if (typeof queries === 'object' && queries !== null && 'access' in queries) {
             uiAccess[String((item as { id: unknown }).id)] = queries.access;
         }
     }
+
     return Object.keys(uiAccess).length === 0 ? record : { ...record, uiAccess };
 }
 
@@ -119,26 +123,31 @@ export class ChatStore {
     /* Every chat with a record or a log, for the scan at start. */
     async list(): Promise<string[]> {
         let names: string[];
+
         try {
             names = await readdir(this.dir);
         } catch (e) {
             if (isNotFound(e)) {
                 return [];
             }
+
             throw e;
         }
+
         const ids = names
             // A chat's bookmarks and visuals, and whatever a host keeps per chat, sit beside its record under names that also end in .json.
             .filter(
                 (name) => (name.endsWith('.json') && !isBookmarkFileName(name) && !isVisualFileName(name) && !this.isSidecar(name)) || name.endsWith('.log')
             )
             .map((name) => decodeURIComponent(name.replace(/\.(json|log)$/, '')));
+
         return [...new Set(ids)];
     }
 
     /* Whether anything of the chat is on disk, without reading it: a record or a log. */
     async has(chatId: string): Promise<boolean> {
         const found = await Promise.all([exists(join(this.dir, recordFileName(chatId))), exists(this.logPath(chatId))]);
+
         return found.includes(true);
     }
 
@@ -146,6 +155,7 @@ export class ChatStore {
     async discardLog(chatId: string): Promise<number> {
         const lines = parseLog((await readOrNull(this.logPath(chatId))) ?? '');
         await rm(this.logPath(chatId), { force: true });
+
         return lines.at(-1)?.seq ?? 0;
     }
 
@@ -162,6 +172,7 @@ export class ChatStore {
         const body = recordBody(info, items, at, preambles, extras, uiAccess);
         await mkdir(this.dir, { recursive: true, mode: 0o700 });
         await writeAtomic(join(this.dir, recordFileName(chatId)), body);
+
         return body.length;
     }
 
@@ -186,25 +197,32 @@ export class ChatStore {
     async read(chatId: string): Promise<ChatRecord | null> {
         const lines = parseLog((await readOrNull(this.logPath(chatId))) ?? '');
         const snapshot = await this.readSnapshot(chatId);
+
         if (snapshot === UNREADABLE) {
             return null;
         }
+
         if (snapshot === null) {
             return fromLogAlone(lines);
         }
+
         const seq = snapshot.seq ?? 0;
         const thread = new ChatThread(snapshot.info, snapshot.items);
         let resetSeq = snapshot.resetSeq ?? 0;
+
         for (const line of lines) {
             // A crash between writing a snapshot and folding the log into it leaves lines the snapshot already holds.
             if (line.seq <= seq) {
                 continue;
             }
+
             thread.apply(line.event);
+
             if (line.event.type === 'reset') {
                 resetSeq = line.seq;
             }
         }
+
         return {
             ...thread.snapshot(),
             seq,
@@ -233,30 +251,39 @@ export class ChatStore {
         if (!settledInfo(await leadingInfo(join(this.dir, recordFileName(chatId))))) {
             return false;
         }
+
         const last = lastLoggedInfo((await readOrNull(this.logPath(chatId))) ?? '');
+
         return last === undefined || settledInfo(last);
     }
 
     private async readSnapshot(chatId: string): Promise<z.infer<typeof RecordSchema> | typeof UNREADABLE | null> {
         const raw = await readOrNull(join(this.dir, recordFileName(chatId)));
+
         if (raw === null) {
             return null;
         }
+
         let record: unknown;
+
         try {
             record = JSON.parse(raw);
         } catch {
             return UNREADABLE;
         }
+
         // Before the schema sees it: an image written inline no longer has a shape the schema knows.
         if (this.attachments) {
             const migrated = await migrateInlineAttachments(chatId, record, this.attachments).catch(() => null);
+
             if (migrated !== null) {
                 record = migrated;
                 await writeAtomic(join(this.dir, recordFileName(chatId)), JSON.stringify(migrated));
             }
         }
+
         const parsed = RecordSchema.safeParse(liftUiAccess(record));
+
         return parsed.success ? parsed.data : UNREADABLE;
     }
 
@@ -281,14 +308,17 @@ const CLOSE_BRACE = 0x7d;
  */
 async function leadingInfo(path: string): Promise<unknown> {
     let handle: Awaited<ReturnType<typeof open>>;
+
     try {
         handle = await open(path, 'r');
     } catch (e) {
         if (isNotFound(e)) {
             return undefined;
         }
+
         throw e;
     }
+
     try {
         let head = Buffer.alloc(0);
         let at = RECORD_HEAD.length;
@@ -297,13 +327,17 @@ async function leadingInfo(path: string): Promise<unknown> {
         let escaped = false;
         const chunk = Buffer.alloc(HEAD_CHUNK_BYTES);
         let { bytesRead } = await handle.read(chunk, 0, chunk.length, 0);
+
         while (bytesRead > 0) {
             head = Buffer.concat([head, chunk.subarray(0, bytesRead)]);
+
             if (!head.subarray(0, RECORD_HEAD.length).equals(RECORD_HEAD.subarray(0, Math.min(head.length, RECORD_HEAD.length)))) {
                 return undefined;
             }
+
             for (; at < head.length; at++) {
                 const byte = head[at]!;
+
                 if (escaped) {
                     escaped = false;
                 } else if (inString) {
@@ -315,13 +349,16 @@ async function leadingInfo(path: string): Promise<unknown> {
                     depth += 1;
                 } else if (byte === CLOSE_BRACE) {
                     depth -= 1;
+
                     if (depth === 0) {
                         return parseOrUndefined(head.subarray(RECORD_HEAD.length - 1, at + 1).toString('utf8'));
                     }
                 }
             }
+
             ({ bytesRead } = await handle.read(chunk, 0, chunk.length, head.length));
         }
+
         return undefined;
     } finally {
         await handle.close();
@@ -331,16 +368,20 @@ async function leadingInfo(path: string): Promise<unknown> {
 /* The info of the last info or reset line in a log, unvalidated; undefined when no line carries one. */
 function lastLoggedInfo(raw: string): unknown {
     const lines = raw.split('\n');
+
     for (let i = lines.length - 1; i >= 0; i--) {
         // Most lines are items and deltas, which are larger and never carry this key.
         if (!lines[i]!.includes('"info"')) {
             continue;
         }
+
         const event = (parseOrUndefined(lines[i]!) as { event?: { type?: unknown; info?: unknown } } | null | undefined)?.event;
+
         if (event?.type === 'info' || event?.type === 'reset') {
             return event.info;
         }
     }
+
     return undefined;
 }
 
@@ -359,11 +400,13 @@ function parseOrUndefined(text: string): unknown {
 async function exists(path: string): Promise<boolean> {
     try {
         await stat(path);
+
         return true;
     } catch (e) {
         if (isNotFound(e)) {
             return false;
         }
+
         throw e;
     }
 }
@@ -375,6 +418,7 @@ async function readOrNull(path: string): Promise<string | null> {
         if (isNotFound(e)) {
             return null;
         }
+
         throw e;
     }
 }
@@ -389,17 +433,23 @@ function fromLogAlone(lines: ChatLogLine[]): ChatRecord | null {
     if (lines.length === 0) {
         return null;
     }
+
     const first = lines.find((line) => line.event.type === 'info' || line.event.type === 'reset')?.event;
+
     if (lines[0]!.seq !== 1 || (first?.type !== 'info' && first?.type !== 'reset')) {
         return null;
     }
+
     const thread = new ChatThread(first.info);
     let resetSeq = 0;
+
     for (const line of lines) {
         thread.apply(line.event);
+
         if (line.event.type === 'reset') {
             resetSeq = line.seq;
         }
     }
+
     return { ...thread.snapshot(), seq: 0, resetSeq, preambles: [], uiAccess: {}, extras: {}, lines };
 }

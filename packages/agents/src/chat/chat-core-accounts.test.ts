@@ -37,6 +37,7 @@ const providers = new ProviderRegistry({
 
 async function open(accounts: ProviderAccountMap): Promise<ChatCore> {
     const service = await testAccounts({ home: root, env: { HOME: home, USERPROFILE: home }, accounts, folders: new Set([join(root, 'work')]) });
+
     core = new ChatCore({
         providers,
         store: new ChatStore(root),
@@ -44,12 +45,14 @@ async function open(accounts: ProviderAccountMap): Promise<ChatCore> {
         env: { HOME: home, PATH: '/bin' },
         accounts: service
     });
+
     return core;
 }
 
 // A second account in a folder of its own, beside the default account; `defaultOn` false turns that one off.
 function machine(defaultOn: boolean): ProviderAccountMap {
     const work = { claude_work: { kind: 'claude', label: 'Work', home: join(root, 'work') } };
+
     return defaultOn ? work : { claude: { kind: 'claude', enabled: false }, ...work };
 }
 
@@ -59,6 +62,7 @@ async function refusalOf(work: () => unknown): Promise<unknown> {
     } catch (e) {
         return e;
     }
+
     return null;
 }
 

@@ -53,6 +53,7 @@ function question(extra: Partial<ChatQuestionItem> = {}): ChatQuestionItem {
 describe('approvalSummary', () => {
     test("an edit becomes the lines it takes out and puts in, under the file's path", () => {
         const summary = approvalSummary(approval('Edit', { file_path: 'src/pool.ts', old_string: 'a\nb', new_string: 'c' }));
+
         expect(summary).toEqual({
             toolName: 'Edit',
             subject: 'src/pool.ts',
@@ -68,6 +69,7 @@ describe('approvalSummary', () => {
             { path: 'a.ts', kind: 'update', diff: '--- a/a.ts\n+++ b/a.ts\n@@ -1,2 +1,2 @@\n keep\n-old\n+new\n' },
             { path: 'b.ts', kind: 'add', diff: '+x\n' }
         ];
+
         expect(approvalSummary(approval('ApplyPatch', { itemId: 'i', changes }))).toMatchObject({
             subject: 'a.ts',
             path: 'a.ts',
@@ -84,6 +86,7 @@ describe('approvalSummary', () => {
 
     test('any other tool names its subject from the input, and the allow-always offer comes along', () => {
         const allowAlways = { label: 'Always allow', description: 'Remembered.' };
+
         expect(approvalSummary(approval('WebFetch', { url: 'https://ruimte.app', prompt: 'read' }, { canAllowAlways: true, allowAlways }))).toEqual({
             toolName: 'WebFetch',
             subject: 'https://ruimte.app',
@@ -119,12 +122,14 @@ describe('approvalSummary', () => {
 describe('requestSummaries', () => {
     test('a question keeps its labels whole, since the answer is the label, and cuts the rest', () => {
         const label = 'L'.repeat(400);
+
         const [summary] = requestSummaries([
             question({
                 async: true,
                 questions: [{ id: '0', header: 'H', question: 'q'.repeat(900), choices: [{ label, description: 'd'.repeat(900) }], multiSelect: true }]
             })
         ]);
+
         expect(summary).toMatchObject({ requestId: 'req-q', itemId: 'question-req-q', kind: 'question', createdAt: 7, question: { async: true } });
         const asked = summary!.question!.questions[0]!;
         expect(asked.choices[0]!.label).toBe(label);
@@ -143,6 +148,7 @@ describe('ChatThread requests', () => {
         const thread = new ChatThread(info);
         thread.upsert(approval('Bash', { command: 'date' }));
         thread.upsert(question());
+
         expect(thread.info.requests?.map((request) => [request.kind, request.requestId])).toEqual([
             ['approval', 'req-1'],
             ['question', 'req-q']

@@ -5,12 +5,15 @@ import { listClaudeSessions, listCodexSessions, type SessionFs } from './externa
 /* An in-memory tree: a path with content is a file, every parent of one is a folder. Paths are kept with forward slashes, whatever the platform joins with. */
 function memoryFs(files: Record<string, { content: string; mtimeMs?: number }>) {
     const touched: string[] = [];
+
     const posix = (path: string): string => path.replaceAll('\\', '/');
+
     const fs: SessionFs = {
         readdir: async (native) => {
             const path = posix(native);
             touched.push(path);
             const prefix = `${path}/`;
+
             return [
                 ...new Set(
                     Object.keys(files)
@@ -23,18 +26,22 @@ function memoryFs(files: Record<string, { content: string; mtimeMs?: number }>) 
             const path = posix(native);
             touched.push(path);
             const file = files[path];
+
             return file === undefined ? null : { mtimeMs: file.mtimeMs ?? 1 };
         },
         readHead: async (native) => {
             const path = posix(native);
             touched.push(path);
+
             return files[path]?.content ?? '';
         }
     };
+
     return { fs, touched };
 }
 
 const lines = (...entries: unknown[]): string => entries.map((entry) => JSON.stringify(entry)).join('\n');
+
 const userLine = (text: string, extra: Record<string, unknown> = {}) => ({ type: 'user', message: { role: 'user', content: text }, ...extra });
 
 describe('Claude sessions', () => {
@@ -47,7 +54,9 @@ describe('Claude sessions', () => {
             [`${dir}/old.jsonl`]: { content: lines(userLine('First\nprompt')), mtimeMs: 1 },
             [`${dir}/new.jsonl`]: { content: lines({ type: 'queue-operation' }, userLine('Newer prompt')), mtimeMs: 2 }
         });
+
         const sessions = await listClaudeSessions({ projectsDir: projects, folder, fs });
+
         expect(sessions.map((session) => [session.sessionId, session.title, session.updatedAt])).toEqual([
             ['new', 'Newer prompt', 2],
             ['old', 'First prompt', 1]
@@ -63,6 +72,7 @@ describe('Claude sessions', () => {
             [`${dir}/real.jsonl`]: { content: lines(userLine('reminder', { isMeta: true }), userLine('the real one')) },
             [`${dir}/session-1/subagents/agent-a.jsonl`]: { content: lines(userLine('subagent prompt')) }
         });
+
         const sessions = await listClaudeSessions({ projectsDir: projects, folder, fs });
         expect(sessions.map((session) => [session.sessionId, session.title])).toEqual([['real', 'the real one']]);
     });
@@ -71,7 +81,9 @@ describe('Claude sessions', () => {
 describe('Codex sessions', () => {
     const folder = '/work/app';
     const root = '/home/.codex/sessions';
+
     const meta = (id: string, cwd: string, extra: Record<string, unknown> = {}) => ({ type: 'session_meta', payload: { id, cwd, ...extra } });
+
     const said = (message: string) => ({ type: 'event_msg', payload: { type: 'user_message', message } });
 
     test('keeps the rollouts of the folder and drops forks, subagents and other folders', async () => {
@@ -85,7 +97,9 @@ describe('Codex sessions', () => {
             [`${root}/2026/10/11/rollout-2026-10-11T11-00-00-other.jsonl`]: { content: lines(meta('other', '/elsewhere'), said('x')) },
             [`${root}/2026/10/11/rollout-2026-10-11T12-00-00-silent.jsonl`]: { content: lines(meta('silent', folder)) }
         });
+
         const sessions = await listCodexSessions({ sessionsDir: root, folder, fs });
+
         expect(sessions.map((session) => [session.sessionId, session.title, session.updatedAt])).toEqual([
             ['b', 'Newer', 20],
             ['a', 'Fix the lexer', 10]
@@ -97,6 +111,7 @@ describe('Codex sessions', () => {
             [`${root}/2026/10/09/rollout-1.jsonl`]: { content: lines(meta('old', folder), said('old')) },
             [`${root}/2026/10/10/rollout-2.jsonl`]: { content: lines(meta('new', folder), said('new')) }
         });
+
         const sessions = await listCodexSessions({ sessionsDir: root, folder, fs, maxFiles: 1 });
         expect(sessions.map((session) => session.sessionId)).toEqual(['new']);
     });
@@ -106,6 +121,7 @@ test('nothing outside the given roots is read', async () => {
     const claude = '/home/.claude/projects';
     const codex = '/home/.codex/sessions';
     const folder = '/work/app';
+
     const { fs, touched } = memoryFs({
         [`${claude}/${claudeProjectSlug(folder)}/s.jsonl`]: { content: lines(userLine('hi')) },
         [`${claude}/${claudeProjectSlug('/other')}/s.jsonl`]: { content: lines(userLine('hi')) },
@@ -113,6 +129,7 @@ test('nothing outside the given roots is read', async () => {
         '/home/.codex/auth.json': { content: '{}' },
         '/home/.claude/.credentials.json': { content: '{}' }
     });
+
     await listClaudeSessions({ projectsDir: claude, folder, fs });
     await listCodexSessions({ sessionsDir: codex, folder, fs });
     expect(touched.length).toBeGreaterThan(0);

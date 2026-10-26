@@ -24,39 +24,49 @@ const launch: BackendLaunch = {
 async function resumeAndSend(overrides: Partial<BackendLaunch>, options: FakeCodexOptions = {}): Promise<Frame[]> {
     const requests: Frame[] = [];
     let turnSent: (() => void) | null = null;
+
     const sent = new Promise<void>((resolve) => {
         turnSent = resolve;
     });
+
     const fake = inProcess((io) => {
         const program = fakeCodexWith(options)(io);
+
         return {
             onLine: (line) => {
                 const frame = JSON.parse(line) as Frame;
+
                 if (frame.method) {
                     requests.push(frame);
                 }
+
                 program.onLine(line);
+
                 if (frame.method === 'turn/start') {
                     turnSent?.();
                 }
             }
         };
     });
+
     const backend = new CodexBackend({ ...launch, ...overrides, spawn: fake.spawn }, { onEvent: () => undefined });
     await backend.start();
     backend.sendTurn({ text: 'hello', preamble: null, attachments: [], mentions: [], skills: [] });
     await sent;
     await backend.dispose();
+
     return requests;
 }
 
 function firstPrompt(requests: Frame[]): string {
     const input = requests.find((request) => request.method === 'turn/start')?.params?.input as Array<{ text: string }> | undefined;
+
     return input?.[0]?.text ?? '';
 }
 
 test('a resumed thread takes in changed instructions as a developer message, ahead of its next prompt', async () => {
     const requests = await resumeAndSend({ resumeInstructions: 'Instructions as they stand now.' });
+
     expect(requests.map((request) => request.method)).toEqual([
         'initialize',
         'initialized',

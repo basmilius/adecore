@@ -41,6 +41,7 @@ function until(check: () => boolean): Promise<void> {
     if (check()) {
         return Promise.resolve();
     }
+
     return new Promise((resolve) => {
         watchers.push({ check, resolve });
     });
@@ -68,6 +69,7 @@ async function openHost(): Promise<AgentHost> {
         codexCommand: ['codex'],
         spawn: (options) => {
             launches.push({ command: options.command[0]!, cwd: options.cwd, argv: options.command.slice(1) });
+
             return options.command[0] === 'codex' ? codex.spawn(options) : claude.spawn(options);
         },
         core: (options) =>
@@ -78,6 +80,7 @@ async function openHost(): Promise<AgentHost> {
                     ...options.hooks,
                     admit: async (_chatId, cwd) => {
                         admitted.push(cwd);
+
                         if (admitRefuses) {
                             throw new Error(`not a project: ${cwd}`);
                         }
@@ -85,8 +88,10 @@ async function openHost(): Promise<AgentHost> {
                 }
             })
     });
+
     host.chats.observe(() => queueMicrotask(look));
     hosts.push(host);
+
     return host;
 }
 
@@ -111,6 +116,7 @@ afterEach(async () => {
     for (const open of hosts) {
         await open.close();
     }
+
     await rm(dataDir, { recursive: true, force: true });
 });
 
@@ -141,6 +147,7 @@ describe('ChatCore.relocate', () => {
         expect(sessionId).not.toBeNull();
 
         const seen: { exited?: boolean } = {};
+
         const moved = await host.chats.relocate('chat', after, async () => {
             seen.exited = await hasExited(claude.started[0]!);
         });
@@ -164,9 +171,11 @@ describe('ChatCore.relocate', () => {
         expect(threadId).not.toBeNull();
 
         const seen: { exited?: boolean } = {};
+
         await host.chats.relocate('chat', after, async () => {
             seen.exited = await hasExited(codex.started[0]!);
         });
+
         expect(seen.exited).toBe(true);
 
         await turn('chat', 'again');
@@ -181,6 +190,7 @@ describe('ChatCore.relocate', () => {
         const launched = launches.length;
 
         const sent: { queued?: boolean } = {};
+
         await host.chats.relocate('chat', after, async () => {
             Object.assign(sent, await host.chats.send('chat', 'while moving'));
             expect(launches).toHaveLength(launched);
@@ -218,6 +228,7 @@ describe('ChatCore.relocate', () => {
         await expect(
             host.chats.relocate('chat', after, async () => {
                 await host.chats.send('chat', 'while moving');
+
                 throw new Error('the files stayed');
             })
         ).rejects.toThrow('the files stayed');
@@ -251,12 +262,14 @@ describe('ChatCore.relocate', () => {
         flaky.failing = true;
         const errors = console.error;
         console.error = () => undefined;
+
         try {
             await expect(
                 host.chats.relocate('chat', after, async () => {
                     await host.chats.send('chat', 'while moving');
                 })
             ).rejects.toThrow('The disk is full');
+
             flaky.failing = false;
             expect(info('chat').cwd).toBe(before);
             expect(host.chats.isRelocating('chat')).toBe(false);
@@ -264,6 +277,7 @@ describe('ChatCore.relocate', () => {
         } finally {
             console.error = errors;
         }
+
         expect(launches.at(-1)!.cwd).toBe(before);
 
         await host.chats.relocate('chat', after);
@@ -309,6 +323,7 @@ describe('what holds the CLI', () => {
         await open('chat', 'claude');
         await turn('chat', 'hello');
         const session = host.chats.get('chat')!;
+
         session.upsertItems([
             {
                 id: 'approval-1',
@@ -324,6 +339,7 @@ describe('what holds the CLI', () => {
                 decision: 'pending'
             }
         ]);
+
         await expect(host.chats.relocate('chat', after)).rejects.toMatchObject({ code: 'chat-busy' });
 
         session.upsertItems([{ ...session.thread.get('approval-1')!, decision: 'deny' } as never]);
@@ -376,17 +392,22 @@ describe('while a relocation runs', () => {
         await turn('chat', 'hello');
 
         let entered: () => void = () => undefined;
+
         const inside = new Promise<void>((resolve) => {
             entered = resolve;
         });
+
         let release: () => void = () => undefined;
+
         const gate = new Promise<void>((resolve) => {
             release = resolve;
         });
+
         const moving = host.chats.relocate('chat', after, async () => {
             entered();
             await gate;
         });
+
         await inside;
 
         expect(host.chats.isRelocating('chat')).toBe(true);
@@ -413,9 +434,11 @@ describe('while a relocation runs', () => {
         const wake = { text: 'a child finished', label: 'Child', taskIds: [] };
 
         const woken: { turnId?: string | null } = {};
+
         await host.chats.relocate('chat', after, async () => {
             woken.turnId = host.chats.get('chat')!.wake(wake);
         });
+
         expect(woken.turnId).toBeNull();
 
         expect(host.chats.get('chat')!.wake(wake)).not.toBeNull();

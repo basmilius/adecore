@@ -24,11 +24,13 @@ export type BookmarkListener = (chatId: string, bookmarks: ChatBookmark[]) => vo
 /* A name as it is kept: trimmed, and none at all when nothing is left. */
 function cleanName(name: string | undefined): string | undefined {
     const trimmed = name === undefined ? undefined : clipText(name.trim(), CHAT_BOOKMARK_LIMITS.name);
+
     return trimmed === undefined || trimmed === '' ? undefined : trimmed;
 }
 
 function named(bookmark: ChatBookmark, name: string | undefined): ChatBookmark {
     const { name: _previous, ...rest } = bookmark;
+
     return name === undefined ? rest : { ...rest, name };
 }
 
@@ -49,6 +51,7 @@ export class BookmarkStore {
 
     listen(listener: BookmarkListener): () => void {
         this.listeners.add(listener);
+
         return () => {
             this.listeners.delete(listener);
         };
@@ -64,13 +67,17 @@ export class BookmarkStore {
         return this.change(chatId, (bookmarks) => {
             const name = cleanName(input.name);
             const existing = bookmarks.find((bookmark) => bookmark.itemId === input.itemId);
+
             if (existing) {
                 return name === undefined ? null : bookmarks.map((bookmark) => (bookmark === existing ? named(bookmark, name) : bookmark));
             }
+
             if (bookmarks.length >= CHAT_BOOKMARK_LIMITS.perChat) {
                 throw new ChatError('too-many-bookmarks', `This chat already keeps ${CHAT_BOOKMARK_LIMITS.perChat} bookmarks; remove one first`);
             }
+
             const excerpt = clipText(input.excerpt, CHAT_BOOKMARK_LIMITS.excerpt);
+
             return [...bookmarks, named({ itemId: input.itemId, excerpt, createdAt: now }, name)];
         });
     }
@@ -80,6 +87,7 @@ export class BookmarkStore {
             if (!bookmarks.some((bookmark) => bookmark.itemId === itemId)) {
                 throw new ChatError('bookmark-not-found', `This chat has no bookmark on ${itemId}`);
             }
+
             return bookmarks.map((bookmark) => (bookmark.itemId === itemId ? named(bookmark, cleanName(name)) : bookmark));
         });
     }
@@ -97,7 +105,9 @@ export class BookmarkStore {
                 (bookmarks) => bookmarks.length > 0,
                 () => true
             );
+
             await rm(join(this.dir, bookmarkFileName(chatId)), { force: true });
+
             if (had) {
                 this.tell(chatId, []);
             }
@@ -107,9 +117,11 @@ export class BookmarkStore {
     /* A fork keeps the bookmarks on the messages it copied, which are the ones up to where it was cut. */
     async copyChat(fromChatId: string, toChatId: string, keep: (itemId: string) => boolean): Promise<void> {
         const kept = (await this.read(fromChatId)).filter((bookmark) => keep(bookmark.itemId));
+
         if (kept.length === 0) {
             return;
         }
+
         await this.writes.run(toChatId, async () => {
             await this.writeFile(toChatId, kept);
             this.tell(toChatId, kept);
@@ -121,11 +133,14 @@ export class BookmarkStore {
         return this.writes.run(chatId, async () => {
             const bookmarks = await this.readFile(chatId);
             const next = decide(bookmarks);
+
             if (next === null) {
                 return bookmarks;
             }
+
             await this.writeFile(chatId, next);
             this.tell(chatId, next);
+
             return next;
         });
     }
@@ -138,28 +153,36 @@ export class BookmarkStore {
 
     private async readFile(chatId: string): Promise<ChatBookmark[]> {
         let raw: string;
+
         try {
             raw = await readFile(join(this.dir, bookmarkFileName(chatId)), 'utf8');
         } catch (e) {
             if (isNotFound(e)) {
                 return [];
             }
+
             throw e;
         }
+
         // A file that does not parse is refused rather than read as empty, which the next write would make true.
         const parsed = BookmarkFileSchema.safeParse(JSON.parse(raw));
+
         if (!parsed.success) {
             throw new Error(`The bookmarks file of chat ${chatId} is not valid: ${parsed.error.issues[0]?.message ?? 'unknown problem'}`);
         }
+
         return parsed.data.bookmarks;
     }
 
     private async writeFile(chatId: string, bookmarks: readonly ChatBookmark[]): Promise<void> {
         const path = join(this.dir, bookmarkFileName(chatId));
+
         if (bookmarks.length === 0) {
             await rm(path, { force: true });
+
             return;
         }
+
         await mkdir(this.dir, { recursive: true, mode: 0o700 });
         await writeAtomic(path, JSON.stringify({ version: 1, bookmarks }));
     }

@@ -22,14 +22,19 @@ const SAFE_EXTENSION = /^[A-Za-z0-9]{1,8}$/;
 /* What the file is called on disk: the id, plus an extension the agent's tools can recognize. */
 export function extensionFor(name: string, mime: string): string {
     const own = extname(name).slice(1).toLowerCase();
+
     if (SAFE_EXTENSION.test(own)) {
         return own;
     }
+
     const known = EXTENSIONS[mime.toLowerCase()];
+
     if (known) {
         return known;
     }
+
     const subtype = mime.split('/')[1]?.replace(/\+.*$/, '') ?? '';
+
     return SAFE_EXTENSION.test(subtype) ? subtype.toLowerCase() : 'bin';
 }
 
@@ -54,6 +59,7 @@ export class AttachmentStore {
         await mkdir(folder, { recursive: true, mode: 0o700 });
         const path = join(folder, `${id}.${extensionFor(upload.name, mime)}`);
         await writeFile(path, bytes, { mode: 0o600 });
+
         return { id, name: upload.name, mime, size: bytes.byteLength, path };
     }
 
@@ -64,8 +70,10 @@ export class AttachmentStore {
         await mkdir(folder, { recursive: true, mode: 0o700 });
         const path = join(folder, `${id}.${extensionFor('', upload.mime)}`);
         const temporary = join(folder, `.${id}-${randomBytes(8).toString('hex')}.tmp`);
+
         try {
             await writeFile(temporary, bytes, { mode: 0o600, flag: 'wx' });
+
             try {
                 // Publish complete bytes without replacing an image another replay has already saved.
                 await link(temporary, path);
@@ -73,7 +81,9 @@ export class AttachmentStore {
                 if ((error as NodeJS.ErrnoException).code !== 'EEXIST') {
                     throw error;
                 }
+
                 const previous = await readFile(path);
+
                 if (!previous.equals(bytes)) {
                     throw new Error('The generated image id already belongs to another image');
                 }
@@ -81,6 +91,7 @@ export class AttachmentStore {
         } finally {
             await rm(temporary, { force: true });
         }
+
         return { id, name: upload.name, mime: upload.mime, size: bytes.byteLength, path };
     }
 
@@ -90,6 +101,7 @@ export class AttachmentStore {
         await mkdir(folder, { recursive: true, mode: 0o700 });
         const path = join(folder, `${createHash('sha256').update(attachment.id).digest('hex')}.${extensionFor(attachment.name, attachment.mime)}`);
         await writeFile(path, bytes, { mode: 0o600 });
+
         return { ...attachment, path };
     }
 
@@ -102,6 +114,7 @@ export class AttachmentStore {
     folderOf(chatId: string): string {
         // `encodeURIComponent` leaves `.` and `..` as they are, and those would name this folder or the host's own.
         const segment = chatId === '.' || chatId === '..' ? chatId.replaceAll('.', '%2E') : encodeURIComponent(chatId);
+
         return join(this.dir, segment);
     }
 }
@@ -118,26 +131,34 @@ function isInline(value: unknown): value is { name: string; mediaType: string; d
  */
 export async function migrateInlineAttachments(chatId: string, record: unknown, store: AttachmentStore): Promise<unknown | null> {
     const items = isRecord(record) && Array.isArray(record.items) ? record.items : null;
+
     if (!items) {
         return null;
     }
+
     let migrated = false;
+
     const next = await Promise.all(
         items.map(async (item) => {
             if (!isRecord(item) || !Array.isArray(item.attachments) || !item.attachments.some(isInline)) {
                 return item;
             }
+
             const attachments = await Promise.all(
                 item.attachments.map(async (attachment) => {
                     if (!isInline(attachment)) {
                         return attachment;
                     }
+
                     migrated = true;
+
                     return await store.save(chatId, { name: attachment.name, mime: attachment.mediaType, data: attachment.data });
                 })
             );
+
             return { ...item, attachments };
         })
     );
+
     return migrated ? { ...(record as Record<string, unknown>), items: next } : null;
 }

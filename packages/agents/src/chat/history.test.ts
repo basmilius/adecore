@@ -3,6 +3,7 @@ import type { ChatInfo, ChatItem } from '@adecore/agent-contracts';
 import { ChatThread } from './thread.ts';
 
 const info = { chatId: 'history' } as ChatInfo;
+
 function message(i: number, text = `Message ${i}`): ChatItem {
     return { id: `m${i}`, kind: 'assistant', text, streaming: false } as ChatItem;
 }
@@ -17,11 +18,13 @@ describe('chat history', () => {
         expect(page.items.length).toBe(60);
         let all = page.items;
         let requests = 1;
+
         while (page.history.cursor) {
             page = thread.history(60, page.history.cursor);
             all = [...page.items, ...all];
             requests++;
         }
+
         expect(all).toEqual(items);
         expect(requests).toBe(48);
         console.info(`Synthetic history: ${Buffer.byteLength(JSON.stringify(items))} bytes full, ${firstBytes} bytes first page, ${requests} pages`);
@@ -62,6 +65,7 @@ describe('chat history', () => {
             canAllowAlways: false,
             decision: 'pending'
         };
+
         const thread = new ChatThread(info, [approval, message(0), message(1)]);
         expect(thread.history(1).items).toEqual([message(1)]);
         expect(thread.pending() as ChatItem[]).toEqual([approval]);
@@ -72,8 +76,10 @@ describe('chat history', () => {
 
     test('sub-agents from before the page that still run or settled since the last message are available outside it', () => {
         const user = (i: number, createdAt: number): ChatItem => ({ id: `u${i}`, kind: 'user', text: 'Go', createdAt, turnId: null }) as ChatItem;
+
         const subagent = (id: string, status: 'running' | 'done', finishedAt: number | null): ChatItem =>
             ({ id, kind: 'subagent', createdAt: 0, turnId: null, toolUseId: id, status, finishedAt }) as ChatItem;
+
         const thread = new ChatThread(info, [
             subagent('old', 'done', 5),
             subagent('woken', 'running', null),
@@ -81,6 +87,7 @@ describe('chat history', () => {
             subagent('after', 'done', 20),
             message(0)
         ]);
+
         const page = thread.history(1);
         expect(page.history.start).toBe(4);
         expect(thread.subagentsBefore(page.history.start).map((item) => item.id)).toEqual(['woken', 'after']);

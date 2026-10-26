@@ -162,8 +162,10 @@ function newId(prefix: string): string {
  * the ones before it, as long as it handed out fewer than one per millisecond it ran.
  */
 let lastGeneration = Date.now();
+
 function nextGeneration(): number {
     lastGeneration = Math.max(lastGeneration + 1, Date.now());
+
     return lastGeneration;
 }
 
@@ -234,6 +236,7 @@ export class ChatSession {
         this.capturedUiAccess = new Map(Object.entries(options.uiAccess ?? {}));
         this.thread = new ChatThread(options.info, options.items);
         this.projector = new ThreadProjector(this.thread, { providerName: options.provider.name });
+
         this.uiReplies = new UiReplies({
             thread: this.thread,
             fenceLanguage: options.uiFenceLanguage ?? UI_FENCE_LANGUAGE,
@@ -285,6 +288,7 @@ export class ChatSession {
     get busy(): boolean {
         const turnId = this.thread.info.activeTurnId;
         const turn = turnId ? this.thread.get(turnId) : undefined;
+
         // A turn the CLI opened toward a goal is the goal's own: a message waits for it like for any turn of the person's.
         return turnId !== null && (turn?.kind !== 'turn' || turn.origin !== 'agent' || this.goalWorks());
     }
@@ -301,20 +305,27 @@ export class ChatSession {
      */
     async goal(action: ChatGoalAction): Promise<void> {
         const supported = this.options.provider.capabilities.goals;
+
         if (supported === undefined || (supported === 'command' && action !== 'clear')) {
             throw new ChatError('chat-unsupported', `${this.options.provider.name} cannot ${action} a goal`);
         }
+
         if (this.thread.info.goal === undefined) {
             throw new ChatError('goal-not-found', 'This chat has no goal');
         }
+
         const backend = this.backend;
+
         if (supported === 'native' && backend?.goal && backend.running && (action !== 'resume' || this.busy)) {
             await backend.goal(action);
+
             return;
         }
+
         if (this.busy) {
             throw new ChatError('chat-busy', 'Stop the turn that works toward the goal first');
         }
+
         this.send(`/goal ${action}`);
     }
 
@@ -325,22 +336,29 @@ export class ChatSession {
             this.options.persist();
             this.resumeSettingChanged();
         }
+
         const catalog = this.options.provider.catalog;
         const selection = patch.selection ? catalog.normalize(patch.selection) : this.thread.info.selection;
+
         const next: Partial<ChatInfo> = {
             selection,
             runtimeMode: patch.runtimeMode ?? this.thread.info.runtimeMode
         };
+
         const changed = JSON.stringify(next.selection) !== JSON.stringify(this.thread.info.selection) || next.runtimeMode !== this.thread.info.runtimeMode;
+
         if (!changed) {
             return this.thread.info;
         }
+
         if (patch.selection) {
             next.usage = { ...this.thread.info.usage, contextWindow: catalog.contextWindowFor(selection) };
         }
+
         this.emit([this.thread.patchInfo(next)]);
         this.options.persist();
         this.drainQueue();
+
         return this.thread.info;
     }
 
@@ -349,9 +367,11 @@ export class ChatSession {
         if (account === this.thread.info.account) {
             return this.thread.info;
         }
+
         this.emit([this.thread.patchInfo({ account })]);
         this.options.persist();
         this.drainQueue();
+
         return this.thread.info;
     }
 
@@ -360,8 +380,10 @@ export class ChatSession {
         if (cwd === this.thread.info.cwd) {
             return this.thread.info;
         }
+
         this.emit([this.thread.patchInfo({ cwd })]);
         this.options.persist();
+
         return this.thread.info;
     }
 
@@ -399,11 +421,13 @@ export class ChatSession {
     send(text: string, sent: ChatSendExtras = {}): { queued: boolean; turnId: string } {
         const extras = this.vetted(sent);
         const turnId = newId('turn');
+
         // Behind whatever still waits (a CLI that crashed leaves its queue), so everything goes out in the order it was sent.
         if (this.busy || this.queue.length > 0 || this.replacementWaits() || this.relocating) {
             if (this.busy && this.info.queuePaused) {
                 this.sendAfterStop = true;
             }
+
             const message: ChatQueuedMessage = {
                 id: newId('queued'),
                 turnId,
@@ -417,12 +441,16 @@ export class ChatSession {
                 ...(extras.attachments?.length ? { attachments: extras.attachments } : {}),
                 ...(extras.references?.length ? { references: extras.references } : {})
             };
+
             this.setQueue([...this.queue, message]);
             this.lapseResume();
             this.drainQueue(true);
+
             return { queued: true, turnId };
         }
+
         this.dispatch(text, extras, turnId);
+
         return { queued: false, turnId };
     }
 
@@ -435,6 +463,7 @@ export class ChatSession {
         if (this.frozen) {
             return;
         }
+
         this.capturedUiAccess.set(itemId, access);
         this.options.persistSoon();
     }
@@ -446,9 +475,11 @@ export class ChatSession {
 
     updateUiQueries(itemId: string, uiQueries: ChatUiQueryState): void {
         const item = this.thread.get(itemId);
+
         if (this.frozen || item?.kind !== 'assistant' || item.parentToolUseId) {
             return;
         }
+
         this.thread.upsert({ ...item, uiQueries });
         this.options.emit({ type: 'delta', itemId, text: '', uiQueries });
         this.options.persistSoon();
@@ -456,35 +487,46 @@ export class ChatSession {
 
     choose(payload: ChatUiChoicePayload, queries: Readonly<Record<string, unknown>> = {}): { queued: boolean; turnId: string } {
         const item = this.thread.get(payload.itemId);
+
         const block =
             item?.kind === 'assistant' && !item.streaming && !item.parentToolUseId ? item.ui?.find((block) => block.id === payload.blockId) : undefined;
+
         if (item?.kind !== 'assistant' || !block?.revision || block.revision !== payload.revision) {
             throw new ChatError('stale-ui-block', 'This completed UI block is no longer available at the requested revision');
         }
+
         const sameBlock = (origin: ChatUiChoiceOrigin | undefined) =>
             origin?.itemId === item.id && origin.blockId === block.id && origin.revision === block.revision;
+
         let previous = item.uiAnswers?.[block.id];
+
         if (previous?.revision !== block.revision) {
             previous = undefined;
         }
+
         // The message is logged first: a crash before its answer marker must not send it a second time.
         if (!previous) {
             const sent = this.thread.list().find((entry) => entry.kind === 'user' && sameBlock(entry.uiChoice));
             const queued = this.queue.find((entry) => sameBlock(entry.uiChoice));
             const origin = sent?.kind === 'user' ? sent.uiChoice : queued?.uiChoice;
             const turnId = sent?.turnId ?? queued?.turnId;
+
             if (origin && turnId) {
                 previous = { ...origin, turnId, queued: !sent };
                 this.recordUiAnswer(previous);
             }
         }
+
         if (previous) {
             if (previous.choiceId !== payload.choiceId) {
                 throw new ChatError('ui-already-answered', 'This UI block was already answered');
             }
+
             return { queued: previous.queued, turnId: previous.turnId };
         }
+
         let selected;
+
         try {
             selected = resolveUiChoice(block, payload.choiceId, payload.values, queries);
         } catch (error) {
@@ -493,6 +535,7 @@ export class ChatSession {
                 error instanceof Error ? error.message : 'This choice could not be read'
             );
         }
+
         const origin: ChatUiChoiceOrigin = {
             itemId: item.id,
             blockId: block.id,
@@ -504,19 +547,24 @@ export class ChatSession {
             values: selected.values,
             at: Date.now()
         };
+
         const result = this.send(selected.context, { uiChoice: origin });
         this.recordUiAnswer({ ...origin, ...result });
+
         return result;
     }
 
     private recordUiAnswer(answer: ChatUiAnswer): void {
         const item = this.thread.get(answer.itemId);
+
         if (item?.kind !== 'assistant') {
             return;
         }
+
         if (JSON.stringify(item.uiAnswers?.[answer.blockId]) === JSON.stringify(answer)) {
             return;
         }
+
         this.options.emit(this.thread.upsert({ ...item, uiAnswers: { ...item.uiAnswers, [answer.blockId]: answer } }));
         this.options.persist();
     }
@@ -526,8 +574,10 @@ export class ChatSession {
         if (extras.quoteSource === undefined || this.thread.get(extras.quoteSource.itemId)?.kind === 'assistant') {
             return extras;
         }
+
         const plain = { ...extras };
         delete plain.quoteSource;
+
         return plain;
     }
 
@@ -537,6 +587,7 @@ export class ChatSession {
         if (text.startsWith('/') || !this.options.references) {
             return { chats: [], references: [], note: null };
         }
+
         return this.options.references({ chats: extras.chats, references: extras.references });
     }
 
@@ -548,6 +599,7 @@ export class ChatSession {
         const extras = this.vetted(sent);
         const backend = this.backend;
         const turnId = this.info.activeTurnId;
+
         if (
             extras.delivery !== 'steer' ||
             this.info.queuePaused ||
@@ -562,26 +614,34 @@ export class ChatSession {
         ) {
             return this.send(text, extras);
         }
+
         const queued = this.send(text, extras);
         const message = this.queue.find((entry) => entry.turnId === queued.turnId);
+
         if (!message) {
             return queued;
         }
+
         this.steering.add(message.id);
         const steer = this.steer(message, text, extras, backend.steerTurn.bind(backend), turnId, queued);
         // Claude takes a steer only between tool calls, so a long command would outlast the client's request.
         const clock = this.options.clock ?? systemClock;
         let timer: unknown = null;
+
         const waited = new Promise<null>((resolve) => {
             timer = clock.setTimeout(() => resolve(null), STEER_ANSWER_MS);
         });
+
         try {
             const answer = await Promise.race([steer, waited]);
+
             if (answer !== null) {
                 return answer;
             }
+
             // Still in the queue until it is taken; a later failure pauses the queue as it does now.
             steer.catch(() => undefined);
+
             return queued;
         } finally {
             clock.clearTimeout(timer);
@@ -598,6 +658,7 @@ export class ChatSession {
     ): Promise<{ queued: boolean; turnId: string }> {
         try {
             const attached = this.attached(text, extras);
+
             const accepted = await steerTurn({
                 promptId: message.id,
                 text,
@@ -606,9 +667,11 @@ export class ChatSession {
                 mentions: extras.mentions ?? [],
                 skills: extras.skills ?? []
             });
+
             if (!accepted) {
                 return queued;
             }
+
             this.emit([
                 this.thread.upsert({
                     id: `user-${message.id}`,
@@ -625,12 +688,15 @@ export class ChatSession {
                 }),
                 this.thread.patchInfo({ queue: this.queue.filter((entry) => entry.id !== message.id) })
             ]);
+
             this.options.persist();
+
             return { queued: false, turnId };
         } catch (error) {
             // A lost acknowledgement does not prove rejection. Keep the message for an explicit retry.
             this.pauseQueue(true);
             this.options.persist();
+
             throw error;
         } finally {
             this.steering.delete(message.id);
@@ -642,10 +708,13 @@ export class ChatSession {
     unqueue(messageId: string): ChatQueuedMessage | null {
         const queue = this.queue;
         const message = queue.find((entry) => entry.id === messageId);
+
         if (!message || this.steering.has(message.id)) {
             return null;
         }
+
         this.setQueue(queue.filter((entry) => entry.id !== messageId));
+
         return message;
     }
 
@@ -653,16 +722,22 @@ export class ChatSession {
     sendNow(messageId: string): boolean {
         const queue = this.queue;
         const message = queue.find((entry) => entry.id === messageId);
+
         if (!message || this.steering.has(message.id)) {
             return false;
         }
+
         this.setQueue([message, ...queue.filter((entry) => entry.id !== messageId)]);
+
         if (this.busy) {
             this.cancel(true);
+
             return true;
         }
+
         this.lapseResume();
         this.drainQueue(true);
+
         return true;
     }
 
@@ -680,6 +755,7 @@ export class ChatSession {
         const [next, ...rest] = this.queue;
         const limited = limitedTurn(this.thread.list());
         const explicit = asked || this.sendAfterReplacement;
+
         if (
             !next ||
             this.steering.size > 0 ||
@@ -689,9 +765,11 @@ export class ChatSession {
         ) {
             return;
         }
+
         if (this.replacementWaits()) {
             this.sendAfterReplacement = explicit;
             const id = `settings-wait-${this.generation}`;
+
             if (!this.thread.get(id)) {
                 this.emit([
                     this.thread.upsert({
@@ -703,13 +781,17 @@ export class ChatSession {
                         text: 'Your message is queued until the current work and open requests finish. The changes to this chat will apply then.'
                     })
                 ]);
+
                 this.options.persist();
             }
+
             return;
         }
+
         this.sendAfterReplacement = false;
         this.pauseQueue(false);
         this.setQueue(rest);
+
         this.dispatch(
             next.text,
             {
@@ -728,17 +810,22 @@ export class ChatSession {
     private dispatch(text: string, extras: ChatSendExtras, requestedTurnId?: string): void {
         this.pauseQueue(false);
         this.settleAgentTurn();
+
         // A goal that was met has said what it had to; the next message of the person leaves it behind.
         if (this.thread.info.goal?.status === 'complete') {
             this.emit([this.thread.patchInfo({ goal: undefined })]);
         }
+
         const { preamble, note } = this.contextNote(text);
         const attached = this.attached(text, extras);
         const turnId = this.openTurn(text, note, { ...extras, chats: attached.chats, references: attached.references }, requestedTurnId);
+
         const choiceNote = extras.uiChoice
             ? `The person chose ${JSON.stringify(extras.uiChoice.label)} from your UI reply. Their message is the visible context of that choice.`
             : null;
+
         const said = [preamble, attached.note, choiceNote].filter((part): part is string => part !== null);
+
         const input = {
             text,
             preamble: said.length === 0 ? null : said.join('\n\n'),
@@ -746,6 +833,7 @@ export class ChatSession {
             mentions: extras.mentions ?? [],
             skills: extras.skills ?? []
         };
+
         // The prompt waits for the checkpoint, so the tree is the folder as it was before the agent edited it.
         this.turnReady = this.checkpoint(turnId);
         this.submit(turnId, input);
@@ -754,16 +842,21 @@ export class ChatSession {
     /* Asks the CLI to fold its context: a call of its own, or the slash command as a turn. */
     compact(): void {
         const compaction = this.options.provider.capabilities.compaction;
+
         if (compaction === 'none') {
             throw new ChatError('chat-unsupported', `${this.options.provider.name} cannot compact its context`);
         }
+
         if (compaction === 'prompt') {
             this.send('/compact');
+
             return;
         }
+
         if (this.replacementWaits()) {
             throw new ChatError('chat-busy', 'The current work and open requests must finish before the changes to this chat can apply');
         }
+
         // A native compaction has no message of the person in front of it, only a turn to fold behind.
         this.openTurn(null, null, {});
         // Folding the context changes no file, so this turn needs no checkpoint.
@@ -777,12 +870,15 @@ export class ChatSession {
         this.pauseQueue(true);
         this.lapseResume();
         const turnId = this.thread.info.activeTurnId;
+
         // A turn still waiting to be resumed has no process to interrupt; stopping it is ending it here.
         if (!this.backend && turnId !== null) {
             this.clearStartWarning();
             this.abandon(turnId, null);
+
             return;
         }
+
         if (!this.backend || turnId === null) {
             if (turnId === null && this.backend) {
                 for (const item of this.thread.pending()) {
@@ -790,10 +886,13 @@ export class ChatSession {
                         this.receive(this.generation, { type: 'request.withdrawn', requestId: item.requestId });
                     }
                 }
+
                 this.options.persist();
             }
+
             return;
         }
+
         if (this.pendingStart?.turnId === turnId) {
             this.clearStartWarning();
             const backend = this.backend;
@@ -802,8 +901,10 @@ export class ChatSession {
             backend.stop();
             this.emit([this.thread.patchInfo({ running: false })]);
             this.receive(this.generation, { type: 'turn.done', state: 'aborted', costUsd: 0 });
+
             return;
         }
+
         this.backend.interrupt();
     }
 
@@ -812,32 +913,41 @@ export class ChatSession {
         const workflow = this.thread
             .list()
             .some((item) => item.kind === 'tool' && item.name === 'Workflow' && item.state === 'running' && item.workflow?.taskId === taskId);
+
         if (!workflow && !this.thread.info.background?.some((task) => task.id === taskId)) {
             throw new ChatError('task-not-found', 'This chat runs no such task');
         }
+
         if (!this.backend?.stopTask) {
             throw new ChatError('chat-unsupported', 'This CLI cannot stop a task on its own');
         }
+
         this.backend.stopTask(taskId);
     }
 
     /* Answers a pending approval; false when nothing waits under that id. */
     approve(requestId: string, decision: 'allow' | 'allow-always' | 'deny', message?: string): boolean {
         const item = this.thread.get(`approval-${requestId}`);
+
         if (item?.kind !== 'approval' || item.decision !== 'pending' || this.backend?.respondApproval(requestId, decision, message) !== true) {
             return false;
         }
+
         this.emit([this.thread.upsert({ ...item, decision }), this.thread.setStatus(this.thread.statusFor(this.thread.info.activeTurnId))]);
+
         return true;
     }
 
     /* Answers a pending question; false when nothing waits under that id. */
     answer(requestId: string, answers: Record<string, string>): boolean {
         const item = this.thread.get(`question-${requestId}`);
+
         if (item?.kind !== 'question' || item.state !== 'pending' || this.backend?.respondQuestion(requestId, answers) !== true) {
             return false;
         }
+
         this.emit([this.thread.upsert({ ...item, answers, state: 'answered' }), this.thread.setStatus(this.thread.statusFor(this.thread.info.activeTurnId))]);
+
         return true;
     }
 
@@ -847,11 +957,14 @@ export class ChatSession {
      */
     dismiss(itemId: string): boolean {
         const item = this.thread.get(itemId);
+
         if (item?.kind !== 'question' || item.state !== 'pending' || item.async !== true) {
             return false;
         }
+
         this.backend?.dismissRequest?.(item.requestId);
         this.emit([this.thread.upsert({ ...item, state: 'dismissed' }), this.thread.setStatus(this.thread.statusFor(this.thread.info.activeTurnId))]);
+
         return true;
     }
 
@@ -880,6 +993,7 @@ export class ChatSession {
         if (this.busy && !force) {
             throw new ChatError('chat-busy', `Chat ${this.id} is still working on the previous message`);
         }
+
         const ended = this.dispose();
         this.generation = nextGeneration();
         this.projector.reset();
@@ -897,6 +1011,7 @@ export class ChatSession {
         this.turnReady = Promise.resolve();
         this.lapseResume();
         const usage = this.thread.info.usage;
+
         this.emit([
             this.thread.reset({
                 agentSessionId: null,
@@ -923,6 +1038,7 @@ export class ChatSession {
                 }
             })
         ]);
+
         return ended;
     }
 
@@ -935,23 +1051,31 @@ export class ChatSession {
         const events: ChatEvent[] = [];
         const resumeTurnId = resume.resumeTurnId;
         const now = Date.now();
+
         for (const item of this.thread.list()) {
             const settled = settleStoredItem(item, resumeTurnId);
+
             if (settled === item) {
                 continue;
             }
+
             if (isBackgroundWork(item)) {
                 this.recordLostBackground(item);
             }
+
             events.push(this.thread.upsert(settled));
+
             if (item.kind === 'turn' && settled.kind === 'turn' && settled.state === 'aborted') {
                 const reason = item.id === this.thread.info.activeTurnId && resume.reason !== null ? resume.reason : 'it was not the turn the chat was running';
+
                 events.push(
                     this.thread.upsert({ id: newId('note'), kind: 'note', createdAt: now, turnId: item.id, level: 'warning', text: notResumedNote(reason) })
                 );
             }
         }
+
         const info = this.thread.info;
+
         const patch: Partial<ChatInfo> = {
             selection,
             running: false,
@@ -960,19 +1084,24 @@ export class ChatSession {
             effectiveRuntimeMode: undefined,
             permissionMode: undefined
         };
+
         // No process of the host that went down is left to run what it kept in the background.
         if (info.background?.length) {
             for (const command of info.background) {
                 const text = `The machine restarted while background command "${commandLabel(command)}" was running. It will not send a result. Do not wait for it.`;
                 this.deliverNote({ noteId: `lost-command-${command.id}`, note: text, preamble: text });
             }
+
             patch.background = [];
         }
+
         // The window stored is whatever the session that went left behind; the next CLI starts on the pick.
         const contextWindow = this.options.provider.catalog.contextWindowFor(selection);
+
         if (contextWindow !== info.usage.contextWindow) {
             patch.usage = { ...info.usage, contextWindow };
         }
+
         if (
             JSON.stringify(selection) !== JSON.stringify(info.selection) ||
             patch.usage !== undefined ||
@@ -985,6 +1114,7 @@ export class ChatSession {
         ) {
             events.push(this.thread.patchInfo(patch));
         }
+
         this.emit(events);
     }
 
@@ -998,55 +1128,75 @@ export class ChatSession {
         if (!this.awaitsResume(turnId, attempt)) {
             return;
         }
+
         const original = this.thread.get(turnId);
+
         if (original?.kind !== 'turn') {
             return;
         }
+
         const now = Date.now();
+
         this.emit([
             this.thread.upsert({ ...original, attempt, resumePending: true }),
             this.thread.upsert({ id: `resume-${turnId}-${attempt}`, kind: 'note', createdAt: now, turnId, level: 'info', text: words.note })
         ]);
+
         this.options.persist();
         const pending = this.watchStart(turnId);
         let backend: ChatBackend;
+
         try {
             await this.options.save?.();
+
             if (this.pendingStart !== pending || !this.awaitsResume(turnId, attempt)) {
                 return;
             }
+
             backend = await this.ensureBackend();
         } catch (e) {
             if (this.pendingStart !== pending) {
                 return;
             }
+
             this.clearStartWarning();
+
             if (this.backend === null) {
                 this.emit([this.thread.patchInfo({ running: false })]);
             }
+
             this.addNote('warning', `The resume attempt could not start: ${errorText(e)}`);
+
             throw e;
         }
+
         const turn = this.thread.get(turnId);
+
         if (this.pendingStart !== pending || !this.awaitsResume(turnId, attempt) || this.backend !== backend || turn?.kind !== 'turn') {
             return;
         }
+
         this.clearStartWarning();
         // The turn keeps the checkpoint it started with, so its card still shows everything it changed.
         this.turnReady = Promise.resolve();
         const context = this.contextNote(words.prompt);
         const preamble = [words.preamble, context.preamble].filter(Boolean).join('\n\n') || null;
+
         if (context.note) {
             this.emit([this.thread.upsert({ id: newId('note'), kind: 'note', createdAt: now, turnId, level: 'info', text: context.note })]);
         }
+
         const input: TurnInput = { promptId: randomUUID(), text: words.prompt, preamble, attachments: [], mentions: [], skills: [] };
         this.submission = { turnId, input };
         this.options.persist();
         await this.options.save?.();
+
         if (this.backend !== backend || this.info.activeTurnId !== turnId || this.frozen) {
             return;
         }
+
         backend.sendTurn(input);
+
         if (!backend.acknowledgesTurns) {
             this.acceptPrompt(input.promptId!);
         }
@@ -1055,16 +1205,20 @@ export class ChatSession {
     /* Ends a running turn nobody is working on and keeps queued messages for a person's next send. */
     abandon(turnId: string, reason: string | null): void {
         const turn = this.thread.get(turnId);
+
         if (turn?.kind !== 'turn' || turn.state !== 'running' || this.thread.info.activeTurnId !== turnId || this.running) {
             return;
         }
+
         const now = Date.now();
         this.pauseQueue(true);
+
         this.emit([
             this.thread.upsert({ ...turn, state: 'aborted', endedAt: now }),
             ...(reason === null ? [] : [this.thread.upsert({ id: newId('note'), kind: 'note', createdAt: now, turnId, level: 'warning', text: reason })]),
             this.thread.patchInfo({ status: 'idle', activeTurnId: null })
         ]);
+
         this.options.persist();
         this.drainQueue(this.sendAfterStop);
         this.sendAfterStop = false;
@@ -1091,10 +1245,12 @@ export class ChatSession {
         if (this.frozen || this.relocating || this.thread.info.activeTurnId !== null || this.replacementWaits()) {
             return null;
         }
+
         this.turnOpened();
         const { preamble, note } = this.contextNote(wake.text);
         const turnId = newId('turn');
         const now = Date.now();
+
         this.emit([
             this.thread.upsert({
                 id: turnId,
@@ -1117,9 +1273,11 @@ export class ChatSession {
             ...(note === null ? [] : [this.thread.upsert({ id: newId('note'), kind: 'note', createdAt: now, turnId, level: 'info', text: note })]),
             this.thread.patchInfo({ status: this.thread.statusFor(turnId), activeTurnId: turnId })
         ]);
+
         this.options.persist();
         this.turnReady = this.checkpoint(turnId);
         this.submit(turnId, { text: wake.text, preamble, attachments: [], mentions: wake.mentions ?? [], skills: wake.skills ?? [] });
+
         return turnId;
     }
 
@@ -1140,20 +1298,27 @@ export class ChatSession {
      */
     takeUpAfterLimit(turnId: string): 'opened' | 'wait' | 'lapsed' {
         const turn = limitedTurn(this.thread.list());
+
         if (turn === null || turn.id !== turnId || !this.resumeAllowed()) {
             this.lapseResume();
+
             return 'lapsed';
         }
+
         const wake = limitResumeWake(turn.limit.kind);
+
         const opened = this.wake({
             ...wake,
             taskIds: turn.taskIds ?? [],
             ...(turn.messageFrom === undefined ? {} : { messageFrom: turn.messageFrom })
         });
+
         if (opened === null) {
             return 'wait';
         }
+
         this.pauseQueue(false);
+
         return 'opened';
     }
 
@@ -1179,17 +1344,23 @@ export class ChatSession {
     private oweResume(fresh: boolean): void {
         const hooks = this.options.limitResume;
         const turn = limitedTurn(this.thread.list());
+
         if (!hooks || turn === null || this.thread.info.activeTurnId !== null || this.frozen || !this.resumeAllowed() || this.wentOn(turn)) {
             return;
         }
+
         const now = hooks.now();
+
         if (!fresh && (turn.limit.kind !== 'usage' || (turn.limit.resetsAt ?? 0) <= now)) {
             return;
         }
+
         const at = limitResumeAt(this.thread.list(), turn, now);
+
         if (at === null || at === this.thread.info.resumeAt) {
             return;
         }
+
         this.emit([this.thread.patchInfo({ resumeAt: at })]);
         this.options.persist();
         void hooks.owe(turn.id, at).catch((e: unknown) => console.error(`Owing a resume of chat ${this.id} failed:`, errorText(e)));
@@ -1202,15 +1373,20 @@ export class ChatSession {
     settleOwedResume(): void {
         const hooks = this.options.limitResume;
         const at = this.thread.info.resumeAt;
+
         if (at === undefined || hooks?.owed() === true) {
             return;
         }
+
         const turn = limitedTurn(this.thread.list());
+
         if (!hooks || turn === null || this.thread.info.activeTurnId !== null || !this.resumeAllowed()) {
             this.emit([this.thread.patchInfo({ resumeAt: undefined })]);
             this.options.persist();
+
             return;
         }
+
         void hooks.owe(turn.id, at).catch((e: unknown) => console.error(`Owing a resume of chat ${this.id} failed:`, errorText(e)));
     }
 
@@ -1219,6 +1395,7 @@ export class ChatSession {
         if (this.thread.info.limit !== undefined) {
             this.emit([this.thread.patchInfo({ limit: undefined })]);
         }
+
         this.lapseResume();
     }
 
@@ -1229,9 +1406,11 @@ export class ChatSession {
     continuedElsewhere(note: string): void {
         this.lapseResume();
         const turn = limitedTurn(this.thread.list());
+
         if (turn === null || this.wentOn(turn)) {
             return;
         }
+
         this.emit([this.thread.upsert({ id: continuedNoteId(turn.id), kind: 'note', createdAt: Date.now(), turnId: turn.id, level: 'info', text: note })]);
         this.options.persist();
     }
@@ -1239,9 +1418,11 @@ export class ChatSession {
     /* Drops the resume owed after a limit, the time the thread shows for it included. */
     lapseResume(): void {
         const hooks = this.options.limitResume;
+
         if (this.thread.info.resumeAt === undefined || !hooks) {
             return;
         }
+
         this.emit([this.thread.patchInfo({ resumeAt: undefined })]);
         this.options.persist();
         void hooks.lapse().catch((e: unknown) => console.error(`Dropping the resume of chat ${this.id} failed:`, errorText(e)));
@@ -1256,7 +1437,9 @@ export class ChatSession {
         if (this.thread.get(delivery.noteId) !== undefined) {
             return false;
         }
+
         this.pendingPreambles = [...this.pendingPreambles, delivery.preamble];
+
         this.emit([
             this.thread.upsert({
                 id: delivery.noteId,
@@ -1268,16 +1451,20 @@ export class ChatSession {
                 ...(delivery.from === undefined ? {} : { from: delivery.from })
             })
         ]);
+
         this.options.persist();
+
         return true;
     }
 
     /* Writes items a host draws in the thread itself (a row for work it delegated), leaving the ones that did not change alone. */
     upsertItems(items: readonly ChatItem[]): void {
         const changed = items.filter((item) => JSON.stringify(this.thread.get(item.id)) !== JSON.stringify(item));
+
         if (changed.length === 0) {
             return;
         }
+
         this.emit(changed.map((item) => this.thread.upsert(item)));
         this.options.persistSoon();
     }
@@ -1307,6 +1494,7 @@ export class ChatSession {
         const now = Date.now();
         const turnId = this.thread.info.activeTurnId;
         const events: ChatEvent[] = [];
+
         for (const item of this.thread.list()) {
             const settled =
                 item.kind === 'turn' && item.state === 'running'
@@ -1314,13 +1502,16 @@ export class ChatSession {
                     : item.kind === 'subagent' && item.origin !== HOST_TASK_ORIGIN && item.status === 'running'
                       ? { ...item, status: 'failed' as const, finishedAt: now }
                       : settleStoredItem(item, null);
+
             if (settled !== item) {
                 events.push(this.thread.upsert(settled));
             }
         }
+
         if (turnId !== null) {
             events.push(this.thread.upsert({ id: newId(`${ENDED_NOTE_PREFIX}note`), kind: 'note', createdAt: now, turnId, level: 'warning', text: reason }));
         }
+
         events.push(
             this.thread.patchInfo({
                 running: false,
@@ -1332,6 +1523,7 @@ export class ChatSession {
                 ...(this.thread.info.background?.length ? { background: [] } : {})
             })
         );
+
         this.emit(events);
         this.options.persist();
     }
@@ -1345,6 +1537,7 @@ export class ChatSession {
         if (this.thread.info.activeTurnId !== null || this.processInUse()) {
             throw new ChatError('chat-busy', `Chat ${this.id} is still working; stop it before restarting its agent session`);
         }
+
         return this.dropProcess();
     }
 
@@ -1362,6 +1555,7 @@ export class ChatSession {
         // What the init frame of the process that goes announced; a skill added since would be filtered out by it.
         this.emit([this.thread.patchInfo({ running: false, effectiveRuntimeMode: undefined, permissionMode: undefined, skills: undefined })]);
         this.options.persist();
+
         return backend?.dispose() ?? Promise.resolve();
     }
 
@@ -1379,50 +1573,63 @@ export class ChatSession {
         this.uiReplies.clear();
         this.clearStartWarning();
         this.clearWorkflowWarnings();
+
         if (this.titleTimer !== null) {
             clearTimeout(this.titleTimer);
             this.titleTimer = null;
         }
+
         const ended = this.backend?.dispose() ?? Promise.resolve();
         this.backend = null;
         this.starting = null;
+
         return Promise.all([ended, ...this.checkpointWork]).then(() => undefined);
     }
 
     /* What a turn changed against its checkpoint: the stored answer, or one taken now while it runs. */
     async turnDiff(turnId: string): Promise<ChatCheckpointDiff | null> {
         const turn = this.thread.get(turnId);
+
         if (turn?.kind !== 'turn') {
             throw new ChatError('request-not-found', `No turn ${turnId} in chat ${this.id}`);
         }
+
         if (turn.checkpointDiff) {
             return turn.checkpointDiff;
         }
+
         if (turn.checkpoint === undefined || !this.options.checkpoints) {
             return null;
         }
+
         return await this.options.checkpoints.diff(this.thread.info.cwd, turn.checkpoint);
     }
 
     /* A page of a thread the CLI keeps, through the process that runs now; null when none runs that can answer. */
     listThreadItems(params: { threadId: string; cursor?: string; limit: number; sortDirection: 'asc' | 'desc' }): Promise<unknown> | null {
         const backend = this.backend;
+
         return backend?.running === true && backend.listThreadItems ? backend.listThreadItems(params) : null;
     }
 
     /* A completed transcript survives the process; unfinished work cannot send a result after a restart. */
     async settleOrphanedSubagents(): Promise<void> {
         const rows = this.runningBackgroundRows();
+
         if (this.info.provider === 'claude') {
             for (const row of rows) {
                 this.orphans.add(row.toolUseId);
             }
+
             await this.settleFromTranscripts(rows);
         }
+
         const lost = this.runningBackgroundRows();
+
         for (const row of lost) {
             this.recordLostBackground(row);
         }
+
         this.settleRows(lost.map((row) => ({ ...row, status: 'failed', finishedAt: Date.now() })));
     }
 
@@ -1441,15 +1648,20 @@ export class ChatSession {
         const row = this.thread.find('subagent', (item) => item.toolUseId === toolUseId);
         const agentId = row?.native?.agentId;
         const owned = this.subagentOwners.get(toolUseId) === this.generation;
+
         if (agentId !== undefined && owned && this.backend?.stopTask) {
             this.stopping.set(agentId, toolUseId);
             this.backend.stopTask(agentId);
+
             return 'stopping';
         }
+
         if (agentId !== undefined && !owned && this.thread.info.activeTurnId !== null) {
             throw new ChatError('subagent-stale', 'This sub-agent belongs to a process that has ended');
         }
+
         this.markSubagentStopped(toolUseId);
+
         return 'marked';
     }
 
@@ -1458,6 +1670,7 @@ export class ChatSession {
             this.subagentOwners.set(event.ref, generation);
         } else if (event.type === 'task.done') {
             this.noteStopped(event);
+
             if (event.ref !== null) {
                 this.subagentOwners.delete(event.ref);
             }
@@ -1469,18 +1682,24 @@ export class ChatSession {
     /* The CLI would not stop it: with no turn running the row is only marked, and while one runs a note says it still goes on. */
     private refuseStop(agentId: string, message: string): void {
         const toolUseId = this.stopping.get(agentId);
+
         if (toolUseId === undefined) {
             return;
         }
+
         this.stopping.delete(agentId);
         const row = this.thread.find('subagent', (item) => item.toolUseId === toolUseId);
+
         if (row?.status !== 'running') {
             return;
         }
+
         if (this.thread.info.activeTurnId === null) {
             this.markSubagentStopped(toolUseId);
+
             return;
         }
+
         this.emit([
             this.thread.upsert({
                 id: `stop-refused-${toolUseId}-${Date.now()}`,
@@ -1491,25 +1710,33 @@ export class ChatSession {
                 text: `"${row.description || row.subagentType || 'Sub-agent'}" could not be stopped: ${message}`
             })
         ]);
+
         this.options.persist();
     }
 
     /* The line under a subagent that `stop_task` ended, once the CLI reported it settled. */
     private noteStopped(event: Extract<BackendEvent, { type: 'task.done' }>): void {
         const stopped = [...this.stopping].find(([agentId, toolUseId]) => agentId === event.taskId || toolUseId === event.ref);
+
         if (stopped === undefined) {
             return;
         }
+
         this.stopping.delete(stopped[0]);
+
         // It finished on its own just before the stop arrived; the row already says so.
         if (event.ok) {
             return;
         }
+
         const row = this.thread.find('subagent', (item) => item.toolUseId === stopped[1]);
+
         if (!row) {
             return;
         }
+
         const now = Date.now();
+
         this.emit([
             ...(row.status === 'running' ? [this.thread.upsert({ ...row, status: 'failed' as const, finishedAt: now })] : []),
             this.thread.upsert({
@@ -1521,6 +1748,7 @@ export class ChatSession {
                 text: `"${row.description || row.subagentType || 'Sub-agent'}" was stopped.`
             })
         ]);
+
         this.options.persist();
     }
 
@@ -1532,10 +1760,13 @@ export class ChatSession {
         if (this.thread.info.activeTurnId !== null) {
             throw new ChatError('chat-busy', 'A turn is running; stop the turn instead');
         }
+
         const row = this.thread.find('subagent', (item) => item.toolUseId === toolUseId);
+
         if (row?.status !== 'running') {
             return;
         }
+
         this.markStopped([row]);
     }
 
@@ -1552,11 +1783,15 @@ export class ChatSession {
         if (rows.length === 0) {
             return;
         }
+
         const now = Date.now();
+
         for (const row of rows) {
             this.orphans.delete(row.toolUseId);
         }
+
         const names = rows.map((row) => `"${row.description || row.subagentType || 'Sub-agent'}"`).join(', ');
+
         this.emit([
             ...rows.map((row) => this.thread.upsert({ ...row, status: 'failed', finishedAt: now })),
             this.thread.upsert({
@@ -1568,12 +1803,14 @@ export class ChatSession {
                 text: `${names} ${rows.length === 1 ? 'was' : 'were'} marked as stopped. ${this.options.provider.name} cannot stop one sub-agent on its own, so ${rows.length === 1 ? 'it' : 'they'} may keep working until the chat's process ends.`
             })
         ]);
+
         this.options.persist();
     }
 
     /* Asks the transcript again for a row a load left running, when somebody looks at it. */
     async recheckOrphan(toolUseId: string): Promise<void> {
         const row = this.thread.find('subagent', (item) => item.toolUseId === toolUseId);
+
         if (this.orphans.has(toolUseId) && (row?.status === 'running' || row?.status === 'failed')) {
             await this.settleFromTranscripts([row]);
         }
@@ -1582,9 +1819,11 @@ export class ChatSession {
     /* Writes down where a subagent's conversation was found, so the next question about it reads no folder. */
     noteSubagentNative(toolUseId: string, native: { agentId?: string; threadId?: string }): void {
         const item = this.thread.find('subagent', (candidate) => candidate.toolUseId === toolUseId);
+
         if (!item || (item.native?.agentId === native.agentId && item.native?.threadId === native.threadId)) {
             return;
         }
+
         this.emit([this.thread.upsert({ ...item, native: { ...item.native, ...native } })]);
         this.options.persistSoon();
     }
@@ -1596,9 +1835,11 @@ export class ChatSession {
      */
     async skills(scan: () => Promise<ChatSkill[]>): Promise<ChatSkill[]> {
         const backend = this.backend;
+
         if (backend?.running === true && backend.listSkills) {
             try {
                 const own = await backend.listSkills();
+
                 if (own.length > 0) {
                     return own;
                 }
@@ -1606,12 +1847,16 @@ export class ChatSession {
                 // The CLI could not answer; the scan below is what is left.
             }
         }
+
         const scanned = await scan();
         const announced = this.thread.info.skills;
+
         if (!announced?.length) {
             return scanned;
         }
+
         const known = new Set(announced);
+
         return scanned.filter((skill) => known.has(skill.name));
     }
 
@@ -1620,14 +1865,17 @@ export class ChatSession {
         const turnId = requestedTurnId ?? newId('turn');
         const now = Date.now();
         const events = [this.thread.upsert({ id: turnId, kind: 'turn', createdAt: now, turnId, state: 'running', origin: 'user', endedAt: null, costUsd: 0 })];
+
         if (note !== null) {
             events.push(this.thread.upsert({ id: newId('note'), kind: 'note', createdAt: now, turnId, level: 'info', text: note }));
         }
+
         if (text !== null) {
             const mentions = extras.mentions?.length ? extras.mentions : undefined;
             const skills = extras.skills?.length ? extras.skills : undefined;
             const chats = extras.chats?.length ? extras.chats : undefined;
             const attachments = extras.attachments?.length ? extras.attachments : undefined;
+
             events.push(
                 this.thread.upsert({
                     id: newId('user'),
@@ -1645,13 +1893,17 @@ export class ChatSession {
                 })
             );
         }
+
         events.push(this.thread.patchInfo({ status: this.thread.statusFor(turnId), activeTurnId: turnId }));
         this.emit(events);
+
         if (extras.uiChoice) {
             this.recordUiAnswer({ ...extras.uiChoice, turnId, queued: false });
         }
+
         // On disk before the CLI answers, so a host that goes down mid-turn still shows the question.
         this.options.persist();
+
         return turnId;
     }
 
@@ -1662,12 +1914,15 @@ export class ChatSession {
     private settleAgentTurn(): void {
         const turnId = this.thread.info.activeTurnId;
         const turn = turnId ? this.thread.get(turnId) : undefined;
+
         if (turn?.kind !== 'turn' || turn.origin !== 'agent') {
             return;
         }
+
         if (this.spokenTurnId === turn.id) {
             this.staleResults += 1;
         }
+
         this.emit([this.thread.upsert({ ...turn, state: 'done', endedAt: Date.now() }), this.thread.patchInfo({ status: 'idle', activeTurnId: null })]);
         this.settleCheckpoint(turn.id);
     }
@@ -1675,16 +1930,21 @@ export class ChatSession {
     /* Records the folder's tree on the turn; a folder without git leaves the turn as it is. */
     private checkpoint(turnId: string): Promise<void> {
         const checkpoints = this.options.checkpoints;
+
         if (!checkpoints) {
             return Promise.resolve();
         }
+
         const cwd = this.thread.info.cwd;
+
         return this.trackCheckpoint(
             Promise.all([checkpoints.take(cwd), checkpoints.head?.(cwd) ?? null]).then(([tree, head]) => {
                 const turn = this.thread.get(turnId);
+
                 if (tree === null || turn?.kind !== 'turn' || turn.state !== 'running' || this.info.activeTurnId !== turnId) {
                     return;
                 }
+
                 this.emit([this.thread.upsert({ ...turn, checkpoint: tree, ...(head === null ? {} : { checkpointHead: head }) })]);
             })
         );
@@ -1693,17 +1953,22 @@ export class ChatSession {
     /* The diff of a turn that just ended, so a reload shows it without asking git again, and the tree a fork after it starts from. */
     private settleCheckpoint(turnId: string): void {
         const turn = this.thread.get(turnId);
+
         if (turn?.kind !== 'turn' || turn.checkpoint === undefined || turn.checkpointDiff || !this.options.checkpoints) {
             return;
         }
+
         const { checkpoints } = this.options;
         const cwd = this.thread.info.cwd;
+
         void this.trackCheckpoint(
             Promise.all([checkpoints.settle(cwd, turn.checkpoint), checkpoints.head?.(cwd) ?? null]).then(([answer, head]) => {
                 const settled = this.thread.get(turnId);
+
                 if (answer === null || settled?.kind !== 'turn') {
                     return;
                 }
+
                 this.emit([
                     this.thread.upsert({
                         ...settled,
@@ -1712,6 +1977,7 @@ export class ChatSession {
                         ...(head === null ? {} : { checkpointHeadAfter: head })
                     })
                 ]);
+
                 this.options.persist();
             })
         );
@@ -1721,6 +1987,7 @@ export class ChatSession {
     private trackCheckpoint(work: Promise<void>): Promise<void> {
         const tracked = work.catch(() => undefined).finally(() => this.checkpointWork.delete(tracked));
         this.checkpointWork.add(tracked);
+
         return tracked;
     }
 
@@ -1733,6 +2000,7 @@ export class ChatSession {
         if (text.startsWith('/')) {
             return { preamble: null, note: null };
         }
+
         const host = this.options.promptNotes?.next() ?? { shown: [], heard: [] };
         // Keep consumed notes in the submission until the CLI acknowledges them.
         const preambles = this.preambles;
@@ -1741,7 +2009,9 @@ export class ChatSession {
         const hints = this.pendingHints;
         this.pendingHints = [];
         const read = [...preambles, ...host.shown];
+
         const joined = (parts: string[]): string | null => (parts.length === 0 ? null : parts.join('\n\n'));
+
         return { preamble: joined([...read, ...host.heard, ...hints]), note: joined(read) };
     }
 
@@ -1750,8 +2020,10 @@ export class ChatSession {
         this.submission = { turnId, input: { ...input, promptId: randomUUID() } };
         const submission = this.submission;
         this.options.persist();
+
         this.run((backend) => {
             backend.sendTurn(submission.input);
+
             if (!backend.acknowledgesTurns) {
                 this.acceptPrompt(submission.input.promptId!);
             }
@@ -1760,43 +2032,54 @@ export class ChatSession {
 
     private acceptPrompt(promptId: string): void {
         const submission = this.submission;
+
         if (submission?.input.promptId !== promptId) {
             return;
         }
+
         this.submission = null;
         const turn = this.thread.get(submission.turnId);
+
         if (turn?.kind === 'turn' && (turn.deliveryPending || turn.resumePending)) {
             this.emit([this.thread.upsert({ ...turn, deliveryPending: undefined, resumePending: undefined })]);
         }
+
         this.options.persist();
     }
 
     /* Runs one turn against the backend; a backend that will not start ends the turn with the reason. */
     private run(work: (backend: ChatBackend) => void): void {
         const turnId = this.info.activeTurnId;
+
         if (turnId === null) {
             return;
         }
+
         const pending = this.watchStart(turnId);
         let backend: Promise<ChatBackend>;
+
         try {
             backend = this.ensureBackend();
         } catch (error) {
             // What the host prepares for a launch (its folders, its instructions) can throw too; the turn already opened, so it fails.
             backend = Promise.reject(asError(error));
         }
+
         const generation = this.generation;
+
         void Promise.all([backend, this.turnReady, this.options.save?.()])
             .then(([started]) => {
                 if (this.pendingStart !== pending || this.backend !== started || this.info.activeTurnId !== turnId || this.frozen) {
                     return;
                 }
+
                 this.clearStartWarning();
                 work(started);
             })
             .catch((error: unknown) => {
                 if (this.pendingStart === pending || (this.backend !== null && this.generation === generation && this.info.activeTurnId === turnId)) {
                     this.clearStartWarning();
+
                     if (error instanceof ChatError && error.code === 'chat-busy') {
                         this.pendingPreambles = this.preambles;
                         this.submission = null;
@@ -1804,8 +2087,10 @@ export class ChatSession {
                         this.emit(this.projector.project(generation, { type: 'turn.done', state: 'error', costUsd: 0, error: error.message }));
                         this.settleCheckpoint(turnId);
                         this.options.persist();
+
                         return;
                     }
+
                     this.receive(generation, { type: 'failed', message: errorText(error), processAlive: this.running });
                 }
             });
@@ -1814,6 +2099,7 @@ export class ChatSession {
     private watchStart(turnId: string): { turnId: string; warning: unknown } {
         this.clearStartWarning();
         const clock = this.options.clock ?? systemClock;
+
         const pending = {
             turnId,
             warning: clock.setTimeout(() => {
@@ -1828,11 +2114,14 @@ export class ChatSession {
                             text: 'The agent is still starting. You can stop this turn and try again.'
                         })
                     ]);
+
                     this.options.persist();
                 }
             }, 30_000)
         };
+
         this.pendingStart = pending;
+
         return pending;
     }
 
@@ -1840,6 +2129,7 @@ export class ChatSession {
         if (this.pendingStart === null) {
             return;
         }
+
         (this.options.clock ?? systemClock).clearTimeout(this.pendingStart.warning);
         this.pendingStart = null;
     }
@@ -1878,27 +2168,34 @@ export class ChatSession {
             if (this.processInUse()) {
                 return Promise.reject(new ChatError('chat-busy', 'The current work and open requests must finish before the changes to this chat can apply'));
             }
+
             // Let the old one go quietly; its events are dropped and its exit must not end the chat.
             this.backend.stop();
             this.backend = null;
             this.starting = null;
         }
+
         if (this.backend && this.starting) {
             return this.starting;
         }
+
         const projectConfig = this.loadsProjectConfig();
+
         if (!projectConfig && !this.options.provider.ignoresProjectConfig) {
             return Promise.reject(
                 new ChatError('project-config-unsupported', `${this.options.provider.name} cannot run without the configuration of its folder`)
             );
         }
+
         let env: Record<string, string>;
+
         try {
             env = this.options.env(this.thread.info.account);
             this.launchedAccount = this.thread.info.account;
         } catch (error) {
             return Promise.reject(asError(error));
         }
+
         this.generation = nextGeneration();
         const generation = this.generation;
         const info = this.thread.info;
@@ -1908,6 +2205,7 @@ export class ChatSession {
         const folders = this.options.folders?.() ?? [];
         this.launchedFolders = folders;
         this.launchedProjectConfig = projectConfig;
+
         const launch: BackendLaunch = {
             command: this.options.command,
             cwd: info.cwd,
@@ -1928,7 +2226,9 @@ export class ChatSession {
             ...(projectConfig ? {} : { projectConfig }),
             ...(this.options.spawn ? { spawn: this.options.spawn } : {})
         };
+
         const made: { backend: ChatBackend | null } = { backend: null };
+
         try {
             made.backend = this.options.provider.createBackend(launch, {
                 onEvent: (event) => {
@@ -1940,17 +2240,20 @@ export class ChatSession {
         } catch (error) {
             return Promise.reject(asError(error));
         }
+
         const backend = made.backend;
         this.backend = backend;
         this.replaceProcess = false;
         this.emit([this.thread.patchInfo({ running: true, effectiveRuntimeMode: undefined, permissionMode: undefined })]);
         let started: Promise<void>;
+
         try {
             started = backend.start();
         } catch (error) {
             // A spawn that throws on the spot (no such executable) is a start that failed like any other.
             started = Promise.reject(asError(error));
         }
+
         this.starting = started
             .then(() => backend)
             .catch((error: unknown) => {
@@ -1959,13 +2262,16 @@ export class ChatSession {
                     this.backend = null;
                     this.starting = null;
                 }
+
                 throw error;
             });
+
         return this.starting;
     }
 
     private awaitsResume(turnId: string, attempt: number): boolean {
         const turn = this.thread.get(turnId);
+
         return (
             !this.frozen &&
             turn?.kind === 'turn' &&
@@ -1979,33 +2285,45 @@ export class ChatSession {
         if (this.frozen) {
             return;
         }
+
         if (event.type === 'turn.accepted') {
             this.acceptPrompt(event.promptId);
+
             return;
         }
+
         if (event.type === 'limits') {
             this.options.onLimits?.(this.launchedAccount === undefined ? event.update : { ...event.update, account: this.launchedAccount });
+
             return;
         }
+
         if (event.type === 'title') {
             this.applyTitle(event.title);
+
             return;
         }
+
         if (event.type === 'stop.refused') {
             this.refuseStop(event.taskId, event.message);
+
             return;
         }
+
         /*
          * A CLI that counts its tokens but names no window, in a chat that has none yet: the catalog may have learned the
          * model's window since the chat began, as an ACP agent's catalog does from the first session that reports its models.
          */
         if (event.type === 'usage' && event.contextWindow === undefined && event.contextTokens !== undefined && this.thread.info.usage.contextWindow === null) {
             const contextWindow = this.options.provider.catalog.contextWindowFor(this.launchedSelection ?? this.thread.info.selection);
+
             if (contextWindow !== null) {
                 this.emit(this.projector.project(generation, { ...event, contextWindow }));
+
                 return;
             }
         }
+
         /*
          * A CLI reports the window it was started on. A pick made since waits for the restart the next
          * send does, so its report may not put the old size back under a meter that already reads the new one.
@@ -2014,66 +2332,88 @@ export class ChatSession {
             if (event.contextTokens === undefined) {
                 return;
             }
+
             this.emit(this.projector.project(generation, { type: 'usage', contextTokens: event.contextTokens }));
+
             return;
         }
+
         if (event.type === 'exit') {
             this.backend = null;
             this.starting = null;
             this.awaitingBackgroundReport = false;
         }
+
         // A turn we settled ourselves still has its own `result` coming; it may not close the turn after it.
         if (event.type === 'turn.done' && event.promptId === undefined && this.staleResults > 0) {
             this.staleResults -= 1;
+
             return;
         }
+
         if (event.type === 'exit' || event.type === 'failed') {
             this.staleResults = 0;
         }
+
         if (event.type === 'turn.done') {
             if (event.promptId !== undefined && this.submission !== null && this.submission.input.promptId !== event.promptId) {
                 return;
             }
+
             if (event.promptId !== undefined) {
                 this.staleResults = 0;
             }
+
             if (event.replaceProcess === true) {
                 this.replaceProcess = true;
             }
+
             const promptId = event.promptId ?? this.submission?.input.promptId;
+
             if (promptId !== undefined) {
                 this.acceptPrompt(promptId);
             }
         }
+
         const openTurnId = this.thread.info.activeTurnId;
+
         if ((event.type === 'turn.done' && event.state !== 'done') || ((event.type === 'failed' || event.type === 'exit') && openTurnId !== null)) {
             this.pauseQueue(true);
         }
+
         // Settled as failed by the exit below; the transcript may still show that they finished first.
         const orphaned = event.type === 'exit' && this.info.provider === 'claude' ? this.runningBackgroundRows() : [];
+
         if (event.type === 'turn.done' && event.state === 'aborted') {
             // A request of work beside the turn outlives the interrupt; turned down, that work goes on instead of waiting forever.
             for (const item of this.thread.pending()) {
                 this.backend?.declineRequest?.(item.requestId, 'The user stopped the turn');
             }
         }
+
         const hadNativeWork = (event.type === 'task.done' || event.type === 'tool.done' || event.type === 'background.ended') && this.hasNativeWork();
         const projected = this.projector.project(generation, event);
+
         if (event.type === 'turn.done' || (event.type === 'failed' && event.processAlive !== true)) {
             this.awaitingBackgroundReport = false;
         } else if (event.type !== 'exit' && event.type !== 'failed' && hadNativeWork && !this.hasNativeWork() && reportsOnBackgroundWork(this.info.provider)) {
             this.awaitingBackgroundReport = true;
         }
+
         this.emit(projected);
         this.trackSubagentOwner(generation, event);
         this.watchWorkflows(generation, event);
+
         if (isMainAgentOutput(event)) {
             this.spokenTurnId = this.thread.info.activeTurnId;
         }
+
         if (orphaned.length > 0) {
             void this.settleFromTranscripts(orphaned.flatMap((row) => this.thread.get(row.id) ?? []).filter((item) => item.kind === 'subagent'));
         }
+
         const activeTurnId = this.thread.info.activeTurnId;
+
         if (openTurnId === null && activeTurnId !== null) {
             // The CLI opened this turn itself; it takes a checkpoint like any other, so the card can
             // show what the agent changed while nobody was watching.
@@ -2081,20 +2421,26 @@ export class ChatSession {
             void this.checkpoint(activeTurnId);
             this.options.persist();
         }
+
         if (event.type === 'turn.done' || event.type === 'exit' || event.type === 'failed') {
             this.options.persist();
         }
+
         if (event.type === 'permissions' || event.type === 'session') {
             this.options.persist();
         }
+
         if (openTurnId !== null && activeTurnId === null) {
             this.settleCheckpoint(openTurnId);
         }
+
         if (event.type === 'session' && typeof event.title === 'string') {
             this.applyTitle(event.title);
         }
+
         if (event.type === 'session' && this.thread.info.agentSessionId !== null) {
             this.refreshTitle();
+
             if (this.titleTimer === null && this.thread.info.suggestedTitle === undefined) {
                 this.titleTimer = setTimeout(() => {
                     this.titleTimer = null;
@@ -2102,15 +2448,19 @@ export class ChatSession {
                 }, TITLE_RECHECK_MS);
             }
         }
+
         // The turn is over and the CLI is still there, so whatever waited behind it can go out now.
         if (event.type === 'turn.done') {
             this.refreshTitle();
+
             if (event.state === 'done') {
                 this.nameThread();
             }
+
             if (event.limit !== undefined) {
                 this.oweResume(true);
             }
+
             this.drainQueue(event.state === 'aborted' && this.sendAfterStop);
             this.sendAfterStop = false;
         } else if (
@@ -2130,9 +2480,11 @@ export class ChatSession {
 
     private clearWorkflowWarnings(): void {
         const clock = this.options.clock ?? systemClock;
+
         for (const timer of this.workflowWarnings.values()) {
             clock.clearTimeout(timer);
         }
+
         this.workflowWarnings.clear();
     }
 
@@ -2140,15 +2492,20 @@ export class ChatSession {
         if (event.type === 'tool.output' || event.type === 'tool.progress') {
             // These come by the thousand, and only the call they name can be a workflow they move.
             const item = this.projector.itemOf(generation, event.ref);
+
             if (item?.kind === 'tool' && item.name === 'Workflow') {
                 this.watchWorkflow(item, true);
             }
+
             return;
         }
+
         if (!['tool.started', 'tool.done', 'workflow.progress', 'task.started', 'task.done', 'exit', 'failed'].includes(event.type)) {
             return;
         }
+
         const ref = 'ref' in event ? event.ref : null;
+
         for (const item of this.thread.list()) {
             if (item.kind === 'tool' && item.name === 'Workflow') {
                 this.watchWorkflow(item, ref === item.toolUseId && ['workflow.progress', 'tool.started', 'tool.done', 'task.started'].includes(event.type));
@@ -2159,15 +2516,18 @@ export class ChatSession {
     private watchWorkflow(item: ChatToolItem, progress: boolean): void {
         const clock = this.options.clock ?? systemClock;
         const existing = this.workflowWarnings.get(item.id);
+
         if (item.state !== 'running' || progress) {
             if (existing !== undefined) {
                 clock.clearTimeout(existing);
                 this.workflowWarnings.delete(item.id);
             }
         }
+
         if (item.state !== 'running' || (!progress && existing !== undefined) || (!progress && item.workflow?.stalledAt !== undefined)) {
             return;
         }
+
         if (progress) {
             this.emit([
                 this.thread.upsert({
@@ -2176,14 +2536,17 @@ export class ChatSession {
                 })
             ]);
         }
+
         this.workflowWarnings.set(
             item.id,
             clock.setTimeout(() => {
                 this.workflowWarnings.delete(item.id);
                 const current = this.thread.get(item.id);
+
                 if (this.frozen || current?.kind !== 'tool' || current.state !== 'running') {
                     return;
                 }
+
                 this.emit([this.thread.upsert({ ...current, workflow: { name: null, phases: [], agents: [], ...current.workflow, stalledAt: clock.now() } })]);
                 this.options.persist();
             }, 5 * 60_000)
@@ -2193,15 +2556,18 @@ export class ChatSession {
     /* Whether the CLI that reports was started on a pick standing for the same window as the chat's own. */
     private reportsCurrentWindow(): boolean {
         const catalog = this.options.provider.catalog;
+
         return this.launchedSelection === null || catalog.contextWindowFor(this.launchedSelection) === catalog.contextWindowFor(this.thread.info.selection);
     }
 
     /* Rides on the info patch: a client that has the chat open hears it, and a reload finds it stored. */
     private refreshTitle(): void {
         const agentSessionId = this.thread.info.agentSessionId;
+
         if (!this.options.readTitle || agentSessionId === null) {
             return;
         }
+
         void this.options
             .readTitle(agentSessionId)
             .then((title) => {
@@ -2209,6 +2575,7 @@ export class ChatSession {
                 if (title === null || title === this.thread.info.suggestedTitle || this.thread.info.agentSessionId !== agentSessionId) {
                     return;
                 }
+
                 this.emit([this.thread.patchInfo({ suggestedTitle: title })]);
                 this.options.persistSoon();
             })
@@ -2218,9 +2585,11 @@ export class ChatSession {
     private applyTitle(raw: string): void {
         // Every info a client reads carries the title, so one it would refuse would leave the chat stuck there.
         const title = cleanTitle(raw);
+
         if (title === null || title === this.thread.info.suggestedTitle) {
             return;
         }
+
         this.emit([this.thread.patchInfo({ suggestedTitle: title })]);
         this.options.persistSoon();
     }
@@ -2232,28 +2601,36 @@ export class ChatSession {
      */
     private nameThread(): void {
         const name = this.options.nameThread;
+
         if (!name || this.naming || this.thread.info.suggestedTitle !== undefined) {
             return;
         }
+
         const items = this.thread.list();
         const done = items.filter((item) => item.kind === 'turn' && item.state === 'done');
         const prompt = items.find((item) => item.kind === 'user');
+
         if (done.length !== 1 || prompt?.kind !== 'user' || prompt.text.trim() === '') {
             return;
         }
+
         this.naming = true;
         const turnId = done[0]!.id;
+
         const answer = items
             .map((item) => (item.kind === 'assistant' && item.turnId === turnId ? readableAssistantText(item) : ''))
             .filter((text) => text !== '')
             .join('\n\n');
+
         const agentSessionId = this.thread.info.agentSessionId;
+
         void name({ cwd: this.thread.info.cwd, prompt: prompt.text, answer })
             .then((title) => {
                 // A clear in between started another conversation, and a name that came meanwhile is the CLI's own.
                 if (title === null || this.thread.info.agentSessionId !== agentSessionId || this.thread.info.suggestedTitle !== undefined) {
                     return;
                 }
+
                 this.applyTitle(title);
                 this.backend?.setTitle?.(title);
             })
@@ -2267,17 +2644,23 @@ export class ChatSession {
     /* Done for every row whose transcript shows the end, unless something else settled the row while it was read. */
     private async settleFromTranscripts(rows: ChatSubagentItem[]): Promise<void> {
         const lookup = this.options.subagentSettlement;
+
         if (!lookup || rows.length === 0) {
             return;
         }
+
         const settled: ChatSubagentItem[] = [];
+
         for (const row of rows) {
             const settlement = await lookup(row.toolUseId);
             const current = this.thread.get(row.id);
+
             if (settlement === null || current?.kind !== 'subagent' || current.status !== row.status || current.finishedAt !== row.finishedAt) {
                 continue;
             }
+
             this.orphans.delete(row.toolUseId);
+
             settled.push({
                 ...current,
                 status: 'done',
@@ -2285,6 +2668,7 @@ export class ChatSession {
                 result: settlement.report ?? current.result
             });
         }
+
         this.settleRows(settled);
     }
 
@@ -2292,12 +2676,14 @@ export class ChatSession {
         if (this.frozen || rows.length === 0) {
             return;
         }
+
         this.emit(rows.map((row) => this.thread.upsert(row)));
         this.options.persist();
     }
 
     private emit(events: ChatEvent[]): void {
         const delegating = this.delegatingChange(events);
+
         for (const event of delegating === null ? events : [...events, delegating]) {
             this.uiReplies.pass(event);
         }
@@ -2308,10 +2694,13 @@ export class ChatSession {
         if (!events.some((event) => event.type === 'item' && isBackgroundWork(event.item))) {
             return null;
         }
+
         const delegating = runningInBackground(this.thread.list()).length > 0;
+
         if (delegating === (this.thread.info.delegating ?? false)) {
             return null;
         }
+
         return this.thread.patchInfo({ delegating: delegating || undefined });
     }
 }
@@ -2327,18 +2716,23 @@ function settleStoredItem(item: ChatItem, resumeTurnId: string | null): ChatItem
     if (item.kind === 'assistant' && item.streaming) {
         return { ...item, streaming: false };
     }
+
     if (item.kind === 'approval' && item.decision === 'pending') {
         return { ...item, decision: 'cancelled' };
     }
+
     if (item.kind === 'question' && item.state === 'pending') {
         return { ...item, state: 'cancelled' };
     }
+
     if (item.kind === 'tool' && item.state === 'running') {
         return { ...item, state: 'error' };
     }
+
     // Aborted rather than error: the turn did not fail, the machine went down under it.
     if (item.kind === 'turn' && item.state === 'running' && item.id !== resumeTurnId) {
         return { ...item, state: 'aborted', endedAt: item.endedAt ?? item.createdAt };
     }
+
     return item;
 }

@@ -25,6 +25,7 @@ describe('BookmarkStore', () => {
         await store.add('chat-1', { itemId: 'a', excerpt: 'Use the groups from sidebar-groups.ts' }, 10);
         await store.add('chat-1', { itemId: 'b', excerpt: 'Run bun test', name: '  Working command  ' }, 20);
         const again = new BookmarkStore(home);
+
         expect(await again.read('chat-1')).toEqual([
             { itemId: 'a', excerpt: 'Use the groups from sidebar-groups.ts', createdAt: 10 },
             { itemId: 'b', excerpt: 'Run bun test', name: 'Working command', createdAt: 20 }
@@ -53,6 +54,7 @@ describe('BookmarkStore', () => {
             store.add('chat-1', { itemId: 'b', excerpt: 'y' }, 11),
             store.remove('chat-1', 'a')
         ]);
+
         expect(told.map((entry) => entry.bookmarks.map((bookmark) => bookmark.itemId))).toEqual([['a'], ['a', 'b'], ['b']]);
     });
 

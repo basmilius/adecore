@@ -35,6 +35,7 @@ function copilot(options: { usageLog?: string } = {}) {
         profiles: { agent: { options: [], contextWindowTokens: {} } },
         models: [{ slug: 'default', name: 'Default', profile: 'agent' }]
     });
+
     return createAcpProvider({
         kind: 'copilot',
         name: 'GitHub Copilot',
@@ -54,6 +55,7 @@ const INSTRUCTIONS = 'You work in a workspace of projects and views, and a shell
 function open(provider: ReturnType<typeof copilot>) {
     const fake = inProcess(fakeAcpCapture(capture));
     const providers = new ProviderRegistry({ detect: async () => ({ installed: true, version: '1.0.101' }), providers: [provider] });
+
     const chats = new ChatCore({
         providers,
         store: new ChatStore(home),
@@ -62,35 +64,43 @@ function open(provider: ReturnType<typeof copilot>) {
         spawn: fake.spawn,
         instructions: INSTRUCTIONS
     });
+
     core = chats;
     let info: ChatInfo | null = null;
     const items = new Map<string, ChatItem>();
     // What a client would refuse, and so never see: an info it refuses leaves it showing the turn as running.
     const refused: string[] = [];
     const waiters: Array<() => void> = [];
+
     chats.observe((event: AgentEvent) => {
         if (event.event === 'chat.event') {
             const chatEvent = event.payload.event;
             const parsed = ChatEventSchema.safeParse(chatEvent);
+
             if (!parsed.success) {
                 refused.push(parsed.error.issues.map((issue) => issue.path.join('.')).join(', '));
             }
+
             if (chatEvent.type === 'info') {
                 info = chatEvent.info;
             } else if (chatEvent.type === 'item') {
                 items.set(chatEvent.item.id, chatEvent.item);
             }
         }
+
         for (const wake of waiters.splice(0)) {
             wake();
         }
     });
+
     const until = async (done: () => boolean): Promise<void> => {
         while (!done()) {
             await new Promise<void>((resolve) => waiters.push(resolve));
         }
     };
+
     const turns = () => [...items.values()].filter((item) => item.kind === 'turn');
+
     return { chats, fake, until, turns, refused, info: () => info, items: () => [...items.values()] };
 }
 
@@ -123,7 +133,9 @@ test("adopts Copilot's models and reasoning effort from a chat's session, its ef
         ['gpt-5.3-codex', 'GPT-5.3-Codex'],
         ['mai-code-1.1-flash', 'MAI-Code-1.1-Flash']
     ]);
+
     const haiku = provider.catalog.list().find((model) => model.slug === 'claude-haiku-4.5');
+
     expect(haiku?.options.find((option) => option.id === 'effort')).toMatchObject({
         type: 'select',
         defaultChoice: 'medium',
@@ -145,6 +157,7 @@ test("logs a Copilot turn's tokens with their kinds apart, for the usage page", 
     await chat.until(() => chat.turns().some((turn) => turn.kind === 'turn' && turn.state === 'done'));
     const scanner = new UsageScanner(join(home, 'scan'), [{ provider: 'copilot', path: folder }]);
     await scanner.scan();
+
     // Input, output and both cache kinds add up to more than the total, so the input held the cache.
     expect(scanner.records()).toMatchObject([
         { provider: 'copilot', model: 'claude-sonnet-4.6', totals: { calls: 1, input: 10, cacheRead: 8167, cacheWrite: 14768, output: 42, reasoning: 35 } }

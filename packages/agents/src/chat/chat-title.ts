@@ -45,19 +45,25 @@ export function buildTitlePrompt(prompt: string, answer: string): string {
 export function parseTitle(output: string): string | null {
     const start = [...output.matchAll(/\{\s*"title"/g)].at(-1)?.index;
     const end = output.lastIndexOf('}');
+
     if (start === undefined || end < start) {
         return null;
     }
+
     let parsed: unknown;
+
     try {
         parsed = JSON.parse(output.slice(start, end + 1));
     } catch {
         return null;
     }
+
     if (typeof parsed !== 'object' || parsed === null || !('title' in parsed)) {
         return null;
     }
+
     const title = cleanTitle(parsed.title);
+
     return title === null ? null : cleanTitle(title.replace(/^["'`]+|["'`.]+$/g, ''));
 }
 
@@ -74,11 +80,14 @@ export async function suggestChatTitle(
 ): Promise<string | null> {
     const provider = await registry.oneShotProvider(preferred);
     const args = provider?.oneShotArgs?.(buildTitlePrompt(input.prompt, input.answer)) ?? null;
+
     if (provider === null || args === null) {
         return null;
     }
+
     try {
         const result = await runProcess([provider.command[0]!, ...args], { cwd: input.cwd, timeoutMs: TIMEOUT_MS, ...(env === undefined ? {} : { env }) });
+
         return result.exitCode === 0 ? parseTitle(result.stdout) : null;
     } catch {
         return null;

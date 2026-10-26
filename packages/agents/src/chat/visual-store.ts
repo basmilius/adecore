@@ -72,26 +72,34 @@ function checked(input: VisualInput): {
     heights: VisualHeight[] | undefined;
 } {
     const title = typeof input.title === 'string' ? input.title.trim() : '';
+
     if (title === '') {
         refuse('visual-invalid', 'A visual needs a title; give it a short one that says what the page shows');
     }
+
     if (title.length > VISUAL_LIMITS.title) {
         refuse('visual-invalid', `The title has ${title.length} characters; keep it to ${VISUAL_LIMITS.title} or fewer`);
     }
+
     if (typeof input.html !== 'string' || input.html.trim() === '') {
         refuse('visual-invalid', 'The page is empty; pass one self-contained HTML document');
     }
+
     const maxHeight = input.maxHeight ?? VISUAL_LIMITS.maxHeight;
+
     if (!isSize(maxHeight) || maxHeight < VISUAL_LIMITS.minHeight || maxHeight > VISUAL_LIMITS.maxHeight) {
         refuse(
             'visual-invalid',
             `The maximum height must be from ${VISUAL_LIMITS.minHeight} to ${VISUAL_LIMITS.maxHeight} CSS pixels; leave it out for ${VISUAL_LIMITS.maxHeight}`
         );
     }
+
     if (input.layout !== undefined && !VisualLayoutSchema.safeParse(input.layout).success) {
         refuse('visual-invalid', 'The layout must be inline or wide; leave it out for the reply column');
     }
+
     const heights = input.heights ?? [];
+
     if (
         !Array.isArray(heights) ||
         heights.length > VISUAL_LIMITS.heights ||
@@ -99,9 +107,11 @@ function checked(input: VisualInput): {
     ) {
         refuse('visual-invalid', `Measured heights are at most ${VISUAL_LIMITS.heights} pairs of [width, height] in CSS pixels, with a positive width`);
     }
+
     // One measurement per width, the last one given, ascending as `visualFrameHeight` reads them.
     const byWidth = new Map(heights.map((pair): [number, number] => [Math.max(1, Math.round(pair[0])), Math.ceil(pair[1])]));
     const sorted = [...byWidth].sort((a, b) => a[0] - b[0]);
+
     return { title, html: input.html, maxHeight: Math.round(maxHeight), layout: input.layout, heights: sorted.length === 0 ? undefined : sorted };
 }
 
@@ -115,6 +125,7 @@ function tooLarge(bytes: number): never {
 
 function refuseOversized(html: string): void {
     const bytes = Buffer.byteLength(html, 'utf8');
+
     if (bytes > VISUAL_LIMITS.bytes) {
         tooLarge(bytes);
     }
@@ -143,6 +154,7 @@ export class VisualStore {
 
     listen(listener: VisualListener): () => void {
         this.listeners.add(listener);
+
         return () => {
             this.listeners.delete(listener);
         };
@@ -160,6 +172,7 @@ export class VisualStore {
     async prepareWorkspace(chatId: string): Promise<string> {
         const path = this.workspacePath(chatId);
         await mkdir(path, { recursive: true, mode: 0o700 });
+
         return path;
     }
 
@@ -168,10 +181,13 @@ export class VisualStore {
         if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,119}\.html$/.test(name)) {
             refuse('visual-invalid', 'Use an HTML filename such as chart.html, with letters, numbers, dots, hyphens or underscores and no directory');
         }
+
         if (html.trim() === '') {
             refuse('visual-invalid', 'The page is empty; pass one self-contained HTML document');
         }
+
         refuseOversized(html);
+
         return this.writeWorkspaceFile(chatId, name, html);
     }
 
@@ -185,12 +201,16 @@ export class VisualStore {
         // Before the bootstrap is added, so a page far too large is never copied first.
         refuseOversized(html);
         const page = Buffer.from(injectVisualBootstrap(html), 'utf8');
+
         if (page.byteLength > VISUAL_LIMITS.bytes) {
             tooLarge(page.byteLength);
         }
+
         const turnId = typeof input.turnId === 'string' && input.turnId !== '' ? input.turnId : undefined;
+
         return this.writes.run(chatId, async () => {
             const visuals = await this.readFile(chatId);
+
             const visual: ChatVisual = {
                 id: randomBytes(8).toString('hex'),
                 title,
@@ -201,16 +221,21 @@ export class VisualStore {
                 size: page.byteLength,
                 ...(turnId === undefined ? {} : { turnId })
             };
+
             await mkdir(this.attachments.folderOf(chatId), { recursive: true, mode: 0o700 });
             await writeAtomic(this.pagePath(chatId, visual.id), page);
             const next = [...visuals, visual];
+
             try {
                 await this.writeFile(chatId, next);
             } catch (e) {
                 await rm(this.pagePath(chatId, visual.id), { force: true });
+
                 throw e;
             }
+
             this.tell(chatId, next);
+
             return visual;
         });
     }
@@ -219,13 +244,16 @@ export class VisualStore {
     remove(chatId: string, visualId: string): Promise<ChatVisual[]> {
         return this.writes.run(chatId, async () => {
             const visuals = await this.readFile(chatId);
+
             if (!visuals.some((visual) => visual.id === visualId)) {
                 return visuals;
             }
+
             const next = visuals.filter((visual) => visual.id !== visualId);
             await this.writeFile(chatId, next);
             await rm(this.pagePath(chatId, visualId), { force: true });
             this.tell(chatId, next);
+
             return next;
         });
     }
@@ -238,6 +266,7 @@ export class VisualStore {
             await rm(this.workspacePath(chatId), { recursive: true, force: true });
             await Promise.all((visuals ?? []).map((visual) => rm(this.pagePath(chatId, visual.id), { force: true })));
             this.known.delete(chatId);
+
             if (visuals === null || visuals.length > 0) {
                 this.tell(chatId, []);
             }
@@ -250,29 +279,36 @@ export class VisualStore {
      */
     async copyChat(fromChatId: string, toChatId: string, keep: (visual: ChatVisual) => boolean = () => true): Promise<ChatVisual[]> {
         const kept = (await this.list(fromChatId)).filter(keep);
+
         if (kept.length === 0) {
             return this.list(toChatId);
         }
+
         return this.writes.run(toChatId, async () => {
             const copied: ChatVisual[] = [];
             await mkdir(this.attachments.folderOf(toChatId), { recursive: true, mode: 0o700 });
+
             for (const visual of kept) {
                 const page = await readFile(this.pagePath(fromChatId, visual.id)).catch((e: unknown) => {
                     if (isNotFound(e)) {
                         return null;
                     }
+
                     throw e;
                 });
+
                 if (page !== null) {
                     await writeAtomic(this.pagePath(toChatId, visual.id), page);
                     copied.push(visual);
                 }
             }
+
             const existing = await this.readFile(toChatId);
             const ids = new Set(existing.map((visual) => visual.id));
             const next = [...existing, ...copied.filter((visual) => !ids.has(visual.id))];
             await this.writeFile(toChatId, next);
             this.tell(toChatId, next);
+
             return next;
         });
     }
@@ -280,9 +316,11 @@ export class VisualStore {
     /* A page as an attachment of its chat, from the lists this store has seen; null for one it does not know. */
     attachment(chatId: string, visualId: string): ChatAttachment | null {
         const visual = this.known.get(chatId)?.find((candidate) => candidate.id === visualId);
+
         if (!visual) {
             return null;
         }
+
         return { id: visual.id, name: `${visual.title}.html`, mime: 'text/html', size: visual.size, path: this.pagePath(chatId, visual.id) };
     }
 
@@ -294,6 +332,7 @@ export class VisualStore {
         return this.writes.run(chatId, async () => {
             const path = join(await this.prepareWorkspace(chatId), name);
             await writeAtomic(path, content);
+
             return path;
         });
     }
@@ -306,31 +345,41 @@ export class VisualStore {
 
     private async readFile(chatId: string): Promise<ChatVisual[]> {
         let raw: string;
+
         try {
             raw = await readFile(join(this.dir, visualFileName(chatId)), 'utf8');
         } catch (e) {
             if (isNotFound(e)) {
                 this.known.delete(chatId);
+
                 return [];
             }
+
             throw e;
         }
+
         // A file that does not parse is refused rather than read as empty, which the next write would make true.
         const parsed = VisualFileSchema.safeParse(JSON.parse(raw));
+
         if (!parsed.success) {
             throw new Error(`The visuals file of chat ${chatId} is not valid: ${parsed.error.issues[0]?.message ?? 'unknown problem'}`);
         }
+
         this.known.set(chatId, parsed.data.visuals);
+
         return parsed.data.visuals;
     }
 
     private async writeFile(chatId: string, visuals: readonly ChatVisual[]): Promise<void> {
         const path = join(this.dir, visualFileName(chatId));
+
         if (visuals.length === 0) {
             await rm(path, { force: true });
             this.known.delete(chatId);
+
             return;
         }
+
         await mkdir(this.dir, { recursive: true, mode: 0o700 });
         await writeAtomic(path, JSON.stringify({ version: 1, visuals }));
         this.known.set(chatId, [...visuals]);

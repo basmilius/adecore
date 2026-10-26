@@ -60,6 +60,7 @@ export class JsonRpcTransport {
 
     constructor(options: JsonRpcTransportOptions) {
         this.options = options;
+
         this.child = new ChatChild({
             command: options.command,
             cwd: options.cwd,
@@ -68,6 +69,7 @@ export class JsonRpcTransport {
             onError: (error) => this.broken(error),
             onExit: (exitCode, stderr) => this.handleExit(exitCode, stderr)
         });
+
         void this.readLines();
     }
 
@@ -82,27 +84,35 @@ export class JsonRpcTransport {
     request(method: string, params: unknown, options: JsonRpcRequestOptions = {}): Promise<unknown> {
         const label = this.options.label;
         const timeoutMs = options.timeoutMs === undefined ? this.options.requestTimeoutMs : options.timeoutMs;
+
         return new Promise((resolve, reject) => {
             if (this.closed) {
                 reject(new Error(`${label} is not running`));
+
                 return;
             }
+
             const id = this.nextId++;
             let timer: ReturnType<typeof setTimeout> | null = null;
+
             if (timeoutMs !== null) {
                 timer = setTimeout(() => {
                     this.pending.delete(id);
                     reject(new Error(`${method} failed: ${label} did not answer in ${timeoutMs / 1000} seconds`));
                 }, timeoutMs);
+
                 timer.unref?.();
             }
+
             this.pending.set(id, { resolve, reject, method, timer });
+
             try {
                 this.write({ id, method, params });
             } catch (error) {
                 if (timer !== null) {
                     clearTimeout(timer);
                 }
+
                 this.pending.delete(id);
                 reject(error);
             }
@@ -124,6 +134,7 @@ export class JsonRpcTransport {
     /* Closes stdin; the child ends on its own once it has nothing more to say. */
     end(): void {
         this.inputClosed = true;
+
         try {
             this.child.process.stdin.end();
         } catch {
@@ -148,12 +159,14 @@ export class JsonRpcTransport {
         if (this.closed || this.inputClosed) {
             throw new Error(`${this.options.label} stdin is closed`);
         }
+
         try {
             const framed = this.options.versionField ? { jsonrpc: '2.0', ...frame } : frame;
             this.child.process.stdin.write(`${JSON.stringify(framed)}\n`);
             this.child.process.stdin.flush();
         } catch (error) {
             this.inputClosed = true;
+
             throw error;
         }
     }
@@ -167,6 +180,7 @@ export class JsonRpcTransport {
     private failed(error: unknown): void {
         const failure = new Error(`Lost the connection to ${this.options.label}: ${errorText(error)}`);
         this.rejectPending(() => failure);
+
         try {
             this.options.onError?.(failure);
         } catch (reportError) {
@@ -203,28 +217,39 @@ export class JsonRpcTransport {
         if (this.closed || line.trim() === '') {
             return;
         }
+
         let frame: unknown;
+
         try {
             frame = JSON.parse(line);
         } catch {
             return;
         }
+
         if (typeof frame !== 'object' || frame === null || Array.isArray(frame)) {
             return;
         }
+
         const message = frame as JsonRpcFrame;
+
         if (typeof message.method === 'string') {
             this.options.onFrame(message);
+
             return;
         }
+
         const settle = typeof message.id === 'number' ? this.pending.get(message.id) : undefined;
+
         if (!settle) {
             return;
         }
+
         this.pending.delete(message.id as number);
+
         if (settle.timer !== null) {
             clearTimeout(settle.timer);
         }
+
         if (message.error !== undefined) {
             settle.reject(new JsonRpcError(this.options.errorName ?? 'JsonRpcError', settle.method, message.error));
         } else {
@@ -236,6 +261,7 @@ export class JsonRpcTransport {
         if (this.closed) {
             return;
         }
+
         this.closed = true;
         this.rejectPending((method) => new Error(`${method} failed: ${this.options.label} exited`));
         this.options.onExit(exitCode, stderr);
@@ -246,8 +272,10 @@ export class JsonRpcTransport {
             if (settle.timer !== null) {
                 clearTimeout(settle.timer);
             }
+
             settle.reject(reason(settle.method));
         }
+
         this.pending.clear();
     }
 }

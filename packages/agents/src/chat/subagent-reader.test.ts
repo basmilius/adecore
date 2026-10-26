@@ -151,6 +151,7 @@ describe('a Claude subagent', () => {
         const forkOfFork = { ...info('chat-fork-2', 'claude', 'fork-session-2'), forkOf: { chatId: 'chat-fork', turnId: 'turn-1', at: 2 } };
         const stored = new Map([original, fork].map((entry) => [entry.chatId, entry]));
         chats.set('chat-fork-2', { ...claudeChat([row(CHILD_CALL, { status: 'done' })]), info: forkOfFork });
+
         const reader = new SubagentReader({
             chat: (chatId) => chats.get(chatId) ?? null,
             chatInfo: async (chatId) => stored.get(chatId) ?? null,
@@ -159,6 +160,7 @@ describe('a Claude subagent', () => {
             notify: () => undefined,
             seams: watch
         });
+
         const page = await reader.read('chat-fork-2', CHILD_CALL);
         expect(page.items[0]).toMatchObject({ kind: 'user', text: 'Survey the docs folder and say what is missing.' });
     });
@@ -169,6 +171,7 @@ describe('a Claude subagent', () => {
         const child = await reader.read('chat-1', CHILD_CALL);
         expect(child.live).toBe(true);
         const grandchild = await reader.read('chat-1', GRANDCHILD_CALL);
+
         expect(grandchild.items.map((item) => (item.kind === 'user' || item.kind === 'assistant' ? item.text : item.kind))).toEqual([
             'Count the headings in docs/DECISIONS.md.',
             'There are 42 headings.'
@@ -179,15 +182,18 @@ describe('a Claude subagent', () => {
     test('a subagent of more steps than a row keeps pages back to its first step, whatever process ran it', async () => {
         chats.set('chat-1', claudeChat([row(CHILD_CALL, { status: 'done' })]));
         let steps = '';
+
         for (let step = 1; step <= 250; step++) {
             steps += toolStep(step);
         }
+
         await appendFile(join(subagentsDir(), CHILD_FILE), steps);
 
         // A reader of its own stands in for a daemon that restarted: nothing is known but the files.
         const reader = makeReader();
         const collected: ChatItem[] = [];
         let cursor: string | undefined;
+
         do {
             const page = await reader.read('chat-1', CHILD_CALL, cursor, 100);
             expect(page.items.length).toBeLessThanOrEqual(100);
@@ -216,10 +222,12 @@ describe('a Claude subagent', () => {
         watcher.emit(CHILD_FILE);
         watcher.emit(CHILD_FILE);
         await watch.settle();
+
         expect(told).toEqual([
             { clientId: 'client-a', event: { chatId: 'chat-1', toolUseId: CHILD_CALL } },
             { clientId: 'client-b', event: { chatId: 'chat-1', toolUseId: CHILD_CALL } }
         ]);
+
         const grown = await reader.read('chat-1', CHILD_CALL);
         expect(grown.items.at(-1)).toMatchObject({ kind: 'tool', input: { command: 'echo 1' } });
 
@@ -234,12 +242,15 @@ describe('a Claude subagent', () => {
     test("a workflow's agent opens by its agent id from its run's folder, and is live while the run's report has it working", async () => {
         const run = join(subagentsDir(), 'workflows', 'wf_7486973f-3a9');
         await mkdir(run, { recursive: true });
+
         await writeFile(
             join(run, 'agent-a8a14782f2a71dcab.meta.json'),
             JSON.stringify({ agentType: 'workflow-subagent', description: 'write-file', workflowPhase: 'Write' })
         );
+
         await writeFile(join(run, 'agent-a8a14782f2a71dcab.jsonl'), toolStep(1));
         const agent = { index: 1, label: 'write-file', phaseIndex: 1, agentId: 'a8a14782f2a71dcab', startedAt: 0, durationMs: null, lastTool: null };
+
         const workflowRow = (status: 'running' | 'done'): ChatItem => ({
             id: '1:toolu_wf',
             kind: 'tool',
@@ -253,6 +264,7 @@ describe('a Claude subagent', () => {
             parentToolUseId: null,
             workflow: { name: 'write-and-read', phases: [{ index: 1, title: 'Write' }], agents: [{ ...agent, status }] }
         });
+
         const items = [workflowRow('running')];
         chats.set('chat-1', claudeChat(items));
         const reader = makeReader();
@@ -296,10 +308,12 @@ describe('a Claude subagent', () => {
 describe('a Codex subagent', () => {
     // A thread of the shape `thread/items/list` answers, newest first with a cursor that counts from that end.
     const thread: Record<string, unknown>[] = [];
+
     const answer = (params: ThreadItemsParams): unknown => {
         const newestFirst = [...thread].reverse();
         const start = params.cursor ? Number(params.cursor) : 0;
         const page = newestFirst.slice(start, start + params.limit);
+
         return {
             data: page.map((item) => ({ item, turnId: 't' })),
             nextCursor: start + params.limit < newestFirst.length ? String(start + params.limit) : null
@@ -317,6 +331,7 @@ describe('a Codex subagent', () => {
 
     beforeEach(() => {
         thread.length = 0;
+
         for (let index = 1; index <= 3; index++) {
             thread.push(step(index));
         }
@@ -330,7 +345,9 @@ describe('a Codex subagent', () => {
             if (!running) {
                 return null;
             }
+
             asked.push(params);
+
             return Promise.resolve(answer(params));
         },
         noteNative: () => undefined
@@ -357,13 +374,16 @@ describe('a Codex subagent', () => {
         let now = 0;
         const asked: ThreadItemsParams[] = [];
         chats.set('chat-x', codexChat(false));
+
         const reader = makeReader(
             async (params) => {
                 asked.push(params);
+
                 return answer(params);
             },
             () => now
         );
+
         expect((await reader.read('chat-x', 'call-1')).live).toBe(false);
         await reader.read('chat-x', 'call-1');
         expect(asked).toHaveLength(1);

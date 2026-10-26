@@ -76,6 +76,7 @@ type BookmarkableItem = Extract<ChatItem, { kind: 'user' | 'assistant' }>;
 
 function withoutHidden(info: ChatInfo): ChatInfo {
     const { hidden: _hidden, ...rest } = info;
+
     return rest;
 }
 
@@ -88,6 +89,7 @@ function isBookmarkable(item: ChatItem): item is BookmarkableItem {
 function excerptOf(item: BookmarkableItem): string {
     const files = item.kind === 'user' ? (item.attachments ?? []).map((attachment) => attachment.name).join(', ') : '';
     const text = item.kind === 'assistant' ? readableAssistantText(item) : item.text;
+
     return (text.trim() === '' ? files : text).replace(/\s+/g, ' ').trim();
 }
 
@@ -288,28 +290,36 @@ export class ChatCore {
         this.onInterruptedRun = options.onInterruptedRun ?? null;
         this.limitResume = options.limitResume ?? null;
         this.hooks = options.hooks ?? {};
+
         this.commands = {
             ...(options.command ? { claude: options.command } : {}),
             ...(options.codexCommand ? { codex: options.codexCommand } : {})
         };
+
         this.spawn = options.spawn ?? null;
         this.codexClient = options.codexClient ?? null;
         this.env = definedEnv(options.env ?? process.env);
+
         // Only whoever reads the thread has anything to point a bookmark at or to place a visual in, so the lists go where the thread goes.
         this.bookmarks?.listen((chatId, bookmarks) => {
             this.listChanged(chatId);
+
             for (const clientId of this.attached.get(chatId) ?? []) {
                 this.sinks.to(clientId, { event: 'chat.bookmarks', payload: { chatId, bookmarks } });
             }
         });
+
         this.visuals?.listen((chatId, visuals) => {
             this.listChanged(chatId);
+
             for (const clientId of this.attached.get(chatId) ?? []) {
                 this.sinks.to(clientId, { event: 'chat.visuals', payload: { chatId, visuals } });
             }
         });
+
         this.claudeProjectsDir =
             options.subagents?.claudeProjectsDir ?? usageRoots(options.env ?? process.env).find((root) => root.provider === 'claude')?.path ?? '';
+
         this.subagents = new SubagentReader({
             ...options.subagents,
             claudeProjectsDir: this.claudeProjectsDir,
@@ -317,6 +327,7 @@ export class ChatCore {
             chatInfo: async (chatId) => (await this.readChat(chatId))?.info ?? null,
             chat: (chatId) => {
                 const session = this.chats.get(chatId);
+
                 return session
                     ? {
                           info: session.info,
@@ -348,7 +359,9 @@ export class ChatCore {
         if (isDefaultAccountOf('claude', info.account)) {
             return this.claudeProjectsDir;
         }
+
         const folder = this.accounts?.transcriptFolder('claude', info.account) ?? null;
+
         return folder === null ? '' : join(folder, 'projects');
     }
 
@@ -356,6 +369,7 @@ export class ChatCore {
         if ((from ?? kind) === (to ?? kind)) {
             return true;
         }
+
         return this.accounts?.canContinue(kind, from, to) ?? false;
     }
 
@@ -372,10 +386,13 @@ export class ChatCore {
     async readChat(chatId: string): Promise<{ info: ChatInfo; items: ChatItem[] } | null> {
         await this.loaded(chatId);
         const session = this.chats.get(chatId);
+
         if (session) {
             return session.thread.snapshot();
         }
+
         const stored = await this.store?.read(chatId);
+
         return stored ? { info: stored.info, items: stored.items } : null;
     }
 
@@ -384,6 +401,7 @@ export class ChatCore {
         const catalog = this.providers.get(provider).catalog;
         const preference = this.composerPreferences.for(provider);
         const normalized = catalog.normalize(selection ?? preference.selection);
+
         return {
             selection: normalized,
             ...(preference.runtimeMode ? { runtimeMode: preference.runtimeMode } : {}),
@@ -397,6 +415,7 @@ export class ChatCore {
      */
     observe(sink: AgentSink): () => void {
         this.observers.add(sink);
+
         return () => {
             this.observers.delete(sink);
         };
@@ -415,23 +434,30 @@ export class ChatCore {
     create(payload: ChatCreatePayload): Promise<ChatInfo> {
         // A create in flight has the chat in the map before its first prompt is sent, so a second caller waits for all of it.
         const inFlight = this.creating.get(payload.chatId);
+
         if (inFlight) {
             return inFlight;
         }
+
         const existing = this.chats.get(payload.chatId);
+
         if (existing) {
             return Promise.resolve(existing.info);
         }
+
         const created = this.createNow(payload).finally(() => this.creating.delete(payload.chatId));
         this.creating.set(payload.chatId, created);
+
         return created;
     }
 
     private async createNow(payload: ChatCreatePayload): Promise<ChatInfo> {
         const stored = await this.store?.read(payload.chatId);
+
         if (!stored && (await this.store?.unreadable(payload.chatId))) {
             throw new ChatError('chat-unreadable', `The record of chat ${payload.chatId} cannot be read by this version, so it is left as it is`);
         }
+
         // A thread on disk keeps its provider; the selection it stored only makes sense in that catalog.
         const kind = stored?.info.provider ?? payload.provider ?? 'claude';
         const provider = this.providers.get(kind);
@@ -443,13 +469,18 @@ export class ChatCore {
         // A new one without an account takes the person's pick for this CLI, which is refused rather than replaced when it went.
         // The pick is checked as named, before the default account loses its id, so one that is turned off is refused too.
         const requested = payload.account ?? this.composerPreferences.for(kind).account;
+
         if (!stored) {
             this.requireAccount(kind, requested);
         }
+
         const account = stored ? stored.info.account : storedAccount(kind, requested);
+
         const narrowed = (mode: RuntimeMode): RuntimeMode => (this.hooks.runtimeModeFor ? this.hooks.runtimeModeFor(payload.chatId, mode) : mode);
+
         // Asked again for a chat on disk, since the host may have listed it since.
         const hidden = this.hooks.hiddenFor?.(payload.chatId) ? { hidden: true } : {};
+
         const info: ChatInfo = stored?.info
             ? { ...withoutHidden(stored.info), runtimeMode: narrowed(stored.info.runtimeMode), ...hidden }
             : {
@@ -469,6 +500,7 @@ export class ChatCore {
                   usage: { contextTokens: 0, contextWindow: catalog.contextWindowFor(selection), costUsd: 0, turns: 0 },
                   createdAt: Date.now()
               };
+
         const resume: ResumeDecision = stored ? await this.owedResume(payload.chatId, stored) : { resumeTurnId: null, reason: null };
         const claudeTitles = this.claudeTitles;
         const nameChat = this.nameChat;
@@ -476,6 +508,7 @@ export class ChatCore {
         this.logs.set(payload.chatId, await this.openLog(payload.chatId, stored ?? null));
         const promptNotes = this.hooks.promptNotesFor?.(payload.chatId);
         const references = this.hooks.referencesFor?.(payload.chatId);
+
         const session = new ChatSession({
             info,
             ...(this.uiFenceLanguage ? { uiFenceLanguage: this.uiFenceLanguage } : {}),
@@ -489,6 +522,7 @@ export class ChatCore {
             env: (chatAccount) => {
                 const env = definedEnv(launchEnv(this.accounts, kind, chatAccount, base));
                 this.accounts?.launched?.(kind, chatAccount);
+
                 return env;
             },
             saveGeneratedImage: (ref, upload) => this.attachments.saveGenerated(payload.chatId, ref, upload),
@@ -512,24 +546,31 @@ export class ChatCore {
             ...(kind === 'claude' ? { subagentSettlement: (toolUseId: string) => this.subagents.claudeSettlement(payload.chatId, toolUseId) } : {}),
             ...(this.limitResume ? { limitResume: limitHooks(this.limitResume, payload.chatId) } : {})
         });
+
         this.chats.set(session.id, session);
+
         if (stored) {
             session.settleStored(selection, resume);
             session.settleOwedResume();
             await session.settleOrphanedSubagents();
         }
+
         await this.hooks.opened?.(session, stored ?? null);
+
         return session.info;
     }
 
     async storedBackground(chatId: string): Promise<{ turnId: string | null; items: BackgroundWork[]; commands: string[]; goal: boolean }> {
         const record = await this.store?.read(chatId);
         const items = record?.items ?? [];
+
         const background = items.filter(
             (item): item is BackgroundWork =>
                 isBackgroundWork(item) && (runsInBackground(item) || items.some((note) => note.id === `lost-background-${item.id}`))
         );
+
         const last = items.findLast((item) => item.kind === 'turn');
+
         return {
             turnId: background.at(-1)?.turnId ?? last?.id ?? null,
             items: background,
@@ -548,10 +589,12 @@ export class ChatCore {
 
     configure(payload: ChatConfigurePayload): ChatInfo {
         const session = this.require(payload.chatId);
+
         if (payload.account !== undefined) {
             this.refuseWhileRelocating(payload.chatId);
             this.switchAccount(session, payload.account);
         }
+
         return session.configure(payload);
     }
 
@@ -562,19 +605,24 @@ export class ChatCore {
     protected switchAccount(session: ChatSession, requested: string): void {
         const { provider: kind, account: from } = session.info;
         const to = storedAccount(kind, requested);
+
         if (to === from) {
             return;
         }
+
         // As named, so a switch to the default account is refused while it is turned off.
         this.requireAccount(kind, requested);
         const spoke = session.info.agentSessionId !== null || session.info.usage.turns > 0;
+
         if (spoke && !this.canContinue(kind, from, to)) {
             const label = this.accountLabel(kind, to);
+
             throw new AccountError(
                 'account-incompatible',
                 `This conversation is kept by the account '${this.accountLabel(kind, from)}', which '${label}' cannot read. Fork the chat to go on under '${label}'.`
             );
         }
+
         session.setAccount(to);
     }
 
@@ -585,24 +633,31 @@ export class ChatCore {
     attach(chatId: string, clientId: string, historyLimit?: number, since?: number): ChatAttachResult {
         const session = this.require(chatId);
         let clients = this.attached.get(chatId);
+
         if (!clients) {
             clients = new Set();
             this.attached.set(chatId, clients);
         }
+
         // The snapshot already holds the text of a delta that is waiting, so it goes out before this
         // client is on the list: the text is either in the snapshot or in the stream, never both.
         this.coalescers.get(chatId)?.flush();
         clients.add(clientId);
         const log = this.logs.get(chatId)!;
         const events = since === undefined ? null : log.after(since);
+
         if (events !== null) {
             return { info: session.info, items: [], events: [...events, ...session.uiPreviews], seq: log.seq };
         }
+
         if (historyLimit === undefined) {
             const snapshot = session.thread.snapshot();
+
             return { ...snapshot, info: session.info, items: session.previewItems(snapshot.items), seq: log.seq };
         }
+
         const page = session.thread.history(historyLimit);
+
         return {
             ...page,
             info: session.info,
@@ -622,25 +677,34 @@ export class ChatCore {
     async attachWithBookmarks(chatId: string, clientId: string, historyLimit?: number, since?: number): Promise<ChatAttachResult> {
         // A client that only watches a chat sends no create, so a chat on disk nobody loaded since the host started is loaded for it.
         await this.loaded(chatId);
+
         if (!this.chats.has(chatId) && (await this.store?.has(chatId)) === true) {
             await this.create({ chatId });
         }
+
         this.require(chatId);
+
         const unreadable = (what: string) => (e: unknown) => {
             console.error(`The ${what} of chat ${chatId} could not be read:`, errorText(e));
+
             return undefined;
         };
+
         let bookmarks: ChatBookmark[] | undefined;
         let visuals: ChatVisual[] | undefined;
         let changes: number | undefined;
+
         do {
             changes = this.listChanges.get(chatId);
+
             [bookmarks, visuals] = await Promise.all([
                 this.bookmarks?.read(chatId).catch(unreadable('bookmarks')),
                 this.visuals?.list(chatId).catch(unreadable('visuals'))
             ]);
         } while (this.listChanges.get(chatId) !== changes);
+
         const result = this.attach(chatId, clientId, historyLimit, since);
+
         return { ...result, ...(bookmarks === undefined ? {} : { bookmarks }), ...(visuals === undefined ? {} : { visuals }) };
     }
 
@@ -651,19 +715,23 @@ export class ChatCore {
     /* Marks a message of the chat's own thread; a message that already has one keeps it. */
     addBookmark(chatId: string, itemId: string, name?: string): Promise<ChatBookmark[]> {
         const item = this.require(chatId).thread.get(itemId);
+
         if (!item || !isBookmarkable(item)) {
             throw new ChatError('item-not-found', `Chat ${chatId} has no message ${itemId} to bookmark`);
         }
+
         return this.requireBookmarks().add(chatId, { itemId, excerpt: excerptOf(item), ...(name === undefined ? {} : { name }) }, Date.now());
     }
 
     renameBookmark(chatId: string, itemId: string, name: string): Promise<ChatBookmark[]> {
         this.require(chatId);
+
         return this.requireBookmarks().rename(chatId, itemId, name);
     }
 
     removeBookmark(chatId: string, itemId: string): Promise<ChatBookmark[]> {
         this.require(chatId);
+
         return this.requireBookmarks().remove(chatId, itemId);
     }
 
@@ -671,6 +739,7 @@ export class ChatCore {
         if (!this.bookmarks) {
             throw new ChatError('chat-unsupported', 'This host keeps no bookmarks');
         }
+
         return this.bookmarks;
     }
 
@@ -681,10 +750,13 @@ export class ChatCore {
     async publishVisual(chatId: string, input: VisualInput): Promise<ChatVisual> {
         const visuals = this.requireVisuals();
         await this.loaded(chatId);
+
         if (!(await this.hasStored(chatId))) {
             throw new ChatError('chat-not-found', `No chat ${chatId}`);
         }
+
         const turnId = input.turnId ?? this.chats.get(chatId)?.info.activeTurnId ?? undefined;
+
         return visuals.publish(chatId, turnId === undefined ? input : { ...input, turnId });
     }
 
@@ -695,6 +767,7 @@ export class ChatCore {
 
     removeVisual(chatId: string, visualId: string): Promise<ChatVisual[]> {
         this.require(chatId);
+
         return this.requireVisuals().remove(chatId, visualId);
     }
 
@@ -702,6 +775,7 @@ export class ChatCore {
         if (!this.visuals) {
             throw new ChatError('chat-unsupported', 'This host keeps no visuals');
         }
+
         return this.visuals;
     }
 
@@ -709,6 +783,7 @@ export class ChatCore {
     history(chatId: string, cursor?: string, limit?: number): ChatHistoryResult {
         const session = this.require(chatId);
         this.coalescers.get(chatId)?.flush();
+
         return session.thread.history(limit, cursor);
     }
 
@@ -724,6 +799,7 @@ export class ChatCore {
                 clients.delete(clientId);
             }
         }
+
         this.subagents.releaseClient(clientId);
     }
 
@@ -736,11 +812,14 @@ export class ChatCore {
         if (payload.watch === false) {
             this.subagents.release(clientId, payload.chatId, payload.toolUseId);
         }
+
         const result = await this.subagents.read(payload.chatId, payload.toolUseId, payload.cursor, payload.limit);
         await this.chats.get(payload.chatId)?.recheckOrphan(payload.toolUseId);
+
         if (payload.watch === true) {
             this.subagents.hold(clientId, payload.chatId, payload.toolUseId);
         }
+
         return result;
     }
 
@@ -753,15 +832,19 @@ export class ChatCore {
         await this.loaded(chatId);
         const session = this.require(chatId);
         const row = session.thread.find('subagent', (item) => item.toolUseId === toolUseId);
+
         if (!row) {
             throw new ChatError('subagent-not-found', 'This chat has no such sub-agent');
         }
+
         if (row.status !== 'running') {
             return;
         }
+
         if (row.origin === HOST_TASK_ORIGIN) {
             throw new ChatError('chat-unsupported', 'This row stands for work the host runs; stop it there');
         }
+
         session.stopSubagent(toolUseId);
     }
 
@@ -795,30 +878,40 @@ export class ChatCore {
         if (!this.store) {
             throw new ChatError('chat-unsupported', 'This host keeps no chat records');
         }
+
         if (this.chats.has(chatId) || this.creating.has(chatId)) {
             throw new ChatError('chat-busy', `Chat ${chatId} is already loaded`);
         }
+
         const copies = new Map<string, Promise<ChatAttachment>>();
+
         const copy = (attachment: ChatAttachment): Promise<ChatAttachment> => {
             let pending = copies.get(attachment.id);
+
             if (!pending) {
                 pending = this.attachments.copy(chatId, attachment);
                 copies.set(attachment.id, pending);
             }
+
             return pending;
         };
+
         const copied = await Promise.all(
             items.map(async (item): Promise<ChatItem> => {
                 if (item.kind === 'user' && item.attachments?.length) {
                     return { ...item, attachments: await Promise.all(item.attachments.map(copy)) };
                 }
+
                 const generated = generatedImageAttachment(item);
+
                 if (item.kind === 'tool' && generated) {
                     return { ...item, input: { ...(item.input as Record<string, unknown>), attachment: await copy(generated) } };
                 }
+
                 return item;
             })
         );
+
         await this.store.write(chatId, info, copied, { seq: 0, resetSeq: 0 }, preambles);
     }
 
@@ -830,34 +923,42 @@ export class ChatCore {
         if (this.chats.has(chatId) || this.creating.has(chatId)) {
             return false;
         }
+
         await Promise.all([
             this.store?.delete(chatId),
             this.attachments.removeAll(chatId),
             this.bookmarks?.removeChat(chatId),
             this.visuals?.removeChat(chatId)
         ]);
+
         return true;
     }
 
     /* The turn a chat took last, read off the record without loading a chat nobody has; null before its first. */
     async lastTurn(chatId: string): Promise<ChatTurnItem | null> {
         const session = this.chats.get(chatId);
+
         if (session) {
             return session.thread.find('turn', () => true) ?? null;
         }
+
         const stored = await this.store?.read(chatId);
+
         return stored?.items.findLast((item): item is ChatTurnItem => item.kind === 'turn') ?? null;
     }
 
     /* A line from the host in a chat's thread, loading the chat when nobody has; nothing for a chat that is gone. */
     async addNote(chatId: string, level: 'info' | 'warning' | 'error', text: string): Promise<void> {
         await this.loaded(chatId);
+
         if (!(await this.hasStored(chatId))) {
             return;
         }
+
         if (!this.chats.has(chatId)) {
             await this.create({ chatId });
         }
+
         this.chats.get(chatId)?.addNote(level, text);
     }
 
@@ -867,12 +968,15 @@ export class ChatCore {
      */
     async deliverNote(chatId: string, delivery: { noteId: string; note: string; from?: string; preamble: string }): Promise<boolean> {
         await this.loaded(chatId);
+
         if (!(await this.hasStored(chatId))) {
             return false;
         }
+
         if (!this.chats.has(chatId)) {
             await this.create({ chatId });
         }
+
         return this.require(chatId).deliverNote(delivery);
     }
 
@@ -883,10 +987,13 @@ export class ChatCore {
     async send(chatId: string, text: string, extras: ChatSendExtras = {}, uploads: ChatAttachmentUpload[] = []): Promise<{ queued: boolean; turnId: string }> {
         const session = this.require(chatId);
         const checked = ChatAttachmentUploadsSchema.safeParse(uploads);
+
         if (!checked.success) {
             throw new ChatError('invalid-attachments', checked.error.issues[0]!.message);
         }
+
         const attachments = await Promise.all(uploads.map((upload) => this.attachments.save(chatId, upload)));
+
         return session.sendInput(text, { ...extras, ...(attachments.length > 0 ? { attachments } : {}) });
     }
 
@@ -894,6 +1001,7 @@ export class ChatCore {
         if (!this.attached.get(payload.chatId)?.has(clientId) || !this.uiQueries) {
             throw new ChatError('refused-query', 'Attach to the chat before resolving its UI links.');
         }
+
         return this.uiQueries.link(this.require(payload.chatId), payload);
     }
 
@@ -901,9 +1009,11 @@ export class ChatCore {
         if (!this.attached.get(payload.chatId)?.has(clientId)) {
             throw new ChatError('refused-query', 'Attach to the chat before reading its UI queries.');
         }
+
         if (!this.uiQueries) {
             throw new ChatError('refused-query', 'This host does not provide UI query sources.');
         }
+
         return this.uiQueries.query(this.require(payload.chatId), payload);
     }
 
@@ -911,40 +1021,50 @@ export class ChatCore {
         if (!this.attached.get(payload.chatId)?.has(clientId)) {
             throw new ChatError('refused-query', 'Attach to the chat before answering its UI.');
         }
+
         const session = this.require(payload.chatId);
         const queries = await this.uiQueries?.choiceValues(session, payload);
         const result = session.choose(payload, queries);
         await this.persisted(payload.chatId);
+
         return result;
     }
 
     /* The file behind an attachment id: what this chat's thread or queue says it is, or a visual's page. */
     attachment(chatId: string, id: string): ChatAttachment | null {
         const session = this.chats.get(chatId);
+
         if (!session) {
             return null;
         }
+
         for (const item of session.thread.list()) {
             const generated = generatedImageAttachment(item);
             const found = item.kind === 'user' ? item.attachments?.find((attachment) => attachment.id === id) : generated?.id === id ? generated : null;
+
             if (found) {
                 return found;
             }
         }
+
         for (const message of session.info.queue ?? []) {
             const found = message.attachments?.find((attachment) => attachment.id === id);
+
             if (found) {
                 return found;
             }
         }
+
         return this.visuals?.attachment(chatId, id) ?? null;
     }
 
     unqueue(chatId: string, messageId: string): ChatQueuedMessage {
         const message = this.require(chatId).unqueue(messageId);
+
         if (!message) {
             throw new ChatError('request-not-found', `No queued message ${messageId} in chat ${chatId}`);
         }
+
         return message;
     }
 
@@ -957,6 +1077,7 @@ export class ChatCore {
     /* What the chat's CLI would run as a skill. */
     skills(chatId: string): Promise<ChatSkill[]> {
         const session = this.require(chatId);
+
         return session.skills(() => this.skillIndex.list(session.info.provider, session.info.cwd));
     }
 
@@ -977,9 +1098,11 @@ export class ChatCore {
     compact(chatId: string): void {
         const session = this.require(chatId);
         this.refuseWhileRelocating(chatId);
+
         if (session.busy) {
             throw new ChatError('chat-busy', `Chat ${chatId} is still working on the previous message`);
         }
+
         session.compact();
     }
 
@@ -987,15 +1110,18 @@ export class ChatCore {
     async clear(chatId: string, force = false): Promise<void> {
         const session = this.require(chatId);
         this.refuseWhileRelocating(chatId);
+
         if (session.busy && !force) {
             throw new ChatError('chat-busy', `Chat ${chatId} is still working on the previous message`);
         }
+
         await this.hooks.clearing?.(chatId);
         const ended = session.clear(force);
         // Before the record is written, so what it takes along from the record is gone from the write as well.
         const cleared = this.hooks.cleared?.(chatId);
         // A debounced write still waiting holds the old thread and must not land after the empty one.
         this.cancelWaiting(chatId);
+
         // Folded right away: every line before the reset describes a thread that is gone.
         await Promise.all([
             this.persistNow(chatId, true),
@@ -1010,6 +1136,7 @@ export class ChatCore {
     cancel(chatId: string, subagents = false): void {
         const session = this.require(chatId);
         session.cancel();
+
         if (subagents) {
             session.markSubagentsStopped();
         }
@@ -1042,6 +1169,7 @@ export class ChatCore {
     holdForPerson(chatId: string, key: string): boolean {
         const session = this.chats.get(chatId);
         session?.holdForPerson(key);
+
         return session !== undefined;
     }
 
@@ -1057,11 +1185,14 @@ export class ChatCore {
         const session = this.require(chatId);
         this.refuseUnlessRelocatable(session);
         const running = this.relocateNow(session, cwd, during);
+
         const tracked = running.then(
             () => undefined,
             () => undefined
         );
+
         this.relocations.set(chatId, tracked);
+
         try {
             return await running;
         } finally {
@@ -1079,12 +1210,15 @@ export class ChatCore {
     private async relocateNow(session: ChatSession, cwd: string, during: (() => Promise<void>) | undefined): Promise<ChatInfo> {
         const chatId = session.id;
         await this.hooks.admit?.(chatId, cwd);
+
         // A message sent while the folder was asked about may have opened a turn.
         if (!session.relocatable) {
             throw this.busyRelocating(chatId);
         }
+
         const previous = session.info.cwd;
         session.beginRelocate();
+
         try {
             await session.dropProcess();
             await during?.();
@@ -1092,11 +1226,14 @@ export class ChatCore {
             await this.persistNow(chatId, true);
         } catch (e) {
             session.setCwd(previous);
+
             throw e;
         } finally {
             session.endRelocate();
         }
+
         this.skillIndex.forget(session.info.provider, previous);
+
         return session.info;
     }
 
@@ -1120,9 +1257,11 @@ export class ChatCore {
     async kill(chatId: string): Promise<void> {
         await this.loaded(chatId);
         const moving = this.relocations.get(chatId);
+
         if (moving) {
             await moving;
         }
+
         const session = this.require(chatId);
         // A write already out would put the record back after the delete.
         const writing = this.writes.get(chatId);
@@ -1146,6 +1285,7 @@ export class ChatCore {
         this.hooks.forgotten?.(chatId);
         await writing;
         await ended;
+
         await Promise.all([
             this.store?.delete(chatId),
             this.attachments.removeAll(chatId),
@@ -1167,12 +1307,15 @@ export class ChatCore {
     /* The chats with a CLI process, for a process monitor. */
     processTargets(): { id: string; pid: number; provider: AgentKind; status: ChatInfo['status']; updatedAt: number }[] {
         const targets = [];
+
         for (const [id, session] of this.chats) {
             const pid = session.pid;
+
             if (pid !== null) {
                 targets.push({ id, pid, provider: session.info.provider, status: session.info.status, updatedAt: this.activity.get(id) ?? 0 });
             }
         }
+
         return targets;
     }
 
@@ -1191,12 +1334,15 @@ export class ChatCore {
      */
     async resumeRun(chatId: string, turnId: string, attempt: number): Promise<void> {
         await this.loaded(chatId);
+
         if (!this.chats.has(chatId)) {
             if (!(await this.store?.has(chatId))) {
                 return;
             }
+
             await this.create({ chatId });
         }
+
         await this.chats.get(chatId)?.resume(turnId, attempt, (await this.hooks.resumeWords?.(chatId)) ?? DEFAULT_RESUME_WORDS);
     }
 
@@ -1206,22 +1352,30 @@ export class ChatCore {
      */
     async takeUpAfterLimit(chatId: string, turnId: string): Promise<OutboxOutcome> {
         await this.loaded(chatId);
+
         if (!this.chats.has(chatId)) {
             if (!(await this.store?.has(chatId))) {
                 return;
             }
+
             await this.create({ chatId });
         }
+
         const session = this.chats.get(chatId);
+
         if (!session) {
             return;
         }
+
         const turn = session.thread.get(turnId);
         const ended = this.hooks.endedAt?.(chatId) ?? null;
+
         if (turn !== undefined && ended !== null && ended >= turn.createdAt) {
             session.lapseResume();
+
             return;
         }
+
         return session.takeUpAfterLimit(turnId) === 'wait' ? 'wait' : undefined;
     }
 
@@ -1246,16 +1400,20 @@ export class ChatCore {
         if (!this.store) {
             return;
         }
+
         for (const chatId of await this.store.list()) {
             if (this.chats.has(chatId) || this.creating.has(chatId)) {
                 continue;
             }
+
             // Parsing the whole thread of every settled chat was most of the cost of a start.
             if (await this.store.settled(chatId).catch(() => false)) {
                 continue;
             }
+
             const record = await this.store.read(chatId).catch(() => null);
             const unowed = record?.info.resumeAt !== undefined && this.limitResume?.owed(chatId) === false;
+
             if (record !== null && (interruptedTurn(record) !== null || unowed)) {
                 await this.create({ chatId }).catch((e: unknown) => console.error(`Loading chat ${chatId} after a restart failed:`, errorText(e)));
             }
@@ -1270,13 +1428,16 @@ export class ChatCore {
         for (const session of this.chats.values()) {
             session.freeze();
         }
+
         for (const chatId of this.chats.keys()) {
             this.cancelWaiting(chatId);
         }
+
         // A thread that cannot be written still ends its CLI, whose process group would otherwise outlive the host.
         const written = await Promise.allSettled([...this.chats.keys()].map((chatId) => this.persistNow(chatId, true)));
         await Promise.allSettled([...this.chats.values()].map((session) => session.dispose()));
         const failed = written.find((result) => result.status === 'rejected');
+
         if (failed) {
             throw failed.reason;
         }
@@ -1290,14 +1451,17 @@ export class ChatCore {
         if (!this.store) {
             return;
         }
+
         for (const session of this.chats.values()) {
             session.freeze();
         }
+
         for (const [chatId, session] of this.chats) {
             this.cancelWaiting(chatId);
             this.coalescers.get(chatId)?.flush();
             const { info, items } = session.thread.snapshot();
             const log = this.logs.get(chatId);
+
             // Not folded here: an older write still in flight may land after this one, and the log is what covers for it.
             try {
                 this.store.writeSync(
@@ -1327,9 +1491,11 @@ export class ChatCore {
 
     protected require(chatId: string): ChatSession {
         const session = this.chats.get(chatId);
+
         if (!session) {
             throw new ChatError('chat-not-found', `No chat ${chatId}`);
         }
+
         return session;
     }
 
@@ -1342,15 +1508,19 @@ export class ChatCore {
     private persistSoon(chatId: string): void {
         if ((this.sizes.get(chatId) ?? 0) < DEBOUNCE_ABOVE_BYTES) {
             this.persist(chatId);
+
             return;
         }
+
         if (this.waiting.has(chatId)) {
             return;
         }
+
         const timer = setTimeout(() => {
             this.waiting.delete(chatId);
             this.persist(chatId);
         }, DEBOUNCE_MS);
+
         // A pending write must never be the reason the process stays up.
         timer.unref?.();
         this.waiting.set(chatId, timer);
@@ -1358,6 +1528,7 @@ export class ChatCore {
 
     private cancelWaiting(chatId: string): void {
         const timer = this.waiting.get(chatId);
+
         if (timer) {
             clearTimeout(timer);
             this.waiting.delete(chatId);
@@ -1372,33 +1543,40 @@ export class ChatCore {
         const next = (this.writes.get(chatId) ?? Promise.resolve()).then(async () => {
             const session = this.chats.get(chatId);
             const log = this.logs.get(chatId);
+
             if (!session || !this.store || !log) {
                 return;
             }
+
             // A delta held back is already in the thread, so it gets its seq before the snapshot says where it ends.
             this.coalescers.get(chatId)?.flush();
             const extras = this.hooks.recordExtras?.(chatId) ?? {};
             const uiAccess = session.uiAccessRecord;
             const unlogged = JSON.stringify([session.preambles, extras, uiAccess]);
             const folds = fold || log.size > COMPACT_ABOVE_BYTES || !log.onDisk;
+
             // The log already holds every change to the thread, so the whole record is rewritten only to fold
             // the log, on a chat's first write, or for what no event carries.
             if (!folds && this.sizes.has(chatId) && this.unlogged.get(chatId) === unlogged) {
                 return;
             }
+
             const { info, items } = session.thread.snapshot();
             const at = { seq: log.seq, resetSeq: log.resetSeq };
             this.sizes.set(chatId, await this.store.write(chatId, info, items, at, session.preambles, extras, uiAccess));
             this.unlogged.set(chatId, unlogged);
+
             // A chat killed while the write was out has no log left to fold.
             if (this.logs.get(chatId) === log && folds) {
                 log.compact(at.seq);
             }
         });
+
         this.writes.set(
             chatId,
             next.catch(() => undefined)
         );
+
         return next;
     }
 
@@ -1406,17 +1584,22 @@ export class ChatCore {
         if (event.type === 'delta' && event.ui !== undefined) {
             // Previews follow all pending text but have no log position or observer side effects.
             this.coalescers.get(chatId)?.flush();
+
             for (const clientId of this.attached.get(chatId) ?? []) {
                 this.sinks.to(clientId, { event: 'chat.event', payload: { chatId, event } });
             }
+
             return;
         }
+
         this.activity.set(chatId, Date.now());
         let coalescer = this.coalescers.get(chatId);
+
         if (!coalescer) {
             coalescer = new DeltaCoalescer((coalesced) => this.broadcast(chatId, coalesced));
             this.coalescers.set(chatId, coalescer);
         }
+
         coalescer.push(event);
     }
 
@@ -1424,18 +1607,23 @@ export class ChatCore {
     private broadcast(chatId: string, event: ChatEvent): void {
         const seq = this.logs.get(chatId)?.append(event, Date.now());
         const payload = seq === undefined ? { chatId, event } : { chatId, event, seq };
+
         for (const sink of this.observers) {
             sink({ event: 'chat.event', payload });
         }
+
         this.hooks.broadcasted?.(chatId, event);
+
         for (const clientId of this.attached.get(chatId) ?? []) {
             this.sinks.to(clientId, { event: 'chat.event', payload });
         }
+
         // After the thread, so a client reading it has already had this info and the status is a no-op there.
         if (event.type === 'info' || event.type === 'reset') {
             this.announceStatus(chatId, event.info);
         } else if (event.type === 'item' && (event.item.kind === 'approval' || event.item.kind === 'question')) {
             const session = this.chats.get(chatId);
+
             if (session) {
                 this.announceStatus(chatId, session.info);
             }
@@ -1460,9 +1648,11 @@ export class ChatCore {
             info.requests?.map((request) => request.requestId) ?? [],
             info.goal === undefined ? null : [info.goal.status, info.goal.objective]
         ]);
+
         if (this.announced.get(chatId) === said) {
             return;
         }
+
         this.announced.set(chatId, said);
         this.sinks.emit({ event: 'chat.status', payload: { chatId, info } });
     }
@@ -1476,42 +1666,57 @@ export class ChatCore {
         if (!this.store) {
             return new ChatLog(null);
         }
+
         const path = this.store.logPath(chatId);
+
         if (stored) {
             return new ChatLog(path, stored);
         }
+
         const left = await this.store.discardLog(chatId);
+
         return new ChatLog(path, { seq: left, resetSeq: left === 0 ? 0 : left + 1, lines: [] });
     }
 
     /* Every reason says why in the words of the note the turn ends with, so a person can tell a skip from a failure. */
     private async owedResume(chatId: string, stored: ChatRecord): Promise<ResumeDecision> {
         const turn = interruptedTurn(stored);
+
         const skip = (reason: string): ResumeDecision => ({ resumeTurnId: null, reason });
+
         if (turn === null) {
             return { resumeTurnId: null, reason: null };
         }
+
         if (turn.deliveryPending) {
             return skip('the wake prompt was not acknowledged; its result waits for your next message');
         }
+
         if (!this.onInterruptedRun) {
             return skip('this machine does not resume turns');
         }
+
         if (stored.info.agentSessionId === null) {
             return skip('the agent had not started a session to resume yet');
         }
+
         const ended = this.hooks.endedAt?.(chatId) ?? null;
+
         if (ended !== null && ended >= turn.createdAt) {
             return skip('the agent that opened it was stopped');
         }
+
         if ((turn.attempt ?? 1) >= MAX_ATTEMPTS && !turn.resumePending) {
             return skip('it was already resumed after an earlier restart');
         }
+
         try {
             const owed = await this.onInterruptedRun({ chatId, turnId: turn.id, attempt: (turn.attempt ?? 1) + (turn.resumePending ? 0 : 1) });
+
             return owed ? { resumeTurnId: turn.id, reason: null } : skip(this.hooks.unownedReason?.(chatId) ?? 'nothing holds this chat any more');
         } catch (e) {
             console.error(`Owing a resume for chat ${chatId} failed:`, errorText(e));
+
             return skip(errorText(e));
         }
     }
@@ -1532,5 +1737,6 @@ function limitHooks(hooks: NonNullable<ChatCoreOptions['limitResume']>, chatId: 
 function interruptedTurn(record: { info: ChatInfo; items: ChatItem[] }): Extract<ChatItem, { kind: 'turn' }> | null {
     const turnId = record.info.activeTurnId;
     const turn = turnId === null ? undefined : record.items.find((item) => item.id === turnId);
+
     return turn?.kind === 'turn' && turn.state === 'running' ? turn : null;
 }

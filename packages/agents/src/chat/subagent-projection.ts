@@ -27,6 +27,7 @@ function readingInfo(): ChatInfo {
 /* A thread and the projector that writes it, for a conversation read back rather than streamed. */
 export function readingThread(providerName: string, now: () => number): { thread: ChatThread; projector: ThreadProjector } {
     const thread = new ChatThread(readingInfo());
+
     return { thread, projector: new ThreadProjector(thread, { providerName, now }) };
 }
 
@@ -38,8 +39,10 @@ export function settledReading(item: ChatItem): ChatItem {
     if (item.kind === 'assistant') {
         return { ...item, turnId: null, streaming: false };
     }
+
     if (item.kind === 'thinking') {
         return { ...item, turnId: null, streaming: false, endedAt: item.endedAt ?? item.createdAt };
     }
+
     return { ...item, turnId: null };
 }

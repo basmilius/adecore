@@ -110,22 +110,27 @@ export class SubagentReader {
 
     async read(chatId: string, toolUseId: string, cursor?: string, limit = DEFAULT_PAGE): Promise<ChatSubagentResult> {
         const chat = this.require(chatId);
+
         return chat.info.provider === 'codex' ? this.readCodex(chat, toolUseId, cursor, limit) : this.readClaude(chat, toolUseId, cursor, limit);
     }
 
     /* Every item, for an agent reading the conversation as text; a Codex thread is paged through to its start. */
     async readAll(chatId: string, toolUseId: string): Promise<ChatItem[]> {
         const chat = this.require(chatId);
+
         if (chat.info.provider !== 'codex') {
             return (await this.claudeProjection(chat, toolUseId)).items();
         }
+
         const pages: ChatItem[][] = [];
         let cursor: string | undefined;
+
         do {
             const page = await this.readCodex(chat, toolUseId, cursor, 100);
             pages.unshift(page.items);
             cursor = page.history.cursor ?? undefined;
         } while (cursor !== undefined);
+
         return pages.flat();
     }
 
@@ -135,9 +140,11 @@ export class SubagentReader {
      */
     async claudeSettlement(chatId: string, toolUseId: string): Promise<SubagentSettlement | null> {
         const chat = this.options.chat(chatId);
+
         if (!chat || chat.info.provider !== 'claude') {
             return null;
         }
+
         try {
             return await readSubagentSettlement((await this.claudeFile(chat, toolUseId)).path);
         } catch {
@@ -149,14 +156,19 @@ export class SubagentReader {
     hold(clientId: string, chatId: string, toolUseId: string): void {
         const key = holdKey(chatId, toolUseId);
         const existing = this.holds.get(key);
+
         if (existing) {
             existing.clients.add(clientId);
+
             return;
         }
+
         const chat = this.options.chat(chatId);
+
         if (!chat) {
             return;
         }
+
         const stop = chat.info.provider === 'codex' ? this.pollCodex(key, chatId, toolUseId) : this.watchClaude(key);
         this.holds.set(key, { chatId, toolUseId, clients: new Set([clientId]), stop });
     }
@@ -164,10 +176,13 @@ export class SubagentReader {
     release(clientId: string, chatId: string, toolUseId: string): void {
         const key = holdKey(chatId, toolUseId);
         const hold = this.holds.get(key);
+
         if (!hold) {
             return;
         }
+
         hold.clients.delete(clientId);
+
         if (hold.clients.size === 0) {
             this.drop(key, hold);
         }
@@ -182,17 +197,20 @@ export class SubagentReader {
     /* Forgets everything about a chat that is gone. */
     releaseChat(chatId: string): void {
         const ofChat = (key: string): boolean => key.startsWith(`${chatId}\n`);
+
         for (const [key, hold] of [...this.holds]) {
             if (ofChat(key)) {
                 this.drop(key, hold);
             }
         }
+
         for (const [key, file] of [...this.claudeFiles]) {
             if (ofChat(key)) {
                 this.claudeFiles.delete(key);
                 this.projections.delete(file.path);
             }
         }
+
         for (const map of [this.codexRows, this.codexSeen]) {
             for (const key of [...map.keys()]) {
                 if (ofChat(key)) {
@@ -209,9 +227,11 @@ export class SubagentReader {
 
     private require(chatId: string): SubagentChat {
         const chat = this.options.chat(chatId);
+
         if (!chat) {
             throw new ChatError('chat-not-found', `No chat ${chatId}`);
         }
+
         return chat;
     }
 
@@ -224,10 +244,13 @@ export class SubagentReader {
     /* Running while its row says so, whether that row is in the chat's thread or in a conversation read before. */
     private live(chat: SubagentChat, toolUseId: string, inside: ChatItem[]): boolean {
         const workflowAgent = workflowAgentIdOf(toolUseId);
+
         if (workflowAgent !== null) {
             return workflowAgentRunning(chat.items(), workflowAgent);
         }
+
         const row = findSubagent(chat.items(), toolUseId) ?? findSubagent(inside, toolUseId);
+
         return row?.kind === 'subagent' && row.status === 'running';
     }
 
@@ -235,6 +258,7 @@ export class SubagentReader {
         const projection = await this.claudeProjection(chat, toolUseId);
         const page = projection.page(limit, cursor);
         const seen = [...this.projections.values()].filter((entry) => entry.chatId === chat.info.chatId).flatMap((entry) => entry.projection.items());
+
         return {
             items: page.items,
             history: page.history,
@@ -247,31 +271,39 @@ export class SubagentReader {
     private async claudeProjection(chat: SubagentChat, toolUseId: string): Promise<TranscriptProjection> {
         const file = await this.claudeFile(chat, toolUseId);
         let entry = this.projections.get(file.path);
+
         if (!entry) {
             entry = { chatId: chat.info.chatId, projection: new TranscriptProjection(file.path) };
             this.projections.set(file.path, entry);
             this.trimProjections();
         }
+
         if (!(await entry.projection.refresh())) {
             throw new ChatError('subagent-not-found', 'Claude has not written a transcript for this subagent');
         }
+
         return entry.projection;
     }
 
     private async claudeFile(chat: SubagentChat, toolUseId: string): Promise<ClaudeFile> {
         const key = holdKey(chat.info.chatId, toolUseId);
         const known = this.claudeFiles.get(key);
+
         if (known) {
             return known;
         }
+
         const found = await this.claudeSubagentOf(chat.info, toolUseId);
+
         if (found === null) {
             throw new ChatError('subagent-not-found', 'Claude has not written a transcript for this subagent');
         }
+
         const { dir, meta } = found;
         const file = { dir, path: meta.transcript };
         this.claudeFiles.set(key, file);
         chat.noteNative(toolUseId, { agentId: meta.agentId });
+
         return file;
     }
 
@@ -279,6 +311,7 @@ export class SubagentReader {
     private trimProjections(): void {
         const held = new Set([...this.holds.values()].map((hold) => this.claudeFiles.get(holdKey(hold.chatId, hold.toolUseId))?.path));
         const idle = [...this.projections.keys()].filter((path) => !held.has(path));
+
         for (const path of idle.slice(0, Math.max(0, idle.length - MAX_IDLE_PROJECTIONS))) {
             this.projections.delete(path);
         }
@@ -292,53 +325,69 @@ export class SubagentReader {
     private async claudeSubagentOf(info: ChatInfo, toolUseId: string): Promise<{ dir: string; meta: SubagentMeta } | null> {
         const seen = new Set<string>();
         let current: ChatInfo | null = info;
+
         while (current !== null && !seen.has(current.chatId)) {
             seen.add(current.chatId);
             const sessionId = current.agentSessionId;
+
             const dir =
                 sessionId === null
                     ? null
                     : await findSubagentsDir(this.options.claudeProjectsDirOf?.(current) ?? this.options.claudeProjectsDir, current.cwd, sessionId);
+
             const workflowAgent = workflowAgentIdOf(toolUseId);
+
             if (dir !== null && workflowAgent !== null) {
                 const meta = await findWorkflowAgent(dir, workflowAgent);
+
                 if (meta !== null) {
                     return { dir: dirname(meta.transcript), meta };
                 }
             }
+
             // A grandchild has a file of its own in the same folder, found by the call that opened it like any other.
             const meta = dir === null ? undefined : (await readSubagentMetas(dir)).find((candidate) => candidate.toolUseId === toolUseId);
+
             if (dir !== null && meta !== undefined) {
                 return { dir, meta };
             }
+
             const origin: string | undefined = current.forkOf?.chatId;
             current = origin === undefined || !this.options.chatInfo ? null : await this.options.chatInfo(origin);
         }
+
         return null;
     }
 
     private async readCodex(chat: SubagentChat, toolUseId: string, cursor: string | undefined, limit: number): Promise<ChatSubagentResult> {
         const threadId = this.codexThread(chat, toolUseId);
+
         if (cursor !== undefined && !cursor.startsWith(CODEX_CURSOR)) {
             throw new ChatError('history-expired', 'The conversation changed. Reload its history.');
         }
+
         const params: ThreadItemsParams = {
             threadId,
             limit,
             sortDirection: 'desc',
             ...(cursor === undefined ? {} : { cursor: cursor.slice(CODEX_CURSOR.length) })
         };
+
         const { entries, nextCursor } = parseThreadItemsPage(await this.codexPage(chat, params));
+
         if (cursor === undefined) {
             // What a poll that starts after this read compares against, so a change in between is not lost.
             this.codexSeen.set(holdKey(chat.info.chatId, toolUseId), JSON.stringify(entries.slice(0, CODEX_POLL_ITEMS)));
         }
+
         const items = projectCodexItems([...entries].reverse(), this.now());
+
         for (const item of items) {
             if (item.kind === 'subagent') {
                 this.codexRows.set(holdKey(chat.info.chatId, item.toolUseId), item);
             }
         }
+
         return {
             items,
             history: { cursor: nextCursor === null ? null : `${CODEX_CURSOR}${nextCursor}` },
@@ -350,45 +399,58 @@ export class SubagentReader {
 
     private codexThreadOf(chat: SubagentChat, toolUseId: string): string | null {
         const row = findSubagent(chat.items(), toolUseId) ?? this.codexRows.get(holdKey(chat.info.chatId, toolUseId));
+
         return row?.kind === 'subagent' ? (row.native?.threadId ?? null) : null;
     }
 
     private codexThread(chat: SubagentChat, toolUseId: string): string {
         const threadId = this.codexThreadOf(chat, toolUseId);
+
         if (threadId === null) {
             throw new ChatError('subagent-not-found', 'Codex has not said which thread this subagent works in');
         }
+
         return threadId;
     }
 
     private async codexPage(chat: SubagentChat, params: ThreadItemsParams): Promise<unknown> {
         const running = chat.listThreadItems(params);
+
         if (running !== null) {
             return running;
         }
+
         const key = JSON.stringify(params);
         const now = this.now();
         const cached = this.codexCache.get(key);
+
         if (cached && now - cached.at < CODEX_CACHE_MS) {
             return cached.result;
         }
+
         const result = await this.listOnce(this.options.codexProcess(chat.info), params);
+
         for (const [stale, entry] of [...this.codexCache]) {
             if (now - entry.at >= CODEX_CACHE_MS) {
                 this.codexCache.delete(stale);
             }
         }
+
         this.codexCache.set(key, { at: now, result });
+
         return result;
     }
 
     /* One watch per subagents folder, however many of its transcripts are held. */
     private watchClaude(key: string): () => void {
         const file = this.claudeFiles.get(key);
+
         if (!file) {
             return () => undefined;
         }
+
         let shared = this.dirWatches.get(file.dir);
+
         if (!shared) {
             const watcher = this.seams.watch(file.dir, { recursive: false }, (_event, filename) => this.onClaudeChange(file.dir, filename));
             // A folder that disappears ends the growing, not the host.
@@ -396,10 +458,13 @@ export class SubagentReader {
             shared = { watcher, keys: new Set() };
             this.dirWatches.set(file.dir, shared);
         }
+
         shared.keys.add(key);
+
         return () => {
             const current = this.dirWatches.get(file.dir);
             current?.keys.delete(key);
+
             if (current && current.keys.size === 0) {
                 current.watcher.close();
                 this.dirWatches.delete(file.dir);
@@ -410,6 +475,7 @@ export class SubagentReader {
     private onClaudeChange(dir: string, filename: string | null): void {
         for (const key of this.dirWatches.get(dir)?.keys ?? []) {
             const path = this.claudeFiles.get(key)?.path;
+
             // A platform that names no file could mean any of them.
             if (filename === null || (path !== undefined && basename(path) === filename)) {
                 this.markChanged(key);
@@ -420,14 +486,17 @@ export class SubagentReader {
     private pollCodex(key: string, chatId: string, toolUseId: string): () => void {
         let cancel: (() => void) | null = null;
         let stopped = false;
+
         const tick = async (): Promise<void> => {
             cancel = null;
             const chat = this.options.chat(chatId);
             const threadId = chat ? this.codexThreadOf(chat, toolUseId) : null;
             const asked = chat && threadId ? chat.listThreadItems({ threadId, limit: CODEX_POLL_ITEMS, sortDirection: 'desc' }) : null;
+
             if (asked !== null) {
                 try {
                     const seen = JSON.stringify(parseThreadItemsPage(await asked).entries);
+
                     if (!stopped && this.codexSeen.get(key) !== seen) {
                         this.codexSeen.set(key, seen);
                         this.markChanged(key);
@@ -436,11 +505,14 @@ export class SubagentReader {
                     // The process went between the question and the answer; the next tick asks again.
                 }
             }
+
             if (!stopped) {
                 cancel = this.seams.schedule(() => tick(), CODEX_POLL_MS);
             }
         };
+
         cancel = this.seams.schedule(() => tick(), CODEX_POLL_MS);
+
         return () => {
             stopped = true;
             cancel?.();
@@ -449,9 +521,11 @@ export class SubagentReader {
 
     private markChanged(key: string): void {
         this.changed.add(key);
+
         if (this.cancelSettle !== null) {
             return;
         }
+
         this.cancelSettle = this.seams.schedule(() => this.flushChanged(), CHANGE_SETTLE_MS);
     }
 
@@ -459,8 +533,10 @@ export class SubagentReader {
         this.cancelSettle = null;
         const keys = [...this.changed];
         this.changed.clear();
+
         for (const key of keys) {
             const hold = this.holds.get(key);
+
             for (const clientId of hold?.clients ?? []) {
                 this.options.notify(clientId, { chatId: hold!.chatId, toolUseId: hold!.toolUseId });
             }

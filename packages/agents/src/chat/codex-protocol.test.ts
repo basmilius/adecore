@@ -35,6 +35,7 @@ describe('CodexProtocol', () => {
         test(`a late child ${method} waits without opening a phantom main turn`, () => {
             const protocol = new CodexProtocol(1);
             protocol.threadReady({ thread: { id: 'main' } });
+
             const thread = new ChatThread({
                 chatId: 'probe',
                 provider: 'codex',
@@ -50,12 +51,15 @@ describe('CodexProtocol', () => {
                 usage: { contextTokens: 0, contextWindow: null, costUsd: 0, turns: 0 },
                 createdAt: 1
             });
+
             const projector = new ThreadProjector(thread, { providerName: 'Codex' });
             const events = protocol.handle({ method, id: 1, params: { ...params, threadId: 'child', turnId: 'child-turn' } });
             expect(events).toHaveLength(1);
+
             for (const event of events) {
                 projector.project(1, event);
             }
+
             expect(thread.info).toMatchObject({ status: 'needs-you', activeTurnId: null });
             expect(thread.list().some((item) => item.kind === 'turn')).toBe(false);
             expect(thread.pending()).toHaveLength(1);
@@ -67,6 +71,7 @@ describe('CodexProtocol', () => {
     test('replays a real interacted child on its original row and thread, without duplicating completion or projecting foreign activity', () => {
         const protocol = new CodexProtocol(1);
         protocol.threadReady({ thread: { id: nativeInteractedCapture.rootThreadId } });
+
         const thread = new ChatThread({
             chatId: 'probe',
             provider: 'codex',
@@ -82,15 +87,19 @@ describe('CodexProtocol', () => {
             usage: { contextTokens: 0, contextWindow: null, costUsd: 0, turns: 0 },
             createdAt: 1
         });
+
         const projector = new ThreadProjector(thread, { providerName: 'Codex' });
         let completed = 0;
         let restarted = 0;
+
         for (const frame of nativeInteractedCapture.frames) {
             for (const event of protocol.handle(frame)) {
                 projector.project(1, event);
+
                 if (event.type === 'task.done') {
                     completed++;
                 }
+
                 if (event.type === 'task.started' && event.resumed) {
                     restarted++;
                     expect(thread.list().filter((item) => item.kind === 'subagent')).toHaveLength(1);
@@ -102,13 +111,16 @@ describe('CodexProtocol', () => {
                     });
                 }
             }
+
             expect(protocol.handle({ ...frame, params: { ...frame.params, threadId: 'unrelated-child' } })).toEqual([]);
         }
+
         expect(restarted).toBe(1);
         expect(completed).toBe(2);
         expect(thread.list().filter((item) => item.kind === 'subagent')).toHaveLength(1);
         expect(thread.list().find((item) => item.kind === 'subagent')).toMatchObject({ status: 'done', description: 'lifecycle_probe', turnId: 'root-turn' });
     });
+
     test('reports the effective approval policy and sandbox from the handshake', () => {
         for (const [effectiveRuntimeMode, approvalPolicy, sandbox] of [
             ['supervised', 'untrusted', 'readOnly'],
@@ -127,9 +139,11 @@ describe('CodexProtocol', () => {
         const protocol = new CodexProtocol(1);
         protocol.threadReady({ thread: { id: nativeFileApprovalCapture.rootThreadId } });
         let approval: Extract<BackendEvent, { type: 'approval.requested' }> | undefined;
+
         for (const frame of nativeFileApprovalCapture.frames) {
             const events = protocol.handle(frame);
             approval ??= events.find((event) => event.type === 'approval.requested');
+
             if (frame.method === 'turn/completed' && frame.params.threadId === nativeFileApprovalCapture.rootThreadId) {
                 expect(events.some((event) => event.type === 'request.withdrawn')).toBe(false);
                 expect(approval).toMatchObject({
@@ -141,11 +155,14 @@ describe('CodexProtocol', () => {
             }
         }
     });
+
     test('the handshake answers the thread id and model; the turn id comes from turn/started', () => {
         const protocol = new CodexProtocol(1);
+
         expect(protocol.threadReady({ thread: { id: 'thread-abc', model: 'gpt-6-astra' }, model: 'gpt-6-astra never danger-full-access' })).toEqual([
             { type: 'session', agentSessionId: 'thread-abc', model: 'gpt-6-astra never danger-full-access', title: null }
         ]);
+
         protocol.handle({ method: 'turn/started', params: { threadId: 'thread-abc', turn: { id: 'ct1', status: 'inProgress' } } });
         expect(protocol.turnId).toBe('ct1');
     });
@@ -170,12 +187,16 @@ describe('CodexProtocol', () => {
     // What Codex 0.156.1 sends for a spawn, as captured from its app-server: no spawnAgent call, only these items.
     test('a spawned agent opens its row on its started activity and settles on its completed one, found by thread', () => {
         const protocol = new CodexProtocol(1);
+
         const activity = (id: string, kind: string) => ({ type: 'subAgentActivity', id, kind, agentThreadId: 'agent-thread', agentPath: '/root/pong' });
+
         const started = activity('call_spawn', 'started');
+
         const opened: BackendEvent[] = [
             { type: 'tool.started', ref: 'call_spawn', name: 'Agent', input: { agentPath: '/root/pong' }, parentRef: null },
             { type: 'task.started', ref: 'call_spawn', description: 'pong', subagentType: null, prompt: null, background: true, threadId: 'agent-thread' }
         ];
+
         expect(protocol.handle({ method: 'item/started', params: { ...ids, item: started } })).toEqual(opened);
         expect(protocol.handle({ method: 'item/completed', params: { ...ids, item: started } })).toEqual([]);
 
@@ -184,6 +205,7 @@ describe('CodexProtocol', () => {
         expect(protocol.handle({ method: 'item/completed', params: { ...ids, item: wait } }).map((event) => event.type)).toEqual(['tool.started', 'tool.done']);
 
         const completed = activity('subagent-completed-turn-2', 'completed');
+
         expect(protocol.handle({ method: 'item/started', params: { ...ids, item: completed } })).toEqual([
             { type: 'task.done', ref: 'call_spawn', summary: null, ok: true }
         ]);
@@ -194,6 +216,7 @@ describe('CodexProtocol', () => {
 
     test('the name a thread already has comes with the handshake, and a rename after it as a title', () => {
         const protocol = new CodexProtocol(1);
+
         expect(protocol.threadReady({ thread: { id: 'thread-abc', name: ' Fix the\nbuild ' }, model: 'm' })).toEqual([
             { type: 'session', agentSessionId: 'thread-abc', model: 'm', title: 'Fix the build' }
         ]);
@@ -205,6 +228,7 @@ describe('CodexProtocol', () => {
 
     test('an agent message opens on item/started, streams deltas and settles on item/completed', () => {
         const protocol = new CodexProtocol(1);
+
         expect(protocol.handle({ method: 'item/started', params: { ...ids, item: message('msg_1', '') } })).toEqual([
             { type: 'text.delta', ref: 'msg_1', text: '', phase: 'final_answer' }
         ]);
@@ -218,6 +242,7 @@ describe('CodexProtocol', () => {
 
     test('token usage carries the context window only when Codex reports one', () => {
         const protocol = new CodexProtocol(1);
+
         expect(
             protocol.handle({
                 method: 'thread/tokenUsage/updated',
@@ -231,6 +256,7 @@ describe('CodexProtocol', () => {
 
     test('turn/completed reports how the turn ended', () => {
         const protocol = new CodexProtocol(1);
+
         expect(protocol.handle({ method: 'turn/completed', params: { ...ids, turn: { id: 'ct1', status: 'interrupted', error: null } } })).toEqual([
             { type: 'turn.done', state: 'aborted', costUsd: 0, native: { turnId: 'ct1' } }
         ]);
@@ -249,6 +275,7 @@ describe('CodexProtocol', () => {
 
     test('a turn over the usage limit ends with the reset of the window its last update showed spent', () => {
         const protocol = new CodexProtocol(1);
+
         protocol.handle({
             method: 'account/rateLimits/updated',
             params: {
@@ -259,6 +286,7 @@ describe('CodexProtocol', () => {
                 }
             }
         });
+
         expect(failed(protocol, 'usageLimitExceeded')).toEqual([
             { type: 'turn.done', state: 'error', costUsd: 0, error: 'no', native: { turnId: 'ct1' }, limit: { kind: 'usage', resetsAt: 1_789_000_000_000 } }
         ]);
@@ -268,6 +296,7 @@ describe('CodexProtocol', () => {
         const protocol = new CodexProtocol(1);
         protocol.threadReady({ thread: { id: usageWindowsCapture.rootThreadId }, model: usageWindowsCapture.model });
         const events = usageWindowsCapture.frames.flatMap((frame) => protocol.handle(frame));
+
         expect(events.find((event) => event.type === 'limits')).toMatchObject({
             update: {
                 kind: 'codex',
@@ -286,6 +315,7 @@ describe('CodexProtocol', () => {
     ] as const) {
         test(`two spent windows wait for all known resets (${primaryReset}, ${secondaryReset})`, () => {
             const protocol = new CodexProtocol(1);
+
             protocol.handle({
                 method: 'account/rateLimits/updated',
                 params: {
@@ -296,6 +326,7 @@ describe('CodexProtocol', () => {
                     }
                 }
             });
+
             const event = failed(protocol, 'usageLimitExceeded')[0] as Extract<BackendEvent, { type: 'turn.done' }>;
             expect(event.limit?.kind).toBe('usage');
             expect(event.limit?.resetsAt).toBe(expectedReset);
@@ -304,10 +335,12 @@ describe('CodexProtocol', () => {
 
     test('a main quota snapshot without windows drops an older reset instead of scheduling stale work', () => {
         const protocol = new CodexProtocol(1);
+
         protocol.handle({
             method: 'account/rateLimits/updated',
             params: { rateLimits: { limitId: 'codex', primary: { usedPercent: 100, resetsAt: 1_789_000_000 } } }
         });
+
         protocol.handle({ method: 'account/rateLimits/updated', params: { rateLimits: { limitId: 'codex', primary: null, secondary: null } } });
         const event = failed(protocol, 'usageLimitExceeded')[0] as Extract<BackendEvent, { type: 'turn.done' }>;
         expect(event.limit).toEqual({ kind: 'usage' });
@@ -327,6 +360,7 @@ describe('CodexProtocol', () => {
     test('a command is a Bash call whose partial output streams, and its approval carries the generation', () => {
         const protocol = new CodexProtocol(3);
         const command = { type: 'commandExecution', id: 'exec-1', command: '/bin/zsh -lc "git status"', cwd: '/w', status: 'inProgress' };
+
         expect(protocol.handle({ method: 'item/started', params: { ...ids, item: command } })).toEqual([
             { type: 'tool.started', ref: 'exec-1', name: 'Bash', input: { command: 'git status', cwd: '/w' }, parentRef: null }
         ]);
@@ -350,6 +384,7 @@ describe('CodexProtocol', () => {
                 proposedExecpolicyAmendment: ['git']
             }
         });
+
         expect(asked).toEqual([
             {
                 type: 'approval.requested',
@@ -377,6 +412,7 @@ describe('CodexProtocol', () => {
         const protocol = new CodexProtocol(1);
         const changes = [{ path: 'a.ts', kind: { type: 'update', move_path: null }, diff: '-x\n+y\n' }];
         const patch = { type: 'fileChange', id: 'patch-1', changes, status: 'inProgress' };
+
         expect(protocol.handle({ method: 'item/started', params: { ...ids, item: patch } })).toEqual([
             {
                 type: 'tool.started',
@@ -411,6 +447,7 @@ describe('CodexProtocol', () => {
 
     test('a collab agent call is a tool row, and spawning one reads as a delegation', () => {
         const protocol = new CodexProtocol(1);
+
         const item = {
             type: 'collabAgentToolCall',
             id: 'collab_1',
@@ -422,6 +459,7 @@ describe('CodexProtocol', () => {
             agentsStates: {},
             status: 'inProgress'
         };
+
         expect(protocol.handle({ method: 'item/started', params: { ...ids, item } })).toEqual([
             {
                 type: 'tool.started',
@@ -444,12 +482,14 @@ describe('CodexProtocol', () => {
 
         // The call completes as soon as the agent runs; that is no end of the agent.
         const launched = { ...item, status: 'completed', agentsStates: { 'child-1': { status: 'running', message: null } } };
+
         expect(protocol.handle({ method: 'item/completed', params: { ...ids, item: launched } }).at(-1)).toMatchObject({
             type: 'task.progress',
             ref: 'collab_1'
         });
 
         const done = { ...item, status: 'completed', agentsStates: { 'child-1': { status: 'completed', message: 'the docs are read' } } };
+
         expect(protocol.handle({ method: 'item/completed', params: { ...ids, item: done } }).at(-1)).toEqual({
             type: 'task.done',
             ref: 'collab_1',
@@ -458,6 +498,7 @@ describe('CodexProtocol', () => {
         });
 
         const sendInput = { ...item, id: 'collab_2', tool: 'sendInput', status: 'completed' };
+
         expect(protocol.handle({ method: 'item/completed', params: { ...ids, item: sendInput } }).at(-1)).toMatchObject({
             type: 'tool.done',
             ref: 'collab_2',
@@ -467,6 +508,7 @@ describe('CodexProtocol', () => {
         // Another call that reports on a spawned agent settles its row, once.
         const second = { ...item, id: 'collab_3', status: 'completed', receiverThreadIds: ['child-2'], agentsStates: { 'child-2': { status: 'running' } } };
         protocol.handle({ method: 'item/completed', params: { ...ids, item: second } });
+
         const wait = {
             ...item,
             id: 'collab_4',
@@ -475,6 +517,7 @@ describe('CodexProtocol', () => {
             receiverThreadIds: ['child-2'],
             agentsStates: { 'child-2': { status: 'errored' } }
         };
+
         expect(protocol.handle({ method: 'item/completed', params: { ...ids, item: wait } }).at(-1)).toEqual({
             type: 'task.done',
             ref: 'collab_3',
@@ -487,6 +530,7 @@ describe('CodexProtocol', () => {
 
         // A spawn that failed opened no agent, so nothing is left to wait for.
         const failed = { ...item, id: 'collab_6', status: 'failed', receiverThreadIds: [] };
+
         expect(protocol.handle({ method: 'item/completed', params: { ...ids, item: failed } }).at(-1)).toEqual({
             type: 'task.done',
             ref: 'collab_6',
@@ -498,6 +542,7 @@ describe('CodexProtocol', () => {
     test('a request Codex takes back is withdrawn', () => {
         const protocol = new CodexProtocol(1);
         protocol.handle({ method: 'item/fileChange/requestApproval', id: 3, params: { ...ids, itemId: 'patch-1', reason: null } });
+
         expect(protocol.handle({ method: 'serverRequest/resolved', params: { threadId: 't1', requestId: 3 } })).toEqual([
             { type: 'request.withdrawn', requestId: '1-3' }
         ]);
@@ -507,6 +552,7 @@ describe('CodexProtocol', () => {
     test('a request still open as the turn completes is withdrawn with it', () => {
         const protocol = new CodexProtocol(1);
         protocol.handle({ method: 'item/fileChange/requestApproval', id: 4, params: { ...ids, itemId: 'patch-2', reason: null } });
+
         expect(protocol.handle({ method: 'turn/completed', params: { threadId: 't1', turn: { id: 'ct1', status: 'completed' } } })).toEqual([
             { type: 'request.withdrawn', requestId: '1-4' },
             { type: 'turn.done', state: 'done', costUsd: 0, native: { turnId: 'ct1' } }
@@ -516,6 +562,7 @@ describe('CodexProtocol', () => {
 
     test('a blocking question keeps the ids Codex gave and is answered by reply', () => {
         const protocol = new CodexProtocol(1);
+
         expect(
             protocol.handle({
                 method: 'item/tool/requestUserInput',
@@ -568,9 +615,11 @@ describe('CodexProtocol', () => {
         protocol.threadReady({ thread: { id: ids.threadId } });
         protocol.handle({ method: 'turn/started', params: { ...ids, turn: { id: ids.turnId } } });
         const asked = message('async-choice', 'Which?', { delivery: 'async', questions: [{ title: 'Which?', options: ['Red', 'Blue'] }] });
+
         expect(protocol.handle({ method: 'item/completed', params: { ...ids, item: asked } })).toMatchObject([
             { type: 'question.requested', requestId: 'async-choice', async: true }
         ]);
+
         const completed = protocol.handle({ method: 'turn/completed', params: { threadId: ids.threadId, turn: { id: ids.turnId, status: 'completed' } } });
         expect(completed.some((event) => event.type === 'request.withdrawn')).toBe(false);
         protocol.handle({ method: 'turn/started', params: { threadId: ids.threadId, turn: { id: 'next-turn' } } });
@@ -582,11 +631,13 @@ describe('CodexProtocol', () => {
         const asked = message('call_2', 'Which?', { delivery: 'async', questions: [{ title: 'Which?', options: ['Red'] }] });
         protocol.handle({ method: 'item/started', params: { ...ids, item: asked } });
         protocol.handle({ method: 'item/completed', params: { ...ids, item: asked } });
+
         protocol.handle({
             method: 'thread/requestUserInput',
             id: 7,
             params: { ...ids, questions: [{ id: 'color', header: 'Choice', question: 'Which color?', options: [{ label: 'Red', description: '' }] }] }
         });
+
         expect(protocol.dismissQuestion('1-7')).toBe(false);
         expect(protocol.dismissQuestion('call_2')).toBe(true);
         expect(protocol.dismissQuestion('call_2')).toBe(false);
@@ -595,6 +646,7 @@ describe('CodexProtocol', () => {
 
     test('an MCP server that asks yes or no is an approval, answered with how long Codex remembers it', () => {
         const protocol = new CodexProtocol(2);
+
         // As computer use sends it before it touches an app (Codex 0.156.1).
         const params = {
             ...ids,
@@ -611,6 +663,7 @@ describe('CodexProtocol', () => {
                 tool_params_display: [{ display_name: 'App', name: 'app', value: 'Ruimte' }]
             }
         };
+
         expect(protocol.handle({ method: 'mcpServer/elicitation/request', id: 0, params })).toEqual([
             {
                 type: 'approval.requested',
@@ -649,6 +702,7 @@ describe('CodexProtocol', () => {
 
     test('a compaction item becomes a marker and an error becomes a note', () => {
         const protocol = new CodexProtocol(1);
+
         expect(protocol.handle({ method: 'item/completed', params: { ...ids, item: { type: 'contextCompaction', id: 'cc-1' } } })).toEqual([
             { type: 'compaction', preTokens: null }
         ]);
@@ -671,6 +725,7 @@ describe('unwrapCommand', () => {
 describe('reasoning', () => {
     test('summary and text deltas stream as thinking, with a break between summary parts', () => {
         const protocol = new CodexProtocol(1);
+
         expect(protocol.handle({ method: 'item/reasoning/summaryTextDelta', params: { itemId: 'r1', delta: 'weighing' } })).toEqual([
             { type: 'thinking.delta', ref: 'r1', text: 'weighing' }
         ]);
@@ -686,6 +741,7 @@ describe('reasoning', () => {
 
     test('a completed reasoning item carries the whole thing, for a client that missed the deltas', () => {
         const protocol = new CodexProtocol(1);
+
         expect(
             protocol.handle({ method: 'item/completed', params: { item: { type: 'reasoning', id: 'r1', summary: ['first', ''], content: ['second'] } } })
         ).toEqual([{ type: 'thinking.done', ref: 'r1', text: 'first\n\nsecond' }]);
@@ -699,6 +755,7 @@ describe('rate limits', () => {
     test('what a turn says about the plan leaves the chat as a limits event', () => {
         const protocol = new CodexProtocol(0);
         const params = { rateLimits: { limitId: 'codex', planType: 'pro', primary: { usedPercent: 96, windowDurationMins: 10080, resetsAt: 1_789_453_149 } } };
+
         expect(protocol.handle({ method: 'account/rateLimits/updated', params })).toEqual([
             {
                 type: 'limits',
@@ -713,6 +770,7 @@ describe('rate limits', () => {
 
     test('the budget of one model is not the plan', () => {
         const protocol = new CodexProtocol(0);
+
         expect(
             protocol.handle({ method: 'account/rateLimits/updated', params: { rateLimits: { limitId: 'codex_spark', primary: { usedPercent: 3 } } } })
         ).toEqual([]);
@@ -720,6 +778,7 @@ describe('rate limits', () => {
 
     test('a terminal session still open when the turn ends runs on in the background until its item completes', () => {
         const protocol = new CodexProtocol(1);
+
         const command = (status: string) => ({
             type: 'commandExecution',
             id: 'exec-bg',
@@ -730,8 +789,10 @@ describe('rate limits', () => {
             status,
             aggregatedOutput: status === 'inProgress' ? null : 'ready\n'
         });
+
         protocol.handle({ method: 'turn/started', params: { threadId: 't1', turn: { id: 'ct1' } } });
         protocol.handle({ method: 'item/started', params: { ...ids, item: command('inProgress') } });
+
         expect(protocol.handle({ method: 'turn/completed', params: { threadId: 't1', turn: { id: 'ct1', status: 'completed' } } })).toEqual([
             { type: 'background.started', taskId: '44653', ref: 'exec-bg', monitor: false, description: null },
             { type: 'turn.done', state: 'done', costUsd: 0, native: { turnId: 'ct1' } }
@@ -747,6 +808,7 @@ describe('rate limits', () => {
         const command = { type: 'commandExecution', id: 'exec-2', command: 'ls', cwd: '/w', processId: '1', status: 'inProgress' };
         protocol.handle({ method: 'item/started', params: { ...ids, item: command } });
         protocol.handle({ method: 'item/completed', params: { ...ids, item: { ...command, status: 'completed', aggregatedOutput: '' } } });
+
         expect(protocol.handle({ method: 'turn/completed', params: { threadId: 't1', turn: { id: 'ct1', status: 'completed' } } })).toEqual([
             { type: 'turn.done', state: 'done', costUsd: 0, native: { turnId: 'ct1' } }
         ]);
@@ -759,14 +821,17 @@ describe('native child approval ownership', () => {
         protocol.threadReady({ thread: { id: nativeApprovalCapture.rootThreadId } });
         let requestId: string | null = null;
         let rpcId: number | string | null = null;
+
         for (const frame of nativeApprovalCapture.frames) {
             const events = protocol.handle(frame);
             const approval = events.find((event) => event.type === 'approval.requested');
+
             if (approval?.type === 'approval.requested') {
                 requestId = approval.requestId;
                 rpcId = frame.id!;
                 expect(approval.description).toContain('approval_probe');
             }
+
             if (frame.method === 'turn/completed' && frame.params.threadId === nativeApprovalCapture.rootThreadId) {
                 expect(requestId).not.toBeNull();
                 expect(rpcId).not.toBeNull();
@@ -774,19 +839,24 @@ describe('native child approval ownership', () => {
                 expect(protocol.approvalDecision(requestId!, 'deny')).toEqual({ rpcId: rpcId!, result: { decision: 'decline' } });
             }
         }
+
         expect(protocol.approvalDecision(requestId!, 'allow')).toBeNull();
     });
 
     const child = { threadId: 'child', turnId: 'child-turn', itemId: 'patch' };
+
     const request = (protocol: CodexProtocol, id = 9) => protocol.handle({ id, method: 'item/fileChange/requestApproval', params: child });
+
     const ready = () => {
         const protocol = new CodexProtocol(1);
         protocol.threadReady({ thread: { id: 'root' } });
+
         return protocol;
     };
 
     test('keeps a child diff without projecting child output into the root thread', () => {
         const protocol = ready();
+
         expect(
             protocol.handle({
                 method: 'item/started',
@@ -808,10 +878,12 @@ describe('native child approval ownership', () => {
 
     test('names the child in its approval and closes only requests owned by the closing thread', () => {
         const protocol = ready();
+
         protocol.handle({
             method: 'item/started',
             params: { threadId: 'root', item: { type: 'subAgentActivity', id: 'spawn', kind: 'started', agentThreadId: 'child', agentPath: '/root/Reviewer' } }
         });
+
         expect(request(protocol)[0]).toMatchObject({ description: 'Requested by subagent Reviewer.' });
         protocol.handle({ id: 10, method: 'item/fileChange/requestApproval', params: { threadId: 'root', turnId: 'root-turn', itemId: 'root-patch' } });
         expect(protocol.handle({ method: 'thread/closed', params: { threadId: 'root' } })).toEqual([{ type: 'request.withdrawn', requestId: '1-10' }]);
@@ -841,6 +913,7 @@ describe('native child approval ownership', () => {
     test('a child withdrawal and process exit both end its request', () => {
         const protocol = ready();
         request(protocol);
+
         expect(protocol.handle({ method: 'serverRequest/resolved', params: { threadId: 'child', requestId: 9 } })).toEqual([
             { type: 'request.withdrawn', requestId: '1-9' }
         ]);
@@ -854,6 +927,7 @@ describe('native child approval ownership', () => {
 test('approval metadata is scoped by thread, cleared by owner completion and bounded between completions', () => {
     const protocol = new CodexProtocol(1);
     protocol.threadReady({ thread: { id: 'root' } });
+
     const patch = (threadId: string, itemId: string, path: string) =>
         protocol.handle({
             method: 'item/started',
@@ -863,17 +937,21 @@ test('approval metadata is scoped by thread, cleared by owner completion and bou
                 item: { type: 'fileChange', id: itemId, changes: [{ path, kind: 'update', diff: '-x\n+y' }] }
             }
         });
+
     const approval = (id: number, threadId: string, itemId: string) =>
         protocol.handle({ id, method: 'item/fileChange/requestApproval', params: { threadId, turnId: 'turn', itemId } })[0];
+
     patch('child', 'same', 'child.ts');
     patch('root', 'same', 'root.ts');
     expect(approval(1, 'child', 'same')).toMatchObject({ input: { summary: 'child.ts' } });
     expect(approval(2, 'root', 'same')).toMatchObject({ input: { summary: 'root.ts' } });
     protocol.handle({ method: 'turn/completed', params: { threadId: 'child', turn: { id: 'turn', status: 'completed' } } });
     expect(approval(3, 'child', 'same')).toMatchObject({ input: { changes: [] } });
+
     for (let i = 0; i < 600; i++) {
         patch('child', `patch-${i}`, `file-${i}.ts`);
     }
+
     expect(approval(4, 'child', 'patch-0')).toMatchObject({ input: { changes: [] } });
     expect(approval(5, 'child', 'patch-599')).toMatchObject({ input: { summary: 'file-599.ts' } });
     protocol.forgetPending();
@@ -883,8 +961,10 @@ test('approval metadata is scoped by thread, cleared by owner completion and bou
 test('Stop declines a child request and its runtime closing withdraws another', () => {
     const protocol = new CodexProtocol(1);
     protocol.threadReady({ thread: { id: 'root' } });
+
     const request = (id: number) =>
         protocol.handle({ id, method: 'item/commandExecution/requestApproval', params: { threadId: 'child', turnId: 'turn', command: 'example' } });
+
     request(1);
     expect(protocol.declineRequest('1-1')).toEqual({ rpcId: 1, result: { decision: 'decline' } });
     expect(protocol.approvalDecision('1-1', 'allow')).toBeNull();
@@ -896,6 +976,7 @@ test('Stop declines a child request and its runtime closing withdraws another', 
 describe('Codex 0.162 requests', () => {
     test('a nonblocking RPC question stays optional and answers over its RPC id', () => {
         const protocol = new CodexProtocol(1);
+
         const events = protocol.handle({
             method: 'item/tool/requestUserInput',
             id: 42,
@@ -906,6 +987,7 @@ describe('Codex 0.162 requests', () => {
                 questions: [{ id: 'pick', header: 'Color', question: 'Which color?', options: null }]
             }
         });
+
         expect(events).toMatchObject([{ type: 'question.requested', requestId: '1-42', async: true }]);
         expect(protocol.questionAnswer('1-42', { pick: 'Blue' })).toEqual({ kind: 'respond', rpcId: 42, result: { answers: { pick: { answers: ['Blue'] } } } });
     });
@@ -915,11 +997,13 @@ describe('Codex 0.162 requests', () => {
             test(`a nonblocking RPC question of ${owner} ${ending === 'completed' ? 'survives' : 'ends with'} its ${ending} turn`, () => {
                 const protocol = new CodexProtocol(1);
                 protocol.threadReady({ thread: { id: 't1' } });
+
                 protocol.handle({
                     method: 'item/tool/requestUserInput',
                     id: 42,
                     params: { threadId: owner, turnId: 'turn', isBlocking: false, questions: [{ id: 'pick', question: 'Which?', options: null }] }
                 });
+
                 const ended = protocol.handle({ method: 'turn/completed', params: { threadId: owner, turn: { id: 'turn', status: ending } } });
                 expect(ended.some((event) => event.type === 'request.withdrawn')).toBe(ending !== 'completed');
                 expect(protocol.questionAnswer('1-42', { pick: 'Blue' })).toEqual(
@@ -932,8 +1016,11 @@ describe('Codex 0.162 requests', () => {
     test.each(['activity', 'wait'] as const)('a native child finishing through %s keeps its optional RPC question', (signal) => {
         const protocol = new CodexProtocol(1);
         protocol.threadReady({ thread: { id: 'root' } });
+
         const activity = (kind: string) => ({ type: 'subAgentActivity', id: kind, kind, agentThreadId: 'child', agentPath: '/root/Reviewer' });
+
         protocol.handle({ method: 'item/completed', params: { threadId: 'root', item: activity('started') } });
+
         protocol.handle({
             method: 'item/tool/requestUserInput',
             id: 42,
@@ -944,6 +1031,7 @@ describe('Codex 0.162 requests', () => {
                 questions: [{ id: 'pick', question: 'Which?', options: null }]
             }
         });
+
         const item =
             signal === 'activity'
                 ? activity('completed')
@@ -955,6 +1043,7 @@ describe('Codex 0.162 requests', () => {
                       receiverThreadIds: ['child'],
                       agentsStates: { child: { status: 'completed' } }
                   };
+
         const ended = protocol.handle({ method: 'item/completed', params: { threadId: 'root', item } });
         expect(ended).toContainEqual(expect.objectContaining({ type: 'task.done' }));
         expect(ended.some((event) => event.type === 'request.withdrawn')).toBe(false);
@@ -965,6 +1054,7 @@ describe('Codex 0.162 requests', () => {
     test('a permission grant is shown and denial grants nothing', () => {
         const protocol = new CodexProtocol(1);
         const permissions = { fileSystem: { write: ['/tmp/export'] }, network: { enabled: true } };
+
         const events = protocol.handle({
             method: 'item/permissions/requestApproval',
             id: 43,
@@ -977,6 +1067,7 @@ describe('Codex 0.162 requests', () => {
                 permissions
             }
         });
+
         expect(events).toMatchObject([{ type: 'approval.requested', requestId: '1-43', toolName: 'RequestPermissions', input: { permissions } }]);
         expect(protocol.approvalDecision('1-43', 'deny')).toEqual({ rpcId: 43, result: { permissions: {}, scope: 'turn' } });
     });
@@ -986,6 +1077,7 @@ test.each(['allow', 'allow-always'] as const)('Codex permissions %s grant only t
     const protocol = new CodexProtocol(1);
     const permissions = { fileSystem: { write: ['/tmp/export'] } };
     protocol.handle({ method: 'item/permissions/requestApproval', id: 45, params: { ...ids, itemId: 'grant', cwd: '/tmp', permissions } });
+
     expect(protocol.approvalDecision('1-45', decision)).toEqual({
         rpcId: 45,
         result: { permissions, scope: decision === 'allow-always' ? 'session' : 'turn' }
@@ -995,11 +1087,13 @@ test.each(['allow', 'allow-always'] as const)('Codex permissions %s grant only t
 
 test('dismissing a nonblocking Codex RPC question replies with empty answers', () => {
     const protocol = new CodexProtocol(1);
+
     protocol.handle({
         method: 'item/tool/requestUserInput',
         id: 46,
         params: { ...ids, itemId: 'question', isBlocking: false, questions: [{ id: 'pick', question: 'Which?', options: null }] }
     });
+
     expect(protocol.dismissQuestionAnswer('1-46')).toEqual({ kind: 'respond', rpcId: 46, result: { answers: {} } });
     expect(protocol.dismissQuestionAnswer('1-46')).toBeNull();
 });
@@ -1039,6 +1133,7 @@ describe('Codex generated images', () => {
             method: 'item/completed',
             params: { ...ids, item: { type: 'imageView', id: 'view-1', path: '/private/rabbit.png' } }
         });
+
         expect(events).toContainEqual(expect.objectContaining({ type: 'tool.started', name: 'ImageView', input: { path: '/private/rabbit.png' } }));
     });
 
@@ -1077,6 +1172,7 @@ describe('goals', () => {
 
         const protocol = new CodexProtocol(1);
         protocol.threadReady({ thread: { id: 'own' } });
+
         const goal = {
             threadId: 'own',
             objective: 'ship it',
@@ -1087,6 +1183,7 @@ describe('goals', () => {
             createdAt: 1,
             updatedAt: 1
         };
+
         expect(protocol.handle({ method: 'thread/goal/updated', params: { threadId: 'own', turnId: null, goal } })).toEqual([
             { type: 'goal', goal: { objective: 'ship it', status: 'active', tokensUsed: 0, secondsUsed: 0 } }
         ]);

@@ -30,12 +30,14 @@ export class ChatThread {
 
     constructor(info: ChatInfo, items: ChatItem[] = []) {
         this.info = info;
+
         for (const item of items) {
             this.items.set(item.id, item);
             this.indices.set(item.id, this.order.length);
             this.order.push(item.id);
             this.indexRequest(item);
         }
+
         this.syncRequests();
     }
 
@@ -50,10 +52,12 @@ export class ChatThread {
     find<K extends ChatItem['kind']>(kind: K, match: (item: Extract<ChatItem, { kind: K }>) => boolean): Extract<ChatItem, { kind: K }> | undefined {
         for (let i = this.order.length - 1; i >= 0; i--) {
             const item = this.items.get(this.order[i]!);
+
             if (item?.kind === kind && match(item as Extract<ChatItem, { kind: K }>)) {
                 return item as Extract<ChatItem, { kind: K }>;
             }
         }
+
         return undefined;
     }
 
@@ -62,27 +66,35 @@ export class ChatThread {
             this.indices.set(item.id, this.order.length);
             this.order.push(item.id);
         }
+
         this.items.set(item.id, item);
         const wasPending = this.requests.has(item.id);
         this.indexRequest(item);
+
         if (wasPending || item.kind === 'approval' || item.kind === 'question') {
             this.syncRequests();
         }
+
         return { type: 'item', item, historyIndex: this.indices.get(item.id)! };
     }
 
     /* Streams text into an assistant or thinking item, or partial output into a tool call that is still running. */
     appendText(itemId: string, text: string): ChatEvent | null {
         const item = this.items.get(itemId);
+
         if (item?.kind === 'assistant' || item?.kind === 'thinking') {
             this.items.set(itemId, { ...item, text: item.text + text });
+
             return { type: 'delta', itemId, text };
         }
+
         if (item?.kind === 'tool' && item.state === 'running') {
             const progress = item.progress ?? { startedAt: null, description: null, output: null };
             this.items.set(itemId, { ...item, progress: { ...progress, output: appendToolOutput(progress.output, text) } });
+
             return { type: 'delta', itemId, text };
         }
+
         return null;
     }
 
@@ -90,6 +102,7 @@ export class ChatThread {
     patchInfo(patch: Partial<ChatInfo>): ChatEvent {
         const held = patch.status === 'running' && this.holds.size > 0 ? { ...patch, status: 'needs-you' as const } : patch;
         this.info = { ...this.info, ...held };
+
         return { type: 'info', info: this.info };
     }
 
@@ -102,7 +115,9 @@ export class ChatThread {
         if (this.holds.has(key)) {
             return false;
         }
+
         this.holds.add(key);
+
         return true;
     }
 
@@ -120,6 +135,7 @@ export class ChatThread {
         this.order.length = 0;
         this.info = { ...this.info, ...patch };
         this.syncRequests();
+
         return { type: 'reset', info: this.info, items: [] };
     }
 
@@ -128,24 +144,31 @@ export class ChatThread {
         switch (event.type) {
             case 'item':
                 this.upsert(event.item);
+
                 break;
             case 'delta':
                 this.appendText(event.itemId, event.text);
+
                 if (event.uiQueries) {
                     const item = this.items.get(event.itemId);
+
                     if (item?.kind === 'assistant') {
                         this.items.set(item.id, { ...item, uiQueries: event.uiQueries });
                     }
                 }
+
                 break;
             case 'info':
                 this.info = event.info;
+
                 break;
             case 'reset':
                 this.reset(event.info);
+
                 for (const item of event.items) {
                     this.upsert(item);
                 }
+
                 break;
         }
     }
@@ -159,6 +182,7 @@ export class ChatThread {
         if (this.requests.size > 0 || this.holds.size > 0) {
             return 'needs-you';
         }
+
         return activeTurnId === null ? 'idle' : 'running';
     }
 
@@ -186,27 +210,34 @@ export class ChatThread {
 
     history(limit = 90, cursor?: string): ChatHistoryResult {
         let end = this.order.length;
+
         if (cursor) {
             const [generation, offset] = cursor.split(':');
             end = Number(offset);
+
             if (generation !== this.historyGeneration || !/^\d+$/.test(offset ?? '') || !Number.isSafeInteger(end) || end < 0 || end > this.order.length) {
                 throw new ChatError('history-expired', 'The conversation changed. Reload its history.');
             }
         }
+
         const items: ChatItem[] = [];
         let bytes = 0;
         let start = end;
+
         while (start > 0 && items.length < Math.min(100, Math.max(1, limit))) {
             const item = this.items.get(this.order[start - 1]!)!;
             const size = Buffer.byteLength(JSON.stringify(item));
+
             // An atomic item is never cut; an oversized item travels alone.
             if (items.length && bytes + size > 512 * 1024) {
                 break;
             }
+
             items.unshift(item);
             bytes += size;
             start--;
         }
+
         return { items, history: { start, cursor: start ? `${this.historyGeneration}:${start}` : null } };
     }
 

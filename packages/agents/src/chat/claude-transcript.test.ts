@@ -13,6 +13,7 @@ async function transcriptIn(cwd: string, sessionId = SESSION): Promise<string> {
     await mkdir(dir, { recursive: true });
     const path = join(dir, `${sessionId}.jsonl`);
     await writeFile(path, '{"type":"user"}\n');
+
     return path;
 }
 

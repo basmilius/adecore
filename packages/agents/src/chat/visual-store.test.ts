@@ -32,11 +32,13 @@ describe('VisualStore', () => {
     test('keeps editable sources and previews beside the chat, separately from published attachments', async () => {
         const source = await store.writeSource('chat/1', 'chart.html', PAGE);
         expect(source).toBe(join(home, 'chats', 'chat%2F1.visuals', 'chart.html'));
+
         // Windows has no mode bits; the profile's ACL keeps the files the person's there.
         if (process.platform !== 'win32') {
             expect((await stat(store.workspacePath('chat/1'))).mode & 0o777).toBe(0o700);
             expect((await stat(source)).mode & 0o777).toBe(0o600);
         }
+
         expect(await readFile(source, 'utf8')).toBe(PAGE);
         await store.writeSource('chat/1', 'chart.html', '<p>Updated</p>');
         const png = new Uint8Array([137, 80, 78, 71]);
@@ -62,6 +64,7 @@ describe('VisualStore', () => {
         for (const name of ['../other.html', '/tmp/page.html', 'nested/page.html', 'nested\\page.html', '.html', 'page.js']) {
             await expect(store.writeSource('chat-1', name, PAGE)).rejects.toMatchObject({ code: 'visual-invalid' });
         }
+
         await expect(store.writeSource('chat-1', 'page.html', ' ')).rejects.toMatchObject({ code: 'visual-invalid' });
         await expect(store.writeSource('chat-1', 'page.html', 'x'.repeat(VISUAL_LIMITS.bytes + 1))).rejects.toMatchObject({ code: 'visual-too-large' });
         expect(await readdir(home)).toEqual([]);
@@ -69,6 +72,7 @@ describe('VisualStore', () => {
 
     test('publishes a page with its bootstrap in the attachment folder and keeps it in the list', async () => {
         const visual = await store.publish('chat 1', { title: '  Revenue  ', html: PAGE, turnId: 'turn-1' });
+
         expect(visual).toEqual({
             id: expect.stringMatching(/^[0-9a-f]{16}$/),
             title: 'Revenue',
@@ -77,6 +81,7 @@ describe('VisualStore', () => {
             size: visual.size,
             turnId: 'turn-1'
         });
+
         const path = join(home, 'attachments', encodeURIComponent('chat 1'), `${visual.id}.html`);
         expect(store.pagePath('chat 1', visual.id)).toBe(path);
         const page = await readFile(path, 'utf8');
@@ -92,6 +97,7 @@ describe('VisualStore', () => {
             const visual = await store.publish('chat-1', { title: layout, html: PAGE, layout });
             expect(visual.layout).toBe(layout);
         }
+
         const restarted = new VisualStore(home, attachments);
         expect((await restarted.list('chat-1')).map((visual) => visual.layout)).toEqual(['inline', 'wide']);
         await restarted.copyChat('chat-1', 'fork');
@@ -103,6 +109,7 @@ describe('VisualStore', () => {
 
     test('serves a page as an attachment of its chat, as text/html', async () => {
         const visual = await store.publish('chat-1', { title: 'Revenue', html: PAGE });
+
         expect(store.attachment('chat-1', visual.id)).toEqual({
             id: visual.id,
             name: 'Revenue.html',
@@ -121,6 +128,7 @@ describe('VisualStore', () => {
 
     test('keeps the order of publishing, the maximum height and the measured heights ascending by width', async () => {
         const first = await store.publish('chat-1', { title: 'A', html: PAGE, maxHeight: 480.4 });
+
         const second = await store.publish('chat-1', {
             title: 'B',
             html: PAGE,
@@ -131,6 +139,7 @@ describe('VisualStore', () => {
                 [0.3, 900.1]
             ]
         });
+
         expect(first.maxHeight).toBe(480);
         expect(second.heights).toEqual([
             [1, 901],
@@ -158,9 +167,11 @@ describe('VisualStore', () => {
             ],
             [{ title: 'A', html: 'x'.repeat(VISUAL_LIMITS.bytes + 1) }, 'visual-too-large', /at most 16\.0 MiB; load libraries from a public CDN URL/]
         ];
+
         for (const [input, code, message] of cases) {
             await expect(store.publish('chat-1', input)).rejects.toMatchObject({ code, message: expect.stringMatching(message) });
         }
+
         // The bootstrap counts: a page just under the limit no longer fits once it has one.
         await expect(store.publish('chat-1', { title: 'A', html: 'x'.repeat(VISUAL_LIMITS.bytes - 10) })).rejects.toMatchObject({ code: 'visual-too-large' });
         expect(await store.list('chat-1')).toEqual([]);

@@ -14,20 +14,25 @@ export interface SubagentSettlement {
 function handbackBefore(lines: string[], end: number): string | null {
     for (let i = end - 1; i >= 0; i--) {
         let entry: unknown;
+
         try {
             entry = JSON.parse(lines[i]!);
         } catch {
             continue;
         }
+
         const message = isRecord(entry) && entry.type === 'assistant' && isRecord(entry.message) ? entry.message : null;
         const content = message && Array.isArray(message.content) ? message.content.filter(isRecord) : [];
+
         for (const block of content) {
             const input = block.type === 'tool_use' && block.name === 'SubagentHandback' && isRecord(block.input) ? block.input : null;
+
             if (input && typeof input.message === 'string' && input.message.trim() !== '') {
                 return input.message;
             }
         }
     }
+
     return null;
 }
 
@@ -42,36 +47,48 @@ export function settlementOf(text: string): SubagentSettlement | null {
     if (!text.endsWith('\n')) {
         return null;
     }
+
     const lines = text.split('\n');
+
     for (let i = lines.length - 1; i >= 0; i--) {
         const line = lines[i]!.trim();
+
         if (line === '') {
             continue;
         }
+
         let entry: unknown;
+
         try {
             entry = JSON.parse(line);
         } catch {
             return null;
         }
+
         if (!isRecord(entry) || (entry.type !== 'user' && entry.type !== 'assistant')) {
             continue;
         }
+
         const message = isRecord(entry.message) ? entry.message : {};
         const content = Array.isArray(message.content) ? message.content.filter(isRecord) : [];
+
         if (entry.type !== 'assistant' || message.stop_reason !== 'end_turn' || content.some((block) => block.type === 'tool_use')) {
             return null;
         }
+
         const time = typeof entry.timestamp === 'string' ? Date.parse(entry.timestamp) : Number.NaN;
         const handedBack = handbackBefore(lines, i);
+
         const report =
             handedBack ??
             content
                 .map((block) => (block.type === 'text' && typeof block.text === 'string' ? block.text : ''))
                 .filter((part) => part.trim() !== '')
                 .join('\n');
+
         return { finishedAt: Number.isFinite(time) ? time : null, report: report === '' ? null : report };
     }
+
     return null;
 }
 
@@ -81,14 +98,17 @@ export function settlementOf(text: string): SubagentSettlement | null {
  */
 export async function readSubagentSettlement(path: string): Promise<SubagentSettlement | null> {
     let before: { size: number; mtimeMs: number };
+
     try {
         before = await stat(path);
     } catch {
         return null;
     }
+
     const from = Math.max(0, before.size - TAIL_BYTES);
     const handle = await open(path, 'r');
     let text: string;
+
     try {
         const bytes = Buffer.alloc(before.size - from);
         const { bytesRead } = await handle.read(bytes, 0, bytes.length, from);
@@ -96,13 +116,17 @@ export async function readSubagentSettlement(path: string): Promise<SubagentSett
     } finally {
         await handle.close();
     }
+
     const after = await stat(path).catch(() => null);
+
     if (after === null || after.size !== before.size || after.mtimeMs !== before.mtimeMs) {
         return null;
     }
+
     if (from > 0) {
         const start = text.indexOf('\n');
         text = start < 0 ? '' : text.slice(start + 1);
     }
+
     return text === '' ? null : settlementOf(text);
 }

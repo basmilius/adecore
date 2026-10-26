@@ -68,6 +68,7 @@ test('a start reads in full only the chats whose turn was running, also when onl
 
     const read = spyOn(store, 'read');
     const manager = new ChatCore({ attachments: new AttachmentStore(home), store, providers });
+
     try {
         await manager.recoverInterrupted();
         expect(new Set(read.mock.calls.map(([chatId]) => chatId))).toEqual(new Set(['busy', 'logged']));

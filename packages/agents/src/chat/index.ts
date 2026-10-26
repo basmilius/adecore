@@ -1,5 +1,6 @@
 // Public API: exports.test.ts snapshots this list, so a name added or dropped here is an API change.
 export { type AcpAgentSpec, type AcpClientInfo, type AcpUsageReport, createAcpBackend } from './acp-backend.ts';
+
 export type {
     AcpAgentInfo,
     AcpModel,
@@ -13,12 +14,14 @@ export type {
     AcpThoughtLevel,
     AcpTurnUsage
 } from './acp-protocol.ts';
+
 export { AttachmentStore } from './attachment-store.ts';
 export type { BackendLaunch, TurnInput, ApprovalDecision, BackendEvent, BackendHost, ChatBackend } from './backend.ts';
 export { runningInBackground, type BackgroundWork } from './background-work.ts';
 export { BookmarkStore, type BookmarkListener } from './bookmark-store.ts';
 export { type InterruptedRun, type ChatCoreHooks, type ChatCoreOptions, ChatCore } from './chat-core.ts';
 export { COMPACT_ABOVE_BYTES, type ChatLogLine } from './chat-log.ts';
+
 export {
     type ChatSpawnOptions,
     type SpawnChatProcess,
@@ -29,6 +32,7 @@ export {
     type ChatProcess,
     type ChatChildOptions
 } from './chat-process.ts';
+
 export {
     type PromptNotes,
     type ChatReferences,
@@ -40,6 +44,7 @@ export {
     type ChatSendExtras,
     type ResumeDecision
 } from './chat-session.ts';
+
 export { type ChatRecordExtras, type ChatRecord, ChatStore, type ChatSeq, type ChatStoreOptions } from './chat-store.ts';
 export { suggestChatTitle, type ChatTitleInput } from './chat-title.ts';
 export type { ClaudeBackendOptions } from './claude-backend.ts';
