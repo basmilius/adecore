@@ -67,11 +67,13 @@ describe('a Choice that cannot send', () => {
     test('is an error in a final block when it never closed or has no label', () => {
         const unclosed = block('<Choices><Choice context="Run checks">Run checks');
         expect(unclosed.nodes[0]!.children[0]!.error).toBe('unclosed_tag');
+
         for (const source of ['<Choices><Choice context="Run checks"></Choice></Choices>', '<Choices><Choice>  </Choice></Choices>']) {
             const compiled = block(source);
             expect(compiled.nodes[0]!.children[0]!.error).toBe('invalid_props');
             expect(compiled.diagnostics.map((diagnostic) => diagnostic.message)).toContain('A choice needs a visible label.');
         }
+
         expect(block('<Choices><Choice context="Run checks">Run checks', false).nodes[0]!.children[0]!.error).toBeUndefined();
         expect(block('<Choices><Choice>{$missing}</Choice></Choices>').nodes[0]!.children[0]!.error).toBeUndefined();
     });
@@ -83,11 +85,13 @@ describe('a Choice that cannot send', () => {
             '<Choices><Choice context="Run checks">Run {$missing}</Choice></Choices>',
             '$empty = ""\n<Choices><Choice context="Run checks">{$empty}</Choice></Choices>'
         ];
+
         for (const source of refused) {
             const choice = choices(source)[0]!;
             expect(uiChoiceLabel(choice)).toBeNull();
             expect(() => resolveUiChoice(block(source), choice.id)).toThrow();
         }
+
         const valid = choices('<Choices><Choice context="Run checks"> Run   checks </Choice></Choices>')[0]!;
         expect(uiChoiceLabel(valid)).toBe('Run checks');
         expect(resolveUiChoice(block('<Choices><Choice context="Run checks"> Run   checks </Choice></Choices>'), valid.id).label).toBe('Run checks');
@@ -152,25 +156,33 @@ describe('the text fallback', () => {
         const nodes = (source: string): string[] => {
             const compiled = block(source);
             const types: string[] = [];
+
             const visit = (list: typeof compiled.nodes) => {
                 for (const node of list) {
                     types.push(node.type);
                     visit(node.children);
                 }
             };
+
             visit(compiled.nodes);
+
             return types;
         };
+
         const covered = new Set(Object.values(MARKED).flatMap((source) => nodes(source!)));
+
         for (const [name, entry] of Object.entries(UI_CATALOG)) {
             const content = Object.keys(entry.schema.shape ?? {}).filter((prop) => !PRESENTATIONAL[name as UiComponentName]?.includes(prop));
+
             if (content.length > 0) {
                 expect(covered.has(name)).toBe(true);
             }
         }
+
         for (const source of Object.values(MARKED)) {
             const compiled = block(source!);
             expect(compiled.diagnostics).toEqual([]);
+
             for (const marker of source!.match(/mark[\w./-]*|\b(?:37|91|abcdef1|failed|14:02|warning)\b/g) ?? []) {
                 expect(compiled.fallback).toContain(marker.replace(/^https?:\/\//, ''));
             }

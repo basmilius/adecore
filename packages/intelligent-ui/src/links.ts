@@ -38,11 +38,14 @@ export function uiLinkTargets(
 ): Record<string, UiLinkTarget> {
     const state = uiValidatedState(block, input, queries, limits);
     const targets: Record<string, UiLinkTarget> = Object.create(null);
+
     eachDrawnNode(evaluateUiBlock(block, state, limits).nodes, (node) => {
         const checked = UiLinkTargetSchema.safeParse({ type: node.type, ...node.props });
+
         if (checked.success) {
             targets[node.id] = checked.data;
         }
     });
+
     return targets;
 }

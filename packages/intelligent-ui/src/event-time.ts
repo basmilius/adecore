@@ -19,21 +19,27 @@ function zoneOffset(zone: string): number | null {
     if (zone === 'Z') {
         return 0;
     }
+
     const [hours, minutes] = [Number(zone.slice(1, 3)), Number(zone.slice(4, 6))];
     const offset = (zone[0] === '-' ? -1 : 1) * (hours * 60 + minutes);
+
     return minutes > 59 || offset < -12 * 60 || offset > 14 * 60 ? null : offset;
 }
 
 /* The moment an Event's `at` names, or null when it is no `HH:MM[:SS]`, `YYYY-MM-DD` or ISO date-time with an optional offset. */
 export function parseUiEventTime(at: string): UiEventTime | null {
     const match = EVENT_TIME.exec(at);
+
     if (match === null) {
         return null;
     }
+
     const [, clockHour, clockMinute, clockSecond, year, month, day, hour, minute, second, zone] = match.map((part) => part as string | undefined);
+
     if (clockHour !== undefined) {
         // The day is not shown for a time, so any day will do.
         const clockSeconds = Number(clockSecond ?? 0);
+
         return validClock(Number(clockHour), Number(clockMinute), clockSeconds)
             ? {
                   kind: 'time',
@@ -43,21 +49,29 @@ export function parseUiEventTime(at: string): UiEventTime | null {
               }
             : null;
     }
+
     const [y, m, d] = [Number(year), Number(month), Number(day)];
     const calendar = new Date(Date.UTC(y, m - 1, d));
+
     if (calendar.getUTCFullYear() !== y || calendar.getUTCMonth() !== m - 1 || calendar.getUTCDate() !== d) {
         return null;
     }
+
     if (hour === undefined) {
         return { kind: 'date', date: calendar, written: true, seconds: false };
     }
+
     const [h, min, sec] = [Number(hour), Number(minute), Number(second ?? 0)];
+
     if (!validClock(h, min, sec)) {
         return null;
     }
+
     if (zone === undefined) {
         return { kind: 'datetime', date: new Date(Date.UTC(y, m - 1, d, h, min, sec)), written: true, seconds: false };
     }
+
     const offset = zoneOffset(zone);
+
     return offset === null ? null : { kind: 'datetime', date: new Date(Date.UTC(y, m - 1, d, h, min, sec) - offset * 60000), written: false, seconds: false };
 }

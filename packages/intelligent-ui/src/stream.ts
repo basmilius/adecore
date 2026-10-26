@@ -35,11 +35,15 @@ export class UiStream {
         if (this.closed) {
             return;
         }
+
         this.pending = { text, latestAttachment };
+
         if (this.timer !== null) {
             return;
         }
+
         const delay = Math.max(0, UI_STREAM_INTERVAL_MS - (this.options.clock.now() - this.lastCompiledAt));
+
         if (delay === 0) {
             this.flush();
         } else {
@@ -51,15 +55,18 @@ export class UiStream {
         this.dispose();
         const blocks = this.compiler.compile(text, { final: true, latestAttachment });
         this.compiler.clear();
+
         return blocks;
     }
 
     dispose(): void {
         this.closed = true;
+
         if (this.timer !== null) {
             this.options.clock.clearTimeout(this.timer.handle);
             this.timer = null;
         }
+
         this.pending = null;
         this.compiler.clear();
     }
@@ -67,9 +74,11 @@ export class UiStream {
     private flush(): void {
         this.timer = null;
         const pending = this.pending;
+
         if (pending === null || this.closed) {
             return;
         }
+
         this.pending = null;
         this.lastCompiledAt = this.options.clock.now();
         const blocks = this.compiler.compile(pending.text, { latestAttachment: pending.latestAttachment });

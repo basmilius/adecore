@@ -31,11 +31,14 @@ export function uiPlaceQueries(
 ): Record<string, UiPlaceQuery> {
     const state = uiValidatedState(block, input, queries, limits);
     const places: Record<string, UiPlaceQuery> = Object.create(null);
+
     eachDrawnNode(evaluateUiBlock(block, state, limits).nodes, (node) => {
         const { address } = node.props as { address?: string };
+
         if (node.type === 'Place' && typeof address === 'string' && address.trim() !== '') {
             places[node.id] = { address: address.trim(), name: nameOf(node) };
         }
     });
+
     return places;
 }

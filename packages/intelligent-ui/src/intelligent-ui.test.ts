@@ -52,16 +52,20 @@ describe('bounded expressions', () => {
         ]) {
             expect(() => expression(source, { $value: {} })).toThrow();
         }
+
         const object = Object.create({ inherited: 2 });
         expect(() => expression('$value.inherited', { $value: object })).toThrow();
         let called = false;
+
         const accessor = Object.defineProperty({}, 'secret', {
             enumerable: true,
             get() {
                 called = true;
+
                 return 1;
             }
         });
+
         expect(() => expression('$value.secret', { $value: accessor })).toThrow();
         expect(called).toBe(false);
         expect(() => expression('1 / 0')).toThrow();
@@ -107,10 +111,12 @@ const EXAMPLES = [
 describe('streaming compiler', () => {
     test('compiles and evaluates text literals at the character limit regardless of elapsed time', () => {
         const values = ['a', 'b', 'c', 'd'].map((letter) => letter.repeat(16_300));
+
         const source = `<EntityList>${values.map((value) => `<Entry label="Item">{${JSON.stringify(value)}}</Entry>`).join('')}</EntityList>`.padEnd(
             65_536,
             ' '
         );
+
         for (const elapsed of [0, 1_000]) {
             let time = 0;
             const compiled = compileUiBlock(source, { id: 'long-report', final: true, now: () => (time += elapsed) });
@@ -119,6 +125,7 @@ describe('streaming compiler', () => {
             expect(evaluated.diagnostics).toEqual([]);
             expect(evaluated.nodes[0]!.children.map((entry) => entry.children[0]!.props.text)).toEqual(values);
         }
+
         expect(compileUiBlock(source + ' ', { id: 'too-long', final: true }).diagnostics.map((item) => item.code)).toEqual(['budget_exceeded']);
     });
 
@@ -131,6 +138,7 @@ describe('streaming compiler', () => {
             expect(evaluated.nodes.length).toBeGreaterThan(0);
             expect(compiled.fallback).not.toBe('');
         }
+
         expect(Object.keys(UI_CATALOG)).toHaveLength(45);
         expect(uiCatalogText()).toContain('Image(attachment?, generated?, alt?)');
         expect(uiCatalogText()).toContain('Button(action, disabled?)');
@@ -141,9 +149,11 @@ describe('streaming compiler', () => {
         for (const source of EXAMPLES) {
             const complete = block(source);
             const ids = new Set(complete.nodes.map((node) => node.id));
+
             for (let i = 0; i <= source.length; i++) {
                 const partial = block(source.slice(0, i), false);
                 expect(partial.diagnostics.some((diagnostic) => diagnostic.code === 'budget_exceeded')).toBe(false);
+
                 for (const node of partial.nodes) {
                     expect(ids.has(node.id)).toBe(true);
                 }
@@ -199,6 +209,7 @@ describe('streaming compiler', () => {
         const compiled = block(
             '<Unknown>Keep this text</Unknown><Summary style="color:red" tone="success">Valid</Summary><Image url="https://example.com/a.png"/><Choice>Orphan</Choice>'
         );
+
         expect(compiled.diagnostics.map((diagnostic) => diagnostic.code)).toEqual([
             'unknown_component',
             'refused_prop',
@@ -290,6 +301,7 @@ describe('local state and evaluation', () => {
         const compiled = block(
             '$mode = "all"\n$tab = 1\n<Button action={@Set($mode, "failed")}>Failed</Button><Button action={@Reset($mode)}>All</Button><Summary>{$mode}</Summary>'
         );
+
         expect(compiled.diagnostics).toEqual([]);
         expect(compiled.nodes[0].expressions.action).toEqual(parseUiExpression('@Set($mode, "failed")'));
         expect(compiled.nodes[0].fallback).toBe('Failed\n');
@@ -313,8 +325,11 @@ describe('local state and evaluation', () => {
 
     test('a Button refuses an action on a query, an undeclared variable or a computed value', () => {
         const schemas = { tasks: z.strictObject({ limit: z.number() }) };
+
         const compile = (source: string) => compileUiBlock(source, { id: 'block', final: true, querySchemas: schemas });
+
         const refused = (source: string) => compile(source).nodes.at(-1)!.error;
+
         expect(refused('$tasks = @Query("tasks", {limit: 1})\n<Button action={@Set($tasks, [])}>Clear</Button>')).toBe('refused_binding');
         expect(refused('<Button action={@Set($missing, 1)}>Set</Button>')).toBe('refused_binding');
         expect(refused('$count = 1\n<Button action={@Set($count, $count + 1)}>More</Button>')).toBe('refused_action');
@@ -330,6 +345,7 @@ describe('local state and evaluation', () => {
         const compiled = block(
             '$rows = [{name: "Core"}, {name: "Client"}]\n<Show when={false}><Summary>Hidden</Summary></Show><Each items={$rows} as="row"><Summary>{row.name}</Summary></Each>'
         );
+
         const evaluated = evaluateUiBlock(compiled);
         expect(evaluated.nodes.map((node) => node.children[0].props.text)).toEqual(['Core', 'Client']);
         expect(evaluated.nodes[0].id).not.toBe(evaluated.nodes[1].id);
@@ -361,12 +377,14 @@ describe('open wire and agent text', () => {
 
     test('accepts future component names, props, expression kinds and catalog versions', () => {
         const compiled = block('<Summary>Current</Summary>');
+
         const node = {
             ...compiled.nodes[0],
             type: 'FutureWidget',
             props: { newMode: 'future', payload: [null, { nested: 42 }] },
             expressions: { value: { kind: 'future', extension: true } }
         };
+
         expect(UiNodeSchema.safeParse(node).success).toBe(true);
         const wire = JSON.parse(JSON.stringify({ ...compiled, catalogVersion: 999, nodes: [node] }));
         const parsed = UiBlockSchema.parse(wire);
@@ -400,9 +418,11 @@ describe('open wire and agent text', () => {
         expect(names).not.toContain('Slider: value');
         expect(names).not.toContain('step?');
         expect(uiSessionNote({ catalog: 'names' })).toContain('Components by group, required props (text: words between the tags):\n');
+
         for (const group of Object.keys(UI_GROUPS)) {
             expect(names).toContain(`\n${group}: `);
         }
+
         const example = /```ui\n([\s\S]*?)\n```/.exec(names)![0];
         expect(compileUi(example, { id: 'names-example', final: true })[0].diagnostics).toEqual([]);
         expect(uiSessionNote({ catalog: 'props' })).toBe(uiSessionNote());
@@ -415,10 +435,12 @@ describe('open wire and agent text', () => {
         expect(names).toContain('Place lat lon|address (text: name)');
         expect(names).toContain('TextField value (text: label)');
         expect(names).toContain('Option value (text: label)');
+
         for (const [name, entry] of Object.entries(UI_CATALOG)) {
             const line = names.split('\n').find((candidate) => candidate.startsWith(`${entry.group}: `))!;
             const own = new RegExp(`(?:: |, )${name}( [^,(]*)?(?: \\(text: \\w+\\))?(?:,|$)`).exec(line);
             expect(own, name).not.toBeNull();
+
             for (const prop of Object.entries(entry.schema.shape).filter(([, schema]) => !schema.isOptional())) {
                 const words = 'needs' in entry ? entry.needs : own![1];
                 expect(words, `${name} ${prop[0]}`).toContain(prop[0]);

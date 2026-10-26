@@ -8,7 +8,9 @@ export function uiActionProp(type: string): string | undefined {
     if (!isUiComponent(type)) {
         return undefined;
     }
+
     const entry = UI_CATALOG[type];
+
     return 'action' in entry ? entry.action : undefined;
 }
 
@@ -20,16 +22,21 @@ export function uiActionTarget(action: UiExpression, local: (name: string) => bo
     if (action.kind !== 'call' || (action.name !== 'Set' && action.name !== 'Reset')) {
         throw new UiFailure('refused_action', 'Expected @Set or @Reset.');
     }
+
     if (action.name === 'Reset' && action.args.length === 0) {
         return null;
     }
+
     if (action.args.length !== (action.name === 'Set' ? 2 : 1)) {
         throw new UiFailure('refused_action', 'Invalid state action arguments.');
     }
+
     const reference = action.args[0];
+
     if (reference.kind !== 'reference' || !local(reference.name)) {
         throw new UiFailure('refused_binding', 'The action needs a local state variable.');
     }
+
     return reference.name;
 }
 

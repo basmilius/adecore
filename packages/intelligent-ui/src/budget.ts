@@ -45,16 +45,19 @@ export class UiBudget {
     constructor(limits: Partial<UiLimits> = {}, now: () => number = Date.now) {
         this.now = now;
         this.limits = { ...UI_LIMITS, ...limits };
+
         for (const [name, value] of Object.entries(this.limits)) {
             if (!Number.isSafeInteger(value) || value < 0 || (value === 0 && name !== 'milliseconds')) {
                 throw new UiFailure('invalid_limits', 'Budgets must be positive safe integers, except milliseconds may be zero.');
             }
         }
+
         this.started = this.limits.milliseconds > 0 ? now() : 0;
     }
 
     step(count = 1): void {
         this.steps += count;
+
         if (this.steps > this.limits.steps || (this.limits.milliseconds > 0 && this.now() - this.started > this.limits.milliseconds)) {
             throw new UiFailure('budget_exceeded', 'The operation exceeded its work budget.');
         }
@@ -63,6 +66,7 @@ export class UiBudget {
     iteration(count = 1): void {
         this.iterations += count;
         this.step(count);
+
         if (this.iterations > this.limits.iterations) {
             throw new UiFailure('budget_exceeded', 'The operation exceeded its iteration budget.');
         }
@@ -71,6 +75,7 @@ export class UiBudget {
     node(): void {
         this.nodes += 1;
         this.step();
+
         if (this.nodes > this.limits.nodes) {
             throw new UiFailure('budget_exceeded', 'The operation exceeded its node budget.');
         }
@@ -78,6 +83,7 @@ export class UiBudget {
 
     depth(depth: number): void {
         this.step();
+
         if (depth > this.limits.depth) {
             throw new UiFailure('budget_exceeded', 'The operation exceeded its nesting budget.');
         }
@@ -85,9 +91,11 @@ export class UiBudget {
 
     string(value: string): string {
         this.step(value.length);
+
         if (value.length > this.limits.stringLength) {
             throw new UiFailure('budget_exceeded', 'The operation exceeded its string budget.');
         }
+
         return value;
     }
 }
@@ -96,5 +104,6 @@ export function safeKey(key: string): string {
     if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
         throw new UiFailure('refused_access', `Access to ${key} is refused.`);
     }
+
     return key;
 }

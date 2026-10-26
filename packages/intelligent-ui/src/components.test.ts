@@ -16,15 +16,19 @@ function block(source: string, final = true) {
 function problems(source: string): { diagnostics: string[]; errors: string[] } {
     const compiled = block(source);
     const errors: string[] = [];
+
     const visit = (nodes: readonly { type: string; error?: string; children: any[] }[]) => {
         for (const node of nodes) {
             if (node.error) {
                 errors.push(`${node.type}:${node.error}`);
             }
+
             visit(node.children);
         }
     };
+
     visit(compiled.nodes);
+
     return { diagnostics: compiled.diagnostics.map((item) => item.code), errors };
 }
 
@@ -80,9 +84,11 @@ describe('Timeline and Event', () => {
 
     test('reads the time an agent wrote as time on an event as its at, with a warning for the agent', () => {
         const compiled = block('<Timeline><Event time="14:30" tone="info">Rolled back</Event><Event at="14:02">Alert</Event></Timeline>');
+
         expect(compiled.diagnostics.map((item) => [item.code, item.severity, item.message])).toEqual([
             ['renamed_prop', 'warning', 'Event takes at, not time; read as at.']
         ]);
+
         const [renamed, plain] = compiled.nodes[0].children;
         expect(compiled.diagnostics[0].nodeId).toBe(renamed.id);
         expect(renamed.error).toBeUndefined();
@@ -101,6 +107,7 @@ describe('Timeline and Event', () => {
     test('lets at win when an event has both at and time', () => {
         for (const source of ['<Event at="14:02" time="14:30">One</Event>', '<Event time="14:30" at="14:02">One</Event>']) {
             const compiled = block(`<Timeline>${source}</Timeline>`);
+
             expect(compiled.diagnostics.map((item) => [item.code, item.severity, item.message])).toEqual([
                 ['refused_prop', 'warning', 'Event does not accept time.']
             ]);
@@ -122,6 +129,7 @@ describe('Timeline and Event', () => {
     test('warns about an unreadable time that only an Each or a declared value can name, once per event', () => {
         const each =
             '$rows = [{at: "later", name: "One"}, {at: "soon", name: "Two"}, {at: "14:02", name: "Three"}]\n<Timeline><Each items={$rows} as="row"><Event at={row.at}>{row.name}</Event></Each></Timeline>';
+
         const compiled = block(each);
         expect(compiled.diagnostics).toEqual([]);
         const evaluated = evaluateUiBlock(compiled);
@@ -131,6 +139,7 @@ describe('Timeline and Event', () => {
             ['soon', undefined],
             ['14:02', undefined]
         ]);
+
         const declared = block('$when = "soon"\n<Timeline><Event at={$when}>One</Event></Timeline>');
         expect(declared.diagnostics.map((item) => item.code)).toEqual(['unreadable_time']);
         expect(evaluateUiBlock(declared).diagnostics).toEqual([]);
@@ -152,6 +161,7 @@ describe('Timeline and Event', () => {
 
     test('falls back to one line per event', () => {
         const compiled = block(INCIDENT);
+
         expect(compiled.fallback).toBe(
             'Checkout was down for 12 minutes\n' +
                 '14:02 Alert fired (warning): p95 above 2 s\n' +
@@ -297,6 +307,7 @@ describe('TextField and Select', () => {
 
 describe('Map and Place', () => {
     const places = (count: number) => Array.from({ length: count }, (_, i) => `<Place lat={52} lon={5}>Stop ${i}</Place>`).join('');
+
     const UTRECHT =
         '$picked = ""\n<Summary>Three stops in Utrecht</Summary>' +
         '<Map value={$picked}><Place lat={52.0907} lon={5.1214} value="dom" detail="Climb the tower">Domtoren</Place>' +
@@ -360,9 +371,11 @@ describe('Map and Place', () => {
         expect(block('<Map><Place lat={1} lon={2}>First\nline</Place></Map>').fallback).toBe('1. First line (1, 2)');
         const failed = block('<Map><Place lat={1} lon={2}>One</Place><Place lat={200} lon={2}>Bad</Place><Place lat={3} lon={4}>Two</Place></Map>');
         expect(failed.fallback).toBe('1. One (1, 2)\nBad (200, 2)\n2. Two (3, 4)');
+
         const each = block(
             '$names = ["A 1", "B 2"]\n<Map><Place lat={1} lon={2}>First</Place><Each items={$names} as="n"><Place address={n}>{n}</Place></Each></Map>'
         );
+
         expect(each.fallback).toContain('1. First (1, 2)');
         expect(each.fallback).toContain('2. ');
     });
@@ -382,7 +395,9 @@ describe('the places a host looks up', () => {
             '<Map><Place lat={52} lon={5} address="Utrecht">Known</Place><Place address="  Domplein 1, Utrecht ">Dom   <Tag>tower</Tag></Place>' +
                 '<Place address="Oudegracht 245">Gracht</Place></Map>'
         );
+
         const [known, dom, gracht] = evaluateUiBlock(compiled).nodes[0].children;
+
         expect(uiPlaceQueries(compiled)).toEqual({
             [known.id]: { address: 'Utrecht', name: 'Known' },
             [dom.id]: { address: 'Domplein 1, Utrecht', name: 'Dom tower' },

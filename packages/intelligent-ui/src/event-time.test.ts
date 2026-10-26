@@ -3,9 +3,11 @@ import { parseUiEventTime } from './event-time.ts';
 
 // A zone with an offset and a clock change, so a parts-as-written bug has somewhere to show.
 const zone = process.env.TZ ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+
 beforeAll(() => {
     process.env.TZ = 'Europe/Amsterdam';
 });
+
 afterAll(() => {
     // Assigned back rather than deleted: the runtime keeps the zone it last read.
     process.env.TZ = zone;
@@ -18,6 +20,7 @@ describe('the time an event names', () => {
         const date = parseUiEventTime('2026-10-14')!;
         expect([date.kind, date.written, date.date.getUTCFullYear(), date.date.getUTCMonth(), date.date.getUTCDate()]).toEqual(['date', true, 2026, 9, 14]);
         const moment = parseUiEventTime('2026-10-14T14:05:30')!;
+
         expect([
             moment.kind,
             moment.written,
@@ -57,6 +60,7 @@ describe('the time an event names', () => {
         for (const good of ['-12:00', '-11:00', '+00:00', '+05:30', '+14:00']) {
             expect(parseUiEventTime(`2026-10-14T12:00:00${good}`)).not.toBeNull();
         }
+
         for (const bad of ['-12:01', '-13:00', '+14:01', '+15:00', '+23:59', '+02:60']) {
             expect(parseUiEventTime(`2026-10-14T12:00:00${bad}`)).toBeNull();
         }
@@ -87,6 +91,7 @@ describe('the time an event names', () => {
         ]) {
             expect(parseUiEventTime(bad)).toBeNull();
         }
+
         expect(parseUiEventTime('2028-02-29')).not.toBeNull();
         expect(parseUiEventTime('2027-02-29')).toBeNull();
     });

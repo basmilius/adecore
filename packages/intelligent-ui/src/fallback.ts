@@ -13,6 +13,7 @@ function given(value: unknown): boolean {
  */
 export function uiNodeFallback(type: string, props: Readonly<Record<string, unknown>>, children: string): string {
     const label = props.label ?? props.title;
+
     switch (type) {
         case '$text':
             return uiPlainText(props.text);
@@ -27,6 +28,7 @@ export function uiNodeFallback(type: string, props: Readonly<Record<string, unkn
         case 'Stat': {
             const unit = given(props.unit) ? ` ${uiPlainText(props.unit)}` : '';
             const previous = given(props.previous) ? ` (was ${uiPlainText(props.previous)}${unit})` : '';
+
             return `${uiPlainText(label)}: ${uiPlainText(props.value)}${unit}${previous}\n`;
         }
         case 'Source':
@@ -38,6 +40,7 @@ export function uiNodeFallback(type: string, props: Readonly<Record<string, unkn
                 .split('\n')
                 .map((column) => column.trim())
                 .filter(Boolean);
+
             return `${columns.length > 0 ? `Columns: ${columns.join(', ')}\n` : ''}${uiPlainText(props.rows ?? [])}\n`;
         }
         case 'Chart':
@@ -48,6 +51,7 @@ export function uiNodeFallback(type: string, props: Readonly<Record<string, unkn
             const point = given(props.lat) && given(props.lon) ? ` (${uiPlainText(props.lat)}, ${uiPlainText(props.lon)})` : '';
             const address = given(props.address) ? `, ${uiPlainText(props.address)}` : '';
             const detail = given(props.detail) ? `: ${uiPlainText(props.detail)}` : '';
+
             // One line per place, so the numbering of its map counts places and not the lines of a name.
             return `${children.trim()}${point}${address}${detail}`.replace(/\s+/g, ' ').trim() + '\n';
         }
@@ -59,9 +63,11 @@ export function uiNodeFallback(type: string, props: Readonly<Record<string, unkn
         case 'Model':
             return `[Model: ${uiPlainText(props.alt ?? props.attachment ?? 'unavailable')}]${children.trim() ? ` ${children.trim()}` : ''}\n`;
     }
+
     const path = given(props.path) && given(props.line) ? `${uiPlainText(props.path)}:${uiPlainText(props.line)}` : props.path;
     const target = path ?? props.sha ?? (type === 'Node' ? props.id : undefined);
     const context = props.context ? `\n${uiPlainText(props.context)}` : '';
     const text = `${label !== undefined ? `${uiPlainText(label)}: ` : ''}${target !== undefined ? `${uiPlainText(target)} ` : ''}${children}${context}`;
+
     return type === 'Tag' || text.endsWith('\n') ? text : `${text}\n`;
 }

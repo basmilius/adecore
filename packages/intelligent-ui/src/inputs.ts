@@ -8,6 +8,7 @@ export function uiCompiledNodes(nodes: readonly UiNode[], into = new Map<string,
         into.set(node.id, node);
         uiCompiledNodes(node.children, into);
     }
+
     return into;
 }
 
@@ -17,6 +18,7 @@ export function eachDrawnNode(nodes: readonly UiViewNode[], visit: (node: UiView
         if (node.error || !node.complete) {
             continue;
         }
+
         visit(node);
         eachDrawnNode(node.children, visit);
     }
@@ -27,13 +29,17 @@ function offered(node: UiViewNode): boolean {
     if (node.type === 'Segmented' || node.type === 'Select') {
         return node.children.some((option) => option.type === 'Option' && !option.error && option.props.value === node.props.value);
     }
+
     if (node.type === 'Map') {
         return node.children.some((place) => place.type === 'Place' && !place.error && place.props.value === node.props.value);
     }
+
     if (node.type === 'Checklist') {
         const options = node.children.filter((item) => item.type === 'Item' && !item.error).map((item) => item.props.value);
+
         return (node.props.value as unknown[]).every((value) => options.includes(value));
     }
+
     return true;
 }
 
@@ -44,9 +50,11 @@ function offered(node: UiViewNode): boolean {
 function actionValue(action: UiExpression, block: UiBlock): { target: string; value: UiValue } | undefined {
     try {
         const target = uiActionTarget(action, uiLocalState(block));
+
         if (target === null || action.kind !== 'call') {
             return undefined;
         }
+
         return { target, value: action.name === 'Set' ? evaluateUiExpression(action.args[1], {}) : block.defaults[target] };
     } catch {
         return undefined;
@@ -61,8 +69,10 @@ function actionValue(action: UiExpression, block: UiBlock): { target: string; va
 export function uiVisibleInputs(block: UiBlock, nodes: readonly UiViewNode[], scope: Readonly<Record<string, UiValue>>): Set<string> {
     const written = uiCompiledNodes(block.nodes);
     const inputs = new Set<string>();
+
     eachDrawnNode(nodes, (node) => {
         const source = written.get(node.sourceId ?? node.id);
+
         if (source && offered(node)) {
             for (const prop of Object.keys(node.bindings)) {
                 if (source.bindings[prop]) {
@@ -70,12 +80,15 @@ export function uiVisibleInputs(block: UiBlock, nodes: readonly UiViewNode[], sc
                 }
             }
         }
+
         const actionProp = uiActionProp(node.type);
         const action = source && actionProp ? source.expressions[actionProp] : undefined;
         const pressed = action && node.props.disabled !== true ? actionValue(action, block) : undefined;
+
         if (pressed && sameUiValue(pressed.value, scope[pressed.target])) {
             inputs.add(pressed.target);
         }
     });
+
     return inputs;
 }

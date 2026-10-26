@@ -6,11 +6,13 @@ function manualClock(): UiStreamClock & { advance(ms: number): void; pending(): 
     let time = 0;
     let nextId = 0;
     const timers = new Map<number, { at: number; run(): void }>();
+
     return {
         now: () => time,
         setTimeout(run, ms) {
             const id = ++nextId;
             timers.set(id, { at: time + ms, run });
+
             return id;
         },
         clearTimeout(handle) {
@@ -18,15 +20,19 @@ function manualClock(): UiStreamClock & { advance(ms: number): void; pending(): 
         },
         advance(ms) {
             const end = time + ms;
+
             while (true) {
                 const next = [...timers.entries()].filter(([, timer]) => timer.at <= end).sort((left, right) => left[1].at - right[1].at)[0];
+
                 if (!next) {
                     break;
                 }
+
                 time = next[1].at;
                 timers.delete(next[0]);
                 next[1].run();
             }
+
             time = end;
         },
         pending: () => timers.size
@@ -85,10 +91,12 @@ test('continuous updates compile on a throttle and take the newest text without 
     const previews: Array<UiStreamPreview & { at: number }> = [];
     const stream = new UiStream({ id: 'item', clock, emit: (preview) => previews.push({ ...preview, at: clock.now() }) });
     stream.update(reply('0'));
+
     for (let i = 1; i <= 49; i++) {
         clock.advance(10);
         stream.update(reply(String(i)));
     }
+
     expect(previews.map((preview) => preview.at)).toEqual([0, 250]);
     expect(previews[1].blocks[0].fallback).toContain('24');
     expect(clock.pending()).toBe(1);

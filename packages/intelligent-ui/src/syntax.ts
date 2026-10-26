@@ -36,6 +36,7 @@ const WARNING_CODES = new Set(['refused_prop', 'renamed_prop', 'too_many_series'
 
 export function uiDiagnostic(error: unknown, start: number, end: number, nodeId?: string): UiDiagnostic {
     const code = error instanceof UiFailure ? error.code : 'invalid_syntax';
+
     return {
         code,
         ...(WARNING_CODES.has(code) ? { severity: 'warning' as const } : {}),
@@ -60,6 +61,7 @@ class UiParser {
         this.id = id;
         this.final = final;
         this.budget = budget;
+
         if (source.length > budget.limits.characters) {
             throw new UiFailure('budget_exceeded', 'The block is too long.');
         }
@@ -67,10 +69,12 @@ class UiParser {
 
     parse(): UiSyntax {
         this.declarations();
+
         while (this.position < this.source.length) {
             this.budget.step();
             this.budget.depth(this.stack.length);
             const start = this.position;
+
             try {
                 if (this.source[this.position] === '<') {
                     this.tag();
@@ -78,16 +82,20 @@ class UiParser {
                     const body = this.balanced();
                     const node = this.node('$text', start);
                     node.complete = body.complete;
+
                     if (body.complete) {
                         node.expression = parseUiExpression(body.value, this.budget);
                     }
+
                     this.append(node);
                 } else {
                     while (this.position < this.source.length && !['<', '{'].includes(this.source[this.position])) {
                         this.position += 1;
                         this.budget.step();
                     }
+
                     const value = this.source.slice(start, this.position);
+
                     if (value.trim() || !/[\r\n]/.test(value)) {
                         const node = this.node('$text', start);
                         node.text = value;
@@ -97,48 +105,61 @@ class UiParser {
             } catch (error) {
                 rethrowBudget(error);
                 this.diagnose(error, start);
+
                 if (this.position <= start) {
                     this.position = start + 1;
                 }
+
                 while (this.position < this.source.length && this.source[this.position] !== '\n' && this.source[this.position] !== '<') {
                     this.position += 1;
                     this.budget.step();
                 }
             }
         }
+
         for (const node of this.stack) {
             node.end = this.source.length;
+
             if (this.final) {
                 this.diagnose(new UiFailure('unclosed_tag', `The ${node.type} tag is not closed.`), node.start, node.id);
             }
         }
+
         return this.result;
     }
 
     private declarations(): void {
         while (true) {
             this.whitespace();
+
             if (this.source[this.position] !== '$') {
                 return;
             }
+
             const start = this.position;
             const declaration = /^\$([A-Za-z_][A-Za-z_\d]*)\s*=/.exec(this.source.slice(start));
+
             if (!declaration) {
                 if (this.final) {
                     this.diagnose(new UiFailure('invalid_declaration', 'Expected $name = value.'), start);
                 }
+
                 this.position = this.source.length;
+
                 return;
             }
+
             const name = `$${safeKey(declaration[1])}`;
             this.position += declaration[0].length;
             const valueStart = this.position;
             let depth = 0;
             let quote = '';
             let escaped = false;
+
             while (this.position < this.source.length) {
                 this.budget.step();
                 const character = this.source[this.position];
+
                 if (quote) {
                     if (escaped) {
                         escaped = false;
@@ -157,16 +178,20 @@ class UiParser {
                 } else if (character === '\n' && depth <= 0) {
                     break;
                 }
+
                 this.position += 1;
             }
+
             try {
                 if (Object.hasOwn(this.result.declarations, name)) {
                     throw new UiFailure('duplicate_declaration', `Duplicate variable ${name}.`);
                 }
+
                 const value = this.source.slice(valueStart, this.position).trim();
                 this.result.declarations[name] = parseUiExpression(value, this.budget);
             } catch (error) {
                 rethrowBudget(error);
+
                 if (this.final || this.position < this.source.length) {
                     this.diagnose(error, start);
                 }
@@ -177,48 +202,66 @@ class UiParser {
     private tag(): void {
         const start = this.position++;
         const closing = this.source[this.position] === '/';
+
         if (closing) {
             this.position += 1;
         }
+
         const match = /^[A-Za-z][A-Za-z\d]*/.exec(this.source.slice(this.position));
+
         if (!match) {
             if (!this.final && this.position === this.source.length) {
                 return;
             }
+
             throw new UiFailure('invalid_tag', 'Expected a component name.');
         }
+
         this.position += match[0].length;
+
         if (closing) {
             this.whitespace();
+
             if (!this.finish('>')) {
                 return;
             }
+
             const index = this.stack.findLastIndex((node) => node.type === match[0]);
+
             if (index === -1) {
                 throw new UiFailure('unmatched_tag', `Unexpected closing tag ${match[0]}.`);
             }
+
             for (const node of this.stack.splice(index)) {
                 node.end = this.position;
                 node.complete = node.type === match[0];
+
                 if (!node.complete) {
                     this.diagnose(new UiFailure('unclosed_tag', `The ${node.type} tag is not closed.`), node.start, node.id);
                 }
             }
+
             return;
         }
+
         const node = this.node(match[0], start);
         node.complete = false;
         this.append(node);
+
         while (this.position < this.source.length) {
             this.whitespace();
+
             if (this.source.startsWith('/>', this.position)) {
                 this.position += 2;
                 node.complete = true;
                 node.end = this.position;
+
                 return;
             }
+
             if (this.source[this.position] === '>') {
                 this.position += 1;
+
                 if (node.type === 'CodeBlock') {
                     const contentStart = this.position;
                     const close = this.source.indexOf('</CodeBlock>', contentStart);
@@ -226,25 +269,34 @@ class UiParser {
                     const text = this.node('$text', contentStart);
                     text.text = this.source.slice(contentStart, this.position);
                     node.children.push(text);
+
                     if (close !== -1) {
                         this.position += '</CodeBlock>'.length;
                         node.complete = true;
                     } else if (this.final) {
                         this.diagnose(new UiFailure('unclosed_tag', 'The CodeBlock tag is not closed.'), start, node.id);
                     }
+
                     node.end = this.position;
+
                     return;
                 }
+
                 // A tag that lost a prop and has no closing tag anywhere after it was meant to close itself.
                 if (node.invalid && this.final && !this.closesLater(node.type)) {
                     node.complete = true;
                     node.end = this.position;
+
                     return;
                 }
+
                 this.stack.push(node);
+
                 return;
             }
+
             const propStart = this.position;
+
             try {
                 if (!this.prop(node)) {
                     return;
@@ -256,7 +308,9 @@ class UiParser {
                 this.skipToken();
             }
         }
+
         node.end = this.position;
+
         if (this.final) {
             this.diagnose(new UiFailure('unclosed_tag', `The ${node.type} tag is incomplete.`), start, node.id);
         }
@@ -268,75 +322,101 @@ class UiParser {
         if (this.position === this.source.length) {
             return false;
         }
+
         const prop = /^[A-Za-z_][A-Za-z_\d]*/.exec(this.source.slice(this.position));
+
         if (!prop) {
             throw new UiFailure('invalid_prop', 'Expected a named prop.');
         }
+
         const name = safeKey(prop[0]);
         this.position += name.length;
         this.whitespace();
+
         if (this.position === this.source.length && !this.final) {
             return false;
         }
+
         if (this.source[this.position] !== '=') {
             // A bare name is true, as in JSX.
             if (Object.hasOwn(node.props, name)) {
                 throw new UiFailure('duplicate_prop', `Duplicate prop ${name}.`);
             }
+
             node.props[name] = parseUiExpression('true', this.budget);
+
             return true;
         }
+
         this.position += 1;
         this.whitespace();
         let value: string;
+
         if (this.source[this.position] === '{') {
             const body = this.balanced();
+
             if (!body.complete) {
                 return false;
             }
+
             value = body.value;
         } else {
             const quote = this.source[this.position];
+
             if (quote !== '"' && quote !== "'") {
                 if (!this.final && this.position === this.source.length) {
                     return false;
                 }
+
                 throw new UiFailure('invalid_prop', 'Use a quoted string or a braced expression.');
             }
+
             const valueStart = this.position++;
             let escaped = false;
             let closed = false;
+
             while (this.position < this.source.length) {
                 this.budget.step();
                 const character = this.source[this.position++];
+
                 if (escaped) {
                     escaped = false;
                 } else if (character === '\\') {
                     escaped = true;
                 } else if (character === quote) {
                     closed = true;
+
                     break;
                 }
             }
+
             if (!closed && !this.final) {
                 value = this.source.slice(valueStart, this.position);
+
                 if (escaped) {
                     value = value.slice(0, -1);
                 }
+
                 try {
                     node.props[name] = parseUiExpression(`${value}${quote}`, this.budget);
                 } catch (error) {
                     rethrowBudget(error);
                 }
+
                 node.end = this.position;
+
                 return false;
             }
+
             value = this.source.slice(valueStart, this.position);
         }
+
         if (Object.hasOwn(node.props, name)) {
             throw new UiFailure('duplicate_prop', `Duplicate prop ${name}.`);
         }
+
         node.props[name] = parseUiExpression(value, this.budget);
+
         return true;
     }
 
@@ -344,9 +424,11 @@ class UiParser {
     private skipToken(): void {
         let quote = '';
         let depth = 0;
+
         while (this.position < this.source.length) {
             this.budget.step();
             const character = this.source[this.position];
+
             if (quote) {
                 if (character === '\\') {
                     this.position += 1;
@@ -362,6 +444,7 @@ class UiParser {
             } else if (depth === 0 && (/\s/.test(character) || character === '>' || this.source.startsWith('/>', this.position))) {
                 break;
             }
+
             this.position += 1;
         }
     }
@@ -371,9 +454,11 @@ class UiParser {
         let depth = 1;
         let quote = '';
         let escaped = false;
+
         while (this.position < this.source.length) {
             this.budget.step();
             const character = this.source[this.position++];
+
             if (quote) {
                 if (escaped) {
                     escaped = false;
@@ -391,9 +476,11 @@ class UiParser {
                 return { value: this.source.slice(start, this.position - 1), complete: true };
             }
         }
+
         if (this.final) {
             throw new UiFailure('incomplete_expression', 'The expression is not closed.');
         }
+
         return { value: this.source.slice(start), complete: false };
     }
 
@@ -401,6 +488,7 @@ class UiParser {
     private closesLater(type: string): boolean {
         const closing = new RegExp(`</${type}\\s*>`, 'g');
         closing.lastIndex = this.position;
+
         return closing.test(this.source);
     }
 
@@ -416,14 +504,18 @@ class UiParser {
             if (!this.final && this.position === this.source.length) {
                 return false;
             }
+
             throw new UiFailure('invalid_syntax', `Expected ${value}.`);
         }
+
         this.position += 1;
+
         return true;
     }
 
     private node(type: string, start: number): UiSyntaxNode {
         this.budget.node();
+
         return { id: `${this.id}:${start}`, type, props: Object.create(null), children: [], complete: true, start, end: this.position };
     }
 

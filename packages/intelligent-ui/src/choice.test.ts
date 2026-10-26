@@ -11,10 +11,12 @@ const source = `$count = 2
 $readOnly = "original"
 <Slider value={$count} min={1} max={5}>Count</Slider>
 <Choices><Choice context={"Build " + $count}>Build</Choice><Choice disabled={true}>Closed</Choice></Choices>`;
+
 function fixture(text = source) {
     const block = compileUiBlock(text, { id: 'block', final: true });
     expect(block.diagnostics).toEqual([]);
     const choices = evaluateUiBlock(block).nodes.find((node) => node.type === 'Choices')!;
+
     return { block, choice: choices.children[0].id, closed: choices.children[1]?.id };
 }
 
@@ -28,6 +30,7 @@ test('choice text comes from the stored block and declared input values', () => 
 
 test('a choice cannot overwrite non-input state or invent variables', () => {
     const { block, choice } = fixture();
+
     for (const values of [{ $readOnly: 'injected' }, { $unknown: 'injected' }, { $count: 'four' }, { $count: 9 }]) {
         expect(() => resolveUiChoice(block, choice, values)).toThrow();
     }
@@ -44,6 +47,7 @@ test('incomplete, unknown, disabled and missing choices cannot send', () => {
 test('a hidden choice is unavailable, including when changed input hides it', () => {
     const { block, choice } = fixture(`$show = true
 <Switch value={$show}>Show</Switch><Show when={$show}><Choices><Choice>Continue</Choice></Choices></Show>`);
+
     expect(resolveUiChoice(block, choice).context).toBe('Continue');
     expect(() => resolveUiChoice(block, choice, { $show: false })).toThrow();
 });
@@ -53,6 +57,7 @@ test('each choices use their evaluated id and item context', () => {
         id: 'block',
         final: true
     });
+
     const evaluated = evaluateUiBlock(block);
     const choice = evaluated.nodes[1].children[0];
     expect(resolveUiChoice(block, choice.id)).toMatchObject({ label: 'b', context: 'Do b' });
@@ -86,6 +91,7 @@ test('every visible control bound to a changed value must accept it', () => {
     const { block, choice } = fixture(
         '$count = 2\n<Slider value={$count} min={1} max={10}/><Slider value={$count} min={1} max={5}/><Choices><Choice>Go</Choice></Choices>'
     );
+
     expect(() => resolveUiChoice(block, choice, { $count: 7 })).toThrow();
 });
 
@@ -100,6 +106,7 @@ $hidden = "none"
 <Button action={@Set($mode, "failed")}>Failed only</Button><Button action={@Reset()}>Reset</Button>
 <Show when={false}><Button action={@Set($hidden, "shown")}>Hidden</Button></Show><Button action={@Set($hidden, "off")} disabled={true}>Off</Button>
 <Choices><Choice context={"Show " + $mode}>Show</Choice></Choices>`);
+
     const state = new UiState(block);
     const pressed = evaluateUiBlock(block, state).nodes[0];
     pressed.onAction!();
@@ -110,6 +117,7 @@ $hidden = "none"
         values: { $mode: 'failed', $hidden: 'none' }
     });
     expect(uiValidatedState(block, { $mode: 'failed' }).scope().$mode).toBe('failed');
+
     for (const values of [{ $mode: 'injected' }, { $hidden: 'shown' }, { $hidden: 'off' }]) {
         expect(() => resolveUiChoice(block, choice, values)).toThrow();
         expect(() => uiValidatedState(block, values)).toThrow();
