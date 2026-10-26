@@ -52,7 +52,6 @@ export class FakeWatch implements WatchSeams {
         };
     };
 
-    /* How many timers are waiting to run. */
     get pending(): number {
         return this.due.size;
     }

@@ -115,7 +115,7 @@ function runQuietly([command, ...args]: string[]): void {
 // After stdin closed, a CLI that is still around is not going to say more.
 const EXIT_GRACE_MS = 3000;
 // What a CLI and everything it started get between the SIGTERM and the SIGKILL.
-const KILL_GRACE_MS = 2000;
+export const KILL_GRACE_MS = 2000;
 // How long a crash note waits for the last of stderr; a process the CLI started may hold the pipe open.
 const STDERR_DRAIN_MS = 250;
 // A pipe nobody reads is buffered in memory for as long as the CLI lives, so stderr is read into this much and no more.

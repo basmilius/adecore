@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { killProcessTree } from './chat/chat-process.ts';
+import { KILL_GRACE_MS, killProcessTree } from './chat/chat-process.ts';
 import { spawnTarget } from './windows-command.ts';
 
 export interface ProcessResult {
@@ -19,8 +19,6 @@ export interface RunProcessOptions {
     timeoutMessage?: string;
 }
 
-// What a command and everything it started get between the SIGTERM and the SIGKILL.
-const KILL_GRACE_MS = 2000;
 // Stdout and stderr together; a short command that prints more is ended and fails instead of filling memory.
 const MAX_OUTPUT_BYTES = 16 * 1024 * 1024;
 
