@@ -15,7 +15,7 @@ Files, processes, watching, serialization and errors, shared by the other entrie
 | [`async`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/async.ts) | `wait`, `withTimeout` |
 | [`coded-error`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/coded-error.ts) | `CodedError` |
 | [`error-text`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/error-text.ts) | `describeError`, `setErrorStacks`, `errorText` |
-| [`fs`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/fs.ts) | `tempNameFor`, `writeAtomic`, `replaceSync`, `writeAtomicSync`, `isNotFound`, `fileExists`, `WriteAtomicOptions` |
+| [`fs`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/fs.ts) | `tempNameFor`, `writeAtomic`, `replaceSync`, `writeAtomicSync`, `isNotFound`, `fileExists`, `entryExists`, `WriteAtomicOptions` |
 | [`record-directory`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/record-directory.ts) | `RecordDirectory`, `RecordDirectoryOptions` |
 | [`run-process`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/run-process.ts) | `runProcess`, `ProcessResult`, `RunProcessOptions` |
 | [`serializer`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/serializer.ts) | `Serializer`, `KeyedSerializer` |

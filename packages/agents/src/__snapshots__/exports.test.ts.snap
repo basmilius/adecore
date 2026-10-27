@@ -10,6 +10,7 @@ exports[`the public API . exports these names 1`] = `
   "Serializer",
   "cleanTitle",
   "describeError",
+  "entryExists",
   "errorText",
   "fileExists",
   "isNotFound",

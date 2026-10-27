@@ -2,7 +2,7 @@
 export { wait, withTimeout } from './async.ts';
 export { CodedError } from './coded-error.ts';
 export { describeError, setErrorStacks, errorText } from './error-text.ts';
-export { tempNameFor, writeAtomic, replaceSync, writeAtomicSync, isNotFound, fileExists, type WriteAtomicOptions } from './fs.ts';
+export { tempNameFor, writeAtomic, replaceSync, writeAtomicSync, isNotFound, fileExists, entryExists, type WriteAtomicOptions } from './fs.ts';
 export { RecordDirectory, type RecordDirectoryOptions } from './record-directory.ts';
 export { runProcess, type ProcessResult, type RunProcessOptions } from './run-process.ts';
 export { Serializer, KeyedSerializer } from './serializer.ts';

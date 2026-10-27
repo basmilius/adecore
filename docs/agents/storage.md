@@ -51,7 +51,7 @@ export async function writeCounter(dataDir: string): Promise<number> {
 
 The count ends at 2. `Serializer.run` runs work one at a time, even after one failed, and each caller gets its own result or error; `idle()` waits for the queue without rethrowing. `KeyedSerializer` does the same per key.
 
-`writeAtomic(target, content, mode = 0o600, { durable? })` writes a temporary file beside the target and renames it over, retrying a busy rename five times, 40 ms apart. `durable` syncs the file before the rename and its folder after, except on Windows. Create the folder first. `writeAtomicSync` and `replaceSync` do the same synchronously, without `durable`. `fileExists` is `false` for any error, so use `isNotFound` when other errors should surface.
+`writeAtomic(target, content, mode = 0o600, { durable? })` writes a temporary file beside the target and renames it over, retrying a busy rename five times, 40 ms apart. `durable` syncs the file before the rename and its folder after, except on Windows. Create the folder first. `writeAtomicSync` and `replaceSync` do the same synchronously, without `durable`. `fileExists` is `false` for any error, so use `isNotFound` when other errors should surface. It follows a link; `entryExists` does not, so a link that leads nowhere counts there, which is what a check for a free name needs.
 
 `RecordDirectory<T>` is a folder of JSON records, checked by a schema on load and written and removed one at a time per id, so two deletes of one file never overlap; a record that does not parse stays on disk. `keep` can rewrite or drop records on load, and `write` and `remove` replace the file operations, for a test.
 

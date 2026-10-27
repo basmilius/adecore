@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { removeFile, writeAtomic } from './fs.ts';
+import { entryExists, fileExists, removeFile, writeAtomic } from './fs.ts';
 
 let dir: string;
 
@@ -34,6 +34,17 @@ describe('writeAtomic', () => {
         const target = join(dir, 'icon.png');
         await writeAtomic(target, new Uint8Array([0x89, 0x50, 0x4e, 0x47]), 0o600, { durable: true });
         expect([...(await readFile(target))]).toEqual([0x89, 0x50, 0x4e, 0x47]);
+    });
+});
+
+describe('entryExists', () => {
+    test('counts a link that leads nowhere, which fileExists does not', async () => {
+        const link = join(dir, 'dangling');
+        await symlink(join(dir, 'missing'), link);
+
+        expect(await entryExists(link)).toBe(true);
+        expect(await fileExists(link)).toBe(false);
+        expect(await entryExists(join(dir, 'missing'))).toBe(false);
     });
 });
 

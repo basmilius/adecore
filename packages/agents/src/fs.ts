@@ -1,5 +1,5 @@
 import { renameSync, writeFileSync } from 'node:fs';
-import { open, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { lstat, open, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { wait } from './async.ts';
 
@@ -137,6 +137,17 @@ export async function removeFile(path: string, remove: (path: string, options: {
 export async function fileExists(path: string): Promise<boolean> {
     try {
         await stat(path);
+
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+/* Whether anything is at the path, a link that leads nowhere included, where `fileExists` follows the link. */
+export async function entryExists(path: string): Promise<boolean> {
+    try {
+        await lstat(path);
 
         return true;
     } catch {
