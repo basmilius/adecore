@@ -70,9 +70,10 @@
         0 1px 2px rgb(0 0 0 / 0.1),
         0 2px 4px -1px rgb(0 0 0 / 0.06);
     --status-running: #2563eb;
-    --status-needs-you: #d97706;
-    --status-idle: #16a34a;
-    --status-error: #dc2626;
+    /* The 700 shades: a status is also small text, and the 600s stay under 4.5:1 on white. */
+    --status-needs-you: #b45309;
+    --status-idle: #15803d;
+    --status-error: #b91c1c;
     --positive: #15803d;
     --positive-text: #ffffff;
     /* The series of a chart, in order: the accent, then a categorical order checked for color vision
@@ -151,7 +152,7 @@
     --status-running: #60a5fa;
     --status-needs-you: #fbbf24;
     --status-idle: #4ade80;
-    --status-error: #ef4444;
+    --status-error: #f87171;
     --positive: #4ade80;
     /* Dark on light green: the dark theme's positive is a foreground color, so text sits on it the
        other way round from the light theme, where the same token is a fill deep enough for white. */
