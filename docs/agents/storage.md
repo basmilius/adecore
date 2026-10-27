@@ -58,6 +58,8 @@ The count ends at 2. `Serializer.run` runs work one at a time, even after one fa
 ## Other helpers
 
 - `runProcess(command, options)` runs a short command and answers its output and `exitCode` (`null` after a signal). A nonzero exit is an answer, not an error; The command runs in a process group of its own. `timeoutMs` rejects and sends the group a SIGTERM, then a SIGKILL two seconds later. Past 16 MB of stdout and stderr together, the run ends the same way and rejects, so keep it to commands that print little.
+- `SingleFlight<T>.run(key, work)` runs `work` once per key at a time: a caller that asks while it runs shares its outcome, and `get` and `has` tell whether a key runs.
+- `cancellableTimeout(ms, run)` and `unrefTimeout(ms, run)` answer the function that cancels the timer; the second does not hold the process open. `hasErrorCode(error, ...codes)` tells whether a caught error carries one of the system codes.
 - `withTimeout(promise, ms, message)` rejects at a deadline without stopping what it waited for, and `wait(ms, signal?)` resolves early on an abort.
 - `WatchSeams` is file watching you can swap: `SYSTEM_WATCH` uses `fs.watch`, recursive only where the platform supports it (`supportsRecursive`). `settled(seams, ms, run)` runs once after a burst of changes, and `PerClientWatches` keeps a watch per client and path.
 - `cleanTitle` and `readLines` read titles from a transcript; `readLines` stops at the last whole line, so a line still being written is read later.

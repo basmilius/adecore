@@ -39,3 +39,32 @@ export class ClientSinks<TEvent> {
         return [...this.sinks.keys()];
     }
 }
+
+/* The clients of a part that hear its events only after they asked for them with `<area>.watch`. */
+export class WatchedSinks<TEvent> {
+    private readonly sinks = new ClientSinks<TEvent>();
+    private readonly watching = new Set<string>();
+
+    subscribe(clientId: string, sink: (event: TEvent) => void): () => void {
+        const unsubscribe = this.sinks.subscribe(clientId, sink);
+
+        return () => {
+            this.watching.delete(clientId);
+            unsubscribe();
+        };
+    }
+
+    watch(clientId: string): void {
+        this.watching.add(clientId);
+    }
+
+    unwatch(clientId: string): void {
+        this.watching.delete(clientId);
+    }
+
+    emit(event: TEvent): void {
+        for (const clientId of this.watching) {
+            this.sinks.to(clientId, event);
+        }
+    }
+}

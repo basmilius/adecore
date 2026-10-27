@@ -20,3 +20,14 @@ describe('Rust', () => {
         expect(shikiLanguageOfPath('src/main.rs')).toBe('rust');
     });
 });
+
+describe('the language of the catalog', () => {
+    test('is found by the highlighter id of the file', () => {
+        expect(lspLanguageIdOf('css')).toBe('css');
+        expect(lspLanguageIdOf('docker')).toBe('dockerfile');
+        expect(lspLanguageIdOf('shellscript')).toBe('shellscript');
+        expect(lspLanguageIdOf('twig')).toBe('twig');
+        expect(lspLanguageIdOf('zig')).toBeNull();
+        expect(lspLanguageIdOf(undefined)).toBeNull();
+    });
+});

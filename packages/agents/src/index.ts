@@ -1,11 +1,12 @@
 // Public API: exports.test.ts snapshots this list, so a name added or dropped here is an API change.
-export { wait, withTimeout } from './async.ts';
+export { wait, withTimeout, cancellableTimeout, unrefTimeout, type Timer } from './async.ts';
 export { CodedError } from './coded-error.ts';
 export { describeError, setErrorStacks, errorText } from './error-text.ts';
-export { tempNameFor, writeAtomic, replaceSync, writeAtomicSync, isNotFound, fileExists, entryExists, type WriteAtomicOptions } from './fs.ts';
+export { tempNameFor, writeAtomic, replaceSync, writeAtomicSync, hasErrorCode, isNotFound, fileExists, entryExists, type WriteAtomicOptions } from './fs.ts';
 export { RecordDirectory, type RecordDirectoryOptions } from './record-directory.ts';
 export { runProcess, type ProcessResult, type RunProcessOptions } from './run-process.ts';
 export { Serializer, KeyedSerializer } from './serializer.ts';
+export { SingleFlight } from './single-flight.ts';
 export { cleanTitle, readLines } from './title-file.ts';
 
 export {

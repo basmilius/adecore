@@ -245,3 +245,28 @@ export function expansionChanges(
 
     return changes;
 }
+
+/*
+ * Builds a tree from `paths` again, keeping its selection, and while the tree has the keyboard its focus,
+ * on the nearest row when that one went. `fold` puts back what stood folded while `applying` is set,
+ * so the tree's own report of it is not read back as a person's doing.
+ */
+export function rebuildPaths(model: FileTree, paths: readonly string[], fold: () => void, applying: { current: boolean }): void {
+    const selected = model.getSelectedPaths();
+    const focused = model.getFocusedPath();
+    const typing = document.activeElement !== null && document.activeElement === model.getFileTreeContainer();
+    applying.current = true;
+    model.resetPaths(paths);
+    fold();
+    applying.current = false;
+
+    for (const path of selected) {
+        model.getItem(path)?.select();
+    }
+
+    const next = !typing || focused === null ? null : model.getItem(focused) !== null ? focused : model.focusNearestPath(focused);
+
+    if (next !== null) {
+        focusRow(model, next);
+    }
+}

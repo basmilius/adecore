@@ -52,7 +52,7 @@ const release = wiring.connect(clientId, (event) => socket.send({ type: 'event',
 const result = await wiring.handlers['chat.send'](payload, clientId);
 ```
 
-`wiring.handlers` has a handler for every agent request, `(payload, clientId) => result`, and `connect(clientId, send)` sends one client its events until the returned function is called. Your wire checks the frame and the payload, checks who asks, and calls the handler: a handler checks nothing itself. Read the accounts before the first request. `start()` runs the clocks and `stop()` ends everything; leave `start()` out to have no clocks. `chatHandlers`, `accountHandlers` and `usageHandlers` are the three parts of `handlers`, and `ClientSinks` is the per-client fan-out behind `connect`.
+`wiring.handlers` has a handler for every agent request, `(payload, clientId) => result`, and `connect(clientId, send)` sends one client its events until the returned function is called. Your wire checks the frame and the payload, checks who asks, and calls the handler: a handler checks nothing itself. Read the accounts before the first request. `start()` runs the clocks and `stop()` ends everything; leave `start()` out to have no clocks. `chatHandlers`, `accountHandlers` and `usageHandlers` are the three parts of `handlers`, and `ClientSinks` is the per-client fan-out behind `connect`, and `WatchedSinks` the same for a part whose events only go to the clients that called `watch`.
 
 ## ChatCore
 

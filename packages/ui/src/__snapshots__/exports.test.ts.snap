@@ -451,6 +451,7 @@ exports[`the public API the compound components have these parts 1`] = `
     "movesFocus",
     "newlyExpanded",
     "pathOfRow",
+    "rebuildPaths",
     "resetExpandedPaths",
     "rowPathOf",
     "selectOnly",

@@ -50,3 +50,20 @@ export function withDeadline<T>(promise: Promise<T>, ms: number, message: string
 export function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
     return withDeadline(promise, ms, message);
 }
+
+/* Runs `run` after `ms` and answers how to call it off. */
+export type Timer = (ms: number, run: () => void) => () => void;
+
+export const cancellableTimeout: Timer = (ms, run) => {
+    const timer = setTimeout(run, ms);
+
+    return () => clearTimeout(timer);
+};
+
+/* The same, without holding the process open for it. */
+export const unrefTimeout: Timer = (ms, run) => {
+    const timer = setTimeout(run, ms);
+    timer.unref?.();
+
+    return () => clearTimeout(timer);
+};
