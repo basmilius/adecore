@@ -31,10 +31,12 @@ function profileIn(data: ModelCatalogInput, slug: string): ModelCatalogProfile |
  */
 function compose(base: ModelCatalogInput, adopted: Adopted): ModelCatalogInput {
     const replaced = new Set(adopted.options.map((option) => option.id));
+
     const withOptions = (profile: ModelCatalogProfile): ModelCatalogProfile => ({
         ...profile,
         options: [...profile.options.filter((option) => !replaced.has(option.id)), ...adopted.options]
     });
+
     const fallback = profileIn(base, base.defaultModel) ?? { options: [], contextWindowTokens: {} };
     const profiles: Record<string, ModelCatalogProfile> = {};
 
