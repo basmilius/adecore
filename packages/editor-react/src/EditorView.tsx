@@ -116,6 +116,10 @@ function applyChangedOptions(editor: Editor, before: EditorOptions, after: Edito
         editor.setLabel(after.label);
     }
 
+    if (before.fontSize !== after.fontSize) {
+        editor.setFontSize?.(after.fontSize ?? null);
+    }
+
     if (before.todoWords?.join('\n') !== after.todoWords?.join('\n')) {
         editor.setTodoWords?.(after.todoWords ?? DEFAULT_TODO_WORDS);
     }

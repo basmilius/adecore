@@ -8,6 +8,7 @@ import { NativeInput } from './native-input.ts';
 import { columnSelections, sameCell } from './column-selection.ts';
 import { PointerSelection } from './pointer.ts';
 import { TouchSelection } from './touch.ts';
+import { WheelZoom } from './zoom.ts';
 import type {
     EditorClick,
     EditorClickHandler,
@@ -29,6 +30,10 @@ export interface ControllerOptions {
     apple: boolean;
     save(): void;
     blur(): void;
+    /* One pixel larger (1) or smaller (-1), or back to the page's size (0). */
+    zoom(step: -1 | 0 | 1): void;
+    /* Whether the zoom modifier with the wheel, or a pinch, zooms. */
+    wheelZooms(): boolean;
 }
 
 const MODIFYING = new Set<EditorCommand>([
@@ -71,8 +76,13 @@ const VIEW_COMMANDS = new Set<EditorViewCommand>([
     'expandAllToLevel3',
     'expandAllToLevel4',
     'expandAllToLevel5',
-    'toggleColumnMode'
+    'toggleColumnMode',
+    'increaseFontSize',
+    'decreaseFontSize',
+    'resetFontSize'
 ]);
+
+const ZOOM_STEPS = { increaseFontSize: 1, decreaseFontSize: -1, resetFontSize: 0 } as const satisfies Partial<Record<EditorViewCommand, -1 | 0 | 1>>;
 
 /* The clipboard text of the last copy or cut of a bare caret, which pastes back as whole lines. Shared, since it can be pasted in another editor. */
 let lineClip: string | null = null;
@@ -109,6 +119,7 @@ export class InputController {
     /* The Extend Selection presses that wait for a server's ranges, which are answered one after the other. */
     private expansions: Promise<void> = Promise.resolve();
     private lastInputAt = 0;
+    private readonly wheelZoom = new WheelZoom();
     private desiredXs: number[] = [];
     private keepDesiredXs = false;
     private readonly view: EditorView;
@@ -230,7 +241,7 @@ export class InputController {
         this.listen(input, 'copy', (event) => this.copy(event, false));
         this.listen(input, 'cut', (event) => this.copy(event, true));
         this.listen(viewport, 'scroll', () => this.view.scrolled());
-        this.listen(viewport, 'wheel', () => this.view.cancelScroll());
+        this.listen(viewport, 'wheel', (event) => this.wheel(event));
         this.listen(viewport, 'pointermove', (event) => this.view.hoverMoved(event));
 
         this.listen(viewport, 'pointerleave', () => {
@@ -378,11 +389,17 @@ export class InputController {
     private viewCommand(name: EditorViewCommand): boolean {
         const { view } = this;
 
+        if (name in ZOOM_STEPS) {
+            this.options.zoom(ZOOM_STEPS[name as keyof typeof ZOOM_STEPS]);
+
+            return true;
+        }
+
         if (view.settings.folding === false && name !== 'toggleColumnMode') {
             return false;
         }
 
-        const run: Record<EditorViewCommand, () => void> = {
+        const run: Record<Exclude<EditorViewCommand, keyof typeof ZOOM_STEPS>, () => void> = {
             collapseRegion: () => view.collapseRegion(),
             expandRegion: () => view.expandRegion(),
             collapseAllRegions: () => view.foldAll(true),
@@ -400,9 +417,25 @@ export class InputController {
             toggleColumnMode: () => this.toggleColumnMode()
         };
 
-        run[name]();
+        run[name as keyof typeof run]();
 
         return true;
+    }
+
+    /* A pinch comes as the wheel with Ctrl, on every platform. */
+    private wheel(event: WheelEvent): void {
+        this.view.cancelScroll();
+
+        if (!(event.ctrlKey || (this.options.apple && event.metaKey)) || !this.options.wheelZooms()) {
+            return;
+        }
+
+        event.preventDefault();
+        const step = this.wheelZoom.step(event);
+
+        if (step !== 0) {
+            this.options.zoom(step as -1 | 1);
+        }
     }
 
     /* Runs a model command on every caret, with the folds that would hide its result opened first. */
