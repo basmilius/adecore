@@ -66,7 +66,9 @@ const MODIFYING = new Set<EditorCommand>([
     'reverseLines',
     'uniqueLines',
     'convertIndentsToSpaces',
-    'convertIndentsToTabs'
+    'convertIndentsToTabs',
+    'hippieCompletion',
+    'hippieBackwardCompletion'
 ]);
 
 const CODE_BLOCK_COMMANDS = new Set<EditorCommand>(['codeBlockStart', 'codeBlockEnd', 'codeBlockStartWithSelection', 'codeBlockEndWithSelection']);
@@ -121,6 +123,7 @@ export class InputController {
     private readonly cleanup: (() => void)[] = [];
     private readonly keyHandlers = new Set<EditorKeyHandler>();
     private readonly navigateListeners = new Set<(from: number) => void>();
+    private wordSources: (() => readonly string[]) | null = null;
     private readonly gesture: DoubleModifierGesture;
     private readonly clickHandlers = new Set<EditorClickHandler>();
     private readonly inlayHandlers = new Set<EditorInlayClickHandler>();
@@ -399,8 +402,14 @@ export class InputController {
             camelCase: keys.camelHumps,
             visualLine: (offset) => this.view.rowOf(offset),
             lineSpan: (line) => this.view.lineSpan(line),
-            structure: () => this.view.structureRanges()
+            structure: () => this.view.structureRanges(),
+            ...(this.wordSources === null ? {} : { wordSources: this.wordSources })
         };
+    }
+
+    /* The texts Hippie completion takes words from after those of this document; null takes them away. */
+    setWordSources(source: (() => readonly string[]) | null): void {
+        this.wordSources = source;
     }
 
     /* Folding is the view's, since it knows where the ranges are. */
@@ -574,6 +583,10 @@ export class InputController {
 
         if (name === 'smartEnd' || name === 'selectSmartEnd') {
             this.view.markRowEnd(model.getPrimary().head);
+        }
+
+        if (name === 'hippieCompletion' || name === 'hippieBackwardCompletion') {
+            this.view.setHippieSource(model.hippieSource);
         }
 
         this.view.revealCaret();
@@ -877,6 +890,8 @@ export class InputController {
         if (event.isComposing || this.native.composing) {
             return;
         }
+
+        this.view.setHippieSource(null);
 
         const added = this.gesture.keydown(event);
 

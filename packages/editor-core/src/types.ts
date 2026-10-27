@@ -124,7 +124,9 @@ export type EditorCommand =
     | 'codeBlockEndWithSelection'
     | 'completeCurrentStatement'
     | 'moveStatementUp'
-    | 'moveStatementDown';
+    | 'moveStatementDown'
+    | 'hippieCompletion'
+    | 'hippieBackwardCompletion';
 
 export interface CommandOptions {
     /* Clamped to 1 through 16. */
@@ -164,4 +166,6 @@ export interface CommandOptions {
     structure?: () => readonly FoldingRange[];
     /* Whether the indent guides count as blocks for the code block commands. Off unless true. */
     indentGuides?: boolean;
+    /* The texts of the other open documents, which Hippie completion takes words from after those of this one. */
+    wordSources?: () => readonly string[];
 }

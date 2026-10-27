@@ -92,3 +92,9 @@ Applying an exit is one owned edit batch and a separate undo step. The first und
 Detached replacements keep adjacent sibling endpoints outside the output. Empty stops follow their source order, including stops between outputs at the same point and targets in separate queued exits. The editor selections are committed with the edit to match the tracked boundaries, including after redo. A nested exit can finish after returning to its parent, and its enclosing fields follow the replacement. Expired requests are removed before testing the FIFO limit.
 
 Limitation: the generated final stop carries no nested order, so inside a nested snippet it sorts after a target of an enclosing snippet at the same point. This only happens when `$0` was removed by unlinking.
+
+## Words from open text
+
+`hippieCompletion` (`Alt+/`) and `hippieBackwardCompletion` (`Alt+Shift+/`) complete the word before each caret from the words of the text, no language server needed. The first press takes the nearest word above the caret that starts the same, or the nearest below it for the backward command. A word starts the same when it is longer than what is typed, has the same first character and matches the rest by letters of any case or by camel humps (`fb` completes `fooBar`). Pressing again steps to the next word, then on to the words of the other open editors of the project, and back to where it began. Each press is one undo step, and the word it took from this document is marked until the next key. Where a language has no braces (CSS, Markdown, plain text) a `-` and a `*` are part of a word.
+
+`EditorLanguage` hands the editor the texts of the other open editors of the project, in the order their documents opened, with `setWordSources`. An app that mounts the editor itself passes its own source of texts to `Editor.setWordSources`, or `null` to take it away.

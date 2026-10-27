@@ -298,6 +298,7 @@ export class EditorView {
     private lenses: BlockWidget[] = [];
     private readonly replacements = new Map<string, BlockReplacement[]>();
     private occurrences: Occurrence[] = [];
+    private hippieSource: { from: number; to: number } | null = null;
     private replacePreview: { text: string; preserveCase: boolean } | null = null;
     private dropCaret: number | null = null;
     private activeGuideCache: { key: string; guide: { column: number; first: number; last: number } | null } | undefined;
@@ -601,6 +602,16 @@ export class EditorView {
         this.render();
     }
 
+    /* The word Hippie completion took from this document, shown until the next key or edit; null takes the mark away. */
+    setHippieSource(range: { from: number; to: number } | null): void {
+        if (range === null && this.hippieSource === null) {
+            return;
+        }
+
+        this.hippieSource = range;
+        this.render();
+    }
+
     /* A name underlined as a link a press follows, with the pointer to match; null takes it away. */
     setLink(link: { from: number; to: number } | null): void {
         this.link = link;
@@ -850,6 +861,7 @@ export class EditorView {
             this.markerVersion++;
             const anchor = this.topAnchor;
             this.occurrences = [];
+            this.hippieSource = null;
             this.link = null;
             this.content.classList.remove('se-content-link');
             this.outline.edited(batches);
@@ -2548,6 +2560,10 @@ export class EditorView {
                     rects: group.flatMap((mark) => this.paintRectangles(mark.from, mark.to, rows))
                 });
             }
+        }
+
+        if (this.hippieSource !== null) {
+            marks.push({ className: 'se-hippie-source', rects: this.paintRectangles(this.hippieSource.from, this.hippieSource.to, rows) });
         }
 
         const marginX = this.settings.rightMargin === null ? null : this.settings.rightMargin * this.layout.metrics.charWidth;

@@ -51,6 +51,8 @@ const ACTIONS: Partial<Record<KeymapId, KeyAction>> = {
     joinLines: command('joinLines'),
     startNewLine: command('startNewLine'),
     completeCurrentStatement: command('completeCurrentStatement'),
+    hippieCompletion: command('hippieCompletion'),
+    hippieBackwardCompletion: command('hippieBackwardCompletion'),
     startNewLineBefore: command('startNewLineBefore'),
     splitLine: command('splitLine'),
     toggleCase: command('toggleCase'),

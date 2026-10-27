@@ -324,3 +324,23 @@ describe('unserved documents', () => {
         project.dispose();
     });
 });
+
+describe('word sources', () => {
+    test('hands Hippie completion the texts of the other open editors and lets go of them on dispose', () => {
+        const project = new ProjectLanguage(new FakeLanguageService());
+        const view = editor('foo');
+        const other = editor('foobar');
+        const language = new EditorLanguage(project, view, 'file:///a.txt', 'plaintext', new ManualTimers(), { serve: false });
+        const neighbor = new EditorLanguage(project, other, 'file:///b.txt', 'plaintext', new ManualTimers(), { serve: false });
+
+        expect(view.wordSources?.()).toEqual(['foobar']);
+
+        language.dispose();
+
+        expect(view.wordSources).toBeNull();
+        expect(other.wordSources?.()).toEqual([]);
+
+        neighbor.dispose();
+        project.dispose();
+    });
+});
