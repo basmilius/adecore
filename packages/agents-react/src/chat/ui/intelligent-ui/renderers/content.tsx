@@ -13,6 +13,7 @@ import { uiChildrenOf, uiNodeLabel, uiNodeText, uiUrlDomain } from '../node-text
 import type { UiRendererProps } from '../render-context';
 import { useTruncated } from '../use-truncated';
 import { useHostAttachmentUrl } from '../../../../host-hooks';
+import { DisplayImage } from '../../DisplayImage';
 
 // The number of every source by its node id, which the list counts in its own order.
 const SourceNumbers = createContext<ReadonlyMap<string, number>>(new Map());
@@ -153,7 +154,7 @@ export function CompareRenderer({ node, children, context }: UiRendererProps<UiP
                     onValueChange={setSplit}
                     label={label}
                     before={
-                        <img
+                        <DisplayImage
                             src={first.url}
                             alt={describe(beforeLabel)}
                             draggable={false}
@@ -167,7 +168,7 @@ export function CompareRenderer({ node, children, context }: UiRendererProps<UiP
                             }}
                         />
                     }
-                    after={<img src={second.url} alt={describe(afterLabel)} draggable={false} className="size-full object-contain select-none" />}
+                    after={<DisplayImage src={second.url} alt={describe(afterLabel)} draggable={false} className="size-full object-contain select-none" />}
                 />
                 <CompareChip side="left" label={beforeLabel} />
                 <CompareChip side="right" label={afterLabel} />

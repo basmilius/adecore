@@ -14,3 +14,7 @@ The smaller pieces the thread and the composer are made of, exported for a heade
 | `WelcomeGreeting({ chatId, now? })`    | `@adecore/agents-react/chat/ui` | The greeting over an empty chat, by the part of the day.                                              |
 
 `statusLookOf(word)` answers the icon and tone of a `StatusWord`, and `taskStatusWord(task)` the word of a task, `paused` for an open task waiting out a limit.
+
+`imageForDisplay(blob)` from `@adecore/agents-react/images` returns a PNG for HEIC or HEIF images and the original blob for other formats. Use it before creating a display URL or reading pixels. It loads a CSP-compatible decoder only when needed and leaves the original bytes available for downloads. The composer uses it for image thumbnails, including HEIC attachments.
+
+`DisplayImage` from `@adecore/agents-react/chat/ui` accepts native image props and decodes HEIC or HEIF if the browser cannot display the source. Remote images must allow cross-origin reads. Other formats keep the browser's native behavior.

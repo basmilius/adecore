@@ -6,6 +6,7 @@ import { Spinner, useMeasuredWidth } from '@adecore/ui';
 import { useChatHost } from '../../host';
 import { useChatScope } from '../../scope';
 import { DEFAULT_HEIGHT_PX, initialVisualContentHeight, rememberVisualHeight } from '../logic/visual-height';
+import { imageDocumentForDisplay } from '../image-display';
 import { VisualBridge } from '../visual-bridge';
 import { VisualViewportController } from '../visual-viewport';
 import { useVisualTheme } from './visual-theme';
@@ -129,7 +130,7 @@ function PageFrame({ page, title, maxHeight, fill = false, className, initialHei
         const bridge = new VisualBridge({
             frame: () => frame.contentWindow,
             visual: { maxHeight },
-            page: page(),
+            page: page().then(imageDocumentForDisplay),
             theme: opening.theme,
             mayOpenLink: () => personActsIn(frame),
             openLink: (url) => visuals?.openLink(url),

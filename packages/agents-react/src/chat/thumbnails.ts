@@ -2,6 +2,7 @@ import i18next from 'i18next';
 import { useEffect, useState } from 'react';
 import type { ChatAttachmentUpload } from '@adecore/agent-contracts';
 import { uploadPreviewUrl } from './attachments';
+import { imageForDisplay } from './image-display';
 
 /* The edge of a composer thumbnail: a few times the 56 px it is drawn at, so a sharp screen still gets a sharp one. */
 export const THUMBNAIL_PX = 256;
@@ -53,8 +54,11 @@ function dataUrlOf(blob: Blob): Promise<string> {
  * cannot be decoded this way (an SVG, a browser without `OffscreenCanvas`) falls back to the image.
  */
 async function makeThumbnail(upload: ChatAttachmentUpload): Promise<string> {
+    let image: Blob | null = null;
+
     try {
-        const bitmap = await createImageBitmap(new Blob([bytesOf(upload.data)], { type: upload.mime }));
+        image = await imageForDisplay(new Blob([bytesOf(upload.data)], { type: upload.mime }));
+        const bitmap = await createImageBitmap(image);
         const crop = thumbnailCrop(bitmap.width, bitmap.height);
         const canvas = new OffscreenCanvas(crop.out, crop.out);
         const context = canvas.getContext('2d');
@@ -62,7 +66,7 @@ async function makeThumbnail(upload: ChatAttachmentUpload): Promise<string> {
         if (!context) {
             bitmap.close();
 
-            return uploadPreviewUrl(upload);
+            return await dataUrlOf(image);
         }
 
         context.drawImage(bitmap, crop.sx, crop.sy, crop.size, crop.size, 0, 0, crop.out, crop.out);
@@ -70,7 +74,7 @@ async function makeThumbnail(upload: ChatAttachmentUpload): Promise<string> {
 
         return await dataUrlOf(await canvas.convertToBlob({ type: 'image/png' }));
     } catch {
-        return uploadPreviewUrl(upload);
+        return image === null ? uploadPreviewUrl(upload) : dataUrlOf(image);
     }
 }
 

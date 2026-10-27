@@ -12,6 +12,7 @@ const ENTRIES: Record<string, string> = {
     '.': 'index.ts',
     './chat': 'chat/index.ts',
     './chat/ui': 'chat/ui/index.ts',
+    './images': 'images.ts',
     './prompts': 'prompts/index.ts',
     './providers': 'providers/index.ts',
     './state': 'state/index.ts',
