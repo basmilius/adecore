@@ -3,7 +3,7 @@ import clsx from 'clsx';
 import type { IconProps } from '@adecore/ui';
 import { area, curveLinear, curveMonotoneX, curveStepAfter, line } from 'd3-shape';
 import { numberOf, readValue, warnOnce } from './access.ts';
-import { columnsIn, endRoundedColumn, guessLabelWidth, LABEL_LIFT, placeValueLabels, segmentOf } from './band.ts';
+import { columnsIn, endRoundedBar, endRoundedColumn, guessLabelWidth, LABEL_INSET, LABEL_LIFT, placeValueLabels, segmentOf } from './band.ts';
 import { colorOf, seriesColor } from './color.ts';
 import { BarsContext, useChartContext, type ChartContextValue } from './context.ts';
 import { useBeforePaint, useKeyCheck, useRegistration } from './register.ts';
@@ -61,19 +61,25 @@ export interface ChartBarProps<Row> {
     readonly hoverOpacity?: number;
     /* The opacity of a column the root dims, or that is not picked while another is. */
     readonly dimOpacity?: number;
-    /* The pixels the columns of a bucket take together, from the width of the bucket; 72% of it by default, at most 56px a column. */
+    /*
+     * The pixels the columns of a bucket take together, from the width of the bucket; 72% of it by default, at most 56px a
+     * column. In a horizontal chart the bucket is a row and this is the thickness of its bars.
+     */
     readonly columnWidth?: (bucket: number) => number;
     /* The corner radius of a column that stands alone; stacked segments stay square. */
     readonly radius?: number;
     /* `end` rounds only the end away from the ground, so the column stands flat on it. */
     readonly rounded?: 'all' | 'end';
-    /* The least height of a column that stands alone, in pixels, also for a zero; a missing value still draws nothing. */
+    /* The least height of a column that stands alone, in pixels, also for a zero; a missing value still draws nothing. The least length of a bar. */
     readonly minHeight?: number;
-    /* Writes each column's value over it, as the y axis writes it or through the function; labels that would collide move up a row. */
+    /*
+     * Writes each column's value over it, as the y axis writes it or through the function; labels that would collide move
+     * up a row. In a horizontal chart the value stands past the end of the bar, and a stack writes its total past its end.
+     */
     readonly valueLabels?: boolean | ((value: number, row: Row, index: number) => string);
     /* The columns grow from the ground when they first draw; not for a person who asks for reduced motion. */
     readonly animate?: boolean;
-    /* The type size of the value labels: `2xs` beside a dense row of columns, `xs` over a few wide ones. */
+    /* The type size of the value labels: `2xs` beside a dense row of columns, `xs` over a few wide ones and beside rows (the default there). */
     readonly valueLabelSize?: '2xs' | 'xs';
     readonly className?: string;
     readonly ref?: Ref<SVGGElement>;
@@ -194,6 +200,10 @@ export function ChartLine<Row>({ value, label, tone, icon, curve = 'linear', das
         valueLabels: false
     });
 
+    if (chart.horizontal) {
+        return null;
+    }
+
     if (chart.points) {
         return (
             <g ref={ref} className={clsx('pointer-events-none', className)}>
@@ -250,6 +260,10 @@ export function ChartPoint<Row>({ value, label, tone, icon, className, ref }: Ch
     });
 
     const fallback = chart.colors.get(id) ?? seriesColor(0);
+
+    if (chart.horizontal) {
+        return null;
+    }
 
     return (
         <g ref={ref} className={clsx('pointer-events-none', className)}>
@@ -308,6 +322,10 @@ export function ChartArea<Row>({
         valueLabels: false
     });
 
+    if (chart.horizontal) {
+        return null;
+    }
+
     const stacked = chart.stacked.get(id);
     const tops = pointsOf(chart, stacked?.top ?? values);
     const ground = groundOf(chart);
@@ -348,7 +366,7 @@ export function ChartBars({ stack = false, children, className, ref }: ChartBars
     );
 }
 
-/* Columns, one per bucket: on a `band` scale, or on a `time` scale whose buckets last one step. */
+/* Columns, one per bucket: on a `band` scale, or on a `time` scale whose buckets last one step. Bars per row in a horizontal chart. */
 export function ChartBar<Row>({
     value,
     label,
@@ -362,7 +380,7 @@ export function ChartBar<Row>({
     minHeight = 0,
     rounded = 'all',
     valueLabels,
-    valueLabelSize = '2xs',
+    valueLabelSize: labelSize,
     animate = false,
     className,
     ref
@@ -374,6 +392,30 @@ export function ChartBar<Row>({
     const rows = chart.data as Row[];
     const [color, rowColors] = tonesOf(chart, tone);
     const labeled = valueLabels !== undefined && valueLabels !== false;
+    const { horizontal } = chart;
+    // A value beside a row reads with the name of the row, which is written a size larger than a label over a column.
+    const valueLabelSize = labelSize ?? (horizontal ? 'xs' : '2xs');
+    const stack = bars?.stack === true ? bars.id : null;
+    const writeValue = typeof valueLabels === 'function' ? valueLabels : (amount: number): string => chart.formatY(amount);
+    // A horizontal stack has room for one value past its end: its total, which its last part with labels writes.
+    const totals = horizontal && stack !== null;
+    const writesLabels = labeled && (!totals || [...chart.series].findLast(([, entry]) => entry.stack === stack && entry.valueLabels)?.[0] === id);
+    const others = totals ? [...chart.series].flatMap(([seriesId, entry]) => (entry.stack === stack && seriesId !== id ? [entry] : [])) : [];
+
+    const labelValueAt = (index: number): number | null => {
+        const parts = [values[index], ...others.map((entry) => entry.values[index])].filter((part): part is number => part !== null && part !== undefined);
+
+        return parts.length === 0 ? null : parts.reduce((sum, part) => sum + part, 0);
+    };
+
+    const rowTexts = values.map((_, index) => {
+        const amount = labelValueAt(index);
+
+        return horizontal && writesLabels && amount !== null ? writeValue(amount, rows[index]!, index) : '';
+    });
+
+    const widthOf = (text: string): number => widths.get(text) ?? guessLabelWidth(text, valueLabelSize);
+    const endRoom = horizontal && writesLabels ? Math.max(0, ...rowTexts.map(widthOf)) + LABEL_INSET + 2 : 0;
 
     useRegistration(chart.store, 'series', id, {
         kind: 'bar',
@@ -381,12 +423,13 @@ export function ChartBar<Row>({
         color,
         rowColors,
         values,
-        stack: bars?.stack === true ? bars.id : null,
+        stack,
         bars: bars?.id ?? null,
         curve: 'linear',
         icon: icon ?? null,
         valueLabels: labeled,
-        dimOpacity
+        dimOpacity,
+        endRoom
     });
 
     // A time scale learns how long a bucket is from the distance between two rows, so one row alone has no slot.
@@ -406,13 +449,17 @@ export function ChartBar<Row>({
     const groupOf = (index: number): { first: number; last: number } =>
         chart.band?.groups.find((run) => index >= run.first && index <= run.last) ?? { first: 0, last: values.length - 1 };
 
-    const writeValue = typeof valueLabels === 'function' ? valueLabels : (amount: number): string => chart.formatY(amount);
+    const focusOf = (index: number): { focused: boolean; outOfFocus: boolean } => {
+        const focused = index === chart.activeIndex || chart.selected[index] === true;
+
+        return { focused, outOfFocus: chart.dimmed[index] === true || (anySelected && !focused) };
+    };
 
     const drawn = values.flatMap((amount, index) => {
         const top = stacked?.top[index];
         const base = stacked?.base[index] ?? 0;
         const topPixel = top === null || top === undefined ? null : chart.pixelOfY(top);
-        const basePixel = chart.pixelOfY(base) ?? chart.plot.bottom;
+        const basePixel = chart.pixelOfY(base) ?? (horizontal ? chart.plot.left : chart.plot.bottom);
         const bucket = chart.bucketAt(index);
 
         if (amount === null || topPixel === null || bucket === null) {
@@ -420,9 +467,19 @@ export function ChartBar<Row>({
         }
 
         const column = columnsIn(bucket.left, bucket.width, count, columnWidth)[slot]!;
-        const { y, height } = segmentOf(topPixel, basePixel, base === 0, amount, bars?.stack === true ? 0 : minHeight);
-        const focused = index === chart.activeIndex || chart.selected[index] === true;
-        const outOfFocus = chart.dimmed[index] === true || (anySelected && !focused);
+        const least = stack === null ? minHeight : 0;
+        let box: { x: number; y: number; width: number; height: number };
+
+        if (horizontal) {
+            // A segment is measured up an axis that grows downward; mirrored, the same rules hold for a bar that grows rightward.
+            const segment = segmentOf(-topPixel, -basePixel, base === 0, amount, least);
+            box = { x: -(segment.y + segment.height), y: column.x, width: segment.height, height: column.width };
+        } else {
+            const segment = segmentOf(topPixel, basePixel, base === 0, amount, least);
+            box = { x: column.x, y: segment.y, width: column.width, height: segment.height };
+        }
+
+        const { focused, outOfFocus } = focusOf(index);
         const run = groupOf(index);
         let alpha = focused ? 1 : (opacity?.(rows[index]!, index - run.first, run.last - run.first + 1) ?? 1);
 
@@ -432,15 +489,42 @@ export function ChartBar<Row>({
             alpha *= hoverOpacity;
         }
 
-        const text = labeled ? writeValue(amount, rows[index]!, index) : '';
+        const text = labeled && !horizontal ? writeValue(amount, rows[index]!, index) : '';
 
-        return [{ index, column, y, height, alpha, outOfFocus, text }];
+        return [{ index, box, alpha, outOfFocus, text }];
     });
 
-    const labelTops = placeValueLabels(
-        drawn.map(({ column, y, text }) => ({ center: column.x + column.width / 2, top: y, width: widths.get(text) ?? guessLabelWidth(text, valueLabelSize) })),
-        valueLabelSize
-    );
+    const labelTops = horizontal
+        ? []
+        : placeValueLabels(
+              drawn.map(({ box, text }) => ({ center: box.x + box.width / 2, top: box.y, width: widthOf(text) })),
+              valueLabelSize
+          );
+
+    // A value stands past the end of its bar, or of its stack, in the middle of the bar's height.
+    const rowLabels = rowTexts.flatMap((text, index) => {
+        const total = labelValueAt(index);
+        const bucket = chart.bucketAt(index);
+
+        if (text === '' || total === null || bucket === null) {
+            return [];
+        }
+
+        const column = columnsIn(bucket.left, bucket.width, count, columnWidth)[slot]!;
+        const own = totals ? undefined : drawn.find((entry) => entry.index === index)?.box;
+        const end = own === undefined ? (chart.pixelOfY(total) ?? chart.plot.left) : total >= 0 ? own.x + own.width : own.x;
+
+        return [
+            {
+                index,
+                text,
+                x: Math.round(total >= 0 ? end + LABEL_INSET : end - LABEL_INSET),
+                y: Math.round(column.x + column.width / 2),
+                anchor: total >= 0 ? ('start' as const) : ('end' as const),
+                outOfFocus: focusOf(index).outOfFocus
+            }
+        ];
+    });
 
     useBeforePaint(() => {
         const texts = [...(labels.current?.querySelectorAll('text') ?? [])];
@@ -459,29 +543,61 @@ export function ChartBar<Row>({
     return (
         <g ref={ref} className={clsx('pointer-events-none', className)}>
             <g
-                className={animate ? 'transition-[scale] duration-400 ease-out starting:scale-y-0 motion-reduce:transition-none' : undefined}
-                style={animate ? { transformOrigin: `0px ${groundOf(chart)}px` } : undefined}
+                className={
+                    animate
+                        ? clsx(
+                              'transition-[scale] duration-400 ease-out motion-reduce:transition-none',
+                              horizontal ? 'starting:scale-x-0' : 'starting:scale-y-0'
+                          )
+                        : undefined
+                }
+                style={animate ? { transformOrigin: horizontal ? `${groundOf(chart)}px 0px` : `0px ${groundOf(chart)}px` } : undefined}
             >
-                {drawn.map(({ index, column, y, height, alpha }) => {
-                    const corner = bars?.stack === true ? 0 : Math.min(radius, Math.floor(column.width / 4));
+                {drawn.map(({ index, box, alpha }) => {
+                    const thickness = horizontal ? box.height : box.width;
+                    const corner = stack !== null ? 0 : Math.min(radius, Math.floor(thickness / 4));
                     const fill = rowColors?.[index] ?? color ?? fallback;
+                    const forward = (values[index] ?? 0) >= 0;
 
                     return rounded === 'end' && corner > 0 ? (
                         <path
                             key={index}
-                            d={endRoundedColumn(column.x, y, column.width, height, corner, (values[index] ?? 0) >= 0)}
+                            d={
+                                horizontal
+                                    ? endRoundedBar(box.x, box.y, box.width, box.height, corner, forward)
+                                    : endRoundedColumn(box.x, box.y, box.width, box.height, corner, forward)
+                            }
                             opacity={alpha}
                             style={{ fill }}
                         />
                     ) : (
-                        <rect key={index} x={column.x} y={y} width={column.width} height={height} rx={corner} opacity={alpha} style={{ fill }} />
+                        <rect key={index} {...box} rx={corner} opacity={alpha} style={{ fill }} />
                     );
                 })}
             </g>
             <g ref={labels}>
+                {rowLabels.map(({ index, text, x, y, anchor, outOfFocus }) => (
+                    <text
+                        key={`label-${index}`}
+                        x={x}
+                        y={y}
+                        dy="0.32em"
+                        textAnchor={anchor}
+                        opacity={outOfFocus ? dimOpacity : 1}
+                        aria-hidden
+                        strokeWidth={3}
+                        paintOrder="stroke"
+                        style={{ stroke: chart.halo }}
+                        className={clsx('fill-text tabular-nums', valueLabelSize === 'xs' ? 'text-xs' : 'text-2xs')}
+                    >
+                        {text}
+                    </text>
+                ))}
                 {labeled &&
-                    drawn.map(({ index, column, y, outOfFocus, text }, i) => {
-                        const center = Math.round(column.x + column.width / 2);
+                    !horizontal &&
+                    drawn.map(({ index, box, outOfFocus, text }, i) => {
+                        const center = Math.round(box.x + box.width / 2);
+                        const y = box.y;
                         const baseline = labelTops[i]!;
 
                         return (

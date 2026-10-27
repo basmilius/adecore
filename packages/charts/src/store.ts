@@ -19,6 +19,8 @@ export interface SeriesEntry {
     readonly valueLabels: boolean;
     /* What a column dims to when it is out of focus, which the labels under it follow; columns only. */
     readonly dimOpacity?: number;
+    /* The room its value labels take past the end of the longest bar of a horizontal chart; 0 without them. */
+    readonly endRoom?: number;
 }
 
 export interface RuleEntry {
@@ -44,6 +46,8 @@ export interface BandEntry {
 export interface AxisSizes {
     /* The room end labels take right of the plot, inside its svg. */
     readonly end: number | null;
+    /* The room the row labels of a horizontal chart take left of the plot. */
+    readonly start: number | null;
 }
 
 export type YAxisSide = 'left' | 'right';
@@ -109,7 +113,7 @@ const sameEntry = (one: object | undefined, other: object): boolean =>
  */
 export function createChartStore(): ChartStore {
     const listeners = new Set<() => void>();
-    let axes: AxisSizes = { end: null };
+    let axes: AxisSizes = { end: null, start: null };
     let formats: ChartFormats = {};
 
     const emit = (): void => {

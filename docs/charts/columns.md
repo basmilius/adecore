@@ -206,7 +206,42 @@ Without `group`, every column stands in one row. A second `Chart.XAxis` writes a
 </ScoreChart.Root>
 ```
 
-The rows stack in the order of the children. The tooltip, the live region and the table name a bucket by every row, the lowest first ("Atlas 5, high"). A row of a band scale leaves labels out where they would overlap; `thin={false}` writes one under every column.
+The rows stack in the order of the children. The tooltip, the live region and the table name a bucket by every row, the lowest first ("Atlas 5, high"). A row of a band scale leaves labels out where they would overlap; `thin={false}` writes one under every column. For more than a handful of long names, turn the chart on its side.
+
+## Horizontal bars
+
+`orientation="horizontal"` on the root turns the buckets of a band scale into rows: the name on the left, the bar running to the right, its value past its end. It suits a ranked list of categories with long names, such as folders, packages or models. Lines of code per folder, code and tests stacked, with the median of the totals as a rule:
+
+<Demo src="charts/lines-by-folder" />
+
+```tsx
+const FolderChart = createChart<FolderLines>();
+
+<FolderChart.Root data={folders} x="path" orientation="horizontal" label="Lines of code per folder" format={formatNumber}>
+    <FolderChart.Grid />
+    <FolderChart.YAxis ticks={4} />
+    <FolderChart.XAxis />
+    <FolderChart.Bars stack>
+        <FolderChart.Bar value="code" label="Code" />
+        <FolderChart.Bar value="tests" label="Tests" valueLabels />
+    </FolderChart.Bars>
+    <FolderChart.Rule value={median} label="Median" dashed />
+    <FolderChart.Tooltip total />
+    <FolderChart.Legend />
+    <FolderChart.Table />
+</FolderChart.Root>
+```
+
+The x is still the bucket and the y still the value, so every part keeps its name and its props:
+
+- The height follows the rows: `rowHeight` pixels each (32 by default) and the room of the axes, in place of `height` and `grow`. A list of five and a list of thirty both read without scrolling inside the chart.
+- `Chart.XAxis` writes the name of every row on the left, never thinned. Its column is as wide as the widest name, up to `maxWidth` (240 by default) and never more than 40% of the chart; a longer name is cut short with an ellipsis, and the tooltip, the live region and the table read it whole. The pointer takes a row over its name as well as over its bar.
+- `Chart.YAxis` writes the values under the plot, and its `title` above the plot where the values start. `Chart.Grid` draws its lines upright on the ticks; `axis="x"` draws a line through every row.
+- `Chart.Bar` keeps `tone`, `opacity`, `dimOpacity`, `hoverOpacity`, `radius`, `rounded`, `minHeight` (the least length of a bar), `animate` and `columnWidth` (the thickness of the bars, from the height of a row). Bars outside a stack stand under each other in their row.
+- `valueLabels` writes a value past the end of its bar in `text-xs`, and the root keeps room right of the plot for the widest. A stack writes one value past its end: its total, written by its last part with `valueLabels`, through that part's function when it has one.
+- `Chart.Rule` is a line down through the rows, named above the plot on the side that has the room.
+- Up and Down move the cursor row by row, Home and End go to the first and the last, and Left and Right are left to the page. `group` puts a gap between runs of rows, and Page Up and Page Down jump between them; `Chart.GroupAxis` draws nothing here.
+- Lines, areas, points, markers and bands have no place across rows: a horizontal chart leaves them out, with a warning outside production. On a `time` or `linear` scale, or with `rows="points"`, the chart stays vertical.
 
 ## Value labels
 

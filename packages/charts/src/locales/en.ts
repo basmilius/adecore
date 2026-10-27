@@ -25,6 +25,7 @@ export default {
     },
     keyboard: {
         move: 'Arrow keys move between values, Home and End go to the ends, Escape clears.',
+        rows: 'Up and Down move between rows, Home and End go to the first and the last, Escape clears.',
         points: 'Left and Right move along a series, Up and Down to the next series, Home and End to its ends, Escape clears.',
         groups: 'Page Up and Page Down move between groups.',
         activate: 'Enter or Space picks a value.'
