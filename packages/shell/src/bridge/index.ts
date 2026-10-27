@@ -3,6 +3,7 @@
  * a preload and a page read them as well as the main process.
  */
 
+export { ipcSubscriber, type IpcListeners, type Subscribe } from './ipc.ts';
 export { MENU_ROLES, type MenuBarRole, type MenuNode, type MenuRole, type MenuSpec } from './menu.ts';
 export type { ThemeState } from './theme.ts';
 export type { UpdateErrorCode, UpdateState } from './update.ts';

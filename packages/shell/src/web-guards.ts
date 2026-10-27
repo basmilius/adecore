@@ -44,6 +44,37 @@ export const appWindowNavigation = (url: string, appOrigin: string, schemes: rea
     return isWebLink(url) ? 'external' : 'refuse';
 };
 
+/* What a person does on purpose: a press or a key, never a move, a wheel or a scroll. */
+const DELIBERATE_INPUT: ReadonlySet<string> = new Set(['mouseDown', 'mouseUp', 'rawKeyDown', 'keyDown', 'gestureTap', 'touchEnd']);
+
+/* How long after a press a link may still leave, which is longer than any click takes to navigate. */
+const GESTURE_MS = 1000;
+
+/*
+ * Whether a link a page wants to open in the system browser follows a press of the person. A page that
+ * runs scripts nobody vetted could otherwise send the person's browser anywhere, over and over. One
+ * press lets one link out. `saw` takes the `type` of each `input-event` of the page.
+ */
+export const createGestureGate = (now: () => number = Date.now) => {
+    let pressedAt: number | null = null;
+
+    return {
+        saw: (type: string): void => {
+            if (DELIBERATE_INPUT.has(type)) {
+                pressedAt = now();
+            }
+        },
+        consume: (): boolean => {
+            const recent = pressedAt !== null && now() - pressedAt <= GESTURE_MS;
+            pressedAt = null;
+
+            return recent;
+        }
+    };
+};
+
+export type GestureGate = ReturnType<typeof createGestureGate>;
+
 /* The part of an IPC event's sender frame the check reads. */
 export interface SenderFrame {
     readonly url: string;

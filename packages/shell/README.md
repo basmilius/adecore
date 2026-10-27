@@ -23,8 +23,8 @@ The package registers no IPC handler and listens to no app-wide Electron event. 
 
 | Import | What it holds |
 |---|---|
-| `@adecore/shell` | For the main process: `createWindows`, `createWindowState`, `createUpdater`, `createTheme`, `menuTemplateOf`, `staticMenuTemplate`, `createMenuCommands`, `createPageKeys`, `createAppScheme` and the web guards |
-| `@adecore/shell/bridge` | The shapes that cross IPC: `MenuSpec`, `MenuNode`, `MENU_ROLES`, `MENU_BAR_ROLES`, `UpdateState`, `ThemeState` and `compareVersions`. It imports nothing from Electron, so a preload and the page read it too. |
+| `@adecore/shell` | For the main process: `createWindows`, `createWindowState`, `createUpdater`, `createTheme`, `menuTemplateOf`, `staticMenuTemplate`, `createMenuCommands`, `createPageKeys`, `createAppScheme`, `createGestureGate` and the web guards |
+| `@adecore/shell/bridge` | The shapes that cross IPC: `MenuSpec`, `MenuNode`, `MENU_ROLES`, `MENU_BAR_ROLES`, `UpdateState`, `ThemeState` and `compareVersions`, and `ipcSubscriber` for a preload. It imports nothing from Electron, so a preload and the page read it too. |
 
 ## Documentation
 

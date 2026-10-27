@@ -46,3 +46,18 @@ const fromApp = (event: Electron.IpcMainInvokeEvent): boolean =>
 ## isExternalLink
 
 What the system browser or mail app may be handed: a web or `mailto:` link. A `file:` link could open an application, so it never is. `isWebLink` is the web part alone.
+
+## createGestureGate
+
+Whether a link a page wants to open in the system browser follows a press of the person. A page that runs scripts nobody vetted could otherwise send the person's browser anywhere, over and over. `saw` takes the type of every input event; only a press or a key counts. `consume` says whether one came within the last second, and uses it up, so one press lets one link out. The clock is injected for tests and defaults to `Date.now`; `GestureGate` is the type it returns.
+
+```ts
+const gesture = createGestureGate();
+contents.on('input-event', (_event, input) => gesture.saw(input.type));
+contents.setWindowOpenHandler(({ url }) => {
+    if (isExternalLink(url) && gesture.consume()) {
+        void shell.openExternal(url);
+    }
+    return { action: 'deny' };
+});
+```
