@@ -1,7 +1,18 @@
 import { useTranslation } from 'react-i18next';
 import { parseAnsi } from '../logic/ansi';
 
-export function AnsiOutput({ text, limit, tailLines }: { text: string; limit?: number; tailLines?: number }) {
+/* `marksOmitted` off leaves out the count of what the limit cut, for a text that is itself only a beginning. */
+export function AnsiOutput({
+    text,
+    limit,
+    tailLines,
+    marksOmitted = true
+}: {
+    text: string;
+    limit?: number | undefined;
+    tailLines?: number;
+    marksOmitted?: boolean;
+}) {
     const { t } = useTranslation('agent-chat');
     const { tokens, omitted } = parseAnsi(text, { limit, tailLines });
 
@@ -12,7 +23,7 @@ export function AnsiOutput({ text, limit, tailLines }: { text: string; limit?: n
                     {token.content}
                 </span>
             ))}
-            {omitted > 0 && `\n${t('work.moreCharacters', { count: omitted })}`}
+            {marksOmitted && omitted > 0 && `\n${t('work.moreCharacters', { count: omitted })}`}
         </>
     );
 }

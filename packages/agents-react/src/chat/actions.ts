@@ -33,6 +33,7 @@ export function transportActions(transport: ChatTransport): ChatActions {
             await transport.request('chat.continueOn', { chatId, account });
         },
         turnDiff: async (chatId, turnId) => (await transport.request('chat.turnDiff', { chatId, turnId })).diff,
+        toolOutput: async (chatId, itemId) => (await transport.request('chat.toolOutput', { chatId, itemId })).output,
         stopSubagent: async (chatId, toolUseId) => {
             await transport.request('chat.stopSubagent', { chatId, toolUseId });
         },
