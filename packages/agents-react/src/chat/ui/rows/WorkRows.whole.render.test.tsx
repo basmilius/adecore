@@ -102,7 +102,9 @@ test('a stored output shows its beginning and size, and the whole once a person 
     expect(page.host.textContent).not.toContain('did not keep');
     expect(page.host.textContent).toContain('3 MB in total');
     expect(page.host.textContent).not.toContain('more character');
+
     await click('Show full output');
+
     expect(asked).toEqual([['chat', 'tool']]);
     expect(page.host.textContent).toContain('did not keep');
     expect(button('Show full output')).toBeNull();
@@ -127,13 +129,17 @@ test('a failed load says so and loads again on a retry', async () => {
     );
 
     await click('Show full output');
+
     expect(page.host.textContent).toContain('Could not load the full output');
+
     await click('Try again');
+
     expect(page.host.textContent).toContain('did not keep');
 });
 
 test('without a host that answers the whole, the beginning is all there is', async () => {
     await render({}, <ToolBody tool={stored} chatId="chat" />);
+
     expect(page.host.textContent).toContain(PREVIEW.trim());
     expect(button('Show full output')).toBeNull();
 });
@@ -141,8 +147,11 @@ test('without a host that answers the whole, the beginning is all there is', asy
 test('an output past the clip shows the rest in place, without asking the host', async () => {
     const long = `${'x'.repeat(5000)}END`;
     await render({}, <ToolBody tool={{ ...stored, output: long, outputRef: undefined }} chatId="chat" />);
+
     expect(page.host.textContent).not.toContain('END');
+
     await click('Show full output');
+
     expect(page.host.textContent).toContain('END');
 });
 
@@ -171,6 +180,7 @@ test('a file whose diff the thread held back loads the whole diff of its turn', 
     await act(async () => page.host.querySelector<HTMLButtonElement>('button[aria-expanded]')?.click());
     await act(async () => page.host.querySelector<HTMLButtonElement>('[data-file-path="b.ts"]')?.click());
     await click('Show full diff');
+
     expect(asked).toEqual(['turn']);
     expect(button('Show full diff')).toBeNull();
 });

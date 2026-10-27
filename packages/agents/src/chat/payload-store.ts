@@ -173,7 +173,6 @@ export function compactItems(items: readonly ChatItem[]): CompactedItems {
     return { items: compacted, payloads };
 }
 
-/* The payloads a thread refers to, by the refs its items carry. */
 export function payloadRefsOf(items: readonly ChatItem[]): Set<string> {
     const ids = new Set<string>();
 

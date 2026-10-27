@@ -75,6 +75,7 @@ describe('previewOf', () => {
 
     test('never cuts inside a character', () => {
         const preview = previewOf('ééééé', 5);
+
         expect(preview).toBe('éé');
         expect(Buffer.byteLength(preview)).toBeLessThanOrEqual(5);
         expect(previewOf('a😀b', 2)).toBe('a');
@@ -85,6 +86,7 @@ describe('compactItems', () => {
     test('leaves an output within the inline limit as it is', () => {
         const item = tool('small', 'x'.repeat(CHAT_PAYLOAD_INLINE_BYTES));
         const { items, payloads } = compactItems([item]);
+
         expect(items[0]).toBe(item);
         expect(payloads.size).toBe(0);
     });
@@ -93,6 +95,7 @@ describe('compactItems', () => {
         const output = bigOutput(2000);
         const { items, payloads } = compactItems([tool('big', output)]);
         const compacted = items[0] as ChatToolItem;
+
         expect(compacted.outputRef?.bytes).toBe(Buffer.byteLength(output));
         expect(Buffer.byteLength(compacted.output ?? '')).toBeLessThanOrEqual(PAYLOAD_PREVIEW_BYTES);
         expect(output.startsWith(compacted.output ?? '-')).toBe(true);
@@ -105,7 +108,9 @@ describe('compactItems', () => {
             files: [fileDiff('a.ts', 100), ...Array.from({ length: 20 }, (_, index) => fileDiff(`f${index}.ts`, 4000))],
             truncated: false
         };
+
         const compacted = compactItems([turn('t1', diff)]).items[0] as ChatTurnItem;
+
         expect(compacted.checkpointDiff?.files.map((file) => file.path)).toEqual(diff.files.map((file) => file.path));
         expect(compacted.checkpointDiff?.files[0]?.diff).toBe(diff.files[0]?.diff);
         expect(compacted.checkpointDiff?.files.at(-1)?.diff).toBe('');
@@ -118,13 +123,18 @@ describe('ChatStore payloads', () => {
         const output = bigOutput(5000);
         await store.write('chat', info(), [tool('big', output)]);
         const record = await readFile(join(store.dir, 'chat.json'), 'utf8');
+
         expect(record.length).toBeLessThan(PAYLOAD_PREVIEW_BYTES * 2);
+
         const read = await store.read('chat');
         const item = read?.items[0] as ChatToolItem;
+
         expect(item.outputRef).toBeDefined();
         expect(await store.readPayload('chat', item.outputRef?.id ?? '')).toBe(output);
+
         const [file] = await payloadFiles('chat');
         const packed = await readFile(join(store.dir, 'chat.payloads', file ?? ''));
+
         expect(packed.length).toBeLessThan(output.length / 4);
     });
 
@@ -132,6 +142,7 @@ describe('ChatStore payloads', () => {
         const diff: ChatCheckpointDiff = { files: Array.from({ length: 30 }, (_, index) => fileDiff(`f${index}.ts`, 4000)), truncated: false };
         await store.write('chat', info(), [turn('t1', diff)]);
         const item = (await store.read('chat'))?.items[0] as ChatTurnItem;
+
         expect(await store.readDiff('chat', item.checkpointDiffRef?.id ?? '')).toEqual(diff);
     });
 
@@ -141,10 +152,13 @@ describe('ChatStore payloads', () => {
         await store.write('chat', info(), []);
         await writeFile(path, JSON.stringify({ info: info(), items: [tool('big', output)], seq: 4, resetSeq: 0, extra: { kept: true } }));
         const read = await store.read('chat');
+
         expect((read?.items[0] as ChatToolItem | undefined)?.outputRef).toBeDefined();
         expect(read?.seq).toBe(4);
         expect(read?.extras).toEqual({ extra: { kept: true } });
+
         const migrated = await readFile(path, 'utf8');
+
         expect(migrated.startsWith('{"info":{')).toBe(true);
         expect(migrated.length).toBeLessThan(PAYLOAD_PREVIEW_BYTES * 2);
         expect(await store.settled('chat')).toBe(true);
@@ -157,6 +171,7 @@ describe('ChatStore payloads', () => {
         log.append({ type: 'item', item: tool('big', output) }, 1);
         log.close();
         const item = (await store.read('chat'))?.items[0] as ChatToolItem;
+
         expect(item.output?.length).toBeLessThan(output.length);
         expect(await store.readPayload('chat', item.outputRef?.id ?? '')).toBe(output);
     });
@@ -167,25 +182,34 @@ describe('ChatStore payloads', () => {
         const items = (await store.read('original'))?.items ?? [];
         await store.write('fork', info(), items);
         await store.delete('original');
+
         expect(await payloadFiles('original')).toEqual([]);
+
         const item = (await store.read('fork'))?.items[0] as ChatToolItem;
+
         expect(await store.readPayload('fork', item.outputRef?.id ?? '')).toBe(output);
     });
 
     test('the same output written twice is one file', async () => {
         const output = bigOutput(3000);
         await store.write('chat', info(), [tool('a', output), tool('b', output)]);
+
         expect(await payloadFiles('chat')).toHaveLength(1);
     });
 
     test('a prune removes the payloads the last record no longer refers to', async () => {
         await store.write('chat', info(), [tool('a', bigOutput(3000)), tool('b', bigOutput(3001))]);
+
         expect(await payloadFiles('chat')).toHaveLength(2);
+
         await store.write('chat', info(), [tool('b', bigOutput(3001))]);
         await store.prunePayloads('chat');
+
         expect(await payloadFiles('chat')).toHaveLength(1);
+
         await store.write('chat', info(), []);
         await store.prunePayloads('chat');
+
         expect(await payloadFiles('chat')).toEqual([]);
     });
 
@@ -193,6 +217,7 @@ describe('ChatStore payloads', () => {
         await store.write('chat', info(), [tool('a', bigOutput(3000))]);
         const fresh = new ChatStore(home);
         await fresh.prunePayloads('chat');
+
         expect(await payloadFiles('chat')).toHaveLength(1);
     });
 
@@ -200,6 +225,7 @@ describe('ChatStore payloads', () => {
         const output = bigOutput(3000);
         store.writeSync('chat', info(), [tool('big', output)]);
         const item = (await new ChatStore(home).read('chat'))?.items[0] as ChatToolItem;
+
         expect(await new ChatStore(home).readPayload('chat', item.outputRef?.id ?? '')).toBe(output);
     });
 
@@ -210,11 +236,13 @@ describe('ChatStore payloads', () => {
 
     test('the payload folder is no chat', async () => {
         await store.write('chat', info(), [tool('big', bigOutput(3000))]);
+
         expect(await store.list()).toEqual(['chat']);
     });
 
     test('compacting the same item twice reuses the first answer', () => {
         const item: ChatItem = tool('big', bigOutput(3000));
+
         expect(compactItems([item]).items[0]).toBe(compactItems([item]).items[0]);
     });
 });
