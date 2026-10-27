@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, rm, stat, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { VISUAL_LIMITS, type ChatVisual } from '@adecore/agent-contracts';
 import { AttachmentStore } from './attachment-store.ts';
 import { ChatStore } from './chat-store.ts';
@@ -14,6 +14,16 @@ let clock: number;
 let told: Array<{ chatId: string; visuals: ChatVisual[] }>;
 
 const PAGE = '<!doctype html><html><head><title>Revenue</title></head><body><svg></svg></body></html>';
+const PNG = new Uint8Array([137, 80, 78, 71]);
+const MINUTE = 60 * 1000;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
+
+async function previewsOf(chatId: string): Promise<string[]> {
+    const names = await readdir(store.workspacePath(chatId));
+
+    return names.filter((name) => name.startsWith('preview-')).sort();
+}
 
 beforeEach(async () => {
     home = await mkdtemp(join(tmpdir(), 'agents-visuals-'));
@@ -239,6 +249,82 @@ describe('VisualStore', () => {
         await store.removeChat('chat-1');
         expect(await store.list('chat-1')).toEqual([]);
         expect(told.at(-1)).toEqual({ chatId: 'chat-1', visuals: [] });
+    });
+
+    test('repeated previews keep the twenty newest, and none younger than ten minutes goes', async () => {
+        const source = await store.writeSource('chat-1', 'chart.html', PAGE);
+        const previews: string[] = [];
+
+        for (let i = 0; i < 25; i++) {
+            clock = i * MINUTE;
+            previews.push(await store.writePreview('chat-1', PNG));
+        }
+
+        expect(await previewsOf('chat-1')).toEqual(
+            previews
+                .slice(5)
+                .map((path) => basename(path))
+                .sort()
+        );
+        expect(await readFile(source, 'utf8')).toBe(PAGE);
+
+        for (let i = 0; i < 25; i++) {
+            clock = HOUR + i;
+            await store.writePreview('chat-2', PNG);
+        }
+
+        expect(await previewsOf('chat-2')).toHaveLength(25);
+    });
+
+    test('a sweep removes expired previews without a new one, and spares sources, pages and recent previews', async () => {
+        clock = 0;
+        const expired = await store.writePreview('chat-1', PNG);
+        const source = await store.writeSource('chat-1', 'chart.html', PAGE);
+        const visual = await store.publish('chat-1', { title: 'Chart', html: PAGE });
+        clock = DAY - 5 * MINUTE;
+        const recent = await store.writePreview('chat-1', PNG);
+        clock = 0;
+        const other = await store.writePreview('chat/2', PNG);
+
+        expect(await store.sweepPreviews(DAY)).toBe(2);
+        expect(await previewsOf('chat-1')).toEqual([basename(recent)]);
+        expect(await previewsOf('chat/2')).toEqual([]);
+        expect(await Bun.file(expired).exists()).toBe(false);
+        expect(await Bun.file(other).exists()).toBe(false);
+        expect(await readFile(source, 'utf8')).toBe(PAGE);
+        expect(await store.list('chat-1')).toEqual([visual]);
+        expect(await Bun.file(store.pagePath('chat-1', visual.id)).exists()).toBe(true);
+        expect(await store.sweepPreviews(DAY)).toBe(0);
+    });
+
+    test('a store after a restart sweeps what an earlier one left, by modification time for a preview without a time in its name', async () => {
+        clock = 0;
+        await store.writePreview('chat-1', PNG);
+        const workspace = await store.prepareWorkspace('chat-1');
+        const legacy = join(workspace, 'preview-0123456789abcdef.png');
+        const unrelated = join(workspace, 'preview-notes.png');
+        await writeFile(legacy, PNG);
+        await writeFile(unrelated, PNG);
+        await utimes(legacy, 1000, 1000);
+        const restarted = new VisualStore(home, attachments, { now: () => 1000 * 1000 + DAY });
+
+        expect(await restarted.sweepPreviews()).toBe(2);
+        expect(await readdir(workspace)).toEqual(['preview-notes.png']);
+    });
+
+    test('a sweep beside a chat removal and a new preview settles without an error', async () => {
+        clock = 0;
+        await store.writePreview('chat-1', PNG);
+        await store.writePreview('chat-2', PNG);
+        clock = DAY;
+        const [, , fresh] = await Promise.all([store.sweepPreviews(), store.removeChat('chat-1'), store.writePreview('chat-2', PNG)]);
+
+        expect(await previewsOf('chat-2')).toEqual([basename(fresh)]);
+        await expect(stat(store.workspacePath('chat-1'))).rejects.toMatchObject({ code: 'ENOENT' });
+    });
+
+    test('a sweep without any chat removes nothing', async () => {
+        expect(await store.sweepPreviews()).toBe(0);
     });
 
     test('a visuals file beside the records is no chat', async () => {

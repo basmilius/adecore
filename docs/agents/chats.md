@@ -72,6 +72,8 @@ A turn that hit the plan's usage limit or an overloaded model ends as an `error`
 
 `VisualStore.writeSource(chatId, name, html)` saves the HTML as it is in `<home>/chats/<encodedChatId>.visuals/`, apart from the published attachment. The name ends in `.html` and holds no folder, and a source has the same byte limit as a published visual. Writing the same name again replaces the source and leaves the published page alone. `writePreview(chatId, png)` writes a preview under a name of its own in that folder.
 
+Previews are disposable and sources are not. A preview goes once it is 24 hours old, and beyond the 20 newest of a chat. One younger than 10 minutes always stays, so a caller can still read the preview it just got. `writePreview` holds its own chat to those limits after it writes. `sweepPreviews(now?)` holds every chat to them and resolves with the number of previews it removed; the host decides when to call it, since the store runs no timer of its own. Sources, published pages and the list of visuals are never touched.
+
 `workspacePath(chatId)` returns the folder, and `prepareWorkspace(chatId)` creates it, readable by its owner only. `removeChat` removes the sources and previews with the chat's published visuals. A fork copies the published pages the caller picks; sources and previews stay with the chat they came from.
 
 ## Live UI sources
