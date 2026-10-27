@@ -1,5 +1,5 @@
-import type { ChatBookmark } from '@adecore/agent-contracts';
-import type { TimelineRow } from './timeline';
+import type { ChatBookmark, ChatItem } from '@adecore/agent-contracts';
+import { agentTurnLabel, type TimelineRow } from './timeline';
 import { DEFAULT_READING_WIDTH, readingMeasure } from '../reading-width';
 
 // The strip of ticks at the left edge of a chat view, as numbers; the component only draws what comes out of here.
@@ -9,7 +9,7 @@ export type TickKind = 'person' | 'wake' | 'bookmark';
 
 export interface ScrubberTick {
     id: string;
-    /* The row of the timeline the tick jumps to. */
+    /* The row of the timeline the tick jumps to; `EARLIER_ROW` for a message before the part of the thread this client holds. */
     rowIndex: number;
     kind: TickKind;
     text: string;
@@ -41,9 +41,45 @@ const WIDTH_NEAR_WAKE_PX = 8;
 const WIDTH_PERSON_PX = 8;
 const WIDTH_WAKE_PX = 5;
 
-/* `marks` is what `bookmarkRows` answers: the bookmark drawn at a row, by row id. */
-export function ticksOf(rows: readonly TimelineRow[], marks: ReadonlyMap<string, ChatBookmark> = new Map()): ScrubberTick[] {
-    return rows.flatMap((row, rowIndex): ScrubberTick[] => {
+/* Below every row, so a tick before the rows this client holds sorts first and its stretch reaches the first row of the thread. */
+export const EARLIER_ROW = -1;
+
+/* A message before the rows this client holds, as the outline (`outlineItems`) has it; its row id is the one the thread will draw it with. */
+function earlierTick(item: ChatItem, bookmarks: ReadonlyMap<string, ChatBookmark>): ScrubberTick | null {
+    const bookmark = bookmarks.get(item.id) ?? null;
+    const rowIndex = EARLIER_ROW;
+
+    if (item.kind === 'user') {
+        const text = item.text !== '' ? item.text : (item.attachments ?? []).map((attachment) => attachment.name).join(', ');
+
+        return { id: item.id, rowIndex, kind: 'person', text, createdAt: item.createdAt, turnId: item.turnId, bookmark };
+    }
+
+    if (item.kind === 'turn' && ((item.taskIds?.length ?? 0) > 0 || (item.messageFrom?.length ?? 0) > 0)) {
+        return { id: `start-${item.id}`, rowIndex, kind: 'wake', text: agentTurnLabel(item), createdAt: item.createdAt, turnId: item.id, bookmark: null };
+    }
+
+    if (item.kind === 'assistant' && bookmark !== null) {
+        return { id: item.id, rowIndex, kind: 'bookmark', text: item.text, createdAt: item.createdAt, turnId: item.turnId, bookmark };
+    }
+
+    return null;
+}
+
+/*
+ * `marks` is what `bookmarkRows` answers: the bookmark drawn at a row, by row id. `earlier` is the
+ * outline of the thread before `rows`, and `bookmarks` the chat's, which mark the ticks of that part.
+ */
+export function ticksOf(
+    rows: readonly TimelineRow[],
+    marks: ReadonlyMap<string, ChatBookmark> = new Map(),
+    earlier: readonly ChatItem[] = [],
+    bookmarks: readonly ChatBookmark[] = []
+): ScrubberTick[] {
+    const byItem = new Map(bookmarks.map((bookmark) => [bookmark.itemId, bookmark]));
+    const before = earlier.flatMap((item) => earlierTick(item, byItem) ?? []);
+
+    const held = rows.flatMap((row, rowIndex): ScrubberTick[] => {
         const bookmark = marks.get(row.id) ?? null;
 
         if (row.kind === 'user') {
@@ -71,6 +107,8 @@ export function ticksOf(rows: readonly TimelineRow[], marks: ReadonlyMap<string,
 
         return [{ id: row.id, rowIndex, kind: 'bookmark', text: bookmark.excerpt, createdAt: bookmark.createdAt, turnId, bookmark }];
     });
+
+    return before.length === 0 ? held : [...before, ...held];
 }
 
 /* One drawn tick: a message, or a run of messages merged once the height has fewer pixels than they need. */

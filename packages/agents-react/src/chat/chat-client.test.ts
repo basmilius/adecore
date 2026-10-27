@@ -380,7 +380,7 @@ describe('ChatClient', () => {
         const waiting: ChatItem = { id: 'q1', kind: 'question', createdAt: 0, turnId: null, requestId: 'r1', questions: [], answers: null, state: 'pending' };
         transport.attachResult = () => ({ history: { start: 40, cursor: 'g:40' }, pending: [waiting] });
         await client.open('a', {});
-        expect(sink.resets[0]?.page).toEqual({ history: { start: 40, cursor: 'g:40' }, pending: [waiting], subagents: [] });
+        expect(sink.resets[0]?.page).toEqual({ history: { start: 40, cursor: 'g:40' }, pending: [waiting], subagents: [], outline: [] });
     });
 
     test('a page before is asked for once while it is on its way and handed to the store with its cursor', async () => {

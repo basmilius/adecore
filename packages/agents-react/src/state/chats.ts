@@ -38,6 +38,11 @@ export interface ChatState {
      * that a message woke again without a scroll reaching back to its row.
      */
     subagentsBefore?: string[];
+    /*
+     * The outline of the thread before that part (`outlineItems`), cut down and kept apart from
+     * `items`, so the scrubber has a tick for every message before a scroll reaches it.
+     */
+    outlineBefore?: ChatItem[];
     /* The messages marked to come back to, as the host last said; absent until it said anything. */
     bookmarks?: ChatBookmark[];
     /* The pages agents published in the chat, as the host last said; absent until it said anything. */
@@ -53,6 +58,8 @@ export interface ChatPage {
     pending: ChatItem[];
     /* The active sub-agents from before the page; absent from a host that sends none. */
     subagents?: ChatSubagentItem[];
+    /* The outline of the thread before the page; absent from a host that sends none. */
+    outline?: ChatItem[];
 }
 
 /* Rows keyed with the scope's `keyOf`, so a thread says which host it runs on. */
@@ -124,7 +131,8 @@ function stateOf(info: ChatInfo, items: ChatItem[], page?: ChatPage): ChatState 
         order,
         history: page.history,
         waitingBefore: before.map((item) => item.id),
-        subagentsBefore: subagents.map((item) => item.id)
+        subagentsBefore: subagents.map((item) => item.id),
+        outlineBefore: (page.outline ?? []).filter((item) => !(item.id in byId))
     };
 }
 
@@ -173,15 +181,16 @@ export function prependPage(state: ChatState, cursor: string, page: ChatHistoryR
     const order = [...olderIds, ...state.order];
 
     if (page.history.cursor === null) {
-        const { history: _history, waitingBefore: _waitingBefore, subagentsBefore: _subagentsBefore, ...rest } = loaded;
+        const { history: _history, waitingBefore: _waitingBefore, subagentsBefore: _subagentsBefore, outlineBefore: _outlineBefore, ...rest } = loaded;
 
         return { ...rest, items, structure: items, order };
     }
 
     const waitingBefore = (state.waitingBefore ?? []).filter((id) => !olderIds.has(id));
     const subagentsBefore = (state.subagentsBefore ?? []).filter((id) => !olderIds.has(id));
+    const outlineBefore = (state.outlineBefore ?? []).filter((item) => !olderIds.has(item.id));
 
-    return { ...loaded, items, structure: items, order, history: page.history, waitingBefore, subagentsBefore };
+    return { ...loaded, items, structure: items, order, history: page.history, waitingBefore, subagentsBefore, outlineBefore };
 }
 
 /* The requests that still wait, oldest first: those from before the page this client holds, then the thread's own. */

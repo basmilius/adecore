@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { ChatInfo, ChatItem } from '@adecore/agent-contracts';
+import { CHAT_OUTLINE_TEXT_CHARS, ChatItemSchema, type ChatInfo, type ChatItem } from '@adecore/agent-contracts';
 import { ChatThread } from './thread.ts';
 
 const info = { chatId: 'history' } as ChatInfo;
@@ -92,5 +92,22 @@ describe('chat history', () => {
         expect(page.history.start).toBe(4);
         expect(thread.subagentsBefore(page.history.start).map((item) => item.id)).toEqual(['woken', 'after']);
         expect(thread.subagentsBefore(1)).toEqual([]);
+    });
+
+    test('the outline before the page holds the messages, the wakes and the marked replies, cut down', () => {
+        const long = 'x'.repeat(400);
+        const user = { id: 'u0', kind: 'user', text: long, createdAt: 1, turnId: 't0', mentions: ['a.ts'] } as ChatItem;
+        const checkpointDiff = { files: [], truncated: false };
+        const wake: ChatItem = { id: 't1', kind: 'turn', createdAt: 2, turnId: 't1', state: 'done', endedAt: 3, costUsd: 0, taskIds: ['k1'], checkpointDiff };
+        const reply = (id: string): ChatItem => ({ id, kind: 'assistant', text: long, createdAt: 3, turnId: 't1', streaming: false });
+        const thread = new ChatThread(info, [user, wake, reply('a0'), reply('a1'), message(0)]);
+        const start = thread.history(1).history.start;
+        const outline = thread.outlineBefore(start, new Set(['a1']));
+        expect(outline.map((item) => item.id)).toEqual(['u0', 't1', 'a1']);
+        expect(outline[0]).toEqual({ id: 'u0', kind: 'user', text: 'x'.repeat(CHAT_OUTLINE_TEXT_CHARS), createdAt: 1, turnId: 't0' });
+        expect(outline[1]).not.toHaveProperty('checkpointDiff');
+        expect(outline[2]).toMatchObject({ text: 'x'.repeat(CHAT_OUTLINE_TEXT_CHARS), streaming: false });
+        expect(outline.every((item) => ChatItemSchema.safeParse(item).success)).toBe(true);
+        expect(thread.outlineBefore(0)).toEqual([]);
     });
 });
