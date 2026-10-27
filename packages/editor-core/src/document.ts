@@ -2,6 +2,7 @@ import { scriptSource } from './script-source.ts';
 import { CloserTracker } from './closer-tracker.ts';
 import { planBlockComment, planLineComments } from './comments.ts';
 import { planEnter } from './enter.ts';
+import { planCodeBlock } from './code-blocks.ts';
 import { planAutoIndent, planJoinLines, planToggleCase, properIndent, spacingBetween } from './line-commands.ts';
 import { mapOffset, offsetMapper } from './offsets.ts';
 import { planPaste } from './paste.ts';
@@ -163,6 +164,7 @@ const identifier = /[\p{L}\p{N}\p{M}\p{Pc}$]/u;
 /* What can follow `->`: the first letter of a member name, or the `{` of a dynamic one. */
 const arrowContinues = /^[\p{L}_{]/u;
 const wordCommand = /^(select|delete)?(word|camel)(Left|Right)$/i;
+const codeBlockCommand = /^codeBlock(Start|End)(WithSelection)?$/;
 
 let graphemes: Intl.Segmenter | undefined;
 
@@ -1044,6 +1046,18 @@ export class DocumentModel {
                 { brackets: pairing && options.autoClosingBrackets !== false, quotes: pairing && options.autoClosingQuotes !== false },
                 language
             );
+        }
+
+        const blockMatch = codeBlockCommand.exec(command);
+
+        if (blockMatch) {
+            const plan = planCodeBlock(this.editSource(language), this.selections, blockMatch[1] === 'Start' ? 'start' : 'end', blockMatch[2] !== undefined, {
+                tabSize,
+                guides: options.indentGuides === true,
+                mate: (offset) => this.matchBracket(offset, language)?.mate
+            });
+
+            return this.changeSelections(plan);
         }
 
         const enter = { language, unit, tabSize, smart: options.smartEnter !== false, reach: true };

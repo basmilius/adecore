@@ -115,7 +115,11 @@ export type EditorCommand =
     | 'reverseLines'
     | 'uniqueLines'
     | 'convertIndentsToSpaces'
-    | 'convertIndentsToTabs';
+    | 'convertIndentsToTabs'
+    | 'codeBlockStart'
+    | 'codeBlockEnd'
+    | 'codeBlockStartWithSelection'
+    | 'codeBlockEndWithSelection';
 
 export interface CommandOptions {
     /* Clamped to 1 through 16. */
@@ -151,4 +155,6 @@ export interface CommandOptions {
     lineSpan?: (line: number) => { first: number; last: number };
     /* Told which lines a move went to (`from` before, `to` after), so a host can take what it keeps by line along. */
     onLinesMoved?: (moves: readonly { from: number; to: number }[]) => void;
+    /* Whether the indent guides count as blocks for the code block commands. Off unless true. */
+    indentGuides?: boolean;
 }

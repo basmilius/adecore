@@ -36,6 +36,16 @@ async function setup() {
 }
 
 describe('back and forward', () => {
+    test('a navigating command of the editor records the place it left, so back returns there', async () => {
+        const { editor, language } = await setup();
+        editor.moveCaret(at(0, 2));
+        editor.navigate(at(0, 2));
+        editor.moveCaret(at(3, 4));
+
+        expect(language.history.back()).toBe(true);
+        expect(editor.getCaret()).toEqual(at(0, 2));
+    });
+
     test('the back shortcut returns to where the caret was before a jump in this file and the forward one goes again', async () => {
         const { editor, language, answer } = await setup();
         answer({ uri, range: range(3, 4, 9) });

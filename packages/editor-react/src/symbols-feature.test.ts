@@ -113,4 +113,39 @@ describe('symbols feature', () => {
 
         expect(asked()).toBe(1);
     });
+
+    test('hands the editor the name of every symbol at every depth as a stop, and takes them back when the answer is empty or the language goes', async () => {
+        let answer: unknown = [
+            {
+                name: 'Box',
+                kind: 5,
+                range: range(0, 4),
+                selectionRange: { start: { line: 0, character: 6 }, end: { line: 0, character: 9 } },
+                children: [{ name: 'open', kind: 6, range: range(1, 2), selectionRange: { start: { line: 1, character: 4 }, end: { line: 1, character: 8 } } }]
+            }
+        ];
+
+        const { service, editor, language } = await setup(() => answer);
+
+        expect(editor.declarations).toEqual([
+            { line: 0, character: 6 },
+            { line: 1, character: 4 }
+        ]);
+
+        answer = [];
+        service.refresh(uri);
+        await settle();
+
+        expect(editor.declarations).toBeNull();
+
+        answer = [{ name: 'a', kind: 12, location: { uri, range: range(2, 3) } }];
+        service.refresh(uri);
+        await settle();
+
+        expect(editor.declarations).toEqual([{ line: 2, character: 0 }]);
+
+        language.dispose();
+
+        expect(editor.declarations).toBeNull();
+    });
 });

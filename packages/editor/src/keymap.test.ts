@@ -185,3 +185,31 @@ test('host overrides drive both printed chords and editor handlers without chang
     expect(KEYMAP.goToDefinition.mac).toBe('Mod+B');
     expect(KEYMAP.inlineEdit.mac).toBeNull();
 });
+
+describe('the structural movement keys', () => {
+    test('move by method with Ctrl+Shift on macOS and Alt elsewhere', () => {
+        expect(keyAction(key('ArrowUp', { ctrlKey: true, shiftKey: true }), true)).toEqual({ type: 'view', command: 'methodUp' });
+        expect(keyAction(key('ArrowDown', { ctrlKey: true, shiftKey: true }), true)).toEqual({ type: 'view', command: 'methodDown' });
+        expect(keyAction(key('ArrowUp', { altKey: true }), false)).toEqual({ type: 'view', command: 'methodUp' });
+        expect(keyAction(key('ArrowDown', { altKey: true }), false)).toEqual({ type: 'view', command: 'methodDown' });
+    });
+
+    test('move to a code block with the bracket keys, and select with Shift', () => {
+        expect(keyAction(key('[', { metaKey: true, altKey: true, code: 'BracketLeft' }), true)).toEqual({ type: 'command', command: 'codeBlockStart' });
+        expect(keyAction(key(']', { ctrlKey: true, code: 'BracketRight' }), false)).toEqual({ type: 'command', command: 'codeBlockEnd' });
+        expect(keyAction(key('[', { ctrlKey: true, shiftKey: true, code: 'BracketLeft' }), false)).toEqual({
+            type: 'command',
+            command: 'codeBlockStartWithSelection'
+        });
+        expect(keyAction(key(']', { metaKey: true, altKey: true, shiftKey: true, code: 'BracketRight' }), true)).toEqual({
+            type: 'command',
+            command: 'codeBlockEndWithSelection'
+        });
+    });
+
+    test('leave Alt+ArrowDown to Method Down and give Shrink Selection Ctrl+Shift+W off macOS', () => {
+        expect(KEYMAP.shrinkSelection.mac).toBe('Alt+ArrowDown');
+        expect(KEYMAP.shrinkSelection.other).toBe('Ctrl+Shift+W');
+        expect(keyAction(key('w', { ctrlKey: true, shiftKey: true, code: 'KeyW' }), false)).toEqual({ type: 'command', command: 'shrinkSelection' });
+    });
+});

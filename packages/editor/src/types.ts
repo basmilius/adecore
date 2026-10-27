@@ -28,7 +28,9 @@ export type EditorViewCommand =
     | 'toggleColumnMode'
     | 'increaseFontSize'
     | 'decreaseFontSize'
-    | 'resetFontSize';
+    | 'resetFontSize'
+    | 'methodUp'
+    | 'methodDown';
 
 /* How far a person may zoom the text, and whether the wheel does. */
 export interface EditorZoom {
@@ -649,6 +651,12 @@ export interface Editor {
     setLabel(label: string): void;
     /* What a language server knows about the folds: the bodies of symbols and the ranges it folds. They follow their text through edits until set again; null forgets them. */
     setFoldHints(hints: EditorFoldHints | null): void;
+    /* The places Method Up and Down stop at, such as the names of a language server's symbols. They follow their text through edits until set again; null goes back to the editor's own reading of the structure. Optional so an editor from before it still fits. */
+    setDeclarations?(positions: readonly EditorPosition[] | null): void;
+    /* A command that navigates (Method Up and Down, Code Block Start and End) moved the primary caret away from `from`. Optional so an editor from before it still fits. */
+    onNavigate?(listener: (from: EditorPosition) => void): () => void;
+    /* Whether the editor has the keyboard focus. Optional so an editor from before it still fits. */
+    hasFocus?(): boolean;
     /*
      * Marks that follow their lines through edits until the host sets them again. Every layer (default: the unnamed one)
      * holds its own marks and the editor draws the union, so setting one layer never clears another; an empty list

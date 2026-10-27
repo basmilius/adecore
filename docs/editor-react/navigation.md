@@ -18,6 +18,8 @@ The panel renders into an editor widget row, so it scrolls with the text.
 
 ## Symbols
 
+The symbols of the document are also the stops of Method Up and Down: `language.symbols` hands the editor the name of every symbol, at every depth, with `setDeclarations`. A jump that the editor reports with `onNavigate` is recorded in the history, so Back returns to where the caret left.
+
 `language.symbolPicker.open()` opens a filter over the document's symbols, as Mod+F12 does. `:12` goes to line 12, and `#name` searches the symbols of the whole project through `workspace/symbol`, where the service supports it.
 
 ## History

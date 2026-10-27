@@ -215,6 +215,19 @@ export class Outline {
         this.version++;
     }
 
+    /* Where the named blocks of the structure declare their name, in no order: the stops of Method Up and Down. */
+    declarationStops(document: OutlineDocument): number[] {
+        return this.structure.flatMap((entry) => {
+            if (entry.name === undefined) {
+                return [];
+            }
+
+            const header = document.getLine(document.positionAt(entry.from).line);
+
+            return [header.start + Math.max(0, header.text.indexOf(entry.name))];
+        });
+    }
+
     /* Outermost first. Of two blocks that start on one line, only the larger one. */
     blocks(document: OutlineDocument): readonly OutlineBlock[] {
         if (this.cache?.version !== this.version) {
