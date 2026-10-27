@@ -10,6 +10,7 @@ import {
     type WorkspaceEdit
 } from '@adecore/lsp';
 import type { Editor, EditorPosition } from '@adecore/editor';
+import { EditLocations } from './edit-locations.ts';
 import { NavigationHistory, type Place } from './navigation-history.ts';
 import { ProjectProblems, serviceProblems } from './project-problems.ts';
 import { applyWorkspaceEdit, type ProjectFiles } from './workspace-edit.ts';
@@ -121,6 +122,7 @@ export class ProjectLanguage {
     readonly folder: string;
     readonly problems: ProjectProblems;
     readonly history = new NavigationHistory();
+    readonly edits: EditLocations;
     private readonly holders = new Map<string, Holder>();
     private readonly files: ProjectFiles | null;
 
@@ -138,6 +140,7 @@ export class ProjectLanguage {
         this.i18n = host.i18n ?? i18next;
         this.folder = host.folder ?? '';
         this.files = host.files ?? null;
+        this.edits = new EditLocations(host.editHistoryLimit);
         this.panelBodyHeight = host.panelBodyHeight ?? PANEL_BODY_HEIGHT;
         this.problems = new ProjectProblems(host.problemSource ?? serviceProblems(service, (uri) => this.pathOfLocation(uri) ?? uri));
     }
@@ -200,7 +203,11 @@ export class ProjectLanguage {
 
     /* Tells the servers that files were deleted, once they are. */
     didDeleteFiles(targets: readonly FileOperationTarget[]): Promise<void> {
-        return this.service.didDeleteFiles?.(filesOf(targets)) ?? Promise.resolve();
+        const files = filesOf(targets);
+
+        this.edits.forget((uri) => files.some((file) => (file.directory ? uri.startsWith(`${file.uri}/`) : uri === file.uri)));
+
+        return this.service.didDeleteFiles?.(files) ?? Promise.resolve();
     }
 
     /* The text of a file as it stands now: an open document's, else a draft's or the machine's; null when it is no text file. */

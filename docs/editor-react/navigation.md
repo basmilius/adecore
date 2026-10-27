@@ -27,3 +27,9 @@ The symbols of the document are also the stops of Method Up and Down: `language.
 Every jump records where the caret was in the project's `NavigationHistory`, which serves all editors of the project, so Back and Forward walk across files. Two places on one line count as one, and the history keeps the last 100. `language.history.back()` and `forward()` move through it, as Mod+[ and Mod+] do on a Mac, and `recent()` lists the places in a pick list.
 
 `NavigationHistory` is exported for a host that moves the caret itself: `record(from)`, `back(current)`, `forward(current)`, `canGoBack(current)`, `canGoForward(current)` and `recent(current)` all take `Place`s, a `uri` and a `position`.
+
+## Edit locations
+
+The project also remembers where it was edited, in `project.edits`, an `EditLocations`. An edit a person makes in a focused editor is recorded as an `EditPlace`, the `uri` and the selections with the primary last, once the caret has settled. An edit within three lines of the last place and with as many carets is the same place, so typing a paragraph is one stop. The list keeps 150 places, or `LanguageHost.editHistoryLimit`. The places follow later edits of their file (`map`), and `didDeleteFiles` drops those of deleted files (`forget`). Changes that come from outside the editor move the places but add none, and the list is not kept between sessions.
+
+`language.history.lastEdit()` goes to the previous place and `nextEdit()` to the next one, skipping the place the carets are on. In the same file they restore all the carets; in another file the project's `openPlace` opens it on the primary caret only. Neither adds to the history Back and Forward use. A caret that moves without an edit puts the walk back at the end, except the move that lands on the place a walk went to. The keymap ids are `lastEditLocation` (`Mod+Shift+Backspace`) and `nextEditLocation`, which has no chord.
