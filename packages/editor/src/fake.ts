@@ -844,6 +844,12 @@ export class FakeEditor implements Editor {
         return this.focused;
     }
 
+    wordSources: (() => readonly string[]) | null = null;
+
+    setWordSources(source: (() => readonly string[]) | null): void {
+        this.wordSources = source;
+    }
+
     setSmartKeys(keys: Partial<EditorSmartKeys>): void {
         this.smartKeys = keys;
     }

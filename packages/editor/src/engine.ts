@@ -950,6 +950,10 @@ class SmartEditor implements Editor {
         return this.view.focused;
     }
 
+    setWordSources(source: (() => readonly string[]) | null): void {
+        this.controller.setWordSources(source);
+    }
+
     private foldHintsByOffset(hints: EditorFoldHints): FoldHints {
         const lineOf = (line: number): { start: number; end: number } => this.model.getLine(Math.min(line, this.model.getLineCount() - 1));
 

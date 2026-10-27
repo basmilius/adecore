@@ -659,6 +659,8 @@ export interface Editor {
     onNavigate?(listener: (from: EditorPosition) => void): () => void;
     /* Whether the editor has the keyboard focus. Optional so an editor from before it still fits. */
     hasFocus?(): boolean;
+    /* The texts of the other open documents, which Hippie completion takes words from after those of this one; null takes them away. Optional so an editor from before it still fits. */
+    setWordSources?(source: (() => readonly string[]) | null): void;
     /*
      * Marks that follow their lines through edits until the host sets them again. Every layer (default: the unnamed one)
      * holds its own marks and the editor draws the union, so setting one layer never clears another; an empty list

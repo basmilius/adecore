@@ -652,10 +652,15 @@
 .se-find-match,
 .se-find-current,
 .se-occurrence,
+.se-hippie-source,
 .se-bracket-match,
 .se-bracket-unmatched {
     position: absolute;
     border-radius: var(--radius-xs);
+}
+.se-hippie-source {
+    background: color-mix(in srgb, var(--accent) 22%, transparent);
+    border-radius: var(--radius-sm);
 }
 .se-find-match {
     background: var(--find-match);

@@ -118,6 +118,8 @@ export class EditorLanguage {
         this.formatOnType = new FormatOnTypeFeature(this);
         this.renderedDocs = new RenderedDocsFeature(this, timers);
         new FoldingFeature(this, (listener) => this.symbols.onResult(listener), timers);
+        editor.setWordSources?.(() => this.otherTexts());
+        this.onDispose(() => editor.setWordSources?.(null));
         this.placeOpenedCaret(editor.getCaret());
         this.onDispose(editor.onCaret((position) => this.placeOpenedCaret(position)));
     }
@@ -221,6 +223,14 @@ export class EditorLanguage {
         }
 
         this.document.release();
+    }
+
+    /* The texts of the other open editors of the project, which Hippie completion takes words from. */
+    private otherTexts(): string[] {
+        return this.project
+            .openEditors()
+            .filter((open) => open.uri !== this.uri)
+            .map((open) => open.editor.getText());
     }
 
     /* A file opened from another one lands on the line; this puts the caret on the column the jump meant. */

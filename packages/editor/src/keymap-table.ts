@@ -40,6 +40,8 @@ export const KEYMAP = {
     joinLines: bind('Ctrl+Shift+J'),
     startNewLine: bind('Shift+Enter'),
     completeCurrentStatement: bind('Mod+Shift+Enter'),
+    hippieCompletion: bind('Alt+/'),
+    hippieBackwardCompletion: bind('Alt+Shift+/'),
     startNewLineBefore: bind('Mod+Alt+Enter'),
     splitLine: bind('Mod+Enter'),
     toggleCase: bind('Mod+Shift+U'),
@@ -157,6 +159,8 @@ export type OptionalKeymapId =
     | 'convertIndentsToSpaces'
     | 'convertIndentsToTabs'
     | 'completeCurrentStatement'
+    | 'hippieCompletion'
+    | 'hippieBackwardCompletion'
     | 'moveStatementUp'
     | 'moveStatementDown'
     | 'methodUp'

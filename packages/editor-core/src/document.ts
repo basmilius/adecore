@@ -5,6 +5,7 @@ import { planEnter } from './enter.ts';
 import { planCodeBlock } from './code-blocks.ts';
 import { planCompleteStatement } from './complete-statement.ts';
 import { planMoveStatement, statementMoveMode } from './statement-move.ts';
+import { planHippie, type HippieCycle, type HippieOptions } from './hippie.ts';
 import { planAutoIndent, planJoinLines, planToggleCase, properIndent, spacingBetween } from './line-commands.ts';
 import { mapOffset, offsetMapper } from './offsets.ts';
 import { planPaste } from './paste.ts';
@@ -475,6 +476,9 @@ export class DocumentModel {
     private occurrenceSession: { wholeWord: boolean; notFound: boolean; signature: string } | undefined;
     /* The last select next occurrence found no more, which a host may say. */
     occurrencesExhausted = false;
+    /* Where the word the last Hippie completion took from this document stands, which a view reads right after the command to show it. */
+    hippieSource: { from: number; to: number } | null = null;
+    private hippieState: { cycle: HippieCycle; revision: number } | null = null;
     private closers = new CloserTracker();
     private bracketCache?: { revision: number; language: string; index: BracketIndex };
     private bracketTracker = new BracketTracker(() => this.rope);
@@ -1052,6 +1056,10 @@ export class DocumentModel {
 
         if (command === 'moveStatementUp' || command === 'moveStatementDown') {
             return this.moveStatements(command === 'moveStatementUp' ? -1 : 1, { language, unit, tabSize }, options);
+        }
+
+        if (command === 'hippieCompletion' || command === 'hippieBackwardCompletion') {
+            return this.completeFromWords(command === 'hippieCompletion' ? 1 : -1, { language, wordSources: options.wordSources });
         }
 
         if (command === 'completeCurrentStatement') {
@@ -1953,6 +1961,39 @@ export class DocumentModel {
         }
 
         return changed;
+    }
+
+    /* Hippie completion: the word before every caret becomes the next longer word that starts the same, from this document and then from the others. */
+    private completeFromWords(direction: -1 | 1, options: HippieOptions): boolean {
+        const carets = this.selections.map((selection) => selection.head).sort((a, b) => a - b);
+        const primary = this.selections.at(-1)!.head;
+        const held = this.hippieState;
+        const continues =
+            held !== null &&
+            held.revision === this.revision &&
+            held.cycle.carets.length === carets.length &&
+            held.cycle.carets.every((caret, i) => caret === carets[i]);
+        const plan = planHippie(this.getText(), carets, primary, continues ? held.cycle : null, direction, options);
+
+        this.hippieState = null;
+        this.hippieSource = null;
+
+        if (plan === null) {
+            return false;
+        }
+
+        const primaryIndex = carets.indexOf(primary);
+        const landed = plan.carets.map((caret) => ({ anchor: caret, head: caret }));
+        const [primaryCaret] = landed.splice(primaryIndex, 1);
+
+        this.applyEdits(plan.edits, { source: 'command', selections: [...landed, primaryCaret!] });
+
+        if (plan.cycle !== null) {
+            this.hippieState = { cycle: plan.cycle, revision: this.revision };
+            this.hippieSource = plan.source;
+        }
+
+        return true;
     }
 
     private moveLines(indices: readonly number[], direction: -1 | 1, options: CommandOptions): boolean {

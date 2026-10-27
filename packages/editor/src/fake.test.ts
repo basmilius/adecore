@@ -141,3 +141,18 @@ describe('FakeEditor.setGhostText', () => {
         expect(editor.ghost).toBeNull();
     });
 });
+
+describe('FakeEditor.setWordSources', () => {
+    test('holds the source until it is taken away', () => {
+        const editor = new FakeEditorEngine().mount(element, { text: 'a', theme: 'light' });
+        const source = () => ['abc'];
+
+        editor.setWordSources(source);
+
+        expect(editor.wordSources).toBe(source);
+
+        editor.setWordSources(null);
+
+        expect(editor.wordSources).toBeNull();
+    });
+});

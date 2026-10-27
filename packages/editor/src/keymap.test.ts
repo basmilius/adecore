@@ -228,6 +228,11 @@ describe('the structural movement keys', () => {
         expect(keyAction(key('Enter', { ctrlKey: true, shiftKey: true }), false)).toEqual({ type: 'command', command: 'completeCurrentStatement' });
     });
 
+    test('cycle words with Alt+/ and Alt+Shift+/', () => {
+        expect(keyAction(key('/', { altKey: true, code: 'Slash' }), false)).toEqual({ type: 'command', command: 'hippieCompletion' });
+        expect(keyAction(key('?', { altKey: true, shiftKey: true, code: 'Slash' }), true)).toEqual({ type: 'command', command: 'hippieBackwardCompletion' });
+    });
+
     test('leave Alt+ArrowDown to Method Down and give Shrink Selection Ctrl+Shift+W off macOS', () => {
         expect(KEYMAP.shrinkSelection.mac).toBe('Alt+ArrowDown');
         expect(KEYMAP.shrinkSelection.other).toBe('Ctrl+Shift+W');
