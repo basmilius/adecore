@@ -64,6 +64,8 @@ export interface LanguageHost {
     readonly files?: ProjectFiles;
     readonly apple?: boolean;
     readonly keymap?: Keymap;
+    /* How many places Last Edit Location and Next Edit Location remember; 150 without one. */
+    readonly editHistoryLimit?: number;
     /* The height in pixels of the list-and-preview area of the peek and the call hierarchy, so a person's drag outlives the panel; 180 without one. */
     readonly panelBodyHeight?: number;
     /* A person finished resizing a peek or call hierarchy panel; the height is already within what the editor allows. */

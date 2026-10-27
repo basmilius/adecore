@@ -51,3 +51,18 @@ describe('file operations of a project', () => {
         await project.didDeleteFiles(['/work/a.ts']);
     });
 });
+
+describe('edit locations of a project', () => {
+    test('forgets the places of deleted files and of everything under a deleted folder', async () => {
+        const project = new ProjectLanguage(new FakeLanguageService(), { editHistoryLimit: 5 });
+        const place = (uri: string) => ({ uri, selections: [{ start: { line: 0, character: 0 }, end: { line: 0, character: 0 } }] });
+
+        project.edits.record(place('file:///work/a.ts'));
+        project.edits.record(place('file:///work/dir/b.ts'));
+        project.edits.record(place('file:///work/directory.ts'));
+
+        await project.didDeleteFiles(['/work/a.ts', { path: '/work/dir', directory: true }]);
+
+        expect(project.edits.places.map((entry) => entry.uri)).toEqual(['file:///work/directory.ts']);
+    });
+});

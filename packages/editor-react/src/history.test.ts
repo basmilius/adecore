@@ -132,3 +132,122 @@ describe('recent locations', () => {
         expect(editor.getCaret()).toEqual(at(0, 0));
     });
 });
+
+describe('edit locations', () => {
+    const lines = Array.from({ length: 12 }, (_, line) => `line ${line}`);
+    const withLine = (line: number, text: string) => lines.map((original, index) => (index === line ? text : original)).join('\n');
+
+    async function editing() {
+        const service = new FakeLanguageService();
+        const visits: Place[] = [];
+        const project = new ProjectLanguage(service, { openPlace: (place) => visits.push(place) });
+        const engine = new FakeEditorEngine();
+        const first = engine.mount({} as HTMLElement, { text: lines.join('\n'), theme: 'light' });
+        const second = engine.mount({} as HTMLElement, { text: lines.join('\n'), theme: 'light' });
+        const firstLanguage = new EditorLanguage(project, first, uri, 'typescript', new ManualTimers());
+        const secondLanguage = new EditorLanguage(project, second, other, 'typescript', new ManualTimers());
+        open.push(project, firstLanguage, secondLanguage);
+        first.focus();
+        second.focus();
+
+        return { project, first, second, firstLanguage, secondLanguage, visits };
+    }
+
+    test('goes back to the last edit and forward again, in the same file', async () => {
+        const { first, firstLanguage } = await editing();
+
+        first.type(withLine(0, 'edited zero'));
+        await settle();
+        first.type(withLine(10, 'edited ten'));
+        await settle();
+        first.moveCaret(at(5, 0));
+
+        expect(firstLanguage.history.lastEdit()).toBe(true);
+        expect(first.getCaret().line).toBe(10);
+        expect(firstLanguage.history.lastEdit()).toBe(true);
+        expect(first.getCaret().line).toBe(0);
+        expect(firstLanguage.history.lastEdit()).toBe(false);
+        expect(firstLanguage.history.nextEdit()).toBe(true);
+        expect(first.getCaret().line).toBe(10);
+    });
+
+    test('one stop for edits close together, and a stop that follows edits above it', async () => {
+        const { first, firstLanguage, project } = await editing();
+
+        first.type(withLine(8, 'a'));
+        await settle();
+        first.type(withLine(9, 'b'));
+        await settle();
+
+        expect(project.edits.places).toHaveLength(1);
+
+        first.type(`new\n${withLine(9, 'b')}`);
+        await settle();
+
+        expect(project.edits.places.map((place) => place.selections.at(-1)!.end.line)).toEqual([10, 1]);
+        expect(firstLanguage.history.lastEdit()).toBe(true);
+        expect(first.getCaret().line).toBe(10);
+    });
+
+    test('opens the file of an edit in another editor on its primary caret', async () => {
+        const { first, second, secondLanguage, visits } = await editing();
+
+        first.type(withLine(2, 'edited'));
+        await settle();
+        second.type(withLine(9, 'edited'));
+        await settle();
+        second.moveCaret(at(0, 0));
+
+        expect(secondLanguage.history.lastEdit()).toBe(true);
+        expect(second.getCaret().line).toBe(9);
+        expect(secondLanguage.history.lastEdit()).toBe(true);
+        expect(visits).toEqual([{ uri, position: first.getCaret() }]);
+    });
+
+    test('records no edit from an editor without focus', async () => {
+        const { second, project } = await editing();
+
+        second.blur();
+        second.type(withLine(3, 'blurred'));
+        await settle();
+
+        expect(project.edits.places).toEqual([]);
+    });
+
+    test('records no change that came from outside, but moves the places along with it', async () => {
+        const { first, project } = await editing();
+
+        first.type(withLine(5, 'edited'));
+        await settle();
+        first.setText(`one more\n${withLine(5, 'edited')}`);
+        await settle();
+
+        expect(project.edits.places.map((place) => place.selections.at(-1)!.end.line)).toEqual([6]);
+    });
+
+    test('does not record the way back as a jump', async () => {
+        const { first, firstLanguage, project } = await editing();
+
+        first.type(withLine(0, 'zero'));
+        await settle();
+        first.type(withLine(10, 'ten'));
+        await settle();
+        firstLanguage.history.lastEdit();
+
+        expect(project.history.canGoBack({ uri, position: first.getCaret() })).toBe(false);
+    });
+
+    test('the keys walk through the edits', async () => {
+        const { first, firstLanguage } = await editing();
+
+        first.type(withLine(0, 'zero'));
+        await settle();
+        first.type(withLine(10, 'ten'));
+        await settle();
+        first.moveCaret(at(5, 0));
+
+        expect(first.press(keyOf(firstLanguage.shortcuts.lastEditLocation))).toBe(true);
+        expect(first.getCaret().line).toBe(10);
+        expect(firstLanguage.shortcuts.nextEditLocation).toBeNull();
+    });
+});

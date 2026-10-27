@@ -66,6 +66,7 @@ export type { HostedRow, HostedAction } from './row-host.ts';
 export { type HighlightLayers, highlightLayers } from './highlight-layers.ts';
 export { type NavigationHistory } from './navigation-history.ts';
 export type { Place } from './navigation-history.ts';
+export { EditLocations, type EditPlace } from './edit-locations.ts';
 export { openingPlace, viewStates, followViewStates, viewStateKey, forgetMovesFrom } from './view-state.ts';
 export type { ViewState, RevealLineRequest } from './view-state.ts';
 export { lspLanguageIdOf, shikiLanguageOf, shikiLanguageOfPath } from './language-ids.ts';

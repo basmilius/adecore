@@ -59,6 +59,8 @@ export const KEYMAP = {
     matchBrace: bind('Ctrl+M', 'Ctrl+Shift+M'),
     methodUp: bind('Ctrl+Shift+ArrowUp', 'Alt+ArrowUp'),
     methodDown: bind('Ctrl+Shift+ArrowDown', 'Alt+ArrowDown'),
+    lastEditLocation: bind('Mod+Shift+Backspace'),
+    nextEditLocation: bind(null),
     nextChange: bind('Ctrl+Alt+Shift+ArrowDown'),
     previousChange: bind('Ctrl+Alt+Shift+ArrowUp'),
     codeBlockStart: bind('Mod+Alt+[', 'Ctrl+['),
@@ -163,6 +165,8 @@ export type OptionalKeymapId =
     | 'hippieBackwardCompletion'
     | 'moveStatementUp'
     | 'moveStatementDown'
+    | 'lastEditLocation'
+    | 'nextEditLocation'
     | 'methodUp'
     | 'methodDown'
     | 'nextChange'

@@ -228,6 +228,11 @@ describe('the structural movement keys', () => {
         expect(keyAction(key('Enter', { ctrlKey: true, shiftKey: true }), false)).toEqual({ type: 'command', command: 'completeCurrentStatement' });
     });
 
+    test('go to the last edit location with Mod+Shift+Backspace and give the next one no chord', () => {
+        expect(KEYMAP.lastEditLocation).toMatchObject({ mac: 'Mod+Shift+Backspace', other: 'Mod+Shift+Backspace' });
+        expect(KEYMAP.nextEditLocation).toMatchObject({ mac: null, other: null });
+    });
+
     test('cycle words with Alt+/ and Alt+Shift+/', () => {
         expect(keyAction(key('/', { altKey: true, code: 'Slash' }), false)).toEqual({ type: 'command', command: 'hippieCompletion' });
         expect(keyAction(key('?', { altKey: true, shiftKey: true, code: 'Slash' }), true)).toEqual({ type: 'command', command: 'hippieBackwardCompletion' });
