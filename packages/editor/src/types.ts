@@ -1,8 +1,11 @@
 import type { EditorSearchClientOptions } from './search-client.ts';
 import type { Keymap } from './keymap-table.ts';
-import type { EditorCommand, FoldRole } from '@adecore/editor-core';
+import type { EditorCommand, FoldRole, WhitespaceCleanupOptions } from '@adecore/editor-core';
 
 export type { EditorCommand, FoldRole };
+
+/* What a cleanup before a save does; everything is off unless set, except that the lines with a caret keep their trailing whitespace. */
+export type EditorWhitespaceCleanup = WhitespaceCleanupOptions;
 
 export type EditorFoldOutline = 'off' | 'hover' | 'always';
 
@@ -785,6 +788,14 @@ export interface Editor {
     trackRange(range: EditorRange): EditorTrackedRange;
     /* Replaces ranges of the current text at once, as one step of the undo history. `mapSelections` places each selection in the new text, keeping its direction, and redo restores it. `mergeUndo` joins the step before it when the text is exactly as that step left it, so one undo takes both back. */
     applyEdits(edits: readonly EditorContentChange[], options?: EditorApplyEditsOptions): boolean;
+    /*
+     * Call right before writing the file: cleans up the whitespace as the options say, as one undo step, and
+     * marks the text as saved, so `modified` counts from here next time. Call it on every save, with all off too.
+     * False when the text did not change. Optional so an editor from before it still fits.
+     */
+    cleanUpWhitespace?(options: EditorWhitespaceCleanup): boolean;
+    /* Marks the text as saved without a cleanup, such as after a reload from disk. Optional so an editor from before it still fits. */
+    markSaved?(): void;
     setTheme(theme: EditorTheme): void;
     /* Reads the code face off the page again, after the page changed its size, family or ligatures. */
     refreshFont(): void;

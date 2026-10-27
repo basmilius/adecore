@@ -39,11 +39,14 @@ import { TypingContexts } from './typing-context.ts';
 import type { TypingContext } from './typing-context.ts';
 import { todosInLines, type TodoMatch, type TodoOptions } from './todo.ts';
 import { type LineOrder, planConvertIndents, planLineOrder } from './line-order.ts';
+import { ModifiedStretches, planWhitespaceCleanup, type WhitespaceCleanupOptions } from './whitespace-cleanup.ts';
 import { isHumpBoundary, isWordBoundary } from './words.ts';
 
 export type { DocumentLine, FindMatch, FindNextOptions, FindOptions, FoldingOptions, FoldingRange };
 
 const LINE_ORDERS: Partial<Record<EditorCommand, LineOrder>> = { sortLines: 'sort', reverseLines: 'reverse', uniqueLines: 'unique' };
+/* Where trailing whitespace is part of a string's value, which a cleanup must not change. */
+const STRING_MODES = new Set<TypingContext['mode']>(['quote', 'template', 'heredoc']);
 
 export interface OffsetRange {
     readonly from: number;
@@ -460,6 +463,7 @@ export class DocumentModel {
     private structureCache?: StructureRange[];
     private selectionHistory: Selection[][] = [];
     private typingContexts = new TypingContexts((line) => this.getLine(line));
+    private readonly modified = new ModifiedStretches();
     private statementClosers = new Map<number, { text: string; language: string }>();
     /* The carets that stand right after a `->` the editor completed, where the next keystroke decides whether it stays. */
     private arrows = new Set<number>();
@@ -827,6 +831,41 @@ export class DocumentModel {
         };
 
         return todosInLines(source, options, first, last);
+    }
+
+    /* Forgets which lines changed, as when the text was just written to disk. */
+    markSaved(): void {
+        this.modified.clear();
+    }
+
+    /* The zero-based lines changed since `markSaved`, or since the document was made, undo and redo included. */
+    getModifiedLines(): number[] {
+        return this.modified.lines(
+            (offset) => this.rope.lineAt(offset),
+            (line) => this.rope.lineBounds(line).start
+        );
+    }
+
+    /*
+     * Cleans up the whitespace before a save, as one undo step: the trailing whitespace of the modified or
+     * of all lines, except on the lines with a caret and inside a multiline string of the language, the
+     * blank lines at the end, and a final line break. Returns whether the text changed.
+     */
+    cleanUpWhitespace(options: WhitespaceCleanupOptions & { language?: string } = {}): boolean {
+        const language = options.language ?? 'plaintext';
+        const modified = new Set(options.trailingWhitespace === 'modified' ? this.getModifiedLines() : []);
+
+        const source = {
+            lineCount: this.getLineCount(),
+            line: (index: number) => this.getLine(index),
+            newline: (index: number) => this.newlineAt(index),
+            keeps: (line: number, column: number) => STRING_MODES.has(this.typingContexts.at(line, column, language).mode)
+        };
+
+        const carets = new Set(this.selections.map((selection) => this.rope.lineAt(selection.head)));
+        const edits = planWhitespaceCleanup(source, options, { modified: (line) => modified.has(line), carets });
+
+        return edits.length > 0 && this.applyEdits(edits, { source: 'command' });
     }
 
     /*
@@ -2767,6 +2806,10 @@ export class DocumentModel {
         const snapshot = this.getSnapshot();
 
         if (changes) {
+            for (const transaction of changes) {
+                this.modified.record(transaction);
+            }
+
             snapshot.changes = changes.map((transaction) => transaction.map((change) => ({ ...change })));
             snapshot.source = source;
 

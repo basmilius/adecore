@@ -67,6 +67,7 @@ export type {
     EditorSelectionRanges,
     EditorTheme,
     EditorViewCommand,
+    EditorWhitespaceCleanup,
     EditorWidget,
     EditorZoom,
     FoldRole,

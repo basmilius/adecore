@@ -13,6 +13,7 @@ Everything comes from the package root, `@adecore/editor-core`.
 | Commands   | `typeText`, `paste`, `execute`, `wordSelectionAt`, `wordStartBefore`, `wordEndAfter`                             |
 | Search     | `find`, `findNext`, `replace`, `replaceAll`, `replaceMatches`                                                    |
 | Folding    | `getFoldingRanges`                                                                                               |
+| Saving     | `markSaved`, `getModifiedLines`, `cleanUpWhitespace`; see [Saving](/editor-core/documents#saving)                |
 | Comments   | `findTodos`                                                                                                      |
 
 See [Documents and edits](/editor-core/documents), [Typing and commands](/editor-core/commands) and [Search and folding](/editor-core/search-folding).
@@ -69,6 +70,8 @@ document.matchBracket(13); // { mate: 4 }
 | `EditorCommand`, `CommandOptions`, `TypeTextOptions`                                         | Commands and their options                                              |
 | `FindOptions`, `FindNextOptions`, `FindMatch`, `ReplaceOptions`, `ReplaceAllOptions`         | Search                                                                  |
 | `FoldingOptions`, `FoldingRange`, `FoldRole`, `FoldHints`, `FoldSymbolHint`, `FoldRangeHint` | Folding                                                                 |
+| `WhitespaceCleanupOptions`, `TrailingWhitespace`                                             | Saving                                                                  |
+| `TodoMatch`, `TodoOptions`, `DetectedIndentation`                                            | TODO comments and indentation                                           |
 | `TextSpan`, `BracketIndex`, `BracketMatch`                                     | Helper results and inputs                                               |
 
 Large dense edit batches rebuild the rope in one pass and emit one `contentEdits` stretch covering the changed region. Small or sparse batches retain separate content edits and share unchanged rope branches. In both cases the snapshot keeps the individual offset changes for annotations, maps selections with their existing affinity, and records one undo step.
