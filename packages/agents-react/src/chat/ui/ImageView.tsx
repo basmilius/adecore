@@ -4,6 +4,7 @@ import clsx from 'clsx';
 import { ImageOff, Minus, Plus, RotateCcw } from 'lucide-react';
 import type { ResourceUrl } from '../../host';
 import { ButtonGroup, CloseButton, Dialog, Icon, IconButton, Tooltip } from '@adecore/ui';
+import { DisplayImage } from './DisplayImage';
 
 const MIN_SCALE = 1;
 const MAX_SCALE = 8;
@@ -137,7 +138,7 @@ function Lightbox({
                         dragRef.current = null;
                     }}
                 >
-                    <img
+                    <DisplayImage
                         src={src}
                         alt={alt}
                         draggable={false}
@@ -205,7 +206,7 @@ export function ImageThumb({ source, alt, className, aspect, actions, open: open
                 style={ratio}
                 onClick={() => setOpen(true)}
             >
-                <img src={src} alt={alt} className={clsx(aspect !== undefined && 'size-full object-contain', className)} />
+                <DisplayImage src={src} alt={alt} className={clsx(aspect !== undefined && 'size-full object-contain', className)} />
             </button>
             <Lightbox src={src} alt={alt} open={open} onOpenChange={setOpen} actions={actions} />
         </>

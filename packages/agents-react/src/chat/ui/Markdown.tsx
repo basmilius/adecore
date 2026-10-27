@@ -19,6 +19,7 @@ import { useChatHost, type ChatHost, type FileRef, type ShellCodeBlockContext } 
 import { useFileLinkCwd, useFileLinkScopeId, useFileLinkTarget, useOpenFileLink } from './file-links';
 import { ErrorBoundary, FileIcon, Icon } from '@adecore/ui';
 import { useTranslation } from 'react-i18next';
+import { DisplayImage } from './DisplayImage';
 
 type ShellCodeBlockReply = Pick<ShellCodeBlockContext, 'scopeId' | 'chatId' | 'itemId'> & { streaming: boolean };
 
@@ -211,14 +212,14 @@ function MarkdownImage({ src, alt }: { src?: string; alt?: string }) {
     const path = typeof src === 'string' ? localImagePath(src, cwd) : null;
 
     if (HostImage === undefined || path === null) {
-        return <img src={src} alt={alt} />;
+        return <DisplayImage src={src} alt={alt} />;
     }
 
     return <HostImage path={path} alt={alt ?? ''} />;
 }
 
 function PlainImage({ src, alt }: { src?: string; alt?: string }) {
-    return <img src={src} alt={alt} />;
+    return <DisplayImage src={src} alt={alt} />;
 }
 
 /* A ```mermaid fence, which draws what it says. */

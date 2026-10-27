@@ -203,6 +203,7 @@ exports[`the public API ./chat/ui exports these names 1`] = `
   "Composer",
   "ComposerInput",
   "DiffPool",
+  "DisplayImage",
   "EditDiff",
   "FadingWords",
   "FileLinkContext",
@@ -286,6 +287,14 @@ exports[`the public API ./chat/ui exports these names 1`] = `
   "useDiffSourceTokens",
   "useDiffTheme",
   "useFileLinkCwd",
+]
+`;
+
+exports[`the public API ./images exports these names 1`] = `
+[
+  "DisplayImage",
+  "imageDocumentForDisplay",
+  "imageForDisplay",
 ]
 `;
 

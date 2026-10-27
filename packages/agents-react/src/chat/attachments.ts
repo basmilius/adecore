@@ -95,11 +95,29 @@ function nameFor(file: File, index: number): string {
     return file.name || `pasted-${Date.now()}-${index + 1}.${file.type.split('/')[1] ?? 'bin'}`;
 }
 
+function fileMime(file: File): string {
+    const image = attachmentImageMime({ name: file.name, mime: file.type });
+
+    if (image !== null) {
+        return image;
+    }
+
+    if (file.type === '' || file.type === 'application/octet-stream' || file.type === 'binary/octet-stream') {
+        const extension = /\.(heic|heif)$/i.exec(file.name)?.[1]?.toLowerCase();
+
+        if (extension !== undefined) {
+            return `image/${extension}`;
+        }
+    }
+
+    return file.type || 'application/octet-stream';
+}
+
 export async function readAttachments(files: File[]): Promise<ChatAttachmentUpload[]> {
     return Promise.all(
         files.map(async (file, index) => ({
             name: nameFor(file, index),
-            mime: attachmentImageMime({ name: file.name, mime: file.type }) ?? (file.type || 'application/octet-stream'),
+            mime: fileMime(file),
             data: await readAsBase64(file)
         }))
     );

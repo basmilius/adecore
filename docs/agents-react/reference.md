@@ -202,3 +202,11 @@ Prompts in every state, for tests and demos.
 | Module | Exports |
 | --- | --- |
 | [`testing/prompts`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/testing/prompts.ts) | `PROMPT_SAMPLES` |
+
+## `@adecore/agents-react/images`
+
+`imageForDisplay(blob)` decodes HEIC and HEIF into PNG for a browser display URL or canvas. Other formats keep their original blob. The decoder loads on demand and supports a CSP without `unsafe-eval`.
+
+`DisplayImage` from `@adecore/agents-react/images` (also exported by `@adecore/agents-react/chat/ui`) adds a HEIC/HEIF fallback to native image props. Remote sources must allow cross-origin reads.
+
+`imageDocumentForDisplay(html)` replaces embedded HEIC/HEIF data URLs with PNG data URLs for a sandboxed HTML preview. It leaves unreadable images in place so the remaining document can open. `VisualPageFrame` applies it before handing a page to its sandbox.
