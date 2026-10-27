@@ -70,6 +70,12 @@
                 "delete": "Verwijdert"
             }
         },
+        "markup": {
+            "wrap": "Omwikkelen met afkorting",
+            "placeholder": "Afkorting, zoals div.card>p",
+            "apply": "Omwikkelen",
+            "invalid": "Geen geldige afkorting"
+        },
         "navigation": {
             "unavailable": "Hier niet beschikbaar",
             "none": "Niets gevonden",

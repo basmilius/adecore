@@ -13,6 +13,7 @@ import { RenameCard } from './RenameCard.tsx';
 import { RenderedDocs } from './RenderedDocs.tsx';
 import { SymbolPicker } from './SymbolPicker.tsx';
 import { SignatureCard } from './SignatureCard.tsx';
+import { WrapCard } from './WrapCard.tsx';
 import type { HoverView } from './popups.ts';
 
 export interface LanguagePopupsProps<Language extends EditorLanguage = EditorLanguage> {
@@ -44,6 +45,7 @@ export function LanguagePopups<Language extends EditorLanguage>({ language, cont
     const symbols = useStore(language.popups, (state) => state.symbols);
     const menu = useStore(language.popups, (state) => state.menu);
     const authors = useStore(language.popups, (state) => state.authors);
+    const wrap = useStore(language.popups, (state) => state.wrap);
 
     useEffect(() => language.editor.onViewChange(redraw), [language]);
 
@@ -53,6 +55,7 @@ export function LanguagePopups<Language extends EditorLanguage>({ language, cont
     const pickRect = pick === null ? null : language.editor.rectAt(pick.anchor);
     const renameRect = rename === null ? null : language.editor.rectAt(rename.range.start);
     const renameEnd = rename === null ? null : language.editor.rectAt(rename.range.end);
+    const wrapRect = wrap === null ? null : language.editor.rectAt(wrap.anchor);
 
     return (
         <>
@@ -85,6 +88,7 @@ export function LanguagePopups<Language extends EditorLanguage>({ language, cont
             {peek !== null && <PeekPanel language={language} view={peek} />}
             {callHierarchy !== null && <CallHierarchyPanel language={language} view={callHierarchy} />}
             {authors !== null && <CodeAuthorsCard language={language} view={authors} />}
+            {wrap !== null && wrapRect !== null && <WrapCard language={language} view={wrap} rect={wrapRect} />}
             {children}
             {rename !== null && renameRect !== null && <RenameCard language={language} view={rename} rect={renameRect} endRect={renameEnd} />}
         </>
