@@ -316,6 +316,7 @@ export class EditorView {
     private collapsed = new Set<number>();
     /* What a language server said about the folds, in offsets that follow the text through edits. */
     private foldHints: FoldHints | null = null;
+    private declarations: number[] | null = null;
     /* The roles that fold by themselves while the file is as it was opened; null once a person edited or the file opened with folds of its own. */
     private defaultRoles: ReadonlySet<FoldRole> | null = null;
     /* The folds somebody already decided on, a person or the defaults, so a later answer of a server leaves them as they are. */
@@ -916,6 +917,10 @@ export class EditorView {
             this.foldHints = mapFoldHints(this.foldHints, map);
         }
 
+        if (this.declarations !== null) {
+            this.declarations = this.declarations.map((offset) => map(offset));
+        }
+
         this.customFolds = this.customFolds.map((fold) => mapRange(fold, map));
         this.find.mapBounds(changes);
 
@@ -1381,6 +1386,46 @@ export class EditorView {
 
         this.applyFoldDefaults();
         this.refoldLayout();
+    }
+
+    /* The places Method Up and Down stop at; they follow their text through edits until set again, and null goes back to the editor's own reading. */
+    setDeclarations(offsets: readonly number[] | null): void {
+        this.declarations = offsets === null ? null : [...new Set(offsets)].sort((left, right) => left - right);
+    }
+
+    private methodStops(): number[] {
+        if (this.declarations !== null) {
+            return this.declarations;
+        }
+
+        const sections = this.foldRanges.filter((range) => range.kind === 'section').map((range) => this.model.getLine(range.startLine).start);
+
+        return [...new Set([...this.outline.declarationStops(this.model), ...sections])].sort((left, right) => left - right);
+    }
+
+    /* Moves the one caret to the previous or next declaration on another line. False when there is none. */
+    goToMethod(direction: -1 | 1): boolean {
+        // The structure is read after a pause in typing, so a press right after an edit reads it now.
+        if (this.declarations === null) {
+            this.refreshFolds();
+        }
+
+        const line = this.model.positionAt(this.model.getPrimary().head).line;
+        const stops = this.methodStops();
+
+        const target =
+            direction === 1
+                ? stops.find((offset) => this.model.positionAt(offset).line > line)
+                : stops.findLast((offset) => this.model.positionAt(offset).line < line);
+
+        if (target === undefined) {
+            return false;
+        }
+
+        this.model.setSelections([{ anchor: target, head: target }]);
+        this.revealOffset(target, direction === 1 ? 'centerDown' : 'centerUp');
+
+        return true;
     }
 
     /* Hands over what a language server knows about the folds; null forgets it. The defaults fold what the answer names, once. */

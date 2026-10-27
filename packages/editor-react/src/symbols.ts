@@ -1,4 +1,4 @@
-import type { EditorBlock } from '@adecore/editor';
+import type { EditorBlock, EditorPosition } from '@adecore/editor';
 import type { DocumentSymbol, DocumentSymbolResult, Range, SymbolInformation } from '@adecore/lsp';
 import type { EditorLanguage } from './editor-language.ts';
 import { Refresher } from './refresher.ts';
@@ -53,6 +53,29 @@ export function symbolSpansOf(result: DocumentSymbolResult): SymbolSpan[] {
     }
 
     return (result as SymbolInformation[]).map((symbol) => ({ name: symbol.name, kind: symbol.kind, range: symbol.location.range }));
+}
+
+function declarationsOf(result: DocumentSymbolResult): EditorPosition[] {
+    if (result === null || result.length === 0) {
+        return [];
+    }
+
+    if (!('range' in result[0]!)) {
+        return (result as SymbolInformation[]).map((symbol) => symbol.location.range.start);
+    }
+
+    const stops: EditorPosition[] = [];
+
+    const visit = (symbols: readonly DocumentSymbol[]): void => {
+        for (const symbol of symbols) {
+            stops.push((symbol.selectionRange ?? symbol.range).start);
+            visit(symbol.children ?? []);
+        }
+    };
+
+    visit(result as DocumentSymbol[]);
+
+    return stops;
 }
 
 /* A line a declaration can have above it: blank, a comment, or an attribute. A bare `#` is no comment, since it heads a Markdown section. */
@@ -133,6 +156,8 @@ export class SymbolsFeature {
 
                 if (!signal.aborted) {
                     editor.setBlocks(result === null ? null : blocksOf(result, editor.getText()));
+                    const declarations = declarationsOf(result);
+                    editor.setDeclarations?.(declarations.length === 0 ? null : declarations);
 
                     for (const listener of [...this.listeners]) {
                         listener(result);
@@ -154,6 +179,7 @@ export class SymbolsFeature {
             providers();
             this.refresher.dispose();
             editor.setBlocks(null);
+            editor.setDeclarations?.(null);
         });
     }
 

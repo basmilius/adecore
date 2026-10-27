@@ -32,7 +32,13 @@ export class HistoryFeature {
             return false;
         }, KEY_PRIORITY.history);
 
-        language.onDispose(off);
+        // A jump of the editor's own, such as Method Down, is a place Back returns to like any other jump.
+        const navigations = language.editor.onNavigate?.((from) => language.project.history.record({ uri: language.uri, position: from }));
+
+        language.onDispose(() => {
+            off();
+            navigations?.();
+        });
     }
 
     /* Returns to where the caret was before the last jump; false when there is no such place. */

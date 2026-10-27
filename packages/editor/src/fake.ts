@@ -823,6 +823,27 @@ export class FakeEditor implements Editor {
         this.foldHints = hints;
     }
 
+    declarations: readonly EditorPosition[] | null = null;
+
+    setDeclarations(positions: readonly EditorPosition[] | null): void {
+        this.declarations = positions;
+    }
+
+    private readonly navigations = new Set<(from: EditorPosition) => void>();
+
+    onNavigate(listener: (from: EditorPosition) => void): () => void {
+        return subscribe(this.navigations, listener);
+    }
+
+    /* Stands for a command that navigated: tells the listeners the caret left `from`. */
+    navigate(from: EditorPosition): void {
+        emit(this.navigations, from);
+    }
+
+    hasFocus(): boolean {
+        return this.focused;
+    }
+
     setSmartKeys(keys: Partial<EditorSmartKeys>): void {
         this.smartKeys = keys;
     }
@@ -1208,6 +1229,7 @@ export class FakeEditor implements Editor {
         this.changes.clear();
         this.textChanges.clear();
         this.carets.clear();
+        this.navigations.clear();
         this.hovers.clear();
         this.inlayHovers.clear();
         this.inlayHandlers.clear();

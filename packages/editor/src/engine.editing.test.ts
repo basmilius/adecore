@@ -350,7 +350,7 @@ describe('Extend Selection through the ranges of a language server', () => {
         // A quick second press grows from what the first made, and the first range that holds it and more is the next.
         expect(editor.getSelection()).toEqual(range(0, 5, 0, 13));
         expect(asked).toEqual([[{ line: 0, character: 6 }], [{ line: 0, character: 5 }]]);
-        key('ArrowDown', { altKey: true });
+        key('w', { ctrlKey: true, shiftKey: true });
         expect(editor.getSelection()).toEqual(range(0, 5, 0, 8));
     });
 

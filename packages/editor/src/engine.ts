@@ -938,6 +938,18 @@ class SmartEditor implements Editor {
         this.view.setFoldHints(hints === null ? null : this.foldHintsByOffset(hints));
     }
 
+    setDeclarations(positions: readonly EditorPosition[] | null): void {
+        this.view.setDeclarations(positions === null ? null : positions.map((position) => this.offsetAt(position)));
+    }
+
+    onNavigate(listener: (from: EditorPosition) => void): () => void {
+        return this.controller.onNavigate((from) => listener(this.positionAt(from)));
+    }
+
+    hasFocus(): boolean {
+        return this.view.focused;
+    }
+
     private foldHintsByOffset(hints: EditorFoldHints): FoldHints {
         const lineOf = (line: number): { start: number; end: number } => this.model.getLine(Math.min(line, this.model.getLineCount() - 1));
 

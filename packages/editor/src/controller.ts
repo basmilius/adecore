@@ -66,6 +66,8 @@ const MODIFYING = new Set<EditorCommand>([
     'convertIndentsToTabs'
 ]);
 
+const CODE_BLOCK_COMMANDS = new Set<EditorCommand>(['codeBlockStart', 'codeBlockEnd', 'codeBlockStartWithSelection', 'codeBlockEndWithSelection']);
+
 const VIEW_COMMANDS = new Set<EditorViewCommand>([
     'collapseRegion',
     'expandRegion',
@@ -84,7 +86,9 @@ const VIEW_COMMANDS = new Set<EditorViewCommand>([
     'toggleColumnMode',
     'increaseFontSize',
     'decreaseFontSize',
-    'resetFontSize'
+    'resetFontSize',
+    'methodUp',
+    'methodDown'
 ]);
 
 const ZOOM_STEPS = { increaseFontSize: 1, decreaseFontSize: -1, resetFontSize: 0 } as const satisfies Partial<Record<EditorViewCommand, -1 | 0 | 1>>;
@@ -111,6 +115,7 @@ export class InputController {
     private readonly touch: TouchSelection;
     private readonly cleanup: (() => void)[] = [];
     private readonly keyHandlers = new Set<EditorKeyHandler>();
+    private readonly navigateListeners = new Set<(from: number) => void>();
     private readonly gesture: DoubleModifierGesture;
     private readonly clickHandlers = new Set<EditorClickHandler>();
     private readonly inlayHandlers = new Set<EditorInlayClickHandler>();
@@ -312,6 +317,7 @@ export class InputController {
 
         this.cleanup.length = 0;
         this.keyHandlers.clear();
+        this.navigateListeners.clear();
     }
 
     private blockedByReadOnly(): boolean {
@@ -381,6 +387,7 @@ export class InputController {
             tabOutOfClosers: keys.tabOutOfClosers,
             smartEnter: keys.smartIndentOnEnter,
             indentOnPaste: keys.indentOnPaste,
+            indentGuides: settings.guides,
             smartSemicolon: keys.smartSemicolon,
             smartArrow: keys.smartArrow,
             language: settings.language ?? 'plaintext',
@@ -400,11 +407,22 @@ export class InputController {
             return true;
         }
 
+        if (name === 'methodUp' || name === 'methodDown') {
+            const from = view.model.getPrimary().head;
+            const moved = view.goToMethod(name === 'methodUp' ? -1 : 1);
+
+            if (moved) {
+                emit(this.navigateListeners, from);
+            }
+
+            return moved;
+        }
+
         if (view.settings.folding === false && name !== 'toggleColumnMode') {
             return false;
         }
 
-        const run: Record<Exclude<EditorViewCommand, keyof typeof ZOOM_STEPS>, () => void> = {
+        const run: Record<Exclude<EditorViewCommand, keyof typeof ZOOM_STEPS | 'methodUp' | 'methodDown'>, () => void> = {
             collapseRegion: () => view.collapseRegion(),
             expandRegion: () => view.expandRegion(),
             collapseAllRegions: () => view.foldAll(true),
@@ -529,6 +547,7 @@ export class InputController {
             }
         }
 
+        const before = model.getPrimary().head;
         const folded = name === 'moveLineUp' || name === 'moveLineDown' ? this.view.getFolds().collapsed : [];
 
         const result = model.execute(name, {
@@ -546,7 +565,16 @@ export class InputController {
 
         this.view.revealCaret();
 
+        if (CODE_BLOCK_COMMANDS.has(name) && model.getPrimary().head !== before) {
+            emit(this.navigateListeners, before);
+        }
+
         return result;
+    }
+
+    /* Told the offset the primary caret left when a command that navigates moved it. */
+    onNavigate(listener: (from: number) => void): () => void {
+        return subscribe(this.navigateListeners, listener);
     }
 
     private typeText(text: string): void {

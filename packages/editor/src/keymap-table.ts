@@ -49,8 +49,15 @@ export const KEYMAP = {
     convertIndentsToTabs: bind(null),
 
     expandSelection: bind('Alt+ArrowUp', 'Ctrl+W'),
-    shrinkSelection: bind('Alt+ArrowDown'),
+    // Off macOS Alt+ArrowDown is Next Method, as in IntelliJ, so Shrink Selection takes its own chord there.
+    shrinkSelection: bind('Alt+ArrowDown', 'Ctrl+Shift+W'),
     matchBrace: bind('Ctrl+M', 'Ctrl+Shift+M'),
+    methodUp: bind('Ctrl+Shift+ArrowUp', 'Alt+ArrowUp'),
+    methodDown: bind('Ctrl+Shift+ArrowDown', 'Alt+ArrowDown'),
+    codeBlockStart: bind('Mod+Alt+[', 'Ctrl+['),
+    codeBlockEnd: bind('Mod+Alt+]', 'Ctrl+]'),
+    codeBlockStartWithSelection: bind('Mod+Alt+Shift+[', 'Ctrl+Shift+['),
+    codeBlockEndWithSelection: bind('Mod+Alt+Shift+]', 'Ctrl+Shift+]'),
 
     selectNextOccurrence: bind('Ctrl+G', 'Alt+J'),
     unselectOccurrence: bind('Ctrl+Shift+G', 'Alt+Shift+J'),
@@ -142,7 +149,13 @@ export type OptionalKeymapId =
     | 'reverseLines'
     | 'uniqueLines'
     | 'convertIndentsToSpaces'
-    | 'convertIndentsToTabs';
+    | 'convertIndentsToTabs'
+    | 'methodUp'
+    | 'methodDown'
+    | 'codeBlockStart'
+    | 'codeBlockEnd'
+    | 'codeBlockStartWithSelection'
+    | 'codeBlockEndWithSelection';
 
 export type Keymap = Readonly<Record<Exclude<KeymapId, OptionalKeymapId>, KeyBinding> & Partial<Record<OptionalKeymapId, KeyBinding>>>;
 export type KeymapOverrides = Partial<Record<KeymapId, Partial<KeyBinding>>>;

@@ -44,6 +44,7 @@ Nothing pairs in plain text (`text`, `plaintext`, `txt` or `log`), inside a comm
 | Indentation           | `insertTab`, `indent`, `outdent`, `convertIndentsToSpaces`, `convertIndentsToTabs`                                                       |
 | Comments              | `toggleLineComment`, `toggleBlockComment`                                                                                                |
 | New lines             | `insertNewline`, `startNewLine`, `startNewLineBefore`, `splitLine`                                                                       |
+| Code blocks           | `codeBlockStart`, `codeBlockEnd`, `codeBlockStartWithSelection`, `codeBlockEndWithSelection`                                             |
 | Carets                | `addCaretAbove`, `addCaretBelow`, `addCaretPerSelectedLine`, `selectNextOccurrence`, `unselectOccurrence`, `selectAllOccurrences`        |
 
 A few of them do more than their name says:
@@ -57,6 +58,7 @@ A few of them do more than their name says:
 - `smartBackspace` with only whitespace before the caret, in a language whose brackets set the indentation, works from where the brackets put the line. A line indented past that goes back to it in one step. A line at or before it joins the line above, with the spacing of `joinLines` and no space when the line is empty, so an empty line under `{` goes to the end of the `{`; a blank line above is taken instead. Elsewhere, in comments and strings, it goes back a tab stop, and at the start of a line it also takes the whitespace that trails the line above.
 - `insertTab` steps over a closer the editor added before it inserts anything.
 - `selectNextOccurrence` from a bare caret selects the word, then the next whole word with the same case. From a selection it finds the text anywhere, also inside other words. When there is no further match, `occurrencesExhausted` on the model is `true` until the next press starts over.
+- `codeBlockEnd` goes before the `}` of the block around the caret, or after the `}` that pairs with a `{` in front of it, and `codeBlockStart` goes after the `{`, or before the `{` that pairs with a `}` behind the caret. A caret already there goes on to the block around it, and a caret with no block stays. Only braces of the code count, not those in strings or comments. With `indentGuides: true` a caret in the indentation of a line, at the column of an indent guide, goes to the end or the start of that guide first. The `WithSelection` commands keep the anchor and move the head.
 - `expandSelection` grows through the word, the inside of a string or bracket pair, the pair itself, the line and the document, and `shrinkSelection` walks back. A host with better ranges, such as those of a language server, passes them to `expandSelectionTo(ranges)`, one `OffsetRange` or `null` per selection.
 
 The plain word commands stop at camel humps only with `camelCase: true`; the `camel` variants always do. `wordSelectionAt`, `wordStartBefore` and `wordEndAfter` give the same word stops for a double click and a drag.
