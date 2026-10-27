@@ -45,6 +45,8 @@ const MODIFYING = new Set<EditorCommand>([
     'deleteLine',
     'moveLineUp',
     'moveLineDown',
+    'moveStatementUp',
+    'moveStatementDown',
     'toggleLineComment',
     'toggleBlockComment',
     'startNewLine',
@@ -396,7 +398,8 @@ export class InputController {
             language: settings.language ?? 'plaintext',
             camelCase: keys.camelHumps,
             visualLine: (offset) => this.view.rowOf(offset),
-            lineSpan: (line) => this.view.lineSpan(line)
+            lineSpan: (line) => this.view.lineSpan(line),
+            structure: () => this.view.structureRanges()
         };
     }
 
@@ -555,7 +558,10 @@ export class InputController {
         }
 
         const before = model.getPrimary().head;
-        const folded = name === 'moveLineUp' || name === 'moveLineDown' ? this.view.getFolds().collapsed : [];
+        const folded =
+            name === 'moveLineUp' || name === 'moveLineDown' || name === 'moveStatementUp' || name === 'moveStatementDown'
+                ? this.view.getFolds().collapsed
+                : [];
 
         const result = model.execute(name, {
             ...this.commandOptions(),

@@ -1094,15 +1094,7 @@ export class EditorView {
             return;
         }
 
-        const ranges =
-            this.model.getLength() > FOLD_LIMIT
-                ? []
-                : this.model.getFoldingRanges({
-                      indentation: /^(python|py|yaml|yml)$/.test(this.settings.language ?? ''),
-                      tabSize: this.settings.tabSize,
-                      ...(this.settings.language === undefined ? {} : { language: this.settings.language }),
-                      ...(this.foldHints === null ? {} : { hints: this.foldHints })
-                  });
+        const ranges = this.structureRanges();
 
         this.foldRanges = this.withCustomFolds(ranges);
 
@@ -1118,6 +1110,20 @@ export class EditorView {
         const anchors = new Set(this.foldRanges.map((range) => range.from));
         this.collapsed = new Set([...this.collapsed].filter((anchor) => anchors.has(anchor)));
         this.refoldLayout();
+    }
+
+    /* The folding ranges the document has now, a server's included, whether or not the folds are drawn. */
+    structureRanges(): FoldingRange[] {
+        if (this.model.getLength() > FOLD_LIMIT) {
+            return [];
+        }
+
+        return this.model.getFoldingRanges({
+            indentation: /^(python|py|yaml|yml)$/.test(this.settings.language ?? ''),
+            tabSize: this.settings.tabSize,
+            ...(this.settings.language === undefined ? {} : { language: this.settings.language }),
+            ...(this.foldHints === null ? {} : { hints: this.foldHints })
+        });
     }
 
     /* The folds a person made of a selection, which the document's own structure does not know, among the ones it does. */

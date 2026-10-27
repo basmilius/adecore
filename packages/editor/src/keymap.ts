@@ -44,6 +44,8 @@ const ACTIONS: Partial<Record<KeymapId, KeyAction>> = {
     deleteLine: command('deleteLine'),
     moveLineUp: command('moveLineUp'),
     moveLineDown: command('moveLineDown'),
+    moveStatementUp: command('moveStatementUp'),
+    moveStatementDown: command('moveStatementDown'),
     toggleLineComment: command('toggleLineComment'),
     toggleBlockComment: command('toggleBlockComment'),
     joinLines: command('joinLines'),

@@ -214,6 +214,15 @@ describe('the structural movement keys', () => {
         expect(keyAction(key('ArrowUp', both), false)).toEqual({ type: 'view', command: 'previousChange' });
     });
 
+    test('move a statement with Mod+Shift and the vertical arrows, which select to the text edges only with Home and End on macOS', () => {
+        expect(keyAction(key('ArrowUp', { metaKey: true, shiftKey: true }), true)).toEqual({ type: 'command', command: 'moveStatementUp' });
+        expect(keyAction(key('ArrowDown', { ctrlKey: true, shiftKey: true }), false)).toEqual({ type: 'command', command: 'moveStatementDown' });
+        expect(KEYMAP.selectTextStart.mac).toBeNull();
+        expect(KEYMAP.selectTextEnd.mac).toBeNull();
+        expect(keyAction(key('Home', { metaKey: true, shiftKey: true }), true)).toEqual({ type: 'edge', end: false, extend: true });
+        expect(keyAction(key('End', { metaKey: true, shiftKey: true }), true)).toEqual({ type: 'edge', end: true, extend: true });
+    });
+
     test('complete the current statement with Mod+Shift+Enter', () => {
         expect(keyAction(key('Enter', { metaKey: true, shiftKey: true }), true)).toEqual({ type: 'command', command: 'completeCurrentStatement' });
         expect(keyAction(key('Enter', { ctrlKey: true, shiftKey: true }), false)).toEqual({ type: 'command', command: 'completeCurrentStatement' });
