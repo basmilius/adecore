@@ -509,6 +509,18 @@ export function workflowAgentIdOf(ref: string): string | null {
     return ref.startsWith(WORKFLOW_AGENT_REF) ? ref.slice(WORKFLOW_AGENT_REF.length) || null : null;
 }
 
+/* Past this many UTF-8 bytes a tool's output or a turn's checkpoint diff is stored apart, and the item carries its beginning. */
+export const CHAT_PAYLOAD_INLINE_BYTES = 64 * 1024;
+
+// The whole of a value a host keeps apart from the thread; the item carries only its beginning.
+export const ChatPayloadRefSchema = z.object({
+    // Opaque to a client, which asks for the value by the item that carries this.
+    id: z.string(),
+    // The size of the whole value in UTF-8 bytes: the text of an output, the JSON of a diff.
+    bytes: z.number().int().nonnegative()
+});
+export type ChatPayloadRef = z.infer<typeof ChatPayloadRefSchema>;
+
 export const ChatToolItemSchema = z.object({
     ...base,
     kind: z.literal('tool'),
@@ -522,7 +534,9 @@ export const ChatToolItemSchema = z.object({
     progress: ChatToolProgressSchema.optional(),
     changes: z.array(ChatFileChangeSchema).optional(),
     // Set on a Workflow call once the CLI reports what the workflow runs, replaced whole by every report.
-    workflow: ChatWorkflowSchema.optional()
+    workflow: ChatWorkflowSchema.optional(),
+    // Set when `output` is only the beginning of what the call answered; `chat.toolOutput` answers the whole.
+    outputRef: ChatPayloadRefSchema.optional()
 });
 
 export const ChatSubagentUsageSchema = z.object({
@@ -660,7 +674,9 @@ export const ChatTurnItemSchema = z.object({
     // Set on the turn a fork writes a summary in: the chat it is for, which gets the last answer of the turn.
     summaryFor: ChatIdSchema.optional(),
     // Set on a turn that ended in an error because of a limit rather than a mistake.
-    limit: ChatTurnLimitSchema.optional()
+    limit: ChatTurnLimitSchema.optional(),
+    // Set when `checkpointDiff` lists every file but holds back diffs past the first few; `chat.turnDiff` answers the whole.
+    checkpointDiffRef: ChatPayloadRefSchema.optional()
 });
 
 /* What a turn a restart could not take up again ends with, so a client can tell it from a turn a person stopped. */
@@ -1111,6 +1127,16 @@ export type ChatTurnDiffPayload = z.infer<typeof ChatTurnDiffPayloadSchema>;
 // Null when the turn has no checkpoint to diff against: no repository, or git could not be read.
 export const ChatTurnDiffResultSchema = z.object({ diff: ChatCheckpointDiffSchema.nullable() });
 export type ChatTurnDiffResult = z.infer<typeof ChatTurnDiffResultSchema>;
+
+export const ChatToolOutputPayloadSchema = z.object({
+    chatId: ChatIdSchema,
+    itemId: z.string().min(1)
+});
+export type ChatToolOutputPayload = z.infer<typeof ChatToolOutputPayloadSchema>;
+
+// The whole of what a tool call answered, also where its item carries only the beginning; null before it answered.
+export const ChatToolOutputResultSchema = z.object({ output: z.string().nullable() });
+export type ChatToolOutputResult = z.infer<typeof ChatToolOutputResultSchema>;
 
 // A title of a node the fork makes; the same cap the canvas verbs hold a title to.
 export const CHAT_FORK_TITLE_MAX = 120;

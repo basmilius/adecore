@@ -1,13 +1,14 @@
 import { mkdirSync } from 'node:fs';
 import { mkdir, open, readdir, readFile, rm, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import { ChatInfoSchema, ChatItemSchema, type ChatInfo, type ChatItem } from '@adecore/agent-contracts';
+import { ChatInfoSchema, ChatItemSchema, type ChatCheckpointDiff, type ChatInfo, type ChatItem } from '@adecore/agent-contracts';
 import { z } from 'zod';
 import { isNotFound, writeAtomic, writeAtomicSync } from '../fs.ts';
 import { recordFileName } from '../record-directory.ts';
 import { migrateInlineAttachments, type AttachmentStore } from './attachment-store.ts';
 import { isBookmarkFileName } from './bookmark-store.ts';
 import { parseLog, type ChatLogLine } from './chat-log.ts';
+import { compactItems, PayloadStore, type PayloadSources } from './payload-store.ts';
 import { ChatThread } from './thread.ts';
 import { isVisualFileName } from './visual-store.ts';
 
@@ -103,17 +104,23 @@ export interface ChatStoreOptions {
 
 /*
  * One JSON file per chat under `<home>/chats`, written while a turn runs and on shutdown, with
- * the log of what happened since beside it (`ChatLog` appends to it; reading plays it back).
+ * the log of what happened since beside it (`ChatLog` appends to it; reading plays it back). An
+ * output or diff past the inline limit goes to the chat's payload folder, and the record keeps
+ * its beginning (`PayloadStore`).
  */
 export class ChatStore {
     readonly dir: string;
     private readonly attachments: AttachmentStore | null;
     private readonly isSidecar: (name: string) => boolean;
+    private readonly payloads: PayloadStore;
+    // The payloads the record this process wrote last refers to, which is what a prune keeps.
+    private readonly referenced = new Map<string, Set<string>>();
 
     constructor(home: string, options: ChatStoreOptions = {}) {
         this.dir = join(home, 'chats');
         this.attachments = options.attachments ?? null;
         this.isSidecar = options.isSidecar ?? (() => false);
+        this.payloads = new PayloadStore(this.dir);
     }
 
     logPath(chatId: string): string {
@@ -169,9 +176,13 @@ export class ChatStore {
         extras: ChatRecordExtras = {},
         uiAccess: Readonly<Record<string, unknown>> = {}
     ): Promise<number> {
-        const body = recordBody(info, items, at, preambles, extras, uiAccess);
+        const compacted = compactItems(items);
         await mkdir(this.dir, { recursive: true, mode: 0o700 });
+        // Before the record, so a record on disk never names a payload that is not.
+        await this.payloads.ensure(chatId, compacted.payloads);
+        const body = recordBody(info, compacted.items, at, preambles, extras, uiAccess);
         await writeAtomic(join(this.dir, recordFileName(chatId)), body);
+        this.referenced.set(chatId, new Set(compacted.payloads.keys()));
 
         return body.length;
     }
@@ -189,8 +200,32 @@ export class ChatStore {
         extras: ChatRecordExtras = {},
         uiAccess: Readonly<Record<string, unknown>> = {}
     ): void {
+        const compacted = compactItems(items);
         mkdirSync(this.dir, { recursive: true, mode: 0o700 });
-        writeAtomicSync(join(this.dir, recordFileName(chatId)), recordBody(info, items, at, preambles, extras, uiAccess));
+        this.payloads.ensureSync(chatId, compacted.payloads);
+        writeAtomicSync(join(this.dir, recordFileName(chatId)), recordBody(info, compacted.items, at, preambles, extras, uiAccess));
+        this.referenced.set(chatId, new Set(compacted.payloads.keys()));
+    }
+
+    /* The whole of a tool output or a diff kept apart from the record, by the id its item's ref carries. */
+    readPayload(chatId: string, id: string): Promise<string> {
+        return this.payloads.read(chatId, id);
+    }
+
+    readDiff(chatId: string, id: string): Promise<ChatCheckpointDiff> {
+        return this.payloads.readDiff(chatId, id);
+    }
+
+    /*
+     * Removes the payloads the record written last no longer refers to, such as everything a clear
+     * emptied. Nothing before this process wrote the record, since only that write says what it holds.
+     */
+    async prunePayloads(chatId: string): Promise<void> {
+        const keep = this.referenced.get(chatId);
+
+        if (keep) {
+            await this.payloads.prune(chatId, keep);
+        }
     }
 
     /* Null for a chat with nothing on disk to make it of, and for one whose record does not parse (see `unreadable`). */
@@ -203,7 +238,9 @@ export class ChatStore {
         }
 
         if (snapshot === null) {
-            return fromLogAlone(lines);
+            const rebuilt = fromLogAlone(lines);
+
+            return rebuilt && { ...rebuilt, items: await this.compact(chatId, rebuilt.items) };
         }
 
         const seq = snapshot.seq ?? 0;
@@ -223,8 +260,12 @@ export class ChatStore {
             }
         }
 
+        const { info, items } = thread.snapshot();
+
         return {
-            ...thread.snapshot(),
+            info,
+            // A large output the log still holds whole goes apart now, so an open thread never holds one.
+            items: await this.compact(chatId, items),
             seq,
             resetSeq,
             preambles: snapshot.preambles ?? [],
@@ -284,15 +325,49 @@ export class ChatStore {
 
         const parsed = RecordSchema.safeParse(liftUiAccess(record));
 
-        return parsed.success ? parsed.data : UNREADABLE;
+        if (!parsed.success) {
+            return UNREADABLE;
+        }
+
+        const compacted = compactItems(parsed.data.items);
+
+        if (compacted.items.every((item, index) => item === parsed.data.items[index])) {
+            return parsed.data;
+        }
+
+        // A record from before payloads were kept apart moves its large ones out once. The payloads land
+        // first and the record is replaced whole, so a move cut short leaves the old record as it was.
+        const migrated = { ...parsed.data, items: compacted.items };
+        await this.payloads.ensure(chatId, onlyWritten(compacted.payloads));
+        await writeAtomic(join(this.dir, recordFileName(chatId)), JSON.stringify(migrated));
+
+        return migrated;
+    }
+
+    private async compact(chatId: string, items: ChatItem[]): Promise<ChatItem[]> {
+        const compacted = compactItems(items);
+        await this.payloads.ensure(chatId, onlyWritten(compacted.payloads));
+
+        return compacted.items;
     }
 
     async delete(chatId: string): Promise<void> {
-        await Promise.all([rm(join(this.dir, recordFileName(chatId)), { force: true }), rm(this.logPath(chatId), { force: true })]);
+        this.referenced.delete(chatId);
+
+        await Promise.all([
+            rm(join(this.dir, recordFileName(chatId)), { force: true }),
+            rm(this.logPath(chatId), { force: true }),
+            this.payloads.remove(chatId)
+        ]);
     }
 }
 
 const UNREADABLE = Symbol('unreadable');
+
+/* The payloads this process holds the text of; a read leaves the ones a record already refers to for the next write to check. */
+function onlyWritten(payloads: PayloadSources): PayloadSources {
+    return new Map([...payloads].filter(([, source]) => source !== null));
+}
 
 const RECORD_HEAD = Buffer.from('{"info":{');
 const HEAD_CHUNK_BYTES = 16384;

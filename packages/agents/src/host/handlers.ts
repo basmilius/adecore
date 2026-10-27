@@ -103,6 +103,7 @@ export function chatHandlers(chats: ChatCore, providers: ProviderRegistry): { [T
             return {};
         },
         'chat.turnDiff': async (payload) => ({ diff: await chats.turnDiff(payload.chatId, payload.turnId) }),
+        'chat.toolOutput': async (payload) => ({ output: await chats.toolOutput(payload.chatId, payload.itemId) }),
         'chat.fork': unsupported('fork chats'),
         'chat.forkInfo': unsupported('fork chats'),
         'chat.summarize': unsupported('fork chats'),

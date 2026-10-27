@@ -23,6 +23,8 @@ export type ChatErrorCode =
     | 'transcript-format'
     | 'fork-failed'
     | 'turn-not-found'
+    // An output or diff stored apart from the thread that is no longer on disk.
+    | 'payload-missing'
     // What a bookmark is refused with.
     | 'item-not-found'
     | 'bookmark-not-found'

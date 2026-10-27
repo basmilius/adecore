@@ -1148,9 +1148,31 @@ export class ChatCore {
         }
     }
 
-    /* What a turn changed against the tree it started from; null when it has no checkpoint. */
-    turnDiff(chatId: string, turnId: string): Promise<ChatCheckpointDiff | null> {
-        return this.require(chatId).turnDiff(turnId);
+    /* What a turn changed against the tree it started from, whole also where the thread keeps only its first diffs; null when it has no checkpoint. */
+    async turnDiff(chatId: string, turnId: string): Promise<ChatCheckpointDiff | null> {
+        const session = this.require(chatId);
+        const turn = session.thread.get(turnId);
+
+        if (turn?.kind === 'turn' && turn.checkpointDiffRef && this.store) {
+            return await this.store.readDiff(chatId, turn.checkpointDiffRef.id);
+        }
+
+        return await session.turnDiff(turnId);
+    }
+
+    /* The whole of what a tool call answered, also where the thread keeps only its beginning. */
+    async toolOutput(chatId: string, itemId: string): Promise<string | null> {
+        const tool = this.require(chatId).thread.get(itemId);
+
+        if (tool?.kind !== 'tool') {
+            throw new ChatError('item-not-found', `No tool call ${itemId} in chat ${chatId}`);
+        }
+
+        if (!tool.outputRef || !this.store) {
+            return tool.output;
+        }
+
+        return await this.store.readPayload(chatId, tool.outputRef.id);
     }
 
     approve(chatId: string, requestId: string, decision: 'allow' | 'allow-always' | 'deny', message?: string): void {
@@ -1575,6 +1597,8 @@ export class ChatCore {
             // A chat killed while the write was out has no log left to fold.
             if (this.logs.get(chatId) === log && folds) {
                 log.compact(at.seq);
+                // With the log folded, the record alone says which payloads the thread still needs.
+                await this.store.prunePayloads(chatId);
             }
         });
 
