@@ -24,7 +24,9 @@ const FOLDERS: Folder[] = [
     { path: 'scripts', code: 10, tests: 5 }
 ];
 
-const wrap = (node: ReactNode): ReactNode => <UIProvider i18n={i18n}>{node}</UIProvider>;
+function wrap(node: ReactNode): ReactNode {
+    return <UIProvider i18n={i18n}>{node}</UIProvider>;
+}
 
 test('a horizontal chart takes its height from its rows and says how to move between them', () => {
     const markup = renderToStaticMarkup(
@@ -131,7 +133,9 @@ describe.skipIf(typeof document === 'undefined')('a mounted horizontal chart', (
         );
 
         expect(names()[0]!.style.width).toBe('100px');
+
         await press(plot, 'ArrowDown');
+
         expect(live()).toBe('packages/editor/src/language, Code 60');
         expect(container.querySelector('.min-w-36 p')!.textContent).toBe('packages/editor/src/language');
     });
@@ -160,12 +164,17 @@ describe.skipIf(typeof document === 'undefined')('a mounted horizontal chart', (
 
         await press(plot, 'ArrowDown');
         await press(plot, 'ArrowDown');
+
         expect(live()).toBe('packages/ui, Code 40');
         expect(await press(plot, 'ArrowRight')).toBe(false);
         expect(live()).toBe('packages/ui, Code 40');
+
         await press(plot, 'ArrowUp');
+
         expect(live()).toBe('packages/editor/src/language, Code 60');
+
         await press(plot, 'End');
+
         expect(live()).toBe('scripts, Code 10');
     });
 
@@ -200,9 +209,10 @@ describe.skipIf(typeof document === 'undefined')('a mounted horizontal chart', (
             </Chart.Root>
         );
 
-        expect(texts()).toEqual(['80', '50', '30', '15']);
         const total = container.querySelector('text')!;
         const longest = Math.max(...bars().map((rect) => Number(rect.getAttribute('x')) + Number(rect.getAttribute('width'))));
+
+        expect(texts()).toEqual(['80', '50', '30', '15']);
         expect(Number(total.getAttribute('x'))).toBe(longest + 6);
         expect(total.getAttribute('text-anchor')).toBe('start');
     });
@@ -217,6 +227,7 @@ describe.skipIf(typeof document === 'undefined')('a mounted horizontal chart', (
 
         const label = [...container.querySelectorAll('text')].find((text) => text.textContent === 'Median · 30')!;
         const line = label.previousElementSibling!;
+
         expect([line.getAttribute('x1'), line.getAttribute('x2')]).toEqual(['300.5', '300.5']);
         expect([line.getAttribute('y1'), line.getAttribute('y2')]).toEqual(['20', '148']);
         expect(Number(label.getAttribute('y'))).toBeLessThan(20);
@@ -231,10 +242,11 @@ describe.skipIf(typeof document === 'undefined')('a mounted horizontal chart', (
             </Chart.Root>
         );
 
-        expect(plot.getAttribute('height')).toBe('160');
         const ticks = [...container.querySelectorAll('text')].filter((text) => text.getAttribute('y') === '144');
-        expect(ticks.map((text) => text.textContent)).toEqual(['0', '20', '40', '60']);
         const grid = [...container.querySelectorAll('line')].map((line) => line.getAttribute('x1'));
+
+        expect(plot.getAttribute('height')).toBe('160');
+        expect(ticks.map((text) => text.textContent)).toEqual(['0', '20', '40', '60']);
         expect(grid).toEqual(['0.5', '200.5', '400.5', '600.5']);
     });
 

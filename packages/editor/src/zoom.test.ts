@@ -31,13 +31,13 @@ describe('the wheel', () => {
 });
 
 describe('zooming an editor', () => {
-    function wheel(mounted: ReturnType<typeof mountEditor>, init: { deltaY: number; ctrlKey?: boolean; metaKey?: boolean }): Event {
+    const wheel = (mounted: ReturnType<typeof mountEditor>, init: { deltaY: number; ctrlKey?: boolean; metaKey?: boolean }): Event => {
         const event = new (mounted.page.window as unknown as { Event: typeof Event }).Event('wheel', { bubbles: true, cancelable: true });
         Object.assign(event, { deltaMode: 0, ctrlKey: false, metaKey: false, ...init });
         mounted.viewport.dispatchEvent(event);
 
         return event;
-    }
+    };
 
     test('steps a pixel at a time through the commands, tells the host and resets to the page size', () => {
         const mounted = mountEditor();
