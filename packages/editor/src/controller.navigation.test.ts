@@ -75,6 +75,21 @@ describe('Method Up and Down', () => {
     });
 });
 
+describe('Next Change and Previous Change', () => {
+    test('run as view commands that move to the marked lines', () => {
+        const { editor } = mountEditor({ text: SOURCE });
+        editor.setChangeMarks([{ kind: 'modified', startLine: 6, endLine: 7 }]);
+        editor.setCaret({ line: 0, character: 0 });
+
+        expect(editor.runCommand('nextChange')).toBe(true);
+        expect(editor.getCaret()).toEqual({ line: 5, character: 0 });
+        expect(editor.runCommand('nextChange')).toBe(false);
+        editor.setCaret({ line: 8, character: 0 });
+        expect(editor.runCommand('previousChange')).toBe(true);
+        expect(editor.getCaret()).toEqual({ line: 5, character: 0 });
+    });
+});
+
 describe('Code Block Start and End', () => {
     test('go outward on every press and tell the listeners where the caret left', () => {
         const { editor } = mountEditor({ text: SOURCE, language: 'typescript' });

@@ -489,3 +489,81 @@ describe('drawing for the host', () => {
         expect(reads).toEqual({ clientWidth: 1, clientHeight: 1, scrollTop: 1, scrollLeft: 1 });
     });
 });
+
+describe('stepping through change marks', () => {
+    const text = Array.from({ length: 30 }, (_, i) => `line ${i + 1}`).join('\n');
+
+    function stepper() {
+        const { model, view } = mount(text);
+
+        view.setChangeMarks([{ kind: 'added', startLine: 4, endLine: 6 }]);
+        view.setChangeMarks(
+            [
+                { kind: 'modified', startLine: 10, endLine: 10 },
+                { kind: 'deleted', startLine: 20, endLine: 20 }
+            ],
+            'review'
+        );
+
+        const line = (): number => model.positionAt(model.getPrimary().head).line;
+        const at = (target: number): void => model.setSelections([{ anchor: model.getLine(target).start + 2, head: model.getLine(target).start + 2 }]);
+
+        return { model, view, line, at };
+    }
+
+    test('goes to the first line of the next run of any layer, and not past the last', () => {
+        const { view, line, at } = stepper();
+
+        at(0);
+
+        expect(view.goToChange(1)).toBe(true);
+        expect(line()).toBe(3);
+        expect(view.goToChange(1)).toBe(true);
+        expect(line()).toBe(9);
+        expect(view.goToChange(1)).toBe(true);
+        expect(line()).toBe(19);
+        expect(view.goToChange(1)).toBe(false);
+        expect(line()).toBe(19);
+    });
+
+    test('goes to the run before the caret, and not before the first', () => {
+        const { view, line, at } = stepper();
+
+        at(25);
+
+        expect(view.goToChange(-1)).toBe(true);
+        expect(line()).toBe(19);
+        expect(view.goToChange(-1)).toBe(true);
+        expect(line()).toBe(9);
+        expect(view.goToChange(-1)).toBe(true);
+        expect(line()).toBe(3);
+        expect(view.goToChange(-1)).toBe(false);
+    });
+
+    test('skips the run the caret is in, in both directions', () => {
+        const { view, line, at } = stepper();
+
+        at(4);
+
+        expect(view.goToChange(1)).toBe(true);
+        expect(line()).toBe(9);
+
+        at(4);
+
+        expect(view.goToChange(-1)).toBe(false);
+    });
+
+    test('lands with a single caret and no selection', () => {
+        const { model, view } = stepper();
+
+        model.setSelections([
+            { anchor: 2, head: 6 },
+            { anchor: 10, head: 12 }
+        ]);
+
+        view.goToChange(1);
+
+        expect(model.getSelections()).toHaveLength(1);
+        expect(model.getPrimary().anchor).toBe(model.getPrimary().head);
+    });
+});
