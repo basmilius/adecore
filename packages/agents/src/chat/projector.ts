@@ -293,7 +293,8 @@ export class ThreadProjector {
                 if (target?.kind === 'tool' && target.name === 'Workflow' && event.state === 'done' && event.output?.startsWith(WORKFLOW_LAUNCHED)) {
                     // The call only launched the workflow; the row runs on past the turn until the workflow's task ends.
                     this.backgroundCalls.add(target.id);
-                    events.push(this.thread.upsert({ ...target, output: event.output }));
+                    const { outputRef: _earlier, ...launched } = target;
+                    events.push(this.thread.upsert({ ...launched, output: event.output }));
 
                     break;
                 }
@@ -667,6 +668,10 @@ export class ThreadProjector {
             item.progress = previous.progress;
         }
 
+        if (previous?.outputRef) {
+            item.outputRef = previous.outputRef;
+        }
+
         const changes = event.changes ?? previous?.changes;
 
         if (changes) {
@@ -696,6 +701,11 @@ export class ThreadProjector {
         // The result supersedes whatever progress said; a settled call carries none.
         const settled: ChatToolItem = { ...tool, output: event.output ?? tool.output, state: event.state };
         delete settled.progress;
+
+        // A stored whole of an earlier output would answer for this one.
+        if (event.output != null) {
+            delete settled.outputRef;
+        }
 
         if (event.changes) {
             settled.changes = event.changes;

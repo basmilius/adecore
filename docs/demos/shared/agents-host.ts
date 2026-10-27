@@ -368,6 +368,7 @@ export class FakeAgentHost implements ChatTransport {
         'chat.answer': () => ({}),
         'chat.dismiss': () => ({}),
         'chat.turnDiff': () => ({ diff: null }),
+        'chat.toolOutput': () => ({ output: null }),
         'chat.continueOn': (payload) => {
             this.setInfo(payload.chatId, { account: payload.account, limit: undefined, resumeAt: undefined, status: 'idle' });
             return { chatId: payload.chatId };
