@@ -15,6 +15,7 @@ import { HistoryFeature } from './history.ts';
 import { HoverFeature } from './hover.ts';
 import { KeyDispatcher } from './key-priority.ts';
 import { NavigationFeature, locationRow } from './navigation.ts';
+import { PasteHistoryFeature } from './paste-history.ts';
 import { PeekFeature } from './peek.ts';
 import { PickFeature } from './pick.ts';
 import { SymbolPickerFeature } from './symbol-picker.ts';
@@ -80,6 +81,7 @@ export class EditorLanguage {
     readonly codeVision: CodeVisionFeature;
     readonly formatOnType: FormatOnTypeFeature;
     readonly renderedDocs: RenderedDocsFeature;
+    readonly pasteHistory: PasteHistoryFeature;
     private readonly disposers: Array<() => void> = [];
     private readonly keys = new KeyDispatcher();
     private disposed = false;
@@ -117,7 +119,15 @@ export class EditorLanguage {
         this.codeVision = new CodeVisionFeature(this, (listener) => this.symbols.onResult(listener), timers);
         this.formatOnType = new FormatOnTypeFeature(this);
         this.renderedDocs = new RenderedDocsFeature(this, timers);
+        this.pasteHistory = new PasteHistoryFeature(this);
         new FoldingFeature(this, (listener) => this.symbols.onResult(listener), timers);
+
+        const copies = editor.onCopy?.((copy) => project.clipboard.add(copy.text, { wholeLines: copy.wholeLines }));
+
+        if (copies !== undefined) {
+            this.onDispose(copies);
+        }
+
         editor.setWordSources?.(() => this.otherTexts());
         this.onDispose(() => editor.setWordSources?.(null));
         this.placeOpenedCaret(editor.getCaret());

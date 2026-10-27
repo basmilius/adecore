@@ -46,6 +46,8 @@ import type {
     EditorSemanticToken,
     EditorSmartKeys,
     EditorApplyEditsOptions,
+    EditorCopy,
+    EditorPasteOptions,
     EditorTextChange,
     EditorTrackedRange,
     EditorTheme,
@@ -844,6 +846,51 @@ export class FakeEditor implements Editor {
         return this.focused;
     }
 
+    private readonly copies = new Set<(copy: EditorCopy) => void>();
+
+    onCopy(listener: (copy: EditorCopy) => void): () => void {
+        return subscribe(this.copies, listener);
+    }
+
+    /* Stands for a copy or cut of a person: tells the listeners what went on the clipboard. */
+    copy(text: string, wholeLines = false, cut = false): void {
+        emit(this.copies, { text, wholeLines, cut });
+    }
+
+    /* Every paste a host asked for, with its options. */
+    readonly pastes: Array<{ text: string; options: EditorPasteOptions | undefined }> = [];
+
+    /* Puts the text at every caret, one line per caret when the lines are as many as the carets, and leaves the carets behind it. */
+    paste(text: string, options?: EditorPasteOptions): boolean {
+        this.assertLive();
+        this.pastes.push({ text, options });
+
+        if (this.readOnly || text === '') {
+            return false;
+        }
+
+        const lines = text.split('\n');
+        const selections = [...this.selections].sort((left, right) => Math.min(left.anchor, left.head) - Math.min(right.anchor, right.head));
+        const perCaret = lines.length === selections.length;
+
+        const edits = selections.map((selection, index) => ({
+            from: Math.min(selection.anchor, selection.head),
+            to: Math.max(selection.anchor, selection.head),
+            text: perCaret ? lines[index]! : text
+        }));
+
+        return this.edit(edits, 'command', false, () => {
+            let shift = 0;
+
+            return edits.map((edit) => {
+                const caret = edit.from + shift + edit.text.length;
+                shift += edit.text.length - (edit.to - edit.from);
+
+                return { anchor: caret, head: caret };
+            });
+        });
+    }
+
     wordSources: (() => readonly string[]) | null = null;
 
     setWordSources(source: (() => readonly string[]) | null): void {
@@ -1236,6 +1283,7 @@ export class FakeEditor implements Editor {
         this.textChanges.clear();
         this.carets.clear();
         this.navigations.clear();
+        this.copies.clear();
         this.hovers.clear();
         this.inlayHovers.clear();
         this.inlayHandlers.clear();

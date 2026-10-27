@@ -233,6 +233,15 @@ describe('the structural movement keys', () => {
         expect(KEYMAP.nextEditLocation).toMatchObject({ mac: null, other: null });
     });
 
+    test('paste from history with Mod+Shift+V and as plain text with Mod+Alt+Shift+V', () => {
+        expect(KEYMAP.pasteFromHistory).toMatchObject({ mac: 'Mod+Shift+V', other: 'Mod+Shift+V' });
+        expect(keyAction(key('v', { metaKey: true, altKey: true, shiftKey: true, code: 'KeyV' }), true)).toEqual({ type: 'view', command: 'pasteAsPlainText' });
+        expect(keyAction(key('v', { ctrlKey: true, altKey: true, shiftKey: true, code: 'KeyV' }), false)).toEqual({
+            type: 'view',
+            command: 'pasteAsPlainText'
+        });
+    });
+
     test('cycle words with Alt+/ and Alt+Shift+/', () => {
         expect(keyAction(key('/', { altKey: true, code: 'Slash' }), false)).toEqual({ type: 'command', command: 'hippieCompletion' });
         expect(keyAction(key('?', { altKey: true, shiftKey: true, code: 'Slash' }), true)).toEqual({ type: 'command', command: 'hippieBackwardCompletion' });

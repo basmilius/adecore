@@ -82,6 +82,8 @@ export interface PickRow {
     readonly detail: string;
     /* The detail is a path, which gives way from its start before the label gives way at all. */
     readonly path?: boolean;
+    /* What a typed query is matched against, when a list filters; the label without it. */
+    readonly search?: string;
 }
 
 export interface PickGroup {
@@ -97,15 +99,22 @@ export interface PickPreview {
     readonly note: string | null;
     /* Why the action cannot be taken here, which the server said; nothing would change. */
     readonly refusal?: string;
+    /* `diff` draws `removed` and `added` as changed lines, which is the default; `text` draws `added` as plain code, such as the content of a clipboard entry. */
+    readonly kind?: 'diff' | 'text';
 }
 
 /* A list under a character of the editor; Enter takes the active row, Escape closes it. */
 export interface PickView {
     readonly anchor: EditorPosition;
+    /* The rows a query lets through. */
     readonly groups: readonly PickGroup[];
     readonly active: string;
     readonly preview: PickPreview | null;
     readonly title: string | null;
+    /* What has been typed to narrow the rows; null for a list that does not filter. */
+    readonly query: string | null;
+    /* The rows chosen as a run or one by one, in list order; empty when none is, and then the active row is the choice. */
+    readonly chosen: readonly string[];
 }
 
 /* One file of a rename in the preview: the lines it changes. */

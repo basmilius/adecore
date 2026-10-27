@@ -147,6 +147,8 @@ test('a pick list hands a focus it gets back to the editor and keeps a press fro
             anchor: { line: 0, character: 0 },
             title: null,
             preview: null,
+            query: null,
+            chosen: [],
             active: 'a',
             groups: [
                 {

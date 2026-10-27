@@ -84,6 +84,8 @@ test('a pick list is what the input points at while it is open', async () => {
             anchor: { line: 0, character: 0 },
             title: null,
             preview: null,
+            query: null,
+            chosen: [],
             active: 'b',
             groups: [
                 { title: 'One', rows: [{ id: 'a', label: 'A', detail: '' }] },
@@ -101,5 +103,47 @@ test('a pick list is what the input points at while it is open', async () => {
         await act(async () => root.render(createElement('div')));
 
         expect(editor.inputPopup).toBeNull();
+    });
+});
+
+test('a filtering pick list shows its query, marks the match and the chosen rows, and plain preview lines', async () => {
+    await inPage(async (page, root) => {
+        const editor = new FakeEditor(page.host, { text: 'fo' } as never);
+        const pressed: unknown[] = [];
+        const language = { editor, pick: { choose: (...args: unknown[]) => pressed.push(args) } } as unknown as EditorLanguage;
+
+        const view: PickView = {
+            anchor: { line: 0, character: 0 },
+            title: 'Choose',
+            preview: { removed: [], added: ['one', 'two'], note: null, kind: 'text' },
+            query: 'et',
+            chosen: ['a', 'b'],
+            active: 'b',
+            groups: [
+                {
+                    title: null,
+                    rows: [
+                        { id: 'a', label: 'Beta', detail: '' },
+                        { id: 'b', label: 'Zeta', detail: '' }
+                    ]
+                }
+            ]
+        };
+
+        await act(async () => root.render(createElement(PickPopup, { language, view, rect })));
+        const options = [...page.document.querySelectorAll('[role="option"]')];
+
+        expect(page.document.body.textContent).toContain('et');
+        expect([...page.document.querySelectorAll('mark')].map((mark) => mark.textContent)).toEqual(['et', 'et']);
+        expect(options.map((option) => option.getAttribute('aria-selected'))).toEqual(['true', 'true']);
+        expect(options.map((option) => option.getAttribute('data-chosen'))).toEqual(['true', 'true']);
+        expect(page.document.body.textContent).toContain('one');
+        expect(page.document.body.textContent).not.toContain('+');
+
+        await act(async () => {
+            options[0]!.dispatchEvent(Object.assign(new page.window.Event('click', { bubbles: true }), { metaKey: true }));
+        });
+
+        expect(pressed).toEqual([['a', { toggle: true, range: undefined }]]);
     });
 });

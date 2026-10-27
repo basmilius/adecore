@@ -17,6 +17,7 @@ import type {
     EditorCodeVision,
     EditorClickHandler,
     EditorContextMenu,
+    EditorCopy,
     EditorContentChange,
     EditorEngine,
     EditorFindQuery,
@@ -36,6 +37,7 @@ import type {
     EditorInlayHint,
     EditorInlayTarget,
     EditorKeyHandler,
+    EditorPasteOptions,
     EditorInputPopup,
     EditorMarker,
     EditorMessages,
@@ -952,6 +954,14 @@ class SmartEditor implements Editor {
 
     setWordSources(source: (() => readonly string[]) | null): void {
         this.controller.setWordSources(source);
+    }
+
+    onCopy(listener: (copy: EditorCopy) => void): () => void {
+        return this.controller.onCopy(listener);
+    }
+
+    paste(text: string, options?: EditorPasteOptions): boolean {
+        return this.controller.pasteText(text, options);
     }
 
     private foldHintsByOffset(hints: EditorFoldHints): FoldHints {

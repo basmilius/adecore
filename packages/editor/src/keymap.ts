@@ -67,6 +67,7 @@ const ACTIONS: Partial<Record<KeymapId, KeyAction>> = {
     matchBrace: { type: 'bracket' },
     methodUp: view('methodUp'),
     methodDown: view('methodDown'),
+    pasteAsPlainText: view('pasteAsPlainText'),
     nextChange: view('nextChange'),
     previousChange: view('previousChange'),
     codeBlockStart: command('codeBlockStart'),

@@ -6,7 +6,7 @@
 
 `language.navigation.go(kind, position?)` asks for the `definition`, `declaration`, `typeDefinition` or `implementation` at the caret. One place moves the caret there, in this file or through the host's `openPlace`. Several open a pick list of places with a preview of each. Mod and a click on a name goes to its definition, and while Mod is held the name under the pointer is underlined.
 
-`language.pick.open(spec)` opens the same list for any choice: an anchor position, a title, groups of rows and an `accept(id)`. Up and Down move, Enter takes, Escape closes.
+`language.pick.open(spec)` opens the same list for any choice: an anchor position, a title, groups of rows and an `accept(id)`. Up and Down move, Enter takes, Escape closes. Four optional fields change that. `filter: true` narrows the rows to those whose `search` (the label without one) contains what is typed, whatever the case, shows the query in the title line and keeps the list open while a person types. `multiple: true` lets Shift with the arrows, or Shift and a press, choose a run of rows and Mod and a press add or take away one; Enter then calls `acceptMany(ids)` with the chosen rows in list order, or with the active row when none is chosen, and without `acceptMany` it calls `accept` with the active row. `remove(ids)` handles Delete, and Backspace while the query is empty: it answers the groups that remain, and the list closes when none is left. A `PickPreview` with `kind: 'text'` draws `added` as plain lines instead of changed ones. The `PickView` the popup draws has the `query` (null without `filter`) and the `chosen` ids.
 
 ## Peek
 

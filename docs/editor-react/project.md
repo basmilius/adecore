@@ -18,6 +18,8 @@ The `host` is what the app allows the features to do. Every field is optional.
 | `serverNames(uri)`                      | The names of the servers of a document, for the cards                                                                                                                             |
 | `problemSource`                         | Where [`project.problems`](#problems) reads its reports; the service's diagnostics without one |
 | `notify(notification)`                  | Shows a short `success` or `error` message with an `id` and a `title`, such as a toast                                                                                            |
+| `clipboard` | The `ClipboardHistory` that Paste from History lists; a new one that lives as long as the project without one |
+| `editHistoryLimit` | How many places [Last Edit Location](/editor-react/navigation#edit-locations) remembers; 150 without one |
 | `resolveSnippetVariable(name, context)` | Synchronous snippet overrides; `undefined` delegates to built-ins or an editable unknown-variable placeholder. The `SnippetVariableContext` describes one caret before insertion. |
 | `suggestNames(request, signal)`         | Suggests new names during a rename, from any source the app picks                                                                                                                 |
 
@@ -34,6 +36,14 @@ Two editors of one file share a document, not a text. Keeping their texts the sa
 Changes made while the document is opening wait for it. `document.ready` rejects when opening failed. Later failures of a change or a close are swallowed, so a service reports its own errors.
 
 The features ask for symbols, folds, inlay hints, semantic colors, code actions and code vision once the document is open, after an edit, and when the service fires `onProvidersChanged` for the document. `language.onProvidersChanged(listener)` is that signal for one editor: it runs once the document is open and on every change the service fires for it.
+
+## Clipboard history
+
+Every copy and cut made in an editor of the project goes into `project.clipboard`, a `ClipboardHistory`, newest first. `new ClipboardHistory(options)` takes a `limit` (100 entries), a `maxLength` (10,000,000 UTF-16 units in all, the oldest going first), the `entries` a host kept, `onChange(entries)` to keep them again, and a `clock`. `add(text, { wholeLines })` puts a text on top and moves a repeated text up instead of keeping it twice, `remove(entry)`, `promote(entry)` and `clear()` change it, and `subscribe(listener)` hears every change. An `entry` has the `text`, whether it was `wholeLines` (a copy of bare carets, which pastes back above the lines of bare carets) and the time it was `at`.
+
+`language.pasteHistory.open()` lists the entries in a pick list, as the `pasteFromHistory` key (`Mod+Shift+V`) does: one line each, with line breaks shown as `⏎`, the whole text as the preview, typing to narrow the list, Shift with the arrows to choose several entries, and Delete to forget them. Enter pastes the chosen entries in list order, joined by line breaks, at every caret and with indent on paste, as a paste from the clipboard does. The text is also put on the system clipboard, and a single entry moves to the top of the history. When nothing was copied yet the editor announces it instead.
+
+`pasteAsPlainText` (`Mod+Alt+Shift+V`) is a view command: it pastes the text of the system clipboard without moving it to the indentation of its line. It does nothing where the clipboard cannot be read.
 
 ## Workspace edits
 

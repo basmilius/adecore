@@ -4,6 +4,7 @@ export { findDocComments, MAX_DOC_COMMENTS, type DocComment } from '@adecore/edi
 export { DEFAULT_TODO_WORDS, findTodos, type TodoMatch, type TodoOptions } from '@adecore/editor-core';
 export { detectIndentation, type DetectedIndentation } from '@adecore/editor-core';
 export { createSmartEditorEngine } from './engine.ts';
+export { rememberCopy } from './controller.ts';
 export { DEFAULT_SMART_KEYS } from './smart-keys.ts';
 export { shikiScopeColors, shikiTokenizers } from './shiki.ts';
 
@@ -61,6 +62,8 @@ export type {
     EditorRemoteCursor,
     EditorRange,
     EditorApplyEditsOptions,
+    EditorCopy,
+    EditorPasteOptions,
     EditorTextChange,
     EditorTrackedRange,
     EditorRunCommand,
