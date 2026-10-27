@@ -4,17 +4,29 @@ Everything a host keeps lives in its data folder. Give each host a folder of its
 
 ## What goes where
 
-| Path in the data folder                            |                                                                                   |
-| -------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `chats/<id>.json`                                  | A chat's record: `{ info, items, seq?, resetSeq?, preambles?, uiAccess? }` and the host's own extras. |
-| `chats/<id>.log`                                   | Its events since the record, one JSON line each: `{ seq, at, event }`.            |
-| `chats/<id>.bookmarks.json`                        | Its bookmarks.                                                                    |
-| `chats/<id>.visuals.json`                          | Its [visuals](/agents/chats#visuals), as `{ version: 1, visuals }`.               |
-| `attachments/<id>/`                                | The files attached to its messages, and the page of each visual as `<visual id>.html`. |
-| `providers.json`                                   | The accounts, as `{ version: 1, accounts }`, without secrets.                     |
-| `accounts/`                                        | The folders of accounts the host made.                                            |
-| `usage/index.json`, `prices.json`, `exchange-rate.json` | The usage index, and the prices and rate last fetched.                       |
-| `outbox/`, `tasks/`, `lineage/`, `notices/`        | The [coordination](/agents/coordination) stores, when a host uses them.           |
+| Path in the data folder                         |                                                                                                       |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `chats/<id>.json`                               | A chat's record: `{ info, items, seq?, resetSeq?, preambles?, uiAccess? }` and the host's own extras. |
+| `chats/<id>.log`                                | Its events since the record, one JSON line each: `{ seq, at, event }`.                                |
+| `chats/<id>.bookmarks.json`                     | Its bookmarks.                                                                                        |
+| `chats/<id>.visuals.json`                       | Its [visuals](/agents/chats#visuals), as `{ version: 1, visuals }`.                                   |
+| `attachments/<id>/`                             | The files attached to its messages, and the page of each visual as `<visual id>.html`.                |
+| `providers.json`                                | The accounts, as `{ version: 1, accounts }`, without secrets.                                         |
+| `accounts/`                                     | The folders of accounts the host made.                                                                |
+| `usage/history.jsonl`                           | The usage of every transcript ever read. See [Usage](#usage).                                         |
+| `usage/scan-state.json`                         | Where the usage scan left each transcript it can still see.                                           |
+| `usage/prices.json`, `usage/exchange-rate.json` | The prices and rate last fetched.                                                                     |
+| `outbox/`, `tasks/`, `lineage/`, `notices/`     | The [coordination](/agents/coordination) stores, when a host uses them.                               |
+
+## Usage
+
+The usage page counts the transcripts the CLIs leave, and the CLIs remove old ones. What a transcript counted stays in `usage/history.jsonl` after the transcript is gone, so that file is the only record of it and cannot be rebuilt.
+
+- `history.jsonl` starts with a header line and then holds a line per transcript that changed: `set` replaces what a path counted, since the scan read it from the start, and `add` folds new calls into it, since the transcript grew. A scan that finds a few new calls appends a few lines and leaves the rest of the file alone. Once superseded lines make up half of the file, it is rewritten with one `set` line per path.
+- `scan-state.json` holds the offsets, hashes and parser state per transcript and is rewritten after each scan that changed it. The state of a transcript that is gone is dropped. Deleting the file resets the scan cache: every transcript is read from the start once, which replaces what it counted, and the usage of transcripts that are gone stays.
+- The state names the history it was saved against. When they disagree, after a crash between the two writes, the state is dropped as if reset, so nothing is counted twice. A half-written last line of the history is cut off on load.
+- Deleting `history.jsonl` is a reset of the history itself: only the transcripts still on disk are counted again.
+- A `usage/index.json` from an earlier version is moved into both files on the first load and then removed. One that does not read is renamed to `index.json.unreadable`.
 
 An id becomes a file name with `encodeURIComponent`. A host's extras sit at the top level of a chat's record, next to `info` and `items`, which they cannot replace. `ChatStoreOptions.isSidecar` keeps JSON files of your own in `chats/` out of the list of chats.
 

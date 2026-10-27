@@ -63,7 +63,7 @@ describe('the usage index file', () => {
             files: { '/claude/a.jsonl': { p: 'claude', s: 1200, m: 1_700_000_000_500, o: 1100, r: [row], t: [], c: null } }
         });
 
-        const decoded = decodeIndex(text).get('/claude/a.jsonl');
+        const decoded = decodeIndex(text)?.get('/claude/a.jsonl');
         expect(decoded?.records).toEqual([record()]);
         expect(decoded?.head).toBeNull();
     });
@@ -82,7 +82,7 @@ describe('the usage index file', () => {
 
         document.files['/claude/a.jsonl']!.r[0]![1] = 99;
         const decoded = decodeIndex(JSON.stringify(document));
-        expect([...decoded.keys()]).toEqual(['/claude/b.jsonl']);
+        expect([...(decoded?.keys() ?? [])]).toEqual(['/claude/b.jsonl']);
     });
 
     test('skips a file of another provider or with a broken header', () => {
@@ -99,13 +99,13 @@ describe('the usage index file', () => {
 
         document.files['/claude/a.jsonl']!.p = 'gemini';
         document.files['/claude/b.jsonl']!.o = -1;
-        expect(decodeIndex(JSON.stringify(document)).size).toBe(0);
+        expect(decodeIndex(JSON.stringify(document))?.size).toBe(0);
     });
 
-    test('starts over from an empty index for text that is no index of this version', () => {
-        expect(decodeIndex('not json').size).toBe(0);
-        expect(decodeIndex(JSON.stringify({ version: 4, models: [], sessions: [], folders: [], files: {} })).size).toBe(0);
-        expect(decodeIndex(JSON.stringify({ version: 2, models: 'x', sessions: [], folders: [], files: {} })).size).toBe(0);
-        expect(decodeIndex('null').size).toBe(0);
+    test('reads nothing from text that is no index of a known version', () => {
+        expect(decodeIndex('not json')).toBeNull();
+        expect(decodeIndex(JSON.stringify({ version: 4, models: [], sessions: [], folders: [], files: {} }))).toBeNull();
+        expect(decodeIndex(JSON.stringify({ version: 2, models: 'x', sessions: [], folders: [], files: {} }))).toBeNull();
+        expect(decodeIndex('null')).toBeNull();
     });
 });

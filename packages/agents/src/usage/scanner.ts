@@ -1,18 +1,19 @@
 import { createHash, type Hash } from 'node:crypto';
-import { mkdir, open, readFile, readdir, stat } from 'node:fs/promises';
+import { open, readFile, readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { Readable } from 'node:stream';
 import { createZstdDecompress } from 'node:zlib';
 import type { UsageProvider, UsageRoot } from '@adecore/agent-contracts';
 import { errorText } from '../error-text.ts';
-import { isNotFound, writeAtomic } from '../fs.ts';
-import { decodeIndex, encodeIndex, type IndexedFile, type UsageIndex } from './index-file.ts';
+import { isNotFound } from '../fs.ts';
 import { foldByKey, type UsageRecord } from './record.ts';
 import { claudeMightCarryUsage, parseClaudeLine } from './readers/claude.ts';
 import { GROK_USAGE_FILE, parseGrokUsage } from './readers/grok.ts';
 import { hostLogMightCarryUsage, parseHostUsageLine } from './readers/host-log.ts';
 import { cloneCodexState, codexMightCarryUsage, createCodexState, parseCodexLine, type CodexParserState } from './readers/codex.ts';
 import { usageRoots, type UsageRootPath } from './roots.ts';
+import type { ScanState } from './scan-state.ts';
+import { UsageStore } from './usage-store.ts';
 
 const HASH_CHUNK_BYTES = 65536;
 // How much of a transcript is read at once. Codex writes sessions of more than a gigabyte, which read whole held several times their size.
@@ -113,6 +114,11 @@ function readsWhole(provider: UsageProvider): boolean {
 
 function isUsageFile(provider: UsageProvider, name: string): boolean {
     return readsWhole(provider) ? name === GROK_USAGE_FILE : name.endsWith('.jsonl') || (provider === 'codex' && name.endsWith('.jsonl.zst'));
+}
+
+/* A compressed Codex session is the same transcript as the plain one it was, so both count under one path. */
+function keyOf(path: string, provider: UsageProvider): string {
+    return provider === 'codex' && path.endsWith('.jsonl.zst') ? path.slice(0, -4) : path;
 }
 
 async function listUsageFiles(dir: string, provider: UsageProvider, out: string[] = []): Promise<string[]> {
@@ -266,47 +272,37 @@ function withAccount(records: UsageRecord[], accountOf: AccountOf): UsageRecord[
 
 /*
  * Parses only what a transcript appended since the last scan, and starts a file over once it was
- * rewritten or cut. A deleted transcript keeps its totals, since its usage still happened.
+ * rewritten or cut. A deleted transcript keeps its totals, since its usage still happened; only
+ * where the scan left it is forgotten.
  */
 export class UsageScanner {
-    private readonly home: string;
     private readonly roots: () => UsageRootPath[];
     private readonly sessionAccounts: () => ReadonlyMap<string, string>;
-    private index: UsageIndex = new Map();
+    private readonly store: UsageStore;
     private loaded = false;
-    private dirty = false;
 
     /* `roots` as a function is asked again on every scan, so an account added since is walked too. */
     constructor(home: string, roots: UsageRootPath[] | (() => UsageRootPath[]) = usageRoots(), options: UsageScannerOptions = {}) {
-        this.home = home;
+        this.store = new UsageStore(join(home, 'usage'));
         this.roots = typeof roots === 'function' ? roots : () => roots;
         this.sessionAccounts = options.sessionAccounts ?? (() => new Map());
     }
 
-    private get file(): string {
-        return join(this.home, 'usage', 'index.json');
-    }
-
+    /* A history that does not read fails the scan rather than being written over, which would lose what only it holds. */
     async load(): Promise<void> {
         if (this.loaded) {
             return;
         }
 
+        await this.store.load();
         this.loaded = true;
-
-        try {
-            this.index = decodeIndex(await readFile(this.file, 'utf8'));
-        } catch (e) {
-            if (!isNotFound(e)) {
-                console.warn('The usage index would not read; starting from a cold scan:', errorText(e));
-            }
-        }
     }
 
     async scan(): Promise<ScanReport> {
         const started = Date.now();
         await this.load();
         const roots: UsageRoot[] = [];
+        const seen = new Set<string>();
         let files = 0;
         let changedFiles = 0;
         let sessions: ReadonlyMap<string, string> | null = null;
@@ -350,6 +346,7 @@ export class UsageScanner {
                 }
 
                 files += 1;
+                seen.add(keyOf(path, root.provider));
 
                 try {
                     if (await this.readFileInto(path, root.provider, accountOf)) {
@@ -364,31 +361,28 @@ export class UsageScanner {
             roots.push({ provider: root.provider, path: root.path, status: failure === null ? 'ok' : 'failed', message: failure });
         }
 
-        if (this.dirty) {
-            this.dirty = false;
-            await mkdir(join(this.home, 'usage'), { recursive: true, mode: 0o700 });
-            await writeAtomic(this.file, encodeIndex(this.index));
+        // A root that is gone for now costs a read from the start once it is back, which replaces and never adds.
+        for (const path of [...this.store.state.keys()]) {
+            if (!seen.has(path)) {
+                this.store.forget(path);
+            }
         }
+
+        await this.store.commit();
 
         return { at: Date.now(), files, changedFiles, durationMs: Date.now() - started, roots };
     }
 
-    /* Every record the index holds, with the copies one message left in several transcripts folded. */
+    /* Every record the history holds, with the copies one message left in several transcripts folded. */
     records(): UsageRecord[] {
-        const all: UsageRecord[] = [];
-
-        for (const file of this.index.values()) {
-            all.push(...file.records, ...file.tail);
-        }
-
-        return foldByKey(all);
+        return this.store.records();
     }
 
     private async readFileInto(path: string, provider: UsageProvider, accountOf: AccountOf): Promise<boolean> {
         const info = await stat(path);
         const compressed = provider === 'codex' && path.endsWith('.jsonl.zst');
-        const key = compressed ? path.slice(0, -4) : path;
-        const known = this.index.get(key);
+        const key = keyOf(path, provider);
+        const known = this.store.state.get(key);
         const currentParser = provider !== 'codex' || known?.parserVersion === CODEX_PARSER_VERSION;
 
         if (
@@ -421,29 +415,30 @@ export class UsageScanner {
         const hash = grown === null || prefix === null ? createHash('sha256') : prefix;
         const from = grown?.offset ?? 0;
         const parsed = await parseLines(readBytes(path, from, compressed), hash, provider, from, grown?.codex ?? null);
-        const before = grown?.records ?? [];
+        const usage = { provider, records: withAccount(parsed.records, accountOf), tail: withAccount(parsed.tail, accountOf) };
 
-        const entry: IndexedFile = {
+        const state: ScanState = {
             provider,
             size: info.size,
             mtimeMs: info.mtimeMs,
             offset: parsed.offset,
-            // Folding here keeps the streaming copies of one message out of the index entirely.
-            records: foldByKey([...before, ...withAccount(parsed.records, accountOf)]),
-            tail: withAccount(parsed.tail, accountOf),
             codex: parsed.codex,
             head: headOf(hash),
             ...(provider === 'codex' ? { parserVersion: CODEX_PARSER_VERSION, compressed } : {})
         };
 
-        this.index.set(key, entry);
-        this.dirty = true;
+        if (grown === null) {
+            // Folding here keeps the streaming copies of one message out of the history entirely.
+            this.store.replace(key, { ...usage, records: foldByKey(usage.records) }, state);
+        } else {
+            this.store.append(key, usage, state);
+        }
 
         return true;
     }
 
     /*
-     * A file rewritten as a whole replaces what the index held of it, so a turn it still lists is never
+     * A file rewritten as a whole replaces what the history held of it, so a turn it still lists is never
      * counted twice. One that does not parse, such as one caught halfway through a write, keeps the
      * records it had and is read again on the next scan.
      */
@@ -454,18 +449,8 @@ export class UsageScanner {
             return false;
         }
 
-        this.index.set(path, {
-            provider,
-            size: info.size,
-            mtimeMs: info.mtimeMs,
-            offset: info.size,
-            records: foldByKey(withAccount(records, accountOf)),
-            tail: [],
-            codex: null,
-            head: null
-        });
-
-        this.dirty = true;
+        const state: ScanState = { provider, size: info.size, mtimeMs: info.mtimeMs, offset: info.size, codex: null, head: null };
+        this.store.replace(path, { provider, records: foldByKey(withAccount(records, accountOf)), tail: [] }, state);
 
         return true;
     }

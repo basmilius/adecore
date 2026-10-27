@@ -1,8 +1,12 @@
 import { UsageProviderSchema, type UsageProvider } from '@adecore/agent-contracts';
 import type { UsageRecord } from './record.ts';
 import type { CodexParserState } from './readers/codex.ts';
+import { CURRENT_ROW, decodeRows, RowWriter, type RecordRow } from './rows.ts';
 
-/* Old records survive deleted transcripts; the scanner reparses existing Codex files with its current reader. */
+/*
+ * The single index usage was kept in before history and scan state went apart. The store reads it
+ * once to migrate it; nothing writes it any more but the tests that need one to migrate.
+ */
 const INDEX_VERSION = 3;
 /* Before accounts: every record was the default account's, so it reads as that without a scan. */
 const ACCOUNTLESS_VERSION = 1;
@@ -11,24 +15,16 @@ export interface IndexedFile {
     provider: UsageProvider;
     size: number;
     mtimeMs: number;
-    /* Just past the last newline that was read, so a file that grew is read from there. */
     offset: number;
     records: UsageRecord[];
-    /* What the line still being written at the end of the file says; read again on the next scan,
-       so it is kept apart from the records the offset has already accounted for. */
     tail: UsageRecord[];
-    /* What the reader has to remember to carry on halfway through a Codex file. */
     codex: CodexParserState | null;
-    /* A versioned hash of all bytes before the offset; absent in indexes that cannot verify an append. */
     head: string | null;
     parserVersion?: number;
     compressed?: boolean;
 }
 
 export type UsageIndex = Map<string, IndexedFile>;
-
-/* Interned names keep the index compact; optional cost and tier fields preserve per-call pricing. */
-type RecordRow = [number, number, number, number, number, number, number, number, number, number, number, string | 0, number?, number?, string?];
 
 interface FileRow {
     p: UsageProvider;
@@ -52,59 +48,9 @@ interface IndexFile {
     files: Record<string, FileRow>;
 }
 
-class Interner {
-    readonly values: string[] = [];
-    private readonly at = new Map<string, number>();
-
-    index(value: string): number {
-        const seen = this.at.get(value);
-
-        if (seen !== undefined) {
-            return seen;
-        }
-
-        const next = this.values.length;
-        this.values.push(value);
-        this.at.set(value, next);
-
-        return next;
-    }
-}
-
 export function encodeIndex(index: UsageIndex): string {
-    const models = new Interner();
-    const sessions = new Interner();
-    const folders = new Interner();
-    const accounts = new Interner();
+    const writer = new RowWriter();
     const files: Record<string, FileRow> = {};
-
-    const row = (record: UsageRecord): RecordRow => {
-        const counted: RecordRow = [
-            record.timestampMs,
-            models.index(record.model),
-            sessions.index(record.sessionId),
-            folders.index(record.cwd),
-            record.totals.calls,
-            record.totals.input,
-            record.totals.cacheRead,
-            record.totals.cacheWrite,
-            record.totals.cacheWrite1h,
-            record.totals.output,
-            record.totals.reasoning,
-            record.dedupeKey ?? 0,
-            record.account === undefined ? 0 : accounts.index(record.account) + 1
-        ];
-
-        if (record.costUsd !== undefined || record.serviceTier !== undefined) {
-            counted[13] = record.costUsd;
-        }
-
-        if (record.serviceTier !== undefined) {
-            counted[14] = record.serviceTier;
-        }
-
-        return counted;
-    };
 
     for (const [path, file] of index) {
         files[path] = {
@@ -113,50 +59,30 @@ export function encodeIndex(index: UsageIndex): string {
             m: file.mtimeMs,
             o: file.offset,
             c: file.codex,
-            r: file.records.map(row),
-            t: file.tail.map(row),
+            r: file.records.map((record) => writer.row(record)),
+            t: file.tail.map((record) => writer.row(record)),
             ...(file.head === null ? {} : { h: file.head }),
             ...(file.parserVersion === undefined ? {} : { v: file.parserVersion }),
             ...(file.compressed === undefined ? {} : { z: file.compressed })
         };
     }
 
-    const document: IndexFile = {
-        version: INDEX_VERSION,
-        models: models.values,
-        sessions: sessions.values,
-        folders: folders.values,
-        accounts: accounts.values,
-        files
-    };
+    const document: IndexFile = { version: INDEX_VERSION, ...writer.tables, files };
 
     return JSON.stringify(document);
 }
 
-function isRow(row: unknown, version: number): row is RecordRow {
-    return (
-        Array.isArray(row) &&
-        (version === ACCOUNTLESS_VERSION ? row.length === 12 : row.length >= 13 && row.length <= (version === INDEX_VERSION ? 15 : 14)) &&
-        row.slice(0, 11).every((value) => typeof value === 'number') &&
-        (typeof row[11] === 'string' || row[11] === 0) &&
-        (version === ACCOUNTLESS_VERSION || typeof row[12] === 'number') &&
-        (row.length < 14 || row[13] === null || row[13] === undefined || typeof row[13] === 'number') &&
-        (row.length < 15 || typeof row[14] === 'string')
-    );
-}
-
 /*
- * A row that does not read back costs a cold parse of the file it belonged to, never a wrong total,
- * so anything unexpected drops that file's entry rather than being repaired.
+ * Null for text that is no index of a version this reads. A file whose rows do not read back is left
+ * out, so only that file's usage is missing from what migrates, never a wrong total.
  */
-export function decodeIndex(text: string): UsageIndex {
-    const index: UsageIndex = new Map();
+export function decodeIndex(text: string): UsageIndex | null {
     let document: IndexFile;
 
     try {
         document = JSON.parse(text) as IndexFile;
     } catch {
-        return index;
+        return null;
     }
 
     const version = document?.version;
@@ -167,12 +93,12 @@ export function decodeIndex(text: string): UsageIndex {
         !Array.isArray(document.sessions) ||
         !Array.isArray(document.folders)
     ) {
-        return index;
+        return null;
     }
 
-    const accounts = Array.isArray(document.accounts) ? document.accounts : [];
-
-    const name = (table: string[], at: number): string | null => (typeof table[at] === 'string' ? table[at] : null);
+    const index: UsageIndex = new Map();
+    const tables = { ...document, accounts: Array.isArray(document.accounts) ? document.accounts : [] };
+    const shape = { accountless: version === ACCOUNTLESS_VERSION, maxLength: version === INDEX_VERSION ? CURRENT_ROW.maxLength : 14 };
 
     for (const [path, file] of Object.entries(document.files ?? {})) {
         // Every provider the schema knows, so a new one is never dropped from the index it was saved in.
@@ -180,63 +106,29 @@ export function decodeIndex(text: string): UsageIndex {
             continue;
         }
 
-        if (typeof file.s !== 'number' || typeof file.m !== 'number' || typeof file.o !== 'number' || file.o < 0 || !Array.isArray(file.r)) {
+        if (typeof file.s !== 'number' || typeof file.m !== 'number' || typeof file.o !== 'number' || file.o < 0) {
             continue;
         }
 
-        let broken = false;
+        const records = decodeRows(file.r, tables, file.p, shape);
+        const tail = decodeRows(Array.isArray(file.t) ? file.t : [], tables, file.p, shape);
 
-        const decode = (rows: RecordRow[]): UsageRecord[] => {
-            const records: UsageRecord[] = [];
-
-            for (const row of rows) {
-                const valid = isRow(row, version);
-                const model = valid ? name(document.models, row[1]) : null;
-                const sessionId = valid ? name(document.sessions, row[2]) : null;
-                const cwd = valid ? name(document.folders, row[3]) : null;
-                const accountAt = valid ? (row[12] ?? 0) : 0;
-                const account = accountAt === 0 ? undefined : name(accounts, accountAt - 1);
-
-                if (!valid || model === null || sessionId === null || cwd === null || account === null) {
-                    broken = true;
-
-                    return records;
-                }
-
-                records.push({
-                    provider: file.p,
-                    timestampMs: row[0],
-                    model,
-                    sessionId,
-                    cwd,
-                    ...(account === undefined ? {} : { account }),
-                    totals: { calls: row[4], input: row[5], cacheRead: row[6], cacheWrite: row[7], cacheWrite1h: row[8], output: row[9], reasoning: row[10] },
-                    ...(typeof row[13] === 'number' ? { costUsd: row[13] } : {}),
-                    ...(typeof row[14] === 'string' ? { serviceTier: row[14] } : {}),
-                    dedupeKey: row[11] === 0 ? null : row[11]
-                });
-            }
-
-            return records;
-        };
-
-        const records = decode(file.r);
-        const tail = decode(Array.isArray(file.t) ? file.t : []);
-
-        if (!broken) {
-            index.set(path, {
-                provider: file.p,
-                size: file.s,
-                mtimeMs: file.m,
-                offset: file.o,
-                records,
-                tail,
-                codex: file.c ?? null,
-                head: typeof file.h === 'string' ? file.h : null,
-                ...(typeof file.v === 'number' ? { parserVersion: file.v } : {}),
-                ...(typeof file.z === 'boolean' ? { compressed: file.z } : {})
-            });
+        if (records === null || tail === null) {
+            continue;
         }
+
+        index.set(path, {
+            provider: file.p,
+            size: file.s,
+            mtimeMs: file.m,
+            offset: file.o,
+            records,
+            tail,
+            codex: file.c ?? null,
+            head: typeof file.h === 'string' ? file.h : null,
+            ...(typeof file.v === 'number' ? { parserVersion: file.v } : {}),
+            ...(typeof file.z === 'boolean' ? { compressed: file.z } : {})
+        });
     }
 
     return index;
