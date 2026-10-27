@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { mkdir, readdir, readFile, rm, stat } from 'node:fs/promises';
+import { mkdir, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
     ChatVisualsSchema,
@@ -49,15 +49,6 @@ export interface VisualStoreOptions {
 
 export type VisualListener = (chatId: string, visuals: ChatVisual[]) => void;
 
-const WORKSPACE_SUFFIX = '.visuals';
-
-// A preview carries the store's clock in its name; one written before that has only its modification time.
-const PREVIEW_NAME = /^preview-(?:(\d+)-)?[0-9a-f]{16}\.png$/;
-// Long enough for the caller that asked for a preview to read it, whatever the other limits say.
-const PREVIEW_PROTECTED_MS = 10 * 60 * 1000;
-const PREVIEW_LIFETIME_MS = 24 * 60 * 60 * 1000;
-const PREVIEW_MAX_PER_CHAT = 20;
-
 const MIB = 1024 * 1024;
 
 function mebibytes(bytes: number): string {
@@ -66,18 +57,6 @@ function mebibytes(bytes: number): string {
 
 function refuse(code: 'visual-invalid' | 'visual-too-large', message: string): never {
     throw new ChatError(code, message);
-}
-
-async function modifiedAt(path: string): Promise<number | null> {
-    try {
-        return (await stat(path)).mtimeMs;
-    } catch (e) {
-        if (isNotFound(e)) {
-            return null;
-        }
-
-        throw e;
-    }
 }
 
 function isSize(value: unknown): value is number {
@@ -187,7 +166,7 @@ export class VisualStore {
     }
 
     workspacePath(chatId: string): string {
-        return join(this.dir, `${encodeURIComponent(chatId)}${WORKSPACE_SUFFIX}`);
+        return join(this.dir, `${encodeURIComponent(chatId)}.visuals`);
     }
 
     async prepareWorkspace(chatId: string): Promise<string> {
@@ -212,47 +191,8 @@ export class VisualStore {
         return this.writeWorkspaceFile(chatId, name, html);
     }
 
-    /* Writes a preview under a name of its own, then holds the chat to the preview limits, which spare the one just written. */
     writePreview(chatId: string, png: Uint8Array): Promise<string> {
-        return this.writes.run(chatId, async () => {
-            const now = this.now();
-            const path = join(await this.prepareWorkspace(chatId), `preview-${now}-${randomBytes(8).toString('hex')}.png`);
-            await writeAtomic(path, png);
-            await this.prunePreviews(chatId, now);
-
-            return path;
-        });
-    }
-
-    /*
-     * Removes the previews of every chat that went past their lifetime or their number, and says how many.
-     * The host calls it when it likes; the store keeps no timer, so constructing one starts no work.
-     */
-    async sweepPreviews(now: number = this.now()): Promise<number> {
-        let names: string[];
-
-        try {
-            names = await readdir(this.dir);
-        } catch (e) {
-            if (isNotFound(e)) {
-                return 0;
-            }
-
-            throw e;
-        }
-
-        let removed = 0;
-
-        for (const name of names) {
-            if (!name.endsWith(WORKSPACE_SUFFIX)) {
-                continue;
-            }
-
-            const chatId = decodeURIComponent(name.slice(0, -WORKSPACE_SUFFIX.length));
-            removed += await this.writes.run(chatId, () => this.prunePreviews(chatId, now));
-        }
-
-        return removed;
+        return this.writeWorkspaceFile(chatId, `preview-${randomBytes(8).toString('hex')}.png`, png);
     }
 
     /* Stores a page with its bootstrap and adds it to the chat at the host's current time. */
@@ -395,58 +335,6 @@ export class VisualStore {
 
             return path;
         });
-    }
-
-    // Runs inside the chat's chain, so a preview being written or a chat being removed never comes in between.
-    private async prunePreviews(chatId: string, now: number): Promise<number> {
-        const folder = this.workspacePath(chatId);
-        let names: string[];
-
-        try {
-            names = await readdir(folder);
-        } catch (e) {
-            if (isNotFound(e)) {
-                return 0;
-            }
-
-            throw e;
-        }
-
-        const previews: Array<{ path: string; at: number }> = [];
-
-        for (const name of names) {
-            const match = PREVIEW_NAME.exec(name);
-
-            if (match === null) {
-                continue;
-            }
-
-            const path = join(folder, name);
-            const at = match[1] === undefined ? await modifiedAt(path) : Number(match[1]);
-
-            if (at !== null) {
-                previews.push({ path, at });
-            }
-        }
-
-        previews.sort((a, b) => b.at - a.at);
-        let kept = 0;
-        let removed = 0;
-
-        for (const preview of previews) {
-            const age = now - preview.at;
-            const disposable = age >= PREVIEW_PROTECTED_MS && (age >= PREVIEW_LIFETIME_MS || kept >= PREVIEW_MAX_PER_CHAT);
-
-            if (!disposable) {
-                kept++;
-                continue;
-            }
-
-            await rm(preview.path, { force: true });
-            removed++;
-        }
-
-        return removed;
     }
 
     private tell(chatId: string, visuals: ChatVisual[]): void {
