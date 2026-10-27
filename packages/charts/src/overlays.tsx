@@ -94,6 +94,54 @@ const bucketOf = <Row,>(chart: ChartContextValue, index: number): ChartBucket<Ro
     notes: chart.notesAt(index)
 });
 
+/*
+ * Where the card stands in a horizontal chart. Beside the cursor, it follows the end of the row's longest bar and its
+ * value, or goes over or under the row where that leaves no room. In a corner, it moves to the other end of the plot
+ * where it would cover the row.
+ */
+function rowPlace(chart: ChartContextValue, placement: ChartTooltipPlacement, card: { width: number; height: number }): CSSProperties {
+    const { activeIndex, plot, leftAxis, box, height } = chart;
+    const row = chart.bucketAt(activeIndex) ?? { left: plot.top, width: 0 };
+    const plotLeft = leftAxis + plot.left;
+    const plotRight = leftAxis + plot.right + chart.valueRoom;
+
+    if (placement !== 'cursor') {
+        const [vertical, horizontal] = placement.split('-') as ['top' | 'bottom', 'left' | 'right'];
+        const coversTop = row.left < plot.top + card.height;
+        const coversBottom = row.left + row.width > plot.bottom - card.height;
+        const side = vertical === 'top' ? (coversTop && !coversBottom ? 'bottom' : 'top') : coversBottom && !coversTop ? 'top' : 'bottom';
+
+        return {
+            ...(horizontal === 'left' ? { left: Math.round(plotLeft) } : { right: Math.round(box - plotRight) }),
+            top: side === 'top' ? Math.round(plot.top) : Math.round(plot.bottom - card.height),
+            maxWidth: Math.max(0, Math.round(plotRight - plotLeft))
+        };
+    }
+
+    const ends = [...chart.series].flatMap(([id]) => {
+        const top = chart.stacked.get(id)?.top[activeIndex];
+        const pixel = top === null || top === undefined ? null : chart.pixelOfY(top);
+
+        return pixel === null ? [] : [pixel];
+    });
+
+    const end = leftAxis + Math.max(plot.left, ...ends) + chart.valueRoom + OFFSET;
+
+    if (end + card.width <= box - EDGE) {
+        const center = row.left + row.width / 2;
+
+        return { left: Math.round(end), top: Math.round(Math.max(0, Math.min(height - card.height, center - card.height / 2))) };
+    }
+
+    const below = row.left + row.width / 2 < height / 2;
+
+    return {
+        left: Math.round(plotLeft),
+        maxWidth: Math.max(0, Math.round(box - plotLeft - EDGE)),
+        ...(below ? { top: Math.round(row.left + row.width + EDGE) } : { bottom: Math.round(height - row.left + EDGE) })
+    };
+}
+
 /* The swatch of a series: its icon in its color, else a dash for a line and a square for a column. */
 function Swatch({ color, entry, size }: { color: string; entry: SeriesEntry; size: 12 | 14 }) {
     if (entry.icon !== null) {
@@ -135,7 +183,9 @@ export function ChartTooltip<Row>({ total = false, format, children, placement =
     const pixel = chart.leftAxis + (position?.[0] ?? chart.centerOf(activeIndex)) - chart.scroll;
     let place: CSSProperties;
 
-    if (placement === 'cursor') {
+    if (chart.horizontal) {
+        place = rowPlace(chart, placement, card);
+    } else if (placement === 'cursor') {
         // The card hangs on the side with the most room, so it never covers the cursor and never runs off.
         place = {
             ...(pixel > chart.box / 2

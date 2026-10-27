@@ -15,7 +15,7 @@ import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { useContentSize } from '@adecore/ui';
 import { formatNumber, formatRounded } from '@adecore/ui/format';
-import { readValue, warnMissingKey, xOf } from './access.ts';
+import { readValue, warnMissingKey, warnOnce, xOf } from './access.ts';
 import { LABEL_GAP as X_AXIS_GAP } from './axes.tsx';
 import { bandLayout, GROUP_GAP } from './band.ts';
 import { seriesColor } from './color.ts';
@@ -60,6 +60,13 @@ export interface ChartRootProps<Row> {
     readonly y?: ChartYOptions;
     /* The name of the chart, for a screen reader and the table of values. */
     readonly label: string;
+    /*
+     * `horizontal` turns the buckets of a band scale into rows down the chart, a name on the left and a bar running to
+     * the right, for ranked categories with long names. The x is still the bucket and the y still the value.
+     */
+    readonly orientation?: 'vertical' | 'horizontal';
+    /* The pixels a row of a horizontal chart takes, which the height follows in place of `height`. */
+    readonly rowHeight?: number;
     /* In pixels, the x axis included; with `grow` the least height. The width follows the container. */
     readonly height?: number;
     /* Takes the height its container gives it, never less than `height`, such as a chart that fills a panel. */
@@ -110,6 +117,13 @@ const Y_TICK_SPACING = 40;
 const POINT_REACH = 16;
 /* One row of value labels over the tallest column; labels pushed up a row further need a larger `margin.top`. */
 const VALUE_LABEL_ROOM = 24;
+const ROW_HEIGHT = 32;
+/* Ticks under a horizontal plot stand apart by the width of a label, which takes more room than its line beside a plot. */
+const VALUE_TICK_SPACING = 80;
+/* The line of the values under a horizontal plot, and the room a rule label takes above it. */
+const VALUE_AXIS_LINE = 16;
+const RULE_LABEL_ROOM = 20;
+const NO_ENTRIES = new Map<string, never>();
 
 const defaultValue = (value: number): string => (Number.isInteger(value) ? formatNumber(value) : formatRounded(value, 2));
 
@@ -127,6 +141,8 @@ export function ChartRoot<Row>({
     yScale = 'linear',
     y = {},
     label,
+    orientation = 'vertical',
+    rowHeight = ROW_HEIGHT,
     height: leastHeight = 200,
     grow = false,
     margin = {},
@@ -149,12 +165,12 @@ export function ChartRoot<Row>({
     const { t } = useTranslation('charts');
     const id = useId();
     const [store] = useState(createChartStore);
-    const series = useSyncExternalStore(store.subscribe, store.series, store.series);
+    const allSeries = useSyncExternalStore(store.subscribe, store.series, store.series);
     const axes = useSyncExternalStore(store.subscribe, store.axes, store.axes);
     const xAxes = useSyncExternalStore(store.subscribe, store.xAxes, store.xAxes);
     const yAxes = useSyncExternalStore(store.subscribe, store.yAxes, store.yAxes);
-    const markers = useSyncExternalStore(store.subscribe, store.markers, store.markers);
-    const bands = useSyncExternalStore(store.subscribe, store.bands, store.bands);
+    const allMarkers = useSyncExternalStore(store.subscribe, store.markers, store.markers);
+    const allBands = useSyncExternalStore(store.subscribe, store.bands, store.bands);
     const rules = useSyncExternalStore(store.subscribe, store.rules, store.rules);
     const formats = useSyncExternalStore(store.subscribe, store.formats, store.formats);
     const chartGroup = useContext(GroupContext);
@@ -169,16 +185,33 @@ export function ChartRoot<Row>({
     const [leftSlot, setLeftSlot] = useState<SVGGElement | null>(null);
     const [rightSlot, setRightSlot] = useState<SVGGElement | null>(null);
     const [rulesSlot, setRulesSlot] = useState<SVGGElement | null>(null);
+    const [rowsSlot, setRowsSlot] = useState<HTMLElement | null>(null);
     const [scroll, setScroll] = useState(0);
     const [announce, setAnnounce] = useState(false);
     const [measure, size] = useContentSize();
     const [measureGroups, groupsSize] = useContentSize();
     // The row of group labels under the plot takes its share of the height a growing chart is given.
-    const height = grow ? Math.max(leastHeight, size.height - groupsSize.height) : leastHeight;
+    const boxHeight = grow ? Math.max(leastHeight, size.height - groupsSize.height) : leastHeight;
     const scroller = useRef<HTMLDivElement>(null);
 
     const points = rows === 'points';
     const band = xScale === 'band' && !points;
+    const horizontal = orientation === 'horizontal' && band;
+    // Only columns turn into rows; a line, a point, a marker or a band across rows would read nothing a bar does not.
+    const series = horizontal ? new Map([...allSeries].filter(([, entry]) => entry.kind === 'bar')) : allSeries;
+    const markers = horizontal ? NO_ENTRIES : allMarkers;
+    const bands = horizontal ? NO_ENTRIES : allBands;
+    const dropped = horizontal && (series.size < allSeries.size || allMarkers.size > 0 || allBands.size > 0);
+
+    useEffect(() => {
+        if (orientation === 'horizontal' && !band) {
+            warnOnce('Chart.Root: `orientation="horizontal"` takes the buckets of a band scale; this chart stays vertical.');
+        }
+
+        if (dropped) {
+            warnOnce('Chart.Root: a horizontal chart draws `Chart.Bar` only; its lines, areas, points, markers and bands are left out.');
+        }
+    }, [orientation, band, dropped]);
 
     const xs = data.map((row, index) => {
         const value = readValue(x, row, index);
@@ -192,24 +225,52 @@ export function ChartRoot<Row>({
     const groupLabels = groupKeys === null ? null : groupLabel === undefined ? groupKeys : data.map((row, index) => String(readValue(groupLabel, row, index)));
     const leftY = yAxes.get('left');
     const rightY = yAxes.get('right');
-    const [leftAxis, rightAxis] = useAlignedAxes(chartGroup?.widths ?? null, leftY?.width ?? 0, rightY?.width ?? 0);
+    // A horizontal chart has no y axis beside it: the names of its rows take that place, and its values run underneath.
+    const [leftAxis, rightAxis] = useAlignedAxes(
+        chartGroup?.widths ?? null,
+        horizontal ? (axes.start ?? 0) : (leftY?.width ?? 0),
+        horizontal ? 0 : (rightY?.width ?? 0)
+    );
+
     const room = Math.max(0, size.width - leftAxis - rightAxis);
     // A bucket of a time scale runs from its x for one step and its point stands in the middle, as a column would.
     const bucketStep = xScale === 'time' && !points ? (stepProp ?? bucketStepOf(xs as number[])) : 0;
     const inset = band || bucketStep > 0 ? 0 : INSET;
     const marginLeft = margin.left ?? inset;
     const marginRight = margin.right ?? inset;
-    const layout = band ? bandLayout(xs.length, groupKeys, Math.max(0, room - marginLeft - marginRight), minBucketWidth, groupGap) : null;
-    const width = layout === null ? room : Math.max(room, Math.ceil(layout.width + marginLeft + marginRight));
+
+    const layout = horizontal
+        ? bandLayout(xs.length, groupKeys, 0, rowHeight, groupGap)
+        : band
+          ? bandLayout(xs.length, groupKeys, Math.max(0, room - marginLeft - marginRight), minBucketWidth, groupGap)
+          : null;
+
+    const width = layout === null || horizontal ? room : Math.max(room, Math.ceil(layout.width + marginLeft + marginRight));
     const scrolls = layout !== null && width > room;
     // A scrolling plot clips what hangs out of its first buckets, such as a value label or a slanted name, so the
     // scroller reaches over the y axis by its width and gives that back as padding: the plot stays where it was.
     const overhang = scrolls ? leftAxis : 0;
     const xRows = [...xAxes.values()];
-    const bottom = height - (xRows.length === 0 ? (margin.bottom ?? 0) : (margin.bottom ?? 4) + X_AXIS_GAP + xRows.reduce((sum, row) => sum + row.room, 0));
-    const top = Math.max(margin.top ?? 8, leftY?.top ?? 0, rightY?.top ?? 0, [...series.values()].some((entry) => entry.valueLabels) ? VALUE_LABEL_ROOM : 0);
-    const right = width - marginRight - (axes.end ?? 0);
+    const valueRoom = horizontal ? Math.max(0, ...[...series.values()].map((entry) => entry.endRoom ?? 0)) : 0;
+    const titleRoom = leftY?.top ?? rightY?.top ?? 0;
+    let top: number;
+    let bottom: number;
+    let height: number;
+
+    if (horizontal) {
+        top = Math.max(margin.top ?? 8, titleRoom + (rules.size > 0 ? RULE_LABEL_ROOM : 0));
+        // Without rows the plot keeps the room of two, where it says there is no data.
+        bottom = top + (xs.length === 0 ? 2 * rowHeight : layout!.width);
+        height = bottom + (margin.bottom ?? 0) + (yAxes.size > 0 ? X_AXIS_GAP + VALUE_AXIS_LINE : 0);
+    } else {
+        height = boxHeight;
+        bottom = height - (xRows.length === 0 ? (margin.bottom ?? 0) : (margin.bottom ?? 4) + X_AXIS_GAP + xRows.reduce((sum, row) => sum + row.room, 0));
+        top = Math.max(margin.top ?? 8, leftY?.top ?? 0, rightY?.top ?? 0, [...series.values()].some((entry) => entry.valueLabels) ? VALUE_LABEL_ROOM : 0);
+    }
+
+    const right = width - marginRight - (axes.end ?? 0) - valueRoom;
     const plot = { left: marginLeft, top, right, bottom, width: Math.max(0, right - marginLeft), height: Math.max(0, bottom - top) };
+    const valueRange: [number, number] = horizontal ? [plot.left, plot.right] : [plot.bottom, plot.top];
     const continuousKind = xScale === 'band' ? 'linear' : xScale;
 
     const continuous = band
@@ -228,8 +289,8 @@ export function ChartRoot<Row>({
         yScale,
         extentOf(stacked.values(), yScale, !points),
         yOptions,
-        [plot.bottom, plot.top],
-        leftY?.ticks ?? rightY?.ticks ?? tickCount(plot.height, Y_TICK_SPACING),
+        valueRange,
+        leftY?.ticks ?? rightY?.ticks ?? (horizontal ? tickCount(plot.width, VALUE_TICK_SPACING) : tickCount(plot.height, Y_TICK_SPACING)),
         !points
     );
 
@@ -239,7 +300,7 @@ export function ChartRoot<Row>({
     const pixelOfY = (value: number): number | null => {
         const pixel = scaleY.at(value);
 
-        return pixel === null ? null : Math.min(plot.bottom, Math.max(plot.top, pixel));
+        return pixel === null ? null : Math.min(Math.max(...valueRange), Math.max(Math.min(...valueRange), pixel));
     };
 
     const colors = new Map<string, string>();
@@ -315,9 +376,11 @@ export function ChartRoot<Row>({
 
     const pointColor = (index: number): string => placing?.rowColors?.[index] ?? placing?.color ?? groupColorOf(index);
 
+    const bucketStart = horizontal ? plot.top : plot.left;
+
     const centerOf = (index: number): number => {
         if (layout !== null) {
-            return plot.left + (layout.lefts[index] ?? 0) + layout.bucket / 2;
+            return bucketStart + (layout.lefts[index] ?? 0) + layout.bucket / 2;
         }
 
         return continuous!.at((xs[index] as number) + bucketStep / 2);
@@ -325,7 +388,7 @@ export function ChartRoot<Row>({
 
     const bucketAt = (index: number): { left: number; width: number } | null => {
         if (layout !== null) {
-            return { left: plot.left + (layout.lefts[index] ?? 0), width: layout.bucket };
+            return { left: bucketStart + (layout.lefts[index] ?? 0), width: layout.bucket };
         }
 
         if (bucketStep <= 0 || xs[index] === undefined) {
@@ -480,9 +543,9 @@ export function ChartRoot<Row>({
         warnMissingKey(x, data, 'Chart.Root');
     }, [x, data]);
 
-    const indexAtPointer = (e: MouseEvent<SVGSVGElement>): number => {
+    const indexAtPointer = (e: MouseEvent<Element>): number => {
         const box = e.currentTarget.getBoundingClientRect();
-        const pixel = e.clientX - box.left;
+        const pixel = horizontal ? e.clientY - box.top : e.clientX - box.left;
 
         if (points) {
             return nearestPoint(placed, pixel, e.clientY - box.top, POINT_REACH);
@@ -494,7 +557,7 @@ export function ChartRoot<Row>({
         );
     };
 
-    const onPointerMove = (e: PointerEvent<SVGSVGElement>): void => {
+    const onPointerMove = (e: PointerEvent<Element>): void => {
         setAnnounce(false);
 
         if (xs.length === 0) {
@@ -551,7 +614,7 @@ export function ChartRoot<Row>({
 
         const target =
             keys === null
-                ? moveIndex(e.key, from, xs.length, groupStarts)
+                ? moveIndex(e.key, from, xs.length, groupStarts, horizontal ? 'rows' : 'columns')
                 : movePoint(
                       pointGroups.map((run) => run.indexes.filter((index) => positions[index] !== null)),
                       from,
@@ -600,6 +663,8 @@ export function ChartRoot<Row>({
         width,
         band: layout,
         continuous,
+        horizontal,
+        valueRoom,
         y: scaleY,
         yStep,
         series,
@@ -616,7 +681,16 @@ export function ChartRoot<Row>({
         dimmed: dimmedRows,
         labelFocus,
         labelDim: columnDim ?? 0.4,
-        elements: { legend: legendSlot, table: tableSlot, tooltip: tooltipSlot, groups: groupsSlot, left: leftSlot, right: rightSlot, rules: rulesSlot },
+        elements: {
+            legend: legendSlot,
+            table: tableSlot,
+            tooltip: tooltipSlot,
+            groups: groupsSlot,
+            left: leftSlot,
+            right: rightSlot,
+            rules: rulesSlot,
+            rows: rowsSlot
+        },
         scroll,
         box: size.width,
         leftAxis,
@@ -651,7 +725,7 @@ export function ChartRoot<Row>({
 
     const hint = [
         ruleText,
-        points ? t('keyboard.points') : t('keyboard.move'),
+        points ? t('keyboard.points') : horizontal ? t('keyboard.rows') : t('keyboard.move'),
         layout !== null && layout.groups.length > 0 ? t('keyboard.groups') : null,
         pressable ? t('keyboard.activate') : null
     ]
@@ -660,15 +734,49 @@ export function ChartRoot<Row>({
 
     const highlighted = layout === null ? [] : xs.flatMap((_, index) => ((cursor === 'full' && index === activeIndex) || selectedRows[index] ? [index] : []));
 
+    // A bucket across the plot, where the cursor lights it; pressable, it also reaches over what is written beside it.
+    const bucketBox = (index: number, pressing: boolean): { x: number; y: number; width: number; height: number } => {
+        const start = Math.round(bucketStart + (layout?.lefts[index] ?? 0));
+        const size = Math.max(1, Math.round(layout?.bucket ?? 0));
+
+        if (horizontal) {
+            return pressing
+                ? { x: 0, y: start, width, height: size }
+                : { x: plot.left, y: start, width: Math.max(0, plot.right + valueRoom - plot.left), height: size };
+        }
+
+        return { x: start, y: plot.top, width: size, height: pressing ? height - plot.top : plot.height };
+    };
+
+    // The names of the rows stand beside the plot, and a person points at a name as much as at its bar.
+    const pointer = {
+        onPointerMove,
+        onPointerLeave: () => setActiveX(keyX),
+        onClick: pressable ? (e: MouseEvent<Element>) => activate(indexAtPointer(e)) : undefined
+    };
+
     return (
         <ChartContext value={context}>
             <div ref={ref} className={clsx('flex min-w-0 flex-col gap-3', grow && 'h-full min-h-0', className)}>
                 <div ref={setLegendSlot} className="empty:hidden" />
                 {/* The ring stands outside the box, where it clears the labels at the edges of the axes. */}
-                <div ref={measure} className={clsx('focus-ring-within relative flex rounded-md', grow && 'min-h-0 flex-1')} style={{ outlineOffset: 4 }}>
-                    <svg width={leftAxis} height={height} aria-hidden className="shrink-0 overflow-visible">
-                        <g ref={setLeftSlot} tabIndex={-1} />
-                    </svg>
+                <div
+                    ref={measure}
+                    className={clsx(
+                        'focus-ring-within relative flex rounded-md',
+                        grow && !horizontal && 'min-h-0 flex-1',
+                        horizontal && pressable && 'cursor-pointer'
+                    )}
+                    style={{ outlineOffset: 4 }}
+                    {...(horizontal ? pointer : {})}
+                >
+                    {horizontal ? (
+                        <div ref={setRowsSlot} aria-hidden className="relative shrink-0" style={{ width: leftAxis, height }} />
+                    ) : (
+                        <svg width={leftAxis} height={height} aria-hidden className="shrink-0 overflow-visible">
+                            <g ref={setLeftSlot} tabIndex={-1} />
+                        </svg>
+                    )}
                     <div
                         ref={scroller}
                         className={clsx('min-w-0 flex-1', scrolls ? 'overflow-x-auto overflow-y-hidden overscroll-x-contain' : 'overflow-visible')}
@@ -694,9 +802,7 @@ export function ChartRoot<Row>({
                             aria-describedby={interactive ? `${id}-hint` : undefined}
                             aria-activedescendant={pressable && from >= 0 ? `${id}-${from}` : undefined}
                             className={clsx('block overflow-visible outline-none', pressable && 'cursor-pointer')}
-                            onPointerMove={onPointerMove}
-                            onPointerLeave={() => setActiveX(keyX)}
-                            onClick={pressable ? (e) => activate(indexAtPointer(e)) : undefined}
+                            {...(horizontal ? {} : pointer)}
                             onKeyDown={interactive ? onKeyDown : undefined}
                             onBlur={() => {
                                 setAnnounce(false);
@@ -708,17 +814,7 @@ export function ChartRoot<Row>({
                                 }
                             }}
                         >
-                            {layout !== null &&
-                                highlighted.map((index) => (
-                                    <rect
-                                        key={index}
-                                        x={Math.round(plot.left + layout.lefts[index]!)}
-                                        y={plot.top}
-                                        width={Math.max(1, Math.round(layout.bucket))}
-                                        height={plot.height}
-                                        className="fill-surface-hover"
-                                    />
-                                ))}
+                            {layout !== null && highlighted.map((index) => <rect key={index} {...bucketBox(index, false)} className="fill-surface-hover" />)}
                             {children}
                             <g ref={setRulesSlot} tabIndex={-1} />
                             {continuous !== null && !points && activeIndex >= 0 && cursor !== 'none' && (
@@ -751,10 +847,7 @@ export function ChartRoot<Row>({
                                         role="button"
                                         aria-pressed={selectedRows[index]}
                                         aria-label={describe(index)}
-                                        x={Math.round(plot.left + layout.lefts[index]!)}
-                                        y={plot.top}
-                                        width={Math.max(1, Math.round(layout.bucket))}
-                                        height={height - plot.top}
+                                        {...bucketBox(index, true)}
                                         fill="transparent"
                                     />
                                 ))}

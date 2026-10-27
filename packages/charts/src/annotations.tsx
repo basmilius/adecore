@@ -34,7 +34,7 @@ export interface ChartBandProps {
 export interface ChartRuleProps {
     /* Where the line crosses the value axis. */
     readonly value: number;
-    /* Written at the right end of the line with the value, such as "A · 71". */
+    /* Written at the right end of the line with the value, such as "A · 71"; above the plot in a horizontal chart. */
     readonly label: string;
     readonly tone?: ChartColor;
     readonly dashed?: boolean;
@@ -49,7 +49,10 @@ const RULE_LABEL = 18;
 /* Between the line and the label it carries, above it or below it. */
 const RULE_GAP = 7;
 
-/* A horizontal line at a value across the plot, such as a reference to compare against, drawn above the series. */
+/*
+ * A line at a value across the plot, such as a reference to compare against, drawn above the series: horizontal over
+ * columns, vertical through the rows of a horizontal chart.
+ */
 export function ChartRule({ value, label, tone = 'muted', dashed = false, className, ref }: ChartRuleProps) {
     const chart = useChartContext('Chart.Rule');
     const id = useId();
@@ -59,6 +62,30 @@ export function ChartRule({ value, label, tone = 'muted', dashed = false, classN
 
     if (pixel === null || target === null) {
         return null;
+    }
+
+    if (chart.horizontal) {
+        const left = Math.round(pixel) + 0.5;
+        // Above the plot, on the side of the line that has the room, so it never covers the bars of the first row.
+        const toward = pixel > (chart.plot.left + chart.plot.right) / 2 ? 'end' : 'start';
+
+        return createPortal(
+            <g ref={ref} className={clsx('pointer-events-none', className)} style={{ color: colorOf(tone)! }} aria-hidden>
+                <line x1={left} x2={left} y1={chart.plot.top} y2={chart.plot.bottom} stroke="currentColor" strokeDasharray={dashed ? '4 4' : undefined} />
+                <text
+                    x={Math.round(pixel) + (toward === 'end' ? 4 : -4)}
+                    y={chart.plot.top - RULE_GAP}
+                    textAnchor={toward}
+                    strokeWidth={4}
+                    paintOrder="stroke"
+                    className="fill-text text-xs font-medium tabular-nums"
+                    style={{ stroke: chart.halo }}
+                >
+                    {`${label} · ${chart.formatY(value)}`}
+                </text>
+            </g>,
+            target
+        );
     }
 
     const top = Math.round(pixel) + 0.5;
@@ -94,7 +121,7 @@ export function ChartMarker({ at, label, detail, tone = 'muted', className, ref 
     const pixel = chart.pixelOfX(x);
 
     // A moment outside the axis, such as a deploy before the first bucket, has no place on the plot.
-    if (pixel === null || pixel < chart.plot.left || pixel > chart.plot.right) {
+    if (chart.horizontal || pixel === null || pixel < chart.plot.left || pixel > chart.plot.right) {
         return null;
     }
 
@@ -134,7 +161,7 @@ export function ChartBand({ from, to, label, detail, tone = 'muted', className, 
         }
     }
 
-    if (left === null || right === null || right <= left) {
+    if (chart.horizontal || left === null || right === null || right <= left) {
         return null;
     }
 

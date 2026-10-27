@@ -25,6 +25,7 @@ export default {
     },
     keyboard: {
         move: 'Pijltjestoetsen gaan langs de waarden, Home en End naar het begin en het eind, Escape wist.',
+        rows: 'Omhoog en omlaag gaan langs de rijen, Home en End naar de eerste en de laatste, Escape wist.',
         points: 'Links en rechts gaan langs een reeks, omhoog en omlaag naar de volgende reeks, Home en End naar de uiteinden, Escape wist.',
         groups: 'Page Up en Page Down gaan naar de vorige of volgende groep.',
         activate: 'Enter of spatie kiest een waarde.'

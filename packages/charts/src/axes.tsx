@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useSyncExternalStore, type ReactNode, type Ref } from 'react';
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNode, type Ref } from 'react';
 import { createPortal } from 'react-dom';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
@@ -38,6 +38,11 @@ export interface ChartXAxisProps {
     readonly logLabel?: string;
     /* Hears whether labels of buckets were left out for lack of room, such as to tell a person the table has them all. */
     readonly onThinnedChange?: (thinned: boolean) => void;
+    /*
+     * In a horizontal chart, the widest the names of the rows may be, in pixels: 240 by default and never more than 40% of
+     * the chart. A longer name is cut short with an ellipsis and read whole in the tooltip, the live region and the table.
+     */
+    readonly maxWidth?: number;
     readonly className?: string;
     readonly ref?: Ref<SVGGElement>;
 }
@@ -85,6 +90,10 @@ const X_TITLE_ROOM = 21;
 /* The baseline of a y axis title from the top of the chart, and the room above the plot it needs. */
 const Y_TITLE_BASELINE = 15;
 const Y_TITLE_ROOM = 28;
+/* The names of the rows of a horizontal chart: their widest and the share of the chart they may take, and their line. */
+const ROW_LABEL_LIMIT = 240;
+const ROW_LABEL_SHARE = 0.4;
+const ROW_LABEL_LINE = 16;
 
 /* The height a row of labels takes under the plot, more for a slanted one. */
 const roomOf = (widest: number, angle: number): number => Math.ceil(angle === 0 ? X_LABEL_LINE : widest * Math.sin(SLANT) + X_LABEL_LINE * Math.cos(SLANT));
@@ -122,6 +131,43 @@ export function ChartGrid({ axis = 'y', dashed = false, lines = 'all', className
     const chart = useChartContext('Chart.Grid');
     const { plot, y, continuous, band } = chart;
     const ground = y.domain[0] <= 0 && y.domain[1] >= 0 ? 0 : y.domain[0];
+
+    if (chart.horizontal) {
+        // The values run across, so the lines on their ticks stand upright and the lines between rows lie down.
+        const ticks = lines === 'ground' ? [ground] : axis === 'x' ? [] : y.ticks;
+        const rows = lines === 'ground' || axis === 'y' ? [] : chart.xs.map((_, index) => chart.centerOf(index));
+
+        return (
+            <g ref={ref} className={clsx('pointer-events-none', className)} aria-hidden>
+                {ticks.map((tick) => {
+                    const pixel = y.at(tick);
+
+                    return pixel === null ? null : (
+                        <line
+                            key={tick}
+                            x1={crisp(pixel)}
+                            x2={crisp(pixel)}
+                            y1={plot.top}
+                            y2={plot.bottom}
+                            strokeDasharray={dashed && tick !== ground ? DASH : undefined}
+                            className={dashed ? 'stroke-border' : tick === ground ? 'stroke-border-strong' : 'stroke-border-soft'}
+                        />
+                    );
+                })}
+                {rows.map((pixel) => (
+                    <line
+                        key={pixel}
+                        x1={plot.left}
+                        x2={plot.right}
+                        y1={crisp(pixel)}
+                        y2={crisp(pixel)}
+                        strokeDasharray={dashed ? DASH : undefined}
+                        className={dashed ? 'stroke-border' : 'stroke-border-soft'}
+                    />
+                ))}
+            </g>
+        );
+    }
 
     if (lines === 'ground') {
         const pixel = y.at(ground);
@@ -173,8 +219,81 @@ export function ChartGrid({ axis = 'y', dashed = false, lines = 'all', className
     );
 }
 
-/* The labels under the plot: one per bucket on a band scale as far as they fit, round ticks on a continuous one. */
-export function ChartXAxis({
+/*
+ * The labels under the plot: one per bucket on a band scale as far as they fit, round ticks on a continuous one. In a
+ * horizontal chart, the name of every row left of the plot.
+ */
+export function ChartXAxis(props: ChartXAxisProps) {
+    const chart = useChartContext('Chart.XAxis');
+
+    return chart.horizontal ? <RowAxis {...props} /> : <ColumnAxis {...props} />;
+}
+
+/* The names of the rows of a horizontal chart, never left out: the column takes the widest, up to its limit, and cuts the rest short. */
+function RowAxis({ format, title, label: spoken, maxWidth = ROW_LABEL_LIMIT, onThinnedChange, className, ref }: ChartXAxisProps) {
+    const chart = useChartContext('Chart.XAxis');
+    const { store, xs } = chart;
+    useAxisTitle(spoken ?? title);
+    const candidates = useRef<SVGGElement>(null);
+    const write = format ?? chart.formatX;
+    const limit = chart.box > 0 ? Math.min(maxWidth, Math.floor(chart.box * ROW_LABEL_SHARE)) : maxWidth;
+    const target = chart.elements.rows;
+
+    useBeforePaint(() => {
+        // A pixel more than measured, so a name that fits is never cut short by how the page rounds its own text.
+        store.setAxis('start', Math.min(limit, Math.ceil(widestIn(candidates.current)) + 1) + LABEL_GAP);
+    });
+
+    useBeforePaint(() => () => store.setAxis('start', null), [store]);
+
+    const reported = useRef(false);
+
+    useEffect(() => {
+        if (!reported.current) {
+            reported.current = true;
+            onThinnedChange?.(false);
+        }
+    });
+
+    const column = Math.max(0, chart.leftAxis - LABEL_GAP);
+
+    return (
+        <g ref={ref} aria-hidden>
+            <g ref={candidates} visibility="hidden">
+                {xs.map((key) => (
+                    <text key={String(key)} className="text-xs">
+                        {write(key)}
+                    </text>
+                ))}
+            </g>
+            {target !== null &&
+                createPortal(
+                    <div className={clsx('pointer-events-none', className)}>
+                        {xs.map((key, index) => {
+                            const focus = chart.labelFocus[index] ?? null;
+
+                            return (
+                                <div
+                                    key={String(key)}
+                                    className={clsx('absolute left-0 truncate text-right text-xs/4', focus === 'strong' ? 'text-text' : 'text-text-muted')}
+                                    style={{
+                                        top: Math.round(chart.centerOf(index)) - ROW_LABEL_LINE / 2,
+                                        width: column,
+                                        opacity: focus === 'dim' ? chart.labelDim : undefined
+                                    }}
+                                >
+                                    {write(key)}
+                                </div>
+                            );
+                        })}
+                    </div>,
+                    target
+                )}
+        </g>
+    );
+}
+
+function ColumnAxis({
     format,
     ticks,
     angle = 0,
@@ -370,8 +489,64 @@ function useAxisTitle(title: string | undefined): void {
     );
 }
 
-/* The value labels beside the plot. It measures its widest label and gives the plot the rest. */
-export function ChartYAxis({ format, ticks, side = 'left', title, className, ref }: ChartYAxisProps) {
+/* The value labels beside the plot. It measures its widest label and gives the plot the rest. In a horizontal chart they stand under it. */
+export function ChartYAxis(props: ChartYAxisProps) {
+    const chart = useChartContext('Chart.YAxis');
+
+    return chart.horizontal ? <BottomAxis {...props} /> : <SideAxis {...props} />;
+}
+
+/* The values under the rows of a horizontal chart, with its title above the plot where the values start. */
+function BottomAxis({ format, ticks, side = 'left', title, className, ref }: ChartYAxisProps) {
+    const chart = useChartContext('Chart.YAxis');
+    const { store, y, yStep, plot } = chart;
+    const labels = useRef<SVGGElement>(null);
+    const [widest, setWidest] = useState(0);
+
+    useBeforePaint(() => {
+        store.setYAxis(side, { width: 0, ticks: ticks ?? null, top: title === undefined ? null : Y_TITLE_ROOM, format });
+        const measured = Math.ceil(widestIn(labels.current));
+
+        if (measured !== widest) {
+            setWidest(measured);
+        }
+    });
+
+    useBeforePaint(() => () => store.setYAxis(side, null), [store, side]);
+    const decimals = decimalsOf(yStep);
+    // The ticks at the ends stay over the chart rather than hang past it.
+    const inward = (x: number): number => Math.min(Math.max(x, widest / 2 - chart.leftAxis), chart.width - widest / 2);
+
+    return (
+        <g ref={ref} className={clsx('pointer-events-none', className)} aria-hidden>
+            <g ref={labels}>
+                {y.ticks.map((tick) => {
+                    const pixel = y.at(tick);
+
+                    return pixel === null ? null : (
+                        <text
+                            key={tick}
+                            x={Math.round(inward(pixel))}
+                            y={plot.bottom + LABEL_GAP}
+                            dy="0.8em"
+                            textAnchor="middle"
+                            className="fill-text-faint text-xs tabular-nums"
+                        >
+                            {(format ?? chart.valueFormat)?.(tick) ?? formatRounded(tick, decimals)}
+                        </text>
+                    );
+                })}
+            </g>
+            {title !== undefined && (
+                <text x={Math.round(plot.left)} y={Y_TITLE_BASELINE} className="fill-text-muted text-xs">
+                    {title}
+                </text>
+            )}
+        </g>
+    );
+}
+
+function SideAxis({ format, ticks, side = 'left', title, className, ref }: ChartYAxisProps) {
     const chart = useChartContext('Chart.YAxis');
     const { store, y, yStep } = chart;
     const labels = useRef<SVGGElement>(null);
@@ -435,7 +610,8 @@ export function ChartGroupAxis<Row>({ children, className, ref }: ChartGroupAxis
     const chart = useChartContext('Chart.GroupAxis');
     const target = chart.elements.groups;
 
-    if (target === null || chart.band === null) {
+    // The groups of a horizontal chart read from the gaps between their rows and from the tooltip.
+    if (target === null || chart.band === null || chart.horizontal) {
         return null;
     }
 

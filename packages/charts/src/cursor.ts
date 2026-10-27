@@ -85,17 +85,25 @@ export function snapIndex(xs: readonly ChartX[], scale: ChartXScale, x: ChartX |
 /*
  * Where a key moves the cursor: the arrows step a bucket, Home and End go to the ends, Page Up and Page
  * Down to the first bucket of the previous or the next group. `null` clears the cursor, `undefined`
- * leaves the key to the page.
+ * leaves the key to the page. Buckets in `rows` step with Up and Down and leave Left and Right to the page.
  */
-export function moveIndex(key: string, current: number, count: number, groupStarts: readonly number[] = []): number | null | undefined {
+export function moveIndex(
+    key: string,
+    current: number,
+    count: number,
+    groupStarts: readonly number[] = [],
+    along: 'columns' | 'rows' = 'columns'
+): number | null | undefined {
     if (count === 0) {
         return undefined;
     }
 
+    const [previous, next] = along === 'rows' ? ['ArrowUp', 'ArrowDown'] : ['ArrowLeft', 'ArrowRight'];
+
     switch (key) {
-        case 'ArrowRight':
+        case next:
             return current < 0 ? 0 : Math.min(count - 1, current + 1);
-        case 'ArrowLeft':
+        case previous:
             return current < 0 ? count - 1 : Math.max(0, current - 1);
         case 'Home':
             return 0;

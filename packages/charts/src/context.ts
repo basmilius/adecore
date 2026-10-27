@@ -14,6 +14,8 @@ export interface ChartSlots {
     readonly right: SVGGElement | null;
     /* Above the series in the plot, where `Chart.Rule` draws whatever its place among the children. */
     readonly rules: SVGGElement | null;
+    /* Left of the plot of a horizontal chart, where `Chart.XAxis` writes the name of each row. */
+    readonly rows: HTMLElement | null;
 }
 
 export interface ChartContextValue {
@@ -22,6 +24,13 @@ export interface ChartContextValue {
     readonly data: readonly unknown[];
     readonly xs: readonly ChartX[];
     readonly xScale: ChartXScale;
+    /*
+     * The buckets are rows down the chart and the values run to the right. The value scale stays `y` and the buckets
+     * `x`, so `centerOf` and `bucketAt` measure down and `pixelOfY` across.
+     */
+    readonly horizontal: boolean;
+    /* The room right of the plot of a horizontal chart that its value labels take. */
+    readonly valueRoom: number;
     readonly height: number;
     /* In the coordinates of the plot's own svg, which scrolls apart from the y axes. */
     readonly plot: ChartRect;

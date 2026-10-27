@@ -143,8 +143,21 @@ export function endRoundedColumn(x: number, y: number, width: number, height: nu
     return `M${x},${y}H${x + width}V${y + height - corner}A${corner},${corner} 0 0 1 ${x + width - corner},${y + height}H${x + corner}A${corner},${corner} 0 0 1 ${x},${y + height - corner}Z`;
 }
 
+/* The outline of a bar of a horizontal chart rounded only at its end away from the ground: the right for a value rightward, else the left. */
+export function endRoundedBar(x: number, y: number, width: number, height: number, radius: number, rightward: boolean): string {
+    const corner = Math.max(0, Math.min(radius, width, height / 2));
+
+    if (rightward) {
+        return `M${x},${y}H${x + width - corner}A${corner},${corner} 0 0 1 ${x + width},${y + corner}V${y + height - corner}A${corner},${corner} 0 0 1 ${x + width - corner},${y + height}H${x}Z`;
+    }
+
+    return `M${x + width},${y}V${y + height}H${x + corner}A${corner},${corner} 0 0 1 ${x},${y + height - corner}V${y + corner}A${corner},${corner} 0 0 1 ${x + corner},${y}Z`;
+}
+
 /* Between the top of a column and the baseline of its value. */
 export const LABEL_LIFT = 10;
+/* Between the end of a bar of a horizontal chart and the start of its value. */
+export const LABEL_INSET = 6;
 /* The height of a row of labels and what a label is taken to measure per character until it has been drawn once, per size. */
 const LABEL_SIZES = { '2xs': { row: 16, char: 8 }, xs: { row: 18, char: 9 } } as const;
 

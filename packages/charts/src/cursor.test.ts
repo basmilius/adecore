@@ -55,6 +55,14 @@ describe('the keyboard', () => {
         expect(moveIndex('End', 0, 4)).toBe(3);
     });
 
+    test('steps through rows with Up and Down and leaves Left and Right to the page', () => {
+        expect(moveIndex('ArrowDown', -1, 4, [], 'rows')).toBe(0);
+        expect(moveIndex('ArrowDown', 1, 4, [], 'rows')).toBe(2);
+        expect(moveIndex('ArrowUp', 1, 4, [], 'rows')).toBe(0);
+        expect(moveIndex('ArrowRight', 1, 4, [], 'rows')).toBeUndefined();
+        expect(moveIndex('ArrowDown', 1, 4)).toBeUndefined();
+    });
+
     test('Escape clears a cursor and leaves the key alone without one', () => {
         expect(moveIndex('Escape', 2, 4)).toBeNull();
         expect(moveIndex('Escape', -1, 4)).toBeUndefined();
