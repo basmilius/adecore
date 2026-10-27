@@ -68,7 +68,7 @@ describe('capabilities and server requests', () => {
         expect(initialize.capabilities.textDocument.documentHighlight).toEqual({ dynamicRegistration: true });
         expect(initialize.capabilities.textDocument.documentSymbol).toMatchObject({ dynamicRegistration: true, hierarchicalDocumentSymbolSupport: true });
         expect(initialize.capabilities.textDocument.foldingRange).toMatchObject({ dynamicRegistration: true });
-        expect(initialize.capabilities.textDocument.codeLens).toEqual({ dynamicRegistration: true });
+        expect(initialize.capabilities.textDocument.codeLens).toEqual({ dynamicRegistration: true, resolveSupport: { properties: ['command'] } });
         expect(initialize.capabilities.workspace.symbol).toMatchObject({ dynamicRegistration: true, resolveSupport: { properties: ['location.range'] } });
         const document = session.openDocument({ uri: 'file:///symbols.ts', languageId: 'typescript', text: 'let x = 1; x++;' });
         const highlights = document.documentHighlights({ line: 0, character: 4 });

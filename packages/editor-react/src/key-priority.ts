@@ -21,7 +21,8 @@ export const KEY_PRIORITY = {
     symbolPicker: 300,
     history: 200,
     renderedDocs: 100,
-    pasteHistory: 50
+    pasteHistory: 50,
+    inlineCompletion: 25
 } as const;
 
 interface Entry {

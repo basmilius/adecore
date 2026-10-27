@@ -13,7 +13,7 @@ import {
     type ActionEntry,
     type ActionGroup
 } from './code-actions-model.ts';
-import type { Problem } from './diagnostics-model.ts';
+import { comparePositions, type Problem } from './diagnostics-model.ts';
 import type { EditorLanguage } from './editor-language.ts';
 import type { PickGroup, PickPreview } from './popups.ts';
 import { Refresher } from './refresher.ts';
@@ -173,6 +173,43 @@ export class CodeActionsFeature {
         try {
             const edits = await this.language.service.formatting(uri, { ...editor.getIndentation() });
 
+            if (edits !== null && edits.length > 0 && !editor.applyEdits(edits.map((edit) => ({ range: edit.range, text: edit.newText })))) {
+                this.tell('error', this.say('readOnly'));
+            }
+        } catch (error) {
+            this.fail(error);
+        }
+    }
+
+    /* Whether a server formats a part of this document, so `formatSelection` has something to ask. */
+    get formatsSelection(): boolean {
+        return this.language.service.supports('textDocument/rangeFormatting', this.language.uri);
+    }
+
+    /*
+     * Formats what is selected, every selection in one request when the server formats several ranges at once and
+     * one by one otherwise; the whole document when nothing is selected.
+     */
+    async formatSelection(): Promise<void> {
+        const { editor, uri } = this.language;
+        const ranges = editor.getSelections().filter((range) => comparePositions(range.start, range.end) !== 0);
+        if (ranges.length === 0) {
+            await this.formatDocument();
+            return;
+        }
+        if (!this.formatsSelection) {
+            this.tell('error', this.say('noFormatter'));
+            return;
+        }
+        const { service } = this.language;
+        const formatting = { ...editor.getIndentation() };
+        try {
+            const edits =
+                service.rangesFormatting !== undefined && service.supports('textDocument/rangesFormatting', uri)
+                    ? await service.rangesFormatting(uri, ranges, formatting)
+                    : (await Promise.all(ranges.map((range) => service.rangeFormatting(uri, range, formatting, { parallel: true })))).flatMap(
+                          (list) => list ?? []
+                      );
             if (edits !== null && edits.length > 0 && !editor.applyEdits(edits.map((edit) => ({ range: edit.range, text: edit.newText })))) {
                 this.tell('error', this.say('readOnly'));
             }

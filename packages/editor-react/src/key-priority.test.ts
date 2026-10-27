@@ -171,7 +171,8 @@ describe('the keys of an editor language', () => {
             'symbolPicker',
             'history',
             'renderedDocs',
-            'pasteHistory'
+            'pasteHistory',
+            'inlineCompletion'
         ]);
     });
 });

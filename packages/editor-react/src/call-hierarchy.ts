@@ -5,12 +5,14 @@ import type { EditorLanguage } from './editor-language.ts';
 import {
     CALL_LEVEL_LIMIT,
     childrenOf,
+    isTypeDirection,
     moreIdOf,
     rootsOf,
     rowsOf,
     statusIdOf,
     stepsOf,
     targetOf,
+    typeChildrenOf,
     type CallDirection,
     type CallNode,
     type CallRow
@@ -23,6 +25,7 @@ import { realTimers, revealRow, type Timers } from './timers.ts';
 
 const TOAST_ID = 'language-call-hierarchy';
 const PREPARE = 'textDocument/prepareCallHierarchy';
+const PREPARE_TYPES = 'textDocument/prepareTypeHierarchy';
 
 /* The row the panel stands in is as tall as a peek's, plus the segmented control that is a pixel taller than the peek's title bar. */
 export const CALL_HIERARCHY_HEIGHT = PEEK_HEIGHT + 2;
@@ -42,6 +45,7 @@ export class CallHierarchyFeature {
     private nodes = new Map<string, CallNode>();
     private roots: string[] = [];
     private prepared: CallHierarchyItem[] = [];
+    private position: EditorPosition | null = null;
     private direction: CallDirection = 'incoming';
     private controller = new AbortController();
 
@@ -58,11 +62,13 @@ export class CallHierarchyFeature {
 
         const offs = [
             language.onKey((event) => {
-                if (isShortcut(this.language.shortcuts.callHierarchy, event)) {
-                    if (this.isOpen) {
-                        this.setDirection(this.direction === 'incoming' ? 'outgoing' : 'incoming');
+                const calls = isShortcut(this.language.shortcuts.callHierarchy, event);
+                if (calls || isShortcut(this.language.shortcuts.typeHierarchy, event)) {
+                    const [first, second]: CallDirection[] = calls ? ['incoming', 'outgoing'] : ['supertypes', 'subtypes'];
+                    if (this.isOpen && isTypeDirection(this.direction) !== calls) {
+                        this.setDirection(this.direction === first ? second : first);
                     } else {
-                        void this.open();
+                        void this.open(undefined, first);
                     }
 
                     return true;
@@ -98,12 +104,28 @@ export class CallHierarchyFeature {
         );
     }
 
-    /* Opens the tree for the symbol at the position, on its callers unless told otherwise. */
-    async open(position: EditorPosition = this.language.editor.getCaret(), direction: CallDirection = 'incoming'): Promise<void> {
-        const { editor, uri } = this.language;
+    /* Whether a server of this document answers the three requests of the type hierarchy. */
+    get typesSupported(): boolean {
+        const { service, uri } = this.language;
 
-        if (!this.supported) {
-            this.tell(this.say('unavailable'));
+        return (
+            service.prepareTypeHierarchy !== undefined &&
+            service.supertypes !== undefined &&
+            service.subtypes !== undefined &&
+            service.supports(PREPARE_TYPES, uri)
+        );
+    }
+
+    /*
+     * Opens the tree for the symbol at the position, on its callers unless told otherwise; `supertypes` or `subtypes`
+     * open the type hierarchy of the type at the position.
+     */
+    async open(position: EditorPosition = this.language.editor.getCaret(), direction: CallDirection = 'incoming'): Promise<void> {
+        const { editor, service, uri } = this.language;
+        const types = isTypeDirection(direction);
+
+        if (!(types ? this.typesSupported : this.supported)) {
+            this.tell(this.say(types ? 'typesUnavailable' : 'unavailable'));
 
             return;
         }
@@ -113,10 +135,12 @@ export class CallHierarchyFeature {
         let items: CallHierarchyItem[] | null;
 
         try {
-            items = await this.language.service.prepareCallHierarchy!(uri, position, { signal: this.controller.signal });
+            const options = { signal: this.controller.signal };
+
+            items = types ? await service.prepareTypeHierarchy!(uri, position, options) : await service.prepareCallHierarchy!(uri, position, options);
         } catch (error) {
             if (epoch === this.epoch && !(error instanceof StaleResultError)) {
-                this.tell(this.say('failed', { message: messageOf(error) }));
+                this.tell(this.say(types ? 'typesFailed' : 'failed', { message: messageOf(error) }));
             }
 
             return;
@@ -127,13 +151,14 @@ export class CallHierarchyFeature {
         }
 
         if (items === null || items.length === 0) {
-            this.tell(this.say('none'));
+            this.tell(this.say(types ? 'typesNone' : 'none'));
 
             return;
         }
 
         this.language.peek.close();
         this.prepared = items;
+        this.position = position;
         this.direction = direction;
         this.seed();
         const active = this.roots[0]!;
@@ -170,11 +195,17 @@ export class CallHierarchyFeature {
         this.language.editor.focus();
     }
 
-    /* Starts the tree over from the same symbols for the other direction. */
+    /* Starts the tree over from the same symbols for the other direction; a switch between calls and types prepares the symbol again. */
     setDirection(direction: CallDirection): void {
         const view = this.language.popups.getState().callHierarchy;
 
         if (view === null || view.direction === direction) {
+            return;
+        }
+
+        if (isTypeDirection(direction) !== isTypeDirection(view.direction)) {
+            void this.open(this.position ?? undefined, direction);
+
             return;
         }
 
@@ -331,20 +362,17 @@ export class CallHierarchyFeature {
         }
 
         const { i18n } = this.language.project;
-        const { service, uri, editor } = this.language;
+        const { editor } = this.language;
         const { direction, epoch } = this;
         const options = { signal: this.controller.signal, parallel: true };
         this.patch(id, { load: 'loading', error: null });
 
         try {
-            const calls =
-                direction === 'incoming' ? await service.incomingCalls!(uri, node.item, options) : await service.outgoingCalls!(uri, node.item, options);
+            const children = await this.childrenOf(direction, node, options);
 
             if (epoch !== this.epoch) {
                 return;
             }
-
-            const children = childrenOf(direction, node, calls ?? []);
 
             for (const child of children) {
                 this.nodes.set(child.id, child);
@@ -364,6 +392,21 @@ export class CallHierarchyFeature {
             }
 
             this.patch(id, { load: 'failed', error: messageOf(error) });
+        }
+    }
+
+    private async childrenOf(direction: CallDirection, node: CallNode, options: { signal: AbortSignal; parallel: boolean }): Promise<CallNode[]> {
+        const { service, uri } = this.language;
+
+        switch (direction) {
+            case 'incoming':
+                return childrenOf(direction, node, (await service.incomingCalls!(uri, node.item, options)) ?? []);
+            case 'outgoing':
+                return childrenOf(direction, node, (await service.outgoingCalls!(uri, node.item, options)) ?? []);
+            case 'supertypes':
+                return typeChildrenOf(node, (await service.supertypes!(uri, node.item, options)) ?? []);
+            case 'subtypes':
+                return typeChildrenOf(node, (await service.subtypes!(uri, node.item, options)) ?? []);
         }
     }
 

@@ -186,11 +186,20 @@ export function lineElement(
         }
 
         const span = document.createElement('span');
-        span.className = box.inlay.ghost ? 'se-ghost' : box.inlay.composition ? 'se-composition' : 'se-inlay';
+        span.className = box.inlay.ghost
+            ? 'se-ghost'
+            : box.inlay.composition
+              ? 'se-composition'
+              : box.inlay.swatch !== undefined
+                ? 'se-inlay se-swatch'
+                : 'se-inlay';
         span.dataset.inlayId = box.inlay.id;
         const { parts } = box.inlay;
 
-        if (parts === undefined) {
+        if (box.inlay.swatch !== undefined) {
+            span.style.backgroundColor = box.inlay.swatch;
+            span.setAttribute('aria-label', box.inlay.text);
+        } else if (parts === undefined) {
             span.textContent = visibleBidi(box.inlay.text);
         } else {
             parts.forEach((part, index) => {

@@ -59,6 +59,13 @@ child.stderr.on('data', (chunk) => log(String(chunk)));
 | `onConfiguration(item)`  |                    | Answers each configuration item instead of `configuration`                 |
 | `onApplyEdit(params)`    | refuses            | Applies a `workspace/applyEdit` of the server                              |
 | `onShowMessage(params)`  | `null`             | Answers a `window/showMessageRequest`                                      |
+| `onMessage(params)`      |                    | A `window/showMessage` for a person to read                                |
+| `onLog(params)`          |                    | A `window/logMessage` line                                                 |
+| `onTrace(params)`        |                    | A `$/logTrace` of the server                                               |
+| `onTelemetry(data)`      |                    | A `telemetry/event`                                                        |
+| `onShowDocument(params)` | refuses            | Shows a document or web address for `window/showDocument`; announced only when set |
+| `trace`                  | `off`              | The trace level sent with `initialize`; `setTrace(value)` changes it later |
+| `locale`                 |                    | The language of the interface, for the server's messages                   |
 
 Advertise insertion modes and list defaults only when the completion consumer implements them. Empty lists leave the capabilities absent.
 
@@ -74,7 +81,23 @@ Without `onConfiguration`, a configuration query without a section gets all sett
 
 `supports(method, document?)` says whether the server answers a method, from its static capabilities and from what it registered since, filtered by the document selector of a registration. `providerOptions(method, document?)` returns the options of that provider, such as trigger characters or a semantic tokens legend. Ask for the exact method: `completionItem/resolve` needs `resolveProvider`, `textDocument/prepareRename` needs `prepareProvider`.
 
-`onCapabilitiesChanged(listener)` fires when the server registers or unregisters a capability and when it asks the client to refresh semantic tokens, inlay hints, diagnostics or code lenses. Ask again for what depends on it.
+`onCapabilitiesChanged(listener)` fires when the server registers or unregisters a capability and when it asks the client to refresh semantic tokens, inlay hints, diagnostics, code lenses, inline values, folding ranges or the content of its documents. Ask again for what depends on it.
+
+The client announces every part of LSP 3.17 and the parts 3.18 adds: the language features of a document, workspace diagnostics, the content of documents of a server's own scheme, workspace folder changes, notebook synchronization, `showDocument` when the host answers it, partial results and work-done progress. Synchronization takes no dynamic registration: a server says in `textDocumentSync` whether it wants `willSave` and `willSaveWaitUntil`.
+
+## The workspace
+
+| Method                                      | What it does                                                                               |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `workspaceDiagnostics(previousResultIds?)`  | The problems of every file the server knows, for one that sets `workspaceDiagnostics`; a document it reports `unchanged` keeps what the client had |
+| `textDocumentContent(uri)`                  | The text of a document of a scheme the server lists, such as a decompiled class            |
+| `changeWorkspaceFolders(event)`             | Adds and removes folders, and tells a server that asked for the changes                    |
+| `setTrace(value)`                           | Changes the level of `$/logTrace`                                                          |
+| `cancelWorkDoneProgress(token)`             | Asks the server to stop work it reported as cancellable                                    |
+
+## Notebooks
+
+A notebook's cells are documents that do not go through `openDocument`. `openNotebook(notebook, cellTextDocuments)`, `changeNotebook(notebook, change)`, `saveNotebook(notebook)` and `closeNotebook(notebook, cellUris)` send the `notebookDocument/*` notifications, and only for a notebook the server selects in `notebookDocumentSync`, which `syncsNotebook(notebook)` tells. The editors of this repository have no notebook view; the session carries the protocol for a host that has one.
 
 ## Listening
 

@@ -28,6 +28,7 @@ export function EditorContextMenu({ language, view, children }: { language: Edit
         implementation: () => void language.navigation.go('implementation'),
         peekReferences: () => void language.peek.open(),
         callHierarchy: () => void language.callHierarchy.open(),
+        typeHierarchy: () => void language.callHierarchy.open(undefined, 'supertypes'),
         renameSymbol: () => void language.rename.start(),
         codeActions: () => void language.codeActions.open()
     };
@@ -100,6 +101,12 @@ export function EditorContextMenu({ language, view, children }: { language: Edit
                             {t('commands.formatDocument')}
                             {language.shortcuts.formatDocument !== null && <Kbd shortcut={language.shortcuts.formatDocument} />}
                         </ContextMenu.Item>
+                        {language.codeActions.formatsSelection &&
+                            language.editor
+                                .getSelections()
+                                .some((range) => range.start.line !== range.end.line || range.start.character !== range.end.character) && (
+                                <ContextMenu.Item onClick={() => void language.codeActions.formatSelection()}>{t('commands.formatSelection')}</ContextMenu.Item>
+                            )}
                     </>
                 )}
             </ContextMenu.Popup>

@@ -40,6 +40,13 @@ export interface LspTransport {
 export interface RequestOptions {
     signal?: AbortSignal;
     timeoutMs?: number;
+    /*
+     * Asks the server to stream the result: each part arrives here before the answer, which then holds only what
+     * is left, often nothing. The caller joins the parts, since how depends on the method. Needs object params.
+     */
+    onPartialResult?: (value: unknown) => void;
+    /* Asks the server to report the progress of the work under a token of the client. Needs object params. */
+    onWorkDoneProgress?: (progress: WorkDoneProgress) => void;
 }
 
 export interface DocumentRequestOptions extends RequestOptions {
@@ -452,6 +459,12 @@ export interface ProviderOptions {
     filters?: FileOperationFilter[];
     range?: boolean | object;
     full?: boolean | { delta?: boolean };
+    /* Of a formatting registration: the server formats several ranges in one request. */
+    rangesSupport?: boolean;
+    /* Of a diagnostic registration: the server answers `workspace/diagnostic`. */
+    workspaceDiagnostics?: boolean;
+    /* Of a `workspace/textDocumentContent` registration. */
+    schemes?: string[];
     [option: string]: unknown;
 }
 
@@ -489,7 +502,20 @@ export interface ServerCapabilities {
     inlayHintProvider?: boolean | ProviderOptions;
     callHierarchyProvider?: boolean | ProviderOptions;
     documentOnTypeFormattingProvider?: ProviderOptions;
-    diagnosticProvider?: ProviderOptions;
+    diagnosticProvider?: ProviderOptions & { interFileDependencies?: boolean; workspaceDiagnostics?: boolean };
+    documentLinkProvider?: ProviderOptions;
+    colorProvider?: boolean | ProviderOptions;
+    linkedEditingRangeProvider?: boolean | ProviderOptions;
+    monikerProvider?: boolean | ProviderOptions;
+    typeHierarchyProvider?: boolean | ProviderOptions;
+    inlineValueProvider?: boolean | ProviderOptions;
+    inlineCompletionProvider?: boolean | ProviderOptions;
+    notebookDocumentSync?: NotebookDocumentSyncOptions;
+    workspace?: {
+        workspaceFolders?: { supported?: boolean; changeNotifications?: boolean | string };
+        fileOperations?: Partial<Record<FileOperation, { filters: FileOperationFilter[] }>>;
+        textDocumentContent?: { schemes: string[] };
+    };
     [capability: string]: unknown;
 }
 
@@ -518,4 +544,202 @@ export interface ConfigurationItem {
 export interface ProgressParams {
     token: string | number;
     value: unknown;
+}
+
+export type ProgressToken = string | number;
+
+/* The values of `$/progress` for a work-done token: a begin, any number of reports, and an end. */
+export type WorkDoneProgress =
+    | { kind: 'begin'; title: string; cancellable?: boolean; message?: string; percentage?: number }
+    | { kind: 'report'; cancellable?: boolean; message?: string; percentage?: number }
+    | { kind: 'end'; message?: string };
+
+export type TraceValue = 'off' | 'messages' | 'verbose';
+
+export interface LogTraceParams {
+    message: string;
+    verbose?: string;
+}
+
+/* 1 error, 2 warning, 3 info, 4 log, 5 debug (3.18). */
+export type MessageType = 1 | 2 | 3 | 4 | 5;
+
+export interface ShowMessageParams {
+    type: MessageType;
+    message: string;
+}
+
+export interface MessageActionItem {
+    title: string;
+    [property: string]: unknown;
+}
+
+export interface ShowMessageRequestParams extends ShowMessageParams {
+    actions?: MessageActionItem[];
+}
+
+export interface LogMessageParams {
+    type: MessageType;
+    message: string;
+}
+
+/* A document or a web address a server asks to have shown; `external` opens it outside the editor. */
+export interface ShowDocumentParams {
+    uri: string;
+    external?: boolean;
+    takeFocus?: boolean;
+    selection?: Range;
+}
+
+export interface ShowDocumentResult {
+    success: boolean;
+}
+
+export interface WorkspaceFoldersChangeEvent {
+    added: WorkspaceFolder[];
+    removed: WorkspaceFolder[];
+}
+
+/* 1 when a person saved, 2 after a delay, 3 when the editor lost focus. */
+export type TextDocumentSaveReason = 1 | 2 | 3;
+
+export interface DocumentLink {
+    range: Range;
+    target?: string;
+    tooltip?: string;
+    data?: unknown;
+}
+
+/* Each part from 0 to 1. */
+export interface Color {
+    red: number;
+    green: number;
+    blue: number;
+    alpha: number;
+}
+
+export interface ColorInformation {
+    range: Range;
+    color: Color;
+}
+
+/* One way to write a color: its label is what the picker shows, `textEdit` what replaces the color in the text. */
+export interface ColorPresentation {
+    label: string;
+    textEdit?: TextEdit;
+    additionalTextEdits?: TextEdit[];
+}
+
+/* Ranges that are edited together, such as the names of a start and an end tag; `wordPattern` limits what they may become. */
+export interface LinkedEditingRanges {
+    ranges: Range[];
+    wordPattern?: string;
+}
+
+export type UniquenessLevel = 'document' | 'project' | 'group' | 'scheme' | 'global';
+export type MonikerKind = 'import' | 'export' | 'local';
+
+export interface Moniker {
+    scheme: string;
+    identifier: string;
+    unique: UniquenessLevel;
+    kind?: MonikerKind;
+}
+
+/* A class, interface or other type whose super and sub types are traced; `data` goes back to the server untouched. */
+export interface TypeHierarchyItem {
+    name: string;
+    kind: SymbolKind;
+    tags?: 1[];
+    detail?: string;
+    uri: string;
+    range: Range;
+    selectionRange: Range;
+    data?: unknown;
+}
+
+/* Where a debugger stopped, which a server reads inline values for. */
+export interface InlineValueContext {
+    frameId: number;
+    stoppedLocation: Range;
+}
+
+export type InlineValue =
+    | { range: Range; text: string }
+    | { range: Range; variableName?: string; caseSensitiveLookup: boolean }
+    | { range: Range; expression?: string };
+
+/* 1 when a person asked, 2 while typing. */
+export interface InlineCompletionContext {
+    triggerKind: 1 | 2;
+    selectedCompletionInfo?: { range: Range; text: string };
+}
+
+export interface InlineCompletionItem {
+    insertText: string | { kind: 'snippet'; value: string };
+    filterText?: string;
+    range?: Range;
+    command?: Command;
+}
+
+export type InlineCompletionResult = InlineCompletionItem[] | { items: InlineCompletionItem[] } | null;
+
+export type WorkspaceDocumentDiagnosticReport =
+    | { kind: 'full'; uri: string; version: number | null; resultId?: string; items: Diagnostic[] }
+    | { kind: 'unchanged'; uri: string; version: number | null; resultId: string };
+
+export interface WorkspaceDiagnosticReport {
+    items: WorkspaceDocumentDiagnosticReport[];
+}
+
+/* What the client last heard for a document, so the server can answer `unchanged`. */
+export interface PreviousResultId {
+    uri: string;
+    value: string;
+}
+
+export interface TextDocumentContentResult {
+    text: string;
+}
+
+export interface NotebookCell {
+    /* 1 markup, 2 code. */
+    kind: 1 | 2;
+    document: string;
+    metadata?: Record<string, unknown>;
+    executionSummary?: { executionOrder: number; success?: boolean };
+}
+
+export interface NotebookDocument {
+    uri: string;
+    notebookType: string;
+    version: number;
+    metadata?: Record<string, unknown>;
+    cells: NotebookCell[];
+}
+
+export interface NotebookCellArrayChange {
+    start: number;
+    deleteCount: number;
+    cells?: NotebookCell[];
+}
+
+export interface NotebookDocumentChangeEvent {
+    metadata?: Record<string, unknown>;
+    cells?: {
+        structure?: { array: NotebookCellArrayChange; didOpen?: DocumentItem[]; didClose?: { uri: string }[] };
+        data?: NotebookCell[];
+        textContent?: { document: { uri: string; version: number }; changes: ContentChange[] }[];
+    };
+}
+
+export interface NotebookDocumentFilter {
+    notebookType?: string;
+    scheme?: string;
+    pattern?: string;
+}
+
+export interface NotebookDocumentSyncOptions {
+    notebookSelector: { notebook?: string | NotebookDocumentFilter; cells?: { language: string }[] }[];
+    save?: boolean;
 }

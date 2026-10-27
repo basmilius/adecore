@@ -125,12 +125,29 @@
             "site": "Call {{current}} of {{total}}",
             "previousSite": "Previous call",
             "nextSite": "Next call",
+            "typesUnavailable": "Type hierarchy unavailable in this file",
+            "typesNone": "No type here",
+            "typesFailed": "Could not look up types: {{message}}",
+            "typesLabel": "Type hierarchy",
+            "supertypes": "Supertypes",
+            "subtypes": "Subtypes",
+            "noSupertypes": "No supertypes",
+            "noSubtypes": "No subtypes",
             "announce": {
                 "incoming_one": "{{count}} caller of {{name}}",
                 "incoming_other": "{{count}} callers of {{name}}",
                 "outgoing_one": "{{count}} callee of {{name}}",
-                "outgoing_other": "{{count}} callees of {{name}}"
+                "outgoing_other": "{{count}} callees of {{name}}",
+                "supertypes_one": "{{count}} supertype of {{name}}",
+                "supertypes_other": "{{count}} supertypes of {{name}}",
+                "subtypes_one": "{{count}} subtype of {{name}}",
+                "subtypes_other": "{{count}} subtypes of {{name}}"
             }
+        },
+        "colors": {
+            "swatch": "Color {{color}}",
+            "title": "Color",
+            "other": "Pick another color…"
         },
         "codeVision": {
             "usagesNone": "No usages",
@@ -246,10 +263,12 @@
         "goToTypeDefinition": "Go to type definition",
         "goToImplementation": "Go to implementation",
         "callHierarchy": "Call hierarchy",
+        "typeHierarchy": "Type hierarchy",
         "peekReferences": "Peek references",
         "renameSymbol": "Rename symbol",
         "codeActions": "Code actions",
-        "formatDocument": "Format document"
+        "formatDocument": "Format document",
+        "formatSelection": "Format selection"
     },
     "find": {
         "label": "Find",

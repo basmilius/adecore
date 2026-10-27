@@ -1,6 +1,10 @@
 import { KEYMAP, type Keymap } from '@adecore/editor/keymap';
 import type { Editor, EditorKeyHandler, EditorPosition } from '@adecore/editor';
-import type { LanguageService, Location } from '@adecore/lsp';
+import type { LanguageService, Location, TextDocumentSaveReason } from '@adecore/lsp';
+import { DocumentColorsFeature } from './document-colors.ts';
+import { DocumentLinksFeature } from './document-links.ts';
+import { InlineCompletionFeature } from './inline-completion.ts';
+import { LinkedEditingFeature } from './linked-editing.ts';
 import { CallHierarchyFeature } from './call-hierarchy.ts';
 import { CodeActionsFeature } from './code-actions.ts';
 import { CodeVisionFeature } from './code-vision.ts';
@@ -33,6 +37,9 @@ import { SnippetFeature } from './snippet-session.ts';
 import { SymbolsFeature } from './symbols.ts';
 import type { Place } from './navigation-history.ts';
 import type { LanguageDocumentHandle, ProjectLanguage } from './project-language.ts';
+
+/* How long the edits servers want before a save are waited for. */
+const SAVE_PARTICIPANT_MS = 1_000;
 
 /* What an app tunes about the features of one editor. */
 export interface EditorLanguageOptions {
@@ -84,8 +91,13 @@ export class EditorLanguage {
     readonly formatOnType: FormatOnTypeFeature;
     readonly renderedDocs: RenderedDocsFeature;
     readonly pasteHistory: PasteHistoryFeature;
+    readonly links: DocumentLinksFeature;
+    readonly colors: DocumentColorsFeature;
+    readonly linkedEditing: LinkedEditingFeature;
+    readonly inlineCompletion: InlineCompletionFeature;
     private readonly disposers: Array<() => void> = [];
     private readonly keys = new KeyDispatcher();
+    private readonly timers: Timers;
     private disposed = false;
 
     constructor(project: ProjectLanguage, editor: Editor, uri: string, languageId: string, timers: Timers = realTimers, options: EditorLanguageOptions = {}) {
@@ -97,6 +109,7 @@ export class EditorLanguage {
         this.languageId = languageId;
         this.served = options.serve ?? true;
         this.document = project.acquire(uri, languageId, editor, { serve: this.served });
+        this.timers = timers;
         this.onDispose(editor.onKeyDown((event) => this.keys.dispatch(event)));
         this.pick = new PickFeature(this, timers);
         this.diagnostics = new DiagnosticsFeature(this);
@@ -112,6 +125,11 @@ export class EditorLanguage {
         this.inlayHints = new InlayHintsFeature(this, timers);
         this.codeActions = new CodeActionsFeature(this, timers);
         this.rename = new RenameFeature(this);
+        // Before navigation, whose Mod+click goes to a definition: a link under the pointer goes first.
+        this.links = new DocumentLinksFeature(this, timers);
+        this.colors = new DocumentColorsFeature(this, timers);
+        this.linkedEditing = new LinkedEditingFeature(this, timers);
+        this.inlineCompletion = new InlineCompletionFeature(this, timers);
         this.navigation = new NavigationFeature(this);
         this.peek = new PeekFeature(this, timers);
         this.callHierarchy = new CallHierarchyFeature(this, timers);
@@ -217,6 +235,31 @@ export class EditorLanguage {
      */
     onKey(handler: EditorKeyHandler, priority = 0): () => void {
         return this.keys.add(handler, priority);
+    }
+
+    /*
+     * Lets the servers in before the host writes the file: tells them a save is coming and applies the edits they
+     * want made first, such as organized imports. A server that has not answered within a second is passed over,
+     * as the specification allows. Call it, then save, then let the service send `didSave`.
+     */
+    async prepareSave(reason: TextDocumentSaveReason = 1): Promise<void> {
+        const { service } = this.project;
+        await service.willSave?.(this.uri, reason).catch(() => undefined);
+        if (service.willSaveWaitUntil === undefined) {
+            return;
+        }
+        const controller = new AbortController();
+        const timer = this.timers.set(() => controller.abort(), SAVE_PARTICIPANT_MS);
+        try {
+            const edits = await service.willSaveWaitUntil(this.uri, reason, { signal: controller.signal });
+            if (!controller.signal.aborted && edits !== null && edits.length > 0) {
+                this.editor.applyEdits(edits.map((edit) => ({ range: edit.range, text: edit.newText })));
+            }
+        } catch {
+            // A server that fails or is too slow does not keep the file from being saved.
+        } finally {
+            this.timers.clear(timer);
+        }
     }
 
     /* Runs `dispose` when the editor lets go of its document. */

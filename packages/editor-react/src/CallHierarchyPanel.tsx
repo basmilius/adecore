@@ -9,7 +9,7 @@ import { CALL_HIERARCHY_HEIGHT } from './call-hierarchy.ts';
 import { PanelResizeHandle } from './PanelResizeHandle.tsx';
 import { usePanelBody } from './use-panel-body.ts';
 import { PANEL_BODY_HEIGHT } from './panel-size.ts';
-import { CALL_LEVEL_LIMIT, type CallDirection, type CallRow } from './call-hierarchy-model.ts';
+import { CALL_LEVEL_LIMIT, isTypeDirection, type CallDirection, type CallRow } from './call-hierarchy-model.ts';
 import type { EditorLanguage } from './editor-language.ts';
 import { basenameOf, relativeTo } from './paths.ts';
 import { PathText } from './PathText.tsx';
@@ -125,7 +125,12 @@ function Tree({ language, view }: { language: EditorLanguage; view: CallHierarch
     useInputPopup(language, treeId, activeId);
 
     return (
-        <div id={treeId} role="tree" aria-label={t('language.callHierarchy.label')} className="w-1/2 shrink-0 overflow-y-auto border-r border-border py-1">
+        <div
+            id={treeId}
+            role="tree"
+            aria-label={t(isTypeDirection(view.direction) ? 'language.callHierarchy.typesLabel' : 'language.callHierarchy.label')}
+            className="w-1/2 shrink-0 overflow-y-auto border-r border-border py-1"
+        >
             {view.rows.map((row) => {
                 const active = row.id === view.active;
                 const ref = active ? activeRow : undefined;
@@ -174,11 +179,14 @@ function StatusText({ row, direction }: { row: Extract<CallRow, { kind: 'status'
         );
     }
 
-    return (
-        <span className="font-sans text-xs text-text-muted">
-            {t(direction === 'incoming' ? 'language.callHierarchy.noIncoming' : 'language.callHierarchy.noOutgoing')}
-        </span>
-    );
+    const empty = {
+        incoming: 'noIncoming',
+        outgoing: 'noOutgoing',
+        supertypes: 'noSupertypes',
+        subtypes: 'noSubtypes'
+    } as const;
+
+    return <span className="font-sans text-xs text-text-muted">{t(`language.callHierarchy.${empty[direction]}`)}</span>;
 }
 
 /*
@@ -210,10 +218,17 @@ export function CallHierarchyPanel({ language, view }: { language: EditorLanguag
                     value={view.direction}
                     onValueChange={(direction) => language.callHierarchy.setDirection(direction)}
                     label={t('language.callHierarchy.direction')}
-                    options={[
-                        { id: 'incoming', label: t('language.callHierarchy.incoming') },
-                        { id: 'outgoing', label: t('language.callHierarchy.outgoing') }
-                    ]}
+                    options={
+                        isTypeDirection(view.direction)
+                            ? [
+                                  { id: 'supertypes', label: t('language.callHierarchy.supertypes') },
+                                  { id: 'subtypes', label: t('language.callHierarchy.subtypes') }
+                              ]
+                            : [
+                                  { id: 'incoming', label: t('language.callHierarchy.incoming') },
+                                  { id: 'outgoing', label: t('language.callHierarchy.outgoing') }
+                              ]
+                    }
                 />
                 <span className="shrink-0 font-medium">{view.name}</span>
                 <span className="shrink-0 font-medium text-text-muted">{path === null ? '' : basenameOf(path)}</span>
